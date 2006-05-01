@@ -13,7 +13,7 @@ from Timba.Contrib.OMS import Bookmarks
 # MS name
 TDLRuntimeOption('msname',"MS",[
       "TEST.MS",
-      "TEST-cps.MS",
+      "TEST-lim.MS",
       "TEST-grid.MS"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=1);
@@ -32,7 +32,7 @@ TDLCompileOption('phase_scale_freq',"Max. phase variation in freq (deg)",[30,60,
 TDLCompileOption('phase_stddev',"Add phase noise (deg)",[None,0.5,1,2,5,10]);
 
 # if not None, a per-ifr noise term with the given stddev will be added
-TDLCompileOption('noise_stddev',"Add background noise (Jy)",[0,0.05,0.1,0.33,0.5]);
+TDLCompileOption('noise_stddev',"Add background noise (Jy)",[0,1e-9,1e-8,1e-6,1e-3,0.05,0.1,0.33,0.5]);
 
 # number of timeslots to use at once
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);

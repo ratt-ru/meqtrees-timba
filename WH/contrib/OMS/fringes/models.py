@@ -43,24 +43,24 @@ ra_lim  = [ 0.0300,0.0312 ];
 dec_lim = [ 0.5764,0.5754 ];
                 
 
-def random_faint_sources (ns,tablename):
+def random_sources (ns,tablename,count=25,next=8,flux=.1,prefix='F'):
   parm_options = record(
       table_name=tablename,
       node_groups='Parm');
   source_model = [];
-  for i in range(25):
+  for i in range(count):
     ra = random.uniform(*ra_lim);
     dec = random.uniform(*dec_lim);
-    # add a point source or a gaussian (2/3 point sources)
-    if random.choice([0,1,2]):
-      source_model.append(PointSource(ns,name="F"+str(i),
-                  I=random.uniform(.05,.1), Q=0.0, U=0.0, V=0.0,
+    # add a point source or a gaussian 
+    if i >= next:
+      source_model.append(PointSource(ns,name=prefix+str(i),
+                  I=random.uniform(flux/2,flux), Q=0.0, U=0.0, V=0.0,
                   Iorder=0, ra=ra, dec=dec,
                   spi=0,freq0=ref_frequency,
                   parm_options=parm_options)); 
     else:
-      source_model.append(GaussianSource(ns,name="F"+str(i),
-                  I=random.uniform(.1,.3), Q=0.0, U=0.0, V=0.0,
+      source_model.append(GaussianSource(ns,name=prefix+str(i),
+                  I=random.uniform(flux,flux*3), Q=0.0, U=0.0, V=0.0,
                   Iorder=0, ra=ra, dec=dec,
                   spi=0,freq0=ref_frequency,
                   size=[random.uniform(1e-5,1e-4),random.uniform(1e-5,1e-4)],
@@ -139,9 +139,18 @@ def two_point_sources_plus_grid (ns,tablename=''):
 
 def two_point_sources_plus_random (ns,tablename=''):
   source_model = two_point_sources(ns,tablename) + \
-                 random_faint_sources(ns,tablename);
+                 random_sources(ns,tablename,flux=.1);
+  return source_model
+
+def two_point_sources_plus_random_uJy (ns,tablename=''):
+  source_model = two_point_sources(ns,tablename) + \
+                 random_sources(ns,tablename,flux=1e-6);
   return source_model
   
+def two_point_sources_plus_random_nJy (ns,tablename=''):
+  source_model = two_point_sources(ns,tablename) + \
+                 random_sources(ns,tablename,count=25,next=8,flux=1e-8,prefix='n');
+  return source_model
 
 def two_point_sources_plus_faint_extended (ns,tablename=''):
   

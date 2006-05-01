@@ -35,6 +35,8 @@ myimager.setimage(nx=1024,ny=1024,cellx='0.25arcsec',celly='0.25arcsec',
   mode=mode,
   nchan=32,start=1,step=1)
   
+# myimager.weight("natural"); 
+  
 myimager.setoptions(cache=100000000);
 
 #myimager.weight(type="uniform" , async=F)

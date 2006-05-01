@@ -13,7 +13,7 @@ from Timba.Contrib.OMS import Bookmarks
 # MS name
 TDLRuntimeOption('msname',"MS",[
       "TEST.MS",
-      "TEST-cps.MS",
+      "TEST-lim.MS",
       "TEST-grid.MS"]);
 
 # ms_output = False  # if True, outputs to MS, else to BOIO dump   
@@ -33,7 +33,9 @@ TDLCompileOption('source_model',"Source model",[
     models.cps_plus_faint_extended,
     models.two_bright_one_faint_point_source,
     models.two_point_sources_plus_grid,
-    models.two_point_sources_plus_random
+    models.two_point_sources_plus_random,
+    models.two_point_sources_plus_random_uJy,
+    models.two_point_sources_plus_random_nJy
   ],default=0);
 
 # number of timeslots to use at once

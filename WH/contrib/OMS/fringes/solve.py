@@ -19,12 +19,14 @@ from Timba.Contrib.OMS import Bookmarks
 # MS name
 TDLRuntimeOption('msname',"MS",[
       "TEST.MS",
-      "TEST-cps.MS",
+      "TEST-lim.MS",
       "TEST-grid.MS"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
+
+TDLRuntimeOption('tile_size',"Tile size (timeslots)",[1,5,10,20,30,60]);
 
 # how much to perturb starting values of solvables
 TDLRuntimeOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]);
@@ -36,13 +38,16 @@ TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
 
 # solver options
 TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
-TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5]);
-TDLRuntimeOption('solver_num_iter',"Max number of solver iterations",[30,50,100]);
+TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5,1e-6]);
+TDLRuntimeOption('solver_num_iter',"Max number of solver iterations",[30,50,100,1000]);
 
-TDLCompileOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5]);
+TDLCompileOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5,.8]);
 TDLCompileOption('constraint_weight',"Weight of flux constraint",[1,100,1000,10000]);
 
-TDLCompileOption('fringe_deg',"Polc degree for fringe fitting",[0,1,2]);
+TDLCompileOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3]);
+TDLCompileOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3]);
+
+TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -140,7 +145,7 @@ def _define_forest(ns):
   # Add solvable G jones terms
   for station in array.stations():
     # create polc in freq/time
-    polc = create_polc(0.0,fringe_deg,fringe_deg);
+    polc = create_polc(0.0,fringe_deg_freq,fringe_deg_time);
     ns.phase(station) << \
       Meq.Parm(polc,real_polc=polc,node_groups='Parm',table_name=get_mep_table());
     diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
@@ -165,11 +170,17 @@ def _define_forest(ns):
     pred = predict(sta1,sta2);
     ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
     condeqs.append(ce);
-    
-  # compute corrected data. We don't need to subtract-correct-add since
-  # we're dealing with uv-plane effects only, so we can directly apply
-  # the inverse G jones to the spigots.
-  Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
+    # subtract nodes compute residuals
+    if output_type == "residual":
+      ns.residual(sta1,sta2) << spigot - pred;
+      
+  # now create nodes to apply correction
+  # in residual mode we apply it to the residual data only
+  # in corrected mode, apply directly to spigot
+  if output_type == "residual":
+    Jones.apply_correction(ns.corrected,ns.residual,ns.G,array.ifrs());
+  else:
+    Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
     
   # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
@@ -317,8 +328,6 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False):
 arcsec_to_rad = math.pi/(180*3600);
 
 def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 60;
   solvables = [];
   for src in source_list:
     pert_ra = random.uniform(-pos_perturbation,pos_perturbation);
@@ -341,8 +350,6 @@ def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
   _run_solve_job(mqs,solvables);
   
 def _tdl_job_2_solve_for_phases_and_fluxes (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 10;
   solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
                 pert=flux_perturbation,absolute=False);
   solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
