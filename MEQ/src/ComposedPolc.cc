@@ -358,6 +358,54 @@ namespace Meq {
   }
 
 
+  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints)
+  {
+    Thread::Mutex::Lock lock(mutex());
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+
+    int nrfunk=funklist.size();
+    int nr_spids = spidIndex.size();
+    int ifunk=0;
+     for(int funknr=0 ; funknr<nrfunk ; funknr++)
+      {
+
+	
+	Funklet::Ref partfunk = funklist.get(funknr);
+	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
+  
+    
+	for( int i=0; i<nr_spids; i++ ) 
+	  {
+	    if( spidIndex[i] >= 0 ) 
+	      {
+		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
+
+		//constrain constant funklets
+		if(partfunk->isConstant()){
+		  coeff[i] = std::min(coeff[i],constraints[1]);
+		  coeff[i] = std::max(coeff[i],constraints[0]);
+
+		}
+
+	      }
+	  }
+	
+	funklist.replace(funknr,partfunk);
+	ifunk++;
+
+	
+      }//loop over funklets
+
+   
+  }
+
+
   void ComposedPolc::changeSolveDomain(const Domain & solveDomain){
     Thread::Mutex::Lock lock(mutex());
     //transform cooeff of every Polc

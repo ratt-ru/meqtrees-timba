@@ -393,6 +393,24 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
   }
 }
 
+//##ModelId=3F86886F03BE
+void Polc::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if(! isConstant()) {do_update (values,spidIndex); return;}//only contraint if constant 
+  double* coeff = static_cast<double*>(coeffWr().getDataPtr());
+  for( uint i=0; i<spidIndex.size(); i++ ) 
+  {
+    if( spidIndex[i] >= 0 ) 
+      {
+	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+	coeff[i] += values[spidIndex[i]];
+	coeff[i] = std::min(coeff[i],constraints[1]);
+	coeff[i] = std::max(coeff[i],constraints[0]);
+      }
+  }
+}
+
 
 void Polc::changeSolveDomain(const Domain & solveDomain){
   Thread::Mutex::Lock lock(mutex());

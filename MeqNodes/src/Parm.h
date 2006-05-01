@@ -76,14 +76,14 @@
 //defrec end
 
 namespace Meq {
-const HIID
-  // Parm staterec fields
+  const HIID
+    // Parm staterec fields
     FSolvable        = AidSolvable,
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FAutoSave        = AidAuto|AidSave,
     FDomainId        = AidDomain|AidId,
-  // FDomain      defined previously
+    // FDomain      defined previously
     FFunklet         = AidFunklet,
     FDefaultFunklet  = AidDefault|AidFunklet,
     FDefaultValue  = AidDefault|AidValue,
@@ -94,7 +94,10 @@ const HIID
     FInitFunklet  = AidInit|AidFunklet,
     FConverged  = AidConverged,
     FSaveAll  = AidSave|AidAll,
-    FResetFunklet = AidReset|AidFunklet;
+    FResetFunklet = AidReset|AidFunklet,
+    FConstrain = AidConstrain;
+ 
+
   // This class contains the coeff of any funklet, either solvable or unsolvable.
   class Parm: public Node
   {
@@ -195,6 +198,7 @@ const HIID
     std::string parmtable_name_;
     double  default_;
     bool force_shape_;
+    bool constrained_;
     LoShape shape_;//shape of  polctype funklets
     Funklet::Ref init_funklet_;//funklet for initialisation 
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
@@ -209,6 +213,7 @@ const HIID
     std::vector<HIID> resolution_symdeps_;
 
     std::vector<double> solve_domain_; //solve domain, default = [0,1]
+    std::vector<double> its_constraints_; //constraints, default = [-inf,inf], only filled if constrained_ =true;
     bool        integrated_;
 
     //some functions

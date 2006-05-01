@@ -66,6 +66,7 @@ namespace Meq {
       parmtable_(0),
       default_(1.),
       force_shape_(false),
+      constrained_(false),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
       res_depend_mask_(0),
@@ -671,7 +672,12 @@ namespace Meq {
 	   
        }
 
-    //MMMMshape
+    if(rec->hasField(FConstrain)){
+      FailWhen( !rec[FConstrain].get_vector(its_constraints_,initializing),
+		   "constraint should be a vector of doubles");
+      constrained_ = true;
+    }
+
 
     // Get ParmTable name 
     HIID tableId;
@@ -768,7 +774,14 @@ namespace Meq {
 	  LoVec_double values = hset.as<LoVec_double>();
 	  FailWhen(!tiled_ && (values.size() != int(its_funklet_->getSpids().size())),
 		   "size of "+FIncrUpdate.toString()+" field does not match size of funklets");
-	  its_funklet_().update(values.data());
+
+	  if(constrained_)
+	    {
+	      
+	      its_funklet_().update(values.data(),its_constraints_);
+	    }
+	  else
+	    its_funklet_().update(values.data());
 	  wstate()[FFunklet].replace()=its_funklet_().getState();
 	  if( auto_save_ )
 	  {

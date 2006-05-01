@@ -129,6 +129,7 @@ protected:
                             int makePerturbed) const;
 
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double>& constraints);
 
   //------------------ end of protected Funklet interface ------------------------------------
   virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales);

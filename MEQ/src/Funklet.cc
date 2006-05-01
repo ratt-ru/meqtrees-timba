@@ -432,6 +432,11 @@ void Funklet::update (const double values[])
   do_update(values,spidInx_);
 }
 
+void Funklet::update (const double values[],const std::vector<double>& constraints)
+{
+  do_update(values,spidInx_,constraints);
+}
+
 void Funklet::do_evaluate (VellSet &,const Cells &,
                            const std::vector<double> &,
                            const std::vector<int>    &,
@@ -452,6 +457,12 @@ void Funklet::do_evaluate (VellSet &,const Cells &,
 void Funklet::do_update (const double [],const std::vector<int> &)
 { 
   Throw("do_update() not implemented by Funklet subclass"); 
+}
+
+void Funklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &cnstrnts)
+{ 
+  //ignore constraints if not implemented;
+  do_update(values,spidIndex);
 }
 
 } // namespace Meq

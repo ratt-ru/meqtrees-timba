@@ -109,6 +109,7 @@ namespace Meq
                             int makePerturbed) const;
 
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints);
     
   private:
   int nr_funklets_;
