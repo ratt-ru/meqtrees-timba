@@ -29,6 +29,7 @@ class Circle(QCanvasEllipse):
     self.name=name
     self.canvas=canvas
     self.color=color
+    self.radius=radius
     self.setBrush(QBrush(self.color))
     self.setX(center_x)
     self.setY(center_y)
@@ -41,6 +42,9 @@ class Circle(QCanvasEllipse):
    self.color=color
    self.setBrush(QBrush(self.color))
 
+  def getDims(self):
+   return self.radius
+
 
 ##################################################################
 class Cross(QCanvasPolygon):
@@ -49,6 +53,8 @@ class Cross(QCanvasPolygon):
     self.name=name
     self.canvas=canvas
     self.color=color
+    self.width=w
+    self.length=l
     self.setBrush(QBrush(self.color))
     self.myRTTI=POINT_SOURCE_RTTI
     pa=QPointArray(12)
@@ -75,6 +81,66 @@ class Cross(QCanvasPolygon):
   def updateColor(self,color):
    self.color=color
    self.setBrush(QBrush(self.color))
+
+  def getDims(self):
+   return (self.width,self.length)
+
+
+##################################################################
+class tCross(QCanvasPolygonalItem):
+  def __init__(self,center_x,center_y,w,l,color,name,canvas):
+    QCanvasPolygonalItem.__init__(self,canvas)
+    self.name=name
+    self.canvas=canvas
+    self.color=color
+    self.width=w
+    self.length=l
+    self.myRTTI=POINT_SOURCE_RTTI
+    self.setPen(QPen(self.color))
+    self.setBrush(QBrush(self.color))
+    self.pen().setWidth(w)
+    self.move(center_x,center_y)
+
+  ## destructor must call hide
+  def __del__(self):
+    self.hide()
+
+  def rtti(self):
+    return self.myRTTI
+ 
+  def updateColor(self,color):
+   self.color=color
+
+  def getDims(self):
+   return (self.width,self.length)
+
+  ## area of the bounding rectangle
+  def areaPoints(self):
+    pa=QPointArray(4)
+    pa.setPoint(0,QPoint(self.x()+self.length,self.y()+self.length))
+    pa.setPoint(1,QPoint(self.x()-self.length,self.y()+self.length))
+    pa.setPoint(2,QPoint(self.x()-self.length,self.y()-self.length))
+    pa.setPoint(3,QPoint(self.x()+self.length,self.y()-self.length))
+    return pa
+
+  ## draw the cross
+  def drawShape(self,p):
+   # draw the lines
+   length=self.length
+   if length<1: length=1
+   p.drawLine(self.x()-length,self.y(),self.x()+length,self.y())
+   p.drawLine(self.x(),self.y()-length,self.x(),self.y()+length)
+
+  def updateColor(self,color):
+   self.color=color
+   self.setBrush(QBrush(self.color))
+   self.setPen(QPen(self.color))
+
+  def updateSize(self,scale):
+   self.length=self.length*scale
+   if self.length<1: self.length=1
+
+
 
 #################################################################
 class DynamicTip( QToolTip ):
@@ -392,7 +458,7 @@ class PointSource:
 
  # cross - polygon
  def addCross(self,center_x,center_y,w,l,color,name,z_value):
-  c=Cross(center_x,center_y,w,l,color,name,self.cview.canvas())
+  c=tCross(center_x,center_y,w,l,color,name,self.cview.canvas())
   c.setZ(z_value)
   return c
 
@@ -445,7 +511,8 @@ class PointSource:
     self.cview.max_brightness==0:
    length=0
   else:
-   length=int(math.log(new_value/self.cview.min_brightness)/math.log(self.cview.max_brightness/self.cview.min_brightness)*10)
+   new_value=abs(new_value)
+   length=int(math.log(new_value/abs(self.cview.min_brightness))/math.log(self.cview.max_brightness/abs(self.cview.min_brightness))*10)
   self.pcross=self.addCross(self.x,self.y,1,length,newcolor,self.name,new_value)
  
   if self.cview.display_point_sources=='cross':
@@ -454,6 +521,33 @@ class PointSource:
    self.circle.show()
   else:
    self.pcross.show()
+
+
+ # shrink/enlarge each object by the given scale
+ def resizeItems(self,new_scale):
+  # Neet to adjust the size of pcross as well
+  # instead of adjusting current pcross, recreate a new one
+  # self.pcross.updateColor(newcolor)
+  oldc=self.pcross
+  (w,l)=oldc.getDims()
+  new_l=l*new_scale
+  if (int(new_l)>=1): 
+    oldc.hide()
+    # if the new with is less than 1, change to a skeleton
+    self.pcross=tCross(self.x,self.y,w,new_l,oldc.color,self.name,self.cview.canvas())
+    self.pcross.setZ(oldc.z())
+    del oldc 
+  else:
+    # do nothing
+    return
+
+  if self.cview.display_point_sources=='cross':
+   self.cross.show()
+  elif self.cview.display_point_sources=='point':
+   self.circle.show()
+  else:
+   self.pcross.show()
+
 
 ################################################################
 #############################################################

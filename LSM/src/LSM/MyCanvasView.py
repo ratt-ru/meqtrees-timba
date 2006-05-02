@@ -881,4 +881,29 @@ class MyCanvasView(QCanvasView):
     self.canvas().update()
 
 
+   
+  # enlarge the sources by a factor of 2
+  def enlarge_display(self):
+    for sname in self.lsm.p_table.keys():
+       punit=self.lsm.p_table[sname]
+       if punit.getType()==POINT_TYPE:
+          # update size and colour both, if pcrosses are displayed 
+          self.p_tab[sname].resizeItems(2)
+       else: #PATCH_TYPE
+          pass
+
+    self.canvas().update()
+
+  # shrink the sources by a factor of 2
+  def shrink_display(self):
+    for sname in self.lsm.p_table.keys():
+       punit=self.lsm.p_table[sname]
+       if punit.getType()==POINT_TYPE:
+          # update size and colour both, if pcrosses are displayed 
+          self.p_tab[sname].resizeItems(0.5)
+       else: #PATCH_TYPE
+          pass
+
+    self.canvas().update()
+
 ##################################################################

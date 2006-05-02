@@ -315,6 +315,23 @@ class LSMWindow(QMainWindow):
         spacer1 = QSpacerItem(11,11,QSizePolicy.Expanding,QSizePolicy.Minimum)
         layout1.addItem(spacer1)
 
+        ## add two buttons for enlarge(shrinking sources
+        layout3 = QVBoxLayout(None,0,0,"layout3")
+        # buttons
+        self.enlarge_button=QPushButton(self.imageTab,"+")
+        self.shrink_button=QPushButton(self.imageTab,"-")
+        self.enlarge_button.setFlat(0)
+        self.enlarge_button.setText("+")
+        self.shrink_button.setFlat(0)
+        self.shrink_button.setText("-")
+        layout3.addWidget(self.enlarge_button)
+        layout3.addWidget(self.shrink_button)
+        layout1.addLayout(layout3)
+        self.connect( self.enlarge_button, SIGNAL("clicked()"), self.cview.enlarge_display )
+        self.connect( self.shrink_button, SIGNAL("clicked()"), self.cview.shrink_display )
+
+
+        # slider
         layout2 = QVBoxLayout(None,0,6,"layout2")
         layout2.addWidget(self.sliderLabel)
 
