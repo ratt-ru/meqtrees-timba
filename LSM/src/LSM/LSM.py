@@ -543,7 +543,7 @@ class LSM:
    return self.p_table[pname].getBrightness()
   else:
    # select the max value
-   tmp_max=0
+   tmp_max=-1e6
    for pname in self.p_table.keys():
     if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
@@ -586,6 +586,26 @@ class LSM:
 
   # else
   return 0
+
+ # return max,min and abs(min) values 
+ def getBrightnessLims(self,type='A',f=0,t=0):
+  if type=='A':
+   # scan of all punits
+   tmp_min=1e6 # FIXME: a very large value
+   tmp_max=-1e6
+   tmp_abs_min=1e6
+   for pname in self.p_table.keys():
+    if self.p_table[pname].getType()==POINT_TYPE:
+     tmp_val=self.p_table[pname].getBrightness()
+     if tmp_min > tmp_val:
+      tmp_min=tmp_val
+     if tmp_abs_min > abs(tmp_val):
+      tmp_abs_min=abs(tmp_val)
+     if tmp_max < tmp_val:
+      tmp_max=tmp_val
+   return (tmp_max,tmp_min,tmp_abs_min)
+
+  return (0,0,0)
 
  # return current frequency and time
  def getCurrentFreqTime(self,freq_index,time_index):

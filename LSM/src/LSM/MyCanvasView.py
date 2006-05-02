@@ -40,7 +40,7 @@ class MyCanvasView(QCanvasView):
     self.obsres_on=0 # beam
     self.obswin_on=0
     self.proj_on=0 # projection 0: off, 1:0n
-    self.display_point_sources='cross' #cross,point,pcross
+    self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
     self.viewport().setMouseTracking(1) 
@@ -74,6 +74,13 @@ class MyCanvasView(QCanvasView):
     self.parent=parent_window
     self.max_brightness=self.lsm.getMaxBrightness()
     self.min_brightness=self.lsm.getMinBrightness()
+
+    (tmp_max,tmp_min,tmp_abs_min)=self.lsm.getBrightnessLims()
+    #print "Cview",(tmp_max,tmp_min,tmp_abs_min)
+    self.max_brightness=tmp_max
+    self.min_brightness=tmp_min
+    self.abs_min_brightness=tmp_abs_min
+
     # sanity check
     if self.max_brightness==self.min_brightness:
       self.max_brightness=self.min_brightness+1.0

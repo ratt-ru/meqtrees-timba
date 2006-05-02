@@ -47,7 +47,7 @@ class Circle(QCanvasEllipse):
 
 
 ##################################################################
-class Cross(QCanvasPolygon):
+class pCross(QCanvasPolygon):
   def __init__(self,center_x,center_y,w,l,color,name,canvas):
     QCanvasPolygon.__init__(self,canvas)
     self.name=name
@@ -94,7 +94,7 @@ class tCross(QCanvasPolygonalItem):
     self.canvas=canvas
     self.color=color
     self.width=w
-    self.length=l
+    self.length=abs(l)
     self.myRTTI=POINT_SOURCE_RTTI
     self.setPen(QPen(self.color))
     self.setBrush(QBrush(self.color))
@@ -438,11 +438,11 @@ class PointSource:
   #print "Brightness: min,max, current",self.cview.min_brightness,self.cview.max_brightness,punit.getBrightness()
   br=abs(punit.getBrightness())
   if self.cview.max_brightness!=self.cview.min_brightness:
-   rat=abs(self.cview.max_brightness)/abs(self.cview.min_brightness)
+   rat=abs(self.cview.max_brightness)/self.cview.abs_min_brightness
   else:
    rat=1.1
   if br >0.0:
-   length=int(math.log(br/abs(self.cview.min_brightness))/math.log(rat)*10)
+   length=int(math.log(br/self.cview.abs_min_brightness)/math.log(rat)*10)
   else:
    length=1.0e-6
   self.pcross=self.addCross(xys[0],xys[1],1,length,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
