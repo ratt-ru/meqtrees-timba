@@ -1,6 +1,6 @@
 from Timba.dmi import *
 from Timba.utils import *
-from Timba.Apps.config import Config 
+from ConfigParser import *
 
 import traceback
 import inspect
@@ -15,8 +15,20 @@ _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# config file for script options
+config_file = ".tdl.conf";
+config = ConfigParser();
+config.read(config_file);
+
+def save_config ():
+  config.write(file(config_file,"w"));
+  
+def set_config (option,value):
+  config.set(config_section,option,value);
+  save_config();
+
 # current config section, this is set to the script name by init_options()
-config_section = "tdl scripts";
+config_section = "default";
 
 compile_options = [];
 runtime_options = [];
@@ -40,7 +52,7 @@ def get_compile_options ():
 def get_runtime_options ():
   return runtime_options;
   
-class TDLOptionItem(object):
+class _TDLOptionItem(object):
   def __init__ (self,namespace,symbol,value):
     self.namespace = namespace;
     self.symbol = symbol;
@@ -66,20 +78,20 @@ class TDLOptionItem(object):
     return getattr(item,'__name__',None) or str(item);
   item_str = staticmethod(item_str);
 
-class TDLBoolOptionItem (TDLOptionItem):
+class _TDLBoolOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value):
     try:
-      value = Config.getbool(symbol,default=value,section=config_section)
+      value = config.getboolean(config_section,symbol);
     except:
       _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
         traceback.print_exc();
     _dprint(1,"read",symbol,"=",value,"from config");
-    TDLOptionItem.__init__(self,namespace,symbol,value);
+    _TDLOptionItem.__init__(self,namespace,symbol,value);
     
   def set (self,value):
     value = bool(value);
-    Config.set(self.symbol,value,section=config_section);
+    set_config(self.symbol,value);
     self._set(value);
 
   def add_to_menu (self,menu):
@@ -96,7 +108,7 @@ class TDLBoolOptionItem (TDLOptionItem):
     menu._ends_with_separator = False;
     
     
-class TDLListOptionItem (TDLOptionItem):
+class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None):
     self.option_list = value;
     self.option_list_str = map(lambda x:self.item_str(x),value);
@@ -110,15 +122,15 @@ class TDLListOptionItem (TDLOptionItem):
       raise ValueError,"'default': index out of range";
     # try to read from config
     try:
-      def1 = Config.get(symbol,section=config_section);
+      def1 = config.get(config_section,symbol);
       _dprint(1,"read",symbol,"=",def1,"from config");
       default = self.option_list_str.index(def1);
     except:
-      _dprint(1,"error reading value from configuration file");
+      _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
         traceback.print_exc();
     self.selected = default;
-    TDLOptionItem.__init__(self,namespace,symbol,self.option_list[default]);
+    _TDLOptionItem.__init__(self,namespace,symbol,self.option_list[default]);
     
   def num_options (self):
     return len(self.option_list);
@@ -132,7 +144,7 @@ class TDLListOptionItem (TDLOptionItem):
   def set (self,value):
     self.selected = value = int(value);
     self._set(self.get_option(value));
-    Config.set(self.symbol,self.get_option_str(value),section=config_section);
+    set_config(self.symbol,self.get_option_str(value));
     
   def add_to_menu (self,menu):
     """adds entry for option to menu object (usually of class QPopupMenu).
@@ -176,16 +188,35 @@ class TDLListOptionItem (TDLOptionItem):
     self.set(ivalue);
     if not self.inline:
       qag.setMenuText(qag._groupname+": "+self.get_str());
+      
+class _TDLSubmenu (object):
+  def __init__ (self,title,*items):
+    self._title = title;
+    self._items = items;
     
-  
+  def add_to_menu (self,menu):
+    """adds submenu to menu object (usually of class QPopupMenu).
+    """
+    submenu = QPopupMenu(menu);
+    menu.insertItem(self._title,submenu);
+    # create entries for sub-items
+    for item in self._items:
+      _dprint(3,"adding",item,"to submenu");
+      item.add_to_menu(submenu);
 
-def make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=None):
+def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=None):
+  # if namespace is not specified, set it to 
+  # the globals() of the caller of our caller
+  if namespace is None:
+    namespace = inspect.stack()[2][0].f_globals;
+  elif inspect.ismodule(namespace):
+    namespace = namespace.__dict__;
   # boolean option
   if isinstance(value,bool):
-    item = TDLBoolOptionItem(namespace,symbol,value);
+    item = _TDLBoolOptionItem(namespace,symbol,value);
   # list of options
   elif isinstance(value,(list,tuple)):
-    item = TDLListOptionItem(namespace,symbol,value,default=default);
+    item = _TDLListOptionItem(namespace,symbol,value,default=default);
     setattr(item,'inline',inline);
   else:
     raise TDLError,"Illegal type for TDL option: "+type(value).__name__;
@@ -193,25 +224,28 @@ def make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=
   item.set_doc(doc);
   return item;
 
-def _add_option (option_list,namespace,*args,**kwargs):
-  if namespace is None:
-    namespace = inspect.stack()[2][0].f_globals;
-  elif inspect.ismodule(namespace):
-    namespace = namespace.__dict__;
-  opt = make_option_item(namespace,*args,**kwargs);
-  option_list.append(opt);
-  return opt;
-  
-
-
 def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
-  return _add_option(compile_options,namespace,
-    symbol,name,value,default=default,inline=inline,doc=doc);
-
+  """this creates an option object and adds it to the compile-time list""";
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc);
+  compile_options.append(opt);
+  return opt;
 
 def TDLRuntimeOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
-  return _add_option(runtime_options,namespace,
-    symbol,name,value,default=default,inline=inline,doc=doc);
+  """this creates an option object and adds it to the runtime list""";
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc);
+  runtime_options.append(opt);
+  return opt;
+  
+def TDLCompileMenu (title,*items):
+  compile_options.append(_TDLSubmenu(title,*items));
 
+def TDLRuntimeMenu (title,*items):
+  runtime_options.append(_TDLSubmenu(title,*items));
 
+def TDLMenu (title,*items):
+  return _TDLSubmenu(title,*items);
 
+def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
+  """this creates and returns an option object. Should be used
+  with TDLCompileMenu/TDLRuntimeMenu.""";
+  return _make_option_item(namespace,symbol,name,value,default,inline,doc);

@@ -4,8 +4,7 @@ from Timba.TDL import TDLimpl
 from Timba.TDL.TDLimpl import *
 from Timba.TDL.MeqClasses import Meq
 from Timba.TDL import Settings
-from Timba.TDL.TDLOptions import TDLCompileOption
-from Timba.TDL.TDLOptions import TDLRuntimeOption
+from Timba.TDL.TDLOptions import TDLOption,TDLCompileOption,TDLRuntimeOption,TDLCompileMenu,TDLRuntimeMenu
 
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;
