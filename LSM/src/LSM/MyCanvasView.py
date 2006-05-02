@@ -80,10 +80,6 @@ class MyCanvasView(QCanvasView):
     self.abs_min_brightness=tmp_abs_min
 
     # sanity check
-    if self.max_brightness==self.min_brightness:
-      self.max_brightness=self.min_brightness+1.0
-    if self.min_brightness==0.0:
-      self.min_brightness=1e-6
     if self.max_brightness==self.abs_min_brightness:
       self.max_brightness=self.abs_min_brightness+1.0
     if self.abs_min_brightness==0.0:
@@ -137,6 +133,13 @@ class MyCanvasView(QCanvasView):
     self.ra_max=bounds['max_RA']
     self.dec_min=bounds['min_Dec']
     self.dec_max=bounds['max_Dec']
+    # add a margin of 2% of the real size
+    xmarg=(self.ra_max-self.ra_min)*0.02
+    ymarg=(self.dec_max-self.dec_min)*0.02
+    self.ra_min=self.ra_min-xmarg
+    self.ra_max=self.ra_max+xmarg
+    self.dec_min=self.dec_min-ymarg
+    self.dec_max=self.dec_max+ymarg
 
     ############# create phase center and a projector
     ra0=(self.ra_min+self.ra_max)*0.5
