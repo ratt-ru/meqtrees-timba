@@ -129,6 +129,11 @@ def radToRA(rad):
 ####### Radians to Dec=[hr,min,sec]
 ## Rad=(hr+min/60+sec/60*60)*pi/180
 def radToDec(rad):
+  if rad<0:
+   mult=-1;
+   rad=abs(rad)
+  else:
+   mult=1
   tmpval=rad*180.0/math.pi
   hr=int(tmpval)
   tmpval=tmpval-hr
@@ -137,7 +142,7 @@ def radToDec(rad):
   tmpval=tmpval-mins
   tmpval=tmpval*60
   sec=int(tmpval)
-  return [hr%180,mins%60,sec%60]
+  return [mult*(hr%180),mins%60,sec%60]
 
 
 ########## metric form
@@ -591,7 +596,7 @@ def change_radec_patch(patch_name,new_ra,new_dec,ns):
 
 ################################################################
 ## convert l,m coordinates to RA,Dec coordinates
-## see wnm/wnmccv.for WNMCLM for more detail
+## see wng/wnmccv.for WNMCLM for more detail
 def lm_to_radec(ra0,dec0,l,m):
     sind0=math.sin(dec0)
     cosd0=math.cos(dec0)
@@ -616,7 +621,15 @@ def lm_to_radec(ra0,dec0,l,m):
     return (ra,dec)
 
 
-
+## convert ra,dec to lm
+def radec_to_lm(ra0,dec0,ra,dec):
+    l=-math.sin(ra-ra0)*math.cos(dec)
+    sind0=math.sin(dec0)
+    if sind0 != 0:
+     m=-(math.cos(ra-ra0)*math.cos(dec)-math.cos(dec0))/math.sin(dec0)
+    else:
+     m=0
+    return (l,m)
 #################################################################
 if __name__ == '__main__':
   from Timba.Contrib.JEN import MG_JEN_Sixpack
@@ -638,3 +651,10 @@ if __name__ == '__main__':
   print extract_parms(my_sixpack,ns)
 
 
+  ra0=1.111
+  dec0=0.220
+  l=0.003
+  m=0.4330
+  (rr,dd)=lm_to_radec(ra0,dec0,l,m)
+  (L,M)=radec_to_lm(ra0,dec0,rr,dd)
+  print rr,dd,L,M,l,m
