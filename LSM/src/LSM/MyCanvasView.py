@@ -134,8 +134,12 @@ class MyCanvasView(QCanvasView):
     self.dec_min=bounds['min_Dec']
     self.dec_max=bounds['max_Dec']
     # add a margin of 2% of the real size
-    xmarg=(self.ra_max-self.ra_min)*0.02
-    ymarg=(self.dec_max-self.dec_min)*0.02
+    xmarg=abs(self.ra_max-self.ra_min)*0.02
+    ymarg=abs(self.dec_max-self.dec_min)*0.02
+    if xmarg==0:
+      xmarg=0.001
+    if ymarg==0:
+      ymarg=0.001
     self.ra_min=self.ra_min-xmarg
     self.ra_max=self.ra_max+xmarg
     self.dec_min=self.dec_min-ymarg
