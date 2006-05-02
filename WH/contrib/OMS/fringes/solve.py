@@ -23,43 +23,51 @@ TDLRuntimeOption('msname',"MS",[
       "TEST-grid.MS"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
-
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-
 TDLRuntimeOption('tile_size',"Tile size (timeslots)",[1,5,10,20,30,60]);
 
 # how much to perturb starting values of solvables
-TDLRuntimeOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]);
+TDLRuntimeMenu('Parameter options',
+  TDLOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]),
+  TDLOption('pos_perturbation',"Perturb positions by (arcsec)",[.1,.25,1,2]),
+  TDLOption('use_previous',"Reuse solution from previous time interval",False,
+  doc="""If True, solutions for successive time domains will start with
+the solution for a previous domain. Normally this speeds up convergence; you
+may turn it off to re-test convergence at each domain."""),
+  TDLOption('use_mep',"Reuse solutions from MEP table",False,
+  doc="""If True, solutions from the MEP table (presumably, from a previous
+run) will be used as starting points. Turn this off to solve from scratch.""")
+);
 
-TDLRuntimeOption('pos_perturbation',"Perturb positions by (arcsec)",[.1,.25,1,2]);
+# solver runtime options
+TDLRuntimeMenu("Solver options",
+  TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
+  TDLOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]),
+  TDLOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
+  TDLOption('solver_num_iter',"Max number of solver iterations",[30,50,100,1000])
+);
 
-# solver debug level
-TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
-
-# solver options
-TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
-TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5,1e-6]);
-TDLRuntimeOption('solver_num_iter',"Max number of solver iterations",[30,50,100,1000]);
-
-TDLCompileOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5,.8]);
-TDLCompileOption('constraint_weight',"Weight of flux constraint",[1,100,1000,10000]);
-
-TDLCompileOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3]);
-TDLCompileOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3]);
-
-TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
-
-# number of stations
-TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
-
-# which source model to use
-# source_model = clar_model.point_and_extended_sources;
+# source model
 TDLCompileOption('source_model',"Source model",[
     models.cps,
     models.cps_plus_faint_extended,
     models.two_point_sources,
     models.two_bright_one_faint_point_source
   ],default=0);
+  
+# fitting options
+TDLCompileMenu("Fitting options",
+  TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4]),
+  TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4]),
+  TDLOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5,.8,.99]),
+  TDLOption('constraint_weight',"Weight of flux constraint",["intrinsic",100,1000,10000])
+);
+
+TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
+
+# number of stations
+TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
+
 
 source_table = "sources.mep";
 mep_table = "calib.mep";
@@ -70,13 +78,6 @@ def get_source_table ():
 def get_mep_table ():
   return msname+"/"+mep_table;
 
-TDLRuntimeOption('use_previous',"Reuse solution from previous time interval",False,
-  doc="""If True, solutions for successive time domains will start with
-the solution for a previous domain. Normally this speeds up convergence; you
-may turn it off to re-test convergence at each domain.""");
-TDLRuntimeOption('use_mep',"Reuse solutions from MEP table",False,
-  doc="""If True, solutions from the MEP table (presumably, from a previous
-run) will be used as starting points. Turn this off to solve from scratch.""");
 
 # number of timeslots to use at once
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
@@ -118,10 +119,11 @@ Settings.forest_state = record(bookmarks=[
       ["phase:7","phase:8","phase:9"],
       ["phase:10","phase:11","solver"]
   )),
-  record(name='Flux and position solutions',page=Bookmarks.PlotPage(
-      ["I:S1","ra:S1","dec:S1"],
-      ["I:S5","ra:S5","dec:S5"],
-      ["solver"]
+  record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
+      ["I:S1","I:S5","phase:1"],
+      ["phase:2","phase:3","phase:4"],
+      ["phase:5","phase:6","phase:7"],
+      ["phase:8","phase:9","solver"]
   )) 
 ]);
 
@@ -146,8 +148,9 @@ def _define_forest(ns):
   for station in array.stations():
     # create polc in freq/time
     polc = create_polc(0.0,fringe_deg_freq,fringe_deg_time);
+    shape = [fringe_deg_time+1,fringe_deg_freq+1];
     ns.phase(station) << \
-      Meq.Parm(polc,real_polc=polc,node_groups='Parm',table_name=get_mep_table());
+      Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',table_name=get_mep_table());
     diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
     ns.G(station) << Meq.Matrix22(diag,0,0,diag);
     
@@ -188,7 +191,7 @@ def _define_forest(ns):
   for i in range(array.num_stations()/2):
     (sta1,sta2) = array.stations()[i*2:(i+1)*2];
     cpo.append(ns.ce(sta1,sta2).name);
-  if flux_constraint is not None:
+  if constraint_weight != "intrinsic":
     ns.flux_constraint << flux_constraint;
     # create boundary constraints for fluxes
     for src in source_list:
@@ -302,7 +305,7 @@ def _run_solve_job (mqs,solvables):
   pass
 
 def _perturb_parameters (mqs,solvables,pert="random",
-                        absolute=False,random_range=[0.2,0.3]):
+                        absolute=False,random_range=[0.2,0.3],constrain=None):
   global perturbation;
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
@@ -312,17 +315,21 @@ def _perturb_parameters (mqs,solvables,pert="random",
       polc.coeff[0,0] *= 1 + random.uniform(*random_range)*random.choice([-1,1]);
     else: # else perturb in relative terms
       polc.coeff[0,0] *= (1 + pert);
-    set_node_state(mqs,name,record(init_funklet=polc,
-      use_previous=use_previous,reset_funklet=not use_mep));
+    parmstate = record(init_funklet=polc,
+      use_previous=use_previous,reset_funklet=not use_mep);
+    if constrain is not None:
+      parmstate.constrain = constrain;
+    set_node_state(mqs,name,parmstate);
   return solvables;
     
-def _reset_parameters (mqs,solvables,value=None,use_table=False):
+def _reset_parameters (mqs,solvables,value=None,use_table=False,reset=False):
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
     if value is not None:
       polc.coeff[()] = value;
+    reset_funklet = reset or not (use_table or use_mep);
     set_node_state(mqs,name,record(init_funklet=polc,
-      use_previous=use_previous,reset_funklet=not (use_table or use_mep)));
+      use_previous=use_previous,reset_funklet=reset_funklet));
   return solvables;
 
 arcsec_to_rad = math.pi/(180*3600);
@@ -350,9 +357,24 @@ def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
   _run_solve_job(mqs,solvables);
   
 def _tdl_job_2_solve_for_phases_and_fluxes (mqs,parent,**kw):
+  if constraint_weight == "intrinsic":
+    constrain = [flux_constraint,2.];
+  else:
+    constrain = None;
   solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-                pert=flux_perturbation,absolute=False);
+               pert=flux_perturbation,absolute=False,
+               constrain=constrain);
   solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+  _run_solve_job(mqs,solvables);
+
+def _tdl_job_2a_solve_for_phases_with_fixed_fluxes (mqs,parent,**kw):
+  _reset_parameters(mqs,['I0:'+src.name for src in source_list],reset=True);
+  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+  _run_solve_job(mqs,solvables);
+
+def _tdl_job_2b_solve_for_phases_with_fixed_fluxes_14_27 (mqs,parent,**kw):
+  _reset_parameters(mqs,['I0:'+src.name for src in source_list],reset=True);
+  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(15,num_stations+1)],0);
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_8_clear_out_all_previous_solutiuons (mqs,parent,**kw):

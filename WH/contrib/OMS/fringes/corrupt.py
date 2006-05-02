@@ -111,9 +111,9 @@ def _define_forest(ns):
     # also, make the slope vary slowly in time
     freq_slope_period = random.uniform(7200,9000) / (2*math.pi);
     # so, this is the freq component of the phase
-    ns.phase_fq(station) << phase0 + ns.rel_freq*freq_slope*Meq.Sin(ns.time/freq_slope_period+random.uniform(0,2*math.pi));
+    ns.phase_fq(station) << phase0 + ns.rel_freq*freq_slope*Meq.Sin(ns.time/freq_slope_period);
     # the time component of the phase
-    ns.phase_tm(station) << ph_scale_time_rad*Meq.Sin(ns.time/time_period+random.uniform(0,2*math.pi));
+    ns.phase_tm(station) << ph_scale_time_rad*Meq.Sin(ns.time/time_period);
     # compute actual phase as sum of two components, plus a bit of noise
     # for good measure
     if phase_stddev is not None:
