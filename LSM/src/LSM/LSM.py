@@ -1622,7 +1622,7 @@ class LSM:
 
        ### Amplitude (Stokes I)
        sI=struct.unpack('f',mdl[0:4])
-       sI=sI[0]*0.005 # convert from WU to Jy
+       sI=sI[0]*0.005 # convert from WU to Jy (1WU=5mJy)
 
        ### L offset (mult by 60*60*180/pi to get arcsecs)
        ll=struct.unpack('f',mdl[4:8])
