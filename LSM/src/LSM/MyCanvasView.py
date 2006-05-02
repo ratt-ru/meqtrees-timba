@@ -84,6 +84,11 @@ class MyCanvasView(QCanvasView):
       self.max_brightness=self.min_brightness+1.0
     if self.min_brightness==0.0:
       self.min_brightness=1e-6
+    if self.max_brightness==self.abs_min_brightness:
+      self.max_brightness=self.abs_min_brightness+1.0
+    if self.abs_min_brightness==0.0:
+      self.abs_min_brightness=1e-6
+
     # get boundaries (using ObsWin  ?)
     # 1. create Cell using ObsWin, 2. send request to meqserver, 
     # 3. scan the result set to determine boundaries of
