@@ -1528,7 +1528,6 @@ class LSM:
     gfh=gfh.flat
     ## type
     ftype=gfh[0:4].tostring()
-    ftype=ftype[0]
     ## length
     fhlen=struct.unpack('i',gfh[4:8])
     fhlen=fhlen[0]
@@ -1551,6 +1550,7 @@ class LSM:
 
     ### the remaining info is not needed
 
+    print "%s: read header type=%s, length=%d, version=%d, created=%s@%s, updated=%s@%s x %d, node name=%s"%(infile_name,ftype,fhlen,fver,crdate,crtime,rrdate,rrtime,rcount,nname)
 
     ####### Model Header -- 64 bytes 
     mdh=numarray.fromfile(ff,'b',(64,1))
@@ -1591,6 +1591,7 @@ class LSM:
     ###### the remaining is not needed
 
 
+    print "%s: read model header lines=%d, pointer=%d, sources=%d, type=%d, epoch=%f RA=%f, DEC=%f (rad) Freq=%f Hz"%(infile_name,maxlin,modptr,nsources,mtype,mepoch,ra0,dec0,freq0)
 
 
     ########## Models -- 56 bytes

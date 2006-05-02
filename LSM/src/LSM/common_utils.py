@@ -414,7 +414,7 @@ def extract_parms(sixpack,ns):
 def extract_polarization_parms(sixpack,ns):
  # get name
  myname=sixpack.label()
- print "looking for QUV of ",myname
+ #print "looking for QUV of ",myname
  # first get I0 for further processing
  if ns._name:
   Q_name=ns._name+'::Qpct:q='+myname
@@ -459,7 +459,7 @@ def extract_polarization_parms(sixpack,ns):
    myvv=0
 
 
- print "Q,U,V=",myqq,myuu,myvv
+ ##print "Q,U,V=",myqq,myuu,myvv
  return [myqq,myuu,myvv]
 
 

@@ -257,9 +257,20 @@ class LSMWindow(QMainWindow):
 
           if mytype==POINT_TYPE:
            self.table2.setText(row,PCOL_I,QString("MeqTree"))
-           self.table2.setText(row,PCOL_Q,QString("MeqTree"))
-           self.table2.setText(row,PCOL_U,QString("MeqTree"))
-           self.table2.setText(row,PCOL_V,QString("MeqTree"))
+           # see if this source is polarized
+           [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
+           if qq!=0:
+             self.table2.setText(row,PCOL_Q,QString("Polarized"))
+           else:
+             self.table2.setText(row,PCOL_Q,QString("MeqTree"))
+           if uu!=0:
+             self.table2.setText(row,PCOL_U,QString("Polarized"))
+           else:
+             self.table2.setText(row,PCOL_U,QString("MeqTree"))
+           if vv!=0:
+             self.table2.setText(row,PCOL_V,QString("Polarized"))
+           else:
+             self.table2.setText(row,PCOL_V,QString("MeqTree"))
            self.table2.setText(row,PCOL_RA,QString("MeqTree"))
            self.table2.setText(row,PCOL_DEC,QString("MeqTree"))
           else: # patch
