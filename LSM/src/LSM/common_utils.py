@@ -112,6 +112,10 @@ def bin_search(xarr,x,i_start,i_end):
 ####### Radians to RA=[hr,min,sec]
 ## Rad=(hr+min/60+sec/60*60)*pi/12
 def radToRA(rad):
+  # convert negative values
+  if rad <0:
+   rad=rad+2*math.pi
+
   tmpval=rad*12.0/math.pi
   hr=int(tmpval)
   tmpval=tmpval-hr
@@ -587,6 +591,7 @@ def change_radec_patch(patch_name,new_ra,new_dec,ns):
 
 ################################################################
 ## convert l,m coordinates to RA,Dec coordinates
+## see wnm/wnmccv.for WNMCLM for more detail
 def lm_to_radec(ra0,dec0,l,m):
     sind0=math.sin(dec0)
     cosd0=math.cos(dec0)
@@ -600,12 +605,12 @@ def lm_to_radec(ra0,dec0,l,m):
     else:
      sind=-abs(sind)
 
-    dec=math.atan(sind/cosd)
+    dec=math.atan2(sind,cosd)
 
     if l!=0:
-     ra=math.atan(-dl/(cosd0-dm*sind0))+ra0
+     ra=math.atan2(-dl,(cosd0-dm*sind0))+ra0
     else:
-     ra=math.atan((1e-10)/(cosd0-dm*sind0))+ra0
+     ra=math.atan2((1e-10),(cosd0-dm*sind0))+ra0
 
 
     return (ra,dec)

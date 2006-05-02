@@ -1624,11 +1624,11 @@ class LSM:
        sI=struct.unpack('f',mdl[0:4])
        sI=sI[0]*0.005 # convert from WU to Jy
 
-       ### L offset
+       ### L offset (mult by 60*60*180/pi to get arcsecs)
        ll=struct.unpack('f',mdl[4:8])
        ll=ll[0]
 
-       ### M offset
+       ### M offset 
        mm=struct.unpack('f',mdl[8:12])
        mm=mm[0]
 
@@ -1682,11 +1682,11 @@ class LSM:
        ###### the remaining is not needed
 
        #print ii,id,ll,mm,sI,sQ,sU,sV,eX,eY,eP,SI,RM
-       #print ii,id,ll,mm,
 
        s=Source('NEWS'+str(id))
        (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
 
+       #print ii,id,ll,mm,source_RA,source_Dec
        if SI==0 and sQ==0 and sU==0 and sV==0:
         my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
        else:
