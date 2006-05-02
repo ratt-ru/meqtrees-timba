@@ -24,6 +24,8 @@ def save_config ():
   config.write(file(config_file,"w"));
   
 def set_config (option,value):
+  if not config.has_section(config_section):
+    config.add_section(config_section);
   config.set(config_section,option,value);
   save_config();
 
@@ -193,6 +195,15 @@ class _TDLSubmenu (object):
   def __init__ (self,title,*items):
     self._title = title;
     self._items = items;
+    # check the runtime and compiletime option lists and remove item
+    # from them, if found. This allows us to include items with
+    # TDLCompileOption or TDLRuntimeOption directly
+    for item in self._items:
+      for option_list in (compile_options,runtime_options):
+        for i,item0 in enumerate(option_list):
+          if item is item0:
+            del option_list[i];
+            break;
     
   def add_to_menu (self,menu):
     """adds submenu to menu object (usually of class QPopupMenu).
