@@ -72,8 +72,6 @@ class MyCanvasView(QCanvasView):
 
     self.lsm=lsm_object
     self.parent=parent_window
-    self.max_brightness=self.lsm.getMaxBrightness()
-    self.min_brightness=self.lsm.getMinBrightness()
 
     (tmp_max,tmp_min,tmp_abs_min)=self.lsm.getBrightnessLims()
     #print "Cview",(tmp_max,tmp_min,tmp_abs_min)
