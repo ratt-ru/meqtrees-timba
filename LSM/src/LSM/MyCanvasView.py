@@ -306,20 +306,22 @@ class MyCanvasView(QCanvasView):
       br=""
       if punit != None:
        if self.default_coords=='rad':
-         br="<br/>At [%5.4f, %5.4f]<br/>App. Brightness: "%(punit.sp.getRA(),punit.sp.getDec())
+         br="<br/>At RA,DEC [%5.4f, %5.4f] (rad)<br/>App. Brightness: "%(punit.sp.getRA(),punit.sp.getDec())
          ab=stdForm(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index),"%5.3f")
          br=br+ab[0]+ab[1]+"Jy"
        else:
          tmpval=radToRA(punit.sp.getRA())
-         br="<br/>At ["+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>,"
+         br="<br/>At RA,DEC ["+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>,"
          tmpval=radToDec(punit.sp.getDec())
-         br=br+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>]<br/>App. Brightness: "
+         br=br+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>] (deg)<br/>App. Brightness: "
          ab=stdForm(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index),"%5.3f")
          br=br+ab[0]+ab[1]+"Jy"
        # extract MeqParms if any
        [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
        [ra,dec,sI]=extract_parms(punit.getSixpack(),self.lsm.getNodeScope())
-       br=br+"<br/>MeqParms: I="+str(sI)+"<br/>Q(%)="+str(qq)+"<br/>U(%)="+str(uu)+"<br/>V(%)="+str(vv)
+       br=br+"<br/>Polarizarion I="+str(sI)
+       if (qq!=0 or uu!=0 or vv !=0):
+         br=br+"<br/>Q(%)="+str(qq)+"<br/>U(%)="+str(uu)+"<br/>V(%)="+str(vv)
       tmp_str+=br
       
       if punit._patch_name !=None:
