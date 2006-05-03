@@ -40,7 +40,7 @@ class MyCanvasView(QCanvasView):
     self.obsres_on=0 # beam
     self.obswin_on=0
     self.proj_on=0 # projection 0: off, 1:0n
-    self.display_point_sources='cross' #cross,point,pcross
+    self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
     self.viewport().setMouseTracking(1) 
@@ -74,7 +74,6 @@ class MyCanvasView(QCanvasView):
     self.parent=parent_window
 
     (tmp_max,tmp_min,tmp_abs_min)=self.lsm.getBrightnessLims()
-    #print "Cview",(tmp_max,tmp_min,tmp_abs_min)
     self.max_brightness=tmp_max
     self.min_brightness=tmp_min
     self.abs_min_brightness=tmp_abs_min
@@ -84,7 +83,6 @@ class MyCanvasView(QCanvasView):
       self.max_brightness=self.abs_min_brightness+1.0
     if self.abs_min_brightness==0.0:
       self.abs_min_brightness=1e-6
-
     # get boundaries (using ObsWin  ?)
     # 1. create Cell using ObsWin, 2. send request to meqserver, 
     # 3. scan the result set to determine boundaries of

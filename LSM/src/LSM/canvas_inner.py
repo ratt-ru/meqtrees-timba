@@ -443,8 +443,10 @@ class PointSource:
    rat=1.1
   if br >0.0:
    length=int(math.log(br/self.cview.abs_min_brightness)/math.log(rat)*10)
+   if length==0:
+    length=1 # one pixel
   else:
-   length=1.0e-6
+   length=1
   self.pcross=self.addCross(xys[0],xys[1],1,length,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
   self.circle=self.addCircle(xys[0],xys[1],2,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
 
