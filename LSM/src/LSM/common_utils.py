@@ -396,7 +396,7 @@ def extract_parms(sixpack,ns):
   I0_name='I0:q='+myname
   SIFI_name='SIF_stokesI:q='+myname
  
- print "looking for params of ",myname
+ #print "looking for params of ",myname
  # RA
  allnodes=ns.Repository()
  ra=allnodes[ra_name]
@@ -413,7 +413,7 @@ def extract_parms(sixpack,ns):
  else:
   mybr=0.0
 
- print "RA,Dec,App.Bri=",myra,mydec,mybr
+ #print "RA,Dec,App.Bri=",myra,mydec,mybr
  return [myra,mydec,mybr]
 
 # utility function to extract polarization percentage [Q,U,V]
