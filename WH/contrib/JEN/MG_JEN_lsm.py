@@ -222,7 +222,7 @@ def att (dRA_rad=0, dDec_rad=0, taper_deg=None, trace=False):
    
 #--------------------------------------------------------------------------------
 
-def add_single (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
+def add_single (ns=None, Sixpack=None, lsm=None, simul=False, slave=False, **inarg):
    """Add a test-source (Sixpack) to the given lsm"""
 
    # Input arguments:
@@ -230,14 +230,16 @@ def add_single (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
                            description=add_single.__doc__)
    qual = JEN_inarg.qualifier(pp, append='single')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual,
+                                                    simul=simul, slave=slave))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
    savefile = '<savefile>'                         # place-holder
 
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual, simul=simul)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual,
+                                       simul=simul, slave=slave)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
 
@@ -247,7 +249,8 @@ def add_single (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    savefile += '.lsm'
 
    # Create the source defined by pp:
-   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul)
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                           simul=simul, slave=slave)
 
    # Compose the sixpack before adding it to the lsm:
    Sixpack.sixpack(ns)
@@ -260,7 +263,7 @@ def add_single (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
+def add_double (ns=None, Sixpack=None, lsm=None, simul=False, slave=False, **inarg):
    """Add a double test-source (Sixpack) to the given lsm"""
 
    # Input arguments:
@@ -270,8 +273,10 @@ def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    qual1 = qual+'_1'
    qual2 = qual+'_2'
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1, simul=simul))
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2, simul=simul))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1,
+                                                    simul=simul, slave=slave))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2,
+                                                    simul=simul, slave=slave))
    JEN_inarg.define(pp, 'dRA', 20, choice=[],    
                     help='distance of 2nd source in RA (arcmin)')
    JEN_inarg.define(pp, 'dDec', 20, choice=[],    
@@ -282,7 +287,8 @@ def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    funcname = JEN_inarg.localscope(pp)
    savefile = '<savefile>'                         # place-holder
 
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual1, simul=simul)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual1,
+                                       simul=simul, slave=slave)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
 
@@ -298,7 +304,8 @@ def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    RA = Dec0 + pp['dRA']*arcmin2rad()
    Dec = Dec0 + pp['dDec']*arcmin2rad()
    punit = qual2
-   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual2, simul=simul,
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual2,
+                                           simul=simul, slave=slave,
                                            punit=punit, RA=RA, Dec=Dec)
    Sixpack.sixpack(ns)
    Sixpack.display()
@@ -317,7 +324,7 @@ def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_grid (ns=None, lsm=None, simul=False, **inarg):
+def add_grid (ns=None, lsm=None, simul=False, slave=False, **inarg):
    """Add a rectangular grid of identical test-sources to the given lsm"""
 
    # Input arguments:
@@ -340,7 +347,8 @@ def add_grid (ns=None, lsm=None, simul=False, **inarg):
                             'tlq','trq','blq','brq'],    
                     help='Relative position w.r.t. the nominal punit (RA,Dec)')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual,
+                                                    simul=simul, slave=slave))
  
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -348,7 +356,8 @@ def add_grid (ns=None, lsm=None, simul=False, **inarg):
    savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual, simul=simul)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual,
+                                       simul=simul, slave=slave)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
    punit = pp1['punit']
@@ -400,7 +409,8 @@ def add_grid (ns=None, lsm=None, simul=False, **inarg):
          flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
          punit = qual+str(i)+str(j)
          # if not relpos=='center': punit += ':'+relpos
-         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul,
+         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                                 simul=simul, slave=slave,
                                                  flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)
          # Compose the sixpack before adding it to the lsm:
@@ -417,7 +427,7 @@ def add_grid (ns=None, lsm=None, simul=False, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_spiral (ns=None, lsm=None, simul=False, **inarg):
+def add_spiral (ns=None, lsm=None, simul=False, slave=False, **inarg):
    """Add a spiral pattern of identical test-sources to the given lsm"""
 
    # Input arguments:
@@ -438,7 +448,8 @@ def add_spiral (ns=None, lsm=None, simul=False, **inarg):
    JEN_inarg.define(pp, 'taper', 1.0, choice=[0.5,1,2,5,10,100,None],    
                     help='Scale (degr) of gaussian FOV taper')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual,
+                                                    simul=simul, slave=slave))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -446,7 +457,8 @@ def add_spiral (ns=None, lsm=None, simul=False, **inarg):
    savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual, simul=simul)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual,
+                                       simul=simul, slave=slave)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
    punit = pp1['punit']
@@ -468,7 +480,8 @@ def add_spiral (ns=None, lsm=None, simul=False, **inarg):
       Dec = Dec0 + r*sin(a)
       flux_att = att(RA-RA0, Dec-Dec0, pp['taper'])
       punit = 'spiral:'+str(i)
-      Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul,
+      Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                              simul=simul, slave=slave,
                                               flux_att=flux_att,
                                               punit=punit, RA=RA, Dec=Dec)
       # Compose the sixpack before adding it to the lsm:
@@ -493,7 +506,7 @@ def add_spiral (ns=None, lsm=None, simul=False, **inarg):
 #================================================================================
 #================================================================================
 
-def get_lsm (ns=None, simul=False, **inarg):
+def get_lsm (ns=None, simul=False, slave=False, **inarg):
    """Generate an existing/new/modified Local Sky Model"""
 
    # Input arguments:
@@ -516,10 +529,14 @@ def get_lsm (ns=None, simul=False, **inarg):
    JEN_inarg.define (pp, 'test_pattern', 'single',
                      choice=[None,'single','double','grid','spiral'],
                      help='pattern of test-sources to be generated')
-   JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual, simul=simul))
-   JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual, simul=simul))
-   JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual, simul=simul))
-   JEN_inarg.nest(pp, add_spiral(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual,
+                                 simul=simul, slave=slave))
+   JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual,
+                                 simul=simul, slave=slave))
+   JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual,
+                               simul=simul, slave=slave))
+   JEN_inarg.nest(pp, add_spiral(_getdefaults=True, _qual=qual,
+                                 simul=simul, slave=slave))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -542,13 +559,17 @@ def get_lsm (ns=None, simul=False, **inarg):
    savefile = '<automatic_lsm_savefile>'
    if isinstance(pp['test_pattern'], str):
       if pp['test_pattern']=='single':
-         savefile = add_single(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
+         savefile = add_single(ns, lsm=lsm, _inarg=pp, _qual=qual,
+                               simul=simul, slave=slave)
       elif pp['test_pattern']=='double':
-         savefile = add_double(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
+         savefile = add_double(ns, lsm=lsm, _inarg=pp, _qual=qual,
+                               simul=simul, slave=slave)
       elif pp['test_pattern']=='grid':
-         savefile = add_grid(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
+         savefile = add_grid(ns, lsm=lsm, _inarg=pp, _qual=qual,
+                             simul=simul, slave=slave)
       elif pp['test_pattern']=='spiral':
-         savefile = add_spiral(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
+         savefile = add_spiral(ns, lsm=lsm, _inarg=pp, _qual=qual,
+                               simul=simul, slave=slave)
       else:
          print 'test_pattern not recognised:',pp['test_pattern']
          return False

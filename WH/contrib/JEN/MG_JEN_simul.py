@@ -376,7 +376,7 @@ qual = 'solve'
 JEN_inarg.define (MG, 'use_same_LSM', tf=True,
                   help='if True, use same (simul) LSM for solving too')
 
-inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
+inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual, slave=True)
 JEN_inarg.attach(MG, inarg)
 
 if MG['external_uvp_Joneset']:
@@ -511,7 +511,7 @@ def _define_forest (ns, **kwargs):
             lsm2 = lsm
         else:
             # Optionally, get/create/modify a different LSM:
-            lsm2 = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
+            lsm2 = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual, slave=True)
 
         # Predict nominal/corrupted visibilities: 
         if MG['external_uvp_Joneset']:

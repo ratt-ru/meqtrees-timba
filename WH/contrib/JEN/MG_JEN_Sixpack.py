@@ -428,14 +428,16 @@ def readLSM (ns, filename, strip=True, display=True, trace=False):
 
 
 
-def newstar_source (ns=0, predefine=False, flux_att=1.0, simul=False, **inarg):
+def newstar_source (ns=0, predefine=False, flux_att=1.0, slave=False, simul=False, **inarg):
    """Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation"""
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Sixpack::newstar_source()', version='10feb2006',
                            description=newstar_source.__doc__)
-   inarg_punit (pp)
-   inarg_Sixpack_common(pp)            # solvable, parmtable etc
+
+   inarg_punit (pp, slave=False)                    # slave=False...
+   inarg_Sixpack_common(pp, slave=slave)            # solvable, parmtable etc
+
    JEN_inarg.define(pp, 'I0', 1.0, choice=[1.0, 10.0],  
                     help='Stokes I: Total intensity @ f=f0 (usually 1 MHz)')
    JEN_inarg.define(pp, 'Qpct', None, choice=[None, 0.1, -0.05, 0.01],  
