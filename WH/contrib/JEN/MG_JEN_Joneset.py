@@ -29,6 +29,7 @@
 # - 11 mar 2006: removed TDL_Parmset and TDL_Leafset
 # - 30 mar 2006: implemented EJones_WSRT()
 # - 24 apr 2006: recast ParmSet/LeafSet
+# - 04 may 2006: implemented create_ParmSet()
 
 # Copyright: The MeqTree Foundation 
 
@@ -276,6 +277,14 @@ def station_pol2 (polrep='linear'):
 
 
 #--------------------------------------------------------------------------------
+
+def create_ParmSet(label='<label>', **pp):
+    """Helper function to create a ParmSet object"""
+    ps = TDL_ParmSet.ParmSet(label=label)
+    if pp.has_key('parmtable'): ps.parmtable(pp['parmtable'])
+    if pp.has_key('punit'): ps.quals(dict(q=pp['punit']))
+    return ps
+
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
@@ -306,7 +315,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     pol2 = station_pol2(pp['polrep'])
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     a1 = ps.inarg_parmgroup (pp, 'Ggain_'+pol1, hide=simul,
                          tdeg=0, fdeg=0, subtile_size=1,
@@ -438,7 +447,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     RM = ps.inarg_parmgroup (pp, 'RM',
                              tdeg=0, fdeg=2, subtile_size=1,
@@ -531,7 +540,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # ** Jones matrix elements:
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     br1 = ps.inarg_parmgroup (pp, 'Breal_'+pol1,
                               tdeg=0, fdeg=5, subtile_size=None,
@@ -641,7 +650,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                      help='stations for which all 4 elements will always be solved for')
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     jr11 = ps.inarg_parmgroup (pp, 'Jreal_11',
                                tdeg=0, fdeg=0, subtile_size=None,
@@ -797,7 +806,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                      help='if True, XDell = -YDell per station')
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     Dang = ps.inarg_parmgroup (pp, 'Dang',
                                tdeg=0, fdeg=0, subtile_size=None,
@@ -1030,7 +1039,7 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
     # Input arguments for ParmSet parmgroups:
-    ps = TDL_ParmSet.ParmSet(label=jones)
+    ps = create_ParmSet(label=jones, **pp)
     inarg_Joneset_ParmSet(pp, slave=slave)
     b1 = ps.inarg_parmgroup (pp, 'EJones_'+pol1,
                              tdeg=0, fdeg=0, subtile_size=1,

@@ -43,8 +43,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq                     # required in MG_JEN_exec !!
-from Timba.Meq import meqds                     
-#from Timba.meqkernel import set_state
+from Timba.Meq import meqds
 
 # The following bit still requires a bit of thought.....
 from Timba import utils

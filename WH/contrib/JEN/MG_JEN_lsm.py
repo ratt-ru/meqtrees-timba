@@ -11,6 +11,7 @@
 # - 29 sep 2005: creation
 # - 11 feb 2006: total overhaul
 # - 22 mar 2006: standard lsm generation
+# - 01 may 2006: added build_from_newstar (MDL files)
 
 # Copyright: The MeqTree Foundation
 
@@ -59,8 +60,7 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 #********************************************************************************
 #********************************************************************************
 
-
-
+   
 def nvss_3c343(ns, trace=True):
    """Make a lsm for 3C343 from an nvss txt-file"""
    nvss2lsm (ns, nvss_file='/LOFAR/Timba/LSM/test/3C343_nvss.txt', trace=trace)
@@ -113,6 +113,61 @@ def nvss2lsm(ns, nvss_file=None, lsm_name=None, trace=True):
    home_dir = os.environ['HOME']
    infile_name = home_dir + nvss_file
    lsm.build_from_catalog(infile_name, ns)
+   if trace:
+      print '** Finished build_from_catalog()' 
+   lsm.save('lsm_current.lsm')                        # 
+   lsm.save(lsm_name)
+   lsm.display()
+   if trace:
+      print '** Saved as:',lsm_name,'   (and lsm_current.lsm)'
+      print '**************************************************************\n'
+   return True
+
+
+#-----------------------------------------------------------------------------
+# Make an lsm from NEWSTAR .MDL files:
+#-----------------------------------------------------------------------------
+
+def mdl_TAU_B2LOW_MIX (ns, trace=True):
+   """Make a lsm from a NEWSTAR .MDL file"""
+   mdl2lsm (ns, mdl_file='/LOFAR/Timba/WH/contrib/JEN/TAU_B2LOW_MIX.MDL', trace=trace)
+   return True
+
+#-----------------------------------------------------------------------------
+   
+def mdl_all(ns, trace=True):
+   """Regenerate lsm(s) for all available MDL files"""
+   mdl_TAU_B2LOW_MIX (ns, trace=trace)
+   return True
+
+#-----------------------------------------------------------------------------
+
+def mdl2lsm(ns, mdl_file=None, lsm_name=None, trace=True):
+   """Make a lsm from the given NEWSTAR .MDL file"""
+
+   if trace:
+      print '\n**************************************************************'
+      print '** mdl2lsm(',lsm_name,') <- nvss =',mdl_file
+      print '**************************************************************\n'
+
+   if not isinstance(mdl_file, str):
+      print '** ERROR **: mdl_file =',mdl_file
+      return False
+
+   # Make the lsm (file) name from the input mdl_file:
+   if not isinstance(lsm_name, str):
+      ss = mdl_file.split('/')
+      lsm_name = ss[len(ss)-1]                       # remove the directories
+      lsm_name = lsm_name.split('.')[0]              # remove the file extension (.txt)
+      lsm_name += '.lsm'                             # append .lsm extension
+      
+   # Use the global lsm.
+   global lsm
+   lsm = LSM()                                       # make a new one
+
+   home_dir = os.environ['HOME']
+   infile_name = home_dir + mdl_file
+   lsm.build_from_newstar(infile_name, ns)
    if trace:
       print '** Finished build_from_catalog()' 
    lsm.save('lsm_current.lsm')                        # 
@@ -803,6 +858,11 @@ def _test_forest (mqs, parent):
     return MG_JEN_exec.meqforest (mqs, parent)
     # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',nfreq=10, ntime=5)
 
+
+def _tdl_job_mdl_TAU_B2LOW_MIX (mqs, parent):
+   """Create lsm(s) from NEWSTAR mdl txt-file(s)"""
+   ns = NodeScope()
+   return mdl_TAU_B2LOW_MIX(ns)
 
 def _tdl_job_nvss_3c343 (mqs, parent):
    """Create lsm(s) from nvss txt-file(s)"""
