@@ -415,6 +415,26 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex,co
   }
 }
 
+void Polc::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive)
+{
+  Thread::Mutex::Lock lock(mutex());
+  double* coeff = static_cast<double*>(coeffWr().getDataPtr());
+  for( uint i=0; i<spidIndex.size(); i++ ) 
+  {
+    if( spidIndex[i] >= 0 ) 
+      {
+	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+	coeff[i] += values[spidIndex[i]];
+	if(i<constraints_max.size())
+	  coeff[i] = std::min(coeff[i],constraints_max[i]);
+	if(i<constraints_min.size())
+	  coeff[i] = std::max(coeff[i],constraints_min[i]);
+	if(force_positive && isConstant())
+	  coeff[i]=std::fabs(coeff[i]);
+      }
+  }
+}
+
 
 void Polc::changeSolveDomain(const Domain & solveDomain){
   Thread::Mutex::Lock lock(mutex());

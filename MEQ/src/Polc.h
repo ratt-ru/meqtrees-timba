@@ -130,6 +130,7 @@ protected:
 
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive=false);
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double>& constraints,bool force_positive=false);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive=false);
 
   //------------------ end of protected Funklet interface ------------------------------------
   virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales);

@@ -163,6 +163,11 @@ const int AidCreate_int = -1312;
 const DMI::AtomicID AidCwd(-1553);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 const int AidCwd_int = -1553;
 #endif
+#ifndef _defined_id_AidCyclic
+#define _defined_id_AidCyclic 1
+const DMI::AtomicID AidCyclic(-1674);             // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
+const int AidCyclic_int = -1674;
+#endif
 #ifndef _defined_id_AidData
 #define _defined_id_AidData 1
 const DMI::AtomicID AidData(-1103);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
@@ -493,6 +498,11 @@ const int AidMasks_int = -1344;
 const DMI::AtomicID AidMatrix(-1345);             // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 const int AidMatrix_int = -1345;
 #endif
+#ifndef _defined_id_AidMax
+#define _defined_id_AidMax 1
+const DMI::AtomicID AidMax(-1070);                // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
+const int AidMax_int = -1070;
+#endif
 #ifndef _defined_id_AidMeqCells
 #define _defined_id_AidMeqCells 1
 const DMI::AtomicID AidMeqCells(-1339);           // from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
@@ -562,6 +572,11 @@ const int AidMessage_int = -1269;
 #define _defined_id_AidMetrics 1
 const DMI::AtomicID AidMetrics(-1363);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidMetrics_int = -1363;
+#endif
+#ifndef _defined_id_AidMin
+#define _defined_id_AidMin 1
+const DMI::AtomicID AidMin(-1675);                // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
+const int AidMin_int = -1675;
 #endif
 #ifndef _defined_id_AidMissing
 #define _defined_id_AidMissing 1

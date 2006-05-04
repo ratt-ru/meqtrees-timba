@@ -223,6 +223,8 @@ public:
   // of solvable parms. constraints, only valid for constant funklets, should be vector of min,max
   void update (const double values[],const std::vector<double> &contraints,bool force_positive=false);
 
+  void update (const double values[],const std::vector<double> &contraints_min,const std::vector<double> &contraints_max,bool force_positive=false);
+
 
   // Get vector of parm perturbations (set up by the makeSolvable() methods above)
   // There is one for each parameter; thus its size is getNumParms().
@@ -385,6 +387,8 @@ protected:
   // it gives the index of its updated in values[]; for each non-solvable parm,
   // a -1. Constrained (only for constant funklets)
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive=false);
+  //
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive=false);
   
   // This method is called when a Funklet is marked as solvable (by makeSolvable() above).
   // This should fill the perts vector (which has been pre-sized to getNumParms()) with

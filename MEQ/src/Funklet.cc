@@ -437,6 +437,12 @@ void Funklet::update (const double values[],const std::vector<double>& constrain
   do_update(values,spidInx_,constraints,force_positive);
 }
 
+
+void Funklet::update (const double values[],const std::vector<double>& constraints_min,const std::vector<double>& constraints_max,bool force_positive)
+{
+  do_update(values,spidInx_,constraints_min,constraints_max,force_positive);
+}
+
 void Funklet::do_evaluate (VellSet &,const Cells &,
                            const std::vector<double> &,
                            const std::vector<int>    &,
@@ -460,6 +466,12 @@ void Funklet::do_update (const double [],const std::vector<int> &,bool force_pos
 }
 
 void Funklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &cnstrnts,bool force_positive)
+{ 
+  //ignore constraints if not implemented;
+  do_update(values,spidIndex,force_positive);
+}
+
+void Funklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &cnstrnts1,const std::vector<double> &cnstrnts2,bool force_positive)
 { 
   //ignore constraints if not implemented;
   do_update(values,spidIndex,force_positive);
