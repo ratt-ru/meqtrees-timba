@@ -21,6 +21,7 @@ LOCALSRCS = \
     GridPoints.cc Resampler.cc ModRes.cc \
     CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc
+# Functional.cc
 
 
 DOCHDRS		= $(LOCALHDRS) \

@@ -96,8 +96,13 @@ namespace Meq {
     FSaveAll  = AidSave|AidAll,
     FResetFunklet = AidReset|AidFunklet,
     FForcePositive = AidForce|AidPositive,
-    FConstrain = AidConstrain;
-  
+    FCyclic = AidCyclic,
+    FConstrain = AidConstrain,
+    FConstrainMin = AidConstrain|AidMin,
+    FConstrainMax = AidConstrain|AidMax;
+
+
+  const double PI=3.14159265; 
 
   // This class contains the coeff of any funklet, either solvable or unsolvable.
   class Parm: public Node
@@ -201,6 +206,8 @@ namespace Meq {
     bool force_shape_;
     bool constrained_;
     bool force_positive_;
+    bool cyclic_;  //for cyclic parameters (like phases) force coefficients to stay within one period per grid ... only valid for polcs and even there..
+    double period_;
     LoShape shape_;//shape of  polctype funklets
     Funklet::Ref init_funklet_;//funklet for initialisation 
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
@@ -215,7 +222,9 @@ namespace Meq {
     std::vector<HIID> resolution_symdeps_;
 
     std::vector<double> solve_domain_; //solve domain, default = [0,1]
-    std::vector<double> its_constraints_; //constraints, default = [-inf,inf], only filled if constrained_ =true;
+    std::vector<double> its_constraints_; //constraints, default = [-inf,inf], only filled if constrained_ =true;only working for constant polcs
+    std::vector<double> its_constraints_min_; //constraints, default = [-inf,inf], only filled if constrained_ =true;
+    std::vector<double> its_constraints_max_; //constraints, default = [-inf,inf], only filled if constrained_ =true;
     bool        integrated_;
 
     //some functions

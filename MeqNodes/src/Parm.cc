@@ -68,6 +68,8 @@ namespace Meq {
       force_shape_(false),
       constrained_(false),
       force_positive_(false),
+      cyclic_(false),
+      period_(2*PI),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
       res_depend_mask_(0),
@@ -588,6 +590,7 @@ namespace Meq {
     rec[FIntegrated].get(integrated_,initializing);
     rec[FResetFunklet].get(reset_funklet_,initializing);
     rec[FForcePositive].get(force_positive_,initializing);
+    rec[FCyclic].get(cyclic_,initializing);
 
     //default
     solve_domain_[0]=0.;
@@ -679,6 +682,17 @@ namespace Meq {
 		   "constraint should be a vector of doubles");
       constrained_ = true;
     }
+    if(rec->hasField(FConstrainMin)){
+      FailWhen( !rec[FConstrainMin].get_vector(its_constraints_min_,initializing),
+		   "constrain_min should be a vector of doubles");
+      constrained_ = true;
+    }
+    if(rec->hasField(FConstrainMax)){
+      FailWhen( !rec[FConstrainMax].get_vector(its_constraints_max_,initializing),
+		   "constrain_max should be a vector of doubles");
+      constrained_ = true;
+    }
+
 
 
     // Get ParmTable name 
@@ -779,8 +793,11 @@ namespace Meq {
 
 	  if(constrained_)
 	    {
-	      
-	      its_funklet_().update(values.data(),its_constraints_,force_positive_);
+	      if(!its_constraints_.empty())
+		its_funklet_().update(values.data(),its_constraints_,force_positive_);
+	      else
+		its_funklet_().update(values.data(),its_constraints_min_,its_constraints_max_,force_positive_);
+		
 	    }
 	  else
 	    its_funklet_().update(values.data(),force_positive_);
