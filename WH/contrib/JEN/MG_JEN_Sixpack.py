@@ -523,6 +523,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, simul=False, **inarg):
    Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
    Sixpack.ParmSet = ps                               # attach ParmSet to Sixpack
    Sixpack.ParmSet.quals(dict(q=pp['punit']))         # check TDL_Sixpack....! 
+   if pp.has_key('parmtable'):
+       Sixpack.ParmSet.parmtable(pp['parmtable'])
    ParmSet = Sixpack.ParmSet                          # convenience
    
    # MeqParm node_groups: add 'S' to default 'Parm':

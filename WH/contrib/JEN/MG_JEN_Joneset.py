@@ -279,11 +279,12 @@ def station_pol2 (polrep='linear'):
 #--------------------------------------------------------------------------------
 
 def create_ParmSet(label='<label>', **pp):
-    """Helper function to create a ParmSet object"""
+    """Helper function to create a ParmSet object in an organised way."""
     ps = TDL_ParmSet.ParmSet(label=label)
     if pp.has_key('parmtable'): ps.parmtable(pp['parmtable'])
-    if pp.has_key('punit'): ps.quals(dict(q=pp['punit']))
+    # if pp.has_key('punit'): ps.quals(dict(q=pp['punit']))
     return ps
+
 
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
