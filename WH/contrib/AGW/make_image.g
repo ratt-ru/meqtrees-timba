@@ -9,7 +9,7 @@ myimager.setdata(mode='channel',fieldid=1, spwid=1,
 
 myimager.setimage(nx=1024,ny=1024,cellx='0.25arcsec',celly='0.25arcsec', 
   stokes='I',fieldid=1, spwid=1,   
-  mode='channel',
+  mode='mfs',
   nchan=32,start=1,step=1)
   
 myimager.setoptions(cache=100000000);
@@ -20,15 +20,16 @@ myimager.setoptions(cache=100000000);
 #myimager.weight(type="natural" , async=F)
 #myimager.uvrange(uvmin=0, uvmax=2050.68817, async=F)
 
-imgfile := "clar_data.img";
-myimager.makeimage(type="observed",image=imgfile,async=F);
+#imgfile := "clar_data.img";
+#myimager.makeimage(type="observed",image=imgfile,async=F);
 
-# imgfile := "clar_corrected.img";
-# myimager.makeimage(type="corrected",image=imgfile,async=F);
+imgfile := "clar_corrected.img";
+myimager.makeimage(type="corrected",image=imgfile,async=F);
 
 myimager.done()
 
 im := image(imgfile);
+im.tofits('clar.fits');
 im.view();
 
 # plot

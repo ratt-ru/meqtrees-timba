@@ -124,8 +124,40 @@ Settings.forest_state = record(bookmarks=[
       ["phase:2","phase:3","phase:4"],
       ["phase:5","phase:6","phase:7"],
       ["phase:8","phase:9","solver"]
+  )),
+  record(name='Flux solutions only',page=Bookmarks.PlotPage(
+      ["I:S1"],
+      ["I:S5"]
   )) 
 ]);
+
+
+
+
+def phase_parm (tdeg,fdeg):
+  """helper function to create a t/f parm for phase, including constraints.
+  Placeholder until Maaijke implements periodic constraints.
+  """;
+  polc = meq.polc(zeros((tdeg+1,fdeg+1))*0.0,
+            scale=array([3600.,8e+8,0,0,0,0,0,0]));
+  shape = [tdeg+1,fdeg+1];
+  # work out constraints on coefficients
+  # maximum excursion in freq is pi/2
+  # max excursion in time is pi/2
+  dt = .2;
+  df = .5;
+  cmin = [];
+  cmax = [];
+  for it in range(tdeg+1):
+    for jf in range(fdeg+1):
+      mm = math.pi/(dt**it * df**jf );
+      cmin.append(-mm);
+      cmax.append(mm);
+  cmin[0] = -1e+9;
+  cmax[0] = 1e+9;
+  return Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',
+                  constrain_min=cmin,constrain_max=cmax,
+                  table_name=get_mep_table());
 
 
 def _define_forest(ns):
@@ -146,11 +178,7 @@ def _define_forest(ns):
   
   # Add solvable G jones terms
   for station in array.stations():
-    # create polc in freq/time
-    polc = create_polc(0.0,fringe_deg_freq,fringe_deg_time);
-    shape = [fringe_deg_time+1,fringe_deg_freq+1];
-    ns.phase(station) << \
-      Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',table_name=get_mep_table());
+    ns.phase(station) << phase_parm(fringe_deg_time,fringe_deg_freq);
     diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
     ns.G(station) << Meq.Matrix22(diag,0,0,diag);
     
@@ -377,7 +405,7 @@ def _tdl_job_2b_solve_for_phases_with_fixed_fluxes_14_27 (mqs,parent,**kw):
   solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(15,num_stations+1)],0);
   _run_solve_job(mqs,solvables);
 
-def _tdl_job_8_clear_out_all_previous_solutiuons (mqs,parent,**kw):
+def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
   os.system("rm -fr "+get_source_table());
   os.system("rm -fr "+get_mep_table());
 

@@ -17,7 +17,8 @@ TDLRuntimeOption('msname',"MS",[
       "TEST-grid.MS"]);
 
 # ms_output = False  # if True, outputs to MS, else to BOIO dump   
-TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=1);
+TDLRuntimeOption('output_column',"Output MS column",
+  [None,"DATA","MODEL_DATA","CORRECTED_DATA","MODEL_DATA_NJY"],default=1);
 
 # number of timeslots to use at once
 TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960,2400]);
