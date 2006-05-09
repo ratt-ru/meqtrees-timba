@@ -25,7 +25,7 @@
 #
 # Macro to check for installation of external packages (e.g. FFTW)
 #
-# lofar_EXTERNAL(package, [option], headerfile, [libraries], [searchpath].
+# lofar_EXTERNAL(package, [option], [headerfile], [libraries], [searchpath].
 #            [extra_cppflags],[extra_cxxflags],[extra_ldflags],[extra_libs]
 #     package is the name of the external package (e.g. BLITZ)
 #     option 0 means that package is optional, otherwise mandatory.
@@ -272,40 +272,64 @@ else
     fi
   done
 
-## Look for the header file in directories of the search list
-## and in its include subdirectories.
+## Look for the header file or first library in directories of the search list
+## and in its include or lib subdirectories.
 ## Assume that libraries are in similar directory structure as headers.
 ## (thus in lib subdirectory if header is in include subdirectory)
+
+## Use different lib directory on 64 bit systems.
+  lfr_libdext=lib
+  if test "`arch`" = "x86_64"; then
+    lfr_libdext=lib64;
+  fi
+## Put possible version into the library names.
+  lfr_libsc=`echo $lfr_libs | sed -e "s%+vers%$lfr_ext_version%g"`
+## Search for header if given, otherwise for library (.a or .so).
+  lfr_searchfil=
+  if test "$lfr_hdr" != ""; then
+    lfr_searchfil=$lfr_hdr
+    lfr_searchext=include
+  else
+    if test "$lfr_libsc" != ""; then
+      lfr_sfil=lib`echo "$lfr_libsc" | sed -e 's/ .*//'`
+      lfr_searchfil="$lfr_sfil.so $lfr_sfil.a"
+      lfr_searchext=$lfr_libdext
+    fi
+  fi
+## Now fo the actual search.
+## Stop if a file is found.
+  lfr_ext_dir=
   for bdir in $lfr_slist
   do
-    ]AC_CHECK_FILE([$bdir/include/$lfr_hdr],
-			[lfr_ext_inc=$bdir/include],
-			[lfr_ext_inc=no])[
-    if test "$lfr_ext_inc" != "no" ; then
-      if test "$lfr_external_libdir" = ""; then
-	if test "`arch`" = "x86_64"; then
-          lfr_external_libdir=$bdir/lib64;
-	else
-          lfr_external_libdir=$bdir/lib;
-	fi
+    for bfil in $lfr_searchfil
+    do
+      ]AC_CHECK_FILE([$bdir/$lfr_searchext/$bfil],
+			[lfr_ext_dir=$bdir/$lfr_searchext],
+			[lfr_ext_dir=no])[
+      if test "$lfr_ext_dir" != "no" ; then
+        if test "$lfr_external_libdir" = ""; then
+          lfr_external_libdir=$bdir/$lfr_libdext;
+        fi
+        break;
       fi
-      break;
-    fi
-    ]AC_CHECK_FILE([$bdir/$lfr_hdr],
-			[lfr_ext_inc=$bdir],
-			[lfr_ext_inc=no])[
-    if test "$lfr_ext_inc" != "no" ; then
-      if test "$lfr_external_libdir" = ""; then
-        lfr_external_libdir=$bdir;
+      ]AC_CHECK_FILE([$bdir/$bfil],
+			[lfr_ext_dir=$bdir],
+			[lfr_ext_dir=no])[
+      if test "$lfr_ext_dir" != "no" ; then
+        if test "$lfr_external_libdir" = ""; then
+          lfr_external_libdir=$bdir;
+        fi
+        break;
       fi
-      break;
+    done
+    if test "$lfr_ext_dir" != "no" ; then
+      break
     fi
   done
-
+# Now search for the libraries.
   lfr_depend=
+  lfr_ext_lib=
   if test "$lfr_external_libdir" != ""; then
-    lfr_ext_lib=
-    lfr_libsc=`echo $lfr_libs | sed -e "s%+vers%$lfr_ext_version%g"`
     for lib in $lfr_libsc
     do
       if test "$lfr_ext_lib" != "no" ; then
@@ -323,15 +347,16 @@ else
       fi
     done
   fi
-
-  if test "$lfr_ext_inc" != "no"  -a  "$lfr_ext_lib" != "no" ; then
+  if test "$lfr_ext_dir" != "no"  -a  "$lfr_ext_lib" != "no" ; then
     EXTERNAL_CPPFLAGS=
     EXTERNAL_CXXFLAGS=
     EXTERNAL_LDFLAGS=
     EXTERNAL_LIBS=
-    if test "$lfr_ext_inc" != "/usr/include" -a \
-            "$lfr_ext_inc" != "/usr/local/include" ; then
-      EXTERNAL_CPPFLAGS="-I$lfr_ext_inc"
+    if test "$lfr_hdr" != ""; then
+      if test "$lfr_ext_dir" != "/usr/include" -a \
+              "$lfr_ext_dir" != "/usr/local/include" ; then
+        EXTERNAL_CPPFLAGS="-I$lfr_ext_dir"
+      fi
     fi
     if test "$lfr_ext_lib" != "" ; then
       EXTERNAL_LDFLAGS="-L$lfr_ext_lib -Wl,-rpath,$lfr_ext_lib"
