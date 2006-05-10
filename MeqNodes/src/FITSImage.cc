@@ -289,9 +289,11 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
     {
        if (ncols != 1)
            return(-1);  /* number of columns incorrect */
+#ifdef DEBUG
     for (ii=0;ii<arr_dims->naxis;ii++) {
 			printf("%d %ld\n",ii,arr_dims->d[ii]);
 		}
+#endif
        /* assign the input pointers to the appropriate arrays and null ptrs*/
     switch (datatype) {
 			case TBYTE:
