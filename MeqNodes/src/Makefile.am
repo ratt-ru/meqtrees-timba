@@ -20,7 +20,7 @@ LOCALSRCS = \
     Stokes.cc PatchComposer.cc FFTBrick.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
     CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
-    FITSImage.cc Compounder.cc
+    FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc
 # Functional.cc
 
 
