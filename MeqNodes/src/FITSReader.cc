@@ -75,16 +75,106 @@ int FITSReader::getResult (Result::Ref &resref,
 {
 
 	double *data;
-	double **cells;
+	double **centers;
 	long int naxis, *naxes;
-  int flag=simple_read_fits_file(filename_.c_str(), &data,  &cells, &naxis, &naxes);
+  int flag=simple_read_fits_file(filename_.c_str(), &data,  &centers, &naxis, &naxes);
 
+#ifdef DEBUG
+	cout<<"Read "<<naxis<<" Axes with flag "<<flag<<endl;
+	for (int i=0;i<naxis;i++) {
+		cout<<i<<": "<<naxes[i]<<",";
+	}
+	cout<<endl;
+#endif
+	//create cells
+	//
+  Domain::Ref domain(new Domain());
+  //get the frequency from the request
+  const Cells &incells=request.cells();
+  const Domain &old_dom=incells.domain();
+	for (int i=0;i<naxis;i++) {
+			if (naxes[i]) {
+			   if (old_dom.isDefined(i)) {
+            domain().defineAxis(i, old_dom.start(i), old_dom.end(i));
+			   } else { //not defined in old domain
+            domain().defineAxis(i, -1e6, 1e6);
+		     }
+			}
+	}
+
+  Cells::Ref cells_ref;
+  Cells &cells=cells_ref<<=new Cells(*domain);
+
+	for (int i=0;i<naxis;i++) {
+		if (naxes[i]) {
+      blitz::Array<double,1> l_center(centers[i], blitz::shape(naxes[i]), blitz::duplicateData); 
+      blitz::Array<double,1> l_space(naxes[i]); 
+			//calculate spacings
+			for (int j=1; j<naxes[i]-1; j++) {
+				l_space(j)=(l_center(j)-l_center(j-1))/2+ (l_center(j+1)-l_center(j))/2;
+			}
+			if (naxes[i]>1) {
+       l_space(0)=l_center(1)-l_center(0);
+       l_space(naxes[i]-1)=l_center(naxes[i]-1)-l_center(naxes[i]-2);
+			} else {
+			 l_space(0)=1;
+			}
+     //attach to cells
+     cells.setCells(i,l_center,l_space);
+		}
+	}
+
+  // create a result with one VellSet
+  Result &result=resref<<= new Result(1,1); 
+
+	//VellSet
+	VellSet::Ref ref0;
+	VellSet &vs0=ref0<<=new VellSet(0,1);
+	Vells::Shape shape(incells.shape());
+
+	if(shape.size()<(unsigned)naxis) {
+		//we need to extend the shape
+		shape.resize(naxis,1);//resize and make all 1
+	}
+  
+	for (int i=0;i<naxis;i++) {
+		if (naxes[i]) {
+			shape[i]=naxes[i];
+		} else {
+			shape[i]=1;
+		}
+	}
+
+#ifdef DEBUG
+	cout<<"Shape "<<shape<<endl;
+#endif
+	vs0.setShape(shape);
+	Vells &out=vs0.setValue(new Vells(0.0,shape));
+	if (naxis==1) {
+	  blitz::Array<double,1> A(data,shape,blitz::duplicateData);
+		VellsSlicer<double,1> slout(out,0);
+		slout=A;
+	}else if (naxis==2) {
+	  blitz::Array<double,2> A(data,shape,blitz::duplicateData);
+		VellsSlicer<double,2> slout(out,0,1);
+		slout=A;
+	}else if (naxis==3) {
+	  blitz::Array<double,3> A(data,shape,blitz::duplicateData);
+		VellsSlicer<double,3> slout(out,0,1,2);
+		slout=A;
+	}else if (naxis==4) {
+	  blitz::Array<double,4> A(data,shape,blitz::duplicateData);
+		VellsSlicer<double,4> slout(out,0,1,2,3);
+		slout=A;
+	}
+	result.setVellSet(0,ref0);
+	result.setCells(cells);
 
 	free(naxes);
 	for (long int ii=0; ii<naxis; ii++) {
-		free(cells[ii]);
+		free(centers[ii]);
 	}
-	free(cells);
+	free(centers);
 	free(data);
  return flag;
 }
@@ -112,7 +202,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 int stat;
 
 			 long int *mynaxes;
-			 int mynaxis;
+			 int mynaxis=0;
 			 double *colarr;
 
 			 status=0;
