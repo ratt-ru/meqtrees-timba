@@ -78,17 +78,24 @@ int FITSWriter::getResult (Result::Ref &resref,
 	const Cells &incells = chres.cells();
 	//we only write the first vellset
 	const Vells &invs=chres.vellSet(0).getValue();
-	long int naxis=incells.rank();
+	long int naxis;
 	long int *naxes;
 	double **cells;
 
 
+	Vells::Shape shape=chres.vellSet(0).shape();
+	naxis=shape.size();
   if ((naxes=(long int*)calloc((size_t)naxis,sizeof(long int)))==0) {
 		fprintf(stderr,"no free memory\n");
 		exit(1);
   }
+#ifdef DEBUG
+	cout<<"Shape ="<<shape<<endl;
+	cout<<"Rank ="<<incells.rank()<<endl;
+#endif
 	for (long int ii=0; ii<naxis; ii++) {
-		naxes[ii]=incells.ncells(ii);
+		//naxes[ii]=incells.ncells(ii);
+		naxes[ii]=shape[ii];
 	}
 
 	/* cells of each axes (centers) */
@@ -98,13 +105,16 @@ int FITSWriter::getResult (Result::Ref &resref,
   }
 	for (long int ii=0; ii<naxis; ii++) {
 		if (naxes[ii]) {
+		blitz::Array<double,1> xx=incells.center(ii);
+#ifdef DEBUG
+		cout<<"ax ="<<naxes[ii]<<" but cells "<<xx.extent(0)<<endl;
+#endif
 		if ((cells[ii]=(double*)calloc((size_t)naxes[ii],sizeof(double)))==0) {
 		 fprintf(stderr,"no free memory\n");
 		 exit(1);
 		}
 		//copy values
-		blitz::Array<double,1> xx=incells.center(ii);
-		for(int jj=0; jj<xx.extent(0); jj++) 
+		for(int jj=0; jj<naxes[ii]; jj++) 
 			cells[ii][jj]=xx(jj);
 		} else {
 			cells[ii]=0;
@@ -172,7 +182,7 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 
 			 jj=0;
 			 for (ii=0; ii<naxis; ii++) {
-			  if (naxes[ii]) {
+			  if (naxes[ii] && jj<totaxs) {
 					real_naxes[jj++]=naxes[ii];
 				}
 			 }
