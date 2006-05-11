@@ -75,6 +75,12 @@ int FITSWriter::getResult (Result::Ref &resref,
 {
 
   const Result &chres = *( childres.front() );
+
+	//no vellsets
+	if (chres.numVellSets()==0) {
+    resref=childres[0];
+    return 0;
+	}
 	//we only write the first vellset
 	const Vells &invs=chres.vellSet(0).getValue();
 	long int naxis;
