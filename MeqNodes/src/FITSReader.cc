@@ -212,7 +212,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 
 			 long int *mynaxes;
 			 int mynaxis=0;
-			 double *colarr;
+			 double *colarr=0;
 			 int has_cells;
 
 			 status=0;
