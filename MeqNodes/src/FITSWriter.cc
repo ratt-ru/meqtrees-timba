@@ -1,4 +1,4 @@
-//# FITSWriter.cc: Read a FITS file and convert the Image HDU to  Vellsets
+//# FITSWriter.cc: Write a Result to a FITS file
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-#define DEBUG
+//#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +75,6 @@ int FITSWriter::getResult (Result::Ref &resref,
 {
 
   const Result &chres = *( childres.front() );
-	const Cells &incells = chres.cells();
 	//we only write the first vellset
 	const Vells &invs=chres.vellSet(0).getValue();
 	long int naxis;
@@ -84,17 +83,17 @@ int FITSWriter::getResult (Result::Ref &resref,
 
 
 	Vells::Shape shape=chres.vellSet(0).shape();
-	naxis=shape.size();
+	if (chres.hasCells()) {
+	  naxis=shape.size();
+
   if ((naxes=(long int*)calloc((size_t)naxis,sizeof(long int)))==0) {
 		fprintf(stderr,"no free memory\n");
 		exit(1);
   }
 #ifdef DEBUG
 	cout<<"Shape ="<<shape<<endl;
-	cout<<"Rank ="<<incells.rank()<<endl;
 #endif
 	for (long int ii=0; ii<naxis; ii++) {
-		//naxes[ii]=incells.ncells(ii);
 		naxes[ii]=shape[ii];
 	}
 
@@ -103,12 +102,16 @@ int FITSWriter::getResult (Result::Ref &resref,
 		fprintf(stderr,"no free memory\n");
 		exit(1);
   }
+
+	const Cells &incells = chres.cells();
 	for (long int ii=0; ii<naxis; ii++) {
 		if (naxes[ii]) {
 		blitz::Array<double,1> xx=incells.center(ii);
 #ifdef DEBUG
 		cout<<"ax ="<<naxes[ii]<<" but cells "<<xx.extent(0)<<endl;
 #endif
+		if (naxes[ii]>xx.extent(0))
+      naxes[ii]=xx.extent(0); //sanity check
 		if ((cells[ii]=(double*)calloc((size_t)naxes[ii],sizeof(double)))==0) {
 		 fprintf(stderr,"no free memory\n");
 		 exit(1);
@@ -120,16 +123,29 @@ int FITSWriter::getResult (Result::Ref &resref,
 			cells[ii]=0;
 		}
   }
+	} else { /* no cells: scalar */
+		naxis=1; //just a scalar
+   if ((naxes=(long int*)calloc((size_t)naxis,sizeof(long int)))==0) {
+		fprintf(stderr,"no free memory\n");
+		exit(1);
+   }
+		cells=0;
+		naxes[0]=1;
+	}
 
 	double *data=const_cast<double *>(invs.realStorage());
   int flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes);
 
 
 	free(naxes);
+
+	if (chres.hasCells()) {
 	for (long int ii=0; ii<naxis; ii++) {
 		free(cells[ii]);
 	}
 	free(cells);
+	}
+
 	//keep the original result
   resref=childres[0];
  return flag;
@@ -155,6 +171,7 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 long int firstrow,firstelem;
 			 long int totaxs, *real_naxes;
 			 double *colarr;
+			 int has_cells;
 
  
 #ifdef DEBUG
@@ -208,6 +225,11 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 fits_write_img(outfptr,TDOUBLE,fpixel,nelements,arr,&status);
 
 
+			 if (cells) { /* has cells */
+			 /* write a keyword to indicate the presence of cells */
+       has_cells=1;
+			 fits_update_key(outfptr, TINT, "CELLS", &has_cells,"Has Cells 1: yes 0: no", &status);
+
 			 /* the table to store the cells: one column for one axis */
 			 /* the number of rows will be the max axis length */
 			 /* define the name, datatype, and physical units for all the columns */
@@ -247,6 +269,7 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 
 
 #ifdef DEBUG
+			printf("axes in table %ld\n",naxis);
 			 for (ii=0; ii<naxis; ii++) {
 				printf("axis %ld\n",ii);
 				if (naxes[ii]) {
@@ -287,13 +310,6 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 #endif
 			  fits_write_col(outfptr, TDOUBLE, ii+1, firstrow, firstelem, naxes[ii]+1, colarr, &status);
 			 }
-
-
-			 fits_close_file(outfptr,&status);
-
-			 fits_report_error(stderr,status);
-			 
-			 free(real_naxes);
 			 for (ii=0; ii<naxis; ii++) {
 							 free(ttype[ii]);
 							 free(tform[ii]);
@@ -305,6 +321,21 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 free(tunit);
 			 free(colarr);
 
+
+
+			 } else { /* no cells */
+
+       has_cells=0;
+			 fits_update_key(outfptr, TINT, "CELLS", &has_cells,"Has Cells 1: yes 0: no", &status);
+#ifdef DEBUG
+			 printf("no cells were present\n");
+#endif
+			 }
+			 fits_close_file(outfptr,&status);
+
+			 fits_report_error(stderr,status);
+			 
+			 free(real_naxes);
 
 			return 0;
 }

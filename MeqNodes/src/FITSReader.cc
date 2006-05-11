@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-#define DEBUG
+//#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -148,6 +148,10 @@ int FITSReader::getResult (Result::Ref &resref,
 #ifdef DEBUG
 	cout<<"Shape "<<shape<<endl;
 #endif
+	if (naxis==0) {
+	  // scalar
+	  vs0.setValue(new Vells(*data));
+	} else { 
 	vs0.setShape(shape);
 	Vells &out=vs0.setValue(new Vells(0.0,shape));
 	if (naxis==1) {
@@ -167,14 +171,19 @@ int FITSReader::getResult (Result::Ref &resref,
 		VellsSlicer<double,4> slout(out,0,1,2,3);
 		slout=A;
 	}
+	}
 	result.setVellSet(0,ref0);
-	result.setCells(cells);
+	if (naxis) {
+	 result.setCells(cells);
+	}
 
-	free(naxes);
 	for (long int ii=0; ii<naxis; ii++) {
 		free(centers[ii]);
 	}
-	free(centers);
+	if (naxis) {
+	 free(naxes);
+	 free(centers);
+	}
 	free(data);
  return flag;
 }
@@ -204,6 +213,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 long int *mynaxes;
 			 int mynaxis=0;
 			 double *colarr;
+			 int has_cells;
 
 			 status=0;
 			 stat=fits_open_file(&fptr, filename, READONLY, &status);
@@ -292,6 +302,13 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 printf("\n");
 #endif
 
+			 /* read the hader key to see if cells are present */
+			 fits_read_key(fptr,TINT,"CELLS",&has_cells,NULL,&status);
+#ifdef DEBUG
+			 printf("cells present=%d\n",has_cells);
+#endif
+
+			 if (has_cells) {
 			 /* the table */
 			 if ( fits_get_hdu_num(fptr, &hdunum) == 1 ) {
 			  /* This is the primary array;  try to move to the */
@@ -359,6 +376,11 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 
 			 }
 #endif
+
+			 } else {
+				 /* no cells present, a scalar */
+				*naxis=0;
+			 }
 			 fits_close_file(fptr,&status);
 
 
@@ -370,7 +392,8 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 free(fpix);
 			 free(lpix);
 
-			 free(colarr);
+			 if (has_cells) 
+			  free(colarr);
 
 
 			return 0;
