@@ -304,6 +304,11 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 
 			 /* read the hader key to see if cells are present */
 			 fits_read_key(fptr,TINT,"CELLS",&has_cells,NULL,&status);
+			 if (status==KEY_NO_EXIST) {
+					/* no cells ! */
+					has_cells=0;
+					status=0;
+			 }
 #ifdef DEBUG
 			 printf("cells present=%d\n",has_cells);
 #endif
