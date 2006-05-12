@@ -87,54 +87,67 @@ test: $(check_PROGRAMS)
 # The programs to build/run must be defined in the PGM variable.
 checkrun:
 	@if [ "$(PGM)" = "" ] ; then \
-	   echo "Use as: make checkrun PGM=testprogram"; \
+	   echo "Error: use as: make (mem)checkrun PGM=testprogram"; \
 	 else \
-	   PGMT=; \
-	   for PGMVAR in $(PGM) ; \
-	   do \
-	     PGMTST=$$PGMVAR; \
-	     if [ -f $(srcdir)/$${PGMVAR}.sh ] ; then \
-	       PGMTST=$(srcdir)/$${PGMVAR}.sh; \
-	     elif [ -f $(srcdir)/$${PGMVAR}_test.sh ] ; then \
-	       PGMTST=$(srcdir)/$${PGMVAR}_test.sh; \
-	     fi; \
-	     PGMT="$$PGMT $$PGMTST"; \
-	   done; \
-	   echo "make check CHECKTOOL='$(CHECKTOOL)' check_PROGRAMS='$$PGM' TESTS='$$PGMT'"; \
-	   make check CHECKTOOL="$(CHECKTOOL)" check_PROGRAMS="$$PGM" TESTS="$$PGMT"; \
+	   curwd=`pwd`; \
+	   bcurwd=`basename $$curwd`; \
+	   if [ "$$bcurwd" != test ]; then \
+	     echo "Error: run (mem)checkrun in test directory"; \
+	   else \
+	     PGMT=; \
+	     for PGMVAR in $(PGM) ; \
+	     do \
+	       PGMTST=$$PGMVAR; \
+	       if [ -f $(srcdir)/$${PGMVAR}.sh ] ; then \
+	         PGMTST=$(srcdir)/$${PGMVAR}.sh; \
+	       elif [ -f $(srcdir)/$${PGMVAR}_test.sh ] ; then \
+	         PGMTST=$(srcdir)/$${PGMVAR}_test.sh; \
+	       fi; \
+	       PGMT="$$PGMT $$PGMTST"; \
+	     done; \
+	     echo "make check CHECKTOOL='$(CHECKTOOL)' check_PROGRAMS='$$PGM' TESTS='$$PGMT'"; \
+	     make check CHECKTOOL="$(CHECKTOOL)" check_PROGRAMS="$$PGM" TESTS="$$PGMT"; \
+	   fi \
 	 fi
 
 # Rule to run test programs using valgrind's memcheck tool.
 memcheck:
-	@$(RM) *.valgrind.*
+	@$(RM) `find . -name "*.valgrind.*"`
 	make check CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes --log-file=[PROGNAME].valgrind'
-	@fils="*.valgrind.*"
-	@if [ "$fils" != "*.valgrind.*" ]; then \
-	  nrvg=`ls *.valgrind.* | wc -l`; \
-	  nrvg=`echo $$nrvg`; \
+	@vgfils=`find . -name "*.valgrind.*"`; \
+	vgfils=`echo $$vgfils`; \
+	nrvg=`echo "$$vgfils" | wc -w`; \
+	nrvg=`echo $$nrvg`; \
+	if [ "$$nrvg" != 0  -a  "$$nrvg" != "" ]; then \
 	  echo ''; \
 	  echo "memcheck error summary from $$nrvg *.valgrind.* file(s)"; \
 	  echo '--------------------------------------------------'; \
-	  (grep "ERROR SUMMARY: " *.valgrind.* | grep -v " 0 errors ") || echo "No memory check errors"; \
-	  (grep "definitely lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
-	  (grep "possibly lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
-	  (grep " open file descriptor " *.valgrind.* | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
+	  (grep "ERROR SUMMARY: " `echo $$vgfils` | grep -v " 0 errors ") || echo "No memory check errors"; \
+	  (grep "definitely lost: " `echo $$vgfils` | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
+	  (grep "possibly lost: " `echo $$vgfils` | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
+	  (grep " open file descriptor " `echo $$vgfils` | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
 	fi
 
+# Rule to build and run memcheck for one or more test programs.
+# The programs to build/run must be defined in the PGM variable.
+## Combine the statements after the checkrun, otherwise the environment
+## variables are gone right after they are defined (because each statement
+## is executed in a separate process.
 memcheckrun:
-	@$(RM) *.valgrind.*
+	$(RM) `find . -name "*.valgrind.*"`
 	make checkrun CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes --log-file=[PROGNAME].valgrind' PGM="$(PGM)"
-	@fils="*.valgrind.*"
-	@if [ "$fils" != "*.valgrind.*" ]; then \
-	  nrvg=`ls *.valgrind.* | wc -l`; \
-	  nrvg=`echo $$nrvg`; \
+	@vgfils=`find . -name "*.valgrind.*"`; \
+	vgfils=`echo $$vgfils`; \
+	nrvg=`echo "$$vgfils" | wc -w`; \
+	nrvg=`echo $$nrvg`; \
+	if [ "$$nrvg" != 0  -a  "$$nrvg" != "" ]; then \
 	  echo ''; \
-	  echo "memcheck error summary from $$nrvg *.valgrind.* file(s)"; \
-	  echo '--------------------------------------------------'; \
-	  (grep "ERROR SUMMARY: " *.valgrind.* | grep -v " 0 errors ") || echo "No memory check errors"; \
-	  (grep "definitely lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
-	  (grep "possibly lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
-	  (grep " open file descriptor " *.valgrind.* | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
+	  echo "memcheckrun error summary from $$nrvg *.valgrind.* file(s)"; \
+	  echo '-----------------------------------------------------'; \
+	  (grep "ERROR SUMMARY: " `echo $$vgfils` | grep -v " 0 errors ") || echo "No memory check errors"; \
+	  (grep "definitely lost: " `echo $$vgfils` | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
+	  (grep "possibly lost: " `echo $$vgfils` | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
+	  (grep " open file descriptor " `echo $$vgfils` | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
 	fi
 
 
