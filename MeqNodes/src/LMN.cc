@@ -42,7 +42,6 @@ using Debug::ssprintf;
 LMN::LMN()
 : TensorFunction(num_children,child_labels)
 {
-  setAutoResample(RESAMPLE_FAIL); // children must return the same cells
 }
 
 //##ModelId=400E535502D2

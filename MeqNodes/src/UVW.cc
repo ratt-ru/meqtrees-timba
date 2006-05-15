@@ -44,53 +44,65 @@ const HIID FDomain = AidDomain;
 
 //##ModelId=400E535502D1
 UVW::UVW()
-: Function(num_children,child_labels)
+: TensorFunction(num_children,child_labels)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
-  // ***BUG***
-  // Use the Dwingeloo position for the frame.
-  // must pass in real position somehow, later
-//  Assert (MeasTable::Observatory(itsEarthPos, "DWL"));
-  ///  itsRefU = itsU;
 }
 
 //##ModelId=400E535502D2
 UVW::~UVW()
 {}
 
-//##ModelId=400E535502D6
-int UVW::getResult (Result::Ref &resref, 
-                    const std::vector<Result::Ref> &childres,
-                    const Request &request,bool newreq)
+void UVW::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
 {
-  // Check that child results are all OK (no fails, right # of vellsets per child)
-  string fails;
-  const int expected_nvs[] = { 2,3,3 };
-  for( int i=0; i<num_children; i++ )
+  // NB: for the time being we only support scalar child results, 
+  // and so we ignore the child cells, and only use the request cells
+  // (while checking that they have a time axis)
+  const Cells &cells = request.cells();
+  FailWhen(!cells.isDefined(Axis::TIME),"Meq::UVW: no time axis in request, can't compute UVWs");
+  ref.attach(cells);
+}
+
+
+LoShape UVW::getResultDims (const vector<const LoShape *> &input_dims)
+{
+  Assert(input_dims.size()==3);
+  // child 0 (RaDec0): expected 2-vector
+  const LoShape &dim = *input_dims[0];
+  FailWhen(dim.size()!=1 || dim[0]!=2,"child '"+child_labels[0].toString()+"': 2-vector expected");
+  // children 1/2 (XYZ/XYZ_0): expecting 3-vectors
+  for( int i=1; i<3; i++ )
   {
-    int nvs = childres[i]->numVellSets();
-    if( nvs != expected_nvs[i] )
-      Debug::appendf(fails,"child %s: expecting %d VellSets, got %d;",
-          child_labels[i].toString().c_str(),expected_nvs[i],nvs);
-    if( childres[i]->hasFails() )
-      Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
+    const LoShape &dim = *input_dims[i];
+    FailWhen(dim.size()!=1 || dim[0]!=3,"child '"+child_labels[i].toString()+"': 3-vector expected");
   }
-  if( !fails.empty() )
-    NodeThrow1(fails);
+  // result is a 3-vector
+  return LoShape(3);
+}
+    
+void UVW::evaluateTensors (std::vector<Vells> & out,   
+     const std::vector<std::vector<const Vells *> > &args )
+{
+  // thanks to checks in getResultDims(), we can expect all 
+  // vectors to have the right sizes
+  
   // Get RA and DEC of phase center, and station positions
-  const Vells& vra  = childres[0]->vellSet(0).getValue();
-  const Vells& vdec = childres[0]->vellSet(1).getValue();
-  const Vells& vstx = childres[1]->vellSet(0).getValue();
-  const Vells& vsty = childres[1]->vellSet(1).getValue();
-  const Vells& vstz = childres[1]->vellSet(2).getValue();
-  const Vells& vx0  = childres[2]->vellSet(0).getValue();
-  const Vells& vy0  = childres[2]->vellSet(1).getValue();
-  const Vells& vz0  = childres[2]->vellSet(2).getValue();
-  // For the time being we only support scalars
+  const Vells& vra  = *(args[0][0]);
+  const Vells& vdec = *(args[0][1]);
+  const Vells& vstx = *(args[1][0]);
+  const Vells& vsty = *(args[1][1]);
+  const Vells& vstz = *(args[1][2]);
+  const Vells& vx0  = *(args[2][0]);
+  const Vells& vy0  = *(args[2][1]);
+  const Vells& vz0  = *(args[2][2]);
+  
+  // NB: for the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() &&
       	  vstx.isScalar() && vsty.isScalar() && vstz.isScalar() && 
       	  vx0.isScalar() && vy0.isScalar() && vz0.isScalar() );
+  
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
   // get the 0 position (array center, presumably)
   double x0 = vx0.getScalar<double>();
@@ -98,21 +110,20 @@ int UVW::getResult (Result::Ref &resref,
   double z0 = vz0.getScalar<double>();
   MPosition zeropos(MVPosition(x0,y0,z0),MPosition::ITRF);
       
-  const Cells& cells = request.cells();
-  // Allocate a 3-plane result for U, V, and W
-  Result &result = resref <<= new Result(3);
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // Get RA and DEC of phase center (as J2000).
   MVDirection phaseRef(vra.getScalar<double>(),vdec.getScalar<double>());
+  
   // Set output shape
-  // Kludge for now: only dependence is on time!
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::UVW: no time axis in request, can't compute UVWs");
+  const Cells& cells = resultCells();
   int ntime = cells.ncells(Axis::TIME);
   const LoVec_double & time = cells.center(Axis::TIME);
   Axis::Shape shape = Axis::vectorShape(Axis::TIME,ntime);
-  double * pU = result.setNewVellSet(0).setReal(shape).realStorage();
-  double * pV = result.setNewVellSet(1).setReal(shape).realStorage();
-  double * pW = result.setNewVellSet(2).setReal(shape).realStorage();
+  out[0] = Vells(0.0,shape,false);
+  out[1] = Vells(0.0,shape,false);
+  out[2] = Vells(0.0,shape,false);
+  double * pU = out[0].realStorage();
+  double * pV = out[1].realStorage();
+  double * pW = out[2].realStorage();
   // Calculate the UVW coordinates using the AIPS++ code.
   MVPosition mvpos(vstx.getScalar<double>()-x0,
                    vsty.getScalar<double>()-y0,
@@ -139,8 +150,6 @@ int UVW::getResult (Result::Ref &resref,
     pV[i] = xyz(1);
     pW[i] = xyz(2);
   }
-  resref().setCells(cells);
-  return 0;
 }
 
 } // namespace Meq

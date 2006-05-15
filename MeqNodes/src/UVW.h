@@ -23,8 +23,7 @@
 #ifndef MEQNODES_UVW_H
 #define MEQNODES_UVW_H
     
-#include <MEQ/Function.h>
-#include <measures/Measures/MPosition.h>
+#include <MEQ/TensorFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -34,30 +33,32 @@
 namespace Meq {    
 
 
-//##ModelId=400E530400BD
-class UVW : public Function
+class UVW : public TensorFunction
 {
 public:
-    //##ModelId=400E535502D1
   UVW();
 
-    //##ModelId=400E535502D2
   virtual ~UVW();
 
-    //##ModelId=400E535502D4
   virtual TypeId objectType() const
     { return TpMeqUVW; }
 
-  // Get the result for the given request.
-    //##ModelId=400E535502D6
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
+protected:
+  // method required by TensorFunction
+  // Returns cells of result.
+  // This version just uses the time axis.
+  virtual void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
 
-private:
-//    //##ModelId=400E535502D0
-//  MPosition itsEarthPos;
-//    get this from children instead!
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+  // method required by TensorFunction
+  // Evaluates UVW for a given set of children values
+  virtual void evaluateTensors (std::vector<Vells> & out,   
+       const std::vector<std::vector<const Vells *> > &args );
+  
 };
 
 } // namespace Meq

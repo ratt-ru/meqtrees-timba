@@ -45,87 +45,69 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
 
-InitDebugContext(AzEl,"MeqAzEl");
-
-
 AzEl::AzEl()
-: Function(2,child_labels)
+: TensorFunction(2,child_labels)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
-// Default observatory name is null. If an observatory name
-// is not supplied, the node will use the station position.
-  obs_name_ = "";
 }
 
 AzEl::~AzEl()
 {}
 
-// Obtain an observatory - if a name is supplied
-// use a 'global observatory position' to calculate AzEl.
-// Otherwise AzEl will be calculated for individual
-// station positions.
-void AzEl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
 {
-  Function::setStateImpl(rec,initializing);
-  cdebug(4) << "in setStateImpl "<<endl;
-  rec[FObservatory].get(obs_name_,initializing);
-  cdebug(4) << "observatory name:  " << obs_name_ << endl;
+  // NB: for the time being we only support scalar child results, 
+  // and so we ignore the child cells, and only use the request cells
+  // (while checking that they have a time axis)
+  const Cells &cells = request.cells();
+  FailWhen(!cells.isDefined(Axis::TIME),"Meq::UVW: no time axis in request, can't compute UVWs");
+  ref.attach(cells);
 }
 
-int AzEl::getResult (Result::Ref &resref, 
-                    const std::vector<Result::Ref> &childres,
-                    const Request &request,bool newreq)
+
+LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
 {
-  // Check that child results are all OK (no fails, 1 vellset per child)
-  string fails;
-  const int expected_nvs[] = { 2,3 };
-  for( uint i=0; i<childres.size(); i++ )
-  {
-    int nvs = childres[i]->numVellSets();
-    if( nvs != expected_nvs[i] )
-      Debug::appendf(fails,"child %s: expecting %d VellSets, got %d;",
-          child_labels[i].toString().c_str(),expected_nvs[i],nvs);
-    if( childres[i]->hasFails() )
-      Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
-  }
-  if( !fails.empty() )
-    NodeThrow1(fails);
-  // Get RA and DEC for conversion
-  const Vells& vra  = childres[0]->vellSet(0).getValue();
-  const Vells& vdec = childres[0]->vellSet(1).getValue();
-  // For the time being we only support scalars
-  Assert( vra.isScalar() && vdec.isScalar() );
+  Assert(input_dims.size()>=1);
+  // child 0 (RaDec0): expected 2-vector
+  const LoShape &dim0 = *input_dims[0];
+  FailWhen(dim0.size()!=1 || dim0[0]!=2,"child '"+child_labels[0].toString()+"': 2-vector expected");
+  // children 1 (XYZ): expecting 3-vector, if any
+  const LoShape &dim1 = *input_dims[1];
+  FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
+  // result is a 3-vector
+  return LoShape(2);
+}
+
+
+
+void AzEl::evaluateTensors (std::vector<Vells> & out,   
+                            const std::vector<std::vector<const Vells *> > &args)
+{
+  // thanks to checks in getResultDims(), we can expect all 
+  // vectors to have the right sizes
+  // Get RA and DEC, and station positions
+  const Vells& vra  = *(args[0][0]);
+  const Vells& vdec = *(args[0][1]);
+  const Vells& vx   = *(args[1][0]);
+  const Vells& vy   = *(args[1][1]);
+  const Vells& vz   = *(args[1][2]);
+  
+  // NB: for the time being we only support scalars
+  Assert( vra.isScalar() && vdec.isScalar() &&
+          vx.isScalar() && vy.isScalar() && vz.isScalar() );
 
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
+  
+  double x = vx.getScalar<double>();
+  double y = vy.getScalar<double>();
+  double z = vz.getScalar<double>();
+  MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
+  Frame.set(stnpos); // tie this frame to station position
 
-  if( obs_name_.empty() ) 
-  {
-    FailWhen(childres.size() < 2,"observatory name not supplied so X,Y,Z children expected");
-    // create frame for individual telescope station
-    const Vells& vx  = childres[1]->vellSet(0).getValue();
-    const Vells& vy  = childres[1]->vellSet(1).getValue();
-    const Vells& vz  = childres[1]->vellSet(2).getValue();
-    Assert( vx.isScalar() && vy.isScalar() && vz.isScalar() );
-    double x = vx.getScalar<double>();
-    double y = vy.getScalar<double>();
-    double z = vz.getScalar<double>();
-    MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
-    Frame.set(stnpos); // tie this frame to station position
-  } 
-  else 
-  {
-    // create frame for an observatory
-    MPosition Obs;
-    MeasTable::Observatory(Obs,obs_name_);
-    Frame.set(Obs);  // tie this frame to a known observatory
-  }  
-
-  const Cells& cells = request.cells();
-  // Allocate a 2-plane result for Az and El
-  Result &result = resref <<= new Result(2);
+  const Cells& cells = resultCells();
   // Get RA and DEC of location to be transformed to AzEl (default is J2000).
   // assume input ra and dec are in radians
   MVDirection sourceCoord(vra.getScalar<double>(),vdec.getScalar<double>());
@@ -134,8 +116,10 @@ int AzEl::getResult (Result::Ref &resref,
   int ntime = cells.ncells(Axis::TIME);
   const LoVec_double & time = cells.center(Axis::TIME);
   Axis::Shape shape = Axis::vectorShape(Axis::TIME,ntime);
-  double * Az = result.setNewVellSet(0).setReal(shape).realStorage();
-  double * El = result.setNewVellSet(1).setReal(shape).realStorage();
+  out[0] = Vells(0.0,shape,false);
+  out[1] = Vells(0.0,shape,false);
+  double * Az = out[0].realStorage();
+  double * El = out[1].realStorage();
   Quantum<double> qepoch(0, "s");
   qepoch.setValue(time(0));
   MEpoch mepoch(qepoch, MEpoch::UTC);
@@ -154,8 +138,6 @@ int AzEl::getResult (Result::Ref &resref,
     Az[i] = az_el(0);
     El[i] = az_el(1);
   }
-  resref().setCells(cells);
-  return 0;
 }
 
 } // namespace Meq

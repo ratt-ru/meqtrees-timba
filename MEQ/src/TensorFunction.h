@@ -47,6 +47,12 @@ protected:
   // Since each VellSet may contain its own set of spids, TensorFunction
   // provides the outer loop over all spids, and calls evaluate() for
   // every required combination of perturbed values.
+
+  // virtual method to figure out the cells of the result object, based
+  // on child cells.
+  // Default version simply uses the first child cells it can find,
+  // or the Request cells if no child cells are found, else none.
+  virtual void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
     
   // Virtual method to be redefined by subclasses.
   // Returns the tensor dimensions of the result, given a set of child 
@@ -102,31 +108,22 @@ protected:
   
   // TensorFunction overrides the standard getResult() method to
   // calls computeTensorResult() to do all the work, then return the
-  // result
+  // result.
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
 
   
-  // Sets "result cells" which may be accessed from, e.g., a subclassed
-  // evaluate() method. 
-  // Note that the TensorFunction class itself does not use the cells in
-  // any meaningful way; this method is provided for subclasses only.
-  // The getResult() method sets this to the cells of the first child 
-  // result that has them, or else to the request cells, or else to 0
-  // if it cannot find any cells.
-  void setResultCells (const Cells *prescells)
-  { presult_cells_ = prescells; }
-  
-  // True if result cells have been set
+  // True if result cells have been set by the computeResultCells method
+  // above
   bool hasResultCells () const
-  { return presult_cells_; }
+  { return result_cells_.valid(); }
   
-  // Returns the result cells, or throws exception if hasCells()==false
+  // Returns the result cells, or throws exception if hasResultCells()==false
   const Cells & resultCells () const
   { 
-    FailWhen(!presult_cells_,"can't compute the result cells for this set of child results");
-    return *presult_cells_; 
+    FailWhen(!result_cells_.valid(),"can't compute the result cells for this set of child results");
+    return *result_cells_; 
   }
   
   // (Note also that Node::currentRequest() may be called to obtain the current
@@ -148,7 +145,7 @@ private:
   
     
   // data members for informational stuff above
-  const Cells * presult_cells_;
+  Cells::Ref result_cells_;
   std::vector<const LoShape *> dims_vector_;
     
   // These are setup and used in computeTensorResult().

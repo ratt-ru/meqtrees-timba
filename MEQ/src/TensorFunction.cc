@@ -36,6 +36,21 @@ TensorFunction::~TensorFunction ()
 {
 }
 
+void TensorFunction::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
+{
+  // figure out if we have a cells from any child, use first one
+  const Cells *pcells = 0;
+  for( uint i=0; i<childres.size(); i++ )
+    if( childres[i]->hasCells() )
+    {
+      ref.attach(childres[i]->cells());
+      return;
+    }
+  // if none, try request cells
+  if( request.hasCells() )
+    ref.attach(request.cells());
+}
+
 LoShape TensorFunction::getResultDims (const vector<const LoShape *> &)
 {
   return LoShape();
@@ -240,26 +255,16 @@ int TensorFunction::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq)
 {
-  // figure out if we have a cells from any child, use first one
-  const Cells *pcells = 0;
-  for( uint i=0; i<childres.size(); i++ )
-    if( childres[i]->hasCells() )
-    {
-      pcells = &( childres[i]->cells() );
-      break;
-    }
-  // if none, try request cells
-  if( !pcells && req.hasCells() )
-    pcells = &( req.cells() );
-  // set them if available
-  setResultCells(pcells);
+  // compute result cells
+  result_cells_.detach();
+  computeResultCells(result_cells_,childres,req);
   
   // fill result
   computeTensorResult(resref,childres);
   
   // assign cells if available
-  if( pcells )
-    resref().setCells(*pcells);
+  if( result_cells_.valid() )
+    resref().setCells(*result_cells_);
   
   return 0;
 }

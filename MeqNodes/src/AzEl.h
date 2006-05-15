@@ -44,7 +44,7 @@
 #ifndef MEQNODES_AZEL_H
 #define MEQNODES_AZEL_H
     
-#include <MEQ/Function.h>
+#include <MEQ/TensorFunction.h>
 #include <measures/Measures/MPosition.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
@@ -55,30 +55,36 @@
 
 namespace Meq {    
 
-class AzEl : public Function
+
+
+class AzEl : public TensorFunction
 {
 public:
-
   AzEl();
 
   virtual ~AzEl();
 
   virtual TypeId objectType() const
     { return TpMeqAzEl; }
-  
-  LocalDebugContext;
 
 protected:
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  // method required by TensorFunction
+  // Returns cells of result.
+  // This version just uses the time axis.
+  virtual void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
 
-  // Get the result for the given request.
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
-private:
-  string obs_name_;
-
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+  // method required by TensorFunction
+  // Evaluates AzEl for a given set of children values
+  virtual void evaluateTensors (std::vector<Vells> & out,   
+       const std::vector<std::vector<const Vells *> > &args );
+  
 };
+
 
 
 } // namespace Meq
