@@ -37,7 +37,7 @@ extern "C" {
 // in a perfect world it should be found by configure
 #include <fitsio.h>
 int write_fits_file(const char *filename,  double *myarr,  double **cells,
-				long int naxis, long int *naxes);
+				long int naxis, long int *naxes, int is_complex);
 
 }/* extern C */
 
@@ -139,8 +139,14 @@ int FITSWriter::getResult (Result::Ref &resref,
 		naxes[0]=1;
 	}
 
-	double *data=const_cast<double *>(invs.realStorage());
-  int flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes);
+	int flag=0;
+	if (invs.isReal()) {
+	 double *data=const_cast<double *>(invs.realStorage());
+   flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes, 0);
+	} else { //complex data
+	 double *data=const_cast<double*>(reinterpret_cast<const double *>(invs.complexStorage()));
+   flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes, 1);
+	}
 
 
 	free(naxes);
@@ -160,7 +166,7 @@ int FITSWriter::getResult (Result::Ref &resref,
 
 } // namespace Meq
 int write_fits_file(const char *filename,  double *arr,  double **cells,
-			long int naxis, long int *naxes) {
+			long int naxis, long int *naxes, int is_complex) {
 
 				/* what do we do about axes with zero length: we do not consider them
 				 * to be present in the image but we store that information in the table
@@ -221,6 +227,23 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 }
 			 printf("\n");
 #endif
+			 if (is_complex) {
+					/*extend each real axis by twice the length to store complex
+					numbers */
+			  for (ii=0; ii<totaxs; ii++) {
+					real_naxes[ii]*=2;
+			  }
+#ifdef DEBUG
+			 printf("data is complex. extending...\n");
+			 for (ii=0; ii<totaxs; ii++) {
+					printf("%ld: %ld ",ii,real_naxes[ii]);
+			 }
+			 printf("\n");
+#endif
+			   /* increase number of elements too */
+			   nelements*=2;
+			 }
+
 
 			 status=0;
 			 
@@ -230,6 +253,9 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 
 			 fits_write_img(outfptr,TDOUBLE,fpixel,nelements,arr,&status);
 
+
+			 /* write key to indicate complex or not */
+			 fits_update_key(outfptr, TINT, "CPLEX", &is_complex,"Complex data 1: yes 0: no", &status);
 
 			 if (cells) { /* has cells */
 			 /* write a keyword to indicate the presence of cells */

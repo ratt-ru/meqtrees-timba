@@ -37,7 +37,7 @@ extern "C" {
 // in a perfect world it should be found by configure
 #include <fitsio.h>
 int simple_read_fits_file(const char *filename,  double **myarr,  double ***cells,
-				long int *naxis, long int **naxes);
+				long int *naxis, long int **naxes, int *is_complex);
 
 }/* extern C */
 
@@ -77,7 +77,8 @@ int FITSReader::getResult (Result::Ref &resref,
 	double *data;
 	double **centers;
 	long int naxis, *naxes;
-  int flag=simple_read_fits_file(filename_.c_str(), &data,  &centers, &naxis, &naxes);
+	int is_complex;
+  int flag=simple_read_fits_file(filename_.c_str(), &data,  &centers, &naxis, &naxes, &is_complex);
 
 #ifdef DEBUG
 	cout<<"Read "<<naxis<<" Axes with flag "<<flag<<endl;
@@ -148,6 +149,7 @@ int FITSReader::getResult (Result::Ref &resref,
 #ifdef DEBUG
 	cout<<"Shape "<<shape<<endl;
 #endif
+	if (!is_complex) {
 	if (naxis==0) {
 	  // scalar
 	  vs0.setValue(new Vells(*data));
@@ -172,6 +174,34 @@ int FITSReader::getResult (Result::Ref &resref,
 		slout=A;
 	}
 	}
+	} else { //we have complex data
+		dcomplex *cdata=reinterpret_cast<dcomplex *>(data);
+
+  	if (naxis==0) {
+	    // scalar
+	    vs0.setValue(new Vells(*cdata));
+	   } else { 
+	    vs0.setShape(shape);
+	    Vells &out=vs0.setValue(new Vells((dcomplex)0.0,shape));
+	    if (naxis==1) {
+	     blitz::Array<dcomplex,1> A(cdata,shape,blitz::duplicateData);
+		   VellsSlicer<dcomplex,1> slout(out,0);
+		   slout=A;
+	   }else if (naxis==2) {
+	     blitz::Array<dcomplex,2> A(cdata,shape,blitz::duplicateData);
+		   VellsSlicer<dcomplex,2> slout(out,0,1);
+		   slout=A;
+	   }else if (naxis==3) {
+	     blitz::Array<dcomplex,3> A(cdata,shape,blitz::duplicateData);
+		   VellsSlicer<dcomplex,3> slout(out,0,1,2);
+		   slout=A;
+	   }else if (naxis==4) {
+	     blitz::Array<dcomplex,4> A(cdata,shape,blitz::duplicateData);
+		   VellsSlicer<dcomplex,4> slout(out,0,1,2,3);
+		   slout=A;
+	   }
+	 }
+	}
 	result.setVellSet(0,ref0);
 	if (naxis) {
 	 result.setCells(cells);
@@ -191,7 +221,7 @@ int FITSReader::getResult (Result::Ref &resref,
 
 } // namespace Meq
 int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
-			long int *naxis, long int **naxes) {
+			long int *naxis, long int **naxes, int *is_complex) {
 
        fitsfile *fptr;
 			 int status;
@@ -301,6 +331,13 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 }
 			 printf("\n");
 #endif
+			 /* read the hader key to see if data is complex */
+			 fits_read_key(fptr,TINT,"CPLEX",is_complex,NULL,&status);
+			 if (status==KEY_NO_EXIST) {
+					*is_complex=0;
+					status=0;
+			 }
+
 
 			 /* read the hader key to see if cells are present */
 			 fits_read_key(fptr,TINT,"CELLS",&has_cells,NULL,&status);
