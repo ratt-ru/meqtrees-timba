@@ -142,6 +142,7 @@ class Super:
         indent1 = self.display_indent1()
         indent2 = self.display_indent2()
         ss = []
+        if txt==None: txt = self.label() 
         ss.append('** '+self.type()+'.display('+str(txt)+'):')
         ss.append(indent1+self.oneliner())
 
