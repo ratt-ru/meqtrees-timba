@@ -96,10 +96,13 @@ int FITSReader::getResult (Result::Ref &resref,
 	for (int i=0;i<naxis;i++) {
 			if (naxes[i]) {
 			   if (old_dom.isDefined(i)) {
-            domain().defineAxis(i, old_dom.start(i), old_dom.end(i));
+            //domain().defineAxis(i, old_dom.start(i), old_dom.end(i));
+            domain().defineAxis(i, std::min(centers[i][0]-1, old_dom.start(i)),std::max(centers[i][naxes[i]-1]+1, old_dom.end(i)));
 			   } else { //not defined in old domain
-            domain().defineAxis(i, -1e6, 1e6);
+            //domain().defineAxis(i, -1e6, 1e6);
+            domain().defineAxis(i, centers[i][0]-1,centers[i][naxes[i]-1]+1);
 		     }
+
 			}
 	}
 
