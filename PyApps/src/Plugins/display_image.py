@@ -165,6 +165,8 @@ class QwtImageDisplay(QwtPlot):
         self.array_parms = None
         self.metrics_rank = None
         self.solver_offsets = None
+        self.chi_vectors = None
+        self.chi_zeros = None
         self.iteration_number = None
         self.ampl_phase = False
         self.complex_switch_set = False
@@ -1396,6 +1398,8 @@ class QwtImageDisplay(QwtPlot):
     # display_image()
 
     def add_solver_metrics(self):
+
+      #solver metrics
       self.metrics_plot = []
       shape = self.metrics_rank.shape
       for i in range(shape[1]):
@@ -1419,6 +1423,50 @@ class QwtImageDisplay(QwtPlot):
         plot_curve=self.curve(self.metrics_plot[i])
         plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
+
+      #chi_sq surfaces
+      self.chis_plot = []
+      shape = self.metrics_rank.shape
+      self.enableAxis(QwtPlot.yRight, True)
+      self.enableAxis(QwtPlot.xTop, True)
+      use_log_chi_vectors = False
+      if self.chi_vectors.max() - self.chi_vectors.min() > 1000.0:
+        use_log_chi_vectors = True
+      use_log_chi_0 = False
+      if self.chi_zeros.max() - self.chi_zeros.min() > 1000.0:
+        use_log_chi_0 = True
+        
+      self.setAxisTitle(QwtPlot.yRight, 'chi_0')
+      self.setAxisTitle(QwtPlot.xTop, 'amplitude of solution vector')
+      if use_log_chi_0:
+        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted | QwtAutoScale.Logarithmic)
+      else:
+        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted)
+      if use_log_chi_vectors:
+        self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
+      else:
+        self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
+      for i in range(shape[1]):
+        plot_data= zeros(shape[0], Float32)
+        chi_data= zeros(shape[0], Float32)
+        for j in range(shape[0]):
+          plot_data[j] = self.chi_vectors[j,i]
+          chi_data[j] = self.chi_zeros[j,i]
+        chi_key = 'chi'+ str(i)
+        self.chis_plot.append(self.insertCurve(chi_key))
+        self.setCurvePen(self.chis_plot[i], QPen(Qt.red, 2))
+        self.setCurveStyle(self.chis_plot[i],Qt.SolidLine)
+        if self.array_flip:
+          self.setCurveYAxis(self.chis_plot[i], QwtPlot.yRight)
+          self.setCurveXAxis(self.chis_plot[i], QwtPlot.xTop)
+          self.setCurveData(self.chis_plot[i], plot_data, chi_data)
+        else:
+          self.setCurveYAxis(self.chis_plot[i], QwtPlot.xTop)
+          self.setCurveXAxis(self.chis_plot[i], QwtPlot.yRight)
+          self.setCurveData(self.chis_plot[i], chi_data, plot_data)
+        plot_curve=self.curve(self.chis_plot[i])
+        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Diamond, QBrush(Qt.red),
+                 QPen(Qt.red), QSize(10,10)))
 
     def insert_array_info(self):
       if self.is_vector:
@@ -2059,11 +2107,14 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'called replot in array_plot');
     # array_plot()
 
-    def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
+#   def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
+    def set_solver_metrics(self,metrics_tuple):
       """ store Solver data for later plotting """
-      self.metrics_rank = metrics_rank
-      self.iteration_number = iteration_number
-      self.solver_offsets = solver_offsets
+      self.metrics_rank = metrics_tuple[0]
+      self.iteration_number = metrics_tuple[1]
+      self.solver_offsets = metrics_tuple[2]
+      self.chi_vectors = metrics_tuple[3]
+      self.chi_zeros = metrics_tuple[4]
 
     def convert_to_AP(self, real_imag_image):
       """ convert real/imag complex array to amplitude/phase equivalent """
