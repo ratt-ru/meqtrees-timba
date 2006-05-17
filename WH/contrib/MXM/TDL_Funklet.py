@@ -139,7 +139,7 @@ class Funklet:
             newshape *= i;
         self._coeff.setshape((newshape,));
         function = self._type;
-        for i in range(len(self._coeff)):
+        for i in range(len(self._coeff)-1,-1,-1):
             c_str = "C["+str(i)+"]";
             p_str = "p"+str(i);
             function = function.replace(p_str,c_str);
@@ -148,7 +148,7 @@ class Funklet:
             x_new= "x["+str(i)+"]";
             function = function.replace(x_old,x_new);
         self._function = function;
-        #print "created function",self._function;
+        #print "created function",self._function,self._nx;
 
         
     def eval(self,point={}):
@@ -207,7 +207,14 @@ class Funklet:
         #replace  ^ with **
         eval_str=  eval_str.replace("^","**");
 
+        #print "evaluating",eval_str;
+        #print "x",x
+        #print "C",C;
+        
+
         value = eval(eval_str);
+
+        #print "value",value;
         return value;
 
     
@@ -217,7 +224,7 @@ class Funklet:
             return array([self._constant]);
         if cells is None :
             return None;
-        
+        #print "nx",self._nx;
         grid = cells.grid;
         forest_state=meqds.get_forest_state();
         axis_map=forest_state.axis_map;
@@ -237,17 +244,22 @@ class Funklet:
             else:
                 shape +=(1,);
         data = zeros(shape, Float32);
+        #print "creating shape",shape,self._nx;
 
-        if not len(grid) == self._nx:
+        if len(grid) < self._nx:
             print "axis missing in cells, assuming 0",grid,self._nx #not sure if this is a problem
         k=zeros((self._nx,));
         while k[0]<(shape[0]):
             x=[];
             p = ();
+
+            #print "grid",grid,"axis_map",axis_map;
             for i in range(self._nx):
                 if axis_map[i].has_key('id') and grid.has_key(str(axis_map[i]['id']).lower()):
+                    print "id",str(axis_map[i]['id']).lower(),"found",grid[str(axis_map[i]['id']).lower()],k[i];
                     x.append(grid[str(axis_map[i]['id']).lower()][k[i]]);
                 else:
+                    print "id",str(axis_map[i]['id']).lower(),"not found";
                     x.append(0.);
                 p+=(k[i],);
 
@@ -335,6 +347,11 @@ class ComposedFunklet(Funklet):
                 self._nx = funk.getNX();
         funk=self._funklet_list[0];
         tiled = funk.getDomain();
+
+
+        #print "axis_map",self._axis_map;
+        #print "funk",funk;
+        #print "domain",self._domain;
         self._Naxis=[];
         for i in self._axis_map:
             if not i.has_key('id'):
@@ -371,7 +388,6 @@ class ComposedFunklet(Funklet):
         else:
             if isinstance(point,list):
                 pointlist = point;
-        #print "pointlist:",pointlist;
         axis_map=self._axis_map;
         for funklet in self._funklet_list:
             # get first matching funklet:

@@ -69,7 +69,7 @@ class Functional:
         if self._funklet:
             return self._funklet.eval(self._test);
         self._eval_string = self._function;
-        for i in range(len(self._coeff)):
+        for i in range(len(self._coeff)-1,-1,-1):#reverse iteration to get rid of problems with p-numbers >= 10  
             par_str="p"+str(i);
             par=self._coeff[i];
             self._eval_string = self._eval_string.replace(par_str,str(par));
@@ -88,7 +88,7 @@ class Functional:
 
 
     def plot(self,cells=None):
-        print self._funklet;
+        #print self._funklet;
         if self._funklet is None:
             return;
         else:
