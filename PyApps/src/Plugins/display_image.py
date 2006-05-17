@@ -1162,6 +1162,31 @@ class QwtImageDisplay(QwtPlot):
 
 
     def test_plot_array_sizes(self, width=None):
+
+# if we have a solver plot 
+      if not self.chi_vectors is None:
+        zoom = False
+        if len(self.zoomStack):
+          zoom = True
+        if not zoom:
+          self.setAxisAutoScale(QwtPlot.yRight)
+          self.setAxisAutoScale(QwtPlot.xTop)
+          use_log_chi_vectors = False
+          if self.chi_vectors.max() - self.chi_vectors.min() > 1000.0:
+            use_log_chi_vectors = True
+          use_log_chi_0 = False
+          if self.chi_zeros.max() - self.chi_zeros.min() > 1000.0:
+            use_log_chi_0 = True
+        
+          if use_log_chi_0:
+            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted | QwtAutoScale.Logarithmic)
+          else:
+            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted)
+          if use_log_chi_vectors:
+            self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
+          else:
+            self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
+
 # adjust symbol sizes for any real / imaginary plots
       if not self.x_index is None:
         zoom = False
