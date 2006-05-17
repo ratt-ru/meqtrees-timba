@@ -1172,10 +1172,10 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisAutoScale(QwtPlot.yRight)
           self.setAxisAutoScale(QwtPlot.xTop)
           use_log_chi_vectors = False
-          if self.chi_vectors.max() - self.chi_vectors.min() > 1000.0:
-            use_log_chi_vectors = True
           use_log_chi_0 = False
-          if self.chi_zeros.max() - self.chi_zeros.min() > 1000.0:
+          if self.chi_vectors.min() != 0.0 and self.chi_vectors.max() / self.chi_vectors.min() > 1000.0:
+            use_log_chi_vectors = True
+          if self.chi_zeros.min() != 0.0 and self.chi_zeros.max() / self.chi_zeros.min() > 1000.0:
             use_log_chi_0 = True
         
           if use_log_chi_0:
@@ -1455,10 +1455,10 @@ class QwtImageDisplay(QwtPlot):
       self.enableAxis(QwtPlot.yRight, True)
       self.enableAxis(QwtPlot.xTop, True)
       use_log_chi_vectors = False
-      if self.chi_vectors.max() - self.chi_vectors.min() > 1000.0:
-        use_log_chi_vectors = True
       use_log_chi_0 = False
-      if self.chi_zeros.max() - self.chi_zeros.min() > 1000.0:
+      if self.chi_vectors.min() != 0.0 and self.chi_vectors.max() / self.chi_vectors.min() > 1000.0:
+        use_log_chi_vectors = True
+      if self.chi_zeros.min() != 0.0 and self.chi_zeros.max() / self.chi_zeros.min() > 1000.0:
         use_log_chi_0 = True
         
       self.setAxisTitle(QwtPlot.yRight, 'chi_0')
