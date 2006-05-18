@@ -270,41 +270,42 @@ def MeqTsky (ns, index=-2.6, unop=None):
 # Leaves built on multi-dimensional funklets (dicey!) 
 #**************************************************************************************
 
-def MeqAzimuth(ns, name='MeqAzimuth', axis='x2', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqAzimuth(ns, name='MeqAzimuth', qual=None, axis='x2', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqElevation(ns, name='MeqElevation', axis='x3', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqElevation(ns, name='MeqElevation', qual=None, axis='x3', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqL(ns, name='MeqL', axis='x2', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqL(ns, name='MeqL', qual=None, axis='x2', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqM(ns, name='MeqM', axis='x3', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqM(ns, name='MeqM', qual=None, axis='x3', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-# def MeqN(ns, name='MeqN', axis='x4', ref=0.0):         # <--------------???
-#     return MeqFunklet(ns, name, axis, ref=ref)
+# def MeqN(ns, name='MeqN', qual=None, axis='x4', ref=0.0):         # <--------------???
+#     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqU(ns, name='MeqU', axis='x2', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqU(ns, name='MeqU', qual=None, axis='x2', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqV(ns, name='MeqV', axis='x3', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqV(ns, name='MeqV', qual=None, axis='x3', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqW(ns, name='MeqW', axis='x4', ref=0.0):
-    return MeqFunklet(ns, name, axis, ref=ref)
+def MeqW(ns, name='MeqW', qual=None, axis='x4', ref=0.0):
+    return MeqFunklet(ns, name, qual, axis, ref=ref)
 
 # Common function (can also be used stand-alone):
 
-def MeqFunklet(ns, name='<name>', axis='<xi>', ref=0.0):
+def MeqFunklet(ns, name='<name>', qual=None, axis='<xi>', ref=0.0):
     uniqual = _counter (name, increment=True)
     funklet = meq.polc(coeff=[1.0], subclass=meq._funklet_type)
     funklet.function = 'p0*'+axis
     if ref:                          # non-zero reference value
         funklet.function = 'p0*('+axis+'-'+str(ref)+')'
         name = '('+name+'-'+str(ref)+')'
-    return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
-
+    node = _unique_node (ns, name, qual)
+    node << Meq.Parm(funklet, node_groups='Parm')
+    return node
 
 
 
@@ -325,6 +326,34 @@ def _counter (key, increment=0, reset=False, trace=False):
     return _counters[key]
 
 
+#--------------------------------------------------------------------------
+
+def _unique_node (ns, name, qual=None, trace=False):
+    """Helper function to generate a unique node-name"""
+
+    # First try without extra qualifier:
+    if isinstance(qual, dict):
+        node = ns[name](**qual)
+    elif qual==None:
+        node = ns[name]
+    else:
+        node = ns[name](qual)
+
+    if not node.initialized():
+        # OK, does not exist yet
+        if trace: print '\n** _unique_node(',name,qual,') ->',node
+        return node
+
+    # Add an extra qualifier to make the nodename unique:
+    uniqual = _counter (name, increment=-1)
+    if isinstance(qual, dict):
+        node = ns[name](**qual)(uniqual)
+    elif qual==None:
+        node = ns[name](uniqual)
+    else:
+        node = ns[name](qual)(uniqual)
+    if trace: print '\n** _unique_node(',name,qual,') ->',node
+    return node
 
 #========================================================================
 # Test routine:
@@ -356,11 +385,15 @@ if __name__ == '__main__':
         cc.append(MeqFreqTime(ns, 'Divide'))
         cc.append(MeqFreqTime(ns, 'Multiply'))
 
-    if 0:
-        cc.append(MeqAzimuth(ns))
-        cc.append(MeqElevation(ns))
-
     if 1:
+        qual = None
+        qual = dict(q='3c84')
+        cc.append(MeqAzimuth(ns, qual=qual))
+        cc.append(MeqElevation(ns, qual=qual))
+        cc.append(MeqL(ns, qual=qual))
+        cc.append(MeqM(ns, qual=qual))
+
+    if 0:
         ss = ['pi','pi2','2pi']
         ss.extend(['e','sqrt2', 'sqrt3'])
         ss.extend(['G_gravity','h_Planck', 'h2pi_Planck', 'e_charge'])
@@ -384,7 +417,7 @@ if __name__ == '__main__':
         cc.append(apply_binop(ns, node, '/', 3))
         cc.append(apply_binop(ns, node, '^', 3))
 
-    if 1:
+    if 0:
         cc.append(MeqConstant(ns, 'pi', binop='+', rhs=3))
         cc.append(MeqConstant(ns, 'pi', binop='/', rhs=2.5, unop=['Cos','Sin']))
         cc.append(MeqConstant(ns, 'pi', binop='/', rhs='pi'))

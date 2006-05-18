@@ -11,6 +11,34 @@
 #
 # Remarks:
 #
+# Description:
+#
+#  -) Expression objects
+#     -) e0 = Expression (label, "{A} + {ampl}*cos({phase}*[t])")
+#     -) Variables in square brackets: [t],[time],[f],[fGHz],[l],[m],[RA],  etc
+#     -) Parameters in curly brackets.
+#     -) The expression is supplied to the Expression constructor
+#     -) Extra information about parameters is supplied via a function:
+#         -) e0.parm('A', 34)                         numeric, default value is 34
+#         -) e0.parm('ampl', e1)                   another Expression object
+#         -) e0.parm('phase', polc=[2,3])    Expression generated internally
+#         -) e0.parm('A', f1)                          A Funklet object
+#         -) e0.parm('A', node)                    A node (child of a MeqFunctional node)
+#         -) e0.parm('A', image)                  A FITS image
+#     -) The Expression object may yield a:
+#         -) Funklet                                       with p0,p1,p2,... and x0,x1,...
+#         -) MeqParm (init_funklet=Funklet)
+#         -) MeqFunctional node               (parms AND vars are its children)      
+#         -) MeqCompounder()                  needs extra children
+#         -) ...
+#     -) Easy to build up complex expressions (MIM, beamshape)
+#     -) Should be very useful for LSM
+#     -) Other functionality:
+#         -) Plotting
+#         -) Interactive coeff determination
+#         -) Uncertainty (rms scatter) in default values (simulation)
+#         -) Etc
+
 
 
 #***************************************************************************************
@@ -20,6 +48,7 @@
 from Timba.Meq import meq
 from numarray import *
 from copy import deepcopy
+from Timba.Trees.TDL_Leaf import *
 from Timba.Contrib.MXM.TDL_Funklet import *
 
 
@@ -38,6 +67,7 @@ class Expression:
 
         self.__label = _unique_label(label)
         self.__expression = expression
+        self.__input_expression = expression        
         self.__pp = str(pp)
 
         # Get a list of parameter names, enclosed in curly brackets:
@@ -145,8 +175,9 @@ class Expression:
         if txt==None: txt = self.label()
         print '\n** Display of: Expression (',txt,'):'
         indent = 2*' '
-        print indent,'-',self.oneliner()
+        print indent,'- input_expression: ',str(self.__input_expression)
         print indent,'- input: ',str(self.__pp)
+        print indent,'-',self.oneliner()
         
         print indent,'- its variables (',len(self.__var),'): '
         for key in self.__var.keys():
@@ -558,10 +589,20 @@ class Expression:
         for key in self.__var.keys():
             rr = self.__var[key]                        # var definition record
             pkey = rr['node']                           # var key, e.g. 't'
-            nodename = 'Expr_'+pkey
-            if not ns[nodename](uniqual).initialized():
-                if pkey=='MeqTime': node = ns[nodename](uniqual) << Meq.Time()
-                if pkey=='MeqFreq': node = ns[nodename](uniqual) << Meq.Freq()
+            name = 'Expr_'+self.label()+'_'+pkey
+            node = _unique_node (ns, name, qual=None, trace=trace)
+            if not node.initialized():
+                if pkey=='MeqTime':
+                    node << Meq.Time()
+                elif pkey=='MeqFreq':
+                    node << Meq.Freq()
+                elif pkey=='MeqL':
+                    node = TDL_Leaf.MeqL(ns)
+                elif pkey=='MeqM':
+                    node = TDL_Leaf.MeqM(ns)
+                else:
+                    print '\n** var2node(): not recognised:',pkey,'\n'
+                    return False                        # problem, escape
             self.__expression = self.__expression.replace('['+key+']','{'+pkey+'}')
             if not pkey in self.__order:
                 self.__order.append(pkey)
@@ -578,8 +619,8 @@ class Expression:
         uniqual = _counter ('parm2node', increment=-1)
         for key in self.__parm.keys():
             parm = self.__parm[key]
-            nodename = 'Expr_parm_'+key
-            # if not ns[nodename](uniqual).initialized():
+            name = 'Expr_'+self.label()+'_'+key
+            node = _unique_node (ns, name, qual=None, trace=trace)
             funklet = None
             if key in self.__parmtype['Expression']:
                 funklet = parm.Funklet()
@@ -587,11 +628,11 @@ class Expression:
                 funklet = parm
             elif key in self.__parmtype['MeqNode']:
                 pass                                    # already a node
-            else:
-                node = ns[nodename](uniqual) << Meq.Parm(parm['default'])
+            else:                                       # assume numeric
+                node << Meq.Parm(parm['default'])
                 self.parm(key, node)                    # redefine the parm
             if funklet:
-                node = ns[nodename](uniqual) << Meq.Parm(init_funklet=funklet)
+                node << Meq.Parm(init_funklet=funklet)
                 self.parm(key, node)                    # redefine the parm
         self.__parmtype['Expression'] = []              # no more Expression parms
         self.__parmtype['Funklet'] = []                 # no more Funklet parms
@@ -600,13 +641,43 @@ class Expression:
 
     #--------------------------------------------------------------------------
 
-    def MeqParm (self, ns, trace=False):
+    def MeqParm (self, ns, name=None, qual=None, trace=False):
         """Make a MeqParm node,  with the expression Funklet as init_funklet."""
-        uniqual = _counter ('MeqParm', increment=-1)
         funklet = self.Funklet()
-        nodename = 'Expr_MeqParm_'+self.label()
-        node = ns[nodename](uniqual) << Meq.Parm(init_funklet=funklet)
-        if trace: print dir(node)
+        if not name: name = 'Expr_'+self.label()+'_MeqParm'
+        node = _unique_node (ns, name, qual=qual, trace=trace)
+        node << Meq.Parm(init_funklet=funklet)
+        # if trace: print dir(node)
+        return node
+
+    #--------------------------------------------------------------------------
+
+    def MeqCompounder (self, ns, name=None, qual=None, 
+                       extra_axes=None, common_axes=None, trace=False):
+        """Make a MeqCompunder node from the Expression. The extra_axes argument
+        should be a MeqComposer that bundles the extra (coordinate) children,
+        described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
+
+        # Make a MeqParm node from the Expression:
+        parm = self.MeqParm(ns, name=name, qual=None, trace=trace)
+
+        # Check whether there are extra axes defined for all variables
+        # in the expression other than [t] and [f]:
+        caxes = []
+        for cax in common_axes: caxes.append(str(cax))
+        print 'caxes =',caxes
+        for key in self.__var.keys():
+            if not key in ['t','f']:
+                if not key in caxes:
+                    print '\n** .MeqCompouder(',name,qual,'): missing cax:',key,'\n'
+                
+        # NB: The specified qualifier (qual) is used for the MeqCompounder,
+        # but NOT for the MeqParm. The reason is that the Compounder has more
+        # qualifiers than the Parm. E.g. EJones_X is per station, but the
+        # compounder and its children (l,m) are for a specific source (q=3c84)
+        if not name: name = 'Expr_'+self.label()+'_MeqCompounder'
+        node = _unique_node (ns, name, qual=qual, trace=trace)
+        node << Meq.Compounder(children=[extra_axes,parm], common_axes=common_axes)
         return node
 
     #---------------------------------------------------------------------------
@@ -624,7 +695,7 @@ class Expression:
 
     #---------------------------------------------------------------------------
 
-    def MeqFunctional (self, ns, key=None, qual=None, trace=False):
+    def MeqFunctional (self, ns, name=None, qual=None, trace=False):
         """Make a MeqFunctional node from the Expression, by replacing all its
         parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
         self.parm2node (ns, trace=trace)                # convert parms to nodes
@@ -650,47 +721,10 @@ class Expression:
         # Replace child-names with actual children:
         for i in range(len(children)):
             children[i] = self.__child[children[i]]
-        nodename = 'Expr_'+self.label()
-        # if not ns[nodename](uniqual).initialized():
-        node = ns[nodename](uniqual) << Meq.Functional(children=children,
-                                                       child_map=child_map)
-        if trace: print 'node =',node
+        if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
+        node = _unique_node (ns, name, qual=qual, trace=trace)
+        node << Meq.Functional(children=children, child_map=child_map)
         return node
-
-    #--------------------------------------------------------------------------
-
-    def MeqCompounder (self, ns, key=None, qual=None, children=None, trace=False):
-        """Make a MeqCompunder node from the Expression"""
-        if compounder_children:
-            # Special case: Make a MeqCompounder node with a ND funklet.
-            # Used for interpolatable Jones matrices like EJones or MIM etc
-
-            # The parm is the one to be used by the solver, but it cannot
-            # be evaluated by itself...
-            parm = ns[key](**quals)
-            if not parm.initialized():
-                parm << Meq.Parm(init_funklet=init_funklet)
-                self.NodeSet.set_MeqNode(parm, group=leafgroup)
-            
-            # The Compounder has more qualifiers than the Parm.
-            # E.g. EJones_X is per station, but the compounder and its
-            # children (l,m) are for a specific source (q=3c84)
-            group = leafgroup                            # e.g. 'EJones'
-            if isinstance(qual2, dict):
-                for qkey in qual2.keys():
-                    s1 = str(qual2[qkey])
-                    quals[qkey] = s1
-                    group += '_'+s1                      # e.g. 'EJones_3c84'
-            node = ns[key](**quals)
-            if not node.initialized():
-                cc = compounder_children
-                if not isinstance(cc, (list, tuple)): cc = [cc]
-                cc.append(parm)
-                node << Meq.Compounder(children=cc, common_axes=common_axes)
-                self.NodeSet.set_MeqNode(node, group=group)
-                self.NodeSet.append_MeqNode_eval(parm.name, append=node)
-
-
 
 
 
@@ -713,7 +747,7 @@ class Expression:
 _labels = {}
 
 def _unique_label (label, trace=False):
-    """Counter service (use to automatically generate unique node names)"""
+    """Helper function to generate a unique object label."""
     global _labels
     if not _labels.has_key(label):                # label has not been used yet
         _labels.setdefault(label, 1)              # create an entry
@@ -722,11 +756,40 @@ def _unique_label (label, trace=False):
     _labels[label] += 1                           # increment the counter
     return label+'<'+str(_labels[label])+'>'      # modify the label 
 
+#--------------------------------------------------------------------------
+
+def _unique_node (ns, name, qual=None, trace=False):
+    """Helper function to generate a unique node-name"""
+
+    # First try without extra qualifier:
+    if isinstance(qual, dict):
+        node = ns[name](**qual)
+    elif qual==None:
+        node = ns[name]
+    else:
+        node = ns[name](qual)
+
+    if not node.initialized():
+        # OK, does not exist yet
+        if trace: print '\n** _unique_node(',name,qual,') ->',node
+        return node
+
+    # Add an extra qualifier to make the nodename unique:
+    uniqual = _counter (name, increment=-1)
+    if isinstance(qual, dict):
+        node = ns[name](**qual)(uniqual)
+    elif qual==None:
+        node = ns[name](uniqual)
+    else:
+        node = ns[name](qual)(uniqual)
+    if trace: print '\n** _unique_node(',name,qual,') ->',node
+    return node
+
 #-----------------------------------------------------------------------------
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     """Counter service (use to automatically generate unique node names)"""
     global _counters
     _counters.setdefault(key, 0)
@@ -734,6 +797,8 @@ def _counter (key, increment=0, reset=False, trace=True):
     _counters[key] += increment
     if trace: print '** Expression: _counters(',key,') =',_counters[key]
     return _counters[key]
+
+
 
 #-------------------------------------------------------------------------------
 # Functions dealing with brackets:
@@ -865,7 +930,7 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------
 
-    if 1:
+    if 0:
         e1 = Expression('e1', '{A}*cos({B}*[f])')
         e1.parm('A', -5, help='help for A')
         e1.parm('B', 10, test=4, help='help for B')
@@ -882,7 +947,16 @@ if __name__ == '__main__':
         node = e1.MeqParm(ns, trace=True)
         TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
 
-    if 1:
+    if 0:
+        L = ns.L << 0.1
+        M = ns.M << -0.2
+        LM = ns.LM << Meq.Composer(L,M)
+        node = e1.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
+                                common_axes=[hiid('l'),hiid('m')], trace=True)
+        TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
+        print 'hiid(m) =',hiid('m'),type(hiid('m')),'  str() ->',str(hiid('m')),type(str(hiid('m')))
+
+    if 0:
         e2 = Expression('e2', '{r}+{BA}*[t]+{A[1,2]}-{xxx}')
         e2.parm ('BA', default=e1, help='help')
         e2.parm ('r', default=11, polc=[4,5], help='help')
@@ -903,11 +977,11 @@ if __name__ == '__main__':
         node = e2.MeqFunctional(ns, trace=True)
         TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
 
-    if 1:
+    if 0:
         node = e2.MeqNode(ns, trace=True)
         TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
 
-    if 0:
+    if 1:
         # Voltage beam (gaussian):
         gaussian = Expression('gauss', '{peak}*exp(-{ldep}-{mdep})')
         gaussian.parm ('peak', default=1.0, polc=[2,1], help='peak voltage beam')
@@ -915,16 +989,35 @@ if __name__ == '__main__':
         lterm.parm ('l0', default=0.0)
         lterm.parm ('lwidth', default=1.0, help='beam-width in l-direction')
         gaussian.parm ('ldep', default=lterm)
-        e2 = Expression('e2', '(([m]-{m0})/{mwidth})**2')
-        e2.parm ('m0', default=0.0)
-        e2.parm ('mwidth', default=1.0, help='beam-width in m-direction')
-        gaussian.parm ('mdep', default=e2)
-        e0.display(full=True)
+        mterm = Expression('mterm', '(([m]-{m0})/{mwidth})**2')
+        mterm.parm ('m0', default=0.0)
+        mterm.parm ('mwidth', default=1.0, help='beam-width in m-direction')
+        gaussian.parm ('mdep', default=mterm)
+        if 1:
+            L = ns.L << 0.1
+            M = ns.M << -0.2
+            LM = ns.LM << Meq.Composer(L,M)
+            node = gaussian.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
+                                          common_axes=[hiid('l'),hiid('m')], trace=True)
+            TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
+        if 1:
+            node = gaussian.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+        gaussian.display(full=True)
+            
+
 
 
     #--------------------------------------------------------------------------
     # Tests of standalone helper functions:
     #--------------------------------------------------------------------------
+
+    if 0:
+        node = _unique_node (ns, 'name', qual=None, trace=True)
+        node << 0
+        node = _unique_node (ns, 'name', qual=12, trace=True)
+        node = _unique_node (ns, 'name', qual=dict(s=3,b=4), trace=True)
+        node = _unique_node (ns, 'name', qual=None, trace=True)
 
     if 0:
         deenclose('{aa_bb}', trace=True)
