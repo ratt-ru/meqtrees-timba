@@ -22,7 +22,7 @@
 // convertability to Python (see below)
 // only useful for debugging really
 #if LOFAR_DEBUG
-//  #define TEST_PYTHON_CONVERSION 1
+  #define TEST_PYTHON_CONVERSION 1
 #else
   #undef TEST_PYTHON_CONVERSION
 #endif

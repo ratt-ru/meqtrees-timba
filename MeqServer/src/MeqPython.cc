@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 #include <list>
-    
+#include <DMI/DynamicTypeManager.h>
+        
 InitDebugContext(MeqPython,"MeqPy");
 
 namespace MeqPython
@@ -91,7 +92,11 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 // -----------------------------------------------------------------------
 void testConversion (const BObj &arg)
 {
-  PyObjectRef pyarg = pyFromDMI(arg);
+  // built new object via a BlockSet
+  BlockSet blockset;
+  arg.toBlock(blockset);
+  ObjRef newobj = DynamicTypeManager::construct(0,blockset);
+  PyObjectRef pyarg = pyFromDMI(*newobj);
   pyarg.detach();
 }
 
