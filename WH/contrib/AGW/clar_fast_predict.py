@@ -30,7 +30,7 @@ TDLCompileOption('add_g_jones',"Simulate G Jones",False);
 TDLCompileOption('add_e_jones',"Simulate E Jones",True);
 
 # if not None, a per-ifr noise term with the given stddev will be added
-TDLCompileOption('noise_stddev',"Noise level",[None,0.05,0.1,1.0]);
+TDLCompileOption('noise_stddev',"Noise level",[None,0.05,0.1,1.0,10.0]);
 
 # which source model to use
 # source_model = clar_model.point_and_extended_sources;
