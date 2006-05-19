@@ -20,6 +20,7 @@
 #     -) The expression is supplied to the Expression constructor
 #     -) Extra information about parameters is supplied via a function:
 #         -) e0.parm('A', 34)                         numeric, default value is 34
+#         -) e0.parm('A', 34, constant=True)          numeric constant, value is 34
 #         -) e0.parm('ampl', e1)                   another Expression object
 #         -) e0.parm('phase', polc=[2,3])    Expression generated internally
 #         -) e0.parm('A', f1)                          A Funklet object
@@ -188,14 +189,10 @@ class Expression:
             p = self.__parm[key]
             if isinstance(p, Expression):
                 print indent,'  -',key,':',p.oneliner()
-                if False and full:                         # disabled
-                    for key1 in p.xorder():
-                        p1 = p.xparm(key1)
-                        print indent,'    -',key1,':',p1
             elif isinstance(p, Funklet):
-                print indent,'  -',key,':',type(p)
-            elif isinstance(p, Timba.TDL.TDLimpl._NodeStub):
-                print indent,'  -',key,':',p.name
+                print indent,'  -',key,': (Funklet):',p._function
+            elif p.has_key('index'):
+                print indent,'  -',key,': (MeqNode):',p
             else:
                 print indent,'  -',key,':',p
 
@@ -203,27 +200,27 @@ class Expression:
         for key in self.__parmtype.keys():    
             print indent,'  -',key,'(',str(len(self.__parmtype[key])),'): ',self.__parmtype[key]
 
-        print indent,'- (MeqFunctional) children: ',self.__child_order
+        print indent,'- MeqFunctional children: ',self.__child_order
         if full:
             for key in self.__child_order:
                 node = self.__child[key]
-                print indent,'  -',key,':',node.name
+                print indent,'  -',key,':',node.name,' (',node.classname,')'
 
         if self.__expanded:
             print indent,'- Expanded:  xexpr:  ',self.__xexpr
             if not full:
                 print indent,'  - parameters:',self.__xparm.keys()
                 print indent,'  - variables: ',self.__xvar.keys()
-                print indent,'  - (MeqFunctional) children: ',self.__xchild_order
+                print indent,'  - MeqFunctional children: ',self.__xchild_order
             else:
                 for key in self.__xorder:
                     p = self.__xparm[key]
                     if isinstance(p, Expression):
                         print indent,'  -',key,':',p.oneliner()
                     elif isinstance(p, Funklet):
-                        print indent,'  -',key,':',type(p)
-                    elif isinstance(p, Timba.TDL.TDLimpl._NodeStub):
-                        print indent,'  -',key,':',p.name
+                        print indent,'  -',key,': (Funklet):',p._function
+                    elif p.has_key('index'):
+                        print indent,'  -',key,': (MeqNode):',p
                     else:
                         print indent,'  -',key,':',p
                 for key in self.__xvar.keys():
@@ -251,8 +248,8 @@ class Expression:
     # Manual definition of named parameters and variables:
     #============================================================================
 
-    def parm (self, key=None, default=None, polc=None,
-              help=None, scatter=0, test=None, trace=True):
+    def parm (self, key=None, default=None, constant=False, polc=None,
+              help=None, scatter=0, testval=None, trace=True):
         """Provide extra information for the named parameter (key).
         The default argument may either be a value, or an object of type
         Expression or Funklet, or a nodestub (child of MeqFunctional node).
@@ -296,7 +293,7 @@ class Expression:
 
         # Special case: make a polc Expression:
         if isinstance(polc, (list,tuple)):
-            default = create_polc(shape=polc, coeff=default, label=None, trace=trace)
+            default = polc_Expression(shape=polc, coeff=default, label=None, trace=trace)
 
         # Update the specified self.__parm entry:
         if default==None:
@@ -321,16 +318,17 @@ class Expression:
             self.__child_order.append(child_name)
             self.__parmtype['MeqNode'].append(key)
             self.__parm[key] = dict(child_name=child_name, index=index,
-                                    test=3, default=3)
+                                    testval=3, default=3)
 
         else:
             # A numeric parm has a default value.
             # It also has other information:
-            # - test: value to be used for testing.
+            # - testval: value to be used for testing.
             # - scatter: stddev to be used for simulaton.
-            if test==None: test = default
+            if testval==None: testval = default
             self.__parm[key] = dict(default=default, help=help,
-                                    test=test, scatter=scatter)
+                                    constant=constant,
+                                    testval=testval, scatter=scatter)
 
         # Enforce a new expansion:
         self.__expanded = False
@@ -340,7 +338,7 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def var (self, key=None, default=1.0, test=None, trace=True):
+    def var (self, key=None, default=1.0, testval=None, trace=True):
         """Get/set the named variable (key).
         If the entry (key) does not exist yet, create it (if recognisable)"""
 
@@ -351,8 +349,8 @@ class Expression:
         if self.__var.has_key(key): return self.__var[key]
 
         # Create a new entry:
-        if test==None: test = default            # test-value
-        rr = dict(xn='xn', node=None, default=default, test=test, unit=None)
+        if testval==None: testval = (default+0.1)*1.1
+        rr = dict(xn='xn', node=None, default=default, testval=testval, unit=None)
 
         # self.__var_def = {'x0':"time",'x1':"freq"}
         if key[0]=='t':                          # time
@@ -402,6 +400,9 @@ class Expression:
         for key in self.__order:
             parm = self.__parm[key]
 
+            if isinstance(parm, Funklet):
+                parm = Funklet2Expression(parm, key)
+
             if isinstance(parm, Expression):
                 pexpr = '('+parm.xexpr()+')'
                 if trace: print '-',key,pexpr
@@ -414,11 +415,11 @@ class Expression:
                 for vkey in parm.xvar().keys():
                     self.__xvar.setdefault(vkey, parm.xvar(vkey))
 
-            # elif isinstance(parm, Funklet):
-
             # elif isinstance(parm, Timba.TDL.TDLimpl._NodeStub):
+              # do nothing (just copy, see below)
 
             else:
+                # Just copy:
                 self.__xorder.append(key)
                 self.__xparm[key] = self.__parm[key]
                 
@@ -453,7 +454,7 @@ class Expression:
         # unless other values have been specified via **pp.
         rr = dict()
         field = 'default'                        # normal mode
-        if test: field = 'test'                  # .test() mode
+        if test: field = 'testval'               # .test() mode
         for key in self.__xparm.keys():
             pp.setdefault(key, self.__xparm[key][field])
             rr['{'+key+'}'] = pp[key]
@@ -561,9 +562,15 @@ class Expression:
             # Alternative
             #   self.__Funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
             #   self.__Funklet.function = expr
-            print '\n** expr =',expr,'\n'
+            if trace:
+                print '\n** Funklet(): expr =',expr
+                print dir(self.__Funklet)
+                print 'F._name:',self.__Funklet._name
+                print 'F._nx:',self.__Funklet._nx
+                print 'F._function:',self.__Funklet._function
+                print 'F._coeff:',self.__Funklet._coeff
+                print '\n'
         return self.__Funklet
-
 
 
     #============================================================================
@@ -866,13 +873,60 @@ def find_enclosed (ss, brackets='{}', trace=False):
 
 #=======================================================================================
 
-def create_polc(shape=[1,1], coeff=None, label=None, trace=False):
+def Funklet2Expression (Funklet, label='C', trace=False):
+    """Create an Expression object from the given Funklet object"""
+    if trace:
+        print '\n** Funklet2Expression():'
+        print Funklet._name
+        print Funklet._function
+        print Funklet._coeff
+        print Funklet._nx,Funklet.getNX(),range(0,Funklet._nx)
+
+    # Get the essential information from the Funklet
+    expr = deepcopy(Funklet._function)             
+    coeff = array(Funklet._coeff).flat             # flatten first
+    if trace:
+        print 'expr =',expr
+        print 'coeff =',coeff,range(len(coeff))
+
+    # Replace all C[n] in the Funklet expression to {<label>_n} 
+    for i in range(len(coeff)):
+        expr = expr.replace('C['+str(i)+']','{'+label+'_'+str(i)+'}')
+
+    # Replace all x[n] in the Funklet expression to [t],[f] etc
+    expr = expr.replace('x[0]','[t]')
+    expr = expr.replace('x[1]','[f]')
+    expr = expr.replace('x[2]','[l]')              # .........?
+    expr = expr.replace('x[3]','[m]')              # .........?
+
+    # Temporary workaround (until Funklet repaired):
+    expr = expr.replace('[0]','')          
+    expr = expr.replace('[1]','')          
+    expr = expr.replace('[2]','')          
+    expr = expr.replace('[3]','')          
+
+    # Make the Expression object:
+    e0 = Expression('Funklet_'+label, expr)
+
+    # The Funklet coeff values are parameter default values: 
+    for i in range(len(coeff)):
+        e0.parm(label+'_'+str(i), coeff[i])
+    
+    # Finished: return the Expression object:
+    if trace: e0.display('Funklet2Expression()', full=True)
+    return e0
+
+
+
+#=======================================================================================
+
+def polc_Expression(shape=[1,1], coeff=None, label=None, trace=False):
     """Create an Expression object for a polc with the given shape.
     Parameters can be initialized by specifying a list of coeff.
     The coeff will be assumed 0 for all those missing in the list."""
 
     if trace:
-        print '\n** create_polc(',shape,coeff,label,'):'
+        print '\n** polc_Expression(',shape,coeff,label,'):'
     if coeff==None: coeff = []
     if not isinstance(coeff, (list,tuple)): coeff = [coeff]
     if len(shape)==1: shape.append(1)
@@ -930,31 +984,49 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------
 
-    if 0:
-        e1 = Expression('e1', '{A}*cos({B}*[f])')
-        e1.parm('A', -5, help='help for A')
-        e1.parm('B', 10, test=4, help='help for B')
-        # e1.display()
-        # e1.eval(trace=True, f=range(5))
-        # e1.Funklet(trace=True)
+    if 1:
+        f0 = Funklet()
+        # f0.setCoeff([[1,0],[2,3]])            # causes Funklet problems (see bug #...)
+        f0.setCoeff([1,0,2,3])                  # OK
+        f0.init_function()
+        print f0._function
+        print f0._coeff
+        Funklet2Expression(f0, 'A', trace=True)
+ 
+    if 1:
+        e1 = Expression('e1', '{A}*cos({B}*[f])+{C}')
+        e1.parm('A', -5, constant=True, scatter=0.1)
+        e1.parm('B', 10, testval=4, help='help for B')
+        e1.parm('C', f0, help='help for C')
         e1.display()
 
-    if 0:
-        e1.parm2node(ns, trace=True)
-        e1.var2node(ns, trace=True)
+        if 0:
+            e1.eval(trace=True, f=range(5))
+            e1.display()
 
-    if 0:
-        node = e1.MeqParm(ns, trace=True)
-        TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
+        if 0:
+            f1 = e1.Funklet(trace=True)
+            e1.display()
+            Funklet2Expression(f1, 'A', trace=True)
 
-    if 0:
-        L = ns.L << 0.1
-        M = ns.M << -0.2
-        LM = ns.LM << Meq.Composer(L,M)
-        node = e1.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
-                                common_axes=[hiid('l'),hiid('m')], trace=True)
-        TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
-        print 'hiid(m) =',hiid('m'),type(hiid('m')),'  str() ->',str(hiid('m')),type(str(hiid('m')))
+        if 1:
+            node = e1.MeqFunctional(ns, trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+
+        if 0:
+            node = e1.MeqParm(ns, trace=True)
+            TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
+
+        if 0:
+            L = ns.L << 0.1
+            M = ns.M << -0.2
+            LM = ns.LM << Meq.Composer(L,M)
+            node = e1.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
+                                    common_axes=[hiid('l'),hiid('m')], trace=True)
+            TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
+            print 'hiid(m) =',hiid('m'),type(hiid('m')),'  str() ->',str(hiid('m')),type(str(hiid('m')))
+
+    #.........................................................................
 
     if 0:
         e2 = Expression('e2', '{r}+{BA}*[t]+{A[1,2]}-{xxx}')
@@ -981,7 +1053,7 @@ if __name__ == '__main__':
         node = e2.MeqNode(ns, trace=True)
         TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
 
-    if 1:
+    if 0:
         # Voltage beam (gaussian):
         gaussian = Expression('gauss', '{peak}*exp(-{ldep}-{mdep})')
         gaussian.parm ('peak', default=1.0, polc=[2,1], help='peak voltage beam')
@@ -1033,21 +1105,21 @@ if __name__ == '__main__':
         print ss,'->',ss[0].split(',')
         
     if 0:
-        fp = create_polc([2,1], 56, trace=True)
+        fp = polc_Expression([2,1], 56, trace=True)
         print fp.order()
         # fp.parm(fp.order()[1], 34)
-        fp2 = create_polc([1,2], 56, trace=True)
+        fp2 = polc_Expression([1,2], 56, trace=True)
         fp.parm(fp.order()[1], fp2)
         fp.display()
 
     if 0:
-        fp = create_polc([0,0], 56, trace=True)
-        fp = create_polc([1,1], 56, trace=True)
-        fp = create_polc([2,2], 56, trace=True)
-        fp = create_polc([1,2], 56, trace=True)
-        fp = create_polc([2,1], 56, trace=True)
-        fp = create_polc([3,2], 56, trace=True)
-        fp = create_polc([2,3], 56, trace=True)
+        fp = polc_Expression([0,0], 56, trace=True)
+        fp = polc_Expression([1,1], 56, trace=True)
+        fp = polc_Expression([2,2], 56, trace=True)
+        fp = polc_Expression([1,2], 56, trace=True)
+        fp = polc_Expression([2,1], 56, trace=True)
+        fp = polc_Expression([3,2], 56, trace=True)
+        fp = polc_Expression([2,3], 56, trace=True)
 
     print '\n*******************\n** End of local test of: JEN_Expression.py:\n'
 

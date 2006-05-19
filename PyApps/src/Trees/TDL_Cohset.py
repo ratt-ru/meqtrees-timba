@@ -5,6 +5,7 @@
 # Short description:
 #    A Cohset object encapsulates a set of 2x2 cohaerency matrices for a set of ifrs.
 #
+#
 # History:
 #    - 02 sep 2005: creation
 #    - 23 sep 2005: added MeqVisDataMux to sink()
