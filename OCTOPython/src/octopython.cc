@@ -14,7 +14,6 @@ static int dum = aidRegistry_Global();
 PyObjectRef PyExc_OctoPythonError;
 PyObjectRef PyExc_DataConvError;
 
-
 extern "C" {
   
 // -----------------------------------------------------------------------
@@ -213,9 +212,10 @@ PyMODINIT_FUNC initoctopython ()
 {
   Debug::Context::initialize();
 
-  // init proxywp type
+  // init datatypes
   if( PyType_Ready(&PyProxyWPType) < 0 ||
-      PyType_Ready(&PyThreadCondType) < 0 )
+      PyType_Ready(&PyThreadCondType) < 0 ||
+      PyType_Ready(&PyLazyObjRefType) )
     return;
   
   // init the module
@@ -233,6 +233,9 @@ PyMODINIT_FUNC initoctopython ()
   
   static PyObjectRef tc_type((PyObject *)&PyThreadCondType,true); // create new ref
   PyModule_AddObject(module, "thread_condition", ~tc_type); // steals ref
+  
+  static PyObjectRef lor_type((PyObject *)&PyLazyObjRefType,true); // create new ref
+  PyModule_AddObject(module, "lazy_objref", ~lor_type); // steals ref
   
   static PyObjectRef timbamod(PyImport_ImportModule("Timba"));  // returns new ref
   if( !timbamod )

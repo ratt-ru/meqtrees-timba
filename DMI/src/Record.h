@@ -64,7 +64,8 @@ namespace DMI
 
 class Record : public Container
 {
-  protected:
+  public:
+      
       class Field
       {
         public:
@@ -146,10 +147,12 @@ class Record : public Container
           bool     protected_;
       };
       
+  protected:
       typedef DMI_Allocator<Field> FieldAllocator;
 
       typedef hash_map<HIID,Field,DMI_hash_namespace::hash<HIID>,std::equal_to<HIID>,FieldAllocator > FieldMap; 
   
+      
   public:
       typedef CountedRef<Record> Ref;
   
@@ -336,6 +339,9 @@ class Record : public Container
         
           const ObjRef & ref () const
           { return (*this)->second.ref(); }
+          
+          const Field & field () const
+          { return (*this)->second; }
       };
       
     //##ModelId=3DB9343B029A
@@ -362,6 +368,9 @@ class Record : public Container
         
           const ObjRef & ref () const
           { return (*this)->second.ref(); }
+          
+          Field & field () 
+          { return (*this)->second; }
           
           void protect (bool protect=true)
           { (*this)->second.protect(protect); }

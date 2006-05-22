@@ -24,6 +24,16 @@ namespace OctoPython
   // -----------------------------------------------------------------------
   // Data conversion functions
   // -----------------------------------------------------------------------
+  
+  // This is the LazyObjRef type used to store record fields and defer
+  // their unpacking until the first time they're accessed
+  typedef struct 
+  {
+      PyObject_HEAD
+      DMI::Record::Field field;
+  } LazyObjRef;
+  
+  // error policy for data conversion functions
   typedef enum { EP_THROW,EP_RETNULL,EP_CONV_ERROR } ErrorPolicy;
   
   // initializes conversion layer (needed for numarray mostly)
@@ -245,6 +255,7 @@ namespace OctoPython
   // Data conversion exception
   extern PyObjectRef PyExc_DataConvError;
   
+  
   // Python class objects from dmitypes (used as constructors and
   // for asinstance() comparisons)
   typedef struct 
@@ -253,9 +264,14 @@ namespace OctoPython
                 dmi_type,dmi_typename,dmi_coerce;
   } DMISymbols;
   extern DMISymbols py_dmisyms;
+
+  // LazyObjRef type structure
+  extern PyTypeObject PyLazyObjRefType;
+  
   // ProxyWP type structure
   extern PyTypeObject PyProxyWPType;
-  // ThreadCond
+  
+  // ThreadCond type structure
   extern PyTypeObject PyThreadCondType;
   
   

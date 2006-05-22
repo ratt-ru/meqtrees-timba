@@ -708,7 +708,16 @@ PyObject * pyFromRecord (const DMI::Record &dr)
   for( DMI::Record::const_iterator iter = dr.begin(); iter != dr.end(); iter++ )
   {
     string idstr = strlowercase(iter.id().toString('_',false)); // false = do not mark literals with $
-    PyObjectRef item = pyFromObjRef(iter.ref(),EP_CONV_ERROR); // new ref
+    // old code: converts objects directly
+    // PyObjectRef item = pyFromObjRef(iter.ref(),EP_CONV_ERROR); // new ref
+    // new code: adds a LazyObjRef object which will be unpacked and
+    // converted on-demand
+    LazyObjRef * lazy_ref = PyObject_New(LazyObjRef,&PyLazyObjRefType);
+    // create a new field in there with placement-new
+    new ( &(lazy_ref->field) ) DMI::Record::Field;
+    PyObjectRef item = (PyObject*)lazy_ref;
+    // copy field to lazy ref
+    lazy_ref->field = iter.field();
     // Dict takes its own ref
     PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*item);
   }

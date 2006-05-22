@@ -193,7 +193,40 @@ class record (dict):
   def make_value (self,value): 
     "checks value for validity, returns value, raises TypeError if illegal";
     return dmize_object(value);
-  # __getattr__: dict contents are exposed as extra attributes
+    
+  # helper function to resolve all lazy refs in the record.
+  # various functions below that access the dict as a whole will require
+  # that all lazy refs are converted to real objects. This function
+  # accomplishes that task.
+  def _resolve_all_lazy_refs (self):
+    lazies = filter(lambda pair:isinstance(pair[1],lazy_objref),dict.iteritems(self));
+    for key,ref in lazies:
+      dict.__setitem__(self,key,ref.resolve());
+
+  # helper function to resolve a lazy ref to a real value, and replace
+  # this in the record
+  def _resolve_lazy_ref (self,key,value):
+    if isinstance(value,lazy_objref):
+      value = value.resolve();
+      dict.__setitem__(self,key,value);
+    return value;
+  
+  # items(): we need to resolve all lazy refs first
+  def items (self):
+    self._resolve_all_lazy_refs();
+    return dict.items(self);
+  def values (self):  
+    self._resolve_all_lazy_refs();
+    return dict.items(self);
+  # itervalues(): we need to resolve all lazy refs first
+  def itervalues (self):
+    self._resolve_all_lazy_refs();
+    return dict.itervalues(self);
+  # iteritems(): we need to resolve all lazy refs first
+  def iteritems (self):
+    self._resolve_all_lazy_refs();
+    return dict.iteritems(self);
+  # __getattr__: dict contents are exposed as extra attributes, lazy refs resolved
   def __getattr__(self,name):
     if name.startswith('__'):
       return dict.__getattr__(self,name);
@@ -203,8 +236,9 @@ class record (dict):
     # if none found, go look for a dict key
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
-    try:   return dict.__getitem__(self,key);
+    try:   value = dict.__getitem__(self,key);
     except KeyError: raise AttributeError,"no such field: "+str(key);
+    return self._resolve_lazy_ref(key,value);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
     if name.startswith('__'):
@@ -220,14 +254,16 @@ class record (dict):
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);
-  # __getitem__: string names implicitly converted to HIIDs
-  def __getitem__(self,name):
-    if isinstance(name,str):
-      try: name = self.make_key(name);
+  # get: string names implicitly converted to HIIDs, lazy refs resolved
+  def get (self,key,*args):
+    if isinstance(key,str):
+      try: key = self.make_key(key);
       except ValueError,info: raise TypeError,info;
-      try: return dict.__getitem__(self,name);
-      except KeyError: raise KeyError,"no such field: "+str(name);
-    return dict.__getitem__(self,name);
+    value = dict.get(self,key,*args);
+    return self._resolve_lazy_ref(key,value);
+  # __getitem__: string names implicitly converted to HIIDs, lazy refs resolved
+  def __getitem__(self,name):
+    return self.get(name);
   # __setitem__: check types, string names implicitly converted to HIIDs
   def __setitem__ (self,name,value):
     value = self.make_value(value);
@@ -255,6 +291,21 @@ class record (dict):
     for (key,value) in dictiter:
       items += ["'%s':%s" % (key,repr(value)) ];
     return self.__class__.__name__+"({" + string.join(items,',') + "})";
+  # pop: string names implicitly converted to HIIDs, lazy refs resolved
+  def pop (self,key,*args):
+    if isinstance(key,str):
+      try: key = self.make_key(key);
+      except ValueError,info: raise TypeError,info;
+    value = dict.pop(self,key,*args);
+    if isinstance(value,lazy_objref):
+      value = value.resolve();
+    return value;
+  # popitem: lazy refs resolved
+  def popitem (self):
+    value = dict.popitem(self);
+    if isinstance(value,lazy_objref):
+      value = value.resolve();
+    return value;
   # field_names: list of dictionary keys  
   def field_names (self):
     "returns a list of field names, in underscore-separator format";
@@ -435,6 +486,7 @@ def dmi_coerce (obj,dmitype):
 # import C module
 try:
   import Timba.octopython 
+  lazy_objref = Timba.octopython.lazy_objref;
 except ImportError:
   print '=========================================================================';
   print '======= Error importing octopython module:';
@@ -442,7 +494,11 @@ except ImportError:
   print '======= Running Timba.dmi module stand-alone with limited functionality';
   print '======= (some things may fail)';
   print '=========================================================================';
-
+  # provide dummy lazy_objref class
+  class lazy_objref (object):
+    def resolve (self):
+      return None;
+  
 #
 # self-test code follows
 #

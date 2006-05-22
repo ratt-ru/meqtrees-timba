@@ -5,7 +5,7 @@ lib_LTLIBRARIES = octopython.la liboctopython.la
 DOCHDRS = OctoPython.h
 
 octopython_la_SOURCES = \
-  octopython.cc ProxyWPObject.cc ThreadCond.cc DataConv.cc
+  octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
   
 octopython_la_LDFLAGS = -module
 
