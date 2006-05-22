@@ -135,7 +135,7 @@ void VellSet::setupPertData (int iset)
   pdf = new DMI::Vec(TpMeqVells,numspids_);
   ref <<= pdf;
   Field & field = Record::addField(FiPerturbedValues(iset),ref,DMI::REPLACE|Record::PROTECT);
-  pset_[iset].pertval_vec = &( field.ref.ref_cast<DMI::Vec>() );
+  pset_[iset].pertval_vec = &( field.ref().ref_cast<DMI::Vec>() );
 }
 
 void VellSet::setShape (const Vells::Shape &shp)
@@ -232,9 +232,9 @@ void VellSet::validateContent (bool)
       Field * fld = Record::findField(FShape);
       if( fld )
       {
-        fld->ref.as<Container>()[HIID()].get_vector(shape_);
+        fld->ref().as<Container>()[HIID()].get_vector(shape_);
         FailWhen(int(shape_.size())>Axis::MaxAxis,"illegal "+FShape.toString()+" field");
-        fld->protect = true;
+        fld->protect(true);
       }
       else
         shape_.clear();
@@ -243,11 +243,11 @@ void VellSet::validateContent (bool)
       const Vells * flagvells = 0;
       if( fld )
       {
-        pflags_ = &( fld->ref.ref_cast<Vells>() );
+        pflags_ = &( fld->ref().ref_cast<Vells>() );
         flagvells = pflags_->deref_p();
         // check for matching shape
         FailWhen(!flagvells->isFlags(),"dataflags: invalid type "+flagvells->elementType().toString());
-        fld->protect = true;
+        fld->protect(true);
       }
       else
         pflags_ = 0;
@@ -255,10 +255,10 @@ void VellSet::validateContent (bool)
       fld = Record::findField(FValue);
       if( fld )
       {
-        pvalue_ = &( fld->ref.ref_cast<Vells>() );
+        pvalue_ = &( fld->ref().ref_cast<Vells>() );
         // check for matching shape
         const Vells &val = pvalue_->deref();
-        fld->protect = true;
+        fld->protect(true);
         // init flags in this Vells
         Vells::Ref &vr = *pvalue_;
         if( flagvells )
@@ -275,19 +275,19 @@ void VellSet::validateContent (bool)
       fld = Record::findField(FSpids);
       if( fld )
       {
-        const Container & cc = fld->ref.as<Container>();
+        const Container & cc = fld->ref().as<Container>();
         spids_ = cc[HIID()].as_p<int>(numspids_);
         FailWhen(!pvalue_,"missing main value");
-        fld->protect = true;
+        fld->protect(true);
         int size;
         // figure out number of perturbation sets in the record and setup shortcuts
         pset_.reserve(2);
         int iset = 0;
         while( (fld = Record::findField(FiPerturbations(iset))) != 0 )
         {
-          fld->protect = true;
+          fld->protect(true);
           pset_.resize(iset+1);
-          Container &cc = fld->ref.as<Container>();
+          Container &cc = fld->ref().as<Container>();
           pset_[iset].pert = cc[HIID()].as_wp<double>(size);
           FailWhen(size!=numspids_,"size mismatch between spids and "+FiPerturbations(iset).toString());
           // get perturbations, if they exist
@@ -295,12 +295,12 @@ void VellSet::validateContent (bool)
           fld = Record::findField(fld_id);
           if( fld )
           {
-            DMI::Vec::Ref *pvr = &( fld->ref.ref_cast<DMI::Vec>() );
+            DMI::Vec::Ref *pvr = &( fld->ref().ref_cast<DMI::Vec>() );
             const DMI::Vec * pvec = pvr->deref_p();
             FailWhen(pvec->type() != TpMeqVells,fld_id.toString()+": not MeqVells");
             FailWhen(pvec->size() != numspids_,"size mismatch between spids and "+fld_id.toString());
             pset_[iset].pertval_vec = pvr;
-            fld->protect = true;
+            fld->protect(true);
             // init flags in perturbed Vells
             for( int i=0; i<numspids_; i++ )
             {
@@ -326,7 +326,7 @@ void VellSet::validateContent (bool)
           {            // add new perturbed values field
             ObjRef ref(new DMI::Vec(TpMeqVells,numspids_));
             Field & field = Record::addField(fld_id,ref,Record::PROTECT);
-            pset_[iset].pertval_vec = &( field.ref.ref_cast<DMI::Vec>() );
+            pset_[iset].pertval_vec = &( field.ref().ref_cast<DMI::Vec>() );
           }
           iset++;
         }
@@ -432,7 +432,7 @@ void VellSet::copySpids (const VellSet &other)
     return;
   ObjRef ref = other.get(FSpids);
   Field & field = Record::addField(FSpids,ref,DMI::REPLACE|Record::PROTECT);
-  const Container &cc = field.ref.as<Container>();
+  const Container &cc = field.ref().as<Container>();
   spids_ = cc[HIID()].as_p<int>();
   // if newly allocated spids, setup other data
   if( !numspids_ )
@@ -478,7 +478,7 @@ void VellSet::copyPerturbations (const VellSet &other)
   {
     ObjRef ref = other.get(FiPerturbations(iset));
     Field & field = Record::addField(FiPerturbations(iset),ref,DMI::REPLACE|Record::PROTECT);
-    Container &cc = field.ref.as<Container>();
+    Container &cc = field.ref().as<Container>();
     pset_[iset].pert = cc[HIID()].as_wp<double>();
   }
 }
@@ -489,7 +489,7 @@ void VellSet::setDataFlags (const Vells::Ref &flags)
   FailWhen(!flags->isFlags(),"dataflags: invalid type "+flags->elementType().toString());
   adjustShape(*flags);
   Field & field = Record::addField(FFlags,flags.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
-  pflags_ = &( field.ref.ref_cast<Vells>() );
+  pflags_ = &( field.ref().ref_cast<Vells>() );
   // set flags in all values
   if( pvalue_ )
     pvalue_->dewr().setDataFlags(flags);
@@ -536,7 +536,7 @@ void VellSet::setValue (Vells::Ref &ref,int flags)
   if( hasDataFlags() )
     ref().setDataFlags(dataFlags());
   Field & field = Record::addField(FValue,ref.ref_cast<BObj>(),flags|DMI::REPLACE|Record::PROTECT);
-  pvalue_ = &( field.ref.ref_cast<Vells>() );
+  pvalue_ = &( field.ref().ref_cast<Vells>() );
 }
 
 void VellSet::setPerturbedValue (int i,Vells::Ref &ref,int iset,int flags)

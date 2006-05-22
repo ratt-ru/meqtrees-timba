@@ -48,6 +48,61 @@ DMI::Record & DMI::Record::operator = (const Record &right)
   return *this;
 }
 
+          
+// attaches object to field
+void DMI::Record::Field::attach (ObjRef &ref,int flags)
+{
+  if( flags&XFER )
+    ref_.xfer(ref,flags);
+  else 
+    ref_.copy(ref,flags);
+  bset_.clear();
+  protected_ = flags&Record::PROTECT;
+}
+
+void DMI::Record::Field::fromBlock (BlockSet &bset,int num_blocks)
+{
+  bset_.clear();
+  ref_.detach();
+  if( num_blocks<0 )
+    bset_ = bset;
+  else
+    bset.popMove(bset_,num_blocks);
+}
+
+int DMI::Record::Field::toBlock (BlockSet &bset) const
+{
+  if( ref_.valid() )
+    return ref_->toBlock(bset);
+  else
+  {
+    bset.pushCopy(bset_);
+    return bset_.size();
+  }
+}
+
+DMI::Record::Field & DMI::Record::Field::copy (const Field &other,int flags,int depth)
+{
+  ref_.copy(other.ref_,flags,depth);
+  other.bset_.copyAll(bset_,flags|(depth>0?DMI::DEEP:0));
+  protected_ = other.protected_;
+  return *this;
+}
+
+void DMI::Record::Field::makeObject () const
+{
+  // we're allowed to change our data members in here, since they're essentially
+  // a cache
+  Field & self = const_cast<Field&>(*this);
+  self.ref_.detach();
+  if( !self.bset_.empty() )
+  {
+    self.ref_ = DynamicTypeManager::construct(0,self.bset_);
+    self.bset_.clear();
+  }
+}
+
+
 //##ModelId=400E4D6903B8
 void DMI::Record::merge (const Record &other,bool overwrite,int flags)
 {
@@ -63,16 +118,14 @@ void DMI::Record::merge (const Record &other,bool overwrite,int flags)
       // try to insert entry with other's key into map 
       std::pair<HIID,Field> entry;
       entry.first = oiter->first; 
+      // res.first will point to new or existing field
+      // res.second will be true if new field inserted, false if old field
       std::pair<FMI,bool> res = fields.insert(entry);
       Field &fld = res.first->second;
       // fld now points to the new (or existing entry). Attach content
-      FailWhen(!res.second && overwrite && fld.protect,"can't overwrite protected field "+entry.first.toString('.'));
+      FailWhen(!res.second && overwrite && fld.isProtected(),"can't overwrite protected field "+entry.first.toString('.'));
       if( res.second || overwrite )
-      {
-        if( fld.ref != oiter->second.ref )
-          fld.ref.unlock().copy(oiter->second.ref,flags).lock();
-        fld.protect = oiter->second.protect;
-      }
+        fld = oiter->second;
     }
   }
 }
@@ -84,19 +137,19 @@ DMI::Record::Field & DMI::Record::addField (const HIID &id, ObjRef &ref, int fla
   dprintf(2)("add(%s,[%s],%x)\n",id.toString('.').c_str(),ref->debug(1),flags);
   FailWhen( !id.size(),"null field id" );
   // find/insert field
-  Field & field = fields[id];
-  if( field.ref.valid() )
+  std::pair<HIID,Field> entry;
+  entry.first = id; 
+  // res.first will point to new or existing field
+  // res.second will be true if new field inserted, false if old field
+  std::pair<FMI,bool> res = fields.insert(entry);
+  // and this is the new/existing field
+  Field &field = res.first->second;
+  if( !res.second ) // existing field
   {
-    FailWhen(field.protect && flags&HONOR_PROTECT,"can't replace protected field "+id.toString('.'));
+    FailWhen(field.isProtected() && flags&HONOR_PROTECT,"can't replace protected field "+id.toString('.'));
     FailWhen(!(flags&DMI::REPLACE), "field "+id.toString('.')+" already exists" );
-    field.ref.unlock();
   }
-  // now insert into map
-  if( flags&XFER )
-    field.ref.xfer(ref,flags).lock();
-  else 
-    field.ref.copy(ref,flags).lock();
-  field.protect = flags&Record::PROTECT;
+  field.attach(ref,flags);
   return field;
 }
 
@@ -107,7 +160,7 @@ void DMI::Record::protectField   (const HIID &id,bool protect)
   FailWhen( !id.size(),"null field id" );
   Field * pf =  findField(id);
   FailWhen(!pf,"field "+id.toString('.')+" not found");
-  pf->protect = protect;
+  pf->protect(protect);
 }
 
 //##ModelId=3BB311C903BE
@@ -119,8 +172,9 @@ DMI::ObjRef DMI::Record::removeField (const HIID &id,bool ignore_fail,int flags)
   Field * pf =  findField(id);
   if( pf )
   {
-    FailWhen(pf->protect && flags&HONOR_PROTECT,"can't removed protected field "+id.toString('.'));
-    ObjRef ref(pf->ref.unlock(),DMI::XFER);
+    FailWhen(pf->isProtected() && flags&HONOR_PROTECT,"can't removed protected field "+id.toString('.'));
+    ObjRef ref;
+    pf->xfer(ref);
     fields.erase(id);
     dprintf(2)("  removing %s\n",ref->debug(1));
     return ref;
@@ -140,7 +194,7 @@ DMI::ObjRef DMI::Record::get (const HIID &id,bool ignore_fail) const
     FailWhen(!ignore_fail,"field "+id.toString('.')+" not found" );
     return ObjRef();
   }
-  return iter->second.ref;
+  return iter->second.ref();
 }
 
 //##ModelId=3C58216302F9
@@ -173,36 +227,17 @@ int DMI::Record::fromBlock (BlockSet& set)
     HIID id(chead+off_hids,idsize);
     off_hids += idsize;
     // create field container object
+    Field & field = fields[id];
     int bc = fieldinfo->blockcount;
-    ObjRef ref;
     if( bc )
     {
-      int nb0 = set.size();
-      FailWhen(!nb0,"Record::fromBlock: unexpectedly ran out of blocks");
-      // create object
-      try
-      {
-        ref = DynamicTypeManager::construct(0,set);
-        FailWhen(!ref.valid(),"item construct failed" );
-      }
-      catch( std::exception &exc )
-      {
-        string msg = string("error unpacking: ") + exc.what();
-        ref <<= new DMI::Vec(Tpstring,-1,&msg);
-      }
-      int nb = nb0 - set.size();
-      FailWhen(nb!=bc,"block count mismatch in header");
-      nref += nb;
-      dprintf(3)("%s [%s] used %d blocks\n",id.toString('.').c_str(),ref->sdebug(1).c_str(),nb);
+      FailWhen(set.size()<bc,"Record::fromBlock: unexpectedly ran out of blocks");
+      field.fromBlock(set,bc);
+      nref += bc;
     }
     else
-    {
-      dprintf(3)("%s is an empty field\n",id.toString('.').c_str()); 
-    }
-    // move to field
-    Field & field = fields[id];
-    field.ref.xfer(ref).lock();
-    field.protect = false;
+      field.clear();
+    field.protect(false);
   }
   FailWhen(nref!=blockcount,"total block count mismatch in header");
   dprintf(2)("fromBlock: %d total blocks used\n",nref);
@@ -236,13 +271,13 @@ int DMI::Record::toBlock (BlockSet &set) const
   {
     iddata += fieldinfo->idsize = iter->first.pack(iddata,idsize);
     int nr1;
-    if( iter->second.ref.valid() )
-      nr1 = fieldinfo->blockcount = iter->second.ref->toBlock(set);
+    if( iter->second.valid() )
+      nr1 = fieldinfo->blockcount = iter->second.toBlock(set);
     else
       nr1 = fieldinfo->blockcount = 0; // null field
     nref += nr1;
     dprintf(3)("%s [%s] generated %d blocks\n",
-        iter->first.toString('.').c_str(),iter->second.ref->sdebug(1).c_str(),nr1);
+        iter->first.toString('.').c_str(),iter->second.ref()->sdebug(1).c_str(),nr1);
   }
   BObj::fillHeader(hdr,nref);
   dprintf(2)("toBlock: %d total blocks generated\n",nref);
@@ -264,11 +299,7 @@ void DMI::Record::cloneOther (const Record &other,int flags,int depth,bool const
   fields.clear();
   // copy all field refs, then privatize them if depth>0.
   for( CFMI iter = other.fields.begin(); iter != other.fields.end(); iter++ )
-  {
-    Field & field = fields[iter->first];
-    field.ref.copy(iter->second.ref,flags,depth);
-    field.protect = iter->second.protect;
-  }
+    fields[iter->first].copy(iter->second,flags,depth);
   validateContent(!constructing);
 }
 
@@ -296,8 +327,8 @@ int DMI::Record::get (const HIID &id,ContentInfo &info,
   // Field not found? return 0
   if( iter == fields.end() )
     return 0;
-  FailWhen(writing && iter->second.protect,"can't write to protected field "+id.toString('.'));
-  ObjRef &ref = const_cast<ObjRef&>(iter->second.ref);
+  FailWhen(writing && iter->second.isProtected(),"can't write to protected field "+id.toString('.'));
+  ObjRef &ref = const_cast<ObjRef&>(iter->second.ref());
   if( writing )
     ref.dewr();  // causes copy-on-write as needed
   info.ptr = &ref;
@@ -319,8 +350,8 @@ int DMI::Record::insert (const HIID &id,ContentInfo &info)
   if( info.tid == TpDMIObjRef )
   {
     Field & field = fields[id];
-    field.protect = false;
-    info.ptr = &field.ref;
+    field.protect(false);
+    info.ptr = &( field.ref() );
     info.tid = TpDMIObjRef;
     info.writable = true;
     info.size = 1;
@@ -347,8 +378,8 @@ int DMI::Record::remove (const HIID &id)
   CFMI iter = fields.find(id);
   if( iter != fields.end() )
   {
-    FailWhen(iter->second.protect,"can't remove protected field "+id.toString('.'));
-    dprintf(2)("  removing %s\n",iter->second.ref.debug(1));
+    FailWhen(iter->second.isProtected(),"can't remove protected field "+id.toString('.'));
+    dprintf(2)("  removing %s\n",iter->second.ref()->debug(1));
     fields.erase(iter->first);
     return 1;
   }
@@ -388,12 +419,12 @@ string DMI::Record::sdebug ( int detail,const string &prefix,const char *name ) 
     {
       if( out.length() )
         out += "\n"+prefix+"  ";
-      out += iter->first.toString('.')+(iter->second.protect?"#: " :": ");
+      out += iter->first.toString('.')+(iter->second.isProtected()?"#: " :": ");
       string out1;
       try
       {
-        out1 = iter->second.ref.valid() 
-            ? iter->second.ref->sdebug(abs(detail)-1,prefix+"          ")
+        out1 = iter->second.valid() 
+            ? iter->second.ref()->sdebug(abs(detail)-1,prefix+"          ")
             : "(invalid ref)";
       }
       catch( std::exception &x )

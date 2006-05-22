@@ -110,7 +110,7 @@ void Result::setCells (const Cells *cells,int flags,bool force)
   if( verifyShape(cells->shape()) || force )
   {
     Field & field = Record::addField(FCells,ref,DMI::REPLACE|Record::PROTECT);
-    pcells_ = &(field.ref.ref_cast<Cells>());
+    pcells_ = &(field.ref().ref_cast<Cells>());
   }
   else
   {
@@ -150,8 +150,8 @@ void Result::validateContent (bool)
     Field * fld = Record::findField(FVellSets);
     if( fld )
     {
-      fld->protect = true;
-      pvellsets_ = &( fld->ref.ref_cast<DMI::Vec>() );
+      fld->protect(true);
+      pvellsets_ = &( fld->ref().ref_cast<DMI::Vec>() );
     }
     else
       pvellsets_ = 0;
@@ -175,8 +175,8 @@ void Result::validateContent (bool)
     fld = Record::findField(FCells);
     if( fld )
     {
-      fld->protect = true;
-      pcells_ = &( fld->ref.ref_cast<Cells>() );
+      fld->protect(true);
+      pcells_ = &( fld->ref().ref_cast<Cells>() );
     }
     else
       pcells_ = 0;
@@ -199,7 +199,7 @@ int Result::allocateVellSets (int nvellsets)
   FailWhen(numVellSets(),"allocateVellSets() can only be called on an empty result");
   ObjRef ref(new DMI::Vec(TpMeqVellSet,nvellsets));
   Field & field = Record::addField(FVellSets,ref,DMI::REPLACE|Record::PROTECT);
-  pvellsets_ = &(field.ref.ref_cast<DMI::Vec>());
+  pvellsets_ = &(field.ref().ref_cast<DMI::Vec>());
   // setup trivial dims
   if( nvellsets>1 )
   {
@@ -217,7 +217,7 @@ int Result::allocateVellSets (const Dims &dims)
   int nvs = dims.product();
   ObjRef ref(new DMI::Vec(TpMeqVellSet,nvs));
   Field & field = Record::addField(FVellSets,ref,DMI::REPLACE|Record::PROTECT);
-  pvellsets_ = &(field.ref.ref_cast<DMI::Vec>());
+  pvellsets_ = &(field.ref().ref_cast<DMI::Vec>());
   // 1 element? this corresponds to zero dimensions
   if( nvs == 1 )
     dims_.clear();

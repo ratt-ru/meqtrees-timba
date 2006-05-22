@@ -65,12 +65,86 @@ namespace DMI
 class Record : public Container
 {
   protected:
-      typedef struct 
+      class Field
       {
-        ObjRef   ref;
-        BlockSet bset;
-        bool     protect;
-      } Field;
+        public:
+          Field ()
+            : protected_(false)
+          {}
+        
+          Field (const Field &other)
+          { copy(other); }
+          
+          Field & operator = (const Field &other)
+          { return copy(other); }
+        
+          // copies other field into this one
+          Field & copy (const Field &other,int flags=0,int depth=0);
+
+          // Protected fields cannot be removed or modified via public methods
+          // (i.e. these fields can only be managed by derived classes)
+          bool isProtected () const
+          { return protected_;}
+        
+          // raises/clears the protected flag
+          void protect (bool prot=true) 
+          { protected_ = prot; }
+          
+          // clears the protected flag
+          void unprotect () 
+          { protected_ = false; }
+          
+          // true if field has contents
+          bool valid () const
+          { return ref_.valid() || !bset_.empty(); }
+          
+          // attaches object to field
+          void attach (ObjRef &ref,int flags);
+          
+          // attaches a packed object (i.e. a BlockSet) to field
+          // If num_blocks<0, attaches whole bset
+          // else pops the first num_blocks from bset
+          void fromBlock (BlockSet &bset,int num_blocks=-1);
+          
+          // packs field content into blockset, adding blocks to end
+          // of set. Returns the number of blocks packed.
+          int toBlock (BlockSet &bset) const;
+          
+          // clears field
+          void clear ()
+          { ref_.detach(); bset_.clear(); }
+          
+          // returns ref to object
+          const ObjRef & ref () const
+          { 
+            if( !ref_.valid() ) 
+              makeObject(); 
+            return ref_; 
+          }
+          
+          // returns non-const ref to object
+          ObjRef & ref ()
+          { 
+            if( !ref_.valid() ) 
+              makeObject(); 
+            return ref_; 
+          }
+          
+          // clears the field, but xfers the ref into out
+          void xfer (ObjRef &out)
+          {
+            makeObject();
+            out.xfer(ref_);
+            clear();
+          }
+          
+        private:
+          void makeObject () const;
+            
+          ObjRef   ref_;
+          BlockSet bset_;
+          bool     protected_;
+      };
       
       typedef DMI_Allocator<Field> FieldAllocator;
 
@@ -127,7 +201,7 @@ class Record : public Container
         Thread::Mutex::Lock lock(mutex());
         const Field * pf = findField(id);
         FailWhen(!pf,"field "+id.toString()+" not found");
-        return pf->ref.as<T>();
+        return pf->ref().as<T>();
       }
       
       template<class T>
@@ -136,8 +210,8 @@ class Record : public Container
         Thread::Mutex::Lock lock(mutex());
         Field * pf = findField(id);
         FailWhen(!pf,"field "+id.toString()+" not found");
-        FailWhen(pf->protect,"field "+id.toString()+" is protected for writing");
-        return pf->ref.as<T>();
+        FailWhen(pf->isProtected(),"field "+id.toString()+" is protected for writing");
+        return pf->ref().as<T>();
       }
       
       template<class T>
@@ -147,7 +221,7 @@ class Record : public Container
         const Field * pf = findField(id);
         if( !pf )
           return 0;
-        return &( pf->ref.as<T>() );
+        return &( pf->ref().as<T>() );
       }
       
       template<class T>
@@ -157,8 +231,8 @@ class Record : public Container
         Field * pf = findField(id);
         if( !pf )
           return 0;
-        FailWhen(pf->protect,"field "+id.toString()+" is protected for writing");
-        return &( pf->ref.as<T>() );
+        FailWhen(pf->isProtected(),"field "+id.toString()+" is protected for writing");
+        return &( pf->ref().as<T>() );
       }
       
     //##ModelId=400E4D6903B8
@@ -258,10 +332,10 @@ class Record : public Container
           { return (*this)->first; }
             
           bool isProtected () const
-          { return (*this)->second.protect; }
+          { return (*this)->second.isProtected(); }
         
           const ObjRef & ref () const
-          { return (*this)->second.ref; }
+          { return (*this)->second.ref(); }
       };
       
     //##ModelId=3DB9343B029A
@@ -284,16 +358,16 @@ class Record : public Container
           { return (*this)->first; }
             
           bool isProtected () const
-          { return (*this)->second.protect; }
+          { return (*this)->second.isProtected(); }
         
           const ObjRef & ref () const
-          { return (*this)->second.ref; }
+          { return (*this)->second.ref(); }
           
           void protect (bool protect=true)
-          { (*this)->second.protect = protect; }
+          { (*this)->second.protect(protect); }
 
           void unprotect (bool unprotect=true)
-          { protect(!unprotect); }
+          { (*this)->second.protect(!unprotect); }
       };
       
       friend class ConstIterator;
@@ -322,7 +396,7 @@ class Record : public Container
         Thread::Mutex::Lock lock(mutex());
         Field * pf = findField(id);
         FailWhen(!pf,"field "+id.toString()+" not found");
-        return pf->ref.as<T>();
+        return pf->ref().as<T>();
       }
       
       // implements the add operation

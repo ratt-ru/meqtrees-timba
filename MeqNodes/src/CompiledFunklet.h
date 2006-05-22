@@ -57,7 +57,7 @@ class CompiledFunklet: public Funklet{
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-    pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+    pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }
@@ -81,7 +81,7 @@ class CompiledFunklet: public Funklet{
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-    pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+    pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }
@@ -109,7 +109,7 @@ class CompiledFunklet: public Funklet{
     FailWhen(pcoeff->rank()>maxFunkletRank(),"can't create Meq::CompiledFunklet from this array: rank too high");
 
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-    pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+    pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }

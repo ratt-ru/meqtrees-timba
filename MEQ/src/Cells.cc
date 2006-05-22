@@ -575,7 +575,7 @@ DMI::Record & Cells::getSubrecord (const HIID &id)
   Field * fld = Record::findField(id);
   if( fld )
   {
-    return fld->ref.ref_cast<Record>().dewr();
+    return fld->ref().ref_cast<Record>().dewr();
   }
   else
   {

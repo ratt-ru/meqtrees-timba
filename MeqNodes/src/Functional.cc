@@ -219,7 +219,8 @@ namespace Meq {
   while(true){
     for(int i =0; i<Ndim_;i++)
       xval[i]=*(reinterpret_cast<const complex<double> *>(&*(strided_iter[i])));
-    *res= *(reinterpret_cast<dcomplex*>(&((*itsFunction)(xval))));
+    complex<double> result = (*itsFunction)(xval);
+    *res = *(reinterpret_cast<dcomplex*>(&result));
     res++;
     int ndim = counter.incr(); 
     if( !ndim )    // break out when counter is finished

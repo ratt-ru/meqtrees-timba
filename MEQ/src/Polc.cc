@@ -95,7 +95,7 @@ Polc::Polc(DMI::NumArray *pcoeff,
     rnk = 0;
   init(rnk,iaxis,offset,scale,pert,weight,id);
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+  pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
 }
 
 //##ModelId=400E5354033A
@@ -127,7 +127,7 @@ void Polc::validateContent (bool recursive)
     else{
       Field * fld = Record::findField(FCoeff);
       if( fld ){
-	pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+	pcoeff_ = &( fld->ref().ref_cast<DMI::NumArray>() );
 	//coeff should be doubles:
 	if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
 	{

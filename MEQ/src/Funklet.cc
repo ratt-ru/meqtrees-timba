@@ -90,12 +90,12 @@ Funklet::Funklet (const Funklet &other,int flags,int depth)
 // valid anyway
   Field * fld = Record::findField(FDomain);
   if( fld )
-    domain_ = fld->ref;
+    domain_ = fld->ref();
   else
     domain_ <<= new Domain;
   Field *cfld = Record::findField(FCoeff);
 
-  pcoeff_ = cfld ? &( cfld->ref.ref_cast<DMI::NumArray>() ) : 0;
+  pcoeff_ = cfld ? &( cfld->ref().ref_cast<DMI::NumArray>() ) : 0;
 }
 
 void Funklet::validateContent (bool)    
@@ -107,7 +107,7 @@ void Funklet::validateContent (bool)
   {
     Field * fld = Record::findField(FDomain);
     if( fld )
-      domain_ = fld->ref;
+      domain_ = fld->ref();
     else
       domain_ <<= new Domain;
     // get various others
@@ -139,7 +139,7 @@ void Funklet::validateContent (bool)
 
     fld = Record::findField(FCoeff);
     if( fld ){
-      pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+      pcoeff_ = &( fld->ref().ref_cast<DMI::NumArray>() );
       //coeff should be doubles:
       if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
 	{
@@ -317,7 +317,7 @@ void Funklet::setCoeff (const DMI::NumArray &arr)
   FailWhen(arr.elementType()!=Tpdouble,"Meq::Funklet: coeff array must be of type double");
   ObjRef ref(new DMI::NumArray(arr));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+  pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
 }
 
 void Funklet::setCoeff (double c00)
@@ -328,7 +328,7 @@ void Funklet::setCoeff (double c00)
   coeff = c00;
   ObjRef ref(new DMI::NumArray(coeff));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+  pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
 }
 
 void Funklet::setCoeff (const LoVec_double & coeff)
@@ -341,7 +341,7 @@ void Funklet::setCoeff (const LoVec_double & coeff)
   //  }
   ObjRef ref(new DMI::NumArray(coeff));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+  pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
 }
 
 void Funklet::setCoeff (const LoMat_double & coeff)
@@ -354,7 +354,7 @@ void Funklet::setCoeff (const LoMat_double & coeff)
   //  }
   ObjRef ref(new DMI::NumArray(coeff));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+  pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
 }
 
 

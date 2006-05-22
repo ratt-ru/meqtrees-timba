@@ -90,8 +90,8 @@ void Domain::validateContent (bool)
     // change map using domain record, if needed
     if( map_attached_ )
     {
-      Axis::setAxisMap(paxismap->ref.as<DMI::Vec>());
-      paxismap->protect = true;
+      Axis::setAxisMap(paxismap->ref().as<DMI::Vec>());
+      paxismap->protect(true);
     }
     // now iterate over all domain elements
     for( Iterator iter = Record::begin(); iter != Record::end(); iter++ )

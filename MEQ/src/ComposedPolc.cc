@@ -100,7 +100,7 @@ namespace Meq {
       cdebug(2)<<"no funklet list found in record"<<endl;
       return;
     }
-    const DMI::List * funklistp =   fld->ref.ref_cast<DMI::List>() ;
+    const DMI::List * funklistp =   fld->ref().ref_cast<DMI::List>() ;
 
 
     int nr_funklets = funklistp->size();

@@ -83,7 +83,7 @@ void Request::setCells (const Cells * cells,int flags)
 {
   ObjRef ref(cells,flags);
   Field & field = Record::addField(FCells,ref,flags|DMI::REPLACE|Record::PROTECT);
-  pcells_ = &(field.ref.ref_cast<Cells>());
+  pcells_ = &(field.ref().ref_cast<Cells>());
 }
 
 //##ModelId=400E53550049
@@ -98,8 +98,8 @@ void Request::validateContent (bool)
     Field * pcf = findField(FCells);
     if( pcf )
     {
-      pcells_ = &( pcf->ref.ref_cast<Cells>() );
-      pcf->protect = true;
+      pcells_ = &( pcf->ref().ref_cast<Cells>() );
+      pcf->protect(true);
     }
     else
       pcells_ = 0;
@@ -138,7 +138,7 @@ void Request::copyRider (const Request &other)
   const Field * fld = other.findField(FRider);
   if( fld )
   {
-    Record::replace(FRider,fld->ref);
+    Record::replace(FRider,fld->ref());
     has_rider_ = true;
   }
   else

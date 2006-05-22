@@ -31,7 +31,7 @@ namespace Meq {
       axis_vector_[i]=0;
 
     Field * fld = Record::findField(FAxisList);
-    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref.ref_cast<DMI::Record>()) : 0;
+    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref().ref_cast<DMI::Record>()) : 0;
     if(axisArray){
       for(int i=0;i<Axis::MaxAxis;i++){
 	axis_vector_[i]=0;
@@ -57,7 +57,7 @@ namespace Meq {
       axis_vector_[i]=0;
 
     Field * fld = Record::findField(FAxisList);
-    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref.ref_cast<DMI::Record>()) : 0;
+    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref().ref_cast<DMI::Record>()) : 0;
     if(axisArray){
       for(int i=0;i<Axis::MaxAxis;i++){
 	axis_vector_[i]=0;
@@ -118,7 +118,7 @@ namespace Meq {
   void PolcLog::validateContent (bool recursive){
 
     Field * fld = Record::findField(FAxisList);
-    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref.ref_cast<DMI::Record>()) : 0;
+    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref().ref_cast<DMI::Record>()) : 0;
     if(axisArray){
        for(int i=0;i<Axis::MaxAxis;i++){
 	axis_vector_[i]=0;
