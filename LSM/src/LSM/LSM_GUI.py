@@ -688,7 +688,9 @@ class LSMWindow(QMainWindow):
             ttext=QString("PUnits : "+str(self.lsm.getPUnits())+" Sources : "+str(self.lsm.getSources()))
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
-            ttext=QString("Apparent Brightness : Max= "+str(self.lsm.getMaxBrightness())+" Min= "+str(self.lsm.getMinBrightness()))
+            tmpval0='%3.4f'%self.lsm.getMaxBrightness()
+            tmpval1='%3.4f'%self.lsm.getMinBrightness()
+            ttext=QString("Apparent Brightness : Max= "+tmpval0+" Min= "+ tmpval1+ "Jy/beam")
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
             # print some info on the projection
@@ -710,14 +712,19 @@ class LSMWindow(QMainWindow):
             # get the PUnits
             l_punits=self.lsm.queryLSM(count=n_punits)
             for punit in l_punits:
-              ttext=QString(punit.name+": brightness: "+str(punit.getBrightness())+", type: ")
+              tmpval='%3.4f'%punit.getBrightness()
+              ttext=QString(punit.name+": brightness: "+tmpval+"Jy/beam"+", type: ")
               if punit.getType()==POINT_TYPE:
                 ttext=QString(ttext.ascii()+"Point")
               else:
                 ttext=QString(ttext.ascii()+"Patch")
               # polarization
               [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
-              ttext=QString(ttext.ascii()+" % ["+str(qq)+","+str(uu)+","+str(vv)+"]")
+              if qq!=0 or uu!=0 or vv!=0:
+                tmpvalQ='%3.4e'%qq
+                tmpvalU='%3.4e'%uu
+                tmpvalV='%3.4e'%vv
+                ttext=QString(ttext.ascii()+" % ["+tmpvalQ+", "+tmpvalU+", "+tmpvalV+"]")
               pp.drawText(margin+tab_margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
               yPos=yPos+fm.lineSpacing()
             # print each PUnit on a line
