@@ -763,8 +763,6 @@ class ResultPlotter(GriddedPlugin):
     self._solver_data.StoreSolverData(self._rec,self.label)
 # retrieve it
     self._solver_array =  self._solver_data.getSolverData()
-    (metrics_rank, iteration_number, solver_offsets, chi_vectors, chi_0) = self._solver_data.getSolverMetrics()
-#   self._visu_plotter.set_solver_metrics(metrics_rank, iteration_number, solver_offsets)
     self._visu_plotter.set_solver_metrics(self._solver_data.getSolverMetrics())
     shape = self._solver_array.shape
     title = ''

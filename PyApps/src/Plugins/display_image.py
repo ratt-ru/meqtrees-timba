@@ -7,6 +7,7 @@ from numarray import *
 from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
+from QwtPlotCurveSizes import *
 from QwtPlotImage import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
@@ -109,6 +110,8 @@ class QwtImageDisplay(QwtPlot):
         'Toggle logarithmic range for image': 308,
         'Toggle results history': 309,
         'Toggle Metrics Display': 310,
+        'Toggle log axis for chi_0': 311,
+        'Toggle log axis for solution vector': 312,
         }
 
     _start_spectrum_menu_id = 0
@@ -193,6 +196,7 @@ class QwtImageDisplay(QwtPlot):
         self.setResults = True
         self.y_solver_offset = []
         self.metrics_plot = []
+        self.chis_plot = []
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -258,6 +262,11 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_gray_scale = 0
         self._toggle_flag_label = None
         self._toggle_blink_label = None
+
+        self.first_chi_test = True
+        self.log_axis_chi_0 = False
+        self.log_axis_solution_vector = False
+
         QWhatsThis.add(self, display_image_instructions)
 
 # Finally, over-ride default QWT Plot size policy of MinimumExpanding
@@ -472,6 +481,24 @@ class QwtImageDisplay(QwtPlot):
         self.toggleMetrics()
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
+        return True
+
+      if menuid == self.menu_table['Toggle log axis for chi_0']:
+        if self.log_axis_chi_0 is False:
+          self.log_axis_chi_0 = True
+        else:
+          self.log_axis_chi_0 = False
+        self.test_plot_array_sizes()
+        self.replot()
+        return True
+
+      if menuid == self.menu_table['Toggle log axis for solution vector']:
+        if self.log_axis_solution_vector is False:
+          self.log_axis_solution_vector = True
+        else:
+          self.log_axis_solution_vector = False
+        self.test_plot_array_sizes()
+        self.replot()
         return True
 
 # if we get here ...
@@ -1164,25 +1191,20 @@ class QwtImageDisplay(QwtPlot):
     def test_plot_array_sizes(self, width=None):
 
 # if we have a solver plot 
-      if not self.chi_vectors is None:
+      if len(self.chis_plot) > 0:
         zoom = False
         if len(self.zoomStack):
           zoom = True
         if not zoom:
           self.setAxisAutoScale(QwtPlot.yRight)
           self.setAxisAutoScale(QwtPlot.xTop)
-          use_log_chi_vectors = False
-          use_log_chi_0 = False
-          if self.chi_vectors.min() != 0.0 and self.chi_vectors.max() / self.chi_vectors.min() > 1000.0:
-            use_log_chi_vectors = True
-          if self.chi_zeros.min() != 0.0 and self.chi_zeros.max() / self.chi_zeros.min() > 1000.0:
-            use_log_chi_0 = True
         
-          if use_log_chi_0:
-            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted | QwtAutoScale.Logarithmic)
+          if self.log_axis_chi_0:
+            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
           else:
-            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted)
-          if use_log_chi_vectors:
+            self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
+
+          if self.log_axis_solution_vector:
             self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
           else:
             self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
@@ -1241,6 +1263,12 @@ class QwtImageDisplay(QwtPlot):
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
+
+        # can't plot cross sections and chi display together
+        if len(self.chis_plot) > 0:
+          for i in range(len(self.chis_plot)):
+            self.removeCurve(self.chis_plot[i])
+          self.chis_plot = []
 
         shape = self.raw_array.shape
         _dprint(3, 'shape is ', shape)
@@ -1451,47 +1479,70 @@ class QwtImageDisplay(QwtPlot):
 
       #chi_sq surfaces
       self.chis_plot = []
+      start_plot = []
       shape = self.metrics_rank.shape
       self.enableAxis(QwtPlot.yRight, True)
       self.enableAxis(QwtPlot.xTop, True)
-      use_log_chi_vectors = False
-      use_log_chi_0 = False
-      if self.chi_vectors.min() != 0.0 and self.chi_vectors.max() / self.chi_vectors.min() > 1000.0:
-        use_log_chi_vectors = True
-      if self.chi_zeros.min() != 0.0 and self.chi_zeros.max() / self.chi_zeros.min() > 1000.0:
-        use_log_chi_0 = True
         
       self.setAxisTitle(QwtPlot.yRight, 'chi_0')
       self.setAxisTitle(QwtPlot.xTop, 'amplitude of solution vector')
-      if use_log_chi_0:
-        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted | QwtAutoScale.Logarithmic)
+
+      if self.first_chi_test:
+        self.log_axis_solution_vector = False
+        self.log_axis_chi_0 = False
+        if self.chi_vectors.min() != 0.0 and self.chi_vectors.max() / self.chi_vectors.min() > 1000.0:
+          self.log_axis_solution_vector = True
+        if self.chi_zeros.min() != 0.0 and self.chi_zeros.max() / self.chi_zeros.min() > 1000.0:
+           self.log_axis_chi_0 = True
+        self.first_chi_test = False
+
+      if self.log_axis_chi_0:
+        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
       else:
-        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Inverted)
-      if use_log_chi_vectors:
+        self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
+      if self.log_axis_solution_vector:
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
       else:
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
+
       for i in range(shape[1]):
         plot_data= zeros(shape[0], Float32)
         chi_data= zeros(shape[0], Float32)
         for j in range(shape[0]):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
-        chi_key = 'chi'+ str(i)
-        self.chis_plot.append(self.insertCurve(chi_key))
-        self.setCurvePen(self.chis_plot[i], QPen(Qt.red, 2))
-        self.setCurveStyle(self.chis_plot[i],Qt.SolidLine)
+        curve = QwtPlotCurveSizes(self)
+        curve.setPen(QPen(Qt.red, 2))
+        curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
+        curve.setStyle(Qt.SolidLine)
+        self.chis_plot.append(self.insertCurve(curve))
         if self.array_flip:
           self.setCurveYAxis(self.chis_plot[i], QwtPlot.yRight)
           self.setCurveXAxis(self.chis_plot[i], QwtPlot.xTop)
-          self.setCurveData(self.chis_plot[i], plot_data, chi_data)
+          curve.setData(plot_data,chi_data)
         else:
           self.setCurveYAxis(self.chis_plot[i], QwtPlot.xTop)
           self.setCurveXAxis(self.chis_plot[i], QwtPlot.yRight)
-          self.setCurveData(self.chis_plot[i], chi_data, plot_data)
-        plot_curve=self.curve(self.chis_plot[i])
-        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Diamond, QBrush(Qt.red),
-                 QPen(Qt.red), QSize(10,10)))
+          curve.setData(chi_data,plot_data)
+        symbolList=[]
+        for j in range(len(chi_data)):
+          if j == 0:
+            # first symbol is rectangle
+            symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.red),
+                 QPen(Qt.red),QSize(10,10)))
+          else:
+            if self.nonlin is None:
+              symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
+            else:
+              if self.nonlin[j,i] >= self.nonlin[j-1,i]:
+                symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
+              else:
+                symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
+        curve.setSymbolList(symbolList)
 
     def insert_array_info(self):
       if self.is_vector:
@@ -2140,6 +2191,7 @@ class QwtImageDisplay(QwtPlot):
       self.solver_offsets = metrics_tuple[2]
       self.chi_vectors = metrics_tuple[3]
       self.chi_zeros = metrics_tuple[4]
+      self.nonlin = metrics_tuple[5]
 
     def convert_to_AP(self, real_imag_image):
       """ convert real/imag complex array to amplitude/phase equivalent """
@@ -2194,8 +2246,15 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle ColorBar", toggle_id)
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
-        toggle_id = self.menu_table['Toggle axis flip']
-        self._menu.insertItem("Toggle axis flip", toggle_id)
+        #no axis flipping for solver plots`
+        if self.chi_zeros is None:
+          toggle_id = self.menu_table['Toggle axis flip']
+          self._menu.insertItem("Toggle axis flip", toggle_id)
+        else:
+          toggle_id = self.menu_table['Toggle log axis for chi_0']
+          self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
+          toggle_id = self.menu_table['Toggle log axis for solution vector']
+          self._menu.insertItem("Toggle log axis for solution vector", toggle_id)
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)

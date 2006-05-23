@@ -88,11 +88,11 @@ def make():
         symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
              QBrush(Qt.red), QPen(Qt.red), QSize(3+i,3+i)))
     curve.setData(x_array,y_array,symbol_sizes)
-    demo.insertCurve(curve)
+    key = demo.insertCurve(curve)
     x_array = x_array + 10
     curve_a.setData(x_array,y_array)
     curve_a.setSymbolList(symbolList)
-    demo.insertCurve(curve_a)
+    key1 = demo.insertCurve(curve_a)
     demo.replot()
     return demo
 
