@@ -37,9 +37,27 @@
 #     -) Other functionality:
 #         -) Plotting
 #         -) Interactive coeff determination
-#         -) Uncertainty (rms scatter) in default values (simulation)
+#         -) Uncertainty (rms stddev) in default values (simulation)
 #         -) Etc
 
+"""Qualifier service:
+
+  Some of the Expression methods generate MeqTree nodes. Such methods always need
+  a node-scope (ns). If no name or qualifier (qual) is specified, an automatic node
+  name is generates, which will also be unique. It is also possible, with a separate
+  method, to specify overall qualifiers that will be used for for all nodes that are
+  subsequently generated for that object:
+     .quals(*args, **kwargs)
+  Any extra qualifiers specified in a method call will be added to these overall
+  qualifiers. The overall qualifiers can be removed with .quals().
+
+  For convenience, some extra features are added to the qualifier service. When
+  modifying the .quals(), the following things happen:
+    -) .quals() is called for  
+    -) All existing nodes are removed.
+    -) The default values are modified where stddev>0
+  
+  """
 
 
 #***************************************************************************************
@@ -48,6 +66,7 @@
 
 from Timba.Meq import meq
 from numarray import *
+from random import *
 from copy import deepcopy
 from Timba.Trees.TDL_Leaf import *
 from Timba.Contrib.MXM.TDL_Funklet import *
@@ -95,25 +114,42 @@ class Expression:
         for key in vv:
             self.var(key)
 
-        # Initialise some derived quantities:
-        self.__expanded = False
-        self.__xexpr = None
-        self.__xorder = []
-        self.__xparm = dict()
-        self.__xvar = dict()
-        self.__xchild = dict()
-        self.__xchild_order = []
+        # Initialise derived quantities:
+        self._reset()
 
+        # Finished:
+        return None
+
+    #----------------------------------------------------------------------------
+
+    def _reset (self, nominal=True):
+        """Reset the object to its original state."""
+        self.__quals = dict()
+        self.__expanded = False
+        self.__Functional = None
+        self.__MeqParm = None
         self.__Funklet = None
         self.__Funklet_function = None
-
         self.__test_result = None
         self.__eval_result = None
         self.__test_seval = None
         self.__eval_seval = None
-
-        # Finished:
-        return None
+        for key in self.__parm.keys():
+            rr = self.__parm[key]
+            if isinstance(rr, Expression):
+                rr._reset(nominal=nominal)
+            elif isinstance(rr, Funklet):
+                pass
+            elif rr.has_key('index'):
+                pass
+            elif nominal:
+                rr['default'] = rr['nominal']
+            elif rr['stddev']>0:
+                rr['default'] = gauss(rr['nominal'], rr['stddev'])
+            else:
+                rr['default'] = rr['nominal']
+        return True
+    
 
     #----------------------------------------------------------------------------
     # Some access functions:
@@ -167,6 +203,7 @@ class Expression:
     def oneliner(self):
         """Return a one-line summary of the Expression"""
         ss = '** Expression ('+str(self.__label)+'):  '
+        if self.__quals: ss += '(quals='+str(self.__quals)+') '
         ss += str(self.__expression)
         return ss
 
@@ -178,6 +215,7 @@ class Expression:
         indent = 2*' '
         print indent,'- input_expression: ',str(self.__input_expression)
         print indent,'- input: ',str(self.__pp)
+        print indent,'- default node qualifiers: ',str(self.__quals)
         print indent,'-',self.oneliner()
         
         print indent,'- its variables (',len(self.__var),'): '
@@ -236,6 +274,7 @@ class Expression:
             print indent,'  - function =',str(self.__Funklet_function)
             print indent,'  - _function ->',str(self.__Funklet._function)
             print indent,'  - _coeff ->',str(self.__Funklet._coeff)
+            print indent,'  - _type ->',str(self.__Funklet._type)
             # print dir(self.__Funklet)
             print indent,'- eval() ->',str(self.__Funklet.eval())
             
@@ -249,7 +288,7 @@ class Expression:
     #============================================================================
 
     def parm (self, key=None, default=None, constant=False, polc=None,
-              help=None, scatter=0, testval=None, trace=True):
+              help=None, stddev=0, testval=None, trace=True):
         """Provide extra information for the named parameter (key).
         The default argument may either be a value, or an object of type
         Expression or Funklet, or a nodestub (child of MeqFunctional node).
@@ -324,11 +363,12 @@ class Expression:
             # A numeric parm has a default value.
             # It also has other information:
             # - testval: value to be used for testing.
-            # - scatter: stddev to be used for simulaton.
+            # - nominal: nominal default value (i.e. without stddev)
+            # - stddev: stddev to be used for simulaton.
             if testval==None: testval = default
-            self.__parm[key] = dict(default=default, help=help,
-                                    constant=constant,
-                                    testval=testval, scatter=scatter)
+            self.__parm[key] = dict(default=default, constant=constant,
+                                    help=help, testval=testval,
+                                    nominal=default, stddev=stddev)
 
         # Enforce a new expansion:
         self.__expanded = False
@@ -394,6 +434,7 @@ class Expression:
         self.__xexpr = deepcopy(self.__expression)
         self.__xparm = dict()
         self.__xorder = []
+        self.__xchild_order = []
         self.__xvar = deepcopy(self.__var)
 
         # Then replace the (expanded) Expression parameters:
@@ -401,9 +442,11 @@ class Expression:
             parm = self.__parm[key]
 
             if isinstance(parm, Funklet):
+                # Convert a Funklet to an Expression first
                 parm = Funklet2Expression(parm, key)
 
             if isinstance(parm, Expression):
+                # Merge the parm (expanded) expr with its own:
                 pexpr = '('+parm.xexpr()+')'
                 if trace: print '-',key,pexpr
                 for pkey in parm.xorder():
@@ -415,14 +458,12 @@ class Expression:
                 for vkey in parm.xvar().keys():
                     self.__xvar.setdefault(vkey, parm.xvar(vkey))
 
-            # elif isinstance(parm, Timba.TDL.TDLimpl._NodeStub):
-              # do nothing (just copy, see below)
-
             else:
-                # Just copy:
+                # Otherwise, just copy (numeric or node):
                 self.__xorder.append(key)
                 self.__xparm[key] = self.__parm[key]
                 
+        # Finished, do some bookkeeping:
         self.__expanded = True
         if trace: print '   ->',self.__xexpr
         self.__test_result = self.eval(test=True)
@@ -569,6 +610,7 @@ class Expression:
                 print 'F._nx:',self.__Funklet._nx
                 print 'F._function:',self.__Funklet._function
                 print 'F._coeff:',self.__Funklet._coeff
+                print 'F._type:',self.__Funklet._type
                 print '\n'
         return self.__Funklet
 
@@ -597,7 +639,7 @@ class Expression:
             rr = self.__var[key]                        # var definition record
             pkey = rr['node']                           # var key, e.g. 't'
             name = 'Expr_'+self.label()+'_'+pkey
-            node = _unique_node (ns, name, qual=None, trace=trace)
+            node = self._unique_node (ns, name, qual=None, trace=trace)
             if not node.initialized():
                 if pkey=='MeqTime':
                     node << Meq.Time()
@@ -627,7 +669,7 @@ class Expression:
         for key in self.__parm.keys():
             parm = self.__parm[key]
             name = 'Expr_'+self.label()+'_'+key
-            node = _unique_node (ns, name, qual=None, trace=trace)
+            node = self._unique_node (ns, name, qual=None, trace=trace)
             funklet = None
             if key in self.__parmtype['Expression']:
                 funklet = parm.Funklet()
@@ -635,6 +677,12 @@ class Expression:
                 funklet = parm
             elif key in self.__parmtype['MeqNode']:
                 pass                                    # already a node
+            elif parm['constant']==True:
+                # NB: The alternative is to modify self.__expression so that
+                #     it contains an explicit number, rather than a node.
+                # This is OK too, since only a MeqParm can be solved for....
+                node << Meq.Constant(parm['default'])
+                self.parm(key, node)                    # redefine the parm
             else:                                       # assume numeric
                 node << Meq.Parm(parm['default'])
                 self.parm(key, node)                    # redefine the parm
@@ -650,12 +698,13 @@ class Expression:
 
     def MeqParm (self, ns, name=None, qual=None, trace=False):
         """Make a MeqParm node,  with the expression Funklet as init_funklet."""
-        funklet = self.Funklet()
-        if not name: name = 'Expr_'+self.label()+'_MeqParm'
-        node = _unique_node (ns, name, qual=qual, trace=trace)
-        node << Meq.Parm(init_funklet=funklet)
-        # if trace: print dir(node)
-        return node
+        if not self.__MeqParm: 
+            funklet = self.Funklet()
+            if not name: name = 'Expr_'+self.label()+'_MeqParm'
+            self.__MeqParm = self._unique_node (ns, name, qual=qual, trace=trace)
+            self.__MeqParm << Meq.Parm(init_funklet=funklet)
+            # if trace: print dir(self.__MeqParm)
+        return self.__MeqParm
 
     #--------------------------------------------------------------------------
 
@@ -671,8 +720,11 @@ class Expression:
         # Check whether there are extra axes defined for all variables
         # in the expression other than [t] and [f]:
         caxes = []
-        for cax in common_axes: caxes.append(str(cax))
-        print 'caxes =',caxes
+        caxstring = ''
+        for cax in common_axes:
+            caxes.append(str(cax))
+            caxstring += str(cax)
+        # print 'caxes =',caxes
         for key in self.__var.keys():
             if not key in ['t','f']:
                 if not key in caxes:
@@ -682,8 +734,10 @@ class Expression:
         # but NOT for the MeqParm. The reason is that the Compounder has more
         # qualifiers than the Parm. E.g. EJones_X is per station, but the
         # compounder and its children (l,m) are for a specific source (q=3c84)
-        if not name: name = 'Expr_'+self.label()+'_MeqCompounder'
-        node = _unique_node (ns, name, qual=qual, trace=trace)
+        if not name:
+            # name = 'Expr_'+self.label()+'_'+caxstring+'_MeqCompounder'
+            name = 'Expr_'+self.label()+'_'+caxstring
+        node = self._unique_node (ns, name, qual=qual, trace=trace)
         node << Meq.Compounder(children=[extra_axes,parm], common_axes=common_axes)
         return node
 
@@ -705,38 +759,97 @@ class Expression:
     def MeqFunctional (self, ns, name=None, qual=None, trace=False):
         """Make a MeqFunctional node from the Expression, by replacing all its
         parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
-        self.parm2node (ns, trace=trace)                # convert parms to nodes
-        self.var2node (ns, trace=trace)                 # convert vars to nodes
-        uniqual = _counter ('MeqFunctional', increment=-1)
-        function = deepcopy(self.__expression)
-        children = []
-        child_map = []                                  # for MeqFunctional
-        k = -1
-        for key in self.__parm.keys():
-            k += 1                                      # increment
-            xk = 'x'+str(k)                             # x0, x1, x2, ..
-            function = function.replace('{'+key+'}',xk)
-            parm = self.__parm[key]                     # parm definition record
-            child_name = parm['child_name']
-            if not child_name in children:
-                children.append(child_name)
-            child_num = 1+children.index(child_name)
-            rr = record(child_num=child_num, index=parm['index'],
-                        child_name=child_name)
-            if trace: print '-',key,xk,rr
-            child_map.append(rr)
-        # Replace child-names with actual children:
-        for i in range(len(children)):
-            children[i] = self.__child[children[i]]
-        if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
-        node = _unique_node (ns, name, qual=qual, trace=trace)
-        node << Meq.Functional(children=children, child_map=child_map)
+        if not self.__Functional:
+            self.parm2node (ns, trace=trace)                # convert parms to nodes
+            self.var2node (ns, trace=trace)                 # convert vars to nodes
+            uniqual = _counter ('MeqFunctional', increment=-1)
+            function = deepcopy(self.__expression)
+            children = []
+            child_map = []                                  # for MeqFunctional
+            k = -1
+            for key in self.__parm.keys():
+                k += 1                                      # increment
+                xk = 'x'+str(k)                             # x0, x1, x2, ..
+                function = function.replace('{'+key+'}',xk)
+                parm = self.__parm[key]                     # parm definition record
+                child_name = parm['child_name']
+                if not child_name in children:
+                    children.append(child_name)
+                child_num = 1+children.index(child_name)
+                rr = record(child_num=child_num, index=parm['index'],
+                            child_name=child_name)
+                if trace: print '-',key,xk,rr
+                child_map.append(rr)
+            # Replace child-names with actual children:
+            for i in range(len(children)):
+                children[i] = self.__child[children[i]]
+            if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
+            self.__Functional = self._unique_node (ns, name, qual=qual, trace=trace)
+            self.__Functional << Meq.Functional(children=children, child_map=child_map)
+        return self.__Functional
+
+
+
+
+    #================================================================================
+    # Node-names:
+    #================================================================================
+
+    def quals(self, *args, **kwargs):
+        """Get/set the overall MeqNode node-name qualifier(s)"""
+
+        # Reset the object (if nominal, reset parm defaults to nominal, else stddev):
+        nominal = True
+        if len(kwargs)>0: nominal=False
+        # if len(args)>0: nominal=False
+        self._reset (nominal=nominal)              # BEFORE modifying self.__quals
+
+        # Modify self.__quals (always!):
+        for key in kwargs.keys():
+            self.__quals[key] = kwargs[key]        # 
+        # Always return the current self.__quals
+        # print '\n** .quals():   args =',args,'  kwargs =',kwargs,'  ->',self.__quals
+        return self.__quals
+
+
+    #--------------------------------------------------------------------------
+
+    def _unique_node (self, ns, name, qual=None, trace=False):
+        """Helper function to generate a unique node-name.
+        It first tries one with the internal and the specified qualifiers.
+        If that exists already, it add a unique qualifier (uniqual)."""
+
+        # Combine any specified qualifiers (qual) with any internal ones:
+        quals = deepcopy(self.__quals)
+        qualin = deepcopy(qual)
+        if isinstance(qual, dict):
+            for key in qual.keys():
+                quals[key] = qualin[key]
+            qualin = None
+        if len(quals)==0: quals = None
+        
+        # First try without uniqual:
+        if isinstance(quals, dict):
+            if qualin:
+                node = ns[name](**quals)(qualin)
+            else:
+                node = ns[name](**quals)
+        elif qualin:
+            node = ns[name](qualin)
+
+        # If the node exists already, make a unique one:
+        if node.initialized():
+            # Add an extra qualifier to make the nodename unique:
+            uniqual = _counter (name, increment=-1)
+            if isinstance(quals, dict):
+                if qualin:
+                    node = ns[name](**quals)(qualin)(uniqual)
+                else:
+                    node = ns[name](**quals)(uniqual)
+            elif qualin:
+                node = ns[name](qualin)(uniqual)
+        if trace: print '\n** ._unique_node(',name,qual,') ->',node
         return node
-
-
-
-
-
 
 
 
@@ -748,7 +861,7 @@ class Expression:
 #=======================================================================================
 
 #-------------------------------------------------------------------------------
-# Functions dealing with (unique) labels:
+# Functions dealing with (unique) labels etc:
 #-------------------------------------------------------------------------------
 
 _labels = {}
@@ -762,35 +875,6 @@ def _unique_label (label, trace=False):
     # Duplicate label: 
     _labels[label] += 1                           # increment the counter
     return label+'<'+str(_labels[label])+'>'      # modify the label 
-
-#--------------------------------------------------------------------------
-
-def _unique_node (ns, name, qual=None, trace=False):
-    """Helper function to generate a unique node-name"""
-
-    # First try without extra qualifier:
-    if isinstance(qual, dict):
-        node = ns[name](**qual)
-    elif qual==None:
-        node = ns[name]
-    else:
-        node = ns[name](qual)
-
-    if not node.initialized():
-        # OK, does not exist yet
-        if trace: print '\n** _unique_node(',name,qual,') ->',node
-        return node
-
-    # Add an extra qualifier to make the nodename unique:
-    uniqual = _counter (name, increment=-1)
-    if isinstance(qual, dict):
-        node = ns[name](**qual)(uniqual)
-    elif qual==None:
-        node = ns[name](uniqual)
-    else:
-        node = ns[name](qual)(uniqual)
-    if trace: print '\n** _unique_node(',name,qual,') ->',node
-    return node
 
 #-----------------------------------------------------------------------------
 
@@ -877,21 +961,25 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     """Create an Expression object from the given Funklet object"""
     if trace:
         print '\n** Funklet2Expression():'
-        print Funklet._name
+        print Funklet._coeff,Funklet._type, Funklet._name
         print Funklet._function
         print Funklet._coeff
-        print Funklet._nx,Funklet.getNX(),range(0,Funklet._nx)
 
     # Get the essential information from the Funklet
     expr = deepcopy(Funklet._function)             
-    coeff = array(Funklet._coeff).flat             # flatten first
-    if trace:
-        print 'expr =',expr
-        print 'coeff =',coeff,range(len(coeff))
-
-    # Replace all C[n] in the Funklet expression to {<label>_n} 
-    for i in range(len(coeff)):
-        expr = expr.replace('C['+str(i)+']','{'+label+'_'+str(i)+'}')
+    if Funklet._type in ['MeqPolc','MeqPolcLog']:
+        # Replace all C[i][j] in the Funklet expression with {<label>_ij}
+        coeff = Funklet._coeff                     # 2D, e.g. [[2,3],[0,2]] 
+        for i in range(len(coeff)):
+            for j in range(len(coeff[i])):
+                pname = label+'_'+str(i)+str(j)
+                expr = expr.replace('C['+str(i)+']['+str(j)+']', '{'+pname+'}')
+    else:                                          # Any other 'functional' Funklet:
+        # Replace all C[i] in the Funklet expression with {<label>_i} 
+        coeff = array(Funklet._coeff).flat         # flatten first....?
+        for i in range(len(coeff)):
+            pname = label+'_'+str(i)
+            expr = expr.replace('C['+str(i)+']', '{'+pname+'}')
 
     # Replace all x[n] in the Funklet expression to [t],[f] etc
     expr = expr.replace('x[0]','[t]')
@@ -899,19 +987,20 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     expr = expr.replace('x[2]','[l]')              # .........?
     expr = expr.replace('x[3]','[m]')              # .........?
 
-    # Temporary workaround (until Funklet repaired):
-    expr = expr.replace('[0]','')          
-    expr = expr.replace('[1]','')          
-    expr = expr.replace('[2]','')          
-    expr = expr.replace('[3]','')          
-
     # Make the Expression object:
     e0 = Expression('Funklet_'+label, expr)
 
-    # The Funklet coeff values are parameter default values: 
-    for i in range(len(coeff)):
-        e0.parm(label+'_'+str(i), coeff[i])
-    
+    # Transfer the coeff default values: 
+    if Funklet._type in ['MeqPolc','MeqPolcLog']:
+        for i in range(len(coeff)):
+            for j in range(len(coeff[i])):
+                pname = label+'_'+str(i)+str(j)
+                e0.parm(pname, coeff[i][j])
+    else:
+        for i in range(len(coeff)):
+            pname = label+'_'+str(i)
+            e0.parm(pname, coeff[i])
+
     # Finished: return the Expression object:
     if trace: e0.display('Funklet2Expression()', full=True)
     return e0
@@ -958,6 +1047,14 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, trace=False):
     return result
 
 
+ 
+
+
+
+
+
+
+
 
 #========================================================================
 # Test routine:
@@ -982,23 +1079,59 @@ if __name__ == '__main__':
             print '** e0.__module__ ->',e0.__module__
             print
 
+    if 0:
+        e0 = Expression()
+        e0.quals()
+        e0.quals(4,6,'7')
+        e0.quals(a=1, b=2)
+        e0._unique_node(ns, 'xxx', trace=True)
+        e0._unique_node(ns, 'xxx', qual=dict(c=5), trace=True)
+        node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
+        node << 0.9
+        node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
+
     #-------------------------------------------------------------------
 
-    if 1:
+    if 0:
         f0 = Funklet()
-        # f0.setCoeff([[1,0],[2,3]])            # causes Funklet problems (see bug #...)
-        f0.setCoeff([1,0,2,3])                  # OK
+        f0.setCoeff([[1,0,4],[2,3,4]])       # [t]*[f]*[f] highest order
+        # f0.setCoeff([[1,0],[2,3]]) 
+        # f0.setCoeff([1,0,2,3])               # [t] only !!
+        # f0.setCoeff([[1,0,2,3]])           # [f] only 
+        # f0.setCoeff([[1],[0],[2],[3]])     # [t] only            
+        # f0.setCoeff([[1,9],[0,9],[2,9],[3,8]])                
         f0.init_function()
+        print dir(f0)
         print f0._function
         print f0._coeff
+        print f0._type
+        Funklet2Expression(f0, 'A', trace=True)
+ 
+    if 0:
+        f0 = Funklet()
+        # f0.setCoeff([[1,0,2,3]])           # [f] only 
+        # f0.setCoeff([1,0,2,3])               # [t] only !!
+        f0.setCoeff([[1,0],[2,3]]) 
+        f0._type = 'MeqPolcLog' 
+        f0.init_function()
+        print dir(f0)
+        print f0._function
+        print f0._coeff
+        print f0._type
         Funklet2Expression(f0, 'A', trace=True)
  
     if 1:
         e1 = Expression('e1', '{A}*cos({B}*[f])+{C}')
-        e1.parm('A', -5, constant=True, scatter=0.1)
+        e1.parm('A', -5, constant=True, stddev=0.1)
         e1.parm('B', 10, testval=4, help='help for B')
-        e1.parm('C', f0, help='help for C')
+        # e1.parm('C', f0, help='help for C')
+        e1.quals(a=5,b=6)
         e1.display()
+
+        if 0:
+            e1.display(e1.quals(a=-1,b=17))
+            e1.display(e1.quals(a=5,b=6))
+            e1.display(e1.quals())
 
         if 0:
             e1.eval(trace=True, f=range(5))
@@ -1007,7 +1140,7 @@ if __name__ == '__main__':
         if 0:
             f1 = e1.Funklet(trace=True)
             e1.display()
-            Funklet2Expression(f1, 'A', trace=True)
+            # Funklet2Expression(f1, 'A', trace=True)
 
         if 1:
             node = e1.MeqFunctional(ns, trace=True)
@@ -1083,13 +1216,6 @@ if __name__ == '__main__':
     #--------------------------------------------------------------------------
     # Tests of standalone helper functions:
     #--------------------------------------------------------------------------
-
-    if 0:
-        node = _unique_node (ns, 'name', qual=None, trace=True)
-        node << 0
-        node = _unique_node (ns, 'name', qual=12, trace=True)
-        node = _unique_node (ns, 'name', qual=dict(s=3,b=4), trace=True)
-        node = _unique_node (ns, 'name', qual=None, trace=True)
 
     if 0:
         deenclose('{aa_bb}', trace=True)

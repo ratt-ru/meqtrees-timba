@@ -70,7 +70,6 @@
 #=================================================================================
 
 from Timba.TDL import *
-# from Timba.meqkernel import set_state
 from copy import deepcopy
 from numarray import *
 # from math import *
