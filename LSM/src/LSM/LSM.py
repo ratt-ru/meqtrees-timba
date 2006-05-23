@@ -1705,4 +1705,60 @@ class LSM:
       print "Read %d sources from NewStar file %s created %s:%s"%(nsources,infile_name,crdate,crtime)
 
 
+ ## build from a text file of clean components
+ ## format:
+ ## RA(deg) DEC(dec) sI sQ sU sV
+ def build_from_complist(self,infile_name,ns):
+  from Timba.Contrib.JEN import MG_JEN_Sixpack
+
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>\d+(\.\d+)?)   # RA angle - degrees 
+   \s*             # skip white space
+   (?P<col2>\d+(\.\d+)?)   # Dec angle - degrees 
+   \s*             # skip white space
+   (?P<col3>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   \s*             # skip white space
+   (?P<col4>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   \s*             # skip white space
+   (?P<col5>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   \s*             # skip white space
+   (?P<col6>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   [\S\s]+
+   \s*$""",re.VERBOSE)
+ 
+  # read each source and insert to LSM
+  kk=0
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    s=Source("Comp_"+str(kk))
+    kk=kk+1
+    source_RA=float(v.group('col1'))*math.pi/180.0
+    source_Dec=float(v.group('col2'))*math.pi/180.0
+    sI=eval(v.group('col3'))
+    sQ=eval(v.group('col4'))/(sI*100)
+    sU=eval(v.group('col5'))/(sI*100)
+    sV=eval(v.group('col6'))/(sI*100)
+
+    #print sI,sQ,sU,sV
+    freq0=1e6
+    if (sQ==0 and sU==0 and sV==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+    else:
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    self.add_source(s,brightness=eval(v.group('col3')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+
 #########################################################################
