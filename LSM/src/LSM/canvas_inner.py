@@ -514,7 +514,17 @@ class PointSource:
    length=0
   else:
    new_value=abs(new_value)
-   length=int(math.log(new_value/abs(self.cview.min_brightness))/math.log(self.cview.max_brightness/abs(self.cview.min_brightness))*10)
+   if self.cview.max_brightness!=self.cview.min_brightness:
+     rat=abs(self.cview.max_brightness)/self.cview.abs_min_brightness
+   else:
+     rat=1.1
+   if new_value>0.0:
+     length=int(math.log(new_value/self.cview.abs_min_brightness)/math.log(rat)*10)
+     if length==0:
+       length=1 # one pixel
+   else:
+     length=1
+
   self.pcross=self.addCross(self.x,self.y,1,length,newcolor,self.name,new_value)
  
   if self.cview.display_point_sources=='cross':
