@@ -21,6 +21,7 @@ class SolverData:
      self.metrics_unknowns = None
      self.chi_array = None
      self.chi_vectors = None
+     self.nonlin = None
      self.prev_unknowns = 0
      self.iteration_number = None
 #    self.__init__
@@ -66,13 +67,24 @@ class SolverData:
              except:
                pass
            self.iteration_number[i] = i+1
+       if incoming_data.solver_result.has_key("debug_array"):
+         debug_array = incoming_data.solver_result.debug_array
+# find out how many records in each metric field
+         num_debug = len(debug_array)
+         num_nonlin =  len(debug_array[0].nonlin)
+         self.nonlin = zeros((num_nonlin, num_debug), Float64)
+         for j in range(num_debug):
+           debug_rec = debug_array[j]
+           nonlin = debug_rec.nonlin
+           for i in range(num_nonlin):
+             self.nonlin[i,j] = debug_rec.nonlin[i]
 
    def getSolverData(self):
      return self._solver_array
 
    def getSolverMetrics(self):
      #return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.metrics_chi_0)
-     return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.chi_vectors, self.metrics_chi_0)
+     return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.chi_vectors, self.metrics_chi_0, self.nonlin)
 
 def main(args):
   print 'we are in main' 
