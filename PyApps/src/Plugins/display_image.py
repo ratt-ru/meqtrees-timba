@@ -77,7 +77,7 @@ display_image_instructions = \
 '''This plot basically shows the contents of one or two-dimensional arrays. Most decision making takes place behind the scenes, so to speak, as the system uses the dimensionality of the data and the source of the data to decide how the data will be displayed. However, once a display appears, you can interact with it in certain standardized ways.<br><br>
 Button 1 (Left): If you click the <b>left</b> mouse button on a location inside a two-dimensional array plot, the x and y coordinates of this location, and its value, will appear at the lower left hand corner of the display. This information is shown until you release the mouse button. If you click the left mouse button down and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
 Button 2 (Middle): If you click the <b>middle</b> mouse button on a location inside a <b>two-dimensional</b> array plot, then X and Y cross-sections centred on this location are overlaid on the display. A continuous black line marks the location of the X cross-section and the black dotted line shows the cross section values, which are tied to the right hand scale. The white lines show corresponding information for the Y cross section, whose values are tied to the top scale of the plot. You can remove the X,Y cross sections from the display by hitting the 'refresh' icon (the two arrows circling each other) in the upper left corner of the plot window.(NOTE: There is presently a bug here - if the plot panel is floated free of the browser, the refresh option does not work.) If the <b>Legends</b> display has been toggled to ON (see Button 3 below), then a sequence of push buttons will appear along the right hand edge of the display. Each of the push buttons is associated with one of the cross-section plots. Clicking on a push button will cause the corresponding plot to appear or disappear, depending on the current state.<br><br>
-Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Disable zoomer ' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. Note that at present one cannot print out the Colorbar display associated with a two-dimensional array plot. This will be worked on. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Cross-Section Legend option from the context menu. If you are working with two-dimensional arrays, then additional options to toggle the ON or OFF display of a colorbar showing the range of intensities and to switch between GrayScale and Color representations of the pixels will be shown.<br><br>
+Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Disable zoomer ' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. Note that at present one cannot print out the Colorbar display associated with a two-dimensional array plot. This will be worked on. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Plot Legend option from the context menu. If you are working with two-dimensional arrays, then additional options to toggle the ON or OFF display of a colorbar showing the range of intensities and to switch between GrayScale and Color representations of the pixels will be shown.<br><br>
 By default, colorbars are turned ON while Legends are turned OFF when a plot is first produced. <br><br> 
 You can obtain more information about the behavior of the colorbar by using the QWhatsThis facility associated with the colorbar.'''
 
@@ -99,7 +99,7 @@ class QwtImageDisplay(QwtPlot):
         'toggle blink of flagged data for plane ': 201,
         'Toggle display range to that of flagged image for plane ': 202,
         'Modify Plot Parameters': 299,
-        'Toggle Cross-Section Legend': 300,
+        'Toggle Plot Legend': 300,
         'Toggle ColorBar': 301,
         'Toggle Color/GrayScale Display': 302,
         'Toggle ND Controller': 303, 
@@ -112,6 +112,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Metrics Display': 310,
         'Toggle log axis for chi_0': 311,
         'Toggle log axis for solution vector': 312,
+        'Toggle solution distances display': 313,
         }
 
     _start_spectrum_menu_id = 0
@@ -169,6 +170,8 @@ class QwtImageDisplay(QwtPlot):
         self.metrics_rank = None
         self.solver_offsets = None
         self.chi_vectors = None
+        self.sum_incr_soln_norm = None
+        self.incr_soln_norm = None
         self.chi_zeros = None
         self.iteration_number = None
         self.ampl_phase = False
@@ -266,6 +269,8 @@ class QwtImageDisplay(QwtPlot):
         self.first_chi_test = True
         self.log_axis_chi_0 = False
         self.log_axis_solution_vector = False
+        self.display_solution_distances = False
+        self.store_solver_array = False
 
         QWhatsThis.add(self, display_image_instructions)
 
@@ -387,7 +392,7 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Modify Plot Parameters']:
         self.updatePlotParameters()
         return True
-      if menuid == self.menu_table['Toggle Cross-Section Legend']:
+      if menuid == self.menu_table['Toggle Plot Legend']:
         self.toggleLegend()
         return True
       if menuid == self.menu_table['Toggle axis flip']:
@@ -478,6 +483,10 @@ class QwtImageDisplay(QwtPlot):
         return True
 
       if menuid == self.menu_table['Toggle Metrics Display']:
+        if self.toggle_metrics == False:
+          self.toggle_metrics = True
+        else:
+          self.toggle_metrics = False
         self.toggleMetrics()
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
@@ -501,15 +510,20 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
         return True
 
+      if menuid == self.menu_table['Toggle solution distances display']:
+        if self.display_solution_distances is False:
+          self.display_solution_distances = True
+        else:
+          self.display_solution_distances = False
+        self.array_plot(self.solver_title, self.solver_array)
+        self.replot()
+        return True
+
 # if we get here ...
       return False
 
     def toggleMetrics(self):
       """ callback to make Solver Metrics plots visible or invisible """
-      if self.toggle_metrics == False:
-        self.toggle_metrics = True
-      else:
-        self.toggle_metrics = False
       if self.toggle_metrics and not self.metrics_rank is None:
         self.add_solver_metrics()
       if not self.toggle_metrics:
@@ -1453,33 +1467,34 @@ class QwtImageDisplay(QwtPlot):
     def add_solver_metrics(self):
 
       #solver metrics
-      self.metrics_plot = []
-      shape = self.metrics_rank.shape
-      for i in range(shape[1]):
-        plot_data= zeros(shape[0], Int32)
-        for j in range(shape[0]):
-          plot_data[j] = self.metrics_rank[j,i]
+      if not self.display_solution_distances:
+        self.metrics_plot = []
+        shape = self.metrics_rank.shape
+        for i in range(shape[1]):
+          plot_data= zeros(shape[0], Int32)
+          for j in range(shape[0]):
+            plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
-        metrics_key = 'metrics'+ str(i)
-        self.metrics_plot.append(self.insertCurve(metrics_key))
-        self.setCurvePen(self.metrics_plot[i], QPen(Qt.black, 2))
-        self.setCurveStyle(self.metrics_plot[i],Qt.SolidLine)
+          metrics_title = 'metrics rank'
+          key = self.insertCurve(metrics_title)
+          self.metrics_plot.append(key)
+          self.setCurvePen(key, QPen(Qt.black, 2))
+          self.setCurveStyle(key,Qt.SolidLine)
         
-        if self.array_flip:
-          self.setCurveYAxis(self.metrics_plot[i], QwtPlot.yLeft)
-          self.setCurveXAxis(self.metrics_plot[i], QwtPlot.xBottom)
-          self.setCurveData(self.metrics_plot[i], plot_data, self.iteration_number)
-        else:
-          self.setCurveYAxis(self.metrics_plot[i], QwtPlot.xBottom)
-          self.setCurveXAxis(self.metrics_plot[i], QwtPlot.yLeft)
-          self.setCurveData(self.metrics_plot[i], self.iteration_number, plot_data)
-        plot_curve=self.curve(self.metrics_plot[i])
-        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+          if self.array_flip:
+            self.setCurveYAxis(key, QwtPlot.yLeft)
+            self.setCurveXAxis(key, QwtPlot.xBottom)
+            self.setCurveData(key, plot_data, self.iteration_number)
+          else:
+            self.setCurveYAxis(key, QwtPlot.xBottom)
+            self.setCurveXAxis(key, QwtPlot.yLeft)
+            self.setCurveData(key, self.iteration_number, plot_data)
+          plot_curve=self.curve(key)
+          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
 
       #chi_sq surfaces
       self.chis_plot = []
-      start_plot = []
       shape = self.metrics_rank.shape
       self.enableAxis(QwtPlot.yRight, True)
       self.enableAxis(QwtPlot.xTop, True)
@@ -1512,18 +1527,20 @@ class QwtImageDisplay(QwtPlot):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
         curve = QwtPlotCurveSizes(self)
+        curve.setTitle('vector sum of incremental solutions')
         curve.setPen(QPen(Qt.red, 2))
         curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
-             QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
+             QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
         curve.setStyle(Qt.SolidLine)
-        self.chis_plot.append(self.insertCurve(curve))
+        key = self.insertCurve(curve)
+        self.chis_plot.append(key)
         if self.array_flip:
-          self.setCurveYAxis(self.chis_plot[i], QwtPlot.yRight)
-          self.setCurveXAxis(self.chis_plot[i], QwtPlot.xTop)
+          self.setCurveYAxis(key, QwtPlot.yRight)
+          self.setCurveXAxis(key, QwtPlot.xTop)
           curve.setData(plot_data,chi_data)
         else:
-          self.setCurveYAxis(self.chis_plot[i], QwtPlot.xTop)
-          self.setCurveXAxis(self.chis_plot[i], QwtPlot.yRight)
+          self.setCurveYAxis(key, QwtPlot.xTop)
+          self.setCurveXAxis(key, QwtPlot.yRight)
           curve.setData(chi_data,plot_data)
         symbolList=[]
         for j in range(len(chi_data)):
@@ -1543,6 +1560,90 @@ class QwtImageDisplay(QwtPlot):
                 symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                   QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
         curve.setSymbolList(symbolList)
+
+      # add additional solution surfaces here
+      if self.display_solution_distances:
+        for i in range(shape[1]):
+          plot_data1= zeros(shape[0], Float32)
+          chi_data1= zeros(shape[0], Float32)
+          for j in range(shape[0]):
+            plot_data1[j] = self.sum_incr_soln_norm[j,i]
+            chi_data1[j] = self.chi_zeros[j,i]
+          curve = QwtPlotCurveSizes(self)
+          curve.setTitle('sum of the norms of incremental solutions')
+          curve.setPen(QPen(Qt.blue, 2))
+          curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
+          curve.setStyle(Qt.SolidLine)
+          key = self.insertCurve(curve)
+          self.chis_plot.append(key)
+          if self.array_flip:
+            self.setCurveYAxis(key, QwtPlot.yRight)
+            self.setCurveXAxis(key, QwtPlot.xTop)
+            curve.setData(plot_data1,chi_data1)
+          else:
+            self.setCurveYAxis(key, QwtPlot.xTop)
+            self.setCurveXAxis(key, QwtPlot.yRight)
+            curve.setData(chi_data1,plot_data1)
+          symbolList=[]
+          for j in range(len(chi_data1)):
+            if j == 0:
+              # first symbol is rectangle
+              symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.blue),
+                 QPen(Qt.blue),QSize(10,10)))
+            else:
+              if self.nonlin is None:
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
+              else:
+                if self.nonlin[j,i] >= self.nonlin[j-1,i]:
+                  symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                    QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
+                else:
+                  symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                    QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
+          curve.setSymbolList(symbolList)
+
+        for i in range(shape[1]):
+          plot_data2= zeros(shape[0], Float32)
+          chi_data2= zeros(shape[0], Float32)
+          for j in range(shape[0]):
+            plot_data2[j] = self.incr_soln_norm[j,i]
+            chi_data2[j] = self.chi_zeros[j,i]
+          curve = QwtPlotCurveSizes(self)
+          curve.setTitle('norms of incremental solutions')
+          curve.setPen(QPen(Qt.green, 2))
+          curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+          curve.setStyle(Qt.SolidLine)
+          key = self.insertCurve(curve)
+          self.chis_plot.append(key)
+          if self.array_flip:
+            self.setCurveYAxis(key, QwtPlot.yRight)
+            self.setCurveXAxis(key, QwtPlot.xTop)
+            curve.setData(plot_data2,chi_data2)
+          else:
+            self.setCurveYAxis(key, QwtPlot.xTop)
+            self.setCurveXAxis(key, QwtPlot.yRight)
+            curve.setData(chi_data2,plot_data2)
+          symbolList=[]
+          for j in range(len(chi_data2)):
+            if j == 0:
+              # first symbol is rectangle
+              symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.green),
+                 QPen(Qt.green),QSize(10,10)))
+            else:
+              if self.nonlin is None:
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+              else:
+                if self.nonlin[j,i] >= self.nonlin[j-1,i]:
+                  symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                    QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+                else:
+                  symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                    QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+          curve.setSymbolList(symbolList)
 
     def insert_array_info(self):
       if self.is_vector:
@@ -1765,6 +1866,10 @@ class QwtImageDisplay(QwtPlot):
       self.split_axis = None
       self.array_parms = None
       self.adjust_color_bar = True
+      if self.store_solver_array:
+        self.solver_array = incoming_plot_array
+        self.solver_title = data_label
+         
         
 
 # pop up menu for printing
@@ -1833,6 +1938,10 @@ class QwtImageDisplay(QwtPlot):
       if actual_array_rank == 1:
         self.is_vector = True;
       
+# if we've doing a solver plot and we want to just display
+# solution distances
+      if self.display_solution_distances:
+        self.is_vector = True
 
 # I don't think we should ever see the N-D controller in the vector case.
 # If self.toggle_array_rank > 2 that means that the cells dimensions are
@@ -2044,6 +2153,13 @@ class QwtImageDisplay(QwtPlot):
         self.active_image = False
 
 
+# are we displaying solution distances?
+        if self.display_solution_distances:
+          if not self.metrics_rank is None:
+            self.add_solver_metrics()
+            self.replot()
+            return
+
         if self._vells_plot:
 # we have a vector so figure out which axis we are plotting
           self.x_parm = self.first_axis_parm
@@ -2192,6 +2308,11 @@ class QwtImageDisplay(QwtPlot):
       self.chi_vectors = metrics_tuple[3]
       self.chi_zeros = metrics_tuple[4]
       self.nonlin = metrics_tuple[5]
+      self.sum_incr_soln_norm = metrics_tuple[6]
+      self.incr_soln_norm = metrics_tuple[7]
+      self.store_solver_array = True
+      self.solver_array = None
+      self.solver_title = None
 
     def convert_to_AP(self, real_imag_image):
       """ convert real/imag complex array to amplitude/phase equivalent """
@@ -2240,8 +2361,8 @@ class QwtImageDisplay(QwtPlot):
         """ add standard options to context menu """
         toggle_id = self.menu_table['Modify Plot Parameters']
         self._menu.insertItem("Modify Plot Parameters", toggle_id)
-        toggle_id = self.menu_table['Toggle Cross-Section Legend']
-        self._menu.insertItem("Toggle Cross-Section Legend", toggle_id)
+        toggle_id = self.menu_table['Toggle Plot Legend']
+        self._menu.insertItem("Toggle Plot Legend", toggle_id)
         toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.insertItem("Toggle ColorBar", toggle_id)
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
@@ -2255,6 +2376,8 @@ class QwtImageDisplay(QwtPlot):
           self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
           toggle_id = self.menu_table['Toggle log axis for solution vector']
           self._menu.insertItem("Toggle log axis for solution vector", toggle_id)
+          toggle_id = self.menu_table['Toggle solution distances display']
+          self._menu.insertItem("Toggle solution distances display", toggle_id)
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)
