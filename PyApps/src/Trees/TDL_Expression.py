@@ -64,11 +64,12 @@
 # Preamble
 #***************************************************************************************
 
-from Timba.Meq import meq
 from numarray import *
 from random import *
+from pylab import *
 from copy import deepcopy
 from Timba.Trees.TDL_Leaf import *
+from Timba.Meq import meq
 from Timba.Contrib.MXM.TDL_Funklet import *
 
 
@@ -87,6 +88,7 @@ class Expression:
 
         self.__label = _unique_label(label)
         self.__expression = expression
+        self.__numeric_value = None  
         self.__input_expression = expression        
         self.__pp = str(pp)
 
@@ -114,11 +116,30 @@ class Expression:
         for key in vv:
             self.var(key)
 
+        # The expression may be purely numeric:
+        self.numeric_value()
+
         # Initialise derived quantities:
         self._reset()
 
         # Finished:
         return None
+
+
+    #----------------------------------------------------------------------------
+
+    def numeric_value(self, trace=True):
+        """The expression may be purely numeric (None if not)"""
+        self.__numeric_value = None
+        if len(self.__parm)==0 and len(self.__var)==0:
+            try:
+                v = eval(self.__expression)
+            except:
+                return self.__numeric_value
+            self.__numeric_value = v
+        if trace: print '\n**',self.__expression,': numeric_value =',self.__numeric_value,'\n'
+        return self.__numeric_value
+
 
     #----------------------------------------------------------------------------
 
@@ -171,6 +192,10 @@ class Expression:
         """Return the order of parameters in the input expression"""
         return self.__order
 
+    def expression (self):
+        """Return the (mathematical) expression"""
+        return self.__expression
+
     def xexpr (self):
         """Return the expanded expression"""
         self.expand()
@@ -216,6 +241,7 @@ class Expression:
         print indent,'- input_expression: ',str(self.__input_expression)
         print indent,'- input: ',str(self.__pp)
         print indent,'- default node qualifiers: ',str(self.__quals)
+        print indent,'- numeric value: ',str(self.__numeric_value)
         print indent,'-',self.oneliner()
         
         print indent,'- its variables (',len(self.__var),'): '
@@ -479,6 +505,98 @@ class Expression:
     # Evaluating the (expanded) expression:
     #============================================================================
 
+    def eval_old(self, trace=False, test=False, **pp):
+        """Evaluate the (expanded) expression for the specified (pp) values of
+        parameters {} and variables []. Use defaults if not specified.
+        The specified parameters/variables may be multiple (lists),
+        provided that all such lists have the same length.
+        The evaluation will then return a list of the same length."""
+
+        if trace: print '\n** eval_old():',pp
+
+        # Make sure that an expanded expression exists:
+        self.expand()
+
+        # Use the default values in self.__xparm and self.__xvar,
+        # unless other values have been specified via **pp.
+        rr = dict()
+        field = 'default'                        # normal mode
+        if test: field = 'testval'               # .test() mode
+        for key in self.__xparm.keys():
+            pp.setdefault(key, self.__xparm[key][field])
+            rr['{'+key+'}'] = pp[key]
+        for key in self.__xvar.keys():
+            pp.setdefault(key, self.__xvar[key][field])
+            rr['['+key+']'] = pp[key]
+
+        # Parameters/variables may be multiple:
+        nmax = 1
+        for key in rr.keys():
+            if isinstance(rr[key], (list,tuple,type(array(0)))):
+                n = len(rr[key])
+                if n>1:
+                    if nmax>1 and not nmax==n:
+                        print '** .eval_old() error:',key,n,nmax
+                        return False            # error
+                    nmax = n
+            else:
+                rr[key] = [rr[key]]
+        # print nmax,'rr =',rr
+
+        # Evaluate the result element-by-element:
+        result = []
+        for i in range(nmax):
+            qq = dict()
+            for key in rr.keys():
+                if len(rr[key])==1:
+                    qq[key] = rr[key][0]
+                else:
+                    qq[key] = rr[key][i]
+                # print '-',i,key,len(rr[key]),qq
+            result.append(self.eval1(qq, test=test, trace=trace))
+        if len(result)==1: result = result[0]
+        if trace: print '  -> result =',result
+        return result
+
+
+    #-----------------------------------------------------------------------
+
+    def eval1_old (self, pp, test=False, trace=False):
+        """Helper function called by .eval()"""
+
+        seval = deepcopy(self.__xexpr)
+        if trace:
+            print '.... eval1():',seval
+            print '     ',pp
+
+        # Replace parameters and variables with numeric values:
+        for key in pp.keys():
+            value = pp[key]
+            if value<0:
+                srep = '('+str(value)+')'
+            else:
+                srep = str(value)
+            seval = seval.replace(key, srep)
+            if trace:
+                print '- substitute',key,'->',value,':   ',seval
+            
+        # Evaluate the seval string:
+        try:
+            if test:
+                self.__test_seval = seval
+            else:
+                self.__eval_seval = seval
+            result = eval(seval)                  # covers most things
+        except:
+            print sys.exc_info()
+            return False                          # something wrong
+        # Return the result
+        if trace: print '  -> result (old)=',result
+        return result
+
+
+    #===========================================================================
+
     def eval(self, trace=False, test=False, **pp):
         """Evaluate the (expanded) expression for the specified (pp) values of
         parameters {} and variables []. Use defaults if not specified.
@@ -507,6 +625,8 @@ class Expression:
         nmax = 1
         for key in rr.keys():
             if isinstance(rr[key], (list,tuple)):
+                rr[key] = array(rr[key])        # make array
+            if isinstance(rr[key], (type(array(0)))):
                 n = len(rr[key])
                 if n>1:
                     if nmax>1 and not nmax==n:
@@ -515,6 +635,7 @@ class Expression:
                     nmax = n
             else:
                 rr[key] = [rr[key]]
+        # print nmax,'rr =',rr
 
         # Evaluate the result element-by-element:
         result = []
@@ -525,6 +646,7 @@ class Expression:
                     qq[key] = rr[key][0]
                 else:
                     qq[key] = rr[key][i]
+                # print '-',i,key,len(rr[key]),qq
             result.append(self.eval1(qq, test=test, trace=trace))
         if len(result)==1: result = result[0]
         if trace: print '  -> result =',result
@@ -539,16 +661,15 @@ class Expression:
         seval = deepcopy(self.__xexpr)
         if trace:
             print '.... eval1():',seval
-            print pp
+            print '     ',pp
 
-        # Replace parameters and variables with numeric values:
-        for key in pp.keys():
-            value = pp[key]
-            if value<0:
-                srep = '('+str(value)+')'
-            else:
-                srep = str(value)
-            seval = seval.replace(key, srep)
+        # Replace parameters and variables with parameter names CCC[i]:
+        CCC = []
+        keys = pp.keys()
+        for i in range(len(keys)):
+            key = keys[i]
+            CCC[i] = pp[key]
+            seval = seval.replace(key, 'CCC['+str(i)+']')
             if trace:
                 print '- substitute',key,'->',value,':   ',seval
             
@@ -580,6 +701,7 @@ class Expression:
             return False
         
         if not self.__expanded or not self.__Funklet:
+            nv = self.numeric_value(trace=True)     # decide on treatment...
             self.expand()
             expr = deepcopy(self.__xexpr)
             if trace: print '\n** Funklet(): ',expr
@@ -693,6 +815,64 @@ class Expression:
         self.__parmtype['Funklet'] = []                 # no more Funklet parms
         if trace: self.display('.parm2node()', full=True)
         return True
+
+
+    #--------------------------------------------------------------------------
+
+    def subExpression (self, substring, label='substring', trace=False):
+        """Convert the specified substring of self.__expression
+        into a separate Expression object, including its parm/var info."""
+        if trace:
+            print '\n** .subExpression(',substring,'):'
+        index = self.__expression.rfind(substring)
+        if index<0:
+            print '\n** .subExpression(',substring,'): not found in:',self.__expression,'\n'
+            return False
+        e1 = Expression(label, substring)
+        for key in e1.__parm.keys():
+            e1.__parm[key] = self.__parm[key]
+            if trace: print '- copy parm[',key,']:',e1.__parm[key]
+        for key in e1.__var.keys():
+            e1.__var[key] = self.__var[key]
+            if trace: print '- copy var[',key,']:',e1.__var[key]
+        if trace:
+            e1.display('subExpression()', full=True)
+        return e1
+
+    #--------------------------------------------------------------------------
+
+    def subTree (self, ns, trace=False):
+        """Make a subtree of separate nodes"""
+        if trace:
+            print '\n** .subTree():',self.tlabel()
+
+        # Split self.__expression into additive terms:
+        rr = find_terms(self.__expression, trace=True)
+        cc = dict(pos=[], neg=[])
+        for key in cc.keys():                           # 'pos','neg'
+            for i in range(len(rr[key])):
+                subex = self.subExpression(rr[key][i], label=key+'_term_'+str(i))
+                cc[key].append(subex.MeqNode(ns))
+
+        # Make separate subtrees for the positive and negative terms:
+        for key in cc.keys():                           # 'pos','neg'
+            if len(cc[key])==0:                         # no nodes
+                cc[key] = None
+            elif len(cc[key])==1:                       # one node: keep it
+                cc[key] = cc[key][0]
+            else:                                       # more than one: MeqAdd
+                cc[key] = ns << Meq.Add(children=cc[key])
+
+        # Subtract the negative from the positive:
+        if cc['pos']==None:
+            node = cc['neg']
+        elif cc['neg']==None:
+            node = cc['pos']
+        else:
+            node = ns << Meq.Subtract(cc['pos'],cc['neg'])
+        # Return the root node of the resulting subtree:
+        return node
+
 
     #--------------------------------------------------------------------------
 
@@ -836,6 +1016,8 @@ class Expression:
                 node = ns[name](**quals)
         elif qualin:
             node = ns[name](qualin)
+        else:
+            node = ns[name]
 
         # If the node exists already, make a unique one:
         if node.initialized():
@@ -848,6 +1030,9 @@ class Expression:
                     node = ns[name](**quals)(uniqual)
             elif qualin:
                 node = ns[name](qualin)(uniqual)
+            else:
+                node = ns[name](uniqual)
+                
         if trace: print '\n** ._unique_node(',name,qual,') ->',node
         return node
 
@@ -923,27 +1108,27 @@ def deenclose (key, brackets='{}', trace=False):
 
 #----------------------------------------------------------------------------
 
-def find_enclosed (ss, brackets='{}', trace=False):
+def find_enclosed (expr, brackets='{}', trace=False):
     """Return a list of substrings that are enclosed in the specified brackets.
-    e.g. ss='{A}+{B}*{A}' would produce ['A','B']"""
-    if trace: print '\n** find_enclosed(',brackets,'): ',ss
+    e.g. expr='{A}+{B}*{A}' would produce ['A','B']"""
+    if trace: print '\n** find_enclosed(',brackets,'): ',expr
     b1 = brackets[0]                            # opening bracket
     b2 = brackets[1]                            # closing bracket
     cc = []
     level = 0
-    for i in range(len(ss)):
-        if ss[i]==b1:
-            if not level==0:
+    for i in range(len(expr)):
+        if expr[i]==b1:
+            if not level==0:                    # nested brackets should not exist...!
                 return False
             else:
                 level += 1
                 i1 = i
-        elif ss[i]==b2:
-            if not level==1:
+        elif expr[i]==b2:
+            if not level==1:                    # wrong order....
                 return False
             else:
                 level -= 1
-                substring = ss[i1:(i+1)]
+                substring = expr[i1:(i+1)]
                 substring = deenclose(substring, brackets)
                 if not substring in cc:
                     cc.append(substring)
@@ -954,6 +1139,80 @@ def find_enclosed (ss, brackets='{}', trace=False):
     if trace: print '   -> (',len(cc),level,'):',cc
     return cc
 
+#----------------------------------------------------------------------------
+
+def find_terms (expr, level=0, trace=False):
+    """Find the additive terms of the given mathematical expression (string),
+    i.e. the subexpressions separated by plus and minus signs.
+    Return a record with two lists: pos and neg."""
+    if trace: print '\n** find_terms(): ',expr
+
+    rr = dict(pos=[],neg=[])                     # initialise output record
+    if level>5:
+        print '\n** max level exceeded:',level,expr,'->',rr
+        return rr
+
+    nest = 0
+    i1 = 0
+    ncpt = 0
+    n2 = 0
+    expr = deenclose(expr, '()', trace=False)
+    nchar = len(expr)
+    key = 'pos'
+    for i in range(len(expr)):
+        last = (i==(nchar-1))                    # True if last char
+        # if trace: print nest,nest*'..',i,ncpt,n2,last,':',expr[i]
+        if last:
+            term = expr[i1:(i+1)]
+            append_term (rr, term, key, n2, i, nest,
+                         level=level, trace=trace)
+            if expr[i]==')': nest -= 1           # closing bracket
+        elif expr[i]=='(':                       # opening bracket
+            nest += 1
+        elif expr[i]==')':                       # closing bracket
+            nest -= 1
+        elif nest>0:                             # nested
+            if level==0:
+                if expr[i] in ['+','-']: n2 += 1 # ignore, but count the higher-nest +/-
+        elif expr[i] in ['+','-']:               # end of a term
+            if ncpt>0:                           # some chars in term
+                term = expr[i1:i]
+                append_term (rr, term, key, n2, i, nest,
+                             level=level, trace=trace)
+            i1 = i+1                             # first char of new term
+            ncpt = 0                             # term char counter
+            n2 = 0
+            key = 'pos'                          # additive term
+            if expr[i]=='-': key = 'neg'         # subtractive term              
+        ncpt += 1                                # increment term char counter
+
+    # Some checks:
+    if not nest==0:                             # bracket imbalance
+        print '\n** Error: bracket imbalance, nest =',nest,'\n'
+        return False
+    if trace: print '   -> (',nest,'):',rr
+    return rr
+
+#...............................................................................
+
+def append_term (rr, term, key, n2, i, nest,
+                 level=0, trace=False):
+    """Helper function for .find_terms"""
+    if n2>0:                         # term contains +/-
+        rr1 = find_terms(term, level=level+1, trace=False)
+        # rr1 = dict(pos=[], neg=[])
+        if key=='pos':
+            rr['pos'].extend(rr1['pos']) # 
+            rr['neg'].extend(rr1['neg']) # 
+        else:
+            rr['neg'].extend(rr1['pos']) # 
+            rr['pos'].extend(rr1['neg']) # 
+            if trace: print '-',i,nest,key,n2,' rr1 =',rr1
+    else:
+        term = deenclose(term, '()', trace=False)
+        rr[key].append(term)
+        if trace: print '-',i,nest,key,'term =',term
+    return True
 
 #=======================================================================================
 
@@ -1060,9 +1319,12 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, trace=False):
 # Test routine:
 #========================================================================
 
+
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_Expression.py:\n'
-    # from numarray import *
+    from numarray import *
+    # from numarray.linear_algebra import *
+    # from pylab import *
     from Timba.Trees import TDL_display
     # from Timba.Trees import TDL_Joneset
     # from Timba.Contrib.JEN import MG_JEN_funklet
@@ -1109,7 +1371,7 @@ if __name__ == '__main__':
  
     if 0:
         f0 = Funklet()
-        # f0.setCoeff([[1,0,2,3]])           # [f] only 
+        # f0.setCoeff([[1,0,2,3]])             # [f] only 
         # f0.setCoeff([1,0,2,3])               # [t] only !!
         f0.setCoeff([[1,0],[2,3]]) 
         f0._type = 'MeqPolcLog' 
@@ -1119,9 +1381,11 @@ if __name__ == '__main__':
         print f0._coeff
         print f0._type
         Funklet2Expression(f0, 'A', trace=True)
+
+    #---------------------------------------------------------
  
     if 1:
-        e1 = Expression('e1', '{A}*cos({B}*[f])+{C}')
+        e1 = Expression('e1', '{A}*cos({B}*[f])+{C}-({neq}+67)')
         e1.parm('A', -5, constant=True, stddev=0.1)
         e1.parm('B', 10, testval=4, help='help for B')
         # e1.parm('C', f0, help='help for C')
@@ -1134,15 +1398,31 @@ if __name__ == '__main__':
             e1.display(e1.quals())
 
         if 0:
-            e1.eval(trace=True, f=range(5))
-            e1.display()
+            ff = array(range(5))/10.0
+            print type(ff),ff
+            yy = e1.eval(trace=True, f=ff)
+            print type(yy),yy
+            xlabel('freq')
+            ylabel(e1.expression())
+            title(e1.tlabel())
+            legend([e1.label(),'e2'])
+            plot(ff,yy)
+            show()
+            # e1.display()
 
+        if 0:
+            e2 = e1.subExpression('cos({B}*[f])', trace=True)
+
+        if 1:
+            node = e1.subTree (ns, trace=True)
+            TDL_display.subtree(node, 'subTree', full=True, recurse=10)
+            
         if 0:
             f1 = e1.Funklet(trace=True)
             e1.display()
             # Funklet2Expression(f1, 'A', trace=True)
 
-        if 1:
+        if 0:
             node = e1.MeqFunctional(ns, trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
 
@@ -1218,6 +1498,18 @@ if __name__ == '__main__':
     #--------------------------------------------------------------------------
 
     if 0:
+        find_terms('{r}+{BA}*[t]+{A[1,2]}-{xxx}', trace=True)
+        find_terms('({r}+{BA}*[t]+{A[1,2]}-{xxx})', trace=True)
+        find_terms('{r}+({BA}*[t]+{A[1,2]})-{xxx}', trace=True)
+        find_terms('{r}-({BA}*[t]+{A[1,2]})-{xxx}', trace=True)
+        find_terms('{r}-({BA}*[t]-{A[1,2]})-{xxx}', trace=True)
+        find_terms('{r}+(-{BA}*[t]+{A[1,2]})-{xxx}', trace=True)
+        find_terms('{r}-(-{BA}*[t]+{A[1,2]})-{xxx}', trace=True)
+        find_terms('-{r}-(-{BA}*[t]+{A[1,2]})-{xxx}-5', trace=True)
+        find_terms('(cos(-{BA}*[t]))', trace=True)
+        find_terms('{r}-(cos(-{BA}*[t])+{A[1,2]})-{xxx}', trace=True)
+
+    if 0:
         deenclose('{aa_bb}', trace=True)
 
     if 0:
@@ -1257,7 +1549,16 @@ if __name__ == '__main__':
 #
 # - MXM cannot interprete pk for k>9. Use C[k] (and X[n]) instead?
 #
-# - order of MeqFunctional children...
+# - Funklets cannot handle purely numeric expressions (e.g. '67')
+#
+# - Fitting
+#
+# - Plotting
+#
+# - Evaluation
+#
+# - subtrees
+
 
 
 #============================================================================================
