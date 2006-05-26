@@ -14,7 +14,7 @@ from BufferSizeDialog import *
 # set for display with the result plotter.
 
 class ResultsRange(QWidget):
-    def __init__(self, parent=None, name=None):
+    def __init__(self, parent=None, name=""):
       QWidget.__init__(self, parent, name)
 
       self. menu_table = {

@@ -21,7 +21,7 @@ Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window w
 
 class QwtColorBar(QwtPlot):
 
-    def __init__(self, colorbar_number=0, plot_key=None, parent=None):
+    def __init__(self, colorbar_number=0, parent=None):
         QwtPlot.__init__(self, parent)
         self._mainwin = parent and parent.topLevelWidget()
         self.colorbar_number = colorbar_number

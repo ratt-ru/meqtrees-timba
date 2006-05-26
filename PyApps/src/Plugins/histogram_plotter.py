@@ -47,7 +47,7 @@ Button 2 (Right):Click the <b>right</b> mouse button in a display window to get 
 
 class QwtHistogramPlotter(QwtPlot):
 
-    def __init__(self, plot_key=None, parent=None):
+    def __init__(self, parent=None):
       QwtPlot.__init__(self, parent)
 
       self.mainwin = parent and parent.topLevelWidget()

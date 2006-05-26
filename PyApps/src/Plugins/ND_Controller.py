@@ -9,7 +9,7 @@ import sys
 
 # the Axis Range class is directly adapted from the Qt/PyQt tutorial code examples
 class AxisRange(QWidget):
-    def __init__(self, axis_number=1, axis_parms=None,parent=None, name=None):
+    def __init__(self, axis_number=1, axis_parms=None,parent=None, name=""):
         QWidget.__init__(self, parent, name)
 
         self.button = QPushButton(' ', self)
@@ -126,7 +126,7 @@ So, for example, if we select a 5-d array for display, the last two dimensions (
 You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding sliders displayed in red and are frozen. The other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
-    def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=None):
+    def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=""):
       QWidget.__init__(self, parent, name)
 
       QWhatsThis.add(self, controller_instructions)

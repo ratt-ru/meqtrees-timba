@@ -132,8 +132,7 @@ class realvsimag_plotter(object):
         'Toggle Legend': 301,
         }
     
-  def __init__(self, plot_key=None, parent=None):
-        # QWidget.__init__(self, parent)
+  def __init__(self, plot_key="", parent=None):
 
         self.parent = parent
         self.plot_key = plot_key
