@@ -14,7 +14,7 @@
 # Description:
 #
 #  -) Expression objects
-#     -) e0 = Expression (label, "{A} + {ampl}*cos({phase}*[t])")
+#     -) e0 = Expression ("{A} + {ampl}*cos({phase}*[t])" [, label='<label>'])
 #     -) Variables in square brackets: [t],[time],[f],[fGHz],[l],[m],[RA],  etc
 #     -) Parameters in curly brackets.
 #     -) The expression is supplied to the Expression constructor
@@ -65,6 +65,7 @@
 #***************************************************************************************
 
 from numarray import *
+from numarray.linear_algebra import *
 from random import *
 from pylab import *
 from copy import deepcopy
@@ -77,7 +78,7 @@ from Timba.Contrib.MXM.TDL_Funklet import *
 #***************************************************************************************
 
 class Expression:
-    def __init__(self, label='<label>', expression='-1.23456789', **pp):
+    def __init__(self, expression='-1.23456789', label='<label>', **pp):
         """Create the object with a mathematical expression (string)
         of the form:  {aa}*[t]+cos({b}*[f]).
         Variables are enclosed in square brackets: [t],[f],[m],...
@@ -146,6 +147,7 @@ class Expression:
     def _reset (self, nominal=True):
         """Reset the object to its original state."""
         self.__quals = dict()
+        self.__plotrec = None
         self.__expanded = False
         self.__Functional = None
         self.__MeqParm = None
@@ -182,7 +184,8 @@ class Expression:
 
     def tlabel (self):
         """Return a concatenation of object type and label"""
-        return str(type(self))+':'+self.__label
+        return 'Expression: '+self.__label
+        # return str(type(self))+':'+self.__label
 
     def test_result (self):
         """Return the result of evaluation with the test-values."""
@@ -416,7 +419,8 @@ class Expression:
 
         # Create a new entry:
         if testval==None: testval = (default+0.1)*1.1
-        rr = dict(xn='xn', node=None, default=default, testval=testval, unit=None)
+        rr = dict(xn='xn', node=None, default=default,
+                  testval=testval, unit=None, plotrange=range(10))
 
         # self.__var_def = {'x0':"time",'x1':"freq"}
         if key[0]=='t':                          # time
@@ -427,14 +431,19 @@ class Expression:
             rr['node'] = 'MeqFreq'
             rr['xn'] = 'x1'
             rr['unit'] = 'Hz'
+            rr['plotrange'] = dict(min=1.2e8, max=1.5e8, nr=13)
         if key[0]=='l':
             rr['node'] = 'MeqL'                  # .....!!
             rr['xn'] = 'x2'
             rr['unit'] = 'rad'
+            fwhm_rad = 0.1                       # ~ 5 deg    
+            rr['plotrange'] = dict(min=-fwhm_rad, max=fwhm_rad, nr=13)
         if key[0]=='m':
             rr['node'] = 'MeqM'                  # .....!!
             rr['xn'] = 'x3'
             rr['unit'] = 'rad'
+            fwhm_rad = 0.1                       # ~ 5 deg    
+            rr['plotrange'] = dict(min=-fwhm_rad, max=fwhm_rad, nr=13)
         
         self.__var[key] = rr
 
@@ -492,27 +501,255 @@ class Expression:
         # Finished, do some bookkeeping:
         self.__expanded = True
         if trace: print '   ->',self.__xexpr
-        self.__test_result = self.eval(test=True)
+        self.__test_result = self.eval(_test=True)
         self.__eval_result = self.eval()
         return True
     
 
 
 
+    #============================================================================
+    # Fit the Expression (e.g. a polc) to a set of given points.
+    #============================================================================
 
+    def fit (self, vv, **pp):
+        """Adjust the Expression default parameters to make them fit the
+        values of the specified points v(f,t,l,m)"""
+
+        trace = True
+        if trace: print '\n** fit(',type(vv),len(vv),'):'
+
+        # The function values at the specified points:
+        nvv = len(vv)
+        vv = array(vv)
+        if trace: print '- vv =',type(vv),' nvv =',nvv
+
+        # Check whether there are values for all relevant variables:
+        self.expand()
+        CCC = dict()
+        for key in self.__xvar.keys():
+            if not pp.has_key(key):
+                print 'need values for variable:',key
+                return False
+            elif len(pp[key])==1:
+                pass                            # OK...?
+            elif not len(pp[key])==nvv:
+                print 'length mismatch for variable:',key,':',nvv,len(pp[key])
+                return False
+            else:                               # OK
+                CCC[key] = array(pp[key])
+                if trace: print '- CCC[',key,'] =',CCC[key]
+            
+
+        # Assume a linear expression, with one (multiplicative) parameter
+        # per term. The latter are the unknowns to be solved:
+        terms = find_terms(self.__xexpr)
+        unks = []
+        coeff = dict()
+        for term in terms['pos']:                         # 'neg' too!
+            unknown = find_enclosed(term,'{}')
+            if trace: print '\n- term:',term,'->',unknown
+            if len(unknown)>1:
+                print 'more than one unknown in term:',term
+                return False
+            unk = unknown[0]                              # string
+            unks.append(unk)                              # list of unkowns
+
+            # Calculate the coeff of the unkowns in the condition equations:
+            # First replace the unkowns with 1.0
+            term = term.replace('{'+unk+'}', '1.0')
+            # Then replace the variables [f],[t],etc with CCC['f'],CCC['t'] etc:
+            for vkey in CCC.keys():
+                term = term.replace('['+vkey+']', 'CCC[\''+vkey+'\']')
+                if trace: print '  --',vkey,':',term
+            # Evaluate the term for the given values of CCC['t'] etc
+            try:
+                coeff[unk] = eval(term)
+            except:
+                print 'problem'
+                return False
+            if not isinstance(coeff[unk], type(array(0))):     # scalar
+                coeff[unk] = coeff[unk]*ones(nvv)              # make array
+            if trace: print ' coeff[',unk,'] =',coeff[unk]
+        nuk = len(unks)                                    # nr of unknowns    
+        if trace: print '\n unknowns:',nuk,':',unks
+
+        # Now make the (rectangular) condition matrix, and solve for the unknowns:
+        aa = zeros([nvv,nuk])                              # matrix
+        for i in range(nvv):
+            for j in range(nuk):
+                unk = unks[j]
+                aa[i,j] = coeff[unk][i]
+        # bb = generalized_inverse(aa)
+        # bb = solve_linear_equations(aa,vv)          # aa must be square
+        bb = linear_least_squares(aa,vv)
+        if trace: print bb
+        sol = bb[0]                                   # solution vector
+        ## sol = bb[3]                                   # solution vector..?
+        # Replace the default values of the Expression parameters:
+        self._reset()
+        for j in range(nuk):
+            rr = self.__parm[unks[j]]
+            rr['nominal'] = sol[j]
+            rr['default'] = sol[j]
+            rr['testval'] = sol[j]                    # for plotting
+            rr['stddev'] = 0.0
+        if trace:
+            self.display('fit')
+            cc = plot(CCC['t'],vv,'o')
+            self.plot(t=CCC['t'])
+            
+        return True
+
+
+    #============================================================================
+    # Plotting the (expanded) expression:
+    #============================================================================
+
+    def plotrec (self, new=None, trace=False):
+        """Return the internal plot-record (see .eval())"""
+        if new:
+            self.__plotrec = new
+        if trace:
+            rr = self.__plotrec                   # convenience
+            if not isinstance(rr, dict):
+                print '\n** self.__plotrec:',rr,'\n'
+            else:
+                print '\n** self.__plotrec:'
+                for key in rr.keys():
+                    if key=='yy':
+                        print '...',key,':'
+                        for yy in rr[key]:
+                            print '.......',yy
+                    else:
+                        print '...',key,':',rr[key]
+                print ''
+        return self.__plotrec
+
+    #-----------------------------------------------------------------------
+
+    def plot_Funklet(self, cells=None):
+        """Make a plot of the (Funklet of) the expanded expression."""
+        self.Funklet()
+        if not self.__Funklet: return
+        return self.__Funklet.plot(cells=cells)
+
+    #-----------------------------------------------------------------------
+
+    def varange (self, rr, key=None, trace=False):
+        """Helper function to translate rr into a vector of variable values,
+        for evaluation and/or plotting"""
+        if isinstance(rr, (list,tuple)):            #
+            vv = array(rr)                          # make into array
+        elif isinstance(rr, type(array(0))):        # already an array
+            vv = rr                                 # just copy
+        elif isinstance(rr, dict):                  # assume fields min,max,span,nr
+            rr.setdefault('nr',10)         
+            rr.setdefault('min',1)          
+            rr.setdefault('max',11)
+            n = max(2,ceil(rr['nr']))               # safe nr of points
+            factor = (rr['max']-rr['min'])/float(n-1) # scale-factor
+            vv = rr['min'] + factor*array(range(n))
+        elif isinstance(rr, bool):                  # use default plot-range
+            self.expand()
+            vv = self.varange(self.__xvar[key]['plotrange'])
+        else:                                       # error message?
+            vv = array(range(10))                   # some safe default
+        if trace: print '\n** .varange(',rr,key,')\n   ->',vv,'\n'
+        return vv
+
+    #-----------------------------------------------------------------------
+
+    def plot (self, _plot='linear', **pp):
+        """Plot the Expression for the specified parameter/variable value(s).
+        See also self.eval()."""
+
+        # Make sure that there is at least one variable vector:
+        self.expand()
+        xvkeys = self.__xvar.keys()
+        if len(pp)==0:
+            if 'l' in xvkeys:
+                pp['l'] = self.varange(True, 'l')
+            elif 'm' in xvkeys:
+                pp['m'] = self.varange(True, 'm')
+            elif 't' in xvkeys:
+                pp['t'] = self.varange(True, 't')
+            elif 'f' in xvkeys:
+                pp['f'] = self.varange(True, 'f')
+
+        # Evaluate the (expanded) expression (produces self.__plotrec):        
+        self.eval(_test=True, **pp)
+
+        # Use the plot-record generated by .eval() to make the plot:
+        rr = self.plotrec (trace=trace)
+        xlabel(rr['xlabel'])
+        ylabel(rr['ylabel'])
+        title(rr['title'])
+        legend(rr['legend'])
+        if True:
+            # Display the expression, term for term:
+            terms = find_terms(rr['expr'])
+            y = 0.8
+            figtext(0.14,y,'Expression, term by term:')
+            for term in terms['pos']:
+                y -= 0.04
+                figtext(0.15,y,'+'+term, color='blue')
+            for term in terms['neg']:
+                y -= 0.04
+                figtext(0.15,y,'-'+term, color='red')
+        # Plot the data:
+        for i in range(len(rr['yy'])):
+            yy = rr['yy'][i]
+            if _plot=='loglog':
+                cc = loglog(rr['xx'], yy)         # log x, log y
+                cc = loglog(rr['xx'], yy, 'o', color=cc[0].get_color()) 
+            elif _plot=='semilogx':
+                cc = semilogx(rr['xx'], yy)       # linear y, log x
+                cc = semilogx(rr['xx'], yy, '+', color=cc[0].get_color()) 
+            elif _plot=='semilogy':
+                cc = semilogy(rr['xx'], yy)       # linear x, log y
+                cc = semilogy(rr['xx'], yy, '+', color=cc[0].get_color()) 
+            else:
+                cc = plot(rr['xx'], yy)           # default: both linear
+                cc = plot(rr['xx'], yy, '+', color=cc[0].get_color())     
+            print '-',i,'cc=',cc
+            # print dir(cc[0])
+            if len(rr['annot'])>0:
+                color = cc[0].get_color()
+                text(rr['xannot'], yy[0], rr['annot'][i], color=color)
+
+        # Optimise the plotting-range:
+        dx = 0.05*abs(rr['xmax']-rr['xmin'])
+        dy = 0.05*abs(rr['ymax']-rr['ymin'])
+
+        if _plot=='loglog':
+            axis([rr['xmin'], rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
+        elif _plot=='semilogx':
+            axis([rr['xmin'], rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
+        elif _plot=='semilogy':
+            axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
+        else:
+            axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
+
+        # Finished: show the plot:
+        show()
+        return rr
 
     #============================================================================
     # Evaluating the (expanded) expression:
     #============================================================================
 
-    def eval_old(self, trace=False, test=False, **pp):
+    def eval (self, _test=False, **pp):
         """Evaluate the (expanded) expression for the specified (pp) values of
         parameters {} and variables []. Use defaults if not specified.
-        The specified parameters/variables may be multiple (lists),
-        provided that all such lists have the same length.
-        The evaluation will then return a list of the same length."""
+        If _test==True, the parm/val testvals are used, otherwise their defaults.
+        Two of the specified parameters/variables may be multiple (list,tuple,array).
+        The longest multiple is the 'variable', and the result is in the form of
+        array(s) of this length. The shortest multiple (if any) is the 'parameter',
+        i.e. there will be as many result arrays as parameter values."""
 
-        if trace: print '\n** eval_old():',pp
+        trace = True
+        if trace: print '\n** eval(_test=',_test,'):',pp
 
         # Make sure that an expanded expression exists:
         self.expand()
@@ -521,146 +758,96 @@ class Expression:
         # unless other values have been specified via **pp.
         rr = dict()
         field = 'default'                        # normal mode
-        if test: field = 'testval'               # .test() mode
+        if _test: field = 'testval'               # .test() mode
         for key in self.__xparm.keys():
-            pp.setdefault(key, self.__xparm[key][field])
-            rr['{'+key+'}'] = pp[key]
+            value = self.__xparm[key][field]
+            if pp.has_key(key): value = pp[key]
+            rr['{'+key+'}'] = value
         for key in self.__xvar.keys():
-            pp.setdefault(key, self.__xvar[key][field])
-            rr['['+key+']'] = pp[key]
+            value = self.__xvar[key][field]
+            if pp.has_key(key): value = self.varange(pp[key], key=key)
+            rr['['+key+']'] = value
 
         # Parameters/variables may be multiple:
-        nmax = 1
+        nmax = 0
+        variable = rr.keys()[0]                   # key of the variable multiple
+        parameter = None                          # key of the parameter multiple
         for key in rr.keys():
-            if isinstance(rr[key], (list,tuple,type(array(0)))):
-                n = len(rr[key])
-                if n>1:
-                    if nmax>1 and not nmax==n:
-                        print '** .eval_old() error:',key,n,nmax
-                        return False            # error
-                    nmax = n
-            else:
-                rr[key] = [rr[key]]
-        # print nmax,'rr =',rr
-
-        # Evaluate the result element-by-element:
-        result = []
-        for i in range(nmax):
-            qq = dict()
-            for key in rr.keys():
-                if len(rr[key])==1:
-                    qq[key] = rr[key][0]
-                else:
-                    qq[key] = rr[key][i]
-                # print '-',i,key,len(rr[key]),qq
-            result.append(self.eval1(qq, test=test, trace=trace))
-        if len(result)==1: result = result[0]
-        if trace: print '  -> result =',result
-        return result
-
-
-    #-----------------------------------------------------------------------
-
-    def eval1_old (self, pp, test=False, trace=False):
-        """Helper function called by .eval()"""
-
-        seval = deepcopy(self.__xexpr)
-        if trace:
-            print '.... eval1():',seval
-            print '     ',pp
-
-        # Replace parameters and variables with numeric values:
-        for key in pp.keys():
-            value = pp[key]
-            if value<0:
-                srep = '('+str(value)+')'
-            else:
-                srep = str(value)
-            seval = seval.replace(key, srep)
-            if trace:
-                print '- substitute',key,'->',value,':   ',seval
-            
-        # Evaluate the seval string:
-        try:
-            if test:
-                self.__test_seval = seval
-            else:
-                self.__eval_seval = seval
-            result = eval(seval)                  # covers most things
-        except:
-            print sys.exc_info()
-            return False                          # something wrong
-        # Return the result
-        if trace: print '  -> result (old)=',result
-        return result
-
-
-    #===========================================================================
-
-    def eval(self, trace=False, test=False, **pp):
-        """Evaluate the (expanded) expression for the specified (pp) values of
-        parameters {} and variables []. Use defaults if not specified.
-        The specified parameters/variables may be multiple (lists),
-        provided that all such lists have the same length.
-        The evaluation will then return a list of the same length."""
-
-        if trace: print '\n** eval():',pp
-
-        # Make sure that an expanded expression exists:
-        self.expand()
-
-        # Use the default values in self.__xparm and self.__xvar,
-        # unless other values have been specified via **pp.
-        rr = dict()
-        field = 'default'                        # normal mode
-        if test: field = 'testval'               # .test() mode
-        for key in self.__xparm.keys():
-            pp.setdefault(key, self.__xparm[key][field])
-            rr['{'+key+'}'] = pp[key]
-        for key in self.__xvar.keys():
-            pp.setdefault(key, self.__xvar[key][field])
-            rr['['+key+']'] = pp[key]
-
-        # Parameters/variables may be multiple:
-        nmax = 1
-        for key in rr.keys():
+            n = 1
             if isinstance(rr[key], (list,tuple)):
-                rr[key] = array(rr[key])        # make array
+                rr[key] = array(rr[key])          # make array
             if isinstance(rr[key], (type(array(0)))):
                 n = len(rr[key])
-                if n>1:
-                    if nmax>1 and not nmax==n:
-                        print '** .eval() error:',key,n,nmax
-                        return False            # error
+                if n>nmax:
+                    if nmax>1: parameter = variable
+                    variable = key
                     nmax = n
-            else:
-                rr[key] = [rr[key]]
-        # print nmax,'rr =',rr
+                elif n>1:
+                    parameter = key
+            if trace: print '-',key,n,nmax,parameter,variable
+        if trace: print 'parameter=',parameter,' variable=',variable,'(',nmax,')'
 
-        # Evaluate the result element-by-element:
-        result = []
-        for i in range(nmax):
+        # The results are collected in a plot-record (plotrec):
+        plotrec = dict(yy=[], xx=rr[variable], test=_test,
+                       xmin=-10, xmax=10, ymin=1e20, ymax=-1e20,
+                       expr=self.__expression,
+                       annot=[], xannot=0.0,
+                       xlabel=variable,
+                       ylabel='value',
+                       parameter=parameter, pp=None,
+                       title=self.tlabel(), legend=[])
+        vkey = deenclose(variable,'[]')
+        if vkey in self.__xvar.keys():
+            plotrec['xlabel'] += '   ('+str(self.__xvar[vkey]['unit'])+')'
+        if isinstance(plotrec['xx'], type(array(0))):
+            plotrec['xannot'] = plotrec['xx'][0]
+            plotrec['xmin'] = min(plotrec['xx'])
+            plotrec['xmax'] = max(plotrec['xx'])
+        # if trace: print 'plotrec =',plotrec
+
+        # Evaluate the expression for successive values of the parameter:
+        # First check whether an eval/plot 'parameter' has been specified:
+        n = 1
+        if isinstance(parameter,str):
+            n = len(rr[parameter])
+            plotrec['pp'] = rr[parameter]
+        first = True
+        for i in range(n):
             qq = dict()
             for key in rr.keys():
-                if len(rr[key])==1:
-                    qq[key] = rr[key][0]
-                else:
+                if key==parameter:
                     qq[key] = rr[key][i]
-                # print '-',i,key,len(rr[key]),qq
-            result.append(self.eval1(qq, test=test, trace=trace))
-        if len(result)==1: result = result[0]
-        if trace: print '  -> result =',result
-        return result
+                else:
+                    qq[key] = rr[key]
+                    if first and not key==variable:
+                        plotrec['legend'].append(key+'='+str(rr[key]))
+                if trace: print '  -- qq[',key,']:',type(qq[key]),'=',qq[key]
+            if trace and parameter:
+                print '-',i,'/',n,': qq[',parameter,']=',qq[parameter]
+            r1 = self.evalone(qq, _test=_test, trace=trace)
+            plotrec['yy'].append(r1)
+            plotrec['ymin'] = min(plotrec['ymin'],min(r1))
+            plotrec['ymax'] = max(plotrec['ymax'],max(r1))
+            if parameter:
+                plotrec['annot'].append(parameter+'='+str(qq[parameter]))
+            first = False
 
+        # The plot-record is stored internally (see self.plot())
+        self.plotrec (new=plotrec, trace=trace)
+
+        # The return value depends on the shape:
+        if len(plotrec['yy'])==1:
+            return plotrec['yy'][0]               # just an array
+        return plotrec['yy']                      # a list of arrays
 
     #-----------------------------------------------------------------------
 
-    def eval1 (self, pp, test=False, trace=False):
-        """Helper function called by .eval()"""
+    def evalone (self, pp, _test=False, trace=False):
+        """Helper function called by self.eval()"""
 
         seval = deepcopy(self.__xexpr)
         if trace:
-            print '.... eval1():',seval
+            print '\n .... evalone():',seval
             print '     ',pp
 
         # Replace parameters and variables with parameter names CCC[i]:
@@ -668,23 +855,30 @@ class Expression:
         keys = pp.keys()
         for i in range(len(keys)):
             key = keys[i]
-            CCC[i] = pp[key]
+            CCC.append(pp[key])
             seval = seval.replace(key, 'CCC['+str(i)+']')
             if trace:
-                print '- substitute',key,'->',value,':   ',seval
-            
+                print '- substitute',key,'-> ',seval
+        if trace:
+            print '  -> seval =',seval
+            print '  -> CCC =',CCC
+
         # Evaluate the seval string:
         try:
-            if test:
+            if _test:
                 self.__test_seval = seval
             else:
                 self.__eval_seval = seval
             result = eval(seval)                  # covers most things
         except:
+            print '\n** ERROR in eval(',seval,')\n'
             print sys.exc_info()
             return False                          # something wrong
-        # Return the result
-        if trace: print '  -> result =',result
+
+        # Return the (numeric) result:
+        if not isinstance(result,type(array(0))):
+            result = array([result])
+        if trace: print '  -> evalone() ->',type(result),'=',result,'\n'
         return result
 
 
@@ -735,17 +929,6 @@ class Expression:
                 print 'F._type:',self.__Funklet._type
                 print '\n'
         return self.__Funklet
-
-
-    #============================================================================
-    # Plotting the (expanded) expression:
-    #============================================================================
-
-    def plot_Funklet(self, cells=None):
-        """Make a plot of the (Funklet of) the expanded expression."""
-        self.Funklet()
-        if not self.__Funklet: return
-        return self.__Funklet.plot(cells=cells)
 
 
 
@@ -828,7 +1011,7 @@ class Expression:
         if index<0:
             print '\n** .subExpression(',substring,'): not found in:',self.__expression,'\n'
             return False
-        e1 = Expression(label, substring)
+        e1 = Expression(substring, label)
         for key in e1.__parm.keys():
             e1.__parm[key] = self.__parm[key]
             if trace: print '- copy parm[',key,']:',e1.__parm[key]
@@ -847,7 +1030,7 @@ class Expression:
             print '\n** .subTree():',self.tlabel()
 
         # Split self.__expression into additive terms:
-        rr = find_terms(self.__expression, trace=True)
+        rr = find_terms(self.__expression, trace=trace)
         cc = dict(pos=[], neg=[])
         for key in cc.keys():                           # 'pos','neg'
             for i in range(len(rr[key])):
@@ -1247,7 +1430,7 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     expr = expr.replace('x[3]','[m]')              # .........?
 
     # Make the Expression object:
-    e0 = Expression('Funklet_'+label, expr)
+    e0 = Expression(expr, 'Funklet_'+label)
 
     # Transfer the coeff default values: 
     if Funklet._type in ['MeqPolc','MeqPolcLog']:
@@ -1299,7 +1482,7 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, trace=False):
             for i1 in range(i): func += '*[f]'
             first = False
             if trace: print '-',i,j,k,pk,':',func
-    result = Expression(label, func, **pp)
+    result = Expression(func, label, **pp)
     # insert help..
     if trace:
         result.display()
@@ -1352,9 +1535,17 @@ if __name__ == '__main__':
         node << 0.9
         node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
 
+    if 0:
+        e0 = Expression('3*[t]')
+        # e0.display()
+        e0.varange(range(5), trace=True)
+        e0.varange(dict(min=23,max=24,nr=12), trace=True)
+        e0.varange(dict(min=23,max=24), trace=True)
+        e0.varange(True, key='t', trace=True)
+
     #-------------------------------------------------------------------
 
-    if 0:
+    if 1:
         f0 = Funklet()
         f0.setCoeff([[1,0,4],[2,3,4]])       # [t]*[f]*[f] highest order
         # f0.setCoeff([[1,0],[2,3]]) 
@@ -1367,11 +1558,12 @@ if __name__ == '__main__':
         print f0._function
         print f0._coeff
         print f0._type
-        Funklet2Expression(f0, 'A', trace=True)
+        e0 = Funklet2Expression(f0, 'A', trace=True)
+        e0.fit(vv=range(10), f=range(10), t=range(10))
  
     if 0:
         f0 = Funklet()
-        # f0.setCoeff([[1,0,2,3]])             # [f] only 
+        f0.setCoeff([[1,0,2,3]])             # [f] only 
         # f0.setCoeff([1,0,2,3])               # [t] only !!
         f0.setCoeff([[1,0],[2,3]]) 
         f0._type = 'MeqPolcLog' 
@@ -1380,12 +1572,13 @@ if __name__ == '__main__':
         print f0._function
         print f0._coeff
         print f0._type
-        Funklet2Expression(f0, 'A', trace=True)
+        e0 = Funklet2Expression(f0, 'A', trace=True)
+        e0.plot('semilogy', f=dict(min=1e8,max=1e9), t=range(1,5))
 
     #---------------------------------------------------------
  
-    if 1:
-        e1 = Expression('e1', '{A}*cos({B}*[f])+{C}-({neq}+67)')
+    if 0:
+        e1 = Expression('{A}*cos({B}*[f])+{C}+({neq}+67)', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
         e1.parm('B', 10, testval=4, help='help for B')
         # e1.parm('C', f0, help='help for C')
@@ -1398,22 +1591,15 @@ if __name__ == '__main__':
             e1.display(e1.quals())
 
         if 0:
-            ff = array(range(5))/10.0
-            print type(ff),ff
-            yy = e1.eval(trace=True, f=ff)
-            print type(yy),yy
-            xlabel('freq')
-            ylabel(e1.expression())
-            title(e1.tlabel())
-            legend([e1.label(),'e2'])
-            plot(ff,yy)
-            show()
-            # e1.display()
+            ff = array(range(-10,15))/10.0
+            # e1.eval(f=ff, A=range(2))
+            # e1.plot(f=ff, A=range(4))
+            e1.plot()
 
         if 0:
             e2 = e1.subExpression('cos({B}*[f])', trace=True)
 
-        if 1:
+        if 0:
             node = e1.subTree (ns, trace=True)
             TDL_display.subtree(node, 'subTree', full=True, recurse=10)
             
@@ -1442,7 +1628,7 @@ if __name__ == '__main__':
     #.........................................................................
 
     if 0:
-        e2 = Expression('e2', '{r}+{BA}*[t]+{A[1,2]}-{xxx}')
+        e2 = Expression('{r}+{BA}*[t]+{A[1,2]}-{xxx}', label='e2')
         e2.parm ('BA', default=e1, help='help')
         e2.parm ('r', default=11, polc=[4,5], help='help')
         node = ns << 10
@@ -1450,31 +1636,36 @@ if __name__ == '__main__':
         # e2.parm ('xxx', default=node, help='help')
         e2.display(full=True)
         # e2.expand()
-        # e2.eval(trace=True, f=range(5))
+        # e2.eval(f=range(5))
         # e2.parm2node(ns, trace=True)
         # e2.var2node(ns, trace=True)
 
-    if 0:
-        e2.Funklet(trace=True)
-        e2.display(full=True)
+        if 1:
+            e2.plot()
 
-    if 0:
-        node = e2.MeqFunctional(ns, trace=True)
-        TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+        if 0:
+            e2.Funklet(trace=True)
+            e2.display(full=True)
 
-    if 0:
-        node = e2.MeqNode(ns, trace=True)
-        TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
+        if 0:
+            node = e2.MeqFunctional(ns, trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+
+        if 0:
+            node = e2.MeqNode(ns, trace=True)
+            TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
+
+    #-----------------------------------------------------------------------------
 
     if 0:
         # Voltage beam (gaussian):
-        gaussian = Expression('gauss', '{peak}*exp(-{ldep}-{mdep})')
+        gaussian = Expression('{peak}*exp(-{ldep}-{mdep})', label='gauss')
         gaussian.parm ('peak', default=1.0, polc=[2,1], help='peak voltage beam')
-        lterm = Expression('lterm', '(([l]-{l0})/{lwidth})**2')
+        lterm = Expression('(([l]-{l0})/{lwidth})**2', label='lterm')
         lterm.parm ('l0', default=0.0)
         lterm.parm ('lwidth', default=1.0, help='beam-width in l-direction')
         gaussian.parm ('ldep', default=lterm)
-        mterm = Expression('mterm', '(([m]-{m0})/{mwidth})**2')
+        mterm = Expression('(([m]-{m0})/{mwidth})**2', label='mterm')
         mterm.parm ('m0', default=0.0)
         mterm.parm ('mwidth', default=1.0, help='beam-width in m-direction')
         gaussian.parm ('mdep', default=mterm)
