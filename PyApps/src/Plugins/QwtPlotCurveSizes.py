@@ -5,8 +5,8 @@ from qwt import *
 class QwtPlotCurveSizes(QwtPlotCurve):
     """ A QwtCurve with adjustable Symbols """
 
-    def __init__(self,parent=None, title=None):
-      QwtPlotCurve.__init__(self,parent, title)
+    def __init__(self,parent,title=""):
+      QwtPlotCurve.__init__(self,parent,title)
       self.symbolSizes = None
       self.symbolList = None
 
@@ -61,8 +61,8 @@ class QwtPlotCurveSizes(QwtPlotCurve):
 
 def make():
     demo = QwtPlot('symbols demo')
-    curve = QwtPlotCurveSizes(demo)
-    curve_a = QwtPlotCurveSizes(demo)
+    curve = QwtPlotCurveSizes(parent=demo)
+    curve_a = QwtPlotCurveSizes(parent=demo)
     # need to create a default symbol for the curves due to inner
     # workings of QwtCurve 
     curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
