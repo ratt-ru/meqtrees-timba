@@ -118,7 +118,7 @@ class QwtImageDisplay(QwtPlot):
     _start_spectrum_menu_id = 0
     _start_vells_menu_id = 0
 
-    def __init__(self, plot_key=None, parent=None):
+    def __init__(self, plot_key="", parent=None):
         QwtPlot.__init__(self, parent)
         self.parent = parent
         # create copy of standard application font..
