@@ -69,8 +69,8 @@ class Funklet:
         self.isConstant=False;
         if not self._nx:
             #print "this function is constant"
+            self._constant = self.eval();
             self.isConstant=True;
-            self._constant = self._coeff[0]
             if not is_scalar(self._constant):
                 self._constant = self._constant[0]
     
