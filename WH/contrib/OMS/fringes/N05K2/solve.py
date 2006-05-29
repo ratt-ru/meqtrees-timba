@@ -52,6 +52,7 @@ TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
 TDLCompileOption('stations_list',"Station list",[[1,2,3,4,7,8],[1,2,7]]);
 TDLCompileOption('source_model',"Source model",[
     models.cps_3C345,
+    models.cgs_3C345
   ],default=0);
 TDLCompileMenu("Fitting options",
   TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4,5,6]),
@@ -99,9 +100,9 @@ Settings.forest_state = record(bookmarks=[
       ["corrected:1:2","corrected:1:7"],
       ["corrected:2:7"]
   )), 
-  record(name='Flux solutions',page=Bookmarks.PlotPage(
-      ["I:3C345","Q:3C345"],
-      ["U:3C345","V:3C345"],
+  record(name='Source solutions',page=Bookmarks.PlotPage(
+      ["I:3C345","sigma1:3C345"],
+      ["sigma2:3C345","phi:3C345"],
       ["solver"]
   )),
   record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
@@ -377,64 +378,52 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False,constrain=None,r
 
 arcsec_to_rad = math.pi/(180*3600);
 
-def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
-  solvables = [];
-  for src in source_list:
-    pert_ra = random.uniform(-pos_perturbation,pos_perturbation);
-    solvables += _perturb_parameters(mqs,['ra:'+src.name],
-                  pert=arcsec_to_rad*pert_ra,absolute=True);
-    pert_dec = random.uniform(-pos_perturbation,pos_perturbation);
-    solvables += _perturb_parameters(mqs,['dec:'+src.name],
-                  pert=arcsec_to_rad*pert_dec,absolute=True);
-    if src.has_spectral_index():
-      solvables += _perturb_parameters(mqs,['I0:'+src.name],
-                    pert=flux_perturbation,absolute=False);
-      solvables += _reset_parameters(mqs,[src.spectral_index().name],0);
-    else:
-      solvables += _perturb_parameters(mqs,['I:'+src.name],
-                    pert=flux_perturbation,absolute=False);
-    if isinstance(src,GaussianSource):
-      solvables += _perturb_parameters(mqs,['sigma1:'+src.name]);
-      solvables += _perturb_parameters(mqs,['sigma2:'+src.name]);
-      solvables += _reset_parameters(mqs,['phi:'+src.name],0);
-  _run_solve_job(mqs,solvables);
-  
-def _tdl_job_2_solve_for_flux_and_phases (mqs,parent,**kw):
+def _solvable_source (mqs,src):
   if constraint_weight == "intrinsic":
     constrain = flux_constraint;
   else:
     constrain = None;
-  solvables = [];
-  solvables = _reset_parameters(mqs,['I0:'+src.name for src in source_list],1,constrain=constrain);
-#  solvables += _reset_parameters(mqs,['Q:'+src.name for src in source_list],0);
-#  solvables += _reset_parameters(mqs,['U:'+src.name for src in source_list],0);
-#  solvables += _reset_parameters(mqs,['V:'+src.name for src in source_list],0);
+  solvables = _reset_parameters(mqs,['I0:'+src.name],constrain=constrain);
+  _reset_parameters(mqs,['Q:'+src.name for src in source_list],constrain=[0.,.5]);
+  _reset_parameters(mqs,['U:'+src.name for src in source_list],constrain=[0.,.5]);
+  _reset_parameters(mqs,['V:'+src.name for src in source_list],constrain=[0.,.5]);
+  if isinstance(src,GaussianSource):
+    solvables += _reset_parameters(mqs,['sigma1:'+src.name]);
+    solvables += _reset_parameters(mqs,['sigma2:'+src.name]);
+    solvables += _reset_parameters(mqs,['phi:'+src.name]);
+  return solvables;
+    
+def _reset_gains (mqs):
   _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list],1);
   _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list],1);
-  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
+
+def _solvable_gains (mqs):
+  # gain of station 1 is fixed
+  _reset_parameters(mqs,['gain:L:'+str(stations_list[0])],1);
+  _reset_parameters(mqs,['gain:R:'+str(stations_list[0])],1);
+  # other gains solvable
+  solvables = _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list[1:]],1);
+  solvables += _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list[1:]],1);
+  return solvables;
+
+def _solvable_phases (mqs):
+  solvables = _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
   solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
+  return solvables;
+  
+def _tdl_job_1_solve_for_flux_and_phases (mqs,parent,**kw):
+  solvables = [];
+  for src in source_list:
+    solvables += _solvable_source(mqs,src);
+  solvables += _solvable_phases(mqs,);
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_3_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
-  if constraint_weight == "intrinsic":
-    constrain = flux_constraint;
-  else:
-    constrain = None;
   solvables = [];
-  solvables = _reset_parameters(mqs,['I0:'+src.name for src in source_list],1,constrain=constrain);
-#  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-#               pert=flux_perturbation,absolute=False,
-#               constrain=constrain);
-  _reset_parameters(mqs,['Q:'+src.name for src in source_list],0,constrain=[0.,.5]);
-  _reset_parameters(mqs,['U:'+src.name for src in source_list],0,constrain=[0.,.5]);
-  _reset_parameters(mqs,['V:'+src.name for src in source_list],0,constrain=[0.,.5]);
-  # fix gain of station 1 at 1
-  _reset_parameters(mqs,['gain:L:'+str(stations_list[0])],1);
-  _reset_parameters(mqs,['gain:R:'+str(stations_list[0])],1);
-  solvables += _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list[1:]],1);
-  solvables += _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list[1:]],1);
-  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list[1:]],0);
-  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list[1:]],0);
+  for src in source_list:
+    solvables += _solvable_source(mqs,src);
+  solvables += _solvable_gains(mqs);
+  solvables += _solvable_phases(mqs);
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
