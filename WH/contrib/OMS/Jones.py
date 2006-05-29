@@ -1,8 +1,6 @@
-from numarray import *
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.OMS.SkyComponent import *
-
+from Timba.Contrib.OMS.Utils import *
 
 def apply_corruption (vis,vis0,jones,ifr_list):
   """Creates nodes to corrupt with a set of Jones matrices.

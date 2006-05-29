@@ -87,6 +87,7 @@ def _define_forest(ns):
   
   # create nominal CLAR source model by calling the specified
   # function
+  clar_model.init_directions(ns);
   source_list = source_model(ns);
   
   if add_e_jones:
@@ -100,25 +101,25 @@ def _define_forest(ns):
 #     ## this uses a CLAR beam without elevation broadening
 #     Ej0 = clar_model.EJones_unbroadened(ns,observation,source_list);
 #     nom_list = [ 
-#       CorruptComponent(ns,src,label='E0',jones=Ej0(src.name))
+#       CorruptComponent(ns,src,label='E0',jones=Ej0(src.direction.name))
 #       for src in source_list
 #     ];
     ## this uses a broadened beam, but a single "average" E for
     ## every station, rather than computing the per-station Es
     for src in source_list:
-      ns.E0(src.name) << Meq.Add(*[ns.E(src.name,st) for st in array.stations()])/array.num_stations();
+      ns.E0(src.name) << Meq.Add(*[ns.E(src.direction.name,st) for st in array.stations()])/array.num_stations();
     nom_list = [ 
-      CorruptComponent(ns,src,label='E0',jones=ns.E0(src.name))
+      CorruptComponent(ns,src,label='E0',jones=ns.E0(src.direction.name))
       for src in source_list
     ];
   else:
     corrupt_list = nom_list = source_list;
     
   # create all-sky patch for CLAR source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*corrupt_list);
   
-  nomsky = Patch(ns,'all0');
+  nomsky = Patch(ns,'all0',observation.phase_centre);
   nomsky.add(*nom_list);
   
   if add_g_jones:
@@ -177,7 +178,7 @@ def create_inputrec():
       if not ms_selection:
         rec.record_input     = boioname;
       rec = record(ms=rec);
-    rec.python_init = 'AGW_read_msvis_header.py';
+    rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
     rec.mt_queue_size = ms_queue_size;
     return rec;
 

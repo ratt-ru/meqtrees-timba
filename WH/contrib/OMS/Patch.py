@@ -2,9 +2,9 @@ from Timba.Contrib.OMS.SkyComponent import *
 
 
 class Patch (SkyComponent):
-  def __init__(self,ns,name,ra=0.0,dec=0.0,
+  def __init__(self,ns,name,direction,
                parm_options=record(node_groups='Parm')):
-    SkyComponent.__init__(self,ns,name,ra,dec,parm_options=parm_options);
+    SkyComponent.__init__(self,ns,name,direction,parm_options=parm_options);
     self._components = [];
     
   def add (self,*comps):

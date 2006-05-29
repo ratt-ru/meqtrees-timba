@@ -86,7 +86,7 @@ Settings.forest_state = record(bookmarks=[
       ["I:S1","I:S2","I:S3"],
       ["I:S4","I:S5","I:S6"],
       ["I:S7","I:S8","I:S9"],
-      ["I:S10","ihpbw"]
+      ["I:S10","hpbw"]
   )),
   record(name="Sources 1/2",page=Bookmarks.PlotPage(
       ["visibility:S1:1:2",
@@ -116,6 +116,7 @@ def _define_forest(ns):
   array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
   observation = Observation(ns);
   
+  clar_model.init_directions(ns);
   # create nominal CLAR source model by calling the specified
   # function
   source_list = source_model(ns);
@@ -123,14 +124,14 @@ def _define_forest(ns):
   if add_e_jones:
     Ej = clar_model.EJones(ns,array,source_list);
     corrupt_list = [ 
-      CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
+      CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in source_list
     ];
   else:
     corrupt_list = source_list;
                      
   # create all-sky patch for CLAR source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*corrupt_list);
   
   if add_g_jones:
@@ -192,7 +193,7 @@ def create_inputrec():
 #      if not ms_selection:
 #        rec.record_input     = boioname;
     rec = record(ms=rec);
-  rec.python_init = 'AGW_read_msvis_header.py';
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

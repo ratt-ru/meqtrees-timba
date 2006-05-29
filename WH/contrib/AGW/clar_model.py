@@ -1,6 +1,9 @@
 from Timba.TDL import *
+from Timba.Contrib.OMS.Utils import *
+from Timba.Contrib.OMS.Direction import *
 from Timba.Contrib.OMS.PointSource import *
 from Timba.Contrib.OMS.GaussianSource import *
+import sets
 
 # some CLAR constants
 
@@ -15,6 +18,42 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 
 reuse_solutions = False;
 
+# Global dictionary of known source directions
+# Keep all this in one place, this way we can do a single clar_fit_dq run
+# for all directions appearing in any model.
+_directions = dict(
+  S1=(0.03119776,0.57632226),
+  S2=(0.031181034,0.57629802),
+  S3=(0.030906872,0.5761041),
+  S4=(0.030761428,0.57588593),
+  S5=(0.030732848,0.57585781),
+  S6=(0.0302269161,0.57654043),
+  S7=(0.030120036,0.576310965),
+  S8=(0.0304215356,0.575777607),
+  S9=(0.030272885,0.575762621),
+  S10=(0.0306782675,0.57537688),
+  S11=(0.03037222,0.57590435)
+);
+
+direction = None;  # record of Directions, populated below
+
+def init_directions (ns,tablename=''):
+  """Inits global direction record of all Directions in all models""";
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+      
+  global _directions;
+  global direction;
+  if direction is None:
+    direction = recdict();
+    for name,(ra,dec) in _directions.iteritems():
+      direction[name] = Direction(ns,name,ra,dec,parm_options=parm_options);
+    
+  return direction;
+  
+
 def combined_extended_source (ns,tablename=''):
   """ define two extended sources: positions and flux densities """
   parm_options = record(
@@ -28,13 +67,13 @@ def combined_extended_source (ns,tablename=''):
 # extended sources at positions of radio_galaxy S4 and S5
 
   source_model.append( GaussianSource(ns,name="S4",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030761428, dec=0.57588593,
+                  Iorder=0, direction=direction.S4,
                   spi=0.0,freq0=ref_frequency,
                   size=.00008, symmetric=True,
                   parm_options=parm_options));
 
   source_model.append( GaussianSource(ns,name="S5",I=60.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  Iorder=0, direction=direction.S5,
                   spi=-0.75,freq0=ref_frequency,
                   size=0.0005, symmetric=True,
                   parm_options=parm_options));
@@ -104,27 +143,27 @@ def radio_galaxy_point_sources (ns,tablename=''):
   source_model = []
 ######## point sources at radio galaxy positions ########
   source_model.append( PointSource(ns,name="S1",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.03119776, dec=0.57632226,
+                  Iorder=0, direction=direction.S1,
                   spi=-1.5,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S2",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.031181034, dec=0.57629802,
+                  Iorder=0, direction=direction.S2,
                   spi=-1.0,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S3",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030906872, dec=0.5761041,
+                  Iorder=0, direction=direction.S3,
                   spi=0.0,freq0=ref_frequency,
                   parm_options=parm_options));
   
   source_model.append( PointSource(ns,name="S4",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030761428, dec=0.57588593,
+                  Iorder=0, direction=direction.S4,
                   spi=1.0,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S5",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  Iorder=0, direction=direction.S5,
                   spi=1.5,freq0=ref_frequency,
                   parm_options=parm_options));
   return source_model
@@ -142,34 +181,34 @@ def radio_galaxy (ns,tablename=''):
 
   # NE 'hot spot' 4 x 3 arcsec in PA 135 deg 
   source_model.append( GaussianSource(ns,name="S1",I=3.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.03119776, dec=0.57632226,
+                  Iorder=0, direction=direction.S1,
                   spi=-0.55,freq0=ref_frequency,
                   size=[1.9e-5,1.44e-5],phi=0.785,
                   parm_options=parm_options));
 
   # NE extended lobe 30 x 10 arcsec in PA 45 deg
   source_model.append( GaussianSource(ns,name="S2",I=20.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.031181034, dec=0.57629802,
+                  Iorder=0, direction=direction.S2,
                   spi=-0.8,freq0=ref_frequency,
                   size=[0.000144,4.8e-5],phi=2.3561945,
                   parm_options=parm_options));
 
   # central 'nuclear' point source with flat spectrum
   source_model.append( PointSource(ns,name="S3",I=1.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030906872, dec=0.5761041,
+                  Iorder=0, direction=direction.S3,
                   spi=0.0,freq0=ref_frequency,
                   parm_options=parm_options));
   
   # SW extended lobe 21 x 15 srcsec in PA 33 deg
   source_model.append( GaussianSource(ns,name="S4",I=15.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030761428, dec=0.57588593,
+                  Iorder=0, direction=direction.S4,
                   spi=-0.75,freq0=ref_frequency,
                   size=[0.0001,7.2e-5],phi=2.15,
                   parm_options=parm_options));
 
   # SW 'hot spot' 2 x 2 arc sec symmetric
   source_model.append( GaussianSource(ns,name="S5",I=5.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  Iorder=0, direction=direction.S5,
                   spi=-0.4,freq0=ref_frequency,
                   size=9.6e-6, symmetric=True,
                   parm_options=parm_options));
@@ -185,27 +224,27 @@ def additional_point_sources (ns,tablename=''):
 # define five simple point sources
   source_model = []
   source_model.append( PointSource(ns,name="S6",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.0302269161, dec=0.57654043,
+                  Iorder=0, direction=direction.S6,
                   spi=-1.5,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S7",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030120036, dec=0.576310965,
+                  Iorder=0, direction=direction.S7,
                   spi=-1.0,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S8",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.0304215356, dec=0.575777607,
+                  Iorder=0, direction=direction.S8,
                   spi=1.0,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S9",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030272885, dec=0.575762621,
+                  Iorder=0, direction=direction.S9,
                   spi=1.5,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S10",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.0306782675, dec=0.57537688,
+                  Iorder=0, direction=direction.S10,
                   spi=2.0,freq0=ref_frequency,
                   parm_options=parm_options));
 
@@ -222,7 +261,7 @@ def faint_source (ns,tablename=''):
 # note - with 16 channels and sample step of 60 sec a source of 0.01
 # turns out to be ~ 5 sigma with 600 MHz BW if we use test noise units of 1
   source_model.append( PointSource(ns,name="S11",I=0.01, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.03037222, dec=0.57590435,
+                  Iorder=0, direction=direction.S11,
                   spi=0.0,freq0=ref_frequency,
                   parm_options=parm_options));
   return source_model
@@ -242,21 +281,23 @@ def EJones (ns,array,sources,name="E"):
   arcmin_radian = ns.arcmin_radian << 3437.75
   ns.ihpbw = arcmin_radian / ns.hpbw
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
-
-  Ejones = ns[name];
-  # create per-source,per-station E Jones matrices and attach them
-  # to sources
+  
+  Ej0 = ns[name];
+  # create per-direction, per-station E Jones matrices
   for src in sources:
-    for station in array.stations():
-      # voltage gain parameter read from mep_derived table (see clar_beam_fit)
-      vgain = ns.V_GAIN(station,src.name) << Meq.Parm(table_name=mep_derived);
-      # derive diagonal term
-      ediag = ns.ediag(station,src.name) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
-      # create E matrix
-      Ejones(src.name,station) << Meq.Matrix22(ediag,0,0,ediag);
+    dirname = src.direction.name;
+    Ej = Ej0(dirname);
+    vgain = ns.V_GAIN(dirname);
+    if not Ej(array.stations()[0]).initialized():
+      for station in array.stations():
+        # voltage gain parameter read from mep_derived table (see clar_beam_fit)
+        vg = vgain(station) << Meq.Parm(table_name=mep_derived);
+        # derive diagonal term
+        ediag = ns.ediag(dirname,station) << Meq.Sqrt(Meq.Exp(vg*ns.ihpbw_sq));
+        # create E matrix
+        Ej(station) << Meq.Matrix22(ediag,0,0,ediag);
+  return Ej0;
       
-  return Ejones;
-
 def EJones_unbroadened (ns,observation,sources,name="E0"):
   """creates E nodes for simulating the CLAR beam without
   elevation-dependent broadening.
@@ -274,29 +315,31 @@ def EJones_unbroadened (ns,observation,sources,name="E0"):
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
   ln16 = ns.ln16 << -2.7725887;
  
-  Ejones = ns[name];
   # create per-source,per-station E Jones matrices and attach them
   # to sources
+  Ej0 = ns[name];
   for src in sources:
-    lmn = src.lmn(observation.radec0());
-    l = ns.l(src.name) << Meq.Selector(lmn,index=0);
-    m = ns.m(src.name) << Meq.Selector(lmn,index=1);
+    dirname = src.direction.name;
+    Ej = Ej0(src.direction.name);
+    if not Ej.initialized():
+      lmn = src.lmn(observation.radec0());
+      l = ns.l(dirname) << Meq.Selector(lmn,index=0);
+      m = ns.m(dirname) << Meq.Selector(lmn,index=1);
 
-    # compute CLAR voltage gain as seen for this source at this station
-    # first square L and M
-    l_sq = ns.l_sq(src.name) << Meq.Sqr(l);
-    m_sq = ns.m_sq(src.name) << Meq.Sqr(m);
+      # compute CLAR voltage gain as seen for this source at this station
+      # first square L and M
+      l_sq = ns.l_sq(dirname) << Meq.Sqr(l);
+      m_sq = ns.m_sq(dirname) << Meq.Sqr(m);
 
-    # add L and M gains together, then multiply by log 16
-    vgain = ns.v_gain(name,src.name) << ( l_sq + m_sq )*ln16;
+      # add L and M gains together, then multiply by log 16
+      vgain = ns.v_gain(dirname) << ( l_sq + m_sq )*ln16;
 
-    # this now needs to be multiplied by width and exponent taken to get the
-    # true beam power
-    ediag = ns.ediag(name,src.name) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
-    
-    Ejones(src.name) << Meq.Matrix22(ediag,0,0,ediag);
-      
-  return Ejones;
+      # this now needs to be multiplied by width and exponent taken to get the
+      # true beam power
+      ediag = ns.ediag(dirname) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
+
+      Ej << Meq.Matrix22(ediag,0,0,ediag);
+  return Ej0;
 
 def main(args):
     print 'sources as two function calls'

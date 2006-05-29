@@ -8,13 +8,6 @@ from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.SkyComponent import *
 import clar_model
 
-TDLCompileOption('source_model',"Source model",[
-    clar_model.point_and_extended_sources,
-    clar_model.point_sources_only,
-    clar_model.radio_galaxy,
-    clar_model.faint_source
-  ],default=0);
-
 # MS name
 TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
 
@@ -35,12 +28,12 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 # bookmark
 Settings.forest_state = record(bookmarks=[
   record(name='Derived quantities',page=[
-    record(viewer="Result Plotter",udi="/node/exp_v_gain:1:S2",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:1:S2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/ce_vgain:1:S2",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/exp_v_gain:%d:S2"%num_stations,pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:%d:S2"%num_stations,pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/ce_vgain:%d:S2"%num_stations,pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/exp_v_gain:S2:1",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:S2:1",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/ce_vgain:S2:1",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/exp_v_gain:S2:%d"%num_stations,pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:S2:%d"%num_stations,pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/ce_vgain:S2:%d"%num_stations,pos=(1,2)),
     record(viewer="Result Plotter",udi="/node/uvw:%d"%(num_stations/2),pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/uvw1:%d"%(num_stations/2),pos=(2,1)),
     record(viewer="Result Plotter",udi="/node/ce_uvw:%d"%(num_stations/2),pos=(2,2)),
@@ -81,7 +74,8 @@ def _define_forest(ns):
   array = IfrArray(ns,stations);
   obs = Observation(ns);
   
-  sources = source_model(ns);
+  # get list of all known directions
+  dirs = clar_model.init_directions(ns);
                      
   # create nodes for simulating the CLAR beam
   ns.freq << Meq.Freq;
@@ -116,26 +110,26 @@ def _define_forest(ns):
     # CLAR beam broadening
     sin_el_sq = ns.sin_el_sq(st) << Meq.Sqr(Meq.Sin(ns.el0(st) << Meq.Selector(azel0,index=1)));
     
-    for src in sources:
+    for name,dd in dirs.iteritems():
       # create AzEl node for source as seen from this station
-      azel = ns.azel(st,src.name) << Meq.AzEl(radec=src.radec(),xyz=xyz(st));
+      azel = ns.azel(name,st) << Meq.AzEl(radec=dd.radec(),xyz=xyz(st));
 
       # do computation of LMN of source wrt field centre in AzEl frame
-      lmn_azel = ns.lmn_azel(st,src.name) << Meq.LMN(radec_0=azel0,radec=azel);
-      l_azel = ns.l_azel(st,src.name) << Meq.Selector(lmn_azel,index=0);
-      m_azel = ns.m_azel(st,src.name) << Meq.Selector(lmn_azel,index=1);
+      lmn_azel = ns.lmn_azel(name,st) << Meq.LMN(radec_0=azel0,radec=azel);
+      l_azel = ns.l_azel(name,st) << Meq.Selector(lmn_azel,index=0);
+      m_azel = ns.m_azel(name,st) << Meq.Selector(lmn_azel,index=1);
 
       # compute CLAR voltage gain as seen for this source at this station
       # first square L and M
-      l_sq = ns.l_sq(st,src.name) << Meq.Sqr(l_azel);
-      m_sq = ns.m_sq(st,src.name) << Meq.Sqr(m_azel);
+      l_sq = ns.l_sq(name,st) << Meq.Sqr(l_azel);
+      m_sq = ns.m_sq(name,st) << Meq.Sqr(m_azel);
 
       # add L and M gains together, then multiply by log 16
-      vgain = ns.v_gain(st,src.name) << ( l_sq + m_sq*sin_el_sq )*ln16;
+      vgain = ns.v_gain(name,st) << ( l_sq + m_sq*sin_el_sq )*ln16;
 
       # this now needs to be multiplied by width and exponent taken to get the
       # true beam power
-      ns.exp_v_gain(st,src.name) << Meq.Exp(vgain*ns.ihpbw_sq);
+      ns.exp_v_gain(name,st) << Meq.Exp(vgain*ns.ihpbw_sq);
 
   # now create solvers for everything
   solver_list = []
@@ -143,7 +137,7 @@ def _define_forest(ns):
   # Measurements
   for sta in array.stations():
     # create solver + condeq for station UVWs
-    uvw = array.uvw(obs);     # computed UVWs 
+    uvw = array.uvw(radec0);     # computed UVWs 
     fitted_uvws = [ ns.u(sta).qadd(radec0) << tpolc(5),
                     ns.v(sta).qadd(radec0) << tpolc(5),
                     ns.w(sta).qadd(radec0) << tpolc(5)  ];
@@ -155,17 +149,16 @@ def _define_forest(ns):
     solver_list.append(ns.solver_uvw(sta) << Meq.Solver(
         ns.ce_uvw(sta),mt_polling=False,mt_solve=False,**defs));
     # create solver for station beams patterns
-    for src in sources:
+    for name,dd in dirs.iteritems():
       # condeq for source-station E-term
-      vgain = ns.V_GAIN(sta,src.name) << tpolc(6);
-      ns.ce_vgain(sta,src.name) << Meq.Condeq(
-          ns.exp_v_gain(sta,src.name),
-          ns.EXP_V_GAIN(sta,src.name) << Meq.Exp(vgain*ns.ihpbw_sq)
+      vgain = ns.V_GAIN(name,sta) << tpolc(6);
+      ce = ns.ce_vgain(name,sta) << Meq.Condeq(
+          ns.exp_v_gain(name,sta),
+          ns.EXP_V_GAIN(name,sta) << Meq.Exp(vgain*ns.ihpbw_sq)
       );
-    condeqs = [ ns.ce_vgain(sta,src.name) for src in sources ];
-    defs = create_solver_defaults(solvable=[ns.V_GAIN(sta,src.name).name for src in sources]);
+    defs = create_solver_defaults(solvable=[ns.V_GAIN(name,sta).name for name in dirs.keys()]);
     solver_list.append(ns.solver_vgain(sta) << Meq.Solver(mt_polling=False,mt_solve=False,
-        *[ns.ce_vgain(sta,src.name) for src in sources],**defs));
+        *[ns.ce_vgain(name,sta) for name in dirs.keys()],**defs));
         
   # create ReqMux for all solvers
   ns.solvers << Meq.ReqMux(mt_polling=True,*solver_list);
@@ -199,7 +192,7 @@ def create_inputrec(msname, tile_size=1500,short=False):
 #      else:
 #        rec.record_input = boioname;
       rec = record(ms=rec);
-    rec.python_init='AGW_read_msvis_header.py';
+    rec.python_init='Timba.Contrib.OMS.ReadVisHeader';
     return rec;
 
 

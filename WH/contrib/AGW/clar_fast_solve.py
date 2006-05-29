@@ -100,6 +100,7 @@ def _define_forest(ns):
   # create CLAR source model
   # create nominal CLAR source model by calling the specified
   # function
+  clar_model.init_directions(ns);
   global source_list;
   source_list = source_model(ns);
   
@@ -110,7 +111,7 @@ def _define_forest(ns):
   ];
                      
   # create all-sky patch for CLAR source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*corrupt_list);
   
   # For now, there are no G jones in the fitted model
@@ -224,7 +225,7 @@ def create_inputrec ():
     rec.tile_size        = tile_size
     rec.selection = ms_selection or record();
     rec = record(ms=rec);
-  rec.python_init='AGW_read_msvis_header.py';
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

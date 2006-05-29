@@ -1,4 +1,3 @@
-from numarray import *
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Contrib.OMS.SkyComponent import *
@@ -12,10 +11,9 @@ class CorruptComponent(SkyComponent):
     object. 
     'label' is used to qualify visibilities.
     """;
+    SkyComponent.__init__(self,ns,skycomp.name+':'+label,skycomp.direction);
     self.label    = label;
-    self.name     = skycomp.name+':'+label;
-    self.ns       = ns;
-    self.skycomp = skycomp;
+    self.skycomp  = skycomp;
     self._jones = [];
     if station_jones is not None:
       self.add_station_jones(station_jones);
@@ -43,14 +41,6 @@ class CorruptComponent(SkyComponent):
   def jones_list (self):
     return self._jones;
 
-  def radec (self):
-    """Returns ra-dec two-pack for this component""";
-    return self.skycomp.radec();
-    
-  def lmn (self,radec0):
-    """Returns ra-dec two-pack for this component""";
-    return self.skycomp.lmn(radec0);
-    
   def apply_jones (self,vis,vis0,ifr_list):
     """Creates nodes to apply the Jones chain associated with this 
     component.
