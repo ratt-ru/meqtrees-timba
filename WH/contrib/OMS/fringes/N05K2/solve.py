@@ -24,7 +24,8 @@ TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DAT
 TDLRuntimeOption('tile_size',"Tile size (timeslots)",[30,60,120,180,360]);
 
 TDLRuntimeOption('field_index',"Field ID",[0,1,2,3,4]);
-TDLRuntimeOption('ddid_index',"Data descrition (band) ID",[0,1,2,3]);
+TDLRuntimeOption('ddid_index',"Data description ID (band)",[0,1,2,3]);
+TDLRuntimeOption('channel_select',"Channel selection",[None,[4,59]]);
 
 # how much to perturb starting values of solvables
 TDLRuntimeMenu('Parameter options',
@@ -55,7 +56,9 @@ TDLCompileOption('source_model',"Source model",[
 TDLCompileMenu("Fitting options",
   TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4]),
   TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4]),
-  TDLOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5,.8,.99]),
+  TDLOption('gain_deg_time',"Polc degree (time) for gain fitting",[0,1,2,3,4]),
+  TDLOption('gain_deg_freq',"Polc degree (freq) for gain fitting",[0,1,2,3,4]),
+  TDLOption('flux_constraint',"Lower boundary for flux constraint",[None,0.0,.1,.5,.8,.99]),
   TDLOption('constraint_weight',"Weight of flux constraint",["intrinsic",100,1000,10000])
 );
 
@@ -82,27 +85,49 @@ ms_selection = None
 
 ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
 
-time0 = 4637030102.12;
-selection_string = "TIME < %20f"%(time0+15*60);
+selection_string = "TIME < 4637030700";
 
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["visibility:all:1:2","spigot:1:2","residual:1:2"],
-      ["visibility:all:1:7","spigot:1:7","residual:1:7"],
-      ["visibility:all:2:7","spigot:2:7","residual:2:7"]
+      ["visibility:all:G:1:2","spigot:1:2","residual:1:2"],
+      ["visibility:all:G:1:7","spigot:1:7","residual:1:7"],
+      ["visibility:all:G:2:7","spigot:2:7","residual:2:7"]
+  )), 
+  record(name='Corrected visibilities',page=Bookmarks.PlotPage(
+      ["corrected:1:2","corrected:1:7"],
+      ["corrected:2:7"]
   )), 
   record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
-      ["I:3C345","phase:1"],
-      ["phase:2","phase:7"],
+      ["I:3C345","phase:L:1"],
+      ["phase:L:2","phase:L:7"],
       ["solver"]
+  )),
+  record(name='Baseline phase solutions',page=Bookmarks.PlotPage(
+      ['phase:R:1:2','phase:L:1:2'],
+      ['phase:R:1:7','phase:L:1:7'],
+      ['phase:R:2:7','phase:L:2:7']
+  )),
+  record(name='Gain solutions',page=Bookmarks.PlotPage(
+      ['gain:R:1','gain:R:2'],
+      ['gain:R:7','gain:L:1'],
+      ['gain:L:2','gain:L:7']
   )),
   record(name='Flux solutions only',page=Bookmarks.PlotPage(
       ["I:S1"],
       ["I:S5"]
   )) 
 ]);
+
+def gain_parm (tdeg,fdeg):
+  """helper function to create a t/f parm for gain.
+  """;
+  polc = meq.polc(zeros((tdeg+1,fdeg+1))*0.0);
+  polc.coeff[0,0] = 1;
+  return Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',
+                  table_name=get_mep_table());
+
 
 def phase_parm (tdeg,fdeg):
   """helper function to create a t/f parm for phase, including constraints.
@@ -133,20 +158,22 @@ def phase_parm (tdeg,fdeg):
 def _define_forest(ns):
   # create array model
   array = IfrArray(ns,stations_list);
-  observation = Observation(ns);
+  observation = Observation(ns,circular=True);
   
   # create source model
   global source_list;
-  source_list = source_model(ns,get_source_table());
+  source_list = source_model(ns,observation,get_source_table());
   # create all-sky patch for source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*source_list);
   
   # Add solvable G jones terms
   for station in array.stations():
-    ns.phase(station) << phase_parm(fringe_deg_time,fringe_deg_freq);
-    diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
-    ns.G(station) << Meq.Matrix22(diag,0,0,diag);
+    gr = ns.gain('R',station) << gain_parm(gain_deg_time,gain_deg_freq);
+    gl = ns.gain('L',station) << gain_parm(gain_deg_time,gain_deg_freq);
+    pr = ns.phase('R',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+    pl = ns.phase('L',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+    ns.G(station) << Meq.Matrix22(Meq.Polar(gr,pr),0,0,Meq.Polar(gl,pl));
     
   # attach the G Jones series to the all-sky patch
   corrupt_sky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
@@ -196,14 +223,25 @@ def _define_forest(ns):
         Meq.Sqr(base) - Meq.Abs(base)*base,0
       );
       condeqs.append(bound);
+      
+  # create baseline phases (for visualization purposes only)
+  visnodes = [];
+  for sta1,sta2 in array.ifrs():
+    for pol in ('R','L'):
+      p = ns.phase(pol,sta1,sta2) << ns.phase(pol,sta1) - ns.phase(pol,sta2);
+      visnodes.append(p);
+  for sta in array.stations():
+    for pol in ('R','L'):
+      visnodes.append(ns.gain(pol,sta));
+  ns.vis = Meq.ReqMux(*visnodes);
     
   # create solver node
   ns.solver << Meq.Solver(children=condeqs,child_poll_order=cpo);
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.corrected(sta1,sta2),
-                  result_index=1,cache_num_active_parents=1);
+    reqseq = Meq.ReqSeq(ns.solver,ns.vis,ns.corrected(sta1,sta2),
+                  result_index=2,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
                                    flag_bit=4,
@@ -261,8 +299,11 @@ def create_inputrec ():
   rec.selection.ddid_index       = ddid_index;
   rec.selection.field_index      = field_index;
   rec.selection.selection_string = selection_string;
+  if channel_select is not None:
+    rec.selection.channel_start_index = channel_select[0];
+    rec.selection.channel_end_index = channel_select[1];
   rec = record(ms=rec);
-  rec.python_init='read_msvis_header.py';
+  rec.python_init='Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 
@@ -310,17 +351,22 @@ def _perturb_parameters (mqs,solvables,pert="random",
       use_previous=use_previous,reset_funklet=not use_mep);
     if constrain is not None:
       parmstate.constrain = constrain;
+    print name,parmstate;
     set_node_state(mqs,name,parmstate);
   return solvables;
     
-def _reset_parameters (mqs,solvables,value=None,use_table=False,reset=False):
+def _reset_parameters (mqs,solvables,value=None,use_table=False,constrain=None,reset=False):
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
     if value is not None:
-      polc.coeff[()] = value;
+      polc.coeff[()] = 0;
+      polc.coeff[0,0] = value;
     reset_funklet = reset or not (use_table or use_mep);
-    set_node_state(mqs,name,record(init_funklet=polc,
-      use_previous=use_previous,reset_funklet=reset_funklet));
+    parmstate = record(init_funklet=polc, \
+                use_previous=use_previous,reset_funklet=reset_funklet);
+    if constrain is not None:
+      parmstate.constrain = constrain;
+    set_node_state(mqs,name,parmstate);
   return solvables;
 
 arcsec_to_rad = math.pi/(180*3600);
@@ -347,25 +393,39 @@ def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
       solvables += _reset_parameters(mqs,['phi:'+src.name],0);
   _run_solve_job(mqs,solvables);
   
-def _tdl_job_2_solve_for_phases_and_fluxes (mqs,parent,**kw):
+def _tdl_job_2_solve_for_phases_and_flux (mqs,parent,**kw):
   if constraint_weight == "intrinsic":
     constrain = [flux_constraint,2.];
   else:
     constrain = None;
-  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-               pert=flux_perturbation,absolute=False,
-               constrain=constrain);
-  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in stations_list],0);
+  solvables = [];
+  solvables = _reset_parameters(mqs,['I0:'+src.name for src in source_list],1,constrain=constrain);
+#  solvables += _reset_parameters(mqs,['Q:'+src.name for src in source_list],0);
+#  solvables += _reset_parameters(mqs,['U:'+src.name for src in source_list],0);
+#  solvables += _reset_parameters(mqs,['V:'+src.name for src in source_list],0);
+  _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list],1);
+  _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list],1);
+  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
+  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
   _run_solve_job(mqs,solvables);
 
-def _tdl_job_2a_solve_for_phases_with_fixed_fluxes (mqs,parent,**kw):
-  _reset_parameters(mqs,['I0:'+src.name for src in source_list],reset=True);
-  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in stations_list],0);
-  _run_solve_job(mqs,solvables);
-
-def _tdl_job_2b_solve_for_phases_with_fixed_fluxes_14_27 (mqs,parent,**kw):
-  _reset_parameters(mqs,['I0:'+src.name for src in source_list],reset=True);
-  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(15,num_stations+1)],0);
+def _tdl_job_3_solve_for_phases_and_gains (mqs,parent,**kw):
+  if constraint_weight == "intrinsic":
+    constrain = [flux_constraint,2.];
+  else:
+    constrain = None;
+  solvables = [];
+  _reset_parameters(mqs,['I0:'+src.name for src in source_list]);
+#  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
+#               pert=flux_perturbation,absolute=False,
+#               constrain=constrain);
+#  solvables += _reset_parameters(mqs,['Q:'+src.name for src in source_list],0);
+#  solvables += _reset_parameters(mqs,['U:'+src.name for src in source_list],0);
+#  solvables += _reset_parameters(mqs,['V:'+src.name for src in source_list],0);
+  solvables += _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list],1);
+  solvables += _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list],1);
+  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
+  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
@@ -383,7 +443,7 @@ def _tdl_job_9b_make_residual_image (mqs,parent,**kw):
   pass
 
 
-Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
+Settings.forest_state.cache_policy = 100  # -1 for minimal, 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = True
 
 if __name__ == '__main__':
