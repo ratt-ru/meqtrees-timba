@@ -10,10 +10,6 @@ DMI::BObj * __construct_VisCubeTableFormat (int n) { return n>0 ? new VisCube::T
 DMI::BObj * __construct_VisCubeColumnarTableTile (int n) { return n>0 ? new VisCube::ColumnarTableTile [n] : new VisCube::ColumnarTableTile; }
 #include "VTile.h"
 DMI::BObj * __construct_VisCubeVTile (int n) { return n>0 ? new VisCube::VTile [n] : new VisCube::VTile; }
-#include "VCube.h"
-DMI::BObj * __construct_VisCubeVCube (int n) { return n>0 ? new VisCube::VCube [n] : new VisCube::VCube; }
-#include "VCubeSet.h"
-DMI::BObj * __construct_VisCubeVCubeSet (int n) { return n>0 ? new VisCube::VCubeSet [n] : new VisCube::VCubeSet; }
     using namespace DMI;
   
     int aidRegistry_VisCube ()
@@ -117,12 +113,6 @@ DMI::BObj * __construct_VisCubeVCubeSet (int n) { return n>0 ? new VisCube::VCub
         AtomicID::registerId(-1138,"VisCubeVTile")+
         TypeInfoReg::addToRegistry(-1138,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1138,__construct_VisCubeVTile)+
-        AtomicID::registerId(-1172,"VisCubeVCube")+
-        TypeInfoReg::addToRegistry(-1172,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1172,__construct_VisCubeVCube)+
-        AtomicID::registerId(-1141,"VisCubeVCubeSet")+
-        TypeInfoReg::addToRegistry(-1141,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1141,__construct_VisCubeVCubeSet)+
     0;
     return res;
   }

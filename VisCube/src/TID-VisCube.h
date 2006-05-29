@@ -46,44 +46,6 @@ namespace VisCube { class TableFormat; };
               };
             };
 #endif
-#ifndef _defined_id_TpVisCubeVCube
-#define _defined_id_TpVisCubeVCube 1
-const DMI::TypeId TpVisCubeVCube(-1172);          // from /home/oms/LOFAR/Timba/VisCube/src/VCube.h:32
-const int TpVisCubeVCube_int = -1172;
-namespace VisCube { class VCube; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<VisCube::VCube> : public TypeTraits<VisCube::VCube>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpVisCubeVCube_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const VisCube::VCube & ContainerReturnType;
-                typedef const VisCube::VCube & ContainerParamType;
-              };
-            };
-#endif
-#ifndef _defined_id_TpVisCubeVCubeSet
-#define _defined_id_TpVisCubeVCubeSet 1
-const DMI::TypeId TpVisCubeVCubeSet(-1141);       // from /home/oms/LOFAR/Timba/VisCube/src/VCubeSet.h:9
-const int TpVisCubeVCubeSet_int = -1141;
-namespace VisCube { class VCubeSet; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<VisCube::VCubeSet> : public TypeTraits<VisCube::VCubeSet>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpVisCubeVCubeSet_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const VisCube::VCubeSet & ContainerReturnType;
-                typedef const VisCube::VCubeSet & ContainerParamType;
-              };
-            };
-#endif
 #ifndef _defined_id_TpVisCubeVTile
 #define _defined_id_TpVisCubeVTile 1
 const DMI::TypeId TpVisCubeVTile(-1138);          // from /home/oms/LOFAR/Timba/VisCube/src/VTile.h:32

@@ -7,9 +7,10 @@ DOCHDRS = \
   VisCommon.h \
   TableFormat.h \
   ColumnarTableTile.h \
-  VTile.h \
-  VCube.h \
-  VCubeSet.h
+  VTile.h 
+  
+#  VCube.h \
+#  VCubeSet.h
 
 
 libviscube_la_SOURCES = \
@@ -17,9 +18,10 @@ libviscube_la_SOURCES = \
   VisCommon.cc \
   TableFormat.cc \
   ColumnarTableTile.cc \
-  VTile.cc \
-  VCube.cc \
-  VCubeSet.cc
+  VTile.cc 
+  
+#  VCube.cc \
+#  VCubeSet.cc
   
 include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids

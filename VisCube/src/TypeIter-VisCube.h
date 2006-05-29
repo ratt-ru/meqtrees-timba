@@ -20,9 +20,7 @@
 #define DoForAllDynamicTypes_VisCube(Do,arg,separator) \
         Do(VisCube::TableFormat,arg) separator \
         Do(VisCube::ColumnarTableTile,arg) separator \
-        Do(VisCube::VTile,arg) separator \
-        Do(VisCube::VCube,arg) separator \
-        Do(VisCube::VCubeSet,arg)
+        Do(VisCube::VTile,arg)
 
 #define DoForAllNumericTypes_VisCube(Do,arg,separator) \
         

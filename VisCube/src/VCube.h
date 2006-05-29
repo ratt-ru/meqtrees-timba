@@ -655,8 +655,8 @@ class VCube : public DMI::BObj
             { setTileElement(&VTile::wuvw,it,value); }
 
     //##ModelId=3DD101000160
-    const LoVec_float & weightCol (bool on_the_fly = false) const
-            { return getTiledArray(on_the_fly,weightvec,&VTile::weight); }
+    const LoCube_float & weightCol (bool on_the_fly = false) const
+            { return getTiledArray(on_the_fly,weight,&VTile::weight); }
     //##ModelId=3DF9FDD101DD
     LoVec_float & wweightCol ()   // will auto-consolidate
             { return getTiledArray(weightvec,&VTile::wweight); }

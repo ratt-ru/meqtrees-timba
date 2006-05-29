@@ -174,6 +174,49 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
       else
         Throw("bad input column shape");
     }
+    else if( coltype == Tpfloat )
+    {
+      if( colshape.size() == 3 )
+      {
+        LoCube_float cube(static_cast<float*>(coldata),colshape,blitz::neverDeleteData);
+        // transpose into time-freq-corr order
+        cube.transposeSelf(blitz::thirdDim,blitz::secondDim,blitz::firstDim);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[1],nrows);
+        cdebug(5)<<"column data t/s 0: "<<cube(0,LoRange::all(),LoRange::all())<<endl;
+        cdebug(5)<<"column data t/s 1: "<<cube(0,LoRange::all(),LoRange::all())<<endl;
+        for( uint i=0; i<corr_index_.size(); i++ )
+        {
+          VellSet &vs = result.setNewVellSet(i);
+          int icorr = corr_index_[i];
+          if( icorr >=0 )
+          {
+            FailWhen(icorr >= nplanes,ssprintf("corr index %d out of range for this tile",icorr));
+            cdebug(5)<<"column data corr "<<icorr<<": "<<cube(rowrange,LoRange::all(),icorr)<<endl;
+            vs.setReal(shape).getArray<double,2>() = blitz::cast<double>(cube(rowrange,LoRange::all(),icorr));
+          }
+          // else leave vellset empty to indicate missing data
+        }
+      }
+      else if( colshape.size() == 2 )
+      {
+        LoMat_float mat(static_cast<float*>(coldata),colshape,blitz::neverDeleteData);
+        // transpose into time-freq order
+        mat.transposeSelf(blitz::secondDim,blitz::firstDim);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
+        result.setNewVellSet(0).setReal(shape).getArray<double,2>() = 
+              blitz::cast<double>(mat(rowrange,LoRange::all()));
+      }
+      else if( colshape.size() == 1 )
+      {
+        LoVec_float vec(static_cast<float*>(coldata),colshape,blitz::neverDeleteData);
+        cdebug(5)<<"column data "<<vec<<endl;
+        LoVec_float vec1 = vec(rowrange);
+        LoShape shape = Axis::timeVector(nrows);
+        result.setNewVellSet(0).setReal(shape).getArray<double,1>() = blitz::cast<double>(vec1);
+      }
+      else
+        Throw("bad input column shape");
+    }
     else if( coltype == Tpfcomplex )
     {
       if( colshape.size() == 3 )

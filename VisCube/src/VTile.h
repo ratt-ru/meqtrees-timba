@@ -59,7 +59,7 @@ class VCube;
   Do(double,0,interval,INTERVAL); \
   Do(int,0,rowflag,ROWFLAG); \
   Do(int,0,seqnr,SEQNR); \
-  Do(float,0,weight,WEIGHT); \
+  Do(float,2,weight,WEIGHT); \
   Do(double,1,uvw,UVW); \
   Do(fcomplex,2,data,DATA); \
   Do(fcomplex,2,predict,PREDICT); \

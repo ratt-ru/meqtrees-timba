@@ -341,6 +341,23 @@ int MSInputChannel::refillStream ()
         ROScalarColumn<Int> ant1col(table,"ANTENNA1");
         ROScalarColumn<Int> ant2col(table,"ANTENNA2");
         ROScalarColumn<Bool> rowflagCol(table,"FLAG_ROW");
+        LoCube_float weightcube;
+        // WEIGHT is optional
+        Cube<Float> weightcube1;
+        bool has_weights = true;
+        try
+        { 
+          weightcube1 = ROArrayColumn<Float>(table,"WEIGHT_SPECTRUM").getColumn();
+          weightcube.reference(B2A::refAipsToBlitz<float,3>(weightcube1));
+          weightcube.reference(weightcube(ALL,CHANS,ALL));
+          has_weights = true;
+          cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube;
+        }
+        catch( ... )
+        { 
+          has_weights = false; 
+        }
+        cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube(ALL,ALL,0);
         // get array columns as Lorrays
         Matrix<Double> uvwmat1 = ROArrayColumn<Double>(table, "UVW").getColumn();
         LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
@@ -352,10 +369,13 @@ int MSInputChannel::refillStream ()
         datacube.reference(datacube(ALL,CHANS,ALL));
         flagcube.reference(flagcube(ALL,CHANS,ALL));
         // flip along frequency axis, if asked to
+        cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube(ALL,ALL,0);
         if( flip_freq_ )
         {
           datacube.reverseSelf(blitz::secondDim);
           flagcube.reverseSelf(blitz::secondDim);
+          if( has_weights )
+            weightcube.reverseSelf(blitz::secondDim);
         }
         // get vector of row numbers 
         Vector<uInt> rownums = table.rowNumbers(ms_);
@@ -381,6 +401,12 @@ int MSInputChannel::refillStream ()
           ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
+          if( has_weights )
+          {
+            cdebug(6)<<"weights for timeslot "<<ntimes<<" ifr "<<ant1<<"-"<<ant2<<":"<<weightcube(ALL,ALL,i)<<endl;
+            ptile->wweight()(ALL,ALL,ntimes) = weightcube(ALL,ALL,i);
+            cdebug(6)<<"weights for timeslot after assignment "<<ptile->wweight()(ALL,ALL,ntimes)<<endl;
+          }
           if( clear_flags_ )
             ptile->wflags()(ALL,ALL,ntimes) = 0;
           else

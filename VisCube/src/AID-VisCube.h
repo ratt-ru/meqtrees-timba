@@ -428,16 +428,6 @@ const int AidVisCubeColumnarTableTile_int = -1157;
 const DMI::AtomicID AidVisCubeTableFormat(-1121); // from /home/oms/LOFAR/Timba/VisCube/src/TableFormat.h:9
 const int AidVisCubeTableFormat_int = -1121;
 #endif
-#ifndef _defined_id_AidVisCubeVCube
-#define _defined_id_AidVisCubeVCube 1
-const DMI::AtomicID AidVisCubeVCube(-1172);       // from /home/oms/LOFAR/Timba/VisCube/src/VCube.h:32
-const int AidVisCubeVCube_int = -1172;
-#endif
-#ifndef _defined_id_AidVisCubeVCubeSet
-#define _defined_id_AidVisCubeVCubeSet 1
-const DMI::AtomicID AidVisCubeVCubeSet(-1141);    // from /home/oms/LOFAR/Timba/VisCube/src/VCubeSet.h:9
-const int AidVisCubeVCubeSet_int = -1141;
-#endif
 #ifndef _defined_id_AidVisCubeVTile
 #define _defined_id_AidVisCubeVTile 1
 const DMI::AtomicID AidVisCubeVTile(-1138);       // from /home/oms/LOFAR/Timba/VisCube/src/VTile.h:32
