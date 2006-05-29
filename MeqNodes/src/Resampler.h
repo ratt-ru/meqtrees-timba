@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Resampler 
-#pragma aid Integrate Flag Density
+#pragma aid Integrate Flag Density Mode
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -47,21 +47,20 @@
 //field: flag_density 0.5
 //  Critical ratio of flagged/total pixels for integration. If this ratio
 //  is exceeded, the integrated pixel is flagged.
+//field: mode
+//  mode 1 (interpolate): 
+//  mode 2 (integrate): 
 //defrec end
 
 namespace Meq {    
 
-//##ModelId=400E530400A3
 class Resampler : public Node
 {
 public:
-    //##ModelId=400E5355029C
   Resampler();
 
-    //##ModelId=400E5355029D
   virtual ~Resampler();
 
-  //##ModelId=400E5355029F
   virtual TypeId objectType() const
   { return TpMeqResampler; }
   
@@ -76,9 +75,8 @@ protected:
   
 private:
   int flag_mask;
-  
+	int mode;
   int flag_bit;
-  
   float flag_density;
 
 };
@@ -87,6 +85,8 @@ private:
 // put the code here
 class ResampleMachine 
 {
+
+protected:
 /////////////////////////////////////
 //auxiliary classes needed by the resample machine
 // edges
@@ -162,11 +162,34 @@ public:
      
 };
 /////////////////////////////////////
+protected:
+	 int flag_mask_;
+	 int flag_bit_;
+	 float flag_density_;
+	 bool identical_;
+
+	 //in-out cells as arrays
+  std::vector<blitz::Array<double,1> > incells_; 
+  std::vector<blitz::Array<int,1> > xindex_; 
+  std::vector<blitz::Array<double,1> > outcells_; 
+
+
+    inline int bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end);
+    int bin_search(std::vector<double> xarr,double x,int i_start,int i_end);
+		//cubic hermite interpolation
+    template<class T> void pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex);
+    void ResampleMachine::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex);
+
+
 
 public:
-   ResampleMachine(const Cells &in, const Cells &out);
-
-   ~ResampleMachine();
+   ResampleMachine(int parms) {
+	  flag_mask_=-1;
+    flag_bit_=0;
+    flag_density_=0.5;
+    identical_=false;		
+	 }
+	 virtual ~ResampleMachine() {}
 
 	 bool isIdentical() const
 	 { return identical_; }
@@ -174,25 +197,43 @@ public:
 	 void setFlagPolicy(int flag_mask, int flag_bit, float flag_density)
 	 { flag_mask_= flag_mask; flag_bit_=flag_bit; flag_density_=flag_density; }
 
-	 int apply(VellSet &out, const VellSet &in);
+	 virtual int apply(const VellSet &in, VellSet &out) {
+				return -1;
+	 }
 
-private:
-	 int flag_mask_;
-	 int flag_bit_;
-	 float flag_density_;
-	 bool identical_;
+	 virtual int print() {
+				return -1;
+	 }
+   void setup( const Cells &incells, const Cells &outcells );
+
+};
+
+
+
+
+/////////////////////////////////
+class Integrator: public ResampleMachine {
+				public:
+					Integrator(int parms):ResampleMachine(parms) {
+					}
+					~Integrator() {}
+					int apply( const VellSet &in, VellSet &out ); 
+					int print() {
+						cout<<"Integrator print"<<endl;
+						return 0;
+					}
+					
 	 //Bipartite graphs for each axis
 	 std::vector<Bgraph> bx_;
 
 	 int nx_,ny_; // size of the resampled (new) cells
 	 blitz::Array<double,2> cell_weight_;
 
-	 int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end); 
   template<class T> int  
-   ResampleMachine::do_resample(
+   Integrator::do_resample(
 				blitz::Array<T,2> A,  blitz::Array<T,2> B ); 
   template<class T> int  
-   ResampleMachine::do_resample( 
+   Integrator::do_resample( 
 				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
 			  VellsFlagType *Fp, bool has_flags, blitz::Array<VellsFlagType,2> Aflag);
 
@@ -200,7 +241,47 @@ private:
   void insert(int incell,int cell1, int cell2, int axis,
 	blitz::Array<double,1> incellsize,blitz::Array<double,1> outcellsize,
 	blitz::Array<double,1> incenter,blitz::Array<double,1> outcenter);
+
+
 };
+
+class Interpolator: public ResampleMachine {
+				public:
+					Interpolator(int parms):ResampleMachine(parms) {
+
+					}
+					~Interpolator() {}
+					int apply( const VellSet &in, VellSet &out );
+
+					int print() {
+						cout<<"Interpolator print"<<endl;
+						return 0;
+					}
+};
+
+
+
+
+
+//////////////////////////////////////////
+class ResamplerFactory {
+		public:
+		  typedef enum {
+					INTERPOLATOR =0x00001,
+					INTEGRATOR=0x00002,
+			} MachineType;
+
+			ResampleMachine *create(MachineType mode, int parms) {
+         if (mode==ResamplerFactory::INTEGRATOR) {
+							return new Integrator(parms);
+				 } else {
+							return new Interpolator(parms);
+				 }
+			}
+
+};
+
+
 
 
 } // namespace Meq
