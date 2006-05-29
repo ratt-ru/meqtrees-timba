@@ -21,7 +21,7 @@ TDLRuntimeOption('msname',"MS",["n05k2.ms"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-TDLRuntimeOption('tile_size',"Tile size (timeslots)",[30,60,120,180,360]);
+TDLRuntimeOption('tile_size',"Tile size (timeslots)",[1,2,5,30,60,120,180,360]);
 
 TDLRuntimeOption('field_index',"Field ID",[0,1,2,3,4]);
 TDLRuntimeOption('ddid_index',"Data description ID (band)",[0,1,2,3]);
@@ -54,11 +54,11 @@ TDLCompileOption('source_model',"Source model",[
     models.cps_3C345,
   ],default=0);
 TDLCompileMenu("Fitting options",
-  TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4]),
+  TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4,5,6]),
   TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4]),
   TDLOption('gain_deg_time',"Polc degree (time) for gain fitting",[0,1,2,3,4]),
   TDLOption('gain_deg_freq',"Polc degree (freq) for gain fitting",[0,1,2,3,4]),
-  TDLOption('flux_constraint',"Lower boundary for flux constraint",[None,0.0,.1,.5,.8,.99]),
+  TDLOption('flux_constraint',"Flux constraint",[None,[0.0,5.0],[1.,5.0],[2.,5.]]),
   TDLOption('constraint_weight',"Weight of flux constraint",["intrinsic",100,1000,10000])
 );
 
@@ -99,6 +99,10 @@ Settings.forest_state = record(bookmarks=[
       ["corrected:1:2","corrected:1:7"],
       ["corrected:2:7"]
   )), 
+  record(name='Flux solutions',page=Bookmarks.PlotPage(
+      ["I:3C345"],
+      ["solver"]
+  )),
   record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
       ["I:3C345","phase:L:1"],
       ["phase:L:2","phase:L:7"],
@@ -191,8 +195,12 @@ def _define_forest(ns):
                                                  station_2_index=sta2-1,
                                                  flag_bit=4,
                                                  input_col='DATA');
+    weight = ns.weight(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
+                                                 station_2_index=sta2-1,
+                                                 flag_mask=0,
+                                                 input_col='WEIGHT');
     pred = predict(sta1,sta2);
-    ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
+    ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred) * weight / Meq.Sum(weight);
     condeqs.append(ce);
     # subtract nodes compute residuals
     if output_type == "residual":
@@ -256,6 +264,7 @@ def _define_forest(ns):
   _vdm = ns.VisDataMux << Meq.VisDataMux;
   ns.VisDataMux.add_children(*[ns.sink(*ifr) for ifr in array.ifrs()]);
   ns.VisDataMux.add_stepchildren(*[ns.spigot(*ifr) for ifr in array.ifrs()]);
+  ns.VisDataMux.add_stepchildren(*[ns.weight(*ifr) for ifr in array.ifrs()]);
   
   
 def create_solver_defaults(num_iter=60,convergence_quota=0.9,solvable=[]):
@@ -395,7 +404,7 @@ def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
   
 def _tdl_job_2_solve_for_phases_and_flux (mqs,parent,**kw):
   if constraint_weight == "intrinsic":
-    constrain = [flux_constraint,2.];
+    constrain = flux_constraint;
   else:
     constrain = None;
   solvables = [];
@@ -411,7 +420,7 @@ def _tdl_job_2_solve_for_phases_and_flux (mqs,parent,**kw):
 
 def _tdl_job_3_solve_for_phases_and_gains (mqs,parent,**kw):
   if constraint_weight == "intrinsic":
-    constrain = [flux_constraint,2.];
+    constrain = flux_constraint;
   else:
     constrain = None;
   solvables = [];
