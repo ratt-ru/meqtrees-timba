@@ -100,7 +100,8 @@ Settings.forest_state = record(bookmarks=[
       ["corrected:2:7"]
   )), 
   record(name='Flux solutions',page=Bookmarks.PlotPage(
-      ["I:3C345"],
+      ["I:3C345","Q:3C345"],
+      ["U:3C345","V:3C345"],
       ["solver"]
   )),
   record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
@@ -118,10 +119,6 @@ Settings.forest_state = record(bookmarks=[
       ['gain:R:7','gain:L:1'],
       ['gain:L:2','gain:L:7']
   )),
-  record(name='Flux solutions only',page=Bookmarks.PlotPage(
-      ["I:S1"],
-      ["I:S5"]
-  )) 
 ]);
 
 def gain_parm (tdeg,fdeg):
@@ -402,7 +399,7 @@ def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
       solvables += _reset_parameters(mqs,['phi:'+src.name],0);
   _run_solve_job(mqs,solvables);
   
-def _tdl_job_2_solve_for_phases_and_flux (mqs,parent,**kw):
+def _tdl_job_2_solve_for_flux_and_phases (mqs,parent,**kw):
   if constraint_weight == "intrinsic":
     constrain = flux_constraint;
   else:
@@ -418,23 +415,26 @@ def _tdl_job_2_solve_for_phases_and_flux (mqs,parent,**kw):
   solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
   _run_solve_job(mqs,solvables);
 
-def _tdl_job_3_solve_for_phases_and_gains (mqs,parent,**kw):
+def _tdl_job_3_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
   if constraint_weight == "intrinsic":
     constrain = flux_constraint;
   else:
     constrain = None;
   solvables = [];
-  _reset_parameters(mqs,['I0:'+src.name for src in source_list]);
+  solvables = _reset_parameters(mqs,['I0:'+src.name for src in source_list],1,constrain=constrain);
 #  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
 #               pert=flux_perturbation,absolute=False,
 #               constrain=constrain);
-#  solvables += _reset_parameters(mqs,['Q:'+src.name for src in source_list],0);
-#  solvables += _reset_parameters(mqs,['U:'+src.name for src in source_list],0);
-#  solvables += _reset_parameters(mqs,['V:'+src.name for src in source_list],0);
-  solvables += _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list],1);
-  solvables += _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list],1);
-  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
-  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
+  _reset_parameters(mqs,['Q:'+src.name for src in source_list],0,constrain=[0.,.5]);
+  _reset_parameters(mqs,['U:'+src.name for src in source_list],0,constrain=[0.,.5]);
+  _reset_parameters(mqs,['V:'+src.name for src in source_list],0,constrain=[0.,.5]);
+  # fix gain of station 1 at 1
+  _reset_parameters(mqs,['gain:L:'+str(stations_list[0])],1);
+  _reset_parameters(mqs,['gain:R:'+str(stations_list[0])],1);
+  solvables += _reset_parameters(mqs,['gain:L:'+str(sta) for sta in stations_list[1:]],1);
+  solvables += _reset_parameters(mqs,['gain:R:'+str(sta) for sta in stations_list[1:]],1);
+  solvables += _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list[1:]],0);
+  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list[1:]],0);
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
