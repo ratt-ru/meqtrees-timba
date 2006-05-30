@@ -776,7 +776,9 @@ void
 			i++;
 		}
 		if (i==n && is_identical) {
+#ifdef DEBUG
 			cout<<"Identical, ignoring"<<endl;
+#endif
       yout=yin; return;
 		}
 	}
