@@ -168,18 +168,9 @@ protected:
 	 float flag_density_;
 	 bool identical_;
 
-	 //in-out cells as arrays
-  std::vector<blitz::Array<double,1> > incells_; 
-  std::vector<blitz::Array<int,1> > xindex_; 
-  std::vector<blitz::Array<double,1> > outcells_; 
-
 
     inline int bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end);
-    int bin_search(std::vector<double> xarr,double x,int i_start,int i_end);
-		//cubic hermite interpolation
-    template<class T> void pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex);
-    void ResampleMachine::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex);
-
+    inline int bin_search(std::vector<double> xarr,double x,int i_start,int i_end);
 
 
 public:
@@ -204,7 +195,7 @@ public:
 	 virtual int print() {
 				return -1;
 	 }
-   void setup( const Cells &incells, const Cells &outcells );
+   virtual void setup( const Cells &in, const Cells &out) {}
 
 };
 
@@ -223,6 +214,7 @@ class Integrator: public ResampleMachine {
 						return 0;
 					}
 					
+       void setup(const Cells &in, const Cells &out);
 	 //Bipartite graphs for each axis
 	 std::vector<Bgraph> bx_;
 
@@ -257,6 +249,19 @@ class Interpolator: public ResampleMachine {
 						cout<<"Interpolator print"<<endl;
 						return 0;
 					}
+
+       void setup(const Cells &in, const Cells &out);
+	 //in-out cells as arrays
+  std::vector<blitz::Array<double,1> > incells_; 
+  std::vector<blitz::Array<int,1> > xindex_; 
+  std::vector<blitz::Array<double,1> > outcells_; 
+
+     		//cubic hermite interpolation
+        template<class T> void pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex);
+				//special for complex
+        void pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex);
+
+
 };
 
 

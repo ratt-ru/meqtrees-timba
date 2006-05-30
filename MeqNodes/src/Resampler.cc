@@ -28,7 +28,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <complex>
 
-#define DEBUG
+//#define DEBUG
 namespace Meq {
 
 const HIID FFlagDensity = AidFlag|AidDensity;
@@ -75,7 +75,7 @@ int Resampler::getResult (Result::Ref &resref,
   // create resampler: interpolation
 	if (mode==1) {
    resampler=resfac.create(ResamplerFactory::INTERPOLATOR,0);
-	} else { //mode==2: integration: used for real data
+	} else { //mode==2: integration: used for real (MS) data
    resampler=resfac.create(ResamplerFactory::INTEGRATOR,0);
 	}
 	resampler->setup(incells, outcells);
@@ -208,348 +208,170 @@ int ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start
   return -3;
 }
 
-//1D cubic hermite interpolation
-//Piecewise Cubic Hermite Imterpolation
-// In : grid points xin and values yin size n x 1
-// In : interpolating points xout size m x 1
-// out : interpolated values yout size m x 1
-//
-// References:
-// F. N. Fritsch and R. E. Carlson, "Monotone Piecewise Cubic
-// Interpolation", SIAM J. Numerical Analysis 17, 1980, 238-246.
-// David Kahaner, Cleve Moler and Stephen Nash, Numerical Methods
-// and Software, Prentice Hall, 1988.
-// 
-template<class T> void
- ResampleMachine::pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex) {
-
-	//special case: n==1 and m> 1, oversample from a scalar, just copy the value
-	if (n==1 && m >=1) {yout=yin(0); return;}
-
-	//another special case, input and output is exact
-	int is_identical=1;
-	if (m==n) {
-		int i=0;
-		while(is_identical && i<n) {	
-			if (xin(i)!=xout(i)) {is_identical=0; break;}
-			i++;
-		}
-		if (i==n && is_identical) {
-			cout<<"Identical, ignoring"<<endl;
-      yout=yin; return;
-		}
-	}
-	//array to store first derivatives used in interpolation
-	blitz::Array<T,1> d(n);
-	//array to store first divided differences
-	blitz::Array<T,1> del(n);
-	//Note: the values of above arrays at the end points are determined 
-	//in a special 3 point way
-	//array to store x differences
-	blitz::Array<double,1> h(n);
-
-	if (n==2) {
-		//linear interpolation
-		h(0)=h(1)=(xin(1)-xin(0));
-		del(0)=del(1)=d(0)=d(1)=(yin(1)-yin(0))/h(0);
-	  for (int i=0; i<m; i++) {
-	   yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
-		}
-#ifdef DEBUG
-	cout<<"Yout"<<yout<<endl;
-#endif
-		return;
-
-	} else {
-	for (int i=0; i<n-1; i++) {
-			h(i)=xin(i+1)-xin(i);
-			del(i)=(yin(i+1)-yin(i))/h(i);
-	}
-	del(n-1)=del(n-2);
-	h(n-1)=h(n-2);
-	for (int k=1; k<n-1; k++) {
-		if (del(k-1)==0 || del(k)==0 || ((del(k)) >0 && del(k-1)<0) 
-									 || (del(k) <0 && del(k-1)>0) )	{
-				d(k)=0;
-		} else {
-		//if del(k) and del(k-1) have same sign and two intervals
-		//have same length, take harmonic mean
-		double w1=2*h(k)+h(k-1);
-		double w2=h(k)+2*h(k-1);
-		d(k)=(w1+w1)/(w1/del(k-1)+w2/del(k));
-		}
-	}
-
-	//slopes at endpoints
-	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
-	if (((del(1) >0 && del(0)<0) || (del(1) <0 && del(0)>0))
-				&& (fabs(d(0))> 3*fabs(del(0)))) {
-			d(0)=3*del(0);
-	} 
-
-	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
-	if (((del(n-1) >0 && del(n-2)<0) || (del(n-1) <0 && del(n-2)>0))
-				&& (fabs(d(n-1))> 3*fabs(del(n-1)))) {
-			d(n-1)=3*del(n-1);
-	} 
-
-
-	}
-#ifdef DEBUG
-	cout<<"Xin"<<xin<<endl;
-	cout<<"Yin"<<yin<<endl;
-	cout<<"Xout"<<xout<<endl;
-	cout<<"Idx"<<xindex<<endl;
-	cout<<"d"<<d<<endl;
-	cout<<"del"<<del<<endl;
-	cout<<"h"<<h<<endl;
-#endif
-
-	//find the range where we can interpolate: xindex(k) >= 1 and
-	// xindex(k) <= n-1
-	int x_l_limit=0;
-	int x_u_limit=m-1;
-
-	while( (x_l_limit<m)&& (xindex(x_l_limit)<1) ) x_l_limit++;
-	while( (x_u_limit>=0) && (xindex(x_u_limit)>n-1) ) x_u_limit--;
-	//sanuty check
-	if ( xindex(0)==0 && xindex(m-1)==0) { //everything to the left
-  	for (int i=0; i<m; i++) {
-	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
-   	}
-		return;
-	}  else if (xindex(0)==n && xindex(m-1)==n) { //everything to the right
-  	for (int i=0; i<m; i++) {
-	    yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
-	  }
-    return;
-	}
-#ifdef DEBUG
-	 cout<<"Limits : cubic interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
-#endif
-
-	//interpolation
-	for (int i=x_l_limit; i<=x_u_limit; i++) {
-		double s=xout(i)-xin(xindex(i)-1);
-		double &hh=h(xindex(i)-1);
-		double aa=(3*hh-2*s)*s*s/(hh*hh*hh);
-		yout(i)=aa*yin(xindex(i))+(1-aa)*yin(xindex(i)-1);
-		if (d(xindex(i)) !=0) {
-		  yout(i)+=s*s*(s-hh)/(hh*hh)*d(xindex(i));
-		}
-		if (d(xindex(i)-1) !=0) {
-		  yout(i)+=s*(s-hh)*(s-hh)/(hh*hh)*d(xindex(i)-1);
-		}
-
-	}
-	//extrapolation
- 	for (int i=0; i<x_l_limit; i++) {
-	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
- 	}
-	for (int i=x_u_limit+1; i<m; i++) {
-	  yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
-	}
-#ifdef DEBUG
-	cout<<"Yout"<<yout<<endl;
-#endif
-}
-
-void
- ResampleMachine::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex) {
-
-	//special case: n==1 and m> 1, oversample from a scalar, just copy the value
-	if (n==1 && m >=1) {yout=yin(0); return;}
-
-	//another special case, input and output is exact
-	int is_identical=1;
-	if (m==n) {
-		int i=0;
-		while(is_identical && i<n) {	
-			if (xin(i)!=xout(i)) {is_identical=0; break;}
-			i++;
-		}
-		if (i==n && is_identical) {
-			cout<<"Identical, ignoring"<<endl;
-      yout=yin; return;
-		}
-	}
-	//array to store first derivatives used in interpolation
-	blitz::Array<dcomplex,1> d(n);
-	//array to store first divided differences
-	blitz::Array<dcomplex,1> del(n);
-	//Note: the values of above arrays at the end points are determined 
-	//in a special 3 point way
-	//array to store x differences
-	blitz::Array<double,1> h(n);
-
-	if (n==2) {
-		//linear interpolation
-		h(0)=h(1)=(xin(1)-xin(0));
-		del(0)=del(1)=d(0)=d(1)=(yin(1)-yin(0))/h(0);
-	  for (int i=0; i<m; i++) {
-	   yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
-		}
-		return;
-
-	} else {
-	for (int i=0; i<n-1; i++) {
-			h(i)=xin(i+1)-xin(i);
-			del(i)=(yin(i+1)-yin(i))/h(i);
-	}
-	del(n-1)=del(n-2);
-	h(n-1)=h(n-2);
-	for (int k=1; k<n-1; k++) {
-		if (del(k-1)==0 || del(k)==0)	{
-				d(k)=dcomplex(0);
-		} else {
-		//if del(k) and del(k-1) have same sign and two intervals
-		//have same length, take harmonic mean
-		double w1=2*h(k)+h(k-1);
-		double w2=h(k)+2*h(k-1);
-		d(k)=(w1+w1)/(w1/del(k-1)+w2/del(k));
-		}
-	}
-
-	//slopes at endpoints
-	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
-	if ((abs(d(0))> 3*abs(del(0)))) {
-			d(0)=3*del(0);
-	} 
-
-	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
-	if ((abs(d(n-1))> 3*abs(del(n-1)))) {
-			d(n-1)=3*del(n-1);
-	} 
-
-
-	}
-
-	//find the range where we can interpolate: xindex(k) >= 1 and
-	// xindex(k) <= n-1
-	int x_l_limit=0;
-	int x_u_limit=m-1;
-
-	while( (x_l_limit<m)&& (xindex(x_l_limit)<1) ) x_l_limit++;
-	while( (x_u_limit>=0) && (xindex(x_u_limit)>n-1) ) x_u_limit--;
-	//sanuty check
-	if ( xindex(0)==0 && xindex(m-1)==0) { //everything to the left
-  	for (int i=0; i<m; i++) {
-	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
-   	}
-		return;
-	}  else if (xindex(0)==n && xindex(m-1)==n) { //everything to the right
-  	for (int i=0; i<m; i++) {
-	    yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
-	  }
-    return;
-	}
-#ifdef DEBUG
-	 cout<<"Limits : cubic interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
-#endif
-
-	//interpolation
-	for (int i=x_l_limit; i<=x_u_limit; i++) {
-		double s=xout(i)-xin(xindex(i)-1);
-		double &hh=h(xindex(i)-1);
-		double aa=(3*hh-2*s)*s*s/(hh*hh*hh);
-		yout(i)=aa*yin(xindex(i))+(1-aa)*yin(xindex(i)-1);
-		if (d(xindex(i)) !=0) {
-		  yout(i)+=s*s*(s-hh)/(hh*hh)*d(xindex(i));
-		}
-		if (d(xindex(i)-1) !=0) {
-		  yout(i)+=s*(s-hh)*(s-hh)/(hh*hh)*d(xindex(i)-1);
-		}
-
-	}
-	//extrapolation
- 	for (int i=0; i<x_l_limit; i++) {
-	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
- 	}
-	for (int i=x_u_limit+1; i<m; i++) {
-	  yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
-	}
-}
-
-//setup routine:
-//1) see if any missing axes in input or output cells, and add a dummy scalar to it
-//2) prepare the indices for later interpolation
-void
-ResampleMachine::setup( const Cells &incells, const Cells &outcells  ) {
-    
-			
-		unsigned int dimension=std::max(incells.rank(),outcells.rank());
-	  incells_.resize(dimension);	
-	  outcells_.resize(dimension);
-
-	  for (int i=0; i<std::min(incells.rank(),outcells.rank()); i++) {
-					incells_[i].resize(incells.center(i).size());
-					incells_[i]=incells.center(i);
-					outcells_[i].resize(outcells.center(i).size());
-					outcells_[i]=outcells.center(i);
-	  }
-	  for (unsigned int i=incells.rank(); i<dimension; i++) {
-					outcells_[i].resize(outcells.center(i).size());
-					outcells_[i]=outcells.center(i);
-		}
-	  for (unsigned int i=outcells.rank(); i<dimension; i++) {
-					incells_[i].resize(incells.center(i).size());
-					incells_[i]=incells.center(i);
-		}
-
-	  for (unsigned int i=0; i<dimension; i++) {
-				 if(incells_[i].size()==0) {
-					if (outcells_[i].size()==0){
-					 incells_[i].resize(1);
-					 outcells_[i].resize(1);
-					 incells_[i](0)=outcells_[i](0)=0;
-					} else {
-					 incells_[i].resize(1);
-					 incells_[i](0)=outcells_[i](0);
-					}
-				 } else {
-					if (outcells_[i].size()==0){
-					 outcells_[i].resize(1);
-					 outcells_[i](0)=incells_[i](0);
-					}
-				 }
-	  }
-
-	 //do binary search
-  xindex_.resize(dimension); 
-	std::vector<double> tempx;
-	for (unsigned int i=0; i<dimension; i++) {
-	 unsigned int n=incells_[i].size();
-	 tempx.resize(n+2);
-	 for (unsigned int j=1; j<n+1; j++) 
-	  tempx[j]=incells_[i](j-1);
-	 tempx[0]=-INFINITY;
-	 tempx[n+1]=INFINITY;
-	 xindex_[i].resize(outcells_[i].size());
-	 for (int j=0; j<outcells_[i].size(); j++) 
-		xindex_[i](j)=bin_search(tempx,outcells_[i](j),0,n+1);
-	}
-
-#ifdef DEBUG
-	      cout<<"Incells"<<endl;
-				for (unsigned int i=0; i<dimension; i++) {
-				 cout<<incells_[i]<<endl;
-				}
-	      cout<<"Outcells"<<endl;
-				for (unsigned int i=0; i<dimension; i++) {
-				 cout<<outcells_[i]<<endl;
-				}
-	      cout<<"Index"<<endl;
-				for (unsigned int i=0; i<dimension; i++) {
-				 cout<<xindex_[i]<<endl;
-				}
-#endif
-
-}
-
-
-
 
 ////////////////////////////////////////////////////////////////////
+void  
+Integrator::setup(const Cells &in, const Cells &out) {
+
+	// in: cells of the old (child) grid
+	// out: cells of the request (new grid)
+	//using the in and out cells, we find the grid points of
+	//new cell centers. Note it is always assumed that out cells
+	// are larger than in cells so that more than one can be included.
+	// Also check to see if they are identical.
+	
+				//setup arrays for  binary search
+  blitz::Array<double,1> xax=out.center(0);
+	blitz::Array<double,1> yax=out.center(1);
+	double xstart=out.domain().start(0);
+	double xend=out.domain().end(0);
+	double ystart=out.domain().start(1);
+	double yend=out.domain().end(1);
+	blitz::Array<double,1> xcellsize=out.cellSize(0); 
+	blitz::Array<double,1> ycellsize=out.cellSize(1); 
+	blitz::Array<double,1> inxcellsize=in.cellSize(0); 
+	blitz::Array<double,1> inycellsize=in.cellSize(1); 
+
+	//array of values to be searched
+  blitz::Array<double,1> xaxs=in.center(0);
+  blitz::Array<double,1> yaxs=in.center(1);
+#ifdef DEBUG
+	cout<<"Out X "<<xax<<endl;
+	cout<<"Out Y "<<yax<<endl;
+	//array of values to be searched
+	cout<<"In X "<<xaxs<<endl;
+	cout<<"In Y "<<yaxs<<endl;
+#endif
+	nx_=xax.extent(0);
+	ny_=yax.extent(0);
+
+	int nxs=xaxs.extent(0);
+	int nys=yaxs.extent(0);
+
+	//if out cells are smaller than in cells
+	//it will be taken to be idential for the moment
+  identical_=((nx_==nxs)&&(ny_==nys));	
+#ifdef DEBUG
+  cout<<"Identical "<<identical_<<endl;
+#endif
+  //we need a resampler only if not identical
+	//so if idential_, stop here
+	if (identical_) {
+			return;
+	}
+	//resize the array to store cumulative flags+weights
+	cell_weight_.resize(nx_,ny_);
+	//make it zero
+  cell_weight_=0; 
+
+	////////////////////////////////
+	bx_.resize(2);
+	bx_[0].resize(nx_);
+	bx_[1].resize(ny_);
+
+#ifdef DEBUG
+ cout<<inxcellsize<<endl<<xaxs<<endl;
+#endif
+ //array to be searched - input cells
+ blitz::Array<double,1> xx(nxs-1); 
+ for (int i=0; i<nxs-1;i++) {
+		xx(i)=xaxs(i)+inxcellsize(i)*0.5;
+ }
+#ifdef DEBUG
+ cout<<xx<<endl;
+#endif
+ //arrayf of values within search is done
+ blitz::Array<double,1> inxx(nx_+1); 
+ inxx(0)=xstart;
+ inxx(nx_)=xend;
+ for (int i=1; i<nx_;i++) {
+  inxx(i)=xax(i-1)+xcellsize(i-1)*0.5;
+ }	
+#ifdef DEBUG
+ cout<<inxx<<endl;
+#endif
+ blitz::Array<int,1> xxindex(nxs-1); 
+ // do the search
+ for (int i=0; i<nxs-1;i++)
+	  xxindex(i)=bin_search(inxx,xx(i),0,nx_+1);
+#ifdef DEBUG
+ cout<<xxindex<<endl;
+#endif
+
+ int cli=0;
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<xxindex(cli)<<"]"<<endl;
+#endif
+ insert(cli,0,xxindex(cli), 0,inxcellsize,xcellsize,xaxs,xax);
+	
+ cli++;
+ while(cli<nxs-1){
+#ifdef DEBUG
+  cout<<"Cell "<<cli<<" falls on cells ["<<xxindex(cli-1)<<","<<xxindex(cli)<<"]"<<endl;
+#endif
+  insert(cli, xxindex(cli-1),xxindex(cli), 0,inxcellsize,xcellsize,xaxs,xax);
+  cli++;
+ }
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<xxindex(cli-1)<<","<<nx_-1<<"]"<<endl;
+#endif
+ insert(cli, xxindex(cli-1),nx_-1, 0,inxcellsize,xcellsize,xaxs,xax);
+
+#ifdef DEBUG
+ bx_[0].print();
+#endif
+
+ blitz::Array<double,1> yy(nys-1); 
+ for (int i=0; i<nys-1;i++) {
+		yy(i)=yaxs(i)+inycellsize(i)*0.5;
+ }
+#ifdef DEBUG
+ cout<<yy<<endl;
+#endif
+ //arrayf of values within search is done
+ blitz::Array<double,1> inyy(ny_+1); 
+ inyy(0)=ystart;
+ inyy(ny_)=yend;
+ for (int i=1; i<ny_;i++) {
+  inyy(i)=yax(i-1)+ycellsize(i-1)*0.5;
+ }	
+#ifdef DEBUG
+ cout<<inyy<<endl;
+#endif
+ blitz::Array<int,1> yyindex(nys-1); 
+ // do the search
+ for (int i=0; i<nys-1;i++)
+	  yyindex(i)=bin_search(inyy,yy(i),0,ny_+1);
+#ifdef DEBUG
+ cout<<yyindex<<endl;
+#endif
+
+ cli=0;
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<yyindex(cli)<<"]"<<endl;
+#endif
+ insert(cli,0,yyindex(cli), 1,inycellsize,ycellsize,yaxs,yax);
+	
+ cli++;
+ while(cli<nys-1){
+#ifdef DEBUG
+  cout<<"Cell "<<cli<<" falls on cells ["<<yyindex(cli-1)<<","<<yyindex(cli)<<"]"<<endl;
+#endif
+  insert(cli, yyindex(cli-1),yyindex(cli), 1,inycellsize,ycellsize,yaxs,yax);
+  cli++;
+ }
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<yyindex(cli-1)<<","<<ny_-1<<"]"<<endl;
+#endif
+ insert(cli, yyindex(cli-1),ny_-1, 1,inycellsize,ycellsize,yaxs,yax);
+
+#ifdef DEBUG
+ bx_[1].print();
+#endif
+
+}
+
+
 #ifndef FMULT
 #define FMULT(a,b)\
 				((a)==1.0?(b):((b)==1.0?(a):(a)*(b)))
@@ -788,7 +610,350 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				return 0;
 }
 
-////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+// ********************  INTERPOLATOR *********************************
+
+//1D cubic hermite interpolation
+//Piecewise Cubic Hermite Imterpolation
+// In : grid points xin and values yin size n x 1
+// In : interpolating points xout size m x 1
+// out : interpolated values yout size m x 1
+//
+// References:
+// F. N. Fritsch and R. E. Carlson, "Monotone Piecewise Cubic
+// Interpolation", SIAM J. Numerical Analysis 17, 1980, 238-246.
+// David Kahaner, Cleve Moler and Stephen Nash, Numerical Methods
+// and Software, Prentice Hall, 1988.
+// 
+template<class T> void
+ Interpolator::pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex) {
+
+	//special case: n==1 and m> 1, oversample from a scalar, just copy the value
+	if (n==1 && m >=1) {yout=yin(0); return;}
+
+	//another special case, input and output is exact
+	int is_identical=1;
+	if (m==n) {
+		int i=0;
+		while(is_identical && i<n) {	
+			if (xin(i)!=xout(i)) {is_identical=0; break;}
+			i++;
+		}
+		if (i==n && is_identical) {
+			cout<<"Identical, ignoring"<<endl;
+      yout=yin; return;
+		}
+	}
+	//array to store first derivatives used in interpolation
+	blitz::Array<T,1> d(n);
+	//array to store first divided differences
+	blitz::Array<T,1> del(n);
+	//Note: the values of above arrays at the end points are determined 
+	//in a special 3 point way
+	//array to store x differences
+	blitz::Array<double,1> h(n);
+
+	if (n==2) {
+		//linear interpolation
+		h(0)=h(1)=(xin(1)-xin(0));
+		del(0)=del(1)=d(0)=d(1)=(yin(1)-yin(0))/h(0);
+	  for (int i=0; i<m; i++) {
+	   yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+		}
+#ifdef DEBUG
+	cout<<"Yout"<<yout<<endl;
+#endif
+		return;
+
+	} else {
+	for (int i=0; i<n-1; i++) {
+			h(i)=xin(i+1)-xin(i);
+			del(i)=(yin(i+1)-yin(i))/h(i);
+	}
+	del(n-1)=del(n-2);
+	h(n-1)=h(n-2);
+	for (int k=1; k<n-1; k++) {
+		if (del(k-1)==0 || del(k)==0 || ((del(k)) >0 && del(k-1)<0) 
+									 || (del(k) <0 && del(k-1)>0) )	{
+				d(k)=0;
+		} else {
+		//if del(k) and del(k-1) have same sign and two intervals
+		//have same length, take harmonic mean
+		double w1=2*h(k)+h(k-1);
+		double w2=h(k)+2*h(k-1);
+		d(k)=(w1+w1)/(w1/del(k-1)+w2/del(k));
+		}
+	}
+
+	//slopes at endpoints
+	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
+	if (((del(1) >0 && del(0)<0) || (del(1) <0 && del(0)>0))
+				&& (fabs(d(0))> 3*fabs(del(0)))) {
+			d(0)=3*del(0);
+	} 
+
+	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
+	if (((del(n-1) >0 && del(n-2)<0) || (del(n-1) <0 && del(n-2)>0))
+				&& (fabs(d(n-1))> 3*fabs(del(n-1)))) {
+			d(n-1)=3*del(n-1);
+	} 
+
+
+	}
+#ifdef DEBUG
+	cout<<"Xin"<<xin<<endl;
+	cout<<"Yin"<<yin<<endl;
+	cout<<"Xout"<<xout<<endl;
+	cout<<"Idx"<<xindex<<endl;
+	cout<<"d"<<d<<endl;
+	cout<<"del"<<del<<endl;
+	cout<<"h"<<h<<endl;
+#endif
+
+	//find the range where we can interpolate: xindex(k) >= 1 and
+	// xindex(k) <= n-1
+	int x_l_limit=0;
+	int x_u_limit=m-1;
+
+	while( (x_l_limit<m)&& (xindex(x_l_limit)<1) ) x_l_limit++;
+	while( (x_u_limit>=0) && (xindex(x_u_limit)>n-1) ) x_u_limit--;
+	//sanuty check
+	if ( xindex(0)==0 && xindex(m-1)==0) { //everything to the left
+  	for (int i=0; i<m; i++) {
+	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+   	}
+		return;
+	}  else if (xindex(0)==n && xindex(m-1)==n) { //everything to the right
+  	for (int i=0; i<m; i++) {
+	    yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
+	  }
+    return;
+	}
+#ifdef DEBUG
+	 cout<<"Limits : cubic interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
+#endif
+
+	//interpolation
+	for (int i=x_l_limit; i<=x_u_limit; i++) {
+		double s=xout(i)-xin(xindex(i)-1);
+		double &hh=h(xindex(i)-1);
+		double aa=(3*hh-2*s)*s*s/(hh*hh*hh);
+		yout(i)=aa*yin(xindex(i))+(1-aa)*yin(xindex(i)-1);
+		if (d(xindex(i)) !=0) {
+		  yout(i)+=s*s*(s-hh)/(hh*hh)*d(xindex(i));
+		}
+		if (d(xindex(i)-1) !=0) {
+		  yout(i)+=s*(s-hh)*(s-hh)/(hh*hh)*d(xindex(i)-1);
+		}
+
+	}
+	//extrapolation
+ 	for (int i=0; i<x_l_limit; i++) {
+	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+ 	}
+	for (int i=x_u_limit+1; i<m; i++) {
+	  yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
+	}
+#ifdef DEBUG
+	cout<<"Yout"<<yout<<endl;
+#endif
+}
+
+void
+ Interpolator::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex) {
+
+	//special case: n==1 and m> 1, oversample from a scalar, just copy the value
+	if (n==1 && m >=1) {yout=yin(0); return;}
+
+	//another special case, input and output is exact
+	int is_identical=1;
+	if (m==n) {
+		int i=0;
+		while(is_identical && i<n) {	
+			if (xin(i)!=xout(i)) {is_identical=0; break;}
+			i++;
+		}
+		if (i==n && is_identical) {
+			cout<<"Identical, ignoring"<<endl;
+      yout=yin; return;
+		}
+	}
+	//array to store first derivatives used in interpolation
+	blitz::Array<dcomplex,1> d(n);
+	//array to store first divided differences
+	blitz::Array<dcomplex,1> del(n);
+	//Note: the values of above arrays at the end points are determined 
+	//in a special 3 point way
+	//array to store x differences
+	blitz::Array<double,1> h(n);
+
+	if (n==2) {
+		//linear interpolation
+		h(0)=h(1)=(xin(1)-xin(0));
+		del(0)=del(1)=d(0)=d(1)=(yin(1)-yin(0))/h(0);
+	  for (int i=0; i<m; i++) {
+	   yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+		}
+		return;
+
+	} else {
+	for (int i=0; i<n-1; i++) {
+			h(i)=xin(i+1)-xin(i);
+			del(i)=(yin(i+1)-yin(i))/h(i);
+	}
+	del(n-1)=del(n-2);
+	h(n-1)=h(n-2);
+	for (int k=1; k<n-1; k++) {
+		if (del(k-1)==0 || del(k)==0)	{
+				d(k)=dcomplex(0);
+		} else {
+		//if del(k) and del(k-1) have same sign and two intervals
+		//have same length, take harmonic mean
+		double w1=2*h(k)+h(k-1);
+		double w2=h(k)+2*h(k-1);
+		d(k)=(w1+w1)/(w1/del(k-1)+w2/del(k));
+		}
+	}
+
+	//slopes at endpoints
+	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
+	if ((abs(d(0))> 3*abs(del(0)))) {
+			d(0)=3*del(0);
+	} 
+
+	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
+	if ((abs(d(n-1))> 3*abs(del(n-1)))) {
+			d(n-1)=3*del(n-1);
+	} 
+
+
+	}
+
+	//find the range where we can interpolate: xindex(k) >= 1 and
+	// xindex(k) <= n-1
+	int x_l_limit=0;
+	int x_u_limit=m-1;
+
+	while( (x_l_limit<m)&& (xindex(x_l_limit)<1) ) x_l_limit++;
+	while( (x_u_limit>=0) && (xindex(x_u_limit)>n-1) ) x_u_limit--;
+	//sanuty check
+	if ( xindex(0)==0 && xindex(m-1)==0) { //everything to the left
+  	for (int i=0; i<m; i++) {
+	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+   	}
+		return;
+	}  else if (xindex(0)==n && xindex(m-1)==n) { //everything to the right
+  	for (int i=0; i<m; i++) {
+	    yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
+	  }
+    return;
+	}
+#ifdef DEBUG
+	 cout<<"Limits : cubic interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
+#endif
+
+	//interpolation
+	for (int i=x_l_limit; i<=x_u_limit; i++) {
+		double s=xout(i)-xin(xindex(i)-1);
+		double &hh=h(xindex(i)-1);
+		double aa=(3*hh-2*s)*s*s/(hh*hh*hh);
+		yout(i)=aa*yin(xindex(i))+(1-aa)*yin(xindex(i)-1);
+		if (d(xindex(i)) !=0) {
+		  yout(i)+=s*s*(s-hh)/(hh*hh)*d(xindex(i));
+		}
+		if (d(xindex(i)-1) !=0) {
+		  yout(i)+=s*(s-hh)*(s-hh)/(hh*hh)*d(xindex(i)-1);
+		}
+
+	}
+	//extrapolation
+ 	for (int i=0; i<x_l_limit; i++) {
+	    yout(i)=d(0)*(xout(i)-xin(0))+yin(0);
+ 	}
+	for (int i=x_u_limit+1; i<m; i++) {
+	  yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
+	}
+}
+
+//setup routine:
+//1) see if any missing axes in input or output cells, and add a dummy scalar to it
+//2) prepare the indices for later interpolation
+void
+Interpolator::setup( const Cells &in, const Cells &out) {
+    
+			
+		unsigned int dimension=std::max(in.rank(),out.rank());
+	  incells_.resize(dimension);	
+	  outcells_.resize(dimension);
+
+	  for (int i=0; i<std::min(in.rank(),out.rank()); i++) {
+					incells_[i].resize(in.center(i).size());
+					incells_[i]=in.center(i);
+					outcells_[i].resize(out.center(i).size());
+					outcells_[i]=out.center(i);
+	  }
+	  for (unsigned int i=in.rank(); i<dimension; i++) {
+					outcells_[i].resize(out.center(i).size());
+					outcells_[i]=out.center(i);
+		}
+	  for (unsigned int i=out.rank(); i<dimension; i++) {
+					incells_[i].resize(in.center(i).size());
+					incells_[i]=in.center(i);
+		}
+
+	  for (unsigned int i=0; i<dimension; i++) {
+				 if(incells_[i].size()==0) {
+					if (outcells_[i].size()==0){
+					 incells_[i].resize(1);
+					 outcells_[i].resize(1);
+					 incells_[i](0)=outcells_[i](0)=0;
+					} else {
+					 incells_[i].resize(1);
+					 incells_[i](0)=outcells_[i](0);
+					}
+				 } else {
+					if (outcells_[i].size()==0){
+					 outcells_[i].resize(1);
+					 outcells_[i](0)=incells_[i](0);
+					}
+				 }
+	  }
+
+	 //do binary search
+  xindex_.resize(dimension); 
+	std::vector<double> tempx;
+	for (unsigned int i=0; i<dimension; i++) {
+	 unsigned int n=incells_[i].size();
+	 tempx.resize(n+2);
+	 for (unsigned int j=1; j<n+1; j++) 
+	  tempx[j]=incells_[i](j-1);
+	 tempx[0]=-INFINITY;
+	 tempx[n+1]=INFINITY;
+	 xindex_[i].resize(outcells_[i].size());
+	 for (int j=0; j<outcells_[i].size(); j++) 
+		xindex_[i](j)=bin_search(tempx,outcells_[i](j),0,n+1);
+	}
+
+#ifdef DEBUG
+	      cout<<"Incells"<<endl;
+				for (unsigned int i=0; i<dimension; i++) {
+				 cout<<incells_[i]<<endl;
+				}
+	      cout<<"Outcells"<<endl;
+				for (unsigned int i=0; i<dimension; i++) {
+				 cout<<outcells_[i]<<endl;
+				}
+	      cout<<"Index"<<endl;
+				for (unsigned int i=0; i<dimension; i++) {
+				 cout<<xindex_[i]<<endl;
+				}
+#endif
+
+}
+
+
+
+
 int 
 Interpolator::apply( const VellSet &in, VellSet &out ) {
   int dim=incells_.size();
