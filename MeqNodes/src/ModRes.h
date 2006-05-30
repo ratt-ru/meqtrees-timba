@@ -118,7 +118,6 @@ private:
   int   res_index_;
 
 
-	void upsample_axis(blitz::Array<double,1> x_orig, blitz::Array<double,1> xsp_orig, blitz::Array<double,1> xax, blitz::Array<double,1> xsp, double xstart, double xend);
 };
 
 

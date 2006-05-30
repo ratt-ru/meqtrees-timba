@@ -24,10 +24,11 @@
 #include <MEQ/MeqVocabulary.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
-//#include <MEQ/ResampleMachine.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
+
+//#define DEBUG 
 namespace Meq {
 
 //const HIID FFactor = AidFactor;
@@ -58,7 +59,7 @@ void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   std::vector<int> numcells;
   if (rec[FNumCells].get_vector(numcells)) {
-#ifdef VERBOSE
+#ifdef DEBUG
     cout<<"Initializing "<<numcells.size()<<" Cells ";
     for (unsigned int i=0;i<numcells.size();i++) cout<<numcells[i]<<", ";
     cout<<endl;
@@ -72,7 +73,7 @@ void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   }
 
   if (rec[FUpsample].get_vector(upsample_)) {
-#ifdef VERBOSE
+#ifdef DEBUG
     cout<<"Initializing "<<upsample_.size()<<" Cells ";
     for (unsigned int i=0;i<upsample_.size();i++) cout<<upsample_[i]<<", ";
     cout<<endl;
@@ -83,7 +84,7 @@ void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 		}
 	}
   if (rec[FDownsample].get_vector(downsample_)) {
-#ifdef VERBOSE
+#ifdef DEBUG
     cout<<"Initializing "<<downsample_.size()<<" Cells ";
     for (unsigned int i=0;i<downsample_.size();i++) cout<<downsample_[i]<<", ";
     cout<<endl;
@@ -123,9 +124,9 @@ int ModRes::pollChildren (Result::Ref &resref,
     //sanity check: if either is zero, do not resample in that dimension
     if (nx1<1) nx1=nx;
     if (ny1<1) ny1=ny;
-    #ifdef VERBOSE
+#ifdef DEBUG
     cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<endl;
-    #endif
+#endif
     Cells &outcells = outcells_ref<<=new Cells(request.cells().domain(),nx1,ny1);
     newreq().setCells(outcells);
 		} else {
@@ -144,15 +145,16 @@ int ModRes::pollChildren (Result::Ref &resref,
 				xsp.resize(upsample_[0]*x_orig.size());
 				for (int i=0; i<x_orig.size();i++) {
 								double x0=x_orig(i)-xsp_orig(i)*0.5;
-								double x1=xsp_orig(i)/upsample_[0];
-								xax(i*upsample_[0])=x0+x1*0.5;
-								xsp(i*upsample_[0])=x1;
+								double x1=xsp_orig(i)/(double)upsample_[0];
+								int start=i*upsample_[0];
+								xax(start)=x0+x1*0.5;
+								xsp(start)=x1;
 								for (int j=1;j<upsample_[0];j++) {
-									xax(i*upsample_[0]+j)=xax(i*upsample_[0])+x1;
-								  xsp(i*upsample_[0]+j)=x1;
+									xax(start+j)=xax(start+j-1)+x1;
+								  xsp(start+j)=x1;
 								}
 				}
-#ifdef VERBOSE
+#ifdef DEBUG
 				cout<<"Orig "<<x_orig<<endl<<xsp_orig<<endl;
 				cout<<"New "<<xax<<endl<<xsp<<endl;
 #endif
@@ -184,7 +186,7 @@ int ModRes::pollChildren (Result::Ref &resref,
         x1=x_orig(x_orig.size()-1)+xsp_orig(x_orig.size()-1)*0.5;
 				xax(N-1)=(x0+x1)*0.5;
 				xsp(N-1)=(x1-x0);
-#ifdef VERBOSE
+#ifdef DEBUG
 				cout<<"Orig "<<x_orig<<endl<<xsp_orig<<endl;
 				cout<<"New "<<xax<<endl<<xsp<<endl;
 #endif
@@ -203,15 +205,16 @@ int ModRes::pollChildren (Result::Ref &resref,
 				ysp.resize(upsample_[1]*y_orig.size());
 				for (int i=0; i<y_orig.size();i++) {
 								double y0=y_orig(i)-ysp_orig(i)*0.5;
-								double y1=ysp_orig(i)/upsample_[1];
-								yax(i*upsample_[1])=y0+y1*0.5;
-								ysp(i*upsample_[1])=y1;
+								double y1=ysp_orig(i)/(double)upsample_[1];
+								int start=i*upsample_[1];
+								yax(start)=y0+y1*0.5;
+								ysp(start)=y1;
 								for (int j=1;j<upsample_[1];j++) {
-									yax(i*upsample_[1]+j)=yax(i*upsample_[1])+y1;
-								  ysp(i*upsample_[1]+j)=y1;
+									yax(start+j)=yax(start+j-1)+y1;
+								  ysp(start+j)=y1;
 								}
 				}
-#ifdef VERBOSE
+#ifdef DEBUG
 				cout<<"Orig "<<y_orig<<endl<<ysp_orig<<endl;
 				cout<<"New "<<yax<<endl<<ysp<<endl;
 #endif
@@ -240,7 +243,7 @@ int ModRes::pollChildren (Result::Ref &resref,
         y1=y_orig(y_orig.size()-1)+ysp_orig(y_orig.size()-1)*0.5;
 				yax(N-1)=(y0+y1)*0.5;
 				ysp(N-1)=(y1-y0);
-#ifdef VERBOSE
+#ifdef DEBUG
 				cout<<"Orig "<<y_orig<<endl<<ysp_orig<<endl;
 				cout<<"New "<<yax<<endl<<ysp<<endl;
 #endif
@@ -285,8 +288,5 @@ int ModRes::getResult (Result::Ref &resref,
   return 0;
 }
 
-void ModRes::upsample_axis(blitz::Array<double,1> x_orig, blitz::Array<double,1> xsp_orig, blitz::Array<double,1> xax, blitz::Array<double,1> xsp,double xstart,double xend) {
-
-}
 
 } // namespace Meq
