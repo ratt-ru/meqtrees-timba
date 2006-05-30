@@ -252,7 +252,13 @@ void Funklet::setDbId (Funklet::DbId id)
 //##ModelId=3F86886F03A6
 int Funklet::makeSolvable (int spidIndex0)
 {
-
+  if((*this).hasField(FCoeffMask))
+    {
+      std::vector<bool> mask;
+      if((*this)[FCoeffMask].get_vector(mask))
+	return makeSolvable(spidIndex0,mask);
+      
+    }
   int nspids = getNumParms();
   parm_perts_.resize(nspids);
   calcPerturbations(parm_perts_,pertValue_);

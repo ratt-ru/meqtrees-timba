@@ -487,15 +487,23 @@ void Polc::changeSolveDomain(const Domain & solveDomain){
 int Polc::makeSolvable (int spidIndex){
   Thread::Mutex::Lock lock(mutex());
 
-  if( ncoeff()<=4) return Funklet::makeSolvable(spidIndex) ;
+  if( ncoeff()<4) return Funklet::makeSolvable(spidIndex) ;
   const LoShape shape =  getCoeffShape ();
   if(shape.size()<=1) return Funklet::makeSolvable(spidIndex) ; //only 1 dimension
   int NX=shape[0];
   int NY=shape[1];
   int maxRank = std::max(NX,NY)-1;
-  if(maxRank<=1) return Funklet::makeSolvable(spidIndex) ; //shouldnt happen leave [1,1] coeff solvable
+  std::vector<bool> mask;
+  if((*this)[FCoeffMask].get_vector(mask)){
+    //check shapes
+    uint size=mask.size();
+    if(size == getNumParms())
+      return Funklet::makeSolvable(spidIndex,mask);
+  }
+
+
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
-  std::vector<bool> mask(NX*NY);
+  mask = std::vector<bool>(NX*NY);
 
   for(int xi=0;xi<NX;xi++){
     for(int yi=0;yi<NY;yi++)
@@ -509,6 +517,7 @@ int Polc::makeSolvable (int spidIndex){
 	
       }
   }
+  (*this)[FCoeffMask].replace()=mask;
   return Funklet::makeSolvable(spidIndex,mask);
 
 }

@@ -94,6 +94,7 @@ namespace Meq
     
     // Parm/Polc fields
     FCoeff           = AidCoeff,
+    FCoeffMask       = AidCoeff|AidMask,
     FAxisIndex       = AidAxis|AidIndex,
     FOffset          = AidOffset,
     FScale           = AidScale,
