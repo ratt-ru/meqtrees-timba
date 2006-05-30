@@ -43,4 +43,4 @@ nothreads.var:            --with-threads=no
 sse.var:                  --without-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
-searchpath.var:           --with-searchpath="+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr /usr"
+searchpath.var:           --with-searchpath="+prefix +root /opt/lofar/external/+pkg+vers/+comp /opt/lofar/external/+pkg+vers /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"
