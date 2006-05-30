@@ -33,6 +33,10 @@
 #         -) a MeqCompounder node                     needs extra children
 #         -) ...
 #     -) Easy to build up complex expressions (MIM, beamshape)
+#     -) Internally, there is a self.__expression, which does not change, and an
+#        expanded version self.__xexpr. In the latter, parameters that are Expressions,
+#        Funklets, MeqNodes etc are replaced with sub-expressions. The self.__xexpr is
+#        the basis for translation into a Funklet, evaluation, etc.
 #     -) Should be very useful for LSM
 #     -) Plotting: Each parameter and variable has an internal testval (scalar) and testvec
 #                  vector. These will be used for plotting, unless otherwise specified.
@@ -87,7 +91,7 @@ from Timba.Contrib.MXM.TDL_Funklet import *
 #***************************************************************************************
 
 class Expression:
-    def __init__(self, expression='-1.23456789', label='<label>', **pp):
+    def __init__(self, expression='-1.23456789', label='<label>', descr=None, **pp):
         """Create the object with a mathematical expression (string)
         of the form:  {aa}*[t]+cos({b}*[f]).
         Variables are enclosed in square brackets: [t],[f],[m],...
@@ -97,6 +101,7 @@ class Expression:
         information may be supplied via the function .parm()."""
 
         self.__label = _unique_label(label)
+        self.__descr = descr
         self.__expression = expression
         self.__numeric_value = None  
         self.__input_expression = expression        
@@ -145,7 +150,7 @@ class Expression:
             try:
                 v = eval(self.__expression)
             except:
-                return self.__numeric_value
+                return None
             self.__numeric_value = v
         if trace: print '\n**',self.__expression,': numeric_value =',self.__numeric_value,'\n'
         return self.__numeric_value
@@ -241,7 +246,10 @@ class Expression:
         """Return a one-line summary of the Expression"""
         ss = '** Expression ('+str(self.__label)+'):  '
         if self.__quals: ss += '(quals='+str(self.__quals)+') '
-        ss += str(self.__expression)
+        if self.__descr:
+            ss += str(self.__descr)
+        # else:
+        #    ss += str(self.__expression)
         return ss
 
     def display(self, txt=None, full=False):
@@ -253,7 +261,7 @@ class Expression:
         print indent,'- input_expression: ',str(self.__input_expression)
         print indent,'- input: ',str(self.__pp)
         print indent,'- default node qualifiers: ',str(self.__quals)
-        print indent,'- numeric value: ',str(self.__numeric_value)
+        print indent,'- purely numeric value: ',str(self.__numeric_value)
         print indent,'-',self.oneliner()
         
         print indent,'- its variables (',len(self.__var),'): '
@@ -420,15 +428,17 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def var (self, key=None, default=None, testinc=None, ntest=10, trace=False):
+    def var (self, key=None, default=None, testinc=None, ntest=10,
+             override=False, trace=False):
         """Get/set the named variable (key).
         If the entry (key) does not exist yet, create it (if recognisable)"""
 
         # If no key specified, return the entire record:
         if key==None: return self.__var
 
-        # If the entry exists already, just return it:
-        if self.__var.has_key(key): return self.__var[key]
+        # If the entry exists already, just return it (unless override):
+        if self.__var.has_key(key):
+            if not override: return self.__var[key]
 
         # Create a new entry in self.__var:
         rr = dict(xn='xn', default=default,
@@ -536,21 +546,23 @@ class Expression:
     # Fit the Expression (e.g. a polc) to a set of given points.
     #============================================================================
 
-    def fit (self, vv, **pp):
+    def fit (self, **pp):
         """Adjust the Expression default parameters to make them fit the
         values of the specified points v(f,t,l,m)"""
 
         trace = True
-        if trace: print '\n** fit(',type(vv),len(vv),'):'
-        self._reset()
         
         # The function values at the specified points:
+        if not pp.has_key('vv'): pp['vv'] = array(range(10))
+        vv = array(pp['vv'])
         nvv = len(vv)
-        vv = array(vv)
-        if trace: print '- vv =',type(vv),' nvv =',nvv
+        if trace: print '\n** fit(',type(vv),len(vv),'):'
+
+        self._reset()
 
         # Check whether there are values for all relevant variables:
         CCC = dict()
+        plotvar = None
         for key in self.__var.keys():
             if not pp.has_key(key):
                 print 'need values for variable:',key
@@ -562,6 +574,7 @@ class Expression:
                 return False
             else:                                         # OK
                 CCC[key] = array(pp[key])
+                plotvar = key                             # see below 
                 self.__var[key]['testvec'] = CCC[key]
                 self.__var[key]['testval'] = CCC[key][2]
                 self.__var[key]['default'] = CCC[key][0]
@@ -619,8 +632,10 @@ class Expression:
             rr['stddev'] = 0.0
         if trace:
             self.display('fit')
-            cc = plot(CCC['t'],vv,'o')
-            self.plot(t=True)
+            cc = plot(CCC[plotvar],vv,'o')
+            rr = dict()
+            rr[plotvar] = True
+            self.plot(**rr)
         return True
 
 
@@ -673,7 +688,7 @@ class Expression:
             factor = (rr['max']-rr['min'])/float(n-1) # scale-factor
             vv = rr['min'] + factor*array(range(n))
         elif isinstance(rr, bool):                  # use default plot-range
-            self.expand()
+            self.expand() 
             if key in self.__xvar.keys():
                 vv = self.testvec(self.__xvar[key]['testvec'])
             elif key in self.__xparm.keys():
@@ -684,6 +699,45 @@ class Expression:
             vv = array(range(1,12))                 # some safe default
         if trace: print '\n** .testvec(',rr,key,')\n   ->',vv,'\n'
         return vv
+
+    #-----------------------------------------------------------------------
+
+    def plotall (self, **pp):
+        """Plot the Expression in various subplots, in each of which a
+        different parameter is varied. The x-axis variable (f,t,..) is
+        automatic, but may be specified explicitly (e.g. t=True)."""
+        # Find the nr of rows and columns of the figure: 
+        keys = self.xorder()                        # expands, if necessary
+        n = len(keys)                               # nr of parameters/subplots
+        ncol = int(ceil(sqrt(n)))
+        nrow = ceil(n/2)
+
+        # print ' n =',n,' nrow =',nrow,' ncol =',ncol
+        # Find the x-axis variable (t,f,..):
+        vkeys = self.__xvar.keys()
+        xvar = vkeys[0]                             # default: first
+        for key in pp.keys():
+            if key in vkeys: xvar = key             # specified explicitly
+        # print 'xvar =',xvar,vkeys
+
+        # Make the plots:
+        k = -1
+        for row in range(1,nrow+1):
+            for col in range(1,ncol+1):
+                k += 1
+                key = keys[k]
+                sp = ncol*100 + nrow*10 + k+1
+                # print '-',k,sp,key
+                rr = dict()
+                rr[key] = True
+                rr[xvar] = True
+                self.plot (_plot='linear', _test=False, _cells=None,
+                           _figure=1, _subplot=sp, _show=False, **rr)
+        # Show the result:
+        show()
+        return True
+
+
 
     #-----------------------------------------------------------------------
 
@@ -739,13 +793,19 @@ class Expression:
                 y -= 0.04
                 figtext(0.15,y,'-'+term, color='red')
             y -= 0.04
-            figtext(0.14,y,'Parameters:', color='green')
+            figtext(0.14,y,'Parameters (top-level only):', color='green')
             for key in self.__order:
                 parm = self.__parm[key]
                 s1 = '{'+key+'}:  '
                 if isinstance(parm, Expression):
                     y -= 0.04
-                    figtext(0.15,y,s1+parm.expression(), color='green')
+                    figtext(0.15,y,'Expr: '+s1+parm.expression(), color='green')
+                elif isinstance(parm, Funklet):
+                    y -= 0.04
+                    figtext(0.15,y,'Funklet: '+s1+parm._type+' '+parm._function, color='green')
+                elif parm.has_key('index'):
+                    y -= 0.04
+                    figtext(0.15,y,'MeqNode: '+s1+parm['child_name'], color='green')
 
         # Plot the data:
         # NB: Plotting rather stupidly fails with scalars....!?
@@ -779,7 +839,7 @@ class Expression:
                 color = cc[0].get_color()
                 text(rr['xannot'], yy[0], rr['annot'][i], color=color)
 
-        if False:
+        if True:
             # Fill the plot-window, but leave a small margin:
             dx = 0.05*abs(rr['xmax']-rr['xmin'])                  # x-margin
             dy = 0.05*abs(rr['ymax']-rr['ymin'])                  # y-margin
@@ -813,6 +873,12 @@ class Expression:
 
         trace = True
         if trace: print '\n** eval(_test=',_test,'):',pp
+
+        # Special case: the Expression is purely numeric:
+        nv = self.numeric_value()
+        if not nv==None:
+            self.__plotrec = None
+            return array([nv])
 
         # Make sure that an expanded expression exists:
         self.expand()
@@ -856,8 +922,8 @@ class Expression:
                     nmax = n
                 elif n>1:
                     parameter = key
-            if trace: print '-',key,n,nmax,parameter,variable
-        if trace: print 'parameter=',parameter,' variable=',variable,'(',nmax,')'
+            if trace: print '-',key,n,nmax,'  parameter =',parameter,'  variable =',variable
+        if trace: print 'parameter =',parameter,' variable =',variable,'(nmax=',nmax,')'
 
         # The results are collected in a plot-record (plotrec):
         plotrec = dict(yy=[], xx=rr[variable], test=_test,
@@ -867,7 +933,7 @@ class Expression:
                        xlabel=variable,
                        ylabel='value',
                        parameter=parameter, pp=None,
-                       title=self.tlabel(), legend=[])
+                       title=self.oneliner(), legend=[])
         vkey = deenclose(variable,'[]')
         if vkey in self.__xvar.keys():
             plotrec['xlabel'] += '   ('+str(self.__xvar[vkey]['unit'])+')'
@@ -931,9 +997,10 @@ class Expression:
         for i in range(len(keys)):
             key = keys[i]
             CCC.append(pp[key])
-            seval = seval.replace(key, 'CCC['+str(i)+']')
+            substring = 'CCC['+str(i)+']'
+            seval = seval.replace(key, substring)
             if trace:
-                print '- substitute',key,'-> ',seval
+                print '- substitute',key,' with: ',substring
         if trace:
             print '  -> seval =',seval
             print '  -> CCC =',CCC
@@ -966,29 +1033,36 @@ class Expression:
         """Return the corresponding Funklet object. Make one if necessary."""
 
         if len(self.__parmtype['MeqNode'])>0:
-            print '\n** .Funklet(): Expression has node child(ren)!\n'
+            # If there are MeqNode children, the Expression should be turned into
+            # a MeqFunctional node. It is not possible to make a Funklet.
+            print '\n** .Funklet(): Expression has MeqNode child(ren)!\n'
             return False
         
         if not self.__expanded or not self.__Funklet:
-            nv = self.numeric_value(trace=False)     # decide on treatment...
-            self.expand()
-            expr = deepcopy(self.__xexpr)
-            if trace: print '\n** Funklet(): ',expr
-            # Replace the parameters {} with pk = p0,p1,p2,...
-            # and fill the coeff-list with their default values
-            coeff = []
-            keys = self.__xparm.keys()
-            for k in range(len(keys)):
-                pk = 'p'+str(k)
-                expr = expr.replace('{'+keys[k]+'}', pk)
-                coeff.append(self.__xparm[keys[k]]['default'])
-                if trace: print '-',k,keys[k],pk,expr,coeff
-            # Replace the valiables [] with x0 (time), x1(freq) etc
-            for key in self.__xvar.keys():
-                xk = self.__xvar[key]['xn']
-                expr = expr.replace('['+key+']', xk) 
-                if trace: print '-',key,xk,expr
+            nv = self.numeric_value(trace=False)
+            if not nv==None:
+                # Special case: the Expression is purely numeric
+                coeff = [nv]
+                expr = 'p0'
+            else:           
+                self.expand(reset=True)
+                expr = deepcopy(self.__xexpr)
+                # Replace the parameters {} with pk = p0,p1,p2,...
+                # and fill the coeff-list with their default values
+                coeff = []
+                keys = self.__xparm.keys()
+                for k in range(len(keys)):
+                    pk = 'p'+str(k)
+                    expr = expr.replace('{'+keys[k]+'}', pk)
+                    coeff.append(self.__xparm[keys[k]]['default'])
+                    if trace: print '-',k,keys[k],pk,expr,coeff
+                # Replace the valiables [] with x0 (time), x1(freq) etc
+                for key in self.__xvar.keys():
+                    xk = self.__xvar[key]['xn']
+                    expr = expr.replace('['+key+']', xk) 
+                    if trace: print '-',key,xk,expr
             # Make the Funklet:
+            if trace: print '\n** Funklet(): ',expr
             self.__Funklet = Funklet(funklet=record(function=expr, coeff=coeff))
             self.__Funklet_function = expr          # for display only
             # Alternative
@@ -1526,46 +1600,86 @@ def Funklet2Expression (Funklet, label='C', trace=False):
 
 #=======================================================================================
 
-def polc_Expression(shape=[1,1], coeff=None, label=None, trace=False):
-    """Create an Expression object for a polc with the given shape.
+
+def polc_Expression(shape=[1,1], coeff=None, label=None, 
+                    type='MeqPolc', f0=1e6, t0=1.0,
+                    fit=None, plot=False, trace=False):
+    """Create an Expression object for a polc with the given shape (and type).
     Parameters can be initialized by specifying a list of coeff.
-    The coeff will be assumed 0 for all those missing in the list."""
+    The coeff will be assumed 0 for all those missing in the list.
+    Optionally, the polc coeff may be determined by fitting to a given
+    set of polc function values vv(t,f): fit=dict(vv=, tt=, ff=)."""
 
     if trace:
-        print '\n** polc_Expression(',shape,coeff,label,'):'
+        print '\n** polc_Expression(',shape,coeff,label,type,'):'
+        if fit: print '       fit =',fit
     if coeff==None: coeff = []
     if not isinstance(coeff, (list,tuple)): coeff = [coeff]
     if len(shape)==1: shape.append(1)
     if shape[0]==0: shape[0] = 1
     if shape[1]==0: shape[1] = 1
     if label==None: label = 'polc'+str(shape[0])+str(shape[1])
+
+    # Whereas the MeqPolc just has variables ([f],[t]),
+    # the MeqPolcLog has parameters that are Expressions:
+    fvar = '[f]'
+    tvar = '[t]'
+    if type=='MeqPolcLog':
+        fvar = '{logf}'
+        tvar = '{logt}'
+
     func = ""
     k = -1
     pp = dict()
     help = dict()
     first = True
+    tdep = False
+    fdep = False
     for i in range(shape[1]):
+        if i>0: fdep = True                          # depends on freq
         for j in range(shape[0]):
+            if j>0: fdep = True                      # depends on time
             k += 1
             pk = 'c'+str(j)+str(i)                   # e.g. c01
             pp[pk] = 0.0
-            if len(coeff)>k: pp[pk] = coeff[k]
+            if len(coeff)>k:
+                pp[pk] = coeff[k]
             help[pk] = label+'_'+str(j)+str(i)
             if not first: func += '+'
             func += '{'+pk+'}'                       # {c01}
-            for i2 in range(j): func += '*[t]'
-            for i1 in range(i): func += '*[f]'
+            for i2 in range(j): func += '*'+tvar     # e.g:  *[t]
+            for i1 in range(i): func += '*'+fvar     # e.g:  *[f]
             first = False
             if trace: print '-',i,j,k,pk,':',func
     result = Expression(func, label, **pp)
-    # insert help..
-    if trace:
-        result.display()
-        result.plot()
+
+    # Define the Expression parameters, if necessary:
+    if type=='MeqPolcLog':
+        if fdep:
+            logf = Expression('log([f]/{f0})', label='fvar')
+            logf.parm('f0', f0)
+            logf.var('f', 1.e8, testinc=0.5*1e7, override=True)  
+            result.parm('logf', logf)
+        if tdep:
+            logf = Expression('log([t]/{t0})', label='tvar')
+            logf.parm('t0', t0)
+            result.parm('logt', logt)
+
+    # Optionally, fit the new polc to a given set of values(f,t):
+    if isinstance(fit, dict):
+        result.fit(**fit)
+
+    # insert help......?
+
+    # Finished:
+    if trace: result.display()
+    if plot: result.plot(_plot='loglog')
     return result
 
 
  
+#=======================================================================================
+
 
 
 
@@ -1643,7 +1757,7 @@ if __name__ == '__main__':
         f0 = Funklet()
         f0.setCoeff([[1,0,2,3]])             # [f] only 
         # f0.setCoeff([1,0,2,3])               # [t] only !!
-        f0.setCoeff([[1,0],[2,3]]) 
+        # f0.setCoeff([[1,0],[2,3]]) 
         f0._type = 'MeqPolcLog' 
         f0.init_function()
         print dir(f0)
@@ -1653,6 +1767,16 @@ if __name__ == '__main__':
         e0 = Funklet2Expression(f0, 'A', trace=True)
         e0.plot('semilogy', f=dict(min=1e8,max=1e9), t=range(1,5))
 
+    #---------------------------------------------------------
+
+    if 0:
+        # Special case: A purely numeric Expression
+        num = Expression('67', label='num')
+        num.display()
+        funklet = num.Funklet(trace=True)
+        v = funklet.eval()
+        print 'funklet.eval() ->',v
+ 
     #---------------------------------------------------------
  
     if 0:
@@ -1668,12 +1792,15 @@ if __name__ == '__main__':
             e1.display(e1.quals(a=5,b=6))
             e1.display(e1.quals())
 
-        if 1:
+        if 0:
             ff = array(range(-10,15))/10.0
             # e1.eval(f=ff, A=range(2))
             # e1.plot(f=ff, A=range(4))
             # e1.plot(f=True, A=True, B=True)
             e1.plot(t=True)
+
+        if 0:
+            e1.plotall(t=True)
 
         if 0:
             e2 = e1.subExpression('cos({B}*[f])', trace=True)
@@ -1685,14 +1812,15 @@ if __name__ == '__main__':
         if 0:
             f1 = e1.Funklet(trace=True)
             e1.display()
-            # Funklet2Expression(f1, 'A', trace=True)
+            # e2 = Funklet2Expression(f1, 'A', trace=True)
+            # e2.plot()
 
         if 0:
-            node = e1.MeqFunctional(ns, trace=True)
+            node = e1.MeqFunctional (ns, trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
 
-        if 0:
-            node = e1.MeqParm(ns, trace=True)
+        if 1:
+            node = e1.MeqParm (ns, trace=True)
             TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
 
         if 0:
@@ -1736,30 +1864,31 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------------------------
 
-    if 1:
+    if 0:
         # WSRT telescope voltage beam (gaussian):
-        gaussian = Expression('{peak}*exp(-{ldep}-{mdep})', label='gauss')
-        gaussian.parm ('peak', default=1.0, polc=[2,1], help='peak voltage beam')
-        lterm = Expression('(([l]-{l0})/{lwidth})**2', label='lterm')
-        lterm.parm ('l0', default=0.0)
-        lterm.parm ('lwidth', default=0.1, help='beam-width in l-direction')
-        gaussian.parm ('ldep', default=lterm)
-        mterm = Expression('(([m]-{m0})/{mwidth})**2', label='mterm')
-        mterm.parm ('m0', default=0.0)
-        mterm.parm ('mwidth', default=0.1, help='beam-width in m-direction')
-        gaussian.parm ('mdep', default=mterm)
+        vbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gauss',
+                           descr='WSRT voltage beam')
+        vbeam.parm ('peak', default=1.0, polc=[2,1], help='peak voltage beam')
+        Lterm = Expression('(([l]-{L0})/{Lwidth})**2', label='Lterm')
+        Lterm.parm ('L0', default=0.0, help='pointing error in L-direction')
+        Lterm.parm ('Lwidth', default=0.1, help='beam-width in L-direction')
+        vbeam.parm ('Lterm', default=Lterm)
+        Mterm = Expression('(([m]-{M0})/{Mwidth})**2', label='Mterm')
+        Mterm.parm ('M0', default=0.0, help='pointing error in M-direction')
+        Mterm.parm ('Mwidth', default=0.1, help='beam-width in m-direction')
+        vbeam.parm ('Mterm', default=Mterm)
         if 0:
             L = ns.L << 0.1
             M = ns.M << -0.2
             LM = ns.LM << Meq.Composer(L,M)
-            node = gaussian.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
-                                          common_axes=[hiid('l'),hiid('m')], trace=True)
+            node = vbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
+                                       common_axes=[hiid('l'),hiid('m')], trace=True)
             TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
         if 0:
-            node = gaussian.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            node = vbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-        gaussian.display(full=True)
-        gaussian.plot(l=True,m=True)
+        vbeam.display(full=True)
+        vbeam.plot(l=True,m=True)
             
 
 
@@ -1800,6 +1929,21 @@ if __name__ == '__main__':
         fp2 = polc_Expression([1,2], 56, trace=True)
         fp.parm(fp.order()[1], fp2)
         fp.display()
+
+    if 0:
+        vv = array(range(10))
+        vv = 12 - vv + 3*(vv**2) - 14.5*(vv**4)
+        if True:
+            fit = dict(vv=vv, t=range(10))
+            fp = polc_Expression([6,1], fit=fit, trace=True)
+        else:
+            fit = dict(vv=vv, f=range(10))
+            fp = polc_Expression([1,5], fit=fit, trace=True)
+        fp.display()
+
+    if 1:
+        fp = polc_Expression([1,4], [1,0,0,2], type='MeqPolcLog', trace=True, plot=True)
+        # fp.plot(f=dict(min=1e7, max=1e9, nr=100))
 
     if 0:
         fp = polc_Expression([0,0], 56, trace=True)
