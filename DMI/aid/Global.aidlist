@@ -408,6 +408,7 @@ Min                              1675       ; from /home/mevius/LOFAR/Timba/MEQ/
 Mismatch                         1257       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 Missing                          1657       ; from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
 Mode                             1215       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+Modulo                           1679       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Motion                           1167       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
 Mount                            1155       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 MS                               1128       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
