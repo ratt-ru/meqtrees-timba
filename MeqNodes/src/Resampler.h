@@ -261,6 +261,7 @@ class Interpolator: public ResampleMachine {
 				//special for complex
         void pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex);
 
+        Vells * really_apply(const Vells &in, std::vector<int> indim, std::vector<int> outdim, std::vector<int> totdim);
 
 };
 
