@@ -23,8 +23,27 @@ int main(int argc, char **argv) {
 			 long int totaxs, *real_naxes;
 			 int is_complex,has_cells;
 
+   		if (argc==1)  {
+				fprintf(stderr,"Usage: %s [infilename] [outfilename]\n",argv[0]);
+				fprintf(stderr,"infilename: A text file describing the VellSet. default: 'bp.txt'\n");
+				fprintf(stderr,"outfilename: Output FITS file that can be read from FITSReader. default: 'out.fits'\n");
+				fprintf(stderr,"If you want to overwrite an existing file, prepend a '!' to the front of the FITS file name like '!out.fits'.\n");
+				return 0;
+		}
 
-			 char *infile="bp.txt";
+	  char *infile;
+	  char *outfile;
+		if(argc>1) {
+			infile=strdup(argv[1]);
+		}else {
+			infile=strdup("bp.txt");
+		}
+		if(argc>2) {
+			outfile=strdup(argv[2]);
+		}else {
+			outfile=strdup("out.fits");
+		}
+
 			 infd =fopen( infile , "r" ); 
 			 if ( infd == NULL ) {
 							   fprintf(stderr, "%s: %d: could not open file %s\n", __FILE__,__LINE__,infile);
@@ -119,7 +138,7 @@ int main(int argc, char **argv) {
 			 /* create a nonzero axes array */
 			 status=0;
 			 
-			 fits_create_file(&outfptr,"!testfile.fits",&status);
+			 fits_create_file(&outfptr,outfile,&status);
 
 			 fits_create_img(outfptr,DOUBLE_IMG,totaxs,real_naxes,&status);
 

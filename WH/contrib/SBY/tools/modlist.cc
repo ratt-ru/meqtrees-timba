@@ -124,7 +124,12 @@ int main(int argc, char *argv[])
     char *filename;     /* name of rate FITS file */
 
 		if (argc==1)  {
-				cout<<"Usage: "<<argv[0]<<" filename cutoff"<<endl;
+				cout<<"Usage: "<<argv[0]<<" [filename] [cutoff]"<<endl;
+				cout<<"filename: A FITS image, like the model file created in AIPS++ clean."<<endl;
+				cout<<"cutoff: A value between 0 and 1, to indicate the amount of clean components extracted, sorted in flux level."<<endl;
+				cout<<"Output: the program will print the clean components line by line."<<endl;
+				cout<<"Each line will have RA,DEC (in degrees), I, Q, U, V."<<endl;
+
 				return 0;
 		}
 
