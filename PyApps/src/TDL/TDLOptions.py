@@ -1,6 +1,6 @@
 from Timba.dmi import *
 from Timba.utils import *
-from ConfigParser import *
+import ConfigParser
 
 import traceback
 import inspect
@@ -17,7 +17,7 @@ _dprintf = _dbg.dprintf;
 
 # config file for script options
 config_file = ".tdl.conf";
-config = ConfigParser();
+config = ConfigParser.RawConfigParser();
 config.read(config_file);
 
 def save_config ():
@@ -27,6 +27,7 @@ def set_config (option,value):
   if not config.has_section(config_section):
     config.add_section(config_section);
   config.set(config_section,option,value);
+  _dprint(1,"setting",option,"=",value,"in config",config_section);
   save_config();
 
 # current config section, this is set to the script name by init_options()
@@ -83,7 +84,7 @@ class _TDLOptionItem(object):
 class _TDLBoolOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value):
     try:
-      value = config.getboolean(config_section,symbol);
+      value = bool(config.getint(config_section,symbol));
     except:
       _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
@@ -93,7 +94,7 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     
   def set (self,value):
     value = bool(value);
-    set_config(self.symbol,value);
+    set_config(self.symbol,int(value));
     self._set(value);
 
   def add_to_menu (self,menu):
