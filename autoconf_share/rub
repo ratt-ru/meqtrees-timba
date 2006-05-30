@@ -78,6 +78,7 @@ install=2
 distcheck=0
 rpm=0
 update=1
+updas=1
 skipbuilt=0
 system=0
 recur=1
@@ -106,9 +107,14 @@ do
   elif [ "$1" = -update ]; then
     shift
     update=1
+    updas=1
   elif [ "$1" = -noupdate ]; then
     shift
     update=0
+    updas=0
+  elif [ "$1" = -noupdas ]; then
+    shift
+    updas=0
   # cvs update qualifiers?
   elif [ "$1" = -updq ]; then
     shift
@@ -302,15 +308,18 @@ if [ $help = 1 ]; then
   echo '  -cvs cvs-command  is an optional cvs command making it possible to'
   echo '                    specify (for example) the root.'
   echo '                    It defaults to cvs.'
-  echo '  -update           checkout/update the source tree (is default).'
-  echo '                    -noupdate prevents it.'
+  echo '  -update           checkout/update autoconf_share and the source tree.'
+  echo '                     -noupdate prevents it all.'
+  echo '                     -noupdas  prevents updating autoconf_share.'
+  echo '                    Default is -update.'
   echo '  -updq string      is a string containing qualifiers for the cvs update'
   echo '                    command (default is empty)'
   echo '  -r<cvstag>        cvs tag of the given package(s) to be updated/checked out'
-  echo '                    If given, the tag will be used for all packages.'
+  echo '                    If given, the tag will be used for all packages'
+  echo '                    (excluding autoconf_share).'
   echo '  -recur[sive]      Do everything recursively, thus also for all'
   echo '                    packages used by the given packages.'
-  echo '                    default is -recur.'
+  echo '                    Default is -recur.'
   echo '  -release=option   defines which CVS release to check out depending on'
   echo '                    the version given in the LOFAR_INTERNAL macros in'
   echo '                    configure.in or the Requires line in PKG.spec.in.'
@@ -486,7 +495,7 @@ echo "$0$args" > rub.log
 echo "" >> rub.log
 
 # First update bootstrap and autoconf_share.
-if [ $update != 0 ]; then
+if [ $updas != 0 ]; then
   if [ -f bootstrap ]; then
     echo "Update of LOFAR/bootstrap"
     $cvscomm update bootstrap >> rub.log 2>&1
@@ -494,7 +503,7 @@ if [ $update != 0 ]; then
     echo "Checkout of LOFAR/bootstrap"
     (cd .. && $cvscomm checkout LOFAR/bootstrap) >> rub.log 2>&1
   fi
-  $pgmpath/rub1 autoconf_share 2 h "" "" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  $pgmpath/rub1 autoconf_share 2 h "" "" "$updas" "$recur" "$cvscomm" "$updq" || exit 1
 fi
 \rm -f allpkg.tmp
 touch allpkg.tmp
