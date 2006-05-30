@@ -957,304 +957,6 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 
 
 
-/*
-int 
-Interpolator::apply1( const VellSet &in, VellSet &out ) {
-  int dim=incells_.size();
-
-	Vells invl=in.getValue();
-
-	std::vector<int> indim;
-	std::vector<int> outdim;
-	std::vector<int> totdim;
-  indim.resize(dim);
-  outdim.resize(dim);
-	totdim.resize(dim);
-
-	for (int i=0; i<dim; i++) {
-		indim[i]=incells_[i].size();
-		outdim[i]=outcells_[i].size();
-		totdim[i]=std::max(indim[i],outdim[i]);
-	}
-
-	if (invl.isReal()) {
-	double *indata=const_cast<double*>(invl.realStorage());
-	if (dim==1) {
-   blitz::Array<double,1> A(indata,blitz::shape(indim[0]),blitz::neverDeleteData);
-   blitz::Array<double,1> B(outdim[0]);
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1)),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1)), outdim[0], xindex_[0]);
-#ifdef DEBUG
-	 cout<<"A="<<A<<endl;
-	 cout<<"B="<<B<<endl;
-#endif
-   blitz::Array<double,1> C=B(blitz::Range(0,outdim[0]-1));
-#ifdef DEBUG
-	 cout<<"C="<<C<<endl;
-#endif
-
-	 out.setValue(new Vells(C));
-	}
-	if (dim==2) {
-   blitz::Array<double,2> A(indata,blitz::shape(indim[0],indim[1]),blitz::neverDeleteData);
-   blitz::Array<double,2> B(outdim[0],totdim[1]);
-	 for (int i=0; i<indim[1]; i++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i), outdim[0], xindex_[0]);
-	 }
-#ifdef DEBUG
-	 cout<<"A="<<A<<endl;
-	 cout<<"B="<<B<<endl;
-#endif
-	 //copy the remaining dimensions
-	 blitz::Array<double,1> yin;
-	 blitz::Array<double,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1));
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1))=yout;
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-   blitz::Array<double,2> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1));
-#ifdef DEBUG
-	 cout<<"C="<<C<<endl;
-#endif
-	 out.setValue(new Vells(C));
-	}
-
-	if (dim==3) {
-   blitz::Array<double,3> A(indata,blitz::shape(indim[0],indim[1],indim[2]),blitz::neverDeleteData);
-   blitz::Array<double,3> B(outdim[0],totdim[1],totdim[2]);
-	 for (int i=0; i<indim[1]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j), outdim[0], xindex_[0]);
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"A="<<A<<endl;
-	 cout<<"B="<<B<<endl;
-#endif
-	 //copy the remaining dimensions
-	 blitz::Array<double,1> yin;
-	 blitz::Array<double,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1),j);
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1),j)=yout;
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-	 yin.resize(indim[2]);
-	 yout.resize(outdim[2]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-					 yin=B(i,j,blitz::Range(0,indim[2]-1));
-           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
-           B(i,j,blitz::Range(0,outdim[2]-1))=yout;
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-   blitz::Array<double,3> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1));
-#ifdef DEBUG
-	 cout<<"C="<<C<<endl;
-#endif
-	 out.setValue(new Vells(C));
-	}
-
-	if (dim==4) {
-   blitz::Array<double,4> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3]),blitz::neverDeleteData);
-   blitz::Array<double,4> B(outdim[0],totdim[1],totdim[2],totdim[3]);
-	 for (int i=0; i<indim[1]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k), outdim[0], xindex_[0]);
-			 }
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"A="<<A<<endl;
-	 cout<<"B="<<B<<endl;
-#endif
-	 //copy the remaining dimensions
-	 blitz::Array<double,1> yin;
-	 blitz::Array<double,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1),j,k);
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1),j,k)=yout;
-			 }
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-	 yin.resize(indim[2]);
-	 yout.resize(outdim[2]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-					 yin=B(i,j,blitz::Range(0,indim[2]-1),k);
-           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
-           B(i,j,blitz::Range(0,outdim[2]-1),k)=yout;
-			 }
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-	 yin.resize(indim[3]);
-	 yout.resize(outdim[3]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-	     for (int k=0; k<outdim[2]; k++) {
-					 yin=B(i,j,k,blitz::Range(0,indim[3]-1));
-           pchip_int(incells_[3], yin,  indim[3], outcells_[3], yout, outdim[3], xindex_[3]);
-           B(i,j,k,blitz::Range(0,outdim[3]-1))=yout;
-			 }
-		 }
-	 }
-#ifdef DEBUG
-	 cout<<"B="<<B<<endl;
-#endif
-
-
-   blitz::Array<double,4> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1));
-#ifdef DEBUG
-	 cout<<"C="<<C<<endl;
-#endif
-	 out.setValue(new Vells(C));
-	}
-	} else if (invl.isComplex()) {
-	dcomplex *indata=const_cast<dcomplex*>(invl.complexStorage());
-	if (dim==1) {
-   blitz::Array<dcomplex,1> A(indata,blitz::shape(indim[0]),blitz::neverDeleteData);
-   blitz::Array<dcomplex,1> B(outdim[0]);
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1)),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1)), outdim[0], xindex_[0]);
-   blitz::Array<dcomplex,1> C=B(blitz::Range(0,outdim[0]-1));
-
-	 out.setValue(new Vells(C));
-	}
-	if (dim==2) {
-   blitz::Array<dcomplex,2> A(indata,blitz::shape(indim[0],indim[1]),blitz::neverDeleteData);
-   blitz::Array<dcomplex,2> B(outdim[0],totdim[1]);
-	 for (int i=0; i<indim[1]; i++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i), outdim[0], xindex_[0]);
-	 }
-	 //copy the remaining dimensions
-	 blitz::Array<dcomplex,1> yin;
-	 blitz::Array<dcomplex,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1));
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1))=yout;
-	 }
-   blitz::Array<dcomplex,2> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1));
-	 out.setValue(new Vells(C));
-	}
-
-	if (dim==3) {
-   blitz::Array<dcomplex,3> A(indata,blitz::shape(indim[0],indim[1],indim[2]),blitz::neverDeleteData);
-   blitz::Array<dcomplex,3> B(outdim[0],totdim[1],totdim[2]);
-	 for (int i=0; i<indim[1]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j), outdim[0], xindex_[0]);
-		 }
-	 }
-	 //copy the remaining dimensions
-	 blitz::Array<dcomplex,1> yin;
-	 blitz::Array<dcomplex,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1),j);
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1),j)=yout;
-		 }
-	 }
-	 yin.resize(indim[2]);
-	 yout.resize(outdim[2]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-					 yin=B(i,j,blitz::Range(0,indim[2]-1));
-           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
-           B(i,j,blitz::Range(0,outdim[2]-1))=yout;
-		 }
-	 }
-   blitz::Array<dcomplex,3> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1));
-	 out.setValue(new Vells(C));
-	}
-
-	if (dim==4) {
-   blitz::Array<dcomplex,4> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3]),blitz::neverDeleteData);
-   blitz::Array<dcomplex,4> B(outdim[0],totdim[1],totdim[2],totdim[3]);
-	 for (int i=0; i<indim[1]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k), outdim[0], xindex_[0]);
-			 }
-		 }
-	 }
-	 //copy the remaining dimensions
-	 blitz::Array<dcomplex,1> yin;
-	 blitz::Array<dcomplex,1> yout;
-	 yin.resize(indim[1]);
-	 yout.resize(outdim[1]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<indim[2]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-					 yin=B(i,blitz::Range(0,indim[1]-1),j,k);
-           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
-           B(i,blitz::Range(0,outdim[1]-1),j,k)=yout;
-			 }
-		 }
-	 }
-	 yin.resize(indim[2]);
-	 yout.resize(outdim[2]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-	     for (int k=0; k<indim[3]; k++) {
-					 yin=B(i,j,blitz::Range(0,indim[2]-1),k);
-           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
-           B(i,j,blitz::Range(0,outdim[2]-1),k)=yout;
-			 }
-		 }
-	 }
-	 yin.resize(indim[3]);
-	 yout.resize(outdim[3]);
-	 for (int i=0; i<outdim[0]; i++) {
-	   for (int j=0; j<outdim[1]; j++) {
-	     for (int k=0; k<outdim[2]; k++) {
-					 yin=B(i,j,k,blitz::Range(0,indim[3]-1));
-           pchip_int(incells_[3], yin,  indim[3], outcells_[3], yout, outdim[3], xindex_[3]);
-           B(i,j,k,blitz::Range(0,outdim[3]-1))=yout;
-			 }
-		 }
-	 }
-
-
-   blitz::Array<dcomplex,4> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1));
-	 out.setValue(new Vells(C));
-	}
-
-	}
-	return dim;
-} */
 
 int 
 Interpolator::apply( const VellSet &in, VellSet &out ) {
@@ -1319,7 +1021,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 
 	 out=new Vells(C);
 	}
-	if (dim==2) {
+	else if (dim==2) {
    blitz::Array<double,2> A(indata,blitz::shape(indim[0],indim[1]),blitz::neverDeleteData);
    blitz::Array<double,2> B(outdim[0],totdim[1]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1349,7 +1051,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 out=new Vells(C);
 	}
 
-	if (dim==3) {
+	else if (dim==3) {
    blitz::Array<double,3> A(indata,blitz::shape(indim[0],indim[1],indim[2]),blitz::neverDeleteData);
    blitz::Array<double,3> B(outdim[0],totdim[1],totdim[2]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1395,7 +1097,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 out=new Vells(C);
 	}
 
-	if (dim==4) {
+	else if (dim==4) {
    blitz::Array<double,4> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3]),blitz::neverDeleteData);
    blitz::Array<double,4> B(outdim[0],totdim[1],totdim[2],totdim[3]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1462,6 +1164,96 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 #endif
 	 out=new Vells(C);
 	}
+
+	else if (dim==5) {
+   blitz::Array<double,5> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3],indim[4]),blitz::neverDeleteData);
+   blitz::Array<double,5> B(outdim[0],totdim[1],totdim[2],totdim[3],totdim[4]);
+	 for (int i=0; i<indim[1]; i++) {
+	   for (int j=0; j<indim[2]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k,l),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k,l), outdim[0], xindex_[0]);
+				 }
+			 }
+		 }
+	 }
+#ifdef DEBUG
+	 cout<<"A="<<A<<endl;
+	 cout<<"B="<<B<<endl;
+#endif
+	 //copy the remaining dimensions
+	 blitz::Array<double,1> yin;
+	 blitz::Array<double,1> yout;
+	 yin.resize(indim[1]);
+	 yout.resize(outdim[1]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<indim[2]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,blitz::Range(0,indim[1]-1),j,k,l);
+           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
+           B(i,blitz::Range(0,outdim[1]-1),j,k,l)=yout;
+				 }
+			 }
+		 }
+	 }
+#ifdef DEBUG
+	 cout<<"B="<<B<<endl;
+#endif
+	 yin.resize(indim[2]);
+	 yout.resize(outdim[2]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,j,blitz::Range(0,indim[2]-1),k,l);
+           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
+           B(i,j,blitz::Range(0,outdim[2]-1),k,l)=yout;
+				 }
+			 }
+		 }
+	 }
+#ifdef DEBUG
+	 cout<<"B="<<B<<endl;
+#endif
+	 yin.resize(indim[3]);
+	 yout.resize(outdim[3]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<outdim[2]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,j,k,blitz::Range(0,indim[3]-1),l);
+           pchip_int(incells_[3], yin,  indim[3], outcells_[3], yout, outdim[3], xindex_[3]);
+           B(i,j,k,blitz::Range(0,outdim[3]-1),l)=yout;
+				 }
+			 }
+		 }
+	 }
+	 yin.resize(indim[4]);
+	 yout.resize(outdim[4]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<outdim[2]; k++) {
+	       for (int l=0; l<outdim[3]; l++) {
+					 yin=B(i,j,k,l,blitz::Range(0,indim[4]-1));
+           pchip_int(incells_[4], yin,  indim[4], outcells_[4], yout, outdim[4], xindex_[4]);
+           B(i,j,k,l,blitz::Range(0,outdim[4]-1))=yout;
+				 }
+			 }
+		 }
+	 }
+#ifdef DEBUG
+	 cout<<"B="<<B<<endl;
+#endif
+
+
+   blitz::Array<double,5> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1),blitz::Range(0,outdim[4]-1));
+#ifdef DEBUG
+	 cout<<"C="<<C<<endl;
+#endif
+	 out=new Vells(C);
+	}
+
 	} else if (invl.isComplex()) {
 	dcomplex *indata=const_cast<dcomplex*>(invl.complexStorage());
 	if (dim==1) {
@@ -1472,7 +1264,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 
 	 out=new Vells(C);
 	}
-	if (dim==2) {
+	else if (dim==2) {
    blitz::Array<dcomplex,2> A(indata,blitz::shape(indim[0],indim[1]),blitz::neverDeleteData);
    blitz::Array<dcomplex,2> B(outdim[0],totdim[1]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1492,7 +1284,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 out=new Vells(C);
 	}
 
-	if (dim==3) {
+	else if (dim==3) {
    blitz::Array<dcomplex,3> A(indata,blitz::shape(indim[0],indim[1],indim[2]),blitz::neverDeleteData);
    blitz::Array<dcomplex,3> B(outdim[0],totdim[1],totdim[2]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1525,7 +1317,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 out=new Vells(C);
 	}
 
-	if (dim==4) {
+	else if (dim==4) {
    blitz::Array<dcomplex,4> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3]),blitz::neverDeleteData);
    blitz::Array<dcomplex,4> B(outdim[0],totdim[1],totdim[2],totdim[3]);
 	 for (int i=0; i<indim[1]; i++) {
@@ -1574,6 +1366,78 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 
 
    blitz::Array<dcomplex,4> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1));
+	 out=new Vells(C);
+	}
+
+	else if (dim==5) {
+   blitz::Array<dcomplex,5> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3],indim[4]),blitz::neverDeleteData);
+   blitz::Array<dcomplex,5> B(outdim[0],totdim[1],totdim[2],totdim[3],totdim[4]);
+	 for (int i=0; i<indim[1]; i++) {
+	   for (int j=0; j<indim[2]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k,l),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k,l), outdim[0], xindex_[0]);
+				 }
+			 }
+		 }
+	 }
+	 //copy the remaining dimensions
+	 blitz::Array<dcomplex,1> yin;
+	 blitz::Array<dcomplex,1> yout;
+	 yin.resize(indim[1]);
+	 yout.resize(outdim[1]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<indim[2]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,blitz::Range(0,indim[1]-1),j,k,l);
+           pchip_int(incells_[1], yin,  indim[1], outcells_[1], yout, outdim[1], xindex_[1]);
+           B(i,blitz::Range(0,outdim[1]-1),j,k,l)=yout;
+				 }
+			 }
+		 }
+	 }
+	 yin.resize(indim[2]);
+	 yout.resize(outdim[2]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<indim[3]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,j,blitz::Range(0,indim[2]-1),k,l);
+           pchip_int(incells_[2], yin,  indim[2], outcells_[2], yout, outdim[2], xindex_[2]);
+           B(i,j,blitz::Range(0,outdim[2]-1),k,l)=yout;
+				 }
+			 }
+		 }
+	 }
+	 yin.resize(indim[3]);
+	 yout.resize(outdim[3]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<outdim[2]; k++) {
+	       for (int l=0; l<indim[4]; l++) {
+					 yin=B(i,j,k,blitz::Range(0,indim[3]-1),l);
+           pchip_int(incells_[3], yin,  indim[3], outcells_[3], yout, outdim[3], xindex_[3]);
+           B(i,j,k,blitz::Range(0,outdim[3]-1),l)=yout;
+				 }
+			 }
+		 }
+	 }
+	 yin.resize(indim[4]);
+	 yout.resize(outdim[4]);
+	 for (int i=0; i<outdim[0]; i++) {
+	   for (int j=0; j<outdim[1]; j++) {
+	     for (int k=0; k<outdim[2]; k++) {
+	       for (int l=0; l<outdim[3]; l++) {
+					 yin=B(i,j,k,l,blitz::Range(0,indim[4]-1));
+           pchip_int(incells_[4], yin,  indim[4], outcells_[4], yout, outdim[4], xindex_[4]);
+           B(i,j,k,l,blitz::Range(0,outdim[4]-1))=yout;
+				 }
+			 }
+		 }
+	 }
+
+   blitz::Array<dcomplex,5> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1),blitz::Range(0,outdim[4]-1));
 	 out=new Vells(C);
 	}
 
