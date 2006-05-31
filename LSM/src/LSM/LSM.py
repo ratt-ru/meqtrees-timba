@@ -1653,24 +1653,26 @@ class LSM:
        eY=eY[0]
        eP=struct.unpack('f',mdl[36:40])
        eP=eP[0]
-       r0=math.cos(eP/(360/math.pi))
-       r1=-math.sin(eP/(360/math.pi))
-       r2=(0.5*eX/3600/(360/math.pi))
-       r2=r2*r2
-       r3=(0.5*eY/3600/(360/math.pi))
-       r3=r3*r3
-       # fortran code snippet from nscan/nmoext.for
-       # R0=COS(IMDLE(MDL_EXT_E+2)/DEG)    !P.A.
-       # R1=-SIN(IMDLE(MDL_EXT_E+2)/DEG)
-       # R2=(.5*IMDLE(MDL_EXT_E)/3600./DEG)**2
-       # R3=(.5*IMDLE(MDL_EXT_E+1)/3600./DEG)**2
-       # IMDLE(MDL_EXT_E+0)=R2*R1*R1+R3*R0*R0    !INTERNAL FORMAT
-       # IMDLE(MDL_EXT_E+1)=R2*R0*R0+R3*R1*R1
-       # IMDLE(MDL_EXT_E+2)=2*(R2-R3)*R0*R1
-       eX=r2*r1*r1+r3*r0*r0
-       eY=r2*r0*r0+r3*r1*r1
-       eP=2*(r2-r3)*r0*r1
 
+       ## the procedure is NMOEXT in nscan/nmoext.for
+       if eP==0 and eX==eY:
+         r0=0
+       else:
+         r0=0.5*(360/math.pi)*math.atan2(-eP,eY-eX)
+       r1=math.sqrt(eP*eP+(eX-eY)*(eX-eY))
+       r2=eX+eY
+       
+       # the real stuff
+       # ex,eY (arcsec) (major,minor axes),  eP (deg) position angle
+       #eX=math.sqrt(abs(0.5*(r2+r1)))*3600*360/math.pi
+       #eY=math.sqrt(abs(0.5*(r2-r1)))*3600*360/math.pi
+       #eP=r0/2
+       # use radians directly
+       eX=math.sqrt(abs(0.5*(r2+r1)))
+       eY=math.sqrt(abs(0.5*(r2-r1)))
+       eP=r0/(2*360)*math.pi
+
+       #print id,r0,r1,r2,eX,eY,eP
 
        ### spectral index
        SI=struct.unpack('f',mdl[40:44])
@@ -1683,14 +1685,14 @@ class LSM:
 
        #print ii,id,ll,mm,sI,sQ,sU,sV,eX,eY,eP,SI,RM
 
-       s=Source('NEWS'+str(id))
+       s=Source('NEWS'+str(id), major=eX, minor=eY, pangle=eP)
        (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
 
        #print ii,id,ll,mm,source_RA,source_Dec
-       if SI==0 and sQ==0 and sU==0 and sV==0:
+       if SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
         my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
        else:
-        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV,RM=RM,trace=0)
        # first compose the sixpack before giving it to the LSM
        my_sixpack.sixpack(ns)
        self.add_source(s,brightness=sI,

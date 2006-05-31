@@ -1,5 +1,6 @@
 from qt import *
 import sys
+import common_utils
 
 from SDialog import *
 from Timba.TDL import *
@@ -147,6 +148,7 @@ class TreeDisp(QDialog):
     def displayInitrec(self,item):
        if item !=None:
          dialog=SDialog(self,item.node.name,0)
+         print common_utils.get_stokes_I_parms(item.node)
          tmp_str="<u>Init Record:</u><br/><ul>"
          irec=item.node.initrec()
          for kk in irec.keys():

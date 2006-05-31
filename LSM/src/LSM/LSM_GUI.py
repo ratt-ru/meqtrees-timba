@@ -188,7 +188,12 @@ class LSMWindow(QMainWindow):
         for sname in self.lsm.s_table.keys():
          source=self.lsm.s_table[sname]
          self.table1.setText(row,0,QString(source.name))
-         self.table1.setText(row,1,QString(source.treeType))
+         if source.treeType==SOURCE_POINT:
+          self.table1.setText(row,1,QString("Point"))
+         elif source.treeType==SOURCE_GAUSSIAN:
+          self.table1.setText(row,1,QString("Gaussian"))
+         else:
+          self.table1.setText(row,1,QString("Undefined"))
          self.table1.setText(row,2,QString(source.tableName))
          row+=1
         self.table1.adjustColumn(0)

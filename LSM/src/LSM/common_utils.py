@@ -32,6 +32,11 @@ POINT_TYPE= 0
 PATCH_TYPE= 1
 
 
+# Types of sources in source table
+SOURCE_POINT=0
+SOURCE_GAUSSIAN=1
+SOURCE_IMAGE=2
+
 # default depths  for various items on the canvas
 IMAGE_DEPTH=-1
 
@@ -485,7 +490,7 @@ def get_default_parms(nd):
  irec=nd.initrec()
  #print irec
  # try to get default_value
- if irec.has_key('default_vale'):
+ if irec.has_key('default_value'):
   cf=irec['default_value']
   # this need to be a scalar
   if cf.nelements()>1:
@@ -516,6 +521,45 @@ def get_default_parms(nd):
  else: # error
    my_val=-1
  return my_val
+
+
+#
+# utility to get flux, spectral index, rest frequency
+# from a Stokes I node.
+def get_stokes_I_parms(nd):
+    irec=nd.initrec()
+    if irec.has_key('init_funklet'):
+       fn=irec['init_funklet']
+       if (is_meqpolc(fn)):
+         cf=fn['coeff']
+         if cf.nelements()>1:
+            my_I=numarray.ravel(cf)[0]
+         else: #scalar
+            my_I=float(cf)
+         my_SI=0
+       elif (is_meqpolclog(fn)):
+         cf=fn['coeff']
+         if cf.nelements()>1:
+           my_I=numarray.ravel(cf)[0]
+         else: #scalar
+           my_I=float(cf)
+         # return exponent
+         my_I=math.pow(10,my_I)
+         if cf.nelements()>2:
+           ## NOTE: the SI can have a polynomial, but for the moment we ignore 
+           ## higher order terms
+           my_SI=numarray.ravel(cf)[1]
+         else: #scalar
+           my_SI=0
+       fr=fn['axis_list']
+       if fr and fr.has_key('freq'):
+         my_F=fr['freq']
+       else:
+         my_F=0
+       return  [my_I,my_SI,my_F]
+    else:
+      print "WARNING: unable to find a value for Stokes I in ",nd.name
+    return [0,0,0]
 
 
 ######################################################

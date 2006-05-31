@@ -422,7 +422,7 @@ class Axes:
      self.yax_degtext[i].show()
    
 #############################################################
-class PointSource:
+class PointSourceDisplay:
  def __init__(self,name,parent):
   self.name=name
   self.cview=parent

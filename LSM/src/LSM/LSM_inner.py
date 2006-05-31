@@ -25,21 +25,37 @@ class Source:
  Attributes are
  name=Source name - String
  treeType=type of Template tree - string
- tableName=MeqParm table Name - string"""
+ tableName=MeqParm table Name - string
+ 
+ Additional parameters for extended sources
+ major, minor, pangle: for Elliptic Gaussians
+ filename: for images ??"""
 
  # Constructor
- def __init__(self,name,treeType='Point1',tableName='Table1'):
+ def __init__(self,name,treeType=SOURCE_POINT,tableName='Table1',major=0, minor=0, pangle=0):
    # Check source name to be a string
    if type(name) != type(""):
     raise TypeError,"Name must be a string, not %s"  % type(name).__name__
    self.name=name
-   self.treeType=treeType
    self.tableName=tableName
+   self.eX=major
+   self.eY=minor
+   self.eP=pangle
+   if major==0 and minor==0 and pangle==0:
+     # point source
+     self.treeType=SOURCE_POINT
+   else:
+     self.treeType=SOURCE_GAUSSIAN
+     
 
  # set template tree type
  def setTemplateTree(self,treeType):
    self.treeType=treeType
  
+ # return tree type
+ def treeType(self):
+   return self.treeType
+
  # Print
  def __str__(self):
    temp_str="Source name: "+self.name

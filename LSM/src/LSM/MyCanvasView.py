@@ -188,7 +188,7 @@ class MyCanvasView(QCanvasView):
      punit=self.lsm.p_table[sname]
      if punit.getType()==POINT_TYPE:
       xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
-      self.p_tab[sname]=PointSource(sname,self)
+      self.p_tab[sname]=PointSourceDisplay(sname,self)
      else:
       # we have a patch
       retval=punit.getLimits()
@@ -863,7 +863,7 @@ class MyCanvasView(QCanvasView):
      punit=self.lsm.p_table[sname]
      if punit.getType()==POINT_TYPE:
       xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
-      self.p_tab[sname]=PointSource(sname,self)
+      self.p_tab[sname]=PointSourceDisplay(sname,self)
      else:
       # we have a patch
       retval=punit.getLimits()
