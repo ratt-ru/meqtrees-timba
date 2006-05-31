@@ -112,7 +112,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Metrics Display': 310,
         'Toggle log axis for chi_0': 311,
         'Toggle log axis for solution vector': 312,
-        'Toggle solution distances display': 313,
+        'Toggle chi-square surfaces display': 313,
         }
 
     _start_spectrum_menu_id = 0
@@ -510,11 +510,12 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
         return True
 
-      if menuid == self.menu_table['Toggle solution distances display']:
+      if menuid == self.menu_table['Toggle chi-square surfaces display']:
         if self.display_solution_distances is False:
           self.display_solution_distances = True
         else:
           self.display_solution_distances = False
+        self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
         self.replot()
         return True
@@ -1939,7 +1940,7 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = True;
       
 # if we've doing a solver plot and we want to just display
-# solution distances
+# chi-square surfaces
       if self.display_solution_distances:
         self.is_vector = True
 
@@ -2153,7 +2154,7 @@ class QwtImageDisplay(QwtPlot):
         self.active_image = False
 
 
-# are we displaying solution distances?
+# are we displaying chi-square surfaces?
         if self.display_solution_distances:
           if not self.metrics_rank is None:
             self.add_solver_metrics()
@@ -2376,8 +2377,8 @@ class QwtImageDisplay(QwtPlot):
           self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
           toggle_id = self.menu_table['Toggle log axis for solution vector']
           self._menu.insertItem("Toggle log axis for solution vector", toggle_id)
-          toggle_id = self.menu_table['Toggle solution distances display']
-          self._menu.insertItem("Toggle solution distances display", toggle_id)
+          toggle_id = self.menu_table['Toggle chi-square surfaces display']
+          self._menu.insertItem("Toggle chi-square surfaces display", toggle_id)
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)
