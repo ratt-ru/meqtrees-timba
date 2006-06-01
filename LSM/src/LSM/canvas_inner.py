@@ -46,6 +46,34 @@ class Circle(QCanvasEllipse):
    return self.radius
 
 
+#################################################################
+# class for drawing point (and elliptic - extended) sources
+class Ellipse(QCanvasEllipse):
+  def __init__(self,center_x,center_y,major,minor,PA,color,name,canvas):
+    QCanvasEllipse.__init__(self,major,minor,canvas)
+    self.name=name
+    self.canvas=canvas
+    self.color=color
+    self.major=major
+    self.minor=minor
+    self.setBrush(QBrush(self.color))
+    self.setX(center_x)
+    self.setY(center_y)
+    self.myRTTI=POINT_SOURCE_RTTI
+
+  def rtti(self):
+    return self.myRTTI
+
+  def updateColor(self,color):
+   self.color=color
+   self.setBrush(QBrush(self.color))
+
+  def getDims(self):
+   return max(self.major,minor)
+
+
+
+
 ##################################################################
 class pCross(QCanvasPolygon):
   def __init__(self,center_x,center_y,w,l,color,name,canvas):
@@ -563,7 +591,7 @@ class PointSourceDisplay:
 
 ################################################################
 #############################################################
-class Patch:
+class PatchDisplay:
  def __init__(self,name,parent,x_min,y_min,x_max,y_max):
   self.name=name
   self.cview=parent
@@ -685,6 +713,66 @@ class Patch:
   else:
     return qRgb(255,int((4-4*cl)*256),0)
 
+##########################################################################
+##########################################################################
+class GaussianSourceDisplay:
+ def __init__(self,name,parent):
+  self.name=name
+  print "creating Gauss",name
+  self.cview=parent
+  # get corresponding PUnit
+  punit=self.cview.lsm.p_table[self.name]
+  #print self.name
+  # get coords 
+  xys=self.cview.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
+  self.x=xys[0]
+  self.y=xys[1]
+  # get major, minor, PA values
+  elist=punit.getExtParms()
+  print elist
+  eX=elist[0]
+  eY=elist[1]
+  eP=elist[2]
+  xys1=self.cview.globalToLocal(punit.sp.getRA()+eX/2,punit.sp.getDec()+eY/2)
+  major=int(abs(xys[0]-xys1[0]))*2
+  minor=int(abs(xys[1]-xys1[1]))*2
+  print major,minor
+  # set a default minimum value
+  if major<2: major=2
+  if minor<2: minor=2
+  
+  print punit.getBrightness()
+  self.ellipse=self.addCircle(xys[0],xys[1],major,minor,eP,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
+
+  self.show()
+
+ # circle
+ def addCircle(self,center_x,center_y,major,minor,PA,color,name,z_value):
+  i = Ellipse(center_x,center_y,major,minor,PA,color,name,self.cview.canvas())
+  i.setZ(z_value)
+  return i
+
+ def show(self):
+   self.ellipse.show()
+
+ def hide(self):
+  self.ellipse.hide()
+
+ def hideAll(self):
+  self.ellipse.hide()
+
+ def showType(self,flag):
+  self.ellipse.show()
+
+ def updateDisplayProperties(self,newcolor,new_value):
+  self.ellipse.updateColor(newcolor)
+
+
+ # shrink/enlarge each object by the given scale
+ def resizeItems(self,new_scale):
+  pass
+
+################################################################
 
 ###############################################################
 class ImageItem(QCanvasRectangle):

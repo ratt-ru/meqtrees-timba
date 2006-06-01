@@ -188,9 +188,9 @@ class LSMWindow(QMainWindow):
         for sname in self.lsm.s_table.keys():
          source=self.lsm.s_table[sname]
          self.table1.setText(row,0,QString(source.name))
-         if source.treeType==SOURCE_POINT:
+         if source.treeType==POINT_TYPE:
           self.table1.setText(row,1,QString("Point"))
-         elif source.treeType==SOURCE_GAUSSIAN:
+         elif source.treeType==GAUSS_TYPE:
           self.table1.setText(row,1,QString("Gaussian"))
          else:
           self.table1.setText(row,1,QString("Undefined"))
@@ -241,10 +241,12 @@ class LSMWindow(QMainWindow):
           mytype=punit.getType()
           if mytype==POINT_TYPE:
            self.table2.setText(row,PCOL_TYPE,self.tr("Point"))
+          elif mytype==GAUSS_TYPE:
+           self.table2.setText(row,PCOL_TYPE,self.tr("Ext"))
           else:
            self.table2.setText(row,PCOL_TYPE,self.tr("Patch"))
           # do not print all the source names in case of a patch
-          if mytype==POINT_TYPE:
+          if mytype==POINT_TYPE or mytype==GAUSS_TYPE:
            self.table2.setText(row,PCOL_SLIST,QString(str(punit.getSources())))
           else: #patch
            srclist=punit.getSources()
@@ -260,7 +262,7 @@ class LSMWindow(QMainWindow):
          # self.table2.setText(row,10,QString(str(punit.sp.getRA())))
          # self.table2.setText(row,11,QString(str(punit.sp.getDec())))
 
-          if mytype==POINT_TYPE:
+          if mytype==POINT_TYPE or mytype==GAUSS_TYPE:
            self.table2.setText(row,PCOL_I,QString("MeqTree"))
            # see if this source is polarized
            [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
@@ -472,7 +474,7 @@ class LSMWindow(QMainWindow):
        punit=plist[0]
        sp=plist[0].getSP()
        win=None
-       if punit.getType()==POINT_TYPE: 
+       if punit.getType()==POINT_TYPE or punit.getType()==GAUSS_TYPE: 
         if (celly==PCOL_I):
          # get I node stub corresponding to this punit
          win=TreeDisp(self,puname,0,0,sp.stokesI())
@@ -721,6 +723,8 @@ class LSMWindow(QMainWindow):
               ttext=QString(punit.name+": brightness: "+tmpval+"Jy/beam"+", type: ")
               if punit.getType()==POINT_TYPE:
                 ttext=QString(ttext.ascii()+"Point")
+              elif punit.getType()==GAUSS_TYPE:
+                ttext=QString(ttext.ascii()+"Ext")
               else:
                 ttext=QString(ttext.ascii()+"Patch")
               # polarization
@@ -946,10 +950,14 @@ class LSMWindow(QMainWindow):
           mytype=punit.getType()
           if mytype==POINT_TYPE:
            self.table2.setText(row,PCOL_TYPE,self.tr("Point"))
+          elif mytype==GAUSS_TYPE:
+           self.table2.setText(row,PCOL_TYPE,self.tr("Ext"))
           else:
            self.table2.setText(row,PCOL_TYPE,self.tr("Patch"))
           # do not print all the source names in case of a patch
           if mytype==POINT_TYPE:
+           self.table2.setText(row,PCOL_SLIST,QString(str(punit.getSources())))
+          elif mytype==GAUSS_TYPE:
            self.table2.setText(row,PCOL_SLIST,QString(str(punit.getSources())))
           else: #patch
            srclist=punit.getSources()
@@ -959,7 +967,7 @@ class LSMWindow(QMainWindow):
           self.table2.setText(row,PCOL_BRIGHT,QString(str(punit.getBrightness())))
           self.table2.setText(row,PCOL_FOV,QString(str(punit.getFOVDist())))
 
-          if mytype==POINT_TYPE:
+          if mytype==POINT_TYPE or mytype==GAUSS_TYPE  :
            self.table2.setText(row,PCOL_I,QString("MeqTree"))
            self.table2.setText(row,PCOL_Q,QString("MeqTree"))
            self.table2.setText(row,PCOL_U,QString("MeqTree"))

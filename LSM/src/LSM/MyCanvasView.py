@@ -186,13 +186,16 @@ class MyCanvasView(QCanvasView):
     # plot all p-units/sources
     for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
-     if punit.getType()==POINT_TYPE:
-      xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
+     mytype=punit.getType()
+     if mytype==POINT_TYPE:
+      #xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
       self.p_tab[sname]=PointSourceDisplay(sname,self)
+     elif mytype==GAUSS_TYPE:
+      self.p_tab[sname]=GaussianSourceDisplay(sname,self)
      else:
       # we have a patch
       retval=punit.getLimits()
-      self.p_tab[sname]=Patch(sname,self,retval[0],retval[1],\
+      self.p_tab[sname]=PatchDisplay(sname,self,retval[0],retval[1],\
                  retval[2],retval[3])
 
 
@@ -471,7 +474,7 @@ class MyCanvasView(QCanvasView):
       # remove these sources from PUnit table on main window
       self.parent.removePUnitRows(psource_list)
       # update the GUI
-      self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
+      self.p_tab[retval[0]]=PatchDisplay(retval[0],self,retval[1],retval[2],\
                  retval[3],retval[4])
       # update PUnit table on main window
       self.parent.insertPUnitRow(retval[0])
@@ -595,7 +598,8 @@ class MyCanvasView(QCanvasView):
    # next update p-unit table (colours)
    for sname in self.lsm.p_table.keys():
     punit=self.lsm.p_table[sname]
-    if punit.getType()==POINT_TYPE:
+    mytype=punit.getType()
+    if mytype==POINT_TYPE or mytype==GAUSS_TYPE :
      # update size and colour both, if pcrosses are displayed 
      self.p_tab[sname].updateDisplayProperties(self.getColor(punit.getBrightness(type,f_index,t_index)), punit.getBrightness(type,f_index,t_index))
     else: #PATCH_TYPE
@@ -670,7 +674,7 @@ class MyCanvasView(QCanvasView):
         # remove these sources from PUnit table on main window
         self.parent.removePUnitRows(psource_list)
         # update the GUI
-        self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
+        self.p_tab[retval[0]]=PatchDisplay(retval[0],self,retval[1],retval[2],\
                  retval[3],retval[4])
         # update PUnit table on main window
         self.parent.insertPUnitRow(retval[0])
@@ -862,12 +866,13 @@ class MyCanvasView(QCanvasView):
     for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
      if punit.getType()==POINT_TYPE:
-      xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
       self.p_tab[sname]=PointSourceDisplay(sname,self)
+     elif punit.getType()==GAUSS_TYPE:
+      self.p_tab[sname]=GaussianSourceDisplay(sname,self)
      else:
       # we have a patch
       retval=punit.getLimits()
-      self.p_tab[sname]=Patch(sname,self,retval[0],retval[1],\
+      self.p_tab[sname]=PatchDisplay(sname,self,retval[0],retval[1],\
                  retval[2],retval[3])
 
 

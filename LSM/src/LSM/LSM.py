@@ -104,6 +104,36 @@ class PUnit:
  def getFOVDist(self):
   return self.FOV_distance
 
+ # get eX,eY,eP values of the sources in this PUnit
+ # if all are point sources, return zeros
+ def getExtParms(self):
+  ll=[]
+  for ss in self.s_list:
+    ll.append(self.lsm.s_table[ss].extParms())
+
+  return ll[0]
+
+
+ # get RA,DEC if possible
+ def getRADec(self,ns):
+   mysixpack=self.__sixpack
+   [ra,dec,br]=extract_parms(mysixpack,ns)
+   return (ra,dec)
+
+ # get I,Q,U,V if possible
+ def getIQUV(self,ns):
+   mysixpack=self.__sixpack
+   [ra,dec,I]=extract_parms(mysixpack,ns)
+   [I,Q,U,V,SI,f0]=extract_polarization_parms(mysixpack,ns,absolute=1)
+   return (I,Q,U,V,SI,f0)
+
+
+
+ def getEssentialParms(self,ns):
+   (ra,dec)=self.getRADec(ns)
+   (I,Q,U,V,SI,f0)=self.getIQUV(ns)
+
+   return (ra,dec,I,Q,U,V,SI,f0)
 
  # if this PUnit is a patch, return the limits
  # of its boundary
@@ -224,7 +254,7 @@ class PUnit:
 
  # change RA,Dec of myself, 
  def change_location(self,new_ra,new_dec,ns):
-   if self.getType()==POINT_TYPE:
+   if self.getType()==POINT_TYPE or self.getType()==GAUSS_TYPE :
     my_sixpack=self.__sixpack
     change_radec(my_sixpack,new_ra,new_dec,ns)
    elif self.getType()==PATCH_TYPE:
@@ -269,7 +299,7 @@ class LSM:
  # Does pretty much nothing so far
  def __init__(self):
   self.s_table={}
-  self.m_table={}
+  self.m_table='thislsm.mep'
   self.tmpl_table={}
   self.p_table={}
   self.mqs=None
@@ -317,7 +347,6 @@ class LSM:
     s: Source object
     **kw=variable list of keyword arguments such as
      brightness=10
-     type='point' / 'patch'
      sixpack='Sixpack object, in a composed state'
      ra=100
      dec=100
@@ -343,6 +372,9 @@ class LSM:
   """
   # Use the p-unit name to be the source name (point source) 
   p=PUnit(s.name,self)
+  if s.getType()!=POINT_TYPE:
+   p.setType(s.getType())
+
   # add the source to the source list of the p-unit
   p.addSource(s.name)
   
@@ -352,13 +384,6 @@ class LSM:
   else:
    p.setBrightness(0)
 
-  if kw.has_key('type') and \
-    kw['type']=='patch':
-    #add POINT =0 PATCH=1 etc
-    p.setType(PATCH_TYPE) # 1 - patch
-  else:
-    p.setType(POINT_TYPE) # 0 - point source
-  
   # set the sixpack object
   if kw.has_key('sixpack'):
    p.setSP(kw['sixpack'])
@@ -487,7 +512,7 @@ class LSM:
   count=0
   for pname in self.p_table.keys():
    pu=self.p_table[pname]
-   if (pu.getType()==POINT_TYPE and pu._patch_name==None) or\
+   if ((pu.getType()==POINT_TYPE or pu.getType()==GAUSS_TYPE) and pu._patch_name==None) or\
      pu.getType()==PATCH_TYPE:
     count+=1
   return count 
@@ -513,7 +538,7 @@ class LSM:
 
   for p in self.p_table.keys():
    punit=self.p_table[p]
-   if punit.getType()==POINT_TYPE:
+   if punit.getType()==POINT_TYPE or punit.getType()==GAUSS_TYPE :
     tmpval=punit.sp.getRA()
     if tmpval > max_RA:
      max_RA=tmpval
@@ -545,7 +570,8 @@ class LSM:
    # select the max value
    tmp_max=-1e6
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+    mytype=self.p_table[pname].getType()
+    if mytype==POINT_TYPE or mytype==GAUSS_TYPE :
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_max < tmp_val:
       tmp_max=tmp_val
@@ -569,7 +595,8 @@ class LSM:
    # scan of all punits
    tmp_min=1e6 # FIXME: a very large value
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+    mytype=self.p_table[pname].getType()
+    if mytype==POINT_TYPE or mytype==GAUSS_TYPE:
      tmp_val=self.p_table[pname].getBrightness()
      if tmp_min > tmp_val:
       tmp_min=tmp_val
@@ -578,7 +605,8 @@ class LSM:
    # select the min value
    tmp_min=1e6
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+    mytype=self.p_table[pname].getType()
+    if mytype==POINT_TYPE or mytype==GAUSS_TYPE :
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_min > tmp_val:
       tmp_min=tmp_val
@@ -595,7 +623,8 @@ class LSM:
    tmp_max=-1e6
    tmp_abs_min=1e6
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+    mytype=self.p_table[pname].getType()
+    if mytype==POINT_TYPE or mytype==GAUSS_TYPE:
      tmp_val=self.p_table[pname].getBrightness()
      if tmp_min > tmp_val:
       tmp_min=tmp_val
@@ -820,15 +849,30 @@ class LSM:
  # returns a list of p-units satisfying the query
  # possible query formats are:
  # count=4 : gives first 4 brightest punits
- # name='name': gives p unit matching name='name'
+ # names='list of names': gives a list of p units matching the names in the  'name_list'
+ # name='name': gives the p unit matching the name 'name'
  # cat=1,2,.. : gives p units of given category
  def queryLSM(self,**kw):
   
   outlist=[]
+  if kw.has_key('all') and kw['all']==1:
+   for pname in self.p_table.keys():
+     pu=self.p_table[pname]
+     if (((pu.getType()==POINT_TYPE or pu.getType()==GAUSS_TYPE ) and pu._patch_name==None) or\
+       pu.getType()==PATCH_TYPE):
+       outlist.append(pu)
+   return outlist
+ 
   if kw.has_key('name'):
    outlist.append(self.p_table[kw['name']])
    return outlist
   
+  if kw.has_key('names'):
+   for pname in kw['names']:
+     if self.p_table.has_key(pname):
+      outlist.append(self.p_table[pname])
+   return outlist
+ 
   if kw.has_key('count'):
    for i in range(min(kw['count'],len(self.__barr))): 
     outlist.append(self.p_table[self.__barr[i]])
@@ -838,7 +882,7 @@ class LSM:
     for pname in self.p_table.keys():
      pu=self.p_table[pname]
      if pu.getCat()==kw['cat'] and\
-      ((pu.getType()==POINT_TYPE and pu._patch_name==None) or\
+      (((pu.getType()==POINT_TYPE or pu.getType()==GAUSS_TYPE ) and pu._patch_name==None) or\
        pu.getType()==PATCH_TYPE):
        outlist.append(pu)
     return outlist
@@ -1725,11 +1769,11 @@ class LSM:
    \s*             # skip white space
    (?P<col3>(-)?\d+(\.\d+)?)   # Stokes I - Flux
    \s*             # skip white space
-   (?P<col4>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   (?P<col4>(-)?\d+(\.\d+)?)   # Stokes Q - Flux
    \s*             # skip white space
-   (?P<col5>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   (?P<col5>(-)?\d+(\.\d+)?)   # Stokes U - Flux
    \s*             # skip white space
-   (?P<col6>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   (?P<col6>(-)?\d+(\.\d+)?)   # Stokes V - Flux
    [\S\s]+
    \s*$""",re.VERBOSE)
  
@@ -1761,6 +1805,84 @@ class LSM:
  
   self.setNodeScope(ns)
   self.setFileName(infile_name)
+
+
+
+
+ ## build from a text file with extended sources
+ ## format:
+ ## RA(deg) DEC(dec) sI sQ sU sV SI eX eY eP
+ def build_from_extlist(self,infile_name,ns):
+  from Timba.Contrib.JEN import MG_JEN_Sixpack
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>[A-Za-z]\w+)  # column 1 name: must start with a character
+   \s*             # skip white space
+   (?P<col2>(-)?\d+(\.\d+)?)   # RA angle - rad
+   \s*             # skip white space
+   (?P<col3>(-)?\d+(\.\d+)?)   # Dec angle - rad
+   \s*             # skip white space
+   (?P<col4>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   \s*             # skip white space
+   (?P<col5>(-)?\d+(\.\d+)?)   # Stokes Q - Flux
+   \s*             # skip white space
+   (?P<col6>(-)?\d+(\.\d+)?)   # Stokes U - Flux
+   \s*             # skip white space
+   (?P<col7>(-)?\d+(\.\d+)?)   # Stokes V - Flux
+   \s*             # skip white space
+   (?P<col8>(-)?\d+(\.\d+)?)   # Spectral index 
+   \s*             # skip white space
+   (?P<col9>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source major axis: rad
+   \s*             # skip white space
+   (?P<col10>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source minor axis: rad
+   \s*             # skip white space
+   (?P<col11>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source position angle : rad
+   [\S\s]+""",re.VERBOSE)
+
+
+  kk=0
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    source_RA=float(v.group('col2'))
+    source_Dec=float(v.group('col3'))
+    sI=eval(v.group('col4'))
+    sQ=eval(v.group('col5'))/(sI*100)
+    sU=eval(v.group('col6'))/(sI*100)
+    sV=eval(v.group('col7'))/(sI*100)
+    SI=eval(v.group('col8'))
+
+    eX=eval(v.group('col9'))
+    eY=eval(v.group('col10'))
+    eP=eval(v.group('col11'))
+
+    s=Source(v.group('col1'), major=eX, minor=eY, pangle=eP)
+
+    kk=kk+1
+
+    #print sI,sQ,sU,sV
+    freq0=1e6
+    if (SI==0 and sQ==0 and sU==0 and sV==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+    elif (SI==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+    else :
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI,trace=0)
+ 
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    self.add_source(s,brightness=eval(v.group('col4')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+
 
 
 #########################################################################

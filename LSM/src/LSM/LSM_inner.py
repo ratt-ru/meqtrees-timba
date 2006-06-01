@@ -32,7 +32,7 @@ class Source:
  filename: for images ??"""
 
  # Constructor
- def __init__(self,name,treeType=SOURCE_POINT,tableName='Table1',major=0, minor=0, pangle=0):
+ def __init__(self,name,treeType=POINT_TYPE,tableName='Table1',major=0, minor=0, pangle=0):
    # Check source name to be a string
    if type(name) != type(""):
     raise TypeError,"Name must be a string, not %s"  % type(name).__name__
@@ -43,9 +43,9 @@ class Source:
    self.eP=pangle
    if major==0 and minor==0 and pangle==0:
      # point source
-     self.treeType=SOURCE_POINT
+     self.treeType=POINT_TYPE
    else:
-     self.treeType=SOURCE_GAUSSIAN
+     self.treeType=GAUSS_TYPE
      
 
  # set template tree type
@@ -55,12 +55,22 @@ class Source:
  # return tree type
  def treeType(self):
    return self.treeType
+ # return tree type
+ def getType(self):
+   return self.treeType
+
+
+
+ # return extended params
+ def extParms(self):
+  return (self.eX,self.eY,self.eP)
 
  # Print
  def __str__(self):
    temp_str="Source name: "+self.name
-   temp_str+=" Template tree: "+self.treeType
+   temp_str+=" Template tree: "+str(self.treeType)
    temp_str+=" MeqParm Table: "+self.tableName
+   temp_str+=" Extended ?: "+str(self.extParms())
    return temp_str
 ###############################################
 # class sixpack is not needed to be defined here (JEN code does that)

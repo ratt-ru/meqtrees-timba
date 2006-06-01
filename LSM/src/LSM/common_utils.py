@@ -27,15 +27,11 @@ POINT_SOURCE_RTTI=1001
 PATCH_RECTANGLE_RTTI=1002
 PATCH_IMAGE_RTTI=1003
 
-# PUnit types
+# PUnit/Source types
 POINT_TYPE= 0
 PATCH_TYPE= 1
-
-
-# Types of sources in source table
-SOURCE_POINT=0
-SOURCE_GAUSSIAN=1
-SOURCE_IMAGE=2
+GAUSS_TYPE= 2
+IMAGE_TYPE= 3
 
 # default depths  for various items on the canvas
 IMAGE_DEPTH=-1
@@ -425,7 +421,7 @@ def extract_parms(sixpack,ns):
 # MeqParm information from a TDL_Sixpack
 # sixpack=sixpack object (in composed form)
 # ns=nodescope used for the sixpack
-def extract_polarization_parms(sixpack,ns):
+def extract_polarization_parms(sixpack,ns,absolute=0):
  # get name
  myname=sixpack.label()
  #print "looking for QUV of ",myname
@@ -473,8 +469,31 @@ def extract_polarization_parms(sixpack,ns):
    myvv=0
 
 
- ##print "Q,U,V=",myqq,myuu,myvv
- return [myqq,myuu,myvv]
+ if absolute==0:
+  ##print "Q,U,V=",myqq,myuu,myvv
+  return [myqq,myuu,myvv]
+
+ if ns._name:
+  SIFI_name=ns._name+'::SIF_stokesI:q='+myname
+  I0_name=ns._name+'::I0:q='+myname
+ else:
+  SIFI_name='SIF_stokesI:q='+myname
+  I0_name='I0:q='+myname
+ if allnodes.has_key(I0_name):
+   sI=allnodes[I0_name]
+   myii=get_default_parms(sI)
+   SI=0
+   f0=-1
+ elif allnodes.has_key(SIFI_name): 
+   sI=allnodes[SIFI_name]
+   [myii,SI,f0]=get_stokes_I_parms(sI)
+ else:
+   myii=SI=0
+   f0=-1
+ 
+ 
+ return [myii,myqq*myii/100,myuu*myii/100,myvv*myii/100,SI,f0]
+ 
 
 
 #
@@ -493,7 +512,7 @@ def get_default_parms(nd):
  if irec.has_key('default_value'):
   cf=irec['default_value']
   # this need to be a scalar
-  if cf.nelements()>1:
+  if cf.nelements()>=1:
      #my_val=cf.tolist().pop(0)
      my_val=numarray.ravel(cf)[0]
   else: #scalar
@@ -503,13 +522,13 @@ def get_default_parms(nd):
   fn=irec['init_funklet']
   if(is_meqpolc(fn)):
    cf=fn['coeff'] 
-   if cf.nelements()>1:
+   if cf.nelements()>=1:
      my_val=numarray.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
   elif(is_meqpolclog(fn)):
    cf=fn['coeff'] 
-   if cf.nelements()>1:
+   if cf.nelements()>=1:
      my_val=numarray.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
@@ -532,20 +551,20 @@ def get_stokes_I_parms(nd):
        fn=irec['init_funklet']
        if (is_meqpolc(fn)):
          cf=fn['coeff']
-         if cf.nelements()>1:
+         if cf.nelements()>=1:
             my_I=numarray.ravel(cf)[0]
          else: #scalar
             my_I=float(cf)
          my_SI=0
        elif (is_meqpolclog(fn)):
          cf=fn['coeff']
-         if cf.nelements()>1:
+         if cf.nelements()>=1:
            my_I=numarray.ravel(cf)[0]
          else: #scalar
            my_I=float(cf)
          # return exponent
          my_I=math.pow(10,my_I)
-         if cf.nelements()>2:
+         if cf.nelements()>=2:
            ## NOTE: the SI can have a polynomial, but for the moment we ignore 
            ## higher order terms
            my_SI=numarray.ravel(cf)[1]
