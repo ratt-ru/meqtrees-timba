@@ -129,8 +129,8 @@ int FITSReader::getResult (Result::Ref &resref,
 		}
 	}
 
-  // create a result with one VellSet
-  Result &result=resref<<= new Result(1,1); 
+  // create a result with one VellSet (1), not integrated (0)
+  Result &result=resref<<= new Result(1,0); 
 
 	//VellSet
 	VellSet::Ref ref0;
