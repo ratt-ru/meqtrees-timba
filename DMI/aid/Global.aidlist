@@ -515,6 +515,7 @@ Receptor                         1158       ; from /home/oms/LOFAR/Timba/VisCube
 Reconnect                        1044       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 Record                           1541       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:33
 Recursive                        1478       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
+Reduction                        1680       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ReductionFunction.h:30
 Reexecute                        1279       ; from /home/oms/LOFAR/Timba/MEQ/src/Request.h:32
 Ref                              1154       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
 Reflect                          1064       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/ReflectorWP.h:7
