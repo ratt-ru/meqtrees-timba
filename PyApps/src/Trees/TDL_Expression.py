@@ -8,6 +8,7 @@
 #
 # History:
 #    - 10 may 2006: creation, from TDL_Functional.py (MXM)
+#    - 01 jun 2006: expansion into a separate Expression
 #
 # Remarks:
 #
@@ -163,7 +164,7 @@ class Expression:
         self.__quals = dict()
         self.__plotrec = None
         self.__expanded = False
-        self.__Functional = None
+        self.__MeqFunctional = None
         self.__MeqParm = None
         self.__Funklet = None
         self.__Funklet_function = None
@@ -213,29 +214,6 @@ class Expression:
         """Return the (mathematical) expression"""
         return self.__expression
 
-    def xexpr (self):
-        """Return the expanded expression"""
-        self.expand()
-        return self.__xexpr
-
-    def xorder (self):
-        """Return the order of parameters in the expanded expression"""
-        self.expand()
-        return self.__xorder
-
-    def xparm (self, key=None):
-        """Return the named (key) parameter in the expanded expression"""
-        self.expand()
-        if key==None: return self.__xparm
-        if self.__xparm.has_key(key): return self.__xparm[key]
-        return False
-
-    def xvar (self, key=None):
-        """Return the named (key) variable in the expanded expression"""
-        self.expand()
-        if key==None: return self.__xvar
-        if self.__xvar.has_key(key): return self.__xvar[key]
-        return False
 
 
     #----------------------------------------------------------------------------
@@ -253,9 +231,10 @@ class Expression:
         #    ss += str(self.__expression)
         return ss
 
+    #----------------------------------------------------------------
+
     def display(self, txt=None, full=False):
         """Display a summary of the Expression"""
-        self.expand()
         if txt==None: txt = self.label()
         print '\n** Display of: Expression (',txt,'):'
         indent = 2*' '
@@ -274,7 +253,7 @@ class Expression:
             p = self.__parm[key]
             if isinstance(p, Expression):
                 expr = p.expression()
-                if len(expr)>60: expr = expr[0:60]+' ...'
+                if len(expr)>80: expr = expr[0:80]+' ...'
                 print indent,'  -',key,':',p.oneliner(),expr
             elif isinstance(p, Funklet):
                 print indent,'  -',key,': (Funklet):',p._function
@@ -293,45 +272,28 @@ class Expression:
                 node = self.__child[key]
                 print indent,'  -',key,':',node.name,' (',node.classname,')'
 
-        if self.__expanded:
-            print indent,'- Expanded:  xexpr:  ',self.__xexpr
-            if not full:
-                print indent,'  - parameters:',self.__xparm.keys()
-                print indent,'  - variables: ',self.__xvar.keys()
-                print indent,'  - MeqFunctional children: ',self.__xchild_order
-            else:
-                for key in self.__xorder:
-                    p = self.__xparm[key]
-                    if isinstance(p, Expression):
-                        print indent,'  -',key,':',p.oneliner()
-                    elif isinstance(p, Funklet):
-                        print indent,'  -',key,': (Funklet):',p._function
-                    elif p.has_key('index'):
-                        print indent,'  -',key,': (MeqNode):',p
-                    else:
-                        print indent,'  -',key,':',p
-                for key in self.__xvar.keys():
-                    print indent,'  .',key,':',self.__xvar[key]
-            print indent,'  - MeqFunctional children: ',self.__xchild_order
-            if full:
-                for key in self.__xchild_order:
-                    node = self.__xchild[key]
-                    print indent,'    -',key,':',node.name,' (',node.classname,')'
-
-            print indent,'  - test_result: ',self.__test_result
-            print indent,'  - eval_result: ',self.__eval_result
-            if full:
-                print indent,'  - test_seval: ',self.__test_seval
-                print indent,'  - eval_seval: ',self.__eval_seval
+        if not isinstance(self.__expanded, Expression):
+            print indent,'- Expanded:  ',self.__expanded
+        else:
+            print indent,'- Expanded:  ',self.__expanded.oneliner()
+            print indent,'  - order:  ',self.__expanded.order()
+            print indent,'  - vars:  ',self.__expanded.__var.keys()
+            
+        print indent,'- Evaluation:'
+        print indent,'  - test_result: ',self.__test_result
+        print indent,'  - eval_result: ',self.__eval_result
+        if full:
+            print indent,'  - test_seval: ',self.__test_seval
+            print indent,'  - eval_seval: ',self.__eval_seval
 
         if self.__Funklet:
             print indent,'- Funklet:'
             print indent,'  - function =',str(self.__Funklet_function)
-            print indent,'  - _function ->',str(self.__Funklet._function)
-            print indent,'  - _coeff ->',str(self.__Funklet._coeff)
-            print indent,'  - _type ->',str(self.__Funklet._type)
+            print indent,'  - F._function ->',str(self.__Funklet._function)
+            print indent,'  - F._coeff ->',str(self.__Funklet._coeff)
+            print indent,'  - F._type ->',str(self.__Funklet._type)
             # print dir(self.__Funklet)
-            print indent,'- eval() ->',str(self.__Funklet.eval())
+            print indent,'  - F.eval() ->',str(self.__Funklet.eval())
             
         print '**\n'
 
@@ -425,7 +387,7 @@ class Expression:
                 #     by adding a random value to the nominal default value. This
                 #     is done each time the internal node qualifier is changed.
                 # - if constant==True, the parameter is a constant with value default.
-                print 'parm(',key,'): default =',type(default)
+                # print 'parm(',key,'): default =',type(default)
                 testval = default+testinc
                 testvec = default + testinc*array(range(-ntest,ntest+1))
                 self.__parm[key] = dict(default=default, constant=constant,
@@ -522,99 +484,140 @@ class Expression:
 
 
     #============================================================================
-    # Expansion of the hierarchical Expression into a flat one
+    # Make a new Expression object, in which the hierarchical self.__expression
+    # is expanded into a flat one. Keep this object internally.
     #============================================================================
 
     def expand (self, reset=False, trace=False):
-        """Expand the function-string by replacing the parameters that are Expressions
-        by the relevant function-strings, while slightly renaming its parameter names."""
+        """If necessary, expand the hierarchical self.__expression into a flat one.
+        This is done by replacing the parameters that are Expressions by the relevant
+        function-strings, while slightly renaming its parameter names. Similar actions
+        are taken for other types of parameters, like Funklets and MeqNodes.
+        If expansion makes a difference, the expanded expression and its parms/vars
+        are used to make a new Expression object, and attached to self.__expanded.
+        Otherwise, self.__expanded = True. See also self.expanded()."""
 
         if trace: print '\n** expand(reset=',reset,'):',self.oneliner()
         if reset: self._reset()
-        if self.__expanded: return False                 # avoid duplication
+        if self.__expanded: return self.expanded()                 # avoid duplication
 
-        self.__xexpr = deepcopy(self.__expression)
-        self.__xparm = dict()
-        self.__xorder = []
-        self.__xchild = dict()
-        self.__xchild_order = []
-        self.__xvar = deepcopy(self.__var)
+        xexpr = deepcopy(self.__expression)
+        xparm = dict()
+        xorder = []
+        xchild = dict()
+        xchild_order = []
+        xvar = deepcopy(self.__var)
+        different = False
 
         # Then replace the (expanded) Expression parameters:
         for key in self.__order:
-            parm = self.__parm[key]
+            parm = deepcopy(self.__parm[key])
 
             if isinstance(parm, Funklet):
                 # Convert a Funklet to an Expression first
+                different = True
                 parm = Funklet2Expression(parm, key)
 
             if isinstance(parm, Expression):
-                # Merge the parm (expanded) expr with its own:
-                pexpr = '('+parm.xexpr()+')'
+                # Merge the (expanded) parm expr with its own:
+                parm = parm.expanded()
+                different = True
+                print key,'parm =',parm
+                pexpr = '('+parm.expression()+')'
                 if trace: print '-',key,pexpr
-                for pkey in parm.xorder():
+                for pkey in parm.order():
                     ckey = key+'_'+pkey
-                    self.__xorder.append(ckey)
-                    pd = parm.xparm(pkey)
-                    self.__xparm[ckey] = pd
+                    xorder.append(ckey)
+                    pd = parm.parm(pkey)
+                    xparm[ckey] = pd
                     if isinstance(pd, dict) and pd.has_key('index'):
                         cname = pd['child_name']
-                        self.__xchild[cname] = parm.__xchild[cname]
-                        if not cname in self.__xchild_order:
-                            self.__xchild_order.append(cname)
+                        xchild[cname] = parm.__xchild[cname]
+                        if not cname in xchild_order:
+                            xchild_order.append(cname)
                     pexpr = pexpr.replace('{'+pkey+'}', '{'+ckey+'}')
-                self.__xexpr = self.__xexpr.replace('{'+key+'}', pexpr)
-                for vkey in parm.xvar().keys():
-                    self.__xvar.setdefault(vkey, parm.xvar(vkey))
+                xexpr = xexpr.replace('{'+key+'}', pexpr)
+                for vkey in parm.var().keys():
+                    xvar.setdefault(vkey, parm.var(vkey))
 
-            elif parm.has_key('index'):                           # MeqNode
-                self.__xorder.append(key)
-                self.__xparm[key] = self.__parm[key]
+            elif parm.has_key('index'):
+                # parm is a MeqNode
+                # different = True
+                xorder.append(key)
+                xparm[key] = self.__parm[key]
                 cname = parm['child_name']
-                self.__xchild[cname] = self.__child[cname]
-                if not cname in self.__xchild_order:
-                    self.__xchild_order.append(cname)
+                xchild[cname] = self.__child[cname]
+                if not cname in xchild_order:
+                    xchild_order.append(cname)
 
             else:
                 # Otherwise, just copy (assume numeric):
-                self.__xorder.append(key)
-                self.__xparm[key] = self.__parm[key]
+                xorder.append(key)
+                xparm[key] = self.__parm[key]
+        if trace: print '   ->',xexpr
                 
-        # Finished, do some bookkeeping:
-        self.__expanded = True
-        if trace: print '   ->',self.__xexpr
-        self.__test_result = self.eval(_test=True)
-        self.__eval_result = self.eval()
-        return True
-    
-    #---------------------------------------------------------------------------
+        # Dispose of the result:
+        if not different:
+            # If expansion does not change anything, just indicate
+            # that the current object is expanded already:
+            self.__expanded = True
+            self.__test_result = self.eval(_test=True)
+            self.__eval_result = self.eval()
 
-    def expanded (self, trace=False):
-        """Make a new Expression with the expanded expression (xexpr) from
-        the current object."""
-        self.expand(reset=True)
-        if trace: self.display('.expanded()', full=True)
-        e0 = Expression(self.__xexpr, label='expanded_'+self.label())
-        e0.__order = self.__xorder
-        for key in self.__xorder:
-            parm = self.__xparm[key]
-            e0.__parm[key] = parm
-            if isinstance(parm, Expression):
-                e0.__parmtype['Expression'].append(key)
-            elif isinstance(parm, Funklet):
-                e0.__parmtype['Funklet'].append(key)
-            elif parm.has_key('child_name'):
-                cname = parm['child_name']
-                print 'cname =',cname,':',self.__xchild.keys()
-                e0.__child[cname] = self.__xchild[cname]
-                if not cname in e0.__child_order:
-                    e0.__child_order.append(cname)
-                e0.__parmtype['MeqNode'].append(key)
-        for key in self.__xvar.keys():
-            e0.__var[key] = self.__xvar[key]
-        if trace: e0.display('expanded', full=True)
-        return e0
+        else:
+            # Make the Expression object for the expanded version:
+            e0 = Expression(xexpr, label='expanded_'+self.label())
+            e0.__expanded = True
+            e0.__quals = self.__quals
+            # Transfer the parameters:
+            e0.__order = xorder
+            for key in xorder:
+                parm = xparm[key]
+                e0.__parm[key] = parm
+                if isinstance(parm, Expression):
+                    e0.__parmtype['Expression'].append(key)
+                elif isinstance(parm, Funklet):
+                    e0.__parmtype['Funklet'].append(key)
+                elif parm.has_key('child_name'):
+                    cname = parm['child_name']
+                    print 'cname =',cname,':',xchild.keys()
+                    e0.__child[cname] = xchild[cname]
+                    if not cname in e0.__child_order:
+                        e0.__child_order.append(cname)
+                        e0.__parmtype['MeqNode'].append(key)
+            # Transfer the variables:
+            for key in xvar.keys():
+                e0.__var[key] = xvar[key]
+            # Attach the expanded Expression to itself:
+            self.__expanded = e0
+            self.__test_result = e0.eval(_test=True)
+            self.__eval_result = e0.eval()
+            if trace: e0.display('expanded', full=True)
 
+        # Finished:
+        return self.__expanded
+
+    #----------------------------------------------------------------------------
+
+    def expanded (self, reset=False, expand=True, trace=False ):
+        """Return the expanded version of the Expression"""
+        trace = True
+        if trace: print '\n** .expanded(reset=',reset,expand,'):',self.oneliner()
+        if reset: self._reset()
+        if isinstance(self.__expanded, Expression): # Expression 
+            if trace: print 'self.__expanded: ->',type(self.__expanded)
+            pass
+        elif self.__expanded:                       # True: object already expanded 
+            if trace: print 'self.__expanded: ->',type(self)
+            return self
+        else:                                       # False: not yet expanded
+            if trace: print 'self.__expanded: expand'
+            self.expand()                           # expand if requested
+            return self.expanded(trace=trace)
+            # if expand: self.expand()              # expand if requested
+        if trace: print '   expanded() ->',self.__expanded,self.oneliner()
+        return self.__expanded 
+        
 
     #============================================================================
     # Fit the Expression (e.g. a polc) to a set of given points.
@@ -624,7 +627,7 @@ class Expression:
         """Adjust the Expression default parameters to make them fit the
         values of the specified points v(f,t,l,m)"""
 
-        trace = True
+        # trace = True
         
         # The function values at the specified points:
         if not pp.has_key('vv'): pp['vv'] = array(range(10))
@@ -762,11 +765,11 @@ class Expression:
             factor = (rr['max']-rr['min'])/float(n-1) # scale-factor
             vv = rr['min'] + factor*array(range(n))
         elif isinstance(rr, bool):                  # use default plot-range
-            self.expand() 
-            if key in self.__xvar.keys():
-                vv = self.testvec(self.__xvar[key]['testvec'])
-            elif key in self.__xparm.keys():
-                vv = self.testvec(self.__xparm[key]['testvec'])
+            # self.expand() 
+            if key in self.__var.keys():
+                vv = self.testvec(self.__var[key]['testvec'])
+            elif key in self.__parm.keys():
+                vv = self.testvec(self.__parm[key]['testvec'])
             else:
                 vv = array(range(2,9))              # some safe default
         else:                                       # error message?
@@ -781,14 +784,14 @@ class Expression:
         different parameter is varied. The x-axis variable (f,t,..) is
         automatic, but may be specified explicitly (e.g. t=True)."""
         # Find the nr of rows and columns of the figure: 
-        keys = self.xorder()                        # expands, if necessary
+        keys = self.order()                         # expands, if necessary
         n = len(keys)                               # nr of parameters/subplots
         ncol = int(ceil(sqrt(n)))
         nrow = ceil(n/2)
 
         # print ' n =',n,' nrow =',nrow,' ncol =',ncol
         # Find the x-axis variable (t,f,..):
-        vkeys = self.__xvar.keys()
+        vkeys = self.__var.keys()
         xvar = vkeys[0]                             # default: first
         for key in pp.keys():
             if key in vkeys: xvar = key             # specified explicitly
@@ -827,8 +830,8 @@ class Expression:
             pass
 
         # Make sure that there is at least one variable vector:
-        self.expand()
-        xvkeys = self.__xvar.keys()
+        # self.expand()
+        xvkeys = self.__var.keys()
         if len(pp)==0:
             if 'l' in xvkeys:
                 pp['l'] = self.testvec(True, 'l')
@@ -949,7 +952,13 @@ class Expression:
         array(s) of this length. The shortest multiple (if any) is the 'parameter',
         i.e. there will be as many result arrays as parameter values."""
 
-        trace = True
+        #-------------------------------------------------
+        # print '\n** .eval(): temporarily disabled....\n'
+        # return False
+        #-------------------------------------------------
+
+        trace = False
+        # trace = True
         if trace: print '\n** eval(_test=',_test,'):',pp
 
         # Special case: the Expression is purely numeric:
@@ -959,22 +968,22 @@ class Expression:
             return array([nv])
 
         # Make sure that an expanded expression exists:
-        self.expand()
+        # self.expand()
 
-        # Use the default values in self.__xparm and self.__xvar,
+        # Use the default values in self.__parm and self.__var,
         # unless other values have been specified via **pp.
         rr = dict()
         field = 'default'                         # normal mode
         if _test: field = 'testval'               # test-mode
 
-        for key in self.__xparm.keys():           # all parameters
-            value = self.__xparm[key][field]      # default/testval
+        for key in self.__parm.keys():           # all parameters
+            value = self.__parm[key][field]      # default/testval
             if pp.has_key(key):                   # specified by name(key)
                 value = self.testvec(pp[key], key=key) # decode
             rr['{'+key+'}'] = value               # use
 
-        for key in self.__xvar.keys():            # all variables
-            value = self.__xvar[key][field]       # default/testval
+        for key in self.__var.keys():            # all variables
+            value = self.__var[key][field]       # default/testval
             if pp.has_key(key):                   # specified by name(key)
                 value = self.testvec(pp[key], key=key) # decode
             rr['['+key+']'] = value               # use
@@ -1013,8 +1022,8 @@ class Expression:
                        parameter=parameter, pp=None,
                        title=self.oneliner(), legend=[])
         vkey = deenclose(variable,'[]')
-        if vkey in self.__xvar.keys():
-            plotrec['xlabel'] += '   ('+str(self.__xvar[vkey]['unit'])+')'
+        if vkey in self.__var.keys():
+            plotrec['xlabel'] += '   ('+str(self.__var[vkey]['unit'])+')'
         if isinstance(plotrec['xx'], type(array(0))):
             plotrec['xannot'] = plotrec['xx'][0]
             plotrec['xmin'] = min(plotrec['xx'])
@@ -1064,7 +1073,7 @@ class Expression:
     def evalone (self, pp, _test=False, trace=False):
         """Helper function called by self.eval()"""
 
-        seval = deepcopy(self.__xexpr)
+        seval = deepcopy(self.__expression)
         if trace:
             print '\n .... evalone():',seval
             print '     ',pp
@@ -1110,51 +1119,57 @@ class Expression:
     def Funklet (self, trace=False):
         """Return the corresponding Funklet object. Make one if necessary."""
 
-        if len(self.__parmtype['MeqNode'])>0:
+        if trace: print '\n** .Funklet():',self.oneliner()
+
+        # Work on the expanded version:
+        ex = self.expanded()
+
+        # Avoid double work:
+        if self.__Funklet:  return self.__Funklet
+        
+        if len(ex.__parmtype['MeqNode'])>0:
             # If there are MeqNode children, the Expression should be turned into
             # a MeqFunctional node. It is not possible to make a Funklet.
             print '\n** .Funklet(): Expression has MeqNode child(ren)!\n'
             return False
         
-        if not self.__expanded or not self.__Funklet:
-            nv = self.numeric_value(trace=False)
-            if not nv==None:
-                # Special case: the Expression is purely numeric
-                coeff = [nv]
-                expr = 'p0'
-            else:           
-                self.expand(reset=True)
-                expr = deepcopy(self.__xexpr)
-                # Replace the parameters {} with pk = p0,p1,p2,...
-                # and fill the coeff-list with their default values
-                coeff = []
-                keys = self.__xparm.keys()
-                for k in range(len(keys)):
-                    pk = 'p'+str(k)
-                    expr = expr.replace('{'+keys[k]+'}', pk)
-                    coeff.append(self.__xparm[keys[k]]['default'])
-                    if trace: print '-',k,keys[k],pk,expr,coeff
-                # Replace the valiables [] with x0 (time), x1(freq) etc
-                for key in self.__xvar.keys():
-                    xk = self.__xvar[key]['xn']
-                    expr = expr.replace('['+key+']', xk) 
-                    if trace: print '-',key,xk,expr
-            # Make the Funklet:
-            if trace: print '\n** Funklet(): ',expr
-            self.__Funklet = Funklet(funklet=record(function=expr, coeff=coeff))
-            self.__Funklet_function = expr          # for display only
-            # Alternative
-            #   self.__Funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-            #   self.__Funklet.function = expr
-            if trace:
-                print '\n** Funklet(): expr =',expr
-                print dir(self.__Funklet)
-                print 'F._name:',self.__Funklet._name
-                print 'F._nx:',self.__Funklet._nx
-                print 'F._function:',self.__Funklet._function
-                print 'F._coeff:',self.__Funklet._coeff
-                print 'F._type:',self.__Funklet._type
-                print '\n'
+        nv = ex.numeric_value(trace=False)
+        if not nv==None:
+            # Special case: the Expression is purely numeric
+            coeff = [nv]
+            expr = 'p0'
+
+        else:           
+            expr = deepcopy(ex.expression())
+            # Replace the parameters {} with pk = p0,p1,p2,...
+            # and fill the coeff-list with their default values
+            coeff = []
+            keys = ex.__parm.keys()
+            for k in range(len(keys)):
+                pk = 'p'+str(k)
+                expr = expr.replace('{'+keys[k]+'}', pk)
+                coeff.append(ex.__parm[keys[k]]['default'])
+                if trace: print '- parm',k,keys[k],pk,coeff
+            # Replace the valiables [] with x0 (time), x1(freq) etc
+            for key in ex.__var.keys():
+                xk = ex.__var[key]['xn']
+                expr = expr.replace('['+key+']', xk) 
+                if trace: print '- var',key,xk
+
+        # Make the Funklet, and attach it:
+        f0 = Funklet(funklet=record(function=expr, coeff=coeff))
+        # Alternative
+        #   f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+        ex.__Funklet = f0
+        self.__Funklet = f0
+        ex.__Funklet_function = expr            # for display only
+        self.__Funklet_function = expr          # for display only
+
+        # Finished:
+        if trace:
+            print '   Funklet()  -> expr =',expr
+            print dir(f0)
+            print ''
         return self.__Funklet
 
 
@@ -1245,6 +1260,7 @@ class Expression:
         for key in e1.__var.keys():
             e1.__var[key] = self.__var[key]
             if trace: print '- copy var[',key,']:',e1.__var[key]
+        e1.__quals = self.__quals
         if trace:
             e1.display('subExpression()', full=True)
         return e1
@@ -1346,77 +1362,55 @@ class Expression:
 
     #---------------------------------------------------------------------------
 
-    def MeqFunctional (self, ns, name=None, qual=None, trace=False):
+    def MeqFunctional (self, ns, name=None, qual=None, expand=True, trace=False):
         """Make a MeqFunctional node from the Expression, by replacing all its
-        parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
-        if not self.__Functional:
-            ex = self.expanded(trace=trace)
-            ex.parm2node (ns, trace=trace)                # convert parms to nodes
-            ex.var2node (ns, trace=trace)                 # convert vars to nodes
-            uniqual = _counter ('MeqFunctional', increment=-1)
-            function = deepcopy(ex.__expression)
-            children = []
-            child_map = []                                  # for MeqFunctional
-            k = -1
-            for key in ex.__parm.keys():
-                k += 1                                      # increment
-                xk = 'x'+str(k)                             # x0, x1, x2, ..
-                function = function.replace('{'+key+'}',xk)
-                parm = ex.__parm[key]                     # parm definition record
-                print 'MeqFunctional:',key,k,xk,type(parm)
-                child_name = parm['child_name']
-                if not child_name in children:
-                    children.append(child_name)
-                child_num = 1+children.index(child_name)
-                rr = record(child_num=child_num, index=parm['index'],
-                            child_name=child_name)
-                if trace: print '-',key,xk,rr
-                child_map.append(rr)
-            # Replace child-names with actual children:
-            for i in range(len(children)):
-                children[i] = ex.__child[children[i]]
-            if not name: name = 'Expr_'+ex.label()+'_MeqFunctional'
-            ex.__Functional = ex._unique_node (ns, name, qual=qual, trace=trace)
-            ex.__Functional << Meq.Functional(children=children, child_map=child_map)
-            self.__Functional = ex.__Functional
-        return self.__Functional
+        parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc).
+        If expand==True (default), the Functional is made from the expanded
+        expression. Note that, if expand==False, the object itself is modified!!"""
+        if self.__MeqFunctional: return self.__MeqFunctional    # avoid duplication
+        if expand:
+            ex = self.expanded(expand=True, trace=trace)
+            ex.display('inside MeqF')
+            f0 = ex.make_MeqFunctional (ns, name=name, qual=qual, trace=trace)
+            ex.__MeqFunctional = f0
+        else:
+            f0 = self.make_MeqFunctional (ns, name=name, qual=qual, trace=trace)
+        self.__MeqFunctional = f0
+        return self.__MeqFunctional
 
-
-
-    def MeqFunctional_old (self, ns, name=None, qual=None, trace=False):
-        """Make a MeqFunctional node from the Expression, by replacing all its
-        parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
-        if not self.__Functional:
-            # ex = self.expanded(trace=trace)
-            self.parm2node (ns, trace=trace)                # convert parms to nodes
-            self.var2node (ns, trace=trace)                 # convert vars to nodes
-            uniqual = _counter ('MeqFunctional_old', increment=-1)
-            function = deepcopy(self.__expression)
-            children = []
-            child_map = []                                  # for MeqFunctional
-            k = -1
-            for key in self.__parm.keys():
-                k += 1                                      # increment
-                xk = 'x'+str(k)                             # x0, x1, x2, ..
-                function = function.replace('{'+key+'}',xk)
-                parm = self.__parm[key]                     # parm definition record
-                print 'MeqFunctional:',key,k,xk,type(parm)
-                child_name = parm['child_name']
-                if not child_name in children:
-                    children.append(child_name)
-                child_num = 1+children.index(child_name)
-                rr = record(child_num=child_num, index=parm['index'],
-                            child_name=child_name)
-                if trace: print '-',key,xk,rr
-                child_map.append(rr)
-            # Replace child-names with actual children:
-            for i in range(len(children)):
-                children[i] = self.__child[children[i]]
-            if not name: name = 'Expr_'+self.label()+'_MeqFunctional_old'
-            self.__Functional = self._unique_node (ns, name, qual=qual, trace=trace)
-            self.__Functional << Meq.Functional(children=children, child_map=child_map)
-        return self.__Functional
-
+    #--------------------------------------------------------------------------
+        
+    def make_MeqFunctional (self, ns, name=None, qual=None, trace=False):
+        """Helper function that does the work for .MeqFunctional()"""
+        self.parm2node (ns, trace=trace)                # convert parms to nodes
+        self.var2node (ns, trace=trace)                 # convert vars to nodes
+        uniqual = _counter ('MeqFunctional', increment=-1)
+        function = deepcopy(self.__expression)
+        children = []
+        child_map = []                                  # for MeqFunctional
+        k = -1
+        for key in self.__parm.keys():
+            k += 1                                      # increment
+            xk = 'x'+str(k)                             # x0, x1, x2, ..
+            function = function.replace('{'+key+'}',xk)
+            parm = self.__parm[key]                     # parm definition record
+            print 'MeqFunctional:',key,k,xk,type(parm)
+            child_name = parm['child_name']
+            if not child_name in children:
+                children.append(child_name)
+            child_num = 1+children.index(child_name)
+            rr = record(child_num=child_num, index=parm['index'],
+                        child_name=child_name)
+            if trace: print '-',key,xk,rr
+            child_map.append(rr)
+        # Replace child-names with actual children:
+        for i in range(len(children)):
+            children[i] = self.__child[children[i]]
+        if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
+        self.__MeqFunctional = self._unique_node (ns, name, qual=qual, trace=trace)
+        self.__MeqFunctional << Meq.Functional(children=children, child_map=child_map)
+        self.__MeqFunctional = self.__MeqFunctional
+        return self.__MeqFunctional
 
 
 
@@ -1902,13 +1896,18 @@ if __name__ == '__main__':
  
     #---------------------------------------------------------
  
-    if 0:
-        e1 = Expression('{A}*cos({B}*[f])+{C}+({neq}+67)', label='e1')
+    if 1:
+        e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
         e1.parm('B', 10, help='help for B')
         # e1.parm('C', f0, help='help for C')
-        e1.quals(a=5,b=6)
-        e1.display()
+        # e1.quals(a=5,b=6)
+        # e1.display('initial', full=True)
+
+        if 0:
+            e1.expand()
+            e1.display('after .expand', full=True)
+            e1.expanded().display('.expanded()', full=True)
 
         if 0:
             e1.display(e1.quals(a=-1,b=17))
@@ -1920,16 +1919,19 @@ if __name__ == '__main__':
             # e1.eval(f=ff, A=range(2))
             # e1.plot(f=ff, A=range(4))
             # e1.plot(f=True, A=True, B=True)
-            e1.plot(t=True)
+            e1.plot(f=True)
 
         if 0:
             e1.plotall(t=True)
 
         if 0:
             e2 = e1.subExpression('cos({B}*[f])', trace=True)
+            e2.expand()
+            e2.display('after expand()')
 
         if 0:
             node = e1.subTree (ns, trace=True)
+            e1.display()
             TDL_display.subtree(node, 'subTree', full=True, recurse=10)
             
         if 0:
@@ -1938,11 +1940,12 @@ if __name__ == '__main__':
             # e2 = Funklet2Expression(f1, 'A', trace=True)
             # e2.plot()
 
-        if 0:
-            node = e1.MeqFunctional (ns, trace=True)
+        if 1:
+            node = e1.MeqFunctional (ns, expand=True, trace=True)
+            e1.display('after', full=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
 
-        if 1:
+        if 0:
             node = e1.MeqParm (ns, trace=True)
             TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
 
@@ -1965,12 +1968,15 @@ if __name__ == '__main__':
         # e2.parm ('A[1,2]', default=node, help='help')
         # e2.parm ('xxx', default=node, help='help')
         e2.display(full=True)
-        # e2.expand()
         # e2.eval(f=range(5))
         # e2.parm2node(ns, trace=True)
         # e2.var2node(ns, trace=True)
 
-        if 1:
+        if 0:
+            e2.expand()
+            e2.display('after .expand()', full=True)
+
+        if 0:
             e2.plot()
 
         if 0:
@@ -2014,7 +2020,7 @@ if __name__ == '__main__':
         vbeam.plot(l=True,m=True)
             
 
-    if 1:
+    if 0:
         # Elliptic gaussian source:
         attuv = Expression('exp(-({Uterm}**2)-({Vterm}**2))', label='attuv',
                            descr='elliptic gaussian source attenuation factor(u,v)')
