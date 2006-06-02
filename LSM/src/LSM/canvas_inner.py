@@ -48,7 +48,7 @@ class Circle(QCanvasEllipse):
 
 #################################################################
 # class for drawing point (and elliptic - extended) sources
-class Ellipse(QCanvasEllipse):
+class Ellipse1(QCanvasEllipse):
   def __init__(self,center_x,center_y,major,minor,PA,color,name,canvas):
     QCanvasEllipse.__init__(self,major,minor,canvas)
     self.name=name
@@ -71,7 +71,89 @@ class Ellipse(QCanvasEllipse):
   def getDims(self):
    return max(self.major,minor)
 
+class Ellipse(QCanvasPolygonalItem):
+  def __init__(self,center_x,center_y,major,minor,PA,color,name,canvas):
+    QCanvasPolygonalItem.__init__(self,canvas)
+    self.name=name
+    self.canvas=canvas
+    self.color=color
+    self.major=major
+    self.minor=minor
+    self.PA=PA
+    self.myRTTI=POINT_SOURCE_RTTI
+    self.setPen(QPen(self.color))
+    self.setBrush(QBrush(self.color, Qt.Dense3Pattern))
+    self.pen().setWidth(0) # have no effect because polygonal item does not use it
+    self.move(center_x,center_y)
 
+  ## destructor must call hide
+  def __del__(self):
+    self.hide()
+
+  def rtti(self):
+    return self.myRTTI
+ 
+  def updateColor(self,color):
+   self.color=color
+
+  def getDims(self):
+   return (self.major,self.minor)
+
+  ## area of the bounding rectangle
+  def areaPoints(self):
+    pa=QPointArray(4)
+    pa.setPoint(0,QPoint(self.x()+self.major/2,self.y()+self.major/2))
+    pa.setPoint(1,QPoint(self.x()-self.major/2,self.y()+self.major/2))
+    pa.setPoint(2,QPoint(self.x()-self.major/2,self.y()-self.major/2))
+    pa.setPoint(3,QPoint(self.x()+self.major/2,self.y()-self.major/2))
+    return pa
+
+  ## draw the ellipse
+  def drawShape(self,p):
+   plist=self.calculatePoints(20)
+   (X0,Y0)=plist.pop() 
+   Xs=X0
+   Ys=Y0 
+   for (X,Y) in plist:
+    pa=QPointArray(3)
+    pa.setPoint(0,QPoint(self.x(),self.y()))
+    pa.setPoint(1,QPoint(X0,Y0))
+    pa.setPoint(2,QPoint(X,Y))
+    p.drawPolygon(pa)
+    #p.drawLine(X0,Y0,X,Y)
+    X0=X
+    Y0=Y
+   pa=QPointArray(3)
+   pa.setPoint(0,QPoint(self.x(),self.y()))
+   pa.setPoint(1,QPoint(X0,Y0))
+   pa.setPoint(2,QPoint(Xs,Ys))
+   p.drawPolygon(pa)
+   #p.drawLine(X0,Y0,Xs,Ys)
+
+
+  def updateColor(self,color):
+   self.color=color
+   self.setBrush(QBrush(self.color, Qt.Dense3Pattern))
+   self.setPen(QPen(self.color))
+
+  def updateSize(self,scale):
+    pass
+
+  def calculatePoints(self,np):
+    dtheta=math.pi*2/np
+    dang=0
+    cosa=math.cos(self.PA)
+    sina=math.sin(self.PA)
+    plist=[]
+    for ci in range(np):
+     theta=dang+ci*dtheta
+     cosT=math.cos(theta)
+     sinT=math.sin(theta)
+     X=self.major/2*cosT*cosa-self.minor/2*sinT*sina
+     Y=self.major/2*cosT*sina+self.minor/2*sinT*cosa
+     plist.append((X+self.x(),Y+self.y()))
+
+    return plist
 
 
 ##################################################################
@@ -718,7 +800,6 @@ class PatchDisplay:
 class GaussianSourceDisplay:
  def __init__(self,name,parent):
   self.name=name
-  print "creating Gauss",name
   self.cview=parent
   # get corresponding PUnit
   punit=self.cview.lsm.p_table[self.name]
@@ -729,19 +810,16 @@ class GaussianSourceDisplay:
   self.y=xys[1]
   # get major, minor, PA values
   elist=punit.getExtParms()
-  print elist
   eX=elist[0]
   eY=elist[1]
   eP=elist[2]
   xys1=self.cview.globalToLocal(punit.sp.getRA()+eX/2,punit.sp.getDec()+eY/2)
   major=int(abs(xys[0]-xys1[0]))*2
   minor=int(abs(xys[1]-xys1[1]))*2
-  print major,minor
   # set a default minimum value
   if major<2: major=2
   if minor<2: minor=2
   
-  print punit.getBrightness()
   self.ellipse=self.addCircle(xys[0],xys[1],major,minor,eP,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
 
   self.show()

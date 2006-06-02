@@ -135,13 +135,18 @@ class PUnit:
 
    return (ra,dec,I,Q,U,V,SI,f0)
 
- # if this PUnit is a patch, return the limits
+ # if this PUnit is a patch, or a gaussian return the limits
  # of its boundary
  # [x_min,y_min,x_max,y_max]
  def getLimits(self):
-  if self.type != PATCH_TYPE:
+  if self.type == POINT_TYPE:
     return [0,0,0,0]
-  else:
+  elif self.type == GAUSS_TYPE:
+    ra=self.sp.getRA()
+    dec=self.sp.getDec()
+    (eX,eY,eP)=self.getExtParms()
+    return [ra-eX/2,ra+eX/2,dec-eX/2,dec+eX/2]
+  else: # this is a patch
    # traverse the source list 
    x_min=1e6
    y_min=1e6
@@ -538,7 +543,7 @@ class LSM:
 
   for p in self.p_table.keys():
    punit=self.p_table[p]
-   if punit.getType()==POINT_TYPE or punit.getType()==GAUSS_TYPE :
+   if punit.getType()==POINT_TYPE :
     tmpval=punit.sp.getRA()
     if tmpval > max_RA:
      max_RA=tmpval
@@ -549,6 +554,17 @@ class LSM:
      max_Dec=tmpval
     if tmpval <  min_Dec:
      min_Dec=tmpval
+   elif punit.getType()==GAUSS_TYPE :
+    [x0,x1,y0,y1]=punit.getLimits()
+    if x1 > max_RA:
+     max_RA=x1
+    if x0 <  min_RA:
+     min_RA=x0
+    if y1 > max_Dec:
+     max_Dec=y1
+    if y0 <  min_Dec:
+     min_Dec=y0
+
   result={}
   result['min_RA']=min_RA 
   result['max_RA']=max_RA 
