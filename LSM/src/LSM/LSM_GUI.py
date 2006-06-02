@@ -697,7 +697,7 @@ class LSMWindow(QMainWindow):
             yPos=yPos+fm.lineSpacing()
             tmpval0='%3.4f'%self.lsm.getMaxBrightness()
             tmpval1='%3.4f'%self.lsm.getMinBrightness()
-            ttext=QString("Apparent Brightness : Max= "+tmpval0+" Min= "+ tmpval1+ "Jy/beam")
+            ttext=QString("Apparent Brightness : Max= "+tmpval0+" Min= "+ tmpval1+ "Jy")
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
             # print some info on the projection
@@ -720,7 +720,7 @@ class LSMWindow(QMainWindow):
             l_punits=self.lsm.queryLSM(count=n_punits)
             for punit in l_punits:
               tmpval='%3.4f'%punit.getBrightness()
-              ttext=QString(punit.name+": brightness: "+tmpval+"Jy/beam"+", type: ")
+              ttext=QString(punit.name+": brightness: "+tmpval+"Jy"+", type: ")
               if punit.getType()==POINT_TYPE:
                 ttext=QString(ttext.ascii()+"Point")
               elif punit.getType()==GAUSS_TYPE:
