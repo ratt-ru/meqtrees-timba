@@ -30,6 +30,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Condeq
 
+#pragma aid Modulo
 
 namespace Meq {
 
@@ -51,13 +52,9 @@ public:
     //##ModelId=400E53050062
   virtual TypeId objectType() const;
 
-  // Check the children after they have been resolved in class Node.
-  // The order of the children is the order as given when the Node object
-  // was created.
-    //##ModelId=400E53050064
-  virtual void checkChildren();
 
 protected:
+  void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
   // Get the result for the given request.
     //##ModelId=400E53050066
@@ -68,6 +65,8 @@ protected:
   // helper func to compute derivative 
   double calcDerivative (Vells &deriv,const VellSet &vs,int index,bool minus=false);
 
+  bool is_modulo_;
+  double modulo_;
 };
 
 

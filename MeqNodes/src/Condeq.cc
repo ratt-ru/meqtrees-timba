@@ -20,6 +20,7 @@
 //#
 //# $Id$
 
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/Condeq.h>
 #include <MEQ/Function.h>
 #include <MEQ/Vells.h>
@@ -27,8 +28,11 @@
 
 namespace Meq {
 
+const HIID FModulo = AidModulo;
+
 //##ModelId=400E5305005F
 Condeq::Condeq()
+  : Function(2),modulo_(0)
 {
   children().setMissingDataPolicy(AidAbandonPropagate);
   setAutoResample(RESAMPLE_FAIL); // children must return the same cells
@@ -44,10 +48,12 @@ TypeId Condeq::objectType() const
   return TpMeqCondeq;
 }
 
-//##ModelId=400E53050064
-void Condeq::checkChildren()
+//##ModelId=400E53550233
+void Condeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  Assert (numChildren() == 2);
+  Node::setStateImpl(rec,initializing);
+  rec[FModulo].get(modulo_,initializing);
+  is_modulo_ = ( modulo_ != 0 );
 }
 
 // helper func to compute derivative 
@@ -75,6 +81,8 @@ inline double Condeq::calcDerivative (Vells &deriv,const VellSet &vs,int index,b
   {
     NodeThrow1("illegal number of perturbation sets in result");
   }
+//  if( is_modulo_ )
+//    deriv = VellsMath::remainder(deriv,modulo_);
   deriv /= pert;
   return pert;
 }
@@ -86,17 +94,7 @@ int Condeq::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &request,bool)
 {
-// 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
-// makes them unnecessary. If our thread holds a ref to the object, it's 
-// guranteed to not change under us thanks to COW.
-//  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-//  lockMutexes(child_reslock,child_result);
   int nrch = child_result.size();
-//  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
-//  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
-//  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
-//  childpvv_lock[0].resize(nrch);
-//  childpvv_lock[1].resize(nrch);
   Assert(nrch==2);
   // Figure out the dimensions of the output result, and see that children
   // match these dimensions. 
@@ -155,6 +153,8 @@ int Condeq::getResult (Result::Ref &resref,
     VellSet &vellset = result.setNewVellSet(iplane,spids.size(),1);
     // The main value is measured-predicted.
     Vells mainval = *values[1] - *values[0];
+    if( is_modulo_ )
+      mainval = VellsMath::remainder(mainval,modulo_);
     vellset.setValue(mainval);
     bool force_complex = mainval.isComplex();
     // set flags if any

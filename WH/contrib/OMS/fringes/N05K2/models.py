@@ -15,7 +15,7 @@ def cps_3C345 (ns,observation,tablename=''):
 
   return [ PointSource(ns,name="3C345",I=1.0, Q=0.0, U=0.0, V=0.0,
                        direction = observation.phase_centre,
-                       Iorder=0,
+                       Iorder=3,
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   
@@ -27,7 +27,7 @@ def cgs_3C345 (ns,observation,tablename=''):
 
   return [ GaussianSource(ns,name="3C345",I=1.0, Q=0.0, U=0.0, V=0.0,
                        direction = observation.phase_centre,
-                       Iorder=0,size=[.001*arcsec,.001*arcsec],
+                       Iorder=0,size=[.002*arcsec,.001*arcsec],
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   

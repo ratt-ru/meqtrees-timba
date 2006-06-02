@@ -21,11 +21,13 @@ TDLRuntimeOption('msname',"MS",["n05k2.ms"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-TDLRuntimeOption('tile_size',"Tile size (timeslots)",[1,2,5,30,60,120,180,360]);
+TDLRuntimeOption('tile_size_phases',"Tile size (timeslots) for phase solution",[1,2,5,10,20,30,60,120,180,360]);
+TDLRuntimeOption('tile_size_flux',"Tile size (timeslots) for flux solution",[120,180,360]);
 
 TDLRuntimeOption('field_index',"Field ID",[0,1,2,3,4]);
 TDLRuntimeOption('ddid_index',"Data description ID (band)",[0,1,2,3]);
 TDLRuntimeOption('channel_select',"Channel selection",[None,[4,59]]);
+TDLRuntimeOption('fit_polarization',"Fit polarized source",False);
 
 # how much to perturb starting values of solvables
 TDLRuntimeMenu('Parameter options',
@@ -49,7 +51,9 @@ TDLRuntimeMenu("Solver options",
 );
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
-TDLCompileOption('stations_list',"Station list",[[1,2,3,4,7,8],[1,2,7]]);
+TDLCompileOption('stations_list',"Station list",[[1,2,4,7],[1,2,7],[1,2,4],[1,2]]);
+TDLCompileOption('fit_sta1_only',"Fit station 1 baselines only",False);
+TDLCompileOption('fit_phases_only',"Fit phases only",False);
 TDLCompileOption('source_model',"Source model",[
     models.cps_3C345,
     models.cgs_3C345
@@ -57,10 +61,10 @@ TDLCompileOption('source_model',"Source model",[
 TDLCompileMenu("Fitting options",
   TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4,5,6]),
   TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4]),
+  TDLOption('subtile_phase',"Subtiling for phase solutions",[None,10,20,30,60,90,120]),
   TDLOption('gain_deg_time',"Polc degree (time) for gain fitting",[0,1,2,3,4]),
   TDLOption('gain_deg_freq',"Polc degree (freq) for gain fitting",[0,1,2,3,4]),
   TDLOption('flux_constraint',"Flux constraint",[None,[0.0,5.0],[1.,5.0],[2.,5.]]),
-  TDLOption('constraint_weight',"Weight of flux constraint",["intrinsic",100,1000,10000])
 );
 
 TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
@@ -101,9 +105,9 @@ Settings.forest_state = record(bookmarks=[
       ["corrected:2:7"]
   )), 
   record(name='Source solutions',page=Bookmarks.PlotPage(
-      ["I:3C345","sigma1:3C345"],
-      ["sigma2:3C345","phi:3C345"],
-      ["solver"]
+      ["I:3C345","Q:3C345","U:3C345"],
+      ["V:3C345","sigma1:3C345","sigma2:3C345"],
+      ["phi:3C345","solver"]
   )),
   record(name='Flux and phase solutions',page=Bookmarks.PlotPage(
       ["I:3C345","phase:L:1"],
@@ -194,12 +198,24 @@ def _define_forest(ns):
                                                  flag_bit=4,
                                                  input_col='DATA');
     weight = ns.weight(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
-                                                 station_2_index=sta2-1,
-                                                 flag_mask=0,
-                                                 input_col='WEIGHT');
+                                               station_2_index=sta2-1,
+                                               flag_mask=0,
+                                               input_col='WEIGHT');
     pred = predict(sta1,sta2);
-    ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred) * weight / Meq.Sum(weight);
-    condeqs.append(ce);
+    if sta1 == 1 or not fit_sta1_only:
+      weight = ns.norm_weight(sta1,sta2) << weight * 1e+6;
+      if fit_phases_only:
+        rr = ns.spigot_rr(sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
+        ll = ns.spigot_ll(sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
+        ce1 = ns.ce_rr(sta1,sta2) << \
+          Meq.Condeq(Meq.Arg(rr),ns.phase('R',sta1)-ns.phase('R',sta2),modulo=math.pi) * weight;
+        ce2 = ns.ce_ll(sta1,sta2) << \
+          Meq.Condeq(Meq.Arg(ll),ns.phase('L',sta1)-ns.phase('L',sta2),modulo=math.pi) * weight;
+        condeqs.append(ce1);
+        condeqs.append(ce2);
+      else:
+        ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred) * weight;
+        condeqs.append(ce);
     # subtract nodes compute residuals
     if output_type == "residual":
       ns.residual(sta1,sta2) << spigot - pred;
@@ -215,20 +231,9 @@ def _define_forest(ns):
   # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
   cpo = [];
-  for i in range(array.num_stations()/2):
-    (sta1,sta2) = array.stations()[i*2:(i+1)*2];
-    cpo.append(ns.ce(sta1,sta2).name);
-  if constraint_weight != "intrinsic":
-    ns.flux_constraint << flux_constraint;
-    # create boundary constraints for fluxes
-    for src in source_list:
-      sti = src.stokes("I");
-      base = ns.base_constr("I",src.name) << \
-        (src.stokes("I") - ns.flux_constraint)*constraint_weight;
-      bound = ns.constraint(src.name) << Meq.Condeq(
-        Meq.Sqr(base) - Meq.Abs(base)*base,0
-      );
-      condeqs.append(bound);
+  # for i in range(array.num_stations()/2):
+  #   (sta1,sta2) = array.stations()[i*2:(i+1)*2];
+  #   cpo.append(ns.ce(sta1,sta2).name);
       
   # create baseline phases (for visualization purposes only)
   visnodes = [];
@@ -242,7 +247,7 @@ def _define_forest(ns):
   ns.vis = Meq.ReqMux(*visnodes);
     
   # create solver node
-  ns.solver << Meq.Solver(children=condeqs,child_poll_order=cpo);
+  ns.solver << Meq.Solver(children=condeqs);
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
@@ -297,11 +302,11 @@ def set_node_state (mqs,node,fields_record):
   pass
   
 
-def create_inputrec ():
+def create_inputrec (tilesize):
   rec = record();
   rec.ms_name          = msname
   rec.data_column_name = input_column;
-  rec.tile_size        = tile_size
+  rec.tile_size        = tilesize;
   rec.selection =  record();
   rec.selection.ddid_index       = ddid_index;
   rec.selection.field_index      = field_index;
@@ -328,10 +333,10 @@ def create_outputrec (outcol):
     return record(boio=rec);
 
 
-def _run_solve_job (mqs,solvables):
+def _run_solve_job (mqs,solvables,tilesize):
   """common helper method to run a solution with a bunch of solvables""";
   req = meq.request();
-  req.input  = create_inputrec();
+  req.input  = create_inputrec(tilesize);
   if output_column is not None:
     req.output = create_outputrec(output_column);
 
@@ -362,7 +367,8 @@ def _perturb_parameters (mqs,solvables,pert="random",
     set_node_state(mqs,name,parmstate);
   return solvables;
     
-def _reset_parameters (mqs,solvables,value=None,use_table=False,constrain=None,reset=False):
+def _reset_parameters (mqs,solvables,value=None,use_table=False,
+                       constrain=None,constrain_min=None,constrain_max=None,reset=False,subtile=None):
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
     if value is not None:
@@ -371,22 +377,34 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False,constrain=None,r
     reset_funklet = reset or not (use_table or use_mep);
     parmstate = record(init_funklet=polc, \
                 use_previous=use_previous,reset_funklet=reset_funklet);
-    if constrain is not None:
-      parmstate.constrain = constrain;
+    for var in ("constrain","constrain_min","constrain_max"):
+      value = locals()[var];
+      if value is not None:
+        parmstate[var] = value;
+    if subtile is None:
+      parmstate.tiling = record();
+    else:
+      parmstate.tiling = record(time=subtile);
     set_node_state(mqs,name,parmstate);
   return solvables;
 
 arcsec_to_rad = math.pi/(180*3600);
 
 def _solvable_source (mqs,src):
-  if constraint_weight == "intrinsic":
-    constrain = flux_constraint;
+  constrain = flux_constraint;
+  # note that "constrain" overrides "constrain_min/max", so only use the latter
+  if constrain is not None:
+    cmin = [constrain[0],-10.,-10.,-10.,-10.];
+    cmax = [constrain[1],10.,10.,10.,10.];
   else:
-    constrain = None;
-  solvables = _reset_parameters(mqs,['I0:'+src.name],constrain=constrain);
-  _reset_parameters(mqs,['Q:'+src.name for src in source_list],constrain=[0.,.5]);
-  _reset_parameters(mqs,['U:'+src.name for src in source_list],constrain=[0.,.5]);
-  _reset_parameters(mqs,['V:'+src.name for src in source_list],constrain=[0.,.5]);
+    cmin = cmax = None;
+  solvables = _reset_parameters(mqs,['I0:'+src.name],
+      constrain_min=cmin,constrain_max=cmax);
+  spol =  _reset_parameters(mqs,['Q:'+src.name for src in source_list],constrain=[0.,.5]);
+  spol += _reset_parameters(mqs,['U:'+src.name for src in source_list],constrain=[0.,.5]);
+  spol += _reset_parameters(mqs,['V:'+src.name for src in source_list],constrain=[0.,.5]);
+  if fit_polarization:
+    solvables += spol;
   if isinstance(src,GaussianSource):
     solvables += _reset_parameters(mqs,['sigma1:'+src.name]);
     solvables += _reset_parameters(mqs,['sigma2:'+src.name]);
@@ -407,24 +425,40 @@ def _solvable_gains (mqs):
   return solvables;
 
 def _solvable_phases (mqs):
-  solvables = _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],0);
-  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],0);
+  solvables = _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],
+                                0,subtile=subtile_phase);
+  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],
+                                0,subtile=subtile_phase);
   return solvables;
   
 def _tdl_job_1_solve_for_flux_and_phases (mqs,parent,**kw):
   solvables = [];
   for src in source_list:
     solvables += _solvable_source(mqs,src);
+  _reset_gains(mqs);  
   solvables += _solvable_phases(mqs,);
-  _run_solve_job(mqs,solvables);
+  _run_solve_job(mqs,solvables,tile_size_phases);
 
-def _tdl_job_3_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
+def _tdl_job_1a_solve_for_phases_only (mqs,parent,**kw):
+  solvables = [];
+  _reset_gains(mqs);  
+  solvables += _solvable_phases(mqs,);
+  _run_solve_job(mqs,solvables,tile_size_phases);
+
+def _tdl_job_1b_solve_for_flux_only (mqs,parent,**kw):
+  solvables = [];
+  for src in source_list:
+    solvables += _solvable_source(mqs,src);
+  _reset_gains(mqs);  
+  _run_solve_job(mqs,solvables,tile_size_flux);
+
+def _tdl_job_2_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
   solvables = [];
   for src in source_list:
     solvables += _solvable_source(mqs,src);
   solvables += _solvable_gains(mqs);
   solvables += _solvable_phases(mqs);
-  _run_solve_job(mqs,solvables);
+  _run_solve_job(mqs,solvables,tile_size_phases);
 
 def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
   os.system("rm -fr "+get_source_table());

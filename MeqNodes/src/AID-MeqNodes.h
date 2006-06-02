@@ -713,6 +713,11 @@ const int AidMethod_int = -1550;
 const DMI::AtomicID AidMode(-1215);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
 const int AidMode_int = -1215;
 #endif
+#ifndef _defined_id_AidModulo
+#define _defined_id_AidModulo 1
+const DMI::AtomicID AidModulo(-1679);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
+const int AidModulo_int = -1679;
+#endif
 #ifndef _defined_id_AidMulti
 #define _defined_id_AidMulti 1
 const DMI::AtomicID AidMulti(-1518);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:33
