@@ -323,6 +323,7 @@ MeqFunction                      1283       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqFunctional                   1673       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
 MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 #MeqGaussNoise                   1449       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
+#MeqGrid                         1681       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
 #MeqGridPoints                   1666       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30
 #MeqHistoryCollect               1574       ; from /home/oms/LOFAR/Timba/MeqNodes/src/HistoryCollect.h:29
 #MeqIdentity                     1678       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Identity.h:31
