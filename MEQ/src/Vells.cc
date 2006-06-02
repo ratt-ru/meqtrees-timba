@@ -1215,7 +1215,23 @@ Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_posdiff_lut[VELLS_LUT_SIZE][VELLS_
 // atan2() 
 // defined for two real arguments only
 defineBinaryFuncTemplate(atan2,atan2,);
-defineErrorFunc2(error_binary_atan2,"atan2() can only be applied to two real Meq::Vells "); 
+defineErrorFunc2(error_binary_atan2,"atan2() can only be applied to two real Meq::Vells"); 
 // LUT 
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_atan2_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
     ExpandRealBinaryLUTMatrix(atan2);
+
+// fmod() 
+// defined for two real arguments only
+defineBinaryFuncTemplate(fmod,fmod,);
+defineErrorFunc2(error_binary_fmod,"fmod() can only be applied to two real Meq::Vells"); 
+// LUT 
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_fmod_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+    ExpandRealBinaryLUTMatrix(fmod);
+
+// remainder() 
+// defined for two real arguments only
+defineBinaryFuncTemplate(remainder,remainder,);
+defineErrorFunc2(error_binary_remainder,"remainder() can only be applied to two real Meq::Vells"); 
+// LUT 
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_remainder_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+    ExpandRealBinaryLUTMatrix(remainder);

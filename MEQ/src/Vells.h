@@ -60,7 +60,8 @@
 
 // Unary group 2: defined for real Vells only, returns real
 #define DoForAllUnaryFuncs2(Do,x) \
-  Do(ceil,x) Do(floor,x) Do(acos,x) Do(asin,x) Do(atan,x) 
+  Do(ceil,x) Do(floor,x) \
+  Do(acos,x) Do(asin,x) Do(atan,x) 
 
 // Unary group 3: defined for all Vells, result is always real
 #define DoForAllUnaryFuncs3(Do,x) \
@@ -89,7 +90,8 @@
 
 // Binary functions
 #define DoForAllBinaryFuncs(Do,x) \
-  Do(posdiff,x) Do(tocomplex,x) Do(polar,x) Do(pow,x) Do(atan2,x)
+  Do(posdiff,x) Do(tocomplex,x) Do(polar,x) Do(pow,x) Do(atan2,x) \
+  Do(fmod,x) Do(remainder,x)
 
 // Binary functions using flags
 #define DoForAllBinaryFuncsWF(Do,x) \
@@ -1042,6 +1044,8 @@ defineBinaryFunc(tocomplex,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
 defineBinaryFunc(polar,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
 defineBinaryFunc(posdiff,Vells::VF_REAL|Vells::VF_CHECKREAL);
 defineBinaryFunc(atan2,Vells::VF_REAL|Vells::VF_CHECKREAL);
+defineBinaryFunc(fmod,Vells::VF_REAL|Vells::VF_CHECKREAL);
+defineBinaryFunc(remainder,Vells::VF_REAL|Vells::VF_CHECKREAL);
 
 #define defineBinaryFuncWF(FUNCNAME,flags) \
   inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right,VellsFlagType flagmask) \
