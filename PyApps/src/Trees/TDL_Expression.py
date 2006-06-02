@@ -199,7 +199,7 @@ class Expression:
     def tlabel (self):
         """Return a concatenation of object type and label"""
         return 'Expression: '+self.__label
-        # return str(type(self))+':'+self.__label
+        # return str(type(self).__class__)+':'+self.__label
 
     def test_result (self):
         """Return the result of evaluation with the test-values."""
@@ -244,7 +244,8 @@ class Expression:
 
     def oneliner(self):
         """Return a one-line summary of the Expression"""
-        ss = '** Expression ('+str(self.__label)+'):  '
+        # ss = '** Expression ('+str(self.__label)+'):  '
+        ss = '** '+self.tlabel()+':  '
         if self.__quals: ss += '(quals='+str(self.__quals)+') '
         if self.__descr:
             ss += str(self.__descr)
@@ -272,7 +273,9 @@ class Expression:
         for key in self.__order:
             p = self.__parm[key]
             if isinstance(p, Expression):
-                print indent,'  -',key,':',p.oneliner()
+                expr = p.expression()
+                if len(expr)>60: expr = expr[0:60]+' ...'
+                print indent,'  -',key,':',p.oneliner(),expr
             elif isinstance(p, Funklet):
                 print indent,'  -',key,': (Funklet):',p._function
             elif p.has_key('index'):
@@ -309,6 +312,12 @@ class Expression:
                         print indent,'  -',key,':',p
                 for key in self.__xvar.keys():
                     print indent,'  .',key,':',self.__xvar[key]
+            print indent,'  - MeqFunctional children: ',self.__xchild_order
+            if full:
+                for key in self.__xchild_order:
+                    node = self.__xchild[key]
+                    print indent,'    -',key,':',node.name,' (',node.classname,')'
+
             print indent,'  - test_result: ',self.__test_result
             print indent,'  - eval_result: ',self.__eval_result
             if full:
@@ -333,15 +342,19 @@ class Expression:
     # Manual definition of named parameters and variables:
     #============================================================================
 
-    def parm (self, key=None, default=None,
+    def parm (self, key=None, default=None, 
               constant=False, polc=None,
               ntest=2, testinc=0.1,
+              recurse=False, level=0,
               help=None, stddev=0, trace=False):
         """Provide extra information for the named parameter (key).
         The default argument may either be a value, or an object of type
         Expression or Funklet, or a nodestub (child of MeqFunctional node).
         If polc=[ntime,nfreq] (one-relative), a polc Expression is generated,
         with the default value/list as a coeff-list."""
+
+        if trace:
+            print level*'..','** .parm(',key,type(default),'): ',self.tlabel()
 
         # If no key specified, return the entire record:
         if key==None:
@@ -369,62 +382,82 @@ class Expression:
                     if self.__order[i]==keyin:
                         self.__order[i] = key
 
-        if not key in self.__order:
-            print '\n** .parm(',key,'): not recognised in:',self.__order,'\n'
-            return False
+        # If the specified parm (key) exists, update it:
+        if key in self.__order:
+            # Special case: make a polc Expression:
+            if isinstance(polc, (list,tuple)):
+                default = polc_Expression(shape=polc, coeff=default,
+                                          label=None, trace=trace)
 
-        # Special case: make a polc Expression:
-        if isinstance(polc, (list,tuple)):
-            default = polc_Expression(shape=polc, coeff=default, label=None, trace=trace)
+            # Update the specified self.__parm entry:
+            if default==None:
+                # No default specified, just return the existing entry:
+                return self.__parm[key]
 
-        # Update the specified self.__parm entry:
-        if default==None:
-            # No default specified, just return the existing entry:
-            return self.__parm[key]
+            elif isinstance(default, Expression):
+                self.__parm[key] = default
+                self.__parmtype['Expression'].append(key)
 
-        # The parm may be another object, or a nodestub:
-        elif isinstance(default, Expression):
-            self.__parm[key] = default
-            self.__parmtype['Expression'].append(key)
+            elif isinstance(default, Funklet):
+                self.__parm[key] = default
+                self.__parmtype['Funklet'].append(key)
 
-        elif isinstance(default, Funklet):
-            self.__parm[key] = default
-            self.__parmtype['Funklet'].append(key)
+            elif isinstance(default, Timba.TDL.TDLimpl._NodeStub):
+                self.__child[child_name] = default
+                if not child_name in self.__child_order:
+                    self.__child_order.append(child_name)
+                self.__parmtype['MeqNode'].append(key)
+                # Give it some dummy values for testing/plotting
+                # (this may require a little more thought....)
+                testval = 3.0
+                testvec = array(testval)
+                self.__parm[key] = dict(child_name=child_name, index=index,
+                                        testvec=testvec, testval=testval,
+                                        default=testval)
 
-        elif isinstance(default, Timba.TDL.TDLimpl._NodeStub):
-            self.__child[child_name] = default
-            self.__child_order.append(child_name)
-            self.__parmtype['MeqNode'].append(key)
-            # Give it some dummy values for testing/plotting
-            # (this may require a little more thought....)
-            testval = 3.0
-            testvec = array(testval)
-            self.__parm[key] = dict(child_name=child_name, index=index,
-                                    testvec=testvec, testval=testval,
-                                    default=testval)
+            else:
+                # A numeric parm has a default value, which is used for MeqParm.
+                # It also has other information:
+                # - testval: value to be used for testing.
+                # - testvec: value to be used for plotting.
+                # - nominal: nominal default value (i.e. without stddev)
+                # - stddev: stddev to be used for calculating a new default value
+                #     by adding a random value to the nominal default value. This
+                #     is done each time the internal node qualifier is changed.
+                # - if constant==True, the parameter is a constant with value default.
+                print 'parm(',key,'): default =',type(default)
+                testval = default+testinc
+                testvec = default + testinc*array(range(-ntest,ntest+1))
+                self.__parm[key] = dict(default=default, constant=constant,
+                                        testvec=testvec, testval=testval,
+                                        nominal=default, stddev=stddev,
+                                        help=help)
 
-        else:
-            # A numeric parm has a default value, which is used for MeqParm.
-            # It also has other information:
-            # - testval: value to be used for testing.
-            # - testvec: value to be used for plotting.
-            # - nominal: nominal default value (i.e. without stddev)
-            # - stddev: stddev to be used for calculating a new default value
-            #     by adding a random value to the nominal default value. This
-            #     is done each time the internal node qualifier is changed.
-            # - if constant==True, the parameter is a constant with value default.
-            testval = default+testinc
-            testvec = default + testinc*array(range(-ntest,ntest+1))
-            self.__parm[key] = dict(default=default, constant=constant,
-                                    testvec=testvec, testval=testval,
-                                    nominal=default, stddev=stddev,
-                                    help=help)
 
-        # Enforce a new expansion:
-        self.__expanded = False
+        # Optional: update parameters in the parameter-expressions recursively:
+        if recurse:              
+            recurse_result = False
+            for key1 in self.__parm.keys():
+                p1 = self.__parm[key1]
+                # print '- recurse: p1 =',type(p1),p1
+                if isinstance(p1, Expression):
+                    r1 = p1.parm(key, default, 
+                                 constant=constant, polc=polc,
+                                 ntest=ntest, testinc=testinc,
+                                 recurse=recurse, level=level+1,
+                                 help=help, stddev=stddev, trace=trace)
+                    # print '-- recurse: r1 =',type(r1)
+                    if r1: recurse_result = r1
 
-        # Always return the named (key) parm entry:
-        return self.__parm[key]
+        # Finishing touches:
+        self.__expanded = False                       # Enforce a new expansion 
+        if key in self.__order:
+            return self.__parm[key]                   # updated parm definition
+        elif recurse:
+            if recurse_result: return recurse_result  # updated parm definition
+        if level==0:
+            print '\n** .parm(',key,'): not recognised in/below:',self.tlabel(),'\n'
+        return False
 
     #----------------------------------------------------------------------------
 
@@ -503,6 +536,7 @@ class Expression:
         self.__xexpr = deepcopy(self.__expression)
         self.__xparm = dict()
         self.__xorder = []
+        self.__xchild = dict()
         self.__xchild_order = []
         self.__xvar = deepcopy(self.__var)
 
@@ -521,14 +555,28 @@ class Expression:
                 for pkey in parm.xorder():
                     ckey = key+'_'+pkey
                     self.__xorder.append(ckey)
-                    self.__xparm[ckey] = parm.xparm(pkey)
+                    pd = parm.xparm(pkey)
+                    self.__xparm[ckey] = pd
+                    if isinstance(pd, dict) and pd.has_key('index'):
+                        cname = pd['child_name']
+                        self.__xchild[cname] = parm.__xchild[cname]
+                        if not cname in self.__xchild_order:
+                            self.__xchild_order.append(cname)
                     pexpr = pexpr.replace('{'+pkey+'}', '{'+ckey+'}')
                 self.__xexpr = self.__xexpr.replace('{'+key+'}', pexpr)
                 for vkey in parm.xvar().keys():
                     self.__xvar.setdefault(vkey, parm.xvar(vkey))
 
+            elif parm.has_key('index'):                           # MeqNode
+                self.__xorder.append(key)
+                self.__xparm[key] = self.__parm[key]
+                cname = parm['child_name']
+                self.__xchild[cname] = self.__child[cname]
+                if not cname in self.__xchild_order:
+                    self.__xchild_order.append(cname)
+
             else:
-                # Otherwise, just copy (numeric or node):
+                # Otherwise, just copy (assume numeric):
                 self.__xorder.append(key)
                 self.__xparm[key] = self.__parm[key]
                 
@@ -539,7 +587,33 @@ class Expression:
         self.__eval_result = self.eval()
         return True
     
+    #---------------------------------------------------------------------------
 
+    def expanded (self, trace=False):
+        """Make a new Expression with the expanded expression (xexpr) from
+        the current object."""
+        self.expand(reset=True)
+        if trace: self.display('.expanded()', full=True)
+        e0 = Expression(self.__xexpr, label='expanded_'+self.label())
+        e0.__order = self.__xorder
+        for key in self.__xorder:
+            parm = self.__xparm[key]
+            e0.__parm[key] = parm
+            if isinstance(parm, Expression):
+                e0.__parmtype['Expression'].append(key)
+            elif isinstance(parm, Funklet):
+                e0.__parmtype['Funklet'].append(key)
+            elif parm.has_key('child_name'):
+                cname = parm['child_name']
+                print 'cname =',cname,':',self.__xchild.keys()
+                e0.__child[cname] = self.__xchild[cname]
+                if not cname in e0.__child_order:
+                    e0.__child_order.append(cname)
+                e0.__parmtype['MeqNode'].append(key)
+        for key in self.__xvar.keys():
+            e0.__var[key] = self.__xvar[key]
+        if trace: e0.display('expanded', full=True)
+        return e0
 
 
     #============================================================================
@@ -824,12 +898,16 @@ class Expression:
             if _plot=='loglog':
                 cc = loglog(xx, yy)                               # log x, log y
                 cc = loglog(xx, yy, 'o', color=cc[0].get_color()) 
+                xlabel('log('+rr['xlabel']+')')
+                ylabel('log('+rr['ylabel']+')')
             elif _plot=='semilogx':
                 cc = semilogx(xx, yy)                             # linear y, log x
                 cc = semilogx(xx, yy, '+', color=cc[0].get_color()) 
+                xlabel('log('+rr['xlabel']+')')
             elif _plot=='semilogy':
                 cc = semilogy(xx, yy)                             # linear x, log y
                 cc = semilogy(xx, yy, '+', color=cc[0].get_color()) 
+                ylabel('log('+rr['ylabel']+')')
             else:
                 cc = plot(xx, yy)                                 # default: both linear
                 cc = plot(xx, yy, '+', color=cc[0].get_color())     
@@ -1118,7 +1196,7 @@ class Expression:
 
     def parm2node (self, ns, trace=False):
         """Convert parameter(s) in self.__expression to node(s).
-        E.g. {t} is converted into a MeqParm node, etc"""
+        E.g. {xx} is converted into a MeqParm node, etc"""
         uniqual = _counter ('parm2node', increment=-1)
         for key in self.__parm.keys():
             parm = self.__parm[key]
@@ -1272,9 +1350,47 @@ class Expression:
         """Make a MeqFunctional node from the Expression, by replacing all its
         parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
         if not self.__Functional:
+            ex = self.expanded(trace=trace)
+            ex.parm2node (ns, trace=trace)                # convert parms to nodes
+            ex.var2node (ns, trace=trace)                 # convert vars to nodes
+            uniqual = _counter ('MeqFunctional', increment=-1)
+            function = deepcopy(ex.__expression)
+            children = []
+            child_map = []                                  # for MeqFunctional
+            k = -1
+            for key in ex.__parm.keys():
+                k += 1                                      # increment
+                xk = 'x'+str(k)                             # x0, x1, x2, ..
+                function = function.replace('{'+key+'}',xk)
+                parm = ex.__parm[key]                     # parm definition record
+                print 'MeqFunctional:',key,k,xk,type(parm)
+                child_name = parm['child_name']
+                if not child_name in children:
+                    children.append(child_name)
+                child_num = 1+children.index(child_name)
+                rr = record(child_num=child_num, index=parm['index'],
+                            child_name=child_name)
+                if trace: print '-',key,xk,rr
+                child_map.append(rr)
+            # Replace child-names with actual children:
+            for i in range(len(children)):
+                children[i] = ex.__child[children[i]]
+            if not name: name = 'Expr_'+ex.label()+'_MeqFunctional'
+            ex.__Functional = ex._unique_node (ns, name, qual=qual, trace=trace)
+            ex.__Functional << Meq.Functional(children=children, child_map=child_map)
+            self.__Functional = ex.__Functional
+        return self.__Functional
+
+
+
+    def MeqFunctional_old (self, ns, name=None, qual=None, trace=False):
+        """Make a MeqFunctional node from the Expression, by replacing all its
+        parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc)."""
+        if not self.__Functional:
+            # ex = self.expanded(trace=trace)
             self.parm2node (ns, trace=trace)                # convert parms to nodes
             self.var2node (ns, trace=trace)                 # convert vars to nodes
-            uniqual = _counter ('MeqFunctional', increment=-1)
+            uniqual = _counter ('MeqFunctional_old', increment=-1)
             function = deepcopy(self.__expression)
             children = []
             child_map = []                                  # for MeqFunctional
@@ -1284,6 +1400,7 @@ class Expression:
                 xk = 'x'+str(k)                             # x0, x1, x2, ..
                 function = function.replace('{'+key+'}',xk)
                 parm = self.__parm[key]                     # parm definition record
+                print 'MeqFunctional:',key,k,xk,type(parm)
                 child_name = parm['child_name']
                 if not child_name in children:
                     children.append(child_name)
@@ -1295,7 +1412,7 @@ class Expression:
             # Replace child-names with actual children:
             for i in range(len(children)):
                 children[i] = self.__child[children[i]]
-            if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
+            if not name: name = 'Expr_'+self.label()+'_MeqFunctional_old'
             self.__Functional = self._unique_node (ns, name, qual=qual, trace=trace)
             self.__Functional << Meq.Functional(children=children, child_map=child_map)
         return self.__Functional
@@ -1601,7 +1718,8 @@ def Funklet2Expression (Funklet, label='C', trace=False):
 #=======================================================================================
 
 
-def polc_Expression(shape=[1,1], coeff=None, label=None, 
+def polc_Expression(shape=[1,1], coeff=None, label=None,
+                    ignore_triangle=True,
                     type='MeqPolc', f0=1e6, t0=1.0,
                     fit=None, plot=False, trace=False):
     """Create an Expression object for a polc with the given shape (and type).
@@ -1635,22 +1753,27 @@ def polc_Expression(shape=[1,1], coeff=None, label=None,
     first = True
     tdep = False
     fdep = False
+    include = True
+    ijmax = max(shape[0],shape[1])
     for i in range(shape[1]):
         if i>0: fdep = True                          # depends on freq
         for j in range(shape[0]):
             if j>0: fdep = True                      # depends on time
-            k += 1
-            pk = 'c'+str(j)+str(i)                   # e.g. c01
-            pp[pk] = 0.0
-            if len(coeff)>k:
-                pp[pk] = coeff[k]
-            help[pk] = label+'_'+str(j)+str(i)
-            if not first: func += '+'
-            func += '{'+pk+'}'                       # {c01}
-            for i2 in range(j): func += '*'+tvar     # e.g:  *[t]
-            for i1 in range(i): func += '*'+fvar     # e.g:  *[f]
-            first = False
-            if trace: print '-',i,j,k,pk,':',func
+            if ignore_triangle:                      # optional:
+                if (i+j)>=ijmax: include = False     # ignore higher-order cross-terms
+            if include:                              # include this term
+                k += 1
+                pk = 'c'+str(j)+str(i)                   # e.g. c01
+                pp[pk] = 0.0
+                if len(coeff)>k:
+                    pp[pk] = coeff[k]
+                help[pk] = label+'_'+str(j)+str(i)
+                if not first: func += '+'
+                func += '{'+pk+'}'                       # {c01}
+                for i2 in range(j): func += '*'+tvar     # e.g:  *[t]
+                for i1 in range(i): func += '*'+fvar     # e.g:  *[f]
+                first = False
+                if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
     result = Expression(func, label, **pp)
 
     # Define the Expression parameters, if necessary:
@@ -1891,7 +2014,43 @@ if __name__ == '__main__':
         vbeam.plot(l=True,m=True)
             
 
+    if 1:
+        # Elliptic gaussian source:
+        attuv = Expression('exp(-({Uterm}**2)-({Vterm}**2))', label='attuv',
+                           descr='elliptic gaussian source attenuation factor(u,v)')
+        # Uterm = Expression('exp(-{Uterm}-{Vterm})', label='Uterm')
+        urot = Expression('{major}*({u}*{cospa}-{v}*{sinpa})', label='urot')
+        vrot = Expression('{minor}*({u}*{sinpa}+{v}*{cospa})', label='vrot')
 
+        attuv.parm('Uterm', urot)
+        attuv.parm('Vterm', vrot)
+
+        uvquals = dict(s1=3,s2=5)
+        ucoord = ns.ucoord(**uvquals) << 1
+        vcoord = ns.vcoord(**uvquals) << 1
+        print 'ucoord =',ucoord
+        attuv.parm('u', ucoord, recurse=True, help='u-coordinate')
+        attuv.parm('v', vcoord, recurse=True, help='v-coordinate')
+
+        qqual = dict(q='3c56')
+        major = ns.major_axis(**qqual) << 0.1
+        minor = ns.minor_axis(**qqual) << 0.01
+        pa = ns.posangle(**qqual) << -0.1
+        cospa = Expression('cos({pa})', label='cospa')
+        sinpa = Expression('sin({pa})', label='sinpa')
+        attuv.parm('major', major, recurse=True, help='source major axis (rad)')
+        attuv.parm('minor', minor, recurse=True, help='source minor axis (rad)')
+        attuv.parm('cospa', cospa, recurse=True, help='cos(posangle)')
+        attuv.parm('sinpa', sinpa, recurse=True, help='sin(posangle)')
+        attuv.parm('pa', pa, recurse=True, help='source position angle (rad)')
+
+
+        # urot.display('urot', full=True)
+        # vrot.display('vrot', full=True)
+        if 1:
+            node = attuv.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+        # attuv.display('attuv', full=True)
 
     #--------------------------------------------------------------------------
     # Tests of standalone helper functions:
@@ -1941,9 +2100,14 @@ if __name__ == '__main__':
             fp = polc_Expression([1,5], fit=fit, trace=True)
         fp.display()
 
-    if 1:
+    if 0:
         fp = polc_Expression([1,4], [1,0,0,2], type='MeqPolcLog', trace=True, plot=True)
         # fp.plot(f=dict(min=1e7, max=1e9, nr=100))
+
+    if 0:
+        fp = polc_Expression([1,3], [10**1.766,0.447, -0.148],
+                             type='MeqPolcLog', label='3c147', trace=True, plot=False)
+        fp.plot(f=dict(min=1e7, max=1e9, nr=100))
 
     if 0:
         fp = polc_Expression([0,0], 56, trace=True)

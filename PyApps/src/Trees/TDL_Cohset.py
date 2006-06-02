@@ -1019,7 +1019,7 @@ class Cohset (TDL_common.Super):
     # Insertion of source visibilities:
     #=================================================================================
 
-    def punit2coh(self, ns=None, Sixpack=None, Joneset=None):
+    def punit2coh(self, ns=None, Sixpack=None, Joneset=None, MSauxinfo=None):
         """Convert a prediction unit (punit, Sixpack) to source cohaerencies
         (visibilities) for all ifrs. If Joneset is specified, corrupt them with
         instrumental effects."""
@@ -1033,15 +1033,15 @@ class Cohset (TDL_common.Super):
         if len(rider)>0: rider = rider[0]              # assume dict (see below)
 
         if Sixpack.ispoint():                          # point source (or ell.gauss) 
-            nominal = Sixpack.coh22(ns, self.polrep())
-            if True:
+            if not rider.has_key('major'):
                 # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
+                nominal = Sixpack.coh22(ns, self.polrep())
                 self.uniform(ns, nominal)
             else:
                 # Put in an extra subtree for an elliptic gaussian extended source
                 # rider (dict) fields: ['shape','major','minor','pa']
                 # they contain node names, of nodes that should be in ns....
-                pass
+                self.elliptic_gaussian(ns, Sixpack, MSauxinfo=MSauxinfo)
 
             # Optionally, corrupt the visibilities with instrumental effects:
             if Joneset:
@@ -1055,6 +1055,43 @@ class Cohset (TDL_common.Super):
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
+    #----------------------------------------------------------------------------------
+
+    def elliptic_gaussian(self, ns, Sixpack=None, MSauxinfo=None):
+        """Make cohaerencies for an elliptic gaussian source, by multplying the nominal
+        2x2 cohaerency matrix with a baseline-dependent factor."""
+        funcname = '::elliptic_gaussian():'
+        uniqual = _counter(funcname, increment=-1)
+        nominal = Sixpack.coh22(ns, self.polrep())
+        punit = str(Sixpack.label())
+        scope = 'ellgauss'
+        # Information about source shape may be passed via the ParmSet rider:
+        # See MG_JEN_Sixpack.py
+        rider = Sixpack.ParmSet._rider('shape')        # -> list
+        if len(rider)>0: rider = rider[0]              # assume dict (see below)
+        # Put in extra subtrees for an elliptic gaussian extended source
+        # rider (dict) fields: ['shape','major','minor','pa']
+        # they contain node names, of nodes that should be in ns....
+        for key in self.keys():
+            s12 = self.__stations[key]
+            uvw = MSauxinfo.node_uvw(s12[0], s12[1], ns=ns)
+            u = ns << Meq.Selector(uvw, index=0)
+            v = ns << Meq.Selector(uvw, index=1)
+            if False:
+                # Counter-rotate (u,v) with the source position angle:
+                cospa = ns << Meq.Cos(rider['pa'])
+                sinpa = ns << Meq.Sin(rider['pa'])
+                urot = ns << (cospa*u - sinpa*v) 
+                v = ns << (sinpa*u + cospa*v)
+                u = urot
+            umajor2 = ns << -(u*rider['major'])**2 
+            vminor2 = ns << -(v*rider['minor'])**2
+            factor = ns << Meq.Exp(ns << (umajor2 + vminor2))
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Multiply(nominal,factor)
+            self.__coh[key] = coh
+        self.scope(scope)
+        self._history(append=funcname+' -> '+self.oneliner())
+        return True
 
     #=================================================================================
     # Update/updict from various objects

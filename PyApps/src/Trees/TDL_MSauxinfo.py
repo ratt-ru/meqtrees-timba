@@ -215,6 +215,16 @@ class MSauxinfo (TDL_common.Super):
         return self.__nodes_station_uvw[key]               # one
 
 
+    def node_uvw(skey1, skey2, ns=None):
+        """Return the requested (ifr) uvw node."""
+        if len(self.__nodes_uvw)==0:                       # not created yet
+            self.make_uvw_nodes(ns)                        # create uvw nodes
+        key = str(skey1)+'_'+str(skey2)                    # ifr key 
+        if self.__nodes_uvw.has_key(key):
+            return self.__nodes_uvw[key]
+        print '\n** .node_uvw(): ifr key not recognised:',key,'\n' 
+        return False
+
     #--------------------------------------------------------------------
 
     def station_config_default(self, stations=range(15)):
@@ -336,9 +346,9 @@ class MSauxinfo (TDL_common.Super):
 
 
     def make_uvw_nodes(self, ns):
-        """Make nodes with ifr-based uvw, for plotting"""
-        if len(self.__nodes_uvw)>0: return True          # do only once
-        self.create_station_uvw_nodes(ns)                  # just in case
+        """Make nodes with ifr-based uvw."""
+        if len(self.__nodes_uvw)>0: return True           # do only once
+        self.create_station_uvw_nodes(ns)                 # just in case
         skeys = self.station_keys()
         for i in range(len(skeys)):
             for j in range(len(skeys)):
@@ -360,6 +370,7 @@ class MSauxinfo (TDL_common.Super):
                     name = 'wcoord'+':s1='+skeys[i]+':s2='+skeys[j]
                     self.__nodes_wcoord[ikey] = ns[name] << Meq.Selector(node, index=2)
         return True
+
 
     def dcoll(self, ns):
         """Make a list of all dataCollect nodes"""
