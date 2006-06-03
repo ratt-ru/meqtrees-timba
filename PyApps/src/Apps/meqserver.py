@@ -27,10 +27,12 @@ if app_defaults.include_gui:
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
 
+import traceback
 import os
 import string
 import time
 from Timba import octopussy
+from Timba import mequtils
 from Timba.pretty_print import PrettyPrinter
 from Timba.Apps.app_proxy import app_proxy
 from Timba.dmi import *
@@ -65,6 +67,8 @@ class meqserver (app_proxy):
     app_proxy.__init__(self,appid,client_id,launch=launch,spawn=spawn,**kwargs);
     # setup own state
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
+    # track axis map changes
+    self._we_axis_list = self.whenever('axis.list',self._axis_list_handler);
     # if base/gui init() has explicitly disabled result tracking, _we_track_results
     # will be False rather than None
     if self.get_verbose() > 0 and self._we_track_results is None:
@@ -142,14 +146,22 @@ class meqserver (app_proxy):
     rec = self.makenodespec(node);
     rec.level = 1;
     return self.meq('Node.Set.Publish.Level',rec,wait=wait);
-  
+    
   def _result_handler (self,msg):
     try:
       value = msg.payload;
       print '============= result for node: ',value.name;
       self._pprint.pprint(value);
     except:
-      print 'exception in meqserver._resulthandler: ',sys.exc_info();
+      print 'exception in meqserver._result_handler: ',sys.exc_info();
+      traceback.print_exc();
+      
+  def _axis_list_handler (self,msg):
+    try:
+      mequtils.set_axis_list(msg.payload);
+    except:
+      print 'exception in meqserver._axis_list_handler: ',sys.exc_info();
+      traceback.print_exc();
   
   def track_results (self,enable=True):
     if enable:

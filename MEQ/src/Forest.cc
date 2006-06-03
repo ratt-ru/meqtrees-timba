@@ -35,6 +35,7 @@ InitDebugContext(Forest,"MeqForest");
 
 // forest state fields
 const HIID FAxisMap = AidAxis|AidMap;
+const HIID FAxisList = AidAxis|AidList;
 const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
@@ -300,6 +301,7 @@ void Forest::initDefaultState ()
   delete [] cwd_temp;
   // state maps
   st[FAxisMap] = Axis::getAxisRecords();
+  st[FAxisList] = Axis::getAxisIds();
   st[FDebugLevel] = debug_level_;
   st[FSymdeps] <<= symdeps().toRecord();
   st[FCachePolicy] = cache_policy_;
@@ -313,6 +315,7 @@ DMI::Record::Ref Forest::state () const
   Thread::Mutex::Lock lock(forestMutex());
   // update axis map
   staterec_()[FAxisMap] = Axis::getAxisRecords();
+  staterec_()[FAxisList] = Axis::getAxisIds();
   return staterec_.copy(); 
 }
     
@@ -321,8 +324,18 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
   // always ignore cwd field
 //  if( rec->hasField(FCwd) )
 //    rec().removeField(FCwd);
+  
+  // axis map may be specified as list of ids or list of records
   if( rec->hasField(FAxisMap) )
+  {
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
+    rec[FAxisList] = Axis::getAxisIds();
+  }
+  else if( rec->hasField(FAxisList) )
+  {
+    Axis::setAxisMap(rec[FAxisList].as<DMI::Vec>());
+    rec[FAxisMap] = Axis::getAxisRecords();
+  }
   rec[FCachePolicy].get(cache_policy_);
   rec[FProfilingEnabled].get(profiling_enabled_);
   rec[FBreakpoint].get(breakpoints);

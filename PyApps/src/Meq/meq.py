@@ -137,8 +137,20 @@ def parm (name,default=None,polcs=None,*args,**kwargs):
   return rec;
 
 def domain (startfreq,endfreq,starttime,endtime):
+  """Creates a time/frequency domain""";
   return _domain_type(freq=map(float,(startfreq,endfreq)),
                 time=map(float,(starttime,endtime)));
+
+def gen_domain (**kw):
+  """Creates a generalized domain. Axes should be specified as, e.g.,
+  freq=(f0,f1),time=(t0,t1),l=(l0,l1), etc.
+  """;
+  dom = _domain_type();
+  for kw,value in kw.iteritems():
+    if not isinstance(value,(list,tuple)) or len(value)!=2:
+      raise TypeError,kw+": list or tuple of (min,max) expected";
+    dom[kw] = map(float,value);
+  return dom;
 
 _make_domain = domain;
   
@@ -218,7 +230,7 @@ def cells(domain=None,num_freq=None,num_time=None,
   # decompose domain into axis ranges
   if domain is not None:
     if not isinstance(domain,_domain_type):
-      raise TypeError,'domain argument must be a MeqDomain object';
+      raise TypeError,'domain: must be a MeqDomain object';
     df = domain.freq;
     dt = domain.time;
   else:
@@ -241,6 +253,21 @@ def cells(domain=None,num_freq=None,num_time=None,
                  segments  = record(freq=fs,time=ts));
   return rec;
 
+def gen_cells (domain,**kw):
+  """Creates a generalized cells. First create a generalized domain
+  with gen_domain(), then pass it here, along with a number of num_axis
+  keywords specifying the number of points along each axis (default 1).
+  """;
+  if not isinstance(domain,_domain_type):
+    raise TypeError,'domain: must be a MeqDomain object';
+  grid = record();
+  cell_size = record();
+  segments = record();
+  for axis,dom in domain.iteritems():
+    nc = kw.get('num_'+str(axis),1);
+    grid[axis],cell_size[axis],segments[axis] = \
+        _resolve_grid(axis,dom,nc,[],[]);
+  return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);
 
 # #-- meq.result() -------------------------------------------------------------
 # # Creates a Meq::Result, data should be numarray, matching the cells grid?? 

@@ -1,5 +1,6 @@
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOPython/OctoPython.h>
+#include <MEQ/Axis.h>
 // #include <AppAgent/BOIOSink.h>
 // #include <MSVisAgent/MSInputSink.h>
 // #include <MSVisAgent/MSOutputSink.h>
@@ -27,7 +28,7 @@ const char appname_repeater[] = "repeater";
 
 static int dum = aidRegistry_Meq();
 
-static PyObject * reap_apps (PyObject *, PyObject *args)
+static PyObject * reap_apps (PyObject *, PyObject *)
 {
 //   if( !PyArg_ParseTuple(args,"") )
 //     return NULL;
@@ -43,7 +44,7 @@ static PyObject * reap_apps (PyObject *, PyObject *args)
 }
 
 
-static PyObject * launch_app (PyObject *, PyObject *args)
+static PyObject * launch_app (PyObject *, PyObject *)
 {
   returnError(NULL,OctoPython,"launch_app currently disabled");
 //     
@@ -148,6 +149,44 @@ static PyObject * launch_app (PyObject *, PyObject *args)
 //   return PyInt_FromLong(thrid);
 }
 
+static PyObject * set_axis_list (PyObject *, PyObject *args)
+{
+  PyObject * axislist;
+  // ref count of object is not increased, so do not attach ref
+  if( !PyArg_ParseTuple(args,"O",&axislist) )
+    return NULL;
+
+  try
+  {
+    // make sure argument is a sequence
+    if( !PySequence_Check(axislist) )
+      returnError(NULL,Type,"sequence of axis ids expected");
+
+    // convert to vector of HIIDs
+    int naxis = PySequence_Length(axislist);
+    if( naxis > Meq::Axis::MaxAxis )
+      returnError(NULL,Value,"too many axis ids specified");
+
+    std::vector<HIID> axis_map(naxis);
+
+    for( int i=0; i<naxis; i++ )
+    {
+      PyObjectRef item = PySequence_GetItem(axislist,i);
+      PyObjectRef itemstr = PyObject_Str(*item);
+      // null HIIDs are represented as "(null)", which doesn't convert
+      // to HIID. Just in case, catch all conversion errors and use a null id
+      HIID id;
+      try         { id = HIID(PyString_AsString(*itemstr)); }
+      catch(...)  { id.clear(); }
+      axis_map[i] = id;
+    }
+    // now set the axis map
+    Meq::Axis::setAxisMap(axis_map);
+  }
+  catchStandardErrors(NULL);
+  
+  returnNone;
+}
 
   
 // -----------------------------------------------------------------------
@@ -158,18 +197,20 @@ static PyMethodDef AppMethods[] = {
           "starts an application thread" },
     { "reap_apps",reap_apps,METH_VARARGS,
           "waits for all application threads to finish" },
+    { "set_axis_list",set_axis_list,METH_VARARGS,
+          "changes the axis list" },
     { NULL, NULL, 0, NULL} };       /* Sentinel */
   
 extern "C" 
 {    
     
-PyMODINIT_FUNC initpy_app_launcher ()
+PyMODINIT_FUNC initmequtils ()
 {
   Debug::Context::initialize();
   
   // init the module
-  PyObject *module = Py_InitModule3("py_app_launcher", AppMethods,
-        "application launcher module");
+  PyObject *module = Py_InitModule3("mequtils", AppMethods,
+        "various utilities for python-side meqkernel support");
   if( !module )
     return;
   

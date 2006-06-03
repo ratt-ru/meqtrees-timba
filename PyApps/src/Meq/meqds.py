@@ -4,6 +4,7 @@
 
 from Timba.dmi import *
 from Timba.GUI.pixmaps import pixmaps
+from Timba import mequtils
 
 import weakref
 import types
@@ -483,6 +484,10 @@ def update_forest_state (fst,merge=False):
     _forest_state.update(fst);
   else:
     _forest_state = fst;
+  # check the axis list and update internals
+  axislist = fst.get('axis_list',None);
+  if axislist:
+    mequtils.set_axis_list(axislist);
   _forest_state_obj.emit(PYSIGNAL("state()"),(_forest_state,));
   
 def set_forest_state (field,value):

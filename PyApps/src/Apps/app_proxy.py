@@ -7,7 +7,7 @@ if app_defaults.include_gui:
 
 from Timba.dmi import *
 from Timba import octopussy
-from Timba import py_app_launcher
+# from Timba import py_app_launcher
 
 import threading
 import sys

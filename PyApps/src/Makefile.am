@@ -1,21 +1,18 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
 
-lib_LTLIBRARIES = py_app_launcher.la
+lib_LTLIBRARIES = mequtils.la
 
 DOCHDRS = 
 
-py_app_launcher_la_SOURCES = \
-  py_app_launcher.cc
+mequtils_la_SOURCES = \
+  mequtils.cc
   
-py_app_launcher_la_LDFLAGS = -module
+mequtils_la_LDFLAGS = -module
 
-py_app_launcher_la_LIBADD = \
+mequtils_la_LIBADD = \
   ../pkgbldinc/TimBase/.libs/libtimbase.a
 
-#$(lofar_sharedir)/../CEP/CPA/AppAgent/AppAgent/build/gnu3_debug/src/libappagent.la \
-#  -llog4cplus 
-
-py_app_launcher_la_DEPENDENCIES = $(LOFAR_DEPEND)
+mequtils_la_DEPENDENCIES = $(LOFAR_DEPEND)
 
 bin_PROGRAMS        =
 

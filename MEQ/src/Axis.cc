@@ -42,15 +42,16 @@ static void defineAxis (int i,const HIID &name,bool addrec=true)
              Debug::ssprintf("can't define axis %d as '%d'",i,name_index));
     return;
   }
-  // if axis is already has a name, check for match
-  if( _name_map[i] != AtomicID(i) )
-  { 
-    // unspecified axes have the name "i", so this name we can always override 
-    FailWhen(_name_map[i] != name,
-             Debug::ssprintf("can't define axis %d as '%s': already defined as '%s'",
-                i,_name_map[i].toString().c_str(),name.toString().c_str()));
-    return;
-  }
+// NB: allow axes to be overridden for now
+//   // if axis is already has a name, check for match
+//   if( _name_map[i] != AtomicID(i) )
+//   { 
+//     // unspecified axes have the name "i", so this name we can always override 
+//     FailWhen(_name_map[i] != name,
+//              Debug::ssprintf("can't define axis %d as '%s': already defined as '%s'",
+//                 i,_name_map[i].toString().c_str(),name.toString().c_str()));
+//     return;
+//   }
   // now define the axis
   _name_map[i] = axis_ids[i] = name;
   _num_map[name] = i;
