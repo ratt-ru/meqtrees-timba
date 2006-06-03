@@ -34,6 +34,9 @@ namespace Meq {
 class Sum : public ReductionFunction
 {
 public:
+  Sum ()
+    : ReductionFunction(1)
+  {}
 
   virtual TypeId objectType() const
   { return TpMeqSum; }

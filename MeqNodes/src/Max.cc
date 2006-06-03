@@ -31,24 +31,22 @@ namespace Meq {
 Vells Max::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
+  // if dealing with a single child, reduce
   if( values.size() == 1 )
-    return max(*(values[0]),flagmask_);
-  else
   {
-    Vells res = *(values[0]);
+    if( hasReductionAxes() )  // reduce along axes 
+      return apply(VellsMath::max,*values[0],flagmask_[0]);
+    else                      // reduce to single value
+      return max(*(values[0]),flagmask_[0]);
+  }
+  else // else take mean across all Vells
+  // NB: BUG! flags not treated properly here
+  {
+    Vells res(*values[0]);
     for( uint i=1; i<values.size(); i++ )
-      res = max(res,*(values[i]),flagmask_);
+      res = max(res,*values[i],flagmask_[0],flagmask_[i]);
     return res;
   }
-}
-
-void Max::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const VellSet*> &pvs)
-{
-  // unary form returns no flags
-  if( pvs.size() == 1 )
-    return;
-  // else defer to Function (merge flags of children)
-  Function::evaluateFlags(out,req,shape,pvs);
 }
 
 } // namespace Meq

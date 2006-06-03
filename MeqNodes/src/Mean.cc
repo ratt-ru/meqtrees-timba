@@ -32,19 +32,22 @@ namespace Meq {
 Vells Mean::evaluate (const Request&,const LoShape &shape,
 		     const vector<const Vells*>& values)
 {
+  // if dealing with a single child, reduce
   if( values.size() == 1 )
-    return mean(*(values[0]),flagmask_);
-  else
   {
-    int sum_nel=0;
-    Vells res(0.);
-    for( uint i=0; i<values.size(); i++ )
-    {
-      int nel = int( nelements(*(values[i]),shape,flagmask_).as<double>() );
-      res += mean(*(values[i]),flagmask_) * nel;
-      sum_nel += nel; 
-    }
-    return sum_nel ? res/sum_nel : Vells();
+    if( hasReductionAxes() )  // reduce along axes 
+      return apply(VellsMath::mean,*values[0],flagmask_[0]);
+    else                      // reduce to single value
+      return mean(*(values[0]),flagmask_[0]);
+  }
+  else // else take mean across all Vells
+  // NB: BUG! flags not treated properly here
+  {
+    Vells res = *values[0];
+    for( uint i=1; i<values.size(); i++ )
+      res += *values[i];
+    res /= values.size();
+    return res;
   }
 }
 

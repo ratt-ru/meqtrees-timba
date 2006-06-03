@@ -23,8 +23,11 @@
 #define MEQNODES_REDUCTIONFUNCTION_H
     
 #include <MEQ/Function.h>
+#include <MEQ/VellsSlicer.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
+
+#pragma aid Reduction Axes
 
 namespace Meq {    
 
@@ -34,15 +37,47 @@ class ReductionFunction : public Function
 public:
   ReductionFunction (int nchildren=-1);
 
-  // child flags normally swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const VellSet*>&)
-  {}
-  
-protected:
-  // get flagmask from state
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  bool hasReductionAxes () const
+  { return !reduction_axes_.empty(); }
 
-  VellsFlagType flagmask_;
+protected:
+  // flags can be collapsed along the reduction axes
+  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const VellSet*>&);
+  
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  
+  // does axis mapping before calling Function::getResult
+  virtual int getResult (Result::Ref &resref, 
+                         const std::vector<Result::Ref> &childres,
+                         const Request &req,bool newreq);
+
+  // helper method: checks if a flag vells is fully flagged with a given mask,
+  // returns mask itself if so, or 0 if at least one point is not flagged
+  VellsFlagType isAllFlagged (const Vells &flagvells,VellsFlagType mask);
+
+  // helper method: given an input Vells and the reduction_axes_ specified
+  // below, creates an output Vells containing the non-reduction axes,
+  // and a const VellsSlicer for the reduction axes.
+  void makeVellsSlicer (Vells::Ref &out,ConstVellsSlicer0 &slicer,const Vells &invells);
+
+  // helper method: given an input Vells and the reduction_axes_ specified
+  // below, creates an output Vells containing the non-reduction axes,
+  // and applies the given reduction function to every slice
+  Vells apply (VellsMath::UnaryRdFunc func,const Vells &invells,VellsFlagType flagmask);
+  
+  // similar method for reduction functions that have an explicit result shape
+  Vells apply (VellsMath::UnaryRdFuncWS func,const Vells &invells,const LoShape &shape,VellsFlagType flagmask);
+      
+  // if true, axes were specified as HIIDs, and will be mapped
+  // to indices every getResult(). If false, indices are used.
+  bool has_axes_ids_;
+  
+  // IDs of the reduction axes
+  std::vector<HIID> reduction_axes_ids_;
+  
+  // indices of the reduction axes -- guaranteed to be filled in by the time
+  // evaluate() is called
+  std::vector<int> reduction_axes_;
 };
 
 

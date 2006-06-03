@@ -559,6 +559,25 @@ namespace Meq { class GaussNoise; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqGrid
+#define _defined_id_TpMeqGrid 1
+const DMI::TypeId TpMeqGrid(-1681);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
+const int TpMeqGrid_int = -1681;
+namespace Meq { class Grid; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Grid> : public TypeTraits<Meq::Grid>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqGrid_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Grid & ContainerReturnType;
+                typedef const Meq::Grid & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqGridPoints
 #define _defined_id_TpMeqGridPoints 1
 const DMI::TypeId TpMeqGridPoints(-1666);         // from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30

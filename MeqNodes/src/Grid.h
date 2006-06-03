@@ -1,4 +1,4 @@
-//# Product.h: Take mean of a node
+//# Grid.h: Give the values along specified grid axis
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -18,35 +18,49 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
+//# $Id$
 
-#ifndef MEQNODES_PRODUCT_H
-#define MEQNODES_PRODUCT_H
+#ifndef MEQNODES_GRID_H
+#define MEQNODES_GRID_H
     
-#include <MeqNodes/ReductionFunction.h>
+#include <MEQ/Node.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
-#pragma types #Meq::Product
+#pragma types #Meq::Grid
 
 namespace Meq {    
 
 
-class Product : public ReductionFunction
+//##ModelId=400E530400AB
+class Grid : public Node
 {
 public:
-  Product ()
-    : ReductionFunction(1)
-  {}
-
-  virtual TypeId objectType() const
-  { return TpMeqProduct; }
-
-  // Evaluate the value for the given request.
-  virtual Vells evaluate (const Request&,const LoShape &,
-			                    const vector<const Vells*>& values);
+    //##ModelId=400E535502AC
+  Grid();
+    //##ModelId=400E535502AD
+  virtual ~Grid();
   
-};
+    //##ModelId=400E535502B3
+  virtual TypeId objectType() const
+  { return TpMeqGrid; }
 
+protected:
+  // Evaluate the value for the given request.
+    //##ModelId=400E535502B5
+  virtual int getResult (Result::Ref &resref, 
+                         const std::vector<Result::Ref> &childres,
+                         const Request &req,bool newreq);
+
+  
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  
+  // if not empty, axis was specified as HIID, and will be mapped
+  // to index at every getResult(). If false, idirect index is used.
+  HIID axis_id_;
+  
+  int axis_index_;
+};
 
 } // namespace Meq
 

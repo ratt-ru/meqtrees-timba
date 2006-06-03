@@ -12,6 +12,8 @@ DMI::BObj * __construct_MeqParm (int n) { return n>0 ? new Meq::Parm [n] : new M
 DMI::BObj * __construct_MeqFreq (int n) { return n>0 ? new Meq::Freq [n] : new Meq::Freq; }
 #include "Time.h"
 DMI::BObj * __construct_MeqTime (int n) { return n>0 ? new Meq::Time [n] : new Meq::Time; }
+#include "Grid.h"
+DMI::BObj * __construct_MeqGrid (int n) { return n>0 ? new Meq::Grid [n] : new Meq::Grid; }
 #include "Selector.h"
 DMI::BObj * __construct_MeqSelector (int n) { return n>0 ? new Meq::Selector [n] : new Meq::Selector; }
 #include "Composer.h"
@@ -198,6 +200,9 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1451,"MeqTime")+
         TypeInfoReg::addToRegistry(-1451,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1451,__construct_MeqTime)+
+        AtomicID::registerId(-1681,"MeqGrid")+
+        TypeInfoReg::addToRegistry(-1681,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1681,__construct_MeqGrid)+
         AtomicID::registerId(-1447,"MeqSelector")+
         TypeInfoReg::addToRegistry(-1447,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1447,__construct_MeqSelector)+
@@ -388,6 +393,8 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1608,"MeqReqMux")+
         TypeInfoReg::addToRegistry(-1608,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1608,__construct_MeqReqMux)+
+        AtomicID::registerId(-1680,"Reduction")+
+        AtomicID::registerId(-1346,"Axes")+
         AtomicID::registerId(-1392,"MeqMin")+
         TypeInfoReg::addToRegistry(-1392,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1392,__construct_MeqMin)+
@@ -516,7 +523,6 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1570,"MeqFFTBrick")+
         TypeInfoReg::addToRegistry(-1570,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1570,__construct_MeqFFTBrick)+
-        AtomicID::registerId(-1346,"Axes")+
         AtomicID::registerId(-1207,"In")+
         AtomicID::registerId(-1217,"Out")+
         AtomicID::registerId(-1666,"MeqGridPoints")+
@@ -527,6 +533,7 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         DynamicTypeManager::addToRegistry(-1591,__construct_MeqResampler)+
         AtomicID::registerId(-1150,"Integrate")+
         AtomicID::registerId(-1590,"Density")+
+        AtomicID::registerId(-1215,"Mode")+
         AtomicID::registerId(-1592,"MeqModRes")+
         TypeInfoReg::addToRegistry(-1592,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1592,__construct_MeqModRes)+
@@ -544,7 +551,6 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1664,"MeqCompounder")+
         TypeInfoReg::addToRegistry(-1664,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1664,__construct_MeqCompounder)+
-        AtomicID::registerId(-1215,"Mode")+
         AtomicID::registerId(-1663,"Common")+
         AtomicID::registerId(-1676,"MeqFITSWriter")+
         TypeInfoReg::addToRegistry(-1676,TypeInfo(TypeInfo::DYNAMIC,0))+

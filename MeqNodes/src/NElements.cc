@@ -31,10 +31,21 @@ namespace Meq {
 Vells NElements::evaluate (const Request&,const LoShape &shape,
 		     const vector<const Vells*>& values)
 {
-  Vells res = nelements(*(values[0]),shape,flagmask_);
-  for( uint i=1; i<values.size(); i++ )
-    res += nelements(*(values[i]),shape,flagmask_);
-  return res;
+  // if dealing with a single child, reduce
+  if( values.size() == 1 )
+  {
+    if( hasReductionAxes() )  // reduce along axes 
+      return apply(VellsMath::nelements,*values[0],shape,flagmask_[0]);
+    else                      // reduce to single value
+      return nelements(*(values[0]),shape,flagmask_[0]);
+  }
+  else // else take sum of nelements across all Vells
+  {
+    Vells res = nelements(*(values[0]),shape,flagmask_[0]);
+    for( uint i=1; i<values.size(); i++ )
+      res += nelements(*(values[i]),shape,flagmask_[i]);
+    return res;
+  }
 }
 
 } // namespace Meq

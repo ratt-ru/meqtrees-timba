@@ -34,13 +34,17 @@ namespace Meq {
 class NElements : public ReductionFunction
 {
 public:
+  // strictly 1 child supported, operation makes no sense
+  // with multiple children
+  NElements ()
+    : ReductionFunction(1)
+  {}
 
   virtual TypeId objectType() const
   { return TpMeqNElements; }
     
   // Evaluate the value for the given request.
-  virtual Vells evaluate (const Request&,const LoShape &,
-			                    const vector<const Vells*>& values);
+  virtual Vells evaluate (const Request&,const LoShape &,const vector<const Vells*>& values);
   
 };
 

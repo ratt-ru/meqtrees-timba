@@ -408,6 +408,11 @@ const int AidMeqFunctional_int = -1673;
 const DMI::AtomicID AidMeqGaussNoise(-1449);      // from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
 const int AidMeqGaussNoise_int = -1449;
 #endif
+#ifndef _defined_id_AidMeqGrid
+#define _defined_id_AidMeqGrid 1
+const DMI::AtomicID AidMeqGrid(-1681);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
+const int AidMeqGrid_int = -1681;
+#endif
 #ifndef _defined_id_AidMeqGridPoints
 #define _defined_id_AidMeqGridPoints 1
 const DMI::AtomicID AidMeqGridPoints(-1666);      // from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30
@@ -787,6 +792,11 @@ const int AidRADec_int = -1566;
 #define _defined_id_AidReady 1
 const DMI::AtomicID AidReady(-1669);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 const int AidReady_int = -1669;
+#endif
+#ifndef _defined_id_AidReduction
+#define _defined_id_AidReduction 1
+const DMI::AtomicID AidReduction(-1680);          // from /home/oms/LOFAR/Timba/MeqNodes/src/ReductionFunction.h:30
+const int AidReduction_int = -1680;
 #endif
 #ifndef _defined_id_AidResult
 #define _defined_id_AidResult 1

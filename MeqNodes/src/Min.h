@@ -37,11 +37,9 @@ public:
   virtual TypeId objectType() const
   { return TpMeqMin; }
 
-  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const VellSet*>&);
-  
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
-			                    const vector<const Vells*>& values);
+			  const vector<const Vells*>& values);
 };
 
 

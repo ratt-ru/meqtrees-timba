@@ -30,12 +30,13 @@ namespace Meq {
 
 //##ModelId=400E53550246
 Vells Product::evaluate (const Request&,const LoShape &shape,
-		     const vector<const Vells*>& values)
+		         const vector<const Vells*>& values)
 {
-  Vells res = product(*(values[0]),shape,flagmask_);
-  for( uint i=1; i<values.size(); i++ )
-    res *= product(*(values[i]),shape,flagmask_);
-  return res;
+  Assert(values.size() == 1);
+  if( hasReductionAxes() )  // reduce along axes 
+    return apply(VellsMath::product,*values[0],shape,flagmask_[0]);
+  else                      // reduce to single value
+    return product(*(values[0]),shape,flagmask_[0]);
 }
 
 } // namespace Meq

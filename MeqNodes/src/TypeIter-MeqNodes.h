@@ -22,6 +22,7 @@
         Do(Meq::Parm,arg) separator \
         Do(Meq::Freq,arg) separator \
         Do(Meq::Time,arg) separator \
+        Do(Meq::Grid,arg) separator \
         Do(Meq::Selector,arg) separator \
         Do(Meq::Composer,arg) separator \
         Do(Meq::Paster,arg) separator \
