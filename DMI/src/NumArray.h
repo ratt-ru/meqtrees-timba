@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.43  2006/06/03 11:25:34  smirnov
+//  Added NumArray methods to make an array that is a reference to a slice through
+//  another array.
+//  Revised VellsSlicer so that it can represent the slice as a Vells.
+//
 //  Revision 1.42  2006/01/31 12:23:09  smirnov
 //  Common renamed to TimBase
 //
@@ -280,13 +285,13 @@ public:
     //##ModelId=3DB949AE03AF
   NumArray (TypeId array_tid,const void *other,TypeId realtype=0);
 
-  // templated method to create a copy of the given Lorray.
+  // templated constructor to create a copy of the given Lorray.
   template<class T,int N>
   explicit NumArray (const typename Traits<T,N>::Array & array,TypeId realtype=0);
   // an extra version for explicit blitz naming, to keep the compiler happy
   template<class T,int N>
   explicit NumArray (const blitz::Array <T,N> & array,TypeId realtype=0);
-
+  
 #ifdef HAVE_AIPSPP
   // templated constructor makes a copy of the given AIPS++ array
   template<class T>
@@ -307,6 +312,24 @@ public:
   // Assignment (ref/cow semantics).
     //##ModelId=3DB949AE03B9
   NumArray& operator = (const NumArray& other);
+  
+  // method to make a writable reference to a slice through another NumArray
+  void reference (void * pdata,const LoShape &shape,const LoShape &strides,const NumArray &other)
+  { make_reference(pdata,true,shape,strides,other); }
+
+  // method to make a const reference to a slice through another NumArray
+  void reference (const void * pdata,const LoShape &shape,const LoShape &strides,const NumArray &other)
+  { make_reference(const_cast<void*>(pdata),false,shape,strides,other); }
+  
+  // method to make a writable reference to a slice through another NumArray
+  template<class T,int N>
+  void reference (blitz::Array<T,N> &subarray,NumArray &other)
+  { make_reference(subarray.data(),true,subarray.shape(),subarray.stride(),other); }
+
+  // method to make a const reference to a slice through another NumArray
+  template<class T,int N>
+  void reference (const blitz::Array<T,N> &subarray,const NumArray &other)
+  { make_reference(const_cast<T*>(subarray.data()),false,subarray.shape(),subarray.stride(),other); }
   
   // Initialize everything and create array.
   // This can be used to init an array that was created via the default constructor.
@@ -413,6 +436,8 @@ public:
   void makeWritable ()
   {
     Thread::Mutex::Lock _nclock(mutex());
+    if( itsWritableRef )
+      return;
     if( itsData.privatize() )
     {
       itsArrayData = itsData().cdata() + itsDataOffset;
@@ -441,13 +466,17 @@ protected:
   virtual int get (const HIID& id,ContentInfo &info,bool nonconst,int flags) const;
 
 private:
-    
   // Initialize internal shape and create array using the given shape.
   // flags: DMI::NOZERO to skip init of array
   // realtype only needs to be supplied when calling from constructor
   // (otherwise the virtual objectType() is used)
     //##ModelId=3DB949AF0024
   void init (const LoShape & shape,int flags=0,TypeId realtype=0);
+
+  // method to make this array a reference to a slice through another NumArray
+  // if writable=true, 
+  void make_reference (void * pdata,bool writable,
+            const LoShape &shape,const LoShape &strides,const NumArray &other);
 
   // Create the actual casa::Array object.
   // It is created from the array data part in the SmartBlock.
@@ -484,6 +513,10 @@ private:
 
   // true when object is valid
   bool       itsArrayValid;
+  
+  // true when we are a writable ref to another NumArray, in this case
+  // no attempt is made to COW the underlying block.
+  bool       itsWritableRef;
 
   //##ModelId=3DB949AE0370
   BlockRef    itsData;

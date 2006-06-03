@@ -104,16 +104,6 @@ int Function::getResult (Result::Ref &resref,
   {
     Assert(flagmask_.size() == childres.size());
   }
-// 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
-// makes them unnecessary. If our thread holds a ref to the object, it's 
-// guranteed to not change under us thanks to COW.
-//  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-//  lockMutexes(child_reslock,childres);
-//  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
-//  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
-//  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
-//  childpvv_lock[0].resize(nrch);
-//  childpvv_lock[1].resize(nrch);
 
   // Figure out the dimensions of the output result, and see if all children
   // match these dimensions. Also, figure out if result should be marked as 

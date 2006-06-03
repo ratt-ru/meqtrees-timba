@@ -21,16 +21,16 @@ DMI::NumArrayFuncs::AllocatorDefault DMI::NumArrayFuncs::allocatorDefault[NumTyp
 };
 
   
-// // templated method to placement-new allocate an Lorray(N,T)
-// template<class T,int N>
-// static void newArrayPlacement (void *where)
-// { 
-//   new (where) blitz::Array<T,N>; 
-// }
-// DMI::NumArrayFuncs::AllocatorPlacement DMI::NumArrayFuncs::allocatorPlacement[NumTypes][MaxLorrayRank] =
-// {
-// #define OneElement(N,T) &newArrayPlacement<T,N>
-//   DoForAllArrayTypes1(OneLine,)
-// #undef OneElement
-// };
-// 
+// templated method to placement-new allocate an Lorray(N,T)
+template<class T,int N>
+static void newArrayPlacement (void *where)
+{ 
+  new (where) blitz::Array<T,N>; 
+}
+DMI::NumArrayFuncs::AllocatorPlacement DMI::NumArrayFuncs::allocatorPlacement[NumTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &newArrayPlacement<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
+

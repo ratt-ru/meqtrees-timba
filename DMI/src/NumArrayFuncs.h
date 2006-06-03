@@ -20,6 +20,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.3  2006/06/03 11:25:34  smirnov
+//  Added NumArray methods to make an array that is a reference to a slice through
+//  another array.
+//  Revised VellsSlicer so that it can represent the slice as a Vells.
+//
 //  Revision 1.2  2006/01/31 12:23:09  smirnov
 //  Common renamed to TimBase
 //
@@ -82,7 +87,7 @@ namespace NumArrayFuncs
   
   extern AllocatorWithData    allocatorWithData     [NumTypes][MaxLorrayRank];
   extern AllocatorDefault     allocatorDefault      [NumTypes][MaxLorrayRank];
-//  extern AllocatorPlacement   allocatorPlacement    [NumTypes][MaxLorrayRank];
+  extern AllocatorPlacement   allocatorPlacement    [NumTypes][MaxLorrayRank];
   extern AssignWithStride     assignerWithStride    [NumTypes][MaxLorrayRank];
   extern AssignDataReference  assignerDataReference [NumTypes][MaxLorrayRank];
   extern Destructor           destructor            [NumTypes][MaxLorrayRank];
@@ -113,6 +118,12 @@ namespace NumArrayFuncs
   {
     return (*allocatorDefault[typeIndex(tid)][rank-1])();
   }
+    //##ModelId=3E9BD91802D8
+  inline void allocatePlacementArray (int tid,int rank,void *ptr)
+  {
+    return (*allocatorPlacement[typeIndex(tid)][rank-1])(ptr);
+  }
+  
     //##ModelId=3E9BD9180339
   inline void destroyArray (int tid,int rank,void *ptr)
   {

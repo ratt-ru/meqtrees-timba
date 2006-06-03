@@ -5,43 +5,66 @@
     
 namespace Meq 
 {
-  
+
 // A VellsSlicer represents an N-dimensional slice through an M (>=N)
 // dimensional Vells. You create a VS from a Vells by specifying the
 // axes along which the slice is to be taken. The iterator then points
 // at the first slice in the Vells. You can then increment the iterator
 // to obtain additional slices, until the Vells is exhausted.
-template<typename T,int N>
-class ConstVellsSlicer 
+//
+// The Slicer0 class is non-templated, it provides access to the slice
+// via a Vells object (which encapsulates type and rank information). This
+// is useful when all you want to do with the slices is VellsMath.
+// The Slicer classes are templated on element type and rank, and provide
+// access to the slice as a blitz Array
+
+class ConstVellsSlicer0   
 {
   public:
-      ConstVellsSlicer (const Vells &vells,const int *axes)
+      ConstVellsSlicer0 ()
+      {}
+  
+      ConstVellsSlicer0 (const Vells &vells,const int *axes,int naxes)
       { 
-        init(vells,axes); 
+        init(vells,false,axes,naxes); 
       }
   
-      ConstVellsSlicer (const Vells &vells,const LoShape &axes)
+      ConstVellsSlicer0 (const Vells &vells,const LoShape &axes)
       { 
-        FailWhen(axes.size()!=N,"VellsSlicer: incorrect number of axes supplied");
-        init(vells,axes.begin()); 
+        init(vells,false,&(axes[0]),axes.size()); 
       }
       
-      ConstVellsSlicer (const Vells &vells,const blitz::TinyVector<int,N> &axes)
+      template<int N>
+      ConstVellsSlicer0 (const Vells &vells,const blitz::TinyVector<int,N> &axes)
       { 
-        init(vells,&(axes[0])); 
+        init(vells,false,&(axes[0]),N); 
       }
   
-      ConstVellsSlicer (const Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
+      ConstVellsSlicer0 (const Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
       {
-        STATIC_CHECK(N<=4,VellsSlicer_not_enough_axes_supplied);
-        int axes[4] = {axis0,axis1,axis2,axis3 };
-        init(vells,axes);
+        int N=1;
+        if( axis3 >= 0 ) 
+          N = 4;
+        else if( axis2 >= 0 )
+          N = 3;
+        else if( axis1 >= 0 )
+          N = 2;
+        int axes[] = {axis0,axis1,axis2,axis3 };
+        init(vells,false,axes,N);
+      }
+      
+      void init (const Vells &vells,const LoShape &axes)
+      {
+        init(vells,false,&(axes[0]),axes.size()); 
       }
 
-      const blitz::TinyVector<int,N> & shape () const
+      const LoShape & shape () const
       { return shape_; }
       
-      const blitz::TinyVector<int,N> & strides () const
+      const LoShape & nonSlicedShape () const
+      { return ns_shape_; }
+      
+      const LoShape & strides () const
       { return strides_; }
       
       bool valid () const
@@ -49,143 +72,192 @@ class ConstVellsSlicer
       
       bool incr ();
       
-      const T * pdata () const
+      const void * pdata () const
       { return pdata_; }
       
-      const blitz::Array<T,N> array () const
-      { return blitz::Array<T,N>(pdata_,shape_,strides_,blitz::neverDeleteData); } 
+      const Vells & vells () const
+      { return vells_; }
       
-      const blitz::Array<T,N> operator () () const
-      { return array(); }
-
+      template<class T,int N>
+      const blitz::Array<T,N> & getArray () const
+      { return vells_.getConstArray<T,N>(); } 
+      
   protected:
       // init with Vells and N axes
-      void init (const Vells &vells,const int *axes);
-      // init with arbitrary hypercube
-      void init (const T *data,const LoShape &shape,const Vells::Strides &strides,const int *axes);
+      void init (const Vells &vells,bool writable,const int *axes,int naxes);
+  
+      // inits reference Vells for current slice
+      void initRefVells ();
       
-      T * pdata_;
-      blitz::TinyVector<int,N> shape_;    // shape of slice
-      blitz::TinyVector<int,N> strides_;  // strides of slice
+      bool writable_;       // true if slicer is writable
+      
+      char * pdata_;        // current data pointer
+      size_t data_size_;    // size of array element
+      Vells  vells_;        // current reference Vells
+      Vells * pvells0_;     // original Vells being sliced
+      LoShape shape_;       // shape of slice
+      LoShape strides_;     // strides of slice
+      LoShape ns_shape_;    // shape of non-sliced axes
       
       bool sliced_[Axis::MaxAxis];    // flag: true if axis is in slice  
       
       Vells::DimCounter counter_;     // counter for non-sliced dims
       Vells::Strides vstrides_;       // strides of source data
 };
-
-template<typename T,int N>
-class VellsSlicer : public ConstVellsSlicer<T,N>
+    
+class VellsSlicer0 : public ConstVellsSlicer0
 {
-  public: 
-      VellsSlicer (Vells &vells,const int *axes)
-      : ConstVellsSlicer<T,N>(vells,axes)
+  public:
+      VellsSlicer0 ()
       {}
+      
+      VellsSlicer0 (Vells &vells,const int *axes,int naxes)
+      { 
+        ConstVellsSlicer0::init(vells,true,axes,naxes); 
+      }
   
-      VellsSlicer (Vells &vells,const LoShape &axes)
-      : ConstVellsSlicer<T,N>(vells,axes)
-      {}
+      VellsSlicer0 (Vells &vells,const LoShape &axes)
+      { 
+        ConstVellsSlicer0::init(vells,true,&(axes[0]),axes.size()); 
+      }
       
-      VellsSlicer (Vells &vells,const blitz::TinyVector<int,N> &axes)
-      : ConstVellsSlicer<T,N>(vells,axes)
-      {}
+      template<int N>
+      VellsSlicer0 (Vells &vells,const blitz::TinyVector<int,N> &axes)
+      { 
+        ConstVellsSlicer0::init(vells,true,&(axes[0]),N); 
+      }
   
-      VellsSlicer (Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
-        : ConstVellsSlicer<T,N>(vells,axis0,axis1,axis2,axis3)
-      {}
+      VellsSlicer0 (Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
+      {
+        int N=1;
+        if( axis3 >= 0 ) 
+          N = 4;
+        else if( axis2 >= 0 )
+          N = 3;
+        else if( axis1 >= 0 )
+          N = 2;
+        int axes[] = {axis0,axis1,axis2,axis3 };
+        ConstVellsSlicer0::init(vells,true,axes,N);
+      }
       
-      T * pdata ()
-      { return ConstVellsSlicer<T,N>::pdata_; }
+      void init (Vells &vells,const LoShape &axes)
+      {
+        ConstVellsSlicer0::init(vells,true,&(axes[0]),axes.size()); 
+      }
+
+      void * pdata () 
+      { return pdata_; }
       
-      blitz::Array<T,N> array () 
-      { return blitz::Array<T,N>(pdata(),ConstVellsSlicer<T,N>::shape(),ConstVellsSlicer<T,N>::strides(),blitz::neverDeleteData); }
+      Vells & wrVells () 
+      { return vells_; }
       
-      blitz::Array<T,N> operator () () 
-      { return array(); }
+      template<class T,int N>
+      blitz::Array<T,N> & getArray () 
+      { return vells_.getArray<T,N>(); }
       
-      blitz::Array<T,N> operator = (const blitz::Array<T,N> &other) 
-      { return array() = other; }
 };
 
 
-template<typename T,int N>
-void ConstVellsSlicer<T,N>::init (const Vells &vells,const int *axes)
-{
-  TypeId tid = typeIdOf(T);
-  FailWhen(vells.elementType()!=typeIdOf(T),"Can't init a "+tid.toString()+
-            " VellsSlicer from a "+vells.elementType().toString()+" Vells");
-  int rank = vells.rank();
-  FailWhen(N>rank,"rank of VellsSlicer is too high");
-  // figure out source strides
-  const LoShape &vshape = vells.shape();
-  int vsz=1;
-  for( int i=rank-1; i>=0; i-- )
-  {
-    vstrides_[i] = vsz;
-    vsz *= vshape[i];
-  }
-  init(static_cast<const T*>(vells.getConstDataPtr()),vshape,vstrides_,axes);
-}
 
 template<typename T,int N>
-void ConstVellsSlicer<T,N>::init (const T *data,const LoShape &vshape,const Vells::Strides &vstrides,const int *axes)
+class ConstVellsSlicer : public ConstVellsSlicer0
 {
-  memcpy(vstrides_,vstrides,sizeof(vstrides_));
-  memset(sliced_,0,sizeof(sliced_));
-  // now fill our own shape and stride, and the shape and stride
-  // of the non-sliced dimensions
-  LoShape ns_shape(vshape);
-  int totsize = 1;
-  int nsliced = 0;
-  for( int i=0; i<N; i++ )
-  {
-    int iaxis = axes[i];
-    FailWhen(iaxis>=Axis::MaxAxis,ssprintf("VellsSlice axis %d out of range",iaxis));
-    if( iaxis<int(vshape.size()) )
-    {
-      sliced_[iaxis] = true;
-      shape_[i] = vshape[iaxis];
-      strides_[i] = vstrides_[iaxis];
-      ns_shape[iaxis] = 1;       
-    }
-    else
-      shape_[i] = strides_[i] = 1;
-    totsize *= shape_[i];
-  }
-  // now setup a DimCounter over the non-sliced axes
-  counter_.init(ns_shape);
-  // setup initial data pointer
-  pdata_ = const_cast<T*>(data);
-}
+  public:
+      ConstVellsSlicer (const Vells &vells,const int *axes)
+        : ConstVellsSlicer0(vells,axes,N)
+      { 
+        checkType(vells);
+      }
+  
+      ConstVellsSlicer (const Vells &vells,const LoShape &axes)
+        : ConstVellsSlicer0(vells,&(axes[0]),N)
+      { 
+        FailWhen(axes.size()!=N,"ConstVellsSlicer: incorrect number of axes supplied");
+        checkType(vells);
+      }
+      
+      ConstVellsSlicer (const Vells &vells,const blitz::TinyVector<int,N> &axes)
+        : ConstVellsSlicer0(vells,&(axes[0]),N)
+      { 
+        checkType(vells);
+      }
+  
+      ConstVellsSlicer (const Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
+        : ConstVellsSlicer0(vells,axis0,axis1,axis2,axis3)
+      {
+        checkType(vells);
+      }
+      
+      const T * pdata () 
+      { return static_cast<const T*>(VellsSlicer0::pdata()); }
+
+      const blitz::Array<T,N> & array () const
+      { return getArray<T,N>(); }
+      
+      const blitz::Array<T,N> & operator () () const
+      { return array(); }
+
+  private:      
+      void checkType (const Vells &vells)
+      {
+        FailWhen(vells.elementType()!=typeIdOf(T),"can't init"
+          " ConstVellsSlicer<"+typeIdOf(T).toString()+
+          "> from Vells of type "+vells.elementType().toString());
+      }
+      
+};
 
 template<typename T,int N>
-bool ConstVellsSlicer<T,N>::incr ()
-{ 
-  // increment counter and return false on end
-  int ndim = counter_.incr();
-  if( !ndim )
-    return false;
-  // else we have incremented ndim dimensions (starting from the last)
-  // adjust data pointer accordingly
-  bool prev_sliced = true;
-  for( int i=counter_.rank()-1; i>=counter_.rank()-ndim; i-- )
-  {
-    // non-sliced axis: increment by stride if prev axis was sliced
-    if( !sliced_[i] )
-    {
-      if( prev_sliced )
-        pdata_ += vstrides_[i];
-      prev_sliced = false;
-    }
-    else // sliced axis: decrement by stride to get back to start of previous axis
-    {
-      if( !prev_sliced ) 
-        pdata_ -= vstrides_[i];
-      prev_sliced = true;
-    }
-  }
-  return true;
-}
+class VellsSlicer : public VellsSlicer0
+{
+  public: 
+      VellsSlicer (Vells &vells,const int *axes)
+      : VellsSlicer0(vells,axes,N)
+      { 
+        checkType(vells);
+        init(vells,axes,N); 
+      }
+  
+      VellsSlicer (Vells &vells,const LoShape &axes)
+      : VellsSlicer0(vells,&(axes[0]),N)
+      { 
+        checkType(vells);
+        FailWhen(axes.size()!=N,"VellsSlicer: incorrect number of axes supplied");
+      }
+      
+      VellsSlicer (Vells &vells,const blitz::TinyVector<int,N> &axes)
+      : VellsSlicer0(vells,&(axes[0]),N)
+      { 
+        checkType(vells);
+      }
+  
+      VellsSlicer (Vells &vells,int axis0,int axis1=-1,int axis2=-1,int axis3=-1)
+      : VellsSlicer0(vells,axis0,axis1,axis2,axis3)
+      {
+        checkType(vells);
+      }
+      
+      T * pdata ()
+      { return static_cast<T*>(VellsSlicer0::pdata()); }
+      
+      blitz::Array<T,N> & array () 
+      { return getArray<T,N>(); }
+      
+      blitz::Array<T,N> & operator () () 
+      { return array(); }
+      
+      blitz::Array<T,N> & operator = (const blitz::Array<T,N> &other) 
+      { return array() = other; }
+      
+  private:
+      void checkType (const Vells &vells)
+      {
+        FailWhen(vells.elementType()!=typeIdOf(T),"can't init"
+          " VellsSlicer<"+typeIdOf(T).toString()+
+          "> from Vells of type "+vells.elementType().toString());
+      }
+      
+};
 
 
 }; // namespace Meq

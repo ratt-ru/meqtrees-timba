@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.47  2006/06/03 11:25:34  smirnov
+//  Added NumArray methods to make an array that is a reference to a slice through
+//  another array.
+//  Revised VellsSlicer so that it can represent the slice as a Vells.
+//
 //  Revision 1.46  2005/11/30 13:44:24  smirnov
 //  Fixed bug with treatment of literal HIIDs.
 //  Fixes for 64-bit copatibility.
@@ -211,6 +216,7 @@ void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool c
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
   Assert (!valid());
+  itsWritableRef = false;
   if( other.itsArrayValid ) 
   {
     itsScaType  = other.itsScaType;
@@ -219,7 +225,7 @@ void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool c
     itsSize     = other.itsSize;
     itsElemSize = other.itsElemSize;
     itsDataOffset = other.itsDataOffset;
-    itsData.copy(other.itsData,flags,depth).lock();
+    itsData.unlock().copy(other.itsData,flags,depth).lock();
     if( !realtype )
       realtype = objectType();
     if( realtype != other.objectType() )
@@ -303,7 +309,7 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
   // sanity check -- can we treat string as an AIPS++ String?
   FailWhen( sizeof(string) != sizeof(casa::String),"AIPS++ String is not equivalent to std::string" );
 #endif
-      
+  itsWritableRef = false;    
   itsShape = shape;
   itsSize  = shape.product();
   int sz = sizeof(NumArray::Header) + sizeof(uint)*shape.size();
@@ -311,7 +317,7 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
   itsDataOffset = (sz+7) / 8 * 8;
   sz = itsDataOffset + itsSize*itsElemSize;
   // Allocate one SmartBlock for everything
-  itsData.attach(new SmartBlock(sz,flags&DMI::NOZERO ? 0 : DMI::ZERO));
+  itsData.unlock().attach(new SmartBlock(sz,flags&DMI::NOZERO ? 0 : DMI::ZERO)).lock();
   void *dataptr = itsData().data();
   // fill block header
   if( !realtype )
@@ -330,6 +336,32 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
   
   // allocate the array object
   makeArray();
+}
+
+// method to make this array a reference to a slice through another NumArray
+// if writable=true, 
+void DMI::NumArray::make_reference (void * pdata,bool writable,
+          const LoShape &shape,const LoShape &strides,const NumArray &other)
+{
+#ifdef HAVE_AIPSPP
+  // sanity check -- can we treat string as an AIPS++ String?
+  FailWhen( sizeof(string) != sizeof(casa::String),"AIPS++ String is not equivalent to std::string" );
+#endif
+  FailWhen(&other == this,"cannot make NumArray a reference to self");
+  FailWhen(!other.itsArrayValid,"cannot make reference to an empty NumArray");
+  itsWritableRef = writable;    
+  itsScaType  = other.itsScaType;
+  itsType     = TpArray(itsScaType,shape.size());;
+  itsShape    = shape;
+  itsSize     = shape.product();
+  itsElemSize = other.itsElemSize;
+  itsDataOffset = other.itsDataOffset;
+  itsArrayData = static_cast<char*>(pdata);
+  itsData.unlock().copy(other.itsData).lock();
+  // make array as a subarray
+  allocatePlacementArray(itsScaType,shape.size(),itsArray);
+  assignWithStride (itsScaType,itsArray,pdata,shape,strides);
+  itsArrayValid = true;
 }
 
 //##ModelId=3DB949AF002C
@@ -465,12 +497,12 @@ int DMI::NumArray::fromBlock (BlockSet& set)
       }
       FailWhen( hsize != expected_size,"malformed data block" );
       // xfer data block
-      itsData = newdata;
+      itsData.unlock().xfer(newdata).lock();
     }
     else // else take the data block
     {
       FailWhen( blocksize != hsize,"malformed data block");
-      itsData.xfer(href).lock();
+      itsData.unlock().xfer(href).lock();
       itsArrayData = const_cast<char *>(itsData->cdata()) + itsDataOffset;
     }
     // Create the Array object.

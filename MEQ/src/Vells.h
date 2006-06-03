@@ -94,6 +94,7 @@
   Do(fmod,x) Do(remainder,x)
 
 // Binary functions using flags
+// Called as func(a,b,flagmask_a,flagmask_b)
 #define DoForAllBinaryFuncsWF(Do,x) \
   Do(min,x) Do(max,x) 
 
@@ -144,13 +145,17 @@ namespace VellsMath
     Vells FUNCNAME (const Vells &,const Vells &);
   DoForAllBinaryFuncs(declareBinaryFunc,);
   #define declareBinaryFuncWF(FUNCNAME,x) \
-    Vells FUNCNAME (const Vells &,const Vells &,VellsFlagType flagmask=VellsFullFlagMask);
+    Vells FUNCNAME (const Vells &,const Vells &,\
+      VellsFlagType flagmask1=VellsFullFlagMask,VellsFlagType flagmask2=VellsFullFlagMask);
   DoForAllBinaryFuncsWF(declareBinaryFuncWF,);
   #undef declareUnaryFunc
   #undef declareUnaryRdFunc
   #undef declareUnaryRdFuncWS
   #undef declareBinaryFunc
   #undef declareBinaryFuncWF
+  
+  typedef Vells (*UnaryRdFunc)(const Vells &,VellsFlagType);
+  typedef Vells (*UnaryRdFuncWS)(const Vells &,const LoShape &,VellsFlagType);
 };
 #endif
 
@@ -260,6 +265,13 @@ public:
   { 
     if( init )
       init_array(value);
+  }
+  
+  // create Vells of the same type as 'other', but with a different
+  // shape. If init=true, fills with 0s
+  inline Vells (const Vells &other,const Shape &shape,bool init=true)
+  : NumArray(other.elementType(),shape,init?0:DMI::NOZERO,TpMeqVells)
+  {
   }
 
   //##ModelId=3F868870022A
@@ -443,6 +455,35 @@ public:
   const Shape & flagShape () const
   { return hasDataFlags() ? dataFlags().shape() : null_flag_shape_; }
   
+  // whereEq(value,out_eq,out_ne) 
+  // Compares all values in the Vells to value, creates (in out)
+  // a flag Vells composed of out_eq where values match, and out_ne where
+  // they mismatch. 
+  // Returns 1 if everything matched,  -1 if nothing matched, or 0 otherwise
+  template<class T>
+  int whereEq (Vells &out,T value,VellsFlagType out_eq=1,VellsFlagType out_ne=0)
+  {
+    // init a flag vells with out_ne
+    out = Vells(shape(),out_ne,true);
+    const T * ptr = begin<T>();
+    VellsFlagType * pout = out.begin<T>();
+    bool matched = false;
+    bool mismatched = false;
+    for( ; ptr != end<T>(); ptr++,pout++ );
+      if( *ptr == value )
+      {
+        *pout = out_eq;
+        matched = true;
+      }
+      else
+        mismatched = true;
+    if( matched && !mismatched )
+      return 1;
+    else if( mismatched && !matched )
+      return -1;
+    else
+      return 0;
+  }
   
 // NumArray already defines templated getArray<T>() and getConstArray<T>() functions
 //   template<class T,int N>
@@ -780,7 +821,7 @@ public:
   typedef void (*BinaryOperPtr)(Vells &out,const Vells &,const Vells &,
                                 const Strides [2]);
   typedef void (*BinaryFuncWFPtr)(Vells &out,const Vells &,const Vells &,
-                                  VellsFlagType,const Strides [4]);
+                                  VellsFlagType,VellsFlagType,const Strides [4]);
 // pointer to function implementing an unary in-place operation 
   typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const Strides &);
   
@@ -979,7 +1020,7 @@ public:
   DoForAllBinaryFuncs(declareBinaryFunc,);
   
   #define declareBinaryFuncWF(FUNCNAME,x) \
-    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &,VellsFlagType);
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &,VellsFlagType,VellsFlagType);
     //##ModelId=400E5356020A
   DoForAllBinaryFuncsWF(declareBinaryFuncWF,);
   
@@ -1048,10 +1089,10 @@ defineBinaryFunc(fmod,Vells::VF_REAL|Vells::VF_CHECKREAL);
 defineBinaryFunc(remainder,Vells::VF_REAL|Vells::VF_CHECKREAL);
 
 #define defineBinaryFuncWF(FUNCNAME,flags) \
-  inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right,VellsFlagType flagmask) \
+  inline Vells VellsMath::FUNCNAME (const Vells &a,const Vells &b,VellsFlagType flagmask_a,VellsFlagType flagmask_b) \
   { Vells::Strides strides[4]; \
-    Vells result(left,right,flags|Vells::VF_FLAG_STRIDES,strides,#FUNCNAME); \
-    (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,flagmask,strides);  \
+    Vells result(a,b,flags|Vells::VF_FLAG_STRIDES,strides,#FUNCNAME); \
+    (*Vells::binfunc_##FUNCNAME##_lut[a.getLutIndex()][b.getLutIndex()])(result,a,b,flagmask_a,flagmask_b,strides);  \
     return result; }
 defineBinaryFuncWF(min,Vells::VF_REAL|Vells::VF_CHECKREAL);
 defineBinaryFuncWF(max,Vells::VF_REAL|Vells::VF_CHECKREAL);
@@ -1083,6 +1124,7 @@ DoForAllBinaryOperators(defineBinaryOper,);
 DoForAllBinaryFlagOperators(defineBinaryFlagOper,);
 
 #undef defineBinaryFlagOper
+
 #endif
 
 

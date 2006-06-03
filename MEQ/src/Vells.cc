@@ -539,7 +539,7 @@ definePromotion2(double,dcomplex,dcomplex);
   { Throw(message); }
 // defines a standard error function (for illegal binary ops with flags)
 #define defineErrorFunc2WF(errname,message) \
-  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,const Meq::Vells::Strides [4]) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,FT,const Meq::Vells::Strides [4]) \
   { Throw(message); }
   
 // defines a standard error function template (for illegal unary ops)
@@ -1129,12 +1129,12 @@ DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
 // definitions for binary functions with flags
 // -----------------------------------------------------------------------
 // defines a templated implementation of a binary function
-//    y = FUNC(a,b,flagmask)
+//    y = FUNC(a,b,flagmask_a,flagmask_b)
 #define defineBinaryFuncWFTemplate(FUNC,FUNCNAME,deflt) \
   template<class TY,class TA,class TB> \
   static void implement_binary_##FUNCNAME (Meq::Vells &y,\
                   const Meq::Vells &a,const Meq::Vells &b, \
-                  FT flagmask, \
+                  FT flagmask_a,FT flagmask_b, \
                   const Meq::Vells::Strides strides[4]) \
   { TY *py = y.getStorage(Type2Type<TY>()); \
     const TA *pa = a.begin(Type2Type<TA>()); \
@@ -1147,10 +1147,10 @@ DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
     Meq::Vells::ConstStridedIterator<FT> ifa(fa,strides[2]); \
     Meq::Vells::ConstStridedIterator<FT> ifb(fb,strides[3]); \
     for(;;) { \
-      if( (*ifa)&flagmask ) \
-        *py = (*ifb)&flagmask ? deflt : *ib; \
+      if( (*ifa)&flagmask_a ) \
+        *py = (*ifb)&flagmask_b ? deflt : *ib; \
       else \
-        *py = (*ifb)&flagmask ? *ia : FUNC(*ia,*ib); \
+        *py = (*ifb)&flagmask_b ? *ia : FUNC(*ia,*ib); \
       int ndim = counter.incr(); \
       if( ndim <= 0 ) \
         break; \

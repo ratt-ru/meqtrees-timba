@@ -38,6 +38,18 @@ int main()
     const float* ptr2 = &rec["A"];
     Assert (ptr == ptr2);
     
+    // make reference array
+    DMI::NumArray refarr;
+    LoVec_float subarr = farr(2,LoRange(2,8));
+    refarr.reference(subarr,*dtarr);
+    // print reference array
+    cout << "Original array: "<<farr<<endl;
+    cout << "Reference array: "<<refarr.getArray<float,1>()<<endl;
+    // assign 0 to reference array
+    refarr.getArray<float,1>() = 0;
+    cout << "Original array: "<<farr<<endl;
+    cout << "Original reference array: "<<subarr<<endl;
+    
 //     bool deleteIt;
 //     Assert (ptr == farr.getStorage(deleteIt));
 //     for (int i=0; i<10*12; i++) {
