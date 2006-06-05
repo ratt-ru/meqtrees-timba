@@ -15,7 +15,7 @@ def cps (ns,observation,tablename=''):
 
   return [ PointSource(ns,name="cs",I=1.0, Q=0.0, U=0.0, V=0.0,
                        direction = observation.phase_centre,
-                       Iorder=1,
+                       Iorder=0,
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   

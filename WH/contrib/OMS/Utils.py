@@ -87,5 +87,6 @@ class Parameterization (object):
     if not node.initialized():
       polc = self._polcs[parmname];
       node << Meq.Parm(polc,real_polc=polc,  # real polc also saved in parm state
+                   shape=polc.coeff.shape,
                    **self._parm_options);
     return node;

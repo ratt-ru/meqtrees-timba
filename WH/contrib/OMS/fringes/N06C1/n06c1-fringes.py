@@ -23,14 +23,14 @@ TDLRuntimeOption('msname',"MS",ms_list);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-TDLRuntimeOption('tile_size_phases',"Tile size (timeslots) for phase solution",[1,2,5,10,20,30,60,120,180,360]);
-TDLRuntimeOption('tile_size_flux',"Tile size (timeslots) for flux solution",[120,180,360]);
+TDLRuntimeOption('tile_segments',"Tile size in contiguous segments",[None,1,2,5,10,20,50]);
+TDLRuntimeOption('tile_size',"Tile size in timeslots",[None,30,45,60,120,180]);
 
 TDLRuntimeMenu('Data selection options',
   TDLOption('field_index',"Field ID",[0,1,2,3]),
   TDLOption('ddid_index',"Data description ID (band)",[0,1,2,3]),
   TDLOption('channel_select',"Channel selection",[None,[4,12]]),
-  TDLOption('max_input_tiles',"Restrict number of input tiles",[None,1,5])
+  TDLOption('max_input_tiles',"Restrict number of input tiles",[None,1,2,3,5])
 );
 # how much to perturb starting values of solvables
 TDLRuntimeMenu('Fitting options',
@@ -51,9 +51,10 @@ run) will be used as starting points. Turn this off to solve from scratch."""),
 );
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
-TDLCompileOption('stations_list',"Station list",[[1,2,3,4],range(1,11)]);
+TDLCompileOption('stations_list',"Station list",[[1,2,3,4],range(1,10),range(1,11)]);
+TDLCompileOption('fit_phases_only',"Build trees for phase fit only",False);
 TDLCompileOption('fit_sta1_only',"Fit station 1 baselines only",False);
-TDLCompileOption('fit_phases_only',"Fit phases only",False);
+TDLCompileOption('phase_model',"Feed phase model",{"ind":"independent","pa":"with p/a"});
 TDLCompileOption('source_model',"Source model",[
     models.cps,
     models.cgs
@@ -64,7 +65,7 @@ TDLCompileMenu("Fitting options",
   TDLOption('subtile_phase',"Subtiling for phase solutions",[None,10,20,30,60,90,120]),
   TDLOption('gain_deg_time',"Polc degree (time) for gain fitting",[0,1,2,3,4]),
   TDLOption('gain_deg_freq',"Polc degree (freq) for gain fitting",[0,1,2,3,4]),
-  TDLOption('flux_constraint',"Flux constraint",[None,[0.0,5.0],[1.,5.0],[2.,5.]]),
+  TDLOption('flux_constraint',"Flux constraint",[None,[0.0,10.0],[1.,10.0],[2.,10.],[4.,10.]]),
 );
 
 TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
@@ -177,8 +178,16 @@ def _define_forest(ns):
   for station in array.stations():
     gr = ns.gain('R',station) << gain_parm(gain_deg_time,gain_deg_freq);
     gl = ns.gain('L',station) << gain_parm(gain_deg_time,gain_deg_freq);
-    pr = ns.phase('R',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
-    pl = ns.phase('L',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+    # phase model: independent feed phases
+    if phase_model == "ind":
+      pr = ns.phase('R',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+      pl = ns.phase('L',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+    # phase model: one common phase + parallactic angle
+    else:
+      ph0 = ns.phase(station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+      pa = ns.phase('pa',station) << phase_parm(0,0);  # parallactic angle
+      pr = ns.phase('R',station) << Meq.Identity(ph0);
+      pl = ns.phase('L',station) << ph0 + pa;
     ns.G(station) << Meq.Matrix22(Meq.Polar(gr,pr),0,0,Meq.Polar(gl,pl));
     
   # attach the G Jones series to the all-sky patch
@@ -203,7 +212,8 @@ def _define_forest(ns):
                                                input_col='WEIGHT');
     pred = predict(sta1,sta2);
     if sta1 == 1 or not fit_sta1_only:
-      weight = ns.norm_weight(sta1,sta2) << weight / Meq.Sum(weight);
+      weight = ns.norm_weight(sta1,sta2) << weight / \
+          (Meq.Sum(weight) + 1e-20);  # add small number to avoid division by 0
       if fit_phases_only:
         rr = ns.spigot_rr(sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
         ll = ns.spigot_ll(sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
@@ -302,11 +312,14 @@ def set_node_state (mqs,node,fields_record):
   pass
   
 
-def create_inputrec (tilesize):
+def create_inputrec ():
   rec = record();
   rec.ms_name          = msname
   rec.data_column_name = input_column;
-  rec.tile_size        = tilesize;
+  if tile_size is not None:
+    rec.tile_size        = tile_size;
+  if tile_segments is not None:
+    rec.tile_segments    = tile_segments;
   rec.selection =  record();
   rec.selection.ddid_index       = ddid_index;
   rec.selection.field_index      = field_index;
@@ -335,10 +348,10 @@ def create_outputrec (outcol):
     return record(boio=rec);
 
 
-def _run_solve_job (mqs,solvables,tilesize):
+def _run_solve_job (mqs,solvables):
   """common helper method to run a solution with a bunch of solvables""";
   req = meq.request();
-  req.input  = create_inputrec(tilesize);
+  req.input  = create_inputrec();
   if output_column is not None:
     req.output = create_outputrec(output_column);
 
@@ -427,40 +440,46 @@ def _solvable_gains (mqs):
   return solvables;
 
 def _solvable_phases (mqs):
-  solvables = _reset_parameters(mqs,['phase:L:'+str(sta) for sta in stations_list],
-                                0,subtile=subtile_phase);
-  solvables += _reset_parameters(mqs,['phase:R:'+str(sta) for sta in stations_list],
-                                0,subtile=subtile_phase);
-  return solvables;
-  
-def _tdl_job_1_solve_for_flux_and_phases (mqs,parent,**kw):
+  if phase_model == "ind":
+    parms = ('phase:R:','phase:L:');
+  else:
+    parms = ('phase:','phase:pa:');
   solvables = [];
-  for src in source_list:
-    solvables += _solvable_source(mqs,src);
-  _reset_gains(mqs);  
-  solvables += _solvable_phases(mqs,);
-  _run_solve_job(mqs,solvables,tile_size_phases);
+  for p in parms:
+    solvables += _reset_parameters(mqs,[p+str(sta) for sta in stations_list],
+                                  0,subtile=subtile_phase);
+  return solvables;
+
+if not fit_phases_only:
+  def _tdl_job_1_solve_for_flux_and_phases (mqs,parent,**kw):
+    solvables = [];
+    for src in source_list:
+      solvables += _solvable_source(mqs,src);
+    _reset_gains(mqs);  
+    solvables += _solvable_phases(mqs,);
+    _run_solve_job(mqs,solvables);
 
 def _tdl_job_1a_solve_for_phases_only (mqs,parent,**kw):
   solvables = [];
   _reset_gains(mqs);  
   solvables += _solvable_phases(mqs,);
-  _run_solve_job(mqs,solvables,tile_size_phases);
+  _run_solve_job(mqs,solvables);
 
-def _tdl_job_1b_solve_for_flux_only (mqs,parent,**kw):
-  solvables = [];
-  for src in source_list:
-    solvables += _solvable_source(mqs,src);
-  _reset_gains(mqs);  
-  _run_solve_job(mqs,solvables,tile_size_flux);
+if not fit_phases_only:
+  def _tdl_job_1b_solve_for_flux_only (mqs,parent,**kw):
+    solvables = [];
+    for src in source_list:
+      solvables += _solvable_source(mqs,src);
+    _reset_gains(mqs);  
+    _run_solve_job(mqs,solvables);
 
-def _tdl_job_2_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
-  solvables = [];
-  for src in source_list:
-    solvables += _solvable_source(mqs,src);
-  solvables += _solvable_gains(mqs);
-  solvables += _solvable_phases(mqs);
-  _run_solve_job(mqs,solvables,tile_size_flux);
+  def _tdl_job_2_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
+    solvables = [];
+    for src in source_list:
+      solvables += _solvable_source(mqs,src);
+    solvables += _solvable_gains(mqs);
+    solvables += _solvable_phases(mqs);
+    _run_solve_job(mqs,solvables);
 
 def _tdl_job_8a_clear_out_source_solutions (mqs,parent,**kw):
   os.system("rm -fr "+get_source_table());
@@ -479,8 +498,8 @@ def _tdl_job_9b_make_residual_image (mqs,parent,**kw):
   pass
 
 
-Settings.forest_state.cache_policy = 100  # -1 for minimal, 1 for smart caching, 100 for full caching
-Settings.orphans_are_roots = True
+Settings.forest_state.cache_policy = 1;  # -1 for minimal, 1 for smart caching, 100 for full caching
+Settings.orphans_are_roots = True;
 
 if __name__ == '__main__':
 
