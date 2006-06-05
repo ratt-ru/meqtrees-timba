@@ -113,8 +113,15 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     
 class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None):
-    self.option_list = value;
-    self.option_list_str = map(lambda x:self.item_str(x),value);
+    if isinstance(value,(list,tuple)):
+      self.option_list = value;
+      self.option_list_str = self.option_list_desc = map(lambda x:self.item_str(x),value);
+    elif isinstance(value,dict):
+      self.option_list = list(value.iterkeys());
+      self.option_list_str = map(lambda x:self.item_str(x),value.iterkeys());
+      self.option_list_desc = map(lambda x:str(x),value.itervalues());
+    else:
+      raise TypeError,"TDLListOptionItem: list or dict of options expected";
     self.inline = False;
     # verify default arg
     if default is None:
@@ -144,6 +151,9 @@ class _TDLListOptionItem (_TDLOptionItem):
   def get_option_str (self,num):
     return self.option_list_str[num];
     
+  def get_option_desc (self,num):
+    return self.option_list_desc[num];
+    
   def set (self,value):
     self.selected = value = int(value);
     self._set(self.get_option(value));
@@ -165,7 +175,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       qag.setUsesDropDown(True);
     # create QActions within group
     for ival in range(self.num_options()):
-      name = self.get_option_str(ival);
+      name = self.get_option_desc(ival);
       if self.inline:
         name = groupname + ": " + name;
       qa = QAction(name,0,qag);
@@ -182,7 +192,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       menu.insertSeparator();
       menu._ends_with_separator = True;
     else:
-      qag.setMenuText(groupname + ": " + self.get_str());
+      qag.setMenuText(groupname + ": " + self.get_option_desc(self.selected));
       menu._ends_with_separator = False;
       
   def _set_menu_option (self,qag,ivalue,toggled):
@@ -190,7 +200,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       return;
     self.set(ivalue);
     if not self.inline:
-      qag.setMenuText(qag._groupname+": "+self.get_str());
+      qag.setMenuText(qag._groupname+": "+self.get_option_desc(ivalue));
       
 class _TDLSubmenu (object):
   def __init__ (self,title,*items):
@@ -227,11 +237,11 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
   if isinstance(value,bool):
     item = _TDLBoolOptionItem(namespace,symbol,value);
   # list of options
-  elif isinstance(value,(list,tuple)):
+  elif isinstance(value,(list,tuple,dict)):
     item = _TDLListOptionItem(namespace,symbol,value,default=default);
     setattr(item,'inline',inline);
   else:
-    raise TDLError,"Illegal type for TDL option: "+type(value).__name__;
+    raise TypeError,"Illegal type for TDL option: "+type(value).__name__;
   item.set_name(name);
   item.set_doc(doc);
   return item;
