@@ -31,6 +31,7 @@
         AtomicID::registerId(-1253,"Flags")+
         AtomicID::registerId(-1134,"Flag")+
         AtomicID::registerId(-1263,"Mask")+
+        AtomicID::registerId(-1287,"Segments")+
         AtomicID::registerId(-1126,"Time")+
         AtomicID::registerId(-1103,"Data")+
         AtomicID::registerId(-1265,"Predict")+

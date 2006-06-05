@@ -427,7 +427,7 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     Request &req = current_req_ <<= new Request(cells,rqid_);
     wstate()[FCurrentRequest] = current_req_;
     req.setRequestType(RequestType::EVAL);
-    cdebug(3)<<"start of tile, generated request id="<<rqid_<<endl;
+    cdebug(3)<<"start of tile, "<<tile.nrow()<<" rows, generated request id="<<rqid_<<endl;
     // reset have-tile flags
     have_tile_.assign(handlers_.size(),false);
     // if we have a pre-processing child, poll it now
@@ -570,17 +570,14 @@ int Meq::VisDataMux::endSnippet ()
   
 void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile)
 {    
-  // figure out range of valid rows
-  LoVec_bool valid( tile.rowflag() != int(VisCube::VTile::MissingData) );
-  cdebug1(6)<<"valid rows: "<<valid<<endl;
   // find first valid row, error if none
   int i0,i1;
-  for( i0=0; !valid(i0); i0++ )
+  for( i0=0; tile.time(i0) == 0; i0++ )
     if( i0 >= tile.nrow() )
     { Throw("tile does not contain any valid rows"); }
   cdebug1(5)<<"valid row range: "<<i0<<":"<<i1<<endl;
   // find last valid row (error condition above ensures that at least one exists)
-  for( i1=tile.nrow()-1; !valid(i1); i1-- );
+  for( i1=tile.nrow()-1; tile.time(i1)==0 ; i1-- );
   // form a LoRange describing valid rows, extract time/interval for them
   range = makeLoRange(i0,i1);
   LoVec_double time1     = tile.time()(range).copy();
@@ -591,12 +588,6 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   num_ts_ += tile.nrow();
   tile_time_[0] = time1(0);
   tile_time_[1] = time1(i1-i0);
-  // now, for any rows missing _within_ the valid range, fill in interpolated
-  // times (just to keep Cells & co. happy)
-  int j=1;
-  for( int i=i0+1; i<i1; i++,j++ ) // no need to look at start/end rows -- always valid
-    if( !valid(i) )
-      time1(j) = time1(j-1) + ( interval1(j) = interval1(j-1) );
   cdebug1(5)<<"time:     "<<time1<<endl;
   cdebug1(5)<<"interval: "<<interval1<<endl;
   cells.setCells(Axis::FREQ,channel_freqs,channel_widths);

@@ -148,6 +148,11 @@ const int AidRaw_int = -1132;
 const DMI::AtomicID AidResiduals(-1259);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
 const int AidResiduals_int = -1259;
 #endif
+#ifndef _defined_id_AidSegments
+#define _defined_id_AidSegments 1
+const DMI::AtomicID AidSegments(-1287);           // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
+const int AidSegments_int = -1287;
+#endif
 #ifndef _defined_id_AidSelection
 #define _defined_id_AidSelection 1
 const DMI::AtomicID AidSelection(-1271);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34

@@ -120,9 +120,19 @@ class MSInputChannel : public FileChannel
     //##ModelId=3DF9FECD01B0
       string dataColName_;
       
-      // requested tile size
+      // MS tiling specification
+      //  * if tilesegs_>1, then each tile will be composed of the specified
+      //    number of segments; tilesize_ must be 0.
+      //  * if tilesegs_=1 and tilesize_=0, there will be one tile per 
+      //    segment
+      //  * if tilesegs_=1 and tilesize_>0, each segment will be broken up
+      //    into tiles of the requested size
+      //  * if tilesegs_=0 and tilesize_>0, no segmentation is done, and each
+      //    tile will simply have the requsite number of timeslots
+      //  * if both are 0, tilesize_=1 will be used.
     //##ModelId=3DF9FECD01C0
       int tilesize_;
+      int tilesegs_; 
       
       // channel subset
     //##ModelId=3DF9FECD01C8
@@ -153,6 +163,15 @@ class MSInputChannel : public FileChannel
       // current MS chunk number. A chunk contains N timeslots (i.e. all
       // the per-ifr tiles for a particular time tile)
       int chunk_num_;
+      
+      // this gives the size of each successive MS tile
+      std::vector<int>  tile_sizes_;
+      // this gives the current tile number
+      int current_tile_;
+      
+      // range of times in current selection
+      std::vector<double> time_range_;
+      
       
       // iterator
     //##ModelId=3DF9FECD01EE

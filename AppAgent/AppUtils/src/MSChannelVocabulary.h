@@ -31,7 +31,7 @@
 #pragma aid MS 
 
 #pragma aid DDID VDSID Selection Tile Snippet String Column Size Format Increment
-#pragma aid Vis Input Output Params Start End Write Flags Flag Mask
+#pragma aid Vis Input Output Params Start End Write Flags Flag Mask Segments
 #pragma aid Time Data Predict Residuals Column Name Message Type
 #pragma aid Throw Error Domain start string Original Shape Flip Clear Extent
 
@@ -60,6 +60,7 @@ namespace MSChannel
        FSelectionString   = AidSelection|Aidstring,
        FDataColumnName    = AidData|AidColumn|AidName,
        FTileSize          = AidTile|AidSize,
+       FTileSegments      = AidTile|AidSegments,
        FTileFormat        = AidTile|AidFormat,
        FOriginalDataShape = AidOriginal|AidData|AidShape,
        FFlipFreq          = AidFlip|AidFreq,

@@ -194,6 +194,8 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // We only handle the given field & data desc id
   TableExprNode expr = ( ms_.col("FIELD_ID") == fieldid && ms_.col("DATA_DESC_ID") == ddid );
   selms_ = ms_(expr);
+  // sort by time
+  selms_.sort("TIME");
   
   vdsid_ = VDSID(obsid_++,0,0);
   header[FVDSID] = static_cast<HIID&>(vdsid_);
@@ -207,17 +209,6 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   header[FChannelEndIndex]   = channels_[1];
   header[FChannelIncrement]  = channel_incr_;
   
-  // figure out time range
-  casa::Vector<String> range_items(1);
-  range_items(0) = "TIME";
-  casa::Record range_rec = MSRange(selms_).range(range_items);
-  Vector<double> range_time;
-  range_rec.get("time",range_time);
-  std::vector<double> range_time_vec(2);
-  range_time_vec[0] = range_time(0);
-  range_time_vec[1] = range_time(1);
-  header[FTimeExtent] = range_time_vec;
-      
   // get and apply selection string
   String where = select[FSelectionString].as<string>("");
   dprintf(1)("select ddid=%d, field=%d, where=\"%s\", channels=[%d:%d]\n",
@@ -231,17 +222,109 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
     selms_ = tableCommand ("select from $1 where " + where, selms_).table();
     FailWhen( !selms_.nrow(),"selection yields empty table" );
     tableiter_  = TableIterator(selms_, "TIME");
-  } 
+  }
+  int nrows = selms_.nrow();
+  FailWhen(!nrows,"MS selection yield no rows");
+  dprintf(1)("MS selection yields %d rows\n",selms_.nrow());
+
+  // process the TIME column to figure out the tiling
+  ROScalarColumn<Double> timeCol(selms_,"TIME");
+  Vector<Double> times = timeCol.getColumn();
+  // store time extent in table
+  time_range_.resize(2);
+  time_range_[0] = times(0);
+  time_range_[1] = times(nrows-1);
+  header[FTimeExtent] = time_range_;
+
+  // times are sorted. We go over them to discover timeslots, i.e. "chunks" 
+  // with the same timestamp. Every time we find a new timeslot, we check if
+  //  (a) it's in a new tile (i.e. we've gone past the tilesize)
+  //  (b) it's in a different segment (i.e. delta-t has changed)
+  // The following variables are used:
+  // current tile number
+  int current_tile = 0;     // # of current tile
+  // current segment within this tile (when using multiple segments per tile)
+  int num_subsegment = 0;
+  // size of current segment
+  int segment_size = 0; 
+  // delta-t of current segment
+  Double seg_delta = -1;         
+  // timestamp of current timeslot
+  Double curtime = 0; 
+  // number of timeslots per each tile
+  tile_sizes_.resize(nrows);     // make big enough, will resize back later
+  tile_sizes_[0] = 0;            // first timeslot in first tile
+  std::vector<double> start_times(nrows);
+  // now loop over all times
+  for( int i=0; i<nrows; i++ )
+  {
+    Double tm = times(i);
+    if( i && tm == curtime ) // skip if in same timeslot
+      continue;
+    // at this point we have a new timeslot
+    // this is its delta-t w.r.t. previous timeslot
+    Double delta = tm - curtime;
+    curtime = tm;
+    // add timeslot to the current tile
+    if( !tile_sizes_[current_tile] )
+      start_times[current_tile] = tm;
+    // add timeslot to current subsegment
+    segment_size++;
+    // if this is the second timeslot in a segment, set the segment's 
+    // delta-t value. 
+    if( segment_size == 2 )
+      seg_delta = delta;
+    // else if third+ timeslot, check if delta-t has changed and start
+    // a new segment if it has. 
+    else if( segment_size>2 && fabs(delta - seg_delta) > .1 )
+    {
+      num_subsegment++;
+      segment_size = 1;  // new subsegment already has this timeslot
+      // if tilesegs_>0, then check if we need to start a new tile at
+      // this segment
+      if( num_subsegment >= tilesegs_ )
+      {
+        // go to the next tile
+        tile_sizes_[++current_tile] = 0;
+        start_times[current_tile] = tm;
+        // start new subsegment with this timeslot
+        num_subsegment = 0;
+      }
+    }
+    // add timeslot to current tile
+    tile_sizes_[current_tile]++;
+    // have we reached the tilesize limit? If so, then we start a new tile
+    // (note that if tilesize_=0, this condition is always false)
+    if( tile_sizes_[current_tile] == tilesize_ )
+    {
+      tile_sizes_[++current_tile] = 0;
+      num_subsegment = 0;
+      segment_size = 0;
+    }
+  }
+  // ok, at this point we've found current_tile+1 tiles, although the last 
+  // one may be empty. Resize the size vector as appropriate
+  if( tile_sizes_[current_tile] )
+    current_tile++;
+  tile_sizes_.resize(current_tile);
+  start_times.resize(current_tile);
+  if( Debug(2) )
+  {
+    cdebug(2)<<"Found the following tiling: "<<endl;
+    for( int i=0; i<current_tile; i++ )
+    {
+      dprintf(2)("  %d: size %d time %.2f\n",i,tile_sizes_[i],start_times[i]);
+    }
+  }
   
-  // get the first timeslot 
-  // header[FTime] = ROScalarColumn<double>(selms_, "TIME")(0);
+  // init global tile and timeslot counter
+  current_tile_ = current_timeslot_ = 0;
+  
   // get the original shape of the data array
   LoShape datashape = ROArrayColumn<Complex>(selms_,dataColName_).shape(0);
   header[FOriginalDataShape] = datashape;
   
-  dprintf(1)("MS selection yields %d rows\n",selms_.nrow());
   tableiter_.reset();
-  current_timeslot_ = 0;
 }
 
 //##ModelId=3DF9FECD0235
@@ -261,8 +344,13 @@ int MSInputChannel::init (const DMI::Record &params)
     empty <<= pselection = new DMI::Record;
   // get name of data column (default is DATA)
   dataColName_ = params[FDataColumnName].as<string>("DATA");
-  // get # of timeslots per tile (default is 1)
-  tilesize_ = params[FTileSize].as<int>(1);
+  // get # of timeslots or # of segments per tile 
+  tilesize_ = params[FTileSize].as<int>(0);
+  tilesegs_ = params[FTileSegments].as<int>(0);
+  FailWhen( tilesegs_>1 && tilesize_,"Can't specify a "+FTileSize.toString()+
+        " with "+FTileSegments.toString());
+  if( !tilesize_ && !tilesegs_ )
+    tilesize_ = 1;
   // clear flags?
   clear_flags_ = params[FClearFlags].as<bool>(false);
 
@@ -274,7 +362,6 @@ int MSInputChannel::init (const DMI::Record &params)
   header[FTileFormat] <<= tileformat_.copy(); 
 
   tiles_.clear();
-  chunk_num_ = 0;
   
   setState(HEADER);
 
@@ -328,8 +415,16 @@ int MSInputChannel::refillStream ()
     // fill cache with next time interval
       if( tiles_.empty() )
         tiles_.resize(num_ifrs_);
-    // loop until we've got the requisite number of timeslots
-      for( int ntimes = 0; ntimes < tilesize_ && !tableiter_.pastEnd(); ntimes++,tableiter_++ )
+      // loop until we've got the requisite number of timeslots
+      FailWhen(uint(current_tile_)>=tile_sizes_.size(),
+          "inconsistency in MS: TableIterator yields more timeslots than expected");
+      int current_tilesize = tile_sizes_[current_tile_];
+      // the tile_times vector will be assigned to the TIME column of each
+      // tile. 0 times are used to indicate rows that are missing in EVERY
+      // tile.
+      LoVec_double tile_times(current_tilesize);
+      tile_times(LoRange::all()) = 0;
+      for( int ntimes = 0; ntimes < current_tilesize && !tableiter_.pastEnd(); ntimes++,tableiter_++ )
       {
         const Table &table = tableiter_.table();
         int nrows = table.nrow();
@@ -337,11 +432,21 @@ int MSInputChannel::refillStream ()
         dprintf(4)("Table iterator yields %d rows\n",table.nrow());
         // get relevant table columns
         ROScalarColumn<Double> timeCol(table,"TIME");
+        double timeslot = timeCol(0); // same for all rows since we iterate over it
         ROScalarColumn<Double> intCol(table,"EXPOSURE");
         ROScalarColumn<Int> ant1col(table,"ANTENNA1");
         ROScalarColumn<Int> ant2col(table,"ANTENNA2");
         ROScalarColumn<Bool> rowflagCol(table,"FLAG_ROW");
         LoCube_float weightcube;
+        tile_times(ntimes) = timeslot;
+        if( !ntimes )
+        {
+          dprintf(2)("Tile %d: time is %.2f\n",current_tile_,timeslot);
+        }
+        else if( ntimes == current_tilesize-1 )
+        {
+          dprintf(2)("Tile %d: ending time is %.2f\n",current_tile_,timeslot);
+        }
         // WEIGHT is optional
         Cube<Float> weightcube1;
         bool has_weights = true;
@@ -390,13 +495,12 @@ int MSInputChannel::refillStream ()
             ptile = tiles_[ifr].dewr_p();
           else
           {
-            tiles_[ifr] <<= ptile = new VTile(tileformat_,tilesize_);
+            tiles_[ifr] <<= ptile = new VTile(tileformat_,current_tilesize);
             // set tile ID
-            ptile->setTileId(ant1col(i),ant2col(i),chunk_num_,vdsid_);
+            ptile->setTileId(ant1col(i),ant2col(i),current_tile_,vdsid_);
             // init all row flags to missing
             ptile->wrowflag() = FlagMissing;
           }
-          ptile->wtime()(ntimes)     = timeCol(i);
           ptile->winterval()(ntimes) = intCol(i);
           ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
@@ -415,20 +519,25 @@ int MSInputChannel::refillStream ()
         }
         current_timeslot_++;
       }
-      // output all valid collected tiles onto stream
+      current_tile_++;
+      // output all valid collected tiles onto stream, but do fill in
+      // their TIME column so that it's the same for all tiles regardless
+      // of what rows are actually found
       for( uint i=0; i<tiles_.size(); i++ )
       {
         if( tiles_[i].valid() )
         {
+          VTile &tile = tiles_[i];
+          tile.wtime() = tile_times;
           HIID id = VisEventHIID(DATA,tiles_[i]->tileId());
           putOnStream(id,tiles_[i]);
           tiles_[i].detach();
           nout++;  // increment pointer so that we break out of loop
         }
       }
-      dprintf(2)("chunk yielded %d tiles\n",nout);
+      dprintf(2)("tile yielded %d baselines\n",nout);
+      cdebug(3)<<"tile times are "<<LoVec_double(tile_times-4646800000.)<<endl;
     }
-    chunk_num_++;
     return AppEvent::SUCCESS;
   }
   // catch AIPS++ errors, but not our own exceptions -- these can only be
