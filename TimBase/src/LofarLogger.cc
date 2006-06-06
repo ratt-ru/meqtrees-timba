@@ -26,6 +26,11 @@
 #include <libgen.h>				// basename
 #include <TimBase/LofarLogger.h>
 
+// Do not use log4cplus.
+#ifdef HAVE_LOG4CPLUS
+# undef HAVE_LOG4CPLUS
+#endif
+
 namespace LOFAR {
 
 //#------------------------- Internal implementation -----------------------------
