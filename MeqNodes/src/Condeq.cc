@@ -81,8 +81,8 @@ inline double Condeq::calcDerivative (Vells &deriv,const VellSet &vs,int index,b
   {
     NodeThrow1("illegal number of perturbation sets in result");
   }
-//  if( is_modulo_ )
-//    deriv = VellsMath::remainder(deriv,modulo_);
+  if( is_modulo_ )
+    deriv = VellsMath::remainder(deriv,modulo_);
   deriv /= pert;
   return pert;
 }
