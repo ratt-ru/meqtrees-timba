@@ -218,9 +218,9 @@ def _define_forest(ns):
         rr = ns.spigot_rr(sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
         ll = ns.spigot_ll(sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
         ce1 = ns.ce_rr(sta1,sta2) << \
-          Meq.Condeq(Meq.Arg(rr),ns.phase('R',sta1)-ns.phase('R',sta2),modulo=math.pi) * weight;
+          Meq.Condeq(Meq.Arg(rr),ns.phase('R',sta1)-ns.phase('R',sta2),modulo=2*math.pi) * weight;
         ce2 = ns.ce_ll(sta1,sta2) << \
-          Meq.Condeq(Meq.Arg(ll),ns.phase('L',sta1)-ns.phase('L',sta2),modulo=math.pi) * weight;
+          Meq.Condeq(Meq.Arg(ll),ns.phase('L',sta1)-ns.phase('L',sta2),modulo=2*math.pi) * weight;
         condeqs.append(ce1);
         condeqs.append(ce2);
       else:
