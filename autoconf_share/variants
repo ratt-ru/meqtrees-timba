@@ -23,7 +23,7 @@ nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus
 insure.variant.conf:	  $(standard) --with-insuretools --with-cppflags="-D__INSURE__"
 insure.variant.make:	  QA=insure
 
-standard.var:             $(lofar_root) $(aipspp) $(threads) $(sse) $(shmem) $(searchpath)
+standard.var:             $(lofar_root) $(aipspp) $(threads) $(sse) $(shmem) $(searchpath) $(python)
 
 lofar_root.var:
 
@@ -44,3 +44,4 @@ sse.var:                  --without-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
 searchpath.var:           --with-searchpath="+prefix +root /opt/lofar/external/+pkg+vers/+comp /opt/lofar/external/+pkg+vers /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"
+python.var:		  --with-python-version=2.3
