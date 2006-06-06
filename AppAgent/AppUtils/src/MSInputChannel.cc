@@ -473,6 +473,12 @@ int MSInputChannel::refillStream ()
         // apply channel selection
         datacube.reference(datacube(ALL,CHANS,ALL));
         flagcube.reference(flagcube(ALL,CHANS,ALL));
+        // check weightcube shape (WSRT gets it wrong)
+        if( weightcube.shape() != datacube.shape() )
+        {
+          cdebug(0)<<"WEIGHT_SPECTRUM column malformed, weights will be ignored\n";
+          has_weights = false;
+        }
         // flip along frequency axis, if asked to
         cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube(ALL,ALL,0);
         if( flip_freq_ )
