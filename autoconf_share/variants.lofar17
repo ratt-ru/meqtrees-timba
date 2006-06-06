@@ -20,3 +20,5 @@ insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipsp
 mpich.var:		 --with-mpich=/usr/local/mpich
 
 lofar_root.var:		 --with-lofar-default=weekly --with-doxygen=/usr/local/doxygen/bin
+
+searchpath.var:           --with-searchpath="+prefix +root /opt/lofar/external/+pkg+vers/+comp /opt/lofar/external/+pkg+vers /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr /lofarbuild/aips++/local/cfitsio"
