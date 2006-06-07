@@ -7,6 +7,12 @@
 from qt import *
 import sys
 
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='ND');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 # the Axis Range class is directly adapted from the Qt/PyQt tutorial code examples
 class AxisRange(QWidget):
     def __init__(self, axis_number=1, axis_parms=None,parent=None, name=""):
@@ -148,10 +154,13 @@ class ND_Controller(QWidget):
       row = 0
       col = 0
       self.rank = 0
+      _dprint(3, 'incoming array shape ', array_shape)
+
       if array_shape is None:
         array_shape = []
         for i in range(len(axis_label)):
           array_shape.append(axis_parms[axis_label[i]][3])
+      _dprint(3, 'final array shape ', array_shape)
       for i in range(len(array_shape)):
         if array_shape[i] > 1:
           self.rank = self.rank + 1

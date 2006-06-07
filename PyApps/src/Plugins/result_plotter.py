@@ -128,6 +128,9 @@ class ResultPlotter(GriddedPlugin):
     self.max_list_length = 10
     self.ignore_replay = False
     self._window_controller = None
+    self.array_shape = None
+    self.actual_rank = None
+    self.num_possible_ND_axes = None
 
     self.reset_plot_stuff()
 
@@ -552,7 +555,7 @@ class ResultPlotter(GriddedPlugin):
     self.layout.addWidget(self._visu_plotter, 0, 1)
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_menu_id'), self.update_vells_display) 
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
+#   QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
     QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
 
     self.plotPrinter = plot_printer(self._visu_plotter)
@@ -573,6 +576,8 @@ class ResultPlotter(GriddedPlugin):
     self._rec = dataitem.data;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
+    if self._rec is None:
+      return
     if isinstance(self._rec, bool):
       return
 
@@ -706,20 +711,11 @@ class ResultPlotter(GriddedPlugin):
 
       if self._vells_data is None:
         self._vells_data = VellsData()
+      
 # store the data
       self._vells_data.StoreVellsData(self._rec,self.label)
-      vells_data_parms = self._vells_data.getVellsDataParms()
-      vells_axis_parms = vells_data_parms[0]
-      axis_labels = vells_data_parms[1]
-      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
-      self.num_possible_ND_axes = vells_data_parms[2]
-      if len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
-        self.toggle_array_rank = self.num_possible_ND_axes
-        if self.ND_Controls == None:
-          self.set_ND_controls (axis_labels, vells_axis_parms)
-      else:
-        if not self.ND_Controls is None:
-          self.ND_Controls = None
+      if self._vells_data.getShapeChange():
+        self.update_display_control()
 
       # get initial axis parameters
       axis_parms =  self._vells_data.getActiveAxisParms()
@@ -754,6 +750,37 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
+
+  def update_display_control (self):
+      vells_data_parms = self._vells_data.getVellsDataParms()
+      vells_axis_parms = vells_data_parms[0]
+      axis_labels = vells_data_parms[1]
+      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
+      display_change = False
+      if vells_data_parms[2] != self.num_possible_ND_axes:
+        self.num_possible_ND_axes = vells_data_parms[2]
+        display_change = True
+
+      if vells_data_parms[3] != self.array_shape:
+        self.array_shape = vells_data_parms[3]
+        display_change = True
+
+      actual_rank = 0
+      for i in range(len(self.array_shape)):
+        if self.array_shape[i] > 1:
+          actual_rank = actual_rank + 1
+      if self.actual_rank != actual_rank:
+        self.actual_rank = actual_rank
+        display_change = True
+
+      if display_change and len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2 and self.actual_rank > 2:
+        if not self.ND_Controls is None:
+          self.ND_Controls = None
+        self.set_ND_controls (axis_labels, vells_axis_parms)
+      else:
+        if len(vells_axis_parms) <= 2 or self.num_possible_ND_axes <= 2 or self.actual_rank <= 2:
+          if not self.ND_Controls is None:
+              self.ND_Controls = None
 
   def plot_solver (self):
     """ plots data from a MeqSolver node """
@@ -803,6 +830,9 @@ class ResultPlotter(GriddedPlugin):
     self._vells_data.unravelMenuId(menuid)
     plot_label = self._vells_data.getPlotLabel()
     plot_data = self._vells_data.getActiveData()
+    if self._vells_data.getShapeChange():
+      self.update_display_control()
+
     raw_data_rank = self._vells_data.getActiveDataRank()
     if self.raw_data_rank != raw_data_rank:
       self.old_plot_data_rank = plot_data.rank
@@ -913,14 +943,13 @@ class ResultPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    _dprint(3, 'in result_plotter:set_ND_controls so we must have caught a vells_axes_labels signal')
+#   _dprint(3, 'in result_plotter:set_ND_controls so we must have caught a vells_axes_labels signal')
  
 # make sure we can toggle ND controller by telling plotter 
 # that array rank is at least 3
     self._visu_plotter.set_toggle_array_rank(3)
 
-    shape = None
-    self.ND_Controls = ND_Controller(shape, labels, parms, self.layout_parent)
+    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
