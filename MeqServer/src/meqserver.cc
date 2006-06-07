@@ -33,6 +33,9 @@ int main (int argc,const char *argv[])
     // parse various options
     bool start_gateways = 
         std::find(args.begin(),args.end(),string("-nogw")) == args.end();
+    // "-ssr" option
+    if( std::find(args.begin(),args.end(),string("-ssr")) != args.end() )
+      Meq::NodeNursery::forceSequentialServiceRequests(true);
     // "-mt" option
     StrVec::const_iterator iter = 
         std::find(args.begin(),args.end(),string("-mt"));

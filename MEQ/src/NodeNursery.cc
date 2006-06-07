@@ -4,6 +4,8 @@
         
 namespace Meq
 {
+
+bool NodeNursery::sequential_service_requests_ = false;
   
 NodeNursery::NodeNursery ()
 {
@@ -141,10 +143,12 @@ AtomicID NodeNursery::validatePolicy (AtomicID policy)
 // If MT is not possible (i.e. must poll serially in same thread), returns 0.
 // As a side effect, inits mt.old_brigade_ if the current thread
 // switches brigades.
-MTPool::Brigade * NodeNursery::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
+MTPool::Brigade * NodeNursery::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock,const Request &req)
 {
-  // completely disabled, or only one child to poll anyway
-  if( !multiThreaded() || numChildren()<2 )
+  // completely disabled, or only one child to poll anyway,
+  // or is a service request and we have requested serialization
+  if( !multiThreaded() || numChildren()<2 ||
+      ( sequential_service_requests_ && req.evalMode() <0 ) )
     return 0;
   mt.old_brigade_ = 0;
   mt.rejoin_old_ = false;
@@ -196,7 +200,7 @@ int NodeNursery::startAsyncPoll (const Request &req)
   int numchildren = 0; // number of children to poll (accounting for disabled children)
   Thread::Mutex::Lock lock;
   // multithreaded version
-  if( mt_checkBrigadeAvailability(lock) )
+  if( mt_checkBrigadeAvailability(lock,req) )
   {
     mt.polling_ = true;
     mt.child_retcount_ = 0;
@@ -498,7 +502,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
     child_fails_.resize(0);
     // multithreaded poll
     Thread::Mutex::Lock lock;
-    if( mt_checkBrigadeAvailability(lock) )
+    if( mt_checkBrigadeAvailability(lock,req) )
     {
       cdebug(1)<<endl<<"T"<<std::hex<<Thread::self()<<std::dec<<" node "<<name()<<
               "placing WOs for "<<numChildren()<<" child nodes"<<endl;
@@ -626,7 +630,7 @@ void NodeNursery::backgroundPoll (const Request &req)
   FailWhen(async_poll_in_progress_ || background_poll_in_progress_,"another poll is already in progress");
   Thread::Mutex::Lock lock;
   // multithreaded version
-  if( mt_checkBrigadeAvailability(lock) )
+  if( mt_checkBrigadeAvailability(lock,req) )
   {
     background_poll_in_progress_ = true;
     mt.polling_ = true;

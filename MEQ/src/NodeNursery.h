@@ -78,7 +78,16 @@ class NodeNursery
 {
   public:
     NodeNursery ();
-      
+  
+    //## =============== GLOBAL STATE
+  
+    //## forces non-mt mode for service requests
+    //##  this is a workaround to some AIPS++ table locking problems
+    //##  If true, service requests are always single-threaded
+    static void forceSequentialServiceRequests (bool force=true)
+    { sequential_service_requests_ = force; }
+  
+  
     //## =============== INITIALIZATION METHODS
   
     //## Initializes nursery for a specific number of children
@@ -333,7 +342,7 @@ class NodeNursery
     //## Checks if poll can be done in mt mode. If yes, sets
     //## mt.cur_brigade_ to the current brigade, and returns this value
     //## if not, returns 0.
-    MTPool::Brigade * mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock);
+    MTPool::Brigade * mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock,const Request &req);
     
     //## callbacks to deliver child results in MT mode
     void mt_receiveAsyncChildResult (int ichild,MTPool::WorkOrder &res);
@@ -439,6 +448,10 @@ class NodeNursery
     IdleCallback cb_idle_;
     IdleCallback cb_busy_;
     void  * cb_args_;
+    
+    //##  this is a workaround to some AIPS++ table locking problems
+    //##  If true, service requests are always single-threaded
+    static bool sequential_service_requests_;
     
 };    
 
