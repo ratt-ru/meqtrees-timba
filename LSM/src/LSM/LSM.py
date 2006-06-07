@@ -23,6 +23,7 @@ from Timba.Meq import meq
 from Timba.Apps import app_nogui
 from Timba.Apps import assayer
 
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 ###############################################
 class PUnit:
  """p-Unit object 
@@ -1417,7 +1418,6 @@ class LSM:
  #NVSS  J163411+624953   16 34 11.868   0.73   62 49 53.72   8.3     1400    0.0030    .0005 J
  #
  def build_from_catalog(self,infile_name,ns):
-  from Timba.Contrib.JEN import MG_JEN_Sixpack
 
   infile=open(infile_name,'r')
   all=infile.readlines()
@@ -1600,7 +1600,6 @@ class LSM:
 
  # build the LSM from a NewStar .MDL model file
  def build_from_newstar(self,infile_name,ns,verbose=1):
-    from Timba.Contrib.JEN import MG_JEN_Sixpack
 
     ff=open(infile_name,mode="rb")
     #### read header -- 512 bytes
@@ -1771,7 +1770,6 @@ class LSM:
  ## format:
  ## RA(deg) DEC(dec) sI sQ sU sV
  def build_from_complist(self,infile_name,ns):
-  from Timba.Contrib.JEN import MG_JEN_Sixpack
 
   infile=open(infile_name,'r')
   all=infile.readlines()
@@ -1829,7 +1827,6 @@ class LSM:
  ## format:
  ## RA(deg) DEC(dec) sI sQ sU sV SI eX eY eP
  def build_from_extlist(self,infile_name,ns):
-  from Timba.Contrib.JEN import MG_JEN_Sixpack
   infile=open(infile_name,'r')
   all=infile.readlines()
   infile.close()
