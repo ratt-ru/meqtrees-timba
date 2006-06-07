@@ -11,6 +11,7 @@
 #    - 01 jun 2006: expansion into a separate Expression
 #    - 05 jun 2006: regularized node parm
 #    - 06 jun 2006: introduced 'global' {_xx} parameters
+#    - 07 jun 2006: implement .MeqParms()
 #
 # Remarks:
 #
@@ -168,6 +169,7 @@ class Expression:
         self.__MeqNode = None
         self.__MeqFunctional = None
         self.__MeqParm = None
+        self.__MeqParms = None
         self.__MeqConstant = None
         self.__Funklet = None
         self.__Funklet_function = None
@@ -303,6 +305,15 @@ class Expression:
                 # print dir(self.__Funklet)
                 print indent,'  - F.eval() ->',str(self.__Funklet.eval())
 
+        self.find_MeqParms()
+        if not isinstance(self.__MeqParms, dict):
+            print indent,'- Available (groups of) MeqParms: None'
+        else:
+            print indent,'- Available (groups of) MeqParms:'
+            for key in self.__MeqParms.keys():
+                gg = self.__MeqParms[key]
+                print indent,'  -',key,'(',len(gg),'): ',gg
+
         if full:    
             print indent,'- Created MeqNodes:'
             print indent,'  - MeqNode:',self.__MeqParm
@@ -318,8 +329,9 @@ class Expression:
     # Manual definition of named parameters and variables:
     #============================================================================
 
-    def parm (self, key=None, default=None, 
+    def parm (self, key=None, default=None,
               constant=False, polc=None,
+              group=None,
               ntest=2, testinc=0.1,
               recurse=False, level=0,
               stddev=0.0, scale=None,
@@ -447,7 +459,7 @@ class Expression:
                     if key in self.__parm_order:
                         r1 = p1.parm(key, self.__parm[key])
                     else:
-                        r1 = p1.parm(key, default, 
+                        r1 = p1.parm(key, default, group=group, 
                                      constant=constant, polc=polc,
                                      ntest=ntest, testinc=testinc,
                                      recurse=recurse, level=level+1,
@@ -1267,7 +1279,31 @@ class Expression:
             print ''
         return self.__Funklet
 
+    #===========================================================================
+    # Functions dealing with the available MeqParms (for solving etc)
+    #===========================================================================
 
+    def MeqParms (self, group='all', trace=False):
+        """Access to the (groups of) MeqParm nodes associated with this Expression"""
+        if not self.__MeqParms:
+            self.__MeqParms = self.expanded().find_MeqParms()
+        if self.__MeqParms.has_key(group):
+            return self.__MeqParms[group]
+        return False
+
+
+    def find_MeqParms (self, trace=False):
+        """Find the available MeqParm node names in the Expression"""
+        self.__MeqParms = dict(all=[])
+        klasses = dict()
+        done = []
+        for key in self.__parm_order:
+            parm = self.__parm[key]
+            if isinstance(parm, dict) and parm.has_key('node'):
+                classwise(parm['node'], klasses=klasses, done=done)
+        if klasses.has_key('MeqParm'):
+            self.__MeqParms['all'].extend(klasses['MeqParm'])
+        return self.__MeqParms
 
     #===========================================================================
     # Functions that require a nodescope (ns)
@@ -1577,6 +1613,38 @@ class Expression:
         if trace: print '\n** ._unique_node(',name,qual,') ->',node
         return node
 
+
+#----------------------------------------------------------------------------------
+
+def classwise (node, klasses=dict(), done=[], level=0, trace=False):
+   """Recursively collect the nodes of the given subtree, divided in classes """
+
+   # Keep track of the processed nodes (to avoid duplication):
+   if node.name in done: return True
+   done.append(node.name)
+
+   # Append the nodename to its (klass) group:
+   klass = node.classname
+   klasses.setdefault(klass, [])
+   klasses[klass].append(node.name)
+
+   # Recursive:
+   for i in range(len(node.stepchildren)):
+      stepchild = node.stepchildren[i][1]
+      classwise (stepchild, klasses=klasses, done=done, level=level+1, trace=trace)
+   for i in range(len(node.children)):
+      child = node.children[i][1]
+      classwise (child, klasses=klasses, done=done, level=level+1, trace=trace)
+
+   # Finished:
+   if level==0:
+       if trace:
+           print '\n** classwise():'
+           for klass in klasses.keys():
+               print '-',klass,':',klasses[klass]
+           print
+       return klasses
+   return True
 
 
 
@@ -2173,21 +2241,23 @@ if __name__ == '__main__':
         attuv.parm('_v', vcoord, unit='wvl', help='v-coordinate')
 
         qqual = dict(q='3c56')
-        major = ns.major_axis(**qqual) << 0.1
-        minor = ns.minor_axis(**qqual) << 0.01
-        pa = ns.posangle(**qqual) << -0.1
+        major = ns.major_axis(**qqual) << Meq.Parm(0.1)
+        minor = ns.minor_axis(**qqual) << Meq.Parm(0.01)
+        pa = ns.posangle(**qqual) << Meq.Parm(-0.1)
         cospa = Expression('cos({_posangle})', label='cospa')
         sinpa = Expression('sin({_posangle})', label='sinpa')
 
         attuv.parm('cospa', cospa, recurse=True, help='cos(posangle)')
         attuv.parm('sinpa', sinpa, recurse=True, help='sin(posangle)')
-        attuv.parm('_posangle', pa, unit='rad', help='source position angle (rad)')
-        attuv.parm('_major_axis', major, unit='rad', help='source major axis (rad)')
-        attuv.parm('_minor_axis', minor, unit='rad', help='source minor axis (rad)')
+        group = 'source_shape'
+        attuv.parm('_posangle', pa, unit='rad', group=group, help='source position angle (rad)')
+        attuv.parm('_major_axis', major, unit='rad', group=group, help='source major axis (rad)')
+        attuv.parm('_minor_axis', minor, unit='rad', group=group, help='source minor axis (rad)')
 
-        if 0:
+        if 1:
             node = attuv.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+            klasses = classwise(node, trace=True)
 
         attuv.display('attuv', full=True)
         attuv.expanded().display('expanded attuv', full=True)
