@@ -55,7 +55,7 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 int get_min_max(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
 int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace,
-								double *ra0, double *dec0);
+								double *ra0, double *dec0, double **fgrid, double **fspace);
 
 typedef struct drange_ {
 		double lims[2]; /* min, max values */
@@ -105,9 +105,9 @@ int FITSImage::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request,bool)
 {
- double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0;
+ double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0, *fgrid, *fspace;
  long int naxis[4]={0,0,0,0};
- int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0);
+ int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace);
  FailWhen(flag," Error Reading Fits File "+flag);
 
 #ifdef DEBUG
@@ -136,6 +136,8 @@ int FITSImage::getResult (Result::Ref &resref,
  blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData); 
  blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData); 
  blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData); 
+ blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData); 
+ blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData); 
 #ifdef DEBUG
  cout<<"Grid :"<<l_center<<m_center<<endl;
  cout<<"Space:"<<l_space<<m_space<<endl;
@@ -145,14 +147,16 @@ int FITSImage::getResult (Result::Ref &resref,
  //get the frequency from the request
  const Cells &incells=request.cells();
  const Domain &old_dom=incells.domain();
- domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
+ //domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
+ domain().defineAxis(Axis::FREQ,f_center(0)-f_space(0)/2,f_center(naxis[3]-1)+f_space(naxis[3]-1)/2);
  domain().defineAxis(Axis::axis("L"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
  domain().defineAxis(Axis::axis("M"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
  Cells::Ref cells_ref;
  Cells &cells=cells_ref<<=new Cells(*domain);
 
  //axis, [left,right], segments
- cells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ),naxis[3]);
+ //cells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ),naxis[3]);
+ cells.setCells(Axis::FREQ,f_center,f_space);
  cells.setCells(Axis::axis("L"),l_center,l_space);
  cells.setCells(Axis::axis("M"),m_center,m_space);
 
@@ -253,6 +257,8 @@ int FITSImage::getResult (Result::Ref &resref,
  free(lspace);
  free(mgrid);
  free(mspace);
+ free(fgrid);
+ free(fspace);
  return 0;
 }
 
@@ -635,7 +641,7 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
  * ra0,dec0: coords of phase centre
  */
 int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
-								double *ra0, double *dec0) {
+								double *ra0, double *dec0, double **fgrid, double **fspace) {
     fitsfile *fptr,*outfptr;
     iteratorCol cols[3];  /* structure used by the iterator function */
     int n_cols;
@@ -989,6 +995,88 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			(*mspace)[ii]=(*mgrid)[ii]-(*mgrid)[ii-1];
 		}
     (*mspace)[0]=(*mspace)[new_naxis[1]-1];
+
+
+
+		/***** determinig frequencies ********/
+		if (ncoord<new_naxis[3]){ 
+			ncoord=new_naxis[3];
+      /* reallocate memory */
+  	if ((pixelc=(double*)realloc((void*)pixelc,(size_t)ncoord*4*sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+  	if ((imgc=(double*)realloc((void*)imgc,(size_t)ncoord*4*sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+  	if ((worldc=(double*)realloc((void*)worldc,(size_t)ncoord*4*sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((phic=(double*)realloc((void*)phic,(size_t)ncoord*sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((thetac=(double*)realloc((void*)thetac,(size_t)ncoord*sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((statc=(int*)realloc((void*)statc,(size_t)ncoord*sizeof(int)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+
+		}
+
+    kk=0;
+	  ncoord=new_naxis[3];
+    for (ii=1;ii<=new_naxis[3];ii++) {
+						 pixelc[kk+0]=(double)1; /* l */
+						 pixelc[kk+1]=(double)1; /* m */
+						 pixelc[kk+2]=(double)1.0; /* stokes */
+						 pixelc[kk+3]=(double)ii; /* freq */
+						 kk+=4;
+		 }
+		if (status = wcsp2s(wcs, ncoord, wcs->naxis, pixelc, imgc, phic, thetac,
+			 worldc, statc)) {
+			 fprintf(stderr,"wcsp2s ERROR %2d\n", status);
+			 /* Handle Invalid pixel coordinates. */
+			 if (status == 8) status = 0;
+	  }
+
+  	if ((*fgrid=(double*)calloc((size_t)new_naxis[3],sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+  	if ((*fspace=(double*)calloc((size_t)new_naxis[3],sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+ /*   kk=0;
+    for (ii=1;ii<=new_naxis[3];ii++) {
+				printf("(%lf: %lf) : [%lf:%lf:%lf:%lf] : (%lf,%lf), [%lf:%lf:%lf:%lf] :: %d\n",pixelc[kk+0],pixelc[kk+1],
+				imgc[kk+0],imgc[kk+1],imgc[kk+2],imgc[kk+3],phic[kk/4],thetac[kk/4],
+				worldc[kk+0],worldc[kk+1],worldc[kk+2],worldc[kk+3],statc[kk/4]
+				);
+						 kk+=4;
+		 } */
+
+    kk=0;
+		for (ii=0;ii<new_naxis[3];ii++) {
+					(*fgrid)[ii]= worldc[kk+3];
+					kk+=4;
+		}
+		for (ii=1;ii<new_naxis[3];ii++) {
+					(*fspace)[ii]=(*fgrid)[ii]- (*fgrid)[ii-1];
+		}
+		if (new_naxis[3]>1) {
+      (*fspace)[0]=(*fspace)[1];
+		} else {
+      (*fspace)[0]=1.0;
+		}
+		/*************************************/
+
 
 		/* ******************END create grid for the cells using WCS */
     fits_close_file(fptr, &status);      /* all done */
