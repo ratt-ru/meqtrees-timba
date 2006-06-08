@@ -1,5 +1,5 @@
 from Timba.TDL import *
-from Timba.Contrib.OMS.Direction import *
+from Direction import *
 
 
 class Observation (object):

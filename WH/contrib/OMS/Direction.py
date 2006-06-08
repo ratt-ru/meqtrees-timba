@@ -1,7 +1,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.OMS.Utils import *
-from Timba.Contrib.OMS import Jones
+from Utils import *
+import Jones
 
 class Direction (Parameterization):
   """A Direction represents a direction on the sky.

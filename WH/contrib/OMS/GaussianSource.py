@@ -1,7 +1,7 @@
 import math
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.OMS.PointSource import *
+from PointSource import *
   
 STOKES = ("I","Q","U","V");
 

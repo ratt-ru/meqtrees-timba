@@ -90,7 +90,7 @@ ms_selection = None
 
 ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
 
-selection_string = "TIME < 4637030700";
+fringe_fit_settings.data_selection_strings = [ "TIME < 4637030700" ];
 
 
 # bookmarks

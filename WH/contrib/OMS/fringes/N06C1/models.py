@@ -15,7 +15,7 @@ def cps (ns,observation,tablename=''):
 
   return [ PointSource(ns,name="cs",I=1.0, Q=0.0, U=0.0, V=0.0,
                        direction = observation.phase_centre,
-                       Iorder=3,
+                       Iorder=4,Vorder=3,
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   
@@ -25,9 +25,9 @@ def cgs (ns,observation,tablename=''):
       node_groups='Parm');
   arcsec = math.pi/(180*3600); 
 
-  return [ GaussianSource(ns,name="cs",I=1.0, Q=0.0, U=0.0, V=0.0,
+  return [ GaussianSource(ns,name="cs",I=10.0, Q=0.0, U=0.0, V=0.0,
                        direction = observation.phase_centre,
-                       Iorder=0,size=[.002*arcsec,.001*arcsec],
+                       Iorder=3,Vorder=3,size=[.0002*arcsec,.0001*arcsec],
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   

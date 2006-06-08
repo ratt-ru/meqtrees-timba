@@ -1,7 +1,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.OMS.SkyComponent import *
-import Timba.Contrib.OMS.Jones
+from SkyComponent import *
+import Jones
   
 STOKES = ("I","Q","U","V");
 

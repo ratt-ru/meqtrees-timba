@@ -1,7 +1,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.OMS.Utils import *
-from Timba.Contrib.OMS.Direction import *
+from Utils import *
+from Direction import *
 
 class SkyComponent (Parameterization):
   """A SkyComponent represents an abstract sky model element.

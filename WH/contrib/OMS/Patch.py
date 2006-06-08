@@ -1,4 +1,4 @@
-from Timba.Contrib.OMS.SkyComponent import *
+from SkyComponent import *
 
 
 class Patch (SkyComponent):
