@@ -3,6 +3,7 @@
 #define MEQ_POLCLOG_H
 //# Includes
 #include <MEQ/Polc.h>
+#include <MEQ/Axis.h>
 #include <TimBase/lofar_vector.h>
 
 
@@ -16,6 +17,7 @@
 namespace Meq 
 { 
   const std::vector<double> defaultLogScale(1,1.);
+  const HIID  FAxisList      = AidAxis|AidList;
 
   class PolcLog : public Polc
   {
@@ -34,10 +36,14 @@ namespace Meq
   
 
   //constructors
-  PolcLog ();
   PolcLog (const PolcLog &other,int flags=0,int depth=0);
   PolcLog (const DMI::Record &other,int flags=0,int depth=0);
 
+  explicit PolcLog (double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,DbId id=-1);
+
+  explicit PolcLog(double c00,
+		   double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+		   DbId id=-1,std::vector<double> scale_vector=defaultLogScale);
   explicit PolcLog(const LoVec_double &coeff,
 		   int iaxis=0,double x0=0,double xsc=1,
 		   double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
@@ -74,11 +80,20 @@ namespace Meq
 /*     LoVec_double axis_scales(temp_scales, LoVecShape(2), */
 /* 			     blitz::duplicateData); */
 /*     return axis_scales; */
+    
+    std::vector<double> axis_vector_(2); //contains scale L_0 for every axis, if 0 or not defined, no transformationis applied
+    const Field * fld = Record::findField(FAxisList);
+    const DMI::Record::Ref *axisArray = (fld) ? &(fld->ref().ref_cast<DMI::Record>()) : 0;
+    if(axisArray){
+        for(int i=0;i<2;i++){
+	  axis_vector_[i]=0;
+	  (*axisArray)[Axis::axisId(i)].get(axis_vector_[i],0.);
+	  
+	}
+    }
     return axis_vector_;
   }
 
-  private:
-  std::vector<double> axis_vector_; //contains scale L_0 for every axis, if 0 or not defined, no transformationis applied
   };
 }
  // namespace Meq
