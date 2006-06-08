@@ -22,3 +22,5 @@ mpich.var:		 --with-mpich=/usr/local/mpich
 lofar_root.var:		 --with-lofar-default=weekly --with-doxygen=/usr/local/doxygen/bin
 
 searchpath.var:           --with-searchpath="+prefix +root /opt/lofar/external/+pkg+vers/+comp /opt/lofar/external/+pkg+vers /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr /lofarbuild/aips++/local/cfitsio"
+
+python.var:		  --with-python-version=2.3 --with-python-libdir=/usr/local/lib/python2.3/config
