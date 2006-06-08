@@ -204,8 +204,10 @@ class _TDLListOptionItem (_TDLOptionItem):
       
 class _TDLSubmenu (object):
   def __init__ (self,title,*items):
+    """Creates a submenu from the given list of options.
+    Note that an option may be specified as False or None to skip it.""";
     self._title = title;
-    self._items = items;
+    self._items = filter(lambda x:bool(x),items);
     # check the runtime and compiletime option lists and remove item
     # from them, if found. This allows us to include items with
     # TDLCompileOption or TDLRuntimeOption directly
