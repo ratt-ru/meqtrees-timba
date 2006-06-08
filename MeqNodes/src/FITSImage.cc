@@ -139,24 +139,35 @@ int FITSImage::getResult (Result::Ref &resref,
  blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData); 
  blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData); 
 #ifdef DEBUG
- cout<<"Grid :"<<l_center<<m_center<<endl;
- cout<<"Space:"<<l_space<<m_space<<endl;
+ cout<<"Grid :"<<l_center<<m_center<<f_center<<endl;
+ cout<<"Space:"<<l_space<<m_space<<f_space<<endl;
 #endif
+
+ //see if frequency axis is reversed
+ bool reverse_freq=(f_center(0)> f_center(naxis[3]-1));
 
  Domain::Ref domain(new Domain());
  //get the frequency from the request
  const Cells &incells=request.cells();
  const Domain &old_dom=incells.domain();
- //domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
- domain().defineAxis(Axis::FREQ,f_center(0)-f_space(0)/2,f_center(naxis[3]-1)+f_space(naxis[3]-1)/2);
+ if (reverse_freq ) {
+   domain().defineAxis(Axis::FREQ,f_center(naxis[3]-1)+f_space(naxis[3]-1)/2, f_center(0)-f_space(0)/2);
+ } else {
+  domain().defineAxis(Axis::FREQ,f_center(0)-f_space(0)/2,f_center(naxis[3]-1)+f_space(naxis[3]-1)/2);
+ }
  domain().defineAxis(Axis::axis("L"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
  domain().defineAxis(Axis::axis("M"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
  Cells::Ref cells_ref;
  Cells &cells=cells_ref<<=new Cells(*domain);
 
  //axis, [left,right], segments
- //cells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ),naxis[3]);
- cells.setCells(Axis::FREQ,f_center,f_space);
+ if (reverse_freq ) {
+  blitz::Array<double,1> f1;
+	f1=blitz::abs(f_space);
+	cells.setCells(Axis::FREQ,f_center.reverse(0),f1);
+ } else {
+	cells.setCells(Axis::FREQ,f_center,f_space);
+ }
  cells.setCells(Axis::axis("L"),l_center,l_space);
  cells.setCells(Axis::axis("M"),m_center,m_space);
 
@@ -202,7 +213,11 @@ int FITSImage::getResult (Result::Ref &resref,
  //select all 3 axes of the output (slice through axes Freq,L,M)
  VellsSlicer<double,3> slout(out,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
  //copy A to the time slice of varr
- slout=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),0);
+ if (reverse_freq) {
+  slout=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), blitz::Range::all(), blitz::Range::all(),0);
+ } else {
+  slout=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),0);
+ }
  result.setVellSet(2,refI);
 
 
