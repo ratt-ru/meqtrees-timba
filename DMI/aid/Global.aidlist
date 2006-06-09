@@ -33,6 +33,7 @@ BOIO                             1220       ; from /home/oms/LOFAR/Timba/AppAgen
 bool                             32         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:104
 Bound                            1046       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Breakpoint                       1359       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
+Brick                            1685       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 Broadcast                        1545       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
 By                               1297       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Bye                              1090       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
