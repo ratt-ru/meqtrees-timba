@@ -32,6 +32,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::PatchComposer
+#pragma aids Max Baseline UVppw
 
 namespace Meq {
 
