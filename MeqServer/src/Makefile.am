@@ -1,4 +1,4 @@
-CXXFLAGS += -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
+CXXFLAGS += -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 dmi_dir = $(lofar_sharedir)/../DMI
 
@@ -21,7 +21,7 @@ libmeqserver_la_SOURCES = \
 bin_PROGRAMS   		= meqserver
   
 meqserver_SOURCES		    = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la -lpython2.3 
+meqserver_LDADD		      = libmeqserver.la 
 # NB: older systems may require -ldl -lutil as well
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 

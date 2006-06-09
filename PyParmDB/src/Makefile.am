@@ -1,4 +1,4 @@
-CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
+CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 lib_LTLIBRARIES = pyparmdb.la
 

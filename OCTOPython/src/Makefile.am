@@ -1,4 +1,4 @@
-CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
+CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 lib_LTLIBRARIES = octopython.la liboctopython.la
 
@@ -9,8 +9,11 @@ octopython_la_SOURCES = \
   
 octopython_la_LDFLAGS = -module
 
-liboctopython.la:
-	@ln -s octopython.la liboctopython.la
+liboctopython_la_SOURCES = \
+  octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
+#liboctopython.la:
+#	@ln -s octopython.la liboctopython.la
+#	@ln -s octopython.lai liboctopython.lai
 
 octopython_la_LIBADD =  \
   ../pkgbldinc/TimBase/.libs/libtimbase.a \

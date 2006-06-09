@@ -62,6 +62,7 @@ lofar_PACKAGE(Timba/MeqNodes)
 dnl # removing cfitsio, it should be brought in by MeqNodes
 dnl lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
 lofar_EXTERNAL(lapack,1,unistd.h,'lapack blas',,,,,gnu3:-lg2c)
+lofar_PYTHON(1)
 dnl
 dnl Output Makefiles
 dnl

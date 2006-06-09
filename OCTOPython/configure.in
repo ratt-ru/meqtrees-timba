@@ -53,6 +53,7 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 lofar_PACKAGE(Timba/OCTOPUSSY)
+lofar_PYTHON(1)
 
 dnl
 dnl Output Makefiles
