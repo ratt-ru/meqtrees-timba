@@ -36,6 +36,7 @@
 #pragma types #Meq::FFTBrick
 
 #pragma aid Axes In Out
+#pragma aids UVppw
 
 namespace Meq {
 

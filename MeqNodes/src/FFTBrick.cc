@@ -50,7 +50,7 @@ namespace Meq {
 
 FFTBrick::FFTBrick()
   : Node(1),     // exactly 1 child expected
-  _uvppw(2.0)
+  _uvppw(1.0)
 {
   _in_axis_id.resize(2);
   _in_axis_id[0] = "L";
@@ -58,9 +58,8 @@ FFTBrick::FFTBrick()
   _out_axis_id.resize(2);
   _out_axis_id[0] = "U";
   _out_axis_id[1] = "V";
-  // For now these axes are defined in the PatchComposer Node.
-  //Axis::addAxis("U");
-  //Axis::addAxis("V");
+  Axis::addAxis("U");
+  Axis::addAxis("V");
 };
 
 FFTBrick::~FFTBrick()
@@ -223,9 +222,21 @@ BZ_END_STENCIL_WITH_SHAPE(shape(-1,-1),shape(+1,+1))
 void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
 {
   Vells::Shape input_shape = input_vells.shape();
-  // check that input axes are present 
-  FailWhen(_inaxis0>=input_shape.size() && _inaxis1>=input_shape.size(),
-      "one or both input axes are not present in input Vells");
+  if ( _inaxis0>=input_shape.size() && _inaxis1>=input_shape.size() ) {
+    //FailWhen(_inaxis0>=input_shape.size() && _inaxis1>=input_shape.size(),
+    //    "one or both input axes are not present in input Vells");
+    // No input shape, just a constant input value.
+    output_vells[0] <<= new Vells(dcomplex(0.0));
+    // create additional Vells for higher order interpolation coefficients
+    output_vells[1] <<= new Vells(dcomplex(0.0));
+    output_vells[2] <<= new Vells(dcomplex(0.0));
+    output_vells[3] <<= new Vells(dcomplex(0.0));
+  } else {
+  
+  // check that input axes are present
+    //RJN 21-04-2006 
+    //FailWhen(_inaxis0>=input_shape.size() && _inaxis1>=input_shape.size(),
+    //    "one or both input axes are not present in input Vells");
   // check that output axes of input shape are trivial (unless we're
   // transforming in-place)
   FailWhen((_outaxis0!=_inaxis0 && _outaxis0<input_shape.size() && input_shape[_outaxis0]>1) ||
@@ -444,11 +455,13 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
     uv_arr(nu-1,nv-1) = (out_arr(0,0) + out_arr(nu-2,0) +
 		         out_arr(0,nv-2) + out_arr(nu-2,nv-2))/4.;
   }
+  }
 }
 
 void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
+  rec["UVppw"].get(_uvppw,initializing);
 
   std::vector<HIID> in = _in_axis_id;
   if( rec[FAxesIn].get_vector(in,initializing) || initializing )
