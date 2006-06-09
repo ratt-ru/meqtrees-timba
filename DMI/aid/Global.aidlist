@@ -23,6 +23,7 @@ Axis                             1318       ; from /home/oms/LOFAR/Timba/MEQ/src
 B                                1019       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Balanced                         1668       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Bandwidth                        1176       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
+Baseline                         1682       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
 Batch                            1563       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
 Beam                             1178       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
 Begin                            1643       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
@@ -651,6 +652,7 @@ UVData                           1160       ; from /home/oms/LOFAR/Timba/VisCube
 UVDelta                          1526       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 UVImage                          1527       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 UVInterpol                       1523       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+UVppw                            1683       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
 UVSet                            1156       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 UVW                              1123       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 UVZ                              1528       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
