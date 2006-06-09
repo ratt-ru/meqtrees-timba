@@ -119,9 +119,9 @@ def subtree (node, txt='<txt>', level=0, cindex=0, recurse=1000, count={}, full=
                print level+1,indent1,cindex,':',node.stepchildren[i][1],' (similar stepchild, not shown)'
             else:
                classname = stepchild.classname
-               c5 = stepchild.name[0:5]
+               if not full: c5 = stepchild.name[0:5]
                subtree (stepchild, level=level+1, cindex=cindex,
-                                recurse=recurse-1, count=count, full=full)
+                        recurse=recurse-1, count=count, full=full)
             count[inhibited] += inhibit
 
          classname = None
@@ -135,9 +135,9 @@ def subtree (node, txt='<txt>', level=0, cindex=0, recurse=1000, count={}, full=
                print level+1,indent1,cindex,':',node.children[i][1],' (similar child, not shown)'
             else:
                classname = child.classname
-               c5 = child.name[0:5]
+               if not full: c5 = child.name[0:5]
                subtree (child, level=level+1, cindex=cindex,
-                                recurse=recurse-1, count=count, full=full)
+                        recurse=recurse-1, count=count, full=full)
             count[inhibited] += inhibit
           
 
@@ -147,7 +147,8 @@ def subtree (node, txt='<txt>', level=0, cindex=0, recurse=1000, count={}, full=
       for klass in count[klasses].keys():
          print '**   class:',klass,':',count[klasses][klass]
       print '** Total nr of nodes scanned:',count[total]
-      print '** Further recursion inhibited for',count[inhibited],'children and/or stepchildren'
+      if count[inhibited]>0:
+         print '** Further recursion inhibited for: ',count[inhibited],'children and/or stepchildren'
       print
 
    return True
