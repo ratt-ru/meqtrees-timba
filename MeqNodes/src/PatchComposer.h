@@ -25,17 +25,20 @@
 
 //# Includes
 #include <MEQ/Node.h>
-//#include <images/Images/PagedImage.h>
 //#include <MeqNodes/ReductionFunction.h>
 
 
 #include <MeqNodes/TID-MeqNodes.h>
+#include <MeqNodes/AID-MeqNodes.h>
+
 #pragma aidgroup MeqNodes
 #pragma types #Meq::PatchComposer
+#pragma aid Axes Out
 #pragma aids Max Baseline UVppw
 
 namespace Meq {
 
+  const HIID PAxesOut = AidAxes|AidOut;
 
 class PatchComposer: public Node
 	       //class PatchComposer: public ReductionFunction
@@ -65,6 +68,13 @@ public:
   double _max_baseline;
   double _uvppw;
    
+  // which axes are treated as the output plane?
+  std::vector<HIID> _out_axis_id;
+
+  uint _outaxis0;
+  uint _outaxis1;
+  uint _outaxis2;
+
 };
 
 

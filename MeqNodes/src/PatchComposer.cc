@@ -25,6 +25,7 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
+#include <MEQ/VellsSlicer.h>
 #include <casa/BasicMath/Math.h>
 #include <casa/BasicSL/Constants.h>
 
@@ -35,6 +36,10 @@ namespace Meq {
     _max_baseline(2700.0),
     _uvppw(1.0)
   {
+    _out_axis_id.resize(3);
+    _out_axis_id[0] = "FREQ";
+    _out_axis_id[1] = "L";
+    _out_axis_id[2] = "M";
     Axis::addAxis("L");
     Axis::addAxis("M");
   };
@@ -53,6 +58,12 @@ namespace Meq {
 
     // Get the Request Cells
     const Cells& rcells = request.cells();
+
+    // Set the output axes
+    _outaxis0 = Axis::axis(_out_axis_id[0]);
+    _outaxis1 = Axis::axis(_out_axis_id[1]);  
+    _outaxis2 = Axis::axis(_out_axis_id[2]);
+
     
     if (rcells.isDefined(Axis::FREQ)) {
 
@@ -155,12 +166,23 @@ namespace Meq {
 	Vells& vells4 = vs4.setValue(new Vells(double(0.0),shape,true));
 	Vells& vells5 = vs5.setValue(new Vells(double(0.0),shape,true));
 
-	LoVec_double Ivec(nf), Qvec(nf), Uvec(nf), Vvec(nf);
 	int ni, nj;
-	blitz::Array<double,3> arrI = vells2.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-	blitz::Array<double,3> arrQ = vells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-	blitz::Array<double,3> arrU = vells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());	
-	blitz::Array<double,3> arrV = vells5.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+	LoVec_double Ivec(nf), Qvec(nf), Uvec(nf), Vvec(nf);
+	
+//blitz::Array<double,3> arrI = vells2.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+	//blitz::Array<double,3> arrQ = vells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+	//blitz::Array<double,3> arrU = vells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());	
+	//blitz::Array<double,3> arrV = vells5.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+
+	VellsSlicer<double,3> I_slicer(vells2,_outaxis0,_outaxis1,_outaxis2);
+	VellsSlicer<double,3> Q_slicer(vells3,_outaxis0,_outaxis1,_outaxis2);
+	VellsSlicer<double,3> U_slicer(vells4,_outaxis0,_outaxis1,_outaxis2);
+	VellsSlicer<double,3> V_slicer(vells5,_outaxis0,_outaxis1,_outaxis2);
+
+	blitz::Array<double,3> arrI = I_slicer();
+	blitz::Array<double,3> arrQ = Q_slicer();
+	blitz::Array<double,3> arrU = U_slicer();
+	blitz::Array<double,3> arrV = V_slicer();
 
 	for (int src = 1; src<num_children; src++) {
 	  // For every Point Source sixpack child, put source on nearest pixel position
@@ -278,6 +300,16 @@ namespace Meq {
     Node::setStateImpl(rec,initializing);
     rec["Max.Baseline"].get(_max_baseline,initializing);
     rec["UVppw"].get(_uvppw,initializing);
+
+    std::vector<HIID> out = _out_axis_id;
+    if( rec[PAxesOut].get_vector(out,initializing) || initializing )
+      {
+	FailWhen(out.size()!=3,PAxesOut.toString()+"field must have 3 elements");
+	_out_axis_id = out;
+	Axis::addAxis(_out_axis_id[0]);
+	Axis::addAxis(_out_axis_id[1]);
+	Axis::addAxis(_out_axis_id[2]);
+      };
   };
   
 } // namespace Meq
