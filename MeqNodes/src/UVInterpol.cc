@@ -25,12 +25,17 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
+#include <MEQ/AID-Meq.h>
+#include <MeqNodes/AID-MeqNodes.h>
 #include <casa/aips.h>
 #include <casa/BasicSL/Constants.h>
 #include <casa/BasicMath/Math.h>
 
 
 namespace Meq {
+
+  static const HIID child_labels[] = { AidUVBRICK, AidUVW };
+  static const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
   
 #define VERBOSE
 
@@ -38,11 +43,10 @@ namespace Meq {
     _additional_info(false),
     _uvZ(0.0),
     _uvDelta(casa::C::pi/2.),
-    _method(1)
+    _method(1),
+    Node(num_children,child_labels)
   {
     disableAutoResample();
-    //    Axis::addAxis("U");
-    //    Axis::addAxis("V");
   };
   
   UVInterpol::~UVInterpol()
@@ -123,44 +127,44 @@ namespace Meq {
 	  
 	  //if ( childres.at(0)->cells().isDefined(Axis::axis("U")) &&
 	  //     childres.at(0)->cells().isDefined(Axis::axis("V")) )
-	  if ( childres.at(0)->cells().isDefined(Axis::axis("L")) &&
-	       childres.at(0)->cells().isDefined(Axis::axis("M")) )
-	    {
+	  //  //if ( childres.at(0)->cells().isDefined(Axis::axis("L")) &&
+	  //  //   childres.at(0)->cells().isDefined(Axis::axis("M")) )
+	  //  {
 	      brickresult = childres.at(0);
 	      brickcells = brickresult->cells();
 	      uvpoints = childres.at(1);
-	    } 
-	  else 
-	    {
-	      brickresult = childres.at(1);
-	      brickcells = brickresult->cells();
-	      uvpoints = childres.at(0);
-	    };
+	      //  } 
+	      //else 
+	      //  {
+	      //    brickresult = childres.at(1);
+	      //    brickcells = brickresult->cells();
+	      //     uvpoints = childres.at(0);
+	      //  };
 	  
 	  // uv grid from UVBrick
-	  //int nu = brickcells.ncells(Axis::axis("U"));
-	  //int nv = brickcells.ncells(Axis::axis("V"));
-	  //const LoVec_double uu = brickcells.center(Axis::axis("U"));
-	  //const LoVec_double vv = brickcells.center(Axis::axis("V"));
-	  int nu = brickcells.ncells(Axis::axis("L"));
-	  int nv = brickcells.ncells(Axis::axis("M"));
-	  const LoVec_double uu = brickcells.center(Axis::axis("L"));
-	  const LoVec_double vv = brickcells.center(Axis::axis("M"));
+	  int nu = brickcells.ncells(Axis::axis("U"));
+	  int nv = brickcells.ncells(Axis::axis("V"));
+	  const LoVec_double uu = brickcells.center(Axis::axis("U"));
+	  const LoVec_double vv = brickcells.center(Axis::axis("V"));
+	  //int nu = brickcells.ncells(Axis::axis("L"));
+	  //int nv = brickcells.ncells(Axis::axis("M"));
+	  //const LoVec_double uu = brickcells.center(Axis::axis("L"));
+	  //const LoVec_double vv = brickcells.center(Axis::axis("M"));
 	  
 	  // uv image domain
 	  Domain::Ref uvdomain(new Domain());
-	  uvdomain().defineAxis(0,uu(0),uu(nu-1));
-	  uvdomain().defineAxis(1,vv(0),vv(nv-1));
+	  uvdomain().defineAxis(Axis::axis("U"),uu(0),uu(nu-1));
+	  uvdomain().defineAxis(Axis::axis("V"),vv(0),vv(nv-1));
 	  Cells::Ref uvcells(new Cells(*uvdomain));
-	  uvcells().setCells(0,uu(0),uu(nu-1),nu);
-	  uvcells().setCells(1,vv(0),vv(nv-1),nv);    
+	  uvcells().setCells(Axis::axis("U"),uu(0),uu(nu-1),nu);
+	  uvcells().setCells(Axis::axis("V"),vv(0),vv(nv-1),nv);    
 	  
 	  Vells::Shape uvshape;
 	  Axis::degenerateShape(uvshape,uvcells->rank());
-	  //uvshape[Axis::axis("freq")] = brickcells.ncells(Axis::axis("U"));
-	  //uvshape[Axis::axis("time")] = brickcells.ncells(Axis::axis("V"));
-	  uvshape[Axis::axis("TIME")] = brickcells.ncells(Axis::axis("L"));
-	  uvshape[Axis::axis("FREQ")] = brickcells.ncells(Axis::axis("M"));
+	  uvshape[Axis::axis("U")] = brickcells.ncells(Axis::axis("U"));
+	  uvshape[Axis::axis("V")] = brickcells.ncells(Axis::axis("V"));
+	  //uvshape[Axis::axis("TIME")] = brickcells.ncells(Axis::axis("L"));
+	  //uvshape[Axis::axis("FREQ")] = brickcells.ncells(Axis::axis("M"));
 	  
 	  // Make the new Vells
 
@@ -269,21 +273,21 @@ namespace Meq {
     Cells brickcells; 
     Result::Ref uvpoints;
 
-    //    if ( fchildres.at(0)->cells().isDefined(Axis::axis("U")) &&
+    //if ( fchildres.at(0)->cells().isDefined(Axis::axis("U")) &&
     //	 fchildres.at(0)->cells().isDefined(Axis::axis("V")) )
-    if ( fchildres.at(0)->cells().isDefined(Axis::axis("L")) &&
-	 fchildres.at(0)->cells().isDefined(Axis::axis("M")) )
-      {
+    //	  //if ( fchildres.at(0)->cells().isDefined(Axis::axis("L")) &&
+    //	  //fchildres.at(0)->cells().isDefined(Axis::axis("M")) )
+    //  {
 	brickresult = fchildres.at(0);
 	brickcells = brickresult->cells();
 	uvpoints = fchildres.at(1);
-      } 
-    else 
-      {
-	brickresult = fchildres.at(1);
-	brickcells = brickresult->cells();
-	uvpoints = fchildres.at(0);
-      };
+	//  } 
+	//else 
+	//  {
+	//	brickresult = fchildres.at(1);
+	//	brickcells = brickresult->cells();
+	//	uvpoints = fchildres.at(0);
+	// };
 
     // u, v values from UVW-Node
     VellSet uvs = uvpoints->vellSet(0);
@@ -314,22 +318,28 @@ namespace Meq {
 
 
     // uv grid from UVBrick
-    //int nu = brickcells.ncells(Axis::axis("U"));
-    //int nv = brickcells.ncells(Axis::axis("V"));
-    //const LoVec_double uu = brickcells.center(Axis::axis("U"));
-    //const LoVec_double vv = brickcells.center(Axis::axis("V"));
-    int nu = brickcells.ncells(Axis::axis("L"));
-    int nv = brickcells.ncells(Axis::axis("M"));
-    const LoVec_double uu = brickcells.center(Axis::axis("L"));
-    const LoVec_double vv = brickcells.center(Axis::axis("M"));
+    int nu = brickcells.ncells(Axis::axis("U"));
+    int nv = brickcells.ncells(Axis::axis("V"));
+    const LoVec_double uu = brickcells.center(Axis::axis("U"));
+    const LoVec_double vv = brickcells.center(Axis::axis("V"));
+    //int nu = brickcells.ncells(Axis::axis("L"));
+    //int nv = brickcells.ncells(Axis::axis("M"));
+    //const LoVec_double uu = brickcells.center(Axis::axis("L"));
+    //const LoVec_double vv = brickcells.center(Axis::axis("M"));
     
     // uv-data from UVBrick
     // UVImage data
     VellSet vsf = brickresult->vellSet(0);
     Vells vellsfI = vsf.getValue(); 
-    Vells vellsfQ = brickresult->vellSet(1).getValue();
-    Vells vellsfU = brickresult->vellSet(2).getValue();
-    Vells vellsfV = brickresult->vellSet(3).getValue();
+    VellSet vsfQ = brickresult->vellSet(4);
+    Vells vellsfQ = vsfQ.getValue(); 
+    VellSet vsfU = brickresult->vellSet(8);
+    Vells vellsfU = vsfU.getValue(); 
+    VellSet vsfV = brickresult->vellSet(12);
+    Vells vellsfV = vsfV.getValue(); 
+    //Vells vellsfQ = brickresult->vellSet(4).getValue();
+    //Vells vellsfU = brickresult->vellSet(8).getValue();
+    //Vells vellsfV = brickresult->vellSet(12).getValue();
     blitz::Array<dcomplex,3> farrI = vellsfI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
     blitz::Array<dcomplex,3> farrQ = vellsfQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
     blitz::Array<dcomplex,3> farrU = vellsfU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
@@ -352,15 +362,15 @@ namespace Meq {
     if (_method == 1){
       // Additional data Vells
 
-      VellSet vsfuI = brickresult->vellSet(4);
+      VellSet vsfuI = brickresult->vellSet(1);
       Vells fuvellsI = vsfuI.getValue(); 
       fuarrI = fuvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfvI = brickresult->vellSet(8);
+      VellSet vsfvI = brickresult->vellSet(2);
       Vells fvvellsI = vsfvI.getValue(); 
       fvarrI = fvvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfuvI = brickresult->vellSet(12);
+      VellSet vsfuvI = brickresult->vellSet(3);
       Vells fuvvellsI = vsfuvI.getValue(); 
       fuvarrI = fuvvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
@@ -368,15 +378,15 @@ namespace Meq {
       Vells fuvellsQ = vsfuQ.getValue(); 
       fuarrQ = fuvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfvQ = brickresult->vellSet(9);
+      VellSet vsfvQ = brickresult->vellSet(6);
       Vells fvvellsQ = vsfvQ.getValue(); 
       fvarrQ = fvvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfuvQ = brickresult->vellSet(13);
+      VellSet vsfuvQ = brickresult->vellSet(7);
       Vells fuvvellsQ = vsfuvQ.getValue(); 
       fuvarrQ = fuvvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfuU = brickresult->vellSet(6);
+      VellSet vsfuU = brickresult->vellSet(9);
       Vells fuvellsU = vsfuU.getValue(); 
       fuarrU = fuvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
@@ -384,15 +394,15 @@ namespace Meq {
       Vells fvvellsU = vsfvU.getValue(); 
       fvarrU = fvvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfuvU = brickresult->vellSet(14);
+      VellSet vsfuvU = brickresult->vellSet(11);
       Vells fuvvellsU = vsfuvU.getValue(); 
       fuvarrU = fuvvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfuV = brickresult->vellSet(7);
+      VellSet vsfuV = brickresult->vellSet(13);
       Vells fuvellsV = vsfuV.getValue(); 
       fuarrV = fuvellsV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-      VellSet vsfvV = brickresult->vellSet(11);
+      VellSet vsfvV = brickresult->vellSet(14);
       Vells fvvellsV = vsfvV.getValue(); 
       fvarrV = fvvellsV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
