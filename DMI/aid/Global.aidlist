@@ -647,6 +647,7 @@ Upsample                         1644       ; from /home/sarod/LOFAR/Timba/MeqNo
 Use                              1587       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 UseSVD                           1335       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 ushort                           36         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:105
+UVBRICK                          1684       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 UVCurvature                      1540       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 UVData                           1160       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 UVDelta                          1526       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
