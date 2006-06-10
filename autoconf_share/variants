@@ -44,4 +44,4 @@ sse.var:                  --without-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
 searchpath.var:           --with-searchpath="+prefix +root /opt/lofar/external/+pkg+vers/+comp /opt/lofar/external/+pkg+vers /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"
-python.var:		  --with-python-version=2.3
+python.var:		  --with-python-version=2.3 --with-python=/usr/include/+pkg+vers --with-python-libdir=/usr/lib
