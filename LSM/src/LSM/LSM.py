@@ -23,7 +23,11 @@ from Timba.Meq import meq
 from Timba.Apps import app_nogui
 from Timba.Apps import assayer
 
-from Timba.Contrib.JEN import MG_JEN_Sixpack
+try:
+  from Timba.Contrib.JEN import MG_JEN_Sixpack
+except ImportError:
+  pass
+
 ###############################################
 class PUnit:
  """p-Unit object 
