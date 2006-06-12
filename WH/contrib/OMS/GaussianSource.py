@@ -19,7 +19,7 @@ class GaussianSource(PointSource):
     # create polc(s) for size
     self._symmetric = symmetric;
     if symmetric:
-      self._create_polc('size',size);
+      self._create_polc('sigma',size);
     else:
       if isinstance(size,(int,float)):
         s1 = s2 = size;

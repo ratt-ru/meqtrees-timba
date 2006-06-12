@@ -80,12 +80,14 @@ class Parameterization (object):
     
   def _parm (self,parmname):
     """Creates a Meq.Parm node called 'parmname' in the object's NodeScope, 
-    and applies the object's qualifiers. INits the parm with the polc of
+    and applies the object's qualifiers. Inits the parm with the polc of
     the same name.
     """;
     node = self.ns[parmname];
     if not node.initialized():
-      polc = self._polcs[parmname];
+      polc = self._polcs.get(parmname,None);
+      if polc is None:
+        polc = self._polcs[parmname] = create_polc();
       node << Meq.Parm(polc,real_polc=polc,  # real polc also saved in parm state
                    shape=polc.coeff.shape,
                    **self._parm_options);

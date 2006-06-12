@@ -194,8 +194,12 @@ def _define_forest(ns):
   # create a "clean" predict for the sky
   # clean_predict = allsky.visibilities(array,observation);
   
+  # these are used to select the appropriate coherency from a Spigot's
+  # 2x2 output
+  cohs = ( 'RR','LL' );
+  coh_index = { 'RR':(0,0),'LL':(1,1) };
+  condeqs = [];
   # create spigots
-  weightnodes = [];
   for sta1,sta2 in array.ifrs():
     spigot = ns.spigot(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
                                                  station_2_index=sta2-1,
@@ -206,45 +210,26 @@ def _define_forest(ns):
                                                flag_mask=0,
                                                input_col='WEIGHT');
     pred = predict(sta1,sta2);
-    # create rr/ll spigots
-    spig = {};
-    spig['RR'] = ns.spigot('RR',sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
-    spig['LL'] = ns.spigot('LL',sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
-    # create amp^2 weights for phase fits
-    if fit_phases_only:
-      for pol in ('RR','LL'):
-        amp2 = ns.amp2(pol,sta1,sta2) << Meq.Sqr(Meq.Abs(spig[pol]));
-        weightnodes.append(ns.weight(pol,sta1,sta2) << weight*amp2);
-    else:
-      weightnodes.append(weight);
-  # create node to compute sum of all weights 
-  ns.sum_weights << Meq.Add(*weightnodes);
-  # fudge a normalization factor, or chi may be too small
-  ns.weight_norm << (Meq.Sum(ns.sum_weights) + 1e-20)*1e-6;
-  # create condeqs and residuals
-  condeqs = [];
-  for sta1,sta2 in array.ifrs():
-    pred = predict(sta1,sta2);
-    # create nodes for observed and fitted baseline phases
-    obs = {};
-    fit = {};
-    for pol in ('RR','LL'):
-      obs[pol] = ns.obs_phase(pol,sta1,sta2) << Meq.Arg(ns.spigot(pol,sta1,sta2));
-      fit[pol] = ns.phase(pol,sta1,sta2) << ns.phase(pol[0],sta1)-ns.phase(pol[1],sta2);
+    # create rr/ll spigots -- we need them for direct phase fitting, and also
+    # for visualizing baseline phases. Also create nodes for observed 
+    # and fitted baseline phases.
+    spig = {}; obs = {}; fit = {};
+    for coh in cohs:
+      spig[coh] = ns.spigot(coh,sta1,sta2) << Meq.Selector(spigot,index=coh_index[coh]);
+      obs[coh] = ns.obs_phase(coh,sta1,sta2) << Meq.Arg(spig[coh]);
+      fit[coh] = ns.phase(coh,sta1,sta2) << ns.phase(coh[0],sta1)-ns.phase(coh[1],sta2);
     # create condeqs
     if sta1 == 1 or not fit_sta1_only:
-      # create condeqs for direct phase fits
+      # create condeqs for direct phase fits, weighted by |vis|^2
       if fit_phases_only:
-        for pol in ('RR','LL'):
-          condeqs.append(ns.ce(pol,sta1,sta2) << \
-                Meq.Condeq(fit[pol],obs[pol],modulo=2*math.pi) * \
-                  ns.weight(pol,sta1,sta2) / ns.weight_norm);
-                  
-      # else create condeqs for visibilities fitting
+        for coh in cohs:
+          amp2 = ns.amp2(coh,sta1,sta2) << Meq.Sqr(Meq.Abs(spig[coh]));
+          condeqs.append(ns.ce(coh,sta1,sta2) << \
+            Meq.Condeq(fit[coh],obs[coh],ns.weight(sta1,sta2)*amp2,modulo=2*math.pi));
+      # else create condeqs for direct fitting of visibilities
       else:
-        condeqs.append(ns.ce(sta1,sta2) << \
-            Meq.Condeq(spigot,pred) * ns.weight(sta1,sta2) / ns.weight_norm);
-    # subtract nodes compute residuals
+        condeqs.append(ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred,weight));
+    # create subtract nodes to compute residuals
     if output_type == "residual":
       ns.residual(sta1,sta2) << spigot - pred;
       

@@ -13,6 +13,7 @@ from Timba.Contrib.OMS.Calibration.fringe_fit import *
 
 
 Settings.forest_state.cache_policy = 100;  # -1 for minimal, 1 for smart caching, 100 for full caching
+Settings.orphans_are_roots = True; # -1 for minimal, 1 for smart caching, 100 for full caching
 
 # setup some bookmarks
 from Timba.Contrib.OMS import Bookmarks
