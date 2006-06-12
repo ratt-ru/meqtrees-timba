@@ -91,6 +91,10 @@ from Timba.Meq import meq
 from Timba.Contrib.MXM.TDL_Funklet import *
 
 
+# Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
+NUMERIC_TYPES = (int, long, float, complex)
+
+
 #***************************************************************************************
 #***************************************************************************************
 
@@ -204,6 +208,10 @@ class Expression:
         """Return the (unique) label of this Expression object"""
         return self.__label
 
+    def descr (self):
+        """Return the brief description of this Expression object"""
+        return str(self.__descr)
+
     def tlabel (self):
         """Return a concatenation of object type and label"""
         return 'Expression: '+self.__label
@@ -227,14 +235,14 @@ class Expression:
     # Some display functions:
     #----------------------------------------------------------------------------
 
-    def oneliner(self):
+    def oneliner(self, full=True):
         """Return a one-line summary of the Expression"""
         # ss = '** Expression ('+str(self.__label)+'):  '
         ss = '** '+self.tlabel()+':  '
         if self.__quals: ss += '(quals='+str(self.__quals)+') '
         if self.__descr:
             ss += str(self.__descr)
-        else:
+        elif full:
             s1 = str(self.__expression)
             if len(s1)>50: s1 = s1[:50]+' ...' 
             ss += s1
@@ -378,7 +386,7 @@ class Expression:
               ntest=None, testinc=None,
               stddev=None, scale=None,
               unit=None, ident=None, help=None, group=None,
-              recurse=False, level=0, trace=False):
+              recurse=True, level=0, trace=False):
         """Modify the definition of the named parameter (key).
         The default argument may either be a value, or an object of type
         Expression or Funklet, or a nodestub (child of MeqFunctional node).
@@ -696,7 +704,8 @@ class Expression:
 
         else:
             # Make the Expression object for the expanded version:
-            e0 = Expression(xexpr, label='expanded_'+self.label())
+            e0 = Expression(xexpr, label='expanded_'+self.label(),
+                            descr=self.__descr)
             e0.__expanded = True
             e0.__quals = self.__quals
             # Transfer the parameters:
@@ -922,66 +931,30 @@ class Expression:
 
     #-----------------------------------------------------------------------
 
-    def testvec (self, rr, key=None, trace=False):
-        """Helper function to translate rr into a vector of test-values,
-        for evaluation and/or plotting"""
-        if isinstance(rr, (list,tuple)):            #
-            vv = array(rr)                          # make into array
-        elif isinstance(rr, type(array(0))):        # already an array
-            vv = rr                                 # just copy
-        elif isinstance(rr, dict):                  # assume fields min,max,span,nr
-            rr.setdefault('nr',10)         
-            rr.setdefault('min',1)          
-            rr.setdefault('max',11)
-            n = max(2,ceil(rr['nr']))               # safe nr of points
-            factor = (rr['max']-rr['min'])/float(n-1) # scale-factor
-            vv = rr['min'] + factor*array(range(n))
-        elif isinstance(rr, bool):                  # use default plot-range
-            # self.expand() 
-            if key in self.__var.keys():
-                vv = self.testvec(self.__var[key]['testvec'])
-            elif key in self.__parm.keys():
-                vv = self.testvec(self.__parm[key]['testvec'])
-            else:
-                vv = array(range(2,9))              # some safe default
-        else:                                       # error message?
-            vv = array(range(1,12))                 # some safe default
-        if trace: print '\n** .testvec(',rr,key,')\n   ->',vv,'\n'
-        return vv
-
-    #-----------------------------------------------------------------------
-
     def plotall (self, **pp):
         """Plot the Expression in various subplots, in each of which a
         different parameter is varied. The x-axis variable (f,t,..) is
         automatic, but may be specified explicitly (e.g. t=True)."""
+
         # Find the nr of rows and columns of the figure: 
-        keys = self.parm_order()                         # expands, if necessary
+        keys = self.parm_order() 
         n = len(keys)                               # nr of parameters/subplots
         ncol = int(ceil(sqrt(n)))
-        nrow = ceil(n/2)
-
-        # print ' n =',n,' nrow =',nrow,' ncol =',ncol
-        # Find the x-axis variable (t,f,..):
-        vkeys = self.__var.keys()
-        xvar = vkeys[0]                             # default: first
-        for key in pp.keys():
-            if key in vkeys: xvar = key             # specified explicitly
-        # print 'xvar =',xvar,vkeys
+        nrow = int(ceil(float(n)/ncol))
 
         # Make the plots:
         k = -1
         for row in range(1,nrow+1):
             for col in range(1,ncol+1):
                 k += 1
-                key = keys[k]
-                sp = ncol*100 + nrow*10 + k+1
-                # print '-',k,sp,key
-                rr = dict()
-                rr[key] = True
-                rr[xvar] = True
-                self.plot (_plot='linear', _test=False, _cells=None,
-                           _figure=1, _subplot=sp, _show=False, **rr)
+                if k<n:
+                    key = keys[k]
+                    sp = nrow*100 + ncol*10 + k+1
+                    rr = dict()
+                    rr[key] = True
+                    self.plot (_plot='linear', _test=True, _cells=None,
+                               _legend=False,
+                               _figure=1, _subplot=sp, _show=False, **rr)
         # Show the result:
         show()
         return True
@@ -994,7 +967,8 @@ class Expression:
         terms = find_terms(self.__expression, trace=False)
 
         if header:
-            rr['terms'].append('(unexpanded) expression, term by term:')
+            rr['terms'].append('Descr:   '+str(self.__descr))
+            rr['terms'].append('Expression (unexpanded), term by term:')
         for term in terms['pos']:
             rr['terms'].append(' + '+term)
         for term in terms['neg']:
@@ -1016,30 +990,17 @@ class Expression:
     #-----------------------------------------------------------------------
 
     def plot (self, _plot='linear', _test=False, _cells=None,
-              _figure=None, _subplot=None, _show=True, **pp):
+              _figure=None, _subplot=None, _legend=True, _show=True, **pp):
         """Plot the Expression for the specified parameter/variable value(s).
         See also self.eval()."""
 
         # if isinstance(_cells, meq._cells_type):
         # See MXM TDL_Funklet.py
-        if isinstance(_cells, dict):
-            grid = _cells.grid                   # ......not yet used......
-            pass
+        # if isinstance(_cells, dict):
+        #     grid = _cells.grid                   # ......not yet used......
 
         # Work on the expanded version:
         ex = self.expanded()
-
-        # Make sure that there is at least one variable vector:
-        xvkeys = ex.__var.keys()
-        if len(pp)==0:
-            if 'l' in xvkeys:
-                pp['l'] = ex.testvec(True, 'l')
-            elif 'm' in xvkeys:
-                pp['m'] = ex.testvec(True, 'm')
-            elif 't' in xvkeys:
-                pp['t'] = ex.testvec(True, 't')
-            elif 'f' in xvkeys:
-                pp['f'] = ex.testvec(True, 'f')
 
         # Evaluate the (expanded) expression (produces ex.__plotrec):        
         ex.eval(_test=_test, **pp)
@@ -1048,25 +1009,26 @@ class Expression:
         rr = ex.plotrec (trace=True)
 
         # Optional: select a particular figure (window) or subplot:
-        if _figure:                   # numeric? 1,2,3,...
+        if _figure:                                # numeric? 1,2,3,...
             figure(_figure)
-        if _subplot:                  # e.g. 211,212,...?
+        if _subplot:                               # e.g. 211,212,...?
             subplot(_subplot)
 
         # Labels:
         xlabel(rr['xlabel'])
         ylabel(rr['ylabel'])
         title(rr['title'])
-        legend(rr['legend'])
+        if _legend: legend(rr['legend'])
 
         # Display the (unexpanded) expression:
-        ss = self.format_expr()
-        y = 0.85
-        for key in ['terms','parms']:
-            y -= 0.02
-            for i in range(len(ss[key])):
-                y -= 0.04
-                figtext(0.14,y,ss[key][i], color='blue')
+        if _show:
+            ss = self.format_expr()
+            y = 0.90
+            for key in ['terms','parms']:
+                y -= 0.02
+                for i in range(len(ss[key])):
+                    y -= 0.04
+                    figtext(0.14,y,ss[key][i], color='gray')
 
         # Plot the data:
         # NB: Plotting rather stupidly fails with scalars....!?
@@ -1126,6 +1088,36 @@ class Expression:
     # Evaluating the (expanded) expression:
     #============================================================================
 
+    def evalarr (self, rr, key=None, trace=False):
+        """Helper function to translate the given rr into a array of
+        (one or more) values, for evaluation and/or plotting"""
+        if isinstance(rr, (list,tuple)):            #
+            vv = array(rr)                          # make into array
+        elif isinstance(rr, type(array(0))):        # already an array
+            vv = rr                                 # just copy
+        elif isinstance(rr, dict):                  # assume fields min,max,span,nr
+            rr.setdefault('nr',10)         
+            rr.setdefault('min',1)          
+            rr.setdefault('max',11)
+            n = max(2,ceil(rr['nr']))               # safe nr of points
+            factor = (rr['max']-rr['min'])/float(n-1) # scale-factor
+            vv = rr['min'] + factor*array(range(n))
+        elif isinstance(rr, bool):                  # use default plot-range
+            if key in self.__var.keys():
+                vv = self.evalarr(self.__var[key]['testvec'])
+            elif key in self.__parm.keys():
+                vv = self.evalarr(self.__parm[key]['testvec'])
+            else:
+                vv = array(range(2,9))              # some safe default
+        elif isinstance(rr, NUMERIC_TYPES):         # NB: AFTER bool!
+            vv = array(rr)                          # array of one
+        else:                                       # error message?
+            vv = array(range(1,12))                 # some safe default
+        if trace: print '\n** evalarr(',rr,key,')\n   ->',vv,'\n'
+        return vv
+
+    #----------------------------------------------------------------------------
+
     def eval (self, _test=False, **pp):
         """Evaluate the (expanded) expression for the specified (pp) values of
         parameters {} and variables []. Use defaults if not specified.
@@ -1134,11 +1126,6 @@ class Expression:
         The longest multiple is the 'variable', and the result is in the form of
         array(s) of this length. The shortest multiple (if any) is the 'parameter',
         i.e. there will be as many result arrays as parameter values."""
-
-        #-------------------------------------------------
-        # print '\n** .eval(): temporarily disabled....\n'
-        # return False
-        #-------------------------------------------------
 
         trace = False
         # trace = True
@@ -1150,55 +1137,88 @@ class Expression:
             self.__plotrec = None
             return array([nv])
 
-        # Make sure that an expanded expression exists:
-        # self.expand()
-
-        # Use the default values in self.__parm and self.__var,
+        # Use the (scalar) default values in self.__parm,
         # unless other values have been specified via **pp.
+        # If multiple values have been specified, use this parm as
+        # 'parameter' for multiple plots. If two are multiple, use
+        # the longest one as 'variable' (x-axis):
+        variable = None
+        parameter = None            
+        nmult = 0
         rr = dict()
         unit = dict()                             # used in plot-legend
         field = 'default'                         # normal mode
         if _test: field = 'testval'               # test-mode
-
-        for key in self.__parm.keys():           # all parameters
-            value = self.__parm[key][field]      # default/testval
+        for key in self.__parm.keys():            # all parameters
             if pp.has_key(key):                   # specified by name(key)
-                value = self.testvec(pp[key], key=key) # decode
-            rr['{'+key+'}'] = value               # use
-            unit['{'+key+'}'] = self.__parm[key]['unit']
-
-        for key in self.__var.keys():            # all variables
-            value = self.__var[key][field]       # default/testval
+                value = self.evalarr(pp[key], key=key)
+            else:
+                value = self.evalarr(self.__parm[key][field])
+            pkey = '{'+key+'}'
+            unit[pkey] = self.__parm[key]['unit']
+            # If multiple, the parm is used as 'parameter', or even 'variable'
+            if rank(value)>0:                     # rank-0 array (scalar) has no length...!?
+                if nmult==0:                 
+                    nmult = 1                     # the first multiple one
+                    parameter = pkey              #   use as 'parameter'
+                    nmax = len(value)
+                elif nmult==1:
+                    nmult = 2                     # the second multiple one
+                    if len(value)>nmax:           # if longer than 'parameter'
+                        variable = pkey           #   use as x-axis
+                    else:                         # if equal or shorter
+                        parameter = pkey          #   use as 'parameter'
+                        variable = parameter      #   use the first on as x-axis
+                else:                             # too many multiple ones
+                    value = array(value[0])       # make scalar
+            rr[pkey] = value                      # use below
+            if trace: print '-',key,pkey,'  parameter =',parameter,'  variable =',variable
+                
+        
+        # Use the (scalar) default values in self.__var,
+        # unless other values have been specified via **pp.
+        for key in self.__var.keys():             # all variables
             if pp.has_key(key):                   # specified by name(key)
-                value = self.testvec(pp[key], key=key) # decode
-            rr['['+key+']'] = value               # use
-            unit['['+key+']'] = self.__var[key]['unit']
+                value = self.evalarr(pp[key], key=key)
+            else:
+                value = self.evalarr(self.__var[key][field])
+            vkey = '['+key+']'
+            unit[vkey] = self.__var[key]['unit']
+            # If multiple, the var is used as 'variable', if none specified yet:
+            if rank(value)>0:            
+                if not variable:                  # no variable specified yet
+                    variable = vkey               # use var as 'variable'
+                elif not parameter:               # no parameter specified yet
+                    parameter = vkey              # use var as 'parameter'
+                else:                             # too many multiple ones
+                    value = array(value[0])       # make scalar
+            rr[vkey] = value           
+            if trace:
+                print '-',key,vkey,'  variable =',variable,'  parameter =',parameter
 
-        # Parameters/variables may be multiple:
-        nmult = 0
-        nmax = 0
-        variable = rr.keys()[0]                   # key of the variable multiple
-        parameter = None                          # key of the parameter multiple
-        for key in rr.keys():
-            n = 1
-            if isinstance(rr[key], (list,tuple)):
-                rr[key] = array(rr[key])          # make array
-            if isinstance(rr[key], (type(array(0)))):
-                n = len(rr[key])
-                if n>1: nmult += 1                # nr of multiple ones
-                if nmult>2:                       # too many multiple ones
-                    rr[key] = rr[key][0]          # make scalar
-                    n = 1
-                elif n>nmax:                      # longer than 
-                    if nmax>1: parameter = variable
-                    variable = key
-                    nmax = n
-                elif n>1:
-                    parameter = key
-            if trace: print '-',key,n,nmax,'  parameter =',parameter,'  variable =',variable
-        if trace: print 'parameter =',parameter,' variable =',variable,'(nmax=',nmax,')'
+        # A variable is always needed. If still None, use one of the available
+        # variables (if any):
+        if not variable:
+            for key in ['l','m','t','f']:         # the earlier ones have precedence...
+                vkey = '['+key+']'
+                if not variable and key in self.__var.keys():
+                    variable = vkey 
+                    rr[variable] = self.evalarr(True, key)
+                    unit[variable] = self.__var[key]['unit']
+                if trace:
+                    print '-',key,vkey,'  variable =',variable
 
-        # The results are collected in a plot-record (plotrec):
+            # Last resort: use the first key in rr
+            if not variable:
+                variable = rr.keys()[0]
+                if trace: print '-  variable =',variable
+
+        if trace:
+            for key in rr.keys():
+                print '- rr[',key,']:',rank(rr[key]),unit[key]
+
+        #..............................................................
+        # Initialise a plot-record (plotrec):
         plotrec = dict(yy=[], xx=rr[variable], test=_test,
                        xmin=-10, xmax=10, ymin=1e20, ymax=-1e20,
                        expr=self.__expression,
@@ -1206,7 +1226,7 @@ class Expression:
                        xlabel=variable,
                        ylabel='value',
                        parameter=parameter, pp=None,
-                       title=self.oneliner(), legend=[])
+                       title=self.tlabel(), legend=[])
         if unit.has_key(variable) and unit[variable]:
                 plotrec['xlabel'] += '   ('+str(unit[variable])+')'
         if isinstance(plotrec['xx'], type(array(0))):
@@ -1229,11 +1249,13 @@ class Expression:
             for key in rr.keys():
                 if key==parameter:
                     qq[key] = rr[key][i]
-                else:
+                elif key==variable:
                     qq[key] = rr[key]
-                    if first and not key==variable:
-                        if rr[key]:                  # only if non-zero
-                            legend = key+'='+str(rr[key])
+                else:
+                    qq[key] = rr[key]                # array of rank 0 (scalar)
+                    if first:
+                        if not any(rr[key]==0):      # show in legend only if non-zero
+                            legend = key+'='+self.format_val(qq[key])
                             if unit[key]: legend += '  ('+unit[key]+')'
                             plotrec['legend'].append(legend)
                 if trace: print '  -- qq[',key,']:',type(qq[key]),'=',qq[key]
@@ -1244,7 +1266,10 @@ class Expression:
             plotrec['ymin'] = min(plotrec['ymin'],min(r1))
             plotrec['ymax'] = max(plotrec['ymax'],max(r1))
             if parameter:
-                plotrec['annot'].append(parameter+'='+str(qq[parameter]))
+                # annot = parameter+'='+str(qq[parameter])
+                annot = parameter+'='+self.format_val(qq[parameter])
+                if unit[parameter]: annot += '  ('+unit[parameter]+')'
+                plotrec['annot'].append(annot)
             first = False
 
         # The plot-record is stored internally (see self.plot())
@@ -1254,6 +1279,18 @@ class Expression:
         if len(plotrec['yy'])==1:
             return plotrec['yy'][0]               # just an array
         return plotrec['yy']                      # a list of arrays
+
+    #-----------------------------------------------------------------------
+
+    def format_val (self, v):
+        """Helper function to format a numerical value, for annotation.
+        NB: This is mainly to correct a strange bug in str(v)...."""
+        s = str(v)
+        n = len(s)
+        if len(s)>2:
+            if s[1]=='.': s = s[0:5]              # e.g.  0.1000000000001
+            if s[2]=='.': s = s[0:6]              # e.g. -0.3000000000001
+        return s
 
     #-----------------------------------------------------------------------
 
@@ -1467,7 +1504,7 @@ class Expression:
         if index<0:
             print '\n** .subExpression(',substring,'): not found in:',self.__expression,'\n'
             return False
-        e1 = Expression(substring, label)
+        e1 = Expression(substring, label, descr='from: '+self.descr())
         for key in e1.__parm.keys():
             e1.__parm[key] = self.__parm[key]
             if trace: print '- copy parm[',key,']:',e1.__parm[key]
@@ -1967,7 +2004,7 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     expr = expr.replace('x[3]','[m]')              # .........?
 
     # Make the Expression object:
-    e0 = Expression(expr, 'Funklet_'+label)
+    e0 = Expression(expr, 'Funklet_'+label, descr='from: '+self.descr())
 
     # Transfer the coeff default values: 
     if Funklet._type in ['MeqPolc','MeqPolcLog']:
@@ -2049,7 +2086,7 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
                 for i1 in range(i): func += '*'+fvar     # e.g:  *[f]
                 first = False
                 if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
-    result = Expression(func, label, **pp)
+    result = Expression(func, label, descr='polc_Expression', **pp)
     if True:
         # Modify the parm definitions:
         for key in pp.keys():
@@ -2067,10 +2104,17 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
             logf.parm('t0', t0)
             result.parm('logt', logt)
 
-    # If a unit (string) specified, attach it to the c00 coeff:
+    # Assign unit strings:
     # NB: The default value has to be repeated here!
-    if unit:
-        result.parm('c00', pp['c00'], unit=unit)
+    sunit = ''
+    if isinstance(unit, str):
+        sunit = unit
+        result.parm('c00', pp['c00'], unit=sunit)
+    if pp.has_key('c01'): result.parm('c01', pp['c01'], unit=sunit+'/Hz')
+    if pp.has_key('c02'): result.parm('c02', pp['c02'], unit=sunit+'/Hz/Hz')
+    if pp.has_key('c11'): result.parm('c11', pp['c11'], unit=sunit+'/s/Hz')
+    if pp.has_key('c10'): result.parm('c10', pp['c10'], unit=sunit+'/s')
+    if pp.has_key('c20'): result.parm('c20', pp['c20'], unit=sunit+'/s/s')
 
     # Optionally, fit the new polc to a given set of values(f,t):
     if isinstance(fit, dict):
@@ -2087,10 +2131,27 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
  
 #=======================================================================================
 
+def Explot (*ee, **pp):
+    """Plot the list of Expressions (ee) in a mosaic of subplots"""
 
+    # Find the nr of rows and columns of the mosaic: 
+    n = len(ee)                                 # nr of Expressions/subplots
+    ncol = int(ceil(sqrt(n)))
+    nrow = int(ceil(float(n)/ncol))
 
-
-
+    # Make the plots:
+    k = -1
+    for row in range(1,nrow+1):
+        for col in range(1,ncol+1):
+            k += 1
+            if k<n:
+                sp = nrow*100 + ncol*10 + k+1
+                ee[k].plot (_plot='linear', _test=True, _cells=None,
+                            _legend=False,
+                            _figure=1, _subplot=sp, _show=False, **pp)
+    # Show the result:
+    show()
+    return True
 
 
 
@@ -2136,10 +2197,10 @@ if __name__ == '__main__':
     if 0:
         e0 = Expression('3*[t]')
         # e0.display()
-        e0.testvec(range(5), trace=True)
-        e0.testvec(dict(min=23,max=24,nr=12), trace=True)
-        e0.testvec(dict(min=23,max=24), trace=True)
-        # e0.testvec(True, key='t', trace=True)
+        e0.evalarr(range(5), trace=True)
+        e0.evalarr(dict(min=23,max=24,nr=12), trace=True)
+        e0.evalarr(dict(min=23,max=24), trace=True)
+        # e0.evalarr(True, key='t', trace=True)
 
     #-------------------------------------------------------------------
 
@@ -2187,7 +2248,7 @@ if __name__ == '__main__':
  
     #---------------------------------------------------------
  
-    if 1:
+    if 0:
         e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
         # e1.parm('B', 10, help='help for B')
@@ -2294,18 +2355,39 @@ if __name__ == '__main__':
     #-----------------------------------------------------------------------------
 
     if 0:
+        # Cosine time variation (multiplicative) of an M.E. parameter:
+        cosvar = Expression('{ampl}*cos(2*pi*[t]/{T}+{phi})', label='cosvar',
+                            descr='cos(t) variation of an M.E. parameter')
+        cosvar.parm('ampl', 1.0, polc=[2,3], unit='unit', help='amplitude(f,t) of the variation') 
+        cosvar.parm('T', 100, unit='s', help='period (s) of the variation') 
+        cosvar.parm('phi', 0.1, unit='rad', help='phase (f,t) of the cosine') 
+        cosvar.display(full=True)
+        cosvar.expanded().display(full=True)
+        cosvar.plot()
+        # cosvar.plotall()
+        # cosvar.plot(_test=True, phi=True)
+        # cosvar.plot(t=True, phi=True, ampl_c00=3.45)
+        # cosvar.plot(_test=True, ampl_c01=True, ampl_c00=True)
+        # Explot(cosvar,cosvar,cosvar,cosvar,cosvar)
+
+    if 1:
         # WSRT telescope voltage beam (gaussian):
-        vbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gauss',
+        vbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussbeam',
                            descr='WSRT voltage beam')
         vbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-        Lterm = Expression('(([l]-{L0})/{Lwidth})**2', label='Lterm')
+        Lterm = Expression('(([l]-{L0})*{D}/{lambda})**2', label='Lterm')
         Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
-        Lterm.parm ('Lwidth', default=0.1, unit='rad', help='beam-width in L-direction')
         vbeam.parm ('Lterm', default=Lterm)
-        Mterm = Expression('(([m]-{M0})/{Mwidth})**2', label='Mterm')
+        Mterm = Expression('(([m]-{M0})*{D}/{lambda})**2', label='Mterm')
         Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Mterm.parm ('Mwidth', default=0.1, unit='rad', help='beam-width in m-direction')
         vbeam.parm ('Mterm', default=Mterm)
+        vbeam.parm ('D', default=25.0, unit='m', help='WSRT telescope diameter')
+        vbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
+                                                 descr='observing wavelength'), unit='m')
+        vbeam.display(full=True)
+        vbeam.expanded().display(full=True)
+        Mterm.expanded().display(full=True)
+        # vbeam.plot(l=True, m=True)
         if 0:
             L = ns.L << 0.1
             M = ns.M << -0.2
@@ -2313,11 +2395,9 @@ if __name__ == '__main__':
             node = vbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
                                        common_axes=[hiid('l'),hiid('m')], trace=True)
             TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
-        if 1:
+        if 0:
             node = vbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-        vbeam.display(full=True)
-        vbeam.plot(l=True,m=True)
             
 
     if 0:
@@ -2378,6 +2458,11 @@ if __name__ == '__main__':
     #--------------------------------------------------------------------------
     # Tests of standalone helper functions:
     #--------------------------------------------------------------------------
+
+    if 0:
+        for x in [3,3.4,12345678907777777777777,'a',3+7j]:
+            tf = isinstance(x, NUMERIC_TYPES)
+            print '- isinstance(',x,type(x),', NUMERIC_TYPES) ->',tf
 
     if 0:
         find_terms('{r}+{BA}*[t]+{A[1,2]}-{xxx}', trace=True)
