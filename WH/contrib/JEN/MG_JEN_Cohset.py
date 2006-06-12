@@ -431,7 +431,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
             # Corrupt with image-plane effects (including KJones/DFT):
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                          _inarg=pp, _qual=qual+'_imp', simul=simul, KJones=True)
-            cs1.punit2coh(ns, Sixpack, js1)
+            cs1.punit2coh(ns, Sixpack, js1, MSauxinfo=MSauxinfo())
             cs.append(cs1)                       # append to list of source Cohsets
             if len(cc_visu)==0:
                 klong = cs1.find_keys('longest')[0] # key of longest baseline

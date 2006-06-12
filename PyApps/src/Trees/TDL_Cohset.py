@@ -1029,11 +1029,10 @@ class Cohset (TDL_common.Super):
 
         # Information about source shape may be passed via the ParmSet rider:
         # See MG_JEN_Sixpack.py
-        rider = Sixpack.ParmSet._rider('shape')        # -> list
-        if len(rider)>0: rider = rider[0]              # assume dict (see below)
+        shapelist = Sixpack.ParmSet._rider('shape')      # -> list: [] or [shape-dict]
 
-        if Sixpack.ispoint():                          # point source (or ell.gauss) 
-            if not rider.has_key('major'):
+        if Sixpack.ispoint():                            # point source (or ell.gauss) 
+            if len(shapelist)==0:                        # no shape parameters ([])
                 # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
                 nominal = Sixpack.coh22(ns, self.polrep())
                 self.uniform(ns, nominal)
@@ -1067,8 +1066,8 @@ class Cohset (TDL_common.Super):
         scope = 'ellgauss'
         # Information about source shape may be passed via the ParmSet rider:
         # See MG_JEN_Sixpack.py
-        rider = Sixpack.ParmSet._rider('shape')        # -> list
-        if len(rider)>0: rider = rider[0]              # assume dict (see below)
+        shapelist = Sixpack.ParmSet._rider('shape')        # -> list: [] or [shape-dict]
+        rider = shapelist[0]                               # assume dict (see below)
         # Put in extra subtrees for an elliptic gaussian extended source
         # rider (dict) fields: ['shape','major','minor','pa']
         # they contain node names, of nodes that should be in ns....
