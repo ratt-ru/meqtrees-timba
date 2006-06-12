@@ -1,28 +1,41 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
-lib_LTLIBRARIES = octopython.la liboctopython.la
+# lib_LTLIBRARIES = octopython.la liboctopython.la
+lib_LTLIBRARIES = liboctopython.la
 
 DOCHDRS = OctoPython.h
 
-octopython_la_SOURCES = \
-  octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
+# octopython_la_SOURCES = \
+#   octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
   
-octopython_la_LDFLAGS = -module
+# octopython_la_LDFLAGS = -module
 
 liboctopython_la_SOURCES = \
   octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
+
+liboctopython_la_LDFLAGS = -module
+
+liboctopython_la_LIBADD =  \
+  ../pkgbldinc/TimBase/.libs/libtimbase.a \
+  ../pkgbldinc/DMI/.libs/libdmi.a
+
+liboctopython_la_DEPENDENCIES = \
+  ../pkgbldinc/DMI/libdmi.la \
+  ../pkgbldinc/TimBase/libtimbase.la
+
 #liboctopython.la:
 #	@ln -s octopython.la liboctopython.la
 #	@ln -s octopython.lai liboctopython.lai
 
-octopython_la_LIBADD =  \
-  ../pkgbldinc/TimBase/.libs/libtimbase.a \
-  ../pkgbldinc/DMI/.libs/libdmi.a
+# octopython_la_LIBADD =  \
+#  ../pkgbldinc/TimBase/.libs/libtimbase.a \
+#  ../pkgbldinc/DMI/.libs/libdmi.a
 
-octopython_la_DEPENDENCIES = \
-  ../pkgbldinc/OCTOPUSSY/liboctopussy.la \
-  ../pkgbldinc/DMI/libdmi.la \
-  ../pkgbldinc/TimBase/libtimbase.la
+# octopython_la_DEPENDENCIES = \
+#  ../pkgbldinc/OCTOPUSSY/liboctopussy.la \
+#  ../pkgbldinc/DMI/libdmi.la \
+#  ../pkgbldinc/TimBase/libtimbase.la
+
 
 check_PROGRAMS   		= 
 
