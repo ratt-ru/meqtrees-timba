@@ -99,7 +99,8 @@ NUMERIC_TYPES = (int, long, float, complex)
 #***************************************************************************************
 
 class Expression:
-    def __init__(self, expression='-1.23456789', label='<label>', descr=None, **pp):
+    def __init__(self, expression='-1.23456789',
+                 label='<label>', descr=None, unit=None, **pp):
         """Create the object with a mathematical expression (string)
         of the form:  {aa}*[t]+cos({b}*[f]).
         Variables are enclosed in square brackets: [t],[f],[m],...
@@ -111,6 +112,7 @@ class Expression:
         self.__label = _unique_label(label)
         self.__ident = int(100000*random())        # unique identifier
         self.__descr = descr
+        self.__unit = unit                         # unit of the result
         self.__expression = expression
         self.__numeric_value = None  
         self.__input_expression = expression        
@@ -164,7 +166,7 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def _reset (self, nominal=True):
+    def _reset (self, nominal=True, recurse=True):
         """Reset the object to its original state."""
         self.__quals = dict()
         self.__plotrec = None
@@ -183,7 +185,7 @@ class Expression:
         for key in self.__parm.keys():
             rr = self.__parm[key]
             if isinstance(rr, Expression):
-                rr._reset(nominal=nominal)
+                if recurse: rr._reset(nominal=nominal)
             elif isinstance(rr, Funklet):
                 pass
             elif rr.has_key('nodename'):
@@ -199,6 +201,18 @@ class Expression:
                 rr['default'] = rr['nominal']
         return True
     
+    #----------------------------------------------------------------------------
+
+    def copy(self, label=None, descr=None, quals=None):
+        """Return a (re-labelled) 'deep' copy of this object""" 
+        new = deepcopy(self)                                       # copy() is not enough...
+        if label==None: label = '('+self.label()+')'               # Enclose old label in ()
+        new.__label = label                                        # re-label (always)
+        if descr==None: descr = '('+self.descr()+')'               # Enclose old descr in ()
+        new.__descr = descr                                        # 
+        if not quals==None: new.quals(quals)                       # ....??                                
+        return new
+
 
     #----------------------------------------------------------------------------
     # Some access functions:
@@ -207,6 +221,11 @@ class Expression:
     def label (self):
         """Return the (unique) label of this Expression object"""
         return self.__label
+
+    def unit (self):
+        """Return the (string) unit of the result of the Expression object"""
+        if not isinstance(self.__unit, str): return ''
+        return self.__unit
 
     def descr (self):
         """Return the brief description of this Expression object"""
@@ -240,6 +259,7 @@ class Expression:
         # ss = '** Expression ('+str(self.__label)+'):  '
         ss = '** '+self.tlabel()+':  '
         if self.__quals: ss += '(quals='+str(self.__quals)+') '
+        if self.__unit: ss += '('+str(self.__unit)+') '
         if self.__descr:
             ss += str(self.__descr)
         elif full:
@@ -636,7 +656,7 @@ class Expression:
     # is expanded into a flat one. Keep this object internally.
     #============================================================================
 
-    def expand (self, reset=False, trace=False):
+    def expand (self, reset=False, unique=False, trace=False):
         """If necessary, expand the hierarchical self.__expression into a flat one.
         This is done by replacing the parameters that are Expressions by the relevant
         function-strings, while slightly renaming its parameter names. Similar actions
@@ -645,8 +665,9 @@ class Expression:
         are used to make a new Expression object, and attached to self.__expanded.
         Otherwise, self.__expanded = True. See also self.expanded()."""
 
-        if trace: print '\n** expand(reset=',reset,'):',self.oneliner()
+        if trace: print '\n** expand(reset=',reset,unique,'):',self.oneliner()
         if reset: self._reset()
+        if unique: self._reset(recurse=False)                      # enforce new expansion
         if self.__expanded: return self.expanded()                 # avoid duplication
 
         xexpr = deepcopy(self.__expression)
@@ -673,6 +694,7 @@ class Expression:
                 for pkey in parm.parm_order():
                     if pkey[0]=='_':                    # global parm {_xx}
                         ckey = pkey
+                        if unique: ckey = key+pkey      # make unique (non-global) anyway
                     else:                               # normal parm {xx}
                         ckey = key+'_'+pkey
                     xorder.append(ckey)
@@ -781,12 +803,16 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def expanded (self, reset=False, expand=True, trace=False):
+    def expanded (self, reset=False, expand=True, unique=False, trace=False):
         """Return the expanded version of the Expression"""
         # trace = True
         if trace: print '\n** .expanded(reset=',reset,expand,'): (',self.oneliner(),')'
         if reset: self._reset()
-        if isinstance(self.__expanded, Expression): # Expression 
+        if unique:
+            if trace: print '   expand(unique=True)'
+            self.expand(unique=True)
+            return self.expanded(trace=trace)
+        elif isinstance(self.__expanded, Expression): # Expression 
             if trace: print '   return expanded version:',self.__expanded.oneliner()
         elif self.__expanded:                       # True: object already expanded 
             if trace: print '   not expandable: return self:',type(self)
@@ -989,7 +1015,7 @@ class Expression:
 
     #-----------------------------------------------------------------------
 
-    def plot (self, _plot='linear', _test=False, _cells=None,
+    def plot (self, _plot='linear', _title=None, _test=False, _cells=None,
               _figure=None, _subplot=None, _legend=True, _show=True, **pp):
         """Plot the Expression for the specified parameter/variable value(s).
         See also self.eval()."""
@@ -1013,15 +1039,17 @@ class Expression:
             figure(_figure)
         if _subplot:                               # e.g. 211,212,...?
             subplot(_subplot)
+        mosaic = not _show              
 
         # Labels:
         xlabel(rr['xlabel'])
         ylabel(rr['ylabel'])
+        if isinstance(_title, str): rr['title'] = _title
         title(rr['title'])
         if _legend: legend(rr['legend'])
 
-        # Display the (unexpanded) expression:
-        if _show:
+        # Display the (unexpanded) expression (but not if mosaic):
+        if not mosaic:
             ss = self.format_expr()
             y = 0.90
             for key in ['terms','parms']:
@@ -1083,6 +1111,20 @@ class Expression:
         if _show: show()
         return rr
 
+    #---------------------------------------------------------------------------
+
+    def compare(self, other, _plot=True, _legend=False, **pp):
+        """Compare the Expression with another one (by subtraction)"""
+        diff = Expression('{self}-{other}', unit=self.__unit,
+                          label=self.label()+'.compare()',
+                          descr='{'+self.label()+'}-{'+other.label()+'}')
+        # Compare expanded versions, in which 'global' parameters {_x}
+        # are ignored in favour of unique ones {self_x} and {other_x}.
+        # Otherwise, the global parameters in self/other may clash...
+        diff.parm('self', self.expanded(unique=True))
+        diff.parm('other', other.expanded(unique=True))
+        if _plot: diff.plot(_title=diff.descr(), _legend=_legend, **pp)
+        return True
 
     #============================================================================
     # Evaluating the (expanded) expression:
@@ -1224,11 +1266,19 @@ class Expression:
                        expr=self.__expression,
                        annot=[], xannot=0.0,
                        xlabel=variable,
-                       ylabel='value',
+                       ylabel=self.__label,
                        parameter=parameter, pp=None,
-                       title=self.tlabel(), legend=[])
+                       # title=self.tlabel(),
+                       # title='',
+                       title='Expression: '+str(self.__ident),
+                       legend=[])
         if unit.has_key(variable) and unit[variable]:
                 plotrec['xlabel'] += '   ('+str(unit[variable])+')'
+        if not isinstance(plotrec['ylabel'], str):
+            plotrec['ylabel'] = 'value'
+        plotrec['ylabel'] = plotrec['ylabel'].replace('expanded_','')
+        if isinstance(self.__unit, str):
+            plotrec['ylabel'] += '  ('+self.__unit+')'
         if isinstance(plotrec['xx'], type(array(0))):
             plotrec['xannot'] = plotrec['xx'][0]
             plotrec['xmin'] = min(plotrec['xx'])
@@ -2139,6 +2189,11 @@ def Explot (*ee, **pp):
     ncol = int(ceil(sqrt(n)))
     nrow = int(ceil(float(n)/ncol))
 
+    _legend = False
+    if pp.has_key('_legend'):
+        _legend = pp['_legend']
+        pp.__delitem__('_legend')
+
     # Make the plots:
     k = -1
     for row in range(1,nrow+1):
@@ -2146,8 +2201,8 @@ def Explot (*ee, **pp):
             k += 1
             if k<n:
                 sp = nrow*100 + ncol*10 + k+1
-                ee[k].plot (_plot='linear', _test=True, _cells=None,
-                            _legend=False,
+                ee[k].plot (_plot='linear', _test=False, _cells=None,
+                            _legend=_legend,
                             _figure=1, _subplot=sp, _show=False, **pp)
     # Show the result:
     show()
@@ -2371,32 +2426,39 @@ if __name__ == '__main__':
         # Explot(cosvar,cosvar,cosvar,cosvar,cosvar)
 
     if 1:
-        # WSRT telescope voltage beam (gaussian):
-        vbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussbeam',
-                           descr='WSRT voltage beam')
-        vbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-        Lterm = Expression('(([l]-{L0})*{D}/{lambda})**2', label='Lterm')
+        # WSRT telescope voltage beams (gaussian):
+        Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
+                           descr='WSRT X voltage beam (gaussian)', unit='kg')
+        Xbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+        Lterm = Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
         Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
-        vbeam.parm ('Lterm', default=Lterm)
-        Mterm = Expression('(([m]-{M0})*{D}/{lambda})**2', label='Mterm')
+        Xbeam.parm ('Lterm', default=Lterm)
+        Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
         Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        vbeam.parm ('Mterm', default=Mterm)
-        vbeam.parm ('D', default=25.0, unit='m', help='WSRT telescope diameter')
-        vbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
+        Xbeam.parm ('Mterm', default=Mterm)
+        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
+        Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
                                                  descr='observing wavelength'), unit='m')
-        vbeam.display(full=True)
-        vbeam.expanded().display(full=True)
-        Mterm.expanded().display(full=True)
-        # vbeam.plot(l=True, m=True)
+        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)')
+        # Xbeam.display(full=True)
+        Xbeam.expanded().display(full=True)
+        # Xbeam.plot()
+
+        if 1:
+            Ybeam = Xbeam.copy(label='gaussYbeam', descr='WSRT Y voltage beam (gaussian)')
+            Ybeam.parm ('_ell', default=-0.1, help='Voltage beam elongation factor (1+ell)')
+            # Ybeam.plot(l=True, m=True)
+            # Explot(Xbeam, Ybeam, _legend=True, l=True, m=True)
+            Xbeam.compare(Ybeam, l=True, m=True)
         if 0:
             L = ns.L << 0.1
             M = ns.M << -0.2
             LM = ns.LM << Meq.Composer(L,M)
-            node = vbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
+            node = Xbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
                                        common_axes=[hiid('l'),hiid('m')], trace=True)
             TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
         if 0:
-            node = vbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
             
 
