@@ -94,10 +94,10 @@ int FFTBrick::getResult (Result::Ref &resref,
   // NB: for historical reasons, we'll use l,m to name variables referring to 
   // the input axes, and u,v when referring to the output axes. The real axes
   // in use are of course determined above.
-  nl = input_cells.ncells(Axis::axis("L"));
+  nl = input_cells.ncells(_inaxis0);
   nu = int(_uvppw*nl)+1;
 
-  nm = input_cells.ncells(Axis::axis("M"));
+  nm = input_cells.ncells(_inaxis1);
   nv = int(_uvppw*nm)+1;
 
   nl1 = (nl-1)/2; // center point in LM plane
