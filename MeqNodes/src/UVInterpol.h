@@ -29,12 +29,20 @@
 
 
 #include <MeqNodes/TID-MeqNodes.h>
+#include <MeqNodes/AID-MeqNodes.h>
+
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
+
 #pragma aid UVW Brick
 #pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta UVCurvature Method
 
 namespace Meq {
+
+  static const HIID FAxesIn1 = AidAxes|AidIn|1;
+  static const HIID FAxesOut1 = AidAxes|AidOut|1;
+  static const HIID FAxesIn2 = AidAxes|AidIn|2;
+  static const HIID FAxesOut2 = AidAxes|AidOut|2;
 
 
 class UVInterpol: public Node
@@ -72,6 +80,24 @@ public:
   double _uvZ;
   double _uvDelta;
   int _method;
+
+  // note that there are two sets of in and out axes
+  // which axes are treated as input and output planes?
+  std::vector<HIID> _in1_axis_id;
+  std::vector<HIID> _in2_axis_id;
+  std::vector<HIID> _out1_axis_id;
+  std::vector<HIID> _out2_axis_id;
+
+  // axis numbers -- filled in by getResult()
+  uint _in1axis0;
+  uint _in1axis1;
+  uint _in1axis2;
+  uint _out1axis0;
+  uint _out1axis1;
+
+  uint _in2axis0;
+  uint _out2axis0;
+  uint _out2axis1;
 
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells0, Vells &fvells1, Vells &fvells2, 
