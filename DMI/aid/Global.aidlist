@@ -254,6 +254,7 @@ Last                             1342       ; from /home/oms/LOFAR/Timba/MEQ/src
 ldouble                          45         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:107
 LE                               1414       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 Level                            1047       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
+LHS                              1687       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Line                             1358       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:37
 LineNo                           1577       ; from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
 Lines                            1194       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
@@ -541,6 +542,7 @@ Result                           1242       ; from /home/oms/LOFAR/Timba/AppAgen
 Results                          1330       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:37
 Resulution                       1607       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 Resume                           1239       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
+RHS                              1686       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Rider                            1331       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:31
 Row                              1153       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 Running                          1472       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
