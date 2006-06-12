@@ -86,8 +86,9 @@ int FFTBrick::getResult (Result::Ref &resref,
   const Cells & input_cells = childres.cells();
   FailWhen(!input_cells.isDefined(_inaxis0) || !input_cells.isDefined(_inaxis1),
       "one or both input axes are not defined in the child cells");
-  FailWhen(input_cells.numSegments(_inaxis0)!=1 || input_cells.numSegments(_inaxis0)!=1,
-      "one or both input axes not uniformly gridded in the child cells");
+  //// disable this check for now
+  //  FailWhen(input_cells.numSegments(_inaxis0)!=1 || input_cells.numSegments(_inaxis0)!=1,
+  //      "one or both input axes not uniformly gridded in the child cells");
   
   // Figure out the shapes 
   // NB: for historical reasons, we'll use l,m to name variables referring to 
