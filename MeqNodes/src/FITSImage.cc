@@ -228,7 +228,12 @@ int FITSImage::getResult (Result::Ref &resref,
   Vells &outQ=vsQ.setValue(new Vells(0.0,shape));
   vsQ.setShape(shape);
   VellsSlicer<double,3> sloutQ(outQ,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+
+ if (reverse_freq) {
+  sloutQ=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), blitz::Range::all(), blitz::Range::all(),1);
+ } else {
   sloutQ=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),1);
+ }
   result.setVellSet(3,refQ);
  } else {
   VellSet &vsQ=refQ<<= new VellSet(0,1);
@@ -243,7 +248,11 @@ int FITSImage::getResult (Result::Ref &resref,
   Vells &outU=vsU.setValue(new Vells(0.0,shape));
   vsU.setShape(shape);
   VellsSlicer<double,3> sloutU(outU,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+ if (reverse_freq) {
+  sloutU=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), blitz::Range::all(), blitz::Range::all(),2);
+ } else {
   sloutU=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),2);
+ }
   result.setVellSet(4,refU);
  } else {
   VellSet &vsU=refU<<= new VellSet(0,1);
@@ -258,7 +267,11 @@ int FITSImage::getResult (Result::Ref &resref,
   Vells &outV=vsV.setValue(new Vells(0.0,shape));
   vsV.setShape(shape);
   VellsSlicer<double,3> sloutV(outV,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+ if (reverse_freq) {
+  sloutV=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), blitz::Range::all(), blitz::Range::all(),3);
+ } else {
   sloutV=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),3);
+ }
   result.setVellSet(5,refV);
  } else {
   VellSet &vsV=refV<<= new VellSet(0,1);
