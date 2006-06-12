@@ -506,6 +506,7 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1508,"MeqUVInterpol")+
         TypeInfoReg::addToRegistry(-1508,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1508,__construct_MeqUVInterpol)+
+        AtomicID::registerId(-1685,"Brick")+
         AtomicID::registerId(-1523,"UVInterpol")+
         AtomicID::registerId(-1099,"Count")+
         AtomicID::registerId(-1524,"Additional")+
@@ -520,11 +521,13 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         AtomicID::registerId(-1569,"MeqPatchComposer")+
         TypeInfoReg::addToRegistry(-1569,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1569,__construct_MeqPatchComposer)+
+        AtomicID::registerId(-1217,"Out")+
+        AtomicID::registerId(-1682,"Baseline")+
+        AtomicID::registerId(-1683,"UVppw")+
         AtomicID::registerId(-1570,"MeqFFTBrick")+
         TypeInfoReg::addToRegistry(-1570,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1570,__construct_MeqFFTBrick)+
         AtomicID::registerId(-1207,"In")+
-        AtomicID::registerId(-1217,"Out")+
         AtomicID::registerId(-1666,"MeqGridPoints")+
         TypeInfoReg::addToRegistry(-1666,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1666,__construct_MeqGridPoints)+

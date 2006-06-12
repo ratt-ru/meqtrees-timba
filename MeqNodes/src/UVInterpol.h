@@ -31,7 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
-#pragma aid UVW UVBRICK
+#pragma aid UVW Brick
 #pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta UVCurvature Method
 
 namespace Meq {

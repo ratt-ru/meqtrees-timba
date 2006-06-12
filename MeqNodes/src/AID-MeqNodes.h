@@ -33,6 +33,11 @@ const int AidAxes_int = -1346;
 const DMI::AtomicID AidBalanced(-1668);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 const int AidBalanced_int = -1668;
 #endif
+#ifndef _defined_id_AidBaseline
+#define _defined_id_AidBaseline 1
+const DMI::AtomicID AidBaseline(-1682);           // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
+const int AidBaseline_int = -1682;
+#endif
 #ifndef _defined_id_AidBegin
 #define _defined_id_AidBegin 1
 const DMI::AtomicID AidBegin(-1643);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
@@ -42,6 +47,11 @@ const int AidBegin_int = -1643;
 #define _defined_id_AidBit 1
 const DMI::AtomicID AidBit(-1293);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidBit_int = -1293;
+#endif
+#ifndef _defined_id_AidBrick
+#define _defined_id_AidBrick 1
+const DMI::AtomicID AidBrick(-1685);              // from /home/oms/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidBrick_int = -1685;
 #endif
 #ifndef _defined_id_AidCells
 #define _defined_id_AidCells 1
@@ -922,6 +932,11 @@ const int AidUVW_int = -1123;
 #define _defined_id_AidUVZ 1
 const DMI::AtomicID AidUVZ(-1528);                // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 const int AidUVZ_int = -1528;
+#endif
+#ifndef _defined_id_AidUVppw
+#define _defined_id_AidUVppw 1
+const DMI::AtomicID AidUVppw(-1683);              // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
+const int AidUVppw_int = -1683;
 #endif
 #ifndef _defined_id_AidUk
 #define _defined_id_AidUk 1

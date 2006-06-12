@@ -27,7 +27,9 @@ namespace Meq {
 
 //##ModelId=3F86886E028F
 Add::Add()
-{}
+{
+  allowMissingData();
+}
 
 //##ModelId=3F86886E0293
 Add::~Add()
@@ -39,7 +41,8 @@ Vells Add::evaluate (const Request&, const LoShape&,
 {
   Vells result;
   for( uint i=0; i<values.size(); i++ )
-    result += *(values[i]);
+    if( values[i] )
+      result += *(values[i]);
   return result;
 }
 

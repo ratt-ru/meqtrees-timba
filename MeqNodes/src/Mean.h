@@ -34,6 +34,7 @@ namespace Meq {
 class Mean : public ReductionFunction
 {
 public:
+  Mean ();
 
   virtual TypeId objectType() const
   { return TpMeqMean; }

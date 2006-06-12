@@ -33,12 +33,19 @@ Function::Function(int nchildren,const HIID *labels,int nmandatory)
   : Node(nchildren,labels,nmandatory),
     enable_flags_(true),force_integrated_(false)
 {
+  allow_missing_data_ = false;
 //  setAutoResample(RESAMPLE_FAIL);
 }
 
 //##ModelId=3F86886E03D1
 Function::~Function()
 {}
+
+void Function::allowMissingData ()
+{
+  allow_missing_data_ = true;
+  children().setMissingDataPolicy(AidIgnore);
+}
 
 //##ModelId=400E53070274
 TypeId Function::objectType() const
@@ -153,9 +160,9 @@ int Function::getResult (Result::Ref &resref,
   // and let vells math determine the shape instead
   vector<const VellSet*> child_vs(nrch);
   vector<const Vells*>   values(nrch);
-  vector<const Vells*>   flags(nrch);
   int nfails = 0;
   int nplanes = result.numVellSets();
+  int missing_planes = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
     // create a vellset for this plane
@@ -164,36 +171,45 @@ int Function::getResult (Result::Ref &resref,
     // pointers to their main values. If a child is of tensor rank 0, always
     // reuse its single vellset. If any child vellsets are fails, collect 
     // them for propagation
-    bool missing = false;
+    int nmissing = 0;
     for( int i=0; i<nrch; i++ )
     {
+      child_vs[i] = 0;
+      values[i] = 0;
       const Result &chres = *childres[i];
-      child_vs[i] = &( chres.vellSet( chres.tensorRank()>0 ? iplane : 0 ) );
-//        childvs_lock[i].relock(child_vs[i]->mutex());
-      if( child_vs[i]->isFail() )
-      { // collect fails from child vellset
-        for( int j=0; j<child_vs[i]->numFails(); j++ )
-          vellset.addFail(child_vs[i]->getFail(j));
-      }
-      else
+      const HIID &label = children().getChildLabel(i);
+      // does this child have a vellset?
+      if( chres.numVellSets() )
       {
-        flags[i] = child_vs[i]->hasDataFlags() ? &(child_vs[i]->dataFlags()) : 0;
-        if( child_vs[i]->hasValue() )
+        const VellSet &vs = chres.vellSet( chres.tensorRank()>0 ? iplane : 0 );
+        if( vs.isFail() )
+        { // collect fails from child vellset
+          for( int j=0; j<vs.numFails(); j++ )
+            vellset.addFail(vs.getFail(j));
+        }
+        else if( vs.hasValue() )
         {
-          const Vells &val = child_vs[i]->getValue();
-  //          childval_lock[i].relock(val.mutex());
-          FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
+          const Vells &val = vs.getValue();
+          FailWhen(!val.isCompatible(res_shape),"shape mismatch for result of child '"+label.toString()+"'");
+          child_vs[i] = &vs;
           values[i] = &val;
         }
-        else
-        {
-          missing = true;
-          break;
-        }
+      }
+      // no value found?
+      if( !values[i] )
+      {
+        FailWhen(!allow_missing_data_,"child '"+label.toString()+"' returned missing data, which is not allowed in this Function node");
+        nmissing++;
       }
     }
+    // if everything is missing, then we return no data for this VellSet
+    if( nmissing == nrch )
+    {
+      missing_planes++;
+      continue;
+    }
     // continue evaluation only if no fails popped up
-    if( !missing && !vellset.isFail() )
+    if( !vellset.isFail() )
     {
       // catch exceptions during evaluation and stuff them into fails
       try
@@ -231,6 +247,8 @@ int Function::getResult (Result::Ref &resref,
           // must match across all children
           for( int ich=0; ich<nrch; ich++ )
           {
+            if( !child_vs[ich] )
+              continue;
             const VellSet &vs = *(child_vs[ich]);
             int inx = vs.isDefined(spids[j],indices[ich]);
             if( inx >= 0 )
@@ -283,6 +301,8 @@ int Function::getResult (Result::Ref &resref,
   // return RES_FAIL is all planes have failed
   if( nfails == nplanes )
     return RES_FAIL;
+  if( missing_planes == nplanes )
+    return RES_MISSING;
    // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }
@@ -293,9 +313,9 @@ vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &re
   // Determine the maximum number of spids.
   int nrspid = 0;
   int nrch = results.size();
-  for (int i=0; i<nrch; i++) {
-    nrspid += results[i]->numSpids();
-  }
+  for (int i=0; i<nrch; i++) 
+    if( results[i] )
+      nrspid += results[i]->numSpids();
   npertsets = 0;
   // Allocate a vector of that size.
   // Exit immediately if nothing to be done.
@@ -309,7 +329,10 @@ vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &re
   int stinx = nrspid;          // start at end
   nrspid = 0;                  // no resulting spids yet
   // Loop through all children.
-  for (int ch=0; ch<nrch; ch++) {
+  for (int ch=0; ch<nrch; ch++) 
+  {
+    if( !results[ch] )
+      continue;
     const VellSet &resch = *results[ch];
     npertsets = std::max(npertsets,resch.numPertSets());
     int nrchsp = resch.numSpids();

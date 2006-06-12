@@ -12,12 +12,12 @@ fringe_fit_settings.ddid_list = range(4);
 from Timba.Contrib.OMS.Calibration.fringe_fit import *
 
 
-
+Settings.forest_state.cache_policy = 100;  # -1 for minimal, 1 for smart caching, 100 for full caching
 
 # setup some bookmarks
 from Timba.Contrib.OMS import Bookmarks
 
-Settings.forest_state = record(bookmarks=[
+Settings.forest_state.bookmarks = [
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
       ["visibility:all:G:1:2","spigot:1:2","residual:1:2"],
       ["visibility:all:G:1:7","spigot:1:7","residual:1:7"],
@@ -38,27 +38,16 @@ Settings.forest_state = record(bookmarks=[
       ["solver"]
   )),
   record(name='Baseline phase solutions',page=Bookmarks.PlotPage(
-      ['phase:R:1:2','phase:L:1:2'],
-      ['phase:R:1:3','phase:L:1:3'],
-      ['phase:R:1:4','phase:L:1:4']
+      ['phase:LL:1:2','phase:time:LL:1:2','obs_phase:time:LL:1:2'],
+      ['phase:LL:1:4','phase:time:LL:1:4','obs_phase:time:LL:1:4'],
+      ['phase:LL:1:7','phase:time:LL:1:7','obs_phase:time:LL:1:7'],
   )),
   record(name='Gain solutions',page=Bookmarks.PlotPage(
       ['gain:R:1','gain:R:2'],
       ['gain:R:7','gain:L:1'],
       ['gain:L:2','gain:L:7']
   )),
-]);
-
-
-
-
-
-
-
-
-
-
-
+];
 
 
 

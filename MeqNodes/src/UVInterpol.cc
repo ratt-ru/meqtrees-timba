@@ -34,17 +34,17 @@
 
 namespace Meq {
 
-  static const HIID child_labels[] = { AidUVBRICK, AidUVW };
+  static const HIID child_labels[] = { AidBrick, AidUVW };
   static const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
   
 #define VERBOSE
 
   UVInterpol::UVInterpol():
+    Node(num_children,child_labels),
     _additional_info(false),
     _uvZ(0.0),
     _uvDelta(casa::C::pi/2.),
-    _method(1),
-    Node(num_children,child_labels)
+    _method(1)
   {
     disableAutoResample();
   };

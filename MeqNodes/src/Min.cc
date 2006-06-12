@@ -27,6 +27,12 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
+Min::Min ()
+{
+  allowMissingData();
+}
+
+  
 //##ModelId=400E53550246
 Vells Min::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
@@ -42,9 +48,19 @@ Vells Min::evaluate (const Request&,const LoShape &,
   else // else take mean across all Vells
   // NB: BUG! flags not treated properly here
   {
-    Vells res(*values[0]);
-    for( uint i=1; i<values.size(); i++ )
-      res = min(res,*values[i],flagmask_[0],flagmask_[i]);
+    bool has_res = false;
+    Vells res;
+    for( uint i=0; i<values.size(); i++ )
+      if( values[i] )
+      {
+        if( has_res )
+          res = min(res,*values[i],flagmask_[0],flagmask_[i]);
+        else
+        {
+          res = *values[i]; 
+          has_res = true;
+        }
+      }
     return res;
   }
 }

@@ -171,7 +171,8 @@ def _define_forest(ns):
       gr = ns.gain('R',station) << gain_parm(gain_deg_time,gain_deg_freq);
       gl = ns.gain('L',station) << gain_parm(gain_deg_time,gain_deg_freq);
     else:
-      gr = gl = 1.0;
+      gr = ns.gain('R',station) << 1.0;
+      gl = ns.gain('L',station) << 1.0;
     # phase model: independent feed phases
     if phase_model == "ind":
       pr = ns.phase('R',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
@@ -193,8 +194,8 @@ def _define_forest(ns):
   # create a "clean" predict for the sky
   # clean_predict = allsky.visibilities(array,observation);
   
-  # now create spigots, condeqs and residuals
-  condeqs = [];
+  # create spigots
+  weightnodes = [];
   for sta1,sta2 in array.ifrs():
     spigot = ns.spigot(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
                                                  station_2_index=sta2-1,
@@ -205,21 +206,44 @@ def _define_forest(ns):
                                                flag_mask=0,
                                                input_col='WEIGHT');
     pred = predict(sta1,sta2);
+    # create rr/ll spigots
+    spig = {};
+    spig['RR'] = ns.spigot('RR',sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
+    spig['LL'] = ns.spigot('LL',sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
+    # create amp^2 weights for phase fits
+    if fit_phases_only:
+      for pol in ('RR','LL'):
+        amp2 = ns.amp2(pol,sta1,sta2) << Meq.Sqr(Meq.Abs(spig[pol]));
+        weightnodes.append(ns.weight(pol,sta1,sta2) << weight*amp2);
+    else:
+      weightnodes.append(weight);
+  # create node to compute sum of all weights 
+  ns.sum_weights << Meq.Add(*weightnodes);
+  # fudge a normalization factor, or chi may be too small
+  ns.weight_norm << (Meq.Sum(ns.sum_weights) + 1e-20)*1e-6;
+  # create condeqs and residuals
+  condeqs = [];
+  for sta1,sta2 in array.ifrs():
+    pred = predict(sta1,sta2);
+    # create nodes for observed and fitted baseline phases
+    obs = {};
+    fit = {};
+    for pol in ('RR','LL'):
+      obs[pol] = ns.obs_phase(pol,sta1,sta2) << Meq.Arg(ns.spigot(pol,sta1,sta2));
+      fit[pol] = ns.phase(pol,sta1,sta2) << ns.phase(pol[0],sta1)-ns.phase(pol[1],sta2);
+    # create condeqs
     if sta1 == 1 or not fit_sta1_only:
-      weight = ns.norm_weight(sta1,sta2) << weight * 1e+6 / \
-          (Meq.Sum(weight) + 1e-20);  # add small number to avoid division by 0
+      # create condeqs for direct phase fits
       if fit_phases_only:
-        rr = ns.spigot('RR',sta1,sta2) << Meq.Selector(spigot,index=[0,0]);
-        ll = ns.spigot('LL',sta1,sta2) << Meq.Selector(spigot,index=[1,1]);
-        ce1 = ns.ce_rr(sta1,sta2) << \
-          Meq.Condeq(Meq.Arg(rr),ns.phase('R',sta1)-ns.phase('R',sta2),modulo=2*math.pi) * weight;
-        ce2 = ns.ce_ll(sta1,sta2) << \
-          Meq.Condeq(Meq.Arg(ll),ns.phase('L',sta1)-ns.phase('L',sta2),modulo=2*math.pi) * weight;
-        condeqs.append(ce1);
-        condeqs.append(ce2);
+        for pol in ('RR','LL'):
+          condeqs.append(ns.ce(pol,sta1,sta2) << \
+                Meq.Condeq(fit[pol],obs[pol],modulo=2*math.pi) * \
+                  ns.weight(pol,sta1,sta2) / ns.weight_norm);
+                  
+      # else create condeqs for visibilities fitting
       else:
-        ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred) * weight;
-        condeqs.append(ce);
+        condeqs.append(ns.ce(sta1,sta2) << \
+            Meq.Condeq(spigot,pred) * ns.weight(sta1,sta2) / ns.weight_norm);
     # subtract nodes compute residuals
     if output_type == "residual":
       ns.residual(sta1,sta2) << spigot - pred;
@@ -239,30 +263,43 @@ def _define_forest(ns):
   #   (sta1,sta2) = array.stations()[i*2:(i+1)*2];
   #   cpo.append(ns.ce(sta1,sta2).name);
       
-  # create baseline phases (for visualization purposes only)
-  visnodes = [];
+  # create summary visualizations
+  phases = [];
+#  ffts = [];
   for sta1,sta2 in array.ifrs():
+    for pol in ('RR','LL'):
+#       ffts.append( ns.fft(pol,sta1,sta2) << \
+#             Meq.FFTBrick(ns.spigot(pol,sta1,sta2),
+#                     axes_in=(hiid('time'),hiid('freq')),
+#                     axes_out=(hiid('time'),hiid('freq'))) );
+      phases += [
+        ns.phase('time',pol,sta1,sta2) << \
+            Meq.Mean(ns.phase(pol,sta1,sta2),reduction_axes='freq'),
+        ns.obs_phase('time',pol,sta1,sta2) << \
+            Meq.Mean(ns.obs_phase(pol,sta1,sta2),reduction_axes='freq')
+      ];
+  gains = []
+  for sta in array.stations():
     for pol in ('R','L'):
-      p = ns.phase(pol,sta1,sta2) << ns.phase(pol,sta1) - ns.phase(pol,sta2);
-      visnodes.append(p);
-  # create closure phases
+      gains.append(ns.gain(pol,sta));
+  closures = [];
   sta1,sta2,sta3 = array.stations()[0:3];
   for pol in ('RR','LL'):
-    closure = ns.closure(pol,sta1,sta2,sta3) << \
-        ns.spigot(pol,sta1,sta2) + ns.spigot(pol,sta2,sta3) - ns.spigot(pol,sta1,sta3);
-    visnodes.append(closure);
-  if fringe_fit_settings.gain_fitting:
-    for sta in array.stations():
-      for pol in ('R','L'):
-        visnodes.append(ns.gain(pol,sta));
-  ns.vis = Meq.ReqMux(*visnodes);
+    closures.append(ns.closure(pol,sta1,sta2,sta3) << \
+        ns.spigot(pol,sta1,sta2) + ns.spigot(pol,sta2,sta3) - ns.spigot(pol,sta1,sta3));
+  ns.summary << Meq.ReqMux(
+    ns.summary_phases << Meq.ReqMux(*phases),
+    ns.summary_gains  << Meq.ReqMux(*gains),
+    ns.summary_closures << Meq.ReqMux(*closures),
+#    ns.summary_ffts << Meq.ReqMux(*ffts)
+  );
     
   # create solver node
   ns.solver << Meq.Solver(children=condeqs);
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.vis,ns.corrected(sta1,sta2),
+    reqseq = Meq.ReqSeq(ns.solver,ns.summary,ns.corrected(sta1,sta2),
                   result_index=2,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
@@ -509,10 +546,6 @@ def _tdl_job_9b_make_residual_image (mqs,parent,**kw):
       'ddid='+str(ddid_index) 
   ]);
   pass
-
-
-Settings.forest_state.cache_policy = 1;  # -1 for minimal, 1 for smart caching, 100 for full caching
-Settings.orphans_are_roots = True;
 
 
 # export external symbols

@@ -34,6 +34,8 @@ namespace Meq {
 class Min : public ReductionFunction
 {
 public:
+  Min();
+    
   virtual TypeId objectType() const
   { return TpMeqMin; }
 

@@ -34,6 +34,7 @@ namespace Meq {
 class Max : public ReductionFunction
 {
 public:
+  Max ();
 
   virtual TypeId objectType() const
   { return TpMeqMax; }

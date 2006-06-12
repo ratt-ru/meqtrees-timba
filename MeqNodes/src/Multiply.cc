@@ -27,7 +27,9 @@ namespace Meq {
 
 //##ModelId=400E530A0105
 Multiply::Multiply()
-{}
+{
+  allowMissingData();
+}
 
 //##ModelId=400E530A0106
 Multiply::~Multiply()
@@ -49,9 +51,10 @@ Vells Multiply::evaluate (const Request&, const LoShape&,
 {
   if( values.empty() )
     return Vells::Unity();  // or should this be 0?
-  Vells result(*values[0]);
+  Vells result(values[0] ? *values[0] : Vells::Unity() );
   for( uint i=1; i<values.size(); i++ )
-    result *= *(values[i]);
+    if( values[i] )
+      result *= *(values[i]);
   return result;
 }
 

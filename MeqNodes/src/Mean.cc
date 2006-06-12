@@ -27,6 +27,11 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
+Mean::Mean ()
+{
+  allowMissingData();
+}
+
 
 //##ModelId=400E53550246
 Vells Mean::evaluate (const Request&,const LoShape &shape,
@@ -43,10 +48,16 @@ Vells Mean::evaluate (const Request&,const LoShape &shape,
   else // else take mean across all Vells
   // NB: BUG! flags not treated properly here
   {
-    Vells res = *values[0];
-    for( uint i=1; i<values.size(); i++ )
-      res += *values[i];
-    res /= values.size();
+    Vells res;
+    int ntot = 0;
+    for( uint i=0; i<values.size(); i++ )
+      if( values[i] )
+      {
+        res += *values[i];
+        ntot++;
+      }
+    if( ntot )
+      res /= ntot;
     return res;
   }
 }

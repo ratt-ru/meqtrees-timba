@@ -53,9 +53,15 @@ public:
   static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
 
 protected:
+  // may be called if the Node can support missing data (see evaluate() below)
+  void allowMissingData ();
+    
   // Evaluate the value for the given request. The output shape is
   // passed in as the shape argument (usually taken from first child, rest
   // must conform).
+  // Note that if some children return missing data (i.e. empty Result),
+  // and allowMissingData() has been called, then the appropriate Vells* 
+  // will be 0. 
   // Must be reimplemented, as default version throws an exception.
     //##ModelId=3F86886F00B0
   virtual Vells evaluate (const Request &req,const LoShape &shape,const vector<const Vells*>&);
@@ -66,6 +72,9 @@ protected:
   // The output shape is passed in as the shape argument. 
   // If no flags were generated (e.g. due to all children being flagless),
   // 'out' may be left uninitialized.
+  // Note that if some children return missing data (i.e. empty Result),
+  // and allowMissingData() has been called, then the appropriate VellSet* 
+  // will be 0. 
   // Default version returns a bitwise-OR of all valid child flags, with
   // flagmasks applied.
     //##ModelId=3F86886F00B0
@@ -97,6 +106,8 @@ private:
 //    //##ModelId=3F86886E03A4
 //  vector<Node*> itsChildren;
 
+  bool allow_missing_data_;
+    
   bool force_integrated_;
   
   bool integrated_;
