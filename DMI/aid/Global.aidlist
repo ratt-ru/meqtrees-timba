@@ -395,6 +395,7 @@ MeqTestClass                     1572       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
 #MeqUVBrick                      1505       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/UVBrick.h:31
 #MeqUVInterpol                   1508       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:33
+#MeqUVInterpolWave               1688       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpolWave.h:35
 #MeqUVW                          1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
