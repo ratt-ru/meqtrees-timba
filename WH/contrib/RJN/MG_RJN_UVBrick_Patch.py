@@ -5,6 +5,16 @@ script_name = 'MG_RJN_UVBrick_Patch.py'
 # Short description:
 #  The script produces visibility data (freq / time) for 1 baseline from
 #  a UVBrick (in meters) that was created from a PatchComposer node.
+#  The PatchComposer node creates an Image in frequency dependent l' / m'
+#   coordinates. Input sources are taken from the file '3C343_nvss_small.txt'.
+#   No LSM is used in order to make this script less dependent on changes
+#   in other parts of the code.
+#  The Stokes node goes from IQUV to XX XY YX YY
+#  The FFTBrick node does the FFT, using a padding factor padfactor.
+#   Since the input is in frequency dependent l'/m', the result is in
+#   u / v coordinates in meters.
+#  The UVInterpol node interpolates the UVBrick on the UVW data (in meters).
+
 
 # Keywords: UVBrick, Patch, UVInterpol
 
@@ -188,7 +198,7 @@ def _define_forest(ns):
  # If (Additional_Info = True) the UV interpolation tracks are plotted on the UV plane
  #
  #UVInterpol
- interpol_root = ns.interpol << Meq.UVInterpol(Method=1,uvbrick=fft_root,uvw=myuvw,additional_info=False);
+ interpol_root = ns.interpol << Meq.UVInterpol(Method=1,brick=fft_root,uvw=myuvw,additional_info=True);
  
 
  # Define Bookmarks
@@ -208,7 +218,7 @@ def _test_forest(mqs,parent):
  t0 = 0.0
  t1 = 86400.0
  nfreq = 4
- ntime = 1000
+ ntime = 100
  
  # create cell
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
