@@ -17,7 +17,7 @@ LOCALSRCS = \
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc \
     WSum.cc WMean.cc Negate.cc Invert.cc \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
-    Stokes.cc PatchComposer.cc FFTBrick.cc \
+    Stokes.cc PatchComposer.cc FFTBrick.cc UVInterpolWave.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
     CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc Functional.cc
