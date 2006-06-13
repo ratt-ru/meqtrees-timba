@@ -20,12 +20,17 @@
 //#
 //# $Id$
 
+// This version of the UVInterpol node interpolates a UVBrick in meters.
+// The interpolation point is found for the first frequency plane and then
+// used for all the other frequency planes.
+
 #include <MeqNodes/UVInterpol.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
 #include <MEQ/AID-Meq.h>
+#include <MEQ/VellsSlicer.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/aips.h>
 #include <casa/BasicSL/Constants.h>
@@ -47,6 +52,19 @@ namespace Meq {
     _method(1)
   {
     disableAutoResample();
+    _in1_axis_id.resize(3);
+    _in1_axis_id[0] = "FREQ";
+    _in1_axis_id[1] = "U";
+    _in1_axis_id[2] = "V";
+    _out1_axis_id.resize(2);
+    _out1_axis_id[0] = "TIME";
+    _out1_axis_id[1] = "FREQ";
+    _in2_axis_id.resize(1);
+    _in2_axis_id[0] = "TIME";
+    _out2_axis_id.resize(2);
+    _out2_axis_id[0] = "U";
+    _out2_axis_id[1] = "V";
+
   };
   
   UVInterpol::~UVInterpol()
@@ -60,6 +78,41 @@ namespace Meq {
     rec["UVZ"].get(_uvZ,initializing);
     rec["UVDelta"].get(_uvDelta,initializing);
     rec["Method"].get(_method,initializing);
+
+    std::vector<HIID> in1 = _in1_axis_id;
+    if( rec[FAxesIn1].get_vector(in1,initializing) || initializing )
+      {
+	FailWhen(in1.size() !=3,FAxesIn1.toString()+" field must have 3 elements");
+	_in1_axis_id = in1;
+	Axis::addAxis(_in1_axis_id[0]);
+	Axis::addAxis(_in1_axis_id[1]);
+	Axis::addAxis(_in1_axis_id[2]);
+      };
+    std::vector<HIID> out1 = _out1_axis_id;
+    if( rec[FAxesOut1].get_vector(out1,initializing) || initializing )
+      {
+	FailWhen(out1.size() !=2,FAxesOut1.toString()+" field must have 2 elements");
+	_out1_axis_id = out1;
+	Axis::addAxis(_out1_axis_id[0]);
+	Axis::addAxis(_out1_axis_id[1]);
+      };
+
+    std::vector<HIID> in2 = _in2_axis_id;
+    if( rec[FAxesIn2].get_vector(in2,initializing) || initializing )
+      {
+	FailWhen(in2.size() !=1,FAxesIn2.toString()+" field must have 1 elements");
+	_in2_axis_id = in2;
+	Axis::addAxis(_in2_axis_id[0]);
+      };
+    std::vector<HIID> out2 = _out2_axis_id;
+    if( rec[FAxesOut2].get_vector(out2,initializing) || initializing )
+      {
+	FailWhen(out2.size() !=2,FAxesOut2.toString()+" field must have 2 elements");
+	_out2_axis_id = out2;
+	Axis::addAxis(_out2_axis_id[0]);
+	Axis::addAxis(_out2_axis_id[1]);
+      };
+
   }
   
   int UVInterpol::getResult (Result::Ref &resref,
@@ -110,6 +163,11 @@ namespace Meq {
 	if (_additional_info){
 	  
 	  // Make Additional Info on UV-plane coverage.
+
+	  // Set input and output axes
+	  _in2axis0 = Axis::axis(_in2_axis_id[0]);
+	  _out2axis0 = Axis::axis(_out2_axis_id[0]);
+	  _out2axis1 = Axis::axis(_out2_axis_id[1]);
 	  
 	  // Make the Additional Vells
 	  
@@ -125,31 +183,15 @@ namespace Meq {
 	  Cells brickcells; 
 	  Result::Ref uvpoints;
 	  
-	  //if ( childres.at(0)->cells().isDefined(Axis::axis("U")) &&
-	  //     childres.at(0)->cells().isDefined(Axis::axis("V")) )
-	  //  //if ( childres.at(0)->cells().isDefined(Axis::axis("L")) &&
-	  //  //   childres.at(0)->cells().isDefined(Axis::axis("M")) )
-	  //  {
-	      brickresult = childres.at(0);
-	      brickcells = brickresult->cells();
-	      uvpoints = childres.at(1);
-	      //  } 
-	      //else 
-	      //  {
-	      //    brickresult = childres.at(1);
-	      //    brickcells = brickresult->cells();
-	      //     uvpoints = childres.at(0);
-	      //  };
+	  brickresult = childres.at(0);
+	  brickcells = brickresult->cells();
+	  uvpoints = childres.at(1);    
 	  
 	  // uv grid from UVBrick
 	  int nu = brickcells.ncells(Axis::axis("U"));
 	  int nv = brickcells.ncells(Axis::axis("V"));
 	  const LoVec_double uu = brickcells.center(Axis::axis("U"));
 	  const LoVec_double vv = brickcells.center(Axis::axis("V"));
-	  //int nu = brickcells.ncells(Axis::axis("L"));
-	  //int nv = brickcells.ncells(Axis::axis("M"));
-	  //const LoVec_double uu = brickcells.center(Axis::axis("L"));
-	  //const LoVec_double vv = brickcells.center(Axis::axis("M"));
 	  
 	  // uv image domain
 	  Domain::Ref uvdomain(new Domain());
@@ -163,8 +205,6 @@ namespace Meq {
 	  Axis::degenerateShape(uvshape,uvcells->rank());
 	  uvshape[Axis::axis("U")] = brickcells.ncells(Axis::axis("U"));
 	  uvshape[Axis::axis("V")] = brickcells.ncells(Axis::axis("V"));
-	  //uvshape[Axis::axis("TIME")] = brickcells.ncells(Axis::axis("L"));
-	  //uvshape[Axis::axis("FREQ")] = brickcells.ncells(Axis::axis("M"));
 	  
 	  // Make the new Vells
 
@@ -174,7 +214,8 @@ namespace Meq {
 
 	  // Determine the mapping onto the uv plane of the time-freq. cell
 
-	  LoMat_double arr2 = vells2.as<double,2>();
+	  VellsSlicer<double,2> uv_slicer(vells2,_out2axis0,_out2axis1);
+	  blitz::Array<double,2> arr2 = uv_slicer();
 	  arr2 = 0.0;
 
 	  // u,v values from UVW-Node
@@ -182,67 +223,32 @@ namespace Meq {
 	  VellSet vvs = uvpoints->vellSet(1);
 	  Vells uvells = uvs.getValue();
 	  Vells vvells = vvs.getValue();
-	  int vellsrank = uvs.shape().size();
 
-#ifdef VERBOSE
-	  cout << uvs.shape() << uvs.shape().size() << endl;
-#endif
+	  VellsSlicer<double,1> utime_slicer(uvells,_in2axis0);
+	  VellsSlicer<double,1> vtime_slicer(vvells,_in2axis0);
+	  blitz::Array<double,1> uarr = utime_slicer();
+	  blitz::Array<double,1> varr = vtime_slicer();
 
-	  if (vellsrank==2) {
+	  int imin, jmin;
 
-	    blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
-	    blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
-
-	    int imin, jmin;
-
-	    for (int i = 0; i < nt; i++){
+	  for (int i = 0; i < nt; i++){
         
-	      imin = 0;
-	      jmin = 0;
-	   
+	    imin = 0;
+	    jmin = 0;
 	      
-	      for (int i1 = 0; i1 < nu-1; i1++){
-		if ((uu(i1)<=uarr(0,i)) && (uu(i1+1)>uarr(0,i))) {imin = i1;};
-	      };
-	      for (int j1 = 0; j1 < nv-1; j1++){
-		if ((vv(j1)<=varr(0,i)) && (vv(j1+1)>varr(0,i))) {jmin = j1;};
-	      };
+	    for (int i1 = 0; i1 < nu-1; i1++){
+	      if ((uu(i1)<=uarr(i)) && (uu(i1+1)>uarr(i))) {imin = i1;};
+	    };
+	    for (int j1 = 0; j1 < nv-1; j1++){
+	      if ((vv(j1)<=varr(i)) && (vv(j1+1)>varr(i))) {jmin = j1;};
+	    };
 	      
-	      arr2(imin,jmin) = 1.0;
+	    arr2(imin,jmin) = 1.0;
 	      
-	    }; // i
-	  
-	  }
-
-	  if (vellsrank==1) {
-
-	    blitz::Array<double,1> uarr = uvells.as<double,1>()(LoRange::all());
-	    blitz::Array<double,1> varr = vvells.as<double,1>()(LoRange::all());
-
-	    int imin, jmin;
-
-	    for (int i = 0; i < nt; i++){
-        
-	      imin = 0;
-	      jmin = 0;
-	   
-	      
-	      for (int i1 = 0; i1 < nu-1; i1++){
-	    	if ((uu(i1)<=uarr(i)) && (uu(i1+1)>uarr(i))) {imin = i1;};
-	      };
-	      for (int j1 = 0; j1 < nv-1; j1++){
-	    	if ((vv(j1)<=varr(i)) && (vv(j1+1)>varr(i))) {jmin = j1;};
-	      };
-	      
-	     arr2(imin,jmin) = 1.0;
-	      
-	    }; // i
-	  
-	  }
+	  }; // i
 	  
 	  // Attach a Cells to the result
 	  res2.setCells(*uvcells);
-	  
 
 	};
 	
@@ -261,6 +267,13 @@ namespace Meq {
     // If method has incorrect value, use default method
     if ((_method < 1) || (_method > 4)) _method = 1;
 
+    // Set input and Output axes
+    _in1axis0 = Axis::axis(_in1_axis_id[0]);
+    _in1axis1 = Axis::axis(_in1_axis_id[1]);
+    _in1axis2 = Axis::axis(_in1_axis_id[2]);
+    _out1axis0 = Axis::axis(_out1_axis_id[0]);
+    _out1axis1 = Axis::axis(_out1_axis_id[1]);
+
     // Time-Freq boundaries of Request
     int nt = fcells.ncells(Axis::TIME);
     int nf = fcells.ncells(Axis::FREQ);
@@ -273,21 +286,9 @@ namespace Meq {
     Cells brickcells; 
     Result::Ref uvpoints;
 
-    //if ( fchildres.at(0)->cells().isDefined(Axis::axis("U")) &&
-    //	 fchildres.at(0)->cells().isDefined(Axis::axis("V")) )
-    //	  //if ( fchildres.at(0)->cells().isDefined(Axis::axis("L")) &&
-    //	  //fchildres.at(0)->cells().isDefined(Axis::axis("M")) )
-    //  {
-	brickresult = fchildres.at(0);
-	brickcells = brickresult->cells();
-	uvpoints = fchildres.at(1);
-	//  } 
-	//else 
-	//  {
-	//	brickresult = fchildres.at(1);
-	//	brickcells = brickresult->cells();
-	//	uvpoints = fchildres.at(0);
-	// };
+    brickresult = fchildres.at(0);
+    brickcells = brickresult->cells();
+    uvpoints = fchildres.at(1);
 
     // u, v values from UVW-Node
     VellSet uvs = uvpoints->vellSet(0);
@@ -295,132 +296,54 @@ namespace Meq {
     Vells uvells = uvs.getValue();
     Vells vvells = vvs.getValue();
 
-    int vellsrank = uvs.shape().size();
-    blitz::Array<double,1> uarr1(nt);
-    blitz::Array<double,1> varr1(nt);
-
-    if (vellsrank==2){
-      blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
-      blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
-      for (int i = 0; i < nt; i++){      
-	uarr1(i) = uarr(i,0);
-	varr1(i) = varr(i,0);
-      }
-    }
-    if (vellsrank==1){
-      blitz::Array<double,1> uarr = uvells.as<double,1>()(LoRange::all());
-      blitz::Array<double,1> varr = vvells.as<double,1>()(LoRange::all());
-      for (int i = 0; i < nt; i++){
-      	uarr1(i) = uarr(i);
-      	varr1(i) = varr(i);
-      }
-    }
-
+    VellsSlicer<double,1> utime_slicer(uvells,_in2axis0);
+    VellsSlicer<double,1> vtime_slicer(vvells,_in2axis0);
+    blitz::Array<double,1> uarr = utime_slicer();
+    blitz::Array<double,1> varr = vtime_slicer();
 
     // uv grid from UVBrick
     int nu = brickcells.ncells(Axis::axis("U"));
     int nv = brickcells.ncells(Axis::axis("V"));
     const LoVec_double uu = brickcells.center(Axis::axis("U"));
     const LoVec_double vv = brickcells.center(Axis::axis("V"));
-    //int nu = brickcells.ncells(Axis::axis("L"));
-    //int nv = brickcells.ncells(Axis::axis("M"));
-    //const LoVec_double uu = brickcells.center(Axis::axis("L"));
-    //const LoVec_double vv = brickcells.center(Axis::axis("M"));
+    
     
     // uv-data from UVBrick
     // UVImage data
-    VellSet vsf = brickresult->vellSet(0);
-    Vells vellsfI = vsf.getValue(); 
-    VellSet vsfQ = brickresult->vellSet(4);
-    Vells vellsfQ = vsfQ.getValue(); 
-    VellSet vsfU = brickresult->vellSet(8);
-    Vells vellsfU = vsfU.getValue(); 
-    VellSet vsfV = brickresult->vellSet(12);
-    Vells vellsfV = vsfV.getValue(); 
-    //Vells vellsfQ = brickresult->vellSet(4).getValue();
-    //Vells vellsfU = brickresult->vellSet(8).getValue();
-    //Vells vellsfV = brickresult->vellSet(12).getValue();
-    blitz::Array<dcomplex,3> farrI = vellsfI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> farrQ = vellsfQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> farrU = vellsfU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> farrV = vellsfV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    VellSet vsfXX = brickresult->vellSet(0);
+    Vells vellsfXX = vsfXX.getValue(); 
+    VellSet vsfXY = brickresult->vellSet(4);
+    Vells vellsfXY = vsfXY.getValue(); 
+    VellSet vsfYX = brickresult->vellSet(8);
+    Vells vellsfYX = vsfYX.getValue(); 
+    VellSet vsfYY = brickresult->vellSet(12);
+    Vells vellsfYY = vsfYY.getValue(); 
+    
+    VellsSlicer<dcomplex,3> XX_slicer(vellsfXX,_in1axis0,_in1axis1,_in1axis2);
+    VellsSlicer<dcomplex,3> XY_slicer(vellsfXY,_in1axis0,_in1axis1,_in1axis2);
+    VellsSlicer<dcomplex,3> YX_slicer(vellsfYX,_in1axis0,_in1axis1,_in1axis2);
+    VellsSlicer<dcomplex,3> YY_slicer(vellsfYY,_in1axis0,_in1axis1,_in1axis2);
 
-    // Method 1
-    blitz::Array<dcomplex,3> fuarrI(nf,nu,nv);
-    blitz::Array<dcomplex,3> fvarrI(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuvarrI(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuarrQ(nf,nu,nv);
-    blitz::Array<dcomplex,3> fvarrQ(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuvarrQ(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuarrU(nf,nu,nv);
-    blitz::Array<dcomplex,3> fvarrU(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuvarrU(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuarrV(nf,nu,nv);
-    blitz::Array<dcomplex,3> fvarrV(nf,nu,nv);
-    blitz::Array<dcomplex,3> fuvarrV(nf,nu,nv);
+    blitz::Array<dcomplex,3> farrXX = XX_slicer();
+    blitz::Array<dcomplex,3> farrXY = XY_slicer();
+    blitz::Array<dcomplex,3> farrYX = YX_slicer();
+    blitz::Array<dcomplex,3> farrYY = YY_slicer();
 
-    if (_method == 1){
-      // Additional data Vells
-
-      VellSet vsfuI = brickresult->vellSet(1);
-      Vells fuvellsI = vsfuI.getValue(); 
-      fuarrI = fuvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfvI = brickresult->vellSet(2);
-      Vells fvvellsI = vsfvI.getValue(); 
-      fvarrI = fvvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuvI = brickresult->vellSet(3);
-      Vells fuvvellsI = vsfuvI.getValue(); 
-      fuvarrI = fuvvellsI.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuQ = brickresult->vellSet(5);
-      Vells fuvellsQ = vsfuQ.getValue(); 
-      fuarrQ = fuvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfvQ = brickresult->vellSet(6);
-      Vells fvvellsQ = vsfvQ.getValue(); 
-      fvarrQ = fvvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuvQ = brickresult->vellSet(7);
-      Vells fuvvellsQ = vsfuvQ.getValue(); 
-      fuvarrQ = fuvvellsQ.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuU = brickresult->vellSet(9);
-      Vells fuvellsU = vsfuU.getValue(); 
-      fuarrU = fuvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfvU = brickresult->vellSet(10);
-      Vells fvvellsU = vsfvU.getValue(); 
-      fvarrU = fvvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuvU = brickresult->vellSet(11);
-      Vells fuvvellsU = vsfuvU.getValue(); 
-      fuvarrU = fuvvellsU.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuV = brickresult->vellSet(13);
-      Vells fuvellsV = vsfuV.getValue(); 
-      fuarrV = fuvellsV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfvV = brickresult->vellSet(14);
-      Vells fvvellsV = vsfvV.getValue(); 
-      fvarrV = fvvellsV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      VellSet vsfuvV = brickresult->vellSet(15);
-      Vells fuvvellsV = vsfuvV.getValue(); 
-      fuvarrV = fuvvellsV.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-    };
-
+    // Output
     // Make an array, connected to the Vells, with which we fill the Vells.
-    LoMat_dcomplex arrI = fvells0.as<dcomplex,2>();
-    LoMat_dcomplex arrQ = fvells1.as<dcomplex,2>();
-    LoMat_dcomplex arrU = fvells2.as<dcomplex,2>();
-    LoMat_dcomplex arrV = fvells3.as<dcomplex,2>();
-    arrI = dcomplex(0.0);
-    arrQ = dcomplex(0.0);
-    arrU = dcomplex(0.0);
-    arrV = dcomplex(0.0);
+    VellsSlicer<dcomplex,2> XXtf_slicer(fvells0,_out1axis0,_out1axis1);
+    blitz::Array<dcomplex,2> arrXX = XXtf_slicer();
+    VellsSlicer<dcomplex,2> XYtf_slicer(fvells1,_out1axis0,_out1axis1);
+    blitz::Array<dcomplex,2> arrXY = XYtf_slicer();
+    VellsSlicer<dcomplex,2> YXtf_slicer(fvells2,_out1axis0,_out1axis1);
+    blitz::Array<dcomplex,2> arrYX = YXtf_slicer();
+    VellsSlicer<dcomplex,2> YYtf_slicer(fvells3,_out1axis0,_out1axis1);
+    blitz::Array<dcomplex,2> arrYY = YYtf_slicer();
+
+    arrXX = dcomplex(0.0);
+    arrXY = dcomplex(0.0);
+    arrYX = dcomplex(0.0);
+    arrYY = dcomplex(0.0);
 
     double uc,vc;
     int    ia,ib,ja,jb;
@@ -429,7 +352,7 @@ namespace Meq {
     // Method 3
     dcomplex value, dvalue;
     blitz::Array<double,1> x1(4), x2(4);
-    blitz::Array<dcomplex,2> yI(4,4),yQ(4,4),yU(4,4),yV(4,4);
+    blitz::Array<dcomplex,2> yXX(4,4),yXY(4,4),yYX(4,4),yYY(4,4);
 
     // Think about order of time and frequency.
     // Can the grid search for the next (i,j) tile be optimised 
@@ -439,13 +362,76 @@ namespace Meq {
 	
       // Determine the uv-coordinates
       
-      uc = uarr1(i);
-      vc = varr1(i);
+      uc = uarr(i);
+      vc = varr(i);
 
 
       // For all methods: the grid search can still be optimised
 
       if (_method == 1) {
+
+	// Additional input data Vells
+
+	VellSet vsfuXX = brickresult->vellSet(1);
+	Vells fuvellsXX = vsfuXX.getValue(); 
+	VellsSlicer<dcomplex,3> uXX_slicer(fuvellsXX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuarrXX = uXX_slicer();
+	
+	VellSet vsfvXX = brickresult->vellSet(2);
+	Vells fvvellsXX = vsfvXX.getValue(); 
+	VellsSlicer<dcomplex,3> vXX_slicer(fvvellsXX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fvarrXX = vXX_slicer();
+	
+	VellSet vsfuvXX = brickresult->vellSet(3);
+	Vells fuvvellsXX = vsfuvXX.getValue(); 
+	VellsSlicer<dcomplex,3> uvXX_slicer(fuvvellsXX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuvarrXX = uvXX_slicer();
+	
+	VellSet vsfuXY = brickresult->vellSet(5);
+	Vells fuvellsXY = vsfuXY.getValue(); 
+	VellsSlicer<dcomplex,3> uXY_slicer(fuvellsXY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuarrXY = uXY_slicer();
+	
+	VellSet vsfvXY = brickresult->vellSet(6);
+	Vells fvvellsXY = vsfvXY.getValue(); 
+	VellsSlicer<dcomplex,3> vXY_slicer(fvvellsXY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fvarrXY = vXY_slicer();
+	
+	VellSet vsfuvXY = brickresult->vellSet(7);
+	Vells fuvvellsXY = vsfuvXY.getValue(); 
+	VellsSlicer<dcomplex,3> uvXY_slicer(fuvvellsXY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuvarrXY = uvXY_slicer();
+	
+	VellSet vsfuYX = brickresult->vellSet(9);
+	Vells fuvellsYX = vsfuYX.getValue(); 
+	VellsSlicer<dcomplex,3> uYX_slicer(fuvellsYX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuarrYX = uYX_slicer();
+	
+	VellSet vsfvYX = brickresult->vellSet(10);
+	Vells fvvellsYX = vsfvYX.getValue(); 
+	VellsSlicer<dcomplex,3> vYX_slicer(fvvellsYX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fvarrYX = vYX_slicer();
+	
+	VellSet vsfuvYX = brickresult->vellSet(11);
+	Vells fuvvellsYX = vsfuvYX.getValue(); 
+	VellsSlicer<dcomplex,3> uvYX_slicer(fuvvellsYX,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuvarrYX = uvYX_slicer();
+	
+	VellSet vsfuYY = brickresult->vellSet(13);
+	Vells fuvellsYY = vsfuYY.getValue(); 
+	VellsSlicer<dcomplex,3> uYY_slicer(fuvellsYY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuarrYY = uYY_slicer();
+
+	VellSet vsfvYY = brickresult->vellSet(14);
+	Vells fvvellsYY = vsfvYY.getValue(); 
+	VellsSlicer<dcomplex,3> vYY_slicer(fvvellsYY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fvarrYY = vYY_slicer();
+	
+	VellSet vsfuvYY = brickresult->vellSet(15);
+	Vells fuvvellsYY = vsfuvYY.getValue(); 
+	VellsSlicer<dcomplex,3> uvYY_slicer(fuvvellsYY,_in1axis0,_in1axis1,_in1axis2);
+	blitz::Array<dcomplex,3> fuvarrYY = uvYY_slicer();
+	
 	// Bi-Cubic Hermite Interpolation, where the derivatives are
 	//  approximated by central finite differences (already 
 	//  determined in the UVBrick node).
@@ -467,73 +453,73 @@ namespace Meq {
 	
 	for (int j = 0; j < nf; j++){
 
-	  arrI(i,j) = (1-t)*(1-s)*farrI(j,ia,ja) 
-	    + s*(1-t)*farrI(j,ib,ja) 
-	    + (1-s)*t*farrI(j,ia,jb)
-	    + t*s*farrI(j,ib,jb)
-	    + t*s*s*(1-s)*(farrI(j,ib,jb)-fuarrI(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrI(j,ia,jb)-fuarrI(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrI(j,ib,ja)-fuarrI(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrI(j,ia,ja)-fuarrI(j,ia,ja))
-	    + t*t*s*(1-t)*(farrI(j,ib,jb)-fvarrI(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrI(j,ia,jb)-fvarrI(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrI(j,ib,ja)-fvarrI(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrI(j,ia,ja)-fvarrI(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrI(j,ib,jb) - fvarrI(j,ib,jb) - fuarrI(j,ib,jb) + fuvarrI(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrI(j,ia,jb) - fvarrI(j,ia,jb) - fuarrI(j,ia,jb) + fuvarrI(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrI(j,ib,ja) - fvarrI(j,ib,ja) - fuarrI(j,ib,ja) + fuvarrI(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrI(j,ia,ja) - fvarrI(j,ia,ja) - fuarrI(j,ia,ja) + fuvarrI(j,ia,ja));
+	  arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
+	    + s*(1-t)*farrXX(j,ib,ja) 
+	    + (1-s)*t*farrXX(j,ia,jb)
+	    + t*s*farrXX(j,ib,jb)
+	    + t*s*s*(1-s)*(farrXX(j,ib,jb)-fuarrXX(j,ib,jb))
+	    + t*s*(1-s)*(1-s)*(farrXX(j,ia,jb)-fuarrXX(j,ia,jb))
+	    + (1-t)*s*s*(1-s)*(farrXX(j,ib,ja)-fuarrXX(j,ib,ja))
+	    + (1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,ja)-fuarrXX(j,ia,ja))
+	    + t*t*s*(1-t)*(farrXX(j,ib,jb)-fvarrXX(j,ib,jb))
+	    + t*t*(1-t)*(1-s)*(farrXX(j,ia,jb)-fvarrXX(j,ia,jb))
+	    + (1-t)*s*t*(1-t)*(farrXX(j,ib,ja)-fvarrXX(j,ib,ja))
+	    + t*(1-t)*(1-t)*(1-s)*(farrXX(j,ia,ja)-fvarrXX(j,ia,ja))
+	    + t*t*(1-t)*s*s*(1-s)*(farrXX(j,ib,jb) - fvarrXX(j,ib,jb) - fuarrXX(j,ib,jb) + fuvarrXX(j,ib,jb))
+	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,jb) - fvarrXX(j,ia,jb) - fuarrXX(j,ia,jb) + fuvarrXX(j,ia,jb))
+	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrXX(j,ib,ja) - fvarrXX(j,ib,ja) - fuarrXX(j,ib,ja) + fuvarrXX(j,ib,ja))
+	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,ja) - fvarrXX(j,ia,ja) - fuarrXX(j,ia,ja) + fuvarrXX(j,ia,ja));
 
-	  arrQ(i,j) = (1-t)*(1-s)*farrQ(j,ia,ja) 
-	    + s*(1-t)*farrQ(j,ib,ja) 
-	    + (1-s)*t*farrQ(j,ia,jb)
-	    + t*s*farrQ(j,ib,jb)
-	    + t*s*s*(1-s)*(farrQ(j,ib,jb)-fuarrQ(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrQ(j,ia,jb)-fuarrQ(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrQ(j,ib,ja)-fuarrQ(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrQ(j,ia,ja)-fuarrQ(j,ia,ja))
-	    + t*t*s*(1-t)*(farrQ(j,ib,jb)-fvarrQ(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrQ(j,ia,jb)-fvarrQ(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrQ(j,ib,ja)-fvarrQ(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrQ(j,ia,ja)-fvarrQ(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrQ(j,ib,jb) - fvarrQ(j,ib,jb) - fuarrQ(j,ib,jb) + fuvarrQ(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrQ(j,ia,jb) - fvarrQ(j,ia,jb) - fuarrQ(j,ia,jb) + fuvarrQ(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrQ(j,ib,ja) - fvarrQ(j,ib,ja) - fuarrQ(j,ib,ja) + fuvarrQ(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrQ(j,ia,ja) - fvarrQ(j,ia,ja) - fuarrQ(j,ia,ja) + fuvarrQ(j,ia,ja));
+	  arrXY(i,j) = (1-t)*(1-s)*farrXY(j,ia,ja) 
+	    + s*(1-t)*farrXY(j,ib,ja) 
+	    + (1-s)*t*farrXY(j,ia,jb)
+	    + t*s*farrXY(j,ib,jb)
+	    + t*s*s*(1-s)*(farrXY(j,ib,jb)-fuarrXY(j,ib,jb))
+	    + t*s*(1-s)*(1-s)*(farrXY(j,ia,jb)-fuarrXY(j,ia,jb))
+	    + (1-t)*s*s*(1-s)*(farrXY(j,ib,ja)-fuarrXY(j,ib,ja))
+	    + (1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,ja)-fuarrXY(j,ia,ja))
+	    + t*t*s*(1-t)*(farrXY(j,ib,jb)-fvarrXY(j,ib,jb))
+	    + t*t*(1-t)*(1-s)*(farrXY(j,ia,jb)-fvarrXY(j,ia,jb))
+	    + (1-t)*s*t*(1-t)*(farrXY(j,ib,ja)-fvarrXY(j,ib,ja))
+	    + t*(1-t)*(1-t)*(1-s)*(farrXY(j,ia,ja)-fvarrXY(j,ia,ja))
+	    + t*t*(1-t)*s*s*(1-s)*(farrXY(j,ib,jb) - fvarrXY(j,ib,jb) - fuarrXY(j,ib,jb) + fuvarrXY(j,ib,jb))
+	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,jb) - fvarrXY(j,ia,jb) - fuarrXY(j,ia,jb) + fuvarrXY(j,ia,jb))
+	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrXY(j,ib,ja) - fvarrXY(j,ib,ja) - fuarrXY(j,ib,ja) + fuvarrXY(j,ib,ja))
+	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,ja) - fvarrXY(j,ia,ja) - fuarrXY(j,ia,ja) + fuvarrXY(j,ia,ja));
 
-	  arrU(i,j) = (1-t)*(1-s)*farrU(j,ia,ja) 
-	    + s*(1-t)*farrU(j,ib,ja) 
-	    + (1-s)*t*farrU(j,ia,jb)
-	    + t*s*farrU(j,ib,jb)
-	    + t*s*s*(1-s)*(farrU(j,ib,jb)-fuarrU(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrU(j,ia,jb)-fuarrU(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrU(j,ib,ja)-fuarrU(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrU(j,ia,ja)-fuarrU(j,ia,ja))
-	    + t*t*s*(1-t)*(farrU(j,ib,jb)-fvarrU(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrU(j,ia,jb)-fvarrU(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrU(j,ib,ja)-fvarrU(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrU(j,ia,ja)-fvarrU(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrU(j,ib,jb) - fvarrU(j,ib,jb) - fuarrU(j,ib,jb) + fuvarrU(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrU(j,ia,jb) - fvarrU(j,ia,jb) - fuarrU(j,ia,jb) + fuvarrU(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrU(j,ib,ja) - fvarrU(j,ib,ja) - fuarrU(j,ib,ja) + fuvarrU(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrU(j,ia,ja) - fvarrU(j,ia,ja) - fuarrU(j,ia,ja) + fuvarrU(j,ia,ja));
+	  arrYX(i,j) = (1-t)*(1-s)*farrYX(j,ia,ja) 
+	    + s*(1-t)*farrYX(j,ib,ja) 
+	    + (1-s)*t*farrYX(j,ia,jb)
+	    + t*s*farrYX(j,ib,jb)
+	    + t*s*s*(1-s)*(farrYX(j,ib,jb)-fuarrYX(j,ib,jb))
+	    + t*s*(1-s)*(1-s)*(farrYX(j,ia,jb)-fuarrYX(j,ia,jb))
+	    + (1-t)*s*s*(1-s)*(farrYX(j,ib,ja)-fuarrYX(j,ib,ja))
+	    + (1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,ja)-fuarrYX(j,ia,ja))
+	    + t*t*s*(1-t)*(farrYX(j,ib,jb)-fvarrYX(j,ib,jb))
+	    + t*t*(1-t)*(1-s)*(farrYX(j,ia,jb)-fvarrYX(j,ia,jb))
+	    + (1-t)*s*t*(1-t)*(farrYX(j,ib,ja)-fvarrYX(j,ib,ja))
+	    + t*(1-t)*(1-t)*(1-s)*(farrYX(j,ia,ja)-fvarrYX(j,ia,ja))
+	    + t*t*(1-t)*s*s*(1-s)*(farrYX(j,ib,jb) - fvarrYX(j,ib,jb) - fuarrYX(j,ib,jb) + fuvarrYX(j,ib,jb))
+	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,jb) - fvarrYX(j,ia,jb) - fuarrYX(j,ia,jb) + fuvarrYX(j,ia,jb))
+	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrYX(j,ib,ja) - fvarrYX(j,ib,ja) - fuarrYX(j,ib,ja) + fuvarrYX(j,ib,ja))
+	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,ja) - fvarrYX(j,ia,ja) - fuarrYX(j,ia,ja) + fuvarrYX(j,ia,ja));
 
-	  arrV(i,j) = (1-t)*(1-s)*farrV(j,ia,ja) 
-	    + s*(1-t)*farrV(j,ib,ja) 
-	    + (1-s)*t*farrV(j,ia,jb)
-	    + t*s*farrV(j,ib,jb)
-	    + t*s*s*(1-s)*(farrV(j,ib,jb)-fuarrV(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrV(j,ia,jb)-fuarrV(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrV(j,ib,ja)-fuarrV(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrV(j,ia,ja)-fuarrV(j,ia,ja))
-	    + t*t*s*(1-t)*(farrV(j,ib,jb)-fvarrV(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrV(j,ia,jb)-fvarrV(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrV(j,ib,ja)-fvarrV(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrV(j,ia,ja)-fvarrV(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrV(j,ib,jb) - fvarrV(j,ib,jb) - fuarrV(j,ib,jb) + fuvarrV(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrV(j,ia,jb) - fvarrV(j,ia,jb) - fuarrV(j,ia,jb) + fuvarrV(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrV(j,ib,ja) - fvarrV(j,ib,ja) - fuarrV(j,ib,ja) + fuvarrV(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrV(j,ia,ja) - fvarrV(j,ia,ja) - fuarrV(j,ia,ja) + fuvarrV(j,ia,ja));
+	  arrYY(i,j) = (1-t)*(1-s)*farrYY(j,ia,ja) 
+	    + s*(1-t)*farrYY(j,ib,ja) 
+	    + (1-s)*t*farrYY(j,ia,jb)
+	    + t*s*farrYY(j,ib,jb)
+	    + t*s*s*(1-s)*(farrYY(j,ib,jb)-fuarrYY(j,ib,jb))
+	    + t*s*(1-s)*(1-s)*(farrYY(j,ia,jb)-fuarrYY(j,ia,jb))
+	    + (1-t)*s*s*(1-s)*(farrYY(j,ib,ja)-fuarrYY(j,ib,ja))
+	    + (1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,ja)-fuarrYY(j,ia,ja))
+	    + t*t*s*(1-t)*(farrYY(j,ib,jb)-fvarrYY(j,ib,jb))
+	    + t*t*(1-t)*(1-s)*(farrYY(j,ia,jb)-fvarrYY(j,ia,jb))
+	    + (1-t)*s*t*(1-t)*(farrYY(j,ib,ja)-fvarrYY(j,ib,ja))
+	    + t*(1-t)*(1-t)*(1-s)*(farrYY(j,ia,ja)-fvarrYY(j,ia,ja))
+	    + t*t*(1-t)*s*s*(1-s)*(farrYY(j,ib,jb) - fvarrYY(j,ib,jb) - fuarrYY(j,ib,jb) + fuvarrYY(j,ib,jb))
+	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,jb) - fvarrYY(j,ia,jb) - fuarrYY(j,ia,jb) + fuvarrYY(j,ia,jb))
+	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrYY(j,ib,ja) - fvarrYY(j,ib,ja) - fuarrYY(j,ib,ja) + fuvarrYY(j,ib,ja))
+	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,ja) - fvarrYY(j,ia,ja) - fuarrYY(j,ia,ja) + fuvarrYY(j,ia,ja));
 
 	};
 
@@ -561,32 +547,32 @@ namespace Meq {
 	      x1(i1) = uu(ia+i1);
 	      for (int j1=0; j1<4; j1++){
 		x2(j1) = vv(ja+j1);
-		yI(i1,j1) = farrI(j,ia+i1, ja+j1);
-		yQ(i1,j1) = farrQ(j,ia+i1, ja+j1);
-		yU(i1,j1) = farrU(j,ia+i1, ja+j1);
-		yV(i1,j1) = farrV(j,ia+i1, ja+j1);
+		yXX(i1,j1) = farrXX(j,ia+i1, ja+j1);
+		yXY(i1,j1) = farrXY(j,ia+i1, ja+j1);
+		yYX(i1,j1) = farrYX(j,ia+i1, ja+j1);
+		yYY(i1,j1) = farrYY(j,ia+i1, ja+j1);
 	      };
 	    };
 	    
 	    value = dcomplex(0.0);
 	    dvalue = dcomplex(0.0);
-	    UVInterpol::mypolin2(x1,x2,yI,4,4,uc,vc,value, dvalue);
-	    arrI(i,j) = value;
+	    UVInterpol::mypolin2(x1,x2,yXX,4,4,uc,vc,value, dvalue);
+	    arrXX(i,j) = value;
 
 	    value = dcomplex(0.0);
 	    dvalue = dcomplex(0.0);
-	    UVInterpol::mypolin2(x1,x2,yQ,4,4,uc,vc,value, dvalue);
-	    arrQ(i,j) = value;
+	    UVInterpol::mypolin2(x1,x2,yXY,4,4,uc,vc,value, dvalue);
+	    arrXY(i,j) = value;
 
 	    value = dcomplex(0.0);
 	    dvalue = dcomplex(0.0);
-	    UVInterpol::mypolin2(x1,x2,yU,4,4,uc,vc,value, dvalue);
-	    arrU(i,j) = value;
+	    UVInterpol::mypolin2(x1,x2,yYX,4,4,uc,vc,value, dvalue);
+	    arrYX(i,j) = value;
 
 	    value = dcomplex(0.0);
 	    dvalue = dcomplex(0.0);
-	    UVInterpol::mypolin2(x1,x2,yV,4,4,uc,vc,value, dvalue);
-	    arrV(i,j) = value;
+	    UVInterpol::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
+	    arrYY(i,j) = value;
 
 	  };
 
@@ -612,25 +598,25 @@ namespace Meq {
 	    
 	    for (int j = 0; j < nf; j++){
 
-	      arrI(i,j) = (1-t)*(1-s)*farrI(j,ia,ja) 
-		+ s*(1-t)*farrI(j,ib,ja) 
-		+ t*(1-s)*farrI(j,ia,jb)
-		+ t*s*farrI(j,ib,jb);
+	      arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
+		+ s*(1-t)*farrXX(j,ib,ja) 
+		+ t*(1-s)*farrXX(j,ia,jb)
+		+ t*s*farrXX(j,ib,jb);
 
-	      arrQ(i,j) = (1-t)*(1-s)*farrQ(j,ia,ja) 
-		+ s*(1-t)*farrQ(j,ib,ja) 
-		+ t*(1-s)*farrQ(j,ia,jb)
-		+ t*s*farrQ(j,ib,jb);
+	      arrXY(i,j) = (1-t)*(1-s)*farrXY(j,ia,ja) 
+		+ s*(1-t)*farrXY(j,ib,ja) 
+		+ t*(1-s)*farrXY(j,ia,jb)
+		+ t*s*farrXY(j,ib,jb);
 
-	      arrU(i,j) = (1-t)*(1-s)*farrU(j,ia,ja) 
-		+ s*(1-t)*farrU(j,ib,ja) 
-		+ t*(1-s)*farrU(j,ia,jb)
-		+ t*s*farrU(j,ib,jb);
+	      arrYX(i,j) = (1-t)*(1-s)*farrYX(j,ia,ja) 
+		+ s*(1-t)*farrYX(j,ib,ja) 
+		+ t*(1-s)*farrYX(j,ia,jb)
+		+ t*s*farrYX(j,ib,jb);
 
-	      arrV(i,j) = (1-t)*(1-s)*farrV(j,ia,ja) 
-		+ s*(1-t)*farrV(j,ib,ja) 
-		+ t*(1-s)*farrV(j,ia,jb)
-		+ t*s*farrV(j,ib,jb);	  
+	      arrYY(i,j) = (1-t)*(1-s)*farrYY(j,ia,ja) 
+		+ s*(1-t)*farrYY(j,ib,ja) 
+		+ t*(1-s)*farrYY(j,ia,jb)
+		+ t*s*farrYY(j,ib,jb);	  
 	      
 	    };
 	  };
