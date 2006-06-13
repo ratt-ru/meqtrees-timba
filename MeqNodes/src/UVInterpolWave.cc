@@ -20,9 +20,8 @@
 //#
 //# $Id$
 
-// This version of the UVInterpol node interpolates a UVBrick in meters.
-// The interpolation point is found for the first frequency plane and then
-// used for all the other frequency planes.
+// This version of the UVInterpol node interpolates a UVBrick in wavelengths.
+// The interpolation point is found for all frequency planes separately.
 
 #include <MeqNodes/UVInterpolWave.h>
 #include <MEQ/Request.h>
@@ -119,6 +118,8 @@ namespace Meq {
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
+    // Speed of light
+    const double c0 = casa::C::c;
 
     // Get the request cells
     const Cells& rcells = request.cells();
@@ -147,6 +148,7 @@ namespace Meq {
 	Axis::degenerateShape(tfshape,rcells.rank());
 	int nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
 	int nf = tfshape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	const LoVec_double freq = rcells.center(Axis::axis("FREQ"));
 	    
 	// Make a new Vells and fill with zeros
 	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
@@ -231,21 +233,23 @@ namespace Meq {
 
 	  int imin, jmin;
 
-	  for (int i = 0; i < nt; i++){
+	  for (int j = 0; j < nf; j++){
+	    for (int i = 0; i < nt; i++){
         
-	    imin = 0;
-	    jmin = 0;
+	      imin = 0;
+	      jmin = 0;
 	      
-	    for (int i1 = 0; i1 < nu-1; i1++){
-	      if ((uu(i1)<=uarr(i)) && (uu(i1+1)>uarr(i))) {imin = i1;};
-	    };
-	    for (int j1 = 0; j1 < nv-1; j1++){
-	      if ((vv(j1)<=varr(i)) && (vv(j1+1)>varr(i))) {jmin = j1;};
-	    };
+	      for (int i1 = 0; i1 < nu-1; i1++){
+		if ((uu(i1)<=uarr(i)*freq(j)/c0) && (uu(i1+1)>uarr(i)*freq(j)/c0)) {imin = i1;};
+	      };
+	      for (int j1 = 0; j1 < nv-1; j1++){
+		if ((vv(j1)<=varr(i)*freq(j)/c0) && (vv(j1+1)>varr(i)*freq(j)/c0)) {jmin = j1;};
+	      };
 	      
-	    arr2(imin,jmin) = 1.0;
+	      arr2(imin,jmin) = 1.0;
 	      
-	  }; // i
+	    }; // i
+	  }; // j
 	  
 	  // Attach a Cells to the result
 	  res2.setCells(*uvcells);
@@ -358,101 +362,100 @@ namespace Meq {
     // Can the grid search for the next (i,j) tile be optimised 
     //   by using the previous one as starting position?
 
-    for (int i = 0; i < nt; i++){
-	
-      // Determine the uv-coordinates
+    // For all methods: the grid search can still be optimised
+
+    if (_method == 1) {
+
+      // Additional input data Vells
+
+      VellSet vsfuXX = brickresult->vellSet(1);
+      Vells fuvellsXX = vsfuXX.getValue(); 
+      VellsSlicer<dcomplex,3> uXX_slicer(fuvellsXX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuarrXX = uXX_slicer();
       
-      uc = uarr(i);
-      vc = varr(i);
+      VellSet vsfvXX = brickresult->vellSet(2);
+      Vells fvvellsXX = vsfvXX.getValue(); 
+      VellsSlicer<dcomplex,3> vXX_slicer(fvvellsXX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fvarrXX = vXX_slicer();
+      
+      VellSet vsfuvXX = brickresult->vellSet(3);
+      Vells fuvvellsXX = vsfuvXX.getValue(); 
+      VellsSlicer<dcomplex,3> uvXX_slicer(fuvvellsXX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuvarrXX = uvXX_slicer();
+      
+      VellSet vsfuXY = brickresult->vellSet(5);
+      Vells fuvellsXY = vsfuXY.getValue(); 
+      VellsSlicer<dcomplex,3> uXY_slicer(fuvellsXY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuarrXY = uXY_slicer();
+      
+      VellSet vsfvXY = brickresult->vellSet(6);
+      Vells fvvellsXY = vsfvXY.getValue(); 
+      VellsSlicer<dcomplex,3> vXY_slicer(fvvellsXY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fvarrXY = vXY_slicer();
+      
+      VellSet vsfuvXY = brickresult->vellSet(7);
+      Vells fuvvellsXY = vsfuvXY.getValue(); 
+      VellsSlicer<dcomplex,3> uvXY_slicer(fuvvellsXY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuvarrXY = uvXY_slicer();
+      
+      VellSet vsfuYX = brickresult->vellSet(9);
+      Vells fuvellsYX = vsfuYX.getValue(); 
+      VellsSlicer<dcomplex,3> uYX_slicer(fuvellsYX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuarrYX = uYX_slicer();
+      
+      VellSet vsfvYX = brickresult->vellSet(10);
+      Vells fvvellsYX = vsfvYX.getValue(); 
+      VellsSlicer<dcomplex,3> vYX_slicer(fvvellsYX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fvarrYX = vYX_slicer();
+      
+      VellSet vsfuvYX = brickresult->vellSet(11);
+      Vells fuvvellsYX = vsfuvYX.getValue(); 
+      VellsSlicer<dcomplex,3> uvYX_slicer(fuvvellsYX,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuvarrYX = uvYX_slicer();
+      
+      VellSet vsfuYY = brickresult->vellSet(13);
+      Vells fuvellsYY = vsfuYY.getValue(); 
+      VellsSlicer<dcomplex,3> uYY_slicer(fuvellsYY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuarrYY = uYY_slicer();
+      
+      VellSet vsfvYY = brickresult->vellSet(14);
+      Vells fvvellsYY = vsfvYY.getValue(); 
+      VellsSlicer<dcomplex,3> vYY_slicer(fvvellsYY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fvarrYY = vYY_slicer();
+      
+      VellSet vsfuvYY = brickresult->vellSet(15);
+      Vells fuvvellsYY = vsfuvYY.getValue(); 
+      VellsSlicer<dcomplex,3> uvYY_slicer(fuvvellsYY,_in1axis0,_in1axis1,_in1axis2);
+      blitz::Array<dcomplex,3> fuvarrYY = uvYY_slicer();
+      
+      for (int j = 0; j < nf; j++){
 
+	for (int i = 0; i < nt; i++){
+	
+	  // Determine the uv-coordinates
+      
+	  uc = uarr(i)*freq(j)/c0;
+	  vc = varr(i)*freq(j)/c0;
 
-      // For all methods: the grid search can still be optimised
+	  // Bi-Cubic Hermite Interpolation, where the derivatives are
+	  //  approximated by central finite differences (already 
+	  //  determined in the UVBrick node).
+	  
+	  ia = 0;
+	  ib = nu-1;
+	  ja = 0;
+	  jb = nv-1;
 
-      if (_method == 1) {
-
-	// Additional input data Vells
-
-	VellSet vsfuXX = brickresult->vellSet(1);
-	Vells fuvellsXX = vsfuXX.getValue(); 
-	VellsSlicer<dcomplex,3> uXX_slicer(fuvellsXX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuarrXX = uXX_slicer();
-	
-	VellSet vsfvXX = brickresult->vellSet(2);
-	Vells fvvellsXX = vsfvXX.getValue(); 
-	VellsSlicer<dcomplex,3> vXX_slicer(fvvellsXX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fvarrXX = vXX_slicer();
-	
-	VellSet vsfuvXX = brickresult->vellSet(3);
-	Vells fuvvellsXX = vsfuvXX.getValue(); 
-	VellsSlicer<dcomplex,3> uvXX_slicer(fuvvellsXX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuvarrXX = uvXX_slicer();
-	
-	VellSet vsfuXY = brickresult->vellSet(5);
-	Vells fuvellsXY = vsfuXY.getValue(); 
-	VellsSlicer<dcomplex,3> uXY_slicer(fuvellsXY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuarrXY = uXY_slicer();
-	
-	VellSet vsfvXY = brickresult->vellSet(6);
-	Vells fvvellsXY = vsfvXY.getValue(); 
-	VellsSlicer<dcomplex,3> vXY_slicer(fvvellsXY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fvarrXY = vXY_slicer();
-	
-	VellSet vsfuvXY = brickresult->vellSet(7);
-	Vells fuvvellsXY = vsfuvXY.getValue(); 
-	VellsSlicer<dcomplex,3> uvXY_slicer(fuvvellsXY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuvarrXY = uvXY_slicer();
-	
-	VellSet vsfuYX = brickresult->vellSet(9);
-	Vells fuvellsYX = vsfuYX.getValue(); 
-	VellsSlicer<dcomplex,3> uYX_slicer(fuvellsYX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuarrYX = uYX_slicer();
-	
-	VellSet vsfvYX = brickresult->vellSet(10);
-	Vells fvvellsYX = vsfvYX.getValue(); 
-	VellsSlicer<dcomplex,3> vYX_slicer(fvvellsYX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fvarrYX = vYX_slicer();
-	
-	VellSet vsfuvYX = brickresult->vellSet(11);
-	Vells fuvvellsYX = vsfuvYX.getValue(); 
-	VellsSlicer<dcomplex,3> uvYX_slicer(fuvvellsYX,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuvarrYX = uvYX_slicer();
-	
-	VellSet vsfuYY = brickresult->vellSet(13);
-	Vells fuvellsYY = vsfuYY.getValue(); 
-	VellsSlicer<dcomplex,3> uYY_slicer(fuvellsYY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuarrYY = uYY_slicer();
-
-	VellSet vsfvYY = brickresult->vellSet(14);
-	Vells fvvellsYY = vsfvYY.getValue(); 
-	VellsSlicer<dcomplex,3> vYY_slicer(fvvellsYY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fvarrYY = vYY_slicer();
-	
-	VellSet vsfuvYY = brickresult->vellSet(15);
-	Vells fuvvellsYY = vsfuvYY.getValue(); 
-	VellsSlicer<dcomplex,3> uvYY_slicer(fuvvellsYY,_in1axis0,_in1axis1,_in1axis2);
-	blitz::Array<dcomplex,3> fuvarrYY = uvYY_slicer();
-	
-	// Bi-Cubic Hermite Interpolation, where the derivatives are
-	//  approximated by central finite differences (already 
-	//  determined in the UVBrick node).
-
-	ia = 0;
-	ib = nu-1;
-	ja = 0;
-	jb = nv-1;
-
-	for (int i1 = 0; i1 < nu-1; i1++){
-	  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	};
-	for (int j1 = 0; j1 < nv-1; j1++){
-	  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	};
-
-	s = (uc-uu(ia))/(uu(ib)-uu(ia));
-	t = (vc-vv(ja))/(vv(jb)-vv(ja));
-	
-	for (int j = 0; j < nf; j++){
-
+	  for (int i1 = 0; i1 < nu-1; i1++){
+	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	  };
+	  for (int j1 = 0; j1 < nv-1; j1++){
+	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	  };
+	  
+	  s = (uc-uu(ia))/(uu(ib)-uu(ia));
+	  t = (vc-vv(ja))/(vv(jb)-vv(ja));
+	  
 	  arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
 	    + s*(1-t)*farrXX(j,ib,ja) 
 	    + (1-s)*t*farrXX(j,ia,jb)
@@ -521,28 +524,36 @@ namespace Meq {
 	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrYY(j,ib,ja) - fvarrYY(j,ib,ja) - fuarrYY(j,ib,ja) + fuvarrYY(j,ib,ja))
 	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,ja) - fvarrYY(j,ia,ja) - fuarrYY(j,ia,ja) + fuvarrYY(j,ia,ja));
 
-	};
+	}; // i
+      }; // j
 
-      } else {
-	if (_method == 2) {
+    } else {
+      if (_method == 2) {
 
-	  // 4th order polynomial interpolation
-	  // Numerical Recipes, Sec. 3.6
+	for (int j = 0; j < nf; j++){ 
 
-	  ia = 0;
-	  ib = nu-1;
-	  ja = 0;
-	  jb = nv-1;
+	  for (int i = 0; i < nt; i++){
+	
+	    // Determine the uv-coordinates
+      
+	    uc = uarr(i)*freq(j)/c0;
+	    vc = varr(i)*freq(j)/c0;
 
-	  for (int i1 = 0; i1 < nu-1; i1++){
-	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1-1; ib = i1+2;};
-	  };
-	  for (int j1 = 0; j1 < nv-1; j1++){
-	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1-1; jb = j1+2;};
-	  };
-
-	  for (int j = 0; j < nf; j++){ 
-
+	    // 4th order polynomial interpolation
+	    // Numerical Recipes, Sec. 3.6
+	    
+	    ia = 0;
+	    ib = nu-1;
+	    ja = 0;
+	    jb = nv-1;
+	    
+	    for (int i1 = 0; i1 < nu-1; i1++){
+	      if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1-1; ib = i1+2;};
+	    };
+	    for (int j1 = 0; j1 < nv-1; j1++){
+	      if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1-1; jb = j1+2;};
+	    };
+	    
 	    for (int i1 =0; i1<4; i1++){
 	      x1(i1) = uu(ia+i1);
 	      for (int j1=0; j1<4; j1++){
@@ -574,30 +585,38 @@ namespace Meq {
 	    UVInterpolWave::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
 	    arrYY(i,j) = value;
 
-	  };
+	  }; // i
+	}; // j
 
-	} else {
-	  if (_method == 3) {
+      } else {
+	if (_method == 3) {
 	    
-	    // Bi-linear interpolation (Num. Rec. Sec. 3.6)
-	    
-	    ia = 0;
-	    ib = nu-1;
-	    ja = 0;
-	    jb = nv-1;
-	    
-	    for (int i1 = 0; i1 < nu-1; i1++){
-	      if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	    };
-	    for (int j1 = 0; j1 < nv-1; j1++){
-	      if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	    };
-	    
-	    s = (uc-uu(ia))/(uu(ib)-uu(ia));
-	    t = (vc-vv(ja))/(vv(jb)-vv(ja));
-	    
-	    for (int j = 0; j < nf; j++){
+	  for (int j = 0; j < nf; j++){
 
+	    for (int i = 0; i < nt; i++){
+	
+	      // Determine the uv-coordinates
+      
+	      uc = uarr(i)*freq(j)/c0;
+	      vc = varr(i)*freq(j)/c0;
+
+	      // Bi-linear interpolation (Num. Rec. Sec. 3.6)
+	    
+	      ia = 0;
+	      ib = nu-1;
+	      ja = 0;
+	      jb = nv-1;
+	      
+	      for (int i1 = 0; i1 < nu-1; i1++){
+		if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	      };
+	      for (int j1 = 0; j1 < nv-1; j1++){
+		if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	      };
+	      
+	      s = (uc-uu(ia))/(uu(ib)-uu(ia));
+	      t = (vc-vv(ja))/(vv(jb)-vv(ja));
+	    
 	      arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
 		+ s*(1-t)*farrXX(j,ib,ja) 
 		+ t*(1-s)*farrXX(j,ia,jb)
@@ -618,15 +637,13 @@ namespace Meq {
 		+ t*(1-s)*farrYY(j,ia,jb)
 		+ t*s*farrYY(j,ib,jb);	  
 	      
-	    };
-	  };
-	};
-      }; // End filling arr(i,j) by one of the 3 Methods
-	
-    }; // End of time loop
+	    }; // i
+	  }; // j
+	}; // if method = 3
+      }; // else
+    }; // if method=1  else
       
-      
-  };
+  }; // fillVells
 
 
     
