@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.48  2006/06/14 17:41:49  smirnov
+//  Added missing innitialization of "writable_ref" flag
+//
 //  Revision 1.47  2006/06/03 11:25:34  smirnov
 //  Added NumArray methods to make an array that is a reference to a slice through
 //  another array.
@@ -119,7 +122,8 @@ static void destroyStringArray (void *start,int num)
 //##ModelId=3DB949AE039F
 DMI::NumArray::NumArray ()
 : Container (),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
 }
@@ -127,7 +131,8 @@ DMI::NumArray::NumArray ()
 //##ModelId=3DB949AE03A4
 DMI::NumArray::NumArray (TypeId type, const LoShape & shape,int flags,TypeId realtype) 
 : Container (),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   init(type,shape,flags,realtype);
@@ -160,7 +165,8 @@ void DMI::NumArray::init (TypeId type, const LoShape & shape,int flags,TypeId re
 //##ModelId=3DB949AE03AF
 DMI::NumArray::NumArray (TypeId tid,const void *other,TypeId realtype) 
 : Container (),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   // check arguments
@@ -186,7 +192,8 @@ DMI::NumArray::NumArray (TypeId tid,const void *other,TypeId realtype)
 //##ModelId=3F5487DA034E
 DMI::NumArray::NumArray (const NumArray& other, int flags,int depth,TypeId realtype)
 : Container (),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   cloneOther(other,flags,depth,true,realtype);

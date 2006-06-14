@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.44  2006/06/14 17:41:49  smirnov
+//  Added missing innitialization of "writable_ref" flag
+//
 //  Revision 1.43  2006/06/03 11:25:34  smirnov
 //  Added NumArray methods to make an array that is a reference to a slice through
 //  another array.
@@ -602,7 +605,8 @@ inline TypeId NumArray::elementType () const
 template<class T,int N>
 NumArray::NumArray (const typename Traits<T,N>::Array & array,TypeId realtype)
 : Container(),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   itsScaType  = typeIdOf(T);
@@ -617,7 +621,8 @@ NumArray::NumArray (const typename Traits<T,N>::Array & array,TypeId realtype)
 template<class T,int N>
 NumArray::NumArray (const blitz::Array<T,N> &array,TypeId realtype)
 : Container(),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   itsScaType  = typeIdOf(T);
@@ -654,7 +659,8 @@ inline bool NumArray::verifyAipsType (const casa::String*) const
 template<class T>
 NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
 : Container(),
-  itsArrayValid(false)
+  itsArrayValid(false),
+  itsWritableRef(false)    
 {
   initSubArray();
   init(array,realtype);
