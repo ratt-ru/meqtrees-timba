@@ -292,6 +292,8 @@ DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional
         TypeInfoReg::addToRegistry(-1443,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1443,__construct_MeqCondeq)+
         AtomicID::registerId(-1679,"Modulo")+
+        AtomicID::registerId(-1687,"LHS")+
+        AtomicID::registerId(-1686,"RHS")+
         AtomicID::registerId(-1678,"MeqIdentity")+
         TypeInfoReg::addToRegistry(-1678,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1678,__construct_MeqIdentity)+

@@ -228,6 +228,11 @@ const int AidIterations_int = -1588;
 const DMI::AtomicID AidLE(-1414);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidLE_int = -1414;
 #endif
+#ifndef _defined_id_AidLHS
+#define _defined_id_AidLHS 1
+const DMI::AtomicID AidLHS(-1687);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
+const int AidLHS_int = -1687;
+#endif
 #ifndef _defined_id_AidLM
 #define _defined_id_AidLM 1
 const DMI::AtomicID AidLM(-1636);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:36
@@ -802,6 +807,11 @@ const int AidRA_int = -1435;
 #define _defined_id_AidRADec 1
 const DMI::AtomicID AidRADec(-1566);              // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
 const int AidRADec_int = -1566;
+#endif
+#ifndef _defined_id_AidRHS
+#define _defined_id_AidRHS 1
+const DMI::AtomicID AidRHS(-1686);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
+const int AidRHS_int = -1686;
 #endif
 #ifndef _defined_id_AidReady
 #define _defined_id_AidReady 1

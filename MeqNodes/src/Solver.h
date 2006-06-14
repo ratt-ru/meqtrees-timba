@@ -414,7 +414,8 @@ private:
   // helper function for fillEquations() to fill a particular subsolver
   template<typename T>
   inline void fillEqVectors (Subsolver &ss,int npert,int uk_index[],
-        const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter);
+        const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter,
+        double weight);
       
   
   // mt-related methods and members

@@ -61,6 +61,7 @@ static inline HIID FiPerturbedValues (int iset)
 VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 : pvalue_       (0),
   pflags_       (0),
+  pweights_     (0),
   default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
@@ -74,6 +75,7 @@ VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 VellSet::VellSet (int nspid,int nset)
 : pvalue_       (0),
   pflags_       (0),
+  pweights_     (0),
   default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
@@ -162,6 +164,8 @@ void VellSet::verifyShape (bool reset)
     adjusted |= adjustShape(shp,pvalue_->deref());
   if( hasDataFlags() )
     adjusted |= adjustShape(shp,dataFlags());
+  if( hasDataWeights() )
+    adjusted |= adjustShape(shp,dataWeights());
   for( uint iset=0; iset<pset_.size(); iset++ )
     for( int i=0; i<numspids_; i++ )
       adjusted |= adjustShape(shp,getPerturbedValue(i,iset));
@@ -245,12 +249,21 @@ void VellSet::validateContent (bool)
       {
         pflags_ = &( fld->ref().ref_cast<Vells>() );
         flagvells = pflags_->deref_p();
-        // check for matching shape
-        FailWhen(!flagvells->isFlags(),"dataflags: invalid type "+flagvells->elementType().toString());
+        FailWhen(!flagvells->isFlags(),"flags: invalid type "+flagvells->elementType().toString());
         fld->protect(true);
       }
       else
         pflags_ = 0;
+      // get weights, if they exist in the data record
+      fld = Record::findField(FWeights);
+      if( fld )
+      {
+        pweights_ = &( fld->ref().ref_cast<Vells>() );
+        FailWhen(!(*pweights_)->isReal(),"weights: invalid type "+(*pweights_)->elementType().toString());
+        fld->protect(true);
+      }
+      else
+        pweights_ = 0;
       // get value, if it exists in the data record
       fld = Record::findField(FValue);
       if( fld )
@@ -486,7 +499,7 @@ void VellSet::copyPerturbations (const VellSet &other)
 void VellSet::setDataFlags (const Vells::Ref &flags)
 {
   Thread::Mutex::Lock lock(mutex());
-  FailWhen(!flags->isFlags(),"dataflags: invalid type "+flags->elementType().toString());
+  FailWhen(!flags->isFlags(),"flags: invalid type "+flags->elementType().toString());
   adjustShape(*flags);
   Field & field = Record::addField(FFlags,flags.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
   pflags_ = &( field.ref().ref_cast<Vells>() );
@@ -511,6 +524,7 @@ void VellSet::clearDataFlags ()
   if( !pflags_ )
     return;
   pflags_ = 0;
+  Record::removeField(FFlags,true,0);
   // clear flags in all values
   if( pvalue_ && pvalue_->deref().hasDataFlags() )
     pvalue_->dewr().clearDataFlags();
@@ -527,6 +541,23 @@ void VellSet::clearDataFlags ()
   }
 }
 
+void VellSet::setDataWeights (const Vells::Ref &weights)
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen(!weights->isReal(),"weights: invalid type "+weights->elementType().toString());
+  adjustShape(*weights);
+  Field & field = Record::addField(FWeights,weights.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
+  pweights_ = &( field.ref().ref_cast<Vells>() );
+}
+
+void VellSet::clearDataWeights ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !pweights_ )
+    return;
+  Record::removeField(FWeights,true,0);
+  pweights_ = 0;
+}
 
 void VellSet::setValue (Vells::Ref &ref,int flags)
 {

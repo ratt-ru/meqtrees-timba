@@ -30,7 +30,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Condeq
 
-#pragma aid Modulo
+#pragma aid Modulo LHS RHS
 
 namespace Meq {
 

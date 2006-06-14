@@ -259,7 +259,7 @@ public:
   bool hasDataFlags () const
   { return pflags_; }
   
-  // returns flags of this Vells
+  // returns flags of this VellSet
   const Vells & dataFlags () const
   { return pflags_->deref(); }
   
@@ -267,7 +267,7 @@ public:
   bool sameDataFlags (const Vells &flags) const
   { return hasDataFlags() && pflags_->deref_p() == &flags; }
   
-  // sets the dataflags of a Vells
+  // sets the dataflags of a VellSet
   void setDataFlags (const Vells::Ref &flags);
   
   // aliases for passing flags by value or pointer
@@ -283,8 +283,31 @@ public:
     setDataFlags(ref);
   }
   
+  // removes flags from VellSet (and constituent Vells)
   void clearDataFlags ();
+  
+  // ------------------------ DATA WEIGHTS
+  // does this VellSet have weights attached?
+  bool hasDataWeights () const
+  { return pweights_; }
+  
+  // returns weights of this VellSet
+  const Vells & dataWeights () const
+  { return pweights_->deref(); }
+  
+  // sets the weights of a VellSet
+  void setDataWeights (const Vells::Ref &weights);
+  
+  // aliases for passing weights by value or pointer
+  void setDataWeights (const Vells &weights)
+  { setDataWeights(Vells::Ref(weights)); }
+  
+  void setDataWeights (const Vells *weights)
+  { setDataWeights(Vells::Ref(weights)); }
 
+  // removes weights from VellSet
+  void clearDataWeights ();
+  
 protected:  
   // called after flags have been attached, to verify flag shapes
   // and to propagate the flags to all child Vells
@@ -381,6 +404,8 @@ private:
   Vells::Ref * pvalue_;
   
   Vells::Ref * pflags_;
+  
+  Vells::Ref * pweights_;
   
     //##ModelId=400E53550302
   double default_pert_;

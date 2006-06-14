@@ -24,15 +24,18 @@
 #include <MeqNodes/Condeq.h>
 #include <MEQ/Function.h>
 #include <MEQ/Vells.h>
-    
 
 namespace Meq {
 
 const HIID FModulo = AidModulo;
 
+const HIID child_labels[] = { AidLHS,AidRHS,AidWeights  };
+const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
+
 //##ModelId=400E5305005F
 Condeq::Condeq()
-  : Function(2),modulo_(0)
+  // first 2 children mandatory, last (weight) is optional
+  : Function(num_children,child_labels,2),modulo_(0)
 {
   children().setMissingDataPolicy(AidAbandonPropagate);
   setAutoResample(RESAMPLE_FAIL); // children must return the same cells
@@ -95,33 +98,39 @@ int Condeq::getResult (Result::Ref &resref,
                        const Request &request,bool)
 {
   int nrch = child_result.size();
-  Assert(nrch==2);
+  Assert(nrch==2 || nrch==3);
   // Figure out the dimensions of the output result, and see that children
   // match these dimensions. 
   Result::Dims out_dims = child_result[0]->dims();
-  if( !child_result[1]->dims().empty() ) // child 1 is a tensor
+  for( int i=1; i<nrch; i++ )
   {
-    if( out_dims.empty() )               // child 0 is a scalar
-      out_dims = child_result[1]->dims();
-    else         // both tensors, verify match
+    if( !child_result[i]->dims().empty() ) // child #i is a tensor
     {
-      FailWhen(out_dims != child_result[1]->dims(),"dimensions of tensor child results do not match");
+      if( out_dims.empty() )               // previous children were scalar
+        out_dims = child_result[i]->dims();
+      else         // both tensors, verify match
+      {
+        FailWhen(out_dims != child_result[i]->dims(),"dimensions of tensor child results do not match");
+      }
     }
   }
   // Create result object and attach to the ref that was passed in
   Result & result = resref <<= new Result(out_dims);
   int nplanes = result.numVellSets(); // total number of output elements
   
-  vector<const VellSet*> child_vs(nrch);
+  vector<const VellSet*> child_vs(2);
+  // check the weight result
+  const Result * ch_weight = nrch > 2 ? child_result[2].deref_p() : 0;
+  const Vells * weight_vells = 0;
   for( int iplane=0; iplane<nplanes; iplane++ )
   {
     Vells::Ref flagref;
     // collect vector of pointers to children, and vector
     // of pointers to main value
-    vector<const Vells*> values(nrch);
+    vector<const Vells*> values(2);
     int npertsets;
     bool missing_data = false;
-    for( int i=0; i<nrch; i++ )
+    for( int i=0; i<2; i++ )
     {
       const Result &chres = *child_result[i];
       const VellSet &vs = chres.vellSet(chres.tensorRank()>0 ? iplane : 0);
@@ -139,11 +148,20 @@ int Condeq::getResult (Result::Ref &resref,
           flagref.attach(vs.dataFlags());
       values[i] = &( vs.getValue() );
     }
-    // null vellsert on any child produces null output
+    // null vellset on any child produces null output
     if( missing_data )
     {
       result.setNewVellSet(iplane);
       continue;
+    }
+    // weight value
+    if( ch_weight )
+    {
+      const VellSet &vs = ch_weight->vellSet(ch_weight->tensorRank()>0 ? iplane : 0);
+      if( vs.hasValue() )
+        weight_vells = &( vs.getValue() );
+      else
+        weight_vells = 0;
     }
     // Find all spids from the children.
     vector<int> spids = Function::findSpids(npertsets,child_vs);
@@ -161,8 +179,8 @@ int Condeq::getResult (Result::Ref &resref,
     if( flagref.valid() )
       vellset.setDataFlags(flagref);
     // Evaluate all perturbed values.
-    vector<Vells*> perts(nrch);
-    vector<int> indices(nrch, 0);
+    vector<Vells*> perts(2);
+    vector<int> indices(2, 0);
     Vells::Ref deriv_ref;
     for( uint j=0; j<spids.size(); j++ )
     {
@@ -203,6 +221,9 @@ int Condeq::getResult (Result::Ref &resref,
       vellset.setPerturbation(j,pert);
     }
     vellset.setSpids (spids);
+    // set weights
+    if( weight_vells )
+      vellset.setDataWeights(weight_vells);
   }
   // no dependencies introduced
   return 0;
