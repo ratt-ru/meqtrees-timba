@@ -408,7 +408,8 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
       // our subtiling
       DimVector subtile_size;
       for( int i=0; i<=maxrank; i++ )
-        subtile_size[i] = solver_tilesize[i]/tiling.tile_size[i];
+        subtile_size[i] = solver_tilesize[i]/tiling.tile_size[i] + 
+                          ((solver_tilesize[i]%tiling.tile_size[i])?1:0);
       Tiling subtiling(subtile_size,tiling.num_tiles);
       subtiling.activate();
       // init a DimCounter for our tiling's shape
@@ -518,14 +519,14 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 // definition of fillEquations() below which works for both cases.
 template<typename T>
 inline void Solver::fillEqVectors (Subsolver &,int,int [],
-      const T &,const std::vector<Vells::ConstStridedIterator<T> > &)
+      const T &,const std::vector<Vells::ConstStridedIterator<T> > &,double)
 {
   STATIC_CHECK(0,unsupported_template_type_for_fillEqVectors);
 }
 
 template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
-      const double &diff,const std::vector<Vells::ConstStridedIterator<double> > &deriv_iter)
+      const double &diff,const std::vector<Vells::ConstStridedIterator<double> > &deriv_iter,double weight)
 {
   // fill vectors of derivatives for each unknown 
   for( int i=0; i<npert; i++ )
@@ -538,7 +539,7 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<diff<<endl;
   }
   // add equation to solver
-  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
+  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,diff);
   num_equations_++;
 }
 
@@ -546,7 +547,7 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
 // Specialization for complex case: each value produces two equations
 template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
-      const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter)
+      const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter,double weight)
 {
   // fill vectors of derivatives for each unknown 
   for( int i=0; i<npert; i++ )
@@ -564,8 +565,8 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<ssprintf("(%g,%g)\n",creal(diff),cimag(diff));
   }
   // add equation to solver
-  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,creal(diff));
-  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],1.,cimag(diff));
+  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,creal(diff));
+  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],weight,cimag(diff));
   num_equations_+=2;
 }
 
@@ -585,18 +586,20 @@ void Solver::fillEquations (const VellSet &vs)
   FailWhen(npert>num_spids_,ssprintf("child %d returned %d spids, but only "
             "%d were reported during spid discovery",cur_child_,npert,num_spids_));
   const Vells &diffval = vs.getValue();
+  // set pweight to point to the weight Vells, else to Unity
+  const Vells * pweight = vs.hasDataWeights() ? &( vs.dataWeights() ) : &( Vells::Unity() );
 
   // ok, this is where it gets hairy. The main val and each pertval 
   // could, in principle, have a different set of variability axes 
   // (that is, their shape along any axis can be equal to 1, to indicate
   // no variability). This is the same problem we deal with in Vells 
-  // math, only on a grander scale, since here N+2 Vells have to 
+  // math, only on a grander scale, since here N+3 Vells have to 
   // be iterated over simultaneously (1 driving term, N derivatives,
-  // 1 flag vells). Fortunately Vells math provides some help here
-  // in the form of strided iterators
+  // 1 flag vells, 1 weights vells). Fortunately Vells math provides some 
+  // help here in the form of strided iterators
   Vells::Shape outshape;          // output shape: superset of input shapes
   // fill in shape arrays for computeStrides() below
-  const Vells::Shape * shapes[npert+3];
+  const Vells::Shape * shapes[npert+4];
   // ***** OPTIMIZATION OPPORTUNITY ALERT *****
   // Consider the case of an equation with 1 or more collapsed dimensions;
   // and assume these dimensions are tiled by subsolvers. This equation 
@@ -613,7 +616,7 @@ void Solver::fillEquations (const VellSet &vs)
   // This may not be the most efficient way to do this, but consider this:
   // most equations don't have ANY collapsed axes (i.e. either the rhs or 
   // the lhs have some variation along each given axis), in which case
-  // this is NOT inefficient at all.
+  // this does not introduce any inefficiency.
   shapes[0] = &( cells_shape_ ); // ensure output shape is cells shape
   
   // index of current unknown per each derivative per each subsolver
@@ -621,7 +624,8 @@ void Solver::fillEquations (const VellSet &vs)
   // we keep track of the current one when filling equations)
   shapes[1] = &( diffval.shape() );
   shapes[2] = &( diffval.flagShape() ); // returns null shape if no flags
-  int j=3;
+  shapes[3] = &( pweight->shape() );  
+  int j=4;
   // deactivate all tilings, then reactivate the ones for active spids
   for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
     iter->second.active = false;
@@ -644,13 +648,14 @@ void Solver::fillEquations (const VellSet &vs)
   }
   // compute output shape (the union of all input shapes), and
   // strides for all vells 
-  Vells::computeStrides(outshape,strides_,npert+3,shapes,"Solver::getResult");
+  Vells::computeStrides(outshape,strides_,npert+4,shapes,"Solver::getResult");
   int outrank = outshape.size();
   // create strided iterators for all vells
   Vells::ConstStridedIterator<T> diff_iter(diffval,strides_[1]);
   Vells::ConstStridedFlagIterator flag_iter(diffval,strides_[2]);
+  Vells::ConstStridedIterator<double> weight_iter(*pweight,strides_[3]);
   std::vector<Vells::ConstStridedIterator<T> > deriv_iter(npert);
-  j=3;
+  j=4;
   for( int i=0; i<npert; i++,j++ )
     deriv_iter[i] = Vells::ConstStridedIterator<T>(vs.getPerturbedValue(i),strides_[j]);
   // create counter for output shape
@@ -679,15 +684,17 @@ void Solver::fillEquations (const VellSet &vs)
         uk_index[ipert] = uk;
       }
     }
-    // fill equations only if unflagged, and solver is not converged
-    if( !psolver->converged && !(*flag_iter&flag_mask_) )
-      fillEqVectors(*psolver,npert,uk_index,*diff_iter,deriv_iter);
+    // fill equations only if unflagged and weighted, and solver is not 
+    // converged
+    if( !psolver->converged && !(*flag_iter&flag_mask_) && *weight_iter > 0 )
+      fillEqVectors(*psolver,npert,uk_index,*diff_iter,deriv_iter,*weight_iter);
     // increment counter and all iterators
     int ndim = counter.incr(); 
     if( !ndim )    // break out when counter is finished
       break;
     diff_iter.incr(ndim);
     flag_iter.incr(ndim);
+    weight_iter.incr(ndim);
     for( int ipert=0; ipert<npert; ipert++ )
       deriv_iter[ipert].incr(ndim);
     // now for each tiling in use, advance its counters
