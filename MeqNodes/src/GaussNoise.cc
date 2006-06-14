@@ -70,7 +70,7 @@ Vells GaussNoise::evaluate (const Request &req,const LoShape &,
   // lock mutex to ensure generators are not broken by threads
   Thread::Mutex::Lock lock(RndGen::mutex);
   // Get standard deviation from child 2 (mean is handled separately below)
-  // Note that I've swapped the children around, as it is handier
+  // Note that I've swapped the children around, as it is handier.
   // If child 2 is not present, reuse old generator initialized previously
   if( values.size() > 1 )
   {

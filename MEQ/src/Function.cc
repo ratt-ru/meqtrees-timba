@@ -203,7 +203,8 @@ int Function::getResult (Result::Ref &resref,
       }
     }
     // if everything is missing, then we return no data for this VellSet
-    if( nmissing == nrch )
+    // (unless we have a special case of a Function with no children)
+    if( nrch && nmissing == nrch )
     {
       missing_planes++;
       continue;
