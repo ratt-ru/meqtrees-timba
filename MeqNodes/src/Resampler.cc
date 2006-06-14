@@ -70,6 +70,22 @@ int Resampler::getResult (Result::Ref &resref,
   const Cells &incells = chres.cells();
   const Cells &outcells = request.cells();
 
+	//envelope of the two domains
+	Domain newdomain=Domain::envelope(incells.domain(),outcells.domain());
+	Cells::Ref cells_ref;
+	Cells &newcells=cells_ref<<=new Cells(newdomain);
+	for( int ax=0; ax<Axis::MaxAxis; ax++ ) {
+		if (outcells.isDefined(ax)) {
+			newcells.setCells(ax,outcells.center(ax),outcells.cellSize(ax));
+		} else if (incells.isDefined(ax)) {
+			double x0=incells.domain().start(ax);
+			double x1=incells.domain().end(ax);
+			newcells.setCells(ax,x0,x1,1);
+		}
+	}
+  //cout<<newcells.shape()<<endl;
+
+
 	ResamplerFactory resfac;
   ResampleMachine *resampler=0;
   // create resampler: interpolation
@@ -103,7 +119,8 @@ int Resampler::getResult (Result::Ref &resref,
     result.setVellSet(ivs,ref);
   }
 
-	result.setCells(outcells);
+	//result.setCells(outcells);
+	result.setCells(newcells);
 	result.setDims(chres.dims());
 	delete resampler;
   return 0;
