@@ -176,7 +176,7 @@ build_system:
 	      done; \
 	  else \
 	    echo ":::::: ERROR $(LOFARPACKAGE)/$$pkg does not exist"; \
-	  fi \
+	  fi; \
 	done; \
 
 EOFXXXXX
@@ -214,8 +214,8 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
-	      fi\
-	    fi\
+	      fi; \
+	    fi; \
 	done; \
 	date
 #
@@ -237,7 +237,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -259,7 +259,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -281,7 +281,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -303,7 +303,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -325,7 +325,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -347,7 +347,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -369,7 +369,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 EOFXXXXX
@@ -394,7 +394,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -415,7 +415,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -436,7 +436,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -457,7 +457,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -478,7 +478,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -499,7 +499,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -520,7 +520,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 #
@@ -541,7 +541,7 @@ else
 		&& echo \
 		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
-	    fi\
+	    fi; \
 	done; \
 	date
 EOFXXXXX
