@@ -207,8 +207,8 @@ void Node::attachInitRecord (DMI::Record::Ref &initrec, Forest* frst)
   // finally, if labels are specified but we actually have fewer children
   // (because not all labelled children are mandatory), make sure the indices
   // vector is at least as big as the number of labels
-  if( child_indices_.size() < child_labels_.size() )
-    child_indices_.resize(child_labels_.size(),-1);
+//  if( child_indices_.size() < child_labels_.size() )
+//    child_indices_.resize(child_labels_.size(),-1);
   
   // put index vector into state record if not empty
   if( !child_indices_.empty() )

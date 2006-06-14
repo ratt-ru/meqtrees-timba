@@ -898,7 +898,7 @@ int Solver::getResult (Result::Ref &resref,
   // ISO C++ won't allow a vector of Strides, hence this old-style kludge
   if( strides_ )
     delete [] strides_;
-  strides_ = new Vells::Strides[num_spids_+3];
+  strides_ = new Vells::Strides[num_spids_+4];
   // OK, now create the "real" request object. This will be modified from 
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());

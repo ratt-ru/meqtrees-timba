@@ -740,30 +740,31 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
 //  rescells <<= pcells = &( childres[0]->cells() );
   bool need_resampling = false;
   for( uint ich=0; ich<childres.size(); ich++ )
-  {
-    const Result &chres = *childres[ich];
-    if( chres.hasCells() )
+    if( childres[ich].valid() )
     {
-      const Cells &cc = childres[ich]->cells();
-      if( !rescells.valid() ) // first cells? Init pcells with it
-        rescells <<= &cc;
-      else
+      const Result &chres = *childres[ich];
+      if( chres.hasCells() )
       {
-        // try to merge the cells
-        Cells::superset(rescells,*rescells,cc);
-        if( !rescells.valid() )
+        const Cells &cc = childres[ich]->cells();
+        if( !rescells.valid() ) // first cells? Init pcells with it
+          rescells <<= &cc;
+        else
         {
-          // fail if auto-resampling is disabled
-          if( auto_resample_ == RESAMPLE_FAIL )
+          // try to merge the cells
+          Cells::superset(rescells,*rescells,cc);
+          if( !rescells.valid() )
           {
-            NodeThrow1("domains or resolutions of child results do not match and auto-resampling is disabled");
+            // fail if auto-resampling is disabled
+            if( auto_resample_ == RESAMPLE_FAIL )
+            {
+              NodeThrow1("domains or resolutions of child results do not match and auto-resampling is disabled");
+            }
+            else
+              rescells <<= &cc;
           }
-          else
-            rescells <<= &cc;
         }
       }
     }
-  }
 }
 
 int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_results,
@@ -772,28 +773,29 @@ int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_
   Result *presult = 0;
   // loop over child results
   for( uint i=0; i<child_results.size(); i++ )
-  {
-    const Result &chres = *child_results[i];
-    const DMI::Record *pchmap = chres[FSpidMap].as_po<DMI::Record>();
-    if( pchmap )
+    if( child_results[i].valid() )
     {
-      // no output result yet? simply attach copy of this result
-      if( !ref.valid() )
-        ref.attach(chres);
-      // else have a result
-      else 
+      const Result &chres = *child_results[i];
+      const DMI::Record *pchmap = chres[FSpidMap].as_po<DMI::Record>();
+      if( pchmap )
       {
-        if( !presult )
-          presult = ref.dewr_p(); // COW the result
-        // does it have a spid map? If not, insert child's map
-        DMI::Record *pmap = presult->as_po<DMI::Record>(FSpidMap);
-        if( !pmap )
-          presult->add(FSpidMap,pchmap);
-        else // else merge child spid map into result map
-          pmap->merge(*pchmap,false);
+        // no output result yet? simply attach copy of this result
+        if( !ref.valid() )
+          ref.attach(chres);
+        // else have a result
+        else 
+        {
+          if( !presult )
+            presult = ref.dewr_p(); // COW the result
+          // does it have a spid map? If not, insert child's map
+          DMI::Record *pmap = presult->as_po<DMI::Record>(FSpidMap);
+          if( !pmap )
+            presult->add(FSpidMap,pchmap);
+          else // else merge child spid map into result map
+            pmap->merge(*pchmap,false);
+        }
       }
     }
-  }
   return 0;
 }
 

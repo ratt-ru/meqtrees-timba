@@ -97,30 +97,31 @@ int Condeq::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &request,bool)
 {
-  int nrch = child_result.size();
-  Assert(nrch==2 || nrch==3);
+  int nrch = numChildren();
+  Assert(nrch<=3);
   // Figure out the dimensions of the output result, and see that children
   // match these dimensions. 
   Result::Dims out_dims = child_result[0]->dims();
   for( int i=1; i<nrch; i++ )
-  {
-    if( !child_result[i]->dims().empty() ) // child #i is a tensor
+    if( child_result[i].valid() ) // #2 may be missing
     {
-      if( out_dims.empty() )               // previous children were scalar
-        out_dims = child_result[i]->dims();
-      else         // both tensors, verify match
+      if( !child_result[i]->dims().empty() ) // child #i is a tensor
       {
-        FailWhen(out_dims != child_result[i]->dims(),"dimensions of tensor child results do not match");
+        if( out_dims.empty() )               // previous children were scalar
+          out_dims = child_result[i]->dims();
+        else         // both tensors, verify match
+        {
+          FailWhen(out_dims != child_result[i]->dims(),"dimensions of tensor child results do not match");
+        }
       }
     }
-  }
   // Create result object and attach to the ref that was passed in
   Result & result = resref <<= new Result(out_dims);
   int nplanes = result.numVellSets(); // total number of output elements
   
   vector<const VellSet*> child_vs(2);
   // check the weight result
-  const Result * ch_weight = nrch > 2 ? child_result[2].deref_p() : 0;
+  const Result * ch_weight = nrch > 2 && child_result[2].valid() ? child_result[2].deref_p() : 0;
   const Vells * weight_vells = 0;
   for( int iplane=0; iplane<nplanes; iplane++ )
   {
