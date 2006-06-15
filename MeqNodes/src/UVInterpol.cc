@@ -122,8 +122,9 @@ namespace Meq {
 
     // Get the request cells
     const Cells& rcells = request.cells();
+    const Cells brickcells = childres.at(0)->cells();
     
-    if( rcells.isDefined(Axis::TIME) && rcells.isDefined(Axis::FREQ))
+    if( rcells.isDefined(Axis::TIME) && brickcells.isDefined(Axis::FREQ))
       {
 	
 	// Create the Interpolated UVdata 
@@ -132,7 +133,7 @@ namespace Meq {
 	//   (Romberg?) must be implemented). 
 	    
 	// Create Result object and attach to the Ref that was passed in.
-	resref <<= new Result(1);                 // 1 plane
+	resref <<= new Result(4);                 // 4 planes
 	VellSet& vs0 = resref().setNewVellSet(0);  // create new object for plane 0
 	VellSet& vs1 = resref().setNewVellSet(1);  // create new object for plane 0
 	VellSet& vs2 = resref().setNewVellSet(2);  // create new object for plane 0
@@ -146,7 +147,16 @@ namespace Meq {
 	Vells::Shape tfshape;
 	Axis::degenerateShape(tfshape,rcells.rank());
 	int nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
-	int nf = tfshape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	int nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
+	const LoVec_double time = rcells.center(Axis::axis("TIME"));
+	const LoVec_double freq = brickcells.center(Axis::axis("FREQ"));
+
+	Domain::Ref tfdomain(new Domain());
+	tfdomain().defineAxis(Axis::axis("TIME"),time(0),time(nt-1));
+	tfdomain().defineAxis(Axis::axis("FREQ"),freq(0),freq(nf-1));
+	Cells::Ref tfcells(new Cells(*tfdomain));
+	tfcells().setCells(Axis::axis("TIME"),time(0),time(nt-1),nt);
+	tfcells().setCells(Axis::axis("FREQ"),freq(0),freq(nf-1),nf);
 	    
 	// Make a new Vells and fill with zeros
 	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
@@ -155,10 +165,10 @@ namespace Meq {
 	Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,true));
 	    
 	// Fill the Vells (this is were the interpolation takes place)
-	fillVells(childres,vells0,vells1,vells2,vells3,rcells);	
+	fillVells(childres,vells0,vells1,vells2,vells3,tfcells);	
 	    
 	// Attach the request Cells to the result
-	resref().setCells(rcells);
+	resref().setCells(*tfcells);
       
 	if (_additional_info){
 	  
@@ -179,12 +189,12 @@ namespace Meq {
 	  //		
 	  
 	  // Make a uv-shape
-	  Result::Ref brickresult;
-	  Cells brickcells; 
+	  //Result::Ref brickresult;
+	  //Cells brickcells; 
 	  Result::Ref uvpoints;
 	  
-	  brickresult = childres.at(0);
-	  brickcells = brickresult->cells();
+	  //brickresult = childres.at(0);
+	  //brickcells = brickresult->cells();
 	  uvpoints = childres.at(1);    
 	  
 	  // uv grid from UVBrick
@@ -274,7 +284,7 @@ namespace Meq {
     _out1axis0 = Axis::axis(_out1_axis_id[0]);
     _out1axis1 = Axis::axis(_out1_axis_id[1]);
 
-    // Time-Freq boundaries of Request
+    // Time-Freq boundaries of Result to be produced
     int nt = fcells.ncells(Axis::TIME);
     int nf = fcells.ncells(Axis::FREQ);
     const LoVec_double freq = fcells.center(Axis::FREQ); 
