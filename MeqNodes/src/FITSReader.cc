@@ -80,6 +80,7 @@ int FITSReader::getResult (Result::Ref &resref,
 	int is_complex;
   int flag=simple_read_fits_file(filename_.c_str(), &data,  &centers, &naxis, &naxes, &is_complex);
 
+	FailWhen(flag!=0,"Meq::FITSReader file read failed");
 #ifdef DEBUG
 	cout<<"Read "<<naxis<<" Axes with flag "<<flag<<endl;
 	for (int i=0;i<naxis;i++) {
