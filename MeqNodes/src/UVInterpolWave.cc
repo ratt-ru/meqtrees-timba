@@ -130,6 +130,10 @@ namespace Meq {
 
     if( rcells.isDefined(Axis::TIME) && brickcells.isDefined(Axis::FREQ))
       {
+	// Set input and output axes
+	_in2axis0 = Axis::axis(_in2_axis_id[0]);
+	_out2axis0 = Axis::axis(_out2_axis_id[0]);
+	_out2axis1 = Axis::axis(_out2_axis_id[1]);
 
 	// Create the Interpolated UVdata 
 	// (Integration is not implemented. This is ok for small 
@@ -183,10 +187,6 @@ namespace Meq {
 	  
 	  // Make Additional Info on UV-plane coverage.
 
-	  // Set input and output axes
-	  _in2axis0 = Axis::axis(_in2_axis_id[0]);
-	  _out2axis0 = Axis::axis(_out2_axis_id[0]);
-	  _out2axis1 = Axis::axis(_out2_axis_id[1]);
 	  
 	  // Make the Additional Vells
 	  
