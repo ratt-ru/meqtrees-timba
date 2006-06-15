@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Resampler 
-#pragma aid Integrate Flag Density Mode
+#pragma aid Integrate Flag Density Mode Common Axes
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -50,6 +50,9 @@
 //field: mode
 //  mode 1 (interpolate): 
 //  mode 2 (integrate): 
+//field: common_axes []
+//  the axes in this vector will be copied from the result to the request,
+//  in other words preserve this axes regardless of the request
 //defrec end
 
 namespace Meq {    
@@ -79,6 +82,7 @@ private:
   int flag_bit;
   float flag_density;
 
+	std::vector<HIID> keep_axes_;
 };
 
 

@@ -34,6 +34,8 @@ namespace Meq {
 const HIID FFlagDensity = AidFlag|AidDensity;
 const HIID FMode = AidMode;
 
+const HIID FKeepAxes = AidCommon|AidAxes;
+
 //##ModelId=400E5355029C
 Resampler::Resampler()
 : Node(1), // 1 child expected
@@ -52,6 +54,17 @@ void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FMode].get(mode,initializing);
   rec[FFlagBit].get(flag_bit,initializing);
   rec[FFlagDensity].get(flag_density,initializing);
+
+	//get axes to keep
+	std::vector<HIID> tmp=keep_axes_;
+	if (rec[FKeepAxes].get_vector(tmp,initializing) ) {
+	  if (tmp.size()!=0) {
+	    keep_axes_.resize(tmp.size());
+		  keep_axes_=tmp;
+		}
+
+	}
+
 }
 
 int Resampler::getResult (Result::Ref &resref, 
@@ -74,16 +87,26 @@ int Resampler::getResult (Result::Ref &resref,
 	Domain newdomain=Domain::envelope(incells.domain(),outcells.domain());
 	Cells::Ref cells_ref;
 	Cells &newcells=cells_ref<<=new Cells(newdomain);
+	bool use_new_cells=false;
 	for( int ax=0; ax<Axis::MaxAxis; ax++ ) {
-		if (outcells.isDefined(ax)) {
+		//check to see if we keep this axes
+		bool keep_this=false;
+		for(int ii=0; ii<keep_axes_.size(); ii++) {
+	    if(keep_axes_[ii]==Axis::axisId(ax)) {
+					keep_this=true;
+			}
+	  }
+		if (outcells.isDefined(ax) and !keep_this) {
 			newcells.setCells(ax,outcells.center(ax),outcells.cellSize(ax));
+		} else if (keep_this & incells.isDefined(ax)) {
+			newcells.setCells(ax,incells.center(ax),incells.cellSize(ax));
+			use_new_cells=true;
 		} else if (incells.isDefined(ax)) {
 			double x0=incells.domain().start(ax);
 			double x1=incells.domain().end(ax);
 			newcells.setCells(ax,x0,x1,1);
 		}
 	}
-  //cout<<newcells.shape()<<endl;
 
 
 	ResamplerFactory resfac;
@@ -94,7 +117,12 @@ int Resampler::getResult (Result::Ref &resref,
 	} else { //mode==2: integration: used for real (MS) data
    resampler=resfac.create(ResamplerFactory::INTEGRATOR,0);
 	}
-	resampler->setup(incells, outcells);
+	if (!use_new_cells) {
+	 resampler->setup(incells, outcells);
+	} else {
+	 cout<<"Using new cells"<<endl;
+	 resampler->setup(incells, newcells);
+	}
 
   // return child result directly if nothing is to be done
   if( resampler->isIdentical() )
