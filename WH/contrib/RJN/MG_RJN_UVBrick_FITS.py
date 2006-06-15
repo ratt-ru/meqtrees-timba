@@ -90,6 +90,8 @@ def _define_forest(ns):
  # Select the 4 Stokes planes
  #Selector (FourPack)
  iquv_root = ns.IQUV << Meq.Selector(children=image_root,multi=True,index=[2,3,4,5]);
+ # One could also resample here (when the resampler works correctly)
+ #resampler2 = ns.resampler2 << Meq.Resampler(iquv_root,common_axes=[hiid('l'),hiid('m')]);
 
  # Go from 4 Stokes planes to 4 Correlation planes
  #Stokes
@@ -109,6 +111,7 @@ def _define_forest(ns):
  #UVInterpol
  interpol_root = ns.interpol << Meq.UVInterpolWave(Method=1,brick=fft_root,uvw=myuvw,additional_info=True);
  
+ resampler_root = ns.resampler << Meq.Resampler(interpol_root);
 
  # Define Bookmarks
  JEN_bookmarks.create(corr_root,page="Image",viewer="Result Plotter");
@@ -126,7 +129,7 @@ def _test_forest(mqs,parent):
  f1 = 1450.0e6
  t0 = 0.0
  t1 = 86400.0
- nfreq = 1
+ nfreq = 3
  ntime = 100
  
  # create cell
@@ -137,7 +140,7 @@ def _test_forest(mqs,parent):
  request1 = meq.request(cells=cells, eval_mode=0 );
 
  # And execute the Tree ...
- args=record(name='interpol', request=request1);
+ args=record(name='resampler', request=request1);
  mqs.meq('Node.execute', args, wait=False);
    
 
