@@ -147,8 +147,11 @@ int Resampler::getResult (Result::Ref &resref,
     result.setVellSet(ivs,ref);
   }
 
-	//result.setCells(outcells);
-	result.setCells(newcells);
+	if (!use_new_cells) {
+	 result.setCells(outcells);
+	} else {
+		result.setCells(newcells);
+	}
 	result.setDims(chres.dims());
 	delete resampler;
   return 0;
