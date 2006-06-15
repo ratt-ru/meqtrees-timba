@@ -48,6 +48,8 @@ namespace Meq {
 class UVInterpolWave: public Node
 	       //class UVInterpolWave: public ReductionFunction
 {
+ LocalDebugContext;
+
 public:
   // The default constructor.
   // The object should be filled by the init method.
@@ -68,7 +70,6 @@ public:
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
-
   
  protected:
 
