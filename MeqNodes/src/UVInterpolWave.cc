@@ -127,12 +127,9 @@ namespace Meq {
     // Get the request cells
     const Cells& rcells = request.cells();
     const Cells brickcells = childres.at(0)->cells();
-    
-    cdebug(1) << rcells.isDefined(Axis::TIME) << brickcells.isDefined(Axis::FREQ)<<endl;
 
     if( rcells.isDefined(Axis::TIME) && brickcells.isDefined(Axis::FREQ))
       {
-	cdebug(1) << "Made it" << endl;
 
 	// Create the Interpolated UVdata 
 	// (Integration is not implemented. This is ok for small 
@@ -140,7 +137,7 @@ namespace Meq {
 	//   (Romberg?) must be implemented). 
 	    
 	// Create Result object and attach to the Ref that was passed in.
-	resref <<= new Result(4);                 // 1 plane
+	resref <<= new Result(4);                 // 4 planes
 	VellSet& vs0 = resref().setNewVellSet(0);  // create new object for plane 0
 	VellSet& vs1 = resref().setNewVellSet(1);  // create new object for plane 0
 	VellSet& vs2 = resref().setNewVellSet(2);  // create new object for plane 0
@@ -157,15 +154,17 @@ namespace Meq {
 	int nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
 	const LoVec_double time = rcells.center(Axis::axis("TIME"));
 	const LoVec_double freq = brickcells.center(Axis::axis("FREQ"));
+	const double tmin = min(rcells.cellStart(Axis::TIME));
+	const double tmax = max(rcells.cellEnd(Axis::TIME));
+	const double fmin = min(brickcells.cellStart(Axis::FREQ));
+	const double fmax = max(brickcells.cellEnd(Axis::FREQ));
 
 	Domain::Ref tfdomain(new Domain());
-	tfdomain().defineAxis(Axis::axis("TIME"),time(0),time(nt-1));
-	tfdomain().defineAxis(Axis::axis("FREQ"),freq(0),freq(nf-1));
+	tfdomain().defineAxis(Axis::axis("TIME"),tmin,tmax);
+	tfdomain().defineAxis(Axis::axis("FREQ"),fmin,fmax);
 	Cells::Ref tfcells(new Cells(*tfdomain));
-	tfcells().setCells(Axis::axis("TIME"),time(0),time(nt-1),nt);
-	tfcells().setCells(Axis::axis("FREQ"),freq(0),freq(nf-1),nf);
-	    
-	cdebug(1)<<nt<<' '<<nf<<endl; 
+	tfcells().setCells(Axis::axis("TIME"),tmin,tmax,nt);
+	tfcells().setCells(Axis::axis("FREQ"),fmin,fmax,nf); 
 
 	// Make a new Vells and fill with zeros
 	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
@@ -178,6 +177,7 @@ namespace Meq {
 	    
 	// Attach the request Cells to the result
 	resref().setCells(*tfcells);
+	resref().setDims(LoShape(2,2));
       
 	if (_additional_info){
 	  
@@ -211,14 +211,18 @@ namespace Meq {
 	  int nv = brickcells.ncells(Axis::axis("V"));
 	  const LoVec_double uu = brickcells.center(Axis::axis("U"));
 	  const LoVec_double vv = brickcells.center(Axis::axis("V"));
+	  const double umin = min(brickcells.cellStart(Axis::axis("U")));
+	  const double umax = max(brickcells.cellEnd(Axis::axis("U")));
+	  const double vmin = min(brickcells.cellStart(Axis::axis("V")));
+	  const double vmax = max(brickcells.cellEnd(Axis::axis("V")));
 	  
 	  // uv image domain
 	  Domain::Ref uvdomain(new Domain());
-	  uvdomain().defineAxis(Axis::axis("U"),uu(0),uu(nu-1));
-	  uvdomain().defineAxis(Axis::axis("V"),vv(0),vv(nv-1));
+	  uvdomain().defineAxis(Axis::axis("U"),umin,umax);
+	  uvdomain().defineAxis(Axis::axis("V"),vmin,vmax);
 	  Cells::Ref uvcells(new Cells(*uvdomain));
-	  uvcells().setCells(Axis::axis("U"),uu(0),uu(nu-1),nu);
-	  uvcells().setCells(Axis::axis("V"),vv(0),vv(nv-1),nv);    
+	  uvcells().setCells(Axis::axis("U"),umin,umax,nu);
+	  uvcells().setCells(Axis::axis("V"),vmin,vmax,nv);    
 	  
 	  Vells::Shape uvshape;
 	  Axis::degenerateShape(uvshape,uvcells->rank());
@@ -333,9 +337,14 @@ namespace Meq {
     // UVImage data
     VellSet vsfXX = brickresult->vellSet(0);
     Vells vellsfXX = vsfXX.getValue(); 
-    VellSet vsfXY = brickresult->vellSet(4);
+    //VellSet vsfXY = brickresult->vellSet(4);
+    //Vells vellsfXY = vsfXY.getValue(); 
+    //VellSet vsfYX = brickresult->vellSet(8);
+    //Vells vellsfYX = vsfYX.getValue(); 
+    // To avoid empty QUV data: copy XX into Xy and YY into YX
+    VellSet vsfXY = brickresult->vellSet(0);
     Vells vellsfXY = vsfXY.getValue(); 
-    VellSet vsfYX = brickresult->vellSet(8);
+    VellSet vsfYX = brickresult->vellSet(12);
     Vells vellsfYX = vsfYX.getValue(); 
     VellSet vsfYY = brickresult->vellSet(12);
     Vells vellsfYY = vsfYY.getValue(); 
@@ -400,32 +409,38 @@ namespace Meq {
       VellsSlicer<dcomplex,3> uvXX_slicer(fuvvellsXX,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuvarrXX = uvXX_slicer();
       
-      VellSet vsfuXY = brickresult->vellSet(5);
+      //      VellSet vsfuXY = brickresult->vellSet(5);
+      VellSet vsfuXY = brickresult->vellSet(1);
       Vells fuvellsXY = vsfuXY.getValue(); 
       VellsSlicer<dcomplex,3> uXY_slicer(fuvellsXY,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuarrXY = uXY_slicer();
       
-      VellSet vsfvXY = brickresult->vellSet(6);
+      //      VellSet vsfvXY = brickresult->vellSet(6);
+      VellSet vsfvXY = brickresult->vellSet(2);
       Vells fvvellsXY = vsfvXY.getValue(); 
       VellsSlicer<dcomplex,3> vXY_slicer(fvvellsXY,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fvarrXY = vXY_slicer();
       
-      VellSet vsfuvXY = brickresult->vellSet(7);
+      //      VellSet vsfuvXY = brickresult->vellSet(7);
+      VellSet vsfuvXY = brickresult->vellSet(3);
       Vells fuvvellsXY = vsfuvXY.getValue(); 
       VellsSlicer<dcomplex,3> uvXY_slicer(fuvvellsXY,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuvarrXY = uvXY_slicer();
       
-      VellSet vsfuYX = brickresult->vellSet(9);
+      //      VellSet vsfuYX = brickresult->vellSet(9);
+      VellSet vsfuYX = brickresult->vellSet(13);
       Vells fuvellsYX = vsfuYX.getValue(); 
       VellsSlicer<dcomplex,3> uYX_slicer(fuvellsYX,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuarrYX = uYX_slicer();
       
-      VellSet vsfvYX = brickresult->vellSet(10);
+      //      VellSet vsfvYX = brickresult->vellSet(10);
+      VellSet vsfvYX = brickresult->vellSet(14);
       Vells fvvellsYX = vsfvYX.getValue(); 
       VellsSlicer<dcomplex,3> vYX_slicer(fvvellsYX,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fvarrYX = vYX_slicer();
       
-      VellSet vsfuvYX = brickresult->vellSet(11);
+      //      VellSet vsfuvYX = brickresult->vellSet(11);
+      VellSet vsfuvYX = brickresult->vellSet(15);
       Vells fuvvellsYX = vsfuvYX.getValue(); 
       VellsSlicer<dcomplex,3> uvYX_slicer(fuvvellsYX,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuvarrYX = uvYX_slicer();
