@@ -108,6 +108,9 @@ class VisDataMux : public Node
     bool force_regular_grid;
     
     RequestId rqid_;
+    // id of next request
+    RequestId next_rqid_;
+    
     Request::Ref current_req_;
     int current_seqnr_;
     LoRange current_range_;

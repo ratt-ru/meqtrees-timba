@@ -362,43 +362,37 @@ int Spigot::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &req,bool)
 {
-  // have we got a cached result?
-  if( !res_queue_.empty() )
-  {
-    ResQueue::iterator pnext = res_queue_.begin();
-    // doesn't match? see if next one does
-    if( !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) )
-    {
-      // try second item in queue
-      pnext++;
-      if( pnext == res_queue_.end() || 
-          !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
-      {
-        ResQueueItem &next = res_queue_.front();
-        resref <<= new Result(1);
-        VellSet &vs = resref().setNewVellSet(0);
-        MakeFailVellSet(vs,
-            Debug::ssprintf("spigot: request out of sequence: request id %s, expecting %s (depmask is %X)",
-                          req.id().toString('.').c_str(),
-                          next.rqid.toString('.').c_str(),
-                          getDependMask()));
-        return RES_FAIL;
-      }
-      else // dequeue front item
-        res_queue_.pop_front();
-    }
-    // return result and dequeue
-    resref.copy(pnext->res);
-    // update state record
-    if( forest().debugLevel() > 1 )
-      fillDebugState();
-    return 0;
-  }
-  else // no result at all, return missing data
+  // if we have cached results in the queue, go through them until we find 
+  // a match. Discard non-matching results at head of queue
+  while( !res_queue_.empty() &&
+         !RqId::maskedCompare(req.id(),res_queue_.begin()->rqid,getDependMask()) )
+    res_queue_.pop_front();
+  // queue empty, no match -- return missing data
+  if( res_queue_.empty() )
   {
     (resref <<= new Result(1)).setNewVellSet(0);
     return RES_MISSING;
   }
+  // else return head of queue
+  resref.copy(res_queue_.front().res);
+  // update state record
+  if( forest().debugLevel() > 1 )
+    fillDebugState();
+  return 0;
+//// this code no longer invoked
+//       if( pnext == res_queue_.end() || 
+//           !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
+//       {
+//         ResQueueItem &next = res_queue_.front();
+//         resref <<= new Result(1);
+//         VellSet &vs = resref().setNewVellSet(0);
+//         MakeFailVellSet(vs,
+//             Debug::ssprintf("spigot: request out of sequence: request id %s, expecting %s (depmask is %X)",
+//                           req.id().toString('.').c_str(),
+//                           next.rqid.toString('.').c_str(),
+//                           getDependMask()));
+//         return RES_FAIL;
+//       }
 }
 
 

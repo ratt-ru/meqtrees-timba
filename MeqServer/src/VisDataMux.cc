@@ -263,8 +263,8 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
     cdebug(2)<<"no NumStations parameter in header, assuming 30\n";
   }
   // reset request ID
-  forest().incrRequestId(rqid_,FDataset);
-  RqId::setSubId(rqid_,symdeps().getMask(FDomain),0);
+  forest().incrRequestId(next_rqid_,FDataset);
+  RqId::setSubId(next_rqid_,symdeps().getMask(FDomain),0);
   current_seqnr_ = -1;
   int maxdid = formDataId(nstations-1,nstations-1) + 1;
   have_tile_.assign(maxdid,false);
@@ -418,13 +418,15 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
   try
   {
     // Generate new Request id
-    RqId::incrSubId(rqid_,symdeps().getMask(FDomain));
+    rqid_ = next_rqid_;
+    RqId::incrSubId(next_rqid_,symdeps().getMask(FDomain));
     // Generate Cells object from tile
     Cells::Ref cellref;
     Cells &cells = cellref <<= new Cells;
     fillCells(cells,current_range_,tile);
     // Generate new Request with these Cells
     Request &req = current_req_ <<= new Request(cells,rqid_);
+    req.setNextId(next_rqid_);
     wstate()[FCurrentRequest] = current_req_;
     req.setRequestType(RequestType::EVAL);
     cdebug(3)<<"start of tile, "<<tile.nrow()<<" rows, generated request id="<<rqid_<<endl;
