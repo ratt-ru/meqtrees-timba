@@ -87,6 +87,7 @@ namespace Meq {
     vs3.setValue(vellsYY);
 
     resref().setCells(cells);
+    resref().setDims(LoShape(2,2));
     
     return 0;
     
