@@ -120,6 +120,11 @@ namespace Meq {
 			  const Request &request,bool newreq)
   {
 
+    // Set input and output axes
+    _in2axis0 = Axis::axis(_in2_axis_id[0]);
+    _out2axis0 = Axis::axis(_out2_axis_id[0]);
+    _out2axis1 = Axis::axis(_out2_axis_id[1]);
+
     // Get the request cells
     const Cells& rcells = request.cells();
     const Cells brickcells = childres.at(0)->cells();
@@ -173,11 +178,6 @@ namespace Meq {
 	if (_additional_info){
 	  
 	  // Make Additional Info on UV-plane coverage.
-
-	  // Set input and output axes
-	  _in2axis0 = Axis::axis(_in2_axis_id[0]);
-	  _out2axis0 = Axis::axis(_out2_axis_id[0]);
-	  _out2axis1 = Axis::axis(_out2_axis_id[1]);
 	  
 	  // Make the Additional Vells
 	  
