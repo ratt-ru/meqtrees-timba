@@ -271,6 +271,8 @@ class QwtImageDisplay(QwtPlot):
         self.log_axis_solution_vector = False
         self.display_solution_distances = False
         self.store_solver_array = False
+        self.curve_info = ""
+        self.metrics_index = 0
 
         QWhatsThis.add(self, display_image_instructions)
 
@@ -975,30 +977,46 @@ class QwtImageDisplay(QwtPlot):
         """Format mouse coordinates as real world plot coordinates.
         """
         result = ''
-        xpos = x
-        ypos = y
-        temp_str = "nearest x=%-.3g" % x
-        temp_str1 = " y=%-.3g" % y
-	message = temp_str + temp_str1 
+        if self.display_solution_distances:
+          metrics_rank = "rank: " + str(self.metrics_rank[self.array_index,self.metrics_index]) + "\n"
+          metrics_fit = "fit: " + str(self.metrics_fit[self.array_index,self.metrics_index]) + "\n"
+          metrics_chi = "chi: " + str(self.metrics_chi[self.array_index,self.metrics_index]) + "\n"
+          metrics_mu = "mu: " + str(self.metrics_mu[self.array_index,self.metrics_index]) + "\n"
+          metrics_flag = "flag: " + str(self.metrics_flag[self.array_index,self.metrics_index]) + "\n"
+          metrics_stddev = "stddev: " + str(self.metrics_stddev[self.array_index,self.metrics_index]) + "\n"
+          metrics_unknowns = "unknowns: " + str(self.metrics_unknowns[self.array_index,self.metrics_index])
+          metrics_iteration = "iteration: " + str(self.array_index+1) + "\n"
+	  message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
+          mb_color = QMessageBox("metrics data",
+                      message,
+                      QMessageBox.Information,
+                      QMessageBox.Ok | QMessageBox.Default,
+                      QMessageBox.NoButton,
+                      QMessageBox.NoButton)
+          mb_color.exec_loop()
+        else:
+          temp_str = "nearest x=%-.3g" % x
+          temp_str1 = " y=%-.3g" % y
+	  message = temp_str + temp_str1 
 # alias
-        fn = self.fontInfo().family()
+          fn = self.fontInfo().family()
 
 # text marker giving source of point that was clicked
-        if not self.source_marker is None:
-          self.removeMarker(self.source_marker);
-        self.source_marker = self.insertMarker()
-        ylb = self.axisScale(QwtPlot.yLeft).lBound()
-        xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        self.setMarkerPos(self.source_marker, xlb, ylb)
-        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
-        self.setMarkerLabel( self.source_marker, message,
-          QFont(fn, 7, QFont.Bold, False),
-          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+          if not self.source_marker is None:
+            self.removeMarker(self.source_marker);
+          self.source_marker = self.insertMarker()
+          ylb = self.axisScale(QwtPlot.yLeft).lBound()
+          xlb = self.axisScale(QwtPlot.xBottom).lBound()
+          self.setMarkerPos(self.source_marker, xlb, ylb)
+          self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+          self.setMarkerLabel( self.source_marker, message,
+            QFont(fn, 7, QFont.Bold, False),
+            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # insert array info if available
-        self.insert_array_info()
-        self.replot()
-        _dprint(3, 'called replot in reportCoordinates ')
+          self.insert_array_info()
+          self.replot()
+          _dprint(3, 'called replot in reportCoordinates ')
     # reportCoordinates()
 
 
@@ -1045,19 +1063,19 @@ class QwtImageDisplay(QwtPlot):
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
         if Qt.LeftButton == e.button():
-            if self.is_vector:
+            if self.is_vector: 
+              if not self.display_solution_distances:
             # Python semantics: self.pos = e.pos() does not work; force a copy
-              xPos = e.pos().x()
-              yPos = e.pos().y()
-              _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+                xPos = e.pos().x()
+                yPos = e.pos().y()
+                _dprint(2,'xPos yPos ', xPos, ' ', yPos);
 # We get information about the qwt plot curve that is
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-              curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
-              _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
-              self.reportCoordinates(xVal, yVal)
-
+                curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
+                _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
+                self.reportCoordinates(xVal, yVal)
             else:
               self.formatCoordinates(e.pos().x(), e.pos().y())
             if self.zooming:
@@ -1121,6 +1139,30 @@ class QwtImageDisplay(QwtPlot):
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for coordinate values
               if abs(self.xpos - e.pos().x()) <=2 and abs(self.ypos - e.pos().y())<=2:
+                if self.is_vector and self.display_solution_distances:
+            # Python semantics: self.pos = e.pos() does not work; force a copy
+                  xPos = e.pos().x()
+                  yPos = e.pos().y()
+                  _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+# We get information about the qwt plot curve that is
+# closest to the location of this mouse pressed event.
+# We are interested in the nearest curve_number and the index, or
+# sequence number of the nearest point in that curve.
+                  self.array_curve_number, distance, xVal, yVal, self.array_index = self.closestCurve(xPos, yPos)
+                  _dprint(2,' self.array_curve_number, distance, xVal, yVal, aelf.array_index ', self.array_curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', self.array_index);
+                  shape = self.metrics_rank.shape
+                  array_curve_number = self.array_curve_number - 1
+                  self.metrics_index = 0 
+                  if shape[1] > 1:
+                    self.metrics_index = array_curve_number % shape[1]
+                    array_curve_number = int(array_curve_number / shape[1])
+                  if array_curve_number == 0:
+                    self.curve_info = "vector sum " 
+                  if array_curve_number == 1:
+                    self.curve_info = "sum of norms "
+                  if array_curve_number == 2:
+                    self.curve_info = "norms "
+                  self.reportCoordinates(xVal, yVal)
                 return
 
               self.setOutlineStyle(Qwt.Cross)
@@ -2311,6 +2353,12 @@ class QwtImageDisplay(QwtPlot):
       self.nonlin = metrics_tuple[5]
       self.sum_incr_soln_norm = metrics_tuple[6]
       self.incr_soln_norm = metrics_tuple[7]
+      self.metrics_fit = metrics_tuple[8]
+      self.metrics_chi = metrics_tuple[9]
+      self.metrics_mu = metrics_tuple[10]
+      self.metrics_flag = metrics_tuple[11]
+      self.metrics_stddev = metrics_tuple[12]
+      self.metrics_unknowns = metrics_tuple[13]
       self.store_solver_array = True
       self.solver_array = None
       self.solver_title = None

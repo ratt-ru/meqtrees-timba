@@ -46,6 +46,11 @@ class SolverData:
          self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
          self.metrics_unknowns = zeros((num_metrics,num_metrics_rec), Int32)
          self.metrics_chi_0 = zeros((num_metrics,num_metrics_rec), Float64)
+         self.metrics_chi = zeros((num_metrics,num_metrics_rec), Float64)
+         self.metrics_fit = zeros((num_metrics,num_metrics_rec), Float64)
+         self.metrics_mu = zeros((num_metrics,num_metrics_rec), Float64)
+         self.metrics_stddev = zeros((num_metrics,num_metrics_rec), Float64)
+         self.metrics_flag = zeros((num_metrics,num_metrics_rec), Bool)
          self.vector_sum = zeros((num_metrics,num_metrics_rec), Float64)
          self.incr_soln_norm = zeros((num_metrics,num_metrics_rec), Float64)
          self.sum_incr_soln_norm = zeros((num_metrics,num_metrics_rec), Float64)
@@ -59,6 +64,11 @@ class SolverData:
              metrics_rec =  metrics[i][j]
              try:
                self.metrics_chi_0[i,j] = metrics_rec.chi_0 
+               self.metrics_fit[i,j] = metrics_rec.fit 
+               self.metrics_chi[i,j] = metrics_rec.chi 
+               self.metrics_mu[i,j] = metrics_rec.mu 
+               self.metrics_flag[i,j] = metrics_rec.flag 
+               self.metrics_stddev[i,j] = metrics_rec.stddev 
                sum_array = 0.0
                sum_array_test = 0.0
                for k in range(self.prev_unknowns,self.prev_unknowns + metrics_rec.num_unknowns):
@@ -95,7 +105,7 @@ class SolverData:
      return self._solver_array
 
    def getSolverMetrics(self):
-     return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.vector_sum, self.metrics_chi_0, self.nonlin, self.sum_incr_soln_norm, self.incr_soln_norm)
+     return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.vector_sum, self.metrics_chi_0, self.nonlin, self.sum_incr_soln_norm, self.incr_soln_norm, self.metrics_fit, self.metrics_chi, self.metrics_mu, self.metrics_flag, self.metrics_stddev,self.metrics_unknowns)
 
 def main(args):
   print 'we are in main' 
