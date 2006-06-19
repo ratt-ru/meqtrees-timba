@@ -29,7 +29,10 @@ class SolverData:
 #    self.__init__
 
    def StoreSolverData(self, incoming_data, data_label=''):
-     """ This method stores the data """
+     """ This method stores solver data and calculates various
+         arrays that describe the behaviour of the solver solutions
+         as a function of iteration number
+     """
      self._data_label = data_label
      if incoming_data.solver_result.has_key("incremental_solutions"):
        self._solver_array = incoming_data.solver_result.incremental_solutions
@@ -102,9 +105,13 @@ class SolverData:
              self.nonlin[i,j] = debug_rec.nonlin[i]
 
    def getSolverData(self):
+     """ return the solver incremental solutions array """
      return self._solver_array
 
    def getSolverMetrics(self):
+     """ return a tuple that contains the various solver metrics
+         arrays that are plotted in the chi_sq surface display
+     """
      return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.vector_sum, self.metrics_chi_0, self.nonlin, self.sum_incr_soln_norm, self.incr_soln_norm, self.metrics_fit, self.metrics_chi, self.metrics_mu, self.metrics_flag, self.metrics_stddev,self.metrics_unknowns)
 
 def main(args):
