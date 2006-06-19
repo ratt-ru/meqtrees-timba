@@ -155,7 +155,9 @@ namespace Meq {
 	Vells::Shape tfshape;
 	Axis::degenerateShape(tfshape,2);
 	int nt, nf;
-	LoVec_double freq;
+	int nf1 = rcells.ncells(Axis::FREQ);
+	int nf2 = brickcells.ncells(Axis::FREQ);
+	LoVec_double freq(casa::max(nf1,nf2));
 	double tmin, tmax, fmin, fmax;
 	
 	if (nfbrick == 1) {
@@ -283,12 +285,12 @@ namespace Meq {
 	      imin = 0;
 	      jmin = 0;
 	      
-	      for (int i1 = 0; i1 < nu-1; i1++){
-		if ((uu(i1)<=uarr(i)*freq(j)/c0) && (uu(i1+1)>uarr(i)*freq(j)/c0)) {imin = i1;};
-	      };
-	      for (int j1 = 0; j1 < nv-1; j1++){
-		if ((vv(j1)<=varr(i)*freq(j)/c0) && (vv(j1+1)>varr(i)*freq(j)/c0)) {jmin = j1;};
-	      };
+	      	      for (int i1 = 0; i1 < nu-1; i1++){
+	      		if ((uu(i1)<=uarr(i)*freq(j)/c0) && (uu(i1+1)>uarr(i)*freq(j)/c0)) {imin = i1;};
+	      	      };
+	      	      for (int j1 = 0; j1 < nv-1; j1++){
+	      		if ((vv(j1)<=varr(i)*freq(j)/c0) && (vv(j1+1)>varr(i)*freq(j)/c0)) {jmin = j1;};
+	      	      };
 	      
 	      arr2(imin,jmin) = 1.0;
 	      
