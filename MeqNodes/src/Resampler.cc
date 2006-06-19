@@ -943,10 +943,18 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 	  outcells_.resize(dimension);
 
 	  for (int i=0; i<std::min(in.rank(),out.rank()); i++) {
+					//special case: is len(in[i])==1, regardless of len(out[i]) size, we
+					//fix it to be 1
 					incells_[i].resize(in.center(i).size());
 					incells_[i]=in.center(i);
-					outcells_[i].resize(out.center(i).size());
-					outcells_[i]=out.center(i);
+					if (in.center(i).size()<=1) {
+	//								cout<<"Override Axis"<<endl;
+					 outcells_[i].resize(1);
+					 outcells_[i]=out.center(i)(0);
+					} else {
+					 outcells_[i].resize(out.center(i).size());
+					 outcells_[i]=out.center(i);
+					}
 	  }
 	  for (unsigned int i=in.rank(); i<dimension; i++) {
 					outcells_[i].resize(out.center(i).size());
