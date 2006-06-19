@@ -78,8 +78,6 @@ public:
  private:
 
   bool _additional_info;  
-  double _uvZ;
-  double _uvDelta;
   int _method;
 
   // note that there are two sets of in and out axes
@@ -133,6 +131,10 @@ void UVInterpolWave::mysplint(blitz::Array<double,1> &xa, blitz::Array<dcomplex,
  void UVInterpolWave::mypolin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int m, int n, double &x1, double &x2, dcomplex &y, dcomplex &dy);
 
  void UVInterpolWave::mypolint(blitz::Array<double,1> &xa, blitz::Array<double,1> &ya, int n, double &x, double &y, double &dy);
+
+ dcomplex UVInterpolWave::scheme1(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja, dcomplex fuiaja, dcomplex fuiajb, dcomplex fuibjb, dcomplex fuibja, dcomplex fviaja, dcomplex fviajb, dcomplex fvibjb, dcomplex fvibja, dcomplex fuviaja, dcomplex fuviajb, dcomplex fuvibjb, dcomplex fuvibja );
+
+dcomplex UVInterpolWave::scheme3(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja );
    
 };
 

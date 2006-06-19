@@ -34,8 +34,6 @@
 #include <casa/aips.h>
 #include <casa/BasicSL/Constants.h>
 #include <casa/BasicMath/Math.h>
-#include <iostream>
-
 
 namespace Meq {
 
@@ -49,8 +47,6 @@ namespace Meq {
   UVInterpolWave::UVInterpolWave():
     Node(num_children,child_labels),
     _additional_info(false),
-    _uvZ(0.0),
-    _uvDelta(casa::C::pi/2.),
     _method(1)
   {
     disableAutoResample();
@@ -77,8 +73,6 @@ namespace Meq {
   {
     Node::setStateImpl(rec,initializing);
     rec["Additional.Info"].get(_additional_info,initializing);
-    rec["UVZ"].get(_uvZ,initializing);
-    rec["UVDelta"].get(_uvDelta,initializing);
     rec["Method"].get(_method,initializing);
 
     std::vector<HIID> in1 = _in1_axis_id;
@@ -131,6 +125,11 @@ namespace Meq {
     if( rcells.isDefined(Axis::TIME) && brickcells.isDefined(Axis::FREQ))
       {
 	// Set input and output axes
+	_in1axis0 = Axis::axis(_in1_axis_id[0]);
+	_in1axis1 = Axis::axis(_in1_axis_id[1]);
+	_in1axis2 = Axis::axis(_in1_axis_id[2]);
+	_out1axis0 = Axis::axis(_out1_axis_id[0]);
+	_out1axis1 = Axis::axis(_out1_axis_id[1]);
 	_in2axis0 = Axis::axis(_in2_axis_id[0]);
 	_out2axis0 = Axis::axis(_out2_axis_id[0]);
 	_out2axis1 = Axis::axis(_out2_axis_id[1]);
@@ -141,27 +140,47 @@ namespace Meq {
 	//   (Romberg?) must be implemented). 
 	    
 	// Create Result object and attach to the Ref that was passed in.
-	resref <<= new Result(4);                 // 4 planes
-	VellSet& vs0 = resref().setNewVellSet(0);  // create new object for plane 0
-	VellSet& vs1 = resref().setNewVellSet(1);  // create new object for plane 0
-	VellSet& vs2 = resref().setNewVellSet(2);  // create new object for plane 0
-	VellSet& vs3 = resref().setNewVellSet(3);  // create new object for plane 0
+	resref <<= new Result(4);                 // Create 4 Result planes
+	VellSet& vs0 = resref().setNewVellSet(0); 
+	VellSet& vs1 = resref().setNewVellSet(1); 
+	VellSet& vs2 = resref().setNewVellSet(2); 
+	VellSet& vs3 = resref().setNewVellSet(3); 
 
 	//
 	// Make the Result
-	//		
-	    
-	// Make the Vells (Interpolation)
+	//
+
+	int nfbrick = brickcells.ncells(Axis::FREQ);
+
 	Vells::Shape tfshape;
 	Axis::degenerateShape(tfshape,2);
-	int nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
-	int nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
-	const LoVec_double time = rcells.center(Axis::axis("TIME"));
-	const LoVec_double freq = brickcells.center(Axis::axis("FREQ"));
-	const double tmin = min(rcells.cellStart(Axis::TIME));
-	const double tmax = max(rcells.cellEnd(Axis::TIME));
-	const double fmin = min(brickcells.cellStart(Axis::FREQ));
-	const double fmax = max(brickcells.cellEnd(Axis::FREQ));
+	int nt, nf;
+	LoVec_double freq;
+	double tmin, tmax, fmin, fmax;
+	
+	if (nfbrick == 1) {
+	  // UVBrick is constant in frequency.
+	  // Result based on frequency domain of the Request
+	  nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	  nf = tfshape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	  freq = rcells.center(Axis::axis("FREQ"));
+	  tmin = min(rcells.cellStart(Axis::TIME));
+	  tmax = max(rcells.cellEnd(Axis::TIME));
+	  fmin = min(rcells.cellStart(Axis::FREQ));
+	  fmax = max(rcells.cellEnd(Axis::FREQ));
+	   
+	} else {
+	  // Result based on frequency domain of the UVBrick
+	  
+	  nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	  nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
+	  freq = brickcells.center(Axis::axis("FREQ"));
+	  tmin = min(rcells.cellStart(Axis::TIME));
+	  tmax = max(rcells.cellEnd(Axis::TIME));
+	  fmin = min(brickcells.cellStart(Axis::FREQ));
+	  fmax = max(brickcells.cellEnd(Axis::FREQ));
+	  
+	};
 
 	Domain::Ref tfdomain(new Domain());
 	tfdomain().defineAxis(Axis::axis("TIME"),tmin,tmax);
@@ -175,10 +194,10 @@ namespace Meq {
 	Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,true));
 	Vells & vells2 = vs2.setValue(new Vells(dcomplex(0),tfshape,true));
 	Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,true));
-	    
+	
 	// Fill the Vells (this is were the interpolation takes place)
 	fillVells(childres,vells0,vells1,vells2,vells3,tfcells);	
-	    
+	
 	// Attach the request Cells to the result
 	resref().setCells(*tfcells);
 	resref().setDims(LoShape(2,2));
@@ -253,6 +272,10 @@ namespace Meq {
 	  blitz::Array<double,1> varr = vtime_slicer();
 
 	  int imin, jmin;
+	  cdebug(1) << nf << ' ' << nt << endl;
+	  cdebug(1) << freq(0) << endl;
+	  cdebug(1) << freq(1) << endl;
+	  cdebug(1) << freq(2) << endl;
 
 	  for (int j = 0; j < nf; j++){
 	    for (int i = 0; i < nt; i++){
@@ -290,14 +313,7 @@ namespace Meq {
     const double c0 = casa::C::c;  // Speed of light
 
     // If method has incorrect value, use default method
-    if ((_method < 1) || (_method > 4)) _method = 1;
-
-    // Set input and Output axes
-    _in1axis0 = Axis::axis(_in1_axis_id[0]);
-    _in1axis1 = Axis::axis(_in1_axis_id[1]);
-    _in1axis2 = Axis::axis(_in1_axis_id[2]);
-    _out1axis0 = Axis::axis(_out1_axis_id[0]);
-    _out1axis1 = Axis::axis(_out1_axis_id[1]);
+    if ((_method < 1) || (_method > 3)) _method = 1;
 
     // Time-Freq boundaries of Result to be produced
     int nt = fcells.ncells(Axis::TIME);
@@ -313,6 +329,7 @@ namespace Meq {
 
     brickresult = fchildres.at(0);
     brickcells = brickresult->cells();
+    int nfbrick = brickcells.ncells(Axis::FREQ);
     uvpoints = fchildres.at(1);
 
     // u, v values from UVW-Node
@@ -460,109 +477,9 @@ namespace Meq {
       VellsSlicer<dcomplex,3> uvYY_slicer(fuvvellsYY,_in1axis0,_in1axis1,_in1axis2);
       blitz::Array<dcomplex,3> fuvarrYY = uvYY_slicer();
       
-      for (int j = 0; j < nf; j++){
-
-	for (int i = 0; i < nt; i++){
-	
-	  // Determine the uv-coordinates
-      
-	  uc = uarr(i)*freq(j)/c0;
-	  vc = varr(i)*freq(j)/c0;
-
-	  // Bi-Cubic Hermite Interpolation, where the derivatives are
-	  //  approximated by central finite differences (already 
-	  //  determined in the UVBrick node).
-	  
-	  ia = 0;
-	  ib = nu-1;
-	  ja = 0;
-	  jb = nv-1;
-
-	  for (int i1 = 0; i1 < nu-1; i1++){
-	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	  };
-	  for (int j1 = 0; j1 < nv-1; j1++){
-	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	  };
-	  
-	  s = (uc-uu(ia))/(uu(ib)-uu(ia));
-	  t = (vc-vv(ja))/(vv(jb)-vv(ja));
-	  
-	  arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
-	    + s*(1-t)*farrXX(j,ib,ja) 
-	    + (1-s)*t*farrXX(j,ia,jb)
-	    + t*s*farrXX(j,ib,jb)
-	    + t*s*s*(1-s)*(farrXX(j,ib,jb)-fuarrXX(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrXX(j,ia,jb)-fuarrXX(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrXX(j,ib,ja)-fuarrXX(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,ja)-fuarrXX(j,ia,ja))
-	    + t*t*s*(1-t)*(farrXX(j,ib,jb)-fvarrXX(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrXX(j,ia,jb)-fvarrXX(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrXX(j,ib,ja)-fvarrXX(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrXX(j,ia,ja)-fvarrXX(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrXX(j,ib,jb) - fvarrXX(j,ib,jb) - fuarrXX(j,ib,jb) + fuvarrXX(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,jb) - fvarrXX(j,ia,jb) - fuarrXX(j,ia,jb) + fuvarrXX(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrXX(j,ib,ja) - fvarrXX(j,ib,ja) - fuarrXX(j,ib,ja) + fuvarrXX(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrXX(j,ia,ja) - fvarrXX(j,ia,ja) - fuarrXX(j,ia,ja) + fuvarrXX(j,ia,ja));
-
-	  arrXY(i,j) = (1-t)*(1-s)*farrXY(j,ia,ja) 
-	    + s*(1-t)*farrXY(j,ib,ja) 
-	    + (1-s)*t*farrXY(j,ia,jb)
-	    + t*s*farrXY(j,ib,jb)
-	    + t*s*s*(1-s)*(farrXY(j,ib,jb)-fuarrXY(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrXY(j,ia,jb)-fuarrXY(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrXY(j,ib,ja)-fuarrXY(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,ja)-fuarrXY(j,ia,ja))
-	    + t*t*s*(1-t)*(farrXY(j,ib,jb)-fvarrXY(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrXY(j,ia,jb)-fvarrXY(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrXY(j,ib,ja)-fvarrXY(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrXY(j,ia,ja)-fvarrXY(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrXY(j,ib,jb) - fvarrXY(j,ib,jb) - fuarrXY(j,ib,jb) + fuvarrXY(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,jb) - fvarrXY(j,ia,jb) - fuarrXY(j,ia,jb) + fuvarrXY(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrXY(j,ib,ja) - fvarrXY(j,ib,ja) - fuarrXY(j,ib,ja) + fuvarrXY(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrXY(j,ia,ja) - fvarrXY(j,ia,ja) - fuarrXY(j,ia,ja) + fuvarrXY(j,ia,ja));
-
-	  arrYX(i,j) = (1-t)*(1-s)*farrYX(j,ia,ja) 
-	    + s*(1-t)*farrYX(j,ib,ja) 
-	    + (1-s)*t*farrYX(j,ia,jb)
-	    + t*s*farrYX(j,ib,jb)
-	    + t*s*s*(1-s)*(farrYX(j,ib,jb)-fuarrYX(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrYX(j,ia,jb)-fuarrYX(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrYX(j,ib,ja)-fuarrYX(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,ja)-fuarrYX(j,ia,ja))
-	    + t*t*s*(1-t)*(farrYX(j,ib,jb)-fvarrYX(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrYX(j,ia,jb)-fvarrYX(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrYX(j,ib,ja)-fvarrYX(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrYX(j,ia,ja)-fvarrYX(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrYX(j,ib,jb) - fvarrYX(j,ib,jb) - fuarrYX(j,ib,jb) + fuvarrYX(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,jb) - fvarrYX(j,ia,jb) - fuarrYX(j,ia,jb) + fuvarrYX(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrYX(j,ib,ja) - fvarrYX(j,ib,ja) - fuarrYX(j,ib,ja) + fuvarrYX(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrYX(j,ia,ja) - fvarrYX(j,ia,ja) - fuarrYX(j,ia,ja) + fuvarrYX(j,ia,ja));
-
-	  arrYY(i,j) = (1-t)*(1-s)*farrYY(j,ia,ja) 
-	    + s*(1-t)*farrYY(j,ib,ja) 
-	    + (1-s)*t*farrYY(j,ia,jb)
-	    + t*s*farrYY(j,ib,jb)
-	    + t*s*s*(1-s)*(farrYY(j,ib,jb)-fuarrYY(j,ib,jb))
-	    + t*s*(1-s)*(1-s)*(farrYY(j,ia,jb)-fuarrYY(j,ia,jb))
-	    + (1-t)*s*s*(1-s)*(farrYY(j,ib,ja)-fuarrYY(j,ib,ja))
-	    + (1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,ja)-fuarrYY(j,ia,ja))
-	    + t*t*s*(1-t)*(farrYY(j,ib,jb)-fvarrYY(j,ib,jb))
-	    + t*t*(1-t)*(1-s)*(farrYY(j,ia,jb)-fvarrYY(j,ia,jb))
-	    + (1-t)*s*t*(1-t)*(farrYY(j,ib,ja)-fvarrYY(j,ib,ja))
-	    + t*(1-t)*(1-t)*(1-s)*(farrYY(j,ia,ja)-fvarrYY(j,ia,ja))
-	    + t*t*(1-t)*s*s*(1-s)*(farrYY(j,ib,jb) - fvarrYY(j,ib,jb) - fuarrYY(j,ib,jb) + fuvarrYY(j,ib,jb))
-	    + t*t*(1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,jb) - fvarrYY(j,ia,jb) - fuarrYY(j,ia,jb) + fuvarrYY(j,ia,jb))
-	    + t*(1-t)*(1-t)*s*s*(1-s)*(farrYY(j,ib,ja) - fvarrYY(j,ib,ja) - fuarrYY(j,ib,ja) + fuvarrYY(j,ib,ja))
-	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(farrYY(j,ia,ja) - fvarrYY(j,ia,ja) - fuarrYY(j,ia,ja) + fuvarrYY(j,ia,ja));
-
-	}; // i
-      }; // j
-
-    } else {
-      if (_method == 2) {
-
-	for (int j = 0; j < nf; j++){ 
+      if (nfbrick==1){
+	// return request frequency grid
+	for (int j = 0; j < nf; j++){
 
 	  for (int i = 0; i < nt; i++){
 	
@@ -570,9 +487,10 @@ namespace Meq {
       
 	    uc = uarr(i)*freq(j)/c0;
 	    vc = varr(i)*freq(j)/c0;
-
-	    // 4th order polynomial interpolation
-	    // Numerical Recipes, Sec. 3.6
+	    
+	    // Bi-Cubic Hermite Interpolation, where the derivatives are
+	    //  approximated by central finite differences (already 
+	    //  determined in the UVBrick node).
 	    
 	    ia = 0;
 	    ib = nu-1;
@@ -580,50 +498,109 @@ namespace Meq {
 	    jb = nv-1;
 	    
 	    for (int i1 = 0; i1 < nu-1; i1++){
-	      if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1-1; ib = i1+2;};
+	      if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
 	    };
 	    for (int j1 = 0; j1 < nv-1; j1++){
-	      if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1-1; jb = j1+2;};
+	      if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
 	    };
+	  
+	    s = (uc-uu(ia))/(uu(ib)-uu(ia));
+	    t = (vc-vv(ja))/(vv(jb)-vv(ja));
 	    
-	    for (int i1 =0; i1<4; i1++){
-	      x1(i1) = uu(ia+i1);
-	      for (int j1=0; j1<4; j1++){
-		x2(j1) = vv(ja+j1);
-		yXX(i1,j1) = farrXX(j,ia+i1, ja+j1);
-		yXY(i1,j1) = farrXY(j,ia+i1, ja+j1);
-		yYX(i1,j1) = farrYX(j,ia+i1, ja+j1);
-		yYY(i1,j1) = farrYY(j,ia+i1, ja+j1);
-	      };
-	    };
+	    arrXX(i,j) = scheme1(s,t,
+				 farrXX(0,ia,ja), farrXX(0,ia,jb), farrXX(0,ib,jb), farrXX(0,ib,ja),
+				 fuarrXX(0,ia,ja), fuarrXX(0,ia,jb), fuarrXX(0,ib,jb), fuarrXX(0,ib,ja),
+				 fvarrXX(0,ia,ja), fvarrXX(0,ia,jb), fvarrXX(0,ib,jb), fvarrXX(0,ib,ja),
+				 fuvarrXX(0,ia,ja), fuvarrXX(0,ia,jb), fuvarrXX(0,ib,jb), fuvarrXX(0,ib,ja));
+
+	    arrXY(i,j) = scheme1(s,t,
+				 farrXY(0,ia,ja), farrXY(0,ia,jb), farrXY(0,ib,jb), farrXY(0,ib,ja),
+				 fuarrXY(0,ia,ja), fuarrXY(0,ia,jb), fuarrXY(0,ib,jb), fuarrXY(0,ib,ja),
+				 fvarrXY(0,ia,ja), fvarrXY(0,ia,jb), fvarrXY(0,ib,jb), fvarrXY(0,ib,ja),
+				 fuvarrXY(0,ia,ja), fuvarrXY(0,ia,jb), fuvarrXY(0,ib,jb), fuvarrXY(0,ib,ja));
 	    
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
-	    UVInterpolWave::mypolin2(x1,x2,yXX,4,4,uc,vc,value, dvalue);
-	    arrXX(i,j) = value;
-
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
-	    UVInterpolWave::mypolin2(x1,x2,yXY,4,4,uc,vc,value, dvalue);
-	    arrXY(i,j) = value;
-
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
-	    UVInterpolWave::mypolin2(x1,x2,yYX,4,4,uc,vc,value, dvalue);
-	    arrYX(i,j) = value;
-
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
-	    UVInterpolWave::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
-	    arrYY(i,j) = value;
-
+	    arrYX(i,j) = scheme1(s,t,
+				 farrYX(0,ia,ja), farrYX(0,ia,jb), farrYX(0,ib,jb), farrYX(0,ib,ja),
+				 fuarrYX(0,ia,ja), fuarrYX(0,ia,jb), fuarrYX(0,ib,jb), fuarrYX(0,ib,ja),
+				 fvarrYX(0,ia,ja), fvarrYX(0,ia,jb), fvarrYX(0,ib,jb), fvarrYX(0,ib,ja),
+				 fuvarrYX(0,ia,ja), fuvarrYX(0,ia,jb), fuvarrYX(0,ib,jb), fuvarrYX(0,ib,ja));
+	    
+	    arrYY(i,j) = scheme1(s,t,
+				 farrYY(0,ia,ja), farrYY(0,ia,jb), farrYY(0,ib,jb), farrYY(0,ib,ja),
+				 fuarrYY(0,ia,ja), fuarrYY(0,ia,jb), fuarrYY(0,ib,jb), fuarrYY(0,ib,ja),
+				 fvarrYY(0,ia,ja), fvarrYY(0,ia,jb), fvarrYY(0,ib,jb), fvarrYY(0,ib,ja),
+	   fuvarrYY(0,ia,ja), fuvarrYY(0,ia,jb), fuvarrYY(0,ib,jb), fuvarrYY(0,ib,ja));
+	    
 	  }; // i
 	}; // j
 
+
       } else {
-	if (_method == 3) {
+	// nfbrick >   1
+	// return brick frequency grid
+	for (int j = 0; j < nf; j++){
+
+	  for (int i = 0; i < nt; i++){
+	
+	    // Determine the uv-coordinates
+      
+	    uc = uarr(i)*freq(j)/c0;
+	    vc = varr(i)*freq(j)/c0;
 	    
-	  for (int j = 0; j < nf; j++){
+	    // Bi-Cubic Hermite Interpolation, where the derivatives are
+	    //  approximated by central finite differences (already 
+	    //  determined in the UVBrick node).
+	    
+	    ia = 0;
+	    ib = nu-1;
+	    ja = 0;
+	    jb = nv-1;
+	    
+	    for (int i1 = 0; i1 < nu-1; i1++){
+	      if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	    };
+	    for (int j1 = 0; j1 < nv-1; j1++){
+	      if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	    };
+	  
+	    s = (uc-uu(ia))/(uu(ib)-uu(ia));
+	    t = (vc-vv(ja))/(vv(jb)-vv(ja));
+	    
+	    arrXX(i,j) = scheme1(s,t,
+				 farrXX(j,ia,ja), farrXX(j,ia,jb), farrXX(j,ib,jb), farrXX(j,ib,ja),
+				 fuarrXX(j,ia,ja), fuarrXX(j,ia,jb), fuarrXX(j,ib,jb), fuarrXX(j,ib,ja),
+				 fvarrXX(j,ia,ja), fvarrXX(j,ia,jb), fvarrXX(j,ib,jb), fvarrXX(j,ib,ja),
+				 fuvarrXX(j,ia,ja), fuvarrXX(j,ia,jb), fuvarrXX(j,ib,jb), fuvarrXX(j,ib,ja));
+
+	    arrXY(i,j) = scheme1(s,t,
+				 farrXY(j,ia,ja), farrXY(j,ia,jb), farrXY(j,ib,jb), farrXY(j,ib,ja),
+				 fuarrXY(j,ia,ja), fuarrXY(j,ia,jb), fuarrXY(j,ib,jb), fuarrXY(j,ib,ja),
+				 fvarrXY(j,ia,ja), fvarrXY(j,ia,jb), fvarrXY(j,ib,jb), fvarrXY(j,ib,ja),
+				 fuvarrXY(j,ia,ja), fuvarrXY(j,ia,jb), fuvarrXY(j,ib,jb), fuvarrXY(j,ib,ja));
+	    
+	    arrYX(i,j) = scheme1(s,t,
+				 farrYX(j,ia,ja), farrYX(j,ia,jb), farrYX(j,ib,jb), farrYX(j,ib,ja),
+				 fuarrYX(j,ia,ja), fuarrYX(j,ia,jb), fuarrYX(j,ib,jb), fuarrYX(j,ib,ja),
+				 fvarrYX(j,ia,ja), fvarrYX(j,ia,jb), fvarrYX(j,ib,jb), fvarrYX(j,ib,ja),
+				 fuvarrYX(j,ia,ja), fuvarrYX(j,ia,jb), fuvarrYX(j,ib,jb), fuvarrYX(j,ib,ja));
+	    
+	    arrYY(i,j) = scheme1(s,t,
+				 farrYY(j,ia,ja), farrYY(j,ia,jb), farrYY(j,ib,jb), farrYY(j,ib,ja),
+				 fuarrYY(j,ia,ja), fuarrYY(j,ia,jb), fuarrYY(j,ib,jb), fuarrYY(j,ib,ja),
+				 fvarrYY(j,ia,ja), fvarrYY(j,ia,jb), fvarrYY(j,ib,jb), fvarrYY(j,ib,ja),
+	   fuvarrYY(j,ia,ja), fuvarrYY(j,ia,jb), fuvarrYY(j,ib,jb), fuvarrYY(j,ib,ja));
+	    
+	  }; // i
+	}; // j
+	
+      }; // nfbrick = 1 vs. >1
+
+    } else {
+      if (_method == 2) {
+
+	if (nfbrick == 1) {
+
+	  for (int j = 0; j < nf; j++){ 
 
 	    for (int i = 0; i < nt; i++){
 	
@@ -631,46 +608,201 @@ namespace Meq {
       
 	      uc = uarr(i)*freq(j)/c0;
 	      vc = varr(i)*freq(j)/c0;
-
-	      // Bi-linear interpolation (Num. Rec. Sec. 3.6)
+	    
+	      // 4th order polynomial interpolation
+	      // Numerical Recipes, Sec. 3.6
 	    
 	      ia = 0;
 	      ib = nu-1;
 	      ja = 0;
 	      jb = nv-1;
-	      
+	    
 	      for (int i1 = 0; i1 < nu-1; i1++){
-		if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+		if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1-1; ib = i1+2;};
 	      };
 	      for (int j1 = 0; j1 < nv-1; j1++){
-		if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+		if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1-1; jb = j1+2;};
 	      };
 	      
-	      s = (uc-uu(ia))/(uu(ib)-uu(ia));
-	      t = (vc-vv(ja))/(vv(jb)-vv(ja));
-	    
-	      arrXX(i,j) = (1-t)*(1-s)*farrXX(j,ia,ja) 
-		+ s*(1-t)*farrXX(j,ib,ja) 
-		+ t*(1-s)*farrXX(j,ia,jb)
-		+ t*s*farrXX(j,ib,jb);
-
-	      arrXY(i,j) = (1-t)*(1-s)*farrXY(j,ia,ja) 
-		+ s*(1-t)*farrXY(j,ib,ja) 
-		+ t*(1-s)*farrXY(j,ia,jb)
-		+ t*s*farrXY(j,ib,jb);
-
-	      arrYX(i,j) = (1-t)*(1-s)*farrYX(j,ia,ja) 
-		+ s*(1-t)*farrYX(j,ib,ja) 
-		+ t*(1-s)*farrYX(j,ia,jb)
-		+ t*s*farrYX(j,ib,jb);
-
-	      arrYY(i,j) = (1-t)*(1-s)*farrYY(j,ia,ja) 
-		+ s*(1-t)*farrYY(j,ib,ja) 
-		+ t*(1-s)*farrYY(j,ia,jb)
-		+ t*s*farrYY(j,ib,jb);	  
+	      for (int i1 =0; i1<4; i1++){
+		x1(i1) = uu(ia+i1);
+		for (int j1=0; j1<4; j1++){
+		  x2(j1) = vv(ja+j1);
+		  yXX(i1,j1) = farrXX(0,ia+i1, ja+j1);
+		  yXY(i1,j1) = farrXY(0,ia+i1, ja+j1);
+		  yYX(i1,j1) = farrYX(0,ia+i1, ja+j1);
+		  yYY(i1,j1) = farrYY(0,ia+i1, ja+j1);
+		};
+	      };
 	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yXX,4,4,uc,vc,value, dvalue);
+	      arrXX(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yXY,4,4,uc,vc,value, dvalue);
+	      arrXY(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yYX,4,4,uc,vc,value, dvalue);
+	      arrYX(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
+	      arrYY(i,j) = value;
+
 	    }; // i
 	  }; // j
+
+	} else {
+	  // nfbrick > 1
+	  for (int j = 0; j < nf; j++){ 
+
+	    for (int i = 0; i < nt; i++){
+	
+	      // Determine the uv-coordinates
+      
+	      uc = uarr(i)*freq(j)/c0;
+	      vc = varr(i)*freq(j)/c0;
+	    
+	      // 4th order polynomial interpolation
+	      // Numerical Recipes, Sec. 3.6
+	    
+	      ia = 0;
+	      ib = nu-1;
+	      ja = 0;
+	      jb = nv-1;
+	    
+	      for (int i1 = 0; i1 < nu-1; i1++){
+		if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1-1; ib = i1+2;};
+	      };
+	      for (int j1 = 0; j1 < nv-1; j1++){
+		if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1-1; jb = j1+2;};
+	      };
+	      
+	      for (int i1 =0; i1<4; i1++){
+		x1(i1) = uu(ia+i1);
+		for (int j1=0; j1<4; j1++){
+		  x2(j1) = vv(ja+j1);
+		  yXX(i1,j1) = farrXX(j,ia+i1, ja+j1);
+		  yXY(i1,j1) = farrXY(j,ia+i1, ja+j1);
+		  yYX(i1,j1) = farrYX(j,ia+i1, ja+j1);
+		  yYY(i1,j1) = farrYY(j,ia+i1, ja+j1);
+		};
+	      };
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yXX,4,4,uc,vc,value, dvalue);
+	      arrXX(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yXY,4,4,uc,vc,value, dvalue);
+	      arrXY(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yYX,4,4,uc,vc,value, dvalue);
+	      arrYX(i,j) = value;
+	      
+	      value = dcomplex(0.0);
+	      dvalue = dcomplex(0.0);
+	      UVInterpolWave::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
+	      arrYY(i,j) = value;
+
+	    }; // i
+	  }; // j
+
+	}; // nfbrick =1 vs. >1
+
+      } else {
+	if (_method == 3) {
+	    
+	  if (nfbrick == 1) {
+	    for (int j = 0; j < nf; j++){
+
+	      for (int i = 0; i < nt; i++){
+	
+		// Determine the uv-coordinates
+		
+		uc = uarr(i)*freq(j)/c0;
+		vc = varr(i)*freq(j)/c0;
+		
+		// Bi-linear interpolation (Num. Rec. Sec. 3.6)
+		
+		ia = 0;
+		ib = nu-1;
+		ja = 0;
+		jb = nv-1;
+		
+		for (int i1 = 0; i1 < nu-1; i1++){
+		  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+		};
+		for (int j1 = 0; j1 < nv-1; j1++){
+		  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+		};
+		
+		s = (uc-uu(ia))/(uu(ib)-uu(ia));
+		t = (vc-vv(ja))/(vv(jb)-vv(ja));
+		
+		arrXX(i,j) = scheme3(s,t,farrXX(0,ia,ja),farrXX(0,ia,jb),farrXX(0,ib,jb),farrXX(0,ib,ja));
+		
+		arrXY(i,j) = scheme3(s,t,farrXY(0,ia,ja),farrXY(0,ia,jb),farrXY(0,ib,jb),farrXY(0,ib,ja));
+		
+		arrYX(i,j) = scheme3(s,t,farrYX(0,ia,ja),farrYX(0,ia,jb),farrYX(0,ib,jb),farrYX(0,ib,ja));
+		
+		arrYY(i,j) = scheme3(s,t,farrYY(0,ia,ja),farrYY(0,ia,jb),farrYY(0,ib,jb),farrYY(0,ib,ja));
+		
+	      }; // i
+	    }; // j
+
+
+	  } else {
+	    // nfbrick > 1
+	    for (int j = 0; j < nf; j++){
+
+	      for (int i = 0; i < nt; i++){
+	
+		// Determine the uv-coordinates
+		
+		uc = uarr(i)*freq(j)/c0;
+		vc = varr(i)*freq(j)/c0;
+		
+		// Bi-linear interpolation (Num. Rec. Sec. 3.6)
+		
+		ia = 0;
+		ib = nu-1;
+		ja = 0;
+		jb = nv-1;
+		
+		for (int i1 = 0; i1 < nu-1; i1++){
+		  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+		};
+		for (int j1 = 0; j1 < nv-1; j1++){
+		  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+		};
+		
+		s = (uc-uu(ia))/(uu(ib)-uu(ia));
+		t = (vc-vv(ja))/(vv(jb)-vv(ja));
+		
+		arrXX(i,j) = scheme3(s,t,farrXX(j,ia,ja),farrXX(j,ia,jb),farrXX(j,ib,jb),farrXX(j,ib,ja));
+		
+		arrXY(i,j) = scheme3(s,t,farrXY(j,ia,ja),farrXY(j,ia,jb),farrXY(j,ib,jb),farrXY(j,ib,ja));
+		
+		arrYX(i,j) = scheme3(s,t,farrYX(j,ia,ja),farrYX(j,ia,jb),farrYX(j,ib,jb),farrYX(j,ib,ja));
+		
+		arrYY(i,j) = scheme3(s,t,farrYY(j,ia,ja),farrYY(j,ia,jb),farrYY(j,ib,jb),farrYY(j,ib,ja));
+		
+	      }; // i
+	    }; // j
+
+	  }; // if nfbrick = 1 vs. >1
+
 	}; // if method = 3
       }; // else
     }; // if method=1  else
@@ -983,6 +1115,34 @@ namespace Meq {
       y = y + dy;
     };
 
+  };
+
+  dcomplex UVInterpolWave::scheme1(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja, dcomplex fuiaja, dcomplex fuiajb, dcomplex fuibjb, dcomplex fuibja, dcomplex fviaja, dcomplex fviajb, dcomplex fvibjb, dcomplex fvibja, dcomplex fuviaja, dcomplex fuviajb, dcomplex fuvibjb, dcomplex fuvibja)
+  {
+    dcomplex value = (1-t)*(1-s)*fiaja + s*(1-t)*fibja 
+	           + (1-s)*t*fiajb + t*s*fibjb
+	    + t*s*s*(1-s)*(fibjb-fuibjb) + t*s*(1-s)*(1-s)*(fiajb-fuiajb)
+	    + (1-t)*s*s*(1-s)*(fibja-fuibja) 
+            + (1-t)*s*(1-s)*(1-s)*(fiaja-fuiaja)
+	    + t*t*s*(1-t)*(fibjb-fvibjb) + t*t*(1-t)*(1-s)*(fiajb-fviajb)
+	    + (1-t)*s*t*(1-t)*(fibja-fvibja) 
+            + t*(1-t)*(1-t)*(1-s)*(fiaja-fviaja)
+	    + t*t*(1-t)*s*s*(1-s)*(fibjb - fvibjb - fuibjb + fuvibjb)
+	    + t*t*(1-t)*s*(1-s)*(1-s)*(fiajb - fviajb - fuiajb + fuviajb)
+	    + t*(1-t)*(1-t)*s*s*(1-s)*(fibja - fvibja - fuibja + fuvibja)
+	    + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(fiaja - fviaja - fuiaja + fuviaja);
+
+    return value;
+  };
+
+  dcomplex UVInterpolWave::scheme3(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja )
+  {
+    dcomplex value = (1-t)*(1-s)*fiaja 
+      + s*(1-t)*fibja 
+      + t*(1-s)*fiajb
+      + t*s*fibjb;
+    
+    return value;
   };
 
 
