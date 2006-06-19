@@ -947,7 +947,7 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 					//fix it to be 1
 					incells_[i].resize(in.center(i).size());
 					incells_[i]=in.center(i);
-					if (in.center(i).size()<=1) {
+					if ((in.center(i).size()<=1) && (out.center(i).size()> 1)) {
 	//								cout<<"Override Axis"<<endl;
 					 outcells_[i].resize(1);
 					 outcells_[i]=out.center(i)(0);
