@@ -25,6 +25,10 @@ ref_frequency = float(800*1e+6)
 # MEP table for derived quantities fitted in this script
 mep_derived = 'CLAR_DQ_27-480.mep';
 
+# first, make sure that any previous version of the mep table is
+# obliterated so nothing strange happens in succeeding steps
+os.system("rm -fr "+ mep_derived);
+
 # bookmark
 Settings.forest_state = record(bookmarks=[
   record(name='Derived quantities',page=[
