@@ -126,7 +126,6 @@ class ResultPlotter(GriddedPlugin):
     self.data_list_labels = []
     self.data_list_length = 0
     self.max_list_length = 10
-    self.ignore_replay = False
     self._window_controller = None
     self.array_shape = None
     self.actual_rank = None
@@ -586,25 +585,31 @@ class ResultPlotter(GriddedPlugin):
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       # try to put request ID in label
       rq_id_found = False
-      if self._rec.cache.has_key("request_id"):
-        self.label = "rq " + str(self._rec.cache.request_id);
-        rq_id_found = True
-      if self._rec.cache.has_key("result"):
-        self._rec = self._rec.cache.result; # look for cache.result record
-        if not rq_id_found and self._rec.has_key("request_id"):
-          self.label = "rq " + str(self._rec.request_id);
-      else:
+      data_failure = False
+      try:
+        if self._rec.cache.has_key("request_id"):
+          self.label = "rq " + str(self._rec.cache.request_id);
+          rq_id_found = True
+        if self._rec.cache.has_key("result"):
+          self._rec = self._rec.cache.result; # look for cache.result record
+          if not rq_id_found and self._rec.has_key("request_id"):
+            self.label = "rq " + str(self._rec.request_id);
+        else:
+          data_failure = True
+      except:
+        data_failure = True
+      if data_failure:
 # cached_result not found, display an empty viewer with a "no result
 # in this node record" message (the user can then use the Display with
 # menu to switch to a different viewer)
-        Message = "No result record was found in the cache, so no plot can be made with the <b>Result Plotter</b>! You may wish to select another type of display."
+        Message = "No cache result record was found for this node, so no plot can be made."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.reset_plot_stuff()
         return
-
+    
 # update display with current data
     process_result = self.process_data()
 
@@ -623,9 +628,9 @@ class ResultPlotter(GriddedPlugin):
           del self.data_list[0]
         if len(self.data_list) != self.data_list_length:
           self.data_list_length = len(self.data_list)
-          if self.data_list_length > 1:
-            _dprint(3, 'calling adjust_selector')
-            self.adjust_selector()
+        if self.data_list_length > 1:
+          _dprint(3, 'calling adjust_selector')
+          self.adjust_selector()
 
   def process_data (self):
     """ process the actual record structure associated with a Cache result """
@@ -673,22 +678,16 @@ class ResultPlotter(GriddedPlugin):
     """ callback to redisplay contents of a result record stored in 
         a results history buffer
     """
-    if self.ignore_replay:
-      self.ignore_replay = False
-      return
     if data_index < len(self.data_list):
       self._rec = self.data_list[data_index]
       self.label = self.data_list_labels[data_index]
-      self.results_selector.setLabel(self.data_list_labels[data_index])
+      self.results_selector.setLabel(self.label)
       process_result = self.process_data()
 
   def select_spectrum_node (self, data_index):
     """ callback to redisplay contents of a spectrum leaf node stored in 
         a list of leaf nodes
     """
-    if self.ignore_replay:
-      self.ignore_replay = False
-      return
     if data_index < len(self.leaf_node_list):
       leaf = self.leaf_node_list[data_index]
       attrib_list = self.list_attrib_lists[data_index]
@@ -888,9 +887,10 @@ class ResultPlotter(GriddedPlugin):
         QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
       else:
         QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
-    self.ignore_replay = True
+    self.results_selector.set_emit(False)
     self.results_selector.setRange(self.data_list_length)
     self.results_selector.setLabel(self.label)
+    self.results_selector.set_emit(True)
 
   def show_selector (self, do_show_selector):
     """ callback to show or hide a ResultsRange object """
@@ -909,11 +909,12 @@ class ResultPlotter(GriddedPlugin):
       QObject.connect(self.spectrum_node_selector, PYSIGNAL('result_index'), self.select_spectrum_node)
 #     QObject.connect(self.spectrum_node_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
       QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_spectrum_selector)
-    self.ignore_replay = True
+    self.spectrum_node_selector.set_emit(False)
     self.spectrum_node_selector.setMaxValue(len(self.leaf_node_list),False)
     self.spectrum_node_selector.setRange(len(self.leaf_node_list), False)
     self.spectrum_node_selector.setLabel(self.label)
     self.spectrum_node_selector.disableContextmenu()
+    self.spectrum_node_selector.set_emit(True)
     
 
   def show_spectrum_selector (self, do_show_selector):
