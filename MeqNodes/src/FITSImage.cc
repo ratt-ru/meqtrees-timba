@@ -204,7 +204,8 @@ int FITSImage::getResult (Result::Ref &resref,
  cout<<"Transpose ="<<A.shape()<<endl;
 #endif
 
- blitz::Range lrange=blitz::Range::all();
+ //blitz::Range lrange=blitz::Range::all();
+ blitz::Range lrange=blitz::Range(naxis[0]-1,0,-1);
  ///Stokes I
  VellSet::Ref refI;
  VellSet &vs= refI<<= new VellSet(0,1);
