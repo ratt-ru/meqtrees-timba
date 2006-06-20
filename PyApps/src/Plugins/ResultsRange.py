@@ -21,6 +21,7 @@ class ResultsRange(QWidget):
       'Adjust results buffer size': 301,
       }
 
+      self.allow_emit = False
       self.menu = None
       self.maxVal = 10
       self.label_info = QLabel('', self)
@@ -44,7 +45,6 @@ class ResultsRange(QWidget):
 
       self.layout = QHBoxLayout(self)
       spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
-      spacer1 = QSpacerItem(11,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
       self.layout.addItem(spacer)
       self.layout.addWidget(self.label_info)
       self.layout.addWidget(self.spinbox)
@@ -86,7 +86,11 @@ class ResultsRange(QWidget):
 
     def update_spinbox(self, spin_value):
       self.slider.setValue(spin_value)
-      self.emit(PYSIGNAL("result_index"),(spin_value-1,))
+      if self.allow_emit:
+        self.emit(PYSIGNAL("result_index"),(spin_value-1,))
+
+    def set_emit(self, permission):
+      self.allow_emit = permission
 
     def initContextmenu(self):
       """Initialize the result buffer context menu
