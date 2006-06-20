@@ -33,7 +33,10 @@ class Funklet:
         if funklet.has_field('name'):
             self._name = funklet.name;
         else:
-            self._name=name;
+            if name:
+                self._name=name;
+            else:
+                self._name='test';
         if self._name:
             self._udi = "/funklet/"+name;
         else:
@@ -45,8 +48,15 @@ class Funklet:
     def getNX(self):
         return self._nx;
 
+    def getNAxis(self):
+        #dummy
+        return None;
+
     def getDomain(self):
         return self._domain;
+
+    def setDomain(self,domain = meq.domain(0,1,0,1)):
+        self._domain=domain;
 
     def setCoeff(self,coeff):
         self._coeff=coeff;
@@ -153,6 +163,7 @@ class Funklet:
         
     def eval(self,point={}):
         if self.isConstant:
+            print "returning constant",self._constant;
             return self._constant;
         if point is None:
             point = {'x0':0};
@@ -171,8 +182,8 @@ class Funklet:
             if isinstance(point,list):
                 x = point;
         #print "X:",x;
-        offset  = zeros((self._nx,));
-        scale  = ones((self._nx,));
+        offset  = zeros((self._nx,),Float64);
+        scale  = ones((self._nx,),Float64);
         if len(x) > self._nx:
             print "too many coordinates specified, only using first",self._nx;
             del x[self._nx:];
@@ -180,12 +191,13 @@ class Funklet:
         if not self._offset is None:
             nr=0;
             for i in self._offset:
-                #print offset, self._nx,self._offset,i;
+                #print "offset", offset, self._nx,self._offset,i;
                 offset[nr] = i;
                 nr+=1;
         if not self._scale is None:
             nr=0;
             for i in self._scale:
+                #print "scale", scale,i;
                 if i:
                     scale[nr] = 1./i;
                 nr+=1;
@@ -249,21 +261,32 @@ class Funklet:
         if len(grid) < self._nx:
             print "axis missing in cells, assuming 0",grid,self._nx #not sure if this is a problem
         k=zeros((self._nx,));
+        gridarray=[];
+        for i in range(self._nx):
+            if axis_map[i].has_key('id') and grid.has_key(str(axis_map[i]['id']).lower()):
+                #print "id",str(axis_map[i]['id']).lower(),"found",grid[str(axis_map[i]['id']).lower()],k[i];
+                gridarray.append(grid[str(axis_map[i]['id']).lower()]);
+            else:
+                #print "id",str(axis_map[i]['id']).lower(),"not found";
+                gridarray.append([0.]);
+
+        #print "gridarray",gridarray;
+
         while k[0]<(shape[0]):
             x=[];
             p = ();
 
             #print "grid",grid,"axis_map",axis_map;
             for i in range(self._nx):
-                if axis_map[i].has_key('id') and grid.has_key(str(axis_map[i]['id']).lower()):
-                    print "id",str(axis_map[i]['id']).lower(),"found",grid[str(axis_map[i]['id']).lower()],k[i];
-                    x.append(grid[str(axis_map[i]['id']).lower()][k[i]]);
+
+                if len(gridarray[i]) >= k[i]:
+                    x.append(  gridarray[i][ k[i] ]);
                 else:
-                    print "id",str(axis_map[i]['id']).lower(),"not found";
+                    #print "id",str(axis_map[i]['id']).lower(),"not found";
                     x.append(0.);
                 p+=(k[i],);
 
-            #print "writing point",p
+            #print "writing point",p,x
             data[p] = self.eval(x);
             #print data;
             for i in range(self._nx-1,-1,-1):
@@ -302,8 +325,8 @@ class Funklet:
 
 
     def emit_display_signal (self,result=None,parent=None,**kwargs):
-        name="test"
-        caption="TEST"
+        name=self._name;
+        caption=self._name;
         dataitem=DataItem(self._udi,data=result,viewer='Result Plotter',name=name,caption=caption);
         if dataitem:
             if parent:
@@ -363,6 +386,7 @@ class ComposedFunklet(Funklet):
             dom_size = self._domain[str(i['id']).lower()][1]-self._domain[str(i['id']).lower()][0];
             tile_size = tiled[str(i['id']).lower()][1]-tiled[str(i['id']).lower()][0];
             N = int(dom_size/tile_size+0.5);
+            print "domain for Comp_funklet ",i['id'],N;
             self._Naxis.append(N);
         self._nx=len(self._Naxis);
         

@@ -128,8 +128,9 @@ class TableInspector(browsers.GriddedPlugin):
         axis_map=forest_state.axis_map;
         self._axis_list=[];
         for i in axis_map:
-            if i:
-                self._axis_list.append(i.id);
+            if i.has_key('id'):
+                if i.id:
+                    self._axis_list.append(i.id);
 
 
     def _add_axis(self,axisnr=0):
@@ -160,7 +161,16 @@ class TableInspector(browsers.GriddedPlugin):
     def _get_range(self,pattern="*"):
         #gets the total domain for a given (sest of)parm(s) and fills the axes wiht these as default values
         self._domain = self._db.getRange(pattern);
-        
+        #TESTTESTTESTTEST
+        #        self._domain['l'] = [-0.057,0.043];
+        #        self._domain['m'] = [-0.038,0.062];
+
+
+    def setDefaultNaxis(self):
+        self._Naxis=[];
+        for n in range(len(self._axes)):
+             self._Naxis.append(10);
+
 
     def _get_selected(self,parm=None):
         if parm == None:
@@ -169,11 +179,22 @@ class TableInspector(browsers.GriddedPlugin):
         self._get_range(parm);
         if not self._funklist.has_key(parm):
             self._get_funklets(parm=parm);
-            self._Comp_funklet[parm]=ComposedFunklet(self._funklist[parm]);
+        if not self._Comp_funklet.has_key(parm):
+            if(len(self._funklist[parm])>1):
+                self._Comp_funklet[parm]=ComposedFunklet(self._funklist[parm]);
+            else:
+                self._Comp_funklet[parm]=self._funklist[parm][0];
+                
 
         self._Comp_funklet[parm].setDomain(self._domain);
         self._Comp_funklet[parm].getNX();
         self._Naxis=self._Comp_funklet[parm].getNAxis();
+
+        if not self._Naxis:
+            self.setDefaultNaxis();
+        #TESTTESTTESTTEST
+#        self._Naxis[2]=10;
+#        self._Naxis[3]=10;
         
         for n in range(len(self._axes)):
             axis_name = str(self._axis_list[n]).lower(); 
@@ -251,7 +272,7 @@ class TableInspector(browsers.GriddedPlugin):
             self._helplist=[];
             for funk in self._funklist[parm]:
                 # convert  to evaluatable Funklet:
-                self._helplist.append(Funklet(funklet = funk));
+                self._helplist.append(Funklet(funklet = funk,name=parm));
             self._funklist[parm] = self._helplist;
         #print "all funklets",self._funklist;
 
@@ -264,7 +285,7 @@ class TableInspector(browsers.GriddedPlugin):
             self._helplist=[];
             for funk in self._funklist[parm]:
                 # convert  to evaluatable Funklet:
-                self._helplist.append(Funklet(funklet = funk));
+                self._helplist.append(Funklet(funklet = funk,name=parm));
                 self._funklist[parm] = self._helplist;
            
         self._update_parmtable();        
@@ -292,6 +313,25 @@ class TableInspector(browsers.GriddedPlugin):
       dom = self._domain;
       cells = meq.cells(dom,num_time=self._Naxis[0],num_freq=self._Naxis[1]);
       #add more axes here...
+      #print "domain",dom
+      for dim in range(2,len(self._axis_list)):
+          id = str(self._axis_list[dim]).lower();
+          if dom.has_key(id):
+              step_size=float(dom[id][1]-dom[id][0])/self._Naxis[dim];
+              #print "steP", step_size,self._Naxis[dim],dom;
+              startgrid=0.5*step_size+dom[id][0];
+              grid = [];
+              cell_size=[];
+              for i in range(self._Naxis[dim]):
+                  grid.append(i*step_size+startgrid);
+                  cell_size.append(step_size);
+              cells.cell_size[id]=array(cell_size);
+              cells.grid[id]=array(grid);
+              cells.segments[id]=record(start_index=0,end_index=self._Naxis[dim]-1);
+
+      cells.domain=dom;
+
+      
       return cells;
 
 

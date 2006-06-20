@@ -128,7 +128,7 @@ static PyObject *ParmDB_wrapper(PyObject *pSelf,
     return NULL;
   }
   //check if type is correct
-  cout<<"dbtype"<<dbtype<<" name "<<dbname<<" new "<<forceNew<<endl;
+  //cout<<"dbtype"<<dbtype<<" name "<<dbname<<" new "<<forceNew<<endl;
   
   //Second, dynamically allocate a new object
   
@@ -191,7 +191,18 @@ static PyObject *GetValues_wrapper(PyObject *pSelf,
 
 
 
-  LOFAR::ParmDB::ParmValueSet result = thisDB->getValues(parmName,parmDomain,parentId,LOFAR::ParmDB::ParmDBRep::UseNormal);  
+  LOFAR::ParmDB::ParmValueSet result; 
+  try{
+    result = thisDB->getValues(parmName,parmDomain,parentId,LOFAR::ParmDB::ParmDBRep::UseNormal);  
+  }
+  catch(...)
+    {
+      cout<<"an Exception occured while getting values for parm "<<parmName<<endl;
+      Py_INCREF(Py_None);
+      return Py_None;
+      
+    }
+
   PyObject * funkletList = ParmValueSet2py(&result);
   return funkletList;
 
@@ -218,8 +229,18 @@ static PyObject *GetAllValues_wrapper(PyObject *pSelf,
 
   
   LOFAR::ParmDB::ParmDomain parmDomain;
-  
-  LOFAR::ParmDB::ParmValueSet result = thisDB->getValues(parmName,parmDomain,parentId,LOFAR::ParmDB::ParmDBRep::UseNormal);  
+  LOFAR::ParmDB::ParmValueSet result;
+  try{
+   result = thisDB->getValues(parmName,parmDomain,parentId,LOFAR::ParmDB::ParmDBRep::UseNormal);
+  }
+  catch(...)
+    {
+      cout<<"an Exception occured while getting all values for parm "<<parmName<<endl;
+      Py_INCREF(Py_None);
+      return Py_None;
+      
+    }
+
   PyObject * funkletList = ParmValueSet2py(&result);
   return funkletList;
 
@@ -246,9 +267,18 @@ static PyObject * GetNames_wrapper(PyObject *pSelf,
   void * temp = PyCObject_AsVoidPtr(pyParmDB);
   // Cast the void pointer to a Numbers pointer:
   LOFAR::ParmDB::ParmDB * thisDB = static_cast<LOFAR::ParmDB::ParmDB *>(temp);
-  cout<<"getting names with pattern: "<<pattern<<endl;
+  vector<string> result;
+  try{
+    result = thisDB->getNames(pattern,LOFAR::ParmDB::ParmDBRep::UseNormal);  
+  }
+  catch(...)
+    {
+      cout<<"an Exception occured while getting names from parmtable "<<endl;
+      Py_INCREF(Py_None);
+      return Py_None;
+      
+    }
 
-  vector<string> result = thisDB->getNames(pattern,LOFAR::ParmDB::ParmDBRep::UseNormal);  
 
   PyObject * nameList=PyList_New(result.size());
   int i=0;
@@ -280,9 +310,18 @@ static PyObject * GetRange_wrapper(PyObject *pSelf,
   void * temp = PyCObject_AsVoidPtr(pyParmDB);
   // Cast the void pointer to a Numbers pointer:
   LOFAR::ParmDB::ParmDB * thisDB = static_cast<LOFAR::ParmDB::ParmDB *>(temp);
-  cout<<"getting range for parms  with namepattern: "<<pattern<<endl;
-
-  LOFAR::ParmDB::ParmDomain result = thisDB->getRange(pattern);  
+  LOFAR::ParmDB::ParmDomain result;
+  try
+    {
+      result = thisDB->getRange(pattern);  
+    }
+  catch(...)
+    {
+      cout<<"an Exception occured while getting range for parms: "<<pattern<<endl;
+      Py_INCREF(Py_None);
+      return Py_None;
+      
+    }
   
   Meq::Domain resultdomain = MeqfromParmDomain(result);
 
