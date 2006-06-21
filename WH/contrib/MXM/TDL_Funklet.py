@@ -163,8 +163,21 @@ class Funklet:
         
     def eval(self,point={}):
         if self.isConstant:
-            print "returning constant",self._constant;
+            #print "returning constant",self._constant;
             return self._constant;
+        C=self._coeff;
+
+        if self._nx<=0:
+            eval_str = self._function;
+
+            # replace  ^ with **
+            eval_str=  eval_str.replace("^","**");
+            value = eval(eval_str);
+            return value;
+
+
+
+
         if point is None:
             point = {'x0':0};
         
@@ -182,6 +195,9 @@ class Funklet:
             if isinstance(point,list):
                 x = point;
         #print "X:",x;
+
+
+        
         offset  = zeros((self._nx,),Float64);
         scale  = ones((self._nx,),Float64);
         if len(x) > self._nx:
@@ -211,7 +227,6 @@ class Funklet:
             x[nr]=(i-offset[nr])*scale[nr];
             nr+=1;
             
-        C=self._coeff;
 
 
         eval_str = self._function;
@@ -386,7 +401,7 @@ class ComposedFunklet(Funklet):
             dom_size = self._domain[str(i['id']).lower()][1]-self._domain[str(i['id']).lower()][0];
             tile_size = tiled[str(i['id']).lower()][1]-tiled[str(i['id']).lower()][0];
             N = int(dom_size/tile_size+0.5);
-            print "domain for Comp_funklet ",i['id'],N;
+            #print "domain for Comp_funklet ",i['id'],N;
             self._Naxis.append(N);
         self._nx=len(self._Naxis);
         
