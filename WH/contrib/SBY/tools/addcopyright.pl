@@ -85,6 +85,7 @@ sub print_copyright {
   print OUTFILE "#
 # Copyright (C) 2006
 # ASTRON (Netherlands Foundation for Research in Astronomy)
+# and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg\@astron.nl
 #
 # This program is free software; you can redistribute it and/or modify
