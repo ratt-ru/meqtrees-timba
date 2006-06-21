@@ -11,6 +11,7 @@ if (scalar(@ARGV) ==0) {
 
 #### patterns
 $skip_lines='^\s$|^#.*$';
+$old_copyright='^# GNU General Public License .*$';
 $tmpfile_name="./.tmpfile";
 
 for ($argnum=0; $argnum<=$#ARGV; $argnum++) {
@@ -27,6 +28,11 @@ while (defined($sline = <IN>)) {
      # print to output
 
      print OUTFILE $sline;
+     if ( $sline =~ m/($old_copyright)/ ) {
+      # copyright already exists
+      printf "GPL already present in @ARGV[$argnum]\n";
+      $written_header=1;
+     }
     } else {
      # write the header here
      &print_copyright();
