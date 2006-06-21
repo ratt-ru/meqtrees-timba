@@ -534,7 +534,7 @@ After some preliminaries, the first part of this document contains (an attempt
  
 \layout Standard
 
-It is essential for credibility that the finished CDR document is fully
+It is essential for credibility that the finished CDR-II document is fully
  understood, and supported, by the extended LCSG, i.e.
  including the small group of 'other aperture synthesis experts' that is
  occasionally invited.
@@ -565,7 +565,7 @@ Ccaused by PSF sidelobes of Cat III sources
 Nr of parameters to be determined
 \layout Standard
 
-Bregman-Wijnholts analysis suggests: ....
+Bregman-Wijnholds analysis suggests: ....
  Is this true, and if so, is it a show-stopper? 
 \layout Subsection
 
@@ -904,6 +904,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename limit_ionos.eps
+	width 100col%
 
 \end_inset 
 
@@ -935,7 +937,7 @@ Schematic diagram of the sizes of the various structures that are important
 
  m, the footprint has a diameter of 12 km.
  If the LOFAR array is smaller than that (e.g.
- just the 2 km core), at least three bright sources (
+ just the 3 km core), at least three bright sources (
 \begin_inset Formula $S/N>3$
 \end_inset 
 
@@ -998,7 +1000,7 @@ There is another E-M simulation program that could be run on the Blue Gene,
  
 \layout Standard
 
-In the meantime, Stefan Wijnholts has made a valiant attempt to demonstrate
+In the meantime, Stefan Wijnholds has made a valiant attempt to demonstrate
  the magnitude of the effect with the help of a simple model, with and without
  mutual coupling.
  Having done that succesfully, he tried to augment his model to get a result
@@ -1032,6 +1034,21 @@ It is necessary to measure and subtract the 'A-team' of 3-5 brightest sources
  And their images (and sidelobes) in the residual image will be minimised.
  Especially if we use a wide bandwidth for both selfcal and imaging.
  
+\layout Standard
+
+NB: One of the conclusions of Wijnholds 
+\begin_inset LatexCommand \cite{Wijholds-core}
+
+\end_inset 
+
+ is that LBA stations should be random, but all identical.
+ The idea is that, just like with the WSRT, it takes time to measure the
+ various beamshapes, and it is better to do this only once.
+ I
+\emph on 
+ beg to differ...
+\emph default 
+.
 \layout Section
 
 IF bandpass: BJones(f,t)
@@ -1237,6 +1254,15 @@ LOFAR Calibration Strategy
 \emph default 
  (CDR-I, November 2005)
 \layout Bibliography
+\bibitem {Wijholds-core}
+
+S.J.
+ Wijnholds: 
+\emph on 
+Study on LOFAR Core Calibratability Based on Source Statistics 
+\emph default 
+(LOFAR-ASTRON-MEM-205, June 2006)
+\layout Bibliography
 \bibitem {JEN-MIM}
 
 J.E.
@@ -1244,7 +1270,7 @@ J.E.
 \emph on 
 Minimum Ionospheric Model 
 \emph default 
-(MIM)
+(MIM, August 2004)
 \layout Bibliography
 \bibitem {JPH-IV}
 
@@ -1258,12 +1284,12 @@ Polarization in radio astrometry...
 J.E.
  Noordam: 
 \emph on 
-Peeling...
+Peeling...(2003)
 \layout Bibliography
 \bibitem {Stefan-Jaap}
 
-S.
- Wijnholts, J.D.Bregman: ....
+S.J.
+ Wijnholds, J.D.Bregman: ....
 \layout Bibliography
 \bibitem {AGB-JEN}
 
