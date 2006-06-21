@@ -40,6 +40,29 @@
 #********************************************************************************
 #********************************************************************************
 
+
+#% $Id$ 
+
+#
+# Copyright (C) 2006
+# ASTRON (Netherlands Foundation for Research in Astronomy)
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
 from Timba.TDL import *
 from Timba.Meq import meq
 import random
@@ -72,8 +95,9 @@ def _define_forest (ns):
    ns.i<<Meq.Parm(meq.array([[-1,0.1,-0.01],[0.01,0.01,-0.021]]))
    ns.x<<Meq.ToComplex(ns.r,ns.i)
    ns.y<<Meq.ModRes(children=ns.x,num_cells=[random.randint(0,100),random.randint(0,100)],downsample=[random.randint(0,100),random.randint(0,100)],upsample=[random.randint(0,100),random.randint(0,100)])
+   #ns.y<<Meq.ModRes(children=ns.x,num_cells=[10,14])
    #ns.y<<Meq.ModRes(children=ns.x,downsample=[random.randint(0,100),random.randint(0,100)])#,upsample=[random.randint(0,100),random.randint(0,100)])
-   ns.z<<Meq.Resampler(children=ns.y,flag_mask=3,flag_bit=4,flag_density=0.1)
+   ns.z<<Meq.Resampler(children=ns.y,flag_mask=3,flag_bit=4,flag_density=0.1,mode=1)
 
 
 
@@ -110,8 +134,8 @@ def _test_forest (mqs, parent):
  f1 = 1600
  t0 = 1.0
  t1 = 10.0
- nfreq =20
- ntime =10
+ nfreq =10
+ ntime =20
 
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
