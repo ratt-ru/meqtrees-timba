@@ -94,7 +94,6 @@ namespace Meq {
     if((childnr+1)>Ninput_) Ninput_=childnr+1;
     if(vellsnr_.size()<=dimnr) vellsnr_.resize(dimnr+1);
     //we do not know shapes of children here, so save the indices
-    Ndims_[childnr]=1;
     vellsnr_[dimnr]=mapv;
     Ndims_[childnr]=size;
     for(int i=0;i<size;i++)
@@ -124,9 +123,9 @@ namespace Meq {
     for(int i=0;i<Ninput_;i++)
       {
 	const LoShape dim = *(input_dims[i]);
-	FailWhen(dim.size()!=Ndims_[i],"child : wrong dimensions");
+	FailWhen(dim.size() && dim.size()!=Ndims_[i],"child : wrong dimensions");
 	shapes_[i]=dim;
-	for(uint j= 0;j<Ndims_[i];j++)
+	for(uint j= 0;j<Ndims_[i] && j<dim.size();j++)
 	  FailWhen(dim[j]<MaxN_[i][j],"child : wrong shape");
 
     
