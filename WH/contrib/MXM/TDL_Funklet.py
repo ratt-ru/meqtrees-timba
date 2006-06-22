@@ -30,7 +30,7 @@ class Funklet:
         self._domain = meq.domain(0,1,0,1);
         if funklet.has_field('domain'):
             self._domain = funklet.domain;
-        if funklet.has_field('name'):
+        if funklet.has_field('name') and funklet.name:
             self._name = funklet.name;
         else:
             if name:
@@ -38,7 +38,7 @@ class Funklet:
             else:
                 self._name='test';
         if self._name:
-            self._udi = "/funklet/"+name;
+            self._udi = "/funklet/"+self._name;
         else:
             self._udi = "/funklet/noname";
 
