@@ -142,7 +142,7 @@ def make_LMCompounder (ns, beam, l=0.1, m=0.2, q='3c123', trace=False):
 
 def make_Functional (ns, beam, q='3c123', trace=False):
    """Make a MeqFunctional node of the given beam Expression""" 
-   node = bbeam.MeqFunctional(ns, qual=dict(q=q), trace=trace)
+   node = beam.MeqFunctional(ns, qual=dict(q=q), trace=trace)
    if trace:
       TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
    return node
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1, plot=True, trace=True)
+       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1, plot=False, trace=True)
 
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
     print '\n** end of',MG['script_name'],'\n'

@@ -84,7 +84,7 @@
 from numarray import *
 from numarray.linear_algebra import *
 from random import *
-from pylab import *
+# from pylab import *                       # gives problems...
 from copy import deepcopy
 from Timba.Trees import TDL_Leaf
 from Timba.Meq import meq
@@ -320,10 +320,10 @@ class Expression:
                 print indent,'  - xexpr:  ',self.__expanded.expression()
             
         print indent,'- Evaluation:'
-        print indent,'  - test_result: ',self.__test_result
+        # print indent,'  - test_result: ',self.__test_result
         print indent,'  - eval_result: ',self.__eval_result
         if full:
-            print indent,'  - test_seval: ',self.__test_seval
+            # print indent,'  - test_seval: ',self.__test_seval
             print indent,'  - eval_seval: ',self.__eval_seval
 
         if not self.__Funklet:
@@ -1697,7 +1697,7 @@ class Expression:
 
         # Make a MeqParm node from the Expression:
         parm = self.MeqParm(ns, name=name, qual=None, trace=trace)
-        if isinstance(funklet, parm): return False
+        ### if isinstance(funklet, parm): return False
 
         # Check whether there are extra axes defined for all variables
         # in the expression other than [t] and [f]:
@@ -2220,8 +2220,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_Expression.py:\n'
     from numarray import *
     # from numarray.linear_algebra import *
-    # from pylab import *
     from Timba.Trees import TDL_display
+    from pylab import *              
     # from Timba.Trees import TDL_Joneset
     # from Timba.Contrib.JEN import MG_JEN_funklet
     # from Timba.Trees import JEN_record
