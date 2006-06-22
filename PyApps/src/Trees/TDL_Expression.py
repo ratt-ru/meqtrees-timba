@@ -748,7 +748,7 @@ class Expression:
             self.__expanded = e0
             self.__test_result = e0.eval(_test=True)
             self.__eval_result = e0.eval()
-            # e0.weedout(trace=True)
+            # e0.weedout(trace=True)                       # ......?
             if trace: e0.display('expanded', full=True)
 
         # Finished:
@@ -1438,6 +1438,7 @@ class Expression:
         f0 = Funklet(funklet=record(function=expr, coeff=coeff))
         # Alternative
         #   f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+        #   f0.function = expr
         ex.__Funklet = f0
         self.__Funklet = f0
         ex.__Funklet_function = expr            # for display only
@@ -1682,7 +1683,9 @@ class Expression:
             child_map.append(rr)
         if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
         self.__MeqFunctional = self._unique_node (ns, name, qual=qual, trace=trace)
-        self.__MeqFunctional << Meq.Functional(children=children, child_map=child_map)
+        self.__MeqFunctional << Meq.Functional(children=children,
+                                               function=function,
+                                               child_map=child_map)
         self.__expanded = True
         return self.__MeqFunctional
 
