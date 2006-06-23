@@ -276,22 +276,22 @@ def MeqAzimuth(ns, name='MeqAzimuth', qual=None, axis='x2', ref=0.0):
 def MeqElevation(ns, name='MeqElevation', qual=None, axis='x3', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqL(ns, name='MeqL', qual=None, axis='x2', ref=0.0):
+def MeqL(ns, name='MeqLcoord', qual=None, axis='x2', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqM(ns, name='MeqM', qual=None, axis='x3', ref=0.0):
+def MeqM(ns, name='MeqMcoord', qual=None, axis='x3', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-# def MeqN(ns, name='MeqN', qual=None, axis='x4', ref=0.0):         # <--------------???
+# def MeqN(ns, name='MeqNcoord', qual=None, axis='x4', ref=0.0):         # <--------------???
 #     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqU(ns, name='MeqU', qual=None, axis='x2', ref=0.0):
+def MeqU(ns, name='MeqUcoord', qual=None, axis='x2', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqV(ns, name='MeqV', qual=None, axis='x3', ref=0.0):
+def MeqV(ns, name='MeqVcoord', qual=None, axis='x3', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
-def MeqW(ns, name='MeqW', qual=None, axis='x4', ref=0.0):
+def MeqW(ns, name='MeqWcoord', qual=None, axis='x4', ref=0.0):
     return MeqFunklet(ns, name, qual, axis, ref=ref)
 
 # Common function (can also be used stand-alone):

@@ -88,7 +88,8 @@ from random import *
 from copy import deepcopy
 from Timba.Trees import TDL_Leaf
 from Timba.Meq import meq
-from Timba.Contrib.MXM.TDL_Funklet import *
+from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
+# from Timba.Contrib.MXM import TDL_Funklet
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
@@ -114,6 +115,7 @@ class Expression:
         self.__descr = descr
         self.__unit = unit                         # unit of the result
         self.__expression = expression
+        self.__expression_type = None              # can be MeqPolc or 
         self.__numeric_value = None  
         self.__input_expression = expression        
         self.__pp = str(pp)
@@ -282,7 +284,7 @@ class Expression:
         print indent,'- Purely numeric value: ',str(self.__numeric_value)
         print indent,'-',self.oneliner()
 
-        print indent,'- Its expression (term-by-term):'
+        print indent,'- Its expression (term-by-term) (type='+str(self.__expression_type)+'):'
         ss = self.format_expr(header=False)
         for term in ss['terms']:
             print indent,'  ',term
@@ -1435,10 +1437,18 @@ class Expression:
                 if trace: print '- var',key,xk
 
         # Make the Funklet, and attach it:
-        f0 = Funklet(funklet=record(function=expr, coeff=coeff))
-        # Alternative
-        #   f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-        #   f0.function = expr
+        # if self.__expression_type=='MeqPolc':         # see polc_Expression()
+        # elif self.__expression_type=='MeqPolcLog':    # see polc_Expression()
+        # else:
+        #-----------------------------------------------------
+        if False:
+            # type: isinstance(f0, Funklet) -> True
+            f0 = Funklet(funklet=record(function=expr, coeff=coeff), name=None)
+        else:
+            # Alternative: type(meq.polc(0)) 
+            f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+            f0.function = expr
+        #-----------------------------------------------------
         ex.__Funklet = f0
         self.__Funklet = f0
         ex.__Funklet_function = expr            # for display only
@@ -1676,7 +1686,8 @@ class Expression:
             if not nodename in nodenames:               # once only
                 nodenames.append(nodename)
                 children.append(parm['node'])
-            child_num = 1 + nodenames.index(nodename)
+            # child_num = 1 + nodenames.index(nodename) # NOT 1-based!
+            child_num = nodenames.index(nodename)       # 0-based
             rr = record(child_num=child_num, index=parm['index'],
                         nodename=parm['nodename'])
             if trace: print '-',key,xk,rr
@@ -1699,8 +1710,7 @@ class Expression:
         described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
 
         # Make a MeqParm node from the Expression:
-        parm = self.MeqParm(ns, name=name, qual=None, trace=trace)
-        ### if isinstance(funklet, parm): return False
+        parm = self.MeqParm (ns, name=name, qual=None, trace=trace)
 
         # Check whether there are extra axes defined for all variables
         # in the expression other than [t] and [f]:
@@ -2086,6 +2096,9 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
     """Create an Expression object for a polc with the given shape (and type).
     Parameters can be initialized by specifying a list of coeff.
     The coeff will be assumed 0 for all those missing in the list.
+    If type==MeqPolcLog, the variables [t] and/or [f] are replaced by
+    Expression parameters {tvar}= log([t]/{t0}) and {fvar}=log([f]/{f0}),
+    with the constants t0 and f0 given by input arguments.
     Optionally, the polc coeff may be determined by fitting to a given
     set of polc function values vv(t,f): fit=dict(vv=, tt=, ff=)."""
 
@@ -2140,6 +2153,7 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
                 first = False
                 if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
     result = Expression(func, label, descr='polc_Expression', **pp)
+    result.__expression_type = type
     if True:
         # Modify the parm definitions:
         for key in pp.keys():
