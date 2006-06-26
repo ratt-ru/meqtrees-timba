@@ -728,6 +728,7 @@ Generate a Local Sky Model (LSM)
  window) to select relevant sources from the Global Sky Model (GSM).
  The LSM includes all source in the main lobe of the primary beam, and a
  small number of very bright sources (the A-team) all over the sky.
+ 
 \layout Enumerate
 
 
@@ -739,7 +740,8 @@ Bandpass division:
  It should be noted that the IF bandpass is defined as a uv-plane effect,
  which is valid for the entire FOV.
  Thus, it does NOT include the position-dependent frequency dependence of
- the beamshapes.
+ the station beamshapes, or the frequency dependence of the ionospheric
+ phase.
  
 \layout Enumerate
 
@@ -750,6 +752,8 @@ Coarse flagging:
  Only the RFI that can be clearly distinguished from the signal by relatively
  cheap detection algorithms.
  
+\noun on 
+NB: Flags affect the weights of the uv-data samples, and their uv-coordinates....
 \layout Enumerate
 
 
@@ -777,9 +781,39 @@ Ionospheric phase tracking:
  Use one or more bright calibrators in the field, as required by the ionospheric
  conditions, and the size of the array relative to the size of the 'footprint'
  of the FOV at the altitude of the ionosphere.
+ The calibrator sources should be bright enough to give 
+\begin_inset Formula $S/N>3$
+\end_inset 
+
+ in 10 s.
+ Note that the calibrator sources are NOT subtracted from the uv-data in
+ this stage
+\noun on 
+.
+ Q: Does this imply a simultaneous solution? What about the nr of domain
+ cells?
 \layout Subsection
 
 The Major Cycle 
+\layout Standard
+
+Each loop through the Major Cycle results in better values for the M.E.
+ parameters (which include both instrumental parameters 
+\emph on 
+and
+\emph default 
+ LSM source parameters!), and more LSM sources.
+ 
+\layout Enumerate
+
+
+\series bold 
+Generate a forest
+\series default 
+ of trees with the correct nr of peeling and patch subtraction stages.
+ Usually, this only has to be done once, but it may happen that a Cat II
+ source is 'promoted' to a peeling source because it is difficult to subtract.
+ 
 \layout Enumerate
 
 
@@ -810,22 +844,43 @@ contamination
  of other (fainter) sources in the field.
  However, this contamination can always be reduced to arbitrary levels,
  at the cost of including more sources in the prediction.
-\begin_deeper 
-\layout Enumerate
-
-Fine flagging: As more bright sources are peeled off, we can flag more subtle
- RFI, still using relatively cheap detection algorithms.
-\end_deeper 
 \layout Enumerate
 
 
 \series bold 
-Estimation of interpolation functions.
+Fine flagging: 
+\series default 
+As more bright sources are peeled off, we may flag more subtle RFI, still
+ using relatively cheap detection algorithms.
+ 
+\layout Enumerate
+
+
+\series bold 
+Subtraction of A-team sources
+\series default 
+.
+ Some of the peeling sources will be the very bright sources in the socalled
+ A-team (Cas A, Cygnus A, etc).
+ Because of the high side-lobes of the LOFAR station beams, they will always
+ be visible, even when they are in the far side-lobes, so their contribution
+ to the visibilities must always be estimated and subtracted.
+ Because of a variety of attenutation processes, the subtraction does not
+ have to be particularly accurate.
+ However, their progress through the station beam sidelobe patterns will
+ be proportional to the distance to the pointing centre, All this will present
+ its own challenges.
+ 
+\layout Enumerate
+
+
+\series bold 
+Estimation of (l,m) interpolation functions.
 
 \series default 
  The M.E.
- parameter values in the direction of the bright peeling sources are used
- to estimate the coefficients(f,t) of large-scale smooth functions.
+ parameter values in the direction of the peeling sources inside the FOV
+ are used to estimate the coefficients(f,t) of large-scale smooth functions.
  These are also M.E.
  parameters, of course.
  They will be interpolated when subtracting fainter (Cat II) sources.
@@ -875,6 +930,18 @@ A very important feature of uvbricks is that it appears possible to apply
 .
  Since sources have to be predicted/subtracted at full (f,t) resolution,
  it will be one of the main bottlenecks of LOFAR calibration.
+\layout Enumerate
+
+
+\series bold 
+Estimation of ifr-based errors:
+\series default 
+ Multiplicative and/or additive.
+ In a well-designed system they should be negligible, but since even the
+ WSRT has them we should assume that LOFAR will have too.
+ We can only do something about them if they are constant over the entire
+ observation...
+ 
 \layout Enumerate
 
 
@@ -946,8 +1013,67 @@ Update the Global Sky Model (GSM) from the LSM.
 Make images from the LSM sources, to be used by Surveys KSG 
 \layout Enumerate
 
-Deliver the deliverables (residual images, [LSM] or images, [GSM], [MeqParm
- tables], [metadata])
+Deliver the deliverables:
+\begin_deeper 
+\layout Enumerate
+
+residual images 
+\layout Enumerate
+
+[LSM] or images 
+\layout Enumerate
+
+[GSM]
+\layout Enumerate
+
+[MeqParm tables] 
+\layout Enumerate
+
+[metadata]
+\end_deeper 
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Cutting-corners}
+
+\end_inset 
+
+Cutting corners
+\layout Standard
+
+Since LOFAR calibration will be very expensive in terms of processing power
+ and memory use, we must cut all possible corners.
+ Local intelligence in the various parts of the calibration process can
+ reduce processing considerably, especially it it is done dynamically.
+ This has to be done judiciously, since it may also have effects on the
+ result.
+\layout Itemize
+
+Minimize solver iterations by using solver metrics, and continuous solutions.
+ 
+\layout Itemize
+
+Use relatively simple flagging algorithms, at multiple levels.
+\layout Itemize
+
+Minimize the subset of uv-data used for selfcal.
+ 
+\layout Itemize
+
+Minimize the nr of MIM terms depends on the state of the ionosphere.
+\layout Itemize
+
+Minimize the nr of contamination sources to take into account for selfcal.
+\layout Itemize
+
+Use uv-track crossing points (weak redundancy) as solver constraints.
+\layout Itemize
+
+Subtract only the minimum nr of Cat II sources (depends on changing size
+ of main lobe)
+\layout Itemize
+
+etc..
 \layout Section
 
 
