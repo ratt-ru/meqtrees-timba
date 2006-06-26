@@ -317,6 +317,26 @@ hspace{0.5cm} M.
 \layout Standard
 
 \backslash 
+hspace{0.5cm} G. 
+\backslash 
+ van Diepen
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. 
+\backslash 
+ van Swieten
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
 hspace{0.5cm} M.A. 
 \backslash 
  Brentjens
@@ -491,8 +511,12 @@ vspace{2.0cm}
 
 \layout Abstract
 
-Outline of LOFAR calibration strategies for the different Key Science Groups,
- and other applications.
+A step-by-step outline of the proposed LOFAR calibration strategies for
+ the different Key Science Groups, and other applications.
+ It is aimed at an advanced audience.
+ Its purpose is to forge full mutual understanding, and a measure of agreement,
+ before the LOFAR Critical Design Review (II) planned for November 2006.
+ 
 \layout Standard
 
 
@@ -514,116 +538,48 @@ newpage
 \end_inset 
 
 Introduction
-\layout Section
+\layout Standard
 
-The needs of the Key Science Groups
-\layout Itemize
+This document contains a step-by-step description of various LOFAR calibration
+ strategies.
+ Most of them are based on the 
+\emph on 
+basic procedure
+\emph default 
+ outlined in section 
+\begin_inset LatexCommand \ref{sec:The-basic-procedure}
 
-
-\series bold 
-Cosmic rays: 
-\series default 
-Has its own calibration scheme.
-\layout Itemize
-
-
-\series bold 
-Surveys:
-\series default 
- Should get residual (facet) images with an average dyamic range of 
-\begin_inset Formula $10^{4}$
 \end_inset 
 
 .
- This should require two passes of the Major Cycle, as part of the standard
- LOFAR reduction process.
- In addition, they will get separate images that contain the LSM sources
- that have been subtracted from the uv-data.
- This will enable them to deconvolve a little further in the image-plane,
- without recourse to any software but their own.
- To this end, they will receive PSF's that are valid for the centre of each
- facet image.
-\layout Itemize
-
-
-\series bold 
-EOR detection: 
-\series default 
-Will need a few extra passes (i.e.
- more than 2) of the Major Cycle, to subtract as many foreground sources
- as possbible from the uv-data (the only correct way).
- They will do this themselves, using their own software.
- Afterwards, special software will be used to extract the signature of the
- EOR from the residuals.
- The latter will probably make use of differential methods in frequency.
- Thus, the requirement on calibration becomes consistency rather than perfection.
-\layout Itemize
-
-
-\series bold 
-Transients:
-\series default 
- It is unrealistic to try and make fully calibrated images at short time
- intervals.
- It is much more promising to assume that instrumental errors and (u,v,w)
- coordinates will vary relatively slowly, and use differential methods where
- uv-data are subtracted from each other at different time-scales.
- Obviously, the transients must still be detected in the image plane.
-\layout Itemize
-
-
-\series bold 
-Pulsars:
-\series default 
- Will do their own processing on uv-data from which only the linear ionospheric
- component has been removed (i.e.
- phase tracking only).
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename calib_flow.eps
-	width 100col%
+ Writing it has been a salutary experience for the author, who was forced
+ to express himself with unfamiliar precision.
+ It should have a complementary effect on those at the receiving end.
+ The reader is urged to test every step against his or her own preconceptions,
+ and challenge it accordingly.
+ The aim is to have at least full mutual understanding of the issues at
+ the time of LOFAR CDR-II (planned for November 2006), and ideally a measure
+ of agreement.
+ The latter will strongly depend on agreement about the achievable dynamic
+ range, which is the subject of a companion document
+\begin_inset LatexCommand \cite{JEN-dynarange}
 
 \end_inset 
 
-
-\layout Caption
-
-
-\emph on 
-LOFAR Calibration Flow Diagram, as it stands today.
- The blue boxes indicate deliverables.
+.
  
 \layout Standard
 
-\end_inset 
-
-
-\layout Section
-
-LOFAR Calibration flow diagram
-\layout Standard
-
-This document is not a description of LOFAR calibration.
- Rather, it is assumed that the reader is thoroughly familiar with various
- earlier documents, especially the Calibration Strategy
+It will be assumed that the reader is thoroughly familiar with the concepts
+ involved, as explained in various earlier documents, especially the Calibration
+ Strategy
 \begin_inset LatexCommand \cite{JEN-nov2005}
 
 \end_inset 
 
  presented at CDR-I in November 2005.
- After all, I did not sacrifice half my Indian trip just to pad some paper
- trail.
- However, just to jolt the memory and set the scene, some points will be
- repeated (and thus emphasized) here:
+ Just to jolt the memory and set the scene, some points will be repeated
+ (and thus emphasized) here:
 \layout Itemize
 
 Calibration is defined as the capability to subtract foreground sources.
@@ -656,129 +612,7 @@ Unproven thesis: Any source that is bright enough to cause trouble, is bright
 The process of alternating between uv-data and residual images is called
  the Major Cycle.
  The Local Sky Model (LSM) is a key element of this process.
-\layout Standard
-
-The standard procedure (used for Survey mode) has the following steps:
-\layout Enumerate
-
-Generate a Local Sky Model (LSM).
- Use the observational windows of the observation (primary beam, spectral
- window) to select relevant sources from the Global Sky Model (GSM).
- The LSM includes all source in the main lobe of the primary beam, and a
- small number of very bright sources (the A-team) all over the sky.
-\layout Enumerate
-
-Find ionospheric phase lock: 
-\layout Enumerate
-
-Ionospheric phase tracking: Keep the ionospheric phase errors within a radian,
- by solving for the linear component of the MIM.
- Use one or more bright calibrators in the field.
-\layout Enumerate
-
-Bandpass removal: Divide out the high-granularity (channel-by-channel) IF
- bandpasses, determined (somehow) at station level.
- 
-\layout Enumerate
-
-Coarse flagging:
-\layout Enumerate
-
-All the following is part of the Major Cycle: Selfcal, LSM subtraction,
- facet imaging, LSM update from residual imaging.
-\layout Enumerate
-
-Selfcal, i.e.
- solving for M.E.
- parameters, is done in peeling mode: we deal with Cat I sources in descending
- order of brightness, and subtract them from the uv-data before moving on
- to the next one.
- The phase centre of the uv-data is moved to the position of the peeling
- source.
- See also section ...
- 
-\layout Enumerate
-
-Solving for large-scale smooth functions (l,m):
-\begin_deeper 
-\layout Enumerate
-
-MIM refinement: Solve for (improvements of) the higher order component of
- the MIM.
- Use longer integration on a number of fainter calibrator sources on the
- field.
-\layout Enumerate
-
-Beamshape determination:
-\end_deeper 
-\layout Enumerate
-
-Subtraction of Cat II sources (Cat I sources are subtracted as part of the
- peeling selfcal above).
- Patches, uvbricks.
- 
-\layout Enumerate
-
-Facet imaging.
- The size of a facet is determined by the ionosphere.
- For each facet, the residual uv-data are corrected for the facet centre,
- after which the phase centre is shifted to that position, and the FOV is
- reduced by integrating over freq and time.
- The results are gridded and Fourier Transformed to a set of 4D residual
- images (which may overlap a little).
- 
-\layout Enumerate
-
-Source extraction.
- The 4D residual images are deconvolved (e.g.
- CLEANed), using a PSF which strictly is valid for the facet centre only.
- The resulting images of CLEAN components are used for source extraction
- in two ways: 
-\begin_deeper 
-\layout Enumerate
-
-Updating the parameters of existing LSM sources.
- The LSM is used to inspect the areas where Cat I/II sources have been subtracte
-d to see whether there is anything left.
- Any residuals are used to solve for improvements of the source parameters,
- using the source trees in the LSM.
-\layout Enumerate
-
-Finding new LSM sources.
- The most difficult problem is to decide which groups of CLEAN components
- represent new (Cat III) sources, and how they should be parametrized.
- Extended sources may be modeled in terms of base functions like shapelets
- or pixons.
- Really pathological sources may be stored in the LSM as 4D images.
- 
-\end_deeper 
-\layout Enumerate
-
-The Major Cycle is repeated until some calibration quality criterion is
- met.
- At least two cycles will be needed to reach a dynamic range of 
-\begin_inset Formula $1:10^{4}$
-\end_inset 
-
-, as required in the survey mode.
- 
-\layout Enumerate
-
-Finishing touches:
-\begin_deeper 
-\layout Enumerate
-
-Update the Global Sky Model (GSM) from the LSM.
- 
-\layout Enumerate
-
-Make images from the LSM sources, to be used by Surveys KSG 
-\layout Enumerate
-
-Deliver the deliverables (residual images, [LSM] or images, [GSM], [MeqParm
- tables], [metadata])
-\end_deeper 
-\layout Section
+\layout Subsection
 
 Some stubborn misunderstandings
 \layout Standard
@@ -807,6 +641,408 @@ The nature of the LSM.
 \layout Itemize
 
 Etc
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename calib_flow.eps
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:LOFAR-Calibration-Flow}
+
+\end_inset 
+
+LOFAR Calibration Flow Diagram.
+ The central feature is the Major Cycle
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The term Major Cycle has been coined many years ago in the deconvolution
+ procedure known as 
+\begin_inset Quotes eld
+\end_inset 
+
+Clark CLEAN
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ It is used advisedly here, because our procedure is like Clark CLEAN with
+ the addition of self-calibration.
+ 
+\end_inset 
+
+ (MC, dashed red box), in which increasingly fainter LSM sources are estimated
+ in either domain, and subtracted in the uv-plane.
+ All the other operations are preliminaries or finishing touches before
+ and after the MC.
+ The blue boxes indicate deliverables.
+ 
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:The-basic-procedure}
+
+\end_inset 
+
+The basic procedure
+\layout Standard
+
+The flow diagram for LOFAR calibration is shown in fig 
+\begin_inset LatexCommand \ref{cap:LOFAR-Calibration-Flow}
+
+\end_inset 
+
+.
+ The basic procedure has three parts:
+\layout Subsection
+
+Preliminaries
+\layout Enumerate
+
+
+\series bold 
+Generate a Local Sky Model (LSM)
+\series default 
+: Use the observational windows of the observation (primary beam, spectral
+ window) to select relevant sources from the Global Sky Model (GSM).
+ The LSM includes all source in the main lobe of the primary beam, and a
+ small number of very bright sources (the A-team) all over the sky.
+\layout Enumerate
+
+
+\series bold 
+Bandpass division:
+\series default 
+ Divide out the high-granularity (channel-by-channel) IF bandpasses, determined
+ (somehow) at station level.
+ It should be noted that the IF bandpass is defined as a uv-plane effect,
+ which is valid for the entire FOV.
+ Thus, it does NOT include the position-dependent frequency dependence of
+ the beamshapes.
+ 
+\layout Enumerate
+
+
+\series bold 
+Coarse flagging:
+\series default 
+ Only the RFI that can be clearly distinguished from the signal by relatively
+ cheap detection algorithms.
+ 
+\layout Enumerate
+
+
+\series bold 
+Find ionospheric phase lock:
+\series default 
+ Find the 'absolute' station phases to well within a radian.
+ The proposed procedure is to start with three inner stations, and then
+ to include the others one by one.
+ For each, the phase is modified in steps of 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ rad, until a consistent phase solution is found in the direction of the
+ brightest source in the field.
+ 
+\layout Enumerate
+
+
+\series bold 
+Ionospheric phase tracking:
+\series default 
+ Keep the ionospheric phase errors within a radian, by solving for the linear
+ component of the MIM.
+ Use one or more bright calibrators in the field, as required by the ionospheric
+ conditions, and the size of the array relative to the size of the 'footprint'
+ of the FOV at the altitude of the ionosphere.
+\layout Subsection
+
+The Major Cycle 
+\layout Enumerate
+
+
+\series bold 
+Peeling:
+\series default 
+ This is 
+\emph on 
+defined
+\emph default 
+ as solving (by selfcal) for M.E.
+ parameters in the direction of 
+\emph on 
+individual
+\emph default 
+ bright (Cat I) sources.
+ The sources are dealt with in descending order of brightness, and subtracted
+ from the uv-data before moving on to the next one.
+ The main advantage of peeling is effeciency, partly because of smaller
+ solution matrices, but mostly because selfcal prediction (dominated by
+ the calculation of derivatives!) is needed for very much fewer domain cells
+ if the visibility function of the peeling source is 'flattened' by moving
+ the phase centre to its position.
+ A potential problem with peeling is the selfcal error caused by 
+\emph on 
+contamination
+\emph default 
+ of other (fainter) sources in the field.
+ However, this contamination can always be reduced to arbitrary levels,
+ at the cost of including more sources in the prediction.
+\begin_deeper 
+\layout Enumerate
+
+Fine flagging: As more bright sources are peeled off, we can flag more subtle
+ RFI, still using relatively cheap detection algorithms.
+\end_deeper 
+\layout Enumerate
+
+
+\series bold 
+Estimation of interpolation functions.
+
+\series default 
+ The M.E.
+ parameter values in the direction of the bright peeling sources are used
+ to estimate the coefficients(f,t) of large-scale smooth functions.
+ These are also M.E.
+ parameters, of course.
+ They will be interpolated when subtracting fainter (Cat II) sources.
+ The following functions may be considered:
+\begin_deeper 
+\layout Enumerate
+
+MIM (l,m,f,t) refinement: Solve for (improvements of) the higher order component
+s of the MIM.
+ Use longer integration on a number of fainter calibrator sources on the
+ field.
+\layout Enumerate
+
+Station voltage beamshape (l,m,f,t) determination:
+\layout Enumerate
+
+Large-scale variations (f,t) of the IF bandpasses.
+\end_deeper 
+\layout Enumerate
+
+
+\series bold 
+Subtraction of Cat II sources:
+\series default 
+ The LSM will contain a large number of fainter (Cat II) sources, which
+ are not used for selfcal, but which have to be subtracted from the uv-data.
+ For efficiency reasons, they are predicted/subtracted collectively in 
+\emph on 
+patches,
+\emph default 
+ i.e.
+ smallish areas that tile the FOV.
+ Sources are gridded onto 3D (l,m,f) images, and transformed by FFT to 3D
+ (u,v,f) 
+\emph on 
+uvbricks
+\emph default 
+, which contain gridded uv-data for the entire uv-coverage.
+ Visibility values for a particular domain (f,t) for a particular ifr (i,j)
+ are obtained by interpolation.
+ 
+\emph on 
+A very important feature of uvbricks is that it appears possible to apply
+ position-dependent instrumental effects by adding a few extra terms to
+ the interpolation function
+\emph default 
+.
+ Since sources have to be predicted/subtracted at full (f,t) resolution,
+ it will be one of the main bottlenecks of LOFAR calibration.
+\layout Enumerate
+
+
+\series bold 
+Facet imaging.
+
+\series default 
+ The size of a facet is determined by the ionosphere.
+ For each facet, the residual uv-data are corrected for the facet centre,
+ after which the phase centre is shifted to that position, and the FOV is
+ reduced by integrating over freq and time.
+ The results are gridded and Fourier Transformed to a set of 4D residual
+ images (which may overlap a little).
+ 
+\layout Enumerate
+
+
+\series bold 
+Source extraction.
+
+\series default 
+ The 4D residual images are deconvolved (e.g.
+ CLEANed), using a PSF which strictly is valid for the facet centre only.
+ The resulting images of CLEAN components are used for source extraction
+ in two ways: 
+\begin_deeper 
+\layout Enumerate
+
+Updating the parameters of existing LSM sources.
+ The LSM is used to inspect the areas where Cat I/II sources have been subtracte
+d to see whether there is anything left.
+ Any residuals are used to solve for improvements of the source parameters,
+ using the source trees in the LSM.
+\layout Enumerate
+
+Finding new LSM sources.
+ The most difficult problem is to decide which groups of CLEAN components
+ represent new (Cat III) sources, and how they should be parametrized.
+ Extended sources may be modeled in terms of base functions like shapelets
+ or pixons.
+ Really pathological sources may be stored in the LSM as 4D images.
+ 
+\end_deeper 
+\layout Standard
+
+The Major Cycle is repeated until some calibration quality criterion is
+ met.
+ For instance, at least two cycles will be needed to reach a dynamic range
+ of 
+\begin_inset Formula $1:10^{4}$
+\end_inset 
+
+, as required in the survey mode (see section 
+\begin_inset LatexCommand \ref{sec:KSG:-Surveys}
+
+\end_inset 
+
+).
+ 
+\layout Subsection
+
+Finishing touches:
+\layout Enumerate
+
+Update the Global Sky Model (GSM) from the LSM.
+ 
+\layout Enumerate
+
+Make images from the LSM sources, to be used by Surveys KSG 
+\layout Enumerate
+
+Deliver the deliverables (residual images, [LSM] or images, [GSM], [MeqParm
+ tables], [metadata])
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:KSG:-Surveys}
+
+\end_inset 
+
+KSG: Surveys
+\layout Standard
+
+Should get residual (facet) images with an average dyamic range of 
+\begin_inset Formula $10^{4}$
+\end_inset 
+
+.
+ This should require two passes of the Major Cycle, as part of the standard
+ LOFAR reduction process.
+ In addition, they will get separate images that contain the LSM sources
+ that have been subtracted from the uv-data.
+ This will enable them to deconvolve a little further in the image-plane,
+ without recourse to any software but their own.
+ To this end, they will receive PSF's that are valid for the centre of each
+ facet image.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:KSG:-EOR-detection}
+
+\end_inset 
+
+KSG: EOR detection
+\layout Standard
+
+Will need a few extra passes (i.e.
+ more than 2) of the Major Cycle, to subtract as many foreground sources
+ as possbible from the uv-data (the only correct way).
+ They will do this themselves, using their own software.
+ Afterwards, special software will be used to extract the signature of the
+ EOR from the residuals.
+ The latter will probably make use of differential methods in frequency.
+ Thus, the requirement on calibration becomes consistency rather than perfection.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:KSG:-Transient-detection}
+
+\end_inset 
+
+KSG: Transient detection
+\layout Standard
+
+It is unrealistic to try and make fully calibrated images at short time
+ intervals.
+ It is much more promising to assume that instrumental errors and (u,v,w)
+ coordinates will vary relatively slowly, and use differential methods where
+ uv-data are subtracted from each other at different time-scales.
+ Obviously, the transients must still be detected in the image plane.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Other-Key-Science}
+
+\end_inset 
+
+Other Key Science Groups
+\layout Itemize
+
+
+\series bold 
+Cosmic rays: 
+\series default 
+Has its own calibration scheme.
+\layout Itemize
+
+
+\series bold 
+Pulsars:
+\series default 
+ Will do their own processing on uv-data from which only the linear ionospheric
+ component has been removed (i.e.
+ phase tracking only).
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Other-LOFAR-applications}
+
+\end_inset 
+
+Other LOFAR applications
+\layout Subsection
+
+Astronomical applications
+\layout Subsection
+
+Non-astronomical LOFAR applications
 \layout Section
 
 
@@ -817,7 +1053,7 @@ Etc
 Conclusions
 \layout Standard
 
-It will be okay, in the end.....
+Tout comprendre, c'est tout pardonner....
 \layout Bibliography
 \bibitem {JEN-nov2005}
 
@@ -828,26 +1064,12 @@ LOFAR Calibration Strategy
 \emph default 
  (CDR-I, November 2005)
 \layout Bibliography
-\bibitem {JEN-MIM}
+\bibitem {JEN-dynarange}
 
 J.E.
- Noordam: 
+ Noordam et al: 
 \emph on 
-Minimum Ionospheric Model 
+Limiting factors of LOFAR calibration 
 \emph default 
-(MIM, August 2004)
-\layout Bibliography
-\bibitem {JPH-IV}
-
-J.P.
- Hamaker: 
-\emph on 
-Polarization in radio astrometry...
-\layout Bibliography
-\bibitem {JEN-peeling}
-
-J.E.
- Noordam: 
-\emph on 
-Peeling...(2003)
+(2006)
 \the_end
