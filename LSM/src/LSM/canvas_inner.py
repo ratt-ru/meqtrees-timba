@@ -836,6 +836,15 @@ class GaussianSourceDisplay:
   eX=elist[0]
   eY=elist[1]
   eP=elist[2]
+  # take out scale
+  if self.cview.y_scale > self.cview.x_scale:
+   eY=eY/(self.cview.y_scale)*self.cview.x_scale
+  else:
+   eX=eX/(self.cview.x_scale)*self.cview.y_scale
+
+  # flip sign or PA
+  eP=-eP
+
   xys1=self.cview.globalToLocal(punit.sp.getRA()+eX/2,punit.sp.getDec()+eY/2)
   major=int(abs(xys[0]-xys1[0]))*2
   minor=int(abs(xys[1]-xys1[1]))*2
