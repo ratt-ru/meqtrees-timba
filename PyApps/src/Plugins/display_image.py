@@ -400,16 +400,19 @@ class QwtImageDisplay(QwtPlot):
         self.updatePlotParameters()
         return True
       if menuid == self.menu_table['Toggle Plot Legend']:
-        self.toggleLegend()
+        self.toggleLegend(menuid)
         return True
       if menuid == self.menu_table['Toggle axis flip']:
         self.toggleAxis()
+        self._menu.setItemChecked(menuid,self.axes_flip)
         return True
       if menuid == self.menu_table['Toggle ColorBar']:
         if self.toggle_color_bar == 1:
           self.toggle_color_bar = 0
+          self._menu.setItemChecked(menuid, True)
         else:
           self.toggle_color_bar = 1
+          self._menu.setItemChecked(menuid, False)
         self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,0))
         if self.complex_type:
           self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,1))
@@ -417,8 +420,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle Color/GrayScale Display']:
         if self.toggle_gray_scale == 1:
           self.setDisplayType('hippo')
+          self._menu.setItemChecked(menuid, False)
         else:
           self.setDisplayType('grayscale')
+          self._menu.setItemChecked(menuid, True)
         self.plotImage.updateImage(self.raw_image)
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
@@ -426,15 +431,19 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle ND Controller']:
         if self.toggle_ND_Controller == 1:
           self.toggle_ND_Controller = 0
+          self._menu.setItemChecked(menuid, False)
         else:
           self.toggle_ND_Controller = 1
+          self._menu.setItemChecked(menuid, True)
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         return True
       if menuid == self.menu_table['Toggle results history']:
         if self.setResults:
           self.setResults = False
+          self._menu.setItemChecked(menuid, False)
         else:
           self.setResults = True
+          self._menu.setItemChecked(menuid, True)
         self.emit(PYSIGNAL("show_results_selector"),(self.setResults,))
         return True
       if menuid == self.menu_table['Toggle real/imag or ampl/phase Display']:
@@ -468,9 +477,11 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle logarithmic range for image']:
         if self.toggle_log_display == False:
           self.toggle_log_display = True
+          self._menu.setItemChecked(menuid, True)
           self.plotImage.setLogScale()
         else:
           self.toggle_log_display = False
+          self._menu.setItemChecked(menuid, False)
           self.plotImage.setLogScale(False)
           self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
@@ -492,8 +503,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle Metrics Display']:
         if self.toggle_metrics == False:
           self.toggle_metrics = True
+          self._menu.setItemChecked(menuid, False)
         else:
           self.toggle_metrics = False
+          self._menu.setItemChecked(menuid, True)
         self.toggleMetrics()
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
@@ -502,8 +515,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle log axis for chi_0']:
         if self.log_axis_chi_0 is False:
           self.log_axis_chi_0 = True
+          self._menu.setItemChecked(menuid, True)
         else:
           self.log_axis_chi_0 = False
+          self._menu.setItemChecked(menuid, False)
         self.test_plot_array_sizes()
         self.replot()
         return True
@@ -511,8 +526,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle log axis for solution vector']:
         if self.log_axis_solution_vector is False:
           self.log_axis_solution_vector = True
+          self._menu.setItemChecked(menuid, True)
         else:
           self.log_axis_solution_vector = False
+          self._menu.setItemChecked(menuid, False)
         self.test_plot_array_sizes()
         self.replot()
         return True
@@ -522,6 +539,7 @@ class QwtImageDisplay(QwtPlot):
           self.display_solution_distances = True
           QWhatsThis.remove(self)
           QWhatsThis.add(self, chi_sq_instructions)
+          self._menu.setItemChecked(menuid, True)
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Toggle logarithmic range for image']
@@ -530,6 +548,7 @@ class QwtImageDisplay(QwtPlot):
           self.display_solution_distances = False
           QWhatsThis.remove(self)
           QWhatsThis.add(self, display_image_instructions)
+          self._menu.setItemChecked(menuid, False)
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle logarithmic range for image']
@@ -749,14 +768,16 @@ class QwtImageDisplay(QwtPlot):
       else:
         return
 
-    def toggleLegend(self):
+    def toggleLegend(self, menuid):
       """ sets legends display for cross section plots to visible/invisible """
       if self.setlegend == 1:
         self.setlegend = 0
         self.enableLegend(False)
+        self._menu.setItemChecked(menuid, False)
       else:
         self.setlegend = 1
         self.enableLegend(True)
+        self._menu.setItemChecked(menuid, True)
       self.setAutoLegend(self.setlegend)
       self.replot()
       _dprint(3, 'called replot in toggleLegend')
@@ -1273,14 +1294,20 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisAutoScale(QwtPlot.yRight)
           self.setAxisAutoScale(QwtPlot.xTop)
         
+          menuid = self.menu_table['Toggle log axis for chi_0']
           if self.log_axis_chi_0:
+            self._menu.setItemChecked(menuid, True)
             self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
           else:
+            self._menu.setItemChecked(menuid, False)
             self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
 
+          menuid = self.menu_table['Toggle log axis for solution vector']
           if self.log_axis_solution_vector:
+            self._menu.setItemChecked(menuid, True)
             self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
           else:
+            self._menu.setItemChecked(menuid, False)
             self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
 
 # adjust symbol sizes for any real / imaginary plots
@@ -1572,12 +1599,20 @@ class QwtImageDisplay(QwtPlot):
         self.first_chi_test = False
 
       if self.log_axis_chi_0:
+        menuid = self.menu_table['Toggle log axis for chi_0']
+        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
       else:
+        menuid = self.menu_table['Toggle log axis for chi_0']
+        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
       if self.log_axis_solution_vector:
+        menuid = self.menu_table['Toggle log axis for solution vector']
+        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
       else:
+        menuid = self.menu_table['Toggle log axis for solution vector']
+        self._menu.setItemChecked(menuid, False)
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
 
       for i in range(shape[1]):
