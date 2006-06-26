@@ -578,6 +578,7 @@ class QwtImageDisplay(QwtPlot):
 # toggle flags display	
       if menuid == self.menu_table['toggle flagged data for plane ']:
         self.handleFlagToggle(self.flag_toggle)
+        self._menu.setItemChecked(menuid, self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in handle_flag_toggles')
 	return True
@@ -590,10 +591,12 @@ class QwtImageDisplay(QwtPlot):
           self.timer.start(2000)
         else:
           self.flag_blink = False
+        self._menu.setItemChecked(menuid,self.flag_blink)
 	return True
 
       if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
         self.handleFlagRange(self.flag_range)
+        self._menu.setItemChecked(menuid,self.flag_range)
         self.replot()
         _dprint(3, 'called replot in handle_flag_toggles')
 	return True
