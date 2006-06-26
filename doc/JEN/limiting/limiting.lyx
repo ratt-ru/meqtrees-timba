@@ -803,6 +803,128 @@ The process of alternating between uv-data and residual images is called
  The Local Sky Model (LSM) is a key element of this process.
 \layout Standard
 
+The standard procedure (used for Survey mode) has the following steps:
+\layout Enumerate
+
+Generate a Local Sky Model (LSM).
+ Use the observational windows of the observation (primary beam, spectral
+ window) to select relevant sources from the Global Sky Model (GSM).
+ The LSM includes all source in the main lobe of the primary beam, and a
+ small number of very bright sources (the A-team) all over the sky.
+\layout Enumerate
+
+Find ionospheric phase lock: 
+\layout Enumerate
+
+Ionospheric phase tracking: Keep the ionospheric phase errors within a radian,
+ by solving for the linear component of the MIM.
+ Use one or more bright calibrators in the field.
+\layout Enumerate
+
+Bandpass removal: Divide out the high-granularity (channel-by-channel) IF
+ bandpasses, determined (somehow) at station level.
+ 
+\layout Enumerate
+
+Coarse flagging:
+\layout Enumerate
+
+All the following is part of the Major Cycle: Selfcal, LSM subtraction,
+ facet imaging, LSM update from residual imaging.
+\layout Enumerate
+
+Selfcal, i.e.
+ solving for M.E.
+ parameters, is done in peeling mode: we deal with Cat I sources in descending
+ order of brightness, and subtract them from the uv-data before moving on
+ to the next one.
+ The phase centre of the uv-data is moved to the position of the peeling
+ source.
+ See also section ...
+ 
+\layout Enumerate
+
+Solving for large-scale smooth functions (l,m):
+\begin_deeper 
+\layout Enumerate
+
+MIM refinement: Solve for (improvements of) the higher order component of
+ the MIM.
+ Use longer integration on a number of fainter calibrator sources on the
+ field.
+\layout Enumerate
+
+Beamshape determination:
+\end_deeper 
+\layout Enumerate
+
+Subtraction of Cat II sources (Cat I sources are subtracted as part of the
+ peeling selfcal above).
+ Patches, uvbricks.
+ 
+\layout Enumerate
+
+Facet imaging.
+ The size of a facet is determined by the ionosphere.
+ For each facet, the residual uv-data are corrected for the facet centre,
+ after which the phase centre is shifted to that position, and the FOV is
+ reduced by integrating over freq and time.
+ The results are gridded and Fourier Transformed to a set of 4D residual
+ images (which may overlap a little).
+ 
+\layout Enumerate
+
+Source extraction.
+ The 4D residual images are deconvolved (e.g.
+ CLEANed), using a PSF which strictly is valid for the facet centre only.
+ The resulting images of CLEAN components are used for source extraction
+ in two ways: 
+\begin_deeper 
+\layout Enumerate
+
+Updating the parameters of existing LSM sources.
+ The LSM is used to inspect the areas where Cat I/II sources have been subtracte
+d to see whether there is anything left.
+ Any residuals are used to solve for improvements of the source parameters,
+ using the source trees in the LSM.
+\layout Enumerate
+
+Finding new LSM sources.
+ The most difficult problem is to decide which groups of CLEAN components
+ represent new (Cat III) sources, and how they should be parametrized.
+ Extended sources may be modeled in terms of base functions like shapelets
+ or pixons.
+ Really pathological sources may be stored in the LSM as 4D images.
+ 
+\end_deeper 
+\layout Enumerate
+
+The Major Cycle is repeated until some calibration quality criterion is
+ met.
+ At least two cycles will be needed to reach a dynamic range of 
+\begin_inset Formula $1:10^{4}$
+\end_inset 
+
+, as required in the survey mode.
+ 
+\layout Enumerate
+
+Finishing touches:
+\begin_deeper 
+\layout Enumerate
+
+Update the Global Sky Model (GSM) from the LSM.
+ 
+\layout Enumerate
+
+Make images from the LSM sources, to be used by Surveys KSG 
+\layout Enumerate
+
+Deliver the deliverables (residual images, [LSM] or images, [GSM], [MeqParm
+ tables], [metadata])
+\end_deeper 
+\layout Standard
+
 
 \begin_inset Float figure
 wide false

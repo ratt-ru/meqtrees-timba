@@ -26,16 +26,21 @@ Some numbers:
   -) Pulsar polarised flux: 
           varies from ~2.5 Jy @ 140 MHz 
                    to ~1.0 Jy @ 117 MHz
-  -) Intrinsic   Faraday rotation measure = 45 rad/m2
+
+  -) Faraday rotation causes Q to be converted to U
+     and vice-versa
+  -) The Faraday rotation angle varies as:
+         phi(t,f) = phi0 + (RMint+RMion(t))*(lambda^2)
+     in which RM is the Rotation Measure (rad/m2)
+     (So, the period mentioned below is propto f^3)   
+  -) Intrinsic Crab pulsar farot: RMint ~ 45 rad/m2
      This causes the linear polarisation to alternate
      sinusoidally between Q and U as a function of freq
         The period is ~1.1 MHz @ 140 MHz
                       ~0.7 MHz @ 117 MHz
-  -) The visibility phase varies as:
-         phi(t,f) = phi0 + (RMint+RMion(t))*(lambda^2)
-     (So, the period mentions above is propto f^3)   
-  -) Ionospheric Faraday rotation measure = ~1 rad/m2
+  -) Ionospheric Faraday rotation: RMint ~ 1 rad/m2
      the latter varies slowly in time.
+
   -) Noise per sample (10 kHz, 10 s): 30 Jy
      So the Crab itself has a high S/N, but the pulsar
      polarisation is below the noise/sample.
@@ -63,11 +68,6 @@ Data:
 
   -) YX = giy(f,t) * gjx(f,t) * (dij*I(f) + U*sin(2pi*f/P + phi0)) 
 
-
-
-
-Remarks:
-
   -) The period P is the 0.7-1.1 MHz mentioned above
 
   -) We will operate on one 2.5 MHz WSRT subband at a time. This
@@ -80,6 +80,9 @@ Remarks:
   dependence (GJones, BJones, EJones) is smooth over a subband. In any
   case it will have a different signature from the highly predictable
   (except for phi0?) sin(f/P+phi0) signature of the pulsar polarisation.
+
+
+Experiments:
 
   -) There is no need in this stage to include the WHAT station. In a
   later stage, the WHAT might offer certain calibration advantages

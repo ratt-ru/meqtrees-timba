@@ -1,0 +1,853 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\begin_preamble
+\usepackage{lofar}    % ~/tex/lofar/lofar.sty
+% \usepackage{scicomp}    % ~/tex/scicomp/scicomp.cls
+\end_preamble
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize Default
+\paperpackage a4
+\use_geometry 0
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\topmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Standard
+
+
+\begin_inset ERT
+status Open
+
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Based on the lofar.sty file (see preamble)
+\layout Standard
+%
+\layout Standard
+% Define the information for the page header and footer:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAuthor} {J.E. 
+\backslash 
+ Noordam} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDOIssue}{Version 1.0: 27 June 2006}  % Date of Issue (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theKOIssue}{Public} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theScope}{Project Documentation} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDocNR} {LOFAR-ASTRON-DOC-00000} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theStatus} {Draft} % Alternatives:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theRevNR} {1.0} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theFile}{$lofar/$}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theProject} {LOFAR Project} % in the footer 
+\layout Standard
+%
+\layout Standard
+% Define the information for the Verified table
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVSigList}{o.p.v. 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVDateList}{
+\backslash 
+today}% Date of Verification (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVRevList}{0.9 
+\backslash 
+
+\backslash 
+ 0.9.5}
+\layout Standard
+%
+\layout Standard
+% Define the information in the Accepted Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeada}{Work Package Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadb}{System Engineering Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadc}{Program Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagera}{J.E. 
+\backslash 
+ Noordam}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagerb}{C.M.
+\backslash 
+ de Vos}
+\layout Standard
+% 
+\backslash 
+renewcommand{
+\backslash 
+theAManagerc}{J. 
+\backslash 
+ Reitsma}
+\layout Standard
+%
+\layout Standard
+% Define the first and second columns of the Distribution List:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dGList} {
+\layout Standard
+LOFAR Calibration StuurGrope:
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H. 
+\backslash 
+ Falcke
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} K. 
+\backslash 
+ van der Schaaf
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} W.N. 
+\backslash 
+ Brouw
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} A.G. 
+\backslash 
+ de Bruyn
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} T.A.
+\backslash 
+ Oosterloo 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} R.J. 
+\backslash 
+ Nijboer
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M. 
+\backslash 
+ van Haarlem
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+ddGList} {}
+\layout Standard
+%
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dOList} {
+\layout Standard
+
+\backslash 
+hspace{0.5cm} O.M. 
+\backslash 
+ Smirnov
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} S.B. 
+\backslash 
+ Yatawatta
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M. 
+\backslash 
+ Mevius
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M.A. 
+\backslash 
+ Brentjens
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} S. 
+\backslash 
+ Wijnholds
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. D.
+\backslash 
+ Bregman 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+% Define the Document Revision Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+revList} {0.5 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theRevNR}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dateList} {2004-Nov-25 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theDOIssue}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+sectionList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+ref{Sec2}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+pageList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+pageref{Sec2}-
+\backslash 
+pageref{Sec2e}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+changeList} {Creation 
+\backslash 
+
+\backslash 
+ Updated class description}
+\layout Standard
+%
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Make the front page: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theTitle} {LOFAR Calibration Strategies
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\backslash 
+theAuthor 
+\backslash 
+
+\backslash 
+    
+\layout Standard
+
+\backslash 
+vspace{0.1cm}{
+\backslash 
+it(jnoordam@astron.nl)}
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.3cm}Dwingeloo
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.1cm}
+\backslash 
+theDOIssue 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+maketitle
+\layout Standard
+%
+\layout Standard
+% Make the second page: 
+\layout Standard
+
+\backslash 
+theDistributionList
+\layout Standard
+
+\backslash 
+vspace{1cm}
+\layout Standard
+
+\backslash 
+theDocumentRevision
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\end_inset 
+
+
+\layout Abstract
+
+Outline of LOFAR calibration strategies for the different Key Science Groups,
+ and other applications.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Introduction}
+
+\end_inset 
+
+Introduction
+\layout Section
+
+The needs of the Key Science Groups
+\layout Itemize
+
+
+\series bold 
+Cosmic rays: 
+\series default 
+Has its own calibration scheme.
+\layout Itemize
+
+
+\series bold 
+Surveys:
+\series default 
+ Should get residual (facet) images with an average dyamic range of 
+\begin_inset Formula $10^{4}$
+\end_inset 
+
+.
+ This should require two passes of the Major Cycle, as part of the standard
+ LOFAR reduction process.
+ In addition, they will get separate images that contain the LSM sources
+ that have been subtracted from the uv-data.
+ This will enable them to deconvolve a little further in the image-plane,
+ without recourse to any software but their own.
+ To this end, they will receive PSF's that are valid for the centre of each
+ facet image.
+\layout Itemize
+
+
+\series bold 
+EOR detection: 
+\series default 
+Will need a few extra passes (i.e.
+ more than 2) of the Major Cycle, to subtract as many foreground sources
+ as possbible from the uv-data (the only correct way).
+ They will do this themselves, using their own software.
+ Afterwards, special software will be used to extract the signature of the
+ EOR from the residuals.
+ The latter will probably make use of differential methods in frequency.
+ Thus, the requirement on calibration becomes consistency rather than perfection.
+\layout Itemize
+
+
+\series bold 
+Transients:
+\series default 
+ It is unrealistic to try and make fully calibrated images at short time
+ intervals.
+ It is much more promising to assume that instrumental errors and (u,v,w)
+ coordinates will vary relatively slowly, and use differential methods where
+ uv-data are subtracted from each other at different time-scales.
+ Obviously, the transients must still be detected in the image plane.
+\layout Itemize
+
+
+\series bold 
+Pulsars:
+\series default 
+ Will do their own processing on uv-data from which only the linear ionospheric
+ component has been removed (i.e.
+ phase tracking only).
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename calib_flow.eps
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+LOFAR Calibration Flow Diagram, as it stands today.
+ The blue boxes indicate deliverables.
+ 
+\layout Standard
+
+\end_inset 
+
+
+\layout Section
+
+LOFAR Calibration flow diagram
+\layout Standard
+
+This document is not a description of LOFAR calibration.
+ Rather, it is assumed that the reader is thoroughly familiar with various
+ earlier documents, especially the Calibration Strategy
+\begin_inset LatexCommand \cite{JEN-nov2005}
+
+\end_inset 
+
+ presented at CDR-I in November 2005.
+ After all, I did not sacrifice half my Indian trip just to pad some paper
+ trail.
+ However, just to jolt the memory and set the scene, some points will be
+ repeated (and thus emphasized) here:
+\layout Itemize
+
+Calibration is defined as the capability to subtract foreground sources.
+ The goal is to produce residual images that are as empty as possible.
+\layout Itemize
+
+Only the brightest (Cat I) sources are used for selfcal, i.e.
+ to estimate instrumental errors.
+ The parameters of these sources may also be estimated in this process.
+ 
+\layout Itemize
+
+Cat II sources are detected and updated in residual images.
+ Most of them are too faint for selfcal and in any case there are far too
+ many of them.
+ However, they still have to be subtracted from the uv-data, which might
+ well prove to be the bottleneck of LOFAR calibration.
+\layout Itemize
+
+Cat I sources are subtracted with their 'private' instrumental parameters,
+ for highest possible accuracy.
+ Cat II sources are subtracted with interpolated values of MIM and beamshape
+ functions.
+\layout Itemize
+
+Unproven thesis: Any source that is bright enough to cause trouble, is bright
+ enough to be tackled.
+\layout Itemize
+
+The process of alternating between uv-data and residual images is called
+ the Major Cycle.
+ The Local Sky Model (LSM) is a key element of this process.
+\layout Standard
+
+The standard procedure (used for Survey mode) has the following steps:
+\layout Enumerate
+
+Generate a Local Sky Model (LSM).
+ Use the observational windows of the observation (primary beam, spectral
+ window) to select relevant sources from the Global Sky Model (GSM).
+ The LSM includes all source in the main lobe of the primary beam, and a
+ small number of very bright sources (the A-team) all over the sky.
+\layout Enumerate
+
+Find ionospheric phase lock: 
+\layout Enumerate
+
+Ionospheric phase tracking: Keep the ionospheric phase errors within a radian,
+ by solving for the linear component of the MIM.
+ Use one or more bright calibrators in the field.
+\layout Enumerate
+
+Bandpass removal: Divide out the high-granularity (channel-by-channel) IF
+ bandpasses, determined (somehow) at station level.
+ 
+\layout Enumerate
+
+Coarse flagging:
+\layout Enumerate
+
+All the following is part of the Major Cycle: Selfcal, LSM subtraction,
+ facet imaging, LSM update from residual imaging.
+\layout Enumerate
+
+Selfcal, i.e.
+ solving for M.E.
+ parameters, is done in peeling mode: we deal with Cat I sources in descending
+ order of brightness, and subtract them from the uv-data before moving on
+ to the next one.
+ The phase centre of the uv-data is moved to the position of the peeling
+ source.
+ See also section ...
+ 
+\layout Enumerate
+
+Solving for large-scale smooth functions (l,m):
+\begin_deeper 
+\layout Enumerate
+
+MIM refinement: Solve for (improvements of) the higher order component of
+ the MIM.
+ Use longer integration on a number of fainter calibrator sources on the
+ field.
+\layout Enumerate
+
+Beamshape determination:
+\end_deeper 
+\layout Enumerate
+
+Subtraction of Cat II sources (Cat I sources are subtracted as part of the
+ peeling selfcal above).
+ Patches, uvbricks.
+ 
+\layout Enumerate
+
+Facet imaging.
+ The size of a facet is determined by the ionosphere.
+ For each facet, the residual uv-data are corrected for the facet centre,
+ after which the phase centre is shifted to that position, and the FOV is
+ reduced by integrating over freq and time.
+ The results are gridded and Fourier Transformed to a set of 4D residual
+ images (which may overlap a little).
+ 
+\layout Enumerate
+
+Source extraction.
+ The 4D residual images are deconvolved (e.g.
+ CLEANed), using a PSF which strictly is valid for the facet centre only.
+ The resulting images of CLEAN components are used for source extraction
+ in two ways: 
+\begin_deeper 
+\layout Enumerate
+
+Updating the parameters of existing LSM sources.
+ The LSM is used to inspect the areas where Cat I/II sources have been subtracte
+d to see whether there is anything left.
+ Any residuals are used to solve for improvements of the source parameters,
+ using the source trees in the LSM.
+\layout Enumerate
+
+Finding new LSM sources.
+ The most difficult problem is to decide which groups of CLEAN components
+ represent new (Cat III) sources, and how they should be parametrized.
+ Extended sources may be modeled in terms of base functions like shapelets
+ or pixons.
+ Really pathological sources may be stored in the LSM as 4D images.
+ 
+\end_deeper 
+\layout Enumerate
+
+The Major Cycle is repeated until some calibration quality criterion is
+ met.
+ At least two cycles will be needed to reach a dynamic range of 
+\begin_inset Formula $1:10^{4}$
+\end_inset 
+
+, as required in the survey mode.
+ 
+\layout Enumerate
+
+Finishing touches:
+\begin_deeper 
+\layout Enumerate
+
+Update the Global Sky Model (GSM) from the LSM.
+ 
+\layout Enumerate
+
+Make images from the LSM sources, to be used by Surveys KSG 
+\layout Enumerate
+
+Deliver the deliverables (residual images, [LSM] or images, [GSM], [MeqParm
+ tables], [metadata])
+\end_deeper 
+\layout Section
+
+Some stubborn misunderstandings
+\layout Standard
+
+LOFAR Calibration has evolved quite a bit in recent years.
+ But despite numerous presentations and discsussions, some misunderstandings
+ keep on resurfacing stubbornly and mysteriously.
+\layout Itemize
+
+Ionospheric patches have no meaning.
+ Bright calibration sources are used to estimate the coefficients of smooth
+ functions for the ionospheric phase (MIM) and station voltage beamshapes.
+ These are interpolated to calibrate the uv-data for any point in the FOV.
+ 
+\layout Itemize
+
+The precise meaning of peeling.
+ It is very gratifying that the word peeling seems to have adopted worldwide.
+ However, it is often used just to indicate that instrumental errors are
+ position-dependent.
+ This is certainly valid, but there is more to it.
+\layout Itemize
+
+The nature of the LSM.
+ It is much more than a list of sources, as in NEWSTAR.
+\layout Itemize
+
+Etc
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Conclusions}
+
+\end_inset 
+
+Conclusions
+\layout Standard
+
+It will be okay, in the end.....
+\layout Bibliography
+\bibitem {JEN-nov2005}
+
+J.E.
+ Noordam: 
+\emph on 
+LOFAR Calibration Strategy
+\emph default 
+ (CDR-I, November 2005)
+\layout Bibliography
+\bibitem {JEN-MIM}
+
+J.E.
+ Noordam: 
+\emph on 
+Minimum Ionospheric Model 
+\emph default 
+(MIM, August 2004)
+\layout Bibliography
+\bibitem {JPH-IV}
+
+J.P.
+ Hamaker: 
+\emph on 
+Polarization in radio astrometry...
+\layout Bibliography
+\bibitem {JEN-peeling}
+
+J.E.
+ Noordam: 
+\emph on 
+Peeling...(2003)
+\the_end

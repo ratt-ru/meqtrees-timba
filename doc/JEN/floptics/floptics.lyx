@@ -3,6 +3,7 @@
 \textclass article
 \begin_preamble
 \usepackage{lofar}    % ~/tex/lofar/lofar.sty
+% \usepackage{scicomp}    % ~/tex/scicomp/scicomp.cls
 \end_preamble
 \language english
 \inputencoding auto
