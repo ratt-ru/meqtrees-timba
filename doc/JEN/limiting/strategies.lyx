@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.0} 
+theRevNR} {1.0001} 
 \layout Standard
 
 \backslash 
@@ -552,9 +552,9 @@ basic procedure
 \end_inset 
 
 .
- Writing it has been a salutary experience for the author, who was forced
- to express himself with unfamiliar precision.
- It should have a complementary effect on those at the receiving end.
+ Writing it has been (and still is!) a salutary experience for the author,
+ who was forced to express himself with unfamiliar precision.
+ It should have a reciprocal effect on those at the receiving end.
  The reader is urged to test every step against his or her own preconceptions,
  and challenge it accordingly.
  The aim is to have at least full mutual understanding of the issues at
@@ -726,19 +726,31 @@ Generate a Local Sky Model (LSM)
 \series default 
 : Use the observational windows of the observation (primary beam, spectral
  window) to select relevant sources from the Global Sky Model (GSM).
- The LSM includes all source in the main lobe of the primary beam, and a
- small number of very bright sources (the A-team) all over the sky.
- 
+ The LSM includes sources in the main lobe of the primary beam, and a small
+ number of very bright sources (the A-team) all over the sky.
+ Upon request, it returns a list of sources in reverse order of 
+\emph on 
+apparent (!?)
+\emph default 
+ brightness, which can be used to select peeling sources.
+ It will also tile the FOV with 'prediction patches' of a suitable size,
+ to be used in Cat II subtraction.
+ And finally, the LSM plays an important role in source extraction from
+ residual images.
 \layout Enumerate
 
 
 \series bold 
 Bandpass division:
 \series default 
- Divide out the high-granularity (channel-by-channel) IF bandpasses, determined
- (somehow) at station level.
- It should be noted that the IF bandpass is defined as a uv-plane effect,
- which is valid for the entire FOV.
+ Divide out the high-granularity (channel-by-channel) IF bandpasses, which
+ are determined at station level by injecting a suitable test-signal.
+ It should be noted that the IF bandpass is 
+\emph on 
+defined
+\emph default 
+ as a uv-plane effect, i.e.
+ it is valid for the entire FOV.
  Thus, it does NOT include the position-dependent frequency dependence of
  the station beamshapes, or the frequency dependence of the ionospheric
  phase.
@@ -844,11 +856,16 @@ contamination
  of other (fainter) sources in the field.
  However, this contamination can always be reduced to arbitrary levels,
  at the cost of including more sources in the prediction.
+\begin_deeper 
+\layout Enumerate
+
+Integration time issues....
+\end_deeper 
 \layout Enumerate
 
 
 \series bold 
-Fine flagging: 
+Hierarchical flagging: 
 \series default 
 As more bright sources are peeled off, we may flag more subtle RFI, still
  using relatively cheap detection algorithms.
@@ -875,7 +892,7 @@ Subtraction of A-team sources
 
 
 \series bold 
-Estimation of (l,m) interpolation functions.
+Estimation of smooth functions.
 
 \series default 
  The M.E.
@@ -890,11 +907,17 @@ Estimation of (l,m) interpolation functions.
 
 MIM (l,m,f,t) refinement: Solve for (improvements of) the higher order component
 s of the MIM.
- Use longer integration on a number of fainter calibrator sources on the
- field.
+ 
 \layout Enumerate
 
-Station voltage beamshape (l,m,f,t) determination:
+Station voltage beamshape (l,m,f,t) determination.
+ This includes the main lobes, and probably the first sidelobes.
+ A potential complication is that the size and shape will vary considerably
+ with elevation.
+ 
+\noun on 
+Use longer integration on a number of fainter calibrator sources on the
+ field....
 \layout Enumerate
 
 Large-scale variations (f,t) of the IF bandpasses.
@@ -923,10 +946,23 @@ uvbricks
  are obtained by interpolation.
  
 \emph on 
-A very important feature of uvbricks is that it appears possible to apply
- position-dependent instrumental effects by adding a few extra terms to
- the interpolation function
+A very important feature of uvbricks is that it should be possible to apply
+ position-dependent instrumental effects (image-plane effects) by adding
+ a few extra terms to the interpolation function
 \emph default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Assuming that image-plane effects are multiplicative, they will transform
+ into a convolution of the gridded uv-data in the uvbrick.
+ A convolution can always be applied by means of an interpolation function
+ with sufficient terms.
+ 
+\end_inset 
+
 .
  Since sources have to be predicted/subtracted at full (f,t) resolution,
  it will be one of the main bottlenecks of LOFAR calibration.
@@ -1125,12 +1161,70 @@ Will need a few extra passes (i.e.
 KSG: Transient detection
 \layout Standard
 
-It is unrealistic to try and make fully calibrated images at short time
- intervals.
+Transients may occur at all kinds of time-scales, from less than a second,
+ to weeks or months.
+ They will usually occur unexpectedly.
+ Things are made a little easier by the realisation that transients must
+ be very compact, so we treat them as point sources.
+ From the viewpoint of calibration, we should distinguish fast transients
+ from slow transients.
+\layout Itemize
+
+
+\series bold 
+Slow transients
+\series default 
+ involve time-scales of more than, say, an hour.
+ They can best be detected by analysing fully calibrated residual images,
+ taken at different times.
+ The source extraction module described above could play a role in this.
+ 
+\layout Itemize
+
+
+\series bold 
+Fast transients 
+\series default 
+involve time-scales at which it is unrealistic to try and make fully calibrated
+ images.
  It is much more promising to assume that instrumental errors and (u,v,w)
  coordinates will vary relatively slowly, and use differential methods where
- uv-data are subtracted from each other at different time-scales.
- Obviously, the transients must still be detected in the image plane.
+ successive uv-data timeslots are subtracted from each other, at different
+ time-scales.
+ Obviously, the transients themselves must still be detected in the image
+ plane.
+ 
+\layout Standard
+
+The obvious problem with subtracting successive timeslots is that the uv-coordin
+ates will have changed.
+ Non-transient sources will be removed more effectively if they are closer
+ to the field-centre, or only have short baselines (i.e.
+ extended sources).
+ The operative element is the phase term 
+\begin_inset Formula $(ul+vm)$
+\end_inset 
+
+, which should be small.
+ Since instrumental effects will have been removed by the time-differencing,
+ the position-dependent PSF around each source (l,m) can be predicted analytical
+ly from the diffeential uv-coverage.
+ 
+\layout Standard
+
+Thus, detection of fast transients might be done succesfully on smallish
+ facet images made from differential uv-data.
+ The facet size would be determined by the time-scale.
+ Such a scheme would fit quite well into the basic procedure of section
+ 
+\begin_inset LatexCommand \ref{sec:The-basic-procedure}
+
+\end_inset 
+
+.
+ Moreover, since the processing needs are (much) less than for other observing
+ modes, transient detection might be able to claim a disproportional amount
+ of LOFAR observing time in the early stages.....
 \layout Section
 
 
