@@ -7,6 +7,11 @@ from numarray import *
 from qt import *
 
 
+def copy_keys(orig =record(), cp = record()):
+    for key in orig.keys():
+        
+        cp[key]=orig[key];
+
 
 class Funklet:
     def __init__(self,funklet=record(function="MeqPolc",coeff=array([[0]]),domain= meq.domain(0,1,0,1),offset=[0,0],scale=[1,1]),name=None):
@@ -17,10 +22,9 @@ class Funklet:
         self._coeff = array([[0]]);
         if funklet.has_field('coeff'):
             self._coeff=funklet.coeff;
-            #print self._coeff;
             if isinstance(self._coeff,list):
-                self._coeff = array(self._coeff);
-
+                self._coeff = self._funklet.coeff = array(self._coeff);
+                
         self._offset=None;
         self._scale=None;
         if funklet.has_field('offset'):
@@ -63,18 +67,34 @@ class Funklet:
         #print self._coeff;
         if isinstance(self._coeff,list):
             self._coeff = array(self._coeff);
-    
+        self._meqfunklet.coeff = self._coeff;
+
+    def get_meqfunklet(self):
+        if self._meqfunklet == None:
+            self.init_function();
+        return self._meqfunklet;
+            
     def init_function(self):
         self._nx=0;
+        self._meqfunklet=None;
         if self._type ==  "MeqPolc":
+            self._meqfunklet = meq.polc(self._coeff,subclass=meq._polc_type);
+            copy_keys(self._funklet,self._meqfunklet)
+            self._meqfunklet.function=None;
             self._create_polc();
 
         else:
             if self._type ==  "MeqPolcLog" :
+                self._meqfunklet = meq.polc(self._coeff,subclass=meq._polclog_type);
+                copy_keys(self._funklet,self._meqfunklet)
+                self._meqfunklet.function=None;
                 self._create_polc(log=True);
             
             else:
+                self._meqfunklet = meq.polc(self._coeff,subclass=meq._funklet_type);
+                copy_keys(self._funklet,self._meqfunklet)
                 self._create_functional();
+                #print "created functional",self._meqfunklet;
                 
         self.isConstant=False;
         if not self._nx:
