@@ -9,12 +9,11 @@ from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
 from Timba.Contrib.OMS import Bookmarks
+from Timba.Contrib.OMS.FITSImageComponent import FITSImageComponent
 
 # MS name
-TDLRuntimeOption('msname',"MS",[
-      "TEST.MS",
-      "TEST-lim.MS",
-      "TEST-grid.MS"]);
+ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
+TDLRuntimeOption('msname',"MS",ms_list);
 
 # ms_output = False  # if True, outputs to MS, else to BOIO dump   
 TDLRuntimeOption('output_column',"Output MS column",
@@ -38,6 +37,10 @@ TDLCompileOption('source_model',"Source model",[
     models.two_point_sources_plus_random_uJy,
     models.two_point_sources_plus_random_nJy
   ],default=0);
+
+TDLCompileOption('background_image',"Background sky image",[None,'sky-image.fits']);
+TDLCompileOption('background_flux_scale',"Rescale background flux",[None,1e-3,1e-6,1e-9,1e-10]);
+
 
 # number of timeslots to use at once
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
@@ -85,15 +88,22 @@ def _define_forest(ns):
   # create array model
   stations = range(1,num_stations+1);
 #  array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
-  array = IfrArray(ns,stations,mirror_uvw=True);
+  array = IfrArray(ns,stations);
   observation = Observation(ns);
   
-  # create nominal CLAR source model by calling the specified
-  # function
+  # create nominal source model by calling the specified function
   source_list = source_model(ns);
   
+  # add background image if needed
+  if background_image:
+    img = FITSImageComponent(ns,'IMG',filename=background_image,
+          fluxscale=background_flux_scale,
+          direction=observation.phase_centre);
+    img.set_options(fft_pad_factor=2);
+    source_list.append(img);
+   
   # create all-sky patch for source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*source_list);
   
   # create simulated visibilities for sky
@@ -136,7 +146,7 @@ def create_inputrec():
 #      if not ms_selection:
 #        rec.record_input     = boioname;
     rec = record(ms=rec);
-  rec.python_init = 'read_msvis_header.py';
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

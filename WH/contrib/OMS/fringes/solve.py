@@ -17,10 +17,8 @@ from Timba.Contrib.OMS import Bookmarks
 
 
 # MS name
-TDLRuntimeOption('msname',"MS",[
-      "TEST.MS",
-      "TEST-lim.MS",
-      "TEST-grid.MS"]);
+ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
+TDLRuntimeOption('msname',"MS",ms_list);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
@@ -57,8 +55,8 @@ TDLCompileOption('source_model',"Source model",[
   
 # fitting options
 TDLCompileMenu("Fitting options",
-  TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4]),
-  TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4]),
+  TDLOption('fringe_deg_time',"Polc degree (time) for fringe fitting",[0,1,2,3,4,5]),
+  TDLOption('fringe_deg_freq',"Polc degree (freq) for fringe fitting",[0,1,2,3,4,5]),
   TDLOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5,.8,.99]),
   TDLOption('constraint_weight',"Weight of flux constraint",["intrinsic",100,1000,10000])
 );
@@ -163,7 +161,7 @@ def phase_parm (tdeg,fdeg):
 def _define_forest(ns):
   # create array model
   stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,mirror_uvw=True);
+  array = IfrArray(ns,stations);
   observation = Observation(ns);
   
   # create CLAR source model
@@ -173,7 +171,7 @@ def _define_forest(ns):
   source_list = source_model(ns,get_source_table());
   
   # create all-sky patch for CLAR source model
-  allsky = Patch(ns,'all');
+  allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*source_list);
   
   # Add solvable G jones terms
@@ -299,7 +297,7 @@ def create_inputrec ():
     rec.tile_size        = tile_size
     rec.selection = ms_selection or record();
     rec = record(ms=rec);
-  rec.python_init='read_msvis_header.py';
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

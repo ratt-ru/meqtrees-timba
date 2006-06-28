@@ -16,7 +16,7 @@ def cps (ns,tablename=''):
       node_groups='Parm');
 
   return [ PointSource(ns,name="S1",I=1.0, Q=0.0, U=0.0, V=0.0,
-                       Iorder=0, ra=0.0305432619099, dec=0.575958653158,
+                       Iorder=0, direction=(0.0305432619099,0.575958653158),
                        spi=0,freq0=ref_frequency,
                        parm_options=parm_options) ];
   
@@ -33,7 +33,7 @@ def faint_extended_source (ns,tablename):
       node_groups='Parm');
       
   return [ GaussianSource(ns,name="S4",I=.1, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.0304, dec=0.57632,
+                  Iorder=0, direction=(0.0304,0.57632),
                   spi=0,freq0=ref_frequency,
                   size=[0.0001,7.2e-5],phi=2.15,
                   parm_options=parm_options) ];
@@ -55,13 +55,13 @@ def random_sources (ns,tablename,count=25,next=8,flux=.1,prefix='F'):
     if i >= next:
       source_model.append(PointSource(ns,name=prefix+str(i),
                   I=random.uniform(flux/2,flux), Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=ra, dec=dec,
+                  Iorder=0, direction=(ra,dec),
                   spi=0,freq0=ref_frequency,
                   parm_options=parm_options)); 
     else:
       source_model.append(GaussianSource(ns,name=prefix+str(i),
                   I=random.uniform(flux,flux*3), Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=ra, dec=dec,
+                  Iorder=0, direction=(ra,dec),
                   spi=0,freq0=ref_frequency,
                   size=[random.uniform(1e-5,1e-4),random.uniform(1e-5,1e-4)],
                   phi=random.uniform(0,3.14),
@@ -83,13 +83,13 @@ def grid_of_faint_sources (ns,tablename):
       if random.choice([0,1]):
         source_model.append(PointSource(ns,name="F"+str(i)+str(j),
                     I=random.uniform(.05,.1), Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=ra, dec=dec,
+                    Iorder=0, direction=(ra,dec),
                     spi=0,freq0=ref_frequency,
                     parm_options=parm_options)); 
       else:
         source_model.append(GaussianSource(ns,name="F"+str(i)+str(j),
                     I=random.uniform(.1,.3), Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=ra, dec=dec,
+                    Iorder=0, direction=(ra,dec),
                     spi=0,freq0=ref_frequency,
                     size=[random.uniform(1e-5,1e-4),random.uniform(1e-5,1e-4)],
                     phi=random.uniform(0,3.14),
@@ -103,7 +103,7 @@ def faint_point_source (ns,tablename):
       node_groups='Parm');
       
   return [ PointSource(ns,name="S4",I=.1, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.0304, dec=0.57632,
+                  Iorder=0, direction=(0.0304,0.57632),
                   spi=0,freq0=ref_frequency,
                   parm_options=parm_options) ];
 
@@ -115,12 +115,12 @@ def two_point_sources (ns,tablename=''):
   
   source_model = []
   source_model.append( PointSource(ns,name="S1",I=1.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.03119776, dec=0.57632226,
+                  Iorder=0, direction=(0.0307473161,0.575848368),
                   spi=0,freq0=ref_frequency,
                   parm_options=parm_options));
 
   source_model.append( PointSource(ns,name="S5",I=1.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  Iorder=0, direction=(0.0303428649,0.575848368),
                   spi=0,freq0=ref_frequency,
                   parm_options=parm_options));
 

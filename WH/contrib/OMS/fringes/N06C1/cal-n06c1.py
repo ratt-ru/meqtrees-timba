@@ -1,4 +1,5 @@
 from Timba.TDL import *
+from Timba.Meq import meq
 
 # import settings for tree below, so we can modify them
 from Timba.Contrib.OMS.Calibration import fringe_fit_settings

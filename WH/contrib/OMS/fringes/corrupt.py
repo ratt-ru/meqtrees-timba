@@ -11,10 +11,8 @@ from Timba.Contrib.OMS import Jones
 from Timba.Contrib.OMS import Bookmarks
 
 # MS name
-TDLRuntimeOption('msname',"MS",[
-      "TEST.MS",
-      "TEST-lim.MS",
-      "TEST-grid.MS"]);
+ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
+TDLRuntimeOption('msname',"MS",ms_list);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA","MODEL_DATA_NJY"],default=1);
 
@@ -175,7 +173,7 @@ def create_inputrec():
 #      if not ms_selection:
 #        rec.record_input     = boioname;
     rec = record(ms=rec);
-  rec.python_init = 'read_msvis_header.py';
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

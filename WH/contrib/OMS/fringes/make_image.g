@@ -14,6 +14,7 @@ if( any(argv=='RESIDUAL') )
 
 msname := "TEST_CLAR_27-480.MS"
 mode := "mfs";
+weighting := "briggs";
 
 for ( a in argv )
 {
@@ -21,6 +22,8 @@ for ( a in argv )
     msname := a;
   else if( a =~ s/mode=// )
     mode := a;
+  else if( a =~ s/weight=// )
+    weighting := a;
 }
 print "MS name is ",msname; 
 
@@ -35,7 +38,7 @@ myimager.setimage(nx=1024,ny=1024,cellx='0.25arcsec',celly='0.25arcsec',
   mode=mode,
   nchan=32,start=1,step=1)
   
-# myimager.weight("natural"); 
+myimager.weight(weighting); 
   
 myimager.setoptions(cache=100000000);
 
