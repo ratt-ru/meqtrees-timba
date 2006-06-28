@@ -63,13 +63,17 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
-   node = make_LMCompounder (ns, Xbeam, l=0.1, m=0.2, q='3c123')
-   cc.append(node)
-   node = make_Functional (ns, Xbeam, q='3c123')
-   cc.append(node)
+   if False:
+      cosvar = costime (ampl=1.0, period=100, phase=0.1, plot=False, trace=False) 
+      cc.append(MeqNode (ns, cosvar))
 
-   # Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
+   if True:
+      # Experiment: WSRT gaussian voltage beam(s):
+      Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
+      cc.append(make_LMCompounder (ns, Xbeam, l=0.1, m=0.2, q='3c123'))
+      cc.append(make_Functional (ns, Xbeam, q='3c123'))
+      if False:
+         Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
 
 
    ### cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux_3c286()'))
@@ -92,6 +96,20 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
+
+def costime (ampl=1.0, period=100, phase=0.1, plot=False, trace=True): 
+   # Cosine time variation (multiplicative) of an M.E. parameter:
+   cosvar = TDL_Expression.Expression('{ampl}*cos(2*pi*[t]/{T}+{phi})', label='cosvar',
+                                      descr='cos(t) variation of an M.E. parameter')
+   cosvar.parm('ampl', ampl, polc=[2,3], unit='unit', help='amplitude(f,t) of the variation') 
+   cosvar.parm('T', period, unit='s', help='period (s) of the variation') 
+   cosvar.parm('phi', phase, unit='rad', help='phase (f,t) of the cosine') 
+   if trace: cosvar.expanded().display(full=True)
+   if plot: cosvar.plot()
+   return cosvar
+
+
+#===========================================================================
 
 def WSRT_voltage_Xbeam_gaussian (ell=0.1, plot=False, trace=False):
    """Xpol version of WSRT_voltage_beam_gaussian"""
@@ -132,8 +150,10 @@ def make_LMCompounder (ns, beam, l=0.1, m=0.2, q='3c123', trace=False):
    L = ns.L << l
    M = ns.M << m
    LM = ns.LM << Meq.Composer(L,M)
-   node = beam.MeqCompounder(ns, qual=dict(q=q), extra_axes=LM,
-                             common_axes=[hiid('l'),hiid('m')], trace=True)
+   node = beam.MeqCompounder(ns, qual=dict(q=q, l=l, m=m),
+                             extra_axes=LM,
+                             common_axes=[hiid('l'),hiid('m')],
+                             trace=True)
    if trace:
       TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
    return node
@@ -180,10 +200,14 @@ if __name__ == '__main__':
 
     ns = NodeScope()
 
-    if 1:
+    if 0:
        Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1, plot=False, trace=True)
 
-    # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
+    if 1:
+       cosvar = costime (ampl=1.0, period=100, phase=0.1, plot=False, trace=True)
+       node = cosvar.MeqNode(ns)
+       TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
+
     print '\n** end of',MG['script_name'],'\n'
 
 #********************************************************************************

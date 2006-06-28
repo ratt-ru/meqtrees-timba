@@ -86,10 +86,11 @@ from numarray.linear_algebra import *
 from random import *
 # from pylab import *                       # gives problems...
 from copy import deepcopy
-from Timba.Trees import TDL_Leaf
 from Timba.Meq import meq
+from Timba.TDL import *                       # needed for type Funklet....
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
+from Timba.Trees import TDL_Leaf
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
@@ -220,9 +221,11 @@ class Expression:
     # Some access functions:
     #----------------------------------------------------------------------------
 
-    def label (self):
+    def label (self, strip=False):
         """Return the (unique) label of this Expression object"""
-        return self.__label
+        result = self.__label
+        if strip: result = result.replace('expanded_','')
+        return result
 
     def unit (self):
         """Return the (string) unit of the result of the Expression object"""
@@ -1118,8 +1121,8 @@ class Expression:
     def compare(self, other, _plot=True, _legend=False, **pp):
         """Compare the Expression with another one (by subtraction)"""
         diff = Expression('{self}-{other}', unit=self.__unit,
-                          label=self.label()+'.compare()',
-                          descr='{'+self.label()+'}-{'+other.label()+'}')
+                          label=self.label(strip=True)+'.compare()',
+                          descr='{'+self.label(strip=True)+'}-{'+other.label(strip=True)+'}')
         # Compare expanded versions, in which 'global' parameters {_x}
         # are ignored in favour of unique ones {self_x} and {other_x}.
         # Otherwise, the global parameters in self/other may clash...
@@ -1497,7 +1500,7 @@ class Expression:
         for key in self.__var.keys():
             rr = self.__var[key]                        # var definition record
             pkey = rr['node']                           # var key, e.g. 't'
-            name = 'Expr_'+self.label()+'_'+pkey
+            name = 'Expr_'+self.label(strip=True)+'_'+pkey
             node = self._unique_node (ns, name, qual=None, trace=trace)
             if not node.initialized():
                 if pkey=='MeqTime':
@@ -1527,7 +1530,7 @@ class Expression:
         E.g. {xx} is converted into a MeqParm node, etc"""
         for key in self.__parm.keys():
             parm = self.__parm[key]
-            name = 'Expr_'+self.label()+'_'+key
+            name = 'Expr_'+self.label(strip=True)+'_'+key
             node = self._unique_node (ns, name, qual=None, trace=trace)
             funklet = None
             if key in self.__parmtype['Expression']:
@@ -1546,7 +1549,8 @@ class Expression:
                 node << Meq.Parm(parm['default'])
                 self.parm(key, node)                    # redefine the parm
             if funklet:
-                node << Meq.Parm(init_funklet=funklet)
+                # node << Meq.Parm(init_funklet=funklet)
+                node << Meq.Parm(funklet=funklet)       # new MXM 28 June 2006
                 self.parm(key, node)                    # redefine the parm
         self.__parmtype['Expression'] = []              # no more Expression parms
         self.__parmtype['Funklet'] = []                 # no more Funklet parms
@@ -1621,10 +1625,23 @@ class Expression:
         if not self.__MeqParm:                          # avoid duplication
             funklet = self.Funklet()
             if isinstance(funklet, bool): return False
-            if not name: name = 'Expr_'+self.label()+'_MeqParm'
+            if not name: name = 'Expr_'+self.label(strip=True)+'_MeqParm'
             self.__MeqParm = self._unique_node (ns, name, qual=qual, trace=trace)
-            self.__MeqParm << Meq.Parm(init_funklet=funklet)
+            # self.__MeqParm << Meq.Parm(init_funklet=funklet)
+            self.__MeqParm << Meq.Parm(funklet=funklet)       # new MXM 28 June 2006
         return self.__MeqParm
+
+    # MXM: 28 June 2006
+    # Ok, ik heb een functie get_meqfunklet() toegevoegd, die kun je gebruiken om
+    # het funklet_type object te krijgen, nodig als je het 'init_funklet' veld zelf
+    # met de hand zet (zoals je nu doet in TDL_Expression). Als je Meq.Parm
+    # aanroept met als eerste variable het Funklet object (of: funklet =  funklet,
+    # ipv init_funklet=funklet), gaat het ook goed, de Meq.Parm functie roept dan
+    # zelf get_meqfunket() aan.
+    # WEl lijkt het om vreemde import redenen niet te werken, dit komt omdat je
+    # Timba.TDL niet direkt geimporteerd hebt, als je :
+    #            from Timba.TDL import *
+    # toevoegt werkt het.
 
     #---------------------------------------------------------------------------
 
@@ -1637,7 +1654,7 @@ class Expression:
         if not nv==None:
             # Special case: the Expression is purely numeric
             if not self.__MeqConstant:
-                if not name: name = 'Expr_'+self.label()+'_MeqConstant'
+                if not name: name = 'Expr_'+self.label(strip=True)+'_MeqConstant'
                 self.__MeqConstant = self._unique_node (ns, name, qual=qual, trace=trace)
                 self.__MeqConstant  << Meq.Constant(nv)
             node = self.__MeqConstant
@@ -1692,7 +1709,7 @@ class Expression:
                         nodename=parm['nodename'])
             if trace: print '-',key,xk,rr
             child_map.append(rr)
-        if not name: name = 'Expr_'+self.label()+'_MeqFunctional'
+        if not name: name = 'Expr_'+self.label(strip=True)+'_MeqFunctional'
         self.__MeqFunctional = self._unique_node (ns, name, qual=qual, trace=trace)
         self.__MeqFunctional << Meq.Functional(children=children,
                                                function=function,
@@ -1728,7 +1745,7 @@ class Expression:
         # but NOT for the MeqParm. The reason is that the Compounder has more
         # qualifiers than the Parm. E.g. EJones_X is per station, but the
         # compounder and its children (l,m) are for a specific source (q=3c84)
-        if not name: name = 'Expr_'+self.label()+'_'+caxstring
+        if not name: name = 'Expr_'+self.label(strip=True)+'_'+caxstring
         node = self._unique_node (ns, name, qual=qual, trace=trace)
         node << Meq.Compounder(children=[extra_axes,parm], common_axes=common_axes)
         return node
