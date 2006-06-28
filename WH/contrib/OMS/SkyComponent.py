@@ -10,11 +10,13 @@ class SkyComponent (Parameterization):
   def __init__(self,ns,name,direction,
                parm_options=record(node_groups='Parm')):
     Parameterization.__init__(self,ns,name,parm_options=parm_options);
+    print direction;
     if isinstance(direction,Direction):
       self.direction = direction;
     else:
       if not isinstance(direction,(list,tuple)) or len(direction) != 2:
         raise TypeError,"direction: Direction object or (ra,dec) tuple expected";
+      ra,dec = direction;
       self.direction = Direction(ns,name,ra,dec,parm_options=parm_options);
     
   def radec (self):

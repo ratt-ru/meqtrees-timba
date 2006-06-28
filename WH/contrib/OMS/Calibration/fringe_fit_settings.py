@@ -38,3 +38,18 @@ global_solution_tilings = [(100,None)];
 # To add options for additional data selections, supply a list of
 # TaQL strings here
 data_selection_strings = [];
+
+
+# initial "guesses" for phase polc of each antenna
+# If none are supplied, 0 is used
+fringe_guesses = {};
+
+
+# subtilings for phases of individual antennas
+# If none are supplied, the global value is used
+phase_subtiling = {};
+
+# polynomial degrees (time,freq) of phase polcs
+# If not specifed, global default may be used.
+# Override may be set in the menu to use the global default even if specified.
+phase_polc_degrees = {};

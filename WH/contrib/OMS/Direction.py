@@ -11,6 +11,7 @@ class Direction (Parameterization):
   """;
   def __init__(self,ns,name,ra,dec,
                constant=False,
+               create_nodes=True,
                parm_options=record(node_groups='Parm'),
                quals=[],kwquals={}):
     Parameterization.__init__(self,ns,name,parm_options=parm_options,

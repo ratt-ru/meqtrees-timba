@@ -39,16 +39,6 @@ TDLCompileOption('source_model',"Source model",[
     StandardModels.cgs
   ] + fringe_fit_settings.extra_source_models,default=0);
 TDLCompileOption('phase_model',"Feed phase model",{"ind":"independent","pa":"with p/a"});
-TDLCompileMenu("Fitting options",
-  TDLOption('fringe_deg_time',"Polc degree (time) for phase fits",
-    range(fringe_fit_settings.max_phase_deg_time+1)),
-  TDLOption('fringe_deg_freq',"Polc degree (freq) for phase fits",
-    range(fringe_fit_settings.max_phase_deg_freq+1)),
-  TDLOption('subtile_phase',"Subtiling for phase solutions",[None,10,20,30,60,90,120]),
-  fringe_fit_settings.gain_fitting and TDLOption('gain_deg_time',"Polc degree (time) for gain fits",[0,1,2,3,4]),
-  fringe_fit_settings.gain_fitting and TDLOption('gain_deg_freq',"Polc degree (freq) for gain fits",[0,1,2,3,4]),
-  TDLOption('flux_constraint',"Flux constraint",[None,[0.0,10.0],[1.,10.0],[2.,10.],[4.,10.]]),
-);
 
 TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
 
@@ -78,6 +68,15 @@ TDLRuntimeMenu('Data selection options',
 );
 # how much to perturb starting values of solvables
 TDLRuntimeMenu('Fitting options',
+  TDLOption('override_phase_deg',"Override explicit polc degrees",False),
+  TDLOption('phase_deg_time',"Polc degree (time) for phase fits",
+    range(fringe_fit_settings.max_phase_deg_time+1)),
+  TDLOption('phase_deg_freq',"Polc degree (freq) for phase fits",
+    range(fringe_fit_settings.max_phase_deg_freq+1)),
+  TDLOption('subtile_phase',"Subtiling for phase solutions",[None,10,20,30,60,90,120]),
+  fringe_fit_settings.gain_fitting and TDLOption('gain_deg_time',"Polc degree (time) for gain fits",[0,1,2,3,4]),
+  fringe_fit_settings.gain_fitting and TDLOption('gain_deg_freq',"Polc degree (freq) for gain fits",[0,1,2,3,4]),
+  not fit_phases_only and TDLOption('flux_constraint',"Flux constraint",[None,[0.0,10.0],[1.,10.0],[2.,10.],[4.,10.]]),
   not fit_phases_only and TDLOption('fit_polarization',"Fit polarized source",False),
   not fit_phases_only and TDLOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]),
   TDLOption('use_previous',"Reuse solution from previous time interval",False,
@@ -88,9 +87,10 @@ may turn it off to re-test convergence at each domain."""),
       doc="""If True, solutions from the MEP table (presumably, from a previous
 run) will be used as starting points. Turn this off to solve from scratch."""),
   TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
-  TDLOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]),
+  TDLOption('solver_lm_factor',"Initial solver LM factor",[0,1,.1,.01,.001]),
+  TDLOption('solver_use_svd',"Use SVD for linear fits",True),
   TDLOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
-  TDLOption('solver_num_iter',"Max number of solver iterations",[30,50,100,1000]),
+  TDLOption('solver_num_iter',"Max number of solver iterations",[30,50,100,200,500,1000]),
   TDLOption('solver_balanced_equations',"Assume equations are balanced",False),
   TDLOption('solver_save_funklets',"Save parms even if not converged",False)
 );
@@ -137,8 +137,8 @@ def phase_parm (tdeg,fdeg):
   df = .5;
   cmin = [];
   cmax = [];
-  for it in range(tdeg+1):
-    for jf in range(fdeg+1):
+  for it in range(fringe_fit_settings.max_phase_deg_time+1):
+    for jf in range(fringe_fit_settings.max_phase_deg_freq+1):
       mm = math.pi/(dt**it * df**jf );
       cmin.append(-mm);
       cmax.append(mm);
@@ -175,11 +175,11 @@ def _define_forest(ns):
       gl = ns.gain('L',station) << 1.0;
     # phase model: independent feed phases
     if phase_model == "ind":
-      pr = ns.phase('R',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
-      pl = ns.phase('L',station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+      pr = ns.phase('R',station) << phase_parm(0,0);
+      pl = ns.phase('L',station) << phase_parm(0,0);
     # phase model: one common phase + parallactic angle
     else:
-      ph0 = ns.phase(station) << phase_parm(fringe_deg_time,fringe_deg_freq);
+      ph0 = ns.phase(station) << phase_parm(0,0);
       pa = ns.phase('pa',station) << phase_parm(0,0);  # parallactic angle
       pr = ns.phase('R',station) << Meq.Identity(ph0);
       pl = ns.phase('L',station) << ph0 + pa;
@@ -313,6 +313,7 @@ def create_solver_defaults(num_iter=60,convergence_quota=0.9,solvable=[]):
   solver_defaults.balanced_equations = solver_balanced_equations;
   solver_defaults.debug_level   = solver_debug_level;
   solver_defaults.save_funklets = solver_save_funklets;
+  solver_defaults.use_svd       = solver_use_svd;
   solver_defaults.last_update   = True;
 #See example in TDL/MeqClasses.py
   solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
@@ -407,12 +408,16 @@ def _perturb_parameters (mqs,solvables,pert="random",
   return solvables;
     
 def _reset_parameters (mqs,solvables,value=None,use_table=False,
-                       constrain=None,constrain_min=None,constrain_max=None,reset=False,subtile=None):
+                       constrain=None,constrain_min=None,constrain_max=None,
+                       reset=False,subtile=None,shape=None):
   for name in solvables:
-    polc = mqs.getnodestate(name).real_polc;
-    if value is not None:
+    if isinstance(value,meq._polc_type):
+      polc = value;
+    elif value is not None:
+      polc = mqs.getnodestate(name).real_polc;
       polc.coeff[()] = 0;
       polc.coeff[0,0] = value;
+    print 'solvable',name,'polc is',polc;
     reset_funklet = reset or not (use_table or use_mep);
     parmstate = record(init_funklet=polc, \
                 use_previous=use_previous,reset_funklet=reset_funklet);
@@ -424,6 +429,8 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False,
       parmstate.tiling = record();
     else:
       parmstate.tiling = record(time=subtile);
+    if shape is not None:
+      parmstate.shape = shape;
     set_node_state(mqs,name,parmstate);
   return solvables;
 
@@ -466,14 +473,20 @@ def _solvable_gains (mqs):
     return solvables;
 
 def _solvable_phases (mqs):
-  if phase_model == "ind":
-    parms = ('phase:R:','phase:L:');
-  else:
-    parms = ('phase:','phase:pa:');
   solvables = [];
-  for p in parms:
-    solvables += _reset_parameters(mqs,[p+str(sta) for sta in stations_list],
-                                  0,subtile=subtile_phase);
+  for sta in stations_list:
+    subtiling = fringe_fit_settings.phase_subtiling.get(sta,None) or subtile_phase;
+    value = fringe_fit_settings.fringe_guesses.get(sta,0);
+    shape = fringe_fit_settings.phase_polc_degrees.get(sta,None);
+    if shape is None or override_phase_deg:
+      shape = (phase_deg_time+1,phase_deg_freq+1);
+    print "Initial guess for phase ",sta,": ",value;
+    if phase_model == "ind":
+      solvables += _reset_parameters(mqs,["phase:%s:%s"%(pol,sta) for pol in ("R","L") ],
+                                     value=value,subtile=subtiling,shape=shape);
+    else:
+      solvables += _reset_parameters(mqs,["phase:%s"%sta],value=value,subtile=subtiling,shape=shape);
+      solvables += _reset_parameters(mqs,["phase:pa:%s"%sta],0);
   return solvables;
 
 if not fit_phases_only:
