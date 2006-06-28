@@ -9,7 +9,7 @@ class PointSource(SkyComponent):
   def __init__(self,ns,name,direction,
                I=0.0,Q=0.0,U=0.0,V=0.0,
                Iorder=0,Qorder=0,Uorder=0,Vorder=0,
-               spi=0.0,freq0=None,   
+               spi=0.0,freq0=None,RM=None,
                parm_options=record(node_groups='Parm')):
     SkyComponent.__init__(self,ns,name,direction,parm_options=parm_options);
     # create flux polcs
@@ -17,11 +17,17 @@ class PointSource(SkyComponent):
       self._create_polc(stokes,locals()[stokes],locals()[stokes+"order"]);
     # see if a spectral index is present (freq0!=0 then), create polc
     self._freq0 = freq0;
+    self._rm=RM
     if freq0 is not None:
       # rename I polc to I0 
       self._rename_polc("I","I0");
       self._create_polc("spi",create_polc(spi));
-
+    if self._rm is not None:
+      self._create_polc("rm",create_polc(self._rm));
+      # change original Q,U values
+      self._rename_polc("Q","Q0");
+      self._rename_polc("U","U0");
+      
   def iquv (self):
     """Returns an IQUV four-pack for this source""";
     iquv = self.ns.iquv;
@@ -50,6 +56,17 @@ class PointSource(SkyComponent):
         i0 = self._parm("I0");
         spi = self._parm("spi");
         stokes << i0 * Meq.Pow((self.ns0.freq ** Meq.Freq())/self._freq0,spi);
+      elif (self._rm and (st=="Q" or st=="U")):
+        # squared wavelength
+        iwl2 = self.ns0.wavelength2 << Meq.Sqr(2.99792458e+8/(self.ns0.freq<<Meq.Freq));
+        # rotation node
+        farot=self.ns.farot<<self._parm("rm")*iwl2
+        cosf=self.ns.cosf<<Meq.Cos(farot)
+        sinf=self.ns.sinf<<Meq.Sin(farot)
+        if st=="Q":
+         stokes<<cosf*self._parm("Q0")-sinf*self._parm("U0")
+        else:
+         stokes<<sinf*self._parm("Q0")+cosf*self._parm("U0")
       else:
         stokes = self._parm(st);
     return stokes;
