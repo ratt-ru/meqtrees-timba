@@ -720,6 +720,8 @@ class QwtImageDisplay(QwtPlot):
       if not self._mainwin:
         return;
       self._menu = None
+      self.log_switch_set = False
+      self.complex_switch_set = False
       if self._menu is None:
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
