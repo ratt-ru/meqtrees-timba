@@ -14,7 +14,7 @@ def copy_keys(orig =record(), cp = record()):
 
 
 class Funklet:
-    def __init__(self,funklet=record(function="MeqPolc",coeff=array([[0]]),domain= meq.domain(0,1,0,1),offset=[0,0],scale=[1,1]),name=None):
+    def __init__(self,funklet=record(function="MeqPolc",coeff=array([[0.]]),domain= meq.domain(0,1,0,1),offset=[0,0],scale=[1,1]),name=None):
         self._funklet=funklet;
         self._type = "MeqPolc";
         if funklet.has_field('function'):
