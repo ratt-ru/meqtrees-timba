@@ -1,6 +1,30 @@
 #!/usr/bin/python
 
 # modules that are imported
+
+#% $Id$ 
+
+#
+# Copyright (C) 2006
+# ASTRON (Netherlands Foundation for Research in Astronomy)
+# and The MeqTree Foundation
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
 from math import sin
 from math import cos
 from math import pow
@@ -732,10 +756,11 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
 
 # test and update the context menu
-      menu_labels = self._vells_data.getMenuLabels()
+      menu_data = self._vells_data.getMenuData()
+      menu_labels = menu_data[0]
       vells_menu_items = len(menu_labels)
       if vells_menu_items > 1:
-        self._visu_plotter.setMenuItems(menu_labels)
+        self._visu_plotter.setMenuItems(menu_data)
 
 # plot the appropriate plane / perturbed value
       plot_data = self._vells_data.getActiveData()

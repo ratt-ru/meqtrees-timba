@@ -1,5 +1,29 @@
 #!/usr/bin/env python
 
+
+#% $Id$ 
+
+#
+# Copyright (C) 2006
+# ASTRON (Netherlands Foundation for Research in Astronomy)
+# and The MeqTree Foundation
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
 import sys
 from qt import *
 from qwt import *
@@ -695,6 +719,7 @@ class QwtImageDisplay(QwtPlot):
       # skip if no main window
       if not self._mainwin:
         return;
+      self._menu = None
       if self._menu is None:
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
@@ -708,13 +733,38 @@ class QwtImageDisplay(QwtPlot):
           menu_id = menu_id + 1
     # end initVellsContextMenu()
 
-    def setMenuItems(self, menu_labels):
+    def setMenuItems(self, menu_data):
       """ add items specific to selection of Vells to context menu """
-      self.vells_menu_items = len(menu_labels)
+      self.vells_menu_items = len(menu_data[0])
+      outside_perturbations = True
+      if len(menu_data[1]) > 0:
+        perturbations_index = 0
+        perturbations = menu_data[1][perturbations_index]
+      else:
+        perturbations = None
       if self.vells_menu_items > 1:
+        menu_labels = menu_data[0]
         menu_id = self._start_vells_menu_id
         for i in range(self.vells_menu_items):
-          self._menu.insertItem(menu_labels[i], menu_id)
+          insertion = False
+          if not perturbations is None:
+            if i in perturbations and outside_perturbations:
+              outside_perturbations = False
+              submenu = QPopupMenu(self._menu)
+              QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
+            if i in perturbations:
+              submenu.insertItem(menu_labels[i], menu_id)
+              insertion = True
+            if not i in perturbations and not outside_perturbations:
+              self._menu.insertItem('perturbed values', submenu)
+              outside_perturbations = True
+              perturbations_index = perturbations_index + 1
+              if perturbations_index < len(menu_data[1]):
+                perturbations = menu_data[1][perturbations_index]
+            if i in perturbations and i == self.vells_menu_items - 1:
+              self._menu.insertItem('perturbed values', submenu)
+          if not insertion:
+            self._menu.insertItem(menu_labels[i], menu_id)
           menu_id = menu_id + 1
 
     def setSpectrumMenuItems(self, menu_labels):

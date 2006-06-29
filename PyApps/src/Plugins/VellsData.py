@@ -1,5 +1,29 @@
 #!/usr/bin/env python
 
+
+#% $Id$ 
+
+#
+# Copyright (C) 2006
+# ASTRON (Netherlands Foundation for Research in Astronomy)
+# and The MeqTree Foundation
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
 import sys
 from numarray import *
 
@@ -20,6 +44,7 @@ class VellsData:
      self._plot_labels = {}
      self._key_menu_labels = {}
      self._menu_labels = {}
+     self._perturbations_index = []
      self.do_calc_vells_range = True
      self.array_selector = []
      self.array_tuple = None
@@ -113,6 +138,7 @@ class VellsData:
      self._plot_flags_dict = {}
      self._plot_labels = {}
      self._menu_labels = {}
+     self._perturbations_index = []
      self.rq_label = rq_label
      _dprint(3,' self.rq_label = ', self.rq_label)
      if self.do_calc_vells_range:
@@ -135,11 +161,11 @@ class VellsData:
 # store data
      for i in range(self._number_of_planes):
        if vells_rec.vellsets[i].has_key("value"):
-         menu_label = "go to [" + str(i) + "] value" 
+         menu_label = "[" + str(i) + "] value" 
          if self.dims is None:
            text_display = menu_label
          else:
-           text_display = "go to " + str(self.index) + " value" 
+           text_display = str(self.index) + " value" 
          id = id + 1
 #        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = text_display
@@ -165,13 +191,15 @@ class VellsData:
          try:
            number_of_perturbed_arrays = len(vells_rec.vellsets[i].perturbed_value)
            tag = "] perturbed value "
+           perturbations_list = []
            for j in range(number_of_perturbed_arrays):
-             menu_label =  "   -> go to [" + str(i) + tag + str(j) 
+             menu_label =  "[" + str(i) + tag + str(j) 
              if self.dims is None:
                text_display = menu_label
              else:
-               text_display = "   -> go to " + str(self.index) + " perturbed value " + str(j)
+               text_display = str(self.index) + " perturbed value " + str(j)
              id = id + 1
+             perturbations_list.append(id)
              self._menu_labels[id] = text_display
              self._key_menu_labels[id] = menu_label
              self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].perturbed_value[j]
@@ -185,6 +213,7 @@ class VellsData:
              else:
                plot_string = initial_plot_str
              self._plot_labels[menu_label] = plot_string
+           self._perturbations_index.append(perturbations_list)
 
          except:
            _dprint(3, 'The perturbed values cannot be displayed.')
@@ -231,9 +260,9 @@ class VellsData:
      """ returns the number of vells planes that are stored """
      return self._number_of_planes
 
-   def getMenuLabels(self):
+   def getMenuData(self):
      """ returns the labels for vells selection menu """
-     return self._menu_labels
+     return (self._menu_labels, self._perturbations_index)
 
    def getVellsPlotLabels(self):
      """ returns the labels for vells plot menu """
@@ -268,9 +297,9 @@ class VellsData:
      key = ""
      if not self._active_perturb is None:
        tag = "] perturbed value "
-       key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
+       key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "go to [" + str(self._active_plane) + "] value" 
+       key = "[" + str(self._active_plane) + "] value" 
      return self._plot_labels[key]
 
    def getActivePerturbData(self):
@@ -278,16 +307,16 @@ class VellsData:
          the active plane
      """
      tag = "] perturbed value "
-     key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
+     key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      return self._plot_vells_dict[key]
 
    def getActiveData(self):
      key = ""
      if not self._active_perturb is None:
        tag = "] perturbed value "
-       key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
+       key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "go to [" + str(self._active_plane) + "] value" 
+       key = "[" + str(self._active_plane) + "] value" 
      rank = self._plot_vells_dict[key].rank
      shape = self._plot_vells_dict[key].shape
      if rank != self.rank or shape != self.shape:
@@ -323,14 +352,12 @@ class VellsData:
       if perturb_loc >= 0:
         self._active_perturb = int(id_string[perturb_loc+15:str_len])
       
-      plane_loc = id_string.find("go to [")
+      request_plane_string = '0'
+      plane_loc = id_string.find("[")
       if plane_loc >= 0:
-        active_plane_string = id_string[plane_loc+7:plane_loc+9]
-        closing_bracket =   active_plane_string.find("]")
+        closing_bracket = id_string.find("]")
         if closing_bracket >= 0:
-          request_plane_string = active_plane_string[:len(active_plane_string)-1]
-        else:
-          request_plane_string = active_plane_string
+          request_plane_string = id_string[plane_loc+1:closing_bracket]
         self._active_plane = int(request_plane_string)
 
    def unsetSelectedAxes (self):
