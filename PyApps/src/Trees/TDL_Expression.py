@@ -81,10 +81,11 @@
 # Preamble
 #***************************************************************************************
 
+import numarray                               # see numarray.rank()
 from numarray import *
-from numarray.linear_algebra import *
-from random import *
-# from pylab import *                       # gives problems...
+import numarray.linear_algebra                # redefines numarray.rank....
+import random
+# import pylab
 from copy import deepcopy
 from Timba.Meq import meq
 from Timba.TDL import *                       # needed for type Funklet....
@@ -112,7 +113,7 @@ class Expression:
         information may be supplied via the function .parm()."""
 
         self.__label = _unique_label(label)
-        self.__ident = int(100000*random())        # unique identifier
+        self.__ident = int(100000*random.random()) # unique identifier
         self.__descr = descr
         self.__unit = unit                         # unit of the result
         self.__expression = expression
@@ -520,7 +521,7 @@ class Expression:
         #     is done each time the internal node qualifier is changed.
         #     See ._reset(), which is called from .quals(), for more details.
         # - if constant==True, the parameter is a constant with value default.
-        ident = int(1000000*random())             # unique parm identifier
+        ident = int(1000000*random.random())             # unique parm identifier
         rr = dict(default=default, nominal=default, index=index,
                   ident=ident, group=None, unit=None,
                   constant=False, scale=1.0, stddev=0.0,
@@ -580,7 +581,7 @@ class Expression:
         """Create the definition of a variable [v] in self.__var.
         This function is ONLY called from the constructor."""
 
-        ident = int(1000000*random())             # unique var identifier
+        ident = int(1000000*random.random())             # unique var identifier
         rr = dict(xn='xn', default=0.0, unit=None, node=None,
                   testval=None, testvec=None, ident=ident)
 
@@ -907,7 +908,7 @@ class Expression:
         for i in range(nvv):
             for j in range(nuk):
                 aa[i,j] = coeff[unks[j]][i]
-        bb = linear_least_squares(aa,vv)
+        bb = numarray.linear_algebra.linear_least_squares(aa,vv)
         if trace: print bb
         solvec = bb[0]                                     # solution vector
 
@@ -921,7 +922,7 @@ class Expression:
             rr['stddev'] = 0.0
         if trace:
             self.display('fit')
-            cc = plot(Z[plotvar],vv,'o')
+            cc = pylab.plot(Z[plotvar],vv,'o')
             rr = dict()
             rr[plotvar] = True
             self.plot(**rr)
@@ -1041,17 +1042,17 @@ class Expression:
 
         # Optional: select a particular figure (window) or subplot:
         if _figure:                                # numeric? 1,2,3,...
-            figure(_figure)
+            pylab.figure(_figure)
         if _subplot:                               # e.g. 211,212,...?
-            subplot(_subplot)
+            pylab.subplot(_subplot)
         mosaic = not _show              
 
         # Labels:
-        xlabel(rr['xlabel'])
-        ylabel(rr['ylabel'])
+        pylab.xlabel(rr['xlabel'])
+        pylab.ylabel(rr['ylabel'])
         if isinstance(_title, str): rr['title'] = _title
-        title(rr['title'])
-        if _legend: legend(rr['legend'])
+        pylab.title(rr['title'])
+        if _legend: pylab.legend(rr['legend'])
 
         # Display the (unexpanded) expression (but not if mosaic):
         if not mosaic:
@@ -1061,7 +1062,7 @@ class Expression:
                 y -= 0.02
                 for i in range(len(ss[key])):
                     y -= 0.04
-                    figtext(0.14,y,ss[key][i], color='gray')
+                    pylab.figtext(0.14,y,ss[key][i], color='gray')
 
         # Plot the data:
         # NB: Plotting rather stupidly fails with scalars....!?
@@ -1078,24 +1079,24 @@ class Expression:
             yy = rr['yy'][i]
             if scalar: yy = array([yy[0],yy[0]])
             if _plot=='loglog':
-                cc = loglog(xx, yy)                               # log x, log y
-                cc = loglog(xx, yy, 'o', color=cc[0].get_color()) 
-                xlabel('log('+rr['xlabel']+')')
-                ylabel('log('+rr['ylabel']+')')
+                cc = pylab.loglog(xx, yy)                               # log x, log y
+                cc = pylab.loglog(xx, yy, 'o', color=cc[0].get_color()) 
+                pylab.xlabel('log('+rr['xlabel']+')')
+                pylab.ylabel('log('+rr['ylabel']+')')
             elif _plot=='semilogx':
-                cc = semilogx(xx, yy)                             # linear y, log x
-                cc = semilogx(xx, yy, '+', color=cc[0].get_color()) 
-                xlabel('log('+rr['xlabel']+')')
+                cc = pylab.semilogx(xx, yy)                             # linear y, log x
+                cc = pylab.semilogx(xx, yy, '+', color=cc[0].get_color()) 
+                pylab.xlabel('log('+rr['xlabel']+')')
             elif _plot=='semilogy':
-                cc = semilogy(xx, yy)                             # linear x, log y
-                cc = semilogy(xx, yy, '+', color=cc[0].get_color()) 
-                ylabel('log('+rr['ylabel']+')')
+                cc = pylab.semilogy(xx, yy)                             # linear x, log y
+                cc = pylab.semilogy(xx, yy, '+', color=cc[0].get_color()) 
+                pylab.ylabel('log('+rr['ylabel']+')')
             else:
-                cc = plot(xx, yy)                                 # default: both linear
-                cc = plot(xx, yy, '+', color=cc[0].get_color())     
+                cc = pylab.plot(xx, yy)                                 # default: both linear
+                cc = pylab.plot(xx, yy, '+', color=cc[0].get_color())     
             if len(rr['annot'])>0:
                 color = cc[0].get_color()
-                text(rr['xannot'], yy[0], rr['annot'][i], color=color)
+                pylab.text(rr['xannot'], yy[0], rr['annot'][i], color=color)
 
         if True:
             # Fill the plot-window, but leave a small margin:
@@ -1104,16 +1105,16 @@ class Expression:
             if dx==0.0: dx = 1.0
             if dy==0.0: dy = 1.0
             if _plot=='loglog':
-                axis([rr['xmin'], rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
+                pylab.axis([rr['xmin'], rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
             elif _plot=='semilogx':
-                axis([rr['xmin'], rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
+                pylab.axis([rr['xmin'], rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
             elif _plot=='semilogy':
-                axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
+                pylab.axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin'], rr['ymax']+dy])
             else:
-                axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
+                pylab.axis([rr['xmin']-dx, rr['xmax']+dx, rr['ymin']-dy, rr['ymax']+dy])
 
         # Finished: show the plot (if required):
-        if _show: show()
+        if _show: pylab.show()
         return rr
 
     #---------------------------------------------------------------------------
@@ -1204,7 +1205,7 @@ class Expression:
             pkey = '{'+key+'}'
             unit[pkey] = self.__parm[key]['unit']
             # If multiple, the parm is used as 'parameter', or even 'variable'
-            if rank(value)>0:                     # rank-0 array (scalar) has no length...!?
+            if numarray.rank(value)>0:                     # rank-0 array (scalar) has no length...!?
                 if nmult==0:                 
                     nmult = 1                     # the first multiple one
                     parameter = pkey              #   use as 'parameter'
@@ -1232,7 +1233,7 @@ class Expression:
             vkey = '['+key+']'
             unit[vkey] = self.__var[key]['unit']
             # If multiple, the var is used as 'variable', if none specified yet:
-            if rank(value)>0:            
+            if numarray.rank(value)>0:            
                 if not variable:                  # no variable specified yet
                     variable = vkey               # use var as 'variable'
                 elif not parameter:               # no parameter specified yet
@@ -1262,7 +1263,7 @@ class Expression:
 
         if trace:
             for key in rr.keys():
-                print '- rr[',key,']:',rank(rr[key]),unit[key]
+                print '- rr[',key,']:',numarray.rank(rr[key]),unit[key]
 
         #..............................................................
         # Initialise a plot-record (plotrec):
@@ -2064,18 +2065,22 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     # Get the essential information from the Funklet
     expr = deepcopy(Funklet._function)             
     if Funklet._type in ['MeqPolc','MeqPolcLog']:
-        # Replace all C[i][j] in the Funklet expression with {<label>_ij}
         coeff = Funklet._coeff                     # 2D, e.g. [[2,3],[0,2]] 
+    else:                                          # Any other 'functional' Funklet:
+        coeff = array(Funklet._coeff).flat         # flatten first....?
+    if numarray.rank(coeff)==1:
+        # Replace all C[i] in the Funklet expression with {<label>_i} 
+        for i in range(len(coeff)):
+            pname = label+'_'+str(i)
+            expr = expr.replace('C['+str(i)+']', '{'+pname+'}')
+    elif numarray.rank(coeff)==2:
+        # Replace all C[i][j] in the Funklet expression with {<label>_ij}
         for i in range(len(coeff)):
             for j in range(len(coeff[i])):
                 pname = label+'_'+str(i)+str(j)
                 expr = expr.replace('C['+str(i)+']['+str(j)+']', '{'+pname+'}')
-    else:                                          # Any other 'functional' Funklet:
-        # Replace all C[i] in the Funklet expression with {<label>_i} 
-        coeff = array(Funklet._coeff).flat         # flatten first....?
-        for i in range(len(coeff)):
-            pname = label+'_'+str(i)
-            expr = expr.replace('C['+str(i)+']', '{'+pname+'}')
+    else:
+        pass                                       # error?
 
     # Replace all x[n] in the Funklet expression to [t],[f] etc
     expr = expr.replace('x[0]','[t]')
@@ -2084,18 +2089,18 @@ def Funklet2Expression (Funklet, label='C', trace=False):
     expr = expr.replace('x[3]','[m]')              # .........?
 
     # Make the Expression object:
-    e0 = Expression(expr, 'Funklet_'+label, descr='from: '+self.descr())
+    e0 = Expression(expr, 'Funklet_'+label, descr='from: ')
 
     # Transfer the coeff default values: 
-    if Funklet._type in ['MeqPolc','MeqPolcLog']:
+    if numarray.rank(coeff)==1:
+        for i in range(len(coeff)):
+            pname = label+'_'+str(i)
+            e0.parm(pname, coeff[i])
+    elif numarray.rank(coeff)==2:
         for i in range(len(coeff)):
             for j in range(len(coeff[i])):
                 pname = label+'_'+str(i)+str(j)
                 e0.parm(pname, coeff[i][j])
-    else:
-        for i in range(len(coeff)):
-            pname = label+'_'+str(i)
-            e0.parm(pname, coeff[i])
 
     # Finished: return the Expression object:
     if trace: e0.display('Funklet2Expression()', full=True)
@@ -2255,7 +2260,7 @@ if __name__ == '__main__':
     from numarray import *
     # from numarray.linear_algebra import *
     from Timba.Trees import TDL_display
-    from pylab import *              
+    import pylab
     # from Timba.Trees import TDL_Joneset
     # from Timba.Contrib.JEN import MG_JEN_funklet
     # from Timba.Trees import JEN_record
@@ -2293,11 +2298,11 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------
 
-    if 0:
+    if 1:
         f0 = Funklet()
         # f0.setCoeff([[1,0,4],[2,3,4]])       # [t]*[f]*[f] highest order
         # f0.setCoeff([[1,0],[2,3]]) 
-        f0.setCoeff([1,0,2,3])               # [t] only !!
+        f0.setCoeff([1.0,0.,2.,3.])               # [t] only !!
         # f0.setCoeff([[1,0,2,3]])           # [f] only 
         # f0.setCoeff([[1],[0],[2],[3]])     # [t] only            
         # f0.setCoeff([[1,9],[0,9],[2,9],[3,8]])                
@@ -2459,7 +2464,7 @@ if __name__ == '__main__':
         # cosvar.plot(_test=True, ampl_c01=True, ampl_c00=True)
         # Explot(cosvar,cosvar,cosvar,cosvar,cosvar)
 
-    if 1:
+    if 0:
         # WSRT telescope voltage beams (gaussian):
         Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
                            descr='WSRT X voltage beam (gaussian)', unit='kg')
@@ -2476,9 +2481,9 @@ if __name__ == '__main__':
         Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)')
         # Xbeam.display(full=True)
         Xbeam.expanded().display(full=True)
-        # Xbeam.plot()
+        Xbeam.plot()
 
-        if 1:
+        if 0:
             Ybeam = Xbeam.copy(label='gaussYbeam', descr='WSRT Y voltage beam (gaussian)')
             Ybeam.parm ('_ell', default=-0.1, help='Voltage beam elongation factor (1+ell)')
             # Ybeam.plot(l=True, m=True)
@@ -2640,9 +2645,10 @@ if __name__ == '__main__':
 #
 # - Funklets cannot handle purely numeric expressions (e.g. '67')
 #
-# - Fitting
+# - after Funklet.setCoeff(..), call .init_function()
+#   NB: Convert coeff to float automatically...!
 #
-# - subtrees
+# - 
 
 
 #============================================================================================

@@ -25,7 +25,7 @@ MG = record(script_name='MG_JEN_Expression.py', last_changed = 'h22jun2006')
 from random import *
 from math import *
 from numarray import *
-# from string import *
+from string import *
 from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_exec
@@ -64,13 +64,14 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    if False:
-      cosvar = costime (ampl=1.0, period=100, phase=0.1, plot=False, trace=False) 
-      cc.append(MeqNode (ns, cosvar))
+      cosvar = costime (ampl=1.0, period=0.1, phase=0.1, plot=False, trace=False) 
+      cc.append(cosvar.MeqNode(ns))
 
    if True:
       # Experiment: WSRT gaussian voltage beam(s):
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
-      cc.append(make_LMCompounder (ns, Xbeam, l=0.1, m=0.2, q='3c123'))
+      for L in array(range(5))*0.04:
+         cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
       cc.append(make_Functional (ns, Xbeam, q='3c123'))
       if False:
          Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
@@ -126,7 +127,7 @@ def WSRT_voltage_beam_gaussian (pol='X', ell=0.1, plot=False, trace=False):
    """ Make an Expression object for a WSRT telescope voltage beam (gaussian)"""
    vbeam = TDL_Expression.Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gauss'+pol+'beam',
                                      descr='WSRT '+pol+' voltage beam (gaussian)', unit=None)
-   vbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+   vbeam.parm ('peak', default=[1.0,0.001], polc=[1,2], unit='Jy', help='peak voltage beam')
    Lterm = TDL_Expression.Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
    Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
    vbeam.parm ('Lterm', default=Lterm)
@@ -145,11 +146,11 @@ def WSRT_voltage_beam_gaussian (pol='X', ell=0.1, plot=False, trace=False):
 
 #---------------------------------------------------------------------------------
 
-def make_LMCompounder (ns, beam, l=0.1, m=0.2, q='3c123', trace=False):
+def make_LMCompounder (ns, beam, l=0.1, m=0.05, q='3c123', trace=False):
    """Make a (l,m) MeqCompounder node of the given beam Expression""" 
-   L = ns.L << l
-   M = ns.M << m
-   LM = ns.LM << Meq.Composer(L,M)
+   L = ns.L(l=l) << l
+   M = ns.M(m=m) << m
+   LM = ns.LM(l=l, m=m) << Meq.Composer(L,M)
    node = beam.MeqCompounder(ns, qual=dict(q=q, l=l, m=m),
                              extra_axes=LM,
                              common_axes=[hiid('l'),hiid('m')],
@@ -182,8 +183,8 @@ def make_Functional (ns, beam, q='3c123', trace=False):
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
-  return MG_JEN_exec.meqforest (mqs, parent)
-  # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False)
+  # return MG_JEN_exec.meqforest (mqs, parent)
+  return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=100e6, f2=150e6, t1=0, t2=1, trace=False)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
 
@@ -204,7 +205,7 @@ if __name__ == '__main__':
        Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1, plot=False, trace=True)
 
     if 1:
-       cosvar = costime (ampl=1.0, period=100, phase=0.1, plot=False, trace=True)
+       cosvar = costime (ampl=1.0, period=100, phase=0.1, plot=True, trace=True)
        node = cosvar.MeqNode(ns)
        TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
 
