@@ -166,6 +166,9 @@ ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
   vector<double> Constants = funklet->getConstants ();
 
   pval.itsConstants=Constants;
+
+  //no errors defined yet, use constants for consistency
+  pval.itsErrors=Constants;
   pval.itsWeight = funklet->getWeight();
   pval.itsDBRowRef = funklet->getDbId();
   if(funklet->getDbId()<0)//this funklet should get a new entry

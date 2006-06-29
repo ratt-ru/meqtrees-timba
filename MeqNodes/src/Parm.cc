@@ -100,7 +100,7 @@ namespace Meq {
 
     cdebug(2)<<"looking for suitable funklets"<<endl;
     funkletref.detach();
-    if( parmtable_ )
+    if( !reset_funklet_ && parmtable_ )
       {
 	Funklet *pfunklet = getFunkletFromDB(funkletref,domain);
 	if (pfunklet && !reset_funklet_) 
@@ -605,7 +605,7 @@ namespace Meq {
 	tiling_[i]=0;
 	(*tiling)[Axis::axisId(i)].get(tiling_[i],0);
       
-	if(tiling_[i]) tiled_=true;
+	if(!tiled_&&tiling_[i]) tiled_=true;
       }
     }
 

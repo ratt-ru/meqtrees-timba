@@ -38,7 +38,7 @@ namespace Meq {
   const HIID
     // Functional staterec fields
     FChildMap        = AidChild|AidMap;
-  const int MaxNrDims=10;
+  const int MaxNrDims=100;
 class Functional : public TensorFunction
 {
 public:

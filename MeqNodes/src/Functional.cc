@@ -35,7 +35,11 @@ namespace Meq {
   const string NotAvailableString="Not Available";
   
   Functional::Functional()
-    : TensorFunction(),function_string_(NotAvailableString)
+    : TensorFunction(),
+      function_string_(NotAvailableString),
+      shapes_(0),
+      childnr_(0),
+      vellsnr_(0)
   {
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::DComplex>();
@@ -74,6 +78,7 @@ namespace Meq {
 	int childnr;
 	Ninput_=0;
 	Ndim = childmap->size();
+	childnr_.resize(Ndim);
 	for(int i=0;i<Ndim;i++){
 	  childmap->as<DMI::Record>(i)[AidChild|AidNum].get(childnr,0);
 	  childmap->as<DMI::Record>(i)[AidIndex].get_vector(mapv,0);
@@ -89,14 +94,14 @@ namespace Meq {
   void Functional::map_parameters(int dimnr,int childnr,const std::vector<int> & mapv){
     uint size = mapv.size();
     if(!size) return;
-    if(childnr_.size()<=dimnr) childnr_.resize(dimnr+1);
+    if(childnr_.size()<=uint(dimnr)) childnr_.resize(dimnr+1);
     childnr_[dimnr]=childnr;
     if((childnr+1)>Ninput_) Ninput_=childnr+1;
-    if(vellsnr_.size()<=dimnr) vellsnr_.resize(dimnr+1);
+    if(vellsnr_.size()<=uint(dimnr)) vellsnr_.resize(dimnr+1);
     //we do not know shapes of children here, so save the indices
     vellsnr_[dimnr]=mapv;
     Ndims_[childnr]=size;
-    for(int i=0;i<size;i++)
+    for(uint i=0;i<size;i++)
       MaxN_[childnr][i]=std::max(vellsnr_[dimnr][i],MaxN_[childnr][i]);
   }
 
@@ -117,7 +122,7 @@ namespace Meq {
     //check ifinput_dims have correct shape
     
     FailWhen(function_string_ == NotAvailableString,"No Function available");
-    Assert(input_dims.size()>=Ninput_);
+    Assert(input_dims.size()>=uint(Ninput_));
     
     shapes_.resize(Ninput_);
     for(int i=0;i<Ninput_;i++)
@@ -125,7 +130,7 @@ namespace Meq {
 	const LoShape dim = *(input_dims[i]);
 	FailWhen(dim.size() && dim.size()!=Ndims_[i],"child : wrong dimensions");
 	shapes_[i]=dim;
-	for(uint j= 0;j<Ndims_[i] && j<dim.size();j++)
+	for(int j= 0;j<Ndims_[i] && j<dim.size();j++)
 	  FailWhen(dim[j]<MaxN_[i][j],"child : wrong shape");
 
     
