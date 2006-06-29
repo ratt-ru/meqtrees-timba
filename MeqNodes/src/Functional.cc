@@ -78,6 +78,7 @@ namespace Meq {
 	int childnr;
 	Ninput_=0;
 	Ndim = childmap->size();
+	FailWhen(Ndim >MaxNrDims,"Nr. of children is exceeding maximum");
 	childnr_.resize(Ndim);
 	for(int i=0;i<Ndim;i++){
 	  childmap->as<DMI::Record>(i)[AidChild|AidNum].get(childnr,0);
