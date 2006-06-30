@@ -343,12 +343,27 @@ namespace Meq {
 
 
 
+    blitz::Array<IdVal,1> sarray0;
+		//if we have a degenerate  result, we will have less values than
+		//the t,f grid of the request so check this
+    int intime=incells.ncells(Axis::TIME);
+    int infreq=incells.ncells(Axis::FREQ);
+
+		bool lm_degenerate=false;
+		if (intime*infreq>ntime*nfreq) {
+			//we have a degeneracy
+			cout<<"LM grid degenerate in t,f"<<endl;
+			lm_degenerate=true;
+		}
+
     //if the grid function is not monotonically increasing, we get
     //unsorted arrays for axes.
     //if cen0 or cen1 is not sorted, we recreate that
     //axis to cover the whole range and interpolate the result
     //use STL
-    blitz::Array<IdVal,1> sarray0(cen0.extent(0));
+    sarray0.resize(cen0.extent(0));
+
+
     //copy data
     int k=0;
     for (int i=0; i<ny;i++) {
@@ -542,6 +557,42 @@ namespace Meq {
       revmap[aa]=bb;
     }
 
+		if (intime*infreq*(ipert0*ispid0+1)>sarray0.extent(0)) {
+				//we have degeneray in t,f so copy the t=0, f=0 value
+				cout<<"LM degeneracy in t,f"<<endl;
+				for (int i=1; i<intime; i++) {
+					for (int j=0; j<infreq; j++) {
+            aa[0]=i;
+            aa[1]=j;
+            for (int ipset=0; ipset<ipert0; ipset++)  {
+                 for (int ipert=0; ipert<ispid0; ipert++)  {
+                  aa[2]=ipset*ispid0+ipert+1;
+                  int *bb=new int[2];
+                  bb[0]=0;
+                  bb[1]=0; //not yet defined
+                  revmap[aa]=bb;
+					       }
+			      }
+					}
+				}
+				for (int j=1; j<infreq; j++) {
+            aa[0]=0;
+            aa[1]=j;
+            for (int ipset=0; ipset<ipert0; ipset++)  {
+                 for (int ipert=0; ipert<ispid0; ipert++)  {
+                  aa[2]=ipset*ispid0+ipert+1;
+                  int *bb=new int[2];
+                  bb[0]=0;
+                  bb[1]=0; //not yet defined
+                  revmap[aa]=bb;
+					       }
+			      }
+
+				}
+
+
+		}
+
 #ifdef DEBUG
     cout<<"Before sort"<<endl;
     for (int i=0; i<sarray1.extent(0);i++) {
@@ -576,6 +627,12 @@ namespace Meq {
       }
 
     }
+		if (intime*infreq*(ipert1*ispid1+1)>sarray1.extent(0)) {
+				//we have degeneray in t,f so copy the t=0, f=0 value
+				cout<<"LM degeneracy in t,f"<<endl;
+
+		}
+
     map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap.begin();
     //first: key, second: value
 #ifdef DEBUG
@@ -720,13 +777,13 @@ namespace Meq {
     blitz::Array<double,4> B=in.getArray<double,4>();
     //reindexing arrays
 	
-    int intime=incells.ncells(Axis::TIME);
-    int infreq=incells.ncells(Axis::FREQ);
+		int fktime=res0->cells().ncells(Axis::TIME);
+		int fkfreq=res0->cells().ncells(Axis::FREQ);
+		
 #ifdef DEBUG
     cout<<"In "<<intime<<","<<infreq<<endl;
-#endif
-#ifdef DEBUG
     cout<<"InCells from funklet"<<endl;
+    cout<<"t,f="<<fktime<<","<<fkfreq<<endl;
     cout<<res0().cells().center(Axis::axis(comm_axes_[0]))<<endl;
     cout<<res0().cells().center(Axis::axis(comm_axes_[1]))<<endl;
 #endif
@@ -738,19 +795,25 @@ namespace Meq {
       itime=key[0];
       ifreq=key[1];
       iplane=key[2];
+#ifdef DEBUG
+			cout<<"look for "<<itime<<","<<ifreq<<endl;
+#endif
       if (!iplane) { //copy only the 0-th plane that has the value, the others are perturbed values
       A(itime,ifreq)=B(itime,ifreq,value[0],value[1]);
+#ifdef DEBUG
+			cout<<"copy "<<itime<<","<<ifreq<<" "<<A(itime,ifreq)<<endl;
+#endif
 			}
 
       mapiter++;
     }
 
-    //handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+    //handle degenerate axes in funklet here, if ntime or nfreq is less that the request shape copy the same value
     //three cases: | |    ------------------      _
     //             | |    ------------------     | |
     //             | |                            -
-    if ((ntime<intime) || (nfreq<infreq)) {
-      //we have degeneracy here
+    if (!lm_degenerate && ((ntime<intime) || (nfreq<infreq))) {
+      //we have degeneracy in funklet 
       if ((ntime==intime) && (infreq>nfreq)) {
 	//degeneracy in frequency, copy values from freq 0
 	for (int i=1; i<infreq; i++)
@@ -795,7 +858,7 @@ namespace Meq {
 	  }
 
 	  //handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
-	  if ((ntime<intime) || (nfreq<infreq)) {
+	  if (!lm_degenerate &&((ntime<intime) || (nfreq<infreq))) {
 	    //we have degeneracy here
 	    if ((ntime==intime) && (infreq>nfreq)) {
 	      //degeneracy in frequency, copy values from freq 0
@@ -818,6 +881,8 @@ namespace Meq {
 
 	}
     } else if ( have_perturbed_sets!=-1) { //we have perturbed sets in the grid
+						//which can only happen if there is no LM degeneracy, so ignore
+						//checking that
 #ifdef DEBUG
       cout<<"Found "<<nplanes<<" perturbed sets from the grid child case:"<<have_perturbed_sets<<endl;
 #endif
@@ -887,10 +952,10 @@ namespace Meq {
     res1.setCells(incells);
 
 
-		/*cout<<"Spids=";
+		cout<<"Spids=";
     for (int i=0; i<res1.vellSet(0).numSpids(); i++) {
 				cout<<res1.vellSet(0).getSpid(i)<<",";
-		}*/
+		}
 		cout<<endl;
 
     //delete map
