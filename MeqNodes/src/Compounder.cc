@@ -348,13 +348,14 @@ namespace Meq {
 		//the t,f grid of the request so check this
     int intime=incells.ncells(Axis::TIME);
     int infreq=incells.ncells(Axis::FREQ);
-
 		bool lm_degenerate=false;
-		if (intime*infreq>ntime*nfreq) {
+		if ((intime*infreq> ntime*nfreq)) {
 			//we have a degeneracy
 			cout<<"LM grid degenerate in t,f"<<endl;
 			lm_degenerate=true;
 		}
+
+
 
     //if the grid function is not monotonically increasing, we get
     //unsorted arrays for axes.
@@ -559,11 +560,16 @@ namespace Meq {
 
 		if (intime*infreq*(ipert0*ispid0+1)>sarray0.extent(0)) {
 				//we have degeneray in t,f so copy the t=0, f=0 value
-				cout<<"LM degeneracy in t,f"<<endl;
+				cout<<"LM degeneracy 0: in t,f because "<<intime<<","<<infreq<<","<<ipert0<<","<<ispid0<<","<<sarray0.extent(0)<<endl;
 				for (int i=1; i<intime; i++) {
 					for (int j=0; j<infreq; j++) {
             aa[0]=i;
             aa[1]=j;
+            aa[2]=0; //main value
+            int *bb=new int[2];
+            bb[0]=0;
+            bb[1]=0; //not yet defined
+            revmap[aa]=bb;
             for (int ipset=0; ipset<ipert0; ipset++)  {
                  for (int ipert=0; ipert<ispid0; ipert++)  {
                   aa[2]=ipset*ispid0+ipert+1;
@@ -578,6 +584,12 @@ namespace Meq {
 				for (int j=1; j<infreq; j++) {
             aa[0]=0;
             aa[1]=j;
+            aa[2]=0; //main value
+            int *bb=new int[2];
+            bb[0]=0;
+            bb[1]=0; //not yet defined
+            revmap[aa]=bb;
+
             for (int ipset=0; ipset<ipert0; ipset++)  {
                  for (int ipert=0; ipert<ispid0; ipert++)  {
                   aa[2]=ipset*ispid0+ipert+1;
@@ -629,8 +641,7 @@ namespace Meq {
     }
 		if (intime*infreq*(ipert1*ispid1+1)>sarray1.extent(0)) {
 				//we have degeneray in t,f so copy the t=0, f=0 value
-				cout<<"LM degeneracy in t,f"<<endl;
-
+				cout<<"LM degeneracy 1: in t,f because "<<intime<<","<<infreq<<","<<ipert1<<","<<ispid1<<","<<sarray1.extent(0)<<endl;
 		}
 
     map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap.begin();
@@ -779,6 +790,13 @@ namespace Meq {
 	
 		int fktime=res0->cells().ncells(Axis::TIME);
 		int fkfreq=res0->cells().ncells(Axis::FREQ);
+		if (lm_degenerate && (intime*infreq>fktime*fkfreq)) {
+			lm_degenerate=false;
+		} else {
+			//we have a degeneracy
+			cout<<"LM grid degenerate in t,f"<<endl;
+		}
+
 		
 #ifdef DEBUG
     cout<<"In "<<intime<<","<<infreq<<endl;
