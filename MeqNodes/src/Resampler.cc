@@ -973,12 +973,12 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 					 incells_[i](0)=outcells_[i](0)=0;
 					} else {
 					 incells_[i].resize(1);
-					 incells_[i](0)=outcells_[i](0);
+					 incells_[i](0)=(outcells_[i](0)+outcells_[i](outcells_[i].extent(0)-1))/2;
 					}
 				 } else {
 					if (outcells_[i].size()==0){
 					 outcells_[i].resize(1);
-					 outcells_[i](0)=incells_[i](0);
+					 outcells_[i](0)=(incells_[i](0)+incells_[i](incells_[i].extent(0)-1))/2;
 					}
 				 }
 	  }
