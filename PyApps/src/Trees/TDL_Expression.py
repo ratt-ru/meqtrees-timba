@@ -199,7 +199,7 @@ class Expression:
             elif rr['stddev']>0:
                 # See .quals(). Note that stddev is given a a fraction (e.g. 0.1)
                 # of the 'scale' of the parameter value. This allows specification
-                # of the scatter in general terms.
+                # of the scatter in relative terms.
                 rr['default'] = gauss(rr['nominal'], rr['stddev']*rr['scale'])
             else:
                 rr['default'] = rr['nominal']
@@ -1469,12 +1469,19 @@ class Expression:
     # Functions dealing with the available MeqParms (for solving etc)
     #===========================================================================
 
-    def MeqParms (self, group='all', trace=False):
+    def MeqParms (self, ns=None, group='all', trace=False):
         """Access to the (groups of) MeqParm nodes associated with this Expression"""
         if not self.__MeqParms:
+            # Avoid duplication
             self.__MeqParms = self.expanded().find_MeqParms()
+        if ns and len(self.__MeqParms['all'])==0:
+            # If there are no MeqParm nodes, turn the Expression into one: 
+            self.__MeqParms['all'] = [self.MeqParm(ns)]
         if self.__MeqParms.has_key(group):
+            if trace: print '\n** .MeqParms(',group,'): ->',self.__MeqParms[group],'\n'
             return self.__MeqParms[group]
+        else:
+            print '\n** .MeqParms(',group,'): group not found in:',self.__MeqParms.keys(),'\n'
         return False
 
 
@@ -1547,11 +1554,13 @@ class Expression:
                 node << Meq.Constant(parm['default'])
                 self.parm(key, node)                    # redefine the parm
             else:                                       # assume numeric
-                node << Meq.Parm(parm['default'])
+                node << Meq.Parm(parm['default'],
+                                 node_groups=['Parm'])
                 self.parm(key, node)                    # redefine the parm
             if funklet:
-                # node << Meq.Parm(init_funklet=funklet)
-                node << Meq.Parm(funklet=funklet)       # new MXM 28 June 2006
+                # node << Meq.Parm(init_funklet=funklet,
+                node << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
+                                 node_groups=['Parm'])
                 self.parm(key, node)                    # redefine the parm
         self.__parmtype['Expression'] = []              # no more Expression parms
         self.__parmtype['Funklet'] = []                 # no more Funklet parms
@@ -1628,8 +1637,10 @@ class Expression:
             if isinstance(funklet, bool): return False
             if not name: name = 'Expr_'+self.label(strip=True)+'_MeqParm'
             self.__MeqParm = self._unique_node (ns, name, qual=qual, trace=trace)
-            # self.__MeqParm << Meq.Parm(init_funklet=funklet)
-            self.__MeqParm << Meq.Parm(funklet=funklet)       # new MXM 28 June 2006
+            # self.__MeqParm << Meq.Parm(init_funklet=funklet,
+            self.__MeqParm << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
+                                       node_groups=['Parm'])
+        # Return the MeqParm node:
         return self.__MeqParm
 
     # MXM: 28 June 2006
@@ -1825,6 +1836,8 @@ class Expression:
 def classwise (node, klasses=dict(), done=[], level=0, trace=False):
    """Recursively collect the nodes of the given subtree, divided in classes """
 
+   trace = True
+
    # Keep track of the processed nodes (to avoid duplication):
    if node.name in done: return True
    done.append(node.name)
@@ -1833,6 +1846,8 @@ def classwise (node, klasses=dict(), done=[], level=0, trace=False):
    klass = node.classname
    klasses.setdefault(klass, [])
    klasses[klass].append(node.name)
+   if trace:
+       print (level*'.')+klass+' '+node.name+' '+str(len(klasses[klass]))
 
    # Recursive:
    for i in range(len(node.stepchildren)):
@@ -2113,6 +2128,7 @@ def Funklet2Expression (Funklet, label='C', trace=False):
 
 def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
                     ignore_triangle=True,
+                    nonzero_default=True, stddev=0.1,
                     type='MeqPolc', f0=1e6, t0=1.0,
                     fit=None, plot=False, trace=False):
     """Create an Expression object for a polc with the given shape (and type).
@@ -2129,6 +2145,7 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
         if fit: print '       fit =',fit
     if coeff==None: coeff = []
     if not isinstance(coeff, (list,tuple)): coeff = [coeff]
+    coeff = array(coeff).flat
     if len(shape)==1: shape.append(1)
     if shape[0]==0: shape[0] = 1
     if shape[1]==0: shape[1] = 1
@@ -2147,6 +2164,9 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
     pp = dict()
     testinc = dict()
     help = dict()
+    sunit = ''
+    if isinstance(unit, str): sunit = unit
+    uunit = dict()
     first = True
     tdep = False
     fdep = False
@@ -2163,25 +2183,32 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
                 k += 1
                 sign *= -1
                 pk = 'c'+str(j)+str(i)                   # e.g. c01
-                pp[pk] = 0.0
                 testinc[pk] = sign*(10**(-i-j))          # test-increment 
-                if len(coeff)>k:
-                    pp[pk] = coeff[k]
+                pp[pk] = 0.0                             # default value = 0
+                if nonzero_default:
+                    pp[pk] = testinc[pk]                 # non-zero default value ....
+                if len(coeff)>k:                         # explicitly specified
+                    pp[pk] = coeff[k]                    # override
                 help[pk] = label+'_'+str(j)+str(i)
+                uunit[pk] = sunit
                 if not first: func += '+'
                 func += '{'+pk+'}'                       # {c01}
-                for i2 in range(j): func += '*'+tvar     # e.g:  *[t]
-                for i1 in range(i): func += '*'+fvar     # e.g:  *[f]
+                for i2 in range(j):
+                    func += '*'+tvar                     # e.g:  *[t] or *{logt}
+                    uunit[pk] += '/s'
+                for i1 in range(i):
+                    func += '*'+fvar                     # e.g:  *[f] or *{logf}
+                    uunit[pk] += '/Hz'
                 first = False
                 if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
-    result = Expression(func, label, descr='polc_Expression', **pp)
+    result = Expression(func, label, descr='polc_Expression')
     result.__expression_type = type
-    if True:
-        # Modify the parm definitions:
-        for key in pp.keys():
-            result.parm(key, testinc=testinc[key])
 
-    # Define the Expression parameters, if necessary:
+    # Define the Expression parms:
+    for key in pp.keys():
+        result.parm(key, pp[key], testinc=testinc[key], unit=uunit[key], stddev=stddev)
+
+    # Define the Expression 'variable' parms, if necessary:
     if type=='MeqPolcLog':
         if fdep:
             logf = Expression('log([f]/{f0})', label='fvar')
@@ -2193,25 +2220,13 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
             logf.parm('t0', t0)
             result.parm('logt', logt)
 
-    # Assign unit strings:
-    # NB: The default value has to be repeated here!
-    sunit = ''
-    if isinstance(unit, str):
-        sunit = unit
-        result.parm('c00', pp['c00'], unit=sunit)
-    if pp.has_key('c01'): result.parm('c01', pp['c01'], unit=sunit+'/Hz')
-    if pp.has_key('c02'): result.parm('c02', pp['c02'], unit=sunit+'/Hz/Hz')
-    if pp.has_key('c11'): result.parm('c11', pp['c11'], unit=sunit+'/s/Hz')
-    if pp.has_key('c10'): result.parm('c10', pp['c10'], unit=sunit+'/s')
-    if pp.has_key('c20'): result.parm('c20', pp['c20'], unit=sunit+'/s/s')
-
     # Optionally, fit the new polc to a given set of values(f,t):
     if isinstance(fit, dict):
         result.fit(**fit)
 
     # insert help......?
 
-    # Finished:
+    # Finished: return the polc Expression:
     if trace: result.display()
     if plot: result.plot(_plot='loglog')
     return result
@@ -2298,7 +2313,7 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------
 
-    if 1:
+    if 0:
         f0 = Funklet()
         # f0.setCoeff([[1,0,4],[2,3,4]])       # [t]*[f]*[f] highest order
         # f0.setCoeff([[1,0],[2,3]]) 
@@ -2624,7 +2639,7 @@ if __name__ == '__main__':
                              trace=True, plot=False)
         fp.plot(f=dict(min=1e7, max=1e9, nr=100))
 
-    if 0:
+    if 1:
         fp = polc_Expression([0,0], 56, trace=True)
         fp = polc_Expression([1,1], 56, trace=True)
         fp = polc_Expression([2,2], 56, trace=True)

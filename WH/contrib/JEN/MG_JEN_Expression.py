@@ -67,16 +67,41 @@ def _define_forest (ns):
       cosvar = costime (ampl=1.0, period=0.1, phase=0.1, plot=False, trace=False) 
       cc.append(cosvar.MeqNode(ns))
 
-   if True:
+   if False:
       # Experiment: WSRT gaussian voltage beam(s):
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
       for L in array(range(5))*0.04:
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
       cc.append(make_Functional (ns, Xbeam, q='3c123'))
-      if False:
-         Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
+
+   if True:
+      # Experiment: Solve for Xbeam=Ybeam
+      Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
+      Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
+      condeq = []
+      ng2 = 1
+      dgrid = 0.04
+      for L in array(range(-ng2,ng2+1))*dgrid:
+         for M in array(range(-ng2,ng2+1))*dgrid:
+            cX = make_LMCompounder (ns, Xbeam, l=L, m=M, q='3c123')
+            cY = make_LMCompounder (ns, Ybeam, l=L, m=M, q='3c123')
+            condeq.append(ns.condeq(l=L,m=M) << Meq.Condeq(cX,cY))
+      # klasses = TDL_Expression.classwise(cX, trace=True)
+      # solvable = klasses['MeqParm']
+      solvable = Xbeam.MeqParms(ns, trace=True)
+      solver = ns.solver << Meq.Solver(children=condeq,
+                                       # epsilon=pp['epsilon'],
+                                       # colin_factor=pp['colin_factor'],
+                                       # usesvd=pp['usesvd'],
+                                       # last_update=True,
+                                       # save_funklets=True,
+                                       # debug_level=pp['debug_level'],
+                                       num_iter=10,
+                                       solvable=solvable)
+      cc.append(solver)
 
 
+   # Example
    ### cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux_3c286()'))
 
    # Finished: 
@@ -127,7 +152,11 @@ def WSRT_voltage_beam_gaussian (pol='X', ell=0.1, plot=False, trace=False):
    """ Make an Expression object for a WSRT telescope voltage beam (gaussian)"""
    vbeam = TDL_Expression.Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gauss'+pol+'beam',
                                      descr='WSRT '+pol+' voltage beam (gaussian)', unit=None)
-   vbeam.parm ('peak', default=[1.0,0.001], polc=[1,2], unit='Jy', help='peak voltage beam')
+   # vbeam.parm ('peak', default=[1.0,0.1], polc=[2,1], unit='Jy', help='peak voltage beam')
+   vbeam.parm ('peak', default=2.1, polc=[3,1], unit='Jy', help='peak voltage beam')
+   # vbeam.parm ('peak', default=[1.0,0.001], polc=[1,2], unit='Jy', help='peak voltage beam')
+   # vbeam.parm ('peak', default=[[1.0,0.002,-0.003],[0.1,-0.2,0.3]], polc=[3,2], unit='Jy', help='peak voltage beam')
+   # vbeam.parm ('peak', default=2.3, unit='Jy', help='peak voltage beam')
    Lterm = TDL_Expression.Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
    Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
    vbeam.parm ('Lterm', default=Lterm)
