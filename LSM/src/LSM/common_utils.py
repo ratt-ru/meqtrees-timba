@@ -499,9 +499,11 @@ def extract_polarization_parms(sixpack,ns,absolute=0):
  if ns._name:
   SIFI_name=ns._name+'::SIF_stokesI:q='+myname
   I0_name=ns._name+'::I0:q='+myname
+  RM_name=ns._name+'::RM:q='+myname
  else:
   SIFI_name='SIF_stokesI:q='+myname
   I0_name='I0:q='+myname
+  RM_name='RM:q='+myname
  if allnodes.has_key(I0_name):
    sI=allnodes[I0_name]
    myii=get_default_parms(sI)
@@ -514,8 +516,13 @@ def extract_polarization_parms(sixpack,ns,absolute=0):
    myii=SI=0
    f0=-1
  
+ if allnodes.has_key(RM_name):
+   rmnode=allnodes[RM_name]
+   RM=get_default_parms(rmnode)
+ else:
+   RM=0
  
- return [myii,myqq*myii/100,myuu*myii/100,myvv*myii/100,SI,f0]
+ return [myii,myqq*myii/100,myuu*myii/100,myvv*myii/100,SI,f0,RM]
  
 
 

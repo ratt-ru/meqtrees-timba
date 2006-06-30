@@ -152,16 +152,16 @@ class PUnit:
  def getIQUV(self,ns):
    mysixpack=self.__sixpack
    [ra,dec,I]=extract_parms(mysixpack,ns)
-   [I,Q,U,V,SI,f0]=extract_polarization_parms(mysixpack,ns,absolute=1)
-   return (I,Q,U,V,SI,f0)
+   [I,Q,U,V,SI,f0,RM]=extract_polarization_parms(mysixpack,ns,absolute=1)
+   return (I,Q,U,V,SI,f0,RM)
 
 
 
  def getEssentialParms(self,ns):
    (ra,dec)=self.getRADec(ns)
-   (I,Q,U,V,SI,f0)=self.getIQUV(ns)
+   (I,Q,U,V,SI,f0,RM)=self.getIQUV(ns)
 
-   return (ra,dec,I,Q,U,V,SI,f0)
+   return (ra,dec,I,Q,U,V,SI,f0,RM)
 
  # if this PUnit is a patch, or a gaussian return the limits
  # of its boundary
@@ -1852,8 +1852,8 @@ class LSM:
 
  ## build from a text file with extended sources
  ## format:
- ## RA(deg) DEC(dec) sI sQ sU sV SI eX eY eP
- def build_from_extlist(self,infile_name,ns):
+ ## RA(radians) DEC(radians) sI sQ sU sV SI eX eY eP
+ def build_from_extlist_rad(self,infile_name,ns):
   infile=open(infile_name,'r')
   all=infile.readlines()
   infile.close()
@@ -1916,6 +1916,95 @@ class LSM:
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
     self.add_source(s,brightness=eval(v.group('col4')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+
+ ## build from a text file with extended sources
+ ## format:
+ ## RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
+ def build_from_extlist(self,infile_name,ns):
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>[A-Za-z]\w+)  # column 1 name: must start with a character
+   \s*             # skip white space
+   (?P<col2>(-)?\d+(\.\d+)?)   # RA angle - hours 
+   \s*             # skip white space
+   (?P<col3>(-)?\d+(\.\d+)?)   # RA angle - min 
+   \s*             # skip white space
+   (?P<col4>(-)?\d+(\.\d+)?)   # RA angle - sec 
+   \s*             # skip white space
+   (?P<col5>(-)?\d+(\.\d+)?)   # Dec angle - degrees
+   \s*             # skip white space
+   (?P<col6>(-)?\d+(\.\d+)?)   # Dec angle - min
+   \s*             # skip white space
+   (?P<col7>(-)?\d+(\.\d+)?)   # Dec angle - sec 
+   \s*             # skip white space
+   (?P<col8>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   \s*             # skip white space
+   (?P<col9>(-)?\d+(\.\d+)?)   # Stokes Q - Flux
+   \s*             # skip white space
+   (?P<col10>(-)?\d+(\.\d+)?)   # Stokes U - Flux
+   \s*             # skip white space
+   (?P<col11>(-)?\d+(\.\d+)?)   # Stokes V - Flux
+   \s*             # skip white space
+   (?P<col12>(-)?\d+(\.\d+)?)   # Spectral index 
+   \s*             # skip white space
+   (?P<col13>(-)?\d+(\.\d+)?)   # Rotation Measure
+   \s*             # skip white space
+   (?P<col14>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source major axis: rad
+   \s*             # skip white space
+   (?P<col15>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source minor axis: rad
+   \s*             # skip white space
+   (?P<col16>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source position angle : rad
+   [\S\s]+""",re.VERBOSE)
+
+
+  kk=0
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    source_RA=eval(v.group('col2'))+(eval(v.group('col4'))/60.0+eval(v.group('col3')))/60.0
+    source_RA*=math.pi/12.0
+    source_Dec=float(v.group('col5'))+(float(v.group('col7'))/60.0+float(v.group('col6')))/60.0
+    source_Dec*=math.pi/180.0
+
+    sI=eval(v.group('col8'))
+    sQ=eval(v.group('col9'))/(sI*100)
+    sU=eval(v.group('col10'))/(sI*100)
+    sV=eval(v.group('col11'))/(sI*100)
+    SI=eval(v.group('col12'))
+    RM=eval(v.group('col13'))
+
+    eX=eval(v.group('col14'))
+    eY=eval(v.group('col15'))
+    eP=eval(v.group('col16'))
+
+    s=Source(v.group('col1'), major=eX, minor=eY, pangle=eP)
+
+    kk=kk+1
+
+    #print sI,sQ,sU,sV
+    freq0=1e6
+    if (SI==0 and sQ==0 and sU==0 and sV==0 and RM==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+    elif (SI==0 and RM==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+    elif (SI==0):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM, trace=0)
+    else :
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI, RM=RM, trace=0)
+ 
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    self.add_source(s,brightness=eval(v.group('col8')),
      sixpack=my_sixpack,
      ra=source_RA, dec=source_Dec)
  
