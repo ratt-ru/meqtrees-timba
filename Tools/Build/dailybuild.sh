@@ -15,8 +15,8 @@ export PATH=".:$HOME/usr/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:$DAILY_
 export LD_LIBRARY_PATH="$HOME/usr/lib:/aips++/rh7/pgplot:/usr/local/lib:/usr/lib:/lib:/usr/X11R6/lib"
 
 
-source /aips++/sys1/aipsinit.sh
-aipsinit gnu
+source /aips++/weekly/aipsinit.sh
+aipsinit gnu34
 
 
 export TOTAL_TESTS=0
@@ -53,7 +53,7 @@ function Checkout {
     cvs co LOFAR/LCS/Common && \
     cvs co LOFAR/Timba && \
     \
-    mkdir LOFAR/installed && \
+    mkdir -p $DAILY_DIR/LOFAR/installed && \
     cd $DAILY_DIR/LOFAR/installed && \
     tar xvzf ../Timba/install-symlinked.tgz && \
     ln -s symlinked current && \
@@ -75,6 +75,9 @@ function BuildVariant {
    cd $DAILY_DIR/LOFAR/LCS/Common/build/$variant && \
    ../../lofarconf && \
    \
+   pushd $DAILY_DIR/LOFAR && \
+   autoconf_share/rub -conf -build $variant   CEP/BB/ParmDB && \
+   popd && \
    \
    cd $DAILY_DIR/LOFAR/Timba && \
    ./bootstrap && \
