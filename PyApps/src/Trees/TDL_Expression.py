@@ -1,7 +1,7 @@
 # TDL_Expression.py
 #
 # Author: J.E.Noordam
-#
+# 
 # Short description:
 #   Contains a mathematical expression that can be turned into
 #   a funklet, a MeqFunctional node, or a subtree.
@@ -92,6 +92,7 @@ from Timba.TDL import *                       # needed for type Funklet....
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
 from Timba.Trees import TDL_Leaf
+from Timba.Trees import JEN_parse
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
@@ -125,7 +126,7 @@ class Expression:
         # For each parameter in self.__expression, make an entry in self.__parm.
         # These entries may be modified with extra info by self.parm().
         # First extract a list of parameter names, enclosed in curly brackets:
-        self.__parm_order = find_enclosed(self.__expression, brackets='{}')
+        self.__parm_order = JEN_parse.find_enclosed(self.__expression, brackets='{}')
         self.__parm = dict()
         self.__parmtype = dict(Expression=[], MeqNode=[], Funklet=[])
         for key in self.__parm_order:
@@ -138,7 +139,7 @@ class Expression:
 
         # For each variable in self.__expression, make an entry in self.__var.
         # First extract a list of variable names, enclosed in square brackets:
-        vv = find_enclosed(self.__expression, brackets='[]')
+        vv = JEN_parse.find_enclosed(self.__expression, brackets='[]')
         self.__var = dict()
         for key in vv:
             self._create_var(key)
@@ -381,7 +382,7 @@ class Expression:
         # If found, change the key in expression and parm_order.
         keyin = key
         index = [0]
-        ii = find_enclosed(key, brackets='[]')    # e.g. A[0,1]
+        ii = JEN_parse.find_enclosed(key, brackets='[]')    # e.g. A[0,1]
         if len(ii)>0:                             # found
             ss = ii[0].split(',')                 # -> ['0','1']
             key = key.split('[')[0]               # key -> A
@@ -872,11 +873,11 @@ class Expression:
 
         # Assume a linear expression, with one (multiplicative) parameter
         # per term. The latter are the unknowns to be solved:
-        terms = find_terms(self.__expression)
+        terms = JEN_parse.find_terms(self.__expression)
         unks = []
         coeff = dict()
         for term in terms['pos']:                         # 'neg' too!
-            unknown = find_enclosed(term,'{}')
+            unknown = JEN_parse.find_enclosed(term,'{}')
             if trace: print '\n- term:',term,'->',unknown
             if len(unknown)>1:
                 print 'more than one unknown in term:',term
@@ -996,7 +997,7 @@ class Expression:
     def format_expr (self, header=True):
         """Format the (unexpanded) expression in a list of one-line strings"""
         rr = dict(terms=[], parms=[])
-        terms = find_terms(self.__expression, trace=False)
+        terms = JEN_parse.find_terms(self.__expression, trace=False)
 
         if header:
             rr['terms'].append('Descr:   '+str(self.__descr))
@@ -1158,7 +1159,7 @@ class Expression:
             else:
                 vv = array(range(2,9))              # some safe default
         elif isinstance(rr, NUMERIC_TYPES):         # NB: AFTER bool!
-            vv = array(rr)                          # array of one
+            vv = array([rr])                        # array of one
         else:                                       # error message?
             vv = array(range(1,12))                 # some safe default
         if trace: print '\n** evalarr(',rr,key,')\n   ->',vv,'\n'
@@ -1279,7 +1280,7 @@ class Expression:
                        title='Expression: '+str(self.__ident),
                        legend=[])
         if unit.has_key(variable) and unit[variable]:
-                plotrec['xlabel'] += '   ('+str(unit[variable])+')'
+            plotrec['xlabel'] += '   ('+str(unit[variable])+')'
         if not isinstance(plotrec['ylabel'], str):
             plotrec['ylabel'] = 'value'
         plotrec['ylabel'] = plotrec['ylabel'].replace('expanded_','')
@@ -1289,9 +1290,9 @@ class Expression:
             plotrec['xannot'] = plotrec['xx'][0]
             plotrec['xmin'] = min(plotrec['xx'])
             plotrec['xmax'] = max(plotrec['xx'])
-        else:                                    # assume scalar
+        else:                                     # assume scalar
             plotrec['xmin'] = plotrec['xx']
-            plotrec['xmax'] = plotrec['xx']
+            plotrec['xmax'] = plotrec['xmin']
 
         # Evaluate the expression for successive values of the parameter:
         # First check whether an eval/plot 'parameter' has been specified:
@@ -1322,7 +1323,6 @@ class Expression:
             plotrec['ymin'] = min(plotrec['ymin'],min(r1))
             plotrec['ymax'] = max(plotrec['ymax'],max(r1))
             if parameter:
-                # annot = parameter+'='+str(qq[parameter])
                 annot = parameter+'='+self.format_val(qq[parameter])
                 if unit[parameter]: annot += '  ('+unit[parameter]+')'
                 plotrec['annot'].append(annot)
@@ -1594,12 +1594,14 @@ class Expression:
     #--------------------------------------------------------------------------
 
     def subTree (self, ns, trace=False):
-        """Make a subtree of separate nodes"""
+        """Make a subtree of separate nodes from self.__expression"""
         if trace:
             print '\n** .subTree():',self.tlabel()
 
         # Split self.__expression into additive terms:
-        rr = find_terms(self.__expression, trace=trace)
+        rr = JEN_parse.find_terms(self.__expression, trace=trace)
+
+        # Convert the terms into nodes:
         cc = dict(pos=[], neg=[])
         for key in cc.keys():                           # 'pos','neg'
             for i in range(len(rr[key])):
@@ -1906,167 +1908,6 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 
 
-#-------------------------------------------------------------------------------
-# Functions dealing with brackets:
-#----------------------------------------------------------------------------
-
-def enclose (key, brackets='{}', trace=False):
-    """Make sure that the given key is enclosed by the specified brackets"""
-    bopen = str(brackets[0])
-    bclose = str(brackets[1])
-    if not isinstance(key, str):
-        return bopen+str(key)+bclose
-    if not key[0]==bopen:
-        return bopen+str(key)+bclose
-    return key
-
-#----------------------------------------------------------------------------
-
-def deenclose (key, brackets='{}', trace=False):
-    """Make sure that the given key is NOT enclosed by the specified brackets"""
-    # trace = True
-    if trace: print '** .deenclose(',key,brackets,'):'
-    keyin = key
-    if not isinstance(key, str): return key
-    bopen = str(brackets[0])
-    if not key[0]==bopen:
-        if trace: print '   first bracket is not',bopen,'->',key
-        return key                              # not enclosed
-    bclose = str(brackets[1])
-    n = len(key)
-    # if n<1: return key                        # too short
-    if not key[n-1]==bclose:
-        if trace: print '   last bracket is not',bclose,'->',key
-        return key                              # not enclosed
-    level = 0
-    lmax = 0
-    for i in range(n):
-        if key[i]==bopen:
-            level += 1
-            lmax = max(level,lmax)
-        elif key[i]==bclose:
-            level -= 1
-            if level<1 and i<(n-1):
-                if trace: print '   intermediate drop to level',level,i,n-1,'->',key
-                return key                      # not enclosed
-    # OK, enclosed: remove enclosing brackets:
-    key = key[:(n-1)]
-    key = key[1:]
-    if trace: print '   OK: (lmax=',lmax,level,') ->',key
-    return key
-
-#----------------------------------------------------------------------------
-
-def find_enclosed (expr, brackets='{}', trace=False):
-    """Return a list of substrings that are enclosed in the specified brackets.
-    e.g. expr='{A}+{B}*{A}' would produce ['A','B']"""
-    if trace: print '\n** find_enclosed(',brackets,'): ',expr
-    b1 = brackets[0]                            # opening bracket
-    b2 = brackets[1]                            # closing bracket
-    cc = []
-    level = 0
-    for i in range(len(expr)):
-        if expr[i]==b1:
-            if not level==0:                    # nested brackets should not exist...!
-                return False
-            else:
-                level += 1
-                i1 = i
-        elif expr[i]==b2:
-            if not level==1:                    # wrong order....
-                return False
-            else:
-                level -= 1
-                substring = expr[i1:(i+1)]
-                substring = deenclose(substring, brackets)
-                if not substring in cc:
-                    cc.append(substring)
-                    if trace: print '-',i,level,cc
-    # Some checks:
-    if not level==0:
-        return False
-    if trace: print '   -> (',len(cc),level,'):',cc
-    return cc
-
-#----------------------------------------------------------------------------
-
-def find_terms (expr, level=0, trace=False):
-    """Find the additive terms of the given mathematical expression (string),
-    i.e. the subexpressions separated by plus and minus signs.
-    Return a record with two lists: pos and neg."""
-
-    # trace = True
-    if trace: print '\n** find_terms(): ',expr
-
-    rr = dict(pos=[],neg=[])                     # initialise output record
-    if level>5:
-        print '\n** max level exceeded:',level,expr,'->',rr
-        return rr
-
-    nest = 0
-    i1 = 0
-    ncpt = 0
-    n2 = 0
-    expr = deenclose(expr, '()', trace=False)
-    nchar = len(expr)
-    key = 'pos'
-    for i in range(len(expr)):
-        last = (i==(nchar-1))                    # True if last char
-        # if trace: print nest,nest*'..',i,ncpt,n2,last,':',expr[i]
-        if last:
-            term = expr[i1:(i+1)]
-            append_term (rr, term, key, n2, i, nest,
-                         level=level, trace=trace)
-            if expr[i]==')': nest -= 1           # closing bracket
-        elif expr[i]=='(':                       # opening bracket
-            nest += 1
-        elif expr[i]==')':                       # closing bracket
-            nest -= 1
-        elif nest>0:                             # nested
-            if level==0:
-                if expr[i] in ['+','-']: n2 += 1 # ignore, but count the higher-nest +/-
-        elif expr[i] in ['+','-']:               # end of a term
-            if ncpt>0:                           # some chars in term
-                term = expr[i1:i]
-                append_term (rr, term, key, n2, i, nest,
-                             level=level, trace=trace)
-            i1 = i+1                             # first char of new term
-            ncpt = 0                             # term char counter
-            n2 = 0
-            key = 'pos'                          # additive term
-            if expr[i]=='-': key = 'neg'         # subtractive term              
-        ncpt += 1                                # increment term char counter
-
-    # Some checks:
-    if not nest==0:                             # bracket imbalance
-        print '\n** find_terms() Error: bracket imbalance, nest =',nest
-        print 'expr =',expr
-        print '\n'
-        return False
-    if trace: print '   -> (',nest,'):',rr
-    return rr
-
-#...............................................................................
-
-def append_term (rr, term, key, n2, i, nest,
-                 level=0, trace=False):
-    """Helper function for .find_terms"""
-    if n2>0:                         # term contains +/-
-        rr1 = find_terms(term, level=level+1, trace=False)
-        # rr1 = dict(pos=[], neg=[])
-        if key=='pos':
-            rr['pos'].extend(rr1['pos']) # 
-            rr['neg'].extend(rr1['neg']) # 
-        else:
-            rr['neg'].extend(rr1['pos']) # 
-            rr['pos'].extend(rr1['neg']) # 
-            if trace: print '-',i,nest,key,n2,' rr1 =',rr1
-    else:
-        term = deenclose(term, '()', trace=False)
-        rr[key].append(term)
-        if trace: print '-',i,nest,key,'term =',term
-    return True
-
 #=======================================================================================
 
 def Funklet2Expression (Funklet, label='C', trace=False):
@@ -2357,7 +2198,7 @@ if __name__ == '__main__':
  
     #---------------------------------------------------------
  
-    if 0:
+    if 1:
         e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
         # e1.parm('B', 10, help='help for B')
@@ -2575,37 +2416,6 @@ if __name__ == '__main__':
     # Tests of standalone helper functions:
     #--------------------------------------------------------------------------
 
-    if 0:
-        for x in [3,3.4,12345678907777777777777,'a',3+7j]:
-            tf = isinstance(x, NUMERIC_TYPES)
-            print '- isinstance(',x,type(x),', NUMERIC_TYPES) ->',tf
-
-    if 0:
-        find_terms('{r}+{BA}*[t]+{A[1,2]}-{xxx}', trace=True)
-        find_terms('({r}+{BA}*[t]+{A[1,2]}-{xxx})', trace=True)
-        find_terms('{r}+({BA}*[t]+{A[1,2]})-{xxx}', trace=True)
-        find_terms('{r}-({BA}*[t]+{A[1,2]})-{xxx}', trace=True)
-        find_terms('{r}-({BA}*[t]-{A[1,2]})-{xxx}', trace=True)
-        find_terms('{r}+(-{BA}*[t]+{A[1,2]})-{xxx}', trace=True)
-        find_terms('{r}-(-{BA}*[t]+{A[1,2]})-{xxx}', trace=True)
-        find_terms('-{r}-(-{BA}*[t]+{A[1,2]})-{xxx}-5', trace=True)
-        find_terms('(cos(-{BA}*[t]))', trace=True)
-        find_terms('{r}-(cos(-{BA}*[t])+{A[1,2]})-{xxx}', trace=True)
-
-    if 0:
-        deenclose('{aa_bb}', trace=True)
-        deenclose('{aa}+{bb}', trace=True)
-        deenclose('{{aa}+{bb}}', trace=True)
-
-    if 0:
-        find_enclosed('{A}+{BA}*[t]+{A}', brackets='{}', trace=True)
-        find_enclosed('{A}+{BA}*[t]', brackets='[]', trace=True)
-
-    if 0:
-        ss = find_enclosed('{A[0,1]}', brackets='[]', trace=True)
-        ss = find_enclosed('A', brackets='[]', trace=True)
-        ss = find_enclosed('A[5]', brackets='[]', trace=True)
-        print ss,'->',ss[0].split(',')
         
     if 0:
         fp = polc_Expression([2,1], 56, trace=True)
@@ -2639,7 +2449,7 @@ if __name__ == '__main__':
                              trace=True, plot=False)
         fp.plot(f=dict(min=1e7, max=1e9, nr=100))
 
-    if 1:
+    if 0:
         fp = polc_Expression([0,0], 56, trace=True)
         fp = polc_Expression([1,1], 56, trace=True)
         fp = polc_Expression([2,2], 56, trace=True)

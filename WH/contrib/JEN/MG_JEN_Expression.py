@@ -64,8 +64,19 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    if False:
+      # Experiment: a*cos(t/T) used in M.E. parameter simulation:
       cosvar = costime (ampl=1.0, period=0.1, phase=0.1, plot=False, trace=False) 
       cc.append(cosvar.MeqNode(ns))
+
+   if True:
+      # Experiment: Compare Funklet and subTree versions:
+      expr = '12+{a}-{b}'
+      expr = '12+{a}*[f]-{b}*[t]'
+      expr = '12+{a}*[f]-{b}'
+      Q = TDL_Expression.Expression(expr)
+      c1 = Q.MeqNode(ns)
+      c2 = Q.subTree(ns)
+      cc.append(ns.diff << Meq.Subtract(c1,c2))
 
    if False:
       # Experiment: WSRT gaussian voltage beam(s):
@@ -74,7 +85,7 @@ def _define_forest (ns):
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
       cc.append(make_Functional (ns, Xbeam, q='3c123'))
 
-   if True:
+   if False:
       # Experiment: Solve for Xbeam=Ybeam
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
       Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
@@ -86,17 +97,9 @@ def _define_forest (ns):
             cX = make_LMCompounder (ns, Xbeam, l=L, m=M, q='3c123')
             cY = make_LMCompounder (ns, Ybeam, l=L, m=M, q='3c123')
             condeq.append(ns.condeq(l=L,m=M) << Meq.Condeq(cX,cY))
-      # klasses = TDL_Expression.classwise(cX, trace=True)
-      # solvable = klasses['MeqParm']
       solvable = Xbeam.MeqParms(ns, trace=True)
       solver = ns.solver << Meq.Solver(children=condeq,
-                                       # epsilon=pp['epsilon'],
-                                       # colin_factor=pp['colin_factor'],
-                                       # usesvd=pp['usesvd'],
-                                       # last_update=True,
-                                       # save_funklets=True,
-                                       # debug_level=pp['debug_level'],
-                                       num_iter=10,
+                                       num_iter=5,
                                        solvable=solvable)
       cc.append(solver)
 
@@ -213,7 +216,8 @@ def make_Functional (ns, beam, q='3c123', trace=False):
 
 def _test_forest (mqs, parent):
   # return MG_JEN_exec.meqforest (mqs, parent)
-  return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=100e6, f2=150e6, t1=0, t2=1, trace=False)
+  return MG_JEN_exec.meqforest (mqs, parent, ntime=1)
+  # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=100e6, f2=150e6, t1=0, t2=1, trace=False)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
 
