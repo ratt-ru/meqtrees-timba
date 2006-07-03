@@ -1,0 +1,1045 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\begin_preamble
+\usepackage{lofar}    % ~/tex/lofar/lofar.sty
+% \usepackage{scicomp}    % ~/tex/scicomp/scicomp.cls
+\end_preamble
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize Default
+\paperpackage a4
+\use_geometry 0
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\topmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Standard
+
+
+\begin_inset ERT
+status Open
+
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Based on the lofar.sty file (see preamble)
+\layout Standard
+%
+\layout Standard
+% Define the information for the page header and footer:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAuthor} {J.E. 
+\backslash 
+ Noordam} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDOIssue}{Version 0.9: 04 July 2006}  % Date of Issue (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theKOIssue}{Public} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theScope}{Project Documentation} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDocNR} {LOFAR-ASTRON-DOC-00000} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theStatus} {Draft} % Alternatives:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theRevNR} {1.0} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theFile}{$lofar/$}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theProject} {LOFAR Project} % in the footer 
+\layout Standard
+%
+\layout Standard
+% Define the information for the Verified table
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVSigList}{o.p.v. 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVDateList}{
+\backslash 
+today}% Date of Verification (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVRevList}{0.9 
+\backslash 
+
+\backslash 
+ 0.9.5}
+\layout Standard
+%
+\layout Standard
+% Define the information in the Accepted Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeada}{Work Package Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadb}{System Engineering Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadc}{Program Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagera}{J.E. 
+\backslash 
+ Noordam}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagerb}{C.M.
+\backslash 
+ de Vos}
+\layout Standard
+% 
+\backslash 
+renewcommand{
+\backslash 
+theAManagerc}{J. 
+\backslash 
+ Reitsma}
+\layout Standard
+%
+\layout Standard
+% Define the first and second columns of the Distribution List:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dGList} {
+\layout Standard
+LOFAR Calibration StuurGrope:
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H. 
+\backslash 
+ Falcke
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} K. 
+\backslash 
+ van der Schaaf
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} W.N. 
+\backslash 
+ Brouw
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} A.G. 
+\backslash 
+ de Bruyn
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} T.A.
+\backslash 
+ Oosterloo 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} R.J. 
+\backslash 
+ Nijboer
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M. 
+\backslash 
+ van Haarlem
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+ddGList} {}
+\layout Standard
+%
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dOList} {
+\layout Standard
+
+\backslash 
+hspace{0.5cm} O.M. 
+\backslash 
+ Smirnov
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} S.B. 
+\backslash 
+ Yatawatta
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M. 
+\backslash 
+ Mevius
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} G. 
+\backslash 
+ van Diepen
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. 
+\backslash 
+ van Swieten
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M.A. 
+\backslash 
+ Brentjens
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} S. 
+\backslash 
+ Wijnholds
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. D.
+\backslash 
+ Bregman 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+% Define the Document Revision Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+revList} {0.5 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theRevNR}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dateList} {2004-Nov-25 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theDOIssue}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+sectionList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+ref{Sec2}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+pageList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+pageref{Sec2}-
+\backslash 
+pageref{Sec2e}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+changeList} {Creation 
+\backslash 
+
+\backslash 
+ Updated class description}
+\layout Standard
+%
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Make the front page: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theTitle} {Detections of transient phaenomena
+\backslash 
+
+\backslash 
+
+\layout Standard
+                                               by differential means
+\backslash 
+
+\backslash 
+
+\layout Standard
+                                               for LOFAR and other telescopes
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\backslash 
+theAuthor 
+\backslash 
+
+\backslash 
+    
+\layout Standard
+
+\backslash 
+vspace{0.1cm}{
+\backslash 
+it(jnoordam@astron.nl)}
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.3cm}Dwingeloo
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.1cm}
+\backslash 
+theDOIssue 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+maketitle
+\layout Standard
+%
+\layout Standard
+% Make the second page: 
+\layout Standard
+
+\backslash 
+theDistributionList
+\layout Standard
+
+\backslash 
+vspace{1cm}
+\layout Standard
+
+\backslash 
+theDocumentRevision
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\end_inset 
+
+
+\layout Abstract
+
+A method of transient detection by subtraction of successive sets of uv-data
+ from each other at different time-scales.
+ 
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Introduction}
+
+\end_inset 
+
+Introduction
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename sine_plot.png
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:The-contribution-to}
+
+\end_inset 
+
+The contribution to the visibility function of a point source at position
+ 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+ is a sinusoidal corrugation in the uv-plane.
+ The right panel illustrates that subtraction of successive uv-samples only
+ works if the uv-sampling interval for a particular source is considerably
+ smaller than its corrugation period.
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Subtracting-successive-time-slots}
+
+\end_inset 
+
+Subtracting successive uv-samples
+\layout Standard
+
+The visibility function is the sum of the contributions of all sources in
+ the field:
+\layout Standard
+
+
+\begin_inset Formula \[
+V(u,v)=\sum_{k}p_{k}exp(2\pi i(ul_{k}+vm_{k}))+noise\]
+
+\end_inset 
+
+
+\layout Standard
+
+The contribution of a point source is a sinusoidal corrugation in the uv-plane,
+ with amplitude 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and a period and orientation that depend only on the source position 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+.
+ The period is inversely proportional to the distance 
+\begin_inset Formula $\sqrt{l_{k}^{2}+m_{k}^{2}}$
+\end_inset 
+
+ to the field centre, and the orientation of the corrugation ridges is parallel
+ to the line 
+\begin_inset Formula $(ul_{k}+vm_{k})=0$
+\end_inset 
+
+.
+ See fig 
+\begin_inset LatexCommand \ref{cap:The-contribution-to}
+
+\end_inset 
+
+.
+\layout Standard
+
+The visibility function is sampled with one or more interferometers, each
+ consisting of a pair of telescopes, or stations.
+ The uv-coordinates of a sample depend on the length and orientation of
+ the (projected) baseline between the stations.
+ As the Earth rotates, an interferometer describes an ellipsoidal track
+ through the uv-plane, with a 'velocity' that is proportional to baseline
+ length.
+ 
+\layout Standard
+
+When subtracting successive uv-samples of the same interferometer from each
+ other, the uv-coordinates will be slightly different, and thus the phase
+ factors 
+\begin_inset Formula $(ul_{k}+vm_{k})$
+\end_inset 
+
+.
+ The subtraction error per uv-sample will be less for small values of this
+ phase factor, i.e.
+ for sources close to the field centre, and/or shorter baselines.
+ Thus, when making an image of the differences, subtraction residuals will
+ be larger for the (non-transient) sources further from the centre.
+ 
+\layout Standard
+
+The subtraction error may be decreased by subtracting the average of the
+ samples before and after:
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta V_{i}=V_{i}-(V_{i-1}+V_{i+1})/2\]
+
+\end_inset 
+
+
+\layout Standard
+
+This has the advantage that slowly varying instrumental errors are also
+ compensated.
+ However, it is clear that this will break down for those sources where
+ the sampling interval is larger than a quarter of the corrugation period.
+ The error for a particular source may be estimated in the following way:
+\layout Standard
+
+
+\begin_inset Formula \[
+sin(\alpha)-(sin(\alpha-\Delta)+sin(\alpha+\Delta))/2=sin(\alpha)(1-cos(\Delta))\]
+
+\end_inset 
+
+
+\layout Standard
+
+Thus, the 
+\emph on 
+maximum error
+\emph default 
+ we make in subtracting a particular source is a factor 
+\begin_inset Formula $(1-cos(\Delta))$
+\end_inset 
+
+, in which 
+\begin_inset Formula $\Delta$
+\end_inset 
+
+is the phase difference caused by Earth rotation between successive samples.
+ In one dimension (m) we can write:
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta=2\pi(\Delta v).m_{k}=2\pi\frac{b}{\lambda}(\Delta sinHA).sinDEC.m_{k}\approx0.002\pi\frac{b}{\lambda}(\Delta t).m_{k}\]
+
+\end_inset 
+
+
+\layout Standard
+
+We assume that 
+\begin_inset Formula $sinDEC=1$
+\end_inset 
+
+ (worst case), and that 
+\begin_inset Formula $\Delta sinHA\approx\Delta HA\approx0.001T$
+\end_inset 
+
+ rad.
+ The subtraction time interval 
+\begin_inset Formula $T$
+\end_inset 
+
+ is in seconds, and the source position 
+\begin_inset Formula $m_{k}$
+\end_inset 
+
+ is in radians.
+ We may now calculate the radius 
+\begin_inset Formula $m_{max}$
+\end_inset 
+
+ within which sources are subtracted with a certain minimum accuracy.
+ If we take baseline 
+\begin_inset Formula $b=2$
+\end_inset 
+
+ km and wavelength 
+\begin_inset Formula $\lambda=2$
+\end_inset 
+
+ m (i.e.
+ WSRT or the LOFAR core), we demand that 
+\begin_inset Formula $\Delta\leq\pi/4$
+\end_inset 
+
+, or 
+\begin_inset Formula $(1-cos(\Delta)$
+\end_inset 
+
+
+\begin_inset Formula $\leq0.3$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta=2\pi T.m_{max}=\pi/4\]
+
+\end_inset 
+
+
+\layout Standard
+
+which gives the rather useful 
+\series bold 
+rule-of-thumb
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+M_{max}\approx\frac{360}{T}\quad arcmin\label{eq:mmax}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Note the change in units, from 
+\begin_inset Formula $m_{max}(rad)$
+\end_inset 
+
+ to 
+\begin_inset Formula $M_{max}(arcmin)$
+\end_inset 
+
+, for convenience.
+ The above rule says that, for a subtraction interval of 
+\begin_inset Formula $T=100s$
+\end_inset 
+
+ (WSRT), we may use facets with a radius of 3.6 arcmin, increasing to 360
+ arcmin for 
+\begin_inset Formula $T=1$
+\end_inset 
+
+s (the LOFAR core).
+ Since 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+ is linear in most of its variables, it is easy to derive numbers for different
+ wavelength, baseline length, or required subtraction accuracy.
+ It is important to note that equ 
+\begin_inset LatexCommand \ref{eq:mmax}
+
+\end_inset 
+
+ is a worst case: it gets better for lower DEC and longer wavelength, and
+ the majority of baselines will be less than 
+\begin_inset Formula $b=2km$
+\end_inset 
+
+.
+ Obviously, the facet will be smaller if higher subtraction accuracy is
+ required.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Limiting-the-FOV}
+
+\end_inset 
+
+Limiting the FOV by time/freq averaging
+\layout Standard
+
+As we have seen, the subtraction is most effective for sources close to
+ the field centre (small l,m), and/or small baseline length.
+ This means that sources outside the radius 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+ will not be subtracted very well.
+ The sidelobes of those residuals will be a severe limitation.
+ However, it is possible to attenuate them by integrating the uv-differences
+ over freq and time, thereby effectively reducing the FOV.
+ This is done independently for each facet, after shifting the uv-differences
+ to the facet centre.
+ 
+\layout Standard
+
+When averaging uv-data over a certain time or freq interval, the facet image
+ is multplied by a sinc function.
+ Since we only want to attenuate the sources outside the facet, so we require
+ that the first zero 
+\begin_inset Formula $(sinc(\pi))$
+\end_inset 
+
+ lies somewhat beyond 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+.
+ The averaging function has to be tapered in such a way that the sinc function
+ dies out rapidly.
+\layout Standard
+
+For frequency averaging over a wavelength interval 
+\begin_inset Formula $\Delta\lambda$
+\end_inset 
+
+, we require
+\layout Standard
+
+
+\begin_inset Formula \[
+2\pi b(\frac{1}{\lambda_{1}}-\frac{1}{\lambda_{2}}).m_{max}=2\pi\frac{b}{\lambda}\frac{\Delta\lambda}{\lambda}.m_{max}=1.1\pi\]
+
+\end_inset 
+
+
+\layout Standard
+
+or, with 
+\begin_inset Formula $b/\lambda=1000$
+\end_inset 
+
+ and 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+ in arcmin as before:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{\Delta\lambda}{\lambda}=\frac{2}{M_{max}}\label{eq:fractional_lambda}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+This is the fractional bandwidth over which we have to average to attenuate
+ source residuals outside the facet radius 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+ arcmin.
+ This is easy to arrange, certainly for LOFAR, but also for the WSRT if
+ we use 
+\begin_inset Formula $T=10s$
+\end_inset 
+
+ rather than 100s...
+\layout Standard
+
+Similarly, for time averaging over a period 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+ we require:
+\layout Standard
+
+
+\begin_inset Formula \[
+2\pi\frac{b}{\lambda}\Delta t.m_{max}=1.1\pi\]
+
+\end_inset 
+
+
+\layout Standard
+
+or, with 
+\begin_inset Formula $b/\lambda=1000$
+\end_inset 
+
+ and 
+\begin_inset Formula $M_{max}$
+\end_inset 
+
+ in arcmin as before:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta t=\frac{2200}{M_{max}}\label{eq: time_averaging}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Obviously, the time averaging interval 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+ should be less than the subtraction interval 
+\begin_inset Formula $T$
+\end_inset 
+
+, which may not always be easy to achieve.
+ 
+\emph on 
+Thus, the requirement of time averaging might turn out to be the limiting
+ factor of transient detection...
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename cos_plot.png
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:T=1-s.}
+
+\end_inset 
+
+T=1 s.
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:The-optimal-facet}
+
+\end_inset 
+
+The optimal facet size
+\layout Standard
+
+We are now ready to sketch a procedure for determining the optimal facet
+ size, given the subtraction time interval 
+\begin_inset Formula $T$
+\end_inset 
+
+, and the required precision 
+\begin_inset Formula $(1-cos(\Delta))$
+\end_inset 
+
+.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Conclusions}
+
+\end_inset 
+
+Conclusions
+\layout Standard
+
+It looks interesting, but there are some loose ends....
+\layout Bibliography
+\bibitem {JEN-nov2005}
+
+J.E.
+ Noordam: 
+\emph on 
+LOFAR Calibration Strategy
+\emph default 
+ (CDR-I, November 2005)
+\layout Bibliography
+\bibitem {JEN-dynarange}
+
+J.E.
+ Noordam et al: 
+\emph on 
+Limiting factors of LOFAR calibration 
+\emph default 
+(2006)
+\the_end
