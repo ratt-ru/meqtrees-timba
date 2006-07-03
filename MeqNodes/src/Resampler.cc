@@ -91,7 +91,7 @@ int Resampler::getResult (Result::Ref &resref,
 	for( int ax=0; ax<Axis::MaxAxis; ax++ ) {
 		//check to see if we keep this axes
 		bool keep_this=false;
-		for(int ii=0; ii<keep_axes_.size(); ii++) {
+		for(unsigned int ii=0; ii<keep_axes_.size(); ii++) {
 	    if(keep_axes_[ii]==Axis::axisId(ax)) {
 					keep_this=true;
 			}
@@ -120,7 +120,9 @@ int Resampler::getResult (Result::Ref &resref,
 	if (!use_new_cells) {
 	 resampler->setup(incells, outcells);
 	} else {
+#ifdef DEBUG
 	 cout<<"Using new cells"<<endl;
+#endif
 	 resampler->setup(incells, newcells);
 	}
 
@@ -139,12 +141,13 @@ int Resampler::getResult (Result::Ref &resref,
   {
     VellSet::Ref ref;
 		const VellSet &invs=chres.vellSet(ivs);
+		//only non empty vellsets are handled
+		if (!invs.isEmpty()) {
 		VellSet &outvs= ref<<= new VellSet(invs.numSpids(),invs.numPertSets());
     // call the resampler
-    //resampler.apply(ref,invs,chres.isIntegrated());
-    resampler->apply(invs,outvs);
-
-    result.setVellSet(ivs,ref);
+      resampler->apply(invs,outvs);
+      result.setVellSet(ivs,ref);
+		}
   }
 
 	if (!use_new_cells) {
@@ -813,7 +816,7 @@ void
  Interpolator::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex) {
 
 	//special case: n==1 and m> 1, oversample from a scalar, just copy the value
-	if (n==1 && m >=1) {yout=yin(0); return;}
+	if (n==1 && m >=1) { yout=yin(0); return;}
 
 	//another special case, input and output is exact
 	int is_identical=1;
@@ -1030,13 +1033,15 @@ Interpolator::apply( const VellSet &in, VellSet &out ) {
   outdim.resize(dim);
 	totdim.resize(dim);
 
-	const Vells &invl=in.getValue();
 	for (int i=0; i<dim; i++) {
 		indim[i]=incells_[i].size();
 		outdim[i]=outcells_[i].size();
 		totdim[i]=std::max(indim[i],outdim[i]);
 	}
-	out.setValue(really_apply(invl, indim, outdim, totdim));
+  if (in.hasValue()) {
+	 const Vells &invl=in.getValue();
+	 out.setValue(really_apply(invl, indim, outdim, totdim));
+	}
 
 	//see if we have any perturbed values
 	int npert=in.numPertSets();
