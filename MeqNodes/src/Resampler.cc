@@ -1040,7 +1040,12 @@ Interpolator::apply( const VellSet &in, VellSet &out ) {
 	}
   if (in.hasValue()) {
 	 const Vells &invl=in.getValue();
-	 out.setValue(really_apply(invl, indim, outdim, totdim));
+	 //check for scalar values
+	 if (invl.isScalar()) {
+	  out.setValue(invl);
+	 } else {
+	  out.setValue(really_apply(invl, indim, outdim, totdim));
+	 }
 	}
 
 	//see if we have any perturbed values
@@ -1334,6 +1339,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 		 }
 	 }
 #ifdef DEBUG
+	 cout<<"loop 1"<<endl;
 	 cout<<"A="<<A<<endl;
 	 cout<<"B="<<B<<endl;
 #endif
@@ -1356,6 +1362,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 		 }
 	 }
 #ifdef DEBUG
+	 cout<<"loop 2"<<endl;
 	 cout<<"B="<<B<<endl;
 #endif
 	 yin.resize(indim[2]);
@@ -1374,6 +1381,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 		 }
 	 }
 #ifdef DEBUG
+	 cout<<"loop 3"<<endl;
 	 cout<<"B="<<B<<endl;
 #endif
 	 yin.resize(indim[3]);
@@ -1407,6 +1415,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 		 }
 	 }
 #ifdef DEBUG
+	 cout<<"loop 4"<<endl;
 	 cout<<"B="<<B<<endl;
 #endif
 
@@ -1426,6 +1435,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 		 }
 	 }
 #ifdef DEBUG
+	 cout<<"loop 5"<<endl;
 	 cout<<"B="<<B<<endl;
 #endif
 
@@ -1434,6 +1444,8 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 cout<<"C="<<C<<endl;
 #endif
 	 out=new Vells(C);
+	} else {
+		cout<<"Dimension "<<dim<<" is WIP"<<endl;
 	}
 	} else if (invl.isComplex()) {
 	dcomplex *indata=const_cast<dcomplex*>(invl.complexStorage());
@@ -1622,22 +1634,32 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 	 out=new Vells(C);
 	}
 	else if (dim==6) {
-   blitz::Array<dcomplex,6> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3],indim[4],indim[5]),blitz::neverDeleteData);
+	 blitz::Array<dcomplex,1> yin;
+	 blitz::Array<dcomplex,1> yout;
+	 yin.resize(indim[0]);
+	 yout.resize(outdim[0]);
+   blitz::Array<dcomplex,6> A(indata,blitz::shape(indim[0],indim[1],indim[2],indim[3],indim[4],indim[5]),blitz::duplicateData);
    blitz::Array<dcomplex,6> B(outdim[0],totdim[1],totdim[2],totdim[3],totdim[4],totdim[5]);
 	 for (int i=0; i<indim[1]; i++) {
 	   for (int j=0; j<indim[2]; j++) {
 	     for (int k=0; k<indim[3]; k++) {
 	       for (int l=0; l<indim[4]; l++) {
 	         for (int p=0; p<indim[5]; p++) {
-           pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k,l,p),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k,l,p), outdim[0], xindex_[0]);
+					 yin=A(blitz::Range(0,indim[0]-1),i,j,k,l,p);
+           //pchip_int(incells_[0], A(blitz::Range(0,indim[0]-1),i,j,k,l,p),  indim[0], outcells_[0], B(blitz::Range(0,outdim[0]-1),i,j,k,l,p), outdim[0], xindex_[0]);
+           pchip_int(incells_[0], yin,  indim[0], outcells_[0], yout, outdim[0], xindex_[0]);
+            B(blitz::Range(0,outdim[0]-1),i,j,k,l,p)=yout;
 					 }
 				 }
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 1"<<endl;
+#endif
+
+
 	 //copy the remaining dimensions
-	 blitz::Array<dcomplex,1> yin;
-	 blitz::Array<dcomplex,1> yout;
 	 yin.resize(indim[1]);
 	 yout.resize(outdim[1]);
 	 for (int i=0; i<outdim[0]; i++) {
@@ -1653,6 +1675,11 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 2"<<endl;
+#endif
+
+
 	 yin.resize(indim[2]);
 	 yout.resize(outdim[2]);
 	 for (int i=0; i<outdim[0]; i++) {
@@ -1668,6 +1695,11 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 3"<<endl;
+#endif
+
+
 	 yin.resize(indim[3]);
 	 yout.resize(outdim[3]);
 	 for (int i=0; i<outdim[0]; i++) {
@@ -1683,6 +1715,11 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 4"<<endl;
+#endif
+
+
 	 yin.resize(indim[4]);
 	 yout.resize(outdim[4]);
 	 for (int i=0; i<outdim[0]; i++) {
@@ -1698,6 +1735,11 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 5"<<endl;
+#endif
+
+
 	 yin.resize(indim[5]);
 	 yout.resize(outdim[5]);
 	 for (int i=0; i<outdim[0]; i++) {
@@ -1713,6 +1755,10 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
 			 }
 		 }
 	 }
+#ifdef DEBUG
+	 cout<<"loop 6"<<endl;
+#endif
+
 
    blitz::Array<dcomplex,6> C=B(blitz::Range(0,outdim[0]-1),blitz::Range(0,outdim[1]-1),blitz::Range(0,outdim[2]-1),blitz::Range(0,outdim[3]-1),blitz::Range(0,outdim[4]-1), blitz::Range(0,outdim[5]-1));
 	 out=new Vells(C);
