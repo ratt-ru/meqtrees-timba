@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -582,6 +582,12 @@ The contribution to the visibility function of a point source at position
  The right panel illustrates that subtraction of successive uv-samples only
  works if the uv-sampling interval for a particular source is considerably
  smaller than its corrugation period.
+ Use 
+\begin_inset Formula $\pi/10$
+\end_inset 
+
+.
+ 
 \end_inset 
 
 
@@ -748,7 +754,7 @@ We assume that
 
  m (i.e.
  WSRT or the LOFAR core), we demand that 
-\begin_inset Formula $\Delta\leq\pi/4$
+\begin_inset Formula $\Delta\leq\pi/10$
 \end_inset 
 
 , or 
@@ -756,7 +762,7 @@ We assume that
 \end_inset 
 
 
-\begin_inset Formula $\leq0.3$
+\begin_inset Formula $\leq0.05$
 \end_inset 
 
 :
@@ -764,7 +770,7 @@ We assume that
 
 
 \begin_inset Formula \[
-\Delta=2\pi T.m_{max}=\pi/4\]
+\Delta=2\pi T.m_{max}=\pi/10\]
 
 \end_inset 
 
@@ -778,7 +784,7 @@ rule-of-thumb
 
 
 \begin_inset Formula \begin{equation}
-M_{max}\approx\frac{360}{T}\quad arcmin\label{eq:mmax}\end{equation}
+M_{max}\approx\frac{180}{T}\quad arcmin\label{eq:mmax}\end{equation}
 
 \end_inset 
 
@@ -798,7 +804,7 @@ Note the change in units, from
 \begin_inset Formula $T=100s$
 \end_inset 
 
- (WSRT), we may use facets with a radius of 3.6 arcmin, increasing to 360
+ (WSRT), we may use facets with a radius of 1.8 arcmin, increasing to 180
  arcmin for 
 \begin_inset Formula $T=1$
 \end_inset 
@@ -873,7 +879,7 @@ For frequency averaging over a wavelength interval
 
 
 \begin_inset Formula \[
-2\pi b(\frac{1}{\lambda_{1}}-\frac{1}{\lambda_{2}}).m_{max}=2\pi\frac{b}{\lambda}\frac{\Delta\lambda}{\lambda}.m_{max}=1.1\pi\]
+2\pi b(\frac{1}{\lambda_{1}}-\frac{1}{\lambda_{2}}).m_{max}=2\pi\frac{b}{\lambda}\frac{\Delta\lambda}{\lambda}.m_{max}=1.5\pi\]
 
 \end_inset 
 
@@ -923,7 +929,7 @@ Similarly, for time averaging over a period
 
 
 \begin_inset Formula \[
-2\pi\frac{b}{\lambda}\Delta t.m_{max}=1.1\pi\]
+2\pi\frac{b}{\lambda}\Delta t.m_{max}=1.5\pi\]
 
 \end_inset 
 

@@ -47,11 +47,11 @@ def M_arcmin (delta=pi/10, T=1.0, b=2000, wvl=2.0, sinDEC=1.0, trace=False):
 
 #-------------------------------------------------------------------------------
 
-def cos_plot():
-    T = 1.0
+def cos_plot(T=1.0):
     b = 2000.0
     wvl = 2.0
-    M_max = M_arcmin(delta=pi/10, T=T, wvl=wvl, b=b)
+    delta_max = pi/10
+    M_max = M_arcmin(delta=delta_max, T=T, wvl=wvl, b=b)
     MM = arange(0.01,M_max*4,M_max/10)
     yy = 1 - cos(delta(M_arcmin=MM, T=T, wvl=wvl, b=b))
     yy[yy>1] = 1.0
@@ -69,12 +69,13 @@ def cos_plot():
     title('source subtraction error (worst case)')
     text(M_max*3, 0.5, '1-cos(delta)', color='red')
     text(1, 1.0, ' sinc', color='blue')
-    figtext(0.3, 0.85, 'T = '+str(T)+' s')
-    figtext(0.3, 0.8, 'b = '+str(b)+' m')
-    figtext(0.3, 0.75, 'lambda = '+str(wvl)+' m')
-    figtext(0.3, 0.70, 'FOV: fractional bandwidth =')
-    figtext(0.3, 0.65, 'FOV: integration interval =')
-    savefig('cos_plot.png')
+    figtext(0.3, 0.85, 'subtract interval T = '+str(T)+' s')
+    figtext(0.3, 0.8, 'delta_max = '+str(delta_max))
+    figtext(0.3, 0.75, 'b = '+str(b)+' m')
+    figtext(0.3, 0.7, 'lambda = '+str(wvl)+' m')
+    figtext(0.3, 0.65, 'FOV: fractional bandwidth = '+str(2/M_max))
+    figtext(0.3, 0.6, 'FOV: integration interval = '+str(2000/M_max)+' s')
+    savefig('cos_plot_T'+str(int(T))+'s.png')
     show()
     return True
 
