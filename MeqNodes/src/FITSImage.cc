@@ -72,7 +72,7 @@ const HIID FCutoff= AidCutoff;
 
 //##ModelId=400E5355029C
 FITSImage::FITSImage()
-	: Node(0),cutoff_(0.1)
+	: Node(0),cutoff_(0.1),has_prev_result_(false)
 {
 
 	//create 2 new axes -- Freq is already present
@@ -107,6 +107,7 @@ int FITSImage::getResult (Result::Ref &resref,
 {
  double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0, *fgrid, *fspace;
  long int naxis[4]={0,0,0,0};
+ if (has_prev_result_) {resref=old_res_; return 0; }
  int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace);
  FailWhen(flag," Error Reading Fits File "+flag);
 
@@ -115,7 +116,7 @@ int FITSImage::getResult (Result::Ref &resref,
 #endif
  //create a result with 6 vellsets, is integrated
  //if integrated=0, cells is removed
- Result &result=resref<<= new Result(6,1); 
+ Result &result=old_res_<<= new Result(6,1); 
 
  /* RA0 vellset */
  VellSet::Ref ref0;
@@ -281,6 +282,10 @@ int FITSImage::getResult (Result::Ref &resref,
   result.setVellSet(5,refV);
  }
  result.setCells(cells);
+
+ //transfer result
+ resref=old_res_;
+ has_prev_result_=true;
 
  free(arr);
  free(lgrid);

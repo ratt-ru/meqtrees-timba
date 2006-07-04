@@ -68,6 +68,9 @@ private:
 
 	string filename_;
 	double cutoff_;
+	//for caching the old result
+	bool has_prev_result_;
+	Result::Ref old_res_;
 };
 
 } // namespace Meq
