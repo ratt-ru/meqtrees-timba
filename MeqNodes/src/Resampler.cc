@@ -1044,6 +1044,13 @@ Interpolator::apply( const VellSet &in, VellSet &out ) {
 	 if (invl.isScalar()) {
 	  out.setValue(invl);
 	 } else {
+		//check for compatibility of this vells with the cells
+		for (int i=0; i<dim; i++) {
+		 cout<<invl.extent(i)<<endl;
+		 if (indim[i]>invl.extent(i)) {indim[i]=invl.extent(i);}
+		 totdim[i]=std::max(indim[i],outdim[i]);
+		}
+
 	  out.setValue(really_apply(invl, indim, outdim, totdim));
 	 }
 	}
