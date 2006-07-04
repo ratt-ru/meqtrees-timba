@@ -1046,7 +1046,6 @@ Interpolator::apply( const VellSet &in, VellSet &out ) {
 	 } else {
 		//check for compatibility of this vells with the cells
 		for (int i=0; i<dim; i++) {
-		 cout<<invl.extent(i)<<endl;
 		 if (indim[i]>invl.extent(i)) {indim[i]=invl.extent(i);}
 		 totdim[i]=std::max(indim[i],outdim[i]);
 		}
