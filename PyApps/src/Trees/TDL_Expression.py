@@ -1445,7 +1445,7 @@ class Expression:
         # elif self.__expression_type=='MeqPolcLog':    # see polc_Expression()
         # else:
         #-----------------------------------------------------
-        if False:
+        if True:
             # type: isinstance(f0, Funklet) -> True
             f0 = Funklet(funklet=record(function=expr, coeff=coeff), name=None)
         else:

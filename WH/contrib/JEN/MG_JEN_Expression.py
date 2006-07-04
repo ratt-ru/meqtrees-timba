@@ -30,6 +30,7 @@ from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
+from Timba.Contrib.MXM import TDL_Funklet
 
 from Timba.Trees import TDL_Expression
 from Timba.Trees import TDL_display
@@ -68,22 +69,37 @@ def _define_forest (ns):
       cosvar = costime (ampl=1.0, period=0.1, phase=0.1, plot=False, trace=False) 
       cc.append(cosvar.MeqNode(ns))
 
-   if True:
+   if False:
       # Experiment: Compare Funklet and subTree versions:
       expr = '12+{a}-{b}'
       expr = '12+{a}*[f]-{b}*[t]'
-      expr = '12+{a}*[f]-{b}'
+      # expr = '12+{a}*[f]-{b}'
       Q = TDL_Expression.Expression(expr)
       c1 = Q.MeqNode(ns)
       c2 = Q.subTree(ns)
       cc.append(ns.diff << Meq.Subtract(c1,c2))
 
-   if False:
+      # NB: The following plots WITHOUT execution!
+      # funk = TDL_Funklet.Funklet(Q.Funklet());
+      funk = Q.Funklet()
+      dom = meq.gen_domain(time=(0,1),freq=(1,100))
+      cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10)
+      funk.plot(cells=cells)
+      
+
+   if True:
       # Experiment: WSRT gaussian voltage beam(s):
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
       for L in array(range(5))*0.04:
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
       cc.append(make_Functional (ns, Xbeam, q='3c123'))
+
+      # NB: The following plots WITHOUT execution!
+      # funk = TDL_Funklet.Funklet(Xbeam.Funklet());
+      funk = Xbeam.Funklet()
+      dom = meq.gen_domain(time=(0,1),freq=(1,100),l=(10,20),m=(-10,-5))
+      cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10, num_l=10, num_m=12)
+      # funk.plot(cells=cells)
 
    if False:
       # Experiment: Solve for Xbeam=Ybeam
