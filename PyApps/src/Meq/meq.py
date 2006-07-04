@@ -40,19 +40,21 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
   if isinstance(coeff,(tuple,list)):
     if shape and len(shape)>2:
       raise ValueError,'coeff array must be one- or two-dimensional';
-    if filter(lambda x:isinstance(x,complex),coeff):
-      coeff = array_complex(coeff,shape=shape);
-    else:
-      coeff = array_double(coeff,shape=shape);
+    #    if filter(lambda x:isinstance(x,complex),coeff):
+    #      coeff = array_complex(coeff,shape=shape);
+    #    else:
+    coeff = array_double(coeff,shape=shape);
   if is_scalar(coeff):
-    if not isinstance(coeff,complex):  # force float or complex
-      coeff = float(coeff);
+    #    if not isinstance(coeff,complex):  # force float or complex
+    coeff = float(coeff);
     rec.coeff = array(coeff);
   elif is_array(coeff):
     if len(coeff.getshape()) > 2:
       raise TypeError,'coeff array must be one- or two-dimensional';
-    if coeff.type() not in (arr_double,arr_dcomplex):
-      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
+##    if coeff.type() not in (arr_double,arr_dcomplex):
+##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
+    if not coeff.type() == arr_double:
+      raise TypeError,'coeff array must be float (Float64)';
     rec.coeff = coeff;
   else:
     raise TypeError,'illegal coeff argument';
