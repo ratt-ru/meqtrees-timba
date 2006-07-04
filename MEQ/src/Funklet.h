@@ -42,7 +42,7 @@ class VellSet;
 
 const double defaultFunkletPerturbation = 1e-6;
 const double defaultFunkletWeight = 1;
-const int defaultFunkletRank = 8;
+const int defaultFunkletRank = 2;
 
 extern const int    defaultFunkletAxes[defaultFunkletRank];
 extern const double defaultFunkletOffset[defaultFunkletRank];
@@ -109,12 +109,14 @@ public:
   const Domain & domain() const
   { return domain_.valid() ? *domain_ : default_domain; }
 
+  void setRank(int rank);
+
   // returns "rank" of funklet (normally, the number of variability axes)
   int rank () const
   { return axes_.size(); }
   
   // sets up an axis of variability
-  void setAxis (int i,int iaxis,double offset=0,double scale=1);
+  void setAxis (int i,int iaxis,double offset=0.,double scale=1.);
 
   // returns axis of variability
   int getAxis (int i) const {
@@ -295,7 +297,7 @@ public:
   virtual void setCoeffShape(const LoShape & shape)
   { 
     // to be reimplemented by polctype funklets
-    cdebug(2)<<"set coeff shape only implemented for pocltype funklets"<<endl;
+    cdebug(2)<<"set coeff shape only implemented for polctype funklets"<<endl;
   }
 
   virtual const DMI::NumArray & coeff () const
@@ -329,14 +331,13 @@ public:
   }
 
   virtual void setFunction(string funcstring){
-    //reset in CompiledFunklet, default is just the string of the type
     (*this)[FFunction] = funcstring;
    }
+
   virtual vector<double> getConstants () const {
         return vector<double>();
   }
   virtual void setConstants () const {
-    // return vector<double>();
   }
 
 protected:

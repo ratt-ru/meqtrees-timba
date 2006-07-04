@@ -37,12 +37,12 @@ using namespace DMI;
 static DMI::Container::Register reg(TpMeqFunklet,true);
 
 
-  const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1,2,3,4,5,6,7};
-  const double defaultFunkletOffset[defaultFunkletRank] = {0,0,0,0,0,0,0,0};
-  const double defaultFunkletScale[defaultFunkletRank]  = {1,1,1,1,1,1,1,1};
-//   const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1};
-//   const double defaultFunkletOffset[defaultFunkletRank] = {0,0};
-//   const double defaultFunkletScale[defaultFunkletRank]  = {1,1};
+//   const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1,2,3,4,5,6,7};
+//   const double defaultFunkletOffset[defaultFunkletRank] = {0,0,0,0,0,0,0,0};
+//   const double defaultFunkletScale[defaultFunkletRank]  = {1,1,1,1,1,1,1,1};
+  const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1};
+  const double defaultFunkletOffset[defaultFunkletRank] = {0,0};
+  const double defaultFunkletScale[defaultFunkletRank]  = {1,1};
 
 static std::vector<int> default_axes(defaultFunkletAxes,defaultFunkletAxes+defaultFunkletRank);
 static std::vector<double> default_offset(defaultFunkletOffset,defaultFunkletOffset+defaultFunkletRank);
@@ -129,8 +129,22 @@ void Funklet::validateContent (bool)
 //     scales_     = (*this)[FScale].as_vector(default_scale);
 //     if(!Record::hasField(FScale))
 //       (*this)[FScale].replace()=scales_;
-    Assert(axes_.size() == uint(rank()) && offsets_.size() == uint(rank()) && scales_.size() == uint(rank()) );
+//    Assert(axes_.size() >= uint(rank()) && offsets_.size() >= uint(rank()) && scales_.size() >= uint(rank()) );
     //?? rank() is  defined as axes_.size(), no need to check really....
+
+    uint rnk = uint(rank());
+    if(offsets_.size() < rnk)
+      {
+	for(uint i=offsets_.size();i<rnk;i++)
+	  offsets_.push_back(0.);
+        (*this)[FOffset].replace()=offsets_;
+      }
+    if(scales_.size() < rnk)
+      {
+	for(uint i=scales_.size();i<rnk;i++)
+	  scales_.push_back(1.);
+        (*this)[FScale].replace()=scales_;
+      }
 
     pertValue_  = (*this)[FPerturbation].as<double>(defaultFunkletPerturbation);
     weight_     = (*this)[FWeight].as<double>(defaultFunkletWeight);
@@ -172,18 +186,11 @@ void Funklet::init (int rnk,const int iaxis[],
                     double pert,double weight,DbId id)
 {
   Thread::Mutex::Lock lock(mutex());
-  // this ensures a rank match: first time 'round, set the rank
-  if( axes_.empty() )
-  {
-    FailWhen(rnk<0 || rnk>maxFunkletRank(),"illegal Meq::Funklet rank");
-    axes_.resize(rnk);
-    offsets_.resize(rnk);
-    scales_.resize(rnk);
-  }
-  else // otherwise ensure rank did not change
-  {
-    FailWhen(rank() != rnk,"Meq::Funklet already initialized with a different rank");
-  }
+
+  FailWhen(rnk<0 || rnk>maxFunkletRank(),"illegal Meq::Funklet rank");
+  axes_.resize(rnk);
+  offsets_.resize(rnk);
+  scales_.resize(rnk);
   // init fields
   if( rnk )
   {
@@ -217,8 +224,11 @@ void Funklet::setAxis (int i,int iaxis,double offset,double scale)
   if( i == rank() )
   {
     axes_.push_back(iaxis);
-    offsets_.push_back(offset);
-    scales_.push_back(scale);
+
+    if(offsets_.size()==uint(i))
+      offsets_.push_back(offset);
+    if(scales_.size()==uint(i))
+      scales_.push_back(scale);
     (*this)[FAxisIndex].replace() = axes_;
     (*this)[FOffset].replace()    = offsets_;
     (*this)[FScale].replace()     = scales_;
@@ -316,11 +326,24 @@ void Funklet::clearSolvable()
 }
 
 
+
+  void Funklet::setRank(int rnk){
+    //increases rank of funklet, to make sure vectors have at least the right size
+    int rnk_old =rank();
+    for(int i=rnk_old;i<rnk;i++)
+      //add axis i
+      setAxis(i,i);
+  }
+
 void Funklet::setCoeff (const DMI::NumArray &arr)
 {
   Thread::Mutex::Lock lock(mutex());
-  //  FailWhen(rank()!=arr.rank(),"Meq::Funklet: coeff rank mismatch");
   FailWhen(arr.elementType()!=Tpdouble,"Meq::Funklet: coeff array must be of type double");
+
+  //  FailWhen(rank()!=arr.rank(),"Meq::Funklet: coeff rank mismatch");
+  //if there is a rank mismatch add axes ? 
+  
+
   ObjRef ref(new DMI::NumArray(arr));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
   pcoeff_ = &( field.ref().ref_cast<DMI::NumArray>() );
@@ -330,6 +353,7 @@ void Funklet::setCoeff (double c00)
 {
   Thread::Mutex::Lock lock(mutex());
   //  FailWhen(rank()!=0,"Meq::Funklet: coeff rank mismatch");
+  //if there is a rank mismatch reinit ? 
   LoVec_double coeff(1);
   coeff = c00;
   ObjRef ref(new DMI::NumArray(coeff));
@@ -340,8 +364,9 @@ void Funklet::setCoeff (double c00)
 void Funklet::setCoeff (const LoVec_double & coeff)
 {
   Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(1,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+  if(! rank())
+    //  init(1,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+    setAxis(1,1);
   //  else {
   //    FailWhen(rank()!=1,"Meq::Funklet: coeff rank mismatch");
   //  }
@@ -353,8 +378,20 @@ void Funklet::setCoeff (const LoVec_double & coeff)
 void Funklet::setCoeff (const LoMat_double & coeff)
 {
   Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(2,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+  //  if( !rank() || rank() !=2 )
+  //  init(2,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+
+
+  if(rank()<2){
+    int rnk=rank();
+    for(int i=rnk;i<2;i++)
+      setAxis(i,i);
+    
+
+  }
+  
+
+
   //  else {
   //    FailWhen(rank()!=2,"Meq::Funklet: coeff rank mismatch");
   //  }

@@ -37,7 +37,7 @@
 namespace Meq 
 { 
 
-const int    MaxPolcRank = 8;
+const int    MaxPolcRank = 2;
 const double defaultPolcPerturbation = defaultFunkletPerturbation;
 const double defaultPolcWeight = defaultFunkletWeight;
 extern const int    defaultPolcAxes[MaxPolcRank];
@@ -120,6 +120,14 @@ public:
   virtual int makeSolvable (int spidIndex);
 
   virtual void setCoeffShape(const LoShape & shape);
+
+
+  virtual void setCoeff (double c00){
+    Funklet::setCoeff(c00);
+  }
+  virtual void setCoeff (const LoVec_double & coeff);
+  virtual void setCoeff (const LoMat_double & coeff);
+  virtual void setCoeff (const DMI::NumArray & coeff);
 
 protected:
   //------------------ implement protected Funklet interface ---------------------------------

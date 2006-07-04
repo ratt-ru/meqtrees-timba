@@ -222,11 +222,16 @@ PolcLog::PolcLog(double c00,double pert,double weight,DbId id,std::vector<double
     std::vector<double> newscales(2);
     for(int axisi=0;axisi<2;axisi++){
       if(fabs(axis_vector_[axisi])) {
+	//only transform linear axes
+	/*
 	newoffsets[axisi] = solveDomain[0]*log(valDomain.end(axisi)/axis_vector_[axisi])-
 	  solveDomain[1]*log(valDomain.start(axisi)/axis_vector_[axisi]);
 	newoffsets[axisi] /= log(10.)*(solveDomain[0]-solveDomain[1]);
 	newscales[axisi] = log(valDomain.end(axisi)/axis_vector_[axisi]) - log(valDomain.start(axisi)/axis_vector_[axisi]);
 	newscales[axisi] /= log(10.)*(solveDomain[1] - solveDomain[0]);
+	*/
+	newoffsets[axisi]  = 0.;
+	newscales[axisi] = 1.;
       }
       else{
 	newoffsets[axisi] = solveDomain[0]*valDomain.end(axisi)-

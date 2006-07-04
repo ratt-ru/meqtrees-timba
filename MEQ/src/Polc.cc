@@ -36,12 +36,12 @@ namespace Meq {
 
 static DMI::Container::Register reg(TpMeqPolc,true);
 
-// const int    defaultPolcAxes[MaxPolcRank]       = {0,1};
-// const double defaultPolcOffset[MaxPolcRank]     = {0,0};
-// const double defaultPolcScale[MaxPolcRank]      = {1,1};
-  const int    defaultPolcAxes[MaxPolcRank]       = {0,1,2,3,4,5,6,7};
-  const double defaultPolcOffset[MaxPolcRank]     = {0,0,0,0,0,0,0,0};
-  const double defaultPolcScale[MaxPolcRank]      = {1,1,1,1,1,1,1,1};
+ const int    defaultPolcAxes[MaxPolcRank]       = {0,1};
+ const double defaultPolcOffset[MaxPolcRank]     = {0,0};
+ const double defaultPolcScale[MaxPolcRank]      = {1,1};
+//   const int    defaultPolcAxes[MaxPolcRank]       = {0,1,2,3,4,5,6,7};
+//   const double defaultPolcOffset[MaxPolcRank]     = {0,0,0,0,0,0,0,0};
+//   const double defaultPolcScale[MaxPolcRank]      = {1,1,1,1,1,1,1,1};
 
 static std::vector<int> default_axes(defaultPolcAxes,defaultPolcAxes+MaxPolcRank);
 static std::vector<double> default_offset(defaultPolcOffset,defaultPolcOffset+MaxPolcRank);
@@ -88,8 +88,8 @@ Polc::Polc(DMI::NumArray *pcoeff,
 
   ObjRef ref(pcoeff);
   FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::Polc from this array: not double");
-  FailWhen(pcoeff->rank()>MaxPolcRank,"can't create Meq::Polc from this array: rank too high");
   int rnk = pcoeff->rank();
+  FailWhen(rnk>MaxPolcRank,"can't create Meq::Polc from this array: rank too high");
   // if only a single coeff, rank is 0
   if( rnk == 1 && pcoeff->size() == 1 )
     rnk = 0;
@@ -136,13 +136,13 @@ void Polc::validateContent (bool recursive)
 	}
 	FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
 	
+	// check for sanity
+	FailWhen((*pcoeff_)->rank()>MaxPolcRank,"Meq::Polc: coeff can have max. rank of 2");
 	
       }
       else
 	pcoeff_ = 0;
     }
-    // check for sanity
-    Assert(rank()<=MaxPolcRank && coeff().rank()<=rank());
       
   }
   catch( std::exception &err )
@@ -170,7 +170,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   // If an axis is not defined in the Cells, then we can only proceed if we have
   // no dependence on that axis (i.e. only one coeff in that direction)
   int coeff_rank = coeff().rank();
-  DbgAssert(coeff_rank<=2); // for now
+  DbgAssert(coeff_rank<=MaxPolcRank); // for now
   const LoShape & cshape = coeff().shape();
   int coeff_size = coeff().size();
   LoVec_double grid[2];
@@ -500,7 +500,7 @@ int Polc::makeSolvable (int spidIndex){
     if(size == getNumParms())
       return Funklet::makeSolvable(spidIndex,mask);
   }
-
+  //if user did not specify a mask, set the default to everything but the lower right triangle
 
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
   mask = std::vector<bool>(NX*NY);
@@ -596,12 +596,46 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
 }
 
 
+
+
+
+
+
+  void Polc::setCoeff (const LoVec_double & coeff){
+    if (rank()<1)
+      setRank(1);
+    Funklet::setCoeff(coeff);
+
+}
+
+
+
+
+  void Polc::setCoeff (const LoMat_double & coeff){
+  if (rank()<2)
+    setRank(2);
+  Funklet::setCoeff(coeff);
+
+}
+  
+
+
+  void Polc::setCoeff (const DMI::NumArray & coeff){
+  if (rank()<coeff.rank())
+    setRank(coeff.rank());
+  Funklet::setCoeff(coeff);
+      
+  }
+
+
 void Polc::setCoeffShape(const LoShape & shape){
  
   if(coeff().shape()==shape) return;
 
   //  if(coeff().shape().size()< shape.size()){
     // init problem??
+  //taken care off in Funklet::setCoeff
+
   //}
   DMI::NumArray coeffnew(Tpdouble,shape);
   double * dataptr = static_cast<double*>(coeffWr().getDataPtr());
