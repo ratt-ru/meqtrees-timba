@@ -84,9 +84,12 @@ int Resampler::getResult (Result::Ref &resref,
   const Cells &outcells = request.cells();
 
 	//envelope of the two domains
-	Domain newdomain=Domain::envelope(incells.domain(),outcells.domain());
+	Domain::Ref  newdomain(new Domain(Domain::envelope(incells.domain(),outcells.domain())));
+	
+	//Domain *newdomain=incells.domain().clone();
+	//newdomain.envelope(outcells.domain());
 	Cells::Ref cells_ref;
-	Cells &newcells=cells_ref<<=new Cells(newdomain);
+	Cells &newcells=cells_ref<<=new Cells(*newdomain);
 	bool use_new_cells=false;
 	for( int ax=0; ax<Axis::MaxAxis; ax++ ) {
 		//check to see if we keep this axes
