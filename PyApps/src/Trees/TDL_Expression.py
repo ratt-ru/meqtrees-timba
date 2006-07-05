@@ -1447,7 +1447,7 @@ class Expression:
         #-----------------------------------------------------
         if True:
             # type: isinstance(f0, Funklet) -> True
-            f0 = Funklet(funklet=record(function=expr, coeff=coeff), name=None)
+            f0 = Funklet(funklet=record(function=expr, coeff=coeff), name=self.label())
         else:
             # Alternative: type(meq.polc(0)) 
             f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)

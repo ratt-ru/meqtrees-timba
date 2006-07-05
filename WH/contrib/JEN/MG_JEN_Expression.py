@@ -89,17 +89,21 @@ def _define_forest (ns):
 
    if True:
       # Experiment: WSRT gaussian voltage beam(s):
+
+      # NB: The following plots WITHOUT execution!
+      dom = meq.gen_domain(time=(0,1),freq=(100e6,110e6),l=(-0.1,0.1),m=(-0.1,0.1))
+      cells = meq.gen_cells(domain=dom,num_time=1,num_freq=5, num_l=11, num_m=11)
+
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
+      Xbeam.Funklet().plot(cells=cells)
+
+      if False:
+         Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
+         Ybeam.Funklet().plot(cells=cells)
+
       for L in array(range(5))*0.04:
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
       cc.append(make_Functional (ns, Xbeam, q='3c123'))
-
-      # NB: The following plots WITHOUT execution!
-      # funk = TDL_Funklet.Funklet(Xbeam.Funklet());
-      funk = Xbeam.Funklet()
-      dom = meq.gen_domain(time=(0,1),freq=(1,100),l=(10,20),m=(-10,-5))
-      cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10, num_l=10, num_m=12)
-      # funk.plot(cells=cells)
 
    if False:
       # Experiment: Solve for Xbeam=Ybeam
