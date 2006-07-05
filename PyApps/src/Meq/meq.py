@@ -3,6 +3,7 @@
 from Timba.dmi import *
 
 from numarray import *
+from Timba.Meq import meqds
 
 domain_ndim = 2;
 domain_axes = ( "freq","time" );
@@ -301,6 +302,20 @@ def result(cells=None,data = None,rqid=hiid(0)):
                  vellsets      = [record(shape=data.shape,value=data)],
                  result_code = 0,
                  request_id = rqid);
+
+  #result assumes axis_map in domain needed for result_plotter
+
+  dom  =  cells.domain;
+  forest_state=meqds.get_forest_state();
+  axis_map=forest_state.axis_map;
+  axis_list = [];
+
+  for i in range(len(axis_map)):
+    if axis_map[i].has_key('id') and axis_map[i]['id']:
+      axis_list.append(str(axis_map[i]['id']).lower());
+  dom['axis_map'] = axis_list;
+
+  rec.cells.domain = dom;
   return rec;
   
 
