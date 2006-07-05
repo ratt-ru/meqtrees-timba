@@ -93,6 +93,8 @@ class AxisRange(QWidget):
         else:
           delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
           index = self.axis_parms[0] + 0.5 * delta_vells 
+          if abs(index) < 0.000001:
+            index = 0.0
           dummy = str(index)
           if len(dummy) > 10:
             display_str = dummy[:9]
@@ -107,12 +109,13 @@ class AxisRange(QWidget):
       if not self.axis_parms is None:
         delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
         index = self.axis_parms[0] + (value + 0.5) * delta_vells 
+        if abs(index) < 0.000001:
+          index = 0.0
         dummy = str(index)
         if len(dummy) > 10:
           display_str = dummy[:9]
         else:
           display_str = dummy
-#       self.spinbox.setPrefix(display_str + '  ')
         self.label_info.setText(' ' + display_str)
       if not self.button_label is None:
         display_str = self.button_label + ' ' + display_str
