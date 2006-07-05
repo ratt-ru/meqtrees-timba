@@ -280,12 +280,14 @@ class Funklet:
         #print "grid",grid,len(grid),grid[str(axis_map[0]['id']).lower()];
         shape= ();
         if self._nx > len(axis_map):
-            self._nx = len(axis_map);
+            print "axis missing in axis_map, check forest_state"
+            #self._nx = len(axis_map);
+
         for i in range(self._nx):
-            if not axis_map[i].has_key('id'):
-                self._nx=i;
-                break;
-            if grid.has_key(str(axis_map[i]['id']).lower()):
+            #if not axis_map[i].has_key('id'):
+            #    self._nx=i;
+            #    break;
+            if axis_map[i].has_key('id')  and grid.has_key(str(axis_map[i]['id']).lower()):
            
                 shape += (len(grid[str(axis_map[i]['id']).lower()]),);
             else:
@@ -335,7 +337,9 @@ class Funklet:
                         break;
                 else:
                     break;
-                
+
+
+        #print "data",data
         return data;
 
 
@@ -348,9 +352,34 @@ class Funklet:
         #print result;
         return result;
 
+
+    def create_default_cells(self):
+        forest_state=meqds.get_forest_state();
+        axis_map=forest_state.axis_map;
+        dom_ax = {};
+        cells_ax = {};
+        for i in range(self._nx):
+            
+            if not axis_map[i].has_key('id'):
+                #self._nx=i;
+                print "axis",i,"missing in forest state, cant plot along this axis"
+                break;
+            axis = str(axis_map[i]['id']).lower();
+
+            dom_ax[axis] = (0.,1.);
+        print "dom_ax",dom_ax    
+        #        dom = meq.gen_domain(dom_ax);
+        #        cells = meq.gen_cells(dom,cells_ax);
+        #        print "dom,cells",dom,cells;
+        #        return cells;
+        return None;
+
     def plot(self,cells=None,parent=None):
         if cells is None:
             print "no cells specified"
+
+            cells = self.create_default_cells();
+            
             return;
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
