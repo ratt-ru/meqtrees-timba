@@ -271,7 +271,7 @@ class Funklet:
             return array([self._constant]);
         if cells is None :
             return None;
-        print "nx",self._nx;
+        #print "nx",self._nx;
         grid = cells.grid;
         forest_state=meqds.get_forest_state();
         axis_map=forest_state.axis_map;
@@ -393,7 +393,7 @@ class Funklet:
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
         result = self.get_result(cells=cells);
-        self.emit_display_signal(result=result,parent=parent);
+        self.emit_display_signal(result=result,parent=parent,newcell=True);
         return result;
 
 
@@ -406,7 +406,7 @@ class Funklet:
                 parent.emit(PYSIGNAL("displayDataItem()"),(dataitem,kwargs));
             else:
                 #print "plotting"
-                Services.addDataItem(dataitem);
+                Services.addDataItem(dataitem,newcell=True);
 
 
 
