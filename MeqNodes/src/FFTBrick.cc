@@ -261,7 +261,8 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   Vells::Shape padded_shape = input_shape;
   padded_shape[_inaxis0] = nu;
   padded_shape[_inaxis1] = nv;
-  Vells padded_vells(dcomplex(0.0),padded_shape,false); // filled in below
+	//SBY: changed false to true to reset memory
+  Vells padded_vells(dcomplex(0.0),padded_shape,true); // filled in below
 
   // Rearrange the data and pad with zeros
   // set up VellsSlicers over input vells and over padded vells, so that
