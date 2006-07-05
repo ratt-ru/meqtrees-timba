@@ -271,7 +271,7 @@ class Funklet:
             return array([self._constant]);
         if cells is None :
             return None;
-        #print "nx",self._nx;
+        print "nx",self._nx;
         grid = cells.grid;
         forest_state=meqds.get_forest_state();
         axis_map=forest_state.axis_map;
@@ -279,8 +279,17 @@ class Funklet:
         #print "axis_map",axis_map;
         #print "grid",grid,len(grid),grid[str(axis_map[0]['id']).lower()];
         shape= ();
-        if self._nx > len(axis_map):
-            print "axis missing in axis_map, check forest_state"
+
+        nr_defined_axes = 0;
+        for i in range(len(axis_map)):
+            if axis_map[i].has_key('id') and axis_map[i]['id']:
+                nr_defined_axes = nr_defined_axes+1;
+            else:
+                break;
+        if self._nx > nr_defined_axes:
+            print "axis missing in axis_map, adding defaults to  forest_state"
+            axis_map = self.add_axis_to_forest_state();
+
             #self._nx = len(axis_map);
 
         for i in range(self._nx):
@@ -398,7 +407,24 @@ class Funklet:
             else:
                 #print "plotting"
                 Services.addDataItem(dataitem);
-            
+
+
+
+    def add_axis_to_forest_state(self,axis=['l','m'],axis_nr=[2,3] ):
+        """define extra axes in forest state"""
+        forest_state=meqds.get_forest_state();
+        axis_map=forest_state.axis_map;
+        if not isinstance(axis,list):
+            axis = [axis];
+        if is_scalar(axis_nr):
+            axis_nr=[axis_nr]
+            for i in range(1,len(axis)):
+                axis_nr.append(axis_nr[i-1]+1);
+        for i in range(len(axis)):
+            axis_map[axis_nr[i]].id=hiid(axis[i]);
+        Settings.forest_state.axis_map = axis_map;
+        return axis_map;
+  
 
 class ComposedFunklet(Funklet):
     """ class for a list of funklets...reimplement eval"""
