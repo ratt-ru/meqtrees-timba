@@ -77,6 +77,7 @@ function BuildVariant {
    \
    pushd $DAILY_DIR/LOFAR && \
    autoconf_share/rub -conf -build $variant   CEP/BB/ParmDB && \
+   cat $DAILY_DIR/LOFAR/build.log&&\
    popd && \
    \
    cd $DAILY_DIR/LOFAR/Timba && \
