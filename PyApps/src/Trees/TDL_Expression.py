@@ -12,6 +12,7 @@
 #    - 05 jun 2006: regularized node parm
 #    - 06 jun 2006: introduced 'global' {_xx} parameters
 #    - 07 jun 2006: implement .MeqParms()
+#    - 05 jul 2006: implemented .Funklet(plot=True)
 #
 # Remarks:
 #
@@ -135,7 +136,7 @@ class Expression:
         # Optional: Limited parm info (type, default value) may also be specified
         # via the constructor keyword arguments pp: e.g. aa=4.5 for parm {aa}.
         for key in pp.keys():
-            self.parm(key, default=pp[key])
+            self.parm(key, scope=None, default=pp[key])
 
         # For each variable in self.__expression, make an entry in self.__var.
         # First extract a list of variable names, enclosed in square brackets:
@@ -296,7 +297,14 @@ class Expression:
         
         print indent,'- Its variables (',len(self.__var),'): '
         for key in self.__var.keys():
-            print indent,'  -',key,':',self.__var[key]
+            if full:
+                print indent,'  -',key,':',self.__var[key]
+            else:
+                vv = dict()
+                selection = ['testvec','node','xn','unit','axis']
+                for vkey in selection:
+                    vv[vkey] = self.__var[key][vkey]
+                print indent,'  -',key,':',vv
 
         print indent,'- Its parameters (',len(self.__parm),'):'
         for key in self.__parm_order:
@@ -310,7 +318,20 @@ class Expression:
             elif p.has_key('nodename'):
                 print indent,'  -',key,': (MeqNode):',p
             else:
-                print indent,'  -',key,':',p
+                if full:
+                    print indent,'  -',key,':',p
+                else:
+                    vv = dict()
+                    selection = ['nominal','scope']
+                    if not p['scale']==p['nominal']: selection.append('scale')
+                    if not p['default']==p['nominal']: selection.append('default')
+                    if not p['stddev']==0.0: selection.append('stddev')
+                    if not p['index']==[0]: selection.append('index')
+                    if not p['unit']==None: selection.append('unit')
+                    if not p['help']==None: selection.append('help')
+                    for vkey in selection:
+                        vv[vkey] = p[vkey]
+                    print indent,'  -',key,':',vv
 
         print indent,'- Parameter types:'
         for key in self.__parmtype.keys():    
@@ -408,12 +429,12 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def parm (self, key=None, default=None,
+    def parm (self, key=None, default=None, 
               constant=None, polc=None,
               ntest=None, testinc=None,
               stddev=None, scale=None,
               unit=None, ident=None, help=None, group=None,
-              recurse=True, level=0, trace=False):
+              scope=True, recurse=True, level=0, trace=False):
         """Modify the definition of the named parameter (key).
         The default argument may either be a value, or an object of type
         Expression or Funklet, or a nodestub (child of MeqFunctional node).
@@ -428,10 +449,18 @@ class Expression:
         if key==None:
             return self.__parm
 
+        # The scope argument is only relevant for global parms, e.g. {_xx}:
+        if not key[0]=='_': 
+            scope = None
+        elif isinstance(scope, bool):
+            was = scope
+            scope = self.label(strip=True)
+            print 'change scope:',key,':',was,'->',scope
+
         # Modify existing parms only:
         if key in self.__parm_order:
 
-            # Special case: make a polc Expression:
+            # Special case: make a polc Expression with the specified shape/coeff:
             if isinstance(polc, (list,tuple)):
                 default = polc_Expression(shape=polc, coeff=default,
                                           label=None, unit=unit, trace=trace)
@@ -470,10 +499,11 @@ class Expression:
                     if not isinstance(rr, dict) or rr.has_key('node'):
                         # The parm (key) was NOT numeric: create a new one
                         # (otherwise, the existing parm gets updated below)
-                        self.__parm[key] = self._create_numeric_parm(default, key=key)
+                        self.__parm[key] = self._create_numeric_parm(default, key=key, scope=scope)
 
             # Then update the various parm types, as required:
             if isinstance(self.__parm[key], dict):
+                self.__parm[key]['scope'] = scope
                 self._update_definition_record (self.__parm[key], default=default,
                                                 ident=ident, unit=unit,
                                                 testinc=testinc, ntest=ntest,
@@ -495,6 +525,7 @@ class Expression:
                         r1 = p1.parm(key, default, group=group,
                                      constant=constant, polc=polc,
                                      ntest=ntest, testinc=testinc,
+                                     scope=scope,
                                      recurse=recurse, level=level+1,
                                      help=help, stddev=stddev,
                                      unit=unit, ident=ident, trace=trace)
@@ -522,9 +553,9 @@ class Expression:
         #     is done each time the internal node qualifier is changed.
         #     See ._reset(), which is called from .quals(), for more details.
         # - if constant==True, the parameter is a constant with value default.
-        ident = int(1000000*random.random())             # unique parm identifier
+        ident = int(1000000*random.random())               # unique parm identifier
         rr = dict(default=default, nominal=default, index=index,
-                  ident=ident, group=None, unit=None,
+                  ident=ident, group=None, unit=None, scope=None,
                   constant=False, scale=1.0, stddev=0.0,
                   ntest=None, testinc=None, testval=None, testvec=None,
                   help=None)
@@ -574,6 +605,8 @@ class Expression:
         if trace: print '** _update_definition_record(',key,default,'): ->\n   ',rr
         return True
 
+
+
     #============================================================================
     # Definition of variables [t],[f] etc:
     #============================================================================
@@ -583,19 +616,21 @@ class Expression:
         This function is ONLY called from the constructor."""
 
         ident = int(1000000*random.random())             # unique var identifier
-        rr = dict(xn='xn', default=0.0, unit=None, node=None,
+        rr = dict(xn='xn', default=0.0, unit=None, node=None, axis=key[0],
                   testval=None, testvec=None, ident=ident)
 
         # Deal with some standard variables:
         if key[0]=='t':                    # time
             rr['node'] = 'MeqTime'         # used in Functional
             rr['xn'] = 'x0'                # used in Funklet
+            rr['axis'] = 'time'            # used in MeqKernel
             rr['unit'] = 's'
             default = 1e9                  # 'current' MJD (s)
             testinc = 10.0                 # 10 s
         elif key[0]=='f':                  # freq, fGHz, fMHz
             rr['node'] = 'MeqFreq'
             rr['xn'] = 'x1'
+            rr['axis'] = 'freq'            # used in MeqKernel
             rr['unit'] = 'Hz'
             default = 150e6                # 150 MHz
             testinc = 1e6                  # 1 MHz
@@ -704,6 +739,7 @@ class Expression:
                         if unique: ckey = key+pkey      # make unique (non-global) anyway
                     else:                               # normal parm {xx}
                         ckey = key+'_'+pkey
+                    # ckey += '_'+self.qualtag()          # include qualifier tag....? 
                     xorder.append(ckey)
                     pd = parm.parm(pkey)
                     xparm[ckey] = pd
@@ -723,6 +759,7 @@ class Expression:
                 xparm[key] = self.__parm[key]
         if trace: print '   ->',xexpr
                 
+
         # Dispose of the result:
         if not different:
             # If expansion does not change anything, just indicate
@@ -730,7 +767,6 @@ class Expression:
             self.__expanded = True
             self.__test_result = self.eval(_test=True)
             self.__eval_result = self.eval()
-
         else:
             # Make the Expression object for the expanded version:
             e0 = Expression(xexpr, label='expanded_'+self.label(),
@@ -1167,6 +1203,35 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
+    def make_cells (self, **pp):
+        """Make a cells record from self.__var (e.g. for .Funklet(plot=True))."""
+        trace = True
+        if trace: print '\n** .make_cells(**pp=',pp,'):'
+        # Some name translation dicts:
+        dkey = dict() 
+        ckey = dict()
+        for key in self.__var.keys():               # e.g. t,f,l,m,u,v, etc
+            dkey[key] = self.__var[key]['axis']     # f->freq, t->time, etc
+            ckey[key] = 'num_'+dkey[key]
+        dd = dict()
+        cc = dict()
+        for key in self.__var.keys():
+            vv = self.evalarr(self.__var[key]['testvec'])
+            dd[dkey[key]] = (min(vv), max(vv))
+            cc[ckey[key]] = len(vv)
+            # The default ranges may be overwritten via pp:
+            if pp.has_key(key) and isinstance(pp[key], dict):
+                if pp[key].has_key('nr'): cc[ckey[key]] = pp[key]['nr']
+                if pp[key].has_key('min'): dd[ckey[key]][0] = pp[key]['min']
+                if pp[key].has_key('max'): dd[ckey[key]][1] = pp[key]['max']
+        dom = meq.gen_domain(**dd)
+        if trace: print 'dom =',dom
+        cells = meq.gen_cells(domain=dom, **cc)
+        if trace: print '** .make_cells() ->',cells,'\n'
+        return cells
+
+    #----------------------------------------------------------------------------
+
     def eval (self, _test=False, **pp):
         """Evaluate the (expanded) expression for the specified (pp) values of
         parameters {} and variables []. Use defaults if not specified.
@@ -1400,7 +1465,7 @@ class Expression:
     # The Expression can be converted into a Funklet:
     #============================================================================
 
-    def Funklet (self, trace=False):
+    def Funklet (self, plot=False, trace=False):
         """Return the corresponding Funklet object. Make one if necessary."""
 
         if trace: print '\n** .Funklet():',self.oneliner()
@@ -1455,8 +1520,19 @@ class Expression:
         #-----------------------------------------------------
         ex.__Funklet = f0
         self.__Funklet = f0
-        ex.__Funklet_function = expr            # for display only
-        self.__Funklet_function = expr          # for display only
+        ex.__Funklet_function = expr                    # for display only
+        self.__Funklet_function = expr                  # for display only
+
+        # Optional: plot the funklet in the browser (WITHOUT execution!)
+        if not plot==None:
+            print '\n** .Funklet(plot=',plot,'):'
+            print '   Funklet()  -> expr =',expr
+            if isinstance(plot, dict):                  # explicit variable ranges
+                cells = self.expanded().make_cells(**plot) 
+            else:                                       # default variable ranges
+                # cells = self.expanded().make_cells()
+                cells = self.expanded().make_cells(t=dict(nr=1), f=dict(nr=5))
+            f0.plot(cells=cells)
 
         # Finished:
         if trace:
@@ -1497,6 +1573,7 @@ class Expression:
         if klasses.has_key('MeqParm'):
             self.__MeqParms['all'].extend(klasses['MeqParm'])
         return self.__MeqParms
+
 
     #===========================================================================
     # Functions that require a nodescope (ns)
@@ -1785,6 +1862,15 @@ class Expression:
         # print '\n** .quals():   args =',args,'  kwargs =',kwargs,'  ->',self.__quals
         return self.__quals
 
+    #..........................................................................
+
+    def qualtag(self):
+        """Get a string summary of the qualifiers, e.g. to tag (expanded) parm names"""
+        qtag = ''                                  # default: none
+        for key in self.__quals.keys():
+            qtag += str(self.__quals[key]) 
+        return qtag
+
 
     #--------------------------------------------------------------------------
 
@@ -1834,6 +1920,12 @@ class Expression:
 
 
 #----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+
 
 def classwise (node, klasses=dict(), done=[], level=0, trace=False):
    """Recursively collect the nodes of the given subtree, divided in classes """
@@ -2198,7 +2290,7 @@ if __name__ == '__main__':
  
     #---------------------------------------------------------
  
-    if 1:
+    if 0:
         e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
         # e1.parm('B', 10, help='help for B')
@@ -2321,6 +2413,13 @@ if __name__ == '__main__':
         # Explot(cosvar,cosvar,cosvar,cosvar,cosvar)
 
     if 0:
+        def func(a=5, b=7):
+            print 'func(a=',a,', b=',b,')'
+        func()
+        pp = dict(a=-4)
+        func(**pp)
+
+    if 1:
         # WSRT telescope voltage beams (gaussian):
         Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
                            descr='WSRT X voltage beam (gaussian)', unit='kg')
@@ -2337,7 +2436,12 @@ if __name__ == '__main__':
         Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)')
         # Xbeam.display(full=True)
         Xbeam.expanded().display(full=True)
-        Xbeam.plot()
+        Xbeam.expanded().display(full=False)
+        # Xbeam.plot()
+
+        if 0:
+            Xbeam.expanded().make_cells(t=dict(nr=2),l=dict(nr=5),m=dict(nr=3))
+            Xbeam.expanded().Funklet(plot=True)
 
         if 0:
             Ybeam = Xbeam.copy(label='gaussYbeam', descr='WSRT Y voltage beam (gaussian)')
