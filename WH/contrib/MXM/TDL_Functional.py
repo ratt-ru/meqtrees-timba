@@ -33,7 +33,7 @@ class Functional:
         else:    
             tmp_start_par=0;
             for par in range(Npar):
-                this_par=0;
+                this_par=0.;
 
                 par_str = "p"+str(par);
 

@@ -70,11 +70,12 @@ def _define_forest2(ns):
   """example function to show how to use the  Functional class"""
   _add_axes_to_forest_state();
   
-  f1=Functional("p0+p1*x0",pp=dict(p1=1),Npar=2);
+
+  f1=Functional("p0+p1*x0",pp=dict(p1=1.),Npar=2);
   
   print "f1",f1.getFunklet();
   
-  f2=Functional("p0+p1*x1",pp=dict(p1=1),Npar=2);
+  f2=Functional("p0+p1*x1",pp=dict(p1=1.),Npar=2);
   print "f2",f2.getFunklet();
 
   
@@ -115,6 +116,10 @@ def _define_forest2(ns):
     );
 
   ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
+  #ftest = Funklet(record(function="67."));
+  #print "ftest",ftest;
+  #print ftest.eval();
+
 
 def _define_forest(ns):
   _define_forest2(ns);

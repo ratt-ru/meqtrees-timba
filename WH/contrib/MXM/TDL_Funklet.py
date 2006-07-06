@@ -370,18 +370,16 @@ class Funklet:
         for i in range(self._nx):
             
             if not axis_map[i].has_key('id'):
-                #self._nx=i;
-                print "axis",i,"missing in forest state, cant plot along this axis"
-                break;
+                self.add_axis_to_forest_state();
             axis = str(axis_map[i]['id']).lower();
 
             dom_ax[axis] = (0.,1.);
-        print "dom_ax",dom_ax    
-        #        dom = meq.gen_domain(dom_ax);
-        #        cells = meq.gen_cells(dom,cells_ax);
-        #        print "dom,cells",dom,cells;
-        #        return cells;
-        return None;
+            num = 'num_'+axis;
+            cells_ax[num] = 5;
+            
+        dom = meq.gen_domain(**dom_ax);
+        cells = meq.gen_cells(dom,**cells_ax);
+        return cells;
 
     def plot(self,cells=None,parent=None):
         if cells is None:
@@ -389,7 +387,6 @@ class Funklet:
 
             cells = self.create_default_cells();
             
-            return;
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
         result = self.get_result(cells=cells);
