@@ -95,11 +95,18 @@ def _define_forest (ns):
       cells = meq.gen_cells(domain=dom,num_time=1,num_freq=5, num_l=11, num_m=11)
 
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
-      Xbeam.Funklet().plot(cells=cells)
+      # Xbeam.Funklet().plot(cells=cells)
+      Xbeam.Funklet(plot=True)
 
-      if False:
+      if True:
          Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
          Ybeam.Funklet().plot(cells=cells)
+         if True:
+            Qbeam = TDL_Expression.Expression('{Xbeam}-{Ybeam}', label='Qbeam')
+            Qbeam.parm('Xbeam', Xbeam)
+            Qbeam.parm('Ybeam', Ybeam)
+            Qbeam.expanded().display(full=True)
+            Qbeam.Funklet().plot(cells=cells)
 
       for L in array(range(5))*0.04:
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))

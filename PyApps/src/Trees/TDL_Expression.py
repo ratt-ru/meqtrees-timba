@@ -136,7 +136,7 @@ class Expression:
         # Optional: Limited parm info (type, default value) may also be specified
         # via the constructor keyword arguments pp: e.g. aa=4.5 for parm {aa}.
         for key in pp.keys():
-            self.parm(key, scope=None, default=pp[key])
+            self.parm(key, scope=None, default=pp[key], origin='init')
 
         # For each variable in self.__expression, make an entry in self.__var.
         # First extract a list of variable names, enclosed in square brackets:
@@ -434,6 +434,7 @@ class Expression:
               ntest=None, testinc=None,
               stddev=None, scale=None,
               unit=None, ident=None, help=None, group=None,
+              origin=None,
               scope=True, recurse=True, level=0, trace=False):
         """Modify the definition of the named parameter (key).
         The default argument may either be a value, or an object of type
@@ -450,12 +451,13 @@ class Expression:
             return self.__parm
 
         # The scope argument is only relevant for global parms, e.g. {_xx}:
+        was = scope
         if not key[0]=='_': 
             scope = None
+            # print 'change scope(',origin,'):',key,':',was,'->',scope
         elif isinstance(scope, bool):
-            was = scope
             scope = self.label(strip=True)
-            print 'change scope:',key,':',was,'->',scope
+            print 'change scope(',origin,'):',key,':',was,'->',scope
 
         # Modify existing parms only:
         if key in self.__parm_order:
@@ -511,25 +513,29 @@ class Expression:
                                                 key=key, trace=False)
 
         # Optional: update parameters in its Expression parameters recursively:
-        recurse_result = False
+        recurse_result = None
         if key[0]=='_': recurse = True                 # Always recurse global parm
         if recurse:              
             for key1 in self.__parm.keys():
                 p1 = self.__parm[key1]
                 if isinstance(p1, Expression):
                     if key in self.__parm_order:
-                        # key is parm in this Expression: copy its definition
-                        r1 = p1.parm(key, self.__parm[key]) 
+                        # key is parm in the current Expression: copy its definition
+                        r1 = p1.parm(key, self.__parm[key], scope=scope, origin='recurse1') 
                     else:
-                        # key is NOT a parm in this Expression: use arguments
+                        # key is NOT a parm in the current Expression: use arguments
                         r1 = p1.parm(key, default, group=group,
                                      constant=constant, polc=polc,
                                      ntest=ntest, testinc=testinc,
-                                     scope=scope,
+                                     scope=scope, origin='recurse2',
                                      recurse=recurse, level=level+1,
                                      help=help, stddev=stddev,
                                      unit=unit, ident=ident, trace=trace)
                     if r1: recurse_result = r1
+                elif isinstance(p1, dict):
+                    if key[0]=='_' and key1==key and p1.has_key('scope'):
+                        self.__parm[key1]['scope'] = scope
+                        print '-',level,self.label(),key, key1,': imprint scope:',scope
 
         # Finishing touches:
         self.__expanded = False                       # Enforce a new expansion 
@@ -734,14 +740,20 @@ class Expression:
                 pexpr = '('+parm.expression()+')'
                 if trace: print '-',key,pexpr
                 for pkey in parm.parm_order():
-                    if pkey[0]=='_':                    # global parm {_xx}
-                        ckey = pkey
-                        if unique: ckey = key+pkey      # make unique (non-global) anyway
-                    else:                               # normal parm {xx}
+                    pd = deepcopy(parm.__parm[pkey])
+                    scope = None
+                    if isinstance(pd, dict) and pd.has_key('scope'):
+                        scope = pd['scope']
+                    if not pkey[0]=='_':                  # not global parm {_xx}
                         ckey = key+'_'+pkey
+                    elif scope:                           # scope defined
+                        ckey = str(scope)+pkey
+                        pd['scope'] = None
+                    else:
+                        ckey = pkey
+                        if unique: ckey = key+pkey        # make unique (non-global) anyway
                     # ckey += '_'+self.qualtag()          # include qualifier tag....? 
-                    xorder.append(ckey)
-                    pd = parm.parm(pkey)
+                    if not xorder.__contains__(ckey): xorder.append(ckey)
                     xparm[ckey] = pd
                     pexpr = pexpr.replace('{'+pkey+'}', '{'+ckey+'}')
                 xexpr = xexpr.replace('{'+key+'}', pexpr)
@@ -750,12 +762,12 @@ class Expression:
 
             elif parm.has_key('nodename'):              # parm is a MeqNode
                 # different = True
-                xorder.append(key)
+                if not xorder.__contains__(key): xorder.append(key)
                 xparm[key] = self.__parm[key]
 
             else:
                 # Otherwise, just copy (assume numeric):
-                xorder.append(key)
+                if not xorder.__contains__(key): xorder.append(key)
                 xparm[key] = self.__parm[key]
         if trace: print '   ->',xexpr
                 
@@ -1603,7 +1615,7 @@ class Expression:
             if not pkey in self.__parm_order:
                 self.__parm_order.append(pkey)
                 self._create_parm(pkey)                 # create a new parm
-                self.parm(pkey, node)                   # re-define the new parm
+                self.parm(pkey, node, origin='var2node') # re-define the new parm
         self.__var = dict()                             # no more vars in expression
         if trace: self.display('.var2node()', full=True)
         return True
@@ -1629,16 +1641,16 @@ class Expression:
                 #     it contains an explicit number, rather than a node.
                 # This is OK too, since only a MeqParm can be solved for....
                 node << Meq.Constant(parm['default'])
-                self.parm(key, node)                    # redefine the parm
+                self.parm(key, node, origin='parm2node') # redefine the parm
             else:                                       # assume numeric
                 node << Meq.Parm(parm['default'],
                                  node_groups=['Parm'])
-                self.parm(key, node)                    # redefine the parm
+                self.parm(key, node, origin='parm2node') # redefine the parm
             if funklet:
                 # node << Meq.Parm(init_funklet=funklet,
                 node << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
                                  node_groups=['Parm'])
-                self.parm(key, node)                    # redefine the parm
+                self.parm(key, node, origin='parm2node') # redefine the parm
         self.__parmtype['Expression'] = []              # no more Expression parms
         self.__parmtype['Funklet'] = []                 # no more Funklet parms
         if trace: self.display('.parm2node()', full=True)
@@ -2430,12 +2442,13 @@ if __name__ == '__main__':
         Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
         Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
         Xbeam.parm ('Mterm', default=Mterm)
-        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
+        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
         Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
                                                  descr='observing wavelength'), unit='m')
-        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)')
+        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
         # Xbeam.display(full=True)
-        Xbeam.expanded().display(full=True)
+        # Xbeam.display(full=False)
+        # Xbeam.expanded().display(full=True)
         Xbeam.expanded().display(full=False)
         # Xbeam.plot()
 
@@ -2443,12 +2456,18 @@ if __name__ == '__main__':
             Xbeam.expanded().make_cells(t=dict(nr=2),l=dict(nr=5),m=dict(nr=3))
             Xbeam.expanded().Funklet(plot=True)
 
-        if 0:
+        if 1:
             Ybeam = Xbeam.copy(label='gaussYbeam', descr='WSRT Y voltage beam (gaussian)')
             Ybeam.parm ('_ell', default=-0.1, help='Voltage beam elongation factor (1+ell)')
+            Ybeam.expanded().display(full=False)
             # Ybeam.plot(l=True, m=True)
             # Explot(Xbeam, Ybeam, _legend=True, l=True, m=True)
-            Xbeam.compare(Ybeam, l=True, m=True)
+            # Xbeam.compare(Ybeam, l=True, m=True)
+            diff = Expression('{Xbeam}-{Ybeam}', label='diff')
+            diff.parm('Xbeam', Xbeam)
+            diff.parm('Ybeam', Ybeam)
+            diff.expanded().display()
+
         if 0:
             L = ns.L << 0.1
             M = ns.M << -0.2
@@ -2456,6 +2475,7 @@ if __name__ == '__main__':
             node = Xbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
                                        common_axes=[hiid('l'),hiid('m')], trace=True)
             TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
+
         if 0:
             node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
