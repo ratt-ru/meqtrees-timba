@@ -156,6 +156,9 @@ class MSInputChannel : public FileChannel
       
       bool clear_flags_;
       
+      //## true is MS has a valid WEIGHT_SPECTRUM column
+      bool has_weights_;
+      
       // count of timeslots already returned
     //##ModelId=3DFDFC060354
       int current_timeslot_;

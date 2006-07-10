@@ -226,6 +226,10 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   int nrows = selms_.nrow();
   FailWhen(!nrows,"MS selection yield no rows");
   dprintf(1)("MS selection yields %d rows\n",selms_.nrow());
+  
+  // do we have a WEIGHT_SPECTRUM column at all?
+  const TableDesc & tabledesc = selms_.tableDesc();
+  has_weights_ = tabledesc.isColumn("WEIGHT_SPECTRUM");
 
   // process the TIME column to figure out the tiling
   ROScalarColumn<Double> timeCol(selms_,"TIME");
@@ -449,18 +453,17 @@ int MSInputChannel::refillStream ()
         }
         // WEIGHT is optional
         Cube<Float> weightcube1;
-        bool has_weights = true;
-        try
-        { 
-          weightcube1 = ROArrayColumn<Float>(table,"WEIGHT_SPECTRUM").getColumn();
-          weightcube.reference(B2A::refAipsToBlitz<float,3>(weightcube1));
-          weightcube.reference(weightcube(ALL,CHANS,ALL));
-          has_weights = true;
-          cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube;
-        }
-        catch( ... )
-        { 
-          has_weights = false; 
+        if( has_weights_ )
+        {
+          try
+          { 
+            weightcube1 = ROArrayColumn<Float>(table,"WEIGHT_SPECTRUM").getColumn();
+            weightcube.reference(B2A::refAipsToBlitz<float,3>(weightcube1));
+            weightcube.reference(weightcube(ALL,CHANS,ALL));
+            cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube;
+          }
+          catch( ... )
+          {}
         }
         cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube(ALL,ALL,0);
         // get array columns as Lorrays
@@ -473,11 +476,11 @@ int MSInputChannel::refillStream ()
         // apply channel selection
         datacube.reference(datacube(ALL,CHANS,ALL));
         flagcube.reference(flagcube(ALL,CHANS,ALL));
-        // check weightcube shape (WSRT gets it wrong)
-        if( weightcube.shape() != datacube.shape() )
+        // check weightcube shape (WSRT gets it wrong), disable weights on first error
+        if( has_weights_ && weightcube.shape() != datacube.shape() )
         {
           cdebug(0)<<"WEIGHT_SPECTRUM column malformed, weights will be ignored\n";
-          has_weights = false;
+          has_weights_ = false;
         }
         // flip along frequency axis, if asked to
         cdebug(5)<<"WEIGHT_SPECTRUM: "<<weightcube(ALL,ALL,0);
@@ -485,7 +488,7 @@ int MSInputChannel::refillStream ()
         {
           datacube.reverseSelf(blitz::secondDim);
           flagcube.reverseSelf(blitz::secondDim);
-          if( has_weights )
+          if( has_weights_ )
             weightcube.reverseSelf(blitz::secondDim);
         }
         // get vector of row numbers 
@@ -511,7 +514,7 @@ int MSInputChannel::refillStream ()
           ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
-          if( has_weights )
+          if( has_weights_ )
           {
             cdebug(6)<<"weights for timeslot "<<ntimes<<" ifr "<<ant1<<"-"<<ant2<<":"<<weightcube(ALL,ALL,i)<<endl;
             ptile->wweight()(ALL,ALL,ntimes) = weightcube(ALL,ALL,i);
