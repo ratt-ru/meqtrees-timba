@@ -317,8 +317,8 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
-    self._deftb = traceback.extract_stack();
-    self._caller = _identifyCaller()[:2];
+    self._deftb = traceback.extract_stack(None,4);
+    self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
   def __copy__ (self):
     return self;
@@ -414,7 +414,7 @@ class _NodeStub (object):
     Creates a node based on this one, with additional qualifiers. If merge=True,
     merges the quals lists (i.e. skips non-unique items), otherwise appends lists.
     Returns a _NodeStub.""";
-    (q,kw) = (list(self.quals),copy.deepcopy(self.kwquals));
+    (q,kw) = (list(self.quals),dict(self.kwquals));
     _mergeQualifiers(q,kw,quals,kwquals,uniq=merge);
     _dprint(4,"creating requalified node",self.basename,q,kw);
     fqname = qualifyName(self.basename,*q,**kw);
@@ -896,14 +896,14 @@ _Meq = ClassGen('Meq');
 _re_localfiles = re.compile('.*TDL/(TDLimpl|MeqClasses).py$');
 
 # helper func to identify original caller of a function
-def _identifyCaller (depth=3,skip_internals=True):
+def _identifyCaller (depth=3,skip_internals=True,stack=None):
   """Identifies source location from which function was called.
   Normal depth is 3, corresponding to the caller of the caller of
   _identifyCaller(), but if skip_internals=True, this will additionally 
   skip over internal methods (which are supposed to start with __).
   Returns triplet of (filename,line,funcname).
   """;
-  stack = traceback.extract_stack();
+  stack = stack or traceback.extract_stack();
   if skip_internals:
     for frame in stack[-depth::-1]:
       (filename,line,funcname,text) = frame;
