@@ -30,6 +30,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <algorithm>
 #include <map>
+#include <list>
 
 
 //#define DEBUG
@@ -55,7 +56,7 @@ namespace Meq {
 
   class IdVal {
   public:
-    int *id; //sequence of axes t,f,perturbed values...
+    int *id; //sequence of axes = [time,freq,spid id,perturbed value]
     // if no f or perturbed values are defined
     // they are set to -1
     double val;
@@ -66,15 +67,6 @@ namespace Meq {
   {
     return a.val< b.val;
   }
-  // for the map less than comparison
-  struct compare_vec{
-    bool operator()(const std::vector<int> v1, const std::vector<int> v2) const
-    {
-      return ((v1[0] < v2[0]) 
-	      ||( (v1[0] == v2[0]) && (v1[1] < v2[1]))
-	      ||( (v1[0] == v2[0]) && (v1[1] == v2[1]) && (v1[2] < v2[2])));
-    }
-  };
 
   // helper func to convert anything to string
   template<class T> std::string 
@@ -171,7 +163,7 @@ namespace Meq {
       return 0;
     }
     if (code&RES_FAIL) {
-      resref.xfer(child_res);
+      resref.xfer(childres[0]);
       timers().children.stop();
       return code;
     }
@@ -215,19 +207,18 @@ namespace Meq {
       newreq().setId(rqid);
 
 
-      Result::Ref child_res1;
       unlockStateMutex();
-      code=children().getChild(1).execute(child_res1,*newreq);
+      code=children().getChild(1).execute(child_res,*newreq);
       lockStateMutex();
 #ifdef DEBUG
-      cout<<"Request Id="<<newreq().id()<<endl;
+      cout<<"Discover SPIDS Request Id="<<newreq->id()<<endl;
 #endif
 
-      childres[1]=child_res1;
+      childres[1]=child_res;
       resref.detach();
       unlockStateMutex();
-      //we do not have any step children ??
-      // stepchildren().backgroundPoll(*newreq);
+      //we might have some step children ??
+      stepchildren().backgroundPoll(*newreq);
       timers().children.stop();
       lockStateMutex();
 
@@ -235,35 +226,34 @@ namespace Meq {
 
       return code; 
     }
-
-    int nvs=child_res().numVellSets();
-#ifdef DEBUG
-    cout<<"Got "<<nvs<<" Vellsets"<<endl;
-#endif
-
-    FailWhen(nvs!=2,"We need 2 vellsets, but got "+__to_string(nvs));
     // get input cells
     const Cells &incells=request.cells();
+    int intime=incells.ncells(Axis::TIME);
+    int infreq=incells.ncells(Axis::FREQ);
+
+
+
+    int naxis=childres[0]->numVellSets();
+#ifdef DEBUG
+    cout<<"Got "<<naxis<<" Vellsets"<<endl;
+#endif
+
+    FailWhen(naxis!=2,"We need 2 vellsets, but got "+__to_string(naxis));
+		build_axes_(childres[0],intime,infreq);
     Cells::Ref outcells_ref;
     const Domain &old_dom=incells.domain();
     Domain::Ref domain(new Domain());
 
-    double start0,end0,start1,end1;
-    blitz::Array<double,1> cen0;
-    blitz::Array<double,1> cen1;
-		VellSet::Ref vsax0;
-		VellSet::Ref vsax1;
 
     int ntime,nfreq,nplanes;
 
     // get first vellset
-		vsax0=child_res->vellSetRef(0);
-    Vells vl0=child_res().vellSet(0).getValue();
+    Vells vl0=childres[0]->vellSet(0).getValue();
     int nx=ntime=vl0.extent(0);
     int ny=nfreq=vl0.extent(1);
     //check for perturbed values
-    int ipert0=child_res().vellSet(0).numPertSets();
-    int ispid0=child_res().vellSet(0).numSpids();
+    int ipert0=childres[0]->vellSet(0).numPertSets();
+    int ispid0=childres[0]->vellSet(0).numSpids();
 #ifdef DEBUG
     cout<<"0: Pert "<<ipert0<<" Spids "<<ispid0<<endl;
 #endif
@@ -273,28 +263,6 @@ namespace Meq {
     cout<<"Dimension "<<nx<<","<<ny<<","<<nplanes<<endl;
 #endif
 
-    cen0.resize(nx*ny*(nplanes+1));
-    //create axis vector
-    if (ny==1) {
-			//note: even when ny==1, we might get a 2D array here
-      //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
-      double *data_=vl0.getStorage<double>();
-      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
-#ifdef DEBUG
-      cout<<"Axis 1 (in)="<<data<<endl;
-#endif
-      //cen0=vl0.as<double,1>();
-      cen0=data(blitz::Range::all(),0);
-    } else  {
-      blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-#ifdef DEBUG
-      cout<<"Axis 1 (in)="<<data<<endl;
-#endif
-      //copy each columns from column 0 to ny-1
-      for (int i=0; i<ny;i++)  {
-	cen0(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
-      }
-    }
 
     //if there are any perturbed sets fill them.
     //Note that we start counting them from 1 onwards
@@ -305,104 +273,15 @@ namespace Meq {
     // case 1) is standard. both axes share same plane number in id[2]
     // in case 2) or 3) the axis missing a perturbed value will use plane 0
     // as its perturbation. this should be done when building the map
-    if (ipert0*ispid0>0) {
-      for (int ipset=0; ipset<ipert0; ipset++)  {
-	for (int ipert=0; ipert<ispid0; ipert++)  {
-	  Vells pvl=child_res->vellSet(0).getPerturbedValue(ipert,ipset);
-
-	  blitz::Array<double,1> pB(nx*ny);
-	  if (ny==1) {
-      //note: even when ny==1, we might get a 2D array here
-	    //blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
-      double *data_=pvl.getStorage<double>();
-      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
-#ifdef DEBUG
-	    cout<<"Axis 1 (in)="<<data<<endl;
-#endif
-	    //cen0=vl0.as<double,1>();
-	    pB=data(blitz::Range::all(),0);
-	  } else  {
-	    blitz::Array<double,2> data=pvl.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-#ifdef DEBUG
-	    cout<<"Axis 1 (in)="<<data<<endl;
-#endif
-	    //copy each columns from column 0 to ny-1
-	    for (int i=0; i<ny;i++)  {
-	      pB(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
-	    }
-	  }
-
-	  //finally copy to original array
-	  cen0(blitz::Range(nx*ny*(ispid0*ipset+ipert+1),nx*ny*(ispid0*ipset+ipert+2)-1))=pB;
-	}
-      }
-    }
-#ifdef DEBUG
-    cout<<"Axis 1="<<cen0<<endl;
-#endif
 
 
 
-    blitz::Array<IdVal,1> sarray0;
-		//if we have a degenerate  result, we will have less values than
-		//the t,f grid of the request so check this
-    int intime=incells.ncells(Axis::TIME);
-    int infreq=incells.ncells(Axis::FREQ);
-		bool lm_degenerate=false;
-		if ((intime*infreq> ntime*nfreq)) {
-			//we have a degeneracy
-			cout<<"LM grid degenerate in t,f"<<endl;
-			lm_degenerate=true;
-		}
-
-
-
-    //if the grid function is not monotonically increasing, we get
-    //unsorted arrays for axes.
-    //if cen0 or cen1 is not sorted, we recreate that
-    //axis to cover the whole range and interpolate the result
-    //use STL
-    sarray0.resize(cen0.extent(0));
-
-
-    //copy data
-    int k=0;
-    for (int i=0; i<ny;i++) {
-      for (int j=0; j<nx;j++) {
-      	sarray0(k).id=new int[3];
-	      sarray0(k).id[0]=j;
-	      sarray0(k).id[1]=i;
-	      sarray0(k).id[2]=0;
-	      sarray0(k).val=cen0(k);
-	      k++;
-      }
-    }
-    if (nplanes>0) {
-      //we have perturbed values, so copy them
-      for (int ipset=0; ipset<ipert0; ipset++)  {
-           for (int ipert=0; ipert<ispid0; ipert++)  {
-	             for (int i=0; i<ny;i++) {
-	                for (int j=0; j<nx;j++) {
-	                  sarray0(k).id=new int[3];
-	                  sarray0(k).id[0]=j;
-	                  sarray0(k).id[1]=i;
-	                  sarray0(k).id[2]=ipset*ispid0+ipert+1;
-	                  sarray0(k).val=cen0(k);
-	                  k++;
-	               }
-	            }
-	        }
-      }
-    }
-
-    // do all of the above for second vellset
-		vsax1=child_res->vellSetRef(1);
-    vl0=child_res->vellSet(1).getValue();
+    vl0=childres[0]->vellSet(1).getValue();
     nx=vl0.extent(0);
     ny=vl0.extent(1);
     //check for perturbed values
-    int ipert1=child_res->vellSet(1).numPertSets();
-    int ispid1=child_res->vellSet(1).numSpids();
+    int ipert1=childres[0]->vellSet(1).numPertSets();
+    int ispid1=childres[0]->vellSet(1).numSpids();
 #ifdef DEBUG
     cout<<"1: Pert "<<ipert1<<" Spids "<<ispid1<<endl;
 #endif
@@ -411,301 +290,56 @@ namespace Meq {
 	       || ipert0*ispid0==0
 	       || ipert1*ispid1==0),"Axis 1 returns "+__to_string(ipert0)+","+__to_string(ispid0)+" perturbations but axis 2 returns "+ __to_string(ipert1)+","+__to_string(ispid1));
 
-    int have_perturbed_sets=-1; //flag
-    if ((ipert0==ipert1 && ispid0==ispid1 && ipert0*ispid0>0 && ipert1*ispid1>0)) {
-      have_perturbed_sets=0; //common case, both axes have same perturbations
-    } else if (ipert0*ispid0==0 && ipert1*ispid1!=0 ) { //only axis 2 have perturbations
-      have_perturbed_sets=2; 
-    } else if (ipert1*ispid1==0 && ipert0*ispid0!=0) { //only axis 1 have perturbations
-      have_perturbed_sets=1; 
-    }
-    if (ntime<nx) {ntime=nx;}
-    if (nfreq<ny) {nfreq=ny;}
-    if (nplanes<ipert1*ispid1) { nplanes=ipert1*ispid1;}
-#ifdef DEBUG
-    cout<<"Dimension "<<nx<<","<<ny<<","<<nplanes<<endl;
-#endif
-    //create axis vector
-    cen1.resize(nx*ny*(ipert1*ispid1+1));
-    if (ny==1) {
-    	//note: even when ny==1, we might get a 2D array here
-      //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
-      double *data_=vl0.getStorage<double>();
-      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
-#ifdef DEBUG
-      cout<<"Axis 2 (in)="<<data<<endl;
-#endif
-      cen1=data(blitz::Range::all(),0);
-    } else {
-      blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-#ifdef DEBUG
-      cout<<"Axis 2 (in)="<<data<<endl;
-#endif
-      //copy each columns from column 0 to ny-1
-      for (int i=0; i<ny;i++)  {
-	cen1(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
-      }
-    }
-
-    if (ipert1*ispid1>0) {
-      for (int ipset=0; ipset<ipert1; ipset++)  {
-	     for (int ipert=0; ipert<ispid1; ipert++)  {
-	      Vells pvl=child_res->vellSet(1).getPerturbedValue(ipert,ipset);
-
-	    blitz::Array<double,1> pB(nx*ny);
-	  if (ny==1) {
-    	//note: even when ny==1, we might get a 2D array here
-	    //blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
-      double *data_=pvl.getStorage<double>();
-      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
-#ifdef DEBUG
-	    cout<<"Axis 2 (in)="<<data<<endl;
-#endif
-	    //cen0=vl0.as<double,1>();
-	    pB=data(blitz::Range::all(),0);
-	  } else  {
-	    blitz::Array<double,2> data=pvl.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-#ifdef DEBUG
-	    cout<<"Axis 2 (in)="<<data<<endl;
-#endif
-	    //copy each columns from column 0 to ny-1
-	    for (int i=0; i<ny;i++)  {
-	      pB(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
-	    }
-	  }
-
-	  //finally copy to original array
-	  cen1(blitz::Range(nx*ny*(ispid1*ipset+ipert+1),nx*ny*(ispid1*ipset+ipert+2)-1))=pB;
-	}
-      }
-    }
-#ifdef DEBUG
-    cout<<"Axis 2="<<cen1<<endl;
-#endif
-
-
-
-    blitz::Array<IdVal,1> sarray1(cen1.extent(0));
-    //copy data
-    k=0;
-    for (int i=0; i<ny;i++) {
-      for (int j=0; j<nx; j++) {
-	sarray1(k).id=new int[3];
-	sarray1(k).id[0]=j;
-	sarray1(k).id[1]=i;
-	sarray1(k).id[2]=0;
-	sarray1(k).val=cen1(k);
-	k++;
-      }
-    }
-    if ( ipert1*ispid1>0) {
-      //we have perturbed values, so copy them
-      for (int ipset=0; ipset<ipert1; ipset++)  {
-	for (int ipert=0; ipert<ispid1; ipert++)  {
-	  for (int i=0; i<ny;i++) {
-	    for (int j=0; j<nx;j++) {
-	      sarray1(k).id=new int[3];
-	      sarray1(k).id[0]=j;
-	      sarray1(k).id[1]=i;
-	      sarray1(k).id[2]=ipset*ispid1+ipert+1;
-	      sarray1(k).val=cen1(k);
-	      k++;
-	    }
-	  }
-	}
-      }
-
-    }
-    //we consider the value[] vells as the 0-th plane
-#ifdef DEBUG
-    cout<<"Time ="<<ntime<<" Freq="<<nfreq<<" Perturbed Planes="<<nplanes<<endl;
-#endif
 
     // the array for reverse mapping of sorted values
     // length =ntime*nfreq*(nplanes+1)
     // columns are= time, freq, plane, axis1, axis2
     // where axis1, axis2 are the location of the value on
     // sorted axis arrays
-    // key=(time,freq,plane), value=(axis1,axis2)
+    // key=(time,freq,spid,perturbation), value=(axis1,axis2)
     // note in case where only one axis has perturbations, the value for the 
     // other axis will be taken from the value in plane 0
-    map<const std::vector<int>, int *, compare_vec> revmap;
+    //map<const std::vector<int>, int *, compare_vec> revmap_;
 
-#ifdef DEBUG
-    cout<<"Before sort"<<endl;
-    for (int i=0; i<sarray0.extent(0);i++) {
-      cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).id[1]<<","<<sarray0(i).id[2]<<","<<sarray0(i).val<<endl;
-    }
-#endif
-    std::sort(sarray0.data(), sarray0.data()+sarray0.extent(0));
-#ifdef DEBUG
-    cout<<"After sort"<<endl;
-    for (int i=0; i<sarray0.extent(0);i++) {
-      cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).id[1]<<","<<sarray0(i).id[2]<<","<<sarray0(i).val<<endl;
-    }
-#endif
-    //overwrite the old array
-    //also build rev map
-    std::vector<int> aa(3);
-    for (int i=0; i<sarray0.extent(0);i++) {
-      cen0(i)=sarray0(i).val;
-      aa[0]=sarray0(i).id[0];
-      aa[1]=sarray0(i).id[1];
-      aa[2]=sarray0(i).id[2];
-      int *bb=new int[2];
-      bb[0]=i;
-      bb[1]=0; //not yet defined
-      revmap[aa]=bb;
-    }
+    map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
 
-		if (intime*infreq*(ipert0*ispid0+1)>sarray0.extent(0)) {
-				//we have degeneray in t,f so copy the t=0, f=0 value
-				cout<<"LM degeneracy 0: in t,f because "<<intime<<","<<infreq<<","<<ipert0<<","<<ispid0<<","<<sarray0.extent(0)<<endl;
-				for (int i=1; i<intime; i++) {
-					for (int j=0; j<infreq; j++) {
-            aa[0]=i;
-            aa[1]=j;
-            aa[2]=0; //main value
-            int *bb=new int[2];
-            bb[0]=0;
-            bb[1]=0; //not yet defined
-            revmap[aa]=bb;
-            for (int ipset=0; ipset<ipert0; ipset++)  {
-                 for (int ipert=0; ipert<ispid0; ipert++)  {
-                  aa[2]=ipset*ispid0+ipert+1;
-                  int *bb=new int[2];
-                  bb[0]=0;
-                  bb[1]=0; //not yet defined
-                  revmap[aa]=bb;
-					       }
-			      }
-					}
-				}
-				for (int j=1; j<infreq; j++) {
-            aa[0]=0;
-            aa[1]=j;
-            aa[2]=0; //main value
-            int *bb=new int[2];
-            bb[0]=0;
-            bb[1]=0; //not yet defined
-            revmap[aa]=bb;
-
-            for (int ipset=0; ipset<ipert0; ipset++)  {
-                 for (int ipert=0; ipert<ispid0; ipert++)  {
-                  aa[2]=ipset*ispid0+ipert+1;
-                  int *bb=new int[2];
-                  bb[0]=0;
-                  bb[1]=0; //not yet defined
-                  revmap[aa]=bb;
-					       }
-			      }
-
-				}
-
-
-		}
-
-#ifdef DEBUG
-    cout<<"Before sort"<<endl;
-    for (int i=0; i<sarray1.extent(0);i++) {
-      cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).id[1]<<","<<sarray1(i).id[2]<<","<<sarray1(i).val<<endl;
-    }
-#endif
-    std::sort(sarray1.data(), sarray1.data()+sarray1.extent(0));
-#ifdef DEBUG
-    cout<<"After sort"<<endl;
-    for (int i=0; i<sarray1.extent(0);i++) {
-      cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).id[1]<<","<<sarray1(i).id[2]<<","<<sarray1(i).val<<endl;
-    }
-#endif
-    //overwrite the old array
-    //also update rev map
-    for (int i=0; i<sarray1.extent(0);i++) {
-      cen1(i)=sarray1(i).val;
-      aa[0]=sarray1(i).id[0];
-      aa[1]=sarray1(i).id[1];
-      aa[2]=sarray1(i).id[2];
-      //try to get value
-      //
-      if(revmap.find(aa)==revmap.end()) {
-	//not found
-	int *bb=new int[2];
-	bb[0]=0;//not yet defined
-	bb[1]=i; 
-	revmap[aa]=bb;
-      } else {
-	int *bb=revmap[aa];
-	bb[1]=i; 
-      }
-
-    }
-		if (intime*infreq*(ipert1*ispid1+1)>sarray1.extent(0)) {
-				//we have degeneray in t,f so copy the t=0, f=0 value
-				cout<<"LM degeneracy 1: in t,f because "<<intime<<","<<infreq<<","<<ipert1<<","<<ispid1<<","<<sarray1.extent(0)<<endl;
-		}
-
-    map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap.begin();
-    //first: key, second: value
-#ifdef DEBUG
-    while(mapiter!=revmap.end()) {
-      std::vector<int> key=mapiter->first;
-      int *value=mapiter->second;
-      cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
-      mapiter++;
-    }
-#endif
-    //calculate grid spacing and bounds
-    blitz::Array<double,1> space0(cen0.extent(0));
-    //create a space grid
-    if (cen0.extent(0)==1) {
-      //scalar case
-      space0(0)=0.1;
-    } else {
-      //vector case
-      for (int i=1;i<cen0.extent(0);i++) 
-        	space0(i)=cen0(i)-cen0(i-1);
-      space0(0)=space0(1);
-    }
-    start0=cen0(0)-space0(0)/2;
-    end0=cen0(cen0.extent(0)-1)+space0(cen0.extent(0)-1)/2;
-
-
-    blitz::Array<double,1> space1(cen1.extent(0));
-    //create a space grid
-    if (cen1.extent(0)==1) {
-      //scalar case
-      space1(0)=0.1;
-    } else {
-      //vector case
-      for (int i=1;i<cen1.extent(0);i++) 
-      	space1(i)=cen1(i)-cen1(i-1);
-      space1(0)=space1(1);
-    }
-    start1=cen1(0)-space1(0)/2;
-    end1=cen1(cen1.extent(0)-1)+space1(cen1.extent(0)-1)/2;
-	
     //define axis of the new domain
     if (old_dom.isDefined(Axis::TIME))
       domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
     if (old_dom.isDefined(Axis::FREQ))
       domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
-    //add two more defined in the initrec()
-    domain().defineAxis(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY);
-    //domain().defineAxis(Axis::axis(comm_axes_[0]),-10000,10000);
-    domain().defineAxis(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY);
-    //domain().defineAxis(Axis::axis(comm_axes_[1]),-10000,10000);
+    //calculate grid spacing and bounds
+		std::vector<blitz::Array<double,1> > space;
+		space.resize(grid_.size());
+		for (unsigned int ch=0; ch<grid_.size(); ch++) {
+      space[ch].resize(grid_[ch].extent(0));
+      //create a space grid
+      if (grid_[ch].extent(0)==1) {
+        //scalar case
+        space[ch](0)=0.1;
+      } else {
+       //vector case
+       for (int i=1;i<grid_[ch].extent(0);i++) 
+        	space[ch](i)=grid_[ch](i)-grid_[ch](i-1);
+       space[ch](0)=space[ch](1);
+      }
+      domain().defineAxis(Axis::axis(comm_axes_[ch]),-INFINITY,INFINITY);
+		}
+
     Cells &outcells=outcells_ref<<=new Cells(*domain);
 
     outcells.setCells(Axis::TIME,incells.center(Axis::TIME),incells.cellSize(Axis::TIME));
     outcells.setCells(Axis::FREQ,incells.center(Axis::FREQ),incells.cellSize(Axis::FREQ));
 
 #ifdef DEBUG
-    cout<<"Request "<<cen0<<" space "<<space0<<endl;
-    cout<<"Request "<<cen1<<" space "<<space1<<endl;
+    cout<<"Request "<<grid_[0]<<" space "<<space[0]<<endl;
+    cout<<"Request "<<grid_[1]<<" space "<<space[1]<<endl;
 #endif
 
-    outcells.setCells(Axis::axis(comm_axes_[0]),cen0,space0);
-    outcells.setCells(Axis::axis(comm_axes_[1]),cen1,space1);
+		for (unsigned int ch=0; ch<grid_.size(); ch++) {
+     outcells.setCells(Axis::axis(comm_axes_[ch]),grid_[ch],space[ch]);
+		}
+
 #ifdef DEBUG
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[0]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[0]))<<endl;
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[1]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[1]))<<endl;
@@ -727,56 +361,106 @@ namespace Meq {
     lockStateMutex();
 
     //remember this result
-    Result::Ref res0=child_res;
+    childres[1]=child_res;
     result_code_|=code;
 
     /*** end poll child 1 **********************/
 
     /**** begin processing of the result to correct for grid sorting */
     /** also create a new result with one vellset */
-    Result &res1=result_<<= new Result(1,child_res->isIntegrated());
-    const Vells vl=res0->vellSet(0).getValue();
+    Result &res1=result_<<= new Result(1,childres[1]->isIntegrated());
+    const Vells vl=childres[1]->vellSet(0).getValue();
     Vells &in=const_cast<Vells &>(vl);
-    //create new vellset
-    int npsetsf=res0->vellSet(0).numPertSets();
-    int nspidsf=res0->vellSet(0).numSpids();
+    int npsetsf=childres[1]->vellSet(0).numPertSets();
+    int nspidsf=childres[1]->vellSet(0).numSpids();
+
+		//merge spids, if any
+	  for (int ipert=0; ipert<nspidsf; ipert++)  {
+				VellSet::SpidType spid=childres[1]->vellSet(0).getSpid(ipert);
+        if (spidmap_.find(spid)==spidmap_.end()) {
+					//insert
+					int *dd=new int[naxis+1]; //last one for the funklet
+          dd[0]=dd[1]=dd[2]=-1; //not found yet
+					dd[naxis]=ipert;
+          spidmap_[spid]=dd;
+				} else {
+					//this already exists
+					int *dd=spidmap_[spid];
+					dd[naxis]=ipert;
+				}
+	  }
+
+   map<const VellSet::SpidType, int *, compare_spid>::iterator spmapiter=spidmap_.begin();
+#ifdef DEBUG
+	 cout<<"Spids"<<endl;
+    while(spmapiter!=spidmap_.end()) {
+			VellSet::SpidType key=spmapiter->first;
+      int *value=spmapiter->second;
+      cout<<"["<<key<<"] = ["<<value[0]<<","<<value[1]<<","<<value[2]<<"]"<<endl;
+      spmapiter++;
+    }
+
+#endif
+
+
     VellSet::Ref ref;
 		//determine the correct spids and perturbations before creating 
 		//the vellset. the priority is given to the axis child
-		//so if either vsax0 or vsax1 has them, the vellset
+		//so if either grid vellset 0 or 1 has them, the vellset
 		//will be created to match those values. Else, the vellset
 		//will be created to math the spid/perturbations of the funklet
 		int npsets, nspids;
-		npsets=nspids=0;
-		if ( have_perturbed_sets!=-1) {
-			if (have_perturbed_sets==0 || have_perturbed_sets==1) {
-				//copy from axis 1
-			  npsets=ipert0;
-			  nspids=ispid0;
-			} else if (have_perturbed_sets==2) {
-				//copy from axis 2
-			  npsets=ipert1;
-			  nspids=ispid1;
+		npsets=0;
+		//find the max value of perturbed sets from all vellsets
+		for (int ch=0; ch<naxis; ch++ ) {
+			if (childres[0]->vellSet(ch).numPertSets()>npsets) {
+       npsets=childres[0]->vellSet(ch).numPertSets();
 			}
-		} else {
-			//copy from funklet
-			npsets=npsetsf;
-			nspids=nspidsf;
 		}
+		//check out the funklet too
+		if (childres[1]->vellSet(0).numPertSets()>npsets) {
+       npsets=childres[1]->vellSet(0).numPertSets();
+		}
+		//create a spids vector
+    std::vector<VellSet::SpidType> newspids(spidmap_.size());
+    spmapiter=spidmap_.begin();
+		int sp_id=0;
+		while(spmapiter!=spidmap_.end()) {
+      newspids[sp_id++]=spmapiter->first;
+			spmapiter++;
+		}
+		nspids=spidmap_.size();
+    //create new vellset
     VellSet &vs=ref <<=new VellSet(incells.shape(),nspids,npsets);
-		if (npsetsf*nspidsf>0) {
-     vs.copySpids(res0->vellSet(0));
-     vs.copyPerturbations(res0->vellSet(0));
-		} else if ( have_perturbed_sets!=-1) {
-			if (have_perturbed_sets==0 || have_perturbed_sets==1) {
-				//copy from axis 1
-       vs.copySpids(vsax0);
-       vs.copyPerturbations(vsax0);
-			} else if (have_perturbed_sets==2) {
-				//copy from axis 2
-        vs.copySpids(vsax1);
-        vs.copyPerturbations(vsax1);
-			}
+    vs.setSpids(newspids);
+#ifdef DEBUG
+		cout<<"creating vellset with spids, pertsets"<<nspids<<","<<npsets<<endl;
+#endif
+    spmapiter=spidmap_.begin();
+		sp_id=0;
+		while(spmapiter!=spidmap_.end()) {
+						int *dd=spmapiter->second;
+						//find a sutitable result to get the perturbed values
+						//for this spid, give priority to funklet
+						//Note this does not check that number of perturbations are same in all results
+						if (dd[2] !=-1) {
+							//copy from funklet
+							for (int ii=0; ii<npsets; ii++) 
+							  vs.setPerturbation(sp_id,childres[1]->vellSet(0).getPerturbation(dd[2],ii),ii);
+						} else if (dd[0] != -1) {
+						 //copy from grid child 1
+							for (int ii=0; ii<npsets; ii++) 
+							  vs.setPerturbation(sp_id,childres[0]->vellSet(0).getPerturbation(dd[0],ii),ii);
+
+						} else if (dd[1] != -1) {
+						 //copy from grid child 2
+						 for (int ii=0; ii<npsets; ii++) 
+							  vs.setPerturbation(sp_id,childres[0]->vellSet(1).getPerturbation(dd[1],ii),ii);
+						} else {
+							//fali
+						}
+			      spmapiter++;
+						sp_id++;
 		}
 
     Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
@@ -786,211 +470,88 @@ namespace Meq {
     //go to the new grid point (t,f)
     blitz::Array<double,2> A=out.as<double,2>()(blitz::Range::all(),blitz::Range::all());
     blitz::Array<double,4> B=in.getArray<double,4>();
-    //reindexing arrays
 	
-		int fktime=res0->cells().ncells(Axis::TIME);
-		int fkfreq=res0->cells().ncells(Axis::FREQ);
-		if (lm_degenerate && (intime*infreq>fktime*fkfreq)) {
-			lm_degenerate=false;
-		} else {
-			//we have a degeneracy
-			cout<<"LM grid degenerate in t,f"<<endl;
-		}
-
 		
 #ifdef DEBUG
     cout<<"In "<<intime<<","<<infreq<<endl;
     cout<<"InCells from funklet"<<endl;
+		int fktime=vl.extent(Axis::TIME);
+		int fkfreq=vl.extent(Axis::FREQ);
     cout<<"t,f="<<fktime<<","<<fkfreq<<endl;
-    cout<<res0().cells().center(Axis::axis(comm_axes_[0]))<<endl;
-    cout<<res0().cells().center(Axis::axis(comm_axes_[1]))<<endl;
+    cout<<childres[1]->cells().center(Axis::axis(comm_axes_[0]))<<endl;
+    cout<<childres[1]->cells().center(Axis::axis(comm_axes_[1]))<<endl;
 #endif
-    int itime, ifreq,iplane;
-    mapiter=revmap.begin();
-    while(mapiter!=revmap.end()) {
-      std::vector<int> key=mapiter->first;
-      int *value=mapiter->second;
-      itime=key[0];
-      ifreq=key[1];
-      iplane=key[2];
-#ifdef DEBUG
-			cout<<"look for "<<itime<<","<<ifreq<<endl;
-#endif
-      if (!iplane) { //copy only the 0-th plane that has the value, the others are perturbed values
-      A(itime,ifreq)=B(itime,ifreq,value[0],value[1]);
-#ifdef DEBUG
-			cout<<"copy "<<itime<<","<<ifreq<<" "<<A(itime,ifreq)<<endl;
-#endif
-			}
 
-      mapiter++;
-    }
-
-    //handle degenerate axes in funklet here, if ntime or nfreq is less that the request shape copy the same value
-    //three cases: | |    ------------------      _
-    //             | |    ------------------     | |
-    //             | |                            -
-    if (!lm_degenerate && ((ntime<intime) || (nfreq<infreq))) {
-      //we have degeneracy in funklet 
-      if ((ntime==intime) && (infreq>nfreq)) {
-	//degeneracy in frequency, copy values from freq 0
-	for (int i=1; i<infreq; i++)
-	  A(blitz::Range::all(),i)=A(blitz::Range::all(),0);
-      } else if ((intime>ntime) && (infreq==nfreq)) {
-	// degeneracy in time, copy values from time 0
-	for (int i=1; i<intime; i++)
-	  A(i,blitz::Range::all())=A(0,blitz::Range::all());
-      } else {
-	//degeneracy in both, copy values from t,f 0,0
-	for (int i=1; i<intime; i++)
-	  A(i,0)=A(0,0);
-	for (int i=1; i<infreq; i++)
-	  A(blitz::Range::all(),i)=A(blitz::Range::all(),0);
-      }
-    }
+    //apply the grid to main value
+    apply_grid_map_2d4d(A, B, 0);
 
     // handle perturbed sets if any
-    if (npsetsf*nspidsf >0) {
-#ifdef DEBUG
-      cout<<"Found "<<npsetsf*nspidsf<<" perturbed sets from the funklet child"<<endl;
-#endif
-      for (int ipset=0; ipset<npsetsf; ipset++) 
-	for (int ipert=0; ipert<nspidsf; ipert++)  {
-	  const Vells pvl=res0->vellSet(0).getPerturbedValue(ipert,ipset);
-	  Vells &pin=const_cast<Vells &>(pvl);
-	  Vells &pout=vs.setPerturbedValue(ipert,new Vells(0.0,incells.shape()),ipset);
-
-	  blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-	  blitz::Array<double,4> pB=pin.getArray<double,4>();
-
-	  mapiter=revmap.begin();
-	  while(mapiter!=revmap.end()) {
-	    std::vector<int> key=mapiter->first;
-	    int *value=mapiter->second;
-	    itime=key[0];
-	    ifreq=key[1];
-	    iplane=key[2];
-    
-	    pA(itime,ifreq)=pB(itime,ifreq,value[0],value[1]);
-	    mapiter++;
-	  }
-
-	  //handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
-	  if (!lm_degenerate &&((ntime<intime) || (nfreq<infreq))) {
-	    //we have degeneracy here
-	    if ((ntime==intime) && (infreq>nfreq)) {
-	      //degeneracy in frequency, copy values from freq 0
-	      for (int i=1; i<infreq; i++)
-		pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
-	    } else if ((intime>ntime) && (infreq==nfreq)) {
-	      // degeneracy in time, copy values from time 0
-	      for (int i=1; i<intime; i++)
-		pA(i,blitz::Range::all())=pA(0,blitz::Range::all());
-	    } else {
-	      //degeneracy in both, copy values from t,f 0,0
-	      for (int i=1; i<intime; i++)
-		pA(i,0)=pA(0,0);
-	      for (int i=1; i<infreq; i++)
-		pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
-	    }
-	  }
-
-
-
-	}
-    } else if ( have_perturbed_sets!=-1) { //we have perturbed sets in the grid
-						//which can only happen if there is no LM degeneracy, so ignore
-						//checking that
-#ifdef DEBUG
-      cout<<"Found "<<nplanes<<" perturbed sets from the grid child case:"<<have_perturbed_sets<<endl;
-#endif
-			int nnpert,nnspid;
-			nnpert=nnspid=0;
-				if (have_perturbed_sets==0 || have_perturbed_sets==1) {
-				//copy from axis 1
-				//
-				nnpert=ipert0;
-				nnspid=ispid0;
-			} else if (have_perturbed_sets==2) {
-				//copy from axis 2
-				nnpert=ipert1;
-				nnspid=ispid1;
-			}
-      for (int ipset=0; ipset<nnpert; ipset++) 
-	         for (int ipert=0; ipert<nnspid; ipert++)  {
-	          Vells &pout=vs.setPerturbedValue(ipert,new Vells(0.0,incells.shape()),ipset);
-        	  blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-            blitz::Array<double,4> pB=in.getArray<double,4>();
-
-
-	          int plane=ipset*nnspid+ipert+1;
-			   for (int itime=0; itime<ntime; itime++) 
-						for (int ifreq=0; ifreq<nfreq; ifreq++) {
-              aa[0]=itime;
-              aa[1]=ifreq;
-              aa[2]=plane;
-#ifdef DEBUG
-							cout<<"looking for: ["<<aa[0]<<","<<aa[1]<<","<<aa[2]<<"]"<<endl;
-#endif
-              //try to get value
-              if(revmap.find(aa)==revmap.end()) {
-							//cannot find it, use the 0-th plane value
-              aa[2]=0;
-			        } 
-	            int *bb=revmap[aa];
-              if (bb)
-	              pA(itime,ifreq)=pB(itime,ifreq,bb[0],bb[1]);
-							}
-
-
-	  //handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
-	  if ((ntime<intime) || (nfreq<infreq)) {
-	    //we have degeneracy here
-	    if ((ntime==intime) && (infreq>nfreq)) {
-	      //degeneracy in frequency, copy values from freq 0
-	      for (int i=1; i<infreq; i++)
-		pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
-	    } else if ((intime>ntime) && (infreq==nfreq)) {
-	      // degeneracy in time, copy values from time 0
-	      for (int i=1; i<intime; i++)
-		pA(i,blitz::Range::all())=pA(0,blitz::Range::all());
-	    } else {
-	      //degeneracy in both, copy values from t,f 0,0
-	      for (int i=1; i<intime; i++)
-		pA(i,0)=pA(0,0);
-	      for (int i=1; i<infreq; i++)
-		pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
-	    }
-	  }
+		//
+    spmapiter=spidmap_.begin();
+		sp_id=0;
+		while(spmapiter!=spidmap_.end()) {
+       int *value=spmapiter->second;
+       if (value[2]!=-1) {
+					//spid in funklet, use the perturbed value from funklet
+          for (int ipset=0; ipset< childres[1]->vellSet(0).numPertSets(); ipset++) {
+	          const Vells pvl=childres[1]->vellSet(0).getPerturbedValue(value[2],ipset);
+	          Vells &pin=const_cast<Vells &>(pvl);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
+	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+	          blitz::Array<double,4> pB=pin.getArray<double,4>();
+						if (value[0]==-1 && value[1]==-1) {
+						  //not present in any of the axes
+							//use the same grid as the main value
+             apply_grid_map_2d4d(pA, pB, 0);
+						} else {
+						  //present in at least one of the axes
+							//use the grid for this spid
+             apply_grid_map_2d4d(pA, pB, spmapiter->first);
 						}
-
-
+					}
+			 } else {
+				  //no spid in funklet, use the main value of the funklet
+					//use the main value from funklet, but use the grid
+					//of the spid
+					int npsets=0;
+					int spid=0;
+					if (value[0]!=-1) {
+							npsets=childres[0]->vellSet(0).numPertSets();
+					} else {
+							npsets=childres[0]->vellSet(1).numPertSets();
+					}
+					for (int ipset=0; ipset<npsets; ipset++) {
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
+	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+	
+            apply_grid_map_2d4d(pA, B, spmapiter->first);
+					}
+			 }	 
+       spmapiter++;
+			 sp_id++;
 		}
-    res1.setVellSet(0,ref);
+	
+ 
+		res1.setVellSet(0,ref);
     res1.setCells(incells);
 
 
-		cout<<"Spids=";
-    for (int i=0; i<res1.vellSet(0).numSpids(); i++) {
-				cout<<res1.vellSet(0).getSpid(i)<<",";
-		}
-		cout<<endl;
-
     //delete map
-    mapiter=revmap.begin();
-    while(mapiter!=revmap.end()) {
-      delete [] mapiter->second;
-      mapiter++;
+		std::list<int*>::iterator liter=maplist_.begin();
+    while(liter!=maplist_.end()) {
+      delete [] *liter;
+      liter++;
     }
+		maplist_.clear();
+		revmap_.clear();
 
-    for (int i=0; i<sarray0.extent(0);i++) {
-      delete [] sarray0(i).id;
+    spmapiter=spidmap_.begin();
+    while(spmapiter!=spidmap_.end()) {
+      delete [] spmapiter->second;
+      spmapiter++;
     }
-    for (int i=0; i<sarray1.extent(0);i++) {
-      delete [] sarray1(i).id;
-    }
+		spidmap_.clear();
 
-    childres[1]=child_res;
     //return Node::pollChildren(resref,childres,newreq);
     unlockStateMutex();
     stepchildren().backgroundPoll(request);
@@ -1000,14 +561,394 @@ namespace Meq {
     return code;
   } 
 
-  int Compounder::getResult (Result::Ref &resref, 
+int Compounder::getResult (Result::Ref &resref, 
 			     const std::vector<Result::Ref> &childres,
 			     const Request &request,bool)
-  {
+{
     //pass on the cached result
     resref=result_;
     return result_code_;
-  }
+}
 
+//IN: grid child result, request time,freq
+//OUT: vector of funklet request grids, map for mapping back grid values 
+//to time,freq,spid, perturbation
+int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
+
+
+	 //sorting array
+   blitz::Array<IdVal,1> sarray;
+
+   int naxes=childres->numVellSets();
+	 //resize grid
+	 grid_.resize(naxes);
+
+   std::vector<int> aa(4);
+   for (int ch=0; ch<naxes; ch++) {
+    Vells vl0=childres->vellSet(ch).getValue();
+    int nx=vl0.extent(0);
+    int ny=vl0.extent(1);
+    //check for perturbed values
+    int ipert0=childres->vellSet(ch).numPertSets();
+    int ispid0=childres->vellSet(ch).numSpids();
+#ifdef DEBUG
+    cout<<ch<<": Pert "<<ipert0<<" Spids "<<ispid0<<endl;
+#endif
+
+    int nplanes=ipert0*ispid0;
+#ifdef DEBUG
+    cout<<"Dimension "<<nx<<","<<ny<<","<<nplanes<<endl;
+#endif
+
+    grid_[ch].resize(nx*ny*(nplanes+1));
+    //create axis vector
+    if (ny==1) {
+			//note: even when ny==1, we might get a 2D array here
+      //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+      double *data_=vl0.getStorage<double>();
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+#ifdef DEBUG
+      cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
+#endif
+      //cen0=vl0.as<double,1>();
+      grid_[ch]=data(blitz::Range::all(),0);
+    } else  {
+      blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+#ifdef DEBUG
+      cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
+#endif
+      //copy each columns from column 0 to ny-1
+      for (int i=0; i<ny;i++)  {
+	     grid_[ch](blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
+      }
+    }
+
+    //if there are any perturbed sets fill them.
+    //Note that we start counting them from 1 onwards
+    //Note also that there are 3 cases for perturbed sets.
+    // 1) both axes (vellsets) have same number of perturbations
+    // 2) axis 1 have perturbations but not axis 2
+    // 3) axis 2 have perturbations but not axis 1
+    // case 1) is standard. both axes share same plane number in id[2]
+    // in case 2) or 3) the axis missing a perturbed value will use plane 0
+    // as its perturbation. this should be done when building the map
+    if (nplanes>0) {
+	    for (int ipert=0; ipert<ispid0; ipert++)  {
+				//remember this spid
+				VellSet::SpidType spid=childres->vellSet(ch).getSpid(ipert);
+        if (spidmap_.find(spid)==spidmap_.end()) {
+					//insert
+					int *dd=new int[naxes+1]; //last one for the funklet
+          dd[0]=dd[1]=dd[2]=-1; //not found yet
+					dd[ch]=ipert;
+          spidmap_[spid]=dd;
+				} else {
+					//this already exists
+					int *dd=spidmap_[spid];
+					dd[ch]=ipert;
+				}
+        for (int ipset=0; ipset<ipert0; ipset++)  {
+	          Vells pvl=childres->vellSet(ch).getPerturbedValue(ipert,ipset);
+	          blitz::Array<double,1> pB(nx*ny);
+	          if (ny==1) {
+               double *data_=pvl.getStorage<double>();
+               blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+	             pB=data(blitz::Range::all(),0);
+	          } else  {
+	            blitz::Array<double,2> data=pvl.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+	           //copy each columns from column 0 to ny-1
+	           for (int i=0; i<ny;i++)  {
+	             pB(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
+	           }
+	         }
+
+	         //finally copy to original array
+	         grid_[ch](blitz::Range(nx*ny*(ispid0*ipset+ipert+1),nx*ny*(ispid0*ipset+ipert+2)-1))=pB;
+	}
+      }
+    }
+#ifdef DEBUG
+    cout<<"Axis "<<ch<<" 1="<<grid_[ch]<<endl;
+#endif
+
+
+		//sorting...sorting..
+    sarray.resize(grid_[ch].extent(0));
+
+
+    //copy data
+    int k=0;
+    for (int i=0; i<ny;i++) {
+      for (int j=0; j<nx;j++) {
+      	sarray(k).id=new int[4];
+	      sarray(k).id[0]=j;
+	      sarray(k).id[1]=i;
+	      sarray(k).id[2]=0;
+	      sarray(k).id[3]=0;
+	      sarray(k).val=grid_[ch](k);
+	      k++;
+      }
+    }
+    if (nplanes>0) {
+      //we have perturbed values, so copy them
+      for (int ipset=0; ipset<ipert0; ipset++)  {
+           for (int ipert=0; ipert<ispid0; ipert++)  {
+	             for (int i=0; i<ny;i++) {
+	                for (int j=0; j<nx;j++) {
+	                  sarray(k).id=new int[4];
+	                  sarray(k).id[0]=j;
+	                  sarray(k).id[1]=i;
+	                  sarray(k).id[2]=childres->vellSet(ch).getSpid(ipert);
+	                  sarray(k).id[3]=ipset;
+	                  sarray(k).val=grid_[ch](k);
+	                  k++;
+	               }
+	            }
+	        }
+      }
+    }
+
+#ifdef DEBUG
+    cout<<"Before sort"<<endl;
+    for (int i=0; i<sarray.extent(0);i++) {
+      cout<<i<<"="<<sarray(i).id[0]<<","<<sarray(i).id[1]<<","<<sarray(i).id[2]<<","<<sarray(i).id[3]<<","<<sarray(i).val<<endl;
+    }
+#endif
+    std::sort(sarray.data(), sarray.data()+sarray.extent(0));
+#ifdef DEBUG
+    cout<<"After sort"<<endl;
+    for (int i=0; i<sarray.extent(0);i++) {
+      cout<<i<<"="<<sarray(i).id[0]<<","<<sarray(i).id[1]<<","<<sarray(i).id[2]<<","<<sarray(i).id[3]<<","<<sarray(i).val<<endl;
+    }
+#endif
+    //overwrite the old array
+    //also build rev map
+    for (int i=0; i<sarray.extent(0);i++) {
+      grid_[ch](i)=sarray(i).val;
+      aa[0]=sarray(i).id[0];
+      aa[1]=sarray(i).id[1];
+      aa[2]=sarray(i).id[2];
+      aa[3]=sarray(i).id[3];
+      if(revmap_.find(aa)==revmap_.end()) {
+        //cannot find it, use the 0-th plane value
+        int *bb=new int[naxes]; //leak!!
+				for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+        //rest not yet defined
+        bb[ch]=i;
+        revmap_[aa]=bb;
+				maplist_.push_front(bb);
+			} else {
+        int *bb=revmap_[aa];
+				bb[ch]=i;
+			} 
+
+    }
+#ifdef DEBUG
+   map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
+    while(mapiter!=revmap_.end()) {
+      std::vector<int> key=mapiter->first;
+      int *value=mapiter->second;
+      cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<","<<key[3]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
+      mapiter++;
+    }
+#endif
+
+    for (int i=0; i<sarray.extent(0);i++) {
+      delete [] sarray(i).id;
+    }
+
+   }
+
+  std::vector<int> atf(4);
+  //handle degenerate axes
+  for (int ch=0; ch<naxes; ch++) {
+    int ipert0=childres->vellSet(ch).numPertSets();
+    int ispid0=childres->vellSet(ch).numSpids();
+
+    int nx=childres->vellSet(ch).getValue().extent(0);
+    int ny=childres->vellSet(ch).getValue().extent(1);
+
+	  if (intime*infreq*(ipert0*ispid0+1)>grid_[ch].extent(0)) {
+				//we have degeneray in time or frequency or in both so copy the
+				//appropriate t,f value to this location
+#ifdef DEBUG
+				cout<<"LM degeneracy 0: in t,f because "<<intime<<","<<infreq<<","<<ipert0<<","<<ispid0<<","<<grid_[ch].extent(0)<<",["<<nx<<","<<ny<<"]"<<endl;
+#endif
+				for (int i=1; i<intime; i++) {
+					for (int j=0; j<infreq; j++) {
+            aa[0]=i;
+            aa[1]=j;
+            aa[2]=aa[3]=0; //main value
+            if(revmap_.find(aa)==revmap_.end()) {
+							//check for time only degeneracy
+							atf[0]=atf[2]=atf[3]=0;
+							atf[1]=j;
+              if(revmap_.find(atf)!=revmap_.end()) {
+               revmap_[aa]=revmap_[atf];
+							} else {
+							  //check for freq only degeneracy
+							  atf[1]=0;
+							  atf[0]=i;
+                if(revmap_.find(atf)!=revmap_.end()) {
+                  revmap_[aa]=revmap_[atf];
+								} else {
+                  int *bb=new int[naxes];
+		     		     for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+                 revmap_[aa]=bb;
+				         maplist_.push_front(bb);
+								}
+							}
+					  }
+            for (int ipset=0; ipset<ipert0; ipset++)  {
+                for (int ipert=0; ipert<ispid0; ipert++)  {
+	                aa[2]=childres->vellSet(ch).getSpid(ipert);
+                  aa[3]=ipset;
+                  if(revmap_.find(aa)==revmap_.end()) {
+       							//check for time only degeneracy
+			      				atf[0]=0;
+					      		atf[1]=j;
+			      				atf[2]=aa[2];
+			      				atf[3]=aa[3];
+                    if(revmap_.find(atf)!=revmap_.end()) {
+                      revmap_[aa]=revmap_[atf];
+							      } else {
+							        //check for freq only degeneracy
+							        atf[1]=0;
+							        atf[0]=i;
+                      if(revmap_.find(atf)!=revmap_.end()) {
+                        revmap_[aa]=revmap_[atf];
+								      } else {
+                        int *bb=new int[naxes];
+		     		            for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+                        revmap_[aa]=bb;
+				                maplist_.push_front(bb);
+							      	}
+							     }
+
+									}
+					     }
+			      }
+					}
+				}
+				for (int j=1; j<infreq; j++) {
+            aa[0]=0;
+            aa[1]=j;
+            aa[2]=aa[3]=0; //main value
+            if(revmap_.find(aa)==revmap_.end()) {
+							//check for time only degeneracy
+							atf[0]=atf[2]=atf[3]=0;
+							atf[1]=j;
+              if(revmap_.find(atf)!=revmap_.end()) {
+               revmap_[aa]=revmap_[atf];
+							} else {
+							  //check for freq only degeneracy
+							  atf[1]=0;
+							  atf[0]=0;
+                if(revmap_.find(atf)!=revmap_.end()) {
+                  revmap_[aa]=revmap_[atf];
+								} else {
+                  int *bb=new int[naxes];
+		     		     for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+                 revmap_[aa]=bb;
+				         maplist_.push_front(bb);
+								}
+							}
+					  }
+
+            for (int ipset=0; ipset<ipert0; ipset++)  {
+               for (int ipert=0; ipert<ispid0; ipert++)  {
+	                aa[2]=childres->vellSet(ch).getSpid(ipert);
+                  aa[3]=ipset;
+                  if(revmap_.find(aa)==revmap_.end()) {
+       							//check for time only degeneracy
+			      				atf[0]=0;
+					      		atf[1]=j;
+			      				atf[2]=aa[2];
+			      				atf[3]=aa[3];
+                    if(revmap_.find(atf)!=revmap_.end()) {
+                      revmap_[aa]=revmap_[atf];
+							      } else {
+							        //check for freq only degeneracy
+							        atf[1]=0;
+							        atf[0]=0;
+                      if(revmap_.find(atf)!=revmap_.end()) {
+                        revmap_[aa]=revmap_[atf];
+								      } else {
+                        int *bb=new int[naxes];
+		     		            for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+                        revmap_[aa]=bb;
+				                maplist_.push_front(bb);
+							      	}
+							     }
+									}
+
+					     }
+			      }
+
+				}
+
+		 }
+
+		}
+#ifdef DEBUG
+   map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
+    while(mapiter!=revmap_.end()) {
+      std::vector<int> key=mapiter->first;
+      int *value=mapiter->second;
+      cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<","<<key[3]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
+      mapiter++;
+    }
+   map<const VellSet::SpidType, int *, compare_spid>::iterator spmapiter=spidmap_.begin();
+    while(spmapiter!=spidmap_.end()) {
+			VellSet::SpidType key=spmapiter->first;
+      int *value=spmapiter->second;
+      cout<<"["<<key<<"] = ["<<value[0]<<","<<value[1]<<","<<value[2]<<"]"<<endl;
+      spmapiter++;
+    }
+
+#endif
+
+
+
+	 return 0;
+
+}
+
+int Compounder::apply_grid_map_2d4d( blitz::Array<double,2> A, blitz::Array<double,4> B, int spid ) {
+    int itime, ifreq, il, im;
+    map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
+		int fktime=B.extent(0);
+		int fkfreq=B.extent(1);
+		int fl=B.extent(2);
+		int fm=B.extent(3);
+		int sp_id;
+    while(mapiter!=revmap_.end()) {
+      std::vector<int> key=mapiter->first;
+      int *value=mapiter->second;
+      itime=key[0];
+      ifreq=key[1];
+      sp_id=key[2];
+#ifdef DEBUG
+			cout<<"look for "<<itime<<","<<ifreq<<endl;
+#endif
+      if (sp_id==spid) { // if 0, it is the main value
+			 //check for degeneracy in funklet value too
+			 if (itime>=fktime) itime=0;
+			 if (ifreq>=fkfreq) ifreq=0;
+			 il=value[0];
+			 im=value[1];
+			 if (value[0]>=fl) il=0;
+			 if (value[1]>=fm) im=0;
+       A(key[0],key[1])=B(itime,ifreq,il,im);
+#ifdef DEBUG
+			cout<<"copy "<<itime<<","<<ifreq<<" "<<A(key[0],key[1])<<endl;
+#endif
+			}
+      mapiter++;
+    }
+
+
+			return 0;
+}
 
 } // namespace Meq

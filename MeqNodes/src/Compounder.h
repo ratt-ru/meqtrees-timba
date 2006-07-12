@@ -25,6 +25,7 @@
     
 #include <MEQ/Node.h>
 #include <MEQ/Cells.h>
+#include <MEQ/VellSet.h>
 #include <MEQ/AID-Meq.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
@@ -48,16 +49,32 @@
 //  a vector which gives the axes returned by the grid child that is given to the function. Axes names can be characters like 'L','M' etc
 //defrec end
 
-namespace Meq {    
+namespace Meq {   
 
-//##ModelId=400E530400A3
+// for the map less than comparison
+struct compare_vec{
+ bool operator()(const std::vector<int> v1, const std::vector<int> v2) const
+ {
+  return ((v1[0] < v2[0])
+    ||( (v1[0] == v2[0]) && (v1[1] < v2[1]))
+	  ||( (v1[0] == v2[0]) && (v1[1] == v2[1]) && (v1[2] < v2[2]))
+	  ||( (v1[0] == v2[0]) && (v1[1] == v2[1]) && (v1[2] == v2[2]) && (v1[3] < v2[3])));
+ }
+};
+
+// for the spid map less than comparison
+struct compare_spid{
+ bool operator()(const VellSet::SpidType v1, const VellSet::SpidType v2) const
+ {
+  return (v1 < v2);
+ }
+};
+
 class Compounder : public Node
 {
 public:
-    //##ModelId=400E5355029C
   Compounder();
 
-    //##ModelId=400E5355029D
   virtual ~Compounder();
 
 	virtual TypeId objectType() const
@@ -94,7 +111,30 @@ private:
 	//for caching result in pollChildren()
 	Result::Ref result_;
 	int result_code_;
+
+	//array of arrays for storing axes returned from the grid
+  std::vector<blitz::Array<double,1> > grid_;	
+
+	//map to store grid values and perturbed values and their mapping
+	//key=(time,freq,spid,perturbation), value=(axis1,axis2,...,axisn)
+	//
+	map<const std::vector<int>, int *, compare_vec> revmap_;
+	//list to keep track of all allocated memory
+	std::list<int *> maplist_;
+
+	//map for merging spids
+	//key: spid
+	//value: array of integers, for ax1, ax2, ... funklet
+	//if no spid : -1, else the number of that spid in each axis
+	map<const VellSet::SpidType, int *, compare_spid> spidmap_;
+
+	//build axes from the grid child result
+	int build_axes_(Result::Ref &childres, int ntime, int nfreq);
+
+	//apply the grid to the funklet, for the main value, put spid=0
+	int apply_grid_map_2d4d( blitz::Array<double,2> A, blitz::Array<double,4> B, int spid);
 };
+
 
 } // namespace Meq
 
