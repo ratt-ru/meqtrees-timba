@@ -690,9 +690,9 @@ namespace Meq {
     if (old_dom.isDefined(Axis::FREQ))
       domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
     //add two more defined in the initrec()
-    domain().defineAxis(Axis::axis(comm_axes_[0]),start0,end0);
+    domain().defineAxis(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY);
     //domain().defineAxis(Axis::axis(comm_axes_[0]),-10000,10000);
-    domain().defineAxis(Axis::axis(comm_axes_[1]),start1,end1);
+    domain().defineAxis(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY);
     //domain().defineAxis(Axis::axis(comm_axes_[1]),-10000,10000);
     Cells &outcells=outcells_ref<<=new Cells(*domain);
 
