@@ -10,17 +10,10 @@ from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
 from Timba.Contrib.OMS import Bookmarks
 from Timba.Contrib.OMS.FITSImageComponent import FITSImageComponent
+from Timba.Contrib.OMS import Utils
 
-# MS name
-ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
-TDLRuntimeOption('msname',"MS",ms_list);
-
-# ms_output = False  # if True, outputs to MS, else to BOIO dump   
-TDLRuntimeOption('output_column',"Output MS column",
-  [None,"DATA","MODEL_DATA","CORRECTED_DATA","MODEL_DATA_NJY"],default=1);
-
-# number of timeslots to use at once
-TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960,2400]);
+Utils.include_ms_options(has_input=False,
+  tile_sizes=[30,48,60,96,480,960,2400]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -41,25 +34,9 @@ TDLCompileOption('source_model',"Source model",[
 TDLCompileOption('background_image',"Background sky image",[None,'sky-image.fits']);
 TDLCompileOption('background_flux_scale',"Rescale background flux",[None,1e-3,1e-6,1e-9,1e-10]);
 
-
 # number of timeslots to use at once
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
-# selection  applied to MS, None for full MS
-ms_selection = None
-# or e.g.: 
-#ms_selection = record(channel_start_index=31,
-#                      channel_end_index=31,
-#                      channel_increment=1,
-#                      selection_string='')
-
-
-# MS input queue size -- should be at least equal to the no. of ifrs
-ms_queue_size = 500
-
-# if False, BOIO dump will be generated instead of MS. Useful for benchmarking
-ms_output = True;
-
 # bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
@@ -74,16 +51,6 @@ Settings.forest_state = record(bookmarks=[
 
 
     
-def noise_matrix (stddev=0.1):
-  """helper function to create a 2x2 complex gaussian noise matrix""";
-  noise = Meq.GaussNoise(stddev=stddev);
-  return Meq.Matrix22(
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
-  );
-
-
-
 def _define_forest(ns):
   # create array model
   stations = range(1,num_stations+1);
@@ -130,46 +97,8 @@ def _define_forest(ns):
   ns.VisDataMux << Meq.VisDataMux(child_poll_order=cpo);
   ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in array.ifrs()]);
 
-def create_inputrec():
-  boioname = "boio."+msname+".empty."+str(tile_size);
-  # if boio dump for this tiling exists, use it to save time
-  # but watch out if you change the visibility data set!
-  if False: # not ms_selection and os.access(boioname,os.R_OK):
-    rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
-  # else use MS, but tell the event channel to record itself to boio file
-  else:
-    rec = record();
-    rec.ms_name          = msname
-    rec.data_column_name = 'DATA'
-    rec.tile_size        = tile_size
-    rec.selection        = ms_selection or record();
-#      if not ms_selection:
-#        rec.record_input     = boioname;
-    rec = record(ms=rec);
-  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
-  rec.mt_queue_size = ms_queue_size;
-  return rec;
-
-def create_outputrec (outcol):
-  rec = record();
-  rec.mt_queue_size = ms_queue_size;
-  if ms_selection or ms_output:
-    rec.write_flags = False;
-    rec.data_column = outcol;
-    return record(ms=rec);
-  else:
-    rec.boio_file_name = "boio."+msname+".predict."+str(tile_size);
-    rec.boio_file_mode = 'W';
-    return record(boio=rec);
-
-
-
 def _tdl_job_1_write_simulated_ms (mqs,parent,write=True):
-  req = meq.request();
-  req.input  = create_inputrec();
-  if write and output_column:
-    req.output = create_outputrec(output_column);
-  print 'VisDataMux request is ', req
+  req = Utils.create_io_request();
   mqs.clearcache('VisDataMux',recursive=False);
   mqs.execute('VisDataMux',req,wait=(parent is None));
   pass
@@ -177,7 +106,6 @@ def _tdl_job_1_write_simulated_ms (mqs,parent,write=True):
 def _tdl_job_2_make_dirty_image (mqs,parent,**kw):
   os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
       'ms='+msname,'mode='+imaging_mode]);
-
 
 
 Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching

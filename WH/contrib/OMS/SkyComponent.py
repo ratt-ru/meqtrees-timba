@@ -1,6 +1,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Utils import *
+from Parameterization import *
 from Direction import *
 
 class SkyComponent (Parameterization):

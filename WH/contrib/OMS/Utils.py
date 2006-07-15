@@ -1,94 +1,189 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from numarray import *
+import numarray
+import math
+import random
+
+input_column = output_column = None;
+
+def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
+  """Instantiates MS input/output options""";
+  ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
+  TDLRuntimeOption('msname',"MS",ms_list);
+  if has_input:
+    TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+  if has_output:
+    TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
+  TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
+
+source_table = "sources.mep";
+mep_table = "calib.mep";
+
+def get_source_table ():
+  return msname + "/" + source_table;
+
+def get_mep_table ():
+  return msname + "/" + mep_table;
+
+def solver_options ():
+  """Returns list of solver option""";
+  return [
+    TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
+    TDLOption('solver_colin_factor',"Collinearity factor",[1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1]),
+    TDLOption('solver_lm_factor',"Initial LM factor",[1,.1,.01,.001]),
+    TDLOption('solver_balanced_equations',"Assume balanced equations",False),
+    TDLOption('solver_epsilon',"Convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
+    TDLOption('solver_num_iter',"Max iterations",[30,50,100,1000]),
+    TDLOption('solver_convergence_quota',"Convergence quota",[.8,.9,1.]) \
+  ];
+
+def parameter_options ():
+  return [
+    TDLOption('use_previous',"Reuse solution from previous time interval",False,
+    doc="""If True, solutions for successive time domains will start with
+  the solution for a previous domain. Normally this speeds up convergence; you
+  may turn it off to re-test convergence at each domain."""),
+    TDLOption('use_mep',"Reuse solutions from MEP table",False,
+    doc="""If True, solutions from the MEP table (presumably, from a previous
+  run) will be used as starting points. Turn this off to solve from scratch.""")
+ ];
+
+def create_solver_defaults(solvable=[]):
+  solver_defaults = record()
+  solver_defaults.num_iter      = solver_num_iter
+  solver_defaults.epsilon       = solver_epsilon
+  solver_defaults.epsilon_deriv = solver_epsilon
+  solver_defaults.lm_factor     = solver_lm_factor
+  solver_defaults.convergence_quota = solver_convergence_quota
+  solver_defaults.balanced_equations = solver_balanced_equations
+  solver_defaults.debug_level   = solver_debug_level;
+  solver_defaults.save_funklets = True
+  solver_defaults.last_update   = True
+  solver_defaults.solvable      = record(command_by_list=(record(name=solvable,
+                                       state=record(solvable=True)),
+                                       record(state=record(solvable=False))))
+  return solver_defaults
+
+def set_node_state (mqs,node,fields_record):
+  """helper function to set the state of a node specified by name or
+  nodeindex""";
+  rec = record(state=fields_record);
+  if isinstance(node,str):
+    rec.name = node;
+  elif isinstance(node,int):
+    rec.nodeindex = node;
+  else:
+    raise TypeError,'illegal node argument';
+  # pass command to kernel
+  mqs.meq('Node.Set.State',rec);
+  pass
+
+# various global MS I/O options
+ms_output = True;
+ms_queue_size = 500;
+ms_selection = None;
 
 
-def create_polc(c00=0.0,degree_f=0,degree_t=0):
-  """helper function to create a t/f polc with the given c00 coefficient,
-  and with given order in t/f""";
-  polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0);
-  polc.coeff[0,0] = c00;
-  return polc;
+def create_inputrec ():
+  boioname = "boio."+msname+".predict."+str(tile_size);
+  # if boio dump for this tiling exists, use it to save time
+  if not ms_selection and os.access(boioname,os.R_OK):
+    rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
+  # else use MS, but tell the event channel to record itself to boio file
+  else:
+    rec = record();
+    rec.ms_name          = msname
+    if input_column:
+      rec.data_column_name = input_column;
+    rec.tile_size        = tile_size
+    rec.selection = ms_selection or record();
+    rec = record(ms=rec);
+  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
+  rec.mt_queue_size = ms_queue_size;
+  return rec;
 
-# type of polc object  
-POLC_TYPE = type(meq.polc(0));
-
-class QualScope (object):
-  """Helper class used to create nodes with a given scope and set of
-  qualifiers.""";
-  def __init__ (self,ns,quals,kwquals):
-    self.ns = ns;
-    self.quals = quals;
-    self.kwquals = kwquals;
-  def __getattr__ (self,name):
-    return self.ns[name](*self.quals,**self.kwquals);
-  def __getitem__ (self,name):
-    return self.ns[name](*self.quals,**self.kwquals);
-
-class Parameterization (object):
-  """Parameterization is a base class for objects with parameters.
-  It provides services for managing polcs, etc.
-  Mainly, it also provides a "qualified scope" object -- available
-  as self.ns -- that can be used just like a proper node scope
-  to create all nodes associated with this object, automatically
-  assigning them the given qualifiers (including the name, if not None).
-  The global node scope is available as self.ns0.
-  If needed, the set of qualifiers (including name) can be accessed via 
-  quals()/kwquals().
-  """;
+def create_outputrec ():
+  rec = record();
+  rec.mt_queue_size = ms_queue_size;
+  if ms_output:
+    rec.write_flags    = False;
+    if output_column:
+      rec.predict_column = output_column;
+    return record(ms=rec);
+  else:
+    rec.boio_file_name = "boio."+msname+".solve."+str(tile_size);
+    rec.boio_file_mode = 'W';
+    return record(boio=rec);
+    
+def create_io_request ():
+  req = meq.request();
+  req.input  = create_inputrec();
+  if output_column is not None:
+    req.output = create_outputrec();
+  return req;
   
-  def __init__(self,ns,name,parm_options=record(node_groups='Parm'),quals=[],kwquals={}):
-    self.ns0    = ns;
-    self.name   = name;
-    self._polcs = record();
-    self._parm_options = parm_options;
-    self._quals     = list(quals);
-    self._kwquals   = kwquals;
-    if name is not None:
-      self._quals.append(name);
-    if self._quals or self._kwquals:
-      self.ns = QualScope(ns,self._quals,self._kwquals);
-    else:
-      self.ns = ns;
+def phase_parm (tdeg,fdeg):
+  """helper function to create a t/f parm for phase, including constraints.
+  Placeholder until Maaijke implements periodic constraints.
+  """;
+  polc = meq.polc(numarray.zeros((tdeg+1,fdeg+1))*0.0,
+            scale=array([3600.,8e+8,0,0,0,0,0,0]));
+  shape = [tdeg+1,fdeg+1];
+  # work out constraints on coefficients
+  # maximum excursion in freq is pi/2
+  # max excursion in time is pi/2
+  dt = .2;
+  df = .5;
+  cmin = [];
+  cmax = [];
+  for it in range(tdeg+1):
+    for jf in range(fdeg+1):
+      mm = math.pi/(dt**it * df**jf );
+      cmin.append(-mm);
+      cmax.append(mm);
+  cmin[0] = -1e+9;
+  cmax[0] = 1e+9;
+  return Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',
+                  constrain_min=cmin,constrain_max=cmax,
+                  table_name=get_mep_table());
+
+
+def perturb_parameters (mqs,solvables,pert="random",
+                        absolute=False,random_range=[0.2,0.3],constrain=None):
+  for name in solvables:
+    polc = mqs.getnodestate(name).real_polc;
+    if absolute:  # absolute pert value given
+      polc.coeff[0,0] += pert;
+    elif pert == "random":  # else random pert
+      polc.coeff[0,0] *= 1 + random.uniform(*random_range)*random.choice([-1,1]);
+    else: # else perturb in relative terms
+      polc.coeff[0,0] *= (1 + pert);
+    parmstate = record(init_funklet=polc,
+      use_previous=use_previous,reset_funklet=not use_mep);
+    if constrain is not None:
+      parmstate.constrain = constrain;
+    set_node_state(mqs,name,parmstate);
+  return solvables;
     
-  def quals (self):
-    """Returns qualifiers for this object""";
-    return self._quals;
-    
-  def kwquals (self):
-    """Returns keyword qualifiers for this object""";
-    return self._kwquals;
-    
-  def _const_node (self,name,value):
-    """Creates a node called 'name' in the object's NodeScope, and applies
-    the object's qualifiers. Returns node stub.
-    """;
-    return self.ns[name] << Meq.Constant(value=value);
-    
-  def _create_polc (self,polcname,value,degree_f=0,degree_t=0):
-    """Creates a polc called 'polcname' with the given c00 coefficient and
-    f/t degrees""";
-    if not isinstance(value,POLC_TYPE):
-      if not isinstance(value,(int,float)):
-        raise TypeError,polcname+": numeric value expected";
-      value = create_polc(value,degree_f,degree_t);
-    self._polcs[polcname] = value;
-    
-  def _rename_polc (self,old,new):
-    """Renames a polc""";
-    self._polcs[new] = self._polcs.pop(old);
-    
-  def _parm (self,parmname):
-    """Creates a Meq.Parm node called 'parmname' in the object's NodeScope, 
-    and applies the object's qualifiers. Inits the parm with the polc of
-    the same name.
-    """;
-    node = self.ns[parmname];
-    if not node.initialized():
-      polc = self._polcs.get(parmname,None);
-      if polc is None:
-        polc = self._polcs[parmname] = create_polc();
-      node << Meq.Parm(polc,real_polc=polc,  # real polc also saved in parm state
-                   shape=polc.coeff.shape,
-                   **self._parm_options);
-    return node;
+def reset_parameters (mqs,solvables,value=None,use_table=False,reset=False):
+  for name in solvables:
+    polc = mqs.getnodestate(name).real_polc;
+    if value is not None:
+      polc.coeff[()] = value;
+    reset_funklet = reset or not (use_table or use_mep);
+    set_node_state(mqs,name,record(init_funklet=polc,
+      use_previous=use_previous,reset_funklet=reset_funklet));
+  return solvables;
+
+def run_solve_job (mqs,solvables,solver_node="solver",vdm_node="VisDataMux"):
+  """common helper method to run a solution with a bunch of solvables""";
+  # set solvables list in solver
+  solver_defaults = create_solver_defaults(solvable=solvables)
+  set_node_state(mqs,solver_node,solver_defaults)
+
+  req = create_io_request();
+  
+  mqs.execute(vdm_node,req,wait=False);
+  
+  pass
+

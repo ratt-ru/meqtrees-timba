@@ -1,6 +1,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Utils import *
+from Parameterization import *
 import Jones
 
 class Direction (Parameterization):
