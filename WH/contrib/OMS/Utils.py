@@ -5,6 +5,7 @@ import math
 import random
 
 input_column = output_column = None;
+tile_size = None;
 
 def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
   """Instantiates MS input/output options""";
@@ -14,7 +15,8 @@ def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,
     TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
   if has_output:
     TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-  TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
+  if tile_sizes:
+    TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
 
 source_table = "sources.mep";
 mep_table = "calib.mep";
@@ -84,8 +86,9 @@ ms_queue_size = 500;
 ms_selection = None;
 
 
-def create_inputrec ():
-  boioname = "boio."+msname+".predict."+str(tile_size);
+def create_inputrec (tiling=None):
+  global tile_size;
+  boioname = "boio."+msname+".predict."+str(tiling or tile_size);
   # if boio dump for this tiling exists, use it to save time
   if not ms_selection and os.access(boioname,os.R_OK):
     rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
@@ -95,7 +98,19 @@ def create_inputrec ():
     rec.ms_name          = msname
     if input_column:
       rec.data_column_name = input_column;
-    rec.tile_size        = tile_size
+    # use global tile_size setting if tiling not specified
+    if not tiling:
+      tiling = tile_size;
+    if isinstance(tiling,(list,tuple)):
+      if len(tiling) != 2:
+        raise TypeError,"tiling: 2-list or 2-tuple expected";
+      (tile_segments,tile_size) = tiling;
+      if tile_segments is not None:
+        rec.tile_segments    = tile_segments;
+      if tile_size is not None:
+        rec.tile_size        = tile_size;
+    else:  
+      rec.tile_size = tiling;
     rec.selection = ms_selection or record();
     rec = record(ms=rec);
   rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
@@ -115,9 +130,9 @@ def create_outputrec ():
     rec.boio_file_mode = 'W';
     return record(boio=rec);
     
-def create_io_request ():
+def create_io_request (tiling=None):
   req = meq.request();
-  req.input  = create_inputrec();
+  req.input  = create_inputrec(tiling);
   if output_column is not None:
     req.output = create_outputrec();
   return req;
@@ -175,13 +190,13 @@ def reset_parameters (mqs,solvables,value=None,use_table=False,reset=False):
       use_previous=use_previous,reset_funklet=reset_funklet));
   return solvables;
 
-def run_solve_job (mqs,solvables,solver_node="solver",vdm_node="VisDataMux"):
+def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisDataMux"):
   """common helper method to run a solution with a bunch of solvables""";
   # set solvables list in solver
   solver_defaults = create_solver_defaults(solvable=solvables)
   set_node_state(mqs,solver_node,solver_defaults)
 
-  req = create_io_request();
+  req = create_io_request(tiling);
   
   mqs.execute(vdm_node,req,wait=False);
   

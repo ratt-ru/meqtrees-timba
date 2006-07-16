@@ -7,16 +7,15 @@ from Timba.Meq import meq
 
 from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
-from Timba.Contrib.OMS.Utils import create_polc 
+from Timba.Contrib.OMS.Parameterization import create_polc 
 from Timba.Contrib.OMS.Patch import Patch
 from Timba.Contrib.OMS.CorruptComponent import CorruptComponent 
 from Timba.Contrib.OMS.GaussianSource import GaussianSource 
-from Timba.Contrib.OMS import Jones
-from Timba.Contrib.OMS import Bookmarks
+from Timba.Contrib.OMS import Jones,Bookmarks,Utils
 
-from Timba.Contrib.OMS.Calibration import StandardModels
+import StandardModels
 
-from Timba.Contrib.OMS.Calibration import fringe_fit_settings
+import fringe_fit_settings
 
 StandardModels.ref_frequency = fringe_fit_settings.source_ref_frequency;
 
@@ -44,13 +43,9 @@ TDLCompileOption('output_type',"Output visiblities",["corrected","residual"]);
 
 
 
-# MS name
-# get all MS in current dir
-ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
-TDLRuntimeOption('msname',"MS",ms_list);
-
-TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
-TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
+# MS name and i/o column options
+# excluse the standard tile size option, provide our own instead
+Utils.include_ms_options(tile_sizes=None);
 TDLRuntimeOption('tiling_phase',"Tiling for local solutions (e.g. phase)",
                   fringe_fit_settings.local_solution_tilings);
 TDLRuntimeOption('tiling_source',"Tiling for global solutions",
@@ -66,8 +61,9 @@ TDLRuntimeMenu('Data selection options',
   fringe_fit_settings.data_selection_strings and 
     TDLOption('selection_string',"Additional selection",[None]+fringe_fit_settings.data_selection_strings),
 );
-# how much to perturb starting values of solvables
-TDLRuntimeMenu('Fitting options',
+
+# solvable parameter options
+parm_options = [
   TDLOption('override_phase_deg',"Override explicit polc degrees",False),
   TDLOption('phase_deg_time',"Polc degree (time) for phase fits",
     range(fringe_fit_settings.max_phase_deg_time+1)),
@@ -78,42 +74,15 @@ TDLRuntimeMenu('Fitting options',
   fringe_fit_settings.gain_fitting and TDLOption('gain_deg_freq',"Polc degree (freq) for gain fits",[0,1,2,3,4]),
   not fit_phases_only and TDLOption('flux_constraint',"Flux constraint",[None,[0.0,10.0],[1.,10.0],[2.,10.],[4.,10.]]),
   not fit_phases_only and TDLOption('fit_polarization',"Fit polarized source",False),
-  not fit_phases_only and TDLOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]),
-  TDLOption('use_previous',"Reuse solution from previous time interval",False,
-      doc="""If True, solutions for successive time domains will start with
-the solution for a previous domain. Normally this speeds up convergence; you
-may turn it off to re-test convergence at each domain."""),
-  TDLOption('use_mep',"Reuse solutions from MEP table",False,
-      doc="""If True, solutions from the MEP table (presumably, from a previous
-run) will be used as starting points. Turn this off to solve from scratch."""),
-  TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
-  TDLOption('solver_lm_factor',"Initial solver LM factor",[0,1,.1,.01,.001]),
-  TDLOption('solver_use_svd',"Use SVD for linear fits",True),
-  TDLOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
-  TDLOption('solver_num_iter',"Max number of solver iterations",[30,50,100,200,500,1000]),
-  TDLOption('solver_balanced_equations',"Assume equations are balanced",False),
-  TDLOption('solver_save_funklets',"Save parms even if not converged",False)
-);
+] + Utils.parameter_options();
+TDLRuntimeMenu("Parameter options",*parm_options);
+
+# solver runtime options
+TDLRuntimeMenu("Solver options",*Utils.solver_options());
+
+# imaging mode
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
-source_table = "sources.mep";
-mep_table = "calib.mep";
-
-def get_source_table ():
-  return msname+"/"+source_table;
-
-def get_mep_table ():
-  return msname+"/"+mep_table;
-
-
-### MS input queue size -- must be at least equal to the no. of ifrs
-ms_queue_size = 500
-
-ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
-
-
-
-
 def gain_parm (tdeg,fdeg):
   """helper function to create a t/f parm for gain.
   """;
@@ -146,7 +115,7 @@ def phase_parm (tdeg,fdeg):
   cmax[0] = 1e+9;
   return Meq.Parm(polc,shape=shape,real_polc=polc,node_groups='Parm',
                   constrain_min=cmin,constrain_max=cmax,
-                  table_name=get_mep_table());
+                  table_name=Utils.get_mep_table());
 
 
 def _define_forest(ns):
@@ -160,7 +129,7 @@ def _define_forest(ns):
   
   # create source model
   global source_list;
-  source_list = source_model(ns,observation,get_source_table());
+  source_list = source_model(ns,observation,Utils.get_source_table());
   # create all-sky patch for source model
   allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*source_list);
@@ -303,110 +272,7 @@ def _define_forest(ns):
   ns.VisDataMux.add_stepchildren(*[ns.weight(*ifr) for ifr in array.ifrs()]);
   
   
-def create_solver_defaults(num_iter=60,convergence_quota=0.9,solvable=[]):
-  solver_defaults=record()
-  solver_defaults.num_iter      = solver_num_iter;
-  solver_defaults.epsilon       = solver_epsilon;
-  solver_defaults.epsilon_deriv = solver_epsilon;
-  solver_defaults.lm_factor     = solver_lm_factor;
-  solver_defaults.convergence_quota = convergence_quota;
-  solver_defaults.balanced_equations = solver_balanced_equations;
-  solver_defaults.debug_level   = solver_debug_level;
-  solver_defaults.save_funklets = solver_save_funklets;
-  solver_defaults.use_svd       = solver_use_svd;
-  solver_defaults.last_update   = True;
-#See example in TDL/MeqClasses.py
-  solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
-                                       state=record(solvable=True)),
-                                       record(state=record(solvable=False))))
-  return solver_defaults
-  
-def set_node_state (mqs,node,fields_record):
-  """helper function to set the state of a node specified by name or
-  nodeindex""";
-  rec = record(state=fields_record);
-  if isinstance(node,str):
-    rec.name = node;
-  elif isinstance(node,int):
-    rec.nodeindex = node;
-  else:
-    raise TypeError,'illegal node argument';
-  # pass command to kernel
-  mqs.meq('Node.Set.State',rec);
-  pass
-  
 
-def create_inputrec (tiling=(1,None)):
-  rec = record();
-  rec.ms_name          = msname
-  rec.data_column_name = input_column;
-  (tile_segments,tile_size) = tiling;
-  if tile_segments is not None:
-    rec.tile_segments    = tile_segments;
-  if tile_size is not None:
-    rec.tile_size        = tile_size;
-  rec.selection =  record();
-  rec.selection.ddid_index       = ddid_index;
-  rec.selection.field_index      = field_index;
-  rec.selection.selection_string = selection_string or '';
-  if channel_select is not None:
-    rec.selection.channel_start_index = channel_select[0];
-    rec.selection.channel_end_index = channel_select[1];
-  rec = record(ms=rec);
-  if max_input_tiles is not None:
-    rec.max_tiles = max_input_tiles;
-  rec.python_init='Timba.Contrib.OMS.ReadVisHeader';
-  rec.mt_queue_size = ms_queue_size;
-  return rec;
-
-
-def create_outputrec (outcol):
-  rec=record()
-  rec.mt_queue_size = ms_queue_size;
-  if ms_output:
-    rec.write_flags=False
-    rec.predict_column=outcol;
-    return record(ms=rec);
-  else:
-    rec.boio_file_name = "boio."+msname+".solve."+str(tile_size);
-    rec.boio_file_mode = 'W';
-    return record(boio=rec);
-
-
-def _run_solve_job (mqs,solvables,tiling):
-  """common helper method to run a solution with a bunch of solvables""";
-  req = meq.request();
-  req.input  = create_inputrec(tiling);
-  if output_column is not None:
-    req.output = create_outputrec(output_column);
-
-  # set solvables list in solver
-  solver_defaults = create_solver_defaults(solvable=solvables)
-  set_node_state(mqs,'solver',solver_defaults)
-
-  # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
-  mqs.execute('VisDataMux',req,wait=False);
-  pass
-
-def _perturb_parameters (mqs,solvables,pert="random",
-                        absolute=False,random_range=[0.2,0.3],constrain=None):
-  global perturbation;
-  for name in solvables:
-    polc = mqs.getnodestate(name).real_polc;
-    if absolute:  # absolute pert value given
-      polc.coeff[0,0] += pert;
-    elif pert == "random":  # else random pert
-      polc.coeff[0,0] *= 1 + random.uniform(*random_range)*random.choice([-1,1]);
-    else: # else perturb in relative terms
-      polc.coeff[0,0] *= (1 + pert);
-    parmstate = record(init_funklet=polc,
-      use_previous=use_previous,reset_funklet=not use_mep);
-    if constrain is not None:
-      parmstate.constrain = constrain;
-    print name,parmstate;
-    set_node_state(mqs,name,parmstate);
-  return solvables;
-    
 def _reset_parameters (mqs,solvables,value=None,use_table=False,
                        constrain=None,constrain_min=None,constrain_max=None,
                        reset=False,subtile=None,shape=None):
@@ -418,9 +284,9 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False,
       polc.coeff[()] = 0;
       polc.coeff[0,0] = value;
     print 'solvable',name,'polc is',polc;
-    reset_funklet = reset or not (use_table or use_mep);
+    reset_funklet = reset or not (use_table or Utils.use_mep);
     parmstate = record(init_funklet=polc, \
-                use_previous=use_previous,reset_funklet=reset_funklet);
+                use_previous=Utils.use_previous,reset_funklet=reset_funklet);
     for var in ("constrain","constrain_min","constrain_max"):
       value = locals()[var];
       if value is not None:
@@ -431,7 +297,7 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False,
       parmstate.tiling = record(time=subtile);
     if shape is not None:
       parmstate.shape = shape;
-    set_node_state(mqs,name,parmstate);
+    Utils.set_node_state(mqs,name,parmstate);
   return solvables;
 
 arcsec_to_rad = math.pi/(180*3600);
@@ -496,13 +362,13 @@ if not fit_phases_only:
       solvables += _solvable_source(mqs,src);
     _reset_gains(mqs);  
     solvables += _solvable_phases(mqs);
-    _run_solve_job(mqs,solvables,tiling_phase);
+    Utils.run_solve_job(mqs,solvables,tiling_phase);
 
 def _tdl_job_1a_solve_for_phases_only (mqs,parent,**kw):
   solvables = [];
   _reset_gains(mqs);  
   solvables += _solvable_phases(mqs);
-  _run_solve_job(mqs,solvables,tiling_phase);
+  Utils.run_solve_job(mqs,solvables,tiling_phase);
 
 if not fit_phases_only:
   def _tdl_job_1b_solve_for_source_parameters (mqs,parent,**kw):
@@ -510,7 +376,7 @@ if not fit_phases_only:
     for src in source_list:
       solvables += _solvable_source(mqs,src);
     _reset_gains(mqs);  
-    _run_solve_job(mqs,solvables,tiling_source);
+    Utils.run_solve_job(mqs,solvables,tiling_source);
 
   if fringe_fit_settings.gain_fitting:
     def _tdl_job_2_solve_for_flux_and_phases_and_gains (mqs,parent,**kw):
@@ -519,13 +385,13 @@ if not fit_phases_only:
         solvables += _solvable_source(mqs,src);
       solvables += _solvable_gains(mqs);
       solvables += _solvable_phases(mqs);
-      _run_solve_job(mqs,solvables);
+      Utils.run_solve_job(mqs,solvables,tiling_phase);
 
 def _tdl_job_8a_clear_out_source_solutions (mqs,parent,**kw):
-  os.system("rm -fr "+get_source_table());
+  os.system("rm -fr "+Utils.get_source_table());
 
 def _tdl_job_8b_clear_out_instrumental_solutions (mqs,parent,**kw):
-  os.system("rm -fr "+get_mep_table());
+  os.system("rm -fr "+Utils.get_mep_table());
 
 def _tdl_job_9a_make_corrected_image (mqs,parent,**kw):
   os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
