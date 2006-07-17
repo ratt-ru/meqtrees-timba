@@ -63,6 +63,7 @@ namespace Meq {
       converged_(false),
       ignore_convergence_(false),
       reset_funklet_(false),
+      ignore_time_(false),
       parmtable_(0),
       default_(1.),
       force_shape_(false),
@@ -103,6 +104,26 @@ namespace Meq {
     if( !reset_funklet_ && parmtable_ )
       {
 	Funklet *pfunklet = getFunkletFromDB(funkletref,domain);
+	if(pfunklet && ignore_time_ && pfunklet->objectType()==TpMeqComposedPolc)
+	  {
+	    //set time domain of all funklets to 0,inf 
+	    DMI::List & funklist =  (*pfunklet)[FFunkletList].as_wr<DMI::List>();
+	    
+	    int nr_funk = funklist.size();
+	    
+	    for(int funknr=0 ; funknr<nr_funk ; funknr++)
+	      {
+		Funklet::Ref partfunk = funklist.get(funknr);
+		
+		Domain dom = Domain(partfunk->domain());
+		dom.defineAxis(0,0,INFINITY);
+		partfunk().setDomain(dom);
+
+		funklist.replace(funknr,partfunk);
+	      }
+	    (*pfunklet)[FFunkletList].replace()=funklist;
+    	  }
+	
 	if (pfunklet && !reset_funklet_) 
 	  return pfunklet;
 
@@ -412,7 +433,12 @@ namespace Meq {
 
       }
     // no funklet, or funklet not suitable -- get a new one
-    pfunklet = findRelevantFunklet(funkref,domain);
+    Domain ndomain(domain);
+    if(ignore_time_)
+      {//set time domain to 0,inf
+	ndomain=Domain(0.,INFINITY,domain.start(1),domain.end(1)); 
+      }
+    pfunklet = findRelevantFunklet(funkref,ndomain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
     cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
     if(pfunklet->objectType()!=TpMeqCompiledFunklet && pfunklet->hasField(FFunction))
@@ -589,6 +615,7 @@ namespace Meq {
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
     rec[FResetFunklet].get(reset_funklet_,initializing);
+    rec[FIgnoreTime].get(ignore_time_,initializing);
     rec[FForcePositive].get(force_positive_,initializing);
     rec[FCyclic].get(cyclic_,initializing);
 

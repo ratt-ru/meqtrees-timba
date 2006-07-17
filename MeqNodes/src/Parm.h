@@ -95,13 +95,14 @@ namespace Meq {
     FConverged  = AidConverged,
     FSaveAll  = AidSave|AidAll,
     FResetFunklet = AidReset|AidFunklet,
+    FIgnoreTime = AidIgnore|AidTime,
     FForcePositive = AidForce|AidPositive,
     FCyclic = AidCyclic,
     FConstrain = AidConstrain,
     FConstrainMin = AidConstrain|AidMin,
     FConstrainMax = AidConstrain|AidMax;
-
-
+  
+  
   const double PI=3.14159265; 
 
   // This class contains the coeff of any funklet, either solvable or unsolvable.
@@ -193,6 +194,7 @@ namespace Meq {
     bool ignore_convergence_; // only use previous if previous solution converged..
 
     bool reset_funklet_;//reset funklet instead of using values from database
+    bool ignore_time_;// if true time stamp is ignored when retrieving from ParmDB
     //##ModelId=3F86886F0213
     string name_;
     //##ModelId=400E535000A3
