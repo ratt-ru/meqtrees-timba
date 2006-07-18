@@ -439,13 +439,13 @@ changeList} {Creation
 \backslash 
 renewcommand{
 \backslash 
-theTitle} {Detections of transient phaenomena
+theTitle} {Detection of short-term transients
 \backslash 
 
 \backslash 
 
 \layout Standard
-                                               by differential means
+                                               by time-differencing
 \backslash 
 
 \backslash 
@@ -549,6 +549,20 @@ newpage
 Introduction
 \layout Standard
 
+Hours, days, minutes, seconds, sub-sec (exclude pulsars).
+ Bright (dominating) and faint transients.
+\layout Standard
+
+This method concentrates on short-term transients, i.e.
+ with a characteristic time-scale of 1-500 sec.
+\layout Standard
+
+Obviously, transients should be detected in the image-plane, because all
+ information about a sources is concentrated in a small nr of pixels.
+ However, instrumental effects live in the uv-plane, where they are most
+ easily tackled.
+\layout Standard
+
 
 \begin_inset Float figure
 wide false
@@ -579,30 +593,52 @@ The contribution to the visibility function of a point source at position
 \end_inset 
 
  is a sinusoidal corrugation in the uv-plane.
- The right panel illustrates that subtraction of successive uv-samples only
- works if the uv-sampling interval for a particular source is considerably
- smaller than its corrugation period.
- Use 
-\begin_inset Formula $\pi/10$
+ Its period is inversely proportional to the baseline length, and the distance
+ of the source from the field centre.
+ Successive samples of a particular interferometer sample these sinusoids
+ at points 
+\begin_inset Formula $t-dt,t,t+dt,...$
 \end_inset 
 
-.
- 
+etc, which will be closer to each other near the centre of the uv-plane.
+ Short-term transients, with a time-scale of 1-500 seconds, may be detected
+ by subtracting from each sample 
+\begin_inset Formula $t$
+\end_inset 
+
+ the average of the two adjacent samples 
+\begin_inset Formula $t-dt$
+\end_inset 
+
+ and 
+\begin_inset Formula $t+dt$
+\end_inset 
+
+, and making an image of the residuals.
+ This removes the sources that do not vary in time, leaving only the transient
+ ones.
+ Obviously, the subtraction error will increase as 
+\begin_inset Formula $dt$
+\end_inset 
+
+ is a larger fraction of the corrugation period.
+ Therefore, sources close to the field centre, or extended sources that
+ are only visible to short baselines, will be subtracted more completely.
 \end_inset 
 
 
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:Subtracting-successive-time-slots}
+\begin_inset LatexCommand \label{sec:Corrugations}
 
 \end_inset 
 
-Subtracting successive uv-samples
+Corrugations
 \layout Standard
 
-The visibility function is the sum of the contributions of all sources in
- the field:
+The visibility function is the sum of the contributions of all the sources
+ in the field:
 \layout Standard
 
 
@@ -614,8 +650,8 @@ V(u,v)=\sum_{k}p_{k}exp(2\pi i(ul_{k}+vm_{k}))+noise\]
 
 \layout Standard
 
-The contribution of a point source is a sinusoidal corrugation in the uv-plane,
- with amplitude 
+The contribttution of a point source is a sinusoidal corrugation in the
+ uv-plane, with amplitude 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -625,7 +661,7 @@ The contribution of a point source is a sinusoidal corrugation in the uv-plane,
 
 .
  The period is inversely proportional to the distance 
-\begin_inset Formula $\sqrt{l_{k}^{2}+m_{k}^{2}}$
+\begin_inset Formula $r_{k}=\sqrt{l_{k}^{2}+m_{k}^{2}}(rad)$
 \end_inset 
 
  to the field centre, and the orientation of the corrugation ridges is parallel
@@ -643,17 +679,34 @@ The contribution of a point source is a sinusoidal corrugation in the uv-plane,
 \layout Standard
 
 The visibility function is sampled with one or more interferometers, each
- consisting of a pair of telescopes, or stations.
- The uv-coordinates of a sample depend on the length and orientation of
- the (projected) baseline between the stations.
- As the Earth rotates, an interferometer describes an ellipsoidal track
- through the uv-plane, with a 'velocity' that is proportional to baseline
- length.
+ consisting of a pair of telescopes, or stations, 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+.
+ The uv-coordinates 
+\begin_inset Formula $(u(t),v(t))$
+\end_inset 
+
+ of a sample 
+\begin_inset Formula $V_{ij}(t)$
+\end_inset 
+
+ depend on the length and orientation of the (projected) baseline between
+ the stations, as seen from the source.
+ As the Earth rotates, an interferometer samples the visibility function
+ along an ellipsoidal track in the uv-plane, with a 'velocity' that is proportio
+nal to baseline length.
  
 \layout Standard
 
-When subtracting successive uv-samples of the same interferometer from each
- other, the uv-coordinates will be slightly different, and thus the phase
+One way to detect transient sources is to compare successive uv-samples
+ of the same interferometer.
+ Since the uv-coordinates will be slightly different, and thus the phase
  factors 
 \begin_inset Formula $(ul_{k}+vm_{k})$
 \end_inset 
@@ -667,83 +720,227 @@ When subtracting successive uv-samples of the same interferometer from each
  
 \layout Standard
 
-The subtraction error may be decreased by subtracting the average of the
+A very important quantity is the rate of change of the baseline Hour Angle
+ (HA) through Earth rotation.
+ Using the familiar value of 15 deg/hr, we get:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{dHA}{dt}=\frac{1}{240*57}\: rad/s=7.3\times10^{-5}\approx10^{-4}rad/s\label{eq: dHA/dt}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Note that the actual rate is smaller, so that the actual subtraction error
+ will be smaller than the one estimated with this approximation.
+ 
+\layout Standard
+
+Note also that this constant rate of change in HA will result in a smaller
+ sampling 'velocity', i.e.
+ samples that are closer together, near the centre of the uv-plane.
+ 
+\layout Section
+
+Step 1: Clearing the centre
+\layout Subsection
+
+Subtracting successive uv-samples
+\layout Standard
+
+The subtraction error may be minimised by subtracting the average of the
  samples before and after:
 \layout Standard
 
 
-\begin_inset Formula \[
-\Delta V_{i}=V_{i}-(V_{i-1}+V_{i+1})/2\]
+\begin_inset Formula \begin{equation}
+\Delta V_{ij}(t)=V_{ij}(t)-\frac{1}{2}(V_{ij}(t+\Delta t)+V_{ij}(t-\Delta t))\label{eq:dVij}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-This has the advantage that slowly varying instrumental errors are also
- compensated.
- However, it is clear that this will break down for those sources where
- the sampling interval is larger than a quarter of the corrugation period.
- The error for a particular source may be estimated in the following way:
+This has the additional advantage that instrumental errors that change linearly
+ with time are also compensated.
+ Ignoring noise, we may write:
 \layout Standard
 
 
 \begin_inset Formula \[
-sin(\alpha)-(sin(\alpha-\Delta)+sin(\alpha+\Delta))/2=sin(\alpha)(1-cos(\Delta))\]
+V_{ij}(t)=\sum_{k}V_{ijk}(t)=\sum_{k}p_{k}\exp^{i\psi_{k}(t)}\]
 
 \end_inset 
 
 
 \layout Standard
 
-Thus, the 
+where
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\psi_{k}(t)=2\pi\frac{b}{\lambda}(l_{k}cosHA(t)+m_{k}sinHA(t).sinDEC)\;\leq\;2\pi\frac{b}{\lambda}r_{k}\label{eq:psi(t)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+and (using the HA-rate in equ 
+\begin_inset LatexCommand \ref{eq: dHA/dt}
+
+\end_inset 
+
+): 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{d\psi(t)}{dt}=2\pi\frac{b}{\lambda}(m_{k}\cos HA.\sin DEC-l_{k}\sin HA).\frac{dHA}{dt}\;\leq\;2\pi10^{-4}\frac{b}{\lambda}r_{k}\label{eq:dpsi/dt}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+For rapid estimation of the approximate magitude of an effect, it is convenient
+ to use the distance 
+\begin_inset Formula $r_{k}$
+\end_inset 
+
+(rad) from the field centre of a source 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+.
+ Note that this always overestimates the subtraction error.
+\layout Subsection
+
+Estimating the subtraction error per source
+\layout Standard
+
+From here on, the subtraction error will be analysed per source 
+\begin_inset Formula $k$
+\end_inset 
+
+.
+ Thus, equation 
+\begin_inset LatexCommand \ref{eq:dVij}
+
+\end_inset 
+
+ reduces to
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta V_{ijk}(t)=\exp^{i\psi_{k}(t)}-\frac{1}{2}(\exp^{i\psi_{k}(t+\Delta t)}+\exp^{i\psi_{k}(t-\Delta t)})\label{eq:dVijk}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Using the property 
+\layout Standard
+
+
+\begin_inset Formula \[
+\exp^{i\alpha}-\frac{1}{2}(\exp^{i(\alpha+\epsilon)}+\exp^{i(\alpha-\epsilon)})=\exp^{i\alpha}(1-\cos\epsilon)\]
+
+\end_inset 
+
+
+\layout Standard
+
+we find that, provided we can write 
+\begin_inset Formula $\psi(t\pm\Delta t)$
+\end_inset 
+
+ as 
+\begin_inset Formula $\psi(t)\pm\epsilon$
+\end_inset 
+
+, we may derive a 
 \emph on 
-maximum error
+subtraction error factor
 \emph default 
- we make in subtracting a particular source is a factor 
-\begin_inset Formula $(1-cos(\Delta))$
+ 
+\begin_inset Formula $1-cos(\epsilon)$
 \end_inset 
 
-, in which 
-\begin_inset Formula $\Delta$
+ for each visibility sample.
+ Fortunately, this turns out to be possible.
+ If 
+\begin_inset Formula $\varphi(HA)=AcosHA+BsinHA,$
 \end_inset 
 
-is the phase difference caused by Earth rotation between successive samples.
- In one dimension (m) we can write:
+
 \layout Standard
 
 
 \begin_inset Formula \[
-\Delta=2\pi(\Delta v).m_{k}=2\pi\frac{b}{\lambda}(\Delta sinHA).sinDEC.m_{k}\approx0.002\pi\frac{b}{\lambda}(\Delta t).m_{k}\]
+\varphi(HA\pm\Delta HA)=\varphi(HA).\cos(\Delta HA)\pm\frac{d\varphi(HA)}{dHA}\sin(\Delta HA)\approx\varphi(HA)\pm\frac{d\varphi(HA)}{dHA}\Delta HA\]
 
 \end_inset 
 
 
 \layout Standard
 
-We assume that 
-\begin_inset Formula $sinDEC=1$
+Thuse, the 
+\emph on 
+error factor
+\emph default 
+ for the contributions of source 
+\begin_inset Formula $k$
 \end_inset 
 
- (worst case), and that 
-\begin_inset Formula $\Delta sinHA\approx\Delta HA\approx0.001T$
+ to the samples of ifr 
+\begin_inset Formula $ij$
 \end_inset 
 
- rad.
- The subtraction time interval 
-\begin_inset Formula $T$
+, as a function of the subtraction interval 
+\begin_inset Formula $\Delta t$
 \end_inset 
 
- is in seconds, and the source position 
-\begin_inset Formula $m_{k}$
+ (s) is: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+errfac_{ijk}(\Delta t)=1-\cos(\epsilon_{ijk}(\Delta t))\approx\frac{1}{2}\epsilon^{2}\label{eq: errfac(ijk)}\end{equation}
+
 \end_inset 
 
- is in radians.
- We may now calculate the radius 
-\begin_inset Formula $m_{max}$
+
+\layout Standard
+
+in which (using equ 
+\begin_inset LatexCommand \ref{eq:dpsi/dt}
+
 \end_inset 
 
- within which sources are subtracted with a certain minimum accuracy.
+)
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\epsilon_{ijk}(\Delta t)=\frac{d\psi}{dt}\Delta t\;\leq\;2\pi10^{-4}\frac{b_{ij}}{\lambda}r_{k}\Delta t\; rad\label{eq: epsilon}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\series bold 
+The numbers work out surprisingly well.
+
+\series default 
  If we take baseline 
 \begin_inset Formula $b=2$
 \end_inset 
@@ -753,121 +950,114 @@ We assume that
 \end_inset 
 
  m (i.e.
- WSRT or the LOFAR core), we demand that 
-\begin_inset Formula $\Delta\leq\pi/10$
+ the WSRT or the LOFAR core), 
+\begin_inset Formula $\Delta t=1s$
 \end_inset 
 
-, or 
-\begin_inset Formula $(1-cos(\Delta)$
+ and 
+\begin_inset Formula $r_{k}=0.1$
 \end_inset 
 
-
-\begin_inset Formula $\leq0.05$
+rad (5 deg!), the error factor is 
+\begin_inset Formula $<0.01$
 \end_inset 
 
-:
-\layout Standard
+ for all visibilities.
+ See also fig 
+\begin_inset LatexCommand \ref{cap:The-error-factor}
 
-
-\begin_inset Formula \[
-\Delta=2\pi T.m_{max}=\pi/10\]
-
-\end_inset 
-
-
-\layout Standard
-
-which gives the rather useful 
-\series bold 
-rule-of-thumb
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-M_{max}\approx\frac{180}{T}\quad arcmin\label{eq:mmax}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-Note the change in units, from 
-\begin_inset Formula $m_{max}(rad)$
-\end_inset 
-
- to 
-\begin_inset Formula $M_{max}(arcmin)$
-\end_inset 
-
-, for convenience.
- The above rule says that, for a subtraction interval of 
-\begin_inset Formula $T=100s$
-\end_inset 
-
- (WSRT), we may use facets with a radius of 1.8 arcmin, increasing to 180
- arcmin for 
-\begin_inset Formula $T=1$
-\end_inset 
-
-s (the LOFAR core).
- Since 
-\begin_inset Formula $M_{max}$
-\end_inset 
-
- is linear in most of its variables, it is easy to derive numbers for different
- wavelength, baseline length, or required subtraction accuracy.
- It is important to note that equ 
-\begin_inset LatexCommand \ref{eq:mmax}
-
-\end_inset 
-
- is a worst case: it gets better for lower DEC and longer wavelength, and
- the majority of baselines will be less than 
-\begin_inset Formula $b=2km$
 \end_inset 
 
 .
- Obviously, the facet will be smaller if higher subtraction accuracy is
- required.
+ In reality, the numbers will be even better, since equ 
+\begin_inset LatexCommand \ref{eq: epsilon}
+
+\end_inset 
+
+ consistently over-estimates the subtraction error, and the 
+\emph on 
+average
+\emph default 
+ baseline will be rather smaller than 2 km.
+ However, the sidelobes of poorly subtracted point sources far from the
+ field centre will limit the transient detection performance, and we should
+ try to minimise them.
+ This is the subject of the next section.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename err_vs_RR_dt.png
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-error-factor}
+
+\end_inset 
+
+
+\emph on 
+The error factor (1-cos(e)) as a function of the subtraction time interval
+ 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+.
+\end_inset 
+
+
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:Limiting-the-FOV}
+\begin_inset LatexCommand \label{sec:Step-2:-Limiting}
 
 \end_inset 
 
-Limiting the FOV by time/freq averaging
+Step 2: Limiting the FOV
 \layout Standard
 
 As we have seen, the subtraction is most effective for sources close to
- the field centre (small l,m), and/or small baseline length.
- This means that sources outside the radius 
-\begin_inset Formula $M_{max}$
+ the field centre (small l,m), and/or small baseline length (small u,v).
+ This means that sources outside a certain radius 
+\begin_inset Formula $r_{max}$
 \end_inset 
 
  will not be subtracted very well.
- The sidelobes of those residuals will be a severe limitation.
+ The sidelobes of those residuals could be a severe limitation to the sensitivit
+y of our transient detection scheme.
  However, it is possible to attenuate them by integrating the uv-differences
  over freq and time, thereby effectively reducing the FOV.
- This is done independently for each facet, after shifting the uv-differences
+ This is done independently for each facet, after shifting the uv-residuals
  to the facet centre.
  
 \layout Standard
 
 When averaging uv-data over a certain time or freq interval, the facet image
  is multplied by a sinc function.
- Since we only want to attenuate the sources outside the facet, so we require
+ Since we only want to attenuate the sources outside the facet, we require
  that the first zero 
 \begin_inset Formula $(sinc(\pi))$
 \end_inset 
 
- lies somewhat beyond 
-\begin_inset Formula $M_{max}$
+ lies at 
+\begin_inset Formula $2*r_{max}$
 \end_inset 
 
 .
- The averaging function has to be tapered in such a way that the sinc function
- dies out rapidly.
+ In adddition, the averaging function has to be tapered in such a way that
+ the sidelobes of the sinc function die out rapidly.
 \layout Standard
 
 For frequency averaging over a wavelength interval 
@@ -879,7 +1069,7 @@ For frequency averaging over a wavelength interval
 
 
 \begin_inset Formula \[
-2\pi b(\frac{1}{\lambda_{1}}-\frac{1}{\lambda_{2}}).m_{max}=2\pi\frac{b}{\lambda}\frac{\Delta\lambda}{\lambda}.m_{max}=1.5\pi\]
+2\pi b(\frac{1}{\lambda_{1}}-\frac{1}{\lambda_{2}}).r_{max}=2\pi\frac{b}{\lambda}\frac{\Delta\lambda}{\lambda}.r_{max}=2\pi\]
 
 \end_inset 
 
@@ -891,45 +1081,32 @@ or, with
 \end_inset 
 
  and 
-\begin_inset Formula $M_{max}$
+\begin_inset Formula $R_{max}$
 \end_inset 
 
- in arcmin as before:
+ in deg:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\frac{\Delta\lambda}{\lambda}=\frac{2}{M_{max}}\label{eq:fractional_lambda}\end{equation}
+\frac{\Delta\lambda}{\lambda}=\frac{0.06}{R_{max}}\label{eq:fractional_lambda}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-This is the fractional bandwidth over which we have to average to attenuate
- source residuals outside the facet radius 
-\begin_inset Formula $M_{max}$
-\end_inset 
-
- arcmin.
- This is easy to arrange, certainly for LOFAR, but also for the WSRT if
- we use 
-\begin_inset Formula $T=10s$
-\end_inset 
-
- rather than 100s...
+This amount of fractional bandwidth easy to achieve, certainly for LOFAR,
+ where a fractional bandwidth of up to 0.1 will be available.
 \layout Standard
 
-Similarly, for time averaging over a period 
-\begin_inset Formula $\Delta t$
-\end_inset 
-
- we require:
+Unfortunately, things are not as straightforward for time averaging.
+ Like above, we require:
 \layout Standard
 
 
 \begin_inset Formula \[
-2\pi\frac{b}{\lambda}\Delta t.m_{max}=1.5\pi\]
+2\pi10^{-4}\frac{b}{\lambda}\Delta t.r_{max}=2\pi\]
 
 \end_inset 
 
@@ -941,15 +1118,15 @@ or, with
 \end_inset 
 
  and 
-\begin_inset Formula $M_{max}$
+\begin_inset Formula $R_{max}$
 \end_inset 
 
- in arcmin as before:
+ in deg:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\Delta t=\frac{2200}{M_{max}}\label{eq: time_averaging}\end{equation}
+\Delta t=\frac{600}{R_{max}}\label{eq: time_averaging}\end{equation}
 
 \end_inset 
 
@@ -960,11 +1137,7 @@ Obviously, the time averaging interval
 \begin_inset Formula $\Delta t$
 \end_inset 
 
- should be less than the subtraction interval 
-\begin_inset Formula $T$
-\end_inset 
-
-, which may not always be easy to achieve.
+ should be less than the subtraction interval, which is not easy to achieve.
  
 \emph on 
 Thus, the requirement of time averaging might turn out to be the limiting
@@ -980,8 +1153,6 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
-	filename cos_plot.png
-	width 100col%
 
 \end_inset 
 
@@ -989,13 +1160,15 @@ collapsed false
 \layout Caption
 
 
-\emph on 
-
-\begin_inset LatexCommand \label{cap:T=1-s.}
+\begin_inset LatexCommand \label{cap:Radial-stripes}
 
 \end_inset 
 
-T=1 s.
+
+\emph on 
+Radial stripes emanating from the field centre will probably be the ultimate
+ limiting factor of the proposed method.
+ 
 \end_inset 
 
 
@@ -1029,7 +1202,42 @@ We are now ready to sketch a procedure for determining the optimal facet
 Conclusions
 \layout Standard
 
-It looks interesting, but there are some loose ends....
+We have sketched a promising new method for the detection of short-term
+ transients, e.g.
+ transients with a characteristic time-scale of 1-500 s.
+ The method is very simple to implement, because it requires a minimum of
+ calibration, and the trivial operation of subtracting successive uv-samples
+ from each other.
+ This has the effect of removing all the constant sources, especially towards
+ the centre of the field, so that transients will be easy to spot in the
+ resulting image.
+ The size of the cleared central area is surprisingly large (degrees).
+\layout Standard
+
+Compact sources further from the field centre will not be subtracted so
+ well, so their PSF sidelobes will still limit the dynamic range of the
+ difference image.
+ However, these sources may be substantially attenuated by limiting the
+ FOV, using frequency averaging.
+ The required fractional bandwith is modest, and readily available.
+\layout Standard
+
+Unfortunately, the complementary FOV-limiting operation (i.e.
+ time averaging) cannot be used, because the required averaging interval
+ would be longer than the characteristic transient time-scale.
+ The result is that the difference image will have radial stripes emanating
+ from the field centre, and running through the faraway sources.
+ Even though the resulting difference PSF is fully predictable, so we may
+ consider an adapted from of CLEAN deconvolution, this is probably the ultimate
+ limitation of the proposed method.
+ However, this still leaves a large and hitherto unexplored region of observatio
+nal phase space.
+\layout Standard
+
+Finally, it is possible, even likely, that the proposed transient detection
+ method is a member of an entire family of relatively cheap difference methods,
+ which could be crucial in dealing with the vast data-volumes produced by
+ LOFAR and SKA.
 \layout Bibliography
 \bibitem {JEN-nov2005}
 
@@ -1040,12 +1248,12 @@ LOFAR Calibration Strategy
 \emph default 
  (CDR-I, November 2005)
 \layout Bibliography
-\bibitem {JEN-dynarange}
+\bibitem {JMJ-jun2006}
 
-J.E.
- Noordam et al: 
+J.
+ Miller-Jones: 
 \emph on 
-Limiting factors of LOFAR calibration 
+Transient detection with LOFAR 
 \emph default 
-(2006)
+(private communication, June 2006)
 \the_end
