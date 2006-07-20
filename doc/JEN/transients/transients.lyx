@@ -994,8 +994,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
-	filename err_vs_RR_dt.png
-	width 100col%
+	filename err_vs_RR_dt_mosaic.png
+	width 100pheight%
 
 \end_inset 
 
