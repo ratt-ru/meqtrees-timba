@@ -1828,9 +1828,9 @@ class LSM:
     source_RA=float(v.group('col1'))*math.pi/180.0
     source_Dec=float(v.group('col2'))*math.pi/180.0
     sI=eval(v.group('col3'))
-    sQ=eval(v.group('col4'))/(sI*100)
-    sU=eval(v.group('col5'))/(sI*100)
-    sV=eval(v.group('col6'))/(sI*100)
+    sQ=eval(v.group('col4'))*100/sI
+    sU=eval(v.group('col5'))*100/sI
+    sV=eval(v.group('col6'))*100/sI
 
     #print sI,sQ,sU,sV
     freq0=1e6
@@ -1891,9 +1891,9 @@ class LSM:
     source_RA=float(v.group('col2'))
     source_Dec=float(v.group('col3'))
     sI=eval(v.group('col4'))
-    sQ=eval(v.group('col5'))/(sI*100)
-    sU=eval(v.group('col6'))/(sI*100)
-    sV=eval(v.group('col7'))/(sI*100)
+    sQ=eval(v.group('col5'))*100/sI
+    sU=eval(v.group('col6'))*100/sI
+    sV=eval(v.group('col7'))*100/sI
     SI=eval(v.group('col8'))
 
     eX=eval(v.group('col9'))
@@ -1977,12 +1977,13 @@ class LSM:
     source_Dec*=math.pi/180.0
 
     sI=eval(v.group('col8'))
-    sQ=eval(v.group('col9'))/(sI*100)
-    sU=eval(v.group('col10'))/(sI*100)
-    sV=eval(v.group('col11'))/(sI*100)
+    #convert to percentages
+    sQ=eval(v.group('col9'))*100/sI
+    sU=eval(v.group('col10'))*100/sI
+    sV=eval(v.group('col11'))*100/sI
+
     SI=eval(v.group('col12'))
     RM=eval(v.group('col13'))
-
     eX=eval(v.group('col14'))
     eY=eval(v.group('col15'))
     eP=eval(v.group('col16'))

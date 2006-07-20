@@ -466,35 +466,6 @@ def extract_polarization_parms(sixpack,ns,absolute=0):
  
 
  allnodes=ns.Repository()
- if allnodes.has_key(Q_name):
-   qq=allnodes[Q_name]
-   myqq=get_default_parms(qq)
- elif allnodes.has_key(sQ_name):
-   qq=allnodes[sQ_name]
-   myqq=get_default_parms(qq)
- else:
-   myqq=0
- if allnodes.has_key(U_name):
-   uu=allnodes[U_name]
-   myuu=get_default_parms(uu)
- elif allnodes.has_key(sU_name):
-   uu=allnodes[sU_name]
-   myuu=get_default_parms(uu)
- else:
-   myuu=0
- if allnodes.has_key(V_name):
-   vv=allnodes[V_name]
-   myvv=get_default_parms(vv)
- elif allnodes.has_key(sV_name):
-   vv=allnodes[sV_name]
-   myvv=get_default_parms(vv)
- else:
-   myvv=0
-
-
- if absolute==0:
-  ##print "Q,U,V=",myqq,myuu,myvv
-  return [myqq,myuu,myvv]
 
  if ns._name:
   SIFI_name=ns._name+'::SIF_stokesI:q='+myname
@@ -516,13 +487,44 @@ def extract_polarization_parms(sixpack,ns,absolute=0):
    myii=SI=0
    f0=-1
  
+ if allnodes.has_key(Q_name):
+   qq=allnodes[Q_name]
+   myqq=get_default_parms(qq)*myii/100
+ elif allnodes.has_key(sQ_name):
+   qq=allnodes[sQ_name]
+   myqq=get_default_parms(qq)
+ else:
+   myqq=0
+ if allnodes.has_key(U_name):
+   uu=allnodes[U_name]
+   myuu=get_default_parms(uu)*myii/100
+ elif allnodes.has_key(sU_name):
+   uu=allnodes[sU_name]
+   myuu=get_default_parms(uu)
+ else:
+   myuu=0
+ if allnodes.has_key(V_name):
+   vv=allnodes[V_name]
+   myvv=get_default_parms(vv)*myii/100
+ elif allnodes.has_key(sV_name):
+   vv=allnodes[sV_name]
+   myvv=get_default_parms(vv)
+ else:
+   myvv=0
+
+
+ if absolute==0:
+  ##print "Q,U,V=",myqq,myuu,myvv
+  return [myqq,myuu,myvv]
+
+
  if allnodes.has_key(RM_name):
    rmnode=allnodes[RM_name]
    RM=get_default_parms(rmnode)
  else:
    RM=0
  
- return [myii,myqq*myii/100,myuu*myii/100,myvv*myii/100,SI,f0,RM]
+ return [myii,myqq,myuu,myvv,SI,f0,RM]
  
 
 

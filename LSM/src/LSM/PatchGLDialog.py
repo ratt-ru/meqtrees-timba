@@ -29,7 +29,10 @@
 
 import math
 from qt import *
-from qtgl import *
+try:
+ from qtgl import *
+except:
+ pass
 #from OpenGL.GL import *
 #from OpenGL.GLU import *
 import sys
