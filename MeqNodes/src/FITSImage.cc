@@ -947,7 +947,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 pixelc[kk+3]=(double)1.0;
 						 kk+=4;
 		 }
-
+		/* now kk has passed the last pixel */
 #ifdef DEBUG
 		printf("total %d, created %d\n",ncoord,kk);
 #endif
@@ -974,17 +974,20 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 kk+=4;
 		 } */
 
-    /* find the phase centre in RA,Dec */
-		/* now kk has passed the last pixel */
-		kk=(ncoord-1)*4;
+    /* find center coordinates, handle even numbers correctly */
+		/* even, use the pixel to the right as the center */
+		/* odd, use middle pixel */
+		/* find correspoiding kk value =(l_c-1)*M +m_c-1 */
+		kk=(new_naxis[0]/2)*new_naxis[1]+(new_naxis[1]/2);
 
 #ifdef DEBUG
-		printf("finished %d\n",kk);
+		printf("found center %d\n",kk);
 #endif
-		*ra0=(worldc[0]+worldc[kk])*M_PI/360.0;
-		*dec0=(worldc[1]+worldc[kk+1])*M_PI/360.0;
-		l0=(imgc[0]+imgc[kk])*0.5;
-		m0=(imgc[1]+imgc[kk+1])*0.5;
+    /* find the phase centre in RA,Dec */
+		*ra0=(worldc[kk])*M_PI/180.0;
+		*dec0=(worldc[kk+1])*M_PI/180.0;
+		l0=imgc[kk];
+		m0=imgc[kk+1];
 
 #ifdef DEBUG
 		printf("phase centre celestial=(%lf,%lf) native l,m=(%lf,%lf)\n",*ra0,*dec0,l0,m0);
