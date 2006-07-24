@@ -25,20 +25,22 @@ def sine_plot(**ctrl):
     funcname = on_entry(ctrl, 'sine_plot',
                         xlabel='v-coordinate',
                         ylabel='source contribution (corrugation)',
-                        title='sampling the visibility function for successive subtraction')
+                        title='sampling visibility corrugations')
     a1 = 1.0
     a2 = 0.5
     P1 = 1.0
     P2 = 4.0
+    phoff = 0.2
     xx = pylab.arange(-2, 10, 0.1)
-    plot_line(ctrl, xx, a1*pylab.sin(xx/P1), color='red', labelpos='start',
-              label='source far from field centre')
-    plot_line(ctrl, xx, a2*pylab.sin(xx/P2), color='blue', labelpos='start',
-              label='source close to field centre')
+    plot_line(ctrl, xx, a1*pylab.sin(phoff+xx/P1), color='red', labelpos='start',
+              label='short period: source far from field centre, or long baseline')
+    plot_line(ctrl, xx, a2*pylab.sin(phoff+xx/P2), color='blue', labelpos='start',
+              label='long period: source close to field centre, or short baseline')
     kk = pylab.arange(35, 80, 8)
-    plot_marker(ctrl, xx[kk], a1*pylab.sin(xx[kk]/P1), style='o', color='red',
+    plot_marker(ctrl, xx[kk], a1*pylab.sin(phoff+xx[kk]/P1), style='o', color='red',
                 label=[None,'t-dt','t','t+dt'])
-    plot_marker(ctrl, xx[kk], a2*pylab.sin(xx[kk]/P2), style='o', color='blue')
+    plot_marker(ctrl, xx[kk], a2*pylab.sin(phoff+xx[kk]/P2), style='o', color='blue',
+                label=[None,'t-dt','t','t+dt'], labelpos='top left')
     auxinfo(ctrl, 'first', 1)
     auxinfo(ctrl, 'second', 2)
 
@@ -215,7 +217,6 @@ def on_entry(ctrl=dict(), funcname='<funcname>',
     ctrl.setdefault('xlabel', xlabel)
     ctrl.setdefault('ylabel', ylabel)
     ctrl.setdefault('title', funcname)
-    # if isinstance(title, str): ctrl['title'] = title
     if ctrl['subplot']:
         pylab.subplot(ctrl['subplot'])
         k = ctrl['subplot']
@@ -229,6 +230,8 @@ def on_entry(ctrl=dict(), funcname='<funcname>',
             print '-',key,'=',ctrl[key]
         ctrl['save'] = False
         ctrl['show'] = False
+    else:
+        if isinstance(title, str): ctrl['title'] = title
     if ctrl['trace']: print '\n** on_entry(',funcname,'):',ctrl
     return funcname
 
@@ -422,12 +425,25 @@ def plot_marker (ctrl=dict(), xx=0.5, yy=0.5, color='blue',
     adjust_xyrange(ctrl, xx=xx, yy=yy)
     if ctrl['subplot']:
         pylab.subplot(ctrl['subplot'])
+    # NB: The default is 'bottom' and 'left', which actually places the label
+    # at the top-right position of the marker...!
+    halign = 'left'                                      # left, right, center 
+    valign = 'bottom'                                    # bottom, top, center
+    if isinstance(labelpos, str):                        # e.g. ['top right']
+        ss = labelpos.split(' ')
+        valign = ss[0] 
+        halign = ss[1] 
     for i in range(len(xx)):
         pylab.plot([xx[i]], [yy[i]], marker=style,
                    markerfacecolor=color, markersize=size,
                    markeredgecolor=color, markeredgewidth=1)
         if (not label==None) and i<len(label) and (not label[i]==None):
-            pylab.text(xx[i], yy[i], '  '+str(label[i]), color=color)
+            lstr = '. '+str(label[i])
+            if halign=='right': lstr = str(label[i])+' .'
+            pylab.text(xx[i], yy[i], lstr, color=color,
+                       fontsize=12,
+                       horizontalalignment=halign,    
+                       verticalalignment=valign)      
     return True
 
 #-------------------------------------------------------------------------------
