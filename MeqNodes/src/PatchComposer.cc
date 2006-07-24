@@ -113,9 +113,9 @@ namespace Meq {
 	  ra = RAvells(0);
 	  dec = Decvells(0);
 
-	  lc = casa::cos(dec) * casa::sin(ra0-ra);
+	  lc = casa::cos(dec) * casa::sin(ra-ra0);
        	  mc = casa::cos(dec0) * casa::sin(dec) - 
-      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
+      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra-ra0);
 
        	  lmax = casa::max(lmax,casa::abs(lc));
        	  mmax = casa::max(mmax,casa::abs(mc));
@@ -238,9 +238,9 @@ namespace Meq {
 	  ra = RAvells(0);
 	  dec = Decvells(0);
 
-	  lc = casa::cos(dec) * casa::sin(ra0-ra);
+	  lc = casa::cos(dec) * casa::sin(ra-ra0);
        	  mc = casa::cos(dec0) * casa::sin(dec) - 
-      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
+      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra-ra0);
     
 	  // RJN: For now we neglect this. It has been fixed by making the grid somewhat larger
 	  // SBY: remember lower and upper bounds of arrays
