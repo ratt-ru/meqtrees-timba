@@ -22,19 +22,36 @@
 #
 #  $Id$
 
+# Set default options.
+NEEDOUTFIL=0;
+
+# Handle possible options.
+while [ $# != 0 ]
+do
+  # Special cvs command?
+  if [ "$1" = "-stdout" ]; then
+    NEEDOUTFIL=1
+    shift
+  elif [ "$1" = "-nostdout" ]; then
+    NEEDOUTFIL=0
+    shift
+  else
+    break
+  fi
+done
 
 if test $# -lt 1 || test $# -gt 3; then
-  echo "usage: runtest.sh <testname> [<max run-time>] [<precision>]"
-  exit 0
+  echo "usage: runtest.sh [-stdout] <testname> [<max run-time>] [<precision>]"
+  exit 1
 fi
 
-if test $# -ge 2; then
+if [ "$2" != "" ]; then
   MAXTIME=$2
 else
   MAXTIME=300  # 300 seconds == 5 minutes
 fi
 
-if test $# -ge 3; then
+if [ "$3" != "" ]; then
   PREC=$3
 else
   PREC=1e-5
@@ -114,13 +131,13 @@ else
         sed -e "s/<LOGFILENAME>/$1_tmp.log/" $lfr_share_dir/default.log_prop > $1.log_prop
     fi
 fi
-
+    
 #
 # Define source directory and run assay
 #
 LOFAR_PKGSRCDIR=$srcdir
 export LOFAR_PKGSRCDIR
-$lfr_share_dir/assay $1 $MAXTIME $PREC
+$lfr_share_dir/assay $1 $MAXTIME $PREC $NEEDOUTFIL
 STS=$?
 
 # Cleanup (mainly for make distcheck).

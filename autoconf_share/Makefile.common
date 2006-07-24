@@ -260,3 +260,12 @@ help:
 	@echo "dist              make a distribution";
 	@echo "distcheck         make and check a distribution";
 	@echo "rpm               make an rpm";
+
+# Define the default variables to export to the test scripts.
+#TESTS_ENVIRONMENT = LOFARROOT="$(LOFARROOT)" \
+#		    lofar_sharedir="$(lofar_sharedir)" \
+#                   top_srcdir="$(top_srcdir)" \
+#                   srcdir="$(srcdir)" \
+#		    CHECKTOOLPROGS="$(CHECKTOOLPROGS)" \
+#		    MPIBIN="$(MPIBIN)" \
+#		    AIPSPP="$(AIPSPP)"

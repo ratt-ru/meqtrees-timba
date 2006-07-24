@@ -24,7 +24,7 @@
 
 
 #-----------------------------------------------------------------------------
-# Usage: assay <testexe> <max run-time(sec)> <precision> [<arguments>]
+# Usage: assay <testexe> <max run-time(sec)> <precision> <needoutfil> [<arguments>]
 #-----------------------------------------------------------------------------
 # This script is an adapted version of the AIPS++ assay script.
 #
@@ -139,6 +139,8 @@
   shift
   PREC=$1
   shift
+  NEEDOUTFIL=$1
+  shift
 
 # Use LimitExec if available
   if [ -x $LOFARROOT/bin/LimitExec ]
@@ -201,16 +203,12 @@
      then
         CAT=cat
      else
-        echo "PASS (execution succeeded): $PROG"
-        exit
-     fi
-     ;;
-  2) 
-     if [ -f $PROG.stdout ]
-     then
-        CAT=cat
-     else
-        echo "FAIL (reference output file missing): $PROG"
+        if [ "$NEEDOUTFIL" = 1 ]; then
+            echo "FAIL (reference output file missing): $PROG"
+	    STATUS=2
+        else
+            echo "PASS (execution succeeded): $PROG"
+        fi
         exit
      fi
      ;;
@@ -250,6 +248,7 @@
 # Replace for this purpose all numbers by x.
   sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${PROG}_tmp.out > ${PROG}_tmp.out2
   sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${PROG}_tmp_orig.out > ${PROG}_tmp_orig.out2
+  diff ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > /dev/null 2>&1
   diff ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > /dev/null 2>&1
   if [ $? != 0 ]
   then
