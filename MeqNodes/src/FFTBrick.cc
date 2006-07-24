@@ -95,15 +95,15 @@ int FFTBrick::getResult (Result::Ref &resref,
   // the input axes, and u,v when referring to the output axes. The real axes
   // in use are of course determined above.
   nl = input_cells.ncells(_inaxis0);
-  nu = int(_uvppw*nl)+1;
+  nu = int(_uvppw*nl);
 
   nm = input_cells.ncells(_inaxis1);
-  nv = int(_uvppw*nm)+1;
+  nv = int(_uvppw*nm);
 
-  nl1 = (nl-1)/2; // center point in LM plane
-  nm1 = (nm-1)/2;
-  nu1 = nu/2;  // center point in UV plane
-  nv1 = nv/2;
+  nl1 = int(nl/2)+1; // center point in LM plane
+  nm1 = int(nm/2)+1;
+  nu1 = int(nu/2)+1;  // center point in UV plane
+  nv1 = int(nv/2)+1;
   
   // Now, the Result dimensions. Since we generate 4 output interpolation
   // planes per a single input plane, we add an extra tensor dimension of 
@@ -174,11 +174,11 @@ int FFTBrick::getResult (Result::Ref &resref,
   const double du = 1.0 / dl / nu;
   const double dv = 1.0 / dm / nv;
 
-  const double umax = (nu-nu1-1+0.5)*du;
-  const double umin = -(nu1+0.5)*du;
+  const double umax = (nu-nu1+0.5)*du;
+  const double umin = -(nu1-0.5)*du;
 
-  const double vmax = (nv-nv1-1+0.5)*dv;
-  const double vmin = -(nv1+0.5)*dv;
+  const double vmax = (nv-nv1+0.5)*dv;
+  const double vmin = -(nv1-0.5)*dv;
 
   // Construct the result domain 
   Domain::Ref domain(DMI::ANONWR);
@@ -275,17 +275,17 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
     const blitz::Array<dcomplex,2> in_arr = input_slicer();
     blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
     
-    pad_arr(makeLoRange(0,nl1),makeLoRange(0,nm1)) = 
-        in_arr(makeLoRange(nl1,nl1*2),makeLoRange(nm1,nm1*2));
+    pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
+        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));
     
-    pad_arr(makeLoRange(nu-nl1,nu-1),makeLoRange(0,nm1)) = 
-        in_arr(makeLoRange(0,nl1-1),makeLoRange(nm1,nm1*2));
+    pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
+        in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
     
-    pad_arr(makeLoRange(0,nl1),makeLoRange(nv-nm1,nv-1)) = 
-        in_arr(makeLoRange(nl1,nl1*2),makeLoRange(0,nm1-1));
+    pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
+        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
 
-    pad_arr(makeLoRange(nu-nl1,nu-1),makeLoRange(nv-nm1,nv-1)) = 
-        in_arr(makeLoRange(0,nl1-1),makeLoRange(0,nm1-1));
+    pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
+        in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
   };
   // figure out output vells shape and create intermediate Vells for the 
   // FFT result
@@ -378,17 +378,17 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
     blitz::Array<dcomplex,2> uv_arr = iuv_slicer();
     
     // reshuffle fft data into output array
-    out_arr(makeLoRange(0,nu1-1),makeLoRange(0,nv1-1)) = 
-        fft_arr(makeLoRange(nu-nu1,nu-1),makeLoRange(nv-nv1,nv-1));
+    out_arr(makeLoRange(0,nu1-2),makeLoRange(0,nv1-2)) = 
+        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(nv-nv1+1,nv-1));
     
-    out_arr(makeLoRange(0,nu1-1),makeLoRange(nv1,nv-1)) = 
-        fft_arr(makeLoRange(nu-nu1,nu-1),makeLoRange(0,nv-nv1-1));
+    out_arr(makeLoRange(0,nu1-2),makeLoRange(nv1-1,nv-1)) = 
+        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(0,nv-nv1));
     
-    out_arr(makeLoRange(nu1,nu-1),makeLoRange(0,nv1-1)) = 
-        fft_arr(makeLoRange(0,nu-nu1-1),makeLoRange(nv-nv1,nv-1));
+    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(0,nv1-2)) = 
+        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(nv-nv1+1,nv-1));
     
-    out_arr(makeLoRange(nu1,nu-1),makeLoRange(nv1,nv-1)) = 
-        fft_arr(makeLoRange(0,nu-nu1-1),makeLoRange(0,nv-nv1-1));
+    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(nv1-1,nv-1)) = 
+        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(0,nv-nv1));
     
     // fill in interpolation coeffs
     // use the Blitz stencil defined above for the central area
@@ -430,7 +430,7 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
       uv_arr(0,j) = (out_arr(1,j+1) + out_arr(nu-1,j+1) +
 		     out_arr(1,j-1) + out_arr(nu-1,j-1))/4.;
 
-      u_arr(nu-1,j) = (out_arr(0,j) + out_arr(nu-1,j))/2.;
+      u_arr(nu-1,j) = (out_arr(0,j) + out_arr(nu-2,j))/2.;
       v_arr(nu-1,j) = (out_arr(nu-1,j+1) + out_arr(nu-1,j-1))/2.;
       uv_arr(nu-1,j) = (out_arr(0,j+1) + out_arr(nu-2,j+1) +
 		        out_arr(0,j-1) + out_arr(nu-2,j-1))/4.;
