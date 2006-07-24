@@ -18,6 +18,7 @@ def sine_mosaic(**ctrl):
     sine_plot(subplot=325)
     return on_exit(ctrl, mosaic=True)
 
+#-------------------------------------------------------------------------------
 
 def sine_plot(**ctrl):
     """Illustrate the feasability of sine-interpolation"""
@@ -40,6 +41,26 @@ def sine_plot(**ctrl):
     plot_marker(ctrl, xx[kk], a2*pylab.sin(xx[kk]/P2), style='o', color='blue')
     auxinfo(ctrl, 'first', 1)
     auxinfo(ctrl, 'second', 2)
+
+    if False:
+        subsin(**ctrl)
+
+    return on_exit(ctrl)
+
+
+
+def subsin(**ctrl):
+    """Test function"""
+    funcname = on_entry(ctrl, 'subsin',
+                        xlabel='x',
+                        ylabel='y',
+                        title='test')
+    a1 = 4.0
+    P1 = 1.5
+    xx = pylab.arange(-2, 10, 0.1)
+    plot_line(ctrl, xx, a1*pylab.sin(xx/P1), color='green', labelpos='start',
+              label='subsin')
+    auxinfo(ctrl, 'subsin', 1.89)
     return on_exit(ctrl)
 
 
@@ -65,6 +86,7 @@ def err_vs_RR_dt_mosaic(b=1000, wvl=2, Rmax=10, dt=[1,2,5,10], fsinc=True, **ctr
     return on_exit(ctrl, mosaic=True)
     
 
+#-------------------------------------------------------------------------------
 
 def err_vs_RR_dt(b=500, wvl=2, Rmax=5, dt=[1,2,5,10], fsinc=True, zoom=False, **ctrl):
     """Plot the subtraction error factor vs source position,
@@ -83,18 +105,18 @@ def err_vs_RR_dt(b=500, wvl=2, Rmax=5, dt=[1,2,5,10], fsinc=True, zoom=False, **
         # Optonal, apply the freq-averaging sinc:
         RRsinc = pylab.pi*RR/(2*Rmax)
         sinc = pylab.sin(RRsinc)/RRsinc
-        plot_line(ctrl, RR, sinc, color='magenta', style='dotted',
-                  width=3,
+        plot_line(ctrl, RR, sinc, color='magenta', style='dashed', width=2,
                   labelpos='start', label='freq-averaging sinc')
         fbw = 57*(float(wvl)/float(b))/Rmax
         auxinfo(ctrl, 'required fractional bw', fbw)
     emax = 0.01
     for dt1 in dt:
         ee = errfac (R_deg=RR, dt=dt1, b=b, wvl=wvl, sinDEC=1.0) 
-        plot_line(ctrl, RR, ee, color='red', style='dashdot',
+        plot_line(ctrl, RR, ee, color='red', style='dashed',
                   labelpos='end', label='dt = '+str(dt1)+' s')
         if fsinc:
-            plot_line(ctrl, RR, ee*sinc, color='green')
+            plot_line(ctrl, RR, ee*sinc, color='green',
+                      labelpos='end', label='dt = '+str(dt1)+' s')
     plot_line(ctrl, [0.0,max(RR)], [emax,emax], color='blue',
               labelpos='start', label='one percent error')
     if zoom:
@@ -103,42 +125,6 @@ def err_vs_RR_dt(b=500, wvl=2, Rmax=5, dt=[1,2,5,10], fsinc=True, zoom=False, **
 
 
 
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-
-def cos_plot(T=1.0):
-    """Obsolete"""
-    b = 2000.0
-    wvl = 2.0
-    delta_max = pi/10
-    M_max = M_arcmin(delta=delta_max, T=T, wvl=wvl, b=b)
-    MM = arange(0.01,M_max*4,M_max/10)
-    yy = 1 - cos(delta(M_arcmin=MM, T=T, wvl=wvl, b=b))
-    yy[yy>1] = 1.0
-    plot(MM, yy, color='red')
-    plot([MM[0],max(MM)], [0,0], color='gray')          # x-axis
-    plot([M_max,M_max], [0,0.5], color='blue')       # vertical
-    text(M_max, -0.1, 'M_max()', color='blue')
-    MMsinc = pi*MM/(1.5*M_max)
-    sinc = sin(MMsinc)/MMsinc
-    plot(MM, sinc, color='blue')
-    plot(MM, yy*sinc, color='green')
-    axis([0.0, max(MM), -0.3, 1.3])
-    xlabel('M-coordinate (arcmin)')
-    ylabel('subtraction error factor')
-    title('source subtraction error (worst case)')
-    text(M_max*3, 0.5, '1-cos(delta)', color='red')
-    text(1, 1.0, ' sinc', color='blue')
-    figtext(0.3, 0.85, 'subtract interval T = '+str(T)+' s')
-    figtext(0.3, 0.8, 'delta_max = '+str(delta_max))
-    figtext(0.3, 0.75, 'b = '+str(b)+' m')
-    figtext(0.3, 0.7, 'lambda = '+str(wvl)+' m')
-    figtext(0.3, 0.65, 'FOV: fractional bandwidth = '+str(2/M_max))
-    figtext(0.3, 0.6, 'FOV: integration interval = '+str(2000/M_max)+' s')
-    savefig('cos_plot_T'+str(int(T))+'s.png')
-    show()
-    return True
 
 
 #--------------------------------------------------------------------------
@@ -248,6 +234,23 @@ def on_entry(ctrl=dict(), funcname='<funcname>',
 
 #-------------------------------------------------------------------------------
 
+def ctrl_display(ctrl):
+    """Helper function to show the contents of the ctrl record"""
+    print '\n** JEN_pylab ctrl record:',funcname
+    print '- save='+ctrl['save']+' savefile='+ctrl['savefile']
+    print '- show='+ctrl['show']
+    s = 'subplot=',ctrl['subplot'],' nrow='+ctrl['nrow'],' ncol='+ctrl['ncol']
+    print '- '+s+' iplot='+ctrl['iplot']+' irow='+ctrl['irow']+' icol='+ctrl['icol']
+    print '-',s
+    print
+    return True 
+
+def ctrl_field(ctrl, key):
+    if not isinstance(key, (list,tuple)): key = [key]
+    return ' '+key+'='+str(ctrl[key])
+
+#-------------------------------------------------------------------------------
+
 def on_exit(ctrl=dict(), mosaic=False):
     """Helper function called at the end of plot-routines"""
     if ctrl['trace']: print '\n** on_exit(moasic=',mosaic,'): ctrl =',ctrl,'\n'
@@ -257,9 +260,9 @@ def on_exit(ctrl=dict(), mosaic=False):
         # Finish the plot:
         if ctrl['subplot']:
             pylab.subplot(ctrl['subplot'])
-            tmax = min(len(ctrl['title']), 60/ctrl['ncol'])
-            xmax = min(len(ctrl['xlabel']), 60/ctrl['ncol'])
-            ymax = min(len(ctrl['ylabel']), 40/ctrl['nrow'])
+            tmax = min(len(ctrl['title']), 80/ctrl['ncol'])
+            xmax = min(len(ctrl['xlabel']), 80/ctrl['ncol'])
+            ymax = min(len(ctrl['ylabel']), 60/ctrl['nrow'])
             pylab.xlabel(ctrl['xlabel'][:xmax])
             if ctrl['icol']==1: pylab.ylabel(ctrl['ylabel'][:ymax])
             if ctrl['irow']==1: pylab.title(ctrl['title'][:tmax])
@@ -346,7 +349,7 @@ def show_auxinfo(ctrl):
     y = ctrl['ymax']-2*dy
     for s in ctrl['auxinfo']:
         y -= dy
-        pylab.text(ctrl['xmin']+dx,y, str(s), color='green')
+        pylab.text(ctrl['xmin']+dx,y, str(s), color='gray')
     return True
 
 #-------------------------------------------------------------------------------
@@ -385,7 +388,7 @@ def plot_line (ctrl=dict(), xx=[0,1], yy=[0,1], color='red',
     # if not isinstance(xx, (list,tuple,type(pylab.array(0)))): return False
     # if not isinstance(yy, (list,tuple,type(pylab.array(0)))): return False
     adjust_xyrange(ctrl, xx=xx, yy=yy)
-    if style=='dashed': style=':'            # should be '-', but does not work....
+    if style=='dashed': style='--'   
     if style=='solid': style='-'
     if style=='dotted': style=':'
     if style=='dashdot': style='-.'
@@ -454,7 +457,7 @@ def show_styles():
     """Helper function to show the available plot styles"""
     print '\n** Available plot-styles:'
     print '  -: solid line'
-    print '  _: dashed line'
+    print '  --: dashed line'
     print '  :: dotted line'
     print '  -.: dashed-dot line'
     print '--------------------------'
@@ -543,9 +546,9 @@ def draw_ellipse(x=0, y=0, a=1, b=None, pmin=0, pmax=None, dp=None, color='red')
 # Execute:
 
 # err_vs_RR_dt()
-err_vs_RR_dt_mosaic()
+# err_vs_RR_dt_mosaic()
 
-# sine_plot()
+sine_plot()
 # sine_mosaic()
 
 # uv_corrug(lm=[1,2], domain=False, show=False)

@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.9: 04 July 2006}  % Date of Issue (
+theDOIssue}{Version 1.0: 23 July 2006}  % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -549,18 +549,76 @@ newpage
 Introduction
 \layout Standard
 
-Hours, days, minutes, seconds, sub-sec (exclude pulsars).
+The detection of transient phenomena, with time-scales ranging from less
+ than a second up to weeks or months, is one of the Key Science Areas of
+ LOFAR.
+ Hours, days, minutes, seconds, sub-sec (exclude pulsars).
  Bright (dominating) and faint transients.
 \layout Standard
 
-This method concentrates on short-term transients, i.e.
- with a characteristic time-scale of 1-500 sec.
+Obviously, transients should be detected in the image-plane: The S/N is
+ maximised there, because all information about a source is concentrated
+ in a small nr of pixels.
+ By contrast, each uv-sample contains information about all sources in the
+ FOV.
 \layout Standard
 
-Obviously, transients should be detected in the image-plane, because all
- information about a sources is concentrated in a small nr of pixels.
- However, instrumental effects live in the uv-plane, where they are most
- easily tackled.
+Perhaps because of this, the transient detection techniques that have been
+ proposed for LOFAR concentrate on image-analysis.
+ Snapshots of uv-data are to be calibrated, transformed into images, deconvolved
+, and compared with each other.
+ 
+\layout Standard
+
+The problem with this approach is that LOFAR calibration will require a
+ lot of processing.
+ Apart from dealing with a rapidly varying ionosphere and 'wobbly' station
+ voltage beams, it is necessary to subtract most sources in the uv-plane.
+ The latter is necessary because residual image-plane effects, i.e.
+ instrumental effects that vary over the FOV, cause the Point Spread Function
+ (PSF) with which the sources are convolved in the image, to be position-depende
+nt as well.
+ This violates the assumption of deconvolution techniques like CLEAN.
+\layout Standard
+
+This provides an incentive to investigate whether there are other possibilities.
+ This document proposes and analyses a differential method, in which successive
+ uv-data samples of the same interferometer are subtracted from each other.
+ The idea is to remove all sources that do not change, thus emphasising
+ the transient phenomena.
+ The great advantage is that we can get away with a minimum of calibration,
+ because instrumental error change much more slowly than the subtraction
+ interval of 1-10 s.
+ 
+\series bold 
+It will be demonstrated that such a short interval is sufficient to detect
+ transient phenomena with a much wider range of time-scales
+\series default 
+.
+\layout Standard
+
+An obvious limitation of such a differential method is that the Earth rotates,
+ so that the uv-coordinates will change between successive samples.
+ This will affect the subtraction accuracy, especially for sources further
+ from the field centre, and for longer baselines.
+ However, it will be seen that the actual numbers come out surprisingly
+ well, and that there are a variety of additional operations that can be
+ used to make them even better
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+In fact, the numbers come out so well that it is surprising that this approach
+ has not been tried before.
+ An uncomfortable thought, whichever way one looks at it.....
+\end_inset 
+
+.
+\layout Standard
+
+The proposed method will be analysed and demonstrated for the WSRT case.
+ However, the results are equally valid for LOFAR and other telescopes.
 \layout Standard
 
 
@@ -630,11 +688,11 @@ etc, which will be closer to each other near the centre of the uv-plane.
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:Corrugations}
+\begin_inset LatexCommand \label{sec:Corrugations-in-the}
 
 \end_inset 
 
-Corrugations
+Corrugations in the uv-plane
 \layout Standard
 
 The visibility function is the sum of the contributions of all the sources
@@ -650,8 +708,8 @@ V(u,v)=\sum_{k}p_{k}exp(2\pi i(ul_{k}+vm_{k}))+noise\]
 
 \layout Standard
 
-The contribttution of a point source is a sinusoidal corrugation in the
- uv-plane, with amplitude 
+The contribution of a point source is a sinusoidal corrugation in the uv-plane,
+ with amplitude 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -704,20 +762,69 @@ nal to baseline length.
  
 \layout Standard
 
-One way to detect transient sources is to compare successive uv-samples
- of the same interferometer.
- Since the uv-coordinates will be slightly different, and thus the phase
- factors 
-\begin_inset Formula $(ul_{k}+vm_{k})$
+Ignoring noise, we may write:
+\layout Standard
+
+
+\begin_inset Formula \[
+V_{ij}(t)=\sum_{k}V_{ijk}(t)=\sum_{k}p_{k}\exp^{i\theta_{k}(t)}\]
+
+\end_inset 
+
+
+\layout Standard
+
+where
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\theta_{k}(t)=2\pi\frac{b}{\lambda}(l_{k}cosHA(t)+m_{k}sinHA(t).sinDEC)\label{eq:theta(t)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+We also need the rate of change of 
+\begin_inset Formula $\theta(t)$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{d\theta(t)}{dt}=2\pi\frac{b}{\lambda}(-l_{k}\sin HA(t)+m_{k}\cos HA(t).\sin DEC).\frac{dHA}{dt}\label{eq:dtheta/dt}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+and the second derivative:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{d^{2}\theta(t)}{dt^{2}}=-2\pi\frac{b}{\lambda}(l_{k}\cos HA(t)+m_{k}\sin HA(t).\sin DEC)\label{eq:d2theta/dt2}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+For rapid estimation, the term within brackets will be replaced with the
+ distance 
+\begin_inset Formula $r_{k}$
+\end_inset 
+
+(rad) from the field centre of a source 
+\begin_inset Formula $(l_{k},m_{k})$
 \end_inset 
 
 .
- The subtraction error per uv-sample will be less for small values of this
- phase factor, i.e.
- for sources close to the field centre, and/or shorter baselines.
- Thus, when making an image of the differences, subtraction residuals will
- be larger for the (non-transient) sources further from the centre.
- 
+ Note that this always overestimates the subtraction error.
 \layout Standard
 
 A very important quantity is the rate of change of the baseline Hour Angle
@@ -745,10 +852,27 @@ Note also that this constant rate of change in HA will result in a smaller
  
 \layout Section
 
-Step 1: Clearing the centre
-\layout Subsection
 
-Subtracting successive uv-samples
+\begin_inset LatexCommand \label{sec:Subtracting-successive-uv-data}
+
+\end_inset 
+
+Subtracting successive uv-data
+\layout Standard
+
+We propose to detect transient sources by comparing successive uv-samples
+ of the same interferometer.
+ Since the uv-coordinates will be slightly different, and thus the phase
+ factors 
+\begin_inset Formula $(ul_{k}+vm_{k})$
+\end_inset 
+
+, the subtraction error per uv-sample will be smaller for small values of
+ this phase factor, i.e.
+ for sources close to the field centre, and/or shorter baselines.
+ Thus, when making an image of the differences, subtraction residuals will
+ be larger for the (non-transient) sources further from the centre.
+ 
 \layout Standard
 
 The subtraction error may be minimised by subtracting the average of the
@@ -765,80 +889,22 @@ The subtraction error may be minimised by subtracting the average of the
 \layout Standard
 
 This has the additional advantage that instrumental errors that change linearly
- with time are also compensated.
- Ignoring noise, we may write:
-\layout Standard
-
-
-\begin_inset Formula \[
-V_{ij}(t)=\sum_{k}V_{ijk}(t)=\sum_{k}p_{k}\exp^{i\psi_{k}(t)}\]
+ with time are also compensated (see section 
+\begin_inset LatexCommand \ref{sec:Instrumental-errors}
 
 \end_inset 
 
-
-\layout Standard
-
-where
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\psi_{k}(t)=2\pi\frac{b}{\lambda}(l_{k}cosHA(t)+m_{k}sinHA(t).sinDEC)\;\leq\;2\pi\frac{b}{\lambda}r_{k}\label{eq:psi(t)}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-and (using the HA-rate in equ 
-\begin_inset LatexCommand \ref{eq: dHA/dt}
-
-\end_inset 
-
-): 
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\frac{d\psi(t)}{dt}=2\pi\frac{b}{\lambda}(m_{k}\cos HA.\sin DEC-l_{k}\sin HA).\frac{dHA}{dt}\;\leq\;2\pi10^{-4}\frac{b}{\lambda}r_{k}\label{eq:dpsi/dt}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-For rapid estimation of the approximate magitude of an effect, it is convenient
- to use the distance 
-\begin_inset Formula $r_{k}$
-\end_inset 
-
-(rad) from the field centre of a source 
-\begin_inset Formula $(l_{k},m_{k})$
-\end_inset 
-
-.
- Note that this always overestimates the subtraction error.
-\layout Subsection
-
-Estimating the subtraction error per source
-\layout Standard
-
-From here on, the subtraction error will be analysed per source 
+).
+ The subtraction error for source 
 \begin_inset Formula $k$
 \end_inset 
 
-.
- Thus, equation 
-\begin_inset LatexCommand \ref{eq:dVij}
-
-\end_inset 
-
- reduces to
+ is:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\Delta V_{ijk}(t)=\exp^{i\psi_{k}(t)}-\frac{1}{2}(\exp^{i\psi_{k}(t+\Delta t)}+\exp^{i\psi_{k}(t-\Delta t)})\label{eq:dVijk}\end{equation}
+\Delta V_{ijk}(t)=\exp^{i\theta{}_{k}(t)}-\frac{1}{2}(\exp^{i\theta_{k}(t+\Delta t)}+\exp^{i\theta_{k}(t-\Delta t)})\label{eq:dVijk}\end{equation}
 
 \end_inset 
 
@@ -858,11 +924,11 @@ Using the property
 \layout Standard
 
 we find that, provided we can write 
-\begin_inset Formula $\psi(t\pm\Delta t)$
+\begin_inset Formula $\theta(t\pm\Delta t)$
 \end_inset 
 
  as 
-\begin_inset Formula $\psi(t)\pm\epsilon$
+\begin_inset Formula $\theta(t)\pm\epsilon$
 \end_inset 
 
 , we may derive a 
@@ -920,7 +986,7 @@ errfac_{ijk}(\Delta t)=1-\cos(\epsilon_{ijk}(\Delta t))\approx\frac{1}{2}\epsilo
 \layout Standard
 
 in which (using equ 
-\begin_inset LatexCommand \ref{eq:dpsi/dt}
+\begin_inset LatexCommand \ref{eq:dtheta/dt}
 
 \end_inset 
 
@@ -929,7 +995,7 @@ in which (using equ
 
 
 \begin_inset Formula \begin{equation}
-\epsilon_{ijk}(\Delta t)=\frac{d\psi}{dt}\Delta t\;\leq\;2\pi10^{-4}\frac{b_{ij}}{\lambda}r_{k}\Delta t\; rad\label{eq: epsilon}\end{equation}
+\epsilon_{ijk}(\Delta t)=\frac{d\theta}{dt}\Delta t\;\leq\;2\pi10^{-4}\frac{b_{ij}}{\lambda}r_{k}\Delta t\; rad\label{eq: epsilon}\end{equation}
 
 \end_inset 
 
@@ -1021,11 +1087,11 @@ The error factor (1-cos(e)) as a function of the subtraction time interval
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:Step-2:-Limiting}
+\begin_inset LatexCommand \label{sec:Limiting-the-FOV}
 
 \end_inset 
 
-Step 2: Limiting the FOV
+Limiting the FOV
 \layout Standard
 
 As we have seen, the subtraction is most effective for sources close to
@@ -1142,6 +1208,14 @@ Obviously, the time averaging interval
 \emph on 
 Thus, the requirement of time averaging might turn out to be the limiting
  factor of transient detection...
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Test-with-WSRT}
+
+\end_inset 
+
+Test with WSRT data
 \layout Standard
 
 
@@ -1153,6 +1227,36 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename before.eps
+	lyxscale 70
+	width 50col%
+
+\end_inset 
+
+
+\begin_inset Graphics
+	filename after.eps
+	lyxscale 70
+	width 50col%
+
+\end_inset 
+
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename point_before.eps
+	lyxscale 50
+	width 40col%
+
+\end_inset 
+
+
+\begin_inset Graphics
+	filename point_after.eps
+	lyxscale 50
+	width 40col%
 
 \end_inset 
 
@@ -1160,14 +1264,82 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:Radial-stripes}
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Demonstration-of-the}
+
+\end_inset 
+
+Demonstration of the proposed method.
+ The original uv-data in a WSRT data-set of TAU A (DEC=..) was replaced with
+ a 3x3 grid of identical test-sources (1 Jy), and one transient source (1
+ Jy).
+ The subtraction interval 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+ was equal to the integration time.
+ The data are uncorrupted by either noise or instrumental errors.
+ The (dirty) images show the XX-correlation, hence the 0.5 Jy peak.
+ The residual image (top right) is enlarged and discussed in fig ...
+ The bottom row shows an enlargement of the source ....
+ and its residual after subtraction.
+ The residual PSF can be fully predicted (see section ...), thus opening the
+ way for further deconvolution.
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Itemize
+
+
+\begin_inset Graphics
+	filename after.eps
+	lyxscale 200
+	width 100col%
 
 \end_inset 
 
 
+\layout Caption
+
+
 \emph on 
-Radial stripes emanating from the field centre will probably be the ultimate
- limiting factor of the proposed method.
+
+\begin_inset LatexCommand \label{cap:Enlargement-of-the}
+
+\end_inset 
+
+Enlargement of the residual image in fig 
+\begin_inset LatexCommand \ref{cap:Demonstration-of-the}
+
+\end_inset 
+
+.
+ Note that the subtraction is most effective near the field centre (and
+ for short baselines).
+ The residual PSF's of the various test-sources can be fully explained from
+ 
+\begin_inset Formula $d\theta_{k}(t)/dt$
+\end_inset 
+
+ as a function of HA (section).
+ The result is a pseudo-radial pattern, i.e.
+ it intersects the origin 
+\begin_inset Formula $(l=0,m=0)$
+\end_inset 
+
+ only if 
+\begin_inset Formula $sin(DEC)=1.$
+\end_inset 
+
+ This is confirmed by the pattern of the PSF rings.
  
 \end_inset 
 
@@ -1175,23 +1347,257 @@ Radial stripes emanating from the field centre will probably be the ultimate
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:The-optimal-facet}
+\begin_inset LatexCommand \label{sec:Transient-detection}
 
 \end_inset 
 
-The optimal facet size
+Transient detection
 \layout Standard
 
-We are now ready to sketch a procedure for determining the optimal facet
- size, given the subtraction time interval 
-\begin_inset Formula $T$
+We are now ready to discuss how to detect transient sources with the proposed
+ uv-subtraction method.
+ The first step is to make residual images from residual uv-data: 
+\layout Itemize
+
+Correct the uv-data for ionospheric phase variations (in the direction of
+ the field centre).
+ See below.
+\layout Itemize
+
+Do the subtraction (equ ...), and produce residual uv-data.
+ The subtraction interval is equal to the uv-data integration time (10 s
+ for WSRT, and 1 s for LOFAR).
+ (indicate how to deal with flags and edge effects)
+\layout Itemize
+
+Make residual facet images.
+ For each facet, move the phase centre to the facet centre, correct the
+ residual uv-data for the facet centre (...?), and integrate over an optimum
+ nr of frequency channels to limit the FOV.
+ Then FFT.
+ 
+\layout Standard
+
+The above will be part of the regular LOFAR operation scheme.
+ The more interesting part, to be undertaken by the Key Science Group, is
+ the analysis of residual images:
+\layout Itemize
+
+The source residuals at positions 
+\begin_inset Formula $(l_{k},m_{k})$
 \end_inset 
 
-, and the required precision 
-\begin_inset Formula $(1-cos(\Delta))$
+ will be point-like, because short baselines are subtracted much more effectivel
+y than longer ones, and because transients are point sources by definition.
+ 
+\layout Itemize
+
+The source residuals are the sum of a constant and a transient part (the
+ latter will often be zero, of course).
+ These are convolved with with different PSF's.
+ 
+\series bold 
+Ignoring instrumental errors for the moment:
+\begin_deeper 
+\layout Itemize
+
+The PSF of the constant part is position-dependent, and predictable (....?).
+ See equ ...
+ and fig ...
+\layout Itemize
+
+The PSF of the transient part depends on its time-profile.
+ 
+\end_deeper 
+\layout Itemize
+
+Since the PSF of the constant part is predictable, and quite distinct (...)
+ from the PSF of the transient part, we can try to deconvolve the residual
+ image.
+ On the one hand this is simple, because the residual sources are point
+ sources.
+ But it does require the calculation of a separate PSF for the position
+ 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+ of each source.
+ 
+\emph on 
+And there is the problem of instrumetal errors, which affect the shape of
+ the PSF.
+\layout Standard
+
+It is very important to realise that the same residual image can be used
+ to detect transients with a wide range of time-profiles.
+ Consider the following cases:
+\layout Itemize
+
+If the flux increases linearly in time, the result will be a point source
+ convolved with a regular PSF (i.e.
+ based on the uv-coverage), with a flux that is equal to its rate of change
+ 
+\begin_inset Formula $(Jy/\Delta t)$
 \end_inset 
 
 .
+ 
+\emph on 
+The S/N can be improved by adding multiple observations together.
+\layout Itemize
+
+If the flux changes sinusoidally...
+\layout Itemize
+
+If the flux changes abruptly (i.e.
+ in a time 
+\begin_inset Formula $<\Delta t$
+\end_inset 
+
+) to a new constant value...
+ Low sensitivity, how to improve
+\layout Itemize
+
+If the flux briefly flares for a period 
+\begin_inset Formula $P$
+\end_inset 
+
+....
+\layout Itemize
+
+If the position changes (presumably linearly in time)....
+\layout Itemize
+
+Changes in spectrum, polarisation.....
+\layout Standard
+
+Etc, etc.
+ There is some work to do here....
+ 
+\emph on 
+NB: Compare this to the detection of transients with different time-profiles
+ with the more traditional image-plane techniques.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Instrumental-errors}
+
+\end_inset 
+
+Instrumental errors
+\layout Standard
+
+Until now, we have ignored the effect of instrumental errors (and noise).
+ For the moment, we will limit ourselves to the simplest possible Measurement
+ Equation: 
+\layout Standard
+
+
+\begin_inset Formula \[
+V_{ij}(t)=G_{ij}(t)\: V_{ij}^{'}=g_{i}(t)\: g_{j}(t)\: V_{ij}^{'}\]
+
+\end_inset 
+
+
+\layout Standard
+
+If we assume that instrumental errors change much more slowly than the subtracti
+on interval 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+, only the linear terms are important:
+\layout Standard
+
+
+\begin_inset Formula \[
+g_{i}(t+\Delta t)=g_{i}(t)+g_{i1}\Delta t\]
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset Formula \[
+G_{ij}(t+\Delta t)=g_{i}\: g_{j}+\Delta t\:(g_{i}g_{j1}+g_{j}g_{i1})+(\Delta t)^{2}g_{i1}g_{j1}\]
+
+\end_inset 
+
+
+\layout Standard
+
+The linear term will drop out in the subtraction scheme (equ ...), but the
+ 
+\begin_inset Formula $(\Delta t)^{2}$
+\end_inset 
+
+ term will not.
+ Therefore, ionospheric calibration is necessary....? However, with a maximum
+ change of ionospheric phase of 
+\begin_inset Formula $0.1$
+\end_inset 
+
+rad/s (LOFAR design spec), and a subtraction interval of 
+\begin_inset Formula $\Delta t=1$
+\end_inset 
+
+s ......?
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename ionophase_change.eps
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Ionospheric-phase-change}
+
+\end_inset 
+
+
+\emph on 
+The impact of ionospheric phase variation on the proposed subtraction scheme.
+ Even with a phase change of 
+\begin_inset Formula $0.3$
+\end_inset 
+
+ rad per subtraction interval 
+\begin_inset Formula $\Delta t$
+\end_inset 
+
+ (as shown) here, the difference between 
+\begin_inset Formula $V(t)$
+\end_inset 
+
+ and 
+\begin_inset Formula $(V(t-\Delta t)+V(t+\Delta t))/2$
+\end_inset 
+
+ is relatively small.
+ In practice, the difference will be much smaller.
+ After all, the LOFAR design spec is a maximum ionospheric phase variation
+ of 
+\begin_inset Formula $0.1$
+\end_inset 
+
+ rad/s, which only occurs at observing frequency below 30 MHz, and quite
+ rarely at that.
+\end_inset 
+
+
 \layout Section
 
 
@@ -1202,42 +1608,37 @@ We are now ready to sketch a procedure for determining the optimal facet
 Conclusions
 \layout Standard
 
-We have sketched a promising new method for the detection of short-term
- transients, e.g.
- transients with a characteristic time-scale of 1-500 s.
+We have sketched a promising new method for the detection of transient phaenomen
+a, with a wide range of characteristic time-scale.
  The method is very simple to implement, because it requires a minimum of
- calibration, and the trivial operation of subtracting successive uv-samples
- from each other.
- This has the effect of removing all the constant sources, especially towards
- the centre of the field, so that transients will be easy to spot in the
- resulting image.
- The size of the cleared central area is surprisingly large (degrees).
+ calibration, and a trivial uv-data subtraction operation.
+ This is important, in view of the 'impossible' amount of calibration processing
+ that is required for the more traditional transient detection techniques,
+ especially for relatively short-term transients.
+ In addition, the method is potentially more sensitive, and provides more
+ 'handles' to analyse the detailed time-profile of transient sources.
+ 
 \layout Standard
 
-Compact sources further from the field centre will not be subtracted so
- well, so their PSF sidelobes will still limit the dynamic range of the
- difference image.
- However, these sources may be substantially attenuated by limiting the
- FOV, using frequency averaging.
- The required fractional bandwith is modest, and readily available.
+Eearly results are encouraging.
+ The follow-up effort should be directed at developing methods for the analysis
+ of residual images.
 \layout Standard
 
-Unfortunately, the complementary FOV-limiting operation (i.e.
- time averaging) cannot be used, because the required averaging interval
- would be longer than the characteristic transient time-scale.
- The result is that the difference image will have radial stripes emanating
- from the field centre, and running through the faraway sources.
- Even though the resulting difference PSF is fully predictable, so we may
- consider an adapted from of CLEAN deconvolution, this is probably the ultimate
- limitation of the proposed method.
- However, this still leaves a large and hitherto unexplored region of observatio
-nal phase space.
-\layout Standard
-
-Finally, it is possible, even likely, that the proposed transient detection
- method is a member of an entire family of relatively cheap difference methods,
+It is possible, even likely, that the proposed transient detection method
+ is a member of an entire family of relatively cheap differential methods,
  which could be crucial in dealing with the vast data-volumes produced by
  LOFAR and SKA.
+\layout Subsection*
+
+Acknowledgements
+\layout Standard
+
+The author is much indebted to Dr Sarod Yatawatta, who created the simulated
+ uv-data (using MeqTrees), wrote the Glish script to perform the subtraction,
+ and made the images.
+ The author was also stimulated by the lack of enthousiasm of experienced
+ astronomers.
 \layout Bibliography
 \bibitem {JEN-nov2005}
 
