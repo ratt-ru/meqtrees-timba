@@ -1,4 +1,4 @@
-//# UVInterpolWave.h: Parameter with polynomial coefficients
+//# UVInterpolWave.h
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
