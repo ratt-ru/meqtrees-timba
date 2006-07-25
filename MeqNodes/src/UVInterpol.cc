@@ -160,12 +160,12 @@ namespace Meq {
 	double fmax = max(brickcells.cellEnd(Axis::FREQ));
 
 	Domain::Ref tfdomain(new Domain());
-	tfdomain().defineAxis(Axis::axis("TIME"),tmin,tmax);
-	tfdomain().defineAxis(Axis::axis("FREQ"),fmin,fmax);
+	tfdomain().defineAxis(Axis::TIME,tmin,tmax);
+	tfdomain().defineAxis(Axis::FREQ,fmin,fmax);
 	Cells::Ref tfcells(new Cells(*tfdomain));
-	tfcells().setCells(Axis::axis("TIME"),tmin,tmax,nt);
-	tfcells().setCells(Axis::axis("FREQ"),fmin,fmax,nf);
-	    
+	tfcells().setCells(Axis::TIME,tmin,tmax,nt);
+	tfcells().setCells(Axis::FREQ,fmin,fmax,nf);
+    
 	// Make a new Vells and fill with zeros
 	//Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
 	//Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,true));
