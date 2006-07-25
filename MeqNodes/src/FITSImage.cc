@@ -972,13 +972,13 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 				worldc[kk+0],worldc[kk+1],worldc[kk+2],worldc[kk+3],statc[kk/4]
 				);
 						 kk+=4;
-		 } */
+		 } */ 
 
     /* find center coordinates, handle even numbers correctly */
 		/* even, use the pixel to the right as the center */
 		/* odd, use middle pixel */
-		/* find correspoiding kk value =(l_c-1)*M +m_c-1 */
-		kk=(new_naxis[0]/2)*new_naxis[1]+(new_naxis[1]/2);
+		/* find corresponding kk value =(l_c-1)*M +m_c-1 */
+		kk=4*((new_naxis[0]/2)*new_naxis[1]+(new_naxis[1]/2));
 
 #ifdef DEBUG
 		printf("found center %d\n",kk);
