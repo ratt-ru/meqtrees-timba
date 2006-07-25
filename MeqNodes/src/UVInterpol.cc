@@ -1,4 +1,4 @@
-//# UVInterpol.cc: Stored parameter with polynomial coefficients
+//# UVInterpol.cc
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -47,8 +47,6 @@ namespace Meq {
   UVInterpol::UVInterpol():
     Node(num_children,child_labels),
     _additional_info(false),
-    _uvZ(0.0),
-    _uvDelta(casa::C::pi/2.),
     _method(1)
   {
     disableAutoResample();
@@ -75,8 +73,6 @@ namespace Meq {
   {
     Node::setStateImpl(rec,initializing);
     rec["Additional.Info"].get(_additional_info,initializing);
-    rec["UVZ"].get(_uvZ,initializing);
-    rec["UVDelta"].get(_uvDelta,initializing);
     rec["Method"].get(_method,initializing);
 
     std::vector<HIID> in1 = _in1_axis_id;
@@ -118,12 +114,7 @@ namespace Meq {
   int UVInterpol::getResult (Result::Ref &resref,
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
-  {
-
-    // Set input and output axes
-    _in2axis0 = Axis::axis(_in2_axis_id[0]);
-    _out2axis0 = Axis::axis(_out2_axis_id[0]);
-    _out2axis1 = Axis::axis(_out2_axis_id[1]);
+  {  
 
     // Get the request cells
     const Cells& rcells = request.cells();
@@ -132,6 +123,16 @@ namespace Meq {
     if( rcells.isDefined(Axis::TIME) && brickcells.isDefined(Axis::FREQ))
       {
 	
+	// Set input and output axes
+	_in1axis0 = Axis::axis(_in1_axis_id[0]);
+	_in1axis1 = Axis::axis(_in1_axis_id[1]);
+	_in1axis2 = Axis::axis(_in1_axis_id[2]);
+	_out1axis0 = Axis::axis(_out1_axis_id[0]);
+	_out1axis1 = Axis::axis(_out1_axis_id[1]);
+	_in2axis0 = Axis::axis(_in2_axis_id[0]);
+	_out2axis0 = Axis::axis(_out2_axis_id[0]);
+	_out2axis1 = Axis::axis(_out2_axis_id[1]);
+
 	// Create the Interpolated UVdata 
 	// (Integration is not implemented. This is ok for small 
 	//   time/freq cells. For larger Cells a 2D Integration Routine 
@@ -145,23 +146,25 @@ namespace Meq {
 	VellSet& vs3 = resref().setNewVellSet(3);  // create new object for plane 0
 
 	//
-	// Make the Result
+	// Make the Result (based on the frequency domain of the UVBrick!)
 	//		
 	    
 	// Make the Vells (Interpolation)
 	Vells::Shape tfshape;
-	Axis::degenerateShape(tfshape,rcells.rank());
+	Axis::degenerateShape(tfshape,2);
 	int nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
 	int nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
-	const LoVec_double time = rcells.center(Axis::axis("TIME"));
-	const LoVec_double freq = brickcells.center(Axis::axis("FREQ"));
+	double tmin = min(rcells.cellStart(Axis::TIME));
+	double tmax = max(rcells.cellEnd(Axis::TIME));
+	double fmin = min(brickcells.cellStart(Axis::FREQ));
+	double fmax = max(brickcells.cellEnd(Axis::FREQ));
 
 	Domain::Ref tfdomain(new Domain());
-	tfdomain().defineAxis(Axis::axis("TIME"),time(0),time(nt-1));
-	tfdomain().defineAxis(Axis::axis("FREQ"),freq(0),freq(nf-1));
+	tfdomain().defineAxis(Axis::axis("TIME"),tmin,tmax);
+	tfdomain().defineAxis(Axis::axis("FREQ"),fmin,fmax);
 	Cells::Ref tfcells(new Cells(*tfdomain));
-	tfcells().setCells(Axis::axis("TIME"),time(0),time(nt-1),nt);
-	tfcells().setCells(Axis::axis("FREQ"),freq(0),freq(nf-1),nf);
+	tfcells().setCells(Axis::axis("TIME"),tmin,tmax,nt);
+	tfcells().setCells(Axis::axis("FREQ"),fmin,fmax,nf);
 	    
 	// Make a new Vells and fill with zeros
 	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
@@ -174,6 +177,7 @@ namespace Meq {
 	    
 	// Attach the request Cells to the result
 	resref().setCells(*tfcells);
+	resref().setDims(LoShape(2,2));
       
 	if (_additional_info){
 	  
@@ -189,12 +193,7 @@ namespace Meq {
 	  //		
 	  
 	  // Make a uv-shape
-	  //Result::Ref brickresult;
-	  //Cells brickcells; 
 	  Result::Ref uvpoints;
-	  
-	  //brickresult = childres.at(0);
-	  //brickcells = brickresult->cells();
 	  uvpoints = childres.at(1);    
 	  
 	  // uv grid from UVBrick
@@ -202,14 +201,18 @@ namespace Meq {
 	  int nv = brickcells.ncells(Axis::axis("V"));
 	  const LoVec_double uu = brickcells.center(Axis::axis("U"));
 	  const LoVec_double vv = brickcells.center(Axis::axis("V"));
+	  const double umin = min(brickcells.cellStart(Axis::axis("U")));
+	  const double umax = max(brickcells.cellEnd(Axis::axis("U")));
+	  const double vmin = min(brickcells.cellStart(Axis::axis("V")));
+	  const double vmax = max(brickcells.cellEnd(Axis::axis("V")));
 	  
 	  // uv image domain
 	  Domain::Ref uvdomain(new Domain());
-	  uvdomain().defineAxis(Axis::axis("U"),uu(0),uu(nu-1));
-	  uvdomain().defineAxis(Axis::axis("V"),vv(0),vv(nv-1));
+	  uvdomain().defineAxis(Axis::axis("U"),umin,umax);
+	  uvdomain().defineAxis(Axis::axis("V"),vmin,vmax);
 	  Cells::Ref uvcells(new Cells(*uvdomain));
-	  uvcells().setCells(Axis::axis("U"),uu(0),uu(nu-1),nu);
-	  uvcells().setCells(Axis::axis("V"),vv(0),vv(nv-1),nv);    
+	  uvcells().setCells(Axis::axis("U"),umin,umax,nu);
+	  uvcells().setCells(Axis::axis("V"),vmin,vmax,nv);    
 	  
 	  Vells::Shape uvshape;
 	  Axis::degenerateShape(uvshape,uvcells->rank());
@@ -276,13 +279,6 @@ namespace Meq {
 
     // If method has incorrect value, use default method
     if ((_method < 1) || (_method > 4)) _method = 1;
-
-    // Set input and Output axes
-    _in1axis0 = Axis::axis(_in1_axis_id[0]);
-    _in1axis1 = Axis::axis(_in1_axis_id[1]);
-    _in1axis2 = Axis::axis(_in1_axis_id[2]);
-    _out1axis0 = Axis::axis(_out1_axis_id[0]);
-    _out1axis1 = Axis::axis(_out1_axis_id[1]);
 
     // Time-Freq boundaries of Result to be produced
     int nt = fcells.ncells(Axis::TIME);

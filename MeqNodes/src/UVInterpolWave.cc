@@ -1,4 +1,4 @@
-//# UVInterpolWave.cc: Stored parameter with polynomial coefficients
+//# UVInterpolWave.cc
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -273,12 +273,7 @@ namespace Meq {
 	  //		
 	  
 	  // Make a uv-shape
-	  //Result::Ref brickresult;
-	  //Cells brickcells; 
 	  Result::Ref uvpoints;
-	  
-	  //brickresult = childres.at(0);
-	  //brickcells = brickresult->cells();
 	  uvpoints = childres.at(1);    
 	  
 	  // uv grid from UVBrick
