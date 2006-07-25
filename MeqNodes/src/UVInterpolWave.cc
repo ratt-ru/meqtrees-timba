@@ -155,9 +155,7 @@ namespace Meq {
 	Vells::Shape tfshape;
 	Axis::degenerateShape(tfshape,2);
 	int nt, nf;
-	int nf1 = rcells.ncells(Axis::FREQ);
-	int nf2 = brickcells.ncells(Axis::FREQ);
-	LoVec_double freq(casa::max(nf1,nf2));
+	LoVec_double freq;
 	double tmin, tmax, fmin, fmax;
 	
 	if (nfbrick == 1) {
@@ -165,6 +163,7 @@ namespace Meq {
 	  // Result based on frequency domain of the Request
 	  nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
 	  nf = tfshape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	  freq.resize(nf);
 	  freq = rcells.center(Axis::FREQ);
 	  tmin = min(rcells.cellStart(Axis::TIME));
 	  tmax = max(rcells.cellEnd(Axis::TIME));
@@ -176,6 +175,7 @@ namespace Meq {
 	  
 	  nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
 	  nf = tfshape[Axis::FREQ] = brickcells.ncells(Axis::FREQ);
+	  freq.resize(nf);
 	  freq = brickcells.center(Axis::FREQ);
 	  tmin = min(rcells.cellStart(Axis::TIME));
 	  tmax = max(rcells.cellEnd(Axis::TIME));
