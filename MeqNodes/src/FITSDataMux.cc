@@ -320,8 +320,41 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
 		Vells sQ=childres[0]->vellSet(3).getValue();
 		Vells sU=childres[0]->vellSet(4).getValue();
 		Vells sV=childres[0]->vellSet(5).getValue();
+		if (!sI.isScalar()) {
 
-		mux_write_fits_file(arr,filep_);
+     VellsSlicer<double,3> slout(sI,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+     A(blitz::Range::all(), lrange, blitz::Range::all(),0)=slout.array();
+		} else {
+     A(blitz::Range::all(), lrange, blitz::Range::all(),0)=sI.getScalar<double>();
+		}
+		if (naxis[2]>1) {
+ 		  if (!sQ.isScalar()) {
+       VellsSlicer<double,3> slout(sQ,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+       A(blitz::Range::all(), lrange, blitz::Range::all(),1)=slout.array();
+		  } else {
+       A(blitz::Range::all(), lrange, blitz::Range::all(),1)=sQ.getScalar<double>();
+		  }
+		}
+		if (naxis[2]>2) {
+  	  if (!sU.isScalar()) {
+       VellsSlicer<double,3> slout(sU,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+       A(blitz::Range::all(), lrange, blitz::Range::all(),2)=slout.array();
+		  } else {
+       A(blitz::Range::all(), lrange, blitz::Range::all(),2)=sU.getScalar<double>();
+		  }
+		}
+		if (naxis[2]>3) {
+   	  if (!sV.isScalar()) {
+       VellsSlicer<double,3> slout(sV,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
+       A(blitz::Range::all(), lrange, blitz::Range::all(),3)=slout.array();
+		  } else {
+       A(blitz::Range::all(), lrange, blitz::Range::all(),3)=sV.getScalar<double>();
+		  }
+		}
+ 
+
+    A.transposeSelf(0,3,2,1);
+		mux_write_fits_file((double*)A.data(),filep_);
     free(arr);
 		return 0;
 }
