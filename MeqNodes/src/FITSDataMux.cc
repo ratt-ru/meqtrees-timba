@@ -1,4 +1,4 @@
-//# FITSImage.cc: Read a FITS file and convert the Image HDU to  Vellsets
+//# FITSDataMux.cc: Read a FITS file and return the Result
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,70 +20,71 @@
 //#
 //# $Id$
 
-#include <MeqNodes/FITSImage.h>
+#include <MeqNodes/FITSDataMux.h>
 #include <MeqNodes/FITSUtils.h>
+#include <MeqNodes/FITSSpigot.h>
 #include <MEQ/MeqVocabulary.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
 #include <MEQ/VellsSlicer.h>
+#include <MEQ/Forest.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
+
 
 //#define DEBUG
 namespace Meq {
 
 const HIID FFilename= AidFilename;
 const HIID FCutoff= AidCutoff;
+const HIID FInput    = AidInput;
+const HIID symdeps[] = { FDomain,FResolution };
+const HIID FSequenceSymdeps = AidSequence|AidSymdeps;
 
 
-//##ModelId=400E5355029C
-FITSImage::FITSImage()
-	: Node(0),cutoff_(0.1),has_prev_result_(false)
+FITSDataMux::FITSDataMux()
+	: Node() //
 {
 
+}
+
+FITSDataMux::~FITSDataMux()
+{}
+
+void FITSDataMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+	Node::setStateImpl(rec,initializing);
 	//create 2 new axes -- Freq is already present
 	Axis::addAxis("L"); //L
 	Axis::addAxis("M"); //M
+
+	//default seq symdeps
+	seq_symdeps_.resize(1);
+	seq_symdeps_.assign(1,AidState);
 }
 
-//##ModelId=400E5355029D
-FITSImage::~FITSImage()
-{}
+int FITSDataMux::pollChildren (Result::Ref &resref,
+                            std::vector<Result::Ref> &childres,
+                            const Request &req) {
 
-void FITSImage::setStateImpl (DMI::Record::Ref &rec,bool initializing)
-{
-	Node::setStateImpl(rec,initializing);
+		const DMI::Record * inrec = req[FInput].as_po<DMI::Record>();
+		if( !inrec )
+				return Node::pollChildren(resref,childres,req);
+    init_self_(*inrec);
+		//1)Read FITS file
+		//2)create result, give it to spigot
+		//3)create Request to cover the result domain
+		//4)poll children
+		//5)get result from children and write back to FITS file
 
-	rec[FFilename].get(filename_,initializing);
-#ifdef DEBUG
-  cout<<"File Name ="<<filename_<<endl;
-#endif
-	if(rec[FCutoff].get(cutoff_,initializing)) {
-#ifdef DEBUG
-   cout<<"Cutoff ="<<cutoff_<<endl;
-#endif
-	}
-
-	//always cache
-	setCachePolicy(Node::CACHE_ALWAYS);
-}
-
- 
-int FITSImage::getResult (Result::Ref &resref, 
-                       const std::vector<Result::Ref> &childres,
-                       const Request &request,bool)
-{
- double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0, *fgrid, *fspace;
- long int naxis[4]={0,0,0,0};
- //if (has_prev_result_) {resref=old_res_; return 0; }
- int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace);
- FailWhen(flag," Error Reading Fits File "+flag);
-
-#ifdef DEBUG
- for (int i=0;i<4;i++) {cout<<" i="<<i<<" "<<naxis[i]<<endl;}
-#endif
+////////////////////////////////////// BEGIN paste of FITSImage code
+    double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0, *fgrid, *fspace;
+    long int naxis[4]={0,0,0,0};
+    int flag=mux_read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace, &filep_);
+    FailWhen(flag," Error Reading Fits File "+flag);
  //create a result with 6 vellsets, is integrated
  //if integrated=0, cells is removed
+ Result::Ref old_res_;
  Result &result=old_res_<<= new Result(6,1); 
 
  /* RA0 vellset */
@@ -117,8 +118,6 @@ int FITSImage::getResult (Result::Ref &resref,
 
  Domain::Ref domain(new Domain());
  //get the frequency from the request
- const Cells &incells=request.cells();
- const Domain &old_dom=incells.domain();
  if (reverse_freq ) {
    domain().defineAxis(Axis::FREQ,f_center(naxis[3]-1)+f_space(naxis[3]-1)/2, f_center(0)-f_space(0)/2);
  } else {
@@ -146,7 +145,7 @@ int FITSImage::getResult (Result::Ref &resref,
  cout<<"Axis L "<<cells.ncells(Axis::axis("L"))<<endl;
  cout<<"Axis M "<<cells.ncells(Axis::axis("M"))<<endl;
 #endif
-  Vells::Shape shape(incells.shape());
+  Vells::Shape shape;
 
  unsigned int maxrank=std::max(Axis::axis("L"),Axis::axis("M"));
  if (shape.size()<maxrank+1) {
@@ -163,7 +162,7 @@ int FITSImage::getResult (Result::Ref &resref,
  cout<<"Shapes "<<shape<<cells.shape()<<endl;
 #endif
  // axes are L(0),M(1),Stokes(2),Freq(3)
- // but here we have Freq,Stokes,M,L
+ // but here we have Freq,Stokes,L,M
  blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData); 
 
  //transpose array such that Freq,L,M,Stokes
@@ -253,17 +252,94 @@ int FITSImage::getResult (Result::Ref &resref,
 
  //transfer result
  resref=old_res_;
- has_prev_result_=true;
 
- free(arr);
  free(lgrid);
  free(lspace);
  free(mgrid);
  free(mspace);
  free(fgrid);
  free(fspace);
- return 0;
+
+
+///////////////////////////////////// END paste
+
+ //get spigot
+ FITSSpigot * spigot = dynamic_cast<FITSSpigot*>(&(stepchildren().getChild(0)));
+ FailWhen(!spigot,"Stepchild 0 is not a FITSSpigot"); 
+ spigot->putResult(old_res_);
+
+
+ //poll children
+    setExecState(CS_ES_POLLING);
+    timers().children.start();
+    Result::Ref child_res;
+    childres.resize(numChildren());
+
+	//create new request
+		Request::Ref newreq(req);
+		newreq().setCells(cells);
+  //increment request sequence sub id
+	  seq_depmask_ = symdeps().getMask(seq_symdeps_);
+
+		RequestId rqid=req.id();
+		RqId::incrSubId(rqid,seq_depmask_);
+		newreq().setId(rqid);
+
+
+		for (int ii=0; ii<numChildren(); ii++) {
+    unlockStateMutex();
+    int code=children().getChild(ii).execute(child_res,newreq);
+    lockStateMutex();
+    childres[ii]=child_res;
+
+    //handle standard error states
+    if(forest().abortFlag())
+      return RES_ABORT;
+    if(code&RES_WAIT) {
+      //this node will need to run again 
+      timers().children.stop();
+      return 0;
+    }
+    if (code&RES_FAIL) {
+      resref.xfer(childres[0]);
+      timers().children.stop();
+      return code;
+    }
+		}
+
+    timers().children.stop();
+
+
+		//write the result of children back to FITS file
+		//only handle child 1 for the moment
+		//expect a sixpack
+		int nvs=childres[0]->numVellSets();
+		FailWhen(nvs!=6,"Need a Sixpack from children");
+
+		Vells sI=childres[0]->vellSet(2).getValue();
+		Vells sQ=childres[0]->vellSet(3).getValue();
+		Vells sU=childres[0]->vellSet(4).getValue();
+		Vells sV=childres[0]->vellSet(5).getValue();
+
+		mux_write_fits_file(arr,filep_);
+    free(arr);
+		return 0;
 }
+ 
 
+void FITSDataMux::init_self_(const DMI::Record &rec) {
+  //get from init record
+	if (rec.hasField(FFilename)) { 	
+	  rec[FFilename].get(filename_); 	
+	} else { 
+		FailWhen(1,"Need a FITS file name as input");
+	}
 
+	cutoff_=1.0;
+	if(rec.hasField(FCutoff)) {
+			rec[FCutoff].get(cutoff_);
+	}
+  cout<<"File Name ="<<filename_<<endl;
+  cout<<"Cutoff="<<cutoff_<<endl;
+}
 } // namespace Meq

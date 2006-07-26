@@ -20,8 +20,8 @@ LOCALSRCS = \
     Stokes.cc PatchComposer.cc FFTBrick.cc UVInterpolWave.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
     CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
-    FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc Functional.cc
-# Functional.cc
+    FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc Functional.cc \
+    FITSSpigot.cc FITSDataMux.cc FITSUtils.cc
 
 
 DOCHDRS		= $(LOCALHDRS) \
