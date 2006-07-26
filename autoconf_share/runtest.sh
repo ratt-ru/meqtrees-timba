@@ -77,10 +77,15 @@ fi
 # Make directory writable (needed for make distcheck).
 chmod +w .
 
-# Initialize LOFAR (if needed).
+# Initialize LOFAR (if needed). Use make variable $prefix, if defined;
+# otherwise use fallback LOFAR/LCS/Tools/src
 # Note that if LOFARROOT is already set, it won't be changed because the
 # Tools/src directory does not have a bin directory.
-lofarinitdir=`pwd | sed -e 's%/LOFAR/.*%/LOFAR/LCS/Tools/src%'`
+if test "$prefix"; then
+  lofarinitdir=$prefix
+else
+  lofarinitdir=`pwd | sed -e 's%/LOFAR/.*%/LOFAR/LCS/Tools/src%'`
+fi
 cd $lofarinitdir
 . lofarinit.sh
 cd $curwd
