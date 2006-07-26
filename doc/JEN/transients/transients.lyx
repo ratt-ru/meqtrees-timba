@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.0: 24 July 2006}  % Date of Issue (
+theDOIssue}{Version 0.2: 26 July 2006}  % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -439,13 +439,9 @@ changeList} {Creation
 \backslash 
 renewcommand{
 \backslash 
-theTitle} {Detection of transient sourrces
-\backslash 
-
-\backslash 
-
+theTitle} {Analysis and Applications of 
 \layout Standard
-                                               by time-differencing
+                                               time-differencing of uv-data
 \backslash 
 
 \backslash 
@@ -944,23 +940,23 @@ subtraction error factor
 
 \layout Standard
 
-Thus, the 
+The 
 \emph on 
 error factor
 \emph default 
- for the contributions of source 
+ gives the residual of source 
 \begin_inset Formula $k$
 \end_inset 
 
- to the samples of ifr 
+ in the samples of ifr 
 \begin_inset Formula $ij$
 \end_inset 
 
-, as a function of the subtraction interval 
-\begin_inset Formula $\Delta t$
+, as a fraction of the source flux 
+\begin_inset Formula $p_{k}$
 \end_inset 
 
- (s) is: 
+: 
 \layout Standard
 
 
@@ -1119,6 +1115,79 @@ etc, which will be closer to each other near the centre of the uv-plane.
 \end_inset 
 
 
+\layout Section
+
+Variable sources
+\layout Standard
+
+We have demonstrated that sources are can be subtracted (filtered) pretty
+ effectively, depending on their position 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+ w.r.t.
+ the field centre.
+ We will now investigate what happens with time-variable sources, i.e.
+ sources with a flux that varies linearly in time:
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta V_{ijk}(t)=p_{k}\exp^{i\theta(t)}-\frac{1}{2}((p_{k}+\Delta p_{k})\exp^{i\theta(t+\Delta t)}-(p_{k}-\Delta p_{k})\exp^{i\theta(t-\Delta t)})\]
+
+\end_inset 
+
+
+\layout Standard
+
+A little algebra then leads to:
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta V_{ijk}(t)=p_{k}\exp^{i\theta(t)}(1-\cos(\epsilon)-i\frac{\Delta p_{k}}{p_{k}}\sin(\epsilon))\]
+
+\end_inset 
+
+
+\layout Standard
+
+where 
+\begin_inset Formula $\epsilon$
+\end_inset 
+
+ has the same meaning as in equ 
+\begin_inset LatexCommand \ref{eq: epsilon}
+
+\end_inset 
+
+, of course.
+ Thus, the time-varying part of a source may be distinguised in principle
+ from the constant part because the latter forms a residual peak at its
+ position, while the former would produce a ring around the position (multiplica
+tion by 
+\begin_inset Formula $i$
+\end_inset 
+
+ causes a shift of the fringe by 90 deg).
+ Unfortunately, since 
+\begin_inset Formula $sin(\epsilon)$
+\end_inset 
+
+ changes sign rapidly, the ring will be averaged out, unless we use selected
+ uv-samples only (i.e.
+ only those that add up constructively).
+ This can be done in principle, but the selection will be different for
+ different parts of the image w.r.t.
+ the centre, and for different baselines.
+\layout Standard
+
+In any case, transients can only be detected for thos sources that are not
+ subtracted completely.....
+\layout Standard
+
+The situation is different for sources who's flux varies non-linearly in
+ time....
 \layout Section
 
 
