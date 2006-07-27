@@ -13,7 +13,7 @@
 # Derived from OMS: ../Timba/MeqServer/test/read_msvis_header.py
 # To be turned into a WSRT-specific version: read_WSRT_auxinfo.py
 
-from Timba.TDL import *
+# from Timba.TDL import *
 # from Timba.Meq import meq                     # required in MG_JEN_exec !!
 
 from Timba.meqkernel import set_state
