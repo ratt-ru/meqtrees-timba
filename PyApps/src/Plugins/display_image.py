@@ -142,6 +142,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle log axis for chi_0': 311,
         'Toggle log axis for solution vector': 312,
         'Toggle chi-square surfaces display': 313,
+        'Change Vells': 314,
         }
 
     _start_spectrum_menu_id = 0
@@ -282,7 +283,6 @@ class QwtImageDisplay(QwtPlot):
         self.index = 1
         self.is_vector = False
         self.old_plot_data_rank = -1
-        self.raw_data_rank = 0
         self.xpos = 0
         self.ypos = 0
         self.complex_type = False
@@ -398,6 +398,9 @@ class QwtImageDisplay(QwtPlot):
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
 
+        toggle_id = self.menu_table['Toggle Plot Legend']
+        self._menu.setItemVisible(toggle_id, False)
+
 # add solver metrics info back in?
         if self.toggle_metrics and not self.metrics_rank is None:
           self.add_solver_metrics()
@@ -407,7 +410,7 @@ class QwtImageDisplay(QwtPlot):
     def setResultsSelector(self):
       """ add option to toggle ResultsRange selector to context menu """
       toggle_id = self.menu_table['Toggle results history']
-      self._menu.insertItem("Toggle results history", toggle_id)
+      self._menu.setItemVisible(toggle_id, True)
 
     def handle_basic_menu_id(self, menuid):
       """ callback to handle most common basic context menu selections """
@@ -433,10 +436,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle ColorBar']:
         if self.toggle_color_bar == 1:
           self.toggle_color_bar = 0
-          self._menu.setItemChecked(menuid, True)
+          self._menu.changeItem(menuid, 'Show ColorBar')
         else:
           self.toggle_color_bar = 1
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Hide ColorBar')
         self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,0))
         if self.complex_type:
           self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,1))
@@ -444,10 +447,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle Color/GrayScale Display']:
         if self.toggle_gray_scale == 1:
           self.setDisplayType('hippo')
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Show GrayScale Display')
         else:
           self.setDisplayType('grayscale')
-          self._menu.setItemChecked(menuid, True)
+          self._menu.changeItem(menuid, 'Show Color Display')
         self.plotImage.updateImage(self.raw_image)
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
@@ -455,10 +458,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle ND Controller']:
         if self.toggle_ND_Controller == 1:
           self.toggle_ND_Controller = 0
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Show ND Controller')
         else:
           self.toggle_ND_Controller = 1
-          self._menu.setItemChecked(menuid, True)
+          self._menu.changeItem(menuid, 'Hide ND Controller')
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         return True
       if menuid == self.menu_table['Toggle results history']:
@@ -472,6 +475,7 @@ class QwtImageDisplay(QwtPlot):
         return True
       if menuid == self.menu_table['Toggle real/imag or ampl/phase Display']:
         if self.ampl_phase:
+          self._menu.changeItem(menuid, 'Show Data as Amplitude and Phase')
           self.ampl_phase = False
           if self.is_vector:
             self._x_title = 'Array/Channel Number '
@@ -479,6 +483,7 @@ class QwtImageDisplay(QwtPlot):
             self._x_title = 'Array/Channel Number (real followed by imaginary)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
+          self._menu.changeItem(menuid, 'Show Data as Real and Imaginary')
           self.ampl_phase = True
           if self.is_vector:
             self._x_title = 'Array/Channel Number '
@@ -500,12 +505,12 @@ class QwtImageDisplay(QwtPlot):
         return True
       if menuid == self.menu_table['Toggle logarithmic range for image']:
         if self.toggle_log_display == False:
+          self._menu.changeItem(menuid, 'Show Data with linear scale')
           self.toggle_log_display = True
-          self._menu.setItemChecked(menuid, True)
           self.plotImage.setLogScale()
         else:
           self.toggle_log_display = False
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Show Data with logarithmic scale')
           self.plotImage.setLogScale(False)
           self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
@@ -527,10 +532,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle Metrics Display']:
         if self.toggle_metrics == False:
           self.toggle_metrics = True
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Hide Solver Metrics')
         else:
           self.toggle_metrics = False
-          self._menu.setItemChecked(menuid, True)
+          self._menu.changeItem(menuid, 'Show Solver Metrics')
         self.toggleMetrics()
         self.replot()
         _dprint(3, 'called replot in handle_basic_menu_id')
@@ -563,19 +568,23 @@ class QwtImageDisplay(QwtPlot):
           self.display_solution_distances = True
           QWhatsThis.remove(self)
           QWhatsThis.add(self, chi_sq_instructions)
-          self._menu.setItemChecked(menuid, True)
+          self._menu.changeItem(menuid, 'Show Solver Solutions')
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Toggle logarithmic range for image']
           self._menu.setItemVisible(toggle_id, False)
+          toggle_id = self.menu_table['Toggle Plot Legend']
+          self._menu.setItemVisible(toggle_id, True)
         else:
           self.display_solution_distances = False
           QWhatsThis.remove(self)
           QWhatsThis.add(self, display_image_instructions)
-          self._menu.setItemChecked(menuid, False)
+          self._menu.changeItem(menuid, 'Show chi-square surfaces')
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle logarithmic range for image']
+          self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
@@ -726,7 +735,6 @@ class QwtImageDisplay(QwtPlot):
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
         self.add_basic_menu_items()
-        self.set_flag_toggles()
 
       if self.vells_menu_items > 0:
         menu_id = self._start_vells_menu_id
@@ -739,6 +747,8 @@ class QwtImageDisplay(QwtPlot):
       """ add items specific to selection of Vells to context menu """
       self.vells_menu_items = len(menu_data[0])
       outside_perturbations = True
+      vells_menu =  QPopupMenu(self._menu)
+      QObject.connect(vells_menu,SIGNAL("activated(int)"),self.update_vells_display);
       if len(menu_data[1]) > 0:
         perturbations_index = 0
         perturbations = menu_data[1][perturbations_index]
@@ -758,16 +768,19 @@ class QwtImageDisplay(QwtPlot):
               submenu.insertItem(menu_labels[i], menu_id)
               insertion = True
             if not i in perturbations and not outside_perturbations:
-              self._menu.insertItem('perturbed values', submenu)
+              vells_menu.insertItem('perturbed values ', submenu)
               outside_perturbations = True
               perturbations_index = perturbations_index + 1
               if perturbations_index < len(menu_data[1]):
                 perturbations = menu_data[1][perturbations_index]
             if i in perturbations and i == self.vells_menu_items - 1:
-              self._menu.insertItem('perturbed values', submenu)
+              vells_menu.insertItem('perturbed values ', submenu)
           if not insertion:
-            self._menu.insertItem(menu_labels[i], menu_id)
+            vells_menu.insertItem(menu_labels[i], menu_id)
           menu_id = menu_id + 1
+# add Vells menu to context menu
+      toggle_id = self.menu_table['Change Vells']
+      self._menu.insertItem('Change Selected Vells ', vells_menu, toggle_id)
 
     def setSpectrumMenuItems(self, menu_labels):
       """ add items specific to selection of Spectra to context menu """
@@ -828,11 +841,11 @@ class QwtImageDisplay(QwtPlot):
       if self.setlegend == 1:
         self.setlegend = 0
         self.enableLegend(False)
-        self._menu.setItemChecked(menuid, False)
+        self._menu.changeItem(menuid, 'Show Plot Legends')
       else:
         self.setlegend = 1
         self.enableLegend(True)
-        self._menu.setItemChecked(menuid, True)
+        self._menu.changeItem(menuid, 'Hide Plot Legends')
       self.setAutoLegend(self.setlegend)
       self.replot()
       _dprint(3, 'called replot in toggleLegend')
@@ -940,12 +953,12 @@ class QwtImageDisplay(QwtPlot):
       self.setMarkerLabel( self.source_marker, Message,
          QFont(fn, 10, QFont.Bold, False),
          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-      if self.toggle_array_rank > 2: 
-        self.toggle_ND_Controller = 0
-        self.hidden_ND_Controller = True
-        toggle_id = self.menu_table['Toggle ND Controller']
-        self._menu.setItemVisible(toggle_id, False)
-        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+
+# make sure we cannot try to show ND Controller
+      self.toggle_ND_Controller = 0
+      self.hidden_ND_Controller = True
+      toggle_id = self.menu_table['Toggle ND Controller']
+      self._menu.setItemVisible(toggle_id, False)
 
 # make sure any color bar from array plot of other Vells member is hidden
       self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
@@ -955,6 +968,12 @@ class QwtImageDisplay(QwtPlot):
       toggle_id = self.menu_table['Toggle ColorBar']
       self._menu.setItemVisible(toggle_id, False)
       toggle_id = self.menu_table['Toggle Color/GrayScale Display']
+      self._menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Toggle logarithmic range for image']
+      self._menu.setItemVisible(toggle_id, False)
+
+# a scalar has no legends!
+      toggle_id = self.menu_table['Toggle Plot Legend']
       self._menu.setItemVisible(toggle_id, False)
 
       self.replot()
@@ -1527,6 +1546,8 @@ class QwtImageDisplay(QwtPlot):
         self.show_x_sections = True
         toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.setItemVisible(toggle_id, True)
+        toggle_id = self.menu_table['Toggle Plot Legend']
+        self._menu.setItemVisible(toggle_id, True)
 
     def toggleCurve(self, key):
       curve = self.curve(key)
@@ -1654,20 +1675,12 @@ class QwtImageDisplay(QwtPlot):
         self.first_chi_test = False
 
       if self.log_axis_chi_0:
-        menuid = self.menu_table['Toggle log axis for chi_0']
-        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
       else:
-        menuid = self.menu_table['Toggle log axis for chi_0']
-        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
       if self.log_axis_solution_vector:
-        menuid = self.menu_table['Toggle log axis for solution vector']
-        self._menu.setItemChecked(menuid, True)
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
       else:
-        menuid = self.menu_table['Toggle log axis for solution vector']
-        self._menu.setItemChecked(menuid, False)
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
 
       for i in range(shape[1]):
@@ -1713,6 +1726,8 @@ class QwtImageDisplay(QwtPlot):
 
       # add additional solution surfaces here
       if self.display_solution_distances:
+        toggle_id = self.menu_table['Toggle Metrics Display']
+        self._menu.setItemVisible(toggle_id, False)
         for i in range(shape[1]):
           plot_data1= zeros(shape[0], Float32)
           chi_data1= zeros(shape[0], Float32)
@@ -1969,15 +1984,16 @@ class QwtImageDisplay(QwtPlot):
 
     def plot_vells_array (self, data_array, data_label=" "):
       """ plot a Vells data array """
-      if self.hidden_ND_Controller and self.toggle_array_rank > 2: 
-        if self.raw_data_rank > 2:
-          self.hidden_ND_Controller = False
-          self.toggle_ND_Controller = 1
-          toggle_id = self.menu_table['Toggle ND Controller']
-          self._menu.setItemVisible(toggle_id, True)
-        else:
-          self.toggle_ND_Controller = 0
-        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+      if self.toggle_array_rank > 2: 
+        self.hidden_ND_Controller = False
+        self.toggle_ND_Controller = 1
+        toggle_id = self.menu_table['Toggle ND Controller']
+        self._menu.setItemVisible(toggle_id, True)
+
+# no legends by default
+      toggle_id = self.menu_table['Toggle Plot Legend']
+      self._menu.setItemVisible(toggle_id, False)
+
       if not self.source_marker is None:
         self.removeMarker(self.source_marker)
       self.source_marker  = None
@@ -2036,10 +2052,8 @@ class QwtImageDisplay(QwtPlot):
 # do we have solver data?
       if self._window_title.find('Solver Incremental') >= 0:
         self.solver_display = True
-        if not self.added_metrics_menu:
-          toggle_id = self.menu_table['Toggle Metrics Display']
-          self._menu.insertItem("Toggle Metrics Display", toggle_id)
-          self.added_metrics_menu = True
+        toggle_id = self.menu_table['Toggle Metrics Display']
+        self._menu.setItemVisible(toggle_id, True)
         if self._window_title.find('Solver Incremental Solutions') >= 0:
             self._x_title = 'Solvable Coefficients'
             self._y_title = 'Iteration Nr'
@@ -2117,13 +2131,15 @@ class QwtImageDisplay(QwtPlot):
 # add possibility to switch between real/imag and ampl/phase
       if self.complex_type and not self.complex_switch_set:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
+        self._menu.setItemVisible(toggle_id, True)
         self.complex_switch_set = True
 
 # test if we have a 2-D array
       if self.is_vector == False and not self.log_switch_set:
         toggle_id = self.menu_table['Toggle logarithmic range for image']
-        self._menu.insertItem("Toggle logarithmic range for image", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show Data with logarithmic scale')
+        self._menu.setItemVisible(toggle_id, True)
         self.log_switch_set = True
 
       if self.is_vector == False:
@@ -2220,11 +2236,13 @@ class QwtImageDisplay(QwtPlot):
         else:
           if self._vells_plot:
             _dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
+            _dprint(3, 'self.vells_axis_parms ',self.vells_axis_parms)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
             if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
+            _dprint(3, 'self.x_parm self.y_parm ', self.x_parm, ' ', self.y_parm)
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
@@ -2266,11 +2284,17 @@ class QwtImageDisplay(QwtPlot):
         self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
         if self.complex_type:
           self.emit(PYSIGNAL("show_colorbar_display"),(0,1)) 
-# make sure options relating to color bar are not in context menu
+# make sure options relating to 2-D stuff are not visible in context menu
         toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle ND Controller']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle axis flip']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle Plot Legend']
+        self._menu.setItemVisible(toggle_id, True)
 
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
@@ -2519,35 +2543,73 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Modify Plot Parameters", toggle_id)
         toggle_id = self.menu_table['Toggle Plot Legend']
         self._menu.insertItem("Toggle Plot Legend", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show Plot Legends')
+        self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.insertItem("Toggle ColorBar", toggle_id)
+        self._menu.changeItem(toggle_id, 'Hide ColorBar')
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
-        #no axis flipping for solver plots`
-        if self.chi_zeros is None:
-          toggle_id = self.menu_table['Toggle axis flip']
-          self._menu.insertItem("Toggle axis flip", toggle_id)
-        else:
-          toggle_id = self.menu_table['Toggle log axis for chi_0']
-          self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
-          toggle_id = self.menu_table['Toggle log axis for solution vector']
-          self._menu.insertItem("Toggle log axis for solution vector", toggle_id)
-          toggle_id = self.menu_table['Toggle chi-square surfaces display']
-          self._menu.insertItem("Toggle chi-square surfaces display", toggle_id)
-        if self.toggle_array_rank > 2: 
-          toggle_id = self.menu_table['Toggle ND Controller']
-          self._menu.insertItem("Toggle ND Controller", toggle_id)
-        toggle_id = self.menu_table['Reset zoomer']
-        self._menu.insertItem("Reset zoomer", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show GrayScale Display')
+        toggle_id = self.menu_table['Toggle ND Controller']
+        self._menu.insertItem("Toggle ND Controller", toggle_id)
+        self._menu.changeItem(toggle_id, 'Hide ND Controller')
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle results history']
+        self._menu.insertItem("Toggle results history", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.insertItem("Delete X-Section Display", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle axis flip']
+        self._menu.insertItem("Toggle axis flip", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle log axis for chi_0']
+        self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle log axis for solution vector']
+        self._menu.insertItem("Toggle log axis for solution vector", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle chi-square surfaces display']
+        self._menu.insertItem("Toggle chi-square surfaces display", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle Metrics Display']
+        self._menu.insertItem("Toggle Metrics Display", toggle_id)
+        self._menu.changeItem(toggle_id, 'Hide Solver Metrics')
+        self._menu.setItemVisible(toggle_id, False)
+
+        toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
+        self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+
+        toggle_id = self.menu_table['Toggle logarithmic range for image']
+        self._menu.insertItem("Toggle logarithmic range for image", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+
+# add potential menu for flagged data
+        self.set_flag_toggles()
+
+# add zoomer and printer stuff
+        toggle_id = self.menu_table['Reset zoomer']
+        self._menu.insertItem("Reset zoomer", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         printer = QAction(self);
         printer.setIconSet(pixmaps.fileprint.iconset());
         printer.setText("Print plot");
         QObject.connect(printer,SIGNAL("activated()"),self.printplot);
         printer.addTo(self._menu);
+
+# do this here?
+        if self.chi_zeros is None:
+          toggle_id = self.menu_table['Toggle axis flip']
+          self._menu.setItemVisible(toggle_id, True)
+        else:
+          toggle_id = self.menu_table['Toggle log axis for chi_0']
+          self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Toggle log axis for solution vector']
+          self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Toggle chi-square surfaces display']
+          self._menu.setItemVisible(toggle_id, True)
 
     def set_toggle_array_rank(self, toggle_array_rank):
       self.toggle_array_rank = toggle_array_rank
