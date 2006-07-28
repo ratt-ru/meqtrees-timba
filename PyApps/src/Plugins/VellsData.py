@@ -387,6 +387,7 @@ class VellsData:
        _dprint(3, 'rank ', rank)
        _dprint(3, 'shape ', shape)
        _dprint(3, 'self.axis_labels ', self.axis_labels)
+       _dprint(3, 'self.shape_change ', self.shape_change)
        for i in range(rank-1,-1,-1):
          _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
          if shape[i] > 1 and second_axis is None:
