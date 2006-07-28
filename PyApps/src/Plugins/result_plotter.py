@@ -143,7 +143,6 @@ class ResultPlotter(GriddedPlugin):
     self._vells_data = None
     self._solver_data = None
     self.num_possible_ND_axes = None
-    self.old_plot_data_rank = -1
     self.active_image_index = None
     self._spectrum_data = None
     self.data_list = []
@@ -153,7 +152,6 @@ class ResultPlotter(GriddedPlugin):
     self._window_controller = None
     self.array_shape = None
     self.actual_rank = None
-    self.num_possible_ND_axes = None
 
     self.reset_plot_stuff()
 
@@ -747,8 +745,6 @@ class ResultPlotter(GriddedPlugin):
 # generate basic menu
       self._visu_plotter.initVellsContextMenu()
 
-      self.raw_data_rank = self._vells_data.getActiveDataRank()
-
 # do we have flags for data?	  
       if self._vells_data.activePlaneHasFlags():
         flag_plane = self._vells_data.getActivePlane()
@@ -764,11 +760,9 @@ class ResultPlotter(GriddedPlugin):
 
 # plot the appropriate plane / perturbed value
       plot_data = self._vells_data.getActiveData()
-      if plot_data.rank != self.old_plot_data_rank:
-        self.old_plot_data_rank = plot_data.rank
-        # get initial axis parameters
-        axis_parms =  self._vells_data.getActiveAxisParms()
-        self._visu_plotter.setAxisParms(axis_parms)
+      # get initial axis parameters
+      axis_parms =  self._vells_data.getActiveAxisParms()
+      self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
       if not self.test_vells_scalar(plot_data, plot_label):
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
@@ -790,21 +784,29 @@ class ResultPlotter(GriddedPlugin):
         display_change = True
 
       actual_rank = 0
-      for i in range(len(self.array_shape)):
-        if self.array_shape[i] > 1:
-          actual_rank = actual_rank + 1
+      try:
+        for i in range(len(self.array_shape)):
+          if self.array_shape[i] > 1:
+            actual_rank = actual_rank + 1
+      except:
+        pass
+      _dprint(3, 'actual plot array rank ', actual_rank)
+      _dprint(3, 'self.actual_rank ', self.actual_rank)
       if self.actual_rank != actual_rank:
         self.actual_rank = actual_rank
         display_change = True
+      _dprint(3, 'self.actual_rank ', self.actual_rank)
+      _dprint(3, 'display_change ', display_change)
+      if self.actual_rank <= 2 and not self.ND_Controls is None:
+         self.ND_Controls.hide()
 
       if display_change and len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2 and self.actual_rank > 2:
-        if not self.ND_Controls is None:
-          self.ND_Controls = None
+        _dprint(3, 'calling set_ND_controls')
         self.set_ND_controls (axis_labels, vells_axis_parms)
       else:
         if len(vells_axis_parms) <= 2 or self.num_possible_ND_axes <= 2 or self.actual_rank <= 2:
           if not self.ND_Controls is None:
-              self.ND_Controls = None
+            self.ND_Controls.hide()
 
   def plot_solver (self):
     """ plots data from a MeqSolver node """
@@ -851,17 +853,12 @@ class ResultPlotter(GriddedPlugin):
   def update_vells_display (self, menuid):
     """ callback to handle a request from the lower level 
         display_image.py code for different Vells data """
+    _dprint(3, 'starting update_vells_display')
     self._vells_data.unravelMenuId(menuid)
     plot_label = self._vells_data.getPlotLabel()
     plot_data = self._vells_data.getActiveData()
     if self._vells_data.getShapeChange():
       self.update_display_control()
-
-    raw_data_rank = self._vells_data.getActiveDataRank()
-    if self.raw_data_rank != raw_data_rank:
-      self.old_plot_data_rank = plot_data.rank
-      self.raw_data_rank = raw_data_rank
-      # get initial axis parameters
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
     self._visu_plotter.reset_color_bar(True)
@@ -975,13 +972,21 @@ class ResultPlotter(GriddedPlugin):
 # that array rank is at least 3
     self._visu_plotter.set_toggle_array_rank(3)
 
-    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent)
-    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
-    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-    QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
-    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,2)
+    if not self.ND_Controls is None:
+      self.ND_Controls.reparent(QWidget(), 0, QPoint())
+      self.ND_Controls = None
+
+    if self.ND_Controls is None:
+      self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent)
+      QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
+      QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+      QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
+      QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
+      self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,2)
+    else:
+      self.ND_Controls.update_selectors(self.array_shape, labels, parms)
     self.ND_Controls.show()
+    _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2 Ddisplays """
