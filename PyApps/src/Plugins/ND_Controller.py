@@ -154,15 +154,24 @@ class ND_Controller(QWidget):
     def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=""):
       QWidget.__init__(self, parent, name)
 
-      QWhatsThis.add(self, controller_instructions)
-
 # create grid layout
       self.layout = QGridLayout(self)
+
+      QWhatsThis.add(self, controller_instructions)
+
       self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum)
+
+      self.update_selectors(array_shape,axis_label,axis_parms)
+
+    # __init__()
+
+    def update_selectors(self,array_shape=None,axis_label=None,axis_parms=None):
 
       self.axis_parms = axis_parms
 
+
 # create button group
+      self.buttonGroup = None
       self.buttonGroup = QButtonGroup(self)
       QObject.connect(self.buttonGroup, SIGNAL("clicked(int)"),self.defineAxes)
 
@@ -232,8 +241,6 @@ class ND_Controller(QWidget):
 # add one to get number of active selector buttons
       self.num_selectors = self.num_selectors + 1
 
-    # __init__()
-
     def showDisplay(self, show_self):
         if show_self > 0:
           self.show()
@@ -275,7 +282,7 @@ class ND_Controller(QWidget):
     def redefineAxes(self):
         self.defineAxes(self.num_selectors-1, True)
         self.defineAxes(self.num_selectors-2, True)
-    # resetAxes
+    # redefineAxes
 
     def resetAxes(self):
         for i in range(self.num_selectors):
@@ -299,7 +306,7 @@ class ND_Controller(QWidget):
 
 # the following tests the ND_Controller class
 def make():
-    axes = (3,4,5,6,7,8,9,10,11)
+    axes = (3,4,5,6,7)
     demo = ND_Controller(axes)
     demo.show()
     return demo
@@ -310,6 +317,8 @@ def main(args):
     app = QApplication(args)
     demo = make()
     app.setMainWidget(demo)
+    axes = (3,4,5,6,7,8,9,10,11,12,13,14,15)
+    demo.update_selectors(axes)
     app.exec_loop()
 
 # main()
