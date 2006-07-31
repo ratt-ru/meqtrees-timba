@@ -415,7 +415,8 @@ class QwtImageDisplay(QwtPlot):
     def handle_basic_menu_id(self, menuid):
       """ callback to handle most common basic context menu selections """
       if menuid < 0:
-        self.zoom()
+# should not be any such menuid that we need to handle here
+# (print signal is handled by printplot function) so ignore
         return True
       if menuid == self.menu_table['Reset zoomer']:
         self.reset_zoom()
