@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Collapsed
+status Open
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,7 +65,7 @@ today, 2004-Nov-25)
 \backslash 
 renewcommand{
 \backslash 
-theKOIssue}{Public} % Alternatives: 
+theKOIssue}{Confidential} % Alternatives: 
 \layout Standard
 
 \backslash 
