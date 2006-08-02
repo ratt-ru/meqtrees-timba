@@ -578,10 +578,10 @@ def publish_node_state(mqs, nodename):
 ########### new-style TDL stuff ###############
 
 def _tdl_job_clar_predict(mqs,parent,write=True):
-    msname          = 'TEST_CLAR.MS'
+    msname          = 'TEST_CLAR_27-480.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
     inputrec        = create_inputrec(msname, tile_size=500)
-    outputrec       = create_outputrec(output_column='PREDICT')
+    outputrec       = create_outputrec()
     print 'input record ', inputrec
     print 'output record ', outputrec
     req = meq.request();
@@ -607,7 +607,7 @@ def _define_forest(ns):
     create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-    num_antennas = 14
+    num_antennas = 27
     station_list = range(1, num_antennas+1)
     forest_measurement_set_info(ns, len(station_list))
 
