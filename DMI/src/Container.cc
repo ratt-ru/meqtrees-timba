@@ -685,7 +685,7 @@ void DMI::Container::Hook::assign_object( DMI::BObj *obj,TypeId tid,int flags ) 
   ContentInfo info;
   info.tid = tid;
   void *targ = prepare_put(info,TpDMIObjRef);
-  static_cast<ObjRef*>(targ)->unlock().attach(obj,flags).lock();
+  static_cast<ObjRef*>(targ)->unlock().attach(obj,flags);
   target.ptr = 0;
 }
 
