@@ -540,6 +540,42 @@ newpage
 Introduction
 \layout Standard
 
+LOFAR calibration is difficult and controversial, and still has to be invented
+ to some extent.
+ At the very least, the various new concepts that have been developed to
+ date have to be proven, polished and optimized.
+ This process has taken a long time with earlier instruments, and there
+ is no reason why it should be different with LOFAR.
+ The bottom line has three points:
+\layout Enumerate
+
+Availability of enough bright calibrator sources.
+ As long as there is enough information available, the problem can be solved
+ in principle, and will be solved eventually.
+ 
+\layout Enumerate
+
+The number of parameters to be solved for should be minimized, and in any
+ case should not exceed the available information (nr of independent data-points
+).
+ This requires a compact Measurement Equation (e.g.
+ MIM), and careful engineering to ensure smoothness in all dimensions (f,t,l,m).
+ 
+\layout Enumerate
+
+The available processing power will be a problem with the current algorithms.
+ Some new concepts have been developed (peeling, uv-brick), but more ideas
+ are probably needed.
+ Especially the subtraction (filtering?) of Cat II sources will be expensive,
+ and the number of solver iterations, and the number of passes through the
+ Major Cycle.
+ 
+\layout Standard
+
+The biggest difference with earlier instruments is the importance of image-plane
+ effects: ionosphere and station voltage beamshapes.
+\layout Standard
+
 This document contains a step-by-step description of various LOFAR calibration
  strategies.
  Most of them are based on the 
@@ -568,24 +604,6 @@ basic procedure
 
 .
  
-\layout Section
-
-The bottom line
-\layout Standard
-
-LOFAR calibration is difficult and controversial, and still has to be invented
- to some extent.
- At the very least, the various new concepts that have been developed have
- to be proven, polished and optimized.
- This has taken a long time with earlier instruments, and there is no reason
- why it should be different with LOFAR.
- We may cling only to the belief that, as long as there is enough information
- available in the form of bright calibrator sources, the problem can be
- solved in principle, and will be solved eventually.
- 
-\layout Section
-
-Principles of LOFAR calibration
 \layout Standard
 
 It will be assumed that the reader is thoroughly familiar with the concepts
@@ -597,117 +615,15 @@ It will be assumed that the reader is thoroughly familiar with the concepts
 
  presented at CDR-I in November 2005.
  Just to jolt the memory and set the scene, some points will be repeated
- (and thus emphasized) here:
-\layout Itemize
-
-Calibration is defined as the capability to subtract foreground sources.
- The goal is to produce residual images that are as empty as possible.
- Since some subtraction residuals are unavoidable, their signature should
- be fully understood.
- 
-\layout Itemize
-
-Sources must be subtracted from the uv-data.
- For the brightest sources this is already standard practice, because of
- limitations of image-plane deconvolution.
- In the case of LOFAR this must be extended to all known sources, because
- of large image-plane effects like ionosphere and station voltage beams.
-\layout Itemize
-
-Only the brightest (Cat I) sources are used for selfcal, i.e.
- to estimate instrumental errors.
- The parameters of these sources may also be estimated in this process.
- 
-\layout Itemize
-
-The fainter (Cat II) sources are detected and updated in residual images.
- Most of them are too faint for selfcal and in any case there are far too
- many of them.
- However, they still have to be subtracted from the uv-data, which might
- well prove to be the bottleneck of LOFAR calibration.
- See also section ..
-\layout Itemize
-
-Cat I sources are subtracted with their 'private' instrumental parameters,
- for highest possible accuracy.
- Cat II sources are subtracted with interpolated values of MIM and beamshape
- functions.
-\layout Itemize
-
-Unproven thesis: Any source that is bright enough to cause trouble, is bright
- enough to be tackled.
-\layout Itemize
-
-The process of alternating between uv-data and residual images is called
- the Major Cycle.
- The Local Sky Model (LSM) is a key element of this process.
-\layout Subsection
-
-Some stubborn misunderstandings
+ (and thus emphasized) here.
 \layout Standard
 
-LOFAR Calibration has evolved quite a bit in recent years.
- But despite numerous presentations and discsussions, some misunderstandings
- keep on resurfacing stubbornly and mysteriously.
-\layout Itemize
-
-Ionospheric patches have no meaning.
- Bright calibration sources are used to estimate the coefficients of smooth
- functions for the ionospheric phase (MIM) and station voltage beamshapes.
- These are interpolated to calibrate the uv-data for any point in the FOV.
- 
-\layout Itemize
-
-The precise meaning of peeling.
- It is very gratifying that the word peeling seems to have deen adopted
- worldwide.
- However, it is often used just to indicate that instrumental errors are
- position-dependent.
- This is certainly valid, but there is more to it.
-\layout Itemize
-
-The nature of the LSM.
- It is much more than a list of sources, as in NEWSTAR.
-\layout Itemize
-
-Etc
-\layout Section
-
-Instrument description
-\layout Subsection
-
-The Measurement Equation (M.E.)
-\layout Standard
-
-Write down the M.E.
- In our case, Jones matrices:
-\layout Itemize
-
-BJones: Instrumental bandpass.
- It is a uv-plane effed ct, i.e.
- not position-dependent.
- Assumed to be known a priori through station calibration, and divided out.
- The rest is absorbed in IJones and EJones.
-\layout Itemize
-
-IJones: A Minimum Ionospheric Model (MIM).
- See fig ...
- Obtained prior to the Major Cycle, and not updated subsequently (EJones
- absorbes the rest of the position-dependent phases).
- In peeling, use nominal source positions to shift the phase centre.
- Solve for temporary gains, for subtraction only (better individual gains
- are obtained in EJones below)
-\layout Itemize
-
-FJones: Ionospheric Faraday rotation......
-\layout Itemize
-
-EJones: Station voltage beams.
- See fig ...
- Part of the Major Cycle.
- Obtained from peeling source complex.
- gains.
- Use MIM values for nominal source positions for shifting the phase centre.
+Because LOFAR calibration is still being invented, and will only gradually
+ find its final form, it was decided some years ago to create two different
+ groups.
+ The experimentation group was to develop and demonstrate the necessary
+ concepts and algorithms, while the implementation group was to convert
+ these into a fast and reliable system.
  
 \layout Standard
 
@@ -720,6 +636,246 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename lofar_sensit.ps
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-bottom-line.}
+
+\end_inset 
+
+
+\emph on 
+The bottom line.
+\end_inset 
+
+
+\layout Section
+
+The LOFAR Measurement Equation (M.E.)
+\layout Standard
+
+The Measurement Equation describes the relationship between the observed
+ brightness distribution, and the measured visibility data 
+\begin_inset Formula $\vec{V_{ij}}$
+\end_inset 
+
+.
+ The flux of a source is represented as vector of 4 Stokes parameters 
+\begin_inset Formula $\vec{I}_{k}(f,t)=[I,Q,U,V]$
+\end_inset 
+
+, which define it in full polarisation.
+ The visbility measured by an interferometer between stations 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+ is a vector of 4 correlations 
+\begin_inset Formula $V_{ij}(f,t)=[XX,XY,YX,YY]$
+\end_inset 
+
+, which are the results of correlating all 4 combinations of the signals
+ from the two sets of station dipoles.
+ The most general form is:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\vec{V_{ij}}=\vec{A_{ij}}+M_{ij}(J_{i}\otimes J_{j}^{*})\sum_{k}(J_{ik}\otimes J_{jk}^{*})S\vec{I_{k}}+\vec{N_{ij}}\label{eq: full_measeq}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Note that a visibility sample is the sum of the contributions from the various
+ sources in the field.
+ The 
+\begin_inset Formula $4\times4$
+\end_inset 
+
+ Stokes matrix is constant, and depends on the chosen polarisation representatio
+n.
+ The 
+\begin_inset Formula $2\times2$
+\end_inset 
+
+ instrumental Jones matrices are station-based.
+ The 
+\begin_inset Formula $J_{i}$
+\end_inset 
+
+ are socalled uv-plane effects, i.e.
+ they are the same for all sources in the field.
+ The 
+\begin_inset Formula $J_{ik}$
+\end_inset 
+
+ are direction-dependent image-plane effects, and are different for each
+ source.
+ The symbol 
+\begin_inset Formula $\otimes$
+\end_inset 
+
+ designates the Kronecker product.
+ In this discussion we will ignore the noise 
+\begin_inset Formula $N_{ij}$
+\end_inset 
+
+, and we will assume that there are no additive 
+\begin_inset Formula $(A_{ij})$
+\end_inset 
+
+ or multiplicative 
+\begin_inset Formula $(M_{ij})$
+\end_inset 
+
+ ifr-based effects.
+ For LOFAR we can write:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\vec{V_{ij}}(f,t)=(J_{i}\otimes J_{j}^{*})\sum_{k}(J_{ik}\otimes J_{jk}^{*})SI_{k}\label{eq: short_measeq}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+with uv-plane effects:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+J_{i}(f,t)=B_{i}\label{eq: Jones_i}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+and image-plane effects:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+J_{ik}(f,t)=E_{ik}P_{ik}I_{ik}F_{ik}K_{ik}\label{eq: Jones_ik}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Each of these 
+\begin_inset Formula $2\times2$
+\end_inset 
+
+ Jones matrices represents a specific intrumental effect.
+\layout Itemize
+
+
+\series bold 
+BJones:
+\series default 
+ The only uv-plane effect.
+ The instrumental bandpass may vary rapidly with frequency.
+ It is assumed to be known 
+\emph on 
+a priori
+\emph default 
+ through station calibration, and divided out.
+ Any deviations are assumed to vary slowly in time anf frequency.
+\layout Itemize
+
+
+\series bold 
+EJones:
+\series default 
+ Station voltage beams.
+ See fig 
+\begin_inset LatexCommand \ref{cap:Station-voltage-beams.}
+
+\end_inset 
+
+.
+ Part of the Major Cycle.
+ Obtained from the complex gains in thedirection of bright (peeling) sources.
+ Use MIM values for nominal source positions for shifting the phase centre
+ to the apparent position of peeling sources, but use the nominal positions
+ for the model.
+\layout Itemize
+
+
+\series bold 
+PJones:
+\series default 
+ The effective projection of the dipoles on the sky.
+ Deterministic in principle, but it may be needed to solve for some of its
+ parameters initially, in a special program of observations.
+ 
+\layout Itemize
+
+
+\series bold 
+IJones:
+\series default 
+ The ionospheric phase is derived from the Minimum Ionospheric Model (MIM,
+ see fig 
+\begin_inset LatexCommand \ref{cap:A-Minimum-Ionospheric}
+
+\end_inset 
+
+), w MIM is obtained prior to the Major Cycle, and not updated subsequently
+ (EJones absorbes the rest of the position-dependent phases).
+ In peeling, use nominal source positions to shift the phase centre.
+ Solve for temporary gains, for subtraction only (better individual gains
+ are obtained in EJones below)
+\layout Itemize
+
+
+\series bold 
+FJones:
+\series default 
+ Ionospheric Faraday rotation.
+ Related to IJones, but also depends on the angle between source direction
+ and Earth magnetic field.
+ Calibration requires polarised sources.
+ Fortunately, there appear to be enough of them, provided we learn to use
+ 5 mJy sources.
+ 
+\layout Itemize
+
+
+\series bold 
+KJones:
+\series default 
+ The Fourier Transform kernel depends on station position and source direction.
+ Deterministic in general, but could be used to solve for station positions.
+ 
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename limit_ionos.eps
+	lyxscale 50
+	width 50col%
 
 \end_inset 
 
@@ -793,7 +949,7 @@ The MIM is also used to shift the phase centre of the uv-data to the apparent
 \end_inset 
 
 , while the remainders 
-\begin_inset Formula $(\phi_{i}-\textrm{\phi_{i0}})$
+\begin_inset Formula $(\phi_{i}-\phi_{i0})$
 \end_inset 
 
  are used by the uv-brick to apply position-dependent phases to the predicted
@@ -819,6 +975,9 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename voltage_beam.eps
+	lyxscale 59
+	width 50col%
 
 \end_inset 
 
@@ -870,6 +1029,169 @@ Mention the far sidelobes......
 \end_inset 
 
 
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Engineering-requirements}
+
+\end_inset 
+
+Engineering requirements
+\layout Standard
+
+The needs of calibration impose requirements on LOFAR engineering.
+\layout Standard
+
+Station sensitivity.
+ Distance between stations.
+\layout Standard
+
+Max baseline length (confusion)
+\layout Standard
+
+LOFAR PSF sidelobe level: Cat III sidelobe confusion.
+\layout Standard
+
+Smoothness (f,t,l,m).
+ Bandpass, time-behaviour.
+ BSR
+\layout Standard
+
+Shape of station voltage beams: Main lobe, near and far sidelobes.
+ Nr of parameters needed.
+ Frequency dependence due to mutual coupling.
+ Station configuration: Since we cannot subtract sources in the far sidelobes
+ (except the A-team), they should average out in imaging and selfcal.
+ 
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Principles-of-LOFAR}
+
+\end_inset 
+
+Principles of LOFAR calibration
+\layout Itemize
+
+Calibration is defined as the capability to subtract foreground sources.
+ The goal is to produce residual images that are as empty as possible.
+ Since some subtraction residuals are unavoidable, their signature should
+ be fully understood.
+ 
+\layout Itemize
+
+Information about all the relevant sources for a particular observation
+ reside in a Local Sky Model (LSM).
+ This is an object with tree interfaces: With the Global Sky Model (GSM),
+ the uv-data processing kernel, and residual images.
+ See fig 
+\layout Itemize
+
+Sources are subtracted from uv-data, i.e.
+ not from images.
+ For the brightest sources this is already standard practice, because of
+ limitations of image-plane deconvolution.
+ In the case of LOFAR this must be extended to all known sources, because
+ of large image-plane effects like ionosphere and station voltage beams.
+\layout Itemize
+
+Only the brightest (Cat I) sources are used for selfcal, i.e.
+ to estimate instrumental errors.
+ The parameters of these sources may also be estimated in this process.
+ 
+\layout Itemize
+
+The fainter (Cat II) sources are detected and updated in residual images.
+ Most of them are too faint for selfcal and in any case there are far too
+ many of them.
+ However, they still have to be subtracted from the uv-data, which might
+ well prove to be the bottleneck of LOFAR calibration.
+ See also section ..
+\layout Itemize
+
+Cat I sources are subtracted with their 'private' instrumental parameters,
+ for highest possible accuracy.
+ Cat II sources are subtracted with interpolated values of MIM and beamshape
+ functions.
+\layout Itemize
+
+Unproven thesis: Any source that is bright enough to cause trouble, is bright
+ enough to be tackled.
+\layout Itemize
+
+The process of alternating between uv-data and residual images is called
+ the Major Cycle.
+ The Local Sky Model (LSM) is a key element of this process.
+\layout Section
+
+Some organizational choices
+\layout Standard
+
+The following are independent of the system (MeqTrees or BBS)
+\layout Itemize
+
+LSM/GSM
+\layout Itemize
+
+Imager
+\layout Itemize
+
+M.E.
+ implemented as trees (graphs, really)
+\layout Itemize
+
+Operation on domains(f,t).
+ (f,t,l,m) Re-sampling.
+\layout Itemize
+
+Solvers.
+\layout Itemize
+
+Peeling.
+\layout Itemize
+
+Parameters (f,t)
+\layout Itemize
+
+Modular: Improve/optimise pieces independently
+\layout Section
+
+Parameter management
+\layout Standard
+
+Names, defaults, transfers, updates, tables, visualisation, export, use,
+ polcs/funklets, validity domain, instrumental/source, solver info (reliability)
+, etc.
+\layout Section
+
+Some stubborn misunderstandings
+\layout Standard
+
+LOFAR Calibration has evolved quite a bit in recent years.
+ But despite numerous presentations and discsussions, some misunderstandings
+ keep on resurfacing stubbornly and mysteriously.
+\layout Itemize
+
+Ionospheric patches have no meaning.
+ Bright calibration sources are used to estimate the coefficients of smooth
+ functions for the ionospheric phase (MIM) and station voltage beamshapes.
+ These are interpolated to calibrate the uv-data for any point in the FOV.
+ 
+\layout Itemize
+
+The precise meaning of peeling.
+ It is very gratifying that the word peeling seems to have deen adopted
+ worldwide.
+ However, it is often used just to indicate that instrumental errors are
+ position-dependent.
+ This is certainly valid, but there is more to it.
+\layout Itemize
+
+The nature of the LSM.
+ It is much more than a list of sources, as in NEWSTAR.
+\layout Itemize
+
+Etc
 \layout Standard
 
 
@@ -947,6 +1269,11 @@ The flow diagram for LOFAR calibration is shown in fig
 \layout Subsection
 
 Preliminaries
+\layout Standard
+
+
+\emph on 
+NB: Include rapid switching in the discussion here....
 \layout Enumerate
 
 
@@ -1332,6 +1659,92 @@ residual images
 
 [metadata]
 \end_deeper 
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename cdr_LSM.eps
+	lyxscale 50
+	width 50col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-Local-Sky}
+
+\end_inset 
+
+
+\emph on 
+The Local Sky Model contains information about all the sources that are
+ relevant for a particular observation.
+ The LSM contains a 
+\series bold 
+source-list
+\series default 
+ and a 
+\series bold 
+parameter table
+\series default 
+ (and 4D images).
+ In addition it contains a 
+\series bold 
+punit list
+\series default 
+.
+ Finally, it has some objects to help it make decisions.
+ Its 
+\series bold 
+obswin
+\series default 
+ contains information about the spectral window, and an idealised primary
+ beam.
+ Its 
+\series bold 
+obsres
+\series default 
+ contains information about spectral and spatial resolution.
+ An LSM has three interfaces:
+\layout Enumerate
+
+
+\emph on 
+With the Global Sky Model (GSM):
+\layout Enumerate
+
+
+\emph on 
+With the uv-data processing kernel:
+\layout Enumerate
+
+
+\emph on 
+With the residual images:
+\layout Standard
+
+
+\emph on 
+A very important element of an LSM is its 
+\series bold 
+predisol 
+\series default 
+mechanism.
+ It implements the mathematical relationship between the 6 image manifestations
+ (I, Q, U, V, Ra, Dec) of a source, and its (arbitrary) parametrisation.
+ It is able to predict IQUV, and solve for its parameters.
+\end_inset 
+
+
 \layout Section
 
 
@@ -1566,7 +1979,8 @@ collapsed false
 
 \begin_inset Graphics
 	filename phase_shifter.eps
-	width 100col%
+	lyxscale 50
+	width 50col%
 
 \end_inset 
 
@@ -1656,23 +2070,6 @@ n of instrumental errors.
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:A-Tale-of}
-
-\end_inset 
-
-A Tale of Two Systems
-\layout Standard
-
-Because LOFAR calibration is still being invented, and will only gradually
- find its final form, it was decided some years ago to create two different
- groups.
- The experimentation group was to develop and demonstrate the necessary
- concepts and algorithms, while the implementation group was to convert
- these into a fast and reliable system.
- 
-\layout Section
-
-
 \begin_inset LatexCommand \label{sec:Simulation}
 
 \end_inset 
@@ -1695,6 +2092,21 @@ The development of the various LOFAR calibration strategies will require
  As soon as their BBS counterparts are ready, they can be tested with simulated
  data generated by the other system.
  
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Core-Station-1}
+
+\end_inset 
+
+Core Station 1 (CS1)
+\layout Standard
+
+Plans for CS1 calibration.
+\layout Standard
+
+WNB: Amount of work needed to extend the CS1 software to the next stage(s).
+ Hooks that are needed for this.
 \layout Section
 
 
