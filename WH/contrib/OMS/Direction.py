@@ -11,18 +11,28 @@ class Direction (Parameterization):
   """;
   def __init__(self,ns,name,ra,dec,
                constant=False,
-               create_nodes=True,
                parm_options=record(node_groups='Parm'),
                quals=[],kwquals={}):
     Parameterization.__init__(self,ns,name,parm_options=parm_options,
                               quals=quals,kwquals=kwquals);
     self._constant = constant;
+    self._jones = [];
     if constant:
       self._ra = self._const_node('ra',ra);
       self._dec = self._const_node('dec',dec);
     else:
       self._create_polc('ra',ra);
       self._create_polc('dec',dec);
+      
+  def add_jones (self,kind,jones,directional=False):
+    """Associates a Jones matrix with this direction.
+    'kind' is a string identifier for this Jones term.
+    'jones' is an under-qualified node which will be qualified with
+    station id.
+    If directional=True, the matrix is direction-dependant, and will
+    be plugged in via a Compounder node. If directional=False, 
+    matrix will be plugged in as-is""";
+    self._jones.append((kind,jones,directional));
     
   def radec (self):
     """Returns ra-dec two-pack for this direction""";
