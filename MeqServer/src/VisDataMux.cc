@@ -264,6 +264,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   }
   // reset request ID
   forest().incrRequestId(next_rqid_,FDataset);
+  RequestType::setType(next_rqid_,RequestType::EVAL);
   RqId::setSubId(next_rqid_,symdeps().getMask(FDomain),0);
   current_seqnr_ = -1;
   int maxdid = formDataId(nstations-1,nstations-1) + 1;
