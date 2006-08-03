@@ -67,7 +67,8 @@ protected:
   void fill_double_xval(std::vector<Vells> & out,const std::vector<Vells::Ref>  &args,const Vells::Shape &outshape,const Vells::Strides * strides_);
   void map_parameters(int, int, const std::vector<int> & );
 
-  casa::CompiledFunction<casa::DComplex> * itsFunction;
+  casa::CompiledFunction<casa::DComplex> * itsComplexFunction;
+  casa::CompiledFunction<double> * itsRealFunction;
   int Ndim_,Ninput_;
   string function_string_;
   std::vector<LoShape> shapes_;

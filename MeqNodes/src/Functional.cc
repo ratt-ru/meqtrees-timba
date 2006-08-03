@@ -42,7 +42,8 @@ namespace Meq {
       vellsnr_(0)
   {
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    itsFunction = new casa::CompiledFunction<casa::DComplex>();
+    itsComplexFunction = new casa::CompiledFunction<casa::DComplex>();
+    itsRealFunction = new casa::CompiledFunction<double>();
     //setFunction etc...
     for(int j=0;j<MaxNrDims;j++)
       for(int i=0;i<MaxNrDims;i++)
@@ -53,7 +54,8 @@ namespace Meq {
   {
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
-    //delete itsFunction;
+    delete itsComplexFunction;
+    delete itsRealFunction;
   }
 
 
@@ -112,8 +114,9 @@ namespace Meq {
   void Functional::setFunction(const string &funcstring){
     //check if this is a valid string
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    FailWhen(!itsFunction->setFunction(funcstring),std::string(itsFunction->errorMessage()));
-    Ndim_ = itsFunction->ndim();
+    FailWhen(!itsComplexFunction->setFunction(funcstring),std::string(itsComplexFunction->errorMessage()));
+    FailWhen(!itsRealFunction->setFunction(funcstring),std::string(itsRealFunction->errorMessage()));
+    Ndim_ = itsRealFunction->ndim();
     
     
   }
@@ -224,7 +227,7 @@ namespace Meq {
   while(true){
     for(int i =0; i<Ndim_;i++)
       xval[i]=*(reinterpret_cast<const complex<double> *>(&*(strided_iter[i])));
-    complex<double> result = (*itsFunction)(xval);
+    complex<double> result = (*itsComplexFunction)(xval);
     *res = *(reinterpret_cast<dcomplex*>(&result));
     res++;
     int ndim = counter.incr(); 
@@ -249,15 +252,13 @@ namespace Meq {
     
   }
   double xval[Ndim_];
-  casa::CompiledFunction<double>  theFunction;//create new function with right type
-  theFunction.setFunction(itsFunction->getText());
   Vells & output = out[0];
   output=Vells(xval[0],outshape,false);
   double * res = out[0].getStorage<double>();
   while(true){
     for(int i =0; i<Ndim_;i++)
 	xval[i]=*(strided_iter[i]);
-    *res= (theFunction(xval));
+    *res= (*itsRealFunction)(xval);
     res++;
     int ndim = counter.incr(); 
     if( !ndim )    // break out when counter is finished
