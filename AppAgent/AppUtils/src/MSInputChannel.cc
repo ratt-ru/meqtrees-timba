@@ -352,7 +352,7 @@ int MSInputChannel::init (const DMI::Record &params)
   tilesize_ = params[FTileSize].as<int>(0);
   tilesegs_ = params[FTileSegments].as<int>(0);
   FailWhen( tilesegs_>1 && tilesize_,"Can't specify a "+FTileSize.toString()+
-        " with "+FTileSegments.toString());
+        " with "+FTileSegments.toString()+">1");
   if( !tilesize_ && !tilesegs_ )
     tilesize_ = 1;
   // clear flags?
