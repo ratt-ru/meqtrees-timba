@@ -87,13 +87,13 @@ class Functional:
         return eval(self._eval_string);
 
 
-    def plot(self,cells=None):
+    def plot(self,cells=None,newpage=False):
         #print self._funklet;
         if self._funklet is None:
             return;
         else:
             
-            return self._funklet.plot(cells=cells);
+            return self._funklet.plot(cells=cells,newpage=newpage);
         
     
     def _shift(self,start,shift):

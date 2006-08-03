@@ -381,7 +381,7 @@ class Funklet:
         cells = meq.gen_cells(dom,**cells_ax);
         return cells;
 
-    def plot(self,cells=None,parent=None):
+    def plot(self,cells=None,parent=None,newpage=False):
         if cells is None:
             print "no cells specified"
 
@@ -390,11 +390,13 @@ class Funklet:
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
         result = self.get_result(cells=cells);
-        self.emit_display_signal(result=result,parent=parent,newcell=True);
+
+                
+        self.emit_display_signal(result=result,parent=parent,newpage=newpage,newcell=True);
         return result;
 
 
-    def emit_display_signal (self,result=None,parent=None,**kwargs):
+    def emit_display_signal (self,result=None,parent=None,newpage=False,newcell=False,**kwargs):
         name=self._name;
         caption=self._name;
         dataitem=DataItem(self._udi,data=result,viewer='Result Plotter',name=name,caption=caption);
@@ -403,7 +405,7 @@ class Funklet:
                 parent.emit(PYSIGNAL("displayDataItem()"),(dataitem,kwargs));
             else:
                 #print "plotting"
-                Services.addDataItem(dataitem,newcell=True);
+                Services.addDataItem(dataitem,newpage=newpage,newcell=newcell);
 
 
 
