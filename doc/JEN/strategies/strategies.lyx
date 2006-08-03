@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.8: 31 July 2006}  % Date of Issue (
+theDOIssue}{Version 0.81: 3 Aug 2006}  % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -639,6 +639,23 @@ basic procedure
  It should have a reciprocal effect on those at the receiving end.
  The reader is urged to test every step against his or her own preconceptions,
  and challenge it accordingly.
+ The document is organized in such a way that this discussion can be conducted
+ at three levels: calibration principles (section 
+\begin_inset LatexCommand \ref{sec:Principles-of-LOFAR}
+
+\end_inset 
+
+), architectural choices (section 
+\begin_inset LatexCommand \ref{sec:Some-architectural-choices}
+
+\end_inset 
+
+), and processing steps (section 
+\begin_inset LatexCommand \ref{sec:The-basic-procedure}
+
+\end_inset 
+
+and beyond).
  The aim is to have at least full mutual understanding of the issues at
  the time of LOFAR CDR-II (planned for November 2006), and ideally a measure
  of agreement.
@@ -879,7 +896,10 @@ Each of these
 \begin_inset Formula $2\times2$
 \end_inset 
 
- Jones matrices represents a specific intrumental effect:
+ Jones matrices represents a specific intrumental effect.
+ Each matrix element is a mathematical expression, which usually has parameters.
+ The values of these instrumental parameters are estimated by means of selfcal.
+ 
 \layout Itemize
 
 
@@ -1154,10 +1174,20 @@ LOFAR calibration is based on a few principles that are more explicit than,
  
 \layout Itemize
 
-Calibration is defined as the capability to subtract foreground sources.
+Calibration is defined as the 
+\series bold 
+capability to subtract foreground sources
+\series default 
+.
  The goal is to produce residual images that are as empty as possible.
- Since some subtraction residuals are unavoidable, their signature should
- be fully understood.
+ This is possible only if the Measurement Equation is correct, and the values
+ of its parameters are accurately known.
+\layout Itemize
+
+Some level of source subtraction residuals is unavoidable.
+ The signature of such residuals should be fully understood, so that they
+ can be distinguished from astrophysical phaenomena, like the signature
+ of the EoR.
  
 \layout Itemize
 
@@ -1227,9 +1257,6 @@ Dynamic range problems are caused by errors that have a large 'correlation
  length' in the uv-plane.
  They cause systematic, rather than noise-like, effects in the image.
  
-\layout Itemize
-
-Ideally, LOFAR should be built by people who want to use it...
 \layout Standard
 
 It is possible to adopt a set of different principles, which will lead to
@@ -1990,6 +2017,37 @@ There should be no 'visible' sources in the far station sidelobes.
  in the far sidelobes averages out over all ifrs.
  Thus, they do not show up in the image, and they do not influence the estimatio
 n of instrumental errors.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:LOFAR-engineering-requirements}
+
+\end_inset 
+
+
+\emph on 
+LOFAR engineering requirements for calibration.
+ Smoothness.
+ Bandpass shape.
+ Voltage beamshape as function of freq and time (beamformer jumps).
+\end_inset 
+
+
 \layout Section
 
 
@@ -2346,6 +2404,17 @@ A Glossary of Terms used in Radio Astronomy Data Reduction
 K.
  van der Schaaf: Implementation of LOFAR Calibration (2006)
 \layout Bibliography
+\bibitem {key-11}
+
+S van der Tol, B.D.
+ Jeffs, A.J.
+ van der Veen: 
+\emph on 
+Self Calibration for the LOFAR Radio Astronomical Array,
+\emph default 
+ (June 2006), Subm.
+ IEEE Transaction on Signal Processing
+\layout Bibliography
 \bibitem {key-5}
 
 S.
@@ -2360,6 +2429,11 @@ J.E.
 Limiting factors of LOFAR calibration 
 \emph default 
 (2006)
+\layout Bibliography
+\bibitem {key-12}
+
+S.
+ Wijnholds: LOFAR station calibration (2006)
 \layout Bibliography
 \bibitem {key-4}
 
