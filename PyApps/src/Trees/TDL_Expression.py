@@ -1477,7 +1477,7 @@ class Expression:
     # The Expression can be converted into a Funklet:
     #============================================================================
 
-    def Funklet (self, plot=False, trace=False):
+    def Funklet (self, plot=False, newpage=False, trace=False):
         """Return the corresponding Funklet object. Make one if necessary."""
 
         if trace: print '\n** .Funklet():',self.oneliner()
@@ -1544,7 +1544,7 @@ class Expression:
             else:                                       # default variable ranges
                 # cells = self.expanded().make_cells()
                 cells = self.expanded().make_cells(t=dict(nr=1), f=dict(nr=5))
-            f0.plot(cells=cells)
+            f0.plot(cells=cells, newpage=newpage)
 
         # Finished:
         if trace:

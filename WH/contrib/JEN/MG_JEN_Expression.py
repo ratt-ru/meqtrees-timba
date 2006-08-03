@@ -96,7 +96,7 @@ def _define_forest (ns):
 
       Xbeam = WSRT_voltage_Xbeam_gaussian (ell=0.1)
       # Xbeam.Funklet().plot(cells=cells)
-      Xbeam.Funklet(plot=True)
+      Xbeam.Funklet(plot=True, newpage=True)
 
       if True:
          Ybeam = WSRT_voltage_Ybeam_gaussian (ell=0.1)
@@ -106,7 +106,7 @@ def _define_forest (ns):
             Qbeam.parm('Xbeam', Xbeam)
             Qbeam.parm('Ybeam', Ybeam)
             Qbeam.expanded().display(full=True)
-            Qbeam.Funklet().plot(cells=cells)
+            Qbeam.Funklet().plot(cells=cells, newpage=True)
 
       for L in array(range(5))*0.04:
          cc.append(make_LMCompounder (ns, Xbeam, l=L, m=0, q='3c123'))
