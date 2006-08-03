@@ -85,7 +85,7 @@ def _define_forest(ns):
  xyz0 = ns.xyz0 << Meq.Composer(x0,y0,z0);
  # Station 1
  X1 = 0.0;
- Y1 = 2700.0;
+ Y1 = 2000.0;
  Z1 = 0.0;
  x1 = ns.x(s1=1) << X1;
  y1 = ns.y(s1=1) << Y1;
@@ -105,13 +105,13 @@ def _define_forest(ns):
  myuvw = ns.uvw(s1=1,s2=2) << Meq.Subtract(uvw1,uvw2);
 
  # Define the factor of padding zeros to be added
- padfactor = 3.0;
+ padfactor = 30.0;
 
  # Create the SixPack for the FITS Image
  # Image (Sixpack)
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/3.fits'
- image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=0.8);
+ infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/source1a.fits'
+ image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0);
 
  # Select the 4 Stokes planes
  #Selector (FourPack)
