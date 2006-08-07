@@ -6,7 +6,8 @@
 #   Contains a series of text parsing functions
 #
 # History:
-#    - 02 july2006: creation, from TDL_Expression.py
+#    - 02 jul 2006: creation, from TDL_Expression.py
+#    - 07 aug 2006: implement .find_unop()
 #
 # Remarks:
 #
@@ -149,7 +150,6 @@ def find_terms (expr, level=0, trace=False):
     key = 'pos'
     for i in range(len(expr)):
         last = (i==(nchar-1))                    # True if last char
-        # if trace: print nest,nest*'..',i,ncpt,n2,last,':',expr[i]
         if last:
             term = expr[i1:(i+1)]
             append_term (rr, term, key, n2, i, nest, trace=trace)
@@ -223,12 +223,12 @@ def find_factors (expr, level=0, trace=False):
     i1 = 0
     ncpt = 0
     n2 = 0
+    has_terms = False
     expr = deenclose(expr, '()', trace=False)    # remove enclosing brackets
     nchar = len(expr)
     key = 'mult'
     for i in range(len(expr)):
         last = (i==(nchar-1))                    # True if last char
-        # if trace: print nest,nest*'..',i,ncpt,n2,last,':',expr[i]
         if last:
             factor = expr[i1:(i+1)]
             append_factor (rr, factor, key, n2, i, nest, trace=trace)
@@ -243,7 +243,7 @@ def find_factors (expr, level=0, trace=False):
                 # This is for dealing with top-level factors that are
                 # enclosed in brackets (), taking signs into account.
                 if expr[i] in ['*','/']: n2 += 1
-                n2 = 0                           # disable (causes errors!)....... <--
+                n2 = 0                           # .... disable (causes errors!)....... <--
         elif expr[i] in ['*','/']:               # end of an un-nested factor
             if ncpt>0:                           # some chars in factor
                 factor = expr[i1:i]
@@ -253,14 +253,22 @@ def find_factors (expr, level=0, trace=False):
             n2 = 0
             key = 'mult'                         # multiplicative factor
             if expr[i]=='/': key = 'div'         # divider              
+        elif expr[i] in ['+','-']:               # additive terms detected
+            has_terms = True                     # do NOT factorize (see below)
+            break                                # escape
         ncpt += 1                                # increment factor char counter
 
     # Some checks:
-    if not nest==0:                             # bracket imbalance
+    if has_terms==True:
+        if trace: print '--- additive terms found @nest==0: return expr as single factor'
+        rr = dict(mult=[expr],div=[])        
+    elif not nest==0:                   
         print '\n** find_factors() Error: bracket imbalance, nest =',nest
         print 'expr =',expr
         print '\n'
         return False
+
+    # Finished:
     if trace: print '   -> (',nest,'):',rr
     return rr
 
@@ -295,9 +303,6 @@ def find_unop (expr, trace=False):
 
     rr = dict(unop=None, node=None, arg=None)
     n = len(expr)
-    if not expr[n-1]==')':
-        print 'ERROR: last char of:',expr,' is not a closing bracket...!' 
-        return rr
 
     # Make a list of unary operations and their MeqTree node names:
     unops = ['cos','sin','tan','log','exp']
@@ -315,6 +320,10 @@ def find_unop (expr, trace=False):
 
     if rr['unop']==None:
         if trace: print 'not an unary operation:',expr
+        return rr
+    if not expr[n-1]==')':
+        print 'ERROR: last char of:',expr,' is not a closing bracket...!'
+        rr['unop'] = None
         return rr
 
     # Get and check the argument string:

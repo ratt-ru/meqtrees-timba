@@ -13,6 +13,7 @@
 #    - 06 jun 2006: introduced 'global' {_xx} parameters
 #    - 07 jun 2006: implement .MeqParms()
 #    - 05 jul 2006: implemented .Funklet(plot=True)
+#    - 07 aug 2006: overhauled .subTree()
 #
 # Remarks:
 #
@@ -1758,9 +1759,11 @@ class Expression:
 
         # Return the root node of the generated subtree:
         if trace:
+            f0 = self.Funklet()
             print '\n** expressions:'
-            print '- self:',self.__expression
-            print '- copy:',copy.__expression
+            print '- Funklet:',f0._function
+            print '- self:   ',self.__expression
+            print '- copy:   ',copy.__expression
         return node
 
     #--------------------------------------------------------------------------
@@ -2492,6 +2495,7 @@ if __name__ == '__main__':
         expr = '{A}+{B}*(-{C}*{B}-{A})'
         expr = '{A}+{B}*(-{C}*{B}+{A})'
         expr = 'cos({A}+{B}+sin({C}*exp({A}+{C})))'
+        expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]'
         e3 = Expression(expr, label='e3')
         e3.display('initial', full=True)
         node = e3.subTree (ns, trace=True)

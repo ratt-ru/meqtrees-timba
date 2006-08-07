@@ -7,6 +7,7 @@
 
 # History:
 # - 22 jun 2006: creation
+# - 07 aug 2006: updated .subTree() comparison
 
 # Copyright: The MeqTree Foundation 
 
@@ -72,26 +73,25 @@ def _define_forest (ns):
 
    if True:
       # Experiment: Compare Funklet and subTree versions:
-      expr = '12+{a}-{b}'
-      expr = '12+{a}*[f]-{b}*[t]'
+      # expr = '12+{a}-{b}'
+      # expr = '12+{a}*[f]-{b}*[t]'
       # expr = '12+{a}*[f]-{b}'
       # expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]*[f]'
-      Q = TDL_Expression.Expression(expr)
-      Q.parm('b',100)
-      c1 = Q.MeqNode(ns)
-      c2 = Q.subTree(ns)
+      expr = '{a}*sin({b}+{c}*cos({d}*[t]))/[f]'
+      Q = TDL_Expression.Expression(expr, label='Q')   # create expression
+      Q.parm('b',100)                       # modify the default value of parm {b}
+      c1 = Q.MeqNode(ns)                    # creates a Funklet or Functional 
+      c2 = Q.subTree(ns)                    # creates a multi-node subtree
       diff = ns.diff << Meq.Subtract(c1,c2)
       cc.append(diff)
-      page = 'compare'
-      JEN_bookmarks.create(c1, page=page)
-      JEN_bookmarks.create(c2, page=page)
-      JEN_bookmarks.create(diff, page=page)
-
-      # NB: The following plots WITHOUT execution!
-      funk = Q.Funklet()
-      dom = meq.gen_domain(time=(0,1),freq=(1,100))
-      cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10)
-      funk.plot(cells=cells)
+      JEN_bookmarks.create([c1,c2,diff], page='compare')
+      if False:
+         # Optional: Plot the Funklet derived from Expression Q: 
+         # NB: This plots after tree generation, i.e. WITHOUT execution!
+         funk = Q.Funklet()
+         dom = meq.gen_domain(time=(0,1),freq=(1,100))
+         cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10)
+         funk.plot(cells=cells)
       
 
    if False:
