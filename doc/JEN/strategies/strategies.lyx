@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.81: 3 Aug 2006}  % Date of Issue (
+theDOIssue}{Version 0.82: 7 Aug 2006}  % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -560,7 +560,7 @@ The availability of bright calibrator sources.
  As long as there is enough information available, the problem can be solved
  in principle, and will be eventually.
  Fig 
-\begin_inset LatexCommand \ref{cap:The-availability-of}
+\begin_inset LatexCommand \ref{cap: Calibratability}
 
 \end_inset 
 
@@ -645,8 +645,8 @@ basic procedure
 
 \end_inset 
 
-), architectural choices (section 
-\begin_inset LatexCommand \ref{sec:Some-architectural-choices}
+), operational choices (section 
+\begin_inset LatexCommand \ref{sec: Operational-choices}
 
 \end_inset 
 
@@ -701,12 +701,12 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap:The-availability-of}
+\begin_inset LatexCommand \label{cap: Calibratability}
 
 \end_inset 
 
 The availability of bright sources in the field is the cornerstone (and
- bottom line) of LOFAR calibration.
+ bottom line) of LOFAR calibratability.
 \end_inset 
 
 
@@ -921,8 +921,10 @@ a priori
 \series bold 
 EJones:
 \series default 
- Describes the main lobe, and the inner sidelobes of the station voltage
- beams by means of smooth functions, with coefficients that depend on 
+ Describes the main lobe, and perhaps the inner sidelobes, of the (two)
+ station voltage beams.
+ These are modelled by smooth functions, with coefficients that depend on
+ 
 \begin_inset Formula $(f,t)$
 \end_inset 
 
@@ -1217,6 +1219,13 @@ It is assumed that all station voltage beams will be different, and will
  
 \layout Itemize
 
+It is not possible to determine the shape of the far sidelobes of the voltage
+ beam with sufficient accuracy to indulge in the subtraction of Cat II sources
+ (mention A-team).
+ Therefore...
+ 
+\layout Itemize
+
 Sources must be subtracted (filtered?) from uv-data, i.e.
  not from images.
  For the brightest sources this is already standard practice, because of
@@ -1267,21 +1276,72 @@ It is possible to adopt a set of different principles, which will lead to
 \layout Section
 
 
-\begin_inset LatexCommand \label{sec:Some-architectural-choices}
+\begin_inset LatexCommand \label{sec: Operational-choices}
 
 \end_inset 
 
-Some architectural choices
+Some operational choices
 \layout Standard
 
-In addition to the calibration principles above, a number of architectural
+In addition to the calibration principles above, a number of operational
  choices have been made (or at least highly recommended).
  Note that these choices are different from implementation choices.
  After the principles above, this is the scond level of discussion.
 \layout Itemize
 
+The Mesurement Equation (M.E.) is implemented as 
+\emph on 
+trees
+\emph default 
+ (graphs, really) of software nodes, each of which repesents a smallish
+ subset of mathematical operations.
+ A different M.E.
+ requires a different forest of trees.
+ It should be possible to generate new forests quickly and easily, for rapid
+ experimentation.
+\layout Itemize
+
+All M.E.
+ 
+\emph on 
+parameters
+\emph default 
+ are functions of freq and time, and sometimes of other dimensions as well
+ (e.g.
+ station beamshapes).
+ Their values are stored in tables, in the form of zero or more 
+\emph on 
+funklets
+\emph default 
+, i.e.
+ arrays of coefficients of suitable base-functions.
+ Each funklet has its own validity domain.
+ The simplest and most common funklet is the polc(f,t), i.e.
+ a 2D array of coefficients of a 2D time-freq polynomial.
+ When solving for an M.E.
+ parameter, we actually solve for funklet coefficients.
+\layout Itemize
+
+Operations on uv-data are done by 
+\emph on 
+domain,
+\emph default 
+ i.e.
+ a rectangle in freq-time space.
+ See fig 
+\begin_inset LatexCommand \ref{cap:Domains}
+
+\end_inset 
+
+.
+ Each domain is subdivided in cells, for which the trees generate values.
+ The domain resolution is determined by the available data (e.g.
+ 1 s, 10 kHz), but can be changed by resampling.
+ 
+\layout Itemize
+
 Information about all the relevant sources for a particular observation
- reside in a Local Sky Model (LSM).
+ resides in a Local Sky Model (LSM).
  This is an object with tree interfaces: With the Global Sky Model (GSM),
  the uv-data processing kernel, and residual images.
  See fig 
@@ -1290,40 +1350,21 @@ Information about all the relevant sources for a particular observation
 \end_inset 
 
 .
- 
+ Very importantly, the LSM contains some kind of 
+\emph on 
+predisol
+\emph default 
+ mechanism for each source.
+ The latter defines the relationship between its six image manifestations
+ (I,Q,U,V,Ra,Dec) and its parametrisation.
+ It also plays a role in solving for source parameters.
 \layout Itemize
 
-The M.E.
- is implemented as trees (graphs, really) of software nodes.
- In principle, different trees can be generated very quickly, for rapid
- experimentation.
-\layout Itemize
-
-Operations on uv-data are done by domain, usually a rectangle in freq-time
- space.
- Each domain is subdivided in cells, for which the tree nodes generate values.
- The resolution is determined by the available data (e.g.
- 1 s, 10 kHz), but can be changed by resampling.
- 
-\layout Itemize
-
-There is no distinction between instrumental parameters and LSM parameters.
+There is no distinction between instrumental parameters and LSM source parameter
+s.
  They can all be solved for, in arbitrary subsets.
  There are multiple solvers in the system, each for its own subset of M.E.
  parameters.
-\layout Itemize
-
-All M.E.
- parameters are functions of freq and time, and sometimes of other dimensions
- as well.
- In practice, their values are stored in the form of one or more funklets,
- i.e.
- arrays of coefficients of suitable base-functions.
- Each funklet has its own validity domain.
- The simplest and most common funklet is the polc(f,t), i.e.
- a 2D array of coefficients of a 2D time-freq polynomial.
- When solving for an M.E.
- parameter, we actually solve for funklet coefficients.
 \layout Itemize
 
 Visibilities for extended sources, or groups of point sources, are predicted
@@ -1337,6 +1378,56 @@ Imager.
 
 Peeling.
  Flatten the visibility function of the peeling source.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Domains}
+
+\end_inset 
+
+
+\emph on 
+The uv-data are processed in domains, i.e.
+ rectangles in freq-time space, subdivided in cells.
+ Usually a few time-slots, but all freq channels (up to 4000!) in a spectral
+ window.
+ Tiles, subtiles.
+ Domain size may be chosen at will, but there is a tradeoff.
+ Full resolution (e.g.
+ 1 s,10 kHz) is needed for shifting the phase centre, and source subtraction.
+ If the source of interest is in the phase centre (peeling), is visibility
+ function varies only slowly over the domain, so we may resample to larger
+ cells.
+ This represents a considerable saving in processing and memory use when
+ calculating derivatives for selfcal (multiple iterations).
+\layout Standard
+
+
+\emph on 
+A domain maps onto a crescent-shape on the uv-plane, with an area that is
+ proportional with baseline length.
+ This means that, for longer baselines, a domain cell will cover more fringes
+ of a particular source (bandwidth and integration time smearing).
+ The latter is important when peeling, for suppressing the contamination
+ of the other sources.
+\end_inset 
+
+
 \layout Section
 
 
