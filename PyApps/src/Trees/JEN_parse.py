@@ -292,13 +292,78 @@ def append_factor (rr, factor, key, n2, i, nest, trace=False):
     return True
 
 
+
 #-----------------------------------------------------------------------
-# Find unary functions, e.g. cos()
+# Find top-level binary operations (binops), e.g. pow(a,b)
+#-----------------------------------------------------------------------
+
+def find_binop (expr, trace=False):
+    """Check whether the given expr string consists of a single unary
+    operation, e.g. 'cos(arg)'. If so, return the arument and the operation."""
+
+    funcname = '.find_binop()'
+    if trace: print '\n** .find_binop(',expr,'):'
+
+    rr = dict(binop=None, node=None, lhs=None, rhs=None)
+    n = len(expr)
+
+    # Make a list of unary operations and their MeqTree node names:
+    binops = ['pow','atan']
+    nodes = ['Pow','Atan']
+    
+    for i in range(len(binops)):
+        binop = binops[i]
+        n1 = len(binop)+1
+        print '-',binop,n1,expr[:n1]
+        if n1<=n:
+            if (expr[:n1]==binop+'('):
+                rr['binop'] = binop
+                rr['node'] = nodes[i]
+                break
+
+    if rr['binop']==None:
+        if trace: print funcname,': not an unary operation:',expr
+        return rr
+    if not expr[n-1]==')':
+        print funcname,'ERROR: last char of:',expr,' is not a closing bracket...!'
+        rr['binop'] = None
+        return rr
+
+    # Get and check the argument string:
+    nest = 0
+    k1 = len(rr['binop'])
+    for k in range(k1,n):
+        if expr[k]=='(':
+            nest += 1
+        elif expr[k]==')':
+            nest -= 1
+        elif expr[k]==',':
+            if nest==1:
+                rr['lhs'] = expr[k1+1:k]      # left-hand side (1st argument)
+                k1 = k
+    rr['rhs'] = expr[k1+1:n-1]                # right-hand side (2nd argument)
+
+    if rr['lhs']==None:
+        print funcname,'ERROR: no second argument in:',expr
+        rr['binop'] = None
+    
+    if not nest==0:
+        print funcname,'ERROR: bracket mismatch in:',expr
+        rr['binop'] = None
+    
+    if trace: print funcname,'->',rr
+    return rr
+
+
+#-----------------------------------------------------------------------
+# Find top-level unary operations (unops), e.g. cos()
 #-----------------------------------------------------------------------
 
 def find_unop (expr, trace=False):
     """Check whether the given expr string consists of a single unary
     operation, e.g. 'cos(arg)'. If so, return the arument and the operation."""
+
+    funcname = '.find_unop()'
     if trace: print '\n** .find_unop(',expr,'):'
 
     rr = dict(unop=None, node=None, arg=None)
@@ -319,10 +384,10 @@ def find_unop (expr, trace=False):
                 break
 
     if rr['unop']==None:
-        if trace: print 'not an unary operation:',expr
+        if trace: print funcname,': not an unary operation:',expr
         return rr
     if not expr[n-1]==')':
-        print 'ERROR: last char of:',expr,' is not a closing bracket...!'
+        print funcname,'ERROR: last char of:',expr,' is not a closing bracket...!'
         rr['unop'] = None
         return rr
 
@@ -337,12 +402,16 @@ def find_unop (expr, trace=False):
     rr['arg'] = expr[k1+1:n-1]                  # argument string
 
     if not nest==0:
-        print 'ERROR: bracket mismatch in:',expr
+        print funcname,'ERROR: bracket mismatch in:',expr
         rr['unop'] = None
     
-    if trace: print '  ->',rr
+    if trace: print funcname,'->',rr
     return rr
 
+
+
+#----------------------------------------------------------------------------
+# Not used, because .....
 #----------------------------------------------------------------------------
     
 def find_unary (expr, test=False, trace=False):
@@ -412,11 +481,16 @@ if __name__ == '__main__':
         find_unary('cos(a+b)+sin(b)*cos(a+c)', test=True, trace=True)
         find_unary('cos(a+b*sin(qq*exp()))', test=True, trace=True)
 
-    if 1:
+    if 0:
         find_unop('cos(a+b)', trace=True)
         find_unop('sin(a+b) ', trace=True)
         find_unop('exp()', trace=True)
         find_unop('xxx()', trace=True)
+
+    if 1:
+        find_binop('atan(a,b)', trace=True)
+        find_binop('pow(a,b)', trace=True)
+        find_binop('pow(a)', trace=True)
 
     if 0:
         find_terms('{r}*{b}', trace=True)

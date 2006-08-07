@@ -73,18 +73,25 @@ def _define_forest (ns):
 
    if True:
       # Experiment: Compare Funklet and subTree versions:
-      # expr = '12+{a}-{b}'
-      # expr = '12+{a}*[f]-{b}*[t]'
-      # expr = '12+{a}*[f]-{b}'
-      # expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]*[f]'
-      expr = '{a}*sin({b}+{c}*cos({d}*[t]))/[f]'
-      Q = TDL_Expression.Expression(expr, label='Q')   # create expression
-      Q.parm('b',100)                       # modify the default value of parm {b}
-      c1 = Q.MeqNode(ns)                    # creates a Funklet or Functional 
-      c2 = Q.subTree(ns)                    # creates a multi-node subtree
+      if False:
+         # NB: Does not work, because contains operator '**'
+         Q = WSRT_voltage_Xbeam_gaussian (ell=0.1)
+      else:
+         # expr = '12+{a}-{b}'
+         # expr = '12+{a}*[f]-{b}*[t]'
+         # expr = '12+{a}*[f]-{b}'
+         # expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]*[f]'
+         # expr = 'pow({d},[t])'               # NB: pow() is unkown in Python.... 
+         expr = '{a}*sin({b}+{c}*cos({d}*[t]))/[f]'
+         Q = TDL_Expression.Expression(expr, label='Q')   # create expression
+         Q.parm('b',100)                       # modify the default value of parm {b}
+
+      c1 = Q.MeqNode(ns)                       # creates a Funklet or Functional 
+      c2 = Q.subTree(ns)                       # creates a multi-node subtree
       diff = ns.diff << Meq.Subtract(c1,c2)
       cc.append(diff)
       JEN_bookmarks.create([c1,c2,diff], page='compare')
+
       if False:
          # Optional: Plot the Funklet derived from Expression Q: 
          # NB: This plots after tree generation, i.e. WITHOUT execution!

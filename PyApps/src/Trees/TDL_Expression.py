@@ -1732,14 +1732,18 @@ class Expression:
 
     #--------------------------------------------------------------------------
 
-    def subTree (self, ns, trace=False):
+    def subTree (self, ns, expand=True, trace=False):
         """Make a subtree of separate nodes from self.__expression"""
 
         trace = True
         if trace: print '\n** .subTree():',self.tlabel()
 
         # NB: Work on a copy, since self is modified!
-        copy = self.copy(label=self.label(), descr='copy used for .subTree()')
+        if expand:
+            ex = self.expanded(expand=True, trace=trace)
+            copy = ex.copy(label=self.label(), descr='copy used for .subTree()')
+        else:
+            copy = self.copy(label=self.label(), descr='copy used for .subTree()')
         if trace: copy.display('after .copy()', full=False)
 
         # Turn all the leaf {parameters} into MeqLeaves:
@@ -1761,16 +1765,20 @@ class Expression:
         if trace:
             f0 = self.Funklet()
             print '\n** expressions:'
-            print '- Funklet:',f0._function
-            print '- self:   ',self.__expression
-            print '- copy:   ',copy.__expression
+            print '- Funklet: ',f0._function
+            if expand:
+                print '- expanded:',ex.__expression
+            else:
+                print '- self:    ',self.__expression
+            print '- copy:    ',copy.__expression
         return node
 
     #--------------------------------------------------------------------------
 
-    def unop2node (self, ns, level=0, trace=False):
-        """Turn a unary operation in self.__expression into a (subtree) node"""
-        if trace: print '**** .unop2node(',level,'):',self.tlabel()
+    def bunop2node (self, ns, level=0, trace=False):
+        """Turn a (top-level, isolated) unary (e.g. cos(a)) or binary operation
+        in self.__expression into a node, i.e. a root node of a subtree"""
+        if trace: print '**** .bunop2node(',level,'):',self.tlabel()
         node = None
         rr = JEN_parse.find_unop(self.__expression, trace=trace)
         if isinstance(rr['unop'], str):
@@ -1778,6 +1786,16 @@ class Expression:
             if trace: print subex.oneliner()
             node = subex.factors2node (ns, level=level+1, trace=trace)
             node = ns << getattr(Meq,rr['node'])(node)
+        else:
+            rr = JEN_parse.find_binop(self.__expression, trace=trace)
+            if isinstance(rr['binop'], str):
+                lhs = self.subExpression(rr['lhs'], label=rr['binop']+'_lhs')
+                if trace: print lhs.oneliner()
+                rhs = self.subExpression(rr['rhs'], label=rr['binop']+'_rhs')
+                if trace: print rhs.oneliner()
+                lhs_node = lhs.factors2node (ns, level=level+1, trace=trace)
+                rhs_node = rhs.factors2node (ns, level=level+1, trace=trace)
+                node = ns << getattr(Meq,rr['node'])(lhs_node,rhs_node)
         return node
 
     #--------------------------------------------------------------------------
@@ -1800,7 +1818,7 @@ class Expression:
                 if trace: print '-',key,i,rr[key][i]
                 subex = self.subExpression(rr[key][i], label=key+'_term_'+str(i))
                 if trace: print subex.oneliner()
-                node = subex.unop2node (ns, level=level+1, trace=trace)
+                node = subex.bunop2node (ns, level=level+1, trace=trace)
                 if node==None:
                     if nterms>1 or level<10:
                         node = subex.factors2node(ns, level=level+1, trace=trace)      
@@ -2496,6 +2514,7 @@ if __name__ == '__main__':
         expr = '{A}+{B}*(-{C}*{B}+{A})'
         expr = 'cos({A}+{B}+sin({C}*exp({A}+{C})))'
         expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]'
+        expr = '{A}+pow({B},{C})'
         e3 = Expression(expr, label='e3')
         e3.display('initial', full=True)
         node = e3.subTree (ns, trace=True)
