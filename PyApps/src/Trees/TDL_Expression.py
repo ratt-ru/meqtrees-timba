@@ -280,12 +280,14 @@ class Expression:
 
     def display(self, txt=None, full=False):
         """Display a summary of the Expression"""
-        if txt==None: txt = self.label()
-        print '\n** Display of: Expression (',txt,'):',str(self.__ident)
+        txt1 = self.label()
+        if not txt==None: txt1 += '  ('+str(txt)+')'
+        print '\n** Display of: Expression: ',txt1,': ',str(self.__ident)
         indent = 2*' '
         if full:
             print indent,'- Input_expression: ',str(self.__input_expression)
             print indent,'- Input: ',str(self.__pp)
+        print indent,'- Description: ',str(self.__descr)
         print indent,'- Default node qualifiers: ',str(self.__quals)
         print indent,'- Purely numeric value: ',str(self.__numeric_value)
         print indent,'-',self.oneliner()
@@ -588,6 +590,7 @@ class Expression:
         if not default==None:
             rr['default'] = default                        # new default specified
             rr['nominal'] = default                        # new default specified
+            # print '---- default =',default
             if not default==0: rr['scale'] = abs(default)
             update_testval = True
         if scale: rr['scale'] = scale                      # new scale specified
@@ -1477,7 +1480,7 @@ class Expression:
     # The Expression can be converted into a Funklet:
     #============================================================================
 
-    def Funklet (self, plot=False, newpage=False, trace=False):
+    def Funklet (self, plot=None, newpage=False, trace=False):
         """Return the corresponding Funklet object. Make one if necessary."""
 
         if trace: print '\n** .Funklet():',self.oneliner()
@@ -1509,7 +1512,9 @@ class Expression:
             for k in range(len(keys)):
                 pk = 'p'+str(k)
                 expr = expr.replace('{'+keys[k]+'}', pk)
-                coeff.append(ex.__parm[keys[k]]['default'])
+                value = ex.__parm[keys[k]]['default']
+                value = float(value)                    # required by Funklet...!?
+                coeff.append(value)
                 if trace: print '- parm',k,keys[k],pk,coeff
             # Replace the valiables [] with x0 (time), x1(freq) etc
             for key in ex.__var.keys():
@@ -1537,7 +1542,7 @@ class Expression:
 
         # Optional: plot the funklet in the browser (WITHOUT execution!)
         if not plot==None:
-            print '\n** .Funklet(plot=',plot,'):'
+            print '\n** Expression.Funklet(plot=',plot,'):'
             print '   Funklet()  -> expr =',expr
             if isinstance(plot, dict):                  # explicit variable ranges
                 cells = self.expanded().make_cells(**plot) 
@@ -1635,25 +1640,55 @@ class Expression:
             elif key in self.__parmtype['Funklet']:
                 funklet = parm
             elif key in self.__parmtype['MeqNode']:
-                pass                                    # already a node
+                pass                                     # already a node
             elif parm.has_key('constant') and parm['constant']==True:
                 # NB: The alternative is to modify self.__expression so that
                 #     it contains an explicit number, rather than a node.
                 # This is OK too, since only a MeqParm can be solved for....
                 node << Meq.Constant(parm['default'])
                 self.parm(key, node, origin='parm2node') # redefine the parm
-            else:                                       # assume numeric
+            else:                                        # assume numeric
                 node << Meq.Parm(parm['default'],
                                  node_groups=['Parm'])
                 self.parm(key, node, origin='parm2node') # redefine the parm
+
             if funklet:
-                # node << Meq.Parm(init_funklet=funklet,
-                node << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
+                node << Meq.Parm(funklet=funklet,        # new MXM 28 June 2006
                                  node_groups=['Parm'])
                 self.parm(key, node, origin='parm2node') # redefine the parm
-        self.__parmtype['Expression'] = []              # no more Expression parms
-        self.__parmtype['Funklet'] = []                 # no more Funklet parms
+
+        self.__parmtype['Expression'] = []               # no more Expression parms
+        self.__parmtype['Funklet'] = []                  # no more Funklet parms
         if trace: self.display('.parm2node()', full=True)
+        return True
+
+    #---------------------------------------------------------------------------
+
+    def leaf2node (self, ns, level=0, trace=False):
+        """Convert leaf parameter(s) and variable(s) in self.__expression to node(s).
+        This is a recursive combination of var2node() and (part of) parm2node()."""
+
+        self.var2node (ns, trace=trace)                  # convert vars to nodes
+
+        for key in self.__parm.keys():
+            parm = self.__parm[key]
+            name = 'Expr_'+self.label(strip=True)+'_'+key
+            node = self._unique_node (ns, name, qual=None, trace=trace)
+            if key in self.__parmtype['Expression']:     # recursive
+                parm.leaf2node(ns, level=level+1, trace=trace)
+            elif key in self.__parmtype['Funklet']:
+                pass                                     # ignore
+            elif key in self.__parmtype['MeqNode']:
+                pass                                     # already a node
+            elif parm.has_key('constant') and parm['constant']==True:
+                node << Meq.Constant(parm['default'])
+                self.parm(key, node, origin='leaf2node') # redefine the parm
+            else:                                        # assume numeric
+                node << Meq.Parm(parm['default'],
+                                 node_groups=['Parm'])
+                self.parm(key, node, origin='leaf2node') # redefine the parm
+
+        if trace: self.display('.leaf2node('+str(level)+')', full=True)
         return True
 
 
@@ -1662,15 +1697,29 @@ class Expression:
     def subExpression (self, substring, label='substring', trace=False):
         """Convert the specified substring of self.__expression
         into a separate Expression object, including its parm/var info."""
+        # trace = True
         if trace:
             print '\n** .subExpression(',substring,'):'
         index = self.__expression.rfind(substring)
         if index<0:
             print '\n** .subExpression(',substring,'): not found in:',self.__expression,'\n'
             return False
-        e1 = Expression(substring, label, descr='from: '+self.descr())
+        e1 = Expression(substring, label, descr='subExpression from: '+self.tlabel())
         for key in e1.__parm.keys():
-            e1.__parm[key] = self.__parm[key]
+            parm = self.__parm[key]
+            # NB: Turn this into a routine .replace_parmdef().....
+            e1.__parm[key] = parm
+            if isinstance(parm, Expression):
+                if not key in e1.__parmtype['Expression']:
+                    e1.__parmtype['Expression'].append(key)
+            elif isinstance(parm, Funklet):
+                if not key in e1.__parmtype['Funklet']:
+                    e1.__parmtype['Funklet'].append(key)
+            elif isinstance(parm, dict):
+                if parm.has_key('node'):
+                # if isinstance(default, Timba.TDL.TDLimpl._NodeStub):
+                    if not key in e1.__parmtype['MeqNode']:
+                        e1.__parmtype['MeqNode'].append(key)
             if trace: print '- copy parm[',key,']:',e1.__parm[key]
         for key in e1.__var.keys():
             e1.__var[key] = self.__var[key]
@@ -1684,36 +1733,151 @@ class Expression:
 
     def subTree (self, ns, trace=False):
         """Make a subtree of separate nodes from self.__expression"""
+
+        trace = True
+        if trace: print '\n** .subTree():',self.tlabel()
+
+        # NB: Work on a copy, since self is modified!
+        copy = self.copy(label=self.label(), descr='copy used for .subTree()')
+        if trace: copy.display('after .copy()', full=False)
+
+        # Turn all the leaf {parameters} into MeqLeaves:
+        copy.leaf2node(ns, trace=False)
+        if trace: copy.display('after .leaf2node()', full=False)
+
+        # Make the subtree:
+        if True:
+            node = copy.terms2node (ns, trace=trace)
+            if trace: copy.display('after .terms2node()', full=False)
+        else:
+            node = copy.factors2node (ns, trace=trace)
+            if trace: copy.display('after .factors2node()', full=False)
+
+        # The original Expression object is NOT modified:
+        # if trace: self.display('original object, should be unchanged')
+
+        # Return the root node of the generated subtree:
         if trace:
-            print '\n** .subTree():',self.tlabel()
+            print '\n** expressions:'
+            print '- self:',self.__expression
+            print '- copy:',copy.__expression
+        return node
+
+    #--------------------------------------------------------------------------
+
+    def unop2node (self, ns, level=0, trace=False):
+        """Turn a unary operation in self.__expression into a (subtree) node"""
+        if trace: print '**** .unop2node(',level,'):',self.tlabel()
+        node = None
+        rr = JEN_parse.find_unop(self.__expression, trace=trace)
+        if isinstance(rr['unop'], str):
+            subex = self.subExpression(rr['arg'], label=rr['unop']+'_arg')
+            if trace: print subex.oneliner()
+            node = subex.factors2node (ns, level=level+1, trace=trace)
+            node = ns << getattr(Meq,rr['node'])(node)
+        return node
+
+    #--------------------------------------------------------------------------
+
+    def terms2node (self, ns, level=0, trace=False):
+        """Turn the additive terms of self.__expression into a (subtree) node"""
+
+        if trace: print '**** .terms2node(',level,'):',self.tlabel()
 
         # Split self.__expression into additive terms:
         rr = JEN_parse.find_terms(self.__expression, trace=trace)
+        nterms = len(rr['pos'])+len(rr['neg'])          
+        if nterms==0:                                   # no terms at all..?
+            return None                                 # something wrong
 
-        # Convert the terms into nodes:
+        # Convert the term(s) into node(s):
         cc = dict(pos=[], neg=[])
         for key in cc.keys():                           # 'pos','neg'
             for i in range(len(rr[key])):
+                if trace: print '-',key,i,rr[key][i]
                 subex = self.subExpression(rr[key][i], label=key+'_term_'+str(i))
                 if trace: print subex.oneliner()
-                cc[key].append(subex.MeqNode(ns))
+                node = subex.unop2node (ns, level=level+1, trace=trace)
+                if node==None:
+                    if nterms>1 or level<10:
+                        node = subex.factors2node(ns, level=level+1, trace=trace)      
+                    else:                               # ...excape...
+                        print '.... escape: level=',level
+                        node = subex.MeqNode(ns)        # convert into a node
+                if not node==None:                      # assume a valid node (..?) 
+                    cc[key].append(node)                    
 
-        # Make separate subtrees for the positive and negative terms:
-        for key in cc.keys():                           # 'pos','neg'
-            if len(cc[key])==0:                         # no nodes
-                cc[key] = None
-            elif len(cc[key])==1:                       # one node: keep it
-                cc[key] = cc[key][0]
-            else:                                       # more than one: MeqAdd
-                cc[key] = ns << Meq.Add(children=cc[key])
+        # Make a subtree if more than one term:
+        if nterms>1:        
+            # Make separate subtrees (sums) for the positive and negative terms:
+            for key in cc.keys():                       # 'pos','neg'
+                if len(cc[key])==0:                     # no nodes
+                    cc[key] = None
+                elif len(cc[key])==1:                   # one node: keep it
+                    cc[key] = cc[key][0]
+                else:                                   # more than one: MeqAdd
+                    cc[key] = ns << Meq.Add(children=cc[key])
+            # Subtract the negative from the positive:
+            node = None
+            if cc['pos']==None:
+                if not cc['neg']==None:
+                    node = ns << Meq.Negate(cc['neg'])
+            elif cc['neg']==None:
+                node = cc['pos']
+            else:
+                node = ns << Meq.Subtract(cc['pos'],cc['neg'])
 
-        # Subtract the negative from the positive:
-        if cc['pos']==None:
-            node = cc['neg']
-        elif cc['neg']==None:
-            node = cc['pos']
-        else:
-            node = ns << Meq.Subtract(cc['pos'],cc['neg'])
+        # Return the root node of the resulting subtree:
+        return node
+
+    #--------------------------------------------------------------------------
+
+    def factors2node (self, ns, level=0, trace=False):
+        """Turn the additive factors of self.__expression into a (subtree) node"""
+
+        if trace: print '**** .factors2node(',level,'):',self.tlabel()
+
+        # Split self.__expression into multiplicative factors:
+        rr = JEN_parse.find_factors(self.__expression, trace=trace)
+        nfactors = len(rr['mult'])+len(rr['div'])          
+        if nfactors==0:                                 # no factors at all ..?
+            return None                                 # something wrong
+
+        # Convert the factors into nodes:
+        cc = dict(mult=[], div=[])
+        for key in cc.keys():                           # 'mult','div'
+            for i in range(len(rr[key])):
+                if trace: print '-',key,i,rr[key][i]
+                subex = self.subExpression(rr[key][i], label=key+'_factor_'+str(i))
+                if trace: print subex.oneliner()
+                if nfactors>1 or level<10:
+                    node = subex.terms2node(ns, level=level+1, trace=trace)      
+                else:                                   # ...escape...
+                    print '.... escape: level=',level
+                    node = subex.MeqNode(ns)            # convert into a node
+                if not node==None:                      # assume a valid node (..?)
+                    cc[key].append(node)
+                    nfactors += 1
+
+        if nfactors>1:                                  # more than one factor
+            # Make separate subtrees (products) for the multiplicative and divisive factors:
+            for key in cc.keys():                       # 'mult','div'
+                if len(cc[key])==0:                     # no nodes
+                    cc[key] = None
+                elif len(cc[key])==1:                   # one node: keep it
+                    cc[key] = cc[key][0]
+                else:                                   # more than one: MeqAdd
+                    cc[key] = ns << Meq.Multiply(children=cc[key])
+            # Subtract the negative from the positive:
+            node = None
+            if cc['mult']==None:
+                if not ncc['div']==None:
+                    node = ns << Meq.Inverse(cc['div'])
+            elif cc['div']==None:
+                node = cc['mult']
+            else:
+                node = ns << Meq.Divide(cc['mult'],cc['div'])
+
         # Return the root node of the resulting subtree:
         return node
 
@@ -1726,7 +1890,8 @@ class Expression:
         if not self.__MeqParm:                          # avoid duplication
             funklet = self.Funklet()
             if isinstance(funklet, bool): return False
-            if not name: name = 'Expr_'+self.label(strip=True)+'_MeqParm'
+            if not name:
+                name = 'Expr_'+self.label(strip=True)+'_MeqParm'
             self.__MeqParm = self._unique_node (ns, name, qual=qual, trace=trace)
             # self.__MeqParm << Meq.Parm(init_funklet=funklet,
             self.__MeqParm << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
@@ -1756,16 +1921,25 @@ class Expression:
         nv = self.numeric_value()
         if not nv==None:
             # Special case: the Expression is purely numeric
-            if not self.__MeqConstant:
-                if not name: name = 'Expr_'+self.label(strip=True)+'_MeqConstant'
+            if not self.__MeqConstant:               # avoid duplication...
+                if not name:
+                    name = 'Expr_'+self.label(strip=True)+'_MeqConstant'
                 self.__MeqConstant = self._unique_node (ns, name, qual=qual, trace=trace)
                 self.__MeqConstant  << Meq.Constant(nv)
             node = self.__MeqConstant
-        elif len(self.__parmtype['MeqNode'])>0:
+
+        elif len(self.__parmtype['MeqNode'])==0:     # no node parms
+            node = self.MeqParm(ns, name=name, qual=qual, trace=trace)
+
+        elif len(self.__parm)==1 and len(self.__var)==0:
+            # The one exception: a single (node) parm, and no var
+            # NB: This goes wrong if expr = {A}+{A} ........!!
+            key = self.__parm.keys()[0]
+            node = self.__parm[key]['node']          # just use the single node parm
+
+        else:
             node = self.MeqFunctional(ns, name=name, qual=qual,
                                       expand=expand, trace=trace)
-        else:
-            node = self.MeqParm(ns, name=name, qual=qual, trace=trace)
         self.__MeqNode = node
         return node
 
@@ -1776,7 +1950,8 @@ class Expression:
         parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc).
         If expand==True (default), the Functional is made from the expanded
         expression. Note that, if expand==False, the object itself is modified!!"""
-        if self.__MeqFunctional: return self.__MeqFunctional    # avoid duplication
+        if self.__MeqFunctional:
+            return self.__MeqFunctional                 # avoid duplication
         if expand:
             ex = self.expanded(expand=True, trace=trace)
             f0 = ex.make_MeqFunctional (ns, name=name, qual=qual, trace=trace)
@@ -1790,8 +1965,10 @@ class Expression:
     def make_MeqFunctional (self, ns, name=None, qual=None, trace=False):
         """Helper function that does the work for .MeqFunctional()"""
         if trace: print '\n** MeqFunctional(',name,qual,'):'
+
         self.parm2node (ns, trace=trace)                # convert parms to nodes
         self.var2node (ns, trace=trace)                 # convert vars to nodes
+
         function = deepcopy(self.__expression)
         children = []
         nodenames = []
@@ -1806,13 +1983,13 @@ class Expression:
             if not nodename in nodenames:               # once only
                 nodenames.append(nodename)
                 children.append(parm['node'])
-            # child_num = 1 + nodenames.index(nodename) # NOT 1-based!
-            child_num = nodenames.index(nodename)       # 0-based
+            child_num = nodenames.index(nodename)       # 0-based(!)
             rr = record(child_num=child_num, index=parm['index'],
                         nodename=parm['nodename'])
             if trace: print '-',key,xk,rr
             child_map.append(rr)
-        if not name: name = 'Expr_'+self.label(strip=True)+'_MeqFunctional'
+        if not name:
+            name = 'Expr_'+self.label(strip=True)+'_MeqFunctional'
         self.__MeqFunctional = self._unique_node (ns, name, qual=qual, trace=trace)
         self.__MeqFunctional << Meq.Functional(children=children,
                                                function=function,
@@ -1942,7 +2119,7 @@ class Expression:
 def classwise (node, klasses=dict(), done=[], level=0, trace=False):
    """Recursively collect the nodes of the given subtree, divided in classes """
 
-   trace = True
+   # trace = True
 
    # Keep track of the processed nodes (to avoid duplication):
    if node.name in done: return True
@@ -2301,6 +2478,28 @@ if __name__ == '__main__':
         print 'funklet.eval() ->',v
  
     #---------------------------------------------------------
+
+    if 1:
+        expr = '{A}*{B}*[f]'
+        expr = '{A}*{B}/[f]'
+        expr = '{A}/[f]'
+        expr = '{A}'
+        expr = '2.5/{A}'
+        expr = '{A}*({B}+{C})*[f]'
+        expr = '{A}+{B}*{C}-[f]'
+        expr = '{A}+{B}*({C}-{D})-[f]'
+        expr = '{A}+{B}*({C}*{B}-{A})'
+        expr = '{A}+{B}*(-{C}*{B}-{A})'
+        expr = '{A}+{B}*(-{C}*{B}+{A})'
+        expr = 'cos({A}+{B}+sin({C}*exp({A}+{C})))'
+        e3 = Expression(expr, label='e3')
+        e3.display('initial', full=True)
+        node = e3.subTree (ns, trace=True)
+        TDL_display.subtree(node, 'subTree', full=True, recurse=10)
+
+
+
+    #---------------------------------------------------------
  
     if 0:
         e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
@@ -2337,7 +2536,6 @@ if __name__ == '__main__':
 
         if 1:
             node = e1.subTree (ns, trace=True)
-            e1.display()
             TDL_display.subtree(node, 'subTree', full=True, recurse=10)
             
         if 0:

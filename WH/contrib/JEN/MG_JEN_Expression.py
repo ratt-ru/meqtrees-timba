@@ -32,6 +32,7 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.MXM import TDL_Funklet
 
+from Timba.Trees import JEN_bookmarks
 from Timba.Trees import TDL_Expression
 from Timba.Trees import TDL_display
 
@@ -69,25 +70,31 @@ def _define_forest (ns):
       cosvar = costime (ampl=1.0, period=0.1, phase=0.1, plot=False, trace=False) 
       cc.append(cosvar.MeqNode(ns))
 
-   if False:
+   if True:
       # Experiment: Compare Funklet and subTree versions:
       expr = '12+{a}-{b}'
       expr = '12+{a}*[f]-{b}*[t]'
       # expr = '12+{a}*[f]-{b}'
+      # expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]*[f]'
       Q = TDL_Expression.Expression(expr)
+      Q.parm('b',100)
       c1 = Q.MeqNode(ns)
       c2 = Q.subTree(ns)
-      cc.append(ns.diff << Meq.Subtract(c1,c2))
+      diff = ns.diff << Meq.Subtract(c1,c2)
+      cc.append(diff)
+      page = 'compare'
+      JEN_bookmarks.create(c1, page=page)
+      JEN_bookmarks.create(c2, page=page)
+      JEN_bookmarks.create(diff, page=page)
 
       # NB: The following plots WITHOUT execution!
-      # funk = TDL_Funklet.Funklet(Q.Funklet());
       funk = Q.Funklet()
       dom = meq.gen_domain(time=(0,1),freq=(1,100))
       cells = meq.gen_cells(domain=dom,num_time=10,num_freq=10)
       funk.plot(cells=cells)
       
 
-   if True:
+   if False:
       # Experiment: WSRT gaussian voltage beam(s):
 
       # NB: The following plots WITHOUT execution!
@@ -242,8 +249,8 @@ def make_Functional (ns, beam, q='3c123', trace=False):
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
-  # return MG_JEN_exec.meqforest (mqs, parent)
-  return MG_JEN_exec.meqforest (mqs, parent, ntime=1)
+  return MG_JEN_exec.meqforest (mqs, parent)
+  # return MG_JEN_exec.meqforest (mqs, parent, ntime=1)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=100e6, f2=150e6, t1=0, t2=1, trace=False)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')

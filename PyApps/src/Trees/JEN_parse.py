@@ -79,6 +79,22 @@ def deenclose (key, brackets='{}', trace=False):
 
 #----------------------------------------------------------------------------
 
+def make_global (expr, trace=False):
+    """Make sure that all Expression parameters {a} are global {_a}"""
+    if trace: print '\n** make_global(',expr,'):'
+    cc = find_enclosed (expr, brackets='{}', trace=False)
+    for s in cc:
+        if trace: print '- replace:',s,':',
+        if s[0]=='_':                           # ignore if already global
+            print 'already global'
+        else:
+            expr = expr.replace('{'+s+'}','{_'+s+'}')
+            if trace: print expr
+    if trace: print ' ->',expr
+    return expr
+
+#----------------------------------------------------------------------------
+
 def find_enclosed (expr, brackets='{}', trace=False):
     """Return a list of substrings that are enclosed in the specified brackets.
     e.g. expr='{A}+{B}*{A}' would produce ['A','B']"""
@@ -227,6 +243,7 @@ def find_factors (expr, level=0, trace=False):
                 # This is for dealing with top-level factors that are
                 # enclosed in brackets (), taking signs into account.
                 if expr[i] in ['*','/']: n2 += 1
+                n2 = 0                           # disable (causes errors!)....... <--
         elif expr[i] in ['*','/']:               # end of an un-nested factor
             if ncpt>0:                           # some chars in factor
                 factor = expr[i1:i]
@@ -271,40 +288,99 @@ def append_factor (rr, factor, key, n2, i, nest, trace=False):
 # Find unary functions, e.g. cos()
 #-----------------------------------------------------------------------
 
-def find_unary (expr, trace=False):
+def find_unop (expr, trace=False):
+    """Check whether the given expr string consists of a single unary
+    operation, e.g. 'cos(arg)'. If so, return the arument and the operation."""
+    if trace: print '\n** .find_unop(',expr,'):'
+
+    rr = dict(unop=None, node=None, arg=None)
+    n = len(expr)
+    if not expr[n-1]==')':
+        print 'ERROR: last char of:',expr,' is not a closing bracket...!' 
+        return rr
+
+    # Make a list of unary operations and their MeqTree node names:
+    unops = ['cos','sin','tan','log','exp']
+    nodes = ['Cos','Sin','Tan','Log','Exp']
+    
+    for i in range(len(unops)):
+        unop = unops[i]
+        n1 = len(unop)+1
+        print '-',unop,n1,expr[:n1]
+        if n1<=n:
+            if (expr[:n1]==unop+'('):
+                rr['unop'] = unop
+                rr['node'] = nodes[i]
+                break
+
+    if rr['unop']==None:
+        if trace: print 'not an unary operation:',expr
+        return rr
+
+    # Get and check the argument string:
+    nest = 0
+    k1 = len(rr['unop'])
+    for k in range(k1,n):
+        if expr[k]=='(':
+            nest += 1
+        elif expr[k]==')':
+            nest -= 1
+    rr['arg'] = expr[k1+1:n-1]                  # argument string
+
+    if not nest==0:
+        print 'ERROR: bracket mismatch in:',expr
+        rr['unop'] = None
+    
+    if trace: print '  ->',rr
+    return rr
+
+#----------------------------------------------------------------------------
+    
+def find_unary (expr, test=False, trace=False):
     """Find unary functions (e.g. cos(...)) in the given expr string.
     Return them as fields (lists) in a record: rr['cos'] = ['a+b', 'c']"""
     if trace: print '\n** .find_unary(',expr,'):'
-    keys = ['cos','sin','tan']
-    keys.extend(['log','exp'])
+
+    # Make a list of unary operations
+    unops = ['cos','sin','tan']
+    unops.extend(['log','exp'])
+    
     rr = dict()
     n = len(expr)
-    for key in keys:
+    for unop in unops:                                  # for all unary ops
         k2 = 0
         count = 0
         while k2<n:
             count += 1
             if count>5: break
-            k1 = k2 + expr[k2:].find(key+'(')          # e.g. look for 'cos('
+            k1 = k2 + expr[k2:].find(unop+'(')          # e.g. look for 'cos('
             if k1<k2:                                  # not found
                 k2 = n
             else:
                 nest = 0
-                k1 += len(key)
+                k1 += len(unop)
                 for k2 in range(k1,n):
                     if expr[k2]=='(':
                         nest += 1
                     elif expr[k2]==')':
                         nest -= 1
                         if nest==0:
-                            rr.setdefault(key,[])
+                            rr.setdefault(unop,[])
                             argstr = expr[(k1+1):k2]   # argument string
-                            if not rr[key].__contains__(argstr):
-                                rr[key].append(argstr)
-                                if trace: print '-',key,':',rr[key]
+                            if not rr[unop].__contains__(argstr):
+                                rr[unop].append(argstr)
+                                if trace: print '- unop:',unop,':',rr[unop]
                             break
                 if not nest==0:
                     print 'ERROR: bracket mismatch in:',expr[k1:]
+    if test:
+        # Replacement test:
+        for key in rr.keys():
+            for s in rr[key]:
+                ss = key+'('+s+')'
+                expr = expr.replace(ss,'{_'+key+'()}')
+                print '- replace:',ss,':',expr
+    if trace: print '  ->',rr
     return rr
     
 
@@ -322,10 +398,16 @@ if __name__ == '__main__':
             tf = isinstance(x, NUMERIC_TYPES)
             print '- isinstance(',x,type(x),', NUMERIC_TYPES) ->',tf
 
+    if 0:
+        find_unary('cos(a+b)', test=True, trace=True)
+        find_unary('cos(a+b)+sin(b)*cos(a+c)', test=True, trace=True)
+        find_unary('cos(a+b*sin(qq*exp()))', test=True, trace=True)
+
     if 1:
-        find_unary('cos(a+b)', trace=True)
-        find_unary('cos(a+b)+sin(b)*cos(a+c)', trace=True)
-        find_unary('cos(a+b*sin(qq*exp()))', trace=True)
+        find_unop('cos(a+b)', trace=True)
+        find_unop('sin(a+b) ', trace=True)
+        find_unop('exp()', trace=True)
+        find_unop('xxx()', trace=True)
 
     if 0:
         find_terms('{r}*{b}', trace=True)
@@ -361,6 +443,10 @@ if __name__ == '__main__':
     if 0:
         find_enclosed('{A}+{BA}*[t]+{A}', brackets='{}', trace=True)
         find_enclosed('{A}+{BA}*[t]', brackets='[]', trace=True)
+
+    if 0:
+        expr = make_global('{A}+{BA}*[t]+{_A}', trace=True)
+        expr = make_global('{A}+{BA}*[t]', trace=True)
 
     if 0:
         ss = find_enclosed('{A[0,1]}', brackets='[]', trace=True)
