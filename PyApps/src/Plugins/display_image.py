@@ -833,7 +833,7 @@ class QwtImageDisplay(QwtPlot):
         self.refresh_marker_display()
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.setItemVisible(toggle_id, False)
-        _dprint(3, 'called replot in unzoom')
+        _dprint(3, 'exiting reset_zoom')
       else:
         return
 
@@ -2159,6 +2159,12 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.setItemVisible(toggle_id, True)
 
+
+# is zoom active?
+        if len(self.zoomStack):
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, True)
+
         self.active_image = True
 
 # get mean and standard deviation of array
@@ -2298,6 +2304,10 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, True)
 
 # make sure we are autoscaling in case an image was previous
+# this will automagically do an unzoom, but just in case first
+# call reset_zoom ...
+        self.reset_zoom()
+
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.xTop)
         self.setAxisAutoScale(QwtPlot.yLeft)
@@ -2365,7 +2375,7 @@ class QwtImageDisplay(QwtPlot):
           if not self.metrics_rank is None:
             self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
-        _dprint(3, 'plotting flattened array ', flattened_array)
+#       _dprint(3, 'plotting flattened array ', flattened_array)
         if not self._flags_array is None:
           if complex_type:
             x_array =  flattened_array.getreal()
