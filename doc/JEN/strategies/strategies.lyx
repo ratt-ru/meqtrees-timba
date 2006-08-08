@@ -540,6 +540,17 @@ newpage
 Introduction
 \layout Standard
 
+
+\emph on 
+This document is a work in progress.
+ It contains multiple placeholders for later elaboration.
+ The current version is meant for discussion within the LOFAR Calibration
+ StuurGrope, i.e.
+ the process of extremely human judgement that must precede our collective
+ subjection to divine judgement.
+ 
+\layout Standard
+
 LOFAR calibration will be difficult, because of a pathological ionosphere,
  crowded fields, wobbly station beams, high sidelobes, unsmooth bandpass,
  and high expectations.
@@ -677,6 +688,8 @@ It will be assumed that the reader is thoroughly familiar with the concepts
 \end_inset 
 
  presented at CDR-I in November 2005.
+ It is highly recommended to carefully read the figure captions, since they
+ tend to contain some of the real 'meat'.
  
 \layout Standard
 
@@ -705,8 +718,8 @@ collapsed false
 
 \end_inset 
 
-The availability of bright sources in the field is the cornerstone (and
- bottom line) of LOFAR calibratability.
+The availability of bright sources in the field is the cornerstone of LOFAR
+ calibratability.
 \end_inset 
 
 
@@ -748,25 +761,37 @@ LOFAR sensitivity, confusion limit, and PSF sidelobe confusion for the two
 Creating the conditions
 \layout Standard
 
-It is also a bit controversial, largely because it is in a state of being
- invented.
+LOFAR calibration is a bit controversial, largely because it is in a state
+ of being invented.
  The various new concepts that have been developed still have to be proven,
  polished and optimized.
  The same process has taken a long time with earlier instruments, and there
  is no reason why it should be different with LOFAR.
- 
+ A somewhat more serious problem is that the current ideas, however revolutionar
+y, are unlikely to lead to a system that can calibrate the full LOFAR data
+ stream.
+ New ideas are more likely to solve this problem than bigger computers.
+ For these two reasons, it is vital create the conditions in which the generatio
+n of new ideas is actively stimulated and supported:
+\layout Itemize
+
+Get clever people involved for a long time (years), and keep them motivated
+ (somehow).
+\layout Itemize
+
+Give them a system that offers a lot of windows on what is actually going
+ on.
+ Visualisation is a great geanerator of ideas.
+\layout Itemize
+
+Give them a system that allows rapid experimentation.
+\layout Itemize
+
+Other?
 \layout Standard
 
-For calibration development...
-\layout Standard
-
-Explanation of the situation
-\layout Standard
-
-Rapid experimentation (TDL)
-\layout Standard
-
-Get clever people involved.
+We know all this, of course.
+ But will it happen?
 \layout Section
 
 
@@ -820,8 +845,11 @@ Note that a visibility sample is the sum of the contributions from the various
 \begin_inset Formula $4\times4$
 \end_inset 
 
- Stokes matrix is constant, and depends on the chosen polarisation representatio
-n.
+ Stokes matrix 
+\begin_inset Formula $S$
+\end_inset 
+
+ is constant, and depends on the chosen polarisation representation.
  The 
 \begin_inset Formula $2\times2$
 \end_inset 
@@ -906,7 +934,7 @@ Each of these
 \series bold 
 BJones:
 \series default 
- The only uv-plane effect.
+ The only uv-plane effect (see also below).
  The instrumental bandpass can be 'granular', i.e.
  it can vary rapidly with frequency.
  It is assumed to be known 
@@ -914,7 +942,7 @@ BJones:
 a priori
 \emph default 
  through station calibration, and divided out.
- Any deviations are assumed to vary slowly in time and frequency.
+ Any further variations are assumed to be slow, in time and frequency.
 \layout Itemize
 
 
@@ -937,9 +965,7 @@ EJones:
 .
  These coefficents are estimated from the complex gains in the direction
  of bright (peeling) sources.
- Use MIM values for nominal source positions for shifting the phase centre
- to the apparent position of peeling sources, but use the nominal positions
- for the model.....
+ Note that 
 \layout Itemize
 
 
@@ -965,21 +991,19 @@ IJones:
 ), which is an all-sky model with a minimum number of parameters.
  The MIM is obtained prior to the Major Cycle, and not updated subsequently
  (EJones absorbes the rest of the position-dependent phases).
- In peeling, use nominal source positions to shift the phase centre.
- Solve for temporary gains, for subtraction only (better individual gains
- are obtained in EJones below)
+ 
 \layout Itemize
 
 
 \series bold 
 FJones:
 \series default 
- Ionospheric Faraday rotation.
- Related to IJones, but also depends on the angle between source direction
- and Earth magnetic field.
+ The ionospheric Faraday rotation is related to IJones, but also depends
+ on the angle between source direction and the local Earth magnetic field.
  Calibration requires polarised sources.
  Fortunately, there appear to be enough of them, provided we learn to use
  5 mJy sources.
+ See section ...
  
 \layout Itemize
 
@@ -988,8 +1012,28 @@ FJones:
 KJones:
 \series default 
  The Fourier Transform kernel depends on station position and source direction.
- Deterministic in general, but could be used to solve for station positions.
+ It is deterministic in general, but could be used to solve for station
+ positions.
  
+\layout Standard
+
+Traditional selfcal only deals with uv-plane effects, usually just GJones,
+ i.e.
+ the complex gain per station, and per frequency-channel.
+ Sometimes DJones, the on-axis polarisation 'leakage' is also solved for.
+ In mm-observations, the rapidly varying atmospheric phase TJones may play
+ a role.
+ Station voltage beamshapes are assumed to be all identical and constant,
+ so they can be represented by a multiplicative 
+\emph on 
+power
+\emph default 
+ beam in the image plane.
+\layout Standard
+
+In the LOFAR M.E., for the moment, GJones and TJones are subsumed into the
+ BJones bandpass, while the equivalent of DJones is subsumed into the EJones
+ voltage beams.
 \layout Standard
 
 
@@ -1014,6 +1058,14 @@ collapsed true
 \begin_inset LatexCommand \label{cap:A-Minimum-Ionospheric}
 
 \end_inset 
+
+
+\series bold 
+\emph on 
+NB: The above image will be replaced.
+ The caption is important.
+ 
+\layout Standard
 
 
 \emph on 
@@ -1181,7 +1233,11 @@ Calibration is defined as the
 capability to subtract foreground sources
 \series default 
 .
- The goal is to produce residual images that are as empty as possible.
+ The goal is to produce residual images that are as 
+\emph on 
+noise-like
+\emph default 
+ as possible.
  This is possible only if the Measurement Equation is correct, and the values
  of its parameters are accurately known.
 \layout Itemize
@@ -1196,15 +1252,17 @@ Some level of source subtraction residuals is unavoidable.
 Calibrated uv-data do not exist in the presence of image-plane effects.
  This is because uv-data can only be corrected for a single point in the
  sky.
- The one exception is the application of a linear phase gradient over the
- uv-plane, which shifts the position of the entire image.....
- 
+ (The only exceptions are a common multiplication factor and a linear phase
+ gradient over the uv-plane.
+ These just multiplies the flux, or shifts the position, of all the sources
+ by the same amount.)
 \layout Itemize
 
 It is assumed that the ionosphere will vary substantially over the field,
  and in frequency and time.
  It is also assumed that it will not be possible to predict the ionospheric
- phase with sufficient accuracy.
+ phase by external means (PIM, GPS) with sufficient accuracy, i.e.
+ better than a degree.
  This means that it must be measured continuously during the observations,
  using bright sources in the field.
  
@@ -1214,8 +1272,9 @@ It is assumed that all station voltage beams will be different, and will
  vary substantially in time and frequency.
  It is also assumed that it will not be possible to predict their shapes
  with sufficient accuracy.
- This means that the shapes (at least of the inner parts) must be measured
- continuously during the observations, using bright sources in the field.
+ This means that the shapes (at least of the inner parts, which are needed
+ for Cat II subtraction) must be measured continuously during the observations,
+ using bright sources in the field.
  
 \layout Itemize
 
@@ -1231,19 +1290,19 @@ Sources must be subtracted (filtered?) from uv-data, i.e.
  For the brightest sources this is already standard practice, because of
  limitations of image-plane deconvolution.
  In the case of LOFAR this principle must be extended to all sources in
- the LSM, because of image-plane effects caused by the ionosphere, and by
- wobbly station voltage beams.
+ the Local Sky Model (LSM), because of image-plane effects caused by the
+ ionosphere, and by wobbly station voltage beams.
 \layout Itemize
 
 Only the brightest (Cat I) sources are used for selfcal, i.e.
  to estimate instrumental errors.
- The parameters of these sources may also be estimated in this process.
+ Some of the parameters of these sources may also be estimated in this process.
  
 \layout Itemize
 
 There is no fundamental distinction between instrumental parameters and
  source parameters (the ionosphere is regarded as part of the instrument).
- It should be possible to solve for any subset of parameters.
+ It should be possible to solve for any (orthogonal) subset of parameters.
 \layout Itemize
 
 The fainter (Cat II) sources are detected and updated in residual images.
@@ -1284,12 +1343,12 @@ Some operational choices
 \layout Standard
 
 In addition to the calibration principles above, a number of operational
- choices have been made (or at least highly recommended).
+ choices have been made (or at least are highly recommended).
  Note that these choices are different from implementation choices.
  After the principles above, this is the scond level of discussion.
 \layout Itemize
 
-The Mesurement Equation (M.E.) is implemented as 
+The Mesurement Equation (M.E.) is represented as 
 \emph on 
 trees
 \emph default 
@@ -1404,27 +1463,41 @@ collapsed false
 \emph on 
 The uv-data are processed in domains, i.e.
  rectangles in freq-time space, subdivided in cells.
- Usually a few time-slots, but all freq channels (up to 4000!) in a spectral
- window.
- Tiles, subtiles.
- Domain size may be chosen at will, but there is a tradeoff.
+ A domain usually contains only a few time-slots, but all freq channels
+ (up to 4000!) in a spectral window.
+ 
+\noun on 
+Tiles, subtiles.
+ 
+\noun default 
+The domain size may be chosen at will, but the optimum size is a processing
+ tradeoff.
  Full resolution (e.g.
- 1 s,10 kHz) is needed for shifting the phase centre, and source subtraction.
+ 1 s,10 kHz) is needed for shifting the phase centre, and for source subtraction.
  If the source of interest is in the phase centre (peeling), is visibility
  function varies only slowly over the domain, so we may resample to larger
  cells.
  This represents a considerable saving in processing and memory use when
- calculating derivatives for selfcal (multiple iterations).
+ calculating derivatives for selfcal, which has to be repeated for each
+ solver iteration.
 \layout Standard
 
 
 \emph on 
-A domain maps onto a crescent-shape on the uv-plane, with an area that is
- proportional with baseline length.
+A (f,t) domain maps onto a crescent-shape on the uv-plane, with an area
+ that is proportional with baseline length.
  This means that, for longer baselines, a domain cell will cover more fringes
- of a particular source (bandwidth and integration time smearing).
+ of a particular source (
+\noun on 
+bandwidth and integration time smearing)
+\noun default 
+.
  The latter is important when peeling, for suppressing the contamination
  of the other sources.
+ In practice, because of their limited size in the lateral (time) direction,
+ the domain crescents will be tend to be long and thin in the radial (freq)
+ direction.
+ Therefore, it will tend to cover more fringes in the freq direction.
 \end_inset 
 
 
@@ -1444,6 +1517,7 @@ The flow diagram for LOFAR calibration is shown in fig
 \end_inset 
 
 .
+ This is the third level of discussion.
  The basic procedure has three parts:
 \layout Subsection
 
@@ -1452,7 +1526,7 @@ Preliminaries
 
 
 \emph on 
-NB: Include rapid switching in the discussion here....
+NB: Include rapid beam switching in the discussion here....
 \layout Enumerate
 
 
@@ -1505,8 +1579,9 @@ NB: Flags affect the weights of the uv-data samples, and their uv-coordinates...
 
 
 \series bold 
-Find ionospheric phase lock:
+[Find ionospheric phase lock]:
 \series default 
+ This is done only once, at the start of the observation.
  Find the 'absolute' station phases to well within a radian.
  The proposed procedure is to start with three inner stations, and then
  to include the others one by one.
@@ -1565,7 +1640,7 @@ Generate a forest
 
 
 \series bold 
-Peeling:
+Cat I selfcal:
 \series default 
  This is 
 \emph on 
@@ -1577,7 +1652,12 @@ defined
 individual
 \emph default 
  bright (Cat I) sources.
- The sources are dealt with in descending order of brightness, and subtracted
+ This is done by 
+\emph on 
+peeling
+\emph default 
+, i.e.
+ the sources are dealt with in descending order of brightness, and subtracted
  from the uv-data before moving on to the next one.
  The main advantage of peeling is effeciency, partly because of smaller
  solution matrices, but mostly because selfcal prediction (dominated by
@@ -1756,7 +1836,7 @@ a priori
 Facet imaging.
 
 \series default 
- The size of a facet is determined by the ionosphere.
+ The size of a facet is determined by the ionosphere and by the w-coordinate.
  For each facet, the residual uv-data are corrected for the facet centre,
  after which the phase centre is shifted to that position, and the FOV is
  reduced by integrating over freq and time.
@@ -1782,13 +1862,19 @@ Updating the parameters of existing LSM sources.
 d to see whether there is anything left.
  Any residuals are used to solve for improvements of the source parameters,
  using the source trees in the LSM.
+ 
 \layout Enumerate
 
 Finding new LSM sources.
  The most difficult problem is to decide which groups of CLEAN components
  represent new (Cat III) sources, and how they should be parametrized.
  Extended sources may be modeled in terms of base functions like shapelets
- or pixons.
+ (see fig 
+\begin_inset LatexCommand \ref{cap:Shapelet-decomposition}
+
+\end_inset 
+
+) or pixons.
  Really pathological sources may be stored in the LSM as 4D images.
  
 \end_deeper 
@@ -1843,7 +1929,7 @@ residual images
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
@@ -1883,11 +1969,11 @@ Clark CLEAN
 .
  It is used advisedly here, because our procedure is like Clark CLEAN with
  the addition of self-calibration.
- 
+ In our case, a Minor Cycle is a single selfcal iteration.
 \end_inset 
 
- (MC, dashed red box), in which increasingly fainter LSM sources are estimated
- in either domain, and subtracted in the uv-plane.
+ (MC, dashed red box), in which increasingly fainter LSM sources are found/updat
+ed in either domain, and subtracted in the uv-plane.
  All the other operations are preliminaries or finishing touches before
  and after the MC.
  The blue boxes indicate deliverables.
@@ -2060,6 +2146,188 @@ Non-astronomical LOFAR applications
 \layout Section
 
 
+\begin_inset LatexCommand \label{sec:Cat-I-selfcal}
+
+\end_inset 
+
+Cat I selfcal
+\layout Standard
+
+
+\series bold 
+This is one of the most important chapters, because it deals with the question
+ whether we can solve for the necessary parameters.
+\layout Standard
+
+Given an array of 
+\begin_inset Formula $N$
+\end_inset 
+
+ stations (i.e.
+ 
+\begin_inset Formula $2N$
+\end_inset 
+
+ voltage beams, or polarisations, or IFs), we have 
+\begin_inset Formula $4\times N(N-1)/2$
+\end_inset 
+
+ independent uv-samples per timeslot per freq channel, which allows to form
+ 
+\begin_inset Formula $4N(N-1)$
+\end_inset 
+
+ real selfcal equations.
+ This means that, per timeslot per freq channel, we can solve for 
+\begin_inset Formula $2N$
+\end_inset 
+
+ real parameters per IF, provided they are orthogonal.
+ Allowing for noise, and for using only a subset of baselines for the solution,
+ we can solve for 
+\begin_inset Formula $N$
+\end_inset 
+
+ real parameters per IF.
+\layout Standard
+
+For the WSRT this is 14, which we know is ample if we assume that its M.E.
+ only contains uv-plane effects.
+ 
+\layout Standard
+
+For LOFAR this is 30-75 per voltage beam, which will just have to do...
+\layout Standard
+
+
+\emph on 
+NB: I have no time to finish this section now, because I want you all to
+ have lots of time to read the rest.
+ We probably will not even reach this point on thursday.....
+\layout Subsection
+
+Crud...ignore it
+\layout Standard
+
+The LOFAR Measurement Equation has many more parameters than those of traditiona
+l telescopes.
+ The main culprits are the image-plane effects, especially the station voltage
+ beams, and to a lesser extent the ionosphere.
+ It is being fiercely debated whether there are sufficient data to solve
+ for all these parameters.
+\layout Standard
+
+First of all, the number of parameters should be minimized by careful engineerin
+g (see section 
+\begin_inset LatexCommand \ref{sec:Engineering-requirements}
+
+\end_inset 
+
+).
+\layout Standard
+
+Secondly, the MIM seems to have remarkably few parameters.
+ How many?
+\layout Standard
+
+The station voltage beams are the main problem.
+ How many? 
+\layout Standard
+
+In addition, we have to solve for source parameters...
+\layout Standard
+
+There have been many learned discussions about this problem.
+ Obviously, the proof of the pudding is in the eating, but it would be nice
+ if we could have some idea about the situation (although I do not think
+ that LOFAR would be stopped if we came to a negative conclusion).
+ Most of all, we need a way to look at the problem.
+ Then we can see what the solutions are (if any), and wether we can afford
+ them in terms of processing.
+\layout Subsection
+
+Peeling vs simultaneous solutions (ignore)
+\layout Standard
+
+Traditional selfcal would solve simultaneously for all the relevant instrumental
+ parameters, independently per time-slot.
+ Usually this would be two complex gains per station (uv-plane effect),
+ or 2*N complex parameters from 4*N(N-1)/2 complex uv-data samples.
+ This is ample, even if solving for two additional complex numbers (dipole
+ errors).
+ Source parameters would be determined in the image-plane, and it was assumed
+ that all station power beams were identical and constant in time.
+\layout Standard
+
+With LOFAR, this approach would not work.
+ Only the 10 (or more) parameters per station voltage beam would already
+ exceed the number of uv-data samples per timeslot.
+ In addition, we have to solve for 10-100 MIM parameters (depending on ionospher
+ic conditions), and.
+ 
+\layout Standard
+
+Fortunately, most LOFAR parameters (no tropospheric phase?).
+ Solve for coefficients of slowly varying functions.
+\layout Standard
+
+However, the solution is often per timeslot for practical reasons.
+ Can get into trouble when attempting to solve for too many parameters per
+ timeslot, prior to smoothing the solutions in time later.
+\layout Standard
+
+This is where peeling comes in: Since it deals only with one source at a
+ time, i.e.
+ the intrumental parameters in its direction, this is equivalent to classical
+ selfcal, and will always produce an answer.
+ The only problem is contamination from other sources (see below).
+\layout Standard
+
+
+\emph on 
+Assuming these two approaches are equivalent 
+\emph default 
+(..?) in the end, peeling is the safer (and more efficient) one.
+\layout Subsection
+
+Bandwidth smearing
+\layout Subsection
+
+The effects of peeling contamination (ignore)
+\layout Standard
+
+Peeling contamination is the effect of other (fainter) sources, when we
+ assume that the brightest source is the only one in the sky.
+\layout Standard
+
+First of all, it is always possible to reduce this to arbitrary levels by
+ taking more fainter sources into account in the predict (but NOT to solve
+ for the instrumental parameters in their direction).
+ 
+\layout Standard
+
+Contamination will skew the selfcal solution for the peeling source, albeit
+ with two mitigating circumstances: The error will average out over longer
+ periods, so if we may assume that instrumental errors vary slowly, we may
+ smooth the solution in time and thus reduce the effects of contamination.
+\layout Standard
+
+Typical solving domains are long and thin in the uv-plane, i.e.
+ they are much longer in the freq direction than the time direction.
+ This means, that a particular ifr at a particular time (HA) will see contaminat
+ion from sources in one direction, but not from sources in perpendicular
+ direction, which causes multiple fringes in the freq direction.
+ Since LOFAR is a 2D array, the various baselines will have different directions
+, which will 'see' different sets of contaminating sources.
+ Moreover, the different contaminations will 'pull' the selfcal solution
+ in different directions.
+ 
+\layout Standard
+
+Summarizing: There are may things we can do about peeling contamination.
+\layout Section
+
+
 \begin_inset LatexCommand \label{sec:Engineering-requirements}
 
 \end_inset 
@@ -2132,7 +2400,8 @@ collapsed false
 
 
 \emph on 
-LOFAR engineering requirements for calibration.
+These panels offer a schematic illustration of the LOFAR engineering requirement
+s for calibration.
  Smoothness.
  Bandpass shape.
  Voltage beamshape as function of freq and time (beamformer jumps).
@@ -2149,19 +2418,41 @@ LOFAR engineering requirements for calibration.
 Limiting factors in LOFAR calibration
 \layout Standard
 
-BSR effect
+The dynamic range of LOFAR images is limited by residual instrumental errors.
+ They cause errors in the subtraction of sources.
+ Systematic errors are worse than rapidly varying errors.
+ Therfore, we should look at their 
+\emph on 
+correlation length
+\emph default 
+ in the uv-pane.
+ For instance, ionospheric phase errors are shared by all ifrs, but change
+ relatively rapidly in time.
+ Station beamshape errors only affect a subset of the ifrs, but vary very
+ slowly.
+ RFI often looks terrible in the data, but may not cause serious effects
+ in the image.
 \layout Standard
 
-Patch (predict/subtract) tiling
+There are some instrumental effects that are new to LOFAR:
 \layout Standard
 
-Facet tiling
+BSR effect.
+\layout Standard
+
+Patch (predict/subtract) tiling.
+\layout Standard
+
+Facet tiling.
+\layout Standard
+
+Etc.
 \layout Standard
 
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
@@ -2180,6 +2471,12 @@ collapsed true
 \begin_inset LatexCommand \label{cap:The-Local-Sky}
 
 \end_inset 
+
+
+\series bold 
+This picture will be replaced by a better one.
+ Read the caption.
+\layout Standard
 
 
 \emph on 
@@ -2239,10 +2536,65 @@ mechanism.
  It implements the mathematical relationship between the 6 image manifestations
  (I, Q, U, V, Ra, Dec) of a source, and its (arbitrary) parametrisation.
  It is able to predict IQUV, and solve for its parameters.
+\end_inset 
+
+
 \layout Standard
 
-Gray area: position-dependent instrumental errors....
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename all.png
+	lyxscale 50
+	width 50col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Shapelet-decomposition}
+
+\end_inset 
+
+
+\emph on 
+Shapelet decomposition is expected to play an important role.
+ At LOFAR frequencies and resolution, most sources will be more or less
+ extended.
+ They can be represented elegantly and efficiently by a (surprisingly) small
+ number of shapelet coefficients.
+ Shapelets are a set of orthogonal base functions (e.g.
+ Hermite polynomials, multiplied by gaussians), which have the desirable
+ property that they are their own Fourier Transform.
+ There are Cartesian and Polar shapelets.
+ Above, we show an input image, its shapelet coefficients and its reconstruction
+, and the difference image.
+ The number of significant coefficients may be minimised by carefully choosing
+ the origin (which is clearly not optimal here).
+\layout Standard
+
+
+\emph on 
+Shapelets will be especially useful with the bright Cat I sources that are
+ used for selfcal.
+ Not only can they deal with arbitrary source shapes efficiently, but it
+ is also possible to apply ifr-dependent image-plane effects, and to solve
+ for both source parameters and instrumental parameters.
  
+\layout Standard
+
+
+\emph on 
+Finally, shapelets provide an elegant mechanism for source extraction from
+ residual images.
 \end_inset 
 
 
@@ -2327,7 +2679,11 @@ LOFAR calibration will be very expensive in terms of processing power and
 
 Therefore, we must try to cut all possible corners in processing.
  Local intelligence in the various parts of the calibration process can
- reduce processing considerably, especially it it is done dynamically.
+ reduce processing considerably, especially it it is done 
+\emph on 
+dynamically.
+
+\emph default 
  This has to be done judiciously, since it may also have effects on the
  result.
 \layout Itemize
@@ -2339,14 +2695,28 @@ Minimize solver iterations by using solver metrics, and continuous solutions.
 Use relatively simple flagging algorithms, at multiple levels.
 \layout Itemize
 
-Minimize the subset of uv-data used for selfcal.
+Minimize the subset of uv-data used for selfcal (e.g.
+ only the longer baselines).
  
 \layout Itemize
 
-Minimize the nr of MIM terms depends on the state of the ionosphere.
+Minimize the nr of MIM terms, depending on the state of the ionosphere.
 \layout Itemize
 
 Minimize the nr of contamination sources to take into account for selfcal.
+ Only take them into account when necessary, i.e.
+ only whenever 
+\begin_inset Formula $(ul_{k}+vm_{k})$
+\end_inset 
+
+ is small.
+ Here 
+\begin_inset Formula $(l_{k},m_{k})$
+\end_inset 
+
+ is the position of the contaminating source w.r.t.
+ to the phase-centre (i.e.
+ the position of the peeling source).
 \layout Itemize
 
 Use uv-track crossing points (weak redundancy) as solver constraints.
@@ -2470,7 +2840,20 @@ WNB: Amount of work needed to extend the CS1 software to the next stage(s).
 Conclusions
 \layout Standard
 
-Tout comprendre, c'est tout pardonner....
+As stated in the introduction, LOFAR calibratability depends crucially on
+ three factors.
+ We are confident about the first, the availability of enough bright calibrator
+ sources.
+ The second, the balance between equations and parameters, is still being
+ hotly debated, and will probably be finally laid to rest by experience.
+ The third factor, the available processing power, is unlikely to be sufficient
+ for the full data-stream of which LOFAR is capable.
+ New ideas are more likely to solve this problem than bigger computers.
+ We only have to create the conditions in which such ideas can be generated,
+ and implemented.
+\layout Standard
+
+As to the achievable dynamic range.....
 \layout Bibliography
 \bibitem {JEN-nov2005}
 
@@ -2552,6 +2935,15 @@ O.M.
 
 J.E.
  Noordam: Transient Detection by Time Differencing(2006)
+\layout Bibliography
+\bibitem {key-13}
+
+A.
+ Refregier: 
+\emph on 
+Shapelets I: A Method for Image Analysis
+\emph default 
+ (MNRAS, 2001)
 \layout Bibliography
 \bibitem {key-8}
 
