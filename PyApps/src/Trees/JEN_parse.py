@@ -224,6 +224,7 @@ def find_factors (expr, level=0, trace=False):
     ncpt = 0
     n2 = 0
     has_terms = False
+    skip_char = False
     expr = deenclose(expr, '()', trace=False)    # remove enclosing brackets
     nchar = len(expr)
     key = 'mult'
@@ -244,6 +245,13 @@ def find_factors (expr, level=0, trace=False):
                 # enclosed in brackets (), taking signs into account.
                 if expr[i] in ['*','/']: n2 += 1
                 n2 = 0                           # .... disable (causes errors!)....... <--
+        elif expr[i] in ['+','-']:               # additive terms detected
+            has_terms = True                     # do NOT factorize (see below)
+            break                                # escape
+        elif skip_char:                          # skip this char
+            skip_char = False                    # reset switch (see below) 
+        elif expr[i]=='*' and expr[i+1]=='*':    # '**'     
+            skip_char = True                     # ignore this char and the next
         elif expr[i] in ['*','/']:               # end of an un-nested factor
             if ncpt>0:                           # some chars in factor
                 factor = expr[i1:i]
@@ -253,9 +261,6 @@ def find_factors (expr, level=0, trace=False):
             n2 = 0
             key = 'mult'                         # multiplicative factor
             if expr[i]=='/': key = 'div'         # divider              
-        elif expr[i] in ['+','-']:               # additive terms detected
-            has_terms = True                     # do NOT factorize (see below)
-            break                                # escape
         ncpt += 1                                # increment factor char counter
 
     # Some checks:
@@ -370,8 +375,8 @@ def find_unop (expr, trace=False):
     n = len(expr)
 
     # Make a list of unary operations and their MeqTree node names:
-    unops = ['cos','sin','tan','log','exp']
-    nodes = ['Cos','Sin','Tan','Log','Exp']
+    unops = ['cos','sin','tan','log','exp','sqrt','abs']
+    nodes = ['Cos','Sin','Tan','Log','Exp','Sqrt','Abs']
     
     for i in range(len(unops)):
         unop = unops[i]
