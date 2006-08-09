@@ -367,7 +367,8 @@ MeqPolcLog                       1549       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqPow7                         1387       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow7.h:29
 #MeqPow8                         1395       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow8.h:29
 #MeqPrivate                      1691       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Private.h:25
-#MeqPrivateFunction              1692       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivateFunction.h:30
+MeqPrivateFunction               1692       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivateFunction.h:30
+#MeqPrivFunction                 1693       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivFunction.h:31
 #MeqProduct                      1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 #MeqRandomNoise                  1384       ; from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
 #MeqReal                         1404       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
