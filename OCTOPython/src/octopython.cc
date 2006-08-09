@@ -266,11 +266,14 @@ PyMODINIT_FUNC initoctopython ()
   GetSym(hiid);
   GetSym(message);
   GetSym(record);
+  GetSym(dmilist);
   GetSym(array_class);
   GetSym(conv_error);
   GetSym(dmi_type);
   GetSym(dmi_typename);
   GetSym(dmi_coerce);
+  
+  #undef GetSym
   
   // register an exception object
   // returns new reference, so assign directly

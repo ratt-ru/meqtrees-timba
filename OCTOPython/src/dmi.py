@@ -389,6 +389,16 @@ class record (dict):
 
 make_record = type_maker(record);
 
+class dmilist (list):
+  """A dmilist() is a list that is explicitly converted into a DMI::List
+  type when passed to C++ (note that normal lists may be converted into a 
+  DMI::Vec or DMI::List depending on whether their contents are homogenous
+  or not). In all other respects this is identical to a Python list.
+  """;
+  pass;
+  
+
+
 # 
 # === class message ===
 # A message represents an OCTOPUSSY message
@@ -450,7 +460,7 @@ def is_scalar (x):
 
 # this is a map of known DMI base classes and their corresponding DMI typenames
 # subtypes may be derived from these base classes
-_dmi_baseclasses = { list:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
+_dmi_baseclasses = { dmilist:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
 
 # map of other python DMI types to DMI type names
 _dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',

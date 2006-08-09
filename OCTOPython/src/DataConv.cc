@@ -336,12 +336,14 @@ TypeId pyToDMI_Type (PyObject *obj)
     return TpDMIHIID;
   else if( PyObject_IsInstance(obj,*py_dmisyms.record) ) 
     return TpDMIRecord;
+  else if( PyObject_IsInstance(obj,*py_dmisyms.dmilist) ) 
+    return TpDMIList;
   else if( PyObject_IsInstance(obj,*py_dmisyms.array_class) )
     return TpDMINumArray;
   else if( PyObject_IsInstance(obj,*py_dmisyms.message) )
     return TpOctopussyMessage;
   else if( PySequence_Check(obj) )  // process a sequence
-    return TpDMIList;
+    return TpDMIVec;
   else // non-supported type
     return 0;
 }
@@ -465,44 +467,51 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
             objref <<= msg;
           } break;
     case TpDMIList_int:
+    // explicitly use a DMI::List if DMIList is returned; if DMIVec 
+    // is returned; then check if the sequence contains homogenous objects
+    // and use a DMI::Vec if so, or a DMI::List if not.
+    case TpDMIVec_int:
         { int len = PySequence_Size(obj);
           // for sequences of the same non-dynamic type, use a DMI::Vec
           // for all other sequences use a DMI::List
           // scan through list to determine item type
           TypeId seqtype = 0, seqbasetype;
-          bool use_list = false;
-          for( int i=0; i<len; i++ )
+          bool use_list = (objtype == TpDMIList);
+          if( !use_list )
           {
-            PyObjectRef item = PySequence_ITEM(obj,i); // new ref
-            // determine base content type based on Python type
-            TypeId basetype = pyToDMI_Type(*item);
-            if( !basetype )
+            for( int i=0; i<len; i++ )
             {
-              string type = item->ob_type->tp_name;
-              cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
-              throwError(Type,"dmi: type "+type+" not supported");
-            }
-            // actual type may be a subclass of basetype (e.g.
-            // base is DMI::Record, actual type is Meq::Result)
-            TypeId type = getDMIType(*item);
-            if( !type )
-              type = basetype;
-            // set sequence type if not set
-            if( !seqtype )
-            {
-              seqtype = type;
-              seqbasetype = basetype;
-            }
-            // dynamic types, or null objects (ObjRef), or mismatching types:
-            // use a list instead
-            // OMS 29/08/2005: removed the isDynamic() condition; objects
-            // of the same type ought to go into a DMI::Vec. Not sure why it
-            // was there in the first place
-            if( type == TpDMIObjRef || type != seqtype )
-//            if( TypeInfo::isDynamic(type) || type == TpDMIObjRef || type != seqtype )
-            {
-              use_list = true;
-              break;
+              PyObjectRef item = PySequence_ITEM(obj,i); // new ref
+              // determine base content type based on Python type
+              TypeId basetype = pyToDMI_Type(*item);
+              if( !basetype )
+              {
+                string type = item->ob_type->tp_name;
+                cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
+                throwError(Type,"dmi: type "+type+" not supported");
+              }
+              // actual type may be a subclass of basetype (e.g.
+              // base is DMI::Record, actual type is Meq::Result)
+              TypeId type = getDMIType(*item);
+              if( !type )
+                type = basetype;
+              // set sequence type if not set
+              if( !seqtype )
+              {
+                seqtype = type;
+                seqbasetype = basetype;
+              }
+              // dynamic types, or null objects (ObjRef), or mismatching types:
+              // use a list instead
+              // OMS 29/08/2005: removed the isDynamic() condition; objects
+              // of the same type ought to go into a DMI::Vec. Not sure why it
+              // was there in the first place
+              if( type == TpDMIObjRef || type != seqtype )
+  //            if( TypeInfo::isDynamic(type) || type == TpDMIObjRef || type != seqtype )
+              {
+                use_list = true;
+                break;
+              }
             }
           }
           // now, use list or vector as appropriate
@@ -686,7 +695,7 @@ PyObject * pyFromList (const DMI::List &dl)
 {
   Thread::Mutex::Lock lock(dl.mutex());
   cdebug(3)<<"pyFromList: creating\n";
-  PyObjectRef pylist = createPyObject((PyObject*)&PyList_Type,dl); // new ref
+  PyObjectRef pylist = createPyObject(*py_dmisyms.dmilist,dl); // new ref
   for( DMI::List::const_iterator iter = dl.begin(); iter != dl.end(); iter++ )
   {
     PyObjectRef item = pyFromObjRef(*iter,EP_CONV_ERROR); // new ref

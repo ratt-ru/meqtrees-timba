@@ -260,7 +260,7 @@ namespace OctoPython
   // for asinstance() comparisons)
   typedef struct 
   {
-    PyObjectRef hiid,message,record,array_class,conv_error,
+    PyObjectRef hiid,message,record,dmilist,array_class,conv_error,
                 dmi_type,dmi_typename,dmi_coerce;
   } DMISymbols;
   extern DMISymbols py_dmisyms;
