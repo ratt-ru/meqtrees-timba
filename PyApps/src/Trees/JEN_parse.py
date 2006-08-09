@@ -312,50 +312,78 @@ def find_binop (expr, trace=False):
     rr = dict(binop=None, node=None, lhs=None, rhs=None)
     n = len(expr)
 
-    # Make a list of unary operations and their MeqTree node names:
-    binops = ['pow','atan']
-    nodes = ['Pow','Atan']
-    
+    # Make a list of binary operations recognised in Python:
+    binops = ['pow','atan2','tocomplex','polar','posdiff',
+              'gaussnoise',
+              'min','max','fmod','remainder']
+
+    # The corresponding MeqNode names:
+    nodes = ['Pow','Atan2','Tocomplex','Polar','Posdiff',
+             'Gaussnoise',
+             'Min','Max','Fmod','Remainder']
+
+    # Some bunops may be unops, depending on the nr of arguments.
+    # These are recognised below.
+    bunops = ['max','min']          
+
+    # Find the binop, if any:
     for i in range(len(binops)):
         binop = binops[i]
         n1 = len(binop)+1
-        print '-',binop,n1,expr[:n1]
         if n1<=n:
             if (expr[:n1]==binop+'('):
                 rr['binop'] = binop
                 rr['node'] = nodes[i]
                 break
 
+    # Do some checks:
     if rr['binop']==None:
-        if trace: print funcname,': not an unary operation:',expr
-        return rr
-    if not expr[n-1]==')':
+        if trace: print funcname,': not a binary operation:',expr
+        if trace: print funcname,'->',rr
+        return rr                           # OK, but escape
+
+    elif not expr[n-1]==')':
         print funcname,'ERROR: last char of:',expr,' is not a closing bracket...!'
         rr['binop'] = None
         return rr
 
     # Get and check the argument string:
     nest = 0
+    has_comma = False
     k1 = len(rr['binop'])
     for k in range(k1,n):
         if expr[k]=='(':
             nest += 1
         elif expr[k]==')':
             nest -= 1
-        elif expr[k]==',':
-            if nest==1:
-                rr['lhs'] = expr[k1+1:k]      # left-hand side (1st argument)
+        if nest==1:                                # top-level of argument string
+            if expr[k]==',':                       # comma separating the arguments
+                has_comma = True
+                if k>(k1+1):                       # only if non-empty string
+                    rr['lhs'] = expr[k1+1:k]       # left-hand side (1st argument)
                 k1 = k
-    rr['rhs'] = expr[k1+1:n-1]                # right-hand side (2nd argument)
+    if (n-1)>(k1+1):                               # only if non-empty string
+        rr['rhs'] = expr[k1+1:n-1]                 # right-hand side (2nd argument)
 
+    # Check the result:
     if rr['lhs']==None:
-        print funcname,'ERROR: no second argument in:',expr
-        rr['binop'] = None
-    
-    if not nest==0:
+        if has_comma:
+            print funcname,'ERROR: empty first argument in:',expr
+        elif not rr['binop'] in bunops:            # some binops may be unops...
+            print funcname,'ERROR: no second argument in:',expr
+        elif trace:
+            print funcname,'WARNING: no second argument in:',expr,': assume unop'
+        rr['binop'] = None                         # invalid
+
+    elif rr['rhs']==None:
+        print funcname,'ERROR: empty second argument in:',expr
+        rr['binop'] = None                         # invalid
+
+    elif not nest==0:
         print funcname,'ERROR: bracket mismatch in:',expr
-        rr['binop'] = None
-    
+        rr['binop'] = None                         # invalid
+
+    # Return the record rr:
     if trace: print funcname,'->',rr
     return rr
 
@@ -374,97 +402,82 @@ def find_unop (expr, trace=False):
     rr = dict(unop=None, node=None, arg=None)
     n = len(expr)
 
-    # Make a list of unary operations and their MeqTree node names:
-    unops = ['cos','sin','tan','log','exp','sqrt','abs']
-    nodes = ['Cos','Sin','Tan','Log','Exp','Sqrt','Abs']
-    
+    # Make a list of unary operations recognised in Python:
+    unops = ['cos','sin','tan','log','log10','exp','sqrt','sqr',
+             'abs','fabs','floor','ceil','arg','norm','real','imag','conj',
+             'pow2','pow3','pow4','pow5','pow6','pow7','pow8','pow9',
+             'min','max','mean','sum','product','nelements',
+             'cosh','sinh','tanh','acos','asin','atan']
+
+    # The corresponding MeqNode names:
+    nodes = ['Cos','Sin','Tan','Log','Log10','Exp','Sqrt','Sqr',
+             'Abs','Fabs','Floor','Ceil','Arg','Norm','Real','Imag','Conj',
+             'Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8','Pow9',
+             'Min','Max','Mean','Sum','Product','Nelements',
+             'Cosh','Sinh','Tanh','Acos','Asin','Atan']
+
+    # Some unops may be binops, depending on the nr of arguments.
+    # These are recognised below.
+    bunops = ['max','min']          
+
+    # Find the unop, if any:
     for i in range(len(unops)):
         unop = unops[i]
         n1 = len(unop)+1
-        print '-',unop,n1,expr[:n1]
         if n1<=n:
             if (expr[:n1]==unop+'('):
                 rr['unop'] = unop
                 rr['node'] = nodes[i]
                 break
 
+    # Some checks:
     if rr['unop']==None:
         if trace: print funcname,': not an unary operation:',expr
-        return rr
-    if not expr[n-1]==')':
+        if trace: print funcname,'->',rr
+        return rr                          # OK, but escape
+
+    elif not expr[n-1]==')':
         print funcname,'ERROR: last char of:',expr,' is not a closing bracket...!'
         rr['unop'] = None
         return rr
 
     # Get and check the argument string:
     nest = 0
+    is_binop = False
     k1 = len(rr['unop'])
     for k in range(k1,n):
         if expr[k]=='(':
             nest += 1
         elif expr[k]==')':
             nest -= 1
-    rr['arg'] = expr[k1+1:n-1]                  # argument string
+        elif nest==1:                           # check argument string
+            if expr[k]==',':                    # has second argument
+                is_binop = True                 # assume binop
+    if (n-1)>(k1+1):                            # only if non-empty string
+        rr['arg'] = expr[k1+1:n-1]              # argument string
 
+    # Check the result:
     if not nest==0:
         print funcname,'ERROR: bracket mismatch in:',expr
-        rr['unop'] = None
-    
+        rr['unop'] = None                       # invalid
+        
+    elif rr['arg']==None:
+        print funcname,'ERROR: empty argument in:',expr
+        rr['unop'] = None                       # invalid
+        
+    elif is_binop:                              # 2nd argument detected
+        if not rr['unop'] in bunops:        
+            print funcname,'ERROR: illegal second argument in:',expr
+        elif trace:
+            print funcname,'WARNING: found second argument in:',expr,': assume binop'
+        rr['unop'] = None                       # invalid
+
+    # Return the record rr:
     if trace: print funcname,'->',rr
     return rr
 
 
 
-#----------------------------------------------------------------------------
-# Not used, because .....
-#----------------------------------------------------------------------------
-    
-def find_unary (expr, test=False, trace=False):
-    """Find unary functions (e.g. cos(...)) in the given expr string.
-    Return them as fields (lists) in a record: rr['cos'] = ['a+b', 'c']"""
-    if trace: print '\n** .find_unary(',expr,'):'
-
-    # Make a list of unary operations
-    unops = ['cos','sin','tan']
-    unops.extend(['log','exp'])
-    
-    rr = dict()
-    n = len(expr)
-    for unop in unops:                                  # for all unary ops
-        k2 = 0
-        count = 0
-        while k2<n:
-            count += 1
-            if count>5: break
-            k1 = k2 + expr[k2:].find(unop+'(')          # e.g. look for 'cos('
-            if k1<k2:                                  # not found
-                k2 = n
-            else:
-                nest = 0
-                k1 += len(unop)
-                for k2 in range(k1,n):
-                    if expr[k2]=='(':
-                        nest += 1
-                    elif expr[k2]==')':
-                        nest -= 1
-                        if nest==0:
-                            rr.setdefault(unop,[])
-                            argstr = expr[(k1+1):k2]   # argument string
-                            if not rr[unop].__contains__(argstr):
-                                rr[unop].append(argstr)
-                                if trace: print '- unop:',unop,':',rr[unop]
-                            break
-                if not nest==0:
-                    print 'ERROR: bracket mismatch in:',expr[k1:]
-    if test:
-        # Replacement test:
-        for key in rr.keys():
-            for s in rr[key]:
-                ss = key+'('+s+')'
-                expr = expr.replace(ss,'{_'+key+'()}')
-                print '- replace:',ss,':',expr
-    if trace: print '  ->',rr
-    return rr
     
 
 
@@ -482,20 +495,22 @@ if __name__ == '__main__':
             print '- isinstance(',x,type(x),', NUMERIC_TYPES) ->',tf
 
     if 0:
-        find_unary('cos(a+b)', test=True, trace=True)
-        find_unary('cos(a+b)+sin(b)*cos(a+c)', test=True, trace=True)
-        find_unary('cos(a+b*sin(qq*exp()))', test=True, trace=True)
-
-    if 0:
         find_unop('cos(a+b)', trace=True)
         find_unop('sin(a+b) ', trace=True)
         find_unop('exp()', trace=True)
         find_unop('xxx()', trace=True)
+        find_unop('max(a)', trace=True)
+        find_unop('max(a,b)', trace=True)
 
     if 1:
         find_binop('atan(a,b)', trace=True)
+        find_binop('atan2(a,b)', trace=True)
         find_binop('pow(a,b)', trace=True)
         find_binop('pow(a)', trace=True)
+        find_binop('max(a)', trace=True)
+        find_binop('max(a,b)', trace=True)
+        find_binop('max(,b)', trace=True)
+        find_binop('max(a,)', trace=True)
 
     if 0:
         find_terms('{r}*{b}', trace=True)
