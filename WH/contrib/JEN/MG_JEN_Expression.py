@@ -82,21 +82,24 @@ def _define_forest (ns):
          # expr = '12+{a}*[f]-{b}'
          # expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]*[f]'
          # expr = 'pow({d},[t])'                 # NB: pow() is unkown in Python.... 
-         # expr = 'tan({a})'                     # NB: tan() is unkown in Python.... 
          # expr = 'log({a})'                     # NB: difference: 10/e
          expr = 'sqrt({a})'                      # OK
          expr = 'cos({a})'                       # OK ...? Why not tan()?
          expr = 'abs({c})'                       # OK
+         expr = 'tan({a})'                     # NB: tan() is unkown in Python.... 
          expr = '{a}*sin({b}+{c}*cos({d}*[t]))/[f]'
          Q = TDL_Expression.Expression(expr, label='Q')   # create expression
          Q.parm('a',2)                         # modify the default value of parm {a}
          Q.parm('b',100)                       # modify the default value of parm {b}
 
-      c1 = Q.MeqNode(ns)                       # creates a Funklet or Functional 
-      c2 = Q.subTree(ns)                       # creates a multi-node subtree
-      diff = ns.diff << Meq.Subtract(c1,c2)
-      cc.append(diff)
-      JEN_bookmarks.create([c1,c2,diff], page='compare')
+      if False:
+         node = Q.subTree(ns, diff=True) 
+         cc.append(node)
+         JEN_bookmarks.create(node, recurse=1, page=None)
+      else:
+         node = Q.subTree(ns, solve=True) 
+         cc.append(node)
+         JEN_bookmarks.create(node, recurse=2, page=None)
 
       if False:
          # Optional: Plot the Funklet derived from Expression Q: 

@@ -10,6 +10,7 @@
 # - 12 mar 2006: .get_bookpage()
 # - 20 mar 2006: revamped (especially including folders)
 # - 25 mar 2006: separated the semi-obsolete functions
+# - 09 aug 2006: inplement recurse argument in .create()
 
 
 # Copyright: The MeqTree Foundation 
@@ -29,10 +30,27 @@ from copy import deepcopy
 
 #===============================================================================
 
+def family (fam=[], node=None, recurse=0, nmax=9):
+    """Recursive function to extract the family from the given node,
+    i.e. a list if the node itself and its multi-generation offspring."""
+    ncc = len(node.children)                       # nr of offspring
+    # First the children:
+    for i in range(len(node.children)):
+        if len(fam)<nmax:
+            fam.append(node.children[i][1])
+    # Then recurse to get grandchildren:
+    if recurse>1:
+        for i in range(len(node.children)):
+            if len(fam)<nmax:
+                family (fam, node.children[i][1], recurse=recurse-1, nmax=nmax)
+    return True
+
+#------------------------------------------------------------------------------
 
 def create (node=None, name=None, udi=None, viewer='Result Plotter',
+            recurse=0,
             save=True, page=None, folder=None, perpage=6, trace=False):
-    """Create a forest_state bookmark for the given node.
+    """Create a forest_state bookmark for the given node(s).
     - viewer = 'Result Plotter'   (default)
     - viewer = 'History Plotter'
     - viewer = 'ParmFiddler'
@@ -43,10 +61,24 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
     If save==True (default), the bookmark will automatically be inserted
     in the specified page/folder, creating the latter if necessary. 
     NB: This is the only bookmark function that is needed normally.
-    If node is a list (of nodes), make pages of multiple bookmarks.""" 
+    If node is a list (of nodes), make page(s) of multiple bookmarks.
+    If recurse>0, make a page of the node and its children etc.
+    """ 
+
+    #------------------------------------------------------------------
+    # If recurse>0, make a list of the node and its children
+
+    if not isinstance(node, (list, tuple)):
+        if recurse>0:
+            if page==None:                                 # automatic pagename
+                page = 'family of: '+node.name
+            fam = [node]
+            family (fam, node, recurse=recurse, nmax=9)
+            node = fam                                     # replace with list
 
     #------------------------------------------------------------------
     # If node is a list, make multiple bookmarks:
+
     if isinstance(node, (list, tuple)):
         if len(node)>4:
             if not isinstance(folder, str): folder = '** AUTO_GROUPS **'

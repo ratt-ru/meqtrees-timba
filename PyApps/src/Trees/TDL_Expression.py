@@ -1732,7 +1732,7 @@ class Expression:
 
     #--------------------------------------------------------------------------
 
-    def subTree (self, ns, expand=True, trace=False):
+    def subTree (self, ns, expand=True, diff=False, solve=False, trace=False):
         """Make a subtree of separate nodes from self.__expression"""
 
         trace = True
@@ -1761,7 +1761,6 @@ class Expression:
         # The original Expression object is NOT modified:
         # if trace: self.display('original object, should be unchanged')
 
-        # Return the root node of the generated subtree:
         if trace:
             f0 = self.Funklet()
             print '\n** expressions:'
@@ -1771,6 +1770,30 @@ class Expression:
             else:
                 print '- self:    ',self.__expression
             print '- copy:    ',copy.__expression
+
+        # Optional, extend the subtree (node) with a subtract, for comparison:
+        if diff:
+            f0 = self.MeqNode(ns)                       # creates a Funklet or Functional 
+            name = 'subTree_diff_'+self.label()
+            diff = ns[name] << Meq.Subtract(f0,node)
+            return diff
+
+        # Optional, extend the subtree (node) with a solver, for comparison:
+        elif solve:
+            # NB: .perturb()..... (copy)
+            # if isinstance(solve, bool): solve='subtree'
+            f0 = self.MeqNode(ns)                       # creates a Funklet or Functional 
+            name = 'subTree_condeq_'+self.label()
+            condeq = ns[name] << Meq.Condeq(f0,node)
+            solvable = self.MeqParms(ns, trace=True)    # <--- solve for funklet/Functional
+            # solvable = copy.MeqParms(ns, trace=True)    # <--- solve for subtree MeqParms
+            name = 'subTree_solver_'+self.label()
+            solver = ns[name] << Meq.Solver(children=[condeq],
+                                            num_iter=5,
+                                            solvable=solvable)
+            return solver
+
+        # Return the root node of the generated subtree:
         return node
 
     #--------------------------------------------------------------------------
