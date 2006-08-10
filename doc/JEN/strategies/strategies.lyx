@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.82: 7 Aug 2006}  % Date of Issue (
+theDOIssue}{Version 0.832: 13 Aug 2006}  % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -365,6 +365,16 @@ hspace{0.5cm} J. D.
 \backslash 
 
 \layout Standard
+
+\backslash 
+hspace{0.5cm} J. P.
+\backslash 
+ Hamaker 
+\backslash 
+
+\backslash 
+
+\layout Standard
 }
 \layout Standard
 % Define the Document Revision Table:
@@ -517,6 +527,14 @@ A step-by-step outline of the proposed LOFAR calibration strategies for
  Its purpose is to forge full mutual understanding, and a measure of agreement,
  before the LOFAR Critical Design Review (II) planned for November 2006.
  
+\layout Abstract
+
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
 \layout Standard
 
 
@@ -622,6 +640,8 @@ The available processing power.
  
 \layout Standard
 
+
+\series bold 
 The biggest difference with earlier instruments is the prevalence of 
 \emph on 
 image-plane effects
@@ -680,6 +700,12 @@ and beyond).
  
 \layout Standard
 
+Another document will be needed as input to the LOFAR software implementation
+ team.
+ The existence of a working prototype (the MeqTree system) will certainly
+ help in this process.
+\layout Standard
+
 It will be assumed that the reader is thoroughly familiar with the concepts
  involved, as explained in various earlier documents, especially the Calibration
  Strategy
@@ -696,15 +722,15 @@ It will be assumed that the reader is thoroughly familiar with the concepts
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
 	filename lofar_calib.ps
-	lyxscale 50
-	width 50col%
+	lyxscale 60
+	width 60col%
 
 \end_inset 
 
@@ -735,8 +761,8 @@ collapsed true
 
 \begin_inset Graphics
 	filename lofar_sensit.ps
-	lyxscale 50
-	width 50col%
+	lyxscale 60
+	width 60col%
 
 \end_inset 
 
@@ -792,6 +818,56 @@ Other?
 
 We know all this, of course.
  But will it happen?
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:LOFAR:-The-challenge}
+
+\end_inset 
+
+LOFAR: The challenge
+\layout Standard
+
+Brief description of the LOFAR instrument.
+ Refer to ADD.
+\layout Standard
+
+List of challenges (numbers!)
+\layout Standard
+
+Dynamic range (AGB) 10.000
+\layout Standard
+
+PSF sidelobe level
+\layout Standard
+
+ionosphere: max 1rad/10s (Cambridge 1983)
+\layout Standard
+
+Voltage beamshape sidelobe level, stability
+\layout Standard
+
+Bandpass smoothness, stability
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Station-calibration}
+
+\end_inset 
+
+Station calibration
+\layout Standard
+
+Refer to document by Stefan Wijnholds.
+ 
+\layout Standard
+
+Determination and dividing out of electronic bandpass (time-scale).
+ Slow variations.
+\layout Standard
+
+Determination of initial values for the voltage beamshape.
+ 
 \layout Section
 
 
@@ -1156,8 +1232,8 @@ collapsed true
 
 \begin_inset Graphics
 	filename voltage_beam.eps
-	lyxscale 59
-	width 50col%
+	lyxscale 70
+	width 70col%
 
 \end_inset 
 
@@ -1396,7 +1472,9 @@ domain,
  Each domain is subdivided in cells, for which the trees generate values.
  The domain resolution is determined by the available data (e.g.
  1 s, 10 kHz), but can be changed by resampling.
- 
+ There is an optimum domain size (~ a minute).
+ Domains tend to be radial, i.e.
+ longer in the freq direction than the time direction.
 \layout Itemize
 
 Information about all the relevant sources for a particular observation
@@ -1442,7 +1520,7 @@ Peeling.
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -1598,9 +1676,13 @@ NB: Flags affect the weights of the uv-data samples, and their uv-coordinates...
 \series bold 
 Ionospheric phase tracking:
 \series default 
- Keep the ionospheric phase errors within a radian, by solving for the linear
- component of the MIM.
- Use one or more bright calibrators in the field, as required by the ionospheric
+ Keep the ionospheric phase errors within a radian, by solving for the MIM
+ parameters.
+ There are two possibilities:
+\begin_deeper 
+\layout Enumerate
+
+Use one or more bright calibrators in the field, as required by the ionospheric
  conditions, and the size of the array relative to the size of the 'footprint'
  of the FOV at the altitude of the ionosphere.
  The calibrator sources should be bright enough to give 
@@ -1614,6 +1696,13 @@ Ionospheric phase tracking:
 .
  Q: Does this imply a simultaneous solution? What about the nr of domain
  cells?
+\layout Enumerate
+
+Use a small part of the integration time to swith beams to observe a number
+ of bright sources in the sky.
+ Since the sources are in the main lobe, there are no phase ambiguities
+ associated with far side-lobes.
+\end_deeper 
 \layout Subsection
 
 The Major Cycle 
@@ -1741,7 +1830,7 @@ Large-scale variations (f,t) of the IF bandpasses.
 
 
 \series bold 
-Estimation of the Faraday Rotation Measure
+[Estimation of the Faraday Rotation Measure]
 \series default 
  (RM) of a few 1-10 mJy sources with known linear polarisation.
  The result is the sum of the intrinsic RM of the source (e.g.
@@ -1812,7 +1901,7 @@ Since sources have to be predicted/subtracted at full (f,t) resolution,
 
 
 \series bold 
-Estimation of ifr-based errors:
+[Estimation of ifr-based errors]:
 \series default 
  Multiplicative and/or additive.
  They violate the socalled 'selfcal-condition', which requires that all
@@ -1929,14 +2018,15 @@ residual images
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
 	filename calib_flow.eps
-	width 100col%
+	lyxscale 80
+	width 80col%
 
 \end_inset 
 
@@ -1983,6 +2073,9 @@ ed in either domain, and subtracted in the uv-plane.
 
 \layout Section
 
+A day in the life of LOFAR
+\layout Section
+
 
 \begin_inset LatexCommand \label{sec:KSG:-Surveys}
 
@@ -2023,6 +2116,12 @@ Will need a few extra passes (i.e.
  EOR from the residuals.
  The latter will probably make use of differential methods in frequency.
  Thus, the requirement on calibration becomes consistency rather than perfection.
+\layout Standard
+
+NB: AGB insists on rapid beam-switching towards bright sources for ionosphere
+ calibration.
+ This should certainly be considered.
+ However, it may take 10s to reconfigure Blue Gene....
 \layout Section
 
 
@@ -2120,6 +2219,15 @@ Other Key Science Groups
 Cosmic rays: 
 \series default 
 Has its own calibration scheme.
+ However, needs a gain curve per station, from station calibration.
+ 
+\layout Itemize
+
+
+\series bold 
+Imaging lightning 
+\series default 
+(by cosmic ray KSG)?
 \layout Itemize
 
 
@@ -2157,6 +2265,10 @@ Cat I selfcal
 \series bold 
 This is one of the most important chapters, because it deals with the question
  whether we can solve for the necessary parameters.
+\layout Standard
+
+Give time-scales: MIM (10s), higher order terms of beamshapes (10 min, limited
+ by analog beamformer jumps), other?
 \layout Standard
 
 Given an array of 
@@ -2325,6 +2437,32 @@ ion from sources in one direction, but not from sources in perpendicular
 \layout Standard
 
 Summarizing: There are may things we can do about peeling contamination.
+\layout Section
+
+Imaging and Cat III deconvolution
+\layout Standard
+
+Facet imaging.
+ Associated tiling residuals (also from LSM patches)
+\layout Standard
+
+Influence of rotating elliptical voltage beams on Cat III deconvolution.
+ Should we insist on circular beams (JPH), and accept the loss in sensitivity?
+ Or is there a comprimise between these extremes?
+\layout Standard
+
+Combine CLEAN with shapelet decomposition (OMS)? Does this offer a way to
+ determine the PSF as a function of position, without assuming point sources?
+\layout Standard
+
+Mosaicing in position, freq and time.
+\layout Standard
+
+Differential schemes in time and freq (and pos?)
+\layout Standard
+
+Mosaicing is greatly helped by a common LSM/GSM, and joint calibration over
+ multiple spectral windows.
 \layout Section
 
 
@@ -2668,7 +2806,7 @@ Solver metrics (chisq)
 
 \end_inset 
 
-Cutting corners
+Cutting corners (suggested optimisations)
 \layout Standard
 
 LOFAR calibration will be very expensive in terms of processing power and
@@ -2811,25 +2949,6 @@ The development of the various LOFAR calibration strategies will require
  As soon as their BBS counterparts are ready, they can be tested with simulated
  data generated by the other system.
  
-\layout Section
-
-
-\begin_inset LatexCommand \label{sec:Core-Station-1}
-
-\end_inset 
-
-Core Station 1 (CS1)
-\layout Standard
-
-Description of CS1.
-\layout Standard
-
-Plans for CS1 calibration.
- 
-\layout Standard
-
-WNB: Amount of work needed to extend the CS1 software to the next stage(s).
- Hooks that are needed for this.
 \layout Section
 
 
