@@ -769,19 +769,19 @@ class QwtImageDisplay(QwtPlot):
               submenu.insertItem(menu_labels[i], menu_id)
               insertion = True
             if not i in perturbations and not outside_perturbations:
-              vells_menu.insertItem('perturbed values ', submenu)
+              vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
               outside_perturbations = True
               perturbations_index = perturbations_index + 1
               if perturbations_index < len(menu_data[1]):
                 perturbations = menu_data[1][perturbations_index]
             if i in perturbations and i == self.vells_menu_items - 1:
-              vells_menu.insertItem('perturbed values ', submenu)
+              vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
           if not insertion:
             vells_menu.insertItem(menu_labels[i], menu_id)
           menu_id = menu_id + 1
 # add Vells menu to context menu
       toggle_id = self.menu_table['Change Vells']
-      self._menu.insertItem('Change Selected Vells ', vells_menu, toggle_id)
+      self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', vells_menu, toggle_id)
 
     def setSpectrumMenuItems(self, menu_labels):
       """ add items specific to selection of Spectra to context menu """
@@ -2602,7 +2602,7 @@ class QwtImageDisplay(QwtPlot):
 
 # add zoomer and printer stuff
         toggle_id = self.menu_table['Reset zoomer']
-        self._menu.insertItem("Reset zoomer", toggle_id)
+        self._menu.insertItem(pixmaps.viewmag.iconset(), "Reset zoomer", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         printer = QAction(self);
         printer.setIconSet(pixmaps.fileprint.iconset());
