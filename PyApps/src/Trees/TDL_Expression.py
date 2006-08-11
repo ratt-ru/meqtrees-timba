@@ -173,7 +173,7 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def _reset (self, nominal=True, recurse=True):
+    def _reset (self, nominal=True, recurse=True, stddev=None):
         """Reset the object to its original state."""
         self.__quals = dict()
         self.__plotrec = None
@@ -199,15 +199,25 @@ class Expression:
                 pass
             elif nominal:
                 rr['default'] = rr['nominal']
+            elif not stddev==None:
+                # Use the specified stddev, rather than the parms own one:
+                rr['default'] = random.gauss(rr['nominal'], stddev*rr['scale'])
             elif rr['stddev']>0:
                 # See .quals(). Note that stddev is given a a fraction (e.g. 0.1)
                 # of the 'scale' of the parameter value. This allows specification
                 # of the scatter in relative terms.
-                rr['default'] = gauss(rr['nominal'], rr['stddev']*rr['scale'])
+                rr['default'] = random.gauss(rr['nominal'], rr['stddev']*rr['scale'])
             else:
                 rr['default'] = rr['nominal']
         return True
     
+    #----------------------------------------------------------------------------
+
+    def perturb(self, stddev=0.1, trace=False):
+        """Perturb the numerical parameters with the specified stddev"""
+        self._reset(nominal=False, stddev=stddev)
+        return True
+
     #----------------------------------------------------------------------------
 
     def copy(self, label=None, descr=None, quals=None):
@@ -1780,16 +1790,23 @@ class Expression:
 
         # Optional, extend the subtree (node) with a solver, for comparison:
         elif solve:
-            # NB: .perturb()..... (copy)
             # if isinstance(solve, bool): solve='subtree'
-            f0 = self.MeqNode(ns)                       # creates a Funklet or Functional 
+            if True:
+                self.display('before perturb')
+                self.perturb(stddev=0.1)
+                self.display('after perturb')
+                solvable = self.MeqParms(ns, trace=True)    # <--- solve for funklet/Functional
+            else:
+                copy.display('before perturb')
+                copy.perturb(stddev=0.1)
+                copy.display('after perturb')
+                solvable = copy.MeqParms(ns, trace=True)    # <--- solve for subtree MeqParms
+            f0 = self.MeqNode(ns)                           # creates a Funklet or Functional 
             name = 'subTree_condeq_'+self.label()
             condeq = ns[name] << Meq.Condeq(f0,node)
-            solvable = self.MeqParms(ns, trace=True)    # <--- solve for funklet/Functional
-            # solvable = copy.MeqParms(ns, trace=True)    # <--- solve for subtree MeqParms
             name = 'subTree_solver_'+self.label()
             solver = ns[name] << Meq.Solver(children=[condeq],
-                                            num_iter=5,
+                                            num_iter=20,
                                             solvable=solvable)
             return solver
 
@@ -1808,7 +1825,8 @@ class Expression:
             subex = self.subExpression(rr['arg'], label=rr['unop']+'_arg')
             if trace: print subex.oneliner()
             node = subex.factors2node (ns, level=level+1, trace=trace)
-            node = ns << getattr(Meq,rr['node'])(node)
+            name = rr['unop']+'(..)'
+            node = ns[name] << getattr(Meq,rr['node'])(node)
         else:
             rr = JEN_parse.find_binop(self.__expression, trace=trace)
             if isinstance(rr['binop'], str):
@@ -1818,7 +1836,8 @@ class Expression:
                 if trace: print rhs.oneliner()
                 lhs_node = lhs.factors2node (ns, level=level+1, trace=trace)
                 rhs_node = rhs.factors2node (ns, level=level+1, trace=trace)
-                node = ns << getattr(Meq,rr['node'])(lhs_node,rhs_node)
+                name = rr['binop']+'(..,..)'
+                node = ns[name] << getattr(Meq,rr['node'])(lhs_node,rhs_node)
         return node
 
     #--------------------------------------------------------------------------
@@ -1860,16 +1879,20 @@ class Expression:
                 elif len(cc[key])==1:                   # one node: keep it
                     cc[key] = cc[key][0]
                 else:                                   # more than one: MeqAdd
-                    cc[key] = ns << Meq.Add(children=cc[key])
+                    node = self._unique_node (ns, 'Expr_add(..)', qual=None)
+                    node << Meq.Add(children=cc[key])
+                    cc[key] = node                      # used below 
             # Subtract the negative from the positive:
             node = None
             if cc['pos']==None:
                 if not cc['neg']==None:
-                    node = ns << Meq.Negate(cc['neg'])
+                    node = self._unique_node (ns, 'Expr_negate(..)', qual=None)
+                    node = ns[name] << Meq.Negate(cc['neg'])
             elif cc['neg']==None:
                 node = cc['pos']
             else:
-                node = ns << Meq.Subtract(cc['pos'],cc['neg'])
+                node = self._unique_node (ns, 'Expr_subtract(..)', qual=None)
+                node = ns[name] << Meq.Subtract(cc['pos'],cc['neg'])
 
         # Return the root node of the resulting subtree:
         return node
@@ -1911,16 +1934,20 @@ class Expression:
                 elif len(cc[key])==1:                   # one node: keep it
                     cc[key] = cc[key][0]
                 else:                                   # more than one: MeqAdd
-                    cc[key] = ns << Meq.Multiply(children=cc[key])
+                    node = self._unique_node (ns, 'Expr_multiply(..)', qual=None)
+                    node << Meq.Multiply(children=cc[key])
+                    cc[key] = node                      # used below
             # Subtract the negative from the positive:
             node = None
             if cc['mult']==None:
                 if not ncc['div']==None:
-                    node = ns << Meq.Inverse(cc['div'])
+                    node = self._unique_node (ns, 'Expr_inverse(..)', qual=None)
+                    node << Meq.Inverse(cc['div'])
             elif cc['div']==None:
                 node = cc['mult']
             else:
-                node = ns << Meq.Divide(cc['mult'],cc['div'])
+                node = self._unique_node (ns, 'Expr_divide(..)', qual=None)
+                node << Meq.Divide(cc['mult'],cc['div'])
 
         # Return the root node of the resulting subtree:
         return node
