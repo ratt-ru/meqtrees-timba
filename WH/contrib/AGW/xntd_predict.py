@@ -70,6 +70,7 @@ def create_source_model(tablename=''):
 #                   Iorder=0, ra=0.030543262, dec=-.85521133,
 #                   Iorder=0, ra=0.030543262, dec=-.82030475,  #pos = 7m, -47deg
                     Iorder=0, ra=0.030543262, dec=-.83775804,  #pos = 7m, -48deg
+#                   Iorder=0, ra=0.030543262, dec=-.80285146,  #pos = 7m, -46deg
                     table=tablename))
 
     return source_model
@@ -257,7 +258,7 @@ def forest_clean_predict_trees(ns, source, station_list):
         without any corruption 
     """    
     for station in station_list:
-# first define CLAR beam parameters (power pattern) for this station
+# first define beam parameters (power pattern) for this station
 # and source (note: the results of the following function call
 # are used in the forest_baseline_predict_trees function
       sta_source_dft_tree(ns, station, source)
@@ -376,7 +377,7 @@ def create_constant_nodes(ns):
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
 
-# create constant parameters for CLAR beam nodes
+# create constant parameters for beam nodes
 # eventually these should be a function of frequency
 # HPBW of 1 deg = 0.0174532 rad; 57.29578 = 1 / 0.0174532 
     ns.width_l << Meq.Constant(57.2957795)
@@ -385,8 +386,9 @@ def create_constant_nodes(ns):
 #   ns.width_m << Meq.Constant(28.5)
     ns.width_l_sq <<Meq.Sqr(ns.width_l)
     ns.width_m_sq <<Meq.Sqr(ns.width_m)
-    ns.feed_offset << Meq.Constant(0.052359878)  # offset of 3 deg in Elevation
-#   ns.feed_offset << Meq.Constant(0.017453293)  # offset of 1 deg in Elevation
+    ns.feed_offset << Meq.Constant(0.052359878) # offset of 3 deg in Elevation
+#   ns.feed_offset << Meq.Constant(0.043633231) # offset of 2.5 deg in Elevation
+#   ns.feed_offset << Meq.Constant(0.017453293) # offset of 1 deg in Elevation
 #   ns.feed_offset << Meq.Constant(0.0)  
 
 # creates source-related nodes for a given source
@@ -456,7 +458,7 @@ def create_station_subtrees(ns,st):
 def sta_source_dft_tree(ns, st,src):
 # builds an init-record for a "dft" tree for one station (st)
 #
-# we first build up the mathematical expression of a CLAR voltage
+# we first build up the mathematical expression of a voltage
 # pattern for a source using the equations
 # log16 =  (-1.0) * log(16.0)
 # L,M give direction cosines of the source wrt field centre in
@@ -476,7 +478,7 @@ def sta_source_dft_tree(ns, st,src):
   ns.l_azel(st,src.name) << Meq.Selector(ns.lmn_azel(st,src.name),index=0)
   ns.m_azel(st,src.name) << Meq.Selector(ns.lmn_azel(st,src.name),index=1)
 			    
-  # compute CLAR voltage gain as seen for this source at this station
+  # compute voltage gain as seen for this source at this station
   # first square L and M
   ns.l_sq(st,src.name) << Meq.Sqr(ns.l_azel(st,src.name))
   ns.m_sq(st,src.name) << Meq.Sqr(ns.m_azel(st,src.name))
@@ -581,10 +583,10 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_clar_predict(mqs,parent,write=True):
-    msname          = 'TEST_XNTD_30_480.MS'
+def _tdl_job_xntd_predict(mqs,parent,write=True):
+    msname          = 'TEST_XNTD_30_960.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=480)
+    inputrec        = create_inputrec(msname, tile_size=960)
     outputrec       = create_outputrec()
     print 'input record ', inputrec
     print 'output record ', outputrec
@@ -607,7 +609,7 @@ def _define_forest(ns):
 # define default field centre
     create_common_nodes(ns)
 
-# create constant value nodes for CLAR
+# create constant value nodes for simulation
     create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
@@ -624,7 +626,7 @@ def _define_forest(ns):
         forest_source_subtrees(ns, source)
         pass
         
-    mep_table_name      = 'CLAR.mep'
+    mep_table_name      = 'xNTD.mep'
     for station in station_list:
 # first create nodes used to calculate AzEl of field centre 
 # as seen from a specific station
@@ -636,7 +638,7 @@ def _define_forest(ns):
       pass
         
     for source in source_model:
-# First, compute CLAR beam parameters (power pattern) for all 
+# First, compute beam parameters (power pattern) for all 
 # stations and source. 
 # Then compute uncorrupted visibilities for the source as seen by each
 # baseline pair
