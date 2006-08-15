@@ -162,8 +162,9 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     mysim.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
     mysim.setauto(autocorrwt=0.0);
 
-    starttime:=-14400.0;
-    scanlength:=28800.0
+    starttime:=-2880.0;
+    scanlength:=5760.0
+
     scan:=1;
     while(starttime<14400) {
       mysim.observe('test_image', 'SKA',
@@ -202,4 +203,4 @@ mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
-simms('TEST_XNTD_30_480.MS','mymodel.cl', ,noise='0.1Jy');
+simms('TEST_XNTD_30_960.MS','mymodel.cl', ,noise='0.1Jy');
