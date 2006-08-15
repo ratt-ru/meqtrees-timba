@@ -12,34 +12,15 @@ import os
 Settings.forest_state = record(bookmarks=[
   record(name='Predicts',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_3",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_3",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
-#   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
-#   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ]), \
-  record(name='Phase solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EA:11:src_1:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-  ]),
-#  record(name='Gain solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JA:2:centre:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JA:2:edge:11",pos=(0,1)),
-#    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-#  ])
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/predict:10:20",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/predict:21:30",pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/predict:1:30",pos=(2,2)),
+  ]), 
 ]);
 
 class PointSource:
@@ -600,7 +581,7 @@ def publish_node_state(mqs, nodename):
 def _tdl_job_xntd_predict(mqs,parent,write=True):
     msname          = 'TEST_XNTD_30_960.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=15)
+    inputrec        = create_inputrec(msname, tile_size=48)
     outputrec       = create_outputrec()
     print 'input record ', inputrec
     print 'output record ', outputrec
