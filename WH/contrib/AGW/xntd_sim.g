@@ -166,7 +166,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     scanlength:=5760.0
 
     scan:=1;
-    while(starttime<14400) {
+    while(starttime<2880) {
       mysim.observe('test_image', 'SKA',
 		    starttime=spaste(starttime, 's'),
 		    stoptime=spaste(starttime+scanlength,'s'));
