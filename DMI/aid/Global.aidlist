@@ -366,9 +366,9 @@ MeqPolcLog                       1549       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqPow6                         1445       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow6.h:29
 #MeqPow7                         1387       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow7.h:29
 #MeqPow8                         1395       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow8.h:29
-#MeqPrivate                      1691       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Private.h:25
+MeqPrivate                       1691       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Private.h:25
 MeqPrivateFunction               1692       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivateFunction.h:30
-#MeqPrivFunction                 1693       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivFunction.h:31
+MeqPrivFunction                  1693       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivFunction.h:31
 #MeqProduct                      1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 #MeqRandomNoise                  1384       ; from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
 #MeqReal                         1404       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
@@ -379,6 +379,7 @@ MeqRequest                       1357       ; from /home/oms/LOFAR/Timba/MEQ/src
 MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src/Result.h:34
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
+#MeqShapeletVisTf                1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
 #MeqSin                          1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 #MeqSinh                         1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
 MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
