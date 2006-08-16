@@ -1715,7 +1715,8 @@ class Expression:
         if index<0:
             print '\n** .subExpression(',substring,'): not found in:',self.__expression,'\n'
             return False
-        e1 = Expression(substring, label, descr='subExpression from: '+self.tlabel())
+        e1 = Expression(substring, label,
+                        descr='subExpression from: '+self.tlabel())
         for key in e1.__parm.keys():
             parm = self.__parm[key]
             # NB: Turn this into a routine .replace_parmdef().....
@@ -1728,7 +1729,6 @@ class Expression:
                     e1.__parmtype['Funklet'].append(key)
             elif isinstance(parm, dict):
                 if parm.has_key('node'):
-                # if isinstance(default, Timba.TDL.TDLimpl._NodeStub):
                     if not key in e1.__parmtype['MeqNode']:
                         e1.__parmtype['MeqNode'].append(key)
             if trace: print '- copy parm[',key,']:',e1.__parm[key]
@@ -1802,9 +1802,9 @@ class Expression:
                 copy.display('after perturb')
                 solvable = copy.MeqParms(ns, trace=True)    # <--- solve for subtree MeqParms
             f0 = self.MeqNode(ns)                           # creates a Funklet or Functional 
-            name = 'subTree_condeq_'+self.label()
+            name = 'Expr_'+self.label(strip=True)+'_subTree_condeq'
             condeq = ns[name] << Meq.Condeq(f0,node)
-            name = 'subTree_solver_'+self.label()
+            name = 'Expr_'+self.label(strip=True)+'_subTree_solver'
             solver = ns[name] << Meq.Solver(children=[condeq],
                                             num_iter=20,
                                             solvable=solvable)
@@ -1820,13 +1820,14 @@ class Expression:
         in self.__expression into a node, i.e. a root node of a subtree"""
         if trace: print '**** .bunop2node(',level,'):',self.tlabel()
         node = None
+        name = 'Expr_'+self.label(strip=True)+'_'
         rr = JEN_parse.find_unop(self.__expression, trace=trace)
         if isinstance(rr['unop'], str):
             subex = self.subExpression(rr['arg'], label=rr['unop']+'_arg')
             if trace: print subex.oneliner()
-            node = subex.factors2node (ns, level=level+1, trace=trace)
-            name = rr['unop']+'(..)'
-            node = ns[name] << getattr(Meq,rr['node'])(node)
+            arg_node = subex.factors2node (ns, level=level+1, trace=trace)
+            node = self._unique_node (ns, name+rr['unop']+'(..)')
+            node << getattr(Meq,rr['node'])(arg_node)
         else:
             rr = JEN_parse.find_binop(self.__expression, trace=trace)
             if isinstance(rr['binop'], str):
@@ -1836,8 +1837,8 @@ class Expression:
                 if trace: print rhs.oneliner()
                 lhs_node = lhs.factors2node (ns, level=level+1, trace=trace)
                 rhs_node = rhs.factors2node (ns, level=level+1, trace=trace)
-                name = rr['binop']+'(..,..)'
-                node = ns[name] << getattr(Meq,rr['node'])(lhs_node,rhs_node)
+                node = self._unique_node (ns, name+rr['binop']+'(..)')
+                node << getattr(Meq,rr['node'])(lhs_node,rhs_node)
         return node
 
     #--------------------------------------------------------------------------
@@ -1858,7 +1859,7 @@ class Expression:
         for key in cc.keys():                           # 'pos','neg'
             for i in range(len(rr[key])):
                 if trace: print '-',key,i,rr[key][i]
-                subex = self.subExpression(rr[key][i], label=key+'_term_'+str(i))
+                subex = self.subExpression(rr[key][i], label=key+'term'+str(i))
                 if trace: print subex.oneliner()
                 node = subex.bunop2node (ns, level=level+1, trace=trace)
                 if node==None:
@@ -1872,6 +1873,7 @@ class Expression:
 
         # Make a subtree if more than one term:
         if nterms>1:        
+            name = 'Expr_'+self.label(strip=True)+'_'
             # Make separate subtrees (sums) for the positive and negative terms:
             for key in cc.keys():                       # 'pos','neg'
                 if len(cc[key])==0:                     # no nodes
@@ -1879,20 +1881,20 @@ class Expression:
                 elif len(cc[key])==1:                   # one node: keep it
                     cc[key] = cc[key][0]
                 else:                                   # more than one: MeqAdd
-                    node = self._unique_node (ns, 'Expr_add(..)', qual=None)
+                    node = self._unique_node (ns, name+'add(..)')
                     node << Meq.Add(children=cc[key])
                     cc[key] = node                      # used below 
             # Subtract the negative from the positive:
             node = None
             if cc['pos']==None:
                 if not cc['neg']==None:
-                    node = self._unique_node (ns, 'Expr_negate(..)', qual=None)
-                    node = ns[name] << Meq.Negate(cc['neg'])
+                    node = self._unique_node (ns, name+'negate(..)')
+                    node << Meq.Negate(cc['neg'])
             elif cc['neg']==None:
                 node = cc['pos']
             else:
-                node = self._unique_node (ns, 'Expr_subtract(..)', qual=None)
-                node = ns[name] << Meq.Subtract(cc['pos'],cc['neg'])
+                node = self._unique_node (ns, name+'subtract(..)')
+                node << Meq.Subtract(cc['pos'],cc['neg'])
 
         # Return the root node of the resulting subtree:
         return node
@@ -1915,7 +1917,7 @@ class Expression:
         for key in cc.keys():                           # 'mult','div'
             for i in range(len(rr[key])):
                 if trace: print '-',key,i,rr[key][i]
-                subex = self.subExpression(rr[key][i], label=key+'_factor_'+str(i))
+                subex = self.subExpression(rr[key][i], label=key+'factor'+str(i))
                 if trace: print subex.oneliner()
                 if nfactors>1 or level<10:
                     node = subex.terms2node(ns, level=level+1, trace=trace)      
@@ -1927,6 +1929,7 @@ class Expression:
                     nfactors += 1
 
         if nfactors>1:                                  # more than one factor
+            name = 'Expr_'+self.label(strip=True)+'_'
             # Make separate subtrees (products) for the multiplicative and divisive factors:
             for key in cc.keys():                       # 'mult','div'
                 if len(cc[key])==0:                     # no nodes
@@ -1934,19 +1937,19 @@ class Expression:
                 elif len(cc[key])==1:                   # one node: keep it
                     cc[key] = cc[key][0]
                 else:                                   # more than one: MeqAdd
-                    node = self._unique_node (ns, 'Expr_multiply(..)', qual=None)
+                    node = self._unique_node (ns, name+'multiply(..)')
                     node << Meq.Multiply(children=cc[key])
                     cc[key] = node                      # used below
             # Subtract the negative from the positive:
             node = None
             if cc['mult']==None:
                 if not ncc['div']==None:
-                    node = self._unique_node (ns, 'Expr_inverse(..)', qual=None)
+                    node = self._unique_node (ns, name+'inverse(..)')
                     node << Meq.Inverse(cc['div'])
             elif cc['div']==None:
                 node = cc['mult']
             else:
-                node = self._unique_node (ns, 'Expr_divide(..)', qual=None)
+                node = self._unique_node (ns, name+'divide(..)')
                 node << Meq.Divide(cc['mult'],cc['div'])
 
         # Return the root node of the resulting subtree:
