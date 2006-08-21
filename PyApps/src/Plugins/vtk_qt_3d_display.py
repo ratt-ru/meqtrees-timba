@@ -266,6 +266,10 @@ class vtk_qt_3d_display(qt.QWidget):
 # Create an initial interesting view
     cam1 = self.ren.GetActiveCamera()
     cam1.Elevation(110)
+
+# Use parallel projection, rather than perspective
+    cam1.ParallelProjectionOn()
+
 #    cam1.SetViewUp(0, 0, -1)
     cam1.SetViewUp(0, 0, 1)
     cam1.Azimuth(45)
