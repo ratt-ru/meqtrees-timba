@@ -29,15 +29,16 @@ import sys
 import random
 import qt
 
+#test if vtk has been installed
 has_vtk = False
 try:
   import vtk
+  from vtk.qt.QVTKRenderWindowInteractor import *
+  from vtkImageImportFromNumarray import *
+  #from vtk.util.vtkImageImportFromArray import *
   has_vtk = True
 except:
   pass
-from vtk.qt.QVTKRenderWindowInteractor import *
-#from vtk.util.vtkImageImportFromArray import *
-from vtkImageImportFromNumarray import *
 from Timba.dmi import *
 from Timba import utils
 from Timba.GUI.pixmaps import pixmaps
