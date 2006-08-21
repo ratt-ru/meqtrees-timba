@@ -12,34 +12,15 @@ import os
 Settings.forest_state = record(bookmarks=[
   record(name='Predicts',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_3",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_3",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
-#   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
-#   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ]), \
-  record(name='Phase solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EA:11:src_1:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:20",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/predict:1:25",pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/predict:1:30",pos=(2,2)),
   ]),
-#  record(name='Gain solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JA:2:centre:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JA:2:edge:11",pos=(0,1)),
-#    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-#  ])
 ]);
 
 class PointSource:
@@ -69,8 +50,8 @@ def create_source_model(tablename=''):
     source_model.append( PointSource(name="src_1",I=1.0, Q=0.0, U=0.0, V=0.0,
 #                   Iorder=0, ra=0.030543262, dec=-.85521133,
 #                   Iorder=0, ra=0.030543262, dec=-.82030475,  #pos = 7m, -47deg
-                    Iorder=0, ra=0.030543262, dec=-.83775804,  #pos = 7m, -48deg
-#                   Iorder=0, ra=0.030543262, dec=-.80285146,  #pos = 7m, -46deg
+#                   Iorder=0, ra=0.030543262, dec=-.83775804,  #pos = 7m, -48deg
+                    Iorder=0, ra=0.030543262, dec=-.80285146,  #pos = 7m, -46deg
                     table=tablename))
 
     return source_model
@@ -386,9 +367,9 @@ def create_constant_nodes(ns):
 #   ns.width_m << Meq.Constant(28.5)
     ns.width_l_sq <<Meq.Sqr(ns.width_l)
     ns.width_m_sq <<Meq.Sqr(ns.width_m)
-    ns.feed_offset << Meq.Constant(0.052359878) # offset of 3 deg in Elevation
+#   ns.feed_offset << Meq.Constant(0.052359878) # offset of 3 deg in Elevation
 #   ns.feed_offset << Meq.Constant(0.043633231) # offset of 2.5 deg in Elevation
-#   ns.feed_offset << Meq.Constant(0.017453293) # offset of 1 deg in Elevation
+    ns.feed_offset << Meq.Constant(0.017453293) # offset of 1 deg in Elevation
 #   ns.feed_offset << Meq.Constant(0.0)  
 
 # creates source-related nodes for a given source
