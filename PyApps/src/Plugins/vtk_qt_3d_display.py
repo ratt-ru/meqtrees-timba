@@ -28,7 +28,13 @@
 import sys
 import random
 import qt
-import vtk
+
+has_vtk = False
+try:
+  import vtk
+  has_vtk = True
+except:
+  pass
 from vtk.qt.QVTKRenderWindowInteractor import *
 #from vtk.util.vtkImageImportFromArray import *
 from vtkImageImportFromNumarray import *
@@ -61,6 +67,9 @@ Keypress w: modify the representation of all actors so that they are wireframe.'
 class vtk_qt_3d_display(qt.QWidget):
 
   def __init__( self, *args ):
+    global has_vtk
+    if not has_vtk:
+      return None
     qt.QWidget.__init__(self, *args)
 #    self.resize(640,640)
     self.setCaption("VTK 3D Demo")
@@ -511,6 +520,8 @@ class ThreeDPlotter(GriddedPlugin):
 
 # create the plotter
     self._plotter = vtk_qt_3d_display(self.wparent())
+    if self._plotter is None:
+      return False
     self._plotter.show()
     self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
 
@@ -539,9 +550,10 @@ if __name__ == "__main__":
   qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
 		app,qt.SLOT("quit()"))
   display = vtk_qt_3d_display()
-  display.AddUpdateButton()
-  display.AddVTKExitEvent()
-  display.show()
-  display.testEvent()
-  app.exec_loop()
+  if not display is None:
+    display.AddUpdateButton()
+    display.AddVTKExitEvent()
+    display.show()
+    display.testEvent()
+    app.exec_loop()
 
