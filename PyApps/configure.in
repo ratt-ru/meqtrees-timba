@@ -52,9 +52,9 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 # lofar_AIPSPP(1)
-lofar_PACKAGE(Timba/OCTOPython)
-lofar_PACKAGE(Timba/VisCube)
-lofar_PACKAGE(Timba/MEQ)
+lofar_PACKAGE(OCTOPython)
+lofar_PACKAGE(VisCube)
+lofar_PACKAGE(MEQ)
 dnl
 dnl Output Makefiles
 dnl

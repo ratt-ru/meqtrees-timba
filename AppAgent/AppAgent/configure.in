@@ -52,8 +52,8 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
-lofar_PACKAGE(Timba/OCTOPUSSY)
-lofar_PACKAGE(Timba/VisCube)
+lofar_PACKAGE(OCTOPUSSY)
+lofar_PACKAGE(VisCube)
 
 dnl
 dnl Output Makefiles

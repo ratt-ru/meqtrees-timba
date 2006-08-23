@@ -56,7 +56,7 @@ lofar_AIPSPP(1,"-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltas
 # lofar_AIPSPP(1)
 lofar_BLITZ(1)
 # lofar_FFTW2
-lofar_PACKAGE(Timba/MEQ)
+lofar_PACKAGE(MEQ)
 lofar_INTERNAL(CEP/BB/ParmDB,ParmDB,,0,ParmDB/ParmDB.h)
 lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
 lofar_EXTERNAL(fftw3,1,fftw3.h,,)

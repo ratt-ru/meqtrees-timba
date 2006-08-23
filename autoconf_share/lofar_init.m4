@@ -28,10 +28,10 @@
 # It should be invoked before AC_PROG_CXX.
 #
 # It sets the following variables:
-#  lofar_top_srcdir  user's LOFAR root (e.g. $HOME/sim/LOFAR)
+#  lofar_top_srcdir  user's LOFAR root (e.g. $HOME/sim/Timba)
 #  lofar_sharedir    $lofar_top_srcdir/autoconf_share
 #  lofar_root        LOFAR root which is default tree for package sources
-#                    (e.g. /lofar/stable/LOFAR)
+#                    (e.g. /lofar/stable/Timba)
 #  lofar_root_libdir LOFAR root which is default tree for package libraries
 #                    It contains the string <package> which should be replaced
 #                    by the actual package name.
@@ -120,10 +120,10 @@ AC_ARG_WITH(lofar-libdir,
     lofar_use_root=0;
   fi
   # Find root of user LOFAR directory tree.
-  lfr_top=`(cd $srcdir && pwd) | sed -e "s%/LOFAR/.*%%"`
-  lofar_top_srcdir=$lfr_top/LOFAR;
+  lfr_top=`(cd $srcdir && pwd) | sed -e "s%/Timba/.*%%"`
+  lofar_top_srcdir=$lfr_top/Timba;
   lfr_pkg=`(cd $srcdir && pwd) | sed -e "s%$lofar_top_srcdir%%"`
-  lfr_rest=`(echo $lfr_pkg) | sed -e "s%/LOFAR/.*%/LOFAR%"`
+  lfr_rest=`(echo $lfr_pkg) | sed -e "s%/Timba/.*%/Timba%"`
   if test "$lfr_pkg" != "$lfr_rest"; then
     ]AC_MSG_ERROR([Directory name LOFAR should be used only once in your path])[
   fi
@@ -203,7 +203,7 @@ AC_ARG_WITH(lofar-libdir,
   # Get the possible version:variant given. If no version is given, 
   # assume stable.
   # Empty variant means the current variant.
-  # Remove trailing / and /LOFAR if user has given that (redundantly).
+  # Remove trailing / and /Timba if user has given that (redundantly).
   lofar_root=
   lofar_variant=
   if test "x$with_lofar" != "x"; then
@@ -214,7 +214,7 @@ AC_ARG_WITH(lofar-libdir,
       lofar_variant=`echo ${with_lofar} | sed -e "s/.*://"`
       ;;
     esac
-    lofar_root=`echo $lofar_root | sed -e 's%/$%%' -e 's%/LOFAR$%%'`;
+    lofar_root=`echo $lofar_root | sed -e 's%/$%%' -e 's%/Timba$%%'`;
     if test "x$lofar_root" = "x"; then
       lofar_root="stable"
     fi
@@ -231,7 +231,7 @@ AC_ARG_WITH(lofar-libdir,
       ;;
     esac
   fi
-  # If root has no / or ~, use /data/LOFAR/installed/$lofar_root/$lofar_variant
+  # If root has no / or ~, use /data/Timba/installed/$lofar_root/$lofar_variant
   # as default.
   # Replace ~ by home directory.
   lfr_libdir=;
@@ -246,7 +246,7 @@ AC_ARG_WITH(lofar-libdir,
     */*)
       ;;
     ?*)
-      lofar_root=/data/LOFAR/installed/$lofar_root/$lofar_variant;
+      lofar_root=/data/Timba/installed/$lofar_root/$lofar_variant;
       ;;
     esac
   fi
@@ -347,11 +347,11 @@ AC_CHECK_FILE([$lofar_root],
 
   case $lofar_root_libdir in
   */build/*)
-    lfr_find=$lofar_root_libdir/LCS/Common;
+    lfr_find=$lofar_root_libdir/TimBase;
     lofar_root_libdir="$lofar_root_libdir/<package>";
     ;;
   *)
-    lfr_find=$lofar_root_libdir/LCS/Common/build/$lofar_variant;
+    lfr_find=$lofar_root_libdir/TimBase/build/$lofar_variant;
     lofar_root_libdir="$lofar_root_libdir/<package>/build/$lofar_variant";
     ;;
   esac
@@ -361,9 +361,9 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   [if test $lfr_var = no; then]
     AC_MSG_WARN([Could not find libdir $lfr_find]);
     [
-    lofar_root_libdir="/home/lofar/stable/LOFAR/<package>/build/${lofar_compiler}_opt";
+    lofar_root_libdir="/home/lofar/stable/Timba/<package>/build/${lofar_compiler}_opt";
     ]
-    AC_MSG_WARN([   set to /home/lofar/stable/LOFAR/${lofar_compiler}_opt])
+    AC_MSG_WARN([   set to /home/lofar/stable/Timba/${lofar_compiler}_opt])
   [fi]
 
   # Make sure that libraries are installed in lib64 on x86_64 architectures.

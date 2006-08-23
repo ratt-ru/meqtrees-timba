@@ -53,7 +53,7 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 lofar_AIPSPP(1,"-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa")
-lofar_PACKAGE(Timba/AppAgent/AppAgent)
+lofar_PACKAGE(AppAgent/AppAgent)
 dnl
 dnl Output Makefiles
 dnl

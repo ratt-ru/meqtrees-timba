@@ -53,12 +53,9 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 lofar_AIPSPP(1,"-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa")
-lofar_PACKAGE(Timba/TimBase)
-lofar_PACKAGE(Timba/OCTOPython)
-lofar_PACKAGE(Timba/VisCube)
-lofar_PACKAGE(Timba/AppAgent/AppAgent)
-lofar_PACKAGE(Timba/AppAgent/AppUtils)
-lofar_PACKAGE(Timba/MeqNodes)
+lofar_PACKAGE(OCTOPython)
+lofar_PACKAGE(AppAgent/AppUtils)
+lofar_PACKAGE(MeqNodes)
 dnl # removing cfitsio, it should be brought in by MeqNodes
 dnl lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
 lofar_EXTERNAL(lapack,1,unistd.h,'lapack blas',,,,,gnu3:-lg2c)

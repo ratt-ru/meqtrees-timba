@@ -52,7 +52,7 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
-lofar_PACKAGE(Timba/DMI)
+lofar_PACKAGE(DMI)
 
 dnl
 dnl Output Makefiles

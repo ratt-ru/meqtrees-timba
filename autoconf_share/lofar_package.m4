@@ -34,7 +34,7 @@
 #  E.g. BaseSim/src/Corba is not a package and its object files
 #  must be part of the main BaseSim library.
 #
-#  The package source files are part of the LOFAR tree.
+#  The package source files are part of the Timba tree.
 #  The package library resides in a build area which can be anywhere.
 #  The build area has subdirectories containing the build variant
 #  like gnu_debug. This subdirectory is used for the build.
@@ -47,7 +47,7 @@
 #     Similarly, if building in somewhere/build/x/MyPackage, BaseSim
 #     is automatically found if residing in somewhere/build/x/BaseSim.
 #
-#  The lofar root (see lofar_init.m4) sets the root of the system LOFAR
+#  The lofar root (see lofar_init.m4) sets the root of the system Timba
 #  directory to use (e.g. lofar/daily).
 #  
 #  It is possible that the build area is elsewhere, but in that case
@@ -120,8 +120,8 @@ else
     lfr_variant=`echo ${with_package} | sed -e "s/.*://"`
     ;;
   esac
-# Remove possible trailing /LOFAR/package/.
-  lfr_root=`echo $lfr_root | sed -e 's%/$%%' -e 's%/$lfr_pkgnam$%%' -e 's%/LOFAR$%%'`;
+# Remove possible trailing /Timba/package/.
+  lfr_root=`echo $lfr_root | sed -e 's%/$%%' -e 's%/$lfr_pkgnam$%%' -e 's%/Timba$%%'`;
 
 # If no version is given, use root if mandatory or if package is not
 # available locally.
@@ -144,15 +144,15 @@ else
       lfr_root=$lofar_root;
       ;;
     ~*)
-      lfr_root=`echo $lfr_root | sed -e "s%~%$HOME%"`/LOFAR;
+      lfr_root=`echo $lfr_root | sed -e "s%~%$HOME%"`/Timba;
       lfr_libdir=$lfr_root/$lfr_pkgnam/build/$lofar_variant;
       ;;
     */*)
-      lfr_root=$lfr_root/LOFAR;
+      lfr_root=$lfr_root/Timba;
       ;;
     *)
       # something like daily
-      lfr_root=/home/lofar/$lfr_root/LOFAR;
+      lfr_root=/home/lofar/$lfr_root/Timba;
       lfr_libdir=$lfr_root/$lfr_pkgnam/build/$lofar_variant;
       ;;
     esac
@@ -195,7 +195,7 @@ else
         lfr_curvar=`pwd | sed -e "s%.*/build/%%" | sed -e "s%/.*%%g"`;
         lfr_lib=`echo $lfr_lib | sed -e "s%/$lfr_curvar%/$lfr_variant%"`
       fi
-      lfr_pkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR/%%"`
+      lfr_pkg=`echo $lfr_srcdir | sed -e "s%.*/Timba/%%"`
       lfr_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$lfr_pkgnam%"`
     fi
   fi
