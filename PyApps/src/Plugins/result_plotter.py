@@ -977,7 +977,8 @@ class ResultPlotter(GriddedPlugin):
       self.ND_Controls = None
 
     if self.ND_Controls is None:
-      self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent)
+      num_axes = 2
+      self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes,self.layout_parent)
       QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
       QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
       QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 

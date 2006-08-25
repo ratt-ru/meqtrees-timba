@@ -170,7 +170,8 @@ class ArrayPlotter(GriddedPlugin):
 
     labels = None
     parms = None
-    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent) 
+    num_axes = 2
+    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes, self.layout_parent) 
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
