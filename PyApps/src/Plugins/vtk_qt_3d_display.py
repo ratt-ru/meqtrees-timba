@@ -252,18 +252,18 @@ class vtk_qt_3d_display(qt.QWidget):
 
 # Create a vtkCubeAxesActor2D.  Use the outer edges of the bounding box to
 # draw the axes.  Add the actor to the renderer.
-    axes = vtk.vtkCubeAxesActor2D()
-    axes.SetInput(self.image_array.GetOutput())
-    axes.SetCamera(self.ren.GetActiveCamera())
-    axes.SetLabelFormat("%6.4g")
-    axes.SetFlyModeToOuterEdges()
-    axes.SetFontFactor(0.8)
-    axes.SetAxisTitleTextProperty(tprop)
-    axes.SetAxisLabelTextProperty(tprop)
-    axes.SetXLabel("X Freq")
-    axes.SetYLabel("Y Time")
-    axes.SetZLabel("Z Plane")
-    self.ren.AddProp(axes)
+    self.axes = vtk.vtkCubeAxesActor2D()
+    self.axes.SetInput(self.image_array.GetOutput())
+    self.axes.SetCamera(self.ren.GetActiveCamera())
+    self.axes.SetLabelFormat("%6.4g")
+    self.axes.SetFlyModeToOuterEdges()
+    self.axes.SetFontFactor(0.8)
+    self.axes.SetAxisTitleTextProperty(tprop)
+    self.axes.SetAxisLabelTextProperty(tprop)
+    self.axes.SetXLabel("X Freq")
+    self.axes.SetYLabel("Y Time")
+    self.axes.SetZLabel("Z Plane")
+    self.ren.AddProp(self.axes)
 
 # Set the interactor for the widgets
     self.planeWidgetX.SetInteractor(self.inter)
@@ -354,6 +354,9 @@ class vtk_qt_3d_display(qt.QWidget):
     self.slider.setTickInterval( (xMax-xMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
+    self.button_x.setPaletteBackgroundColor(Qt.green)
+    self.button_y.unsetPalette()
+    self.button_z.unsetPalette()
 
   def AlignYaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -371,6 +374,9 @@ class vtk_qt_3d_display(qt.QWidget):
     self.slider.setTickInterval( (yMax-yMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
+    self.button_x.unsetPalette()
+    self.button_y.setPaletteBackgroundColor(Qt.green)
+    self.button_z.unsetPalette()
  
   def AlignZaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -388,6 +394,9 @@ class vtk_qt_3d_display(qt.QWidget):
     self.slider.setTickInterval( (zMax-zMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
+    self.button_x.unsetPalette()
+    self.button_y.unsetPalette()
+    self.button_z.setPaletteBackgroundColor(Qt.green)
 
   def SetSlice(self, sl):
     self.current_widget.SetSliceIndex(sl)
@@ -466,8 +475,11 @@ class vtk_qt_3d_display(qt.QWidget):
 # first display
       self.renwin.Render()
 
-  def array_plot(self, caption, plot_array):
+  def array_plot(self, caption, plot_array, set_ND_selectors=False):
 
+    print 'vtk array plot is updating'    
+    print 'plot array rank ', plot_array.rank
+    print 'plot array shape ', plot_array.shape
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
       if plot_array.rank > 3:
@@ -487,6 +499,10 @@ class vtk_qt_3d_display(qt.QWidget):
 # refresh display if data contents updated after
 # first display
       self.renwin.Render()
+    print 'vtk renwin rendered'    
+ 
+  def reset_image_array(self):
+    self.image_array = None
 
   def start_timer(self, time):
     timer = qt.QTimer()
@@ -498,6 +514,11 @@ class vtk_qt_3d_display(qt.QWidget):
     self.define_image(self.iteration)
 #    self.define_random_image()
 
+  def two_D_Event(self):
+    self.emit(PYSIGNAL("show_2D_Display"),(0,))
+    print "emitted show_2D_Display event"
+#    self.define_random_image()
+
   def AddVTKExitEvent(self):
 # next line causes confusion when run inside the browser
     self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
@@ -507,43 +528,16 @@ class vtk_qt_3d_display(qt.QWidget):
     self.button_test = qt.QPushButton("Update",self.h_box)
     qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.testEvent)
 
-class ThreeDPlotter(GriddedPlugin):
-  """ a class to plot 3 dimensional displays of array data distributions """
-
-  _icon = pixmaps.bars3d
-  viewer_name = "3D Plotter";
-  def is_viewable (data):
-    return len(data) > 0;
-  is_viewable = staticmethod(is_viewable);
-
-  def __init__(self,gw,dataitem,cellspec={},**opts):
-    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
-
-# create the plotter
-    self._plotter = vtk_qt_3d_display(self.wparent())
-    if self._plotter is None:
-      return False
-    self._plotter.show()
-    self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
-
-    if dataitem and dataitem.data is not None:
-      self.set_data(dataitem);
-
-#  def __del__(self):
-#    print "in destructor"
-                                                                                           
-  def wtop (self):
-    return self._plotter
-
-  def set_data (self,dataitem,default_open=None,**opts):
-    """ this function is the callback interface to the meqbrowser and
-        handles new incoming data for the 3-d plot """
-
-# enable & highlight the cell
-    self.enable();
-    self.flash_refresh();
-    
-Grid.Services.registerViewer(array_class,ThreeDPlotter,priority=15)
+  def Add2DButton(self):
+    self.button_test = qt.QPushButton("2D Display",self.h_box)
+    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.two_D_Event)
+  def UpdateLabels(self, first_axis,second_axis,third_axis):
+    self.button_x.setText("X " + first_axis)
+    self.button_y.setText("Y " + second_axis)
+    self.button_z.setText("Z " + third_axis)
+    self.axes.SetXLabel("X " + first_axis)
+    self.axes.SetYLabel("Y " + second_axis)
+    self.axes.SetZLabel("Z " + third_axis)
 
 #=============================
 if __name__ == "__main__":
