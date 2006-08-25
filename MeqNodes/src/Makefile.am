@@ -34,10 +34,6 @@ libmeqnodes_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
 
 check_PROGRAMS = 
 
-# place scripts into libexec/glish/meq
-glishdir = $(libexecdir)/glish/meq
-dist_glish_SCRIPTS = meptable.g
-
 include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
