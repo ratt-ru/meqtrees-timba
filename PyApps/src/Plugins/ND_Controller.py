@@ -39,7 +39,11 @@ _dprintf = _dbg.dprintf;
 
 # the Axis Range class is directly adapted from the Qt/PyQt tutorial code examples
 class AxisRange(QWidget):
+    """ a spinbox and a slider, either of which can be used to specify
+        a value from within an allowed range
+    """
     def __init__(self, axis_number=1, axis_parms=None,parent=None, name=""):
+        """ specify the layout of the spinbox and the slider """
         QWidget.__init__(self, parent, name)
 
         self.button = QPushButton(' ', self)
@@ -80,10 +84,12 @@ class AxisRange(QWidget):
       return self.button
 
     def setLabel(self, label):
+        """ set label on a button """
         self.button_label = label
         self.button.setText(label)
 
     def value(self):
+        """ return current value of the slider """
         return self.slider.value()
 
     def resetValue(self):
@@ -101,6 +107,7 @@ class AxisRange(QWidget):
         self.label_info.setText(' ' + display_str)
 
     def setDisplayString(self, value ):
+      """ define current display string from Vells parameters """
       display_str = ''
       if not self.axis_parms is None:
         delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
@@ -114,11 +121,13 @@ class AxisRange(QWidget):
       self.emit(PYSIGNAL("ValueChanged"), (self.axis_number, value, display_str))
 
     def setRange(self, array_shape):
+        """ make sure slider and spinbox both have same allowable range """
         self.slider.setRange(0, array_shape-1)
         self.spinbox.setMaxValue(array_shape-1)
         self.maxVal = array_shape
 
     def setSliderColor(self, color):
+        """ set color of slider - red or green """
         self.slider.setPaletteBackgroundColor(color)
 
     def setActive(self, active):
@@ -131,6 +140,7 @@ class AxisRange(QWidget):
         self.label.setText(s)
 
     def update_slider(self, slider_value):
+        """ synchronize spinbox value to current slider value """
         if self.active:
           self.spinbox.setValue(slider_value)
           self.setDisplayString(slider_value)
@@ -138,6 +148,7 @@ class AxisRange(QWidget):
           self.resetValue()
 
     def update_spinbox(self, spin_value):
+        """ synchronize slider value to current spinbox value """
         if self.active:
           self.slider.setValue(spin_value)
           self.setDisplayString(spin_value)
@@ -151,8 +162,11 @@ So, for example, if we select a 5-d array for display, the last two dimensions (
 You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding sliders displayed in red and are frozen. The other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
-    def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=""):
+    def __init__(self, array_shape=None, axis_label=None, axis_parms = None, num_axes = 2, parent=None, name=""):
       QWidget.__init__(self, parent, name)
+
+# set default number of selectable axes to use 2-D QWT-based display
+      self.selectable_axes = num_axes
 
 # create grid layout
       self.layout = QGridLayout(self)
@@ -213,7 +227,7 @@ class ND_Controller(QWidget):
           self.axis_controllers.append(AxisRange(axis_number=self.num_selectors, axis_parms=parms, parent=self))
           self.axis_controllers[self.num_selectors].setLabel(button_label)
           self.axis_controllers[self.num_selectors].setRange(array_shape[i])
-          if self.num_selectors <= self.rank -3:
+          if self.num_selectors <= self.rank - (self.selectable_axes + 1):
             self.axis_controllers[self.num_selectors].setSliderColor(Qt.green)
             self.axis_controllers[self.num_selectors].setActive(True)
             self.axis_controllers[self.num_selectors].resetValue()
@@ -226,7 +240,7 @@ class ND_Controller(QWidget):
           self.buttons.append(self.axis_controllers[self.num_selectors].getButton())
           self.button_number.append(i)
           self.buttons[self.num_selectors].setToggleButton(True)
-          if self.num_selectors <= self.rank -3:
+          if self.num_selectors <= self.rank - (self.selectable_axes + 1):
             self.buttons[self.num_selectors].setOn(False)
           else:
             self.buttons[self.num_selectors].setOn(True)
@@ -248,8 +262,12 @@ class ND_Controller(QWidget):
           self.hide()
     # showDisplay
 
+    def set_num_selectable_axes(self, num_axes=2):
+        self.selectable_axes = num_axes
+        self.redefineAxes()
+
     def defineAxes(self, button_id, do_on=False):
-        if not self.active_axes is None and len(self.active_axes) == 2:
+        if not self.active_axes is None and len(self.active_axes) == self.selectable_axes:
           self.resetAxes()
           self.buttons[button_id].setOn(True)
         if do_on:
@@ -257,22 +275,27 @@ class ND_Controller(QWidget):
         if self.buttons[button_id].isOn():
           self.axis_controllers[button_id].setSliderColor(Qt.red)
           self.active_axes[button_id] = True
-          if len(self.active_axes) == 2:
+          if len(self.active_axes) == self.selectable_axes:
             first_axis = None
             second_axis = None
+            third_axis = None
             for i in range(self.num_selectors):
               if self.active_axes.has_key(i):
                 if first_axis is None:
                   first_axis = self.button_number[i]
-                else:
+                elif second_axis is None:
                   second_axis = self.button_number[i]
+                else:
+                  if self.selectable_axes == 3:
+                    if third_axis is None:
+                      third_axis = self.button_number[i]
                 self.axis_controllers[i].setSliderColor(Qt.red)
                 self.axis_controllers[i].setActive(False)
               else:
                 self.axis_controllers[i].setSliderColor(Qt.green)
                 self.axis_controllers[i].setActive(True)
               self.axis_controllers[i].resetValue()
-            self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
+            self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis,third_axis))
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
@@ -317,8 +340,10 @@ def main(args):
     app = QApplication(args)
     demo = make()
     app.setMainWidget(demo)
-    axes = (3,4,5,6,7,8,9,10,11,12,13,14,15)
-    demo.update_selectors(axes)
+    # hum - the use of update_selectors doesn't work in the case
+    # below
+    # axes = (3,4,5,6,7,8,9,10,11,12,13,14,15)
+    # demo.update_selectors(axes)
     app.exec_loop()
 
 # main()
