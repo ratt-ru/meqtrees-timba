@@ -30,6 +30,7 @@ import random
 import qt
 
 #test if vtk has been installed
+global has_vtk
 has_vtk = False
 try:
   import vtk
@@ -68,7 +69,6 @@ Keypress w: modify the representation of all actors so that they are wireframe.'
 class vtk_qt_3d_display(qt.QWidget):
 
   def __init__( self, *args ):
-    global has_vtk
     if not has_vtk:
       return None
     qt.QWidget.__init__(self, *args)
@@ -539,7 +539,7 @@ if __name__ == "__main__":
   qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
 		app,qt.SLOT("quit()"))
   display = vtk_qt_3d_display()
-  if not display is None:
+  if has_vtk:
     display.AddUpdateButton()
     display.AddVTKExitEvent()
     display.show()
