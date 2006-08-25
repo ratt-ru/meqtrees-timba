@@ -476,10 +476,6 @@ class vtk_qt_3d_display(qt.QWidget):
       self.renwin.Render()
 
   def array_plot(self, caption, plot_array, set_ND_selectors=False):
-
-    print 'vtk array plot is updating'    
-    print 'plot array rank ', plot_array.rank
-    print 'plot array shape ', plot_array.shape
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
       if plot_array.rank > 3:
@@ -499,7 +495,6 @@ class vtk_qt_3d_display(qt.QWidget):
 # refresh display if data contents updated after
 # first display
       self.renwin.Render()
-    print 'vtk renwin rendered'    
  
   def reset_image_array(self):
     self.image_array = None
@@ -516,7 +511,6 @@ class vtk_qt_3d_display(qt.QWidget):
 
   def two_D_Event(self):
     self.emit(PYSIGNAL("show_2D_Display"),(0,))
-    print "emitted show_2D_Display event"
 #    self.define_random_image()
 
   def AddVTKExitEvent(self):
