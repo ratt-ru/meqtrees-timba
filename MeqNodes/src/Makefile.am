@@ -38,7 +38,9 @@ include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 
-# AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL 
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL
 
-# use these flags for old (pre 20/04/2006) aips++ versions
-AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_OLD_LSQFIT
+## for older (pre-July 06) versions of aips++, Solver node may
+## report compilation errors. Use the macro below to work around,
+## or run lofarconf with --with-old-lsqfit.
+# AM_CPPFLAGS = -DUSE_OLD_LSQFIT
