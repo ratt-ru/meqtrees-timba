@@ -30,7 +30,6 @@ def importPlugin (name):
 ### import plug-ins
 importPlugin('node_execute');
 importPlugin('array_browser');
-importPlugin('vtk_qt_3d_display');
 importPlugin('array_plotter');
 importPlugin('histogram_plotter');
 importPlugin('result_plotter');
