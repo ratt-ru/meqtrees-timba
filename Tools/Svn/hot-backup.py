@@ -40,7 +40,7 @@ num_backups = 8
 
 tar_exec = "/bin/tar"
 scp_exec = "/usr/bin/scp"
-gzip = "/usr/bin/gzip";
+gzip = "/bin/gzip";
 
 # Path to redundant backup locations
 backup_locations = [ 
