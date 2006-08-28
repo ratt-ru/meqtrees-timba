@@ -1,0 +1,25 @@
+#!/bin/bash
+
+find="$1"
+rep="$2"
+shift
+shift
+files="$*"
+
+if [ "$files" == "" ]; then
+  echo "$0: mass-replaces patterns in a collection of files";
+  echo "Usage: $0 <find> <replace> <filenames>"
+  exit 1
+fi
+
+echo Replacing /$find/ by /$rep/ in $files
+
+for file in $files; do
+  if sed "s/$find/$rep/g" <$file >$file.rep; then
+    if ! diff $file $file.rep >/dev/null; then
+      mv $file $file.orig
+      mv $file.rep $file
+      echo Replaced in $file
+    fi
+  fi
+done
