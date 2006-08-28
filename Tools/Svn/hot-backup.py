@@ -151,7 +151,7 @@ if not incremental:
   ### Step 3: Ask subversion to make a hot copy of a repository.
   ###         copied last.
 
-  print "Backing up repository to '" + backup_subdir + "'..."
+  print "Backing up repository to " + backup_subdir;
   err_code = os.spawnl(os.P_WAIT, svnadmin, "svnadmin", "hotcopy", repo_dir, 
                        backup_subdir, "--clean-logs")
   if(err_code != 0):
@@ -230,7 +230,7 @@ else:
   ### Write out status file for incremental backups
   file(status_file,'w').write(youngest+" "+backup_subdir);
   
-  # Copy to redundant places
+  ### Copy to redundant places
   for dest in backup_locations:
     err_code = os.spawnl(os.P_WAIT,scp_exec,"scp",incr_backup_file,dest);
     if(err_code != 0):
