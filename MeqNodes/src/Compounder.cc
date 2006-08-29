@@ -463,6 +463,8 @@ namespace Meq {
 						sp_id++;
 		}
 
+		/////////////////////////////////////// real data
+		if (in.isReal()) {
     Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
     //now fill in the values only defined at the original grid points
     //imagine the axes are (t,f,a,b): then for each (t,f) grid point
@@ -531,6 +533,69 @@ namespace Meq {
 			 sp_id++;
 		}
 	
+		} else {
+		/////////////////////////////////////// complex data
+	  Vells &out=vs.setValue(new Vells(dcomplex(0.0),incells.shape()));
+    //now fill in the values only defined at the original grid points
+    //imagine the axes are (t,f,a,b): then for each (t,f) grid point
+    //find points a0,b0 in a and b axes respectively. this value will
+    //go to the new grid point (t,f)
+    blitz::Array<dcomplex,2> A=out.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
+    blitz::Array<dcomplex,4> B=in.getArray<dcomplex,4>();
+	
+		
+
+    //apply the grid to main value
+    apply_grid_map_2d4d(A, B, 0);
+
+    // handle perturbed sets if any
+		//
+    spmapiter=spidmap_.begin();
+		sp_id=0;
+		while(spmapiter!=spidmap_.end()) {
+       int *value=spmapiter->second;
+       if (value[2]!=-1) {
+					//spid in funklet, use the perturbed value from funklet
+          for (int ipset=0; ipset< childres[1]->vellSet(0).numPertSets(); ipset++) {
+	          const Vells pvl=childres[1]->vellSet(0).getPerturbedValue(value[2],ipset);
+	          Vells &pin=const_cast<Vells &>(pvl);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(dcomplex(0.0),incells.shape()),ipset);
+	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
+	          blitz::Array<dcomplex,4> pB=pin.getArray<dcomplex,4>();
+						if (value[0]==-1 && value[1]==-1) {
+						  //not present in any of the axes
+							//use the same grid as the main value
+             apply_grid_map_2d4d(pA, pB, 0);
+						} else {
+						  //present in at least one of the axes
+							//use the grid for this spid
+             apply_grid_map_2d4d(pA, pB, spmapiter->first);
+						}
+					}
+			 } else {
+				  //no spid in funklet, use the main value of the funklet
+					//use the main value from funklet, but use the grid
+					//of the spid
+					int npsets=0;
+					int spid=0;
+					if (value[0]!=-1) {
+							npsets=childres[0]->vellSet(0).numPertSets();
+					} else {
+							npsets=childres[0]->vellSet(1).numPertSets();
+					}
+					for (int ipset=0; ipset<npsets; ipset++) {
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(dcomplex(0.0),incells.shape()),ipset);
+	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
+	
+            apply_grid_map_2d4d(pA, B, spmapiter->first);
+					}
+			 }	 
+       spmapiter++;
+			 sp_id++;
+		}
+		
+
+	  }
  
 		res1.setVellSet(0,ref);
     res1.setCells(incells);
@@ -914,7 +979,8 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 
 }
 
-int Compounder::apply_grid_map_2d4d( blitz::Array<double,2> A, blitz::Array<double,4> B, int spid ) {
+template<class T>
+int Compounder::apply_grid_map_2d4d( blitz::Array<T,2> A, blitz::Array<T,4> B, int spid ) {
     int itime, ifreq, il, im;
     map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
 		int fktime=B.extent(0);

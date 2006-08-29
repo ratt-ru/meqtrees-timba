@@ -132,7 +132,7 @@ private:
 	int build_axes_(Result::Ref &childres, int ntime, int nfreq);
 
 	//apply the grid to the funklet, for the main value, put spid=0
-	int apply_grid_map_2d4d( blitz::Array<double,2> A, blitz::Array<double,4> B, int spid);
+	template<class T> int apply_grid_map_2d4d( blitz::Array<T,2> A, blitz::Array<T,4> B, int spid);
 };
 
 
