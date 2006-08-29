@@ -48,6 +48,8 @@ namespace Axis
   extern HIID _name_map[MaxAxis];
   extern std::map<HIID,int> _num_map;
   extern bool _default_mapping;
+// mutex used to protect the axis map 
+  extern Thread::Mutex _mutex;  
   
 // shape type used to represent a hypercube
   typedef LoShape Shape;
@@ -62,8 +64,7 @@ namespace Axis
   inline void _init ()
   {
     static bool done = false;
-    static Thread::Mutex mutex;
-    Thread::Mutex::Lock lock(mutex);
+    Thread::Mutex::Lock lock(_mutex);
     if( !done )
     {
       done = true;

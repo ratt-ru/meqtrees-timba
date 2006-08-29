@@ -17,6 +17,8 @@ HIID _name_map[MaxAxis];
 std::map<HIID,int> _num_map;
 bool _default_mapping = true;
 
+Thread::Mutex _mutex;
+
 // vector containing description records
 static DMI::Vec::Ref axis_recs,axis_ids;
 
@@ -27,6 +29,7 @@ static DMI::Vec::Ref axis_recs,axis_ids;
 // * else adds name for the axis
 static void defineAxis (int i,const HIID &name,bool addrec=true)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   // name_index will be the axis number if name is just "n", else -1
   int name_index;
@@ -71,6 +74,7 @@ static void defineAxis (int i,const HIID &name,bool addrec=true)
 template<class Iter>
 static void setAxisMap (Iter begin,Iter end)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   int i=0;
   for( ; begin<end; i++,begin++ )
@@ -89,6 +93,7 @@ static void setAxisMap (Iter begin,Iter end)
 
 void setAxisMap (const DMI::Vec &map)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   FailWhen(map.type() != TpDMIHIID,"axis map: expected HIIDs, got "+map.type().toString());
   FailWhen(map.size() > MaxAxis,"too many axes in mapping");
@@ -121,6 +126,7 @@ const DMI::Vec & getAxisIds ()
 
 void setAxisRecords (const DMI::Vec & vec)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   FailWhen(vec.type() != TpDMIRecord,"expected vector of axis records");
   FailWhen(vec.size() > MaxAxis,"too many axis records specified");
@@ -142,6 +148,7 @@ void setAxisRecords (const DMI::Vec & vec)
 
 void addAxis (const HIID &name)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   // return axis if found
   int n = axis(name,true);
@@ -163,6 +170,7 @@ void addAxis (const HIID &name)
 // init default map of TIME/FREQ
 void resetDefaultMap ()
 {
+  Thread::Mutex::Lock lock(_mutex);
   axis_recs <<= new DMI::Vec(TpDMIRecord,MaxAxis);
   axis_ids  <<= new DMI::Vec(TpDMIHIID,MaxAxis);
   
