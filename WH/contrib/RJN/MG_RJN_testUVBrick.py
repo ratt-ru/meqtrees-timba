@@ -81,7 +81,7 @@ def _define_forest(ns):
  #
  # please change this according to your setup
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/test_sources.txt'
+ infile_name = home_dir + '/Timba/WH/contrib/RJN/test_sources.txt'
  infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()

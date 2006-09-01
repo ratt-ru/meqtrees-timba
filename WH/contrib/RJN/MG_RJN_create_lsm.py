@@ -46,7 +46,7 @@ lsm=LSM()
 def _define_forest (ns):
  global lsm
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/3C343_nvss_large.txt'
+ infile_name = home_dir + '/Timba/WH/contrib/RJN/3C343_nvss_large.txt'
  infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()

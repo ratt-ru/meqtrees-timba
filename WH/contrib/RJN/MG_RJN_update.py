@@ -111,7 +111,7 @@ def _define_forest (ns):
     solvables.append('I2');
 
     im_sixpack = ns.r<<Meq.FITSImage(filename="/home/rnijboer/Update/source1a.fits",cutoff=1.0);
-    #im_sixpack = ns.r<<Meq.FITSImage(filename="/home/rnijboer/LOFAR/Timba/WH/contrib/RJN/clean.fits",cutoff=1.0);    
+    #im_sixpack = ns.r<<Meq.FITSImage(filename="/home/rnijboer/Timba/WH/contrib/RJN/clean.fits",cutoff=1.0);    
     IQUV = ns.IQUV << Meq.Selector(im_sixpack, multi=True,index=[2,3,4,5]);
     I = ns.I << Meq.Selector(IQUV,multi=True,index=[0]);
     #ns.res << Meq.Resampler(ns.I,common_axes=[hiid("TIME"),hiid("FREQ")],mode=1);

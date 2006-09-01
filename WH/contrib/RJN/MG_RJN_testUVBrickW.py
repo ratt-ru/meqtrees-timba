@@ -105,7 +105,7 @@ def _define_forest(ns):
  # Create the SixPack for the FITS Image
  # Image (Sixpack)
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/clean.fits'
+ infile_name = home_dir + '/Timba/WH/contrib/RJN/clean.fits'
  image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0);
 
  # Select the 4 Stokes planes
