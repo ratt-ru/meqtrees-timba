@@ -44,6 +44,15 @@ from qt import *
 from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
+
+global has_vtk
+has_vtk = False
+try:
+  from Timba.Plugins.vtk_qt_3d_display import *
+  has_vtk = True
+except:
+  pass
+
 from QwtPlotImage import *
 from QwtColorBar import *
 from SpectrumData import *
@@ -58,7 +67,6 @@ from Timba.utils import verbosity
 _dbg = verbosity(0,name='result_plotter');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
-
 
 class ResultPlotter(GriddedPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
@@ -152,6 +160,9 @@ class ResultPlotter(GriddedPlugin):
     self._window_controller = None
     self.array_shape = None
     self.actual_rank = None
+    self.plot_3D = False
+    self.ND_plotter = None
+    self.layout_created = False
 
     self.reset_plot_stuff()
 
@@ -168,6 +179,7 @@ class ResultPlotter(GriddedPlugin):
     self.results_selector = None
     self.spectrum_node_selector = None
     self.ND_Controls = None
+    self.ND_plotter = None
     self.layout_parent = None
     self.layout = None
 
@@ -349,18 +361,20 @@ class ResultPlotter(GriddedPlugin):
               self._plot_type = plot_parms.get('type')
               break
       _dprint(3, 'pre_work gives plot_type ', self._plot_type)
+
+# create grid layout for widgets
+      if not self.layout_created:
+        self.create_layout_stuff()
+
       if self._plot_type == 'spectra':
         _dprint(3, 'pre_work setting visu_plotter to QwtImageDisplay for spectra!')
-        self.create_image_plotters()
+        self.create_2D_plotter()
 
       if self._plot_type == 'realvsimag':
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
-        self.layout_parent = QWidget(self.wparent())
-        self.layout = QGridLayout(self.layout_parent)
+
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
         self.layout.addWidget(self._visu_plotter.plot, 0, 1)
-        self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
-        self._wtop = self.layout_parent;       
 
 
   def do_postwork(self, node):
@@ -425,6 +439,8 @@ class ResultPlotter(GriddedPlugin):
         self.adjust_spectrum_selector()
     else:
       self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
+      self._visu_plotter.plot.show()
+      _dprint(3, 'issued show call to realvsimag self._visu_plotter')
 
   # do_leafwork
 
@@ -568,23 +584,31 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.update_plot()
       self._visu_plotter.reset_data_collectors()
 
-  def create_image_plotters(self):
+  def create_layout_stuff(self):
+    """ create grid layouts into which plotter widgets are inserted """
     self.layout_parent = QWidget(self.wparent())
     self.layout = QGridLayout(self.layout_parent)
+    self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+    self._wtop = self.layout_parent;       
+    self.layout_created = True
+
+  def create_2D_plotter(self):
+    if not self.ND_plotter is None:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.hide_vtk_controls()
     self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
 
     self.layout.addWidget(self._visu_plotter, 0, 1)
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_menu_id'), self.update_vells_display) 
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
-#   QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
     QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+    QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
 
     self.plotPrinter = plot_printer(self._visu_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-    self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
-    self._wtop = self.layout_parent;       
 
-  # create_image_plotters
+  # create_2D_plotter
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
@@ -666,7 +690,6 @@ class ResultPlotter(GriddedPlugin):
         value = self._rec.vellsets[0].value
         str_value = str(value[0])
         Message = "This vellset " + self.label + "  has scalar value: <b>" + str_value + "</b>";
-
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
@@ -674,14 +697,17 @@ class ResultPlotter(GriddedPlugin):
       self.reset_plot_stuff()
       return process_result
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
-      if self._visu_plotter is None:
-        self.create_image_plotters()
-        _dprint(3, 'passed create_image_plotters')
+      if not self.layout_created:
+        self.create_layout_stuff()
       if self._rec.has_key("vellsets"):
         self.plot_vells_data()
       else:
+        if self._visu_plotter is None:
+          self.create_2D_plotter()
+          self._visu_plotter.show()
         self.plot_solver()
       process_result = True
+
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
@@ -717,24 +743,38 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.plot_data(leaf, attrib_list,label)
       self.plotSpectra(leaf)
 
-  def plot_vells_data (self):
+  def plot_vells_data (self, store_rec=True):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
-      if isinstance(self._rec, bool):
+      if store_rec and isinstance(self._rec, bool):
         return
 
       _dprint(3, 'handling vellsets')
-      self._vells_plot = True
-      self._visu_plotter.setVellsPlot(self._vells_plot)
-
+# store the data
       if self._vells_data is None:
         self._vells_data = VellsData()
-      
-# store the data
-      self._vells_data.StoreVellsData(self._rec,self.label)
+
+      self._vells_data.set_3D_Display(False)
+
+      if store_rec:
+        self._vells_data.setInitialSelection(False)
+        self._vells_data.StoreVellsData(self._rec,self.label)
+
+      self._vells_plot = True
+
+      if self._visu_plotter is None:
+        if not self.ND_Controls is None:
+          self.ND_Controls.reparent(QWidget(), 0, QPoint())
+          self.ND_Controls = None
+        ranks = self._vells_data.getActiveDataRanks()
+        self.create_2D_plotter()
+        self._vells_data.setInitialSelectedAxes(ranks[1],ranks[2], reset=True)
+
+      self._visu_plotter.setVellsPlot(self._vells_plot)
+
       if self._vells_data.getShapeChange():
         self.update_display_control()
 
@@ -764,6 +804,8 @@ class ResultPlotter(GriddedPlugin):
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
+      self._visu_plotter.show()
+      _dprint(3, 'issued show call to self._visu_plotter')
       if not self.test_vells_scalar(plot_data, plot_label):
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
@@ -773,6 +815,7 @@ class ResultPlotter(GriddedPlugin):
       vells_data_parms = self._vells_data.getVellsDataParms()
       vells_axis_parms = vells_data_parms[0]
       axis_labels = vells_data_parms[1]
+      _dprint(3, 'vells_axis_parms ', vells_axis_parms)
       self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
       display_change = False
       if vells_data_parms[2] != self.num_possible_ND_axes:
@@ -783,26 +826,29 @@ class ResultPlotter(GriddedPlugin):
         self.array_shape = vells_data_parms[3]
         display_change = True
 
-      actual_rank = 0
-      try:
-        for i in range(len(self.array_shape)):
-          if self.array_shape[i] > 1:
-            actual_rank = actual_rank + 1
-      except:
-        pass
+      ranks = self._vells_data.getActiveDataRanks()
+      _dprint(3, 'received ranks ', ranks)
+      actual_rank = ranks[0]
+      self.array_rank = ranks[1]
+      self.array_shape = ranks[2]
       _dprint(3, 'actual plot array rank ', actual_rank)
       _dprint(3, 'self.actual_rank ', self.actual_rank)
       if self.actual_rank != actual_rank:
         self.actual_rank = actual_rank
         display_change = True
-      _dprint(3, 'self.actual_rank ', self.actual_rank)
+        self._visu_plotter.set_toggle_array_rank(self.actual_rank)
+      _dprint(3, 'self.actual_rank set ', self.actual_rank)
       _dprint(3, 'display_change ', display_change)
+      if self.actual_rank > 2 and self.ND_Controls is None:
+         display_change = True
       if self.actual_rank <= 2 and not self.ND_Controls is None:
          self.ND_Controls.hide()
-
-      if display_change and len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2 and self.actual_rank > 2:
+      if display_change and self.actual_rank > 2:
         _dprint(3, 'calling set_ND_controls')
-        self.set_ND_controls (axis_labels, vells_axis_parms)
+        # store for later use
+        self.ND_labels = axis_labels
+        self.ND_parms = vells_axis_parms 
+        self.set_ND_controls(labels=axis_labels, parms=vells_axis_parms)
       else:
         if len(vells_axis_parms) <= 2 or self.num_possible_ND_axes <= 2 or self.actual_rank <= 2:
           if not self.ND_Controls is None:
@@ -867,24 +913,31 @@ class ResultPlotter(GriddedPlugin):
 
   def update_spectrum_display(self, menuid):
     """ callback to handle a request from the lower level 
-        display_image.py code for different Spectrum data """
+        display_image.py code for different Spectrum data 
+    """
     self._spectrum_data.setActivePlot(menuid)
     plot_label = self._spectrum_data.getPlotLabel()
     plot_data = self._spectrum_data.getActivePlotArray()
     self._visu_plotter.array_plot(plot_label, plot_data, False)
 
-  def setSelectedAxes (self,first_axis, second_axis):
+  def setSelectedAxes (self,first_axis, second_axis, third_axis=-1):
     """ callback to handle a request from the N-dimensional
         controller to set new (sub)axes for the Vells display 
     """
-    self._visu_plotter.delete_cross_sections()
     if self._vells_plot:
-      self._vells_data.setSelectedAxes(first_axis, second_axis)
+      self._vells_data.setSelectedAxes(first_axis, second_axis, third_axis)
       axis_parms = self._vells_data.getActiveAxisParms()
-      self._visu_plotter.setAxisParms(axis_parms)
-      self._visu_plotter.delete_cross_sections()
       plot_array = self._vells_data.getActiveData()
-      self._visu_plotter.array_plot(" ", plot_array)
+      if not self._visu_plotter is None:
+        self._visu_plotter.delete_cross_sections()
+        self._visu_plotter.setAxisParms(axis_parms)
+        self._visu_plotter.array_plot(" ", plot_array)
+      else:
+        if not self.ND_plotter is None:
+          self.ND_plotter.delete_vtk_renderer()
+          self.ND_plotter.array_plot(" ", plot_array)
+          self.ND_plotter.setAxisParms(axis_parms)
+
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
     """ callback to handle a request from the N-dimensional
@@ -892,15 +945,20 @@ class ResultPlotter(GriddedPlugin):
     """
     self._vells_data.updateArraySelector(lcd_number,slider_value)
     if self._vells_plot:
+      self._vells_data.updateArraySelector(lcd_number,slider_value)
       plot_array = self._vells_data.getActiveData()
-      self._visu_plotter.array_plot('data: '+ display_string, plot_array)
+      if not self._visu_plotter is None:
+        self._visu_plotter.array_plot('data: '+ display_string, plot_array)
+      else:
+        if not self.ND_plotter is None:
+          self.ND_plotter.array_plot('data: '+ display_string, plot_array)
 
   def adjust_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
     if self.results_selector is None:
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
-      self.layout.addWidget(self.results_selector, 1,1)
+      self.layout.addWidget(self.results_selector, 3,1,Qt.AlignHCenter)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
       QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
@@ -926,7 +984,7 @@ class ResultPlotter(GriddedPlugin):
     if self.spectrum_node_selector is None:
       self.spectrum_node_selector = ResultsRange(self.layout_parent)
       self.spectrum_node_selector.setStringInfo(' spectrum ')
-      self.layout.addWidget(self.spectrum_node_selector, 2,1)
+      self.layout.addWidget(self.spectrum_node_selector, 5, 1, Qt.AlignHCenter)
       self.spectrum_node_selector.show()
       QObject.connect(self.spectrum_node_selector, PYSIGNAL('result_index'), self.select_spectrum_node)
 #     QObject.connect(self.spectrum_node_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
@@ -962,35 +1020,75 @@ class ResultPlotter(GriddedPlugin):
     if len(self.data_list) != self.data_list_length:
       self.data_list_length = len(self.data_list)
 
-  def set_ND_controls (self, labels, parms):
+  def ND_controller_showDisplay(self, show_self):
+    """ tells ND_Controller to show or hide itself """
+    if not self.ND_Controls is None:
+      self.ND_Controls.showDisplay(show_self)
+
+  def set_ND_controls (self, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
-
-#   _dprint(3, 'in result_plotter:set_ND_controls so we must have caught a vells_axes_labels signal')
- 
-# make sure we can toggle ND controller by telling plotter 
-# that array rank is at least 3
-    self._visu_plotter.set_toggle_array_rank(3)
 
     if not self.ND_Controls is None:
       self.ND_Controls.reparent(QWidget(), 0, QPoint())
       self.ND_Controls = None
 
-    if self.ND_Controls is None:
-      num_axes = 2
-      self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes,self.layout_parent)
-      QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
-      QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-      QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
-      QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
-      self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,2)
+    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes,self.layout_parent)
+    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
+    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
+    if self.ND_Controls.get_num_selectors() > num_axes:
+      self.ND_Controls.showDisplay(1)
     else:
-      self.ND_Controls.update_selectors(self.array_shape, labels, parms)
-    self.ND_Controls.show()
+      self.ND_Controls.showDisplay(0)
     _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
 
+  def show_3D_Display(self, display_flag):
+    if not has_vtk:
+      return
+
+    _dprint(3, 'got 3D plot request, deleting 2-D stuff')
+    self.colorbar[0].reparent(QWidget(), 0, QPoint())
+    self.colorbar[1].reparent(QWidget(), 0, QPoint())
+    self.colorbar = {}
+    self._visu_plotter.reparent(QWidget(), 0, QPoint())
+    self._visu_plotter = None
+
+    if self.ND_plotter is None:
+      self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
+      self.ND_plotter.Add2DButton()
+      self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
+      self.ND_plotter.show()
+      _dprint(3, 'issued show call to self.ND_plotter')
+    else:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.show_vtk_controls()
+
+# create 3-D Controller
+    self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
+
+    self._vells_data.set_3D_Display(True)
+    self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
+    self.axis_parms = self._vells_data.getActiveAxisParms()
+    plot_array = self._vells_data.getActiveData()
+    self.ND_plotter.array_plot(" ", plot_array)
+    self.ND_plotter.setAxisParms(self.axis_parms)
+
+  def show_2D_Display(self, display_flag):
+    _dprint(3, 'in show_2D_Display ')
+    self.create_2D_plotter()
+# create 3-D Controller appropriate for 2-D screen displays
+    _dprint(3, 'calling set_ND_controls with self.ND_labels, self.ND_parms ', self.ND_labels, ' ', self.ND_parms)
+    self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=2)
+    self._vells_data.set_3D_Display(False)
+    _dprint(3, 'calling setInitialSelectedAxes with reset=True, and self.array_rank,self.array_shape ', self.array_rank, ' ', self.array_shape)
+    self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape, reset=True)
+    self._visu_plotter.set_toggle_array_rank(3)
+    self.plot_vells_data(store_rec=False)
+
   def set_ColorBar (self):
-    """ this function adds a colorbar for 2 Ddisplays """
+    """ this function adds a colorbar for 2-D displays """
 
     # create two color bars in case we are displaying complex arrays
     self.colorbar = {}
