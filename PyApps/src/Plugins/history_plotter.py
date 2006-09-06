@@ -425,7 +425,6 @@ class HistoryPlotter(GriddedPlugin):
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
-    QObject.connect(self._plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
     self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
     self.ND_Controls.show()
 
