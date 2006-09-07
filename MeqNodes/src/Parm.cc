@@ -178,6 +178,15 @@ namespace Meq {
 	      }
 	  }
       }	
+    //if not tiled, a solvable funklet cannot be a composedpolc
+    if(isSolvable() && !tiled_ && funkletref->objectType()==TpMeqComposedPolc)
+      {
+	//use first
+	const DMI::List *funklist = funkletref()[FFunkletList].as_po<DMI::List>();
+	funkletref = funklist->get(0);  //better getlast
+	
+
+      }
     funkletref().clearSolvable();
     funkletref().setDomain(domain);
     if(force_shape_)
@@ -196,6 +205,8 @@ namespace Meq {
     // (once we start solving, it is only valid for the solve domain, even if it may
     // have been valid for a bigger/different domain before)
   
+        
+
     cdebug(4)<<"init solvable "<<endl;
 
     //MMMMMcheck when and why we set domain
