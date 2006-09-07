@@ -266,6 +266,9 @@ class ND_Controller(QWidget):
         self.selectable_axes = num_axes
         self.redefineAxes()
 
+    def get_num_selectors(self):
+        return self.num_selectors
+
     def defineAxes(self, button_id, do_on=False):
         if not self.active_axes is None and len(self.active_axes) == self.selectable_axes:
           self.resetAxes()
@@ -296,6 +299,7 @@ class ND_Controller(QWidget):
                 self.axis_controllers[i].setActive(True)
               self.axis_controllers[i].resetValue()
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis,third_axis))
+
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
