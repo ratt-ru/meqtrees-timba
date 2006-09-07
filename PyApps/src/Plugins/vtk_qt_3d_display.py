@@ -40,7 +40,6 @@ try:
   has_vtk = True
 except:
   pass
-
 from Timba.dmi import *
 from Timba import utils
 from Timba.GUI.pixmaps import pixmaps
@@ -74,27 +73,26 @@ class vtk_qt_3d_display(qt.QWidget):
       return None
     qt.QWidget.__init__(self, *args)
 #    self.resize(640,640)
-#=============================
-# VTK code to create test array
-#=============================
-    self.conplex_plot = False
-    self.image_array = None
-    self.iteration = 0
-    self.renwininter = None
-
     self.setCaption("VTK 3D Demo")
 
 #-----------------------------
-    self.winlayout = qt.QVBoxLayout(self,20,20,"WinLayout")
+    winlayout = qt.QVBoxLayout(self,20,20,"WinLayout")
 #-----------------------------
-    self.winsplitter = qt.QSplitter(self,"WinSplitter")
-    self.winsplitter.setOrientation(qt.QSplitter.Vertical)
-    self.winsplitter.setHandleWidth(10)
-    self.winlayout.addWidget(self.winsplitter)
+    winsplitter = qt.QSplitter(self,"WinSplitter")
+    winsplitter.setOrientation(qt.QSplitter.Vertical)
+    winsplitter.setHandleWidth(10)
 #-----------------------------
+    self.renwininter = QVTKRenderWindowInteractor(winsplitter)
+    qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
+#    self.renwininter.setGeometry(qt.QRect(20,20,600,400))
+
+# next line causes confusion when run inside the browser
+#    self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
+    self.renwin = self.renwininter.GetRenderWindow()
+    self.inter = self.renwin.GetInteractor()
 
 # create VBox for controls
-    self.v_box_controls = qt.QVBox(self.winsplitter)
+    self.v_box_controls = qt.QVBox(winsplitter)
 # add control buttons
     self.h_box = qt.QHBox(self.v_box_controls)
 # buttons
@@ -131,40 +129,22 @@ class vtk_qt_3d_display(qt.QWidget):
     qt.QObject.connect(self.slider, qt.SIGNAL("valueChanged(int)"), self.SetSlice)
 
 #-----------------------------
-#   self.renwininter = QVTKRenderWindowInteractor(self.winsplitter)
-#   qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
-
-#   self.renwin = self.renwininter.GetRenderWindow()
-#   self.inter = self.renwin.GetInteractor()
-#   self.winsplitter.moveToFirst(self.renwininter)
-#   self.winsplitter.moveToLast(self.v_box_controls)
-#   self.winsplitter.setSizes([100,400])
+    winsplitter.setSizes([400,100])
+    winlayout.addWidget(winsplitter)
 
 #-----------------------------
 
-  def delete_vtk_renderer(self):
-    if not self.renwininter is None:
-      self.renwininter.reparent(QWidget(), 0, QPoint()) 
-    self.renwininter = None
+#=============================
+# VTK code to create test array
+#=============================
     self.image_array = None
+    self.iteration = 0
+#    self.define_image()
 
-  def hide_vtk_controls(self):
-    self.v_box_controls.hide()
-
-  def show_vtk_controls(self):
-    self.v_box_controls.show()
+#    self.define_random_image()
+#    self.set_initial_display()
 
   def set_initial_display(self):
-    if self.renwininter is None:
-      self.renwininter = QVTKRenderWindowInteractor(self.winsplitter)
-      qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
-      self.renwin = self.renwininter.GetRenderWindow()
-      self.inter = self.renwin.GetInteractor()
-      self.winsplitter.moveToFirst(self.renwininter)
-      self.winsplitter.moveToLast(self.v_box_controls)
-      self.winsplitter.setSizes([400,100])
-      self.renwininter.show()
-
     self.extents =  self.image_array.GetDataExtent()
     self.spacing = self.image_array.GetDataSpacing()
     self.origin = self.image_array.GetDataOrigin()
@@ -280,9 +260,9 @@ class vtk_qt_3d_display(qt.QWidget):
     self.axes.SetFontFactor(0.8)
     self.axes.SetAxisTitleTextProperty(tprop)
     self.axes.SetAxisLabelTextProperty(tprop)
-    self.axes.SetXLabel("X")
-    self.axes.SetYLabel("Y")
-    self.axes.SetZLabel("Z")
+    self.axes.SetXLabel("X Freq")
+    self.axes.SetYLabel("Y Time")
+    self.axes.SetZLabel("Z Plane")
     self.ren.AddProp(self.axes)
 
 # Set the interactor for the widgets
@@ -453,7 +433,6 @@ class vtk_qt_3d_display(qt.QWidget):
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
-      self.AddVTKExitEvent()
       self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
     else:
       array_selector = []
@@ -496,29 +475,14 @@ class vtk_qt_3d_display(qt.QWidget):
 # first display
       self.renwin.Render()
 
-  def array_plot(self, caption, plot_array, dummy_parm=False):
-
-# convert a complex array to reals followed by imaginaries
-    if plot_array.type() == numarray.Complex32 or plot_array.type() == numarray.Complex64:
-        real_array =  plot_array.getreal()
-        (nx,ny,nz) = real_array.shape
-        image_for_display = array(shape=(nx*2,ny,nz),type=real_array.type());
-        image_for_display[:nx,:] = real_array
-        imag_array =  plot_array.getimag()
-        image_for_display[nx:,:] = imag_array
-        plot_array = image_for_display
-        self.conplex_plot = True
-    else:
-        self.conplex_plot = False
+  def array_plot(self, caption, plot_array, set_ND_selectors=False):
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
       else:
         self.image_array.SetArray(plot_array)
-
-# use default VTK parameters for spacing at the moment
-      spacing = (1.0, 1.0, 1.0)
+      spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
       self.lut.SetRange(plot_array.min(), plot_array.max())
@@ -562,51 +526,12 @@ class vtk_qt_3d_display(qt.QWidget):
     self.button_test = qt.QPushButton("2D Display",self.h_box)
     qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.two_D_Event)
   def UpdateLabels(self, first_axis,second_axis,third_axis):
-    print 'self.button_x ', self.button_x
-    print 'self.button_y ', self.button_y
-    print 'self.button_z ', self.button_z
-    return
-    self.button_x.setText('X ' + first_axis)
-    self.button_y.setText('Y ' + second_axis)
-    self.button_z.setText('Z ' + third_axis)
-    if not self.axes is None:
-      self.axes.SetXLabel('X ' + first_axis)
-      self.axes.SetYLabel('Y ' + second_axis)
-      self.axes.SetZLabel('Z ' + third_axis)
-
-  def setAxisParms(self, axis_parms):
-    if axis_parms[2] is None:
-      self.button_x.setText('X')
-      if not self.axes is None:
-        self.axes.SetXLabel('X')
-    else: 
-      self.button_x.setText('X ' + axis_parms[2])
-      if not self.axes is None:
-        self.axes.SetXLabel('X ' + axis_parms[2])
-    if axis_parms[1] is None:
-      self.button_y.setText('Y')
-      if not self.axes is None:
-        self.axes.SetYLabel('Y')
-    else: 
-      self.button_y.setText('Y ' + axis_parms[1])
-      if not self.axes is None:
-        self.axes.SetYLabel('Y ' + axis_parms[1])
-    if axis_parms[0] is None:
-      if self.conplex_plot:
-        Z_text = 'Z (real then imag) '
-      else:
-        Z_text = 'Z '
-      self.button_z.setText(Z_text)
-      if not self.axes is None:
-        self.axes.SetZLabel(Z_text)
-    else: 
-      if self.conplex_plot:
-        Z_text = 'Z (real then imag) '
-      else:
-        Z_text = 'Z '
-      self.button_z.setText(Z_text + axis_parms[0])
-      if not self.axes is None:
-        self.axes.SetZLabel(Z_text + axis_parms[0])
+    self.button_x.setText("X " + first_axis)
+    self.button_y.setText("Y " + second_axis)
+    self.button_z.setText("Z " + third_axis)
+    self.axes.SetXLabel("X " + first_axis)
+    self.axes.SetYLabel("Y " + second_axis)
+    self.axes.SetZLabel("Z " + third_axis)
 
 #=============================
 if __name__ == "__main__":
@@ -616,6 +541,7 @@ if __name__ == "__main__":
   display = vtk_qt_3d_display()
   if has_vtk:
     display.AddUpdateButton()
+    display.AddVTKExitEvent()
     display.show()
     display.testEvent()
     app.exec_loop()

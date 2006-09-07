@@ -43,20 +43,6 @@ _dbg = verbosity(0,name='displayimage');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-# is vtk available?
-global has_vtk
-has_vtk = False
-try:
-  import vtk
-  has_vtk = True
-except:
-  print ' '
-  print '*** VTK not found! ***'
-  print 'If you know that VTK has been installed on your system'
-  print 'make sure that your LD_LIBRARY_PATH includes the VTK  '
-  print 'libraries.'
-  print ' '
-
 # compute standard deviation of a complex or real array
 # the std_dev given here was computed according to the
 # formula given by Oleg (It should work for real or complex array)
@@ -157,7 +143,6 @@ class QwtImageDisplay(QwtPlot):
         'Toggle log axis for solution vector': 312,
         'Toggle chi-square surfaces display': 313,
         'Change Vells': 314,
-        'Toggle 3D Display': 315,
         }
 
     _start_spectrum_menu_id = 0
@@ -480,9 +465,6 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(menuid, 'Hide ND Controller')
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         return True
-      if menuid == self.menu_table['Toggle 3D Display']:
-        self.emit(PYSIGNAL("show_3D_Display"),(1,))
-        return True
       if menuid == self.menu_table['Toggle results history']:
         if self.setResults:
           self.setResults = False
@@ -607,9 +589,6 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
-        if not self.display_solution_distances: 
-          self.add_solver_metrics()
-          self.toggleMetrics()
         self.replot()
         return True
 
@@ -624,11 +603,9 @@ class QwtImageDisplay(QwtPlot):
         if len(self.y_solver_offset) > 0:
           for i in range(len(self.y_solver_offset)):
             self.removeMarker(self.y_solver_offset[i])
-          self.y_solver_offset = []
         if len(self.metrics_plot) > 0:
           for i in range(len(self.metrics_plot)):
             self.removeCurve(self.metrics_plot[i])
-          self.metrics_plot = []
 
     def handle_flag_toggles(self, menuid):
       """ callback to handle or modify displays of flagged data """
@@ -700,7 +677,6 @@ class QwtImageDisplay(QwtPlot):
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
       self.second_axis_parm = axis_parms[1]
-      _dprint(3, 'axis parms set to ', self.first_axis_parm, ' ', self.second_axis_parm)
 
     def update_spectrum_display(self, menuid):
       """ callback to handle signal from SpectrumContextMenu """
@@ -983,8 +959,6 @@ class QwtImageDisplay(QwtPlot):
       self.toggle_ND_Controller = 0
       self.hidden_ND_Controller = True
       toggle_id = self.menu_table['Toggle ND Controller']
-      self._menu.setItemVisible(toggle_id, False)
-      toggle_id = self.menu_table['Toggle 3D Display']
       self._menu.setItemVisible(toggle_id, False)
 
 # make sure any color bar from array plot of other Vells member is hidden
@@ -1629,8 +1603,6 @@ class QwtImageDisplay(QwtPlot):
           x_range = (begin, end)
           self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
         else:
-          _dprint(3, 'calling self.plotImage.setData with self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm] ', self.vells_axis_parms[self.x_parm], ' ', self.vells_axis_parms[self.y_parm])
-
           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
       else:
         self.plotImage.setData(self.raw_image)
@@ -1660,9 +1632,6 @@ class QwtImageDisplay(QwtPlot):
 
       #solver metrics
       if not self.display_solution_distances:
-        if len(self.metrics_plot) > 0:
-          for i in range(len(self.metrics_plot)):
-            self.removeCurve(self.metrics_plot[i])
         self.metrics_plot = []
         shape = self.metrics_rank.shape
         for i in range(shape[1]):
@@ -1670,7 +1639,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
-          metrics_title = 'metrics rank ' + str(i)
+          metrics_title = 'metrics rank'
           key = self.insertCurve(metrics_title)
           self.metrics_plot.append(key)
           self.setCurvePen(key, QPen(Qt.black, 2))
@@ -1688,13 +1657,7 @@ class QwtImageDisplay(QwtPlot):
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
 
-      #chi_sq surfaces  - first remove any previous versions?
-      #the following should work but seems to be causing problems
-#     if len(self.chis_plot) > 0:
-#       for i in range(len(self.chis_plot)):
-#         self.removeCurve(self.chis_plot[i])
-#         print 'removed chis_plot curve with key ', self.chis_plot[i]
-
+      #chi_sq surfaces
       self.chis_plot = []
       shape = self.metrics_rank.shape
       self.enableAxis(QwtPlot.yRight, True)
@@ -2027,9 +1990,6 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_ND_Controller = 1
         toggle_id = self.menu_table['Toggle ND Controller']
         self._menu.setItemVisible(toggle_id, True)
-        if has_vtk:
-          toggle_id = self.menu_table['Toggle 3D Display']
-          self._menu.setItemVisible(toggle_id, True)
 
 # no legends by default
       toggle_id = self.menu_table['Toggle Plot Legend']
@@ -2042,7 +2002,6 @@ class QwtImageDisplay(QwtPlot):
 
     def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
-      _dprint(3, 'self.vells_axis_parms = ', self.vells_axis_parms)
       self.axis_labels = axis_labels
 
     def reset_color_bar(self, reset_value=True):
@@ -2187,9 +2146,6 @@ class QwtImageDisplay(QwtPlot):
       if self.is_vector == False:
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
-#         if has_vtk:
-#           toggle_id = self.menu_table['Toggle 3D Display']
-#           self._menu.setItemVisible(toggle_id, False)
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
 
@@ -2341,8 +2297,6 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle ND Controller']
-        self._menu.setItemVisible(toggle_id, False)
-        toggle_id = self.menu_table['Toggle 3D Display']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle axis flip']
         self._menu.setItemVisible(toggle_id, False)
@@ -2608,10 +2562,6 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
         self._menu.changeItem(toggle_id, 'Show GrayScale Display')
-        toggle_id = self.menu_table['Toggle 3D Display']
-        self._menu.insertItem("Toggle 3D Display", toggle_id)
-        self._menu.changeItem(toggle_id, 'Show 3D Display')         
-        self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle ND Controller']
         self._menu.insertItem("Toggle ND Controller", toggle_id)
         self._menu.changeItem(toggle_id, 'Hide ND Controller')
@@ -2633,7 +2583,6 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle chi-square surfaces display']
         self._menu.insertItem("Toggle chi-square surfaces display", toggle_id)
-        self._menu.changeItem(toggle_id, 'Show chi-square surfaces')
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.insertItem("Toggle Metrics Display", toggle_id)
