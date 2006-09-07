@@ -9,6 +9,7 @@ domain_ndim = 2;
 domain_axes = ( "freq","time" );
 
 _funklet_type = dmi_type('MeqFunklet',record);
+_composedpolc_type = dmi_type('MeqComposedPolc',_funklet_type);
 _polc_type = dmi_type('MeqPolc',_funklet_type);
 _polclog_type = dmi_type('MeqPolcLog',_polc_type);
 _domain_type = dmi_type('MeqDomain',record);
@@ -85,6 +86,53 @@ def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
   """creates a polclog record""";
   return polc(coeff,shape,offset,scale,domain,
              weight,dbid,pert,subclass=_polclog_type);
+
+
+def composedpolc(coeff=0.,shape=None,offset=None,scale=None,domain=None,
+                 weight=None,dbid=None,funklet_list=[],pert=1e-6):
+  """creates a polclog record""";
+  rec =  _composedpolc_type();
+  rec.funklet_list=dmilist(funklet_list);
+  if isinstance(coeff,(tuple,list)):
+    if shape and len(shape)>2:
+      raise ValueError,'coeff array must be one- or two-dimensional';
+    #    if filter(lambda x:isinstance(x,complex),coeff):
+    #      coeff = array_complex(coeff,shape=shape);
+    #    else:
+    coeff = array_double(coeff,shape=shape);
+  if is_scalar(coeff):
+    #    if not isinstance(coeff,complex):  # force float or complex
+    coeff = float(coeff);
+    rec.coeff = array(coeff);
+  elif is_array(coeff):
+    if len(coeff.getshape()) > 2:
+      raise TypeError,'coeff array must be one- or two-dimensional';
+##    if coeff.type() not in (arr_double,arr_dcomplex):
+##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
+    if not coeff.type() == arr_double:
+      raise TypeError,'coeff array must be float (Float64)';
+    rec.coeff = coeff;
+  else:
+    raise TypeError,'illegal coeff argument';
+  # process domain argument
+  if domain is not None:
+    if isinstance(domain,_domain_type):
+      rec.domain = domain;
+    else:
+      raise TypeError,'domain argument must be a MeqDomain object';
+  # other optional arguments
+  if offset is not None:
+    rec.offset = offset;
+  if scale is not None:
+    rec.scale = scale;
+  if weight is not None:
+    rec.weight = weight;
+  if dbid is not None:
+    rec.dbid = dbid;
+  if pert is not None:
+    rec.pert = pert;
+  
+  return rec;
 
 ##def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
 ##             weight=None,dbid=None,subclass=_polclog_type):
