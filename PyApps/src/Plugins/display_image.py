@@ -321,6 +321,12 @@ class QwtImageDisplay(QwtPlot):
         self.curve_info = ""
         self.metrics_index = 0
 
+#add a printer
+        self.printer = QAction(self);
+        self.printer.setIconSet(pixmaps.fileprint.iconset());
+        self.printer.setText("Print plot");
+        QObject.connect(self.printer,SIGNAL("activated()"),self.printplot);
+
         QWhatsThis.add(self, display_image_instructions)
 
 # Finally, over-ride default QWT Plot size policy of MinimumExpanding
@@ -756,7 +762,12 @@ class QwtImageDisplay(QwtPlot):
       # skip if no main window
       if not self._mainwin:
         return;
-      self._menu = None
+
+      if not self._menu is None:
+         self.printer.removeFrom(self._menu)
+         self._menu.reparent(QWidget(), 0, QPoint())
+         self._menu = None
+
       self.log_switch_set = False
       self.complex_switch_set = False
       if self._menu is None:
@@ -2658,11 +2669,9 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.insertItem(pixmaps.viewmag.iconset(), "Reset zoomer", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
-        printer = QAction(self);
-        printer.setIconSet(pixmaps.fileprint.iconset());
-        printer.setText("Print plot");
-        QObject.connect(printer,SIGNAL("activated()"),self.printplot);
-        printer.addTo(self._menu);
+
+# add the printer to the menu
+        self.printer.addTo(self._menu);
 
 # do this here?
         if self.chi_zeros is None:
