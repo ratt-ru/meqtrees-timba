@@ -589,6 +589,9 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
+        if not self.display_solution_distances:
+          self.add_solver_metrics()
+          self.toggleMetrics()
         self.replot()
         return True
 
@@ -606,6 +609,7 @@ class QwtImageDisplay(QwtPlot):
         if len(self.metrics_plot) > 0:
           for i in range(len(self.metrics_plot)):
             self.removeCurve(self.metrics_plot[i])
+          self.metrics_plot = []
 
     def handle_flag_toggles(self, menuid):
       """ callback to handle or modify displays of flagged data """
@@ -1632,6 +1636,9 @@ class QwtImageDisplay(QwtPlot):
 
       #solver metrics
       if not self.display_solution_distances:
+        if len(self.metrics_plot) > 0:
+          for i in range(len(self.metrics_plot)):
+            self.removeCurve(self.metrics_plot[i])
         self.metrics_plot = []
         shape = self.metrics_rank.shape
         for i in range(shape[1]):
@@ -1639,7 +1646,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
-          metrics_title = 'metrics rank'
+          metrics_title = 'metrics rank ' + str(i)
           key = self.insertCurve(metrics_title)
           self.metrics_plot.append(key)
           self.setCurvePen(key, QPen(Qt.black, 2))
@@ -2583,6 +2590,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle chi-square surfaces display']
         self._menu.insertItem("Toggle chi-square surfaces display", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show chi-square surfaces')
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.insertItem("Toggle Metrics Display", toggle_id)
