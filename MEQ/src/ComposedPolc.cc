@@ -30,16 +30,78 @@ namespace Meq {
   ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) : 
     Polc(other,flags,depth),nr_funklets_(0)
   {
-
     (*this)[AidClass].replace() = "MeqComposedPolc";
+    
   }
   
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
     Polc(pert,weight,id),nr_funklets_(0)
    {
-   
+      
     (*this)[AidClass].replace() = "MeqComposedPolc";
    }
+
+void ComposedPolc::validateContent (bool recursive)    
+{
+  Thread::Mutex::Lock lock(mutex());
+  // ensure that our record contains all the right fields; setup shortcuts
+  // to their contents
+  try
+  {
+    // init polc fields
+    if( recursive )
+      Funklet::validateContent(true);
+    // get polc coefficients
+    else{
+      Field * fld = Record::findField(FCoeff);
+      if( fld ){
+	pcoeff_ = &( fld->ref().ref_cast<DMI::NumArray>() );
+	//coeff should be doubles:
+	if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
+	{
+	  //convert to double
+	  
+	}
+	FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+	
+	// check for sanity
+	FailWhen((*pcoeff_)->rank()>MaxPolcRank,"Meq::Polc: coeff can have max. rank of 2");
+	
+      }
+      else
+	pcoeff_ = 0;
+    }
+    //init_funklets
+    Field * fld = Record::findField(FFunkletList);
+    FailWhen(!fld,"no funklet list in record of composedpolc");
+    
+    DMI::List * funklistp =   fld->ref().ref_cast<DMI::List>() ;
+    int nr_funklets = nr_funklets_ = funklistp->size();
+    vector<Funklet::Ref>  funklets;
+    //    for(int funknr=0;funknr<nr_funklets;funknr++){
+    for( DMI::List::iterator funkIt = funklistp->begin();funkIt!=funklistp->end();funkIt++){
+      ObjRef partfunk = (*funkIt);
+      if(!partfunk.valid())
+	cdebug(0)<<"this is not a valid ref"<<endl;
+
+      Funklet::Ref funkref;funkref <<= partfunk;
+      if(!funkref.valid())
+	cdebug(0)<<"this is not a valid funkref"<<endl;
+      funklets.push_back(funkref);
+     }
+    initFunklets(funklets);
+   
+      
+  }
+  catch( std::exception &err )
+  {
+    ThrowMore(err,"validate of Polc record failed");
+  }
+  catch( ... )
+  {
+    Throw("validate of Polc record failed with unknown exception");
+  }
+}
 
   
   void ComposedPolc::initFunklets(vector<Funklet::Ref> & funklets)
@@ -58,6 +120,8 @@ namespace Meq {
     Domain & newdom = domref<<= new Domain();
     for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
       {
+	if(!(*funkIt).valid())
+	  cdebug(0)<<"this is not a valid funkIt"<<endl;
 	//check on shape 
 	const LoShape fshape= (*funkIt)->getCoeffShape ();
 	  const int rank=(*funkIt)->rank();
