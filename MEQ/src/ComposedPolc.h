@@ -37,6 +37,7 @@ namespace Meq
       
   ComposedPolc (vector<Funklet::Ref> & funklets,double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,DbId id=-1);
   ~ComposedPolc(){}
+  virtual void validateContent (bool recursive);
 
   void initFunklets(vector<Funklet::Ref> & funklets);
 
