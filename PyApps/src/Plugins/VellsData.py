@@ -45,16 +45,18 @@ class VellsData:
      self._key_menu_labels = {}
      self._menu_labels = {}
      self._perturbations_index = []
-     self.do_calc_vells_range = True
      self.array_selector = []
      self.array_tuple = None
      self.data_max = None
      self.data_min = None
      self.first_axis_parm = None
      self.second_axis_parm = None
+     self.third_axis_parm = None
      self.initialSelection = False
+     self.display_3D = False
      self.shape_change = True
      self.rank = -1
+     self.actual_rank = -1
      self.shape = (-1,)
 
 #    self.__init__
@@ -64,7 +66,6 @@ class VellsData:
           are used to set up proper axis labelling etc for the
           visualization displays.
       """
-      self.do_calc_vells_range = False
       axis_map = vells_rec.cells.domain.get('axis_map',['time','freq'])
       _dprint(3, 'axis map is ', axis_map)
       self.axis_labels = []
@@ -141,8 +142,7 @@ class VellsData:
      self._perturbations_index = []
      self.rq_label = rq_label
      _dprint(3,' self.rq_label = ', self.rq_label)
-     if self.do_calc_vells_range:
-       self.calc_vells_ranges(vells_rec)
+     self.calc_vells_ranges(vells_rec)
 
      self._number_of_planes = len(vells_rec["vellsets"])
      _dprint(3, 'number of planes ', self._number_of_planes)
@@ -253,7 +253,7 @@ class VellsData:
    # end StoreVellsData
 
    def getShapeChange(self):
-     """ returns true of data shape has changed """
+     """ returns true if data shape has changed """
      return self.shape_change
 
    def getNumPlanes(self):
@@ -331,17 +331,25 @@ class VellsData:
    def getActivePlot(self):
      return self._active_plane
 
-   def getActiveDataRank(self):
-     return self.rank
+   def getActiveDataRanks(self):
+     _dprint(3, 'returning values elf.actual_rank, self.rank, self.shape ', self.actual_rank, ' ', self.rank, ' ', self.shape)
+     return (self.actual_rank, self.rank, self.shape)
 
    def setActivePlane(self, active_plane=0):
      self._active_plane = active_plane
+
+   def set_3D_Display(self, display_3D=False):
+     self.display_3D = display_3D
+     self.initialSelection = False
+
+   def setInitialSelection(self, selection_flag=False):
+     self.initialSelection = selection_flag
 
    def setActivePerturb(self, active_perturb=0):
      self._active_perturb = active_perturb
 
    def getActiveAxisParms(self):
-     return [self.first_axis_parm, self.second_axis_parm]
+     return [self.first_axis_parm, self.second_axis_parm, self.third_axis_parm]
 
    def unravelMenuId(self, menuid=0):
       id_string = self._key_menu_labels[menuid] 
@@ -369,18 +377,22 @@ class VellsData:
       self.array_selector[lcd_number] = slider_value
       self.array_tuple = tuple(self.array_selector)
 
-   def setInitialSelectedAxes (self, rank, shape):
-     self.array_selector = []
-     self.array_tuple = None
-     first_axis = None
-     second_axis = None
-     self.first_axis_parm = None
-     self.second_axis_parm = None
+   def setInitialSelectedAxes (self, rank, shape, reset=False):
      try:
-       if rank == self.rank and self.shape == shape:
+       if not reset and rank == self.rank and self.shape == shape:
          self.shape_change = False
          return
        else:
+         self.array_selector = []
+         self.array_tuple = None
+         first_axis = None
+         second_axis = None
+         third_axis = None
+         self.first_axis_parm = None
+         self.second_axis_parm = None
+         self.third_axis_parm = None
+         self.actual_rank = 0
+         _dprint(3, 'self.actual_rank set ', self.actual_rank)
          self.rank = rank
          self.shape = shape
          self.shape_change = True
@@ -390,13 +402,20 @@ class VellsData:
        _dprint(3, 'self.shape_change ', self.shape_change)
        for i in range(rank-1,-1,-1):
          _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
-         if shape[i] > 1 and second_axis is None:
+         if shape[i] > 1:
+           self.actual_rank = self.actual_rank + 1
+           _dprint(3, 'self.actual rank now ', self.actual_rank)
+         if shape[i] > 1 and self.display_3D and third_axis is None:
+           third_axis = i
+           self.third_axis_parm = self.axis_labels[i]
+         elif shape[i] > 1 and second_axis is None:
            second_axis = i
            self.second_axis_parm = self.axis_labels[i]
-         else: 
-           if shape[i] > 1 and first_axis is None:
-             first_axis = i
-             self.first_axis_parm = self.axis_labels[i]
+           _dprint(3, 'second axis becomes ', second_axis)
+         elif shape[i] > 1 and first_axis is None:
+           first_axis = i
+           self.first_axis_parm = self.axis_labels[i]
+           _dprint(3, 'first axis becomes ', first_axis)
        if rank > 2:
          if not first_axis is None and not second_axis is None:
            for i in range(rank):
@@ -405,6 +424,9 @@ class VellsData:
                self.array_selector.append(axis_slice)
              elif i == second_axis:            
                axis_slice = slice(0,shape[second_axis])
+               self.array_selector.append(axis_slice)
+             elif i == third_axis:            
+               axis_slice = slice(0,shape[third_axis])
                self.array_selector.append(axis_slice)
              else:
                self.array_selector.append(0)
@@ -417,8 +439,9 @@ class VellsData:
      self.initialSelection = True
      _dprint(3, 'self.first_axis_parm ', self.first_axis_parm)
      _dprint(3, 'self.second_axis_parm ', self.second_axis_parm)
+     _dprint(3, 'self.third_axis_parm ', self.third_axis_parm)
 
-   def setSelectedAxes (self,first_axis, second_axis):
+   def setSelectedAxes (self,first_axis, second_axis, third_axis=-1):
      self.array_selector = []
      self.array_tuple = None
      try:
@@ -436,6 +459,10 @@ class VellsData:
              axis_slice = slice(0,shape[second_axis])
              self.array_selector.append(axis_slice)
              self.second_axis_parm = self.axis_labels[i]
+           elif i == third_axis:
+             axis_slice = slice(0,shape[third_axis])
+             self.array_selector.append(axis_slice)
+             self.third_axis_parm = self.axis_labels[i]
            else:
              self.array_selector.append(0)
          self.array_tuple = tuple(self.array_selector)
