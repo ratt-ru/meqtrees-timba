@@ -57,9 +57,6 @@ except:
   print 'libraries.'
   print ' '
 
-# suppress VTK use for the moment
-has_vtk = False
-
 # compute standard deviation of a complex or real array
 # the std_dev given here was computed according to the
 # formula given by Oleg (It should work for real or complex array)
@@ -304,10 +301,9 @@ class QwtImageDisplay(QwtPlot):
         self.xpos = 0
         self.ypos = 0
         self.complex_type = False
-        self.toggle_array_rank = 1
+        self.original_data_rank = 1
         self.toggle_color_bar = 1
         self.toggle_ND_Controller = 1
-        self.hidden_ND_Controller = False
         self.toggle_log_display = False
         self.toggle_gray_scale = 0
         self._toggle_flag_label = None
@@ -995,7 +991,6 @@ class QwtImageDisplay(QwtPlot):
 
 # make sure we cannot try to show ND Controller
       self.toggle_ND_Controller = 0
-      self.hidden_ND_Controller = True
       toggle_id = self.menu_table['Toggle ND Controller']
       self._menu.setItemVisible(toggle_id, False)
       toggle_id = self.menu_table['Toggle 3D Display']
@@ -2036,11 +2031,7 @@ class QwtImageDisplay(QwtPlot):
 
     def plot_vells_array (self, data_array, data_label=" "):
       """ plot a Vells data array """
-      if self.toggle_array_rank > 2: 
-        self.hidden_ND_Controller = False
-        self.toggle_ND_Controller = 1
-        toggle_id = self.menu_table['Toggle ND Controller']
-        self._menu.setItemVisible(toggle_id, True)
+      if self.original_data_rank > 2: 
         if has_vtk:
           toggle_id = self.menu_table['Toggle 3D Display']
           self._menu.setItemVisible(toggle_id, True)
@@ -2164,11 +2155,10 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = True
 
 # I don't think we should ever see the N-D controller in the vector case.
-# If self.toggle_array_rank > 2 that means that the cells dimensions are
+# If self.original_data_rank > 2 that means that the cells dimensions are
 # greater than the vector being plotted so we can turn off any ND Controller.
-        if self.toggle_array_rank > 2: 
+        if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 0
-          self.hidden_ND_Controller = True
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.setItemVisible(toggle_id, False)
           self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
@@ -2199,6 +2189,12 @@ class QwtImageDisplay(QwtPlot):
         self.log_switch_set = True
 
       if self.is_vector == False:
+
+        if self.original_data_rank > 2: 
+          self.toggle_ND_Controller = 1
+          toggle_id = self.menu_table['Toggle ND Controller']
+          self._menu.setItemVisible(toggle_id, True)
+
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
 #         if has_vtk:
@@ -2685,8 +2681,8 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Toggle chi-square surfaces display']
           self._menu.setItemVisible(toggle_id, True)
 
-    def set_toggle_array_rank(self, toggle_array_rank):
-      self.toggle_array_rank = toggle_array_rank
+    def set_original_array_rank(self, original_array_rank):
+      self.original_data_rank = original_array_rank
 
     def start_test_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
