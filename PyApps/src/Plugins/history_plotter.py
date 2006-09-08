@@ -409,7 +409,7 @@ class HistoryPlotter(GriddedPlugin):
     if self.actual_rank > 2:
       _dprint(3,'array has actual rank and shape: ', self.actual_rank, ' ', self._plot_array.shape)
       _dprint(3,'so an ND Controller GUI is needed')
-      self._plotter.set_toggle_array_rank(self._plot_array.rank)
+      self._plotter.set_original_array_rank(self._plot_array.rank)
       self.set_ND_controls()
   # create_image_plotters
 

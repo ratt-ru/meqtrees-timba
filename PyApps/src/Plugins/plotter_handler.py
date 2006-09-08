@@ -160,7 +160,7 @@ class PlotHandler:
       if self.actual_rank > 2:
         _dprint(3,' array_plotter: array has actual rank and shape: ', self.actual_rank, ' ', self.array_shape)
         _dprint(3,' array_plotter: so an ND Controller GUI is needed')
-        self._plotter.set_toggle_array_rank(self.actual_rank)
+        self._plotter.set_original_array_rank(self.actual_rank)
         self.set_ND_controls(num_axes=2)
 
     self.plotPrinter = plot_printer(self._plotter, self.colorbar)
@@ -385,7 +385,7 @@ class PlotHandler:
     self._plotter.report_scalar_value(data_label, scalar_data)
 
   def set_toggle_array_rank(self, toggle_array_rank):
-    self._plotter.set_toggle_array_rank(toggle_array_rank)
+    self._plotter.set_original_array_rank(toggle_array_rank)
 
   def reset_color_bar(self, reset_value=True):
     self._plotter.reset_color_bar(reset_value)
