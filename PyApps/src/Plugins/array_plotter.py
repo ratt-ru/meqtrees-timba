@@ -41,6 +41,14 @@ _dbg = verbosity(0,name='array_plotter');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+global has_vtk
+has_vtk = False
+try:
+  from Timba.Plugins.vtk_qt_3d_display import *
+  has_vtk = True
+except:
+  pass
+
 
 from numarray import *
 from qt import *
@@ -49,9 +57,6 @@ from QwtPlotImage import *
 from QwtColorBar import *
 from ND_Controller import *
 from plot_printer import *
-
-#from vtk_qt_3d_display import *
-
 
 class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
@@ -65,54 +70,11 @@ class ArrayPlotter(GriddedPlugin):
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     _dprint(3,'** array_plotter: starting init')
-
-# now create plotter and colorbar
-
-# first figure out the actual rank of the array we are plotting
-    self.actual_rank = 0
-    self.array_shape = dataitem.data.shape
-    self.array_rank = dataitem.data.rank
-    for i in range(len(self.array_shape)):
-      if self.array_shape[i] > 1:
-        self.actual_rank = self.actual_rank + 1
     self.layout_parent = None
-    self.array_selector = None
-    self.colorbar = {}
-    self.layout_parent = QWidget(self.wparent())
-    self.layout = QGridLayout(self.layout_parent)
-    self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-    if self.actual_rank  > 1:
-      self.layout.addWidget(self._plotter, 0, 1)
-      if dataitem.data.type() == Complex32 or dataitem.data.type() == Complex64:
-        num_colorbars = 2
-      else:
-        num_colorbars = 1
-      for i in range(num_colorbars):
-        self.colorbar[i] =  QwtColorBar(colorbar_number=i,parent=self.layout_parent)
-        if i == 0:
-          self.layout.addWidget(self.colorbar[i], 0, i)
-        else:
-          self.layout.addWidget(self.colorbar[i], 0, 2)
-        self.colorbar[i].setRange(-1,1,colorbar_number=i)
-        self.colorbar[i].hide()
-        QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
-        QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
-        QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
-        QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)
-
-      if self.actual_rank > 2:
-        _dprint(3,' array_plotter: array has actual rank and shape: ', self.actual_rank, ' ', self.array_shape)
-        _dprint(3,' array_plotter: so an ND Controller GUI is needed')
-        self._plotter.set_original_array_rank(self.array_rank)
-        self.set_ND_controls()
-
-    else:
-      self.layout.addWidget(self._plotter, 0, 0)
-
-    self.plotPrinter = plot_printer(self._plotter, self.colorbar)
-    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
-    self._plotter.show()
-    self.set_widgets(self.layout_parent,dataitem.caption,icon=self.icon());
+    self.layout_created = False
+    self.twoD_plotter = None
+    self.ND_plotter = None
+    self.ND_Controls = None
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -120,19 +82,68 @@ class ArrayPlotter(GriddedPlugin):
 #  def __del__(self):
 #    print "in destructor"
                                                                                            
+
+  def create_2D_plotter(self):
+    if not self.ND_plotter is None:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.hide_vtk_controls()
+    self.twoD_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
+
+    self.layout.addWidget(self.twoD_plotter, 0, 1)
+    QObject.connect(self.twoD_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar)
+    QObject.connect(self.twoD_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+    QObject.connect(self.twoD_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
+
+    self.plotPrinter = plot_printer(self.twoD_plotter)
+    QObject.connect(self.twoD_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
+    self.twoD_plotter.show()
+  # create_2D_plotter
+
+
+
+  def create_layout_stuff(self):
+    """ create grid layouts into which plotter widgets are inserted """
+    if self.layout_parent is None or not self.layout_created:
+      self.layout_parent = QWidget(self.wparent())
+      self.layout = QGridLayout(self.layout_parent)
+      self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+      self.layout_created = True
+    self._wtop = self.layout_parent;
+
   def wtop (self):
-    if self.layout_parent is None:
-      return self._plotter
-    else:
-      return self.layout_parent
+    return self._wtop
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this function is the callback interface to the meqbrowser and
         handles new incoming data """
 
+    self.dataitem = dataitem
+# first create layout stuff
+    self.create_layout_stuff()
+
+# now create plotter and colorbar
+    if self.twoD_plotter is None:
+      self.create_2D_plotter()
+    self.plot_2D_array()
+
+  def plot_2D_array (self):
+
+    self.data = self.dataitem.data
+# first figure out the actual rank of the array we are plotting
+
+    self.actual_rank = 0
+    self.array_shape = self.dataitem.data.shape
+    self.array_rank = self.dataitem.data.rank
+    for i in range(len(self.array_shape)):
+      if self.array_shape[i] > 1:
+        self.actual_rank = self.actual_rank + 1
+    self.array_selector = None
+    if self.actual_rank > 2:
+      self.twoD_plotter.set_original_array_rank(self.actual_rank)
+      self.set_ND_controls()
+
 # pass array to the plotter
     if self.array_rank > 2:
-      self.data = dataitem.data
       if self.array_selector is None:
         second_axis = None
         first_axis = None
@@ -155,42 +166,74 @@ class ArrayPlotter(GriddedPlugin):
             else:
               self.array_selector.append(0)
       self.array_tuple = tuple(self.array_selector)
-      self._plotter.array_plot('data', self.data[self.array_tuple])
+      self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
     else:
-      self._plotter.array_plot('data', dataitem.data)
+      self.twoD_plotter.array_plot('data', self.data)
 
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
 
-# will need more set up parameters eventually
-  def set_ND_controls (self):
-    """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater """
+  def plot_3D_array (self):
+# first figure out the actual rank of the array we are plotting
+    self.actual_rank = 0
+    self.array_shape = self.dataitem.data.shape
+    self.array_rank = self.dataitem.data.rank
+    for i in range(len(self.array_shape)):
+      if self.array_shape[i] > 1:
+        self.actual_rank = self.actual_rank + 1
+    self.array_selector = None
+    if self.actual_rank > 2:
+      self.set_ND_controls(None, None, num_axes=3)
 
-    labels = None
-    parms = None
-    num_axes = 2
-    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes, self.layout_parent) 
-    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
-    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-    QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
+# pass array to the plotter
+    if self.array_rank > 2:
+      self.data = self.dataitem.data
+      if self.array_selector is None:
+        third_axis = None
+        second_axis = None
+        first_axis = None
+        for i in range(self.array_rank-1,-1,-1):
+          if self.data.shape[i] > 1:
+            if third_axis is None:
+              third_axis = i
+            elif second_axis is None:
+              second_axis = i
+            else:
+              if first_axis is None:
+                first_axis = i
+        if not first_axis is None and not second_axis is None and not third_axis is None:
+          self.array_selector = []
+          for i in range(self.array_rank):
+            if i == first_axis:
+              axis_slice = slice(0,self.data.shape[first_axis])
+              self.array_selector.append(axis_slice)
+            elif i == second_axis:
+              axis_slice = slice(0,self.data.shape[second_axis])
+              self.array_selector.append(axis_slice)
+            elif i == third_axis:
+              axis_slice = slice(0,self.data.shape[third_axis])
+              self.array_selector.append(axis_slice)
+            else:
+              self.array_selector.append(0)
+      self.array_tuple = tuple(self.array_selector)
+      self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
+      axis_parms = []
+      axis_parms.append('axis ' + str(first_axis))
+      axis_parms.append('axis ' + str(second_axis))
+      axis_parms.append('axis ' + str(third_axis))
+      self.ND_plotter.setAxisParms(axis_parms)
 
-    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
+# enable & highlight the cell
+    self.enable();
+    self.flash_refresh();
 
-  def setArraySelector (self,lcd_number, slider_value, display_string):
-    """ update the subsection of an N-dimensional array 
-        and display the selected subarray.
-    """
-    self.array_selector[lcd_number] = slider_value
-    self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot('data: '+ display_string, self.data[self.array_tuple])
-
-  def setSelectedAxes (self,first_axis, second_axis):
+  def setSelectedAxes (self,first_axis, second_axis, third_axis=-1):
     """ update the selected axes of an N-dimensional array
         and display the selected sub-array.
     """
-    self._plotter.delete_cross_sections()
+    if not self.twoD_plotter is None:
+      self.twoD_plotter.delete_cross_sections()
     self.array_selector = []
     for i in range(self.array_rank):
       if i == first_axis: 
@@ -199,9 +242,110 @@ class ArrayPlotter(GriddedPlugin):
       elif i == second_axis:
         axis_slice = slice(0,self.array_shape[second_axis])
         self.array_selector.append(axis_slice)
+      elif i == third_axis:
+        axis_slice = slice(0,self.array_shape[third_axis])
+        self.array_selector.append(axis_slice)
       else:
         self.array_selector.append(0)
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot('data', self.data[self.array_tuple])
+    if not self.twoD_plotter is None:
+      self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
+    else:
+      if not self.ND_plotter is None:
+        self.ND_plotter.delete_vtk_renderer()
+        self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
+        axis_parms = []
+        axis_parms.append('axis ' + str(first_axis))
+        axis_parms.append('axis ' + str(second_axis))
+        axis_parms.append('axis ' + str(third_axis))
+        self.ND_plotter.setAxisParms(axis_parms)
+
+  def setArraySelector (self,lcd_number, slider_value, display_string=None):
+    """ update the subsection of an N-dimensional array 
+        and display the selected subarray.
+    """
+    self.array_selector[lcd_number] = slider_value
+    self.array_tuple = tuple(self.array_selector)
+    if not self.twoD_plotter is None:
+      self.twoD_plotter.array_plot('data ', self.data[self.array_tuple])
+    else:
+      self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
+
+  def ND_controller_showDisplay(self, show_self):
+    """ tells ND_Controller to show or hide itself """
+    if not self.ND_Controls is None:
+      self.ND_Controls.showDisplay(show_self)
+
+  def set_ND_controls (self, labels=None, parms=None, num_axes=2):
+    """ this function adds the extra GUI control buttons etc if we are
+        displaying data for a numarray of dimension 3 or greater """
+
+    if not self.ND_Controls is None:
+      self.ND_Controls.reparent(QWidget(), 0, QPoint())
+      self.ND_Controls = None
+
+    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes,self.layout_parent)
+    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
+    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
+    if self.ND_Controls.get_num_selectors() > num_axes:
+      self.ND_Controls.showDisplay(1)
+    else:
+      self.ND_Controls.showDisplay(0)
+      if not self.ND_plotter is None:
+        self.ND_plotter.HideNDButton()
+    _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
+
+
+  def show_3D_Display(self, display_flag):
+    if not has_vtk:
+      return
+
+    _dprint(3, 'got 3D plot request, deleting 2-D stuff')
+    self.twoD_plotter.reparent(QWidget(), 0, QPoint())
+    self.colorbar[0].reparent(QWidget(), 0, QPoint())
+    self.colorbar[1].reparent(QWidget(), 0, QPoint())
+    self.twoD_plotter = None
+    self.colorbar = {}
+
+    if self.ND_plotter is None:
+      self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
+      self.ND_plotter.Add2DButton()
+      self.ND_plotter.AddNDButton()
+      self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+      self.ND_plotter.show()
+      _dprint(3, 'issued show call to self.ND_plotter')
+    else:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.show_vtk_controls()
+
+    self.plot_3D_array()
+
+  def show_2D_Display(self, display_flag):
+    _dprint(3, 'in show_2D_Display ')
+    self.create_2D_plotter()
+# create 3-D Controller appropriate for 2-D screen displays
+    self.plot_2D_array()
+
+  def set_ColorBar (self):
+    """ this function adds a colorbar for 2-D displays """
+    # create two color bars in case we are displaying complex arrays
+    self.colorbar = {}
+    for i in range(2):
+      self.colorbar[i] = QwtColorBar(colorbar_number= i, parent=self.layout_parent)
+      self.colorbar[i].setMaxRange((-1, 1))       
+      QObject.connect(self.twoD_plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange)       
+      QObject.connect(self.twoD_plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType)       
+      QObject.connect(self.twoD_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)       
+      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self.twoD_plotter.setImageRange)
+      if i == 0:
+        self.layout.addWidget(self.colorbar[i], 0, i)         
+        self.colorbar[i].show()
+      else:
+        self.layout.addWidget(self.colorbar[i], 0, 2)
+        self.colorbar[i].hide()
+    self.plotPrinter.add_colorbar(self.colorbar)
 
 Grid.Services.registerViewer(array_class,ArrayPlotter,priority=10)
