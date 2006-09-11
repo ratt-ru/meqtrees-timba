@@ -2031,11 +2031,6 @@ class QwtImageDisplay(QwtPlot):
 
     def plot_vells_array (self, data_array, data_label=" "):
       """ plot a Vells data array """
-      if self.original_data_rank > 2: 
-        if has_vtk:
-          toggle_id = self.menu_table['Toggle 3D Display']
-          self._menu.setItemVisible(toggle_id, True)
-
 # no legends by default
       toggle_id = self.menu_table['Toggle Plot Legend']
       self._menu.setItemVisible(toggle_id, False)
@@ -2194,12 +2189,12 @@ class QwtImageDisplay(QwtPlot):
           self.toggle_ND_Controller = 1
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.setItemVisible(toggle_id, True)
+          if has_vtk:
+            toggle_id = self.menu_table['Toggle 3D Display']
+            self._menu.setItemVisible(toggle_id, True)
 
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
-#         if has_vtk:
-#           toggle_id = self.menu_table['Toggle 3D Display']
-#           self._menu.setItemVisible(toggle_id, False)
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
 
