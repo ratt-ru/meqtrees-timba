@@ -63,10 +63,24 @@ Keypress r: reset the camera view along the current view direction. Centers the 
 Keypress s: modify the representation of all actors so that they are surfaces. <br><br> 
 Keypress u: invoke the user-defined function. Typically, this keypress will bring up an interactor that you can type commands in.<br><br>
 Keypress w: modify the representation of all actors so that they are wireframe.'''
-#-----------------------------
-# Building Qt GUI
-#-----------------------------
-#-----------------------------
+
+class MEQ_QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
+  """ We override the default QVTKRenderWindowInteractor
+      class in order to add an extra method
+  """
+  def __init__(self, parent=None, name=None, *args, **kw):
+    if not has_vtk:
+      return None
+    QVTKRenderWindowInteractor.__init__(self,parent,name,*args,**kw)
+
+  def contextMenuEvent(self,ev):
+    """ This function is necessary when a QVTKRenderWindowInteractor
+        is embedded inside the MeqTrees browser. Any higher-level 
+        context menu is now ignored when the right mouse
+        button is clicked inside the QVTKRenderWindowInteractor.
+    """
+    ev.accept()
+
 class vtk_qt_3d_display(qt.QWidget):
 
   def __init__( self, *args ):
@@ -77,7 +91,9 @@ class vtk_qt_3d_display(qt.QWidget):
 #=============================
 # VTK code to create test array
 #=============================
-    self.conplex_plot = False
+    self.complex_plot = False
+    self.toggle_ND_Controller = 1
+    self.button_hide = None
     self.image_array = None
     self.iteration = 0
     self.renwininter = None
@@ -99,9 +115,10 @@ class vtk_qt_3d_display(qt.QWidget):
     self.h_box = qt.QHBox(self.v_box_controls)
 # buttons
     self.button_capture = qt.QPushButton("Postscript",self.h_box)
-    self.button_x = qt.QPushButton("X Freq",self.h_box)
-    self.button_y = qt.QPushButton("Y Time",self.h_box)
-    self.button_z = qt.QPushButton("Z Plane",self.h_box)
+    self.button_x = qt.QPushButton("X",self.h_box)
+    self.button_y = qt.QPushButton("Y",self.h_box)
+    self.button_z = qt.QPushButton("Z",self.h_box)
+    self.button_z.setPaletteBackgroundColor(Qt.green)
 # lcd
     self.lcd = qt.QLCDNumber(2, self.v_box_controls, "lcd")
     self.lcd.setSegmentStyle(qt.QLCDNumber.Filled)
@@ -114,14 +131,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.slider.setTickInterval(10)
     self.h_box1.setStretchFactor(self.slider,1)
 
-#add a spacer
-    self.spacer = qt.QSpacerItem( 0, 0, qt.QSizePolicy.Expanding, qt.QSizePolicy.Minimum )
-#    self.h_box1.addItem(self.spacer)
-#    self.h_box1.addStretch(1)
-
-
 # create connections from buttons to callbacks
-#    qt.QObject.connect(self.button_quit, qt.SIGNAL("clicked()"), qt.qApp, qt.SLOT("quit()"))
     qt.QObject.connect(self.button_capture,qt.SIGNAL("clicked()"),self.CaptureImage)
     qt.QObject.connect(self.button_x,qt.SIGNAL("clicked()"),self.AlignXaxis)
     qt.QObject.connect(self.button_y,qt.SIGNAL("clicked()"),self.AlignYaxis)
@@ -129,18 +139,6 @@ class vtk_qt_3d_display(qt.QWidget):
 
     qt.QObject.connect(self.slider, qt.SIGNAL("valueChanged(int)"), self.lcd, qt.SLOT("display(int)"))
     qt.QObject.connect(self.slider, qt.SIGNAL("valueChanged(int)"), self.SetSlice)
-
-#-----------------------------
-#   self.renwininter = QVTKRenderWindowInteractor(self.winsplitter)
-#   qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
-
-#   self.renwin = self.renwininter.GetRenderWindow()
-#   self.inter = self.renwin.GetInteractor()
-#   self.winsplitter.moveToFirst(self.renwininter)
-#   self.winsplitter.moveToLast(self.v_box_controls)
-#   self.winsplitter.setSizes([100,400])
-
-#-----------------------------
 
   def delete_vtk_renderer(self):
     if not self.renwininter is None:
@@ -156,7 +154,7 @@ class vtk_qt_3d_display(qt.QWidget):
 
   def set_initial_display(self):
     if self.renwininter is None:
-      self.renwininter = QVTKRenderWindowInteractor(self.winsplitter)
+      self.renwininter = MEQ_QVTKRenderWindowInteractor(self.winsplitter)
       qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
       self.renwin = self.renwininter.GetRenderWindow()
       self.inter = self.renwin.GetInteractor()
@@ -501,15 +499,17 @@ class vtk_qt_3d_display(qt.QWidget):
 # convert a complex array to reals followed by imaginaries
     if plot_array.type() == numarray.Complex32 or plot_array.type() == numarray.Complex64:
         real_array =  plot_array.getreal()
+        imag_array =  plot_array.getimag()
         (nx,ny,nz) = real_array.shape
+
         image_for_display = array(shape=(nx*2,ny,nz),type=real_array.type());
         image_for_display[:nx,:] = real_array
-        imag_array =  plot_array.getimag()
         image_for_display[nx:,:] = imag_array
+
         plot_array = image_for_display
-        self.conplex_plot = True
+        self.complex_plot = True
     else:
-        self.conplex_plot = False
+        self.complex_plot = False
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
       if plot_array.rank > 3:
@@ -522,6 +522,9 @@ class vtk_qt_3d_display(qt.QWidget):
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
       self.lut.SetRange(plot_array.min(), plot_array.max())
+      if not self.button_hide is None:
+        self.toggle_ND_Controller = 1
+        self.button_hide.setText('Hide ND Controller')
     else:
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
@@ -545,9 +548,33 @@ class vtk_qt_3d_display(qt.QWidget):
     self.define_image(self.iteration)
 #    self.define_random_image()
 
+  def Add2DButton(self):
+    self.button_test = qt.QPushButton("2D Display",self.h_box)
+    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.two_D_Event)
+
   def two_D_Event(self):
     self.emit(PYSIGNAL("show_2D_Display"),(0,))
-#    self.define_random_image()
+
+  def AddNDButton(self):
+    self.button_hide = qt.QPushButton("Hide ND Controller",self.h_box)
+    qt.QObject.connect(self.button_hide, qt.SIGNAL("clicked()"),self.hide_Event)
+
+  def HideNDButton(self):
+    if not self.button_hide is None:
+      self.button_hide.reparent(QWidget(), 0, QPoint()) 
+      self.button_hide = None
+
+  def hide_Event(self):
+    if self.toggle_ND_Controller == 1:
+      self.toggle_ND_Controller = 0
+      if not self.button_hide is None:
+        self.button_hide.setText('Show ND Controller')
+    else:
+      self.toggle_ND_Controller = 1
+      if not self.button_hide is None:
+        self.button_hide.setText('Hide ND Controller')
+    if not self.button_hide is None:
+      self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
 
   def AddVTKExitEvent(self):
 # next line causes confusion when run inside the browser
@@ -557,22 +584,6 @@ class vtk_qt_3d_display(qt.QWidget):
   def AddUpdateButton(self):
     self.button_test = qt.QPushButton("Update",self.h_box)
     qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.testEvent)
-
-  def Add2DButton(self):
-    self.button_test = qt.QPushButton("2D Display",self.h_box)
-    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.two_D_Event)
-  def UpdateLabels(self, first_axis,second_axis,third_axis):
-    print 'self.button_x ', self.button_x
-    print 'self.button_y ', self.button_y
-    print 'self.button_z ', self.button_z
-    return
-    self.button_x.setText('X ' + first_axis)
-    self.button_y.setText('Y ' + second_axis)
-    self.button_z.setText('Z ' + third_axis)
-    if not self.axes is None:
-      self.axes.SetXLabel('X ' + first_axis)
-      self.axes.SetYLabel('Y ' + second_axis)
-      self.axes.SetZLabel('Z ' + third_axis)
 
   def setAxisParms(self, axis_parms):
     if axis_parms[2] is None:
@@ -592,7 +603,7 @@ class vtk_qt_3d_display(qt.QWidget):
       if not self.axes is None:
         self.axes.SetYLabel('Y ' + axis_parms[1])
     if axis_parms[0] is None:
-      if self.conplex_plot:
+      if self.complex_plot:
         Z_text = 'Z (real then imag) '
       else:
         Z_text = 'Z '
@@ -600,7 +611,7 @@ class vtk_qt_3d_display(qt.QWidget):
       if not self.axes is None:
         self.axes.SetZLabel(Z_text)
     else: 
-      if self.conplex_plot:
+      if self.complex_plot:
         Z_text = 'Z (real then imag) '
       else:
         Z_text = 'Z '
