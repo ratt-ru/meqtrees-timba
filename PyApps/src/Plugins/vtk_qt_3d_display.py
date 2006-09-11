@@ -64,22 +64,23 @@ Keypress s: modify the representation of all actors so that they are surfaces. <
 Keypress u: invoke the user-defined function. Typically, this keypress will bring up an interactor that you can type commands in.<br><br>
 Keypress w: modify the representation of all actors so that they are wireframe.'''
 
-class MEQ_QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
-  """ We override the default QVTKRenderWindowInteractor
-      class in order to add an extra method
-  """
-  def __init__(self, parent=None, name=None, *args, **kw):
-    if not has_vtk:
-      return None
-    QVTKRenderWindowInteractor.__init__(self,parent,name,*args,**kw)
-
-  def contextMenuEvent(self,ev):
-    """ This function is necessary when a QVTKRenderWindowInteractor
-        is embedded inside the MeqTrees browser. Any higher-level 
-        context menu is now ignored when the right mouse
-        button is clicked inside the QVTKRenderWindowInteractor.
+if has_vtk:
+  class MEQ_QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
+    """ We override the default QVTKRenderWindowInteractor
+        class in order to add an extra method
     """
-    ev.accept()
+    def __init__(self, parent=None, name=None, *args, **kw):
+      if not has_vtk:
+        return None
+      QVTKRenderWindowInteractor.__init__(self,parent,name,*args,**kw)
+
+    def contextMenuEvent(self,ev):
+      """ This function is necessary when a QVTKRenderWindowInteractor
+          is embedded inside the MeqTrees browser. Any higher-level 
+          context menu is now ignored when the right mouse
+          button is clicked inside the QVTKRenderWindowInteractor.
+      """
+      ev.accept()
 
 class vtk_qt_3d_display(qt.QWidget):
 
@@ -621,11 +622,11 @@ class vtk_qt_3d_display(qt.QWidget):
 
 #=============================
 if __name__ == "__main__":
-  app = qt.QApplication(sys.argv)
-  qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
-		app,qt.SLOT("quit()"))
-  display = vtk_qt_3d_display()
   if has_vtk:
+    app = qt.QApplication(sys.argv)
+    qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
+		app,qt.SLOT("quit()"))
+    display = vtk_qt_3d_display()
     display.AddUpdateButton()
     display.show()
     display.testEvent()
