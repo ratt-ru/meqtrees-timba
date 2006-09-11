@@ -526,6 +526,10 @@ class vtk_qt_3d_display(qt.QWidget):
       if not self.button_hide is None:
         self.toggle_ND_Controller = 1
         self.button_hide.setText('Hide ND Controller')
+      self.button_x.unsetPalette()
+      self.button_y.unsetPalette()
+      self.button_z.unsetPalette()
+      self.button_z.setPaletteBackgroundColor(Qt.green)
     else:
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
