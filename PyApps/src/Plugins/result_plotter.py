@@ -377,6 +377,8 @@ class ResultPlotter(GriddedPlugin):
 
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
         self.layout.addWidget(self._visu_plotter.plot, 0, 1)
+        self._visu_plotter.plot.show()
+        _dprint(3, 'issued show call to realvsimag self._visu_plotter')
 
 
   def do_postwork(self, node):
@@ -441,8 +443,6 @@ class ResultPlotter(GriddedPlugin):
         self.adjust_spectrum_selector()
     else:
       self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
-      self._visu_plotter.plot.show()
-      _dprint(3, 'issued show call to realvsimag self._visu_plotter')
 
   # do_leafwork
 
@@ -610,7 +610,7 @@ class ResultPlotter(GriddedPlugin):
 
     self.plotPrinter = plot_printer(self._visu_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-
+    self._visu_plotter.show()
   # create_2D_plotter
 
   def set_data (self,dataitem,default_open=None,**opts):
@@ -706,7 +706,6 @@ class ResultPlotter(GriddedPlugin):
       else:
         if self._visu_plotter is None:
           self.create_2D_plotter()
-          self._visu_plotter.show()
         self.plot_solver()
       process_result = True
 
@@ -806,8 +805,6 @@ class ResultPlotter(GriddedPlugin):
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
-      self._visu_plotter.show()
-      _dprint(3, 'issued show call to self._visu_plotter')
       if not self.test_vells_scalar(plot_data, plot_label):
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
@@ -1059,8 +1056,10 @@ class ResultPlotter(GriddedPlugin):
     if self.ND_plotter is None:
       self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
       self.ND_plotter.Add2DButton()
+      self.ND_plotter.AddNDButton()
       self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
       self.ND_plotter.show()
       _dprint(3, 'issued show call to self.ND_plotter')
     else:
