@@ -9,7 +9,7 @@ from Timba.Contrib.OMS.SkyComponent import *
 import clar_model
 
 # MS name
-TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
+TDLRuntimeOption('msname',"MS",["./TEST_CLAR_27-480.MS","./TEST_CLAR_27-4800.MS"],inline=True);
 
 
 tile_size = 480
@@ -27,7 +27,10 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 
 # first, make sure that any previous version of the mep table is
 # obliterated so nothing strange happens in succeeding steps
-os.system("rm -fr "+ mep_derived);
+try:
+  os.system("rm -fr "+ mep_derived);
+except:
+  pass
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
