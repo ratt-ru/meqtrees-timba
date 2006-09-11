@@ -78,15 +78,13 @@ void ComposedPolc::validateContent (bool recursive)
     DMI::List * funklistp =   fld->ref().ref_cast<DMI::List>() ;
     int nr_funklets = nr_funklets_ = funklistp->size();
     vector<Funklet::Ref>  funklets;
-    //    for(int funknr=0;funknr<nr_funklets;funknr++){
-    for( DMI::List::iterator funkIt = funklistp->begin();funkIt!=funklistp->end();funkIt++){
-      ObjRef partfunk = (*funkIt);
-      if(!partfunk.valid())
-	cdebug(0)<<"this is not a valid ref"<<endl;
+    for(int funknr=0;funknr<nr_funklets;funknr++){
+      //for( DMI::List::iterator funkIt = funklistp->begin();funkIt!=funklistp->end();funkIt++){
+      ObjRef partfunk = funklistp->get(funknr);
+      FailWhen(!partfunk.valid(),"this is not a valid ref");
 
       Funklet::Ref funkref;funkref <<= partfunk;
-      if(!funkref.valid())
-	cdebug(0)<<"this is not a valid funkref"<<endl;
+      FailWhen(!funkref.valid(),"this is not a valid funkref");
       funklets.push_back(funkref);
      }
     initFunklets(funklets);
@@ -117,11 +115,10 @@ void ComposedPolc::validateContent (bool recursive)
 
     std::sort(funklets.begin(),funklets.end(),compareDomain);
     Domain::Ref domref;
-    Domain & newdom = domref<<= new Domain();
+    Domain newdom = domref<<= new Domain();
     for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
       {
-	if(!(*funkIt).valid())
-	  cdebug(0)<<"this is not a valid funkIt"<<endl;
+	FailWhen(!(*funkIt).valid(),"this is not a valid funkIt");
 	//check on shape 
 	const LoShape fshape= (*funkIt)->getCoeffShape ();
 	  const int rank=(*funkIt)->rank();
