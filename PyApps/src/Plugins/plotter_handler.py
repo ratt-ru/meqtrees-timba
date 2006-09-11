@@ -43,9 +43,10 @@ class PlotHandler:
   def __init__(self, dataitem,layout_parent):
 
     self.layout_parent = layout_parent
+    self.layout = QGridLayout(self.layout_parent)
 
     self.ND_Controls = None
-    self._plotter = QwtImageDisplay('spectra',parent= self.layout_parent)
+    self.ND_plotter None
     self.construction_done = False
     self.plot_2D = True
     self.vells_plot = False
@@ -57,33 +58,49 @@ class PlotHandler:
     self.array_rank = None 
     self.actual_rank = None
     self.colorbar = {}
-    self.layout = QGridLayout(self.layout_parent)
 
     try:
       if dataitem and dataitem.data is not None:
-        self.array_shape = dataitem.data.shape
-        self.array_rank = dataitem.data.rank
-        self.actual_rank = 0
-        for i in range(len(self.array_shape)):
-          if self.array_shape[i] > 1:
-            self.actual_rank = self.actual_rank + 1
-        print 'self.actual_rank ', self.actual_rank
 # initially, construct 'standard' 2-D display
-        self.construct_2D_Display(dataitem.data)
+        self.create_2D_plotter()
+        self.construct_2D_Display()
         self.set_data(dataitem);
     except:
       self.addResultsSelector()
       self.addSpectrumSelector()
 
-  def construct_3D_Display(self, make_ND_Controller=True):
-    self._plotter = vtk_qt_3d_display(self.layout_parent)
-    self._plotter.Add2DButton()
-    self.layout.addMultiCellWidget(self._plotter,0,0,0,2)
-    self.addResultsSelector()
-    QObject.connect(self._plotter, PYSIGNAL('show_2D_Display'), self.change_display_type)
-    self._plotter.show()
-    if make_ND_Controller:
-      self.set_ND_controls(num_axes=3)
+  def construct_3D_Display(self, display_flag):
+    if not has_vtk:
+      return
+
+    _dprint(3, 'got 3D plot request, deleting 2-D stuff')
+    self.colorbar[0].reparent(QWidget(), 0, QPoint())
+    self.colorbar[1].reparent(QWidget(), 0, QPoint())
+    self.colorbar = {}
+    self._plotter.reparent(QWidget(), 0, QPoint())
+    self._plotter = None
+
+    if self.ND_plotter is None:
+      self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
+      self.ND_plotter.Add2DButton()
+      self.ND_plotter.AddNDButton()
+      self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)       QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)       self.ND_plotter.show()
+      _dprint(3, 'issued show call to self.ND_plotter')
+    else:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.show_vtk_controls()
+
+# create 3-D Controller
+    self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
+
+    if self.vells_plot:
+      self._vells_data.set_3D_Display(True)
+      self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
+      self.axis_parms = self._vells_data.getActiveAxisParms()
+      plot_array = self._vells_data.getActiveData()
+      self.ND_plotter.array_plot(" ", plot_array)
+      self.ND_plotter.setAxisParms(self.axis_parms)
 
     self.addResultsSelector()
     self.addSpectrumSelector()
@@ -133,53 +150,125 @@ class PlotHandler:
       self._plotter.array_plot('data', self.data)
       self._plotter.UpdateLabels("first", "second", "third")
 
+
+  def set_ColorBar (self):     
+    """ this function adds a colorbar for 2-D displays """
+    # create two color bars in case we are displaying complex arrays     
+    self.colorbar = {}     
+    for i in range(2):       
+      self.colorbar[i] = QwtColorBar(colorbar_number= i, parent=self.layout_parent)
+      self.colorbar[i].setMaxRange((-1, 1))       
+      QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange)
+      QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType)
+      QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
+      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)       
+      if i == 0:
+        self.layout.addWidget(self.colorbar[i], 0, i)
+        self.colorbar[i].show()       
+      else:
+        self.layout.addWidget(self.colorbar[i], 0, 2)         
+        self.colorbar[i].hide()
+    self.plotPrinter.add_colorbar(self.colorbar) 
+
+  def create_2D_plotter(self):
+    """ Construct 'standard' 2-D plot display using class 
+        derived from QwtPlot widget 
+    """
+    if not self.ND_plotter is None:       
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.hide_vtk_controls()
+    if not self._plotter is None:
+      self._plotter.reparent(QWidget(), 0, QPoint())
+      self._plotter = None
+    self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
+    self.layout.addWidget(self._plotter, 0, 1)
+    QObject.connect(self._plotter, PYSIGNAL('handle_menu_id'), self.update_vells_display)
+    QObject.connect(self._plotter, PYSIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display)
+    QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar)     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+    QObject.connect(self._plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
+    self.plotPrinter = plot_printer(self._plotter)
+    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
+    self._plotter.show() 
+
   def construct_2D_Display(self, data):
     """ Construct 'standard' 2-D plot display using QwtPlot widget """
     if self._plotter is None:
-      self._plotter = QwtImageDisplay('spectra',parent= self.layout_parent)
-    self.layout.addWidget(self._plotter, 0, 1)
-    if self.actual_rank  > 1:
-      if data.type() == Complex32 or data.type() == Complex64:
-        self.num_colorbars = 2
-      else:
-        self.num_colorbars = 1
-      for i in range(self.num_colorbars):
-        self.colorbar[i] =  QwtColorBar(colorbar_number=i,parent=self.layout_parent)
-        if i == 0:
-          self.layout.addWidget(self.colorbar[i], 0, i)
-        else:
-          self.layout.addWidget(self.colorbar[i], 0, 2)
-        self.colorbar[i].setRange(-1,1,colorbar_number=i)
-        self.colorbar[i].show()
-        QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
-        QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
-        QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
-        QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)
-        QObject.connect(self._plotter, PYSIGNAL('show_3D_Display'), self.change_display_type)
-
-      if self.actual_rank > 2:
-        _dprint(3,' array_plotter: array has actual rank and shape: ', self.actual_rank, ' ', self.array_shape)
-        _dprint(3,' array_plotter: so an ND Controller GUI is needed')
-        self._plotter.set_original_array_rank(self.actual_rank)
-        self.set_ND_controls(num_axes=2)
-
-    self.plotPrinter = plot_printer(self._plotter, self.colorbar)
-    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
-    self._plotter.show()
+      self.create_2D_plotter()
 
     self.addResultsSelector()
     self.addSpectrumSelector()
 
-    self.construction_done = True
+  def show_2D_Display(self, display_flag):     
+    _dprint(3, 'in show_2D_Display ')
+    self.create_2D_plotter()
+# create 3-D Controller appropriate for 2-D screen displays
+    _dprint(3, 'calling set_ND_controls with self.ND_labels, self.ND_parms ', self.ND_labels, ' ', self.ND_parms)
+   self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=2)
+   if self._vells_plot:
+     self._vells_data.set_3D_Display(False)
+     _dprint(3, 'calling setInitialSelectedAxes with reset=True, and self.array_rank,self.array_shape ', self.array_rank, ' ', self.array_shape)
+     self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape, reset=True)
+     self._plotter.set_original_array_rank(3)
+     self.plot_vells_data(store_rec=False)
+
+  def show_3D_Display(self, display_flag):
+    if not has_vtk:
+      return
+
+    _dprint(3, 'got 3D plot request, deleting 2-D stuff')
+    self.colorbar[0].reparent(QWidget(), 0, QPoint())
+    self.colorbar[1].reparent(QWidget(), 0, QPoint())
+    self.colorbar = {}
+    self._visu_plotter.reparent(QWidget(), 0, QPoint())
+    self._visu_plotter = None
+
+    if self.ND_plotter is None:
+      self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
+      self.ND_plotter.Add2DButton()
+      self.ND_plotter.AddNDButton()
+      self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
+      QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+      self.ND_plotter.show()
+      _dprint(3, 'issued show call to self.ND_plotter')
+    else:
+      self.ND_plotter.delete_vtk_renderer()
+      self.ND_plotter.show_vtk_controls()
+
+# create 3-D Controller
+    self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
+
+    plot_array = None
+    if self.vells_plot:
+      self._vells_data.set_3D_Display(True)
+      self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
+      self.axis_parms = self._vells_data.getActiveAxisParms()
+      plot_array = self._vells_data.getActiveData()
+    else:
+      plot_array = self.data
+    self.ND_plotter.array_plot(" ", plot_array)
+    if self.vells_plot:
+      self.ND_plotter.setAxisParms(self.axis_parms)
 
   def get_plotter (self):
     return self._plotter
+
+  def ND_controller_showDisplay(self, show_self):
+    """ tells ND_Controller to show or hide itself """
+    if not self.ND_Controls is None:
+      self.ND_Controls.showDisplay(show_self) 
 
   def set_data (self,dataitem):
     """ this function is the callback interface to the meqbrowser and
         handles new incoming data """
 # pass array to the plotter
     self.data = dataitem.data
+    self.array_shape = self.data.shape
+    self.array_rank = self.data.rank
+    self.actual_rank = 0
+    for i in range(len(self.array_shape)):
+      if self.array_shape[i] > 1:
+        self.actual_rank = self.actual_rank + 1
     self.display_2D_data()
 
   def display_2D_data (self):
@@ -217,16 +306,18 @@ class PlotHandler:
     if not self.ND_Controls is None:
       self.ND_Controls.reparent(QWidget(), 0, QPoint())
       self.ND_Controls = None
-    if self.actual_rank == num_axes:
-      return
     self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes, self.layout_parent) 
     if not self.vells_plot:
       QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
       QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-    QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
 
     self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
-    self.ND_Controls.showDisplay(1)
+    if self.ND_Controls.get_num_selectors() > num_axes:
+      self.ND_Controls.showDisplay(1)
+    else:
+      self.ND_Controls.showDisplay(0)
+    _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
+
 
   def change_display_type (self, toggle_ND_Display):
     print 'display request value ', toggle_ND_Display
