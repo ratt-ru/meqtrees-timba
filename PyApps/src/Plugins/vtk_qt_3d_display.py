@@ -495,21 +495,25 @@ class vtk_qt_3d_display(qt.QWidget):
 # first display
       self.renwin.Render()
 
-  def array_plot(self, caption, plot_array, dummy_parm=False):
+  def array_plot(self, caption, incoming_array, dummy_parm=False):
+    """ convert an incoming numarray into a format that can
+        be plotted with VTK
+    """
 
+    plot_array = None
 # convert a complex array to reals followed by imaginaries
-    if plot_array.type() == numarray.Complex32 or plot_array.type() == numarray.Complex64:
-        real_array =  plot_array.getreal()
-        imag_array =  plot_array.getimag()
+    if incoming_array.type() == numarray.Complex32 or incoming_array.type() == numarray.Complex64:
+        real_array =  incoming_array.getreal()
+        imag_array =  incoming_array.getimag()
         (nx,ny,nz) = real_array.shape
 
-        image_for_display = array(shape=(nx*2,ny,nz),type=real_array.type());
-        image_for_display[:nx,:] = real_array
-        image_for_display[nx:,:] = imag_array
-
+        image_for_display = array(shape=(nx,ny,nz*2),type=real_array.type());
+        image_for_display[:nx,:ny,:nz] = real_array[:nx,:ny,:nz]
+        image_for_display[:nx,:ny,nz:] = imag_array[:nx,:ny,:nz]
         plot_array = image_for_display
         self.complex_plot = True
     else:
+        plot_array = incoming_array
         self.complex_plot = False
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
