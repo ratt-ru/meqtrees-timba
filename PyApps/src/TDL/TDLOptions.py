@@ -139,6 +139,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
         traceback.print_exc();
+      default = 0;
     self.selected = default;
     _TDLOptionItem.__init__(self,namespace,symbol,self.option_list[default]);
     
