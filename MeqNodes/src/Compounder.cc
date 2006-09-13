@@ -463,6 +463,10 @@ namespace Meq {
 						sp_id++;
 		}
 
+	  if (in.isScalar()) {
+		 ///handle scalar case
+     vs.setValue(in);
+		} else {
 		/////////////////////////////////////// real data
 		if (in.isReal()) {
     Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
@@ -597,6 +601,7 @@ namespace Meq {
 
 	  }
  
+		}
 		res1.setVellSet(0,ref);
     res1.setCells(incells);
 
