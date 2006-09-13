@@ -10,6 +10,8 @@ tile_size = None;
 def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
   """Instantiates MS input/output options""";
   ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
+  if not ms_list:
+    ms_list = [ "no MSs found" ];
   TDLRuntimeOption('msname',"MS",ms_list);
   if has_input:
     TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
