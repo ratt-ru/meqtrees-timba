@@ -43,6 +43,7 @@ from Timba.Trees import JEN_bookmarks
 from Timba.Trees import TDL_Antenna
 from Timba.Trees import TDL_Dipole
 
+Settings.forest_state.cache_policy=100;
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
