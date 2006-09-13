@@ -27,18 +27,26 @@ static DMI::Vec::Ref axis_recs,axis_ids;
 // * if a name for the axis is already defined, it must be the same,
 //   throws exception otherwise
 // * else adds name for the axis
-static void defineAxis (int i,const HIID &name,bool addrec=true)
+static void defineAxis (int i,const HIID &name0,bool addrec=true)
 {
   Thread::Mutex::Lock lock(_mutex);
   _init();
-  // name_index will be the axis number if name is just "n", else -1
+  HIID name = name0;
   int name_index;
-  if( name.size() == 1 )
+  // an empty name is equivalent to using the axis number
+  if( name.empty() )
+  {
+    name = AtomicID(i);
+    name_index = i;
+  }
+  // a name of "n" is also just the axis number
+  else if( name.size() == 1 )
     name_index = name[0].index();
+  // else a true name
   else
     name_index = -1;
   // if name is a number, check that it matches i, if so, do nothing,
-  // else throw error (i.e. we can't name axis 1 to be "2")(
+  // else throw error (i.e. we can't name axis 1 to be "2")
   if( name_index >= 0 )
   {
     FailWhen(name_index != i,
