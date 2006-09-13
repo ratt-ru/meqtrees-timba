@@ -46,6 +46,7 @@ from Timba import utils
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import widgets
 from Timba.GUI.browsers import *
+from Timba.Plugins.ResultsRange import *
 from Timba import Grid
 import numarray 
 
@@ -120,26 +121,20 @@ class vtk_qt_3d_display(qt.QWidget):
     self.button_y = qt.QPushButton("Y",self.h_box)
     self.button_z = qt.QPushButton("Z",self.h_box)
     self.button_z.setPaletteBackgroundColor(Qt.green)
-# lcd
-    self.lcd = qt.QLCDNumber(2, self.v_box_controls, "lcd")
-    self.lcd.setSegmentStyle(qt.QLCDNumber.Filled)
-    self.lcd.setNumDigits(3)
-    self.lcd.display(0)
-# slider
-    self.h_box1 = qt.QHBox(self.v_box_controls)
-    self.slider = qt.QSlider(qt.Qt.Horizontal,self.h_box1)
-    self.slider.setTickmarks(qt.QSlider.Below)
-    self.slider.setTickInterval(10)
-    self.h_box1.setStretchFactor(self.slider,1)
-
+# spinbox / slider
+    self.index_selector = ResultsRange(self.v_box_controls)
+    self.index_selector.setStringInfo(' selector index ')
+    self.index_selector.disableContextmenu()
+    offset_index = 0
+    self.index_selector.set_offset_index(offset_index)
+#   self.index_selector.show()
 # create connections from buttons to callbacks
     qt.QObject.connect(self.button_capture,qt.SIGNAL("clicked()"),self.CaptureImage)
     qt.QObject.connect(self.button_x,qt.SIGNAL("clicked()"),self.AlignXaxis)
     qt.QObject.connect(self.button_y,qt.SIGNAL("clicked()"),self.AlignYaxis)
     qt.QObject.connect(self.button_z,qt.SIGNAL("clicked()"),self.AlignZaxis)
+    qt.QObject.connect(self.index_selector, PYSIGNAL('result_index'), self.SetSlice)
 
-    qt.QObject.connect(self.slider, qt.SIGNAL("valueChanged(int)"), self.lcd, qt.SLOT("display(int)"))
-    qt.QObject.connect(self.slider, qt.SIGNAL("valueChanged(int)"), self.SetSlice)
 
   def delete_vtk_renderer(self):
     if not self.renwininter is None:
@@ -260,9 +255,15 @@ class vtk_qt_3d_display(qt.QWidget):
 
     self.current_widget = self.planeWidgetZ
     self.mode_widget = self.planeWidgetZ
-    self.slider.setRange(zMin,zMax)
-    self.slider.setTickInterval( (zMax-zMin) / 10 )
-    self.slider.setValue(z_index)
+    self.index_selector.set_emit(False)
+    self.index_selector.setMinValue(zMin)
+    self.index_selector.setMaxValue(zMax,False)
+    self.index_selector.setTickInterval( (zMax-zMin) / 10 )
+    self.index_selector.setRange(zMax, False)
+    self.index_selector.setValue(z_index)
+    self.index_selector.setLabel('Z axis')
+    self.index_selector.set_emit(True)
+
 
 # Create a text property for cube axes
     tprop = vtk.vtkTextProperty()
@@ -369,9 +370,15 @@ class vtk_qt_3d_display(qt.QWidget):
         slice_number = self.planeWidgetX.GetSliceIndex()
  
     self.current_widget = self.planeWidgetX
-    self.slider.setRange(xMin,xMax)
-    self.slider.setTickInterval( (xMax-xMin) / 10 )
-    self.slider.setValue(slice_number)
+    self.index_selector.set_emit(False)
+    self.index_selector.setMinValue(xMin)
+    self.index_selector.setMaxValue(xMax,False)
+    self.index_selector.setRange(xMax, False)
+    self.index_selector.setValue(slice_number)
+    self.index_selector.setTickInterval( (xMax-xMin) / 10 )
+    self.index_selector.setLabel('X axis')
+    self.index_selector.set_emit(True)
+
     self.AlignCamera(slice_number)
     self.button_x.setPaletteBackgroundColor(Qt.green)
     self.button_y.unsetPalette()
@@ -389,9 +396,14 @@ class vtk_qt_3d_display(qt.QWidget):
         slice_number = self.planeWidgetY.GetSliceIndex()
  
     self.current_widget = self.planeWidgetY
-    self.slider.setRange(yMin,yMax)
-    self.slider.setTickInterval( (yMax-yMin) / 10 )
-    self.slider.setValue(slice_number)
+    self.index_selector.set_emit(False)
+    self.index_selector.setMinValue(yMin)
+    self.index_selector.setMaxValue(yMax,False)
+    self.index_selector.setRange(yMax, False)
+    self.index_selector.setValue(slice_number)
+    self.index_selector.setTickInterval( (yMax-yMin) / 10 )
+    self.index_selector.setLabel('Y axis')
+    self.index_selector.set_emit(True)
     self.AlignCamera(slice_number)
     self.button_x.unsetPalette()
     self.button_y.setPaletteBackgroundColor(Qt.green)
@@ -409,9 +421,14 @@ class vtk_qt_3d_display(qt.QWidget):
         slice_number = self.planeWidgetZ.GetSliceIndex()
  
     self.current_widget = self.planeWidgetZ
-    self.slider.setRange(zMin,zMax)
-    self.slider.setTickInterval( (zMax-zMin) / 10 )
-    self.slider.setValue(slice_number)
+    self.index_selector.set_emit(False)
+    self.index_selector.setMinValue(zMin)
+    self.index_selector.setMaxValue(zMax,False)
+    self.index_selector.setRange(zMax, False)
+    self.index_selector.setValue(slice_number)
+    self.index_selector.setTickInterval((zMax-zMin) / 10 )
+    self.index_selector.setLabel('Z axis')
+    self.index_selector.set_emit(True)
     self.AlignCamera(slice_number)
     self.button_x.unsetPalette()
     self.button_y.unsetPalette()
