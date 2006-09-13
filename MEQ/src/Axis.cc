@@ -177,7 +177,11 @@ void resetDefaultMap ()
   // clear existing definitions
   _num_map.clear();
   for( int i=0; i<MaxAxis; i++ )
-    _name_map[i] = AtomicID(i);
+  {
+    HIID axis = AtomicID(i);
+    _name_map[i] = axis;
+    axis_ids[i] = axis;
+  }
   const HIID defmap[] = { AidTime,AidFreq };
   setAxisMap(defmap,sizeof(defmap)/sizeof(defmap[0]));
   // reset default_mapping flag again since it was cleared by setAxisMap()
