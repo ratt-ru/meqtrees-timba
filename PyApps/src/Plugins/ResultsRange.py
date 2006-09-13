@@ -48,18 +48,19 @@ class ResultsRange(QWidget):
       self.allow_emit = False
       self.menu = None
       self.maxVal = 10
+      self.minVal = 1
       self.label_info = QLabel('', self)
       self.label_info1 = QLabel('    ', self)
       self.string_info =  ' '
       self.spinbox = QSpinBox(self)
-      self.spinbox.setMinValue(1)
+      self.spinbox.setMinValue(self.minVal)
       self.spinbox.setMaxValue(self.maxVal)
       self.spinbox.setWrapping(True)
 
       self.slider = QSlider(Qt.Horizontal, self, "slider")
       self.slider.setTickmarks(QSlider.Below)
-      self.slider.setTickInterval(1)
-      self.slider.setRange(1, self.maxVal)
+      self.slider.setTickInterval(self.minVal)
+      self.slider.setRange(self.minVal, self.maxVal)
 
 
       self.setValue()
@@ -81,16 +82,21 @@ class ResultsRange(QWidget):
     def setStringInfo(self, string_value= ''):
       self.string_info = string_value
 
+    def setMinValue(self, min_value=0):
+      self.minVal = min_value
+      self.spinbox.setMinValue(self.minVal)
+      self.slider.setRange(self.minVal, self.maxVal)
+
     def setMaxValue(self, max_value= 0, allow_shrink=True):
       if max_value < self.maxVal: 
         if allow_shrink:
           self.maxVal = max_value
-          self.slider.setRange(1, self.maxVal)
+          self.slider.setRange(self.minVal, self.maxVal)
           self.spinbox.setMaxValue(self.maxVal)
       else:
         if max_value > self.maxVal:
           self.maxVal = max_value
-          self.slider.setRange(1, self.maxVal)
+          self.slider.setRange(self.minVal, self.maxVal)
           self.spinbox.setMaxValue(self.maxVal)
 
     def setValue(self, value= 0):
@@ -100,7 +106,7 @@ class ResultsRange(QWidget):
 
     def setRange(self, range_value, update_value = True):
       if range_value <= self.maxVal:
-        self.slider.setRange(1, range_value)
+        self.slider.setRange(self.minVal, range_value)
         self.spinbox.setMaxValue(range_value)
         if update_value:
           self.setValue(range_value)
@@ -116,6 +122,9 @@ class ResultsRange(QWidget):
     def set_emit(self, permission):
       self.allow_emit = permission
 
+    def setTickInterval(self, tick_interval):
+      self.slider.setTickInterval(tick_interval)
+
     def initContextmenu(self):
       """Initialize the result buffer context menu
       """
@@ -126,13 +135,16 @@ class ResultsRange(QWidget):
         QObject.connect(self.menu,SIGNAL("activated(int)"),self.handleMenu)
 
     def disableContextmenu(self):
-      self.menu = None
+      if not self.menu is None:
+          self.menu.reparent(QWidget(), 0, QPoint())
+          self.ND_Controls = None
+
 
     def setResultsBuffer(self, result_value):
       if result_value < 0:
         return
       self.maxVal = result_value
-      self.slider.setRange(1, self.maxVal)
+      self.slider.setRange(self.minVal, self.maxVal)
       self.spinbox.setMaxValue(self.maxVal)
       self.emit(PYSIGNAL("adjust_results_buffer_size"),(result_value,))
 
