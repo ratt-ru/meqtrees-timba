@@ -52,6 +52,7 @@ class ResultsRange(QWidget):
       self.label_info = QLabel('', self)
       self.label_info1 = QLabel('    ', self)
       self.string_info =  ' '
+      self.offset_index = -1
       self.spinbox = QSpinBox(self)
       self.spinbox.setMinValue(self.minVal)
       self.spinbox.setMaxValue(self.maxVal)
@@ -117,10 +118,13 @@ class ResultsRange(QWidget):
     def update_spinbox(self, spin_value):
       self.slider.setValue(spin_value)
       if self.allow_emit:
-        self.emit(PYSIGNAL("result_index"),(spin_value-1,))
+        self.emit(PYSIGNAL("result_index"),(spin_value + self.offset_index,))
 
     def set_emit(self, permission):
       self.allow_emit = permission
+
+    def set_offset_index(self, offset):
+      self.offset_index = offset
 
     def setTickInterval(self, tick_interval):
       self.slider.setTickInterval(tick_interval)
