@@ -1040,6 +1040,8 @@ class ResultPlotter(GriddedPlugin):
       self.ND_Controls.showDisplay(1)
     else:
       self.ND_Controls.showDisplay(0)
+      if not self.ND_plotter is None:
+        self.ND_plotter.HideNDButton()
     _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
 
   def show_3D_Display(self, display_flag):
