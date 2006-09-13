@@ -37,6 +37,7 @@ from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 #from tabdialog import *
 import random
+import traceback
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='displayimage');
@@ -50,6 +51,8 @@ try:
   import vtk
   has_vtk = True
 except:
+  print 'Exception while importing vtk module:'
+  traceback.print_exc();
   print ' '
   print '*** VTK not found! ***'
   print 'If you know that VTK has been installed on your system'
