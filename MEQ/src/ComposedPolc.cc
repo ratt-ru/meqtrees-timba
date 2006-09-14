@@ -168,9 +168,9 @@ void ComposedPolc::validateContent (bool recursive)
     int nr_parms = getNumParms(); 
     int nr_spids = getNrSpids(); 
 
-    int nr_axis=cells.rank();//assume 2 for simplicity
+    const int nr_axis=cells.rank();
     
-    LoVec_double startgrid[2],endgrid[2],sizegrid[2],centergrid[2];
+    LoVec_double startgrid[nr_axis],endgrid[nr_axis],sizegrid[nr_axis],centergrid[nr_axis];
     for(int i=0;i<nr_axis;i++){
       startgrid[i].resize(cells.ncells(i));
       endgrid[i].resize(cells.ncells(i));
@@ -186,7 +186,7 @@ void ComposedPolc::validateContent (bool recursive)
 
     //init vells with 0
     Vells::Shape res_shape;
-    Axis::degenerateShape(res_shape,cells.rank());
+    Axis::degenerateShape(res_shape,nr_axis);
 
 
     for(int iaxis=0;iaxis<nr_axis;iaxis++)
@@ -215,8 +215,8 @@ void ComposedPolc::validateContent (bool recursive)
 
 
     //loop over funklets
-    int starti[2]={-1,-1};
-    int endi[2]={-1,-1};
+    int starti[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+    int endi[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 
     for(int funknr=0;funknr<nr_funklets;funknr++){
       cdebug(3)<<"evalauating funklet : "<<funknr<<endl;
@@ -273,8 +273,11 @@ void ComposedPolc::validateContent (bool recursive)
 	cdebug(3)<<"got partvs with shape "<< partvs.shape()<<endl;
       }
 
-      blitz::Array<double,2>  parts;
-      blitz::Array<double,2> perts[2][nr_spids] ;
+
+      //blitz::Array<double,2>  parts;
+      const double *parts;
+      //blitz::Array<double,2> perts[2][nr_spids] ;
+      const double *perts[2][nr_spids];
       if(!isConstant)	// constant;
 	{
 	  const Vells & partvells = partvs.getValue();
@@ -285,9 +288,9 @@ void ComposedPolc::validateContent (bool recursive)
 	    }
 	  else
 	    {
-	      parts.resize(partvells.shape());
-	      parts= partvells.getConstArray<double,2>();
-	  
+// 	      parts.resize(partvells.shape());
+// 	      parts= partvells.getConstArray<double,2>();
+	      parts =partvells.getStorage<double>();
 	    }
 
 	  if(makePerturbed){
@@ -300,9 +303,9 @@ void ComposedPolc::validateContent (bool recursive)
 		{
 
 		  for(int ispid=0;ispid<nr_spids;ispid++){
-		    perts[ipert][ispid].resize(partvs.getPerturbedValue(ispid,ipert).shape());
-		    perts[ipert][ispid]=partvs.getPerturbedValue(ispid,ipert).getConstArray<double,2>();
-
+// 		    perts[ipert][ispid].resize(partvs.getPerturbedValue(ispid,ipert).shape());
+// 		    perts[ipert][ispid]=partvs.getPerturbedValue(ispid,ipert).getConstArray<double,2>();
+		    perts[ipert][ispid] = partvs.getPerturbedValue(ispid,ipert).getStorage<double>();
 		  }		  
 		}
 	      
@@ -319,14 +322,15 @@ void ComposedPolc::validateContent (bool recursive)
       for(int valx = starti[0];valx<=endi[0];valx++){
 	ny=0;
 	for(int valy = starti[1];valy<=endi[1];valy++){
+	  int idx = valy + valx*res_shape[1];
 	  if(isConstant)
-	    value[valy + valx*res_shape[1]] = constpart ;
+	    value[idx] = constpart ;
 	  else
 	    {
-	      cdebug(3)<<"nx "<<nx<<" ny "<<ny<<" val "<<valx*res_shape[1]+valy<<endl;
-	      cdebug(3)<<parts(nx,ny)<<endl;
+	      cdebug(3)<<"nx "<<nx<<" ny "<<ny<<" val "<<ny+nx*maxny<<" "<<valx*res_shape[1]+valy<<endl;
+	      cdebug(3)<<parts[ny+nx*maxny]<<endl;
 
-	      value[valy + valx*res_shape[1]] = parts(nx,ny) ;
+	      value[idx] = parts[ny+nx*maxny] ;
 	    }
 	  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
 	}
@@ -344,14 +348,15 @@ void ComposedPolc::validateContent (bool recursive)
 	      for(int valx = starti[0];valx<=endi[0];valx++){
 		ny=0;
 		for(int valy = starti[1];valy<=endi[1];valy++){
+		  int idx = valx*res_shape[1]+valy;
 		  if(isConstant)
-		    pertValPtr[ipert][0][valx*res_shape[1]+valy]= constpert[ipert] ;
+		    pertValPtr[ipert][0][idx]= constpert[ipert] ;
 		  else
 		    {
 
 		      for(int ispid=0;ispid<nr_spids;ispid++)
 			{
-			  pertValPtr[ipert][ispid][valx*res_shape[1]+valy] = perts[ipert][ispid](nx,ny) ;
+			  pertValPtr[ipert][ispid][idx] = (perts[ipert][ispid])[ny+nx*maxny] ;
 			}
 		    }
 		  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
