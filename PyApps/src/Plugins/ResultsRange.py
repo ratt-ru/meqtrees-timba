@@ -34,8 +34,11 @@ from BufferSizeDialog import *
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
 # tutorial code examples.
+#
 # It creates a simple spinbox and slider that is used to select a data
-# set for display with the result plotter.
+# set for display with the result plotter. It is rather similar to the
+# AxisRange class used with the ND-Controller, but the layout is
+# different.
 
 class ResultsRange(QWidget):
     def __init__(self, parent=None, name=""):

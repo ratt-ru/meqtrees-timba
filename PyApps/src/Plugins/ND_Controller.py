@@ -36,8 +36,8 @@ _dbg = verbosity(0,name='ND');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-
-# the Axis Range class is directly adapted from the Qt/PyQt tutorial code examples
+# the AxisRange class is directly adapted from the Qt/PyQt 
+# tutorial code examples
 class AxisRange(QWidget):
     """ a spinbox and a slider, either of which can be used to specify
         a value from within an allowed range
@@ -93,6 +93,7 @@ class AxisRange(QWidget):
         return self.slider.value()
 
     def resetValue(self):
+        """ resets displayed values to zero """
         display_str = None
         if self.axis_parms is None or not self.active:
           display_str = ''
@@ -164,23 +165,20 @@ You can change the two axes you wish to see displayed on the screen by clicking 
 class ND_Controller(QWidget):
     def __init__(self, array_shape=None, axis_label=None, axis_parms = None, num_axes = 2, parent=None, name=""):
       QWidget.__init__(self, parent, name)
-
 # set default number of selectable axes to use 2-D QWT-based display
       self.selectable_axes = num_axes
-
 # create grid layout
       self.layout = QGridLayout(self)
-
       QWhatsThis.add(self, controller_instructions)
-
       self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum)
-
-      self.update_selectors(array_shape,axis_label,axis_parms)
-
+      self.construct_selectors(array_shape,axis_label,axis_parms)
     # __init__()
 
-    def update_selectors(self,array_shape=None,axis_label=None,axis_parms=None):
-
+    def construct_selectors(self,array_shape=None,axis_label=None,axis_parms=None):
+      """ construct a group of AxisRange objects. These objects allow
+          the user to specify which dimensions of an N-dimensional
+          array are viewable in a 2 or 3-D display
+      """
       self.axis_parms = axis_parms
 
 
@@ -189,7 +187,7 @@ class ND_Controller(QWidget):
       self.buttonGroup = QButtonGroup(self)
       QObject.connect(self.buttonGroup, SIGNAL("clicked(int)"),self.defineAxes)
 
-# add control buttons and LCD Displays
+# add control buttons and AxisRange selectors
       self.buttons = []
       self.button_number = []
       self.axis_controllers = []
@@ -267,9 +265,18 @@ class ND_Controller(QWidget):
         self.redefineAxes()
 
     def get_num_selectors(self):
+        """ gets number of AxisRange objects in the Controller """
         return self.num_selectors
 
     def defineAxes(self, button_id, do_on=False):
+        """ When a button is pressed, this function figures out if
+            the user has selected the required number of dimensions
+            for extraction. The AxisRange objects for those
+            dimensions are colored red.  All data for the selected
+            dimensions will be displayed. The remaining AxisRange
+            objects are colored green - they enable the user to
+            select a single value from their associated dimension.
+        """
         if not self.active_axes is None and len(self.active_axes) == self.selectable_axes:
           self.resetAxes()
           self.buttons[button_id].setOn(True)
@@ -312,6 +319,7 @@ class ND_Controller(QWidget):
     # redefineAxes
 
     def resetAxes(self):
+        """ resets all AxisRange objects to be inactive """
         for i in range(self.num_selectors):
           self.buttons[i].setOn(False)
           self.axis_controllers[i].setSliderColor(Qt.red)
@@ -321,6 +329,9 @@ class ND_Controller(QWidget):
     # resetAxes
 
     def update(self, axis_number, slider_value, display_string):
+      """ emits a signal to the data selection program giving
+          the new value of an active dimension index 
+      """
       if not self.active_axes.has_key(axis_number):
         if not self.buttons[axis_number].isOn():
           self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[axis_number], slider_value, display_string))
@@ -344,10 +355,6 @@ def main(args):
     app = QApplication(args)
     demo = make()
     app.setMainWidget(demo)
-    # hum - the use of update_selectors doesn't work in the case
-    # below
-    # axes = (3,4,5,6,7,8,9,10,11,12,13,14,15)
-    # demo.update_selectors(axes)
     app.exec_loop()
 
 # main()
