@@ -54,9 +54,9 @@ rendering_control_instructions = \
 '''vtkInteractorStyle implements the "joystick" style of interaction. That is, holding down the mouse keys generates a stream of events that cause continuous actions (e.g., rotate, translate, pan, zoom). (The class vtkInteractorStyleTrackball implements a grab and move style.) The event bindings for this class include the following:<br><br>
 Keypress j / Keypress t: toggle between joystick (position sensitive) and trackball (motion sensitive) styles. In joystick style, motion occurs continuously as long as a mouse button is pressed. In trackball style, motion occurs when the mouse button is pressed and the mouse pointer moves.<br><br>
 Keypress c / Keypress a: toggle between camera and actor modes. In camera mode, mouse events affect the camera position and focal point. In actor mode, mouse events affect the actor that is under the mouse pointer.<br><br>
-Button 1 (Left): rotate the camera around its focal point (if camera mode) or rotate the actor around its origin (if actor mode). The rotation is in the direction defined from the center of the renderer's viewport towards the mouse position. In joystick mode, the magnitude of the rotation is determined by the distance the mouse is from the center of the render window.<br><br>
-Button 2 (Middle): pan the camera (if camera mode) or translate the actor (if actor mode). In joystick mode, the direction of pan or translation is from the center of the viewport towards the mouse position. In trackball mode, the direction of motion is the direction the mouse moves. (Note: with 2-button mice, pan is defined as <Shift>-Button 1.)<br><br>
-Button 3 (Right): zoom the camera (if camera mode) or scale the actor (if actor mode). Zoom in/increase scale if the mouse position is in the top half of the viewport; zoom out/decrease scale if the mouse position is in the bottom half. In joystick mode, the amount of zoom is controlled by the distance of the mouse pointer from the horizontal centerline of the window.<br><br>
+Button 1 (Left): Rotates the camera around its focal point. The rotation is in the direction defined from the center of the renderer's viewport towards the mouse position.<br><br>
+Button 2 (Middle): Pans the camera. The direction of motion is the direction the mouse moves. (Note: with 2-button mice, pan is defined as 'Shift'-Button 1.)<br><br>
+Button 3 (Right): Zooms the camera. Moving the mouse from the top to the bottom of the display causes the camera to appear to move away from the display (zoom out). Moving the mouse from the bottom to the top of the display causes the camera to appear to move toward the display (zoom in).<br><br>
 Keypress 3: toggle the render window into and out of stereo mode. By default, red-blue stereo pairs are created. Some systems support Crystal Eyes LCD stereo glasses; you have to invoke SetStereoTypeToCrystalEyes() on the rendering window.<br><br>
 Keypress f: fly to the picked point.<br><br>
 Keypress p: perform a pick operation. The render window interactor has an internal instance of vtkCellPicker that it uses to pick.<br><br>
@@ -300,10 +300,14 @@ class vtk_qt_3d_display(qt.QWidget):
 # Use parallel projection, rather than perspective
     cam1.ParallelProjectionOn()
 
-#    cam1.SetViewUp(0, 0, -1)
     cam1.SetViewUp(0, 0, 1)
     cam1.Azimuth(45)
     self.ren.ResetCameraClippingRange()
+
+# Paul Kemper suggested the following:
+    camstyle   = vtk.vtkInteractorStyleTrackballCamera()
+    self.renwininter.SetInteractorStyle(camstyle)
+
 
 # Align the camera so that it faces the desired widget
   def AlignCamera(self, slice_number):
@@ -447,45 +451,21 @@ class vtk_qt_3d_display(qt.QWidget):
 #    num_arrays = 92
 #    num_arrays = 10
 #    array_dim = 700
-    num_arrays = 800
+    num_arrays = 600
     array_dim = 64
     axis_slice = slice(0,array_dim)
     gain = 1.0 / num_arrays
-    if self.image_array is None:
-      self.image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
-      array_selector = []
-      array_selector.append(0)
-      array_selector.append(axis_slice)
-      array_selector.append(axis_slice)
-      for k in range(num_arrays):
-        array_tuple = tuple(array_selector)
-        self.image_numarray[array_tuple] = iteration * k * gain
-        if k < num_arrays:
-          array_selector[0] = k + 1
-#note: for vtkImageImportFromNumarray to work, incoming array
-#      must have rank 3
-      self.image_array = vtkImageImportFromNumarray()
-      self.image_array.SetArray(self.image_numarray)
-      spacing = (3.2, 3.2, 1.5)
-      self.image_array.SetDataSpacing(spacing)
-      self.set_initial_display()
-      self.AddVTKExitEvent()
-      self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
-    else:
-      array_selector = []
-      array_selector.append(0)
-      array_selector.append(axis_slice)
-      array_selector.append(axis_slice)
-      for k in range(num_arrays):
-        array_tuple = tuple(array_selector)
-        self.image_numarray[array_tuple] = iteration * k * gain
-        if k < num_arrays:
-          array_selector[0] = k+1
-      self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
-      self.image_array.SetArray(self.image_numarray)
-# refresh display if data contents updated after
-# first display
-      self.renwin.Render()
+    image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    array_selector = []
+    array_selector.append(0)
+    array_selector.append(axis_slice)
+    array_selector.append(axis_slice)
+    for k in range(num_arrays):
+      array_tuple = tuple(array_selector)
+      image_numarray[array_tuple] = iteration * k * gain
+      if k < num_arrays:
+        array_selector[0] = k + 1
+    self.array_plot(' ', image_numarray)
 
 #=============================
 # VTK code for test array
@@ -498,19 +478,7 @@ class vtk_qt_3d_display(qt.QWidget):
       for i in range(array_dim):
         for j in range(array_dim):
           image_numarray[k,i,j] = random.random()
-
-    if self.image_array is None:
-      self.iteration = 0
-      self.image_array = vtkImageImportFromNumarray()
-      self.image_array.SetArray(image_numarray)
-      spacing = (3.2, 3.2, 1.5)
-      self.image_array.SetDataSpacing(spacing)
-      self.set_initial_display()
-    else:
-      self.image_array.SetArray(image_numarray)
-# refresh display if data contents updated after
-# first display
-      self.renwin.Render()
+    self.array_plot(' ', image_numarray)
 
   def array_plot(self, caption, incoming_array, dummy_parm=False):
     """ convert an incoming numarray into a format that can
@@ -572,7 +540,7 @@ class vtk_qt_3d_display(qt.QWidget):
   def testEvent(self):
     self.iteration = self.iteration + 1
     self.define_image(self.iteration)
-#    self.define_random_image()
+#   self.define_random_image()
 
   def Add2DButton(self):
     self.button_test = qt.QPushButton("2D Display",self.h_box)
@@ -603,7 +571,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
 
   def AddVTKExitEvent(self):
-# next line causes confusion when run inside the browser
+# next line causes confusion if run inside the MeqBrowser
     self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
 
 # used in standalone test mode
