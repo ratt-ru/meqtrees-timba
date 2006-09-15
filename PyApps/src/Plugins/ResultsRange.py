@@ -46,9 +46,12 @@ class ResultsRange(QWidget):
 
       self. menu_table = {
       'Adjust results buffer size': 301,
+      'Display summary plot': 302,
       }
 
       self.allow_emit = False
+      self.allow_summary = False
+      self.summary_request = True
       self.menu = None
       self.maxVal = 10
       self.minVal = 1
@@ -123,8 +126,13 @@ class ResultsRange(QWidget):
       if self.allow_emit:
         self.emit(PYSIGNAL("result_index"),(spin_value + self.offset_index,))
 
-    def set_emit(self, permission):
+    def set_emit(self, permission=True):
       self.allow_emit = permission
+
+    def set_summary(self, summary=True):
+      self.allow_summary = summary
+      toggle_id = self.menu_table['Display summary plot']
+      self.menu.setItemVisible(toggle_id, self.allow_summary)
 
     def set_offset_index(self, offset):
       self.offset_index = offset
@@ -140,6 +148,11 @@ class ResultsRange(QWidget):
         toggle_id = self.menu_table['Adjust results buffer size']
         self.menu.insertItem("Adjust results buffer size", toggle_id)
         QObject.connect(self.menu,SIGNAL("activated(int)"),self.handleMenu)
+
+        toggle_id = self.menu_table['Display summary plot']
+        self.menu.insertItem("Display summary plot", toggle_id)
+        QObject.connect(self.menu,SIGNAL("activated(int)"),self.requestSummary)
+        self.menu.setItemVisible(toggle_id, False)
 
     def disableContextmenu(self):
       if not self.menu is None:
@@ -161,6 +174,18 @@ class ResultsRange(QWidget):
           QObject.connect(results_dialog,PYSIGNAL("return_value"),self.setResultsBuffer)
 
           results_dialog.show()
+
+    def requestSummary(self, menuid):
+        if menuid == self.menu_table['Display summary plot']:
+          self.emit(PYSIGNAL("display_summary_plot"),(self.summary_request,))
+          if self.summary_request:
+            self.summary_request = False
+            self.menu.changeItem(menuid, 'Discard summary plot')
+          else:
+            self.summary_request = True
+            self.menu.changeItem(menuid, 'Display summary plot')
+          
+
 
     def mousePressEvent(self, e):
       if Qt.RightButton == e.button():
