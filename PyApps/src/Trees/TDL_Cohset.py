@@ -94,7 +94,7 @@ def stations2ifrs(stations=range(3)):
     """Make a list of ifrs (station-pair tuples) from the given stations"""
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
     # The following is temporary, to deal with a CS10-related bug...
-    ifrs.append((1,0))
+    # ifrs.append((1,0))
     return ifrs
 
 def ifrs2stations(ifrs=[(0,1)]):
