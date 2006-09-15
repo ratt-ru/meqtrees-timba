@@ -125,7 +125,7 @@ def create_outputrec ():
   if ms_output:
     rec.write_flags    = False;
     if output_column:
-      rec.predict_column = output_column;
+      rec.data_column = output_column;
     return record(ms=rec);
   else:
     rec.boio_file_name = "boio."+msname+".solve."+str(tile_size);

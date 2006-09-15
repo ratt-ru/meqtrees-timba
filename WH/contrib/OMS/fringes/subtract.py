@@ -2,50 +2,51 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from numarray import *
 import os
-import os.path
+import random
 
 import models
 from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
+from Timba.Contrib.OMS import Jones
 from Timba.Contrib.OMS import Bookmarks
-from Timba.Contrib.OMS.FITSImageComponent import FITSImageComponent
 from Timba.Contrib.OMS import Utils
 
-Utils.include_ms_options(has_input=False,
+# MS name
+Utils.include_ms_options(
   tile_sizes=[30,48,60,96,480,960,2400]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 
-# which source model to use
+TDLCompileOption('apply_g_jones',"Apply G Jones corrections",False);
+
+# source model
 TDLCompileOption('source_model',"Source model",[
-    models.two_point_sources,
-    models.two_point_sources_plus_faint_extended,
     models.cps,
     models.cps_plus_faint_extended,
-    models.two_bright_one_faint_point_source,
-    models.two_point_sources_plus_grid,
-    models.two_point_sources_plus_random,
-    models.two_point_sources_plus_random_uJy,
-    models.two_point_sources_plus_random_nJy
+    models.two_point_sources,
+    models.two_bright_one_faint_point_source
   ],default=0);
-
-TDLCompileOption('background_image',"Background sky image",[None,'sky-image.fits']);
-TDLCompileOption('background_flux_scale',"Rescale background flux",[None,1e-3,1e-6,1e-9,1e-10]);
 
 # number of timeslots to use at once
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
-  
+
 # bookmarks
 Settings.forest_state = record(bookmarks=[
-  record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["visibility:S1:1:2",
-       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
-      ["visibility:S5:1:2",
-       "visibility:S5:1:6","visibility:S5:9:%d"%num_stations ],
-      ["visibility:all:1:2",
-       "visibility:all:1:6","visibility:all:9:%d"%num_stations]
+  record(name='Visibilities',page=Bookmarks.PlotPage(
+      ["spigot:1:2",
+       "spigot:1:6","spigot:9:%d"%num_stations],
+      ["visibility:all:1:2","visibility:all:1:6",
+       "visibility:all:9:%d"%num_stations],
+      ["subtract:1:2",
+       "subtract:1:6","subtract:9:%d"%num_stations]
+  )),
+  record(name='Phases',page=Bookmarks.PlotPage(
+      ["phase:1","phase:2","phase:3"],
+      ["phase:4","phase:5","phase:6"],
+      ["phase:7","phase:8","phase:9"],
+      ["phase:10","phase:11","phase:12"]
   ))
 ]);
 
@@ -54,38 +55,52 @@ Settings.forest_state = record(bookmarks=[
 def _define_forest(ns):
   # create array model
   stations = range(1,num_stations+1);
-#  array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
   array = IfrArray(ns,stations);
   observation = Observation(ns);
   
+  # create ource model
   # create nominal source model by calling the specified function
-  source_list = source_model(ns);
-  
-  # add background image if needed
-  if background_image:
-    img = FITSImageComponent(ns,'IMG',filename=background_image,
-          fluxscale=background_flux_scale,
-          direction=observation.phase_centre);
-    img.set_options(fft_pad_factor=2);
-    source_list.append(img);
-   
-  # create all-sky patch for source model
+  global source_list;
+  source_list = source_model(ns,Utils.get_source_table());
   allsky = Patch(ns,'all',observation.phase_centre);
   allsky.add(*source_list);
   
-  # create simulated visibilities for sky
-  visibilities = allsky.visibilities(array,observation);
+  # ns.time << Meq.Time;
+  # ns.freq << Meq.Freq;
+
+  if apply_g_jones:
+    for station in array.stations():
+      # take a random starting phase for this station
+      ns.phase(station) << Meq.Parm(0,table_name=Utils.get_mep_table());
+      diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
+      ns.G(station) << Meq.Matrix22(diag,0,0,diag);
+
+  predict = allsky.visibilities(array,observation);
   
-  # create the sinks and attach predicts to them, adding in a noise term
+  # create spigots
   for sta1,sta2 in array.ifrs():
-    predict = visibilities(sta1,sta2);
+    ns.spigot(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
+                                        station_2_index=sta2-1,
+                                        flag_bit=4,
+                                        input_col='DATA');
+                                        
+  # create corrected visibilities if needed
+  if apply_g_jones:
+    corrected = ns.corrected;
+    Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
+  else:
+    corrected = ns.spigot;
+  
+  # create sinks, subtract model and write out
+  for sta1,sta2 in array.ifrs():
+    subtract = ns.subtract(sta1,sta2) << corrected(sta1,sta2) - predict(sta1,sta2);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
                                    flag_bit=4,
                                    corr_index=[0,1,2,3],
                                    flag_mask=-1,
                                    output_col='DATA',
-                                   children=predict
+                                   children=subtract
                                    );
   # set a good sink poll order for optimal parallelization
   # this is an optional step
@@ -97,7 +112,8 @@ def _define_forest(ns):
   ns.VisDataMux << Meq.VisDataMux(child_poll_order=cpo);
   ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in array.ifrs()]);
 
-def _tdl_job_1_write_simulated_ms (mqs,parent,write=True):
+
+def _tdl_job_1_subtract_model_from_data (mqs,parent,write=True):
   req = Utils.create_io_request();
   mqs.clearcache('VisDataMux',recursive=False);
   mqs.execute('VisDataMux',req,wait=(parent is None));
@@ -108,7 +124,7 @@ def _tdl_job_2_make_dirty_image (mqs,parent,**kw):
       'ms='+Utils.msname,'mode='+imaging_mode]);
 
 
-Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching
+Settings.forest_state.cache_policy = 100;  # 1 for smart caching, 100 for full caching
 
 Settings.orphans_are_roots = False;
 

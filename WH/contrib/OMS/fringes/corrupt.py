@@ -145,8 +145,8 @@ def _tdl_job_1_corrupt_ms_data (mqs,parent,write=True):
   pass
 
 def _tdl_job_2_make_dirty_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
-      'ms='+msname,'mode='+imaging_mode]);
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',
+      Utils.output_column,'ms='+Utils.msname,'mode='+imaging_mode]);
 
 
 Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching
