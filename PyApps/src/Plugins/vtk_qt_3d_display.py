@@ -28,6 +28,7 @@
 import sys
 import random
 import qt
+import traceback
 
 #test if vtk has been installed
 global has_vtk
@@ -35,11 +36,12 @@ has_vtk = False
 try:
   import vtk
   from vtk.qt.QVTKRenderWindowInteractor import *
-  from vtkImageImportFromNumarray import *
   #from vtk.util.vtkImageImportFromArray import *
+  from vtkImageImportFromNumarray import *
   has_vtk = True
 except:
-  pass
+  print 'Exception while importing vtk module:'
+  traceback.print_exc();
 
 from Timba.dmi import *
 from Timba import utils
@@ -250,7 +252,6 @@ class vtk_qt_3d_display(qt.QWidget):
 # Add the outline actor to the renderer, set the background color and size
     self.ren.AddActor(outlineActor)
     self.ren.SetBackground(0.1, 0.1, 0.2)
-#    self.renwin.SetSize(600, 600)
     self.ren.AddActor2D(self.scalar_bar)
 
     self.current_widget = self.planeWidgetZ
@@ -305,9 +306,8 @@ class vtk_qt_3d_display(qt.QWidget):
     self.ren.ResetCameraClippingRange()
 
 # Paul Kemper suggested the following:
-    camstyle   = vtk.vtkInteractorStyleTrackballCamera()
+    camstyle = vtk.vtkInteractorStyleTrackballCamera()
     self.renwininter.SetInteractorStyle(camstyle)
-
 
 # Align the camera so that it faces the desired widget
   def AlignCamera(self, slice_number):
@@ -460,12 +460,65 @@ class vtk_qt_3d_display(qt.QWidget):
     array_selector.append(0)
     array_selector.append(axis_slice)
     array_selector.append(axis_slice)
-    for k in range(num_arrays):
+    max_distance = num_arrays / iteration
+    for k in range(max_distance):
       array_tuple = tuple(array_selector)
       image_numarray[array_tuple] = iteration * k * gain
-      if k < num_arrays:
+      if k < max_distance:
         array_selector[0] = k + 1
     self.array_plot(' ', image_numarray)
+
+  def define_complex_image(self, iteration=1):
+#    num_arrays = 2
+#    num_arrays = 92
+#    num_arrays = 10
+#    array_dim = 700
+    num_arrays = 600
+    array_dim = 64
+    axis_slice = slice(0,array_dim)
+    gain = 1.0 / num_arrays
+    image_cx_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Complex32)
+    image_r_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_i_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    array_selector = []
+    array_selector.append(0)
+    array_selector.append(axis_slice)
+    array_selector.append(axis_slice)
+    max_distance = num_arrays / iteration
+    for k in range(max_distance):
+      array_tuple = tuple(array_selector)
+      image_r_numarray[array_tuple] = iteration * k * gain
+      image_i_numarray[array_tuple] = iteration * gain / (k+1)
+      if k < max_distance:
+        array_selector[0] = k + 1
+    image_cx_numarray.setreal(image_r_numarray)
+    image_cx_numarray.setimag(image_i_numarray)
+    self.array_plot(' ', image_cx_numarray)
+
+  def define_complex_image1(self, iteration=1):
+    num_arrays = 20
+    array_dim = 3
+    axis_slice = slice(1,array_dim)
+    axis_slice1 = slice(1,array_dim-1)
+    gain = 1.0 / num_arrays
+    image_cx_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Complex32)
+    image_r_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_i_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    array_selector = []
+    array_selector.append(0)
+    array_selector.append(axis_slice)
+    array_selector.append(axis_slice1)
+    max_distance = num_arrays / iteration
+    for k in range(max_distance):
+      array_tuple = tuple(array_selector)
+      image_r_numarray[array_tuple] = iteration * k * gain
+      image_i_numarray[array_tuple] = iteration * gain / (k+1)
+      if k < max_distance:
+        array_selector[0] = k + 1
+    image_cx_numarray.setreal(image_r_numarray)
+    image_cx_numarray.setimag(image_i_numarray)
+    self.array_plot(' ', image_cx_numarray)
+
 
 #=============================
 # VTK code for test array
@@ -492,7 +545,7 @@ class vtk_qt_3d_display(qt.QWidget):
         imag_array =  incoming_array.getimag()
         (nx,ny,nz) = real_array.shape
 
-        image_for_display = array(shape=(nx,ny,nz*2),type=real_array.type());
+        image_for_display = numarray.zeros(shape=(nx,ny,nz*2),type=real_array.type());
         image_for_display[:nx,:ny,:nz] = real_array[:nx,:ny,:nz]
         image_for_display[:nx,:ny,nz:] = imag_array[:nx,:ny,:nz]
         plot_array = image_for_display
@@ -502,6 +555,7 @@ class vtk_qt_3d_display(qt.QWidget):
         self.complex_plot = False
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
+#     self.image_array = vtkImageImportFromArray()
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
       else:
@@ -534,13 +588,15 @@ class vtk_qt_3d_display(qt.QWidget):
 
   def start_timer(self, time):
     timer = qt.QTimer()
-    timer.connect(timer, qt.SIGNAL('timeout()'), self.timerEvent)
+    timer.connect(timer, qt.SIGNAL('timeout()'), self.testEvent)
     timer.start(time)
 
   def testEvent(self):
     self.iteration = self.iteration + 1
-    self.define_image(self.iteration)
 #   self.define_random_image()
+#   self.define_image(self.iteration)
+#   self.define_complex_image(self.iteration)
+    self.define_complex_image1(self.iteration)
 
   def Add2DButton(self):
     self.button_test = qt.QPushButton("2D Display",self.h_box)
@@ -624,4 +680,7 @@ if __name__ == "__main__":
     display.show()
     display.testEvent()
     app.exec_loop()
+  else:
+    print ' '
+    print '**** Sorry! It looks like VTK is not available! ****'
 
