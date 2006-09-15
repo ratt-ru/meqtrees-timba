@@ -7,12 +7,36 @@ import string
 import types
 import traceback
 
+
 def type_maker(objtype,**kwargs):
   def maker(x):
     if isinstance(x,objtype):
       return x;
     return objtype(x);
   return maker;
+  
+def extract_stack (f=None,limit=None):
+  """equivalent to traceback.extract_stack(), but also works with psyco
+  """
+  if f is not None:
+    raise RuntimeError,"Timba.utils.extract_stack: f has to be None";
+  # normally we can just use the traceback.extract_stack() function and
+  # cut out the last frame (which is just ourselves). However, under psyco
+  # this seems to return an empty list, so we use sys._getframe() instead
+  lim = limit;
+  if lim is not None:
+    lim += 1;
+  tb = traceback.extract_stack(None,lim);
+  if tb:
+    return tb[:-1];  # skip current frame
+  # presumably running under psyco
+  tb = [];
+  fr = sys._getframe(1);  # caller's frame
+  while fr and (limit is None or len(tb) < limit):
+    tb.insert(0,(fr.f_code.co_filename,fr.f_lineno,fr.f_code.co_name,None));
+    fr = fr.f_back;
+  return tb;
+  
   
 # 
 # === class verbosity ===
@@ -49,8 +73,11 @@ class verbosity:
     del self._verbosities[self.verbosity_name];
   def dheader (self,tblevel=-2):
     if self._tb:
-      tb = traceback.extract_stack();
-      (filename,line,funcname,text) = tb[tblevel];
+      tb = extract_stack();
+      try:
+        (filename,line,funcname,text) = tb[tblevel];
+      except:
+        return self.get_verbosity_name()+' (no traceback): ';
       filename = filename.split('/')[-1];
       if self._tb > 1:
         return "%s(%s:%d:%s): "%(self.get_verbosity_name(),filename,line,funcname);

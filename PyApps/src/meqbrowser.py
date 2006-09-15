@@ -60,7 +60,6 @@ def meqbrowse (debug={},**kwargs):
   app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
   print app_defaults.debuglevels;
-  
   if debug is None:
     pass;
   else:
@@ -76,6 +75,16 @@ def meqbrowse (debug={},**kwargs):
   args['gui'] = True;
   mqs = meqserver.meqserver(**args);
 
+#   try:
+#     import psyco
+#     psyco.log('psyco.log');
+#     psyco.profile();
+#     print "****** psyco enabled.";
+#   except:
+#     print "****** You do not have the psyco package installed.";
+#     print "****** Proceeding anyway, things will run some what slower.";
+#     pass;
+  
   mqs.run_gui();  
   mqs.disconnect();
   octopussy.stop();

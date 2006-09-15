@@ -1,3 +1,9 @@
+#try:
+#  import psyco
+#  psyco.full();
+#except:
+#  pass;
+  
 from Timba import dmi
 from Timba import utils
 import Timba.TDL.Settings
@@ -32,7 +38,7 @@ class TDLError (RuntimeError):
   def __init__(self,message,next=None,tb=None,filename=None,lineno=None):
     RuntimeError.__init__(self,message);
     self.next_error = next;
-    self.tb = tb or traceback.extract_stack();
+    self.tb = tb or Timba.utils.extract_stack();
     self.filename = filename;
     self.lineno = lineno;
   def __str__ (self):
@@ -69,7 +75,7 @@ class NodeDefError (TDLError):
     # point where the error was actually created, since the error actually
     # originates at the _caller_ of the error creator.
     if tb is None:
-      tb = traceback.extract_stack();
+      tb = Timba.utils.extract_stack();
       tb.pop(-1);
       tb.pop(-1);
     TDLError.__init__(self,message,next,tb,filename,lineno);
@@ -317,7 +323,7 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
-    self._deftb = traceback.extract_stack(None,4);
+    self._deftb = Timba.utils.extract_stack(None,4);
     self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
   def __copy__ (self):
@@ -532,7 +538,7 @@ class NodeGroup (dict):
     try: return dict.__contains__(self,node.name);
     except AttributeError: return False;
 
-_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 class _NodeRepository (dict):
@@ -548,7 +554,7 @@ class _NodeRepository (dict):
     self._testing = testing;
     # determine caller if not supplied
     if not caller_filename:
-      for (filename,lineno,funcname,text) in traceback.extract_stack()[-2::-1]:
+      for (filename,lineno,funcname,text) in Timba.utils.extract_stack()[-2::-1]:
         if filename != _MODULE_FILENAME:
           caller_filename = filename;
           break; 
@@ -605,8 +611,8 @@ class _NodeRepository (dict):
     as follows:
       * if err.filename and err.lineno exist, they are left as-is
       * otherwise, filename and lineno is extracted from tb, err.tb or
-        traceback.extract_stack() (in that order) and placed into err.
-    Then, the traceback (tb or err.tb or traceback.extract_stack()) is 
+        Timba.utils.extract_stack() (in that order) and placed into err.
+    Then, the traceback (tb or err.tb or Timba.utils.extract_stack()) is 
     processed, and all stack frames leading up to the error are added
     to the list as CalledFrom() errors.
     Note that the stack traceback is trimmed as follows:
@@ -622,7 +628,7 @@ class _NodeRepository (dict):
     recursively.
     """;
     # determine error location
-    tb = tb or getattr(err,'tb',None) or traceback.extract_stack();
+    tb = tb or getattr(err,'tb',None) or Timba.utils.extract_stack();
     _dprint(1,'error',err,'tb',len(tb));
     _dprint(2,'traceback',tb);
     # trim our own frames from top of stack
@@ -903,7 +909,7 @@ def _identifyCaller (depth=3,skip_internals=True,stack=None):
   skip over internal methods (which are supposed to start with __).
   Returns triplet of (filename,line,funcname).
   """;
-  stack = stack or traceback.extract_stack();
+  stack = stack or Timba.utils.extract_stack();
   if skip_internals:
     for frame in stack[-depth::-1]:
       (filename,line,funcname,text) = frame;

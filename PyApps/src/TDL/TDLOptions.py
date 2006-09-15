@@ -3,7 +3,7 @@ from Timba.utils import *
 import ConfigParser
 
 import traceback
-import inspect
+# import inspect
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
@@ -233,7 +233,7 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
   # if namespace is not specified, set it to 
   # the globals() of the caller of our caller
   if namespace is None:
-    namespace = inspect.stack()[2][0].f_globals;
+    namespace = sys._getframe(2).f_globals;
   elif inspect.ismodule(namespace):
     namespace = namespace.__dict__;
   # boolean option

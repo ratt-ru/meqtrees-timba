@@ -1,3 +1,4 @@
+import Timba
 from Timba import dmi
 from Timba.TDL import TDLimpl
 from TDLimpl import *
@@ -13,7 +14,7 @@ _dprintf = _dbg.dprintf;
 
 _NodeDef = TDLimpl._NodeDef;
 
-_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 
 class _MeqGen (TDLimpl.ClassGen):
   """This class defines the standard 'Meq' class generator. Having a 

@@ -1,3 +1,4 @@
+import Timba
 from Timba.dmi import *
 from Timba.utils import *
 from Timba import TDL
@@ -21,7 +22,7 @@ _dprintf = _dbg.dprintf;
 _tdlmodlist = [];
 
 # this is information about ourselves
-_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 class CompileError (RuntimeError):
