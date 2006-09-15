@@ -84,17 +84,21 @@ class ResultsRange(QWidget):
       self.layout.addWidget(self.slider)
 
     def setLabel(self, string_value= ''):
+      """ set current displayed label """
       self.label_info.setText(string_value + self.string_info) 
 
     def setStringInfo(self, string_value= ''):
+      """ assign a default leading string """
       self.string_info = string_value
 
     def setMinValue(self, min_value=0):
+      """ reset allowed minimum value for spinbox and slider """
       self.minVal = min_value
       self.spinbox.setMinValue(self.minVal)
       self.slider.setRange(self.minVal, self.maxVal)
 
     def setMaxValue(self, max_value= 0, allow_shrink=True):
+      """ reset allowed maximum value for spinbox and slider """
       if max_value < self.maxVal: 
         if allow_shrink:
           self.maxVal = max_value
@@ -107,11 +111,13 @@ class ResultsRange(QWidget):
           self.spinbox.setMaxValue(self.maxVal)
 
     def setValue(self, value= 0):
+      """ set current values shown in spinbox and slider """
       self.slider.setValue(value)
       self.spinbox.setValue(value)
       self.initContextmenu()
 
     def setRange(self, range_value, update_value = True):
+      """ define range of values shown with slider """
       if range_value <= self.maxVal:
         self.slider.setRange(self.minVal, range_value)
         self.spinbox.setMaxValue(range_value)
@@ -119,35 +125,40 @@ class ResultsRange(QWidget):
           self.setValue(range_value)
 
     def update_slider(self, slider_value):
+      """ update spinbox value as function of slider value """
       self.spinbox.setValue(slider_value)
 
     def update_spinbox(self, spin_value):
+      """ update displayed contents of spinbox """
       self.slider.setValue(spin_value)
       if self.allow_emit:
         self.emit(PYSIGNAL("result_index"),(spin_value + self.offset_index,))
 
     def set_emit(self, permission=True):
+      """ flag to allow emitting of Qt signals """
       self.allow_emit = permission
 
     def set_summary(self, summary=True):
+      """ override default value for allowing summary plot """
       self.allow_summary = summary
       toggle_id = self.menu_table['Display summary plot']
       self.menu.setItemVisible(toggle_id, self.allow_summary)
 
     def set_offset_index(self, offset):
+      """ override default value for offset index """
       self.offset_index = offset
 
     def setTickInterval(self, tick_interval):
+      """ override default tick interval for slider """
       self.slider.setTickInterval(tick_interval)
 
     def initContextmenu(self):
-      """Initialize the result buffer context menu
-      """
+      """Initialize the result buffer context menu """
       if self.menu is None:
         self.menu = QPopupMenu(self)
         toggle_id = self.menu_table['Adjust results buffer size']
         self.menu.insertItem("Adjust results buffer size", toggle_id)
-        QObject.connect(self.menu,SIGNAL("activated(int)"),self.handleMenu)
+        QObject.connect(self.menu,SIGNAL("activated(int)"),self.handleBufferSize)
 
         toggle_id = self.menu_table['Display summary plot']
         self.menu.insertItem("Display summary plot", toggle_id)
@@ -155,12 +166,14 @@ class ResultsRange(QWidget):
         self.menu.setItemVisible(toggle_id, False)
 
     def disableContextmenu(self):
+      """delete the result buffer context menu """
       if not self.menu is None:
           self.menu.reparent(QWidget(), 0, QPoint())
           self.menu = None
 
 
     def setResultsBuffer(self, result_value):
+      """ redefine the allowable maximum number of values """
       if result_value < 0:
         return
       self.maxVal = result_value
@@ -168,24 +181,23 @@ class ResultsRange(QWidget):
       self.spinbox.setMaxValue(self.maxVal)
       self.emit(PYSIGNAL("adjust_results_buffer_size"),(result_value,))
 
-    def handleMenu(self, menuid):
-        if menuid == self.menu_table['Adjust results buffer size']:
-          results_dialog = BufferSizeDialog(self.maxVal, self)
-          QObject.connect(results_dialog,PYSIGNAL("return_value"),self.setResultsBuffer)
-
-          results_dialog.show()
+    def handleBufferSize(self, menuid):
+      """ callback to handle 'Adjust buffer' request from the context menu """
+      if menuid == self.menu_table['Adjust results buffer size']:
+        results_dialog = BufferSizeDialog(self.maxVal, self)
+        QObject.connect(results_dialog,PYSIGNAL("return_value"),self.setResultsBuffer)
+        results_dialog.show()
 
     def requestSummary(self, menuid):
-        if menuid == self.menu_table['Display summary plot']:
-          self.emit(PYSIGNAL("display_summary_plot"),(self.summary_request,))
-          if self.summary_request:
-            self.summary_request = False
-            self.menu.changeItem(menuid, 'Discard summary plot')
-          else:
-            self.summary_request = True
-            self.menu.changeItem(menuid, 'Display summary plot')
-          
-
+      """ callback to handle 'summary plot' request from the context menu """
+      if menuid == self.menu_table['Display summary plot']:
+        self.emit(PYSIGNAL("display_summary_plot"),(self.summary_request,))
+        if self.summary_request:
+          self.summary_request = False
+          self.menu.changeItem(menuid, 'Discard summary plot')
+        else:
+          self.summary_request = True
+          self.menu.changeItem(menuid, 'Display summary plot')
 
     def mousePressEvent(self, e):
       if Qt.RightButton == e.button():
