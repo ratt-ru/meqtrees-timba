@@ -1031,7 +1031,7 @@ def inarg_stations (pp, **kwargs):
     JEN_inarg.inarg_common(kwargs)
     JEN_inarg.define (pp, 'stations', range(5),
                       slave=kwargs['slave'], hide=kwargs['hide'],
-                      choice=[range(7),range(14),range(15),'range(5)'],
+                      choice=[range(7),range(14),range(15),range(2),'range(5)'],
                       help='the (subset of) stations to be used')
     return True
 

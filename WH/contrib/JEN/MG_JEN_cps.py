@@ -234,6 +234,7 @@ def cps_inspect_DATA(inarg, trace=True):
    JEN_inarg.modify(inarg,
                     insert_solver=False,
                     tile_size=1,
+                    predict_column=None,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
@@ -250,6 +251,7 @@ def cps_inspect_CORRECTED_DATA(inarg, trace=True):
                     insert_solver=False,
                     tile_size=1,
                     data_column_name='CORRECTED_DATA',
+                    predict_column=None,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
