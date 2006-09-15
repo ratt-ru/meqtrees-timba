@@ -157,7 +157,7 @@ class ResultsRange(QWidget):
     def disableContextmenu(self):
       if not self.menu is None:
           self.menu.reparent(QWidget(), 0, QPoint())
-          self.ND_Controls = None
+          self.menu = None
 
 
     def setResultsBuffer(self, result_value):
