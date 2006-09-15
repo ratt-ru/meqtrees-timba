@@ -16,10 +16,10 @@
 
 # MG scripts should (roughly) have the following parts:
 # - PART   I: Organised specific information about this script
-# - PART  II: Preamble (import etc) and initialisation
+# - PART  II: Preamble (import etc) and initialisation (if any)
 # - PART III: Optional: Importable functions (to be used by other scripts)
 # - PART  IV: Required: Test/Demo function _define_forest(), called from the meqbrowser
-# - PART   V: Recommended: Forest execution routine(s), called from the meqbrowser
+# - PART   V: Forest execution routine(s), called from the meqbrowser
 # - PART  VI: Recommended: Standalone test routines (no meqbrowser or meqserver)
 
 # This template is a regular MG script, which may be executed from the
@@ -68,12 +68,21 @@ from Timba.Meq import meq
 # from string import *
 # from copy import deepcopy
 
+# Make sure that all nodes retain their results in their caches,
+# for your viewing pleasure.
+Settings.forest_state.cache_policy = 100
+
+
+# NB: Demonstrate the OMS parameter system here (because it has browser support)?
+
 
 #********************************************************************************
 #********************************************************************************
 #******************** PART III: Optional: Importable functions ******************
 #********************************************************************************
 #********************************************************************************
+
+
 
 
 
@@ -87,21 +96,39 @@ from Timba.Meq import meq
 
 
 def _define_forest (ns, **kwargs):
-   """Definition of a MeqForest for demonstration/testing/experimentation
-   of the subject of this MG script, and its importable functions"""
+   """Definition of a 'forest' of one or more trees"""
 
-   if True:
-       a = ns['a'] << Meq.Time()
-       b = ns['b'] << Meq.Freq()
+   # Make two 'leaf' nodes that show some variation over freq/time. 
+   a = ns['a'] << Meq.Time()
+   b = ns['b'] << Meq.Freq()
 
-   sum_ab = ns['sum'] << Meq.Add(a,b)
+   # The root node of the tree can have any name, but in this example it
+   # should be named 'result', because this name is used in the default
+   # execute command (see below), and the bookmark.
+   result = ns['result'] << Meq.Add(a,b)
+
+   # Make a bookmark of the result node, for easy viewing:
+   bm = record(name='result', viewer='Result Plotter',
+               udi='/node/result', publish=True)
+   Settings.forest_state.bookmarks = [bm]
 
    # Finished:
    return True
 
 
 
-
+# Ideas for demo/assignment scripts:
+# - demo_binop.py:
+# - demo_unop.py:
+# - demo_matrix22.py:
+# - demo_jones.py:
+# - demo_reqseq.py:
+# - demo_solve.py:
+# - demo_flag.py:
+# - demo_voltage_beam.py:
+# - demo_expression.py:
+# - demo_dataCollect.py:
+# - demo_historyCollect.py:
 
 
 
@@ -129,18 +156,48 @@ def _define_forest (ns, **kwargs):
 def _test_forest (mqs, parent):
     """Execute the forest with a default domain"""
     trace = True
-    domain = meq.domain(1,10,-10,10)                            # (f1,f2,t1,t2)
+    domain = meq.domain(1,10,1,10)                            # (f1,f2,t1,t2)
     if trace: print '\n** domain =',domain
     cells = meq.cells(domain, num_freq=10, num_time=11)
     if trace: print '\n** cells =',cells
     request = meq.request(cells, rqtype='ev')
     if trace: print '\n** request =',request
-    result = mqs.meq('Node.Execute',record(name='sum', request=request), wait=True)
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
     if trace: print '\n** result =',result,'\n'
     return result
 
 
+def _tdl_job_incl_zero (mqs, parent):
+    """Execute the forest with a domain that includes f=0 and t=0"""
+    domain = meq.domain(0,10,0,10)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=11)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
 
+def _tdl_job_incl_negative (mqs, parent):
+    """Execute the forest with a domain that includes f<0 and t<0"""
+    domain = meq.domain(-1,10,-10,10)                         # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=11)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+
+
+def _tdl_job_sequence(mqs, parent):
+   """Execute the forest for a sequence of requests with changing domains"""
+   trace = True
+   for x in range(10):
+       domain = meq.domain(x,x+1,x,x+1)                       # (f1,f2,t1,t2)
+       if trace: print '\n** x =',x,': -> domain =',domain
+       cells = meq.cells(domain, num_freq=20, num_time=19)
+       request = meq.request(cells, rqtype='ev')
+       result = mqs.meq('Node.Execute',record(name='result', request=request0))
+   return True
+
+
+# NB: If you execute one after the other without recompiling first,
+#     the domain does not change!!
 
 
 
