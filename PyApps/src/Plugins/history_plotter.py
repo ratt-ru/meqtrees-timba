@@ -366,7 +366,9 @@ class HistoryPlotter(GriddedPlugin):
     self._plotter.array_plot(self.label + ' data ', self._plot_array[self.array_tuple])
     self.addTupleFlags()
 
-  def setSelectedAxes (self,first_axis, second_axis):
+  def setSelectedAxes (self,first_axis,second_axis,third_axis=-1):
+    if not self._plotter is None:
+      self._plotter.delete_cross_sections()
     self.array_selector = []
     for i in range(self._plot_array.rank):
       if i == first_axis: 
@@ -374,6 +376,9 @@ class HistoryPlotter(GriddedPlugin):
         self.array_selector.append(axis_slice)
       elif i == second_axis:
         axis_slice = slice(0,self._plot_array.shape[second_axis])
+        self.array_selector.append(axis_slice)
+      elif i == third_axis:
+        axis_slice = slice(0,self._plot_array_shape[third_axis])
         self.array_selector.append(axis_slice)
       else:
         self.array_selector.append(0)
@@ -414,19 +419,20 @@ class HistoryPlotter(GriddedPlugin):
   # create_image_plotters
 
 
-  def set_ND_controls (self):
+  def set_ND_controls (self, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    labels = None
-    parms = None
     _dprint(3, 'plot_array shape ', self._plot_array.shape)
-    self.ND_Controls = ND_Controller(self._plot_array.shape, labels, parms, self.layout_parent)
+    self.ND_Controls = ND_Controller(self._plot_array.shape, labels, parms, num_axes, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
     self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
-    self.ND_Controls.show()
+    if self.ND_Controls.get_num_selectors() > num_axes:
+      self.ND_Controls.showDisplay(1)
+    else:
+      self.ND_Controls.showDisplay(0)
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2 Ddisplays """
