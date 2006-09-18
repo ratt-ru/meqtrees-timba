@@ -30,6 +30,7 @@
 
 import sys
 from qt import *
+from Timba.GUI.pixmaps import pixmaps
 from BufferSizeDialog import *
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
@@ -40,23 +41,38 @@ from BufferSizeDialog import *
 # AxisRange class used with the ND-Controller, but the layout is
 # different.
 
+results_range_help = \
+'''
+This widget displays a spinbox and a slider. The spinbox and the slider both have the same value. Changing one or the other causes an event to be sent to the visualization system with a request to change the array index of the displayed data. The visualization display is then updated. The spinbox is wrapped around so that one can go directly from the highest index to the lowest.<br><br>
+
+When you click in the area of the widget with the right mouse button a context menu will be shown. In the case of the <b>3-dimensional display</b>, this context menu will allow you to select a new active plane - one of the X, Y or Z axes. It also gives you the possibility of switching back to the 2-dimensional display. In the case of the results <b>history sequence</b> display, the menu offers you the single option of changing the number of sequential records that can be stored. If you select this option, a small dialog will appear that allows you to modify the allowable number of records that can be stored. The default is 10.<br><br> 
+'''
+
 class ResultsRange(QWidget):
     def __init__(self, parent=None, name=""):
       QWidget.__init__(self, parent, name)
 
-      self. menu_table = {
+      self.menu_table = {
       'Adjust results buffer size': 301,
       'Display summary plot': 302,
+      'X Axis': 303,
+      'Y Axis': 304,
+      'Z Axis': 305,
+      'Show 2D Display': 306,
+      'Update': 307,
+      'Toggle ND Controller': 308,
+      'Print to Postscript file': 309,
       }
 
       self.allow_emit = False
       self.allow_summary = False
       self.summary_request = True
+      self.toggle_ND_Controller = 1
       self.menu = None
       self.maxVal = 10
       self.minVal = 1
       self.label_info = QLabel('', self)
-      self.label_info1 = QLabel('    ', self)
+      self.label_info1 = QLabel('          ', self)
       self.string_info =  ' '
       self.offset_index = -1
       self.spinbox = QSpinBox(self)
@@ -77,11 +93,16 @@ class ResultsRange(QWidget):
 
       self.layout = QHBoxLayout(self)
       spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
+      spacer1 = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
       self.layout.addItem(spacer)
       self.layout.addWidget(self.label_info)
       self.layout.addWidget(self.spinbox)
+#     self.layout.addItem(spacer1)
       self.layout.addWidget(self.label_info1)
       self.layout.addWidget(self.slider)
+
+# add on-line help
+      QWhatsThis.add(self, results_range_help)
 
     def setLabel(self, string_value= ''):
       """ set current displayed label """
@@ -138,6 +159,48 @@ class ResultsRange(QWidget):
       """ flag to allow emitting of Qt signals """
       self.allow_emit = permission
 
+    def X_Axis_Selected(self):
+      """ emit signal to select X Axis for 3D display """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("X_axis_selected"),(True,))
+
+    def Y_Axis_Selected(self):
+      """ emit signal to select Y Axis for 3D display """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("Y_axis_selected"),(True,))
+
+    def Z_Axis_Selected(self):
+      """ emit signal to select Z Axis for 3D display """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("Z_axis_selected"),(True,))
+
+    def request_2D_display(self):
+      """ emit signal to request 2D display """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("twoD_display_requested"),(True,))
+
+    def request_postscript(self):
+      """ emit signal to request Postscript printout """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("postscript_requested"),(True,))
+
+    def requestUpdate(self):
+      """ emit signal to request update to array (for testing) """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("update_requested"),(True,))
+
+    def toggle_ND_controller(self):
+      """ emit signal to toggle ND Controller on or off """
+      toggle_id = self.menu_table['Toggle ND Controller']
+      if self.toggle_ND_Controller == 1:
+        self.toggle_ND_Controller = 0
+        self.menu.changeItem(toggle_id, 'Show ND Controller')
+      else:
+        self.toggle_ND_Controller = 1
+        self.menu.changeItem(toggle_id, 'Hide ND Controller')
+      if self.allow_emit:
+        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+
     def set_summary(self, summary=True):
       """ override default value for allowing summary plot """
       self.allow_summary = summary
@@ -152,25 +215,115 @@ class ResultsRange(QWidget):
       """ override default tick interval for slider """
       self.slider.setTickInterval(tick_interval)
 
+    def handle_menu_request(self, menuid):
+      """ handle requested menu option """
+      if menuid == self.menu_table['Adjust results buffer size']:
+        self.handleBufferSize(menuid)
+      elif menuid == self.menu_table['Display summary plot']:
+        self.requestSummary()
+      elif menuid == self.menu_table['X Axis']:
+        self.X_Axis_Selected()
+      elif menuid == self.menu_table['Y Axis']:
+        self.Y_Axis_Selected()
+      elif menuid == self.menu_table['Z Axis']:
+        self.Z_Axis_Selected()
+      elif menuid == self.menu_table['Show 2D Display']:
+        self.request_2D_display()
+      elif menuid == self.menu_table['Toggle ND Controller']:
+        self.toggle_ND_controller()
+      elif menuid == self.menu_table['Update']:
+        self.requestUpdate()
+      elif menuid == self.menu_table['Print to Postscript file']:
+        self.request_postscript()
+
     def initContextmenu(self):
       """Initialize the result buffer context menu """
       if self.menu is None:
         self.menu = QPopupMenu(self)
+        QObject.connect(self.menu,SIGNAL("activated(int)"),self.handle_menu_request);
+
         toggle_id = self.menu_table['Adjust results buffer size']
         self.menu.insertItem("Adjust results buffer size", toggle_id)
-        QObject.connect(self.menu,SIGNAL("activated(int)"),self.handleBufferSize)
 
+# option for summary plot
         toggle_id = self.menu_table['Display summary plot']
         self.menu.insertItem("Display summary plot", toggle_id)
-        QObject.connect(self.menu,SIGNAL("activated(int)"),self.requestSummary)
         self.menu.setItemVisible(toggle_id, False)
 
+# options for 3D Display
+        toggle_id = self.menu_table['X Axis']
+        self.menu.insertItem("X Axis", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Y Axis']
+        self.menu.insertItem("Y Axis", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Z Axis']
+        self.menu.insertItem("Z Axis", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Show 2D Display']
+        self.menu.insertItem("Show 2D Display", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle ND Controller']
+        self.menu.insertItem("Toggle ND Controller", toggle_id)
+        self.menu.changeItem(toggle_id, 'Hide ND Controller')
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Update']
+        self.menu.insertItem("Update", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Print to Postscript file']
+        self.menu.insertItem("Print to Postscript file", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+
+    def setXMenuLabel(self, text):
+      """ update X axis context menu label """
+      toggle_id = self.menu_table['X Axis']
+      self.menu.changeItem(toggle_id, text)
+
+    def setYMenuLabel(self, text):
+      """ update Y axis context menu label """
+      toggle_id = self.menu_table['Y Axis']
+      self.menu.changeItem(toggle_id, text)
+
+    def setZMenuLabel(self, text):
+      """ update Z axis context menu label """
+      toggle_id = self.menu_table['Z Axis']
+      self.menu.changeItem(toggle_id, text)
+
+    def HideNDOption(self):
+      """ hide the Toggle ND Controller option """
+      toggle_id = self.menu_table['Toggle ND Controller']
+      self.menu.setItemVisible(toggle_id, False)
+
     def disableContextmenu(self):
-      """delete the result buffer context menu """
+      """ delete the result buffer context menu """
       if not self.menu is None:
           self.menu.reparent(QWidget(), 0, QPoint())
           self.menu = None
 
+    def init3DContextmenu(self):
+      """add 3D options to context menu """
+      if self.menu is None:
+        self.initContextmenu()
+# display options for 3D Display
+      toggle_id = self.menu_table['X Axis']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Y Axis']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Z Axis']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Show 2D Display']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Toggle ND Controller']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Print to Postscript file']
+      self.menu.setItemVisible(toggle_id, True)
+
+      toggle_id = self.menu_table['Adjust results buffer size']
+      self.menu.setItemVisible(toggle_id, False)
+
+    def displayUpdateItem(self):
+        toggle_id = self.menu_table['Update']
+        self.menu.setItemVisible(toggle_id, True)
 
     def setResultsBuffer(self, result_value):
       """ redefine the allowable maximum number of values """
@@ -204,11 +357,21 @@ class ResultsRange(QWidget):
         e.accept()
         self.menu.popup(e.globalPos());
 
+#   def contextMenuEvent(self,ev):
+#     """ The existence of this function should cause any 
+#         higher-level context menu to be ignored when the 
+#         right mouse button is clicked inside the widget.
+#     """
+#     ev.accept()
+
+
+
 # the following tests the ResultsRange class
 def make():
     demo = ResultsRange()
     demo.setRange(5)
     demo.show()
+    demo.init3DContextmenu()
     return demo
 
 # make()

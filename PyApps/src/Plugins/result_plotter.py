@@ -1057,8 +1057,8 @@ class ResultPlotter(GriddedPlugin):
 
     if self.ND_plotter is None:
       self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
-      self.ND_plotter.Add2DButton()
-      self.ND_plotter.AddNDButton()
+#     self.ND_plotter.Add2DButton()
+#     self.ND_plotter.AddNDButton()
       self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)

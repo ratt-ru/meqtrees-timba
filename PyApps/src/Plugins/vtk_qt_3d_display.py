@@ -53,20 +53,15 @@ from Timba import Grid
 import numarray 
 
 rendering_control_instructions = \
-'''vtkInteractorStyle implements the "joystick" style of interaction. That is, holding down the mouse keys generates a stream of events that cause continuous actions (e.g., rotate, translate, pan, zoom). (The class vtkInteractorStyleTrackball implements a grab and move style.) The event bindings for this class include the following:<br><br>
-Keypress j / Keypress t: toggle between joystick (position sensitive) and trackball (motion sensitive) styles. In joystick style, motion occurs continuously as long as a mouse button is pressed. In trackball style, motion occurs when the mouse button is pressed and the mouse pointer moves.<br><br>
-Keypress c / Keypress a: toggle between camera and actor modes. In camera mode, mouse events affect the camera position and focal point. In actor mode, mouse events affect the actor that is under the mouse pointer.<br><br>
+'''
+You can interact directly with the 3-dimensional VTK display by using your the left, middle and right mouse buttons. <br><br>
 Button 1 (Left): Rotates the camera around its focal point. The rotation is in the direction defined from the center of the renderer's viewport towards the mouse position.<br><br>
 Button 2 (Middle): Pans the camera. The direction of motion is the direction the mouse moves. (Note: with 2-button mice, pan is defined as 'Shift'-Button 1.)<br><br>
 Button 3 (Right): Zooms the camera. Moving the mouse from the top to the bottom of the display causes the camera to appear to move away from the display (zoom out). Moving the mouse from the bottom to the top of the display causes the camera to appear to move toward the display (zoom in).<br><br>
-Keypress 3: toggle the render window into and out of stereo mode. By default, red-blue stereo pairs are created. Some systems support Crystal Eyes LCD stereo glasses; you have to invoke SetStereoTypeToCrystalEyes() on the rendering window.<br><br>
-Keypress f: fly to the picked point.<br><br>
-Keypress p: perform a pick operation. The render window interactor has an internal instance of vtkCellPicker that it uses to pick.<br><br>
-Keypress r: reset the camera view along the current view direction. Centers the actors and moves the camera so that all actors are visible.<br><br>
-Keypress s: modify the representation of all actors so that they are surfaces. <br><br> 
-Keypress u: invoke the user-defined function. Typically, this keypress will bring up an interactor that you can type commands in.<br><br>
-Keypress w: modify the representation of all actors so that they are wireframe.'''
-
+You can control and select the active plane to be moved by means of the spinbox and slider widgets shown beneath the 3-dimensional display. The text to the left of the spinbox tells which axis/plane is active. Moving the slider or clicking the spinbox will cause the active plane to move so that you can see how the data changes as you move through the cube.<br><br>
+Since VTK uses the right mouse button to control the camera zoom in the 3-D display, you cannot obtain a context menu directly within the 3-D display. However, by right clicking in the area near the spinbox and slider, you will obtain a context menu. This menu will allow you to change to a new active plane, switch back to the 2-dimensional display or print a copy of the display to a Postscript file.<br><br>
+Hardcopy printing is a bit primitive at present; essentially you get a screenshot of the display. So if you want a reasonably sized hardcopy you need to float the display widget from the MeqBrowser and resize it with your mouse to be larger.<br><br>
+'''
 if has_vtk:
   class MEQ_QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
     """ We override the default QVTKRenderWindowInteractor
@@ -115,28 +110,23 @@ class vtk_qt_3d_display(qt.QWidget):
 
 # create VBox for controls
     self.v_box_controls = qt.QVBox(self.winsplitter)
-# add control buttons
-    self.h_box = qt.QHBox(self.v_box_controls)
-# buttons
-    self.button_capture = qt.QPushButton("Postscript",self.h_box)
-    self.button_x = qt.QPushButton("X",self.h_box)
-    self.button_y = qt.QPushButton("Y",self.h_box)
-    self.button_z = qt.QPushButton("Z",self.h_box)
-    self.button_z.setPaletteBackgroundColor(Qt.green)
-# spinbox / slider
+
+# spinbox / slider control GUI
     self.index_selector = ResultsRange(self.v_box_controls)
     self.index_selector.setStringInfo(' selector index ')
-    self.index_selector.disableContextmenu()
+    self.index_selector.init3DContextmenu()
     offset_index = 0
     self.index_selector.set_offset_index(offset_index)
-#   self.index_selector.show()
-# create connections from buttons to callbacks
-    qt.QObject.connect(self.button_capture,qt.SIGNAL("clicked()"),self.CaptureImage)
-    qt.QObject.connect(self.button_x,qt.SIGNAL("clicked()"),self.AlignXaxis)
-    qt.QObject.connect(self.button_y,qt.SIGNAL("clicked()"),self.AlignYaxis)
-    qt.QObject.connect(self.button_z,qt.SIGNAL("clicked()"),self.AlignZaxis)
-    qt.QObject.connect(self.index_selector, PYSIGNAL('result_index'), self.SetSlice)
-
+# create connections from spinbox / slider control GUI
+# context menu to callbacks
+    qt.QObject.connect(self.index_selector,PYSIGNAL("postscript_requested"),self.CaptureImage)
+    qt.QObject.connect(self.index_selector,PYSIGNAL("update_requested"),self.testEvent)
+    qt.QObject.connect(self.index_selector,PYSIGNAL("X_axis_selected"),self.AlignXaxis)
+    qt.QObject.connect(self.index_selector,PYSIGNAL("Y_axis_selected"),self.AlignYaxis)
+    qt.QObject.connect(self.index_selector,PYSIGNAL("Z_axis_selected"),self.AlignZaxis)
+    qt.QObject.connect(self.index_selector,PYSIGNAL("show_ND_Controller"),self.hide_Event)
+    qt.QObject.connect(self.index_selector,PYSIGNAL('result_index'), self.SetSlice)
+    qt.QObject.connect(self.index_selector,PYSIGNAL('twoD_display_requested'), self.two_D_Event)
 
   def delete_vtk_renderer(self):
     if not self.renwininter is None:
@@ -384,9 +374,6 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.set_emit(True)
 
     self.AlignCamera(slice_number)
-    self.button_x.setPaletteBackgroundColor(Qt.green)
-    self.button_y.unsetPalette()
-    self.button_z.unsetPalette()
 
   def AlignYaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -409,9 +396,6 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setLabel('Y axis')
     self.index_selector.set_emit(True)
     self.AlignCamera(slice_number)
-    self.button_x.unsetPalette()
-    self.button_y.setPaletteBackgroundColor(Qt.green)
-    self.button_z.unsetPalette()
  
   def AlignZaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -434,9 +418,6 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setLabel('Z axis')
     self.index_selector.set_emit(True)
     self.AlignCamera(slice_number)
-    self.button_x.unsetPalette()
-    self.button_y.unsetPalette()
-    self.button_z.setPaletteBackgroundColor(Qt.green)
 
   def SetSlice(self, sl):
     self.current_widget.SetSliceIndex(sl)
@@ -566,13 +547,6 @@ class vtk_qt_3d_display(qt.QWidget):
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
       self.lut.SetRange(plot_array.min(), plot_array.max())
-      if not self.button_hide is None:
-        self.toggle_ND_Controller = 1
-        self.button_hide.setText('Hide ND Controller')
-      self.button_x.unsetPalette()
-      self.button_y.unsetPalette()
-      self.button_z.unsetPalette()
-      self.button_z.setPaletteBackgroundColor(Qt.green)
     else:
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
@@ -586,6 +560,12 @@ class vtk_qt_3d_display(qt.QWidget):
   def reset_image_array(self):
     self.image_array = None
 
+  def AddUpdate(self):
+    self.index_selector.displayUpdateItem()
+
+  def HideNDButton(self):
+    self.index_selector.HideNDOption()
+
   def start_timer(self, time):
     timer = qt.QTimer()
     timer.connect(timer, qt.SIGNAL('timeout()'), self.testEvent)
@@ -598,76 +578,56 @@ class vtk_qt_3d_display(qt.QWidget):
 #   self.define_complex_image(self.iteration)
     self.define_complex_image1(self.iteration)
 
-  def Add2DButton(self):
-    self.button_test = qt.QPushButton("2D Display",self.h_box)
-    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.two_D_Event)
-
   def two_D_Event(self):
     self.emit(PYSIGNAL("show_2D_Display"),(0,))
 
-  def AddNDButton(self):
-    self.button_hide = qt.QPushButton("Hide ND Controller",self.h_box)
-    qt.QObject.connect(self.button_hide, qt.SIGNAL("clicked()"),self.hide_Event)
-
-  def HideNDButton(self):
-    if not self.button_hide is None:
-      self.button_hide.reparent(QWidget(), 0, QPoint()) 
-      self.button_hide = None
-
-  def hide_Event(self):
-    if self.toggle_ND_Controller == 1:
-      self.toggle_ND_Controller = 0
-      if not self.button_hide is None:
-        self.button_hide.setText('Show ND Controller')
-    else:
-      self.toggle_ND_Controller = 1
-      if not self.button_hide is None:
-        self.button_hide.setText('Hide ND Controller')
-    if not self.button_hide is None:
-      self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+  def hide_Event(self, toggle_ND_Controller):
+    self.emit(PYSIGNAL("show_ND_Controller"),(toggle_ND_Controller,))
 
   def AddVTKExitEvent(self):
 # next line causes confusion if run inside the MeqBrowser
     self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
 
-# used in standalone test mode
-  def AddUpdateButton(self):
-    self.button_test = qt.QPushButton("Update",self.h_box)
-    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.testEvent)
-
   def setAxisParms(self, axis_parms):
+    """ set display information from axis parameters """
+
+    text = ' '
+    text_menu = ' '
     if axis_parms[2] is None:
-      self.button_x.setText('X')
-      if not self.axes is None:
-        self.axes.SetXLabel('X')
+      text_menu = 'X axis '
+      if self.complex_plot:
+        text = 'X (real then imag) '
+      else:
+        text = 'X '
     else: 
-      self.button_x.setText('X ' + axis_parms[2])
-      if not self.axes is None:
-        self.axes.SetXLabel('X ' + axis_parms[2])
+      text_menu = 'X axis: ' + axis_parms[2]
+      if self.complex_plot:
+        text = 'X ' + axis_parms[2] + ' (real then imag)'
+      else:
+        text = 'X ' + axis_parms[2]
+    self.index_selector.setXMenuLabel(text_menu)
+    if not self.axes is None:
+      self.axes.SetXLabel(text)
+
     if axis_parms[1] is None:
-      self.button_y.setText('Y')
-      if not self.axes is None:
-        self.axes.SetYLabel('Y')
-    else: 
-      self.button_y.setText('Y ' + axis_parms[1])
-      if not self.axes is None:
-        self.axes.SetYLabel('Y ' + axis_parms[1])
+      text_menu = 'Y axis '
+      text = 'Y'
+    else:
+      text_menu = 'Y axis: ' + axis_parms[1]
+      text = 'Y ' + axis_parms[1]
+    self.index_selector.setYMenuLabel(text_menu)
+    if not self.axes is None:
+        self.axes.SetYLabel(text)
+
     if axis_parms[0] is None:
-      if self.complex_plot:
-        Z_text = 'Z (real then imag) '
-      else:
-        Z_text = 'Z '
-      self.button_z.setText(Z_text)
-      if not self.axes is None:
-        self.axes.SetZLabel(Z_text)
+      text = 'Z'
+      text_menu = 'Z axis '
     else: 
-      if self.complex_plot:
-        Z_text = 'Z (real then imag) '
-      else:
-        Z_text = 'Z '
-      self.button_z.setText(Z_text + axis_parms[0])
-      if not self.axes is None:
-        self.axes.SetZLabel(Z_text + axis_parms[0])
+      text_menu = 'Z axis: ' + axis_parms[0]
+      text = 'Z ' + axis_parms[0]
+    self.index_selector.setZMenuLabel(text_menu)
+    if not self.axes is None:
+      self.axes.SetZLabel(text)
 
 #=============================
 if __name__ == "__main__":
@@ -676,8 +636,8 @@ if __name__ == "__main__":
     qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
 		app,qt.SLOT("quit()"))
     display = vtk_qt_3d_display()
-    display.AddUpdateButton()
     display.show()
+    display.AddUpdate()
     display.testEvent()
     app.exec_loop()
   else:

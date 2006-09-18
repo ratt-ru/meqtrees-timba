@@ -158,9 +158,13 @@ class AxisRange(QWidget):
 
 
 controller_instructions = \
-'''This control GUI allows you to select a 2-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, the default start-up plot will show the last two dimensions with the indices into the previous dimensions all initialized to zero. <br><br>
+'''
+This control GUI allows you to select a 2 or 3-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, in the case of a <b>2-D</b> display the default start-up plot will show the last two dimensions with the indices into the previous dimensions all initialized to zero. <br><br>
 So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with red sliders  and you will not be able to move the sliders under them. The remaining axes have sliders shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
-You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding sliders displayed in red and are frozen. The other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.'''
+You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding sliders displayed in red and are frozen. The other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.<br><br>
+If one is working with a <b>3-D</b> display, we can put up 3 dimensions on the screen at the same time, so the default start up plot will show the last three dimensions with the indices into the dimensions all initialized to zero. Also, in this case, to change the axes you wish to see displayed, you must click on any three of the pushbuttons before the display will be modified.<br<br>
+
+'''
 
 class ND_Controller(QWidget):
     def __init__(self, array_shape=None, axis_label=None, axis_parms = None, num_axes = 2, parent=None, name=""):
