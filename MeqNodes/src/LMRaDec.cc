@@ -93,7 +93,9 @@ void LMRaDec::evaluateTensors (std::vector<Vells> & out,
   xform.diagonal() = 1.0;                         
 // lets allow for possible future coordinate system rotations
 // by specifying individual elements of the xform matrix rather
-// than justsetting diagonals to 1.0
+// than just setting diagonals to 1.0
+// hum: uncommenting the following code leads to error messages like
+// error: cannot convert `Meq::Vells' to `double' in assignment
 //double pos_ang_radians= 0.0;
 //xform(0,0)= cos(pos_ang_radians);
 //xform(0,1)= sin(pos_ang_radians);
