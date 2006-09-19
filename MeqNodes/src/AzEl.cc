@@ -61,7 +61,7 @@ void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,
   // and so we ignore the child cells, and only use the request cells
   // (while checking that they have a time axis)
   const Cells &cells = request.cells();
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::UVW: no time axis in request, can't compute UVWs");
+  FailWhen(!cells.isDefined(Axis::TIME),"Meq::AzEl: no time axis in request, can't compute AzEls");
   ref.attach(cells);
 }
 
