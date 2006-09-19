@@ -1,4 +1,4 @@
-# script_name = 'MG_AGW_azel.py'
+# script_name = 'MG_AGW_ParAngle.py'
 
 # Short description:
 #   Tests the Meqtree ParAngle (Parallactic Angle) node
