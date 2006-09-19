@@ -129,6 +129,11 @@ class ArrayPlotter(GriddedPlugin):
   def plot_2D_array (self):
 
     self.data = self.dataitem.data
+
+# do we have a scalar?
+    if self.test_scalar_value(self.data, 'incoming data'):
+      return 
+
 # first figure out the actual rank of the array we are plotting
 
     self.actual_rank = 0
@@ -169,6 +174,28 @@ class ArrayPlotter(GriddedPlugin):
       self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
     else:
       self.twoD_plotter.array_plot('data', self.data)
+
+  def test_scalar_value (self, data_array, data_label):
+    """ test if incoming 'array' contains only a scalar value """
+# do we have a scalar?
+    is_scalar = False
+    scalar_data = 0.0
+    try:
+      shape = data_array.shape
+      _dprint(3,'data_array shape is ', shape)
+    except:
+      is_scalar = True
+      scalar_data = data_array
+    if not is_scalar and len(shape) == 1:
+      if shape[0] == 1:
+        is_scalar = True
+        scalar_data = data_array[0]
+    if is_scalar:
+      self.twoD_plotter.report_scalar_value(data_label, scalar_data)
+      return True
+    else:
+      return False
+
 
 # enable & highlight the cell
     self.enable();

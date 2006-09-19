@@ -86,6 +86,7 @@ class QwtHistogramPlotter(QwtPlot):
       self.setLegendPos(Qwt.Right)
       # set axis titles
       self.title = None
+      self.source_marker = None
       self.setTitle('Histogram')
       self.setAxisTitle(QwtPlot.yLeft, 'number in bin')
       self.zoomStack = []
@@ -213,6 +214,29 @@ class QwtHistogramPlotter(QwtPlot):
      
     # histogram_plot()
 
+
+    def report_scalar_value(self, data_label, scalar_data):
+      """ report a scalar value in case where a vells plot has
+          already been initiated
+      """
+      Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
+      _dprint(3,' scalar message ', Message)
+      
+      if not self.source_marker is None:
+        self.removeMarker(self.source_marker)
+      self.source_marker = self.insertMarker()
+      ylb = self.axisScale(QwtPlot.yLeft).lBound()
+      xlb = self.axisScale(QwtPlot.xBottom).lBound()
+      yhb = self.axisScale(QwtPlot.yLeft).hBound()
+      xhb = self.axisScale(QwtPlot.xBottom).hBound()
+      self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
+      self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+      fn = self.fontInfo().family()
+      self.setMarkerLabel( self.source_marker, Message,
+         QFont(fn, 10, QFont.Bold, False),
+         Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+      self.replot()
+      _dprint(3,'called replot in report_scalar_value')
 
     def printplot(self):
       try:
@@ -411,11 +435,34 @@ class HistogramPlotter(GriddedPlugin):
     """ this function is the callback interface to the meqbrowser and
         handles new incoming data for the histogram """
 
-    self._plotter.histogram_plot('data', dataitem.data)
+    if not self.test_scalar_value (dataitem.data, 'data'):
+      self._plotter.histogram_plot('data', dataitem.data)
 
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
+
+  def test_scalar_value (self, data_array, data_label):
+    """ test if incoming 'array' contains only a scalar value """
+# do we have a scalar?
+    is_scalar = False
+    scalar_data = 0.0
+    try:
+      shape = data_array.shape
+      _dprint(3,'data_array shape is ', shape)
+    except:
+      is_scalar = True
+      scalar_data = data_array
+    if not is_scalar and len(shape) == 1:
+      if shape[0] == 1:
+        is_scalar = True
+        scalar_data = data_array[0]
+    if is_scalar:
+      self._plotter.report_scalar_value(data_label, scalar_data)
+      return True
+    else:
+      return False
+
 # class HistogramPlotter
 
     
