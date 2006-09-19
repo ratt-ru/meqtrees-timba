@@ -30,31 +30,34 @@ def _define_forest (ns):
 # set up a sequence of nodes for testing of the LMRaDec node
 
 # first define a field centre RA and DEC (in radians)
-  ra = 0.0
+  ra = 1.0
   dec = 1.0
   ns.ra0 << Meq.Parm(ra,node_groups='Parm')
   ns.dec0 << Meq.Parm(dec,node_groups='Parm')
 
-# then create a MeqComposer containing ra dec children
+# then create a MeqComposer containing the field centre RA and DEC as children
   ns.RADec <<Meq.Composer(ns.ra0, ns.dec0)
 
 # then define an L,M location (in radians) with respect to
 # the field centre
-  L_pos = 0.0
-  M_pos = -1.0
+  L_pos = -0.1   # radians
+  M_pos =  0.5   # radians
   ns.l_pos << Meq.Parm(L_pos,node_groups='Parm')
   ns.m_pos << Meq.Parm(M_pos,node_groups='Parm')
 
-# create a  MeqComposer containing L_pos and M_pos children
+# create a  MeqComposer containing L_pos and M_pos as children
   ns.LM <<Meq.Composer(ns.l_pos, ns.m_pos)
                                                                                 
-# we should now be able to create an LMRaDec node with Ra,Dec and L,M 
-# children - this gives as output the ra and dec corresponding to the
+# we should now be able to create an LMRaDec node with the field
+# centre RA and DEC and the L and M offsets as children.
+# This node gives as output the RA and DEC corresponding to the
 # specified L,M offset
   ns.LMRaDec << Meq.LMRaDec(ns.RADec, ns.LM)
 
-# as check: now convert resulting RA and Dec back to L,M
-# with respect to the original field centre
+# Finally, as a check: convert the resulting RA and DEC back to L,M
+# with respect to the original field centre. This is done by
+# creating an LMN node which has the field centre RA and DEC
+# and the offset RA and DEC as children.
   ns.LMN << Meq.LMN(ns.RADec, ns.LMRaDec)
 
 def _test_forest (mqs,parent):
@@ -65,7 +68,7 @@ def _test_forest (mqs,parent):
   """;
 
 ####
-# time and frequency domain
+# any old time and frequency domain will do
 # time - cover one day
   t0 = 0.01;
   t1 = 86400.01;
