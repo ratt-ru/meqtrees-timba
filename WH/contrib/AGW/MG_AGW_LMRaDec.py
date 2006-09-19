@@ -36,7 +36,7 @@ def _define_forest (ns):
   ns.dec0 << Meq.Parm(dec,node_groups='Parm')
 
 # then create a MeqComposer containing the field centre RA and DEC as children
-  ns.RADec <<Meq.Composer(ns.ra0, ns.dec0)
+  ns.RADec0 <<Meq.Composer(ns.ra0, ns.dec0)
 
 # then define an L,M location (in radians) with respect to
 # the field centre
@@ -52,13 +52,13 @@ def _define_forest (ns):
 # centre RA and DEC and the L and M offsets as children.
 # This node gives as output the RA and DEC corresponding to the
 # specified L,M offset
-  ns.LMRaDec << Meq.LMRaDec(ns.RADec, ns.LM)
+  ns.LMRaDec << Meq.LMRaDec(radec_0=ns.RADec0, lm=ns.LM)
 
 # Finally, as a check: convert the resulting RA and DEC back to L,M
 # with respect to the original field centre. This is done by
 # creating an LMN node which has the field centre RA and DEC
 # and the offset RA and DEC as children.
-  ns.LMN << Meq.LMN(ns.RADec, ns.LMRaDec)
+  ns.LMN << Meq.LMN(ns.RADec0, ns.LMRaDec)
 
 def _test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is
