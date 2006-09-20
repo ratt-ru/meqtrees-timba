@@ -337,6 +337,7 @@ MeqImage                         1646       ; from /home/sarod/LOFAR/Timba/MeqNo
 MeqInterpolate                   1662       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Interpolate.h:32
 #MeqInvert                       1507       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
 #MeqLMN                          1410       ; from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
+#MeqLMRaDec                      1696       ; from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:29
 #MeqLog                          1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
 MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
 #MeqMatrixInvert22               1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
@@ -351,6 +352,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
 #MeqNorm                         1459       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
+#MeqParAngle                     1695       ; from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
 #MeqParm                         1454       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
 #MeqPaster                       1519       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Paster.h:31
 #MeqPatchComposer                1569       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:34
@@ -379,7 +381,7 @@ MeqRequest                       1357       ; from /home/oms/LOFAR/Timba/MEQ/src
 MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src/Result.h:34
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
-#MeqShapeletVisTf                1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
+MeqShapeletVisTf                 1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
 #MeqSin                          1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 #MeqSinh                         1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
 MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
