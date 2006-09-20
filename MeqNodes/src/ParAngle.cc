@@ -73,8 +73,8 @@ LoShape ParAngle::getResultDims (const vector<const LoShape *> &input_dims)
   // children 1 (XYZ): expecting 3-vector, if any
   const LoShape &dim1 = *input_dims[1];
   FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
-  // result is a 3-vector
-  return LoShape(2);
+  // result is a 1-D vector
+  return LoShape(1);
 }
 
 
