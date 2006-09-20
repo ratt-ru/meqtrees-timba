@@ -91,20 +91,20 @@ for( @ARGV )
 $global_listdir or die "Path to global list file not specified";
 @sources or die "No source files specified, nothing to do";
 
-# cvs update the global list file
+# svn update the global list file
 #
 print STDERR "=== Updating $global_listdir/$global_listfile\n";
-print STDERR "    I will now attempt a cvs update on it, hold on\n"; 
-my $cmd = "(cd $global_listdir && cvs update -A $global_listfile)";
+print STDERR "    I will now attempt an svn update on it, hold on\n"; 
+my $cmd = "(cd $global_listdir && svn up $global_listfile)";
 print STDERR "    Running: $cmd\n";
 system "$cmd";
 $exit_value = $?>>8;
 if( $exit_value ) {
-  $update_failed = "(cvs update: $exit_value)";
+  $update_failed = "(svn update: $exit_value)";
   print STDERR "    Update failed ($exit_value), proceeding anyway\n";
-  # $exit_value == 0 or die "The cvs update command failed with exit code $exit_value";
+  # $exit_value == 0 or die "The svn update command failed with exit code $exit_value";
 } else {
-  print STDERR "    Looks like the cvs update succeeded\n";
+  print STDERR "    Looks like the svn update succeeded\n";
 }
 
 #
@@ -392,17 +392,17 @@ if( @newids )
   close OUTFILE;
   if( ReplaceIfDiff($path,"$path.new") )
   {
-    print STDERR "    I will now attempt a cvs commit on it, hold on\n"; 
-    my $cmd = "(cd $global_listdir && cvs commit -m'%[ER: 42]%' $global_listfile)";
+    print STDERR "    I will now attempt an svn commit on it, hold on\n"; 
+    my $cmd = "(cd $global_listdir && svn commit -m'%[ER: 42]%' $global_listfile)";
     print STDERR "    Running: $cmd\n";
     system "$cmd";
     $exit_value = $?>>8;
     if( $exit_value ) {
-      $update_failed .= "(cvs commit: $exit_value)";
+      $update_failed .= "(svn commit: $exit_value)";
       print STDERR "    Commit failed ($exit_value), proceeding anyway\n";
-#    $exit_value == 0 or die "The cvs commit command failed with exit code $exit_value";
+#    $exit_value == 0 or die "The svn commit command failed with exit code $exit_value";
     } else {
-      print STDERR "    Looks like the cvs commit succeeded\n";
+      print STDERR "    Looks like the svn commit succeeded\n";
     }
   }
 }
@@ -653,10 +653,10 @@ ______END_OF_QUOTE
 
 if( $update_failed )
 {
-   print STDERR "====== WARNING ============================================\n";
-   print STDERR "=== It looks like a cvs update or commit has failed:\n";
+   print STDERR "====== WARNING ====================================================\n";
+   print STDERR "=== It looks like an svn update or commit has failed:\n";
    print STDERR "=== $update_failed\n";
-   print STDERR "=== You will need to re-run this command when the cvs server\n";
+   print STDERR "=== You will need to re-run this command when the Subversion server\n";
    print STDERR "=== is on-line in order to finalize the ID assignments.\n";
-   print STDERR "============================================================\n";
+   print STDERR "===================================================================\n";
 }
