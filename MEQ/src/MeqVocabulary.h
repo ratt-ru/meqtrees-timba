@@ -40,7 +40,7 @@
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override Policy Discover Spids Map Eval Mode Incr
 #pragma aid Iteration Solution Dataset Next Service Sequence
-#pragma aid Tile Tiled Tiles Tiling Sizes Constrain Force Positive Negative Cyclic Min Max
+#pragma aid Tile Tiled Tiles Tiling Sizes Constrain Force Positive Negative Cyclic Min Max Lib
 
 
 namespace Meq
