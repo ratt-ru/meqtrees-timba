@@ -326,6 +326,7 @@ class VellsData:
      else:
        _dprint(3, 'self.array_tuple ',  self.array_tuple)
        _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].rank)
+       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] min and max: ', self._plot_vells_dict[key][self.array_tuple].min(), ' ', self._plot_vells_dict[key][self.array_tuple].max())
        return self._plot_vells_dict[key][self.array_tuple]
 
    def getActivePlot(self):
