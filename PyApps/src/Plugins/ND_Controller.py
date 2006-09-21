@@ -92,6 +92,17 @@ class AxisRange(QWidget):
         """ return current value of the slider """
         return self.slider.value()
 
+    def hide_display(self):
+        self.spinbox.hide()
+        self.slider.hide()
+        self.label_info.hide()
+
+    def show_display(self):
+        self.spinbox.show()
+        self.slider.show()
+        self.label_info.show()
+
+
     def resetValue(self):
         """ resets displayed values to zero """
         display_str = None
@@ -159,10 +170,10 @@ class AxisRange(QWidget):
 
 controller_instructions = \
 '''
-This control GUI allows you to select a 2 or 3-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, in the case of a <b>2-D</b> display the default start-up plot will show the last two dimensions with the indices into the previous dimensions all initialized to zero. <br><br>
-So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with red sliders  and you will not be able to move the sliders under them. The remaining axes have sliders shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
-You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding sliders displayed in red and are frozen. The other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.<br><br>
-If one is working with a <b>3-D</b> display, we can put up 3 dimensions on the screen at the same time, so the default start up plot will show the last three dimensions with the indices into the dimensions all initialized to zero. Also, in this case, to change the axes you wish to see displayed, you must click on any three of the pushbuttons before the display will be modified.<br<br>
+This control GUI allows you to select a 2 or 3-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, in the case of a <b>2-D</b> display the default start-up plot will show the <b>last two</b> dimensions with the indices into the other dimensions all initialized to zero. <br><br>
+So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) do not have sliders associated with them and are only indicated by buttons on the display. The remaining axes have sliders shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
+You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. The sliders associated with these two pushbuttons will then disappear. Then the other axes will have their sliders shown in green - you can move the sliders (and set spinbox contents) to change the array indices for these dimensions.<br><br>
+If one is working with a <b>3-D</b> display, we can put up 3 dimensions on the screen at the same time, so the default start up plot will show the last three dimensions (and thus no sliders for them). Also, in this case, to change the axes you wish to see displayed, you must click on any three of the pushbuttons before the display will be modified.<br<br>
 
 '''
 
@@ -233,10 +244,16 @@ class ND_Controller(QWidget):
             self.axis_controllers[self.num_selectors].setSliderColor(Qt.green)
             self.axis_controllers[self.num_selectors].setActive(True)
             self.axis_controllers[self.num_selectors].resetValue()
+            self.axis_controllers[self.num_selectors].show_display()
           else:
             self.axis_controllers[self.num_selectors].setSliderColor(Qt.red)
+            self.axis_controllers[self.num_selectors].hide_display()
 
           QObject.connect(self.axis_controllers[self.num_selectors], PYSIGNAL("ValueChanged"),self.update)
+          if col == 0:
+            spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
+            self.layout.addItem(spacer, row, col)
+            col = col + 1
           self.layout.addWidget(self.axis_controllers[self.num_selectors], row, col);
 
           self.buttons.append(self.axis_controllers[self.num_selectors].getButton())
@@ -248,7 +265,7 @@ class ND_Controller(QWidget):
             self.buttons[self.num_selectors].setOn(True)
             self.active_axes[self.num_selectors] = True
           self.buttonGroup.insert(self.buttons[self.num_selectors],self.num_selectors)
-          if col >= 1:
+          if col >= 4:
             col = 0
             row = row + 1
           else:
@@ -288,6 +305,7 @@ class ND_Controller(QWidget):
           self.buttons[button_id].setOn(True)
         if self.buttons[button_id].isOn():
           self.axis_controllers[button_id].setSliderColor(Qt.red)
+#         self.axis_controllers[button_id].hide_display()
           self.active_axes[button_id] = True
           if len(self.active_axes) == self.selectable_axes:
             first_axis = None
@@ -305,16 +323,18 @@ class ND_Controller(QWidget):
                       third_axis = self.button_number[i]
                 self.axis_controllers[i].setSliderColor(Qt.red)
                 self.axis_controllers[i].setActive(False)
+                self.axis_controllers[i].hide_display()
               else:
                 self.axis_controllers[i].setSliderColor(Qt.green)
                 self.axis_controllers[i].setActive(True)
+                self.axis_controllers[i].show_display()
               self.axis_controllers[i].resetValue()
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis,third_axis))
-
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
           self.axis_controllers[button_id].setSliderColor(Qt.red)
+#         self.axis_controllers[button_id].hide_display()
     # defineAxes
 
     def redefineAxes(self):
@@ -328,6 +348,7 @@ class ND_Controller(QWidget):
           self.buttons[i].setOn(False)
           self.axis_controllers[i].setSliderColor(Qt.red)
           self.axis_controllers[i].setActive(False)
+#         self.axis_controllers[i].hide_display()
           self.axis_controllers[i].resetValue()
         self.active_axes = {}
     # resetAxes
