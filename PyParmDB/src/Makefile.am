@@ -1,6 +1,11 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
+if HAVE_PARMDB
 lib_LTLIBRARIES = pyparmdb.la
+else
+lib_LTLIBRARIES = 
+endif
+
 
 DOCHDRS = 
 
