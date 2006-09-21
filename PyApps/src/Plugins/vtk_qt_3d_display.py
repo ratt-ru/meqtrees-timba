@@ -148,7 +148,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.inter = self.renwin.GetInteractor()
       self.winsplitter.moveToFirst(self.renwininter)
       self.winsplitter.moveToLast(self.v_box_controls)
-      self.winsplitter.setSizes([400,100])
+      self.winsplitter.setSizes([500,100])
       self.renwininter.show()
 
     self.extents =  self.image_array.GetDataExtent()
