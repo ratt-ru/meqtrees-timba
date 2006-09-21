@@ -71,8 +71,8 @@ protected:
   int Nx;
   void init_functions(const string &lib_name, const string &function_name);
   void *handle ; //handle to shared library;
-  Vells evaluateDouble(const std::vector<Vells::Ref>  &grid,const std::vector<const Vells*>  &values,const Vells::Shape &outshape,const Vells::Strides * strides);
-  Vells evaluateComplex(const std::vector<Vells::Ref>  &grid,const std::vector<const Vells*>  &values,const Vells::Shape &outshape,const Vells::Strides * strides);
+  Vells evaluateDouble(const std::vector<Vells::Ref>  &grid,const std::vector<Vells::Ref>  &values,const Vells::Shape &outshape,const Vells::Strides * strides);
+  Vells evaluateComplex(const std::vector<Vells::Ref>  &grid,const std::vector<Vells::Ref>  &values,const Vells::Shape &outshape,const Vells::Strides * strides);
 
 };
 

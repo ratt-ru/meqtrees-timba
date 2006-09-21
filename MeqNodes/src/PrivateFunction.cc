@@ -23,7 +23,7 @@
 
 
 
-
+using namespace Meq::VellsMath;
 namespace Meq {    
 
 PrivateFunction::PrivateFunction()
@@ -117,11 +117,24 @@ Vells PrivateFunction::evaluate (const Request& request, const LoShape& ,
   grid.resize(Nx);
   const Cells& cells = request.cells();
   int isComplex=0;
+  std::vector<Vells::Ref>  out_args(Npar);
   for(int i=0;i<values.size();i++)
     {
-      if(values[i]->isComplex()) isComplex=1; break;
+      if(values[i]->isComplex()) isComplex++;
+      out_args[i]<<=values[i];
     }
-  FailWhen(isComplex && !pt2complexFunc,"Got complex Vells and no complex function defined");
+  FailWhen(isComplex>0 && !pt2complexFunc,"Got complex Vells and no complex function defined");
+    
+
+  if(isComplex>0 && isComplex<values.size()){
+    //loop once more to create pointers to the new vells
+    Vells::Ref vref;
+    for(int i=0;i<out_args.size();i++)
+      if(out_args[i]->isReal()){
+	vref <<= new Vells(tocomplex(out_args[i](),0.));
+	out_args[i]=vref;
+      }
+  }
   for(int axisi=0;axisi<Nx;axisi++){
     HIID axis = Axis::axisId(axisi);
 
@@ -143,7 +156,7 @@ Vells PrivateFunction::evaluate (const Request& request, const LoShape& ,
   for(int i=0;i<Nx;i++)
        shapes[i]=&(grid[i]->shape());
   for(int i=Nx;i<Ndim_;i++)
-       shapes[i]=&(values[i-Nx]->shape());
+       shapes[i]=&(out_args[i-Nx]->shape());
 
   // create strides
   Vells::Strides *strides = new Vells::Strides[Ndim_];
@@ -153,15 +166,16 @@ Vells PrivateFunction::evaluate (const Request& request, const LoShape& ,
   Vells::computeStrides(outshape,strides,Ndim_,shapes,"Functional::evaluateTensors");
  
   Vells output;
-  if(isComplex) 
-    output= evaluateComplex(grid,values, outshape,strides);
+  if(isComplex>0)
+    
+    output= evaluateComplex(grid,out_args, outshape,strides);
   else
-    output= evaluateDouble(grid,values, outshape,strides);
+    output= evaluateDouble(grid,out_args, outshape,strides);
   delete strides;
   return output; 
 }
 
-Vells PrivateFunction::evaluateDouble(const std::vector<Vells::Ref>  &grid,const std::vector<const Vells*>  &values,const Vells::Shape &outshape,const Vells::Strides * strides){
+Vells PrivateFunction::evaluateDouble(const std::vector<Vells::Ref>  &grid,const std::vector<Vells::Ref>  &values,const Vells::Shape &outshape,const Vells::Strides * strides){
   int Ndim_=Nx+Npar;
   //create iterators
   Vells::DimCounter counter(outshape);
@@ -204,7 +218,7 @@ Vells PrivateFunction::evaluateDouble(const std::vector<Vells::Ref>  &grid,const
 }
 
 
-Vells PrivateFunction::evaluateComplex(const std::vector<Vells::Ref>  &grid,const std::vector<const Vells*>  &values,const Vells::Shape &outshape,const Vells::Strides * strides){
+Vells PrivateFunction::evaluateComplex(const std::vector<Vells::Ref>  &grid,const std::vector<Vells::Ref>  &values,const Vells::Shape &outshape,const Vells::Strides * strides){
   
   int Ndim_=Nx+Npar;
   //create iterators
