@@ -93,11 +93,9 @@ class ResultsRange(QWidget):
 
       self.layout = QHBoxLayout(self)
       spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
-      spacer1 = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
       self.layout.addItem(spacer)
       self.layout.addWidget(self.label_info)
       self.layout.addWidget(self.spinbox)
-#     self.layout.addItem(spacer1)
       self.layout.addWidget(self.label_info1)
       self.layout.addWidget(self.slider)
 
