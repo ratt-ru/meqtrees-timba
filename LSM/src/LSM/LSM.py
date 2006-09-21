@@ -1700,6 +1700,9 @@ class LSM:
     print "%s: read model header lines=%d, pointer=%d, sources=%d, type=%d, epoch=%f RA=%f, DEC=%f (rad) Freq=%f Hz"%(infile_name,maxlin,modptr,nsources,mtype,mepoch,ra0,dec0,freq0)
 
 
+    # temp dict to hold unique nodenames
+    unamedict={}
+
     ########## Models -- 56 bytes
     for ii in range(0,nsources):
     #for ii in range(0,4):
@@ -1771,14 +1774,27 @@ class LSM:
 
        #print ii,id,ll,mm,sI,sQ,sU,sV,eX,eY,eP,SI,RM
 
-       s=Source('NEWS'+str(id), major=eX, minor=eY, pangle=eP)
+       # NEWSTAR MDL lists might have same source twice if they are 
+       # clean components, so make a unique name for them
+       bname='NEWS'+str(id);
+       if unamedict.has_key(bname):
+         uniqname=ns.MakeUniqueName(bname)
+         unamedict[bname]=unamedict[bname]+1
+       else:
+         uniqname=bname
+         unamedict[bname]=1
+
+       s=Source(uniqname, major=eX, minor=eY, pangle=eP)
        (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
 
        #print ii,id,ll,mm,source_RA,source_Dec
        if SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
         my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+       elif (RM==0):
+        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
        else:
-        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV,RM=RM,trace=0)
+        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+
        # first compose the sixpack before giving it to the LSM
        my_sixpack.sixpack(ns)
        self.add_source(s,brightness=sI,
