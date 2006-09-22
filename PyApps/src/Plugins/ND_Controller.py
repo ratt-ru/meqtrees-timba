@@ -200,15 +200,13 @@ class ND_Controller(QWidget):
 # create button group
       self.buttonGroup = None
       self.buttonGroup = QButtonGroup(self)
-      QObject.connect(self.buttonGroup, SIGNAL("clicked(int)"),self.defineAxes)
+      if self.selectable_axes > 0:
+        QObject.connect(self.buttonGroup, SIGNAL("clicked(int)"),self.defineAxes)
 
 # add control buttons and AxisRange selectors
       self.buttons = []
       self.button_number = []
       self.axis_controllers = []
-      row = 0
-      col = 0
-      self.rank = 0
       _dprint(3, 'incoming array shape ', array_shape)
 
       if array_shape is None:
@@ -216,11 +214,14 @@ class ND_Controller(QWidget):
         for i in range(len(axis_label)):
           array_shape.append(axis_parms[axis_label[i]][3])
       _dprint(3, 'final array shape ', array_shape)
+      self.rank = 0
       for i in range(len(array_shape)):
         if array_shape[i] > 1:
           self.rank = self.rank + 1
       self.active_axes = {}
       self.num_selectors = -1
+      row = 0
+      col = 0
       for i in range(len(array_shape)):
         if array_shape[i] > 1:
           self.num_selectors = self.num_selectors + 1
@@ -252,10 +253,9 @@ class ND_Controller(QWidget):
           QObject.connect(self.axis_controllers[self.num_selectors], PYSIGNAL("ValueChanged"),self.update)
           if col == 0:
             spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
-            self.layout.addItem(spacer, row, col)
+            self.layout.addItem(spacer, row,col)
             col = col + 1
-          self.layout.addWidget(self.axis_controllers[self.num_selectors], row, col);
-
+          self.layout.addWidget(self.axis_controllers[self.num_selectors],row,col)
           self.buttons.append(self.axis_controllers[self.num_selectors].getButton())
           self.button_number.append(i)
           self.buttons[self.num_selectors].setToggleButton(True)
@@ -369,8 +369,10 @@ class ND_Controller(QWidget):
 
 # the following tests the ND_Controller class
 def make():
-    axes = (3,4,5,6,7)
+    axes = (3,4,5,6,7,8,9)
     demo = ND_Controller(axes)
+#   axes = (3,4,5)
+#   demo = ND_Controller(axes, num_axes=0)
     demo.show()
     return demo
 
