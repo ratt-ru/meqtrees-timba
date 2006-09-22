@@ -62,6 +62,7 @@ class ResultsRange(QWidget):
       'Update': 307,
       'Toggle ND Controller': 308,
       'Print to Postscript file': 309,
+      'Align Camera': 310,
       }
 
       self.allow_emit = False
@@ -172,6 +173,12 @@ class ResultsRange(QWidget):
       if self.allow_emit:
         self.emit(PYSIGNAL("Z_axis_selected"),(True,))
 
+    def align_camera(self):
+      """ emit signal to align camera to current axis """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("align_camera"),(True,))
+
+
     def request_2D_display(self):
       """ emit signal to request 2D display """
       if self.allow_emit:
@@ -225,6 +232,8 @@ class ResultsRange(QWidget):
         self.Y_Axis_Selected()
       elif menuid == self.menu_table['Z Axis']:
         self.Z_Axis_Selected()
+      elif menuid == self.menu_table['Align Camera']:
+        self.align_camera()
       elif menuid == self.menu_table['Show 2D Display']:
         self.request_2D_display()
       elif menuid == self.menu_table['Toggle ND Controller']:
@@ -257,6 +266,9 @@ class ResultsRange(QWidget):
         self.menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Z Axis']
         self.menu.insertItem("Z Axis", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Align Camera']
+        self.menu.insertItem("Align Camera to Current Axis", toggle_id)
         self.menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Show 2D Display']
         self.menu.insertItem("Show 2D Display", toggle_id)
@@ -308,6 +320,8 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Y Axis']
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Z Axis']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Align Camera']
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Show 2D Display']
       self.menu.setItemVisible(toggle_id, True)

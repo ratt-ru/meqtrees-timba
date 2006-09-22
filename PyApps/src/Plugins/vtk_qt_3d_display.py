@@ -127,6 +127,7 @@ class vtk_qt_3d_display(qt.QWidget):
     qt.QObject.connect(self.index_selector,PYSIGNAL("show_ND_Controller"),self.hide_Event)
     qt.QObject.connect(self.index_selector,PYSIGNAL('result_index'), self.SetSlice)
     qt.QObject.connect(self.index_selector,PYSIGNAL('twoD_display_requested'), self.two_D_Event)
+    qt.QObject.connect(self.index_selector,PYSIGNAL('align_camera'), self.AlignCamera)
 
   def delete_vtk_renderer(self):
     if not self.renwininter is None:
@@ -300,7 +301,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.renwininter.SetInteractorStyle(camstyle)
 
 # Align the camera so that it faces the desired widget
-  def AlignCamera(self, slice_number):
+  def AlignCamera(self):
     xMin, xMax, yMin, yMax, zMin, zMax = self.extents
     ox, oy, oz = self.origin
     sx, sy, sz = self.spacing
@@ -310,6 +311,7 @@ class vtk_qt_3d_display(qt.QWidget):
     vx, vy, vz = 0, 0, 0
     nx, ny, nz = 0, 0, 0
     iaxis = self.current_widget.GetPlaneOrientation()
+    slice_number = self.current_widget.GetSliceIndex()
     if iaxis == 0:
         vz = -1
         nx = ox + xMax*sx
@@ -372,8 +374,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval( (xMax-xMin) / 10 )
     self.index_selector.setLabel('X axis')
     self.index_selector.set_emit(True)
-
-    self.AlignCamera(slice_number)
+#   self.AlignCamera()
 
   def AlignYaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -395,7 +396,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval( (yMax-yMin) / 10 )
     self.index_selector.setLabel('Y axis')
     self.index_selector.set_emit(True)
-    self.AlignCamera(slice_number)
+#   self.AlignCamera()
  
   def AlignZaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -417,7 +418,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval((zMax-zMin) / 10 )
     self.index_selector.setLabel('Z axis')
     self.index_selector.set_emit(True)
-    self.AlignCamera(slice_number)
+#   self.AlignCamera()
 
   def SetSlice(self, sl):
     self.current_widget.SetSliceIndex(sl)
