@@ -20,6 +20,7 @@
 //#
 //# $Id: LMRaDec.cc 3568 2006-05-15 14:11:19Z smirnov $
 
+#include <math.h>
 #include <MeqNodes/LMRaDec.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -34,12 +35,15 @@
 #include <measures/Measures/MDirection.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-
 using namespace casa;
 
 namespace Meq {
 
-using namespace VellsMath;
+// make sure the following is commented out as we
+// don't want VellsMath for the sin / cos computations
+// for the xform matrix below.
+
+// using namespace VellsMath;
 
 const HIID child_labels[] = { AidRADec|0,AidLM };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
@@ -95,10 +99,10 @@ void LMRaDec::evaluateTensors (std::vector<Vells> & out,
 // by specifying individual elements of the xform matrix rather
 // than just setting diagonals to 1.0
   double pos_ang_radians = 0.0;
-  xform(0,0)= cos(pos_ang_radians).getScalar<double>();
-  xform(0,1)= sin(pos_ang_radians).getScalar<double>();
-  xform(1,0)= -sin(pos_ang_radians).getScalar<double>();
-  xform(1,1)= cos(pos_ang_radians).getScalar<double>();
+  xform(0,0)= cos(pos_ang_radians);
+  xform(0,1)= sin(pos_ang_radians);
+  xform(1,0)= -sin(pos_ang_radians);
+  xform(1,1)= cos(pos_ang_radians);
 
   DirectionCoordinate *DirCoord = new DirectionCoordinate(MDirection::J2000,
                           Projection(Projection::SIN),       
