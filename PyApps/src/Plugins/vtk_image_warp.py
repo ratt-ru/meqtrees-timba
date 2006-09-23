@@ -75,14 +75,15 @@ renWin.AddRenderer(ren)
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 iren.Initialize()
-
 camstyle = vtk.vtkInteractorStyleTrackballCamera()
 iren.SetInteractorStyle(camstyle)
 
 #  Make the bounding box
-outline = vtk.vtkOutlineSource();
 xMin, xMax, yMin, yMax, zMin, zMax = image_array.GetDataExtent()
-outline.SetBounds(xMin, xMax, yMin, yMax, data_min * scale_factor, data_max* scale_factor)
+zMin = data_min * scale_factor
+zMax = data_max * scale_factor
+outline = vtk.vtkOutlineSource();
+outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
 outline_mapper = vtk.vtkPolyDataMapper();
 outline_mapper.SetInput(outline.GetOutput() );
 outline_actor = vtk.vtkActor();
@@ -97,7 +98,7 @@ tprop.ShadowOn()
 # Create a vtkCubeAxesActor2D.  Use the outer edges of the bounding box to
 # draw the axes.  Add the actor to the renderer.
 axes = vtk.vtkCubeAxesActor2D()
-axes.SetBounds(xMin, xMax, yMin, yMax,  data_min * scale_factor, data_max* scale_factor)
+axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
 axes.SetCamera(ren.GetActiveCamera())
 axes.SetLabelFormat("%6.4g")
 axes.SetFlyModeToOuterEdges()
@@ -116,8 +117,7 @@ ren.AddActor2D(scalar_bar)
 ren.SetBackground(0.1, 0.2, 0.4)
 ren.ResetCameraClippingRange()
 
-renWin.SetSize(500, 500)
-
+# give some final specifications to the camera
 cam1 = ren.GetActiveCamera()
 cx = 0.5*(xMax-xMin)
 cy = 0.5*(yMax-yMin)
@@ -127,7 +127,9 @@ cam1.SetPosition(cx,cy, cz)
 cam1.Azimuth(40)
 cam1.Elevation(30)
 cam1.Zoom(-5)
+cam1.ParallelProjectionOn()
 ren.ResetCamera()
 
+renWin.SetSize(500, 500)
 renWin.Render()
 iren.Start()
