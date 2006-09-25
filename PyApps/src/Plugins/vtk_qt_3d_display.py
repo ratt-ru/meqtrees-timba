@@ -208,6 +208,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setRange(max_range, False)
       self.index_selector.setValue(self.scale_factor)
       self.index_selector.setLabel('scale factor')
+      self.index_selector.hideNDControllerOption()
       self.index_selector.set_emit(True)
     else:
 # set up ImagePlaneWidgets ...
@@ -620,6 +621,10 @@ class vtk_qt_3d_display(qt.QWidget):
     """ convert an incoming numarray into a format that can
         be plotted with VTK
     """
+    if incoming_array.rank == 2:
+        temp_array = numarray.ones((1,incoming_array.shape[0],incoming_array.shape[1]),type=incoming_array.type()) 
+        temp_array[0,:incoming_array.shape[0],:incoming_array.shape[1]] = incoming_array
+        incoming_array = temp_array
     plot_array = None
 # convert a complex array to reals followed by imaginaries
     if incoming_array.type() == numarray.Complex32 or incoming_array.type() == numarray.Complex64:
@@ -705,43 +710,59 @@ class vtk_qt_3d_display(qt.QWidget):
   def setAxisParms(self, axis_parms):
     """ set display information from axis parameters """
 
-    text = ' '
-    text_menu = ' '
-    if axis_parms[2] is None:
-      text_menu = 'X axis '
-      if self.complex_plot:
-        text = 'X (real then imag) '
+    if self.warped_surface:
+      text = ' '
+      if axis_parms[1] is None:
+        text = 'X'
       else:
-        text = 'X '
-    else: 
-      text_menu = 'X axis: ' + axis_parms[2]
-      if self.complex_plot:
-        text = 'X ' + axis_parms[2] + ' (real then imag)'
-      else:
-        text = 'X ' + axis_parms[2]
-    self.index_selector.setXMenuLabel(text_menu)
-    if not self.axes is None:
-      self.axes.SetXLabel(text)
+        text = 'X ' + axis_parms[1]
+      if not self.axes is None:
+          self.axes.SetXLabel(text)
 
-    if axis_parms[1] is None:
-      text_menu = 'Y axis '
-      text = 'Y'
-    else:
-      text_menu = 'Y axis: ' + axis_parms[1]
-      text = 'Y ' + axis_parms[1]
-    self.index_selector.setYMenuLabel(text_menu)
-    if not self.axes is None:
+      if axis_parms[0] is None:
+        text = 'Y'
+      else: 
+        text = 'Y ' + axis_parms[0]
+      if not self.axes is None:
         self.axes.SetYLabel(text)
+    else:
+      text = ' '
+      text_menu = ' '
+      if axis_parms[2] is None:
+        text_menu = 'X axis '
+        if self.complex_plot:
+          text = 'X (real then imag) '
+        else:
+          text = 'X '
+      else: 
+        text_menu = 'X axis: ' + axis_parms[2]
+        if self.complex_plot:
+          text = 'X ' + axis_parms[2] + ' (real then imag)'
+        else:
+          text = 'X ' + axis_parms[2]
+      self.index_selector.setXMenuLabel(text_menu)
+      if not self.axes is None:
+        self.axes.SetXLabel(text)
 
-    if axis_parms[0] is None:
-      text = 'Z'
-      text_menu = 'Z axis '
-    else: 
-      text_menu = 'Z axis: ' + axis_parms[0]
-      text = 'Z ' + axis_parms[0]
-    self.index_selector.setZMenuLabel(text_menu)
-    if not self.axes is None:
-      self.axes.SetZLabel(text)
+      if axis_parms[1] is None:
+        text_menu = 'Y axis '
+        text = 'Y'
+      else:
+        text_menu = 'Y axis: ' + axis_parms[1]
+        text = 'Y ' + axis_parms[1]
+      self.index_selector.setYMenuLabel(text_menu)
+      if not self.axes is None:
+          self.axes.SetYLabel(text)
+
+      if axis_parms[0] is None:
+        text = 'Z'
+        text_menu = 'Z axis '
+      else: 
+        text_menu = 'Z axis: ' + axis_parms[0]
+        text = 'Z ' + axis_parms[0]
+      self.index_selector.setZMenuLabel(text_menu)
+      if not self.axes is None:
+        self.axes.SetZLabel(text)
 
 #=============================
 if __name__ == "__main__":

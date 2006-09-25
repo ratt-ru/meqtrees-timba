@@ -607,6 +607,7 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
+    QObject.connect(self._visu_plotter, PYSIGNAL('show_Warp_Display'), self.show_3D_Display)
 
     self.plotPrinter = plot_printer(self._visu_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
@@ -1044,7 +1045,7 @@ class ResultPlotter(GriddedPlugin):
         self.ND_plotter.HideNDButton()
     _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
 
-  def show_3D_Display(self, display_flag):
+  def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
       return
 
@@ -1069,10 +1070,15 @@ class ResultPlotter(GriddedPlugin):
       self.ND_plotter.show_vtk_controls()
 
 # create 3-D Controller
-    self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
+    if display_flag_3D:
+      self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
 
-    self._vells_data.set_3D_Display(True)
-    self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
+      self._vells_data.set_3D_Display(True)
+      self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
+    else:
+      if not self.ND_Controls is None:
+        self.ND_Controls.reparent(QWidget(), 0, QPoint())
+        self.ND_Controls = None
     self.axis_parms = self._vells_data.getActiveAxisParms()
     plot_array = self._vells_data.getActiveData()
     self.ND_plotter.array_plot(" ", plot_array)

@@ -161,6 +161,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle chi-square surfaces display': 313,
         'Change Vells': 314,
         'Toggle 3D Display': 315,
+        'Toggle Warp Display': 316,
         }
 
     _start_spectrum_menu_id = 0
@@ -489,7 +490,10 @@ class QwtImageDisplay(QwtPlot):
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         return True
       if menuid == self.menu_table['Toggle 3D Display']:
-        self.emit(PYSIGNAL("show_3D_Display"),(1,))
+        self.emit(PYSIGNAL("show_3D_Display"),(True,))
+        return True
+      if menuid == self.menu_table['Toggle Warp Display']:
+        self.emit(PYSIGNAL("show_Warp_Display"),(False,))
         return True
       if menuid == self.menu_table['Toggle results history']:
         if self.setResults:
@@ -997,6 +1001,8 @@ class QwtImageDisplay(QwtPlot):
       toggle_id = self.menu_table['Toggle ND Controller']
       self._menu.setItemVisible(toggle_id, False)
       toggle_id = self.menu_table['Toggle 3D Display']
+      self._menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Toggle Warp Display']
       self._menu.setItemVisible(toggle_id, False)
 
 # make sure any color bar from array plot of other Vells member is hidden
@@ -2187,6 +2193,10 @@ class QwtImageDisplay(QwtPlot):
         self.log_switch_set = True
 
       if self.is_vector == False:
+        if self.original_data_rank >= 2: 
+          if has_vtk:
+            toggle_id = self.menu_table['Toggle Warp Display']
+            self._menu.setItemVisible(toggle_id, True)
 
         if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 1
@@ -2351,6 +2361,8 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle ND Controller']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle 3D Display']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle Warp Display']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle axis flip']
         self._menu.setItemVisible(toggle_id, False)
@@ -2619,6 +2631,10 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle 3D Display']
         self._menu.insertItem("Toggle 3D Display", toggle_id)
         self._menu.changeItem(toggle_id, 'Show 3D Display')         
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle Warp Display']
+        self._menu.insertItem("Toggle Warp Display", toggle_id)
+        self._menu.changeItem(toggle_id, 'Show Warped Surface Display')         
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle ND Controller']
         self._menu.insertItem("Toggle ND Controller", toggle_id)

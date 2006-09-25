@@ -284,6 +284,11 @@ class ResultsRange(QWidget):
         self.menu.insertItem("Print to Postscript file", toggle_id)
         self.menu.setItemVisible(toggle_id, False)
 
+    def hideNDControllerOption(self):
+      """ do not allow the user to toggle ND Controller """
+      toggle_id = self.menu_table['Toggle ND Controller']
+      self.menu.setItemVisible(toggle_id, False)
+
     def setXMenuLabel(self, text):
       """ update X axis context menu label """
       toggle_id = self.menu_table['X Axis']
