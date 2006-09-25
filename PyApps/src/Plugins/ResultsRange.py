@@ -333,6 +333,33 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Adjust results buffer size']
       self.menu.setItemVisible(toggle_id, False)
 
+    def initWarpContextmenu(self):
+      """add options for warped surface to context menu """
+      if self.menu is None:
+        self.initContextmenu()
+# display options for 3D Display
+      toggle_id = self.menu_table['Show 2D Display']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Toggle ND Controller']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Print to Postscript file']
+      self.menu.setItemVisible(toggle_id, True)
+
+      toggle_id = self.menu_table['Adjust results buffer size']
+      self.menu.setItemVisible(toggle_id, False)
+
+      toggle_id = self.menu_table['X Axis']
+      self.menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Y Axis']
+      self.menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Z Axis']
+      self.menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Align Camera']
+      self.menu.setItemVisible(toggle_id, False)
+
+      toggle_id = self.menu_table['Adjust results buffer size']
+      self.menu.setItemVisible(toggle_id, False)
+
     def displayUpdateItem(self):
         toggle_id = self.menu_table['Update']
         self.menu.setItemVisible(toggle_id, True)
