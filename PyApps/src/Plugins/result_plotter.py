@@ -1049,6 +1049,11 @@ class ResultPlotter(GriddedPlugin):
     if not has_vtk:
       return
 
+    if not display_flag_3D:
+      plot_array = self._vells_data.getActiveData()
+      if plot_array.min() == plot_array.max():
+        return
+
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self.colorbar[0].reparent(QWidget(), 0, QPoint())
     self.colorbar[1].reparent(QWidget(), 0, QPoint())
@@ -1081,6 +1086,8 @@ class ResultPlotter(GriddedPlugin):
         self.ND_Controls = None
     self.axis_parms = self._vells_data.getActiveAxisParms()
     plot_array = self._vells_data.getActiveData()
+    if plot_array.min() == plot_array.max():
+      return
     self.ND_plotter.array_plot(" ", plot_array)
     self.ND_plotter.setAxisParms(self.axis_parms)
 

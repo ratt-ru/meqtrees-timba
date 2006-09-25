@@ -171,6 +171,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.outline = vtk.vtkOutlineSource();
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
     else:
+      self.index_selector.init3DContextmenu()
       self.outline = vtk.vtkOutlineFilter()
       self.outline.SetInput(self.image_array.GetOutput())
     outlineMapper = vtk.vtkPolyDataMapper();
@@ -645,6 +646,14 @@ class vtk_qt_3d_display(qt.QWidget):
       if  plot_array.min() != self.data_min or plot_array.max() != self.data_max:
         self.data_min = plot_array.min()
         self.data_max = plot_array.max()
+# make sure that we're not trying to plot a flat surface
+        if self.data_min == self.data_max:
+          print ' '
+          print ' **************************************** '
+          print ' sorry - cannot visualize a flat surface! '
+          print ' **************************************** '
+          print ' '
+          return
     else:
       self.warped_surface = False
     if self.image_array is None:
