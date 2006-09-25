@@ -29,6 +29,7 @@ import sys
 import random
 import qt
 import traceback
+from math import *
 
 #test if vtk has been installed
 global has_vtk
@@ -96,6 +97,10 @@ class vtk_qt_3d_display(qt.QWidget):
     self.image_array = None
     self.iteration = 0
     self.renwininter = None
+    self.warped_surface = False
+    self.scale_factor = 50
+    self.data_min = 1000000.0
+    self.data_max = -1000000.0
 
     self.setCaption("VTK 3D Demo")
 
@@ -157,75 +162,116 @@ class vtk_qt_3d_display(qt.QWidget):
     self.origin = self.image_array.GetDataOrigin()
 
 # An outline is shown for context.
-    outline = vtk.vtkOutlineFilter()
-    outline.SetInput(self.image_array.GetOutput())
-
-    outlineMapper = vtk.vtkPolyDataMapper()
-    outlineMapper.SetInput(outline.GetOutput())
-
-    outlineActor = vtk.vtkActor()
-    outlineActor.SetMapper(outlineMapper)
-
-# The shared picker enables us to use 3 planes at one time
-# and gets the picking order right
-    picker = vtk.vtkCellPicker()
-    picker.SetTolerance(0.005)
+    if self.warped_surface:
+      self.index_selector.initWarpContextmenu()
+      xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+      self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
+      zMin = self.data_min * self.scale_factor
+      zMax = self.data_max * self.scale_factor
+      self.outline = vtk.vtkOutlineSource();
+      self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+    else:
+      self.outline = vtk.vtkOutlineFilter()
+      self.outline.SetInput(self.image_array.GetOutput())
+    outlineMapper = vtk.vtkPolyDataMapper();
+    outlineMapper.SetInput(self.outline.GetOutput() );
+    outlineActor = vtk.vtkActor();
+    outlineActor.SetMapper(outlineMapper);
 
 # create blue to red color table
     self.lut = vtk.vtkLookupTable()
     self.lut.SetHueRange(0.6667, 0.0)
+    self.lut.SetNumberOfColors(256)
     self.lut.Build()
 
+# here is where the 2-D image gets warped
+    if self.warped_surface:
+      geometry = vtk.vtkImageDataGeometryFilter()
+      geometry.SetInput(self.image_array.GetOutput())
+      self.warp = vtk.vtkWarpScalar()
+      self.warp.SetInput(geometry.GetOutput())
+      self.warp.SetScaleFactor(self.scale_factor)
+      self.mapper = vtk.vtkPolyDataMapper();
+      self.mapper.SetInput(self.warp.GetPolyDataOutput())
+      self.mapper.SetScalarRange(self.data_min,self.data_max)
+      self.mapper.SetLookupTable(self.lut)
+      self.mapper.ImmediateModeRenderingOff()
+      warp_actor = vtk.vtkActor()
+      warp_actor.SetMapper(self.mapper)
+
+      min_range = 0.5 * self.scale_factor
+      max_range = 2.0 * self.scale_factor
+      self.index_selector.set_emit(False)
+      self.index_selector.setMaxValue(max_range,False)
+      self.index_selector.setMinValue(min_range)
+      self.index_selector.setTickInterval( (max_range - min_range) / 10 )
+      self.index_selector.setRange(max_range, False)
+      self.index_selector.setValue(self.scale_factor)
+      self.index_selector.setLabel('scale factor')
+      self.index_selector.set_emit(True)
+    else:
+# set up ImagePlaneWidgets ...
+
+# The shared picker enables us to use 3 planes at one time
+# and gets the picking order right
+      picker = vtk.vtkCellPicker()
+      picker.SetTolerance(0.005)
+
 # get locations for initial slices
-    xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
-    x_index = (xMax-xMin) / 2
-    y_index = (yMax-yMin) / 2
-    z_index = (zMax-zMin) / 2
+      xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
+      x_index = (xMax-xMin) / 2
+      y_index = (yMax-yMin) / 2
+      z_index = (zMax-zMin) / 2
 
 # The 3 image plane widgets are used to probe the dataset.
-    self.planeWidgetX = vtk.vtkImagePlaneWidget()
-    self.planeWidgetX.DisplayTextOn()
-    self.planeWidgetX.SetInput(self.image_array.GetOutput())
-    self.planeWidgetX.SetPlaneOrientationToXAxes()
-    self.planeWidgetX.SetSliceIndex(x_index)
-    self.planeWidgetX.SetPicker(picker)
-    self.planeWidgetX.SetKeyPressActivationValue("x")
-    prop1 = self.planeWidgetX.GetPlaneProperty()
-#    prop1.SetColor(1, 0, 0)
-    self.planeWidgetX.SetLookupTable(self.lut)
-    self.planeWidgetX.TextureInterpolateOff()
-    self.planeWidgetX.SetResliceInterpolate(0)
+      self.planeWidgetX = vtk.vtkImagePlaneWidget()
+      self.planeWidgetX.DisplayTextOn()
+      self.planeWidgetX.SetInput(self.image_array.GetOutput())
+      self.planeWidgetX.SetPlaneOrientationToXAxes()
+      self.planeWidgetX.SetSliceIndex(x_index)
+      self.planeWidgetX.SetPicker(picker)
+      self.planeWidgetX.SetKeyPressActivationValue("x")
+      self.planeWidgetX.SetLookupTable(self.lut)
+      self.planeWidgetX.TextureInterpolateOff()
+      self.planeWidgetX.SetResliceInterpolate(0)
 
-    self.planeWidgetY = vtk.vtkImagePlaneWidget()
-    self.planeWidgetY.DisplayTextOn()
-    self.planeWidgetY.SetInput(self.image_array.GetOutput())
-    self.planeWidgetY.SetPlaneOrientationToYAxes()
-    self.planeWidgetY.SetSliceIndex(y_index)
-    self.planeWidgetY.SetPicker(picker)
-    self.planeWidgetY.SetKeyPressActivationValue("y")
-    prop2 = self.planeWidgetY.GetPlaneProperty()
-#    prop2.SetColor(1, 1, 0)
-    self.planeWidgetY.SetLookupTable(self.planeWidgetX.GetLookupTable())
-    self.planeWidgetY.TextureInterpolateOff()
-    self.planeWidgetY.SetResliceInterpolate(0)
+      self.planeWidgetY = vtk.vtkImagePlaneWidget()
+      self.planeWidgetY.DisplayTextOn()
+      self.planeWidgetY.SetInput(self.image_array.GetOutput())
+      self.planeWidgetY.SetPlaneOrientationToYAxes()
+      self.planeWidgetY.SetSliceIndex(y_index)
+      self.planeWidgetY.SetPicker(picker)
+      self.planeWidgetY.SetKeyPressActivationValue("y")
+      self.planeWidgetY.SetLookupTable(self.planeWidgetX.GetLookupTable())
+      self.planeWidgetY.TextureInterpolateOff()
+      self.planeWidgetY.SetResliceInterpolate(0)
 
 # for the z-slice, turn off texture interpolation:
 # interpolation is now nearest neighbour, to demonstrate
 # cross-hair cursor snapping to pixel centers
-    self.planeWidgetZ = vtk.vtkImagePlaneWidget()
-    self.planeWidgetZ.DisplayTextOn()
-    self.planeWidgetZ.SetInput(self.image_array.GetOutput())
-    self.planeWidgetZ.SetPlaneOrientationToZAxes()
-    self.planeWidgetZ.SetSliceIndex(z_index)
-    self.planeWidgetZ.SetPicker(picker)
-    self.planeWidgetZ.SetKeyPressActivationValue("z")
-    prop3 = self.planeWidgetZ.GetPlaneProperty()
-#   prop3.SetColor(0, 0, 1)
-    self.planeWidgetZ.SetLookupTable(self.planeWidgetX.GetLookupTable())
-    self.planeWidgetZ.TextureInterpolateOff()
-    self.planeWidgetZ.SetResliceInterpolate(0)
+      self.planeWidgetZ = vtk.vtkImagePlaneWidget()
+      self.planeWidgetZ.DisplayTextOn()
+      self.planeWidgetZ.SetInput(self.image_array.GetOutput())
+      self.planeWidgetZ.SetPlaneOrientationToZAxes()
+      self.planeWidgetZ.SetSliceIndex(z_index)
+      self.planeWidgetZ.SetPicker(picker)
+      self.planeWidgetZ.SetKeyPressActivationValue("z")
+      self.planeWidgetZ.SetLookupTable(self.planeWidgetX.GetLookupTable())
+      self.planeWidgetZ.TextureInterpolateOff()
+      self.planeWidgetZ.SetResliceInterpolate(0)
+    
+      self.current_widget = self.planeWidgetZ
+      self.mode_widget = self.planeWidgetZ
+      self.index_selector.set_emit(False)
+      self.index_selector.setMinValue(zMin)
+      self.index_selector.setMaxValue(zMax,False)
+      self.index_selector.setTickInterval( (zMax-zMin) / 10 )
+      self.index_selector.setRange(zMax, False)
+      self.index_selector.setValue(z_index)
+      self.index_selector.setLabel('Z axis')
+      self.index_selector.set_emit(True)
 
-# create scalar bar
+# create scalar bar for display of intensity range
     self.scalar_bar = vtk.vtkScalarBarActor()
     self.scalar_bar.SetLookupTable(self.lut)
     self.scalar_bar.SetOrientationToVertical()
@@ -236,26 +282,17 @@ class vtk_qt_3d_display(qt.QWidget):
 #   self.scalar_bar.GetPositionCoordinate().SetCoordinateSystemToViewport()
     self.scalar_bar.GetPositionCoordinate().SetValue(0.01, 0.1)
 
+
 # Create the RenderWindow and Renderer
     self.ren = vtk.vtkRenderer()
     self.renwin.AddRenderer(self.ren)
     
 # Add the outline actor to the renderer, set the background color and size
+    if self.warped_surface:
+      self.ren.AddActor(warp_actor)
     self.ren.AddActor(outlineActor)
     self.ren.SetBackground(0.1, 0.1, 0.2)
     self.ren.AddActor2D(self.scalar_bar)
-
-    self.current_widget = self.planeWidgetZ
-    self.mode_widget = self.planeWidgetZ
-    self.index_selector.set_emit(False)
-    self.index_selector.setMinValue(zMin)
-    self.index_selector.setMaxValue(zMax,False)
-    self.index_selector.setTickInterval( (zMax-zMin) / 10 )
-    self.index_selector.setRange(zMax, False)
-    self.index_selector.setValue(z_index)
-    self.index_selector.setLabel('Z axis')
-    self.index_selector.set_emit(True)
-
 
 # Create a text property for cube axes
     tprop = vtk.vtkTextProperty()
@@ -265,7 +302,10 @@ class vtk_qt_3d_display(qt.QWidget):
 # Create a vtkCubeAxesActor2D.  Use the outer edges of the bounding box to
 # draw the axes.  Add the actor to the renderer.
     self.axes = vtk.vtkCubeAxesActor2D()
-    self.axes.SetInput(self.image_array.GetOutput())
+    if self.warped_surface:
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+    else:
+      self.axes.SetInput(self.image_array.GetOutput())
     self.axes.SetCamera(self.ren.GetActiveCamera())
     self.axes.SetLabelFormat("%6.4g")
     self.axes.SetFlyModeToOuterEdges()
@@ -278,22 +318,32 @@ class vtk_qt_3d_display(qt.QWidget):
     self.ren.AddProp(self.axes)
 
 # Set the interactor for the widgets
-    self.planeWidgetX.SetInteractor(self.inter)
-    self.planeWidgetX.On()
-    self.planeWidgetY.SetInteractor(self.inter)
-    self.planeWidgetY.On()
-    self.planeWidgetZ.SetInteractor(self.inter)
-    self.planeWidgetZ.On()
+    if not self.warped_surface:
+      self.planeWidgetX.SetInteractor(self.inter)
+      self.planeWidgetX.On()
+      self.planeWidgetY.SetInteractor(self.inter)
+      self.planeWidgetY.On()
+      self.planeWidgetZ.SetInteractor(self.inter)
+      self.planeWidgetZ.On()
 
 # Create an initial interesting view
     cam1 = self.ren.GetActiveCamera()
-    cam1.Elevation(110)
-
-# Use parallel projection, rather than perspective
-    cam1.ParallelProjectionOn()
-
-    cam1.SetViewUp(0, 0, 1)
     cam1.Azimuth(45)
+    if self.warped_surface:
+      cam1.Elevation(30)
+      xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+      cx = 0.5*(xMax-xMin)
+      cy = 0.5*(yMax-yMin)
+      cz = 0
+      cam1.SetFocalPoint(cx, cy, cz)
+# following statement does something really nasty here!
+#     cam1.SetPosition(cx,cy, cz)
+#     cam1.Zoom(-2)
+    else:
+      cam1.Elevation(110)
+      cam1.SetViewUp(0, 0, 1)
+    cam1.ParallelProjectionOn()
+    self.ren.ResetCamera()
     self.ren.ResetCameraClippingRange()
 
 # Paul Kemper suggested the following:
@@ -421,13 +471,64 @@ class vtk_qt_3d_display(qt.QWidget):
 #   self.AlignCamera()
 
   def SetSlice(self, sl):
-    self.current_widget.SetSliceIndex(sl)
-    self.ren.ResetCameraClippingRange()
+    if self.warped_surface:
+      self.scale_factor = sl
+      xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+#     self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
+      zMin = self.data_min * self.scale_factor
+      zMax = self.data_max * self.scale_factor
+      self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.warp.SetScaleFactor(self.scale_factor)
+    else:
+      self.current_widget.SetSliceIndex(sl)
+      self.ren.ResetCameraClippingRange()
     self.renwin.Render()
 
+  def UpdateBounds(self):
+    if self.warped_surface:
+      xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+      self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
+      zMin = self.data_min * self.scale_factor
+      zMax = self.data_max * self.scale_factor
+      self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.warp.SetScaleFactor(self.scale_factor)
+      self.mapper.SetScalarRange(self.data_min,self.data_max)
+
+      min_range = 0.5 * self.scale_factor
+      max_range = 2.0 * self.scale_factor
+      self.index_selector.set_emit(False)
+      self.index_selector.setMaxValue(max_range,False)
+      self.index_selector.setMinValue(min_range)
+      self.index_selector.setTickInterval( (max_range - min_range) / 10 )
+      self.index_selector.setRange(max_range, False)
+      self.index_selector.setValue(self.scale_factor)
+      self.index_selector.setLabel('scale factor')
+      self.index_selector.set_emit(True)
+
+
 #=============================
-# VTK code for test array
+# VTK code for test arrays
 #=============================
+  def define_sinx_image(self, iteration=1):
+# image is just a scaled sin(x) / x. (One could probably compute
+# this more quickly.)
+    num_ys = 100
+    num_xs = 100
+    image_numarray = numarray.ones((1,num_ys,num_xs),type=numarray.Float32)
+    for k in range(num_ys):
+      k_dist = abs (k - num_ys/2)
+      for i in range(num_xs):         
+        i_dist = abs (i - num_xs/2)
+        dist = sqrt(k_dist*k_dist + i_dist*i_dist)         
+        if dist == 0:
+          image_numarray[0,k,i] = 1.0 * iteration         
+        else:
+          image_numarray[0,k,i] =  iteration * sin(dist) / dist
+
+    self.array_plot(' ', image_numarray)
+
   def define_image(self, iteration=1):
 #    num_arrays = 2
 #    num_arrays = 92
@@ -442,7 +543,8 @@ class vtk_qt_3d_display(qt.QWidget):
     array_selector.append(0)
     array_selector.append(axis_slice)
     array_selector.append(axis_slice)
-    max_distance = num_arrays / iteration
+#   max_distance = num_arrays / iteration
+    max_distance = num_arrays 
     for k in range(max_distance):
       array_tuple = tuple(array_selector)
       image_numarray[array_tuple] = iteration * k * gain
@@ -501,7 +603,6 @@ class vtk_qt_3d_display(qt.QWidget):
     image_cx_numarray.setimag(image_i_numarray)
     self.array_plot(' ', image_cx_numarray)
 
-
 #=============================
 # VTK code for test array
 #=============================
@@ -519,7 +620,6 @@ class vtk_qt_3d_display(qt.QWidget):
     """ convert an incoming numarray into a format that can
         be plotted with VTK
     """
-
     plot_array = None
 # convert a complex array to reals followed by imaginaries
     if incoming_array.type() == numarray.Complex32 or incoming_array.type() == numarray.Complex64:
@@ -535,9 +635,15 @@ class vtk_qt_3d_display(qt.QWidget):
     else:
         plot_array = incoming_array
         self.complex_plot = False
+    if plot_array.rank == 3 and plot_array.shape[0] == 1:
+      self.warped_surface = True
+      if  plot_array.min() != self.data_min or plot_array.max() != self.data_max:
+        self.data_min = plot_array.min()
+        self.data_max = plot_array.max()
+    else:
+      self.warped_surface = False
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
-#     self.image_array = vtkImageImportFromArray()
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
       else:
@@ -546,14 +652,20 @@ class vtk_qt_3d_display(qt.QWidget):
 # use default VTK parameters for spacing at the moment
       spacing = (1.0, 1.0, 1.0)
       self.image_array.SetDataSpacing(spacing)
+
+# create new VTK pipeline
       self.set_initial_display()
-      self.lut.SetRange(plot_array.min(), plot_array.max())
+
+      self.lut.SetTableRange(plot_array.min(), plot_array.max())
+      self.lut.ForceBuild()
     else:
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
       else:
         self.image_array.SetArray(plot_array)
-      self.lut.SetRange(plot_array.min(), plot_array.max())
+      self.lut.SetTableRange(plot_array.min(), plot_array.max())
+      self.lut.ForceBuild()
+      self.UpdateBounds()
 # refresh display if data contents updated after
 # first display
       self.renwin.Render()
@@ -577,7 +689,8 @@ class vtk_qt_3d_display(qt.QWidget):
 #   self.define_random_image()
 #   self.define_image(self.iteration)
 #   self.define_complex_image(self.iteration)
-    self.define_complex_image1(self.iteration)
+#   self.define_complex_image1(self.iteration)
+    self.define_sinx_image(self.iteration)
 
   def two_D_Event(self):
     self.emit(PYSIGNAL("show_2D_Display"),(0,))
