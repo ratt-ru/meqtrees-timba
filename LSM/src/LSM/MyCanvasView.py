@@ -345,7 +345,7 @@ class MyCanvasView(QCanvasView):
        # extract MeqParms if any
        [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
        [ra,dec,sI]=extract_parms(punit.getSixpack(),self.lsm.getNodeScope())
-       br=br+"<br/>Polarizarion I="+str(sI)
+       br=br+"<br/>Polarization I="+str(sI)
        if (qq!=0 or uu!=0 or vv !=0):
          br=br+"<br/>Q(%)="+str(qq)+"<br/>U(%)="+str(uu)+"<br/>V(%)="+str(vv)
       tmp_str+=br
