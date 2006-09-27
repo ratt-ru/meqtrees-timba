@@ -1811,7 +1811,7 @@ class LSM:
 
  ## build from a text file of clean components
  ## format:
- ## RA(deg) DEC(dec) sI sQ sU sV
+ ## RA(deg) DEC(deg) sI sQ sU sV
  def build_from_complist(self,infile_name,ns):
 
   infile=open(infile_name,'r')
@@ -1941,7 +1941,7 @@ class LSM:
 
  ## build from a text file with extended sources
  ## format:
- ## RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
+ ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
  def build_from_extlist(self,infile_name,ns):
   infile=open(infile_name,'r')
   all=infile.readlines()
@@ -1965,13 +1965,13 @@ class LSM:
    \s*             # skip white space
    (?P<col8>(-)?\d+(\.\d+)?)   # Stokes I - Flux
    \s*             # skip white space
-   (?P<col9>(-)?\d+(\.\d+)?)   # Stokes Q - Flux
+   (?P<col9>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes Q - Flux 
    \s*             # skip white space
-   (?P<col10>(-)?\d+(\.\d+)?)   # Stokes U - Flux
+   (?P<col10>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes U - Flux 
    \s*             # skip white space
-   (?P<col11>(-)?\d+(\.\d+)?)   # Stokes V - Flux
+   (?P<col11>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes V - Flux 
    \s*             # skip white space
-   (?P<col12>(-)?\d+(\.\d+)?)   # Spectral index 
+   (?P<col12>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Spectral index
    \s*             # skip white space
    (?P<col13>(-)?\d+(\.\d+)?)   # Rotation Measure
    \s*             # skip white space
@@ -2004,7 +2004,10 @@ class LSM:
     eY=eval(v.group('col15'))
     eP=eval(v.group('col16'))
 
-    s=Source(v.group('col1'), major=eX, minor=eY, pangle=eP)
+    if (eX==0 and eY==0 and eP==0):
+     s=Source(v.group('col1'))
+    else:
+     s=Source(v.group('col1'), major=eX, minor=eY, pangle=eP)
 
     kk=kk+1
 
@@ -2028,6 +2031,35 @@ class LSM:
   self.setNodeScope(ns)
   self.setFileName(infile_name)
 
+
+ # save sources as a text file with intrinsic fluxes
+ ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
+ ## ra0,dec0: phase center in radians
+ def save_as_intrinsic(self,outfile_name,ns,ra0,dec0):
+  # get all PUnits (assume all sources)
+  plist=self.queryLSM(all=1)
+  f=open(outfile_name, 'w')
+  # gaussian params
+  # exp( -(l^2+m^2)/a^2)
+  # a = c/ (25.0 * f)
+  for pu in plist:
+     (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
+     (l,m)=common_utils.radec_to_lm(ra0,dec0,ra,dec)
+     a = 3e8/(25.0*f0) 
+     invscal=math.exp((l*l+m*m)/(a*a))
+     sI=sI*invscal
+     sQ=sQ*invscal
+     sU=sU*invscal
+     sV=sV*invscal
+     (eX,eY,eP)=pu.getExtParms()
+     # get degrees
+     [r_hr,r_min,r_sec]=common_utils.radToRA(ra)
+     [d_hr,d_min,d_sec]=common_utils.radToDec(dec)
+     strline ='C'+str(pu.name)+' '+str(r_hr)+' '+str(r_min)+' '+str(r_sec)+' '+str(d_hr)+' '+str(d_min)+' '+str(d_sec)+' '+str(sI)+' '+str(sQ)+' '+str(sU)+' '+str(sV)+' '+str(SIn)+' '+str(RM)+' '+str(eX)+' '+str(eY)+' '+str(eP)+'\n';
+     f.write(strline)
+ 
+  f.close()
+     
 
 
 
