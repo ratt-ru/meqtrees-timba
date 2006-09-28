@@ -572,6 +572,8 @@ class MyCanvasView(QCanvasView):
 
   def display(self):
    #print self.parent.slider1.value()
+   # rememeber the number of sources showing
+   showcount=0;
    for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
      #if punit.getBrightness()/self.max_brightness*500 <self.parent.slider1.value():
@@ -584,9 +586,10 @@ class MyCanvasView(QCanvasView):
       self.p_tab[sname].hide()
      else:
       self.p_tab[sname].show()
+      showcount+=1;
  
    tmpstr="%4.3f"%(math.pow(math.e,math.log(abs(self.max_brightness)/abs_min)*self.parent.sliderCut.value()/100.0)*abs_min)
-   self.slabel.setText(tmpstr) 
+   self.slabel.setText(tmpstr+"/"+str(showcount)) 
    self.canvas().update()  
 
   # update axes
