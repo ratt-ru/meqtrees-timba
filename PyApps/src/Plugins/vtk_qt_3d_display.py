@@ -101,6 +101,10 @@ class vtk_qt_3d_display(qt.QWidget):
     self.scale_factor = 50
     self.data_min = 1000000.0
     self.data_max = -1000000.0
+    self.spacing_x = 1.0
+    self.spacing_y = 1.0
+    self.spacing_z = 1.0
+    self.spacing = None
 
     self.setCaption("VTK 3D Demo")
 
@@ -164,7 +168,12 @@ class vtk_qt_3d_display(qt.QWidget):
 # An outline is shown for context.
     if self.warped_surface:
       self.index_selector.initWarpContextmenu()
+      sx, sy, sz = self.image_array.GetDataSpacing()
       xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+      xMin = sx * xMin
+      xMax = sx * xMax
+      yMin = sy * yMin
+      yMax = sy * yMax
       self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
@@ -305,9 +314,11 @@ class vtk_qt_3d_display(qt.QWidget):
 # draw the axes.  Add the actor to the renderer.
     self.axes = vtk.vtkCubeAxesActor2D()
     if self.warped_surface:
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
+      self.axes.SetZLabel(" ")
     else:
       self.axes.SetInput(self.image_array.GetOutput())
+      self.axes.SetZLabel("Z")
     self.axes.SetCamera(self.ren.GetActiveCamera())
     self.axes.SetLabelFormat("%6.4g")
     self.axes.SetFlyModeToOuterEdges()
@@ -316,7 +327,6 @@ class vtk_qt_3d_display(qt.QWidget):
     self.axes.SetAxisLabelTextProperty(tprop)
     self.axes.SetXLabel("X")
     self.axes.SetYLabel("Y")
-    self.axes.SetZLabel("Z")
     self.ren.AddProp(self.axes)
 
 # Set the interactor for the widgets
@@ -476,11 +486,15 @@ class vtk_qt_3d_display(qt.QWidget):
     if self.warped_surface:
       self.scale_factor = sl
       xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
-#     self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
+      sx, sy, sz = self.image_array.GetDataSpacing()
+      xMin = sx * xMin
+      xMax = sx * xMax
+      yMin = sy * yMin
+      yMax = sy * yMax
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
       self.warp.SetScaleFactor(self.scale_factor)
     else:
       self.current_widget.SetSliceIndex(sl)
@@ -490,11 +504,16 @@ class vtk_qt_3d_display(qt.QWidget):
   def UpdateBounds(self):
     if self.warped_surface:
       xMin, xMax, yMin, yMax, zMin, zMax = self.image_array.GetDataExtent()
+      sx, sy, sz = self.image_array.GetDataSpacing()
+      xMin = sx * xMin
+      xMax = sx * xMax
+      yMin = sy * yMin
+      yMax = sy * yMax
       self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
       self.warp.SetScaleFactor(self.scale_factor)
       self.mapper.SetScalarRange(self.data_min,self.data_max)
 
@@ -664,7 +683,7 @@ class vtk_qt_3d_display(qt.QWidget):
         self.image_array.SetArray(plot_array)
 
 # use default VTK parameters for spacing at the moment
-      spacing = (1.0, 1.0, 1.0)
+      spacing = (self.spacing_x, self.spacing_y, self.spacing_z)
       self.image_array.SetDataSpacing(spacing)
 
 # create new VTK pipeline
@@ -684,6 +703,17 @@ class vtk_qt_3d_display(qt.QWidget):
 # first display
       self.renwin.Render()
  
+  def setAxisIncrements(self, axis_increments):
+    """ used to set proper range of axes -
+        not that useful at present 
+    """
+#   if not axis_increments[0] is None:
+#     self.spacing_x = axis_increments[0]
+#   if not axis_increments[1] is None:
+#     self.spacing_y = axis_increments[1]
+#   spacing = (axis_increments[0], axis_increments[1], 1.0)
+#   self.image_array.SetDataSpacing(spacing)
+
   def reset_image_array(self):
     self.image_array = None
 
