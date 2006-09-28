@@ -780,10 +780,6 @@ class ResultPlotter(GriddedPlugin):
       if self._vells_data.getShapeChange():
         self.update_display_control()
 
-      # get initial axis parameters
-      axis_parms =  self._vells_data.getActiveAxisParms()
-      self._visu_plotter.setAxisParms(axis_parms)
-
 # generate basic menu
       self._visu_plotter.initVellsContextMenu()
 
@@ -1048,11 +1044,12 @@ class ResultPlotter(GriddedPlugin):
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
       return
-
+    axis_increments = None
     if not display_flag_3D:
       plot_array = self._vells_data.getActiveData()
       if plot_array.min() == plot_array.max():
         return
+      axis_increments = self._visu_plotter.getActiveAxesInc()
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self.colorbar[0].reparent(QWidget(), 0, QPoint())
@@ -1088,6 +1085,9 @@ class ResultPlotter(GriddedPlugin):
     plot_array = self._vells_data.getActiveData()
     if plot_array.min() == plot_array.max():
       return
+    
+    if not axis_increments is None:
+      self.ND_plotter.setAxisIncrements(axis_increments)
     self.ND_plotter.array_plot(" ", plot_array)
     self.ND_plotter.setAxisParms(self.axis_parms)
 
