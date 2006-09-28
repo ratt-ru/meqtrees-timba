@@ -2035,17 +2035,25 @@ class LSM:
  # save sources as a text file with intrinsic fluxes
  ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
  ## ra0,dec0: phase center in radians
- def save_as_intrinsic(self,outfile_name,ns,ra0,dec0):
+ ## count: select the first brightest 'count' sources only 
+ ### f0: reference freq for beam calculation
+ def save_as_intrinsic(self,outfile_name,ns,ra0,dec0,count=0,f0=None):
   # get all PUnits (assume all sources)
-  plist=self.queryLSM(all=1)
+  if count==0:
+   plist=self.queryLSM(all=1)
+  else:
+   plist=self.queryLSM(count=count)
+
   f=open(outfile_name, 'w')
   # gaussian params
   # exp( -(l^2+m^2)/a^2)
   # a = c/ (25.0 * f)
+  if f0==None:
+   f0=323875000.0;
+  a=3e8/(25.0*f0) 
   for pu in plist:
      (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
      (l,m)=common_utils.radec_to_lm(ra0,dec0,ra,dec)
-     a = 3e8/(25.0*f0) 
      invscal=math.exp((l*l+m*m)/(a*a))
      sI=sI*invscal
      sQ=sQ*invscal
@@ -2061,6 +2069,41 @@ class LSM:
   f.close()
      
 
+ # save sources as a text file with apparent fluxes (assume we have intrinsic flux)
+ ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
+ ## ra0,dec0: phase center in radians
+ ## count: select the first brightest 'count' sources only 
+ ### f0: reference freq for beam calculation
+ def save_as_apparent(self,outfile_name,ns,ra0,dec0,count=0,f0=None):
+  # get all PUnits (assume all sources)
+  if count==0:
+   plist=self.queryLSM(all=1)
+  else:
+   plist=self.queryLSM(count=count)
 
+  f=open(outfile_name, 'w')
+  # gaussian params
+  # exp( -(l^2+m^2)/a^2)
+  # a = c/ (25.0 * f)
+  if f0==None:
+   f0=323875000.0;
+  a=3e8/(25.0*f0) 
+  for pu in plist:
+     (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
+     (l,m)=common_utils.radec_to_lm(ra0,dec0,ra,dec)
+     invscal=math.exp(-(l*l+m*m)/(a*a))
+     sI=sI*invscal
+     sQ=sQ*invscal
+     sU=sU*invscal
+     sV=sV*invscal
+     (eX,eY,eP)=pu.getExtParms()
+     # get degrees
+     [r_hr,r_min,r_sec]=common_utils.radToRA(ra)
+     [d_hr,d_min,d_sec]=common_utils.radToDec(dec)
+     strline ='C'+str(pu.name)+' '+str(r_hr)+' '+str(r_min)+' '+str(r_sec)+' '+str(d_hr)+' '+str(d_min)+' '+str(d_sec)+' '+str(sI)+' '+str(sQ)+' '+str(sU)+' '+str(sV)+' '+str(SIn)+' '+str(RM)+' '+str(eX)+' '+str(eY)+' '+str(eP)+'\n';
+     f.write(strline)
+ 
+  f.close()
+ 
 
 #########################################################################
