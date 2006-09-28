@@ -2698,6 +2698,10 @@ class QwtImageDisplay(QwtPlot):
     def set_original_array_rank(self, original_array_rank):
       self.original_data_rank = original_array_rank
 
+    def getActiveAxesInc(self):
+     return [self.first_axis_inc, self.second_axis_inc]
+
+
     def start_test_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
       self.setDisplayType(display_type)
