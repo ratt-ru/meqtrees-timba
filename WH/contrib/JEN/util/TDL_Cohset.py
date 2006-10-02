@@ -75,13 +75,13 @@ from numarray import *
 # from math import *
 from random import *
 
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_radio_conventions
-from Timba.Trees import TDL_Joneset
-from Timba.Trees import TDL_ParmSet
-# from Timba.Trees import TDL_Sixpack
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_radio_conventions
+from Timba.Contrib.JEN.util import TDL_Joneset
+from Timba.Contrib.JEN.util import TDL_ParmSet
+# from Timba.Contrib.JEN.util import TDL_Sixpack
 
-from Timba.Trees import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 # JEN_bookmarks.create (node, page=page_name, folder=folder_name)
 
 
@@ -1711,8 +1711,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Cohset.py:\n'
     from numarray import *
     # from Timba.Contrib.JEN import MG_JEN_Cohset
-    from Timba.Trees import TDL_display
-    # from Timba.Trees import JEN_record
+    from Timba.Contrib.JEN.util import TDL_display
+    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
     nsim = ns.Subscope('_')
     

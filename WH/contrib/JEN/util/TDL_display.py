@@ -36,7 +36,7 @@ _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
 # run the script with: -dtutorial=3
 # level 0 is always printed
 
-from Timba.Trees import JEN_record
+from Timba.Contrib.JEN.util import JEN_record
 from copy import deepcopy
 
 

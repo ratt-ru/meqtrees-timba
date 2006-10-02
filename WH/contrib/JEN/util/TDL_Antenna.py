@@ -57,9 +57,9 @@ from Timba.TDL import *
 from numarray import *
 from math import *
 
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_Leaf
-# from Timba.Trees import TDL_radio_conventions
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_Leaf
+# from Timba.Contrib.JEN.util import TDL_radio_conventions
 
 
 
@@ -894,8 +894,8 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Antenna.py:\n'
-    from Timba.Trees import TDL_display
-    # from Timba.Trees import JEN_record
+    from Timba.Contrib.JEN.util import TDL_display
+    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
     
     if 0:

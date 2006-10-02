@@ -21,7 +21,7 @@
 
 
 from Timba.TDL import *
-from Timba.Trees import JEN_record
+from Timba.Contrib.JEN.util import JEN_record
 
 from string import *
 from copy import deepcopy
@@ -603,8 +603,8 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of: JEN_bookmarks.py :\n'
-   # from Timba.Trees import TDL_display
-   from Timba.Trees import JEN_record
+   # from Timba.Contrib.JEN.util import TDL_display
+   from Timba.Contrib.JEN.util import JEN_record
 
    if 0:
       print dir(__name__)

@@ -577,8 +577,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_pylab.py:\n'
     # from numarray import *
     # from numarray.linear_algebra import *
-    # from Timba.Trees import TDL_display
-    # from Timba.Trees import JEN_record
+    # from Timba.Contrib.JEN.util import TDL_display
+    # from Timba.Contrib.JEN.util import JEN_record
 
     if 1:
         ctrl = sine_plot()

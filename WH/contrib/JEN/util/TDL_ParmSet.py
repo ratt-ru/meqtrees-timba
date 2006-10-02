@@ -50,10 +50,10 @@ from random import *
 from math import *
 from numarray import *
 
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_NodeSet
-from Timba.Trees import JEN_inarg
-from Timba.Trees import TDL_LeafSet
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_NodeSet
+from Timba.Contrib.JEN.util import JEN_inarg
+from Timba.Contrib.JEN.util import TDL_LeafSet
 
 
 
@@ -888,10 +888,10 @@ def _counter (key, increment=0, reset=False, trace=True):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_ParmSet.py:\n'
     from numarray import *
-    from Timba.Trees import TDL_display
-    # from Timba.Trees import TDL_Joneset
+    from Timba.Contrib.JEN.util import TDL_display
+    # from Timba.Contrib.JEN.util import TDL_Joneset
     from Timba.Contrib.JEN import MG_JEN_funklet
-    # from Timba.Trees import JEN_record
+    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
     nsim = ns.Subscope('_')
     

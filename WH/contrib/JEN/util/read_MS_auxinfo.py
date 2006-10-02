@@ -17,7 +17,7 @@
 # from Timba.Meq import meq                     # required in MG_JEN_exec !!
 
 from Timba.meqkernel import set_state
-from Timba.Trees import TDL_radio_conventions
+from Timba.Contrib.JEN.util import TDL_radio_conventions
 
 
 def process_vis_header (hdr):

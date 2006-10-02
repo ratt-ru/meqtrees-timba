@@ -93,8 +93,8 @@ from Timba.Meq import meq
 from Timba.TDL import *                       # needed for type Funklet....
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
-from Timba.Trees import TDL_Leaf
-from Timba.Trees import JEN_parse
+from Timba.Contrib.JEN.util import TDL_Leaf
+from Timba.Contrib.JEN.util import JEN_parse
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
@@ -2470,11 +2470,11 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_Expression.py:\n'
     from numarray import *
     # from numarray.linear_algebra import *
-    from Timba.Trees import TDL_display
+    from Timba.Contrib.JEN.util import TDL_display
     import pylab
-    # from Timba.Trees import TDL_Joneset
+    # from Timba.Contrib.JEN.util import TDL_Joneset
     # from Timba.Contrib.JEN import MG_JEN_funklet
-    # from Timba.Trees import JEN_record
+    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
 
 

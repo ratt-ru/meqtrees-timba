@@ -43,7 +43,7 @@ from qt import *
 from copy import deepcopy
 
 from Timba.TDL import *
-from Timba.Trees import JEN_inarg
+from Timba.Contrib.JEN.util import JEN_inarg
 
 # The name of the control-record
 CTRL_record = '_JEN_inarg_CTRL_record:'
@@ -1920,8 +1920,8 @@ class Popup(QDialog):
 
 
 if __name__=="__main__":
-    from Timba.Trees import JEN_inarg
-    # from Timba.Trees import JEN_record
+    from Timba.Contrib.JEN.util import JEN_inarg
+    # from Timba.Contrib.JEN.util import JEN_record
 
     igui = ArgBrowser()
 

@@ -17,7 +17,7 @@
 #================================================================================
 
 from Timba.TDL import *
-from Timba.Trees import JEN_record
+from Timba.Contrib.JEN.util import JEN_record
 
 
 
@@ -30,7 +30,7 @@ from Timba.Trees import JEN_record
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of: JEN_template.py:\n'
-   from Timba.Trees import JEN_record
+   from Timba.Contrib.JEN.util import JEN_record
 
 
    if 1:

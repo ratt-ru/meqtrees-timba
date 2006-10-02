@@ -1,7 +1,7 @@
 # file: create_MS_interface_nodes.py
 
 from Timba.TDL import *
-from Timba.Trees import TDL_radio_conventions
+from Timba.Contrib.JEN.util import TDL_radio_conventions
 from math import *
 
 

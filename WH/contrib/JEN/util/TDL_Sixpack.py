@@ -17,8 +17,8 @@
 #
 
 from Timba.Meq import meq
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_ParmSet  
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_ParmSet  
 from Timba import utils
 from Timba.TDL import *
 import math
@@ -682,7 +682,7 @@ def Sixpack2circular (ns, Sixpack, name='nominal'):
 
 if __name__=='__main__':
     ns=NodeScope()
-    from Timba.Trees import TDL_Sixpack 
+    from Timba.Contrib.JEN.util import TDL_Sixpack 
     my_name='my_sixpack'
     # create some node stubs for the sixpack
     # first some parameters

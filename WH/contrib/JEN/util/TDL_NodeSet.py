@@ -72,9 +72,9 @@ from random import *
 from math import *
 from numarray import *
 
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_radio_conventions
-from Timba.Trees import JEN_bookmarks
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_radio_conventions
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 # Temporary, until TDL_dataCollect.py:
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -1327,8 +1327,8 @@ def test2(ns, nstat=3, mult=1.1):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_NodeSet.py:\n'
     from numarray import *
-    from Timba.Trees import TDL_display
-    # from Timba.Trees import JEN_record
+    from Timba.Contrib.JEN.util import TDL_display
+    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
     
     nst = NodeSet(label='initial')

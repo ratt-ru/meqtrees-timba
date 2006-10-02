@@ -127,7 +127,7 @@
 #================================================================================
 
 from Timba.TDL import *
-from Timba.Trees import JEN_record
+from Timba.Contrib.JEN.util import JEN_record
 
 import pickle
 
@@ -1844,7 +1844,7 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of: JEN_inarg.py:\n'
-   from Timba.Trees import JEN_record
+   from Timba.Contrib.JEN.util import JEN_record
 
 
 

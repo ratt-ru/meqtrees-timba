@@ -25,8 +25,8 @@ from Timba.Meq import meq                     # required for _create_beam()
 from numarray import *
 from math import *        
 
-from Timba.Trees import TDL_common
-# from Timba.Trees import TDL_radio_conventions
+from Timba.Contrib.JEN.util import TDL_common
+# from Timba.Contrib.JEN.util import TDL_radio_conventions
 
 #**************************************************************************************
 # Constants:
