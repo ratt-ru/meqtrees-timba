@@ -1049,7 +1049,7 @@ class ResultPlotter(GriddedPlugin):
       plot_array = self._vells_data.getActiveData()
       if plot_array.min() == plot_array.max():
         return
-      axis_increments = self._visu_plotter.getActiveAxesInc()
+    axis_increments = self._visu_plotter.getActiveAxesInc()
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self.colorbar[0].reparent(QWidget(), 0, QPoint())
@@ -1086,10 +1086,10 @@ class ResultPlotter(GriddedPlugin):
     if plot_array.min() == plot_array.max():
       return
     
-    if not axis_increments is None:
-      self.ND_plotter.setAxisIncrements(axis_increments)
     self.ND_plotter.array_plot(" ", plot_array)
     self.ND_plotter.setAxisParms(self.axis_parms)
+    if not axis_increments is None:
+      self.ND_plotter.setAxisIncrements(axis_increments)
 
   def show_2D_Display(self, display_flag):
     _dprint(3, 'in show_2D_Display ')
