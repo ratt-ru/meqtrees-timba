@@ -1,4 +1,4 @@
-# demo_template.py: demonstrates the following features:
+# demo_template.py: demonstrates the following MeqTree features:
 
 
 # Tips:
@@ -16,9 +16,12 @@ from Timba.Meq import meq
 # from qt import *
 # from numarray import *
 
+# from Timba.Contrib.JEN.util import JEN_bookmarks
+
 # Make sure that all nodes retain their results in their caches,
 # for your viewing pleasure.
 Settings.forest_state.cache_policy = 100
+Settings.forest_state.bookmarks = []
 
 
 
@@ -41,7 +44,7 @@ def _define_forest (ns, **kwargs):
    # Make a bookmark of the result node, for easy viewing:
    bm = record(name='result', viewer='Result Plotter',
                udi='/node/result', publish=True)
-   Settings.forest_state.bookmarks = [bm]
+   Settings.forest_state.bookmarks.append(bm)
 
    # Finished:
    return True
