@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 #% $Id$ 
 
 #
@@ -23,6 +22,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+
+# a python script to convert GRASP 'grd' files to 
+# FITS files. Thanks to Walter Brisken (NRAO) for
+# the code that reads in the GRASP data.
 
 import os
 import sys
