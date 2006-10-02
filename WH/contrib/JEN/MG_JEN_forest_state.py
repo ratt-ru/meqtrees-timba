@@ -25,8 +25,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Trees import create_MS_interface_nodes
-from Timba.Trees import JEN_bookmarks
+# from Timba.Contrib.JEN.util import create_MS_interface_nodes
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 # from numarray import *
 from string import *
@@ -341,7 +341,7 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 # Get/create the record of NAMES of the standard nodes that are expected by
-# the function Timba.Trees/read_MS_auxinfo.py.
+# the function Timba.Contrib.JEN.util/read_MS_auxinfo.py.
 # This record is kept in the forest state record (where else?) 
 #-------------------------------------------------------------------------------
 
@@ -446,13 +446,13 @@ if __name__ == '__main__':
    MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)
 
    if 0:
-      from Timba.Trees import TDL_common
+      from Timba.Contrib.JEN.util import TDL_common
       sp = TDL_common.Super()
       ss = sp.display(MG.script_name)
       trace(ss, key=sp.label())
       
    if 0:
-      from Timba.Trees import TDL_Cohset
+      from Timba.Contrib.JEN.util import TDL_Cohset
       cs = TDL_Cohset.Cohset()
       ss = cs.display(MG.script_name)
       trace(ss, key=cs.label())

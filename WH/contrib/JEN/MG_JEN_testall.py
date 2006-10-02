@@ -22,7 +22,7 @@
 from Timba.TDL import *
 
 # from Timba.Meq import meq
-from Timba.Trees import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 from numarray import *
 

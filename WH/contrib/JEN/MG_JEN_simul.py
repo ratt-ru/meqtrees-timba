@@ -27,10 +27,10 @@ import os
 from numarray import *
 from copy import deepcopy
 
-from Timba.Trees import JEN_inarg
-from Timba.Trees import JEN_inargGui
-from Timba.Trees import TDL_Cohset
-from Timba.Trees import TDL_Joneset
+from Timba.Contrib.JEN.util import JEN_inarg
+from Timba.Contrib.JEN.util import JEN_inargGui
+from Timba.Contrib.JEN.util import TDL_Cohset
+from Timba.Contrib.JEN.util import TDL_Joneset
 
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *

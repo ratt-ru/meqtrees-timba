@@ -39,9 +39,9 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 from Timba.Contrib.MXM import MG_MXM_functional
 
-from Timba.Trees import JEN_bookmarks
-from Timba.Trees import TDL_Antenna
-from Timba.Trees import TDL_Dipole
+from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.util import TDL_Antenna
+from Timba.Contrib.JEN.util import TDL_Dipole
 
 Settings.forest_state.cache_policy=100;
 

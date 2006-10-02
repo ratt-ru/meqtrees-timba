@@ -25,7 +25,7 @@ from Timba.Meq import meq
 
 from numarray import *
 
-from Timba.Trees import TDL_NodeSet
+from Timba.Contrib.JEN.util import TDL_NodeSet
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 

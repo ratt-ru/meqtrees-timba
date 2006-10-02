@@ -47,12 +47,12 @@ from Timba.Meq import meq
 
 from numarray import *
 
-# from Timba.Trees import TDL_common
-from Timba.Trees import JEN_inarg
-from Timba.Trees import TDL_Joneset
-from Timba.Trees import TDL_ParmSet     
-from Timba.Trees import TDL_LeafSet                   # <--------- remove...     
-from Timba.Trees import TDL_radio_conventions
+# from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import JEN_inarg
+from Timba.Contrib.JEN.util import TDL_Joneset
+from Timba.Contrib.JEN.util import TDL_ParmSet     
+from Timba.Contrib.JEN.util import TDL_LeafSet                   # <--------- remove...     
+from Timba.Contrib.JEN.util import TDL_radio_conventions
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -1574,7 +1574,7 @@ if __name__ == '__main__':
   scope = MG['script_name']
 
   if 1:
-     from Timba.Trees import TDL_MSauxinfo
+     from Timba.Contrib.JEN.util import TDL_MSauxinfo
      MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
      MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
      MSauxinfo.create_nodes(ns)
@@ -1597,7 +1597,7 @@ if __name__ == '__main__':
      # inarg = EJones (_getdefaults=True, simul=simul)
      # inarg = KJones (_getdefaults=True, simul=simul)
      # inarg = DJones_WSRT (_getdefaults=True, simul=simul)
-     from Timba.Trees import JEN_inargGui
+     from Timba.Contrib.JEN.util import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()
      igui.input(inarg)
      igui.launch()

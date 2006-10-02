@@ -34,7 +34,7 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_funklet
-from Timba.Trees import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 
 

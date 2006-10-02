@@ -33,8 +33,8 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
-from Timba.Trees import JEN_inarg
-from Timba.Trees import JEN_inargGui
+from Timba.Contrib.JEN.util import JEN_inarg
+from Timba.Contrib.JEN.util import JEN_inargGui
 
 from numarray import *
 # from string import *

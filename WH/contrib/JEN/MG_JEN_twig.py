@@ -31,7 +31,7 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 
 from Timba.Contrib.MXM import MG_MXM_functional
 
-from Timba.Trees import TDL_Leaf
+from Timba.Contrib.JEN.util import TDL_Leaf
 
 
 #-------------------------------------------------------------------------

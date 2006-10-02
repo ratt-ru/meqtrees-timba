@@ -57,10 +57,10 @@ _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
 from copy import deepcopy       
 import os       
 
-from Timba.Trees import JEN_inarg 
-from Timba.Trees import JEN_bookmarks 
-from Timba.Trees import TDL_display 
-from Timba.Trees import JEN_record 
+from Timba.Contrib.JEN.util import JEN_inarg 
+from Timba.Contrib.JEN.util import JEN_bookmarks 
+from Timba.Contrib.JEN.util import TDL_display 
+from Timba.Contrib.JEN.util import JEN_record 
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
@@ -902,7 +902,7 @@ def _test_forest (mqs, parent):
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of:',MG.script_name,':\n'
-   from Timba.Trees import JEN_inargGui 
+   from Timba.Contrib.JEN.util import JEN_inargGui 
 
    # Generic test:
    if 1:

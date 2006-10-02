@@ -58,12 +58,12 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 
-from Timba.Trees import TDL_common
-from Timba.Trees import TDL_Sixpack
-from Timba.Trees import TDL_ParmSet
-from Timba.Trees import TDL_Leaf
-from Timba.Trees import JEN_inarg
-# from Timba.Trees import JEN_bookmarks
+from Timba.Contrib.JEN.util import TDL_common
+from Timba.Contrib.JEN.util import TDL_Sixpack
+from Timba.Contrib.JEN.util import TDL_ParmSet
+from Timba.Contrib.JEN.util import TDL_Leaf
+from Timba.Contrib.JEN.util import JEN_inarg
+# from Timba.Contrib.JEN.util import JEN_bookmarks
 
 from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
@@ -859,7 +859,7 @@ def _tdl_job_sequence(mqs, parent):
 
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG['script_name'],':\n'
-   from Timba.Trees import JEN_inargGui
+   from Timba.Contrib.JEN.util import JEN_inargGui
 
    # Generic test:
    if 0:
