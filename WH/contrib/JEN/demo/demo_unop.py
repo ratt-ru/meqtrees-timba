@@ -1,4 +1,6 @@
-# demo_allUnop.py: demonstrates the following MeqTree features:
+# demo_unop.py:
+
+# Demonstrates the following MeqTree features:
 # - All the nodes that provide unary math operations
 # - Unary operations are performed cell-by-cell
 # - The result has the same cells as the argument node

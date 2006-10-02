@@ -1,4 +1,6 @@
-# demo_template.py: demonstrates the following MeqTree features:
+# demo_template.py:
+
+# Demonstrates the following MeqTree features:
 
 
 # Tips:

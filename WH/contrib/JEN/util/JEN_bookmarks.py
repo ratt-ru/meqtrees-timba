@@ -11,6 +11,7 @@
 # - 20 mar 2006: revamped (especially including folders)
 # - 25 mar 2006: separated the semi-obsolete functions
 # - 09 aug 2006: inplement recurse argument in .create()
+# - 03 oct 2006: refined autoplace()
 
 
 # Copyright: The MeqTree Foundation 
@@ -49,7 +50,7 @@ def family (fam=[], node=None, recurse=0, nmax=9):
 
 def create (node=None, name=None, udi=None, viewer='Result Plotter',
             recurse=0,
-            save=True, page=None, folder=None, perpage=6, trace=False):
+            save=True, page=None, folder=None, perpage=9, trace=False):
     """Create a forest_state bookmark for the given node(s).
     - viewer = 'Result Plotter'   (default)
     - viewer = 'History Plotter'
@@ -95,7 +96,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
                 pagecount += 1                             # increment
             pagename = page
             if pagecount>1: pagename = page+'_'+str(pagecount)
-            print '-',itemcount,pagecount,pagename,item.name
+            # print '-',itemcount,pagecount,pagename,item.name
             create (item, name=name, udi=udi, viewer=viewer,
                     save=save, page=pagename, folder=folder,
                     perpage=perpage, trace=trace)
@@ -250,41 +251,6 @@ def autoplace(bm, n=0):
     if n==2: bm.pos = [0,1]
     if n==3: bm.pos = [1,1]
     
-    # 3rd col:
-    if n==4: bm.pos = [0,2]
-    if n==5: bm.pos = [1,2]
-    
-    # 3rd row:
-    if n==6: bm.pos = [2,0]
-    if n==7: bm.pos = [2,1]
-    if n==8: bm.pos = [2,2]
-    
-    # 4th col:
-    if n==9: bm.pos = [3,0]
-    if n==10: bm.pos = [3,1]
-    if n==11: bm.pos = [3,2]
-
-    # 4th col:
-    if n==12: bm.pos = [3,0]
-    if n==13: bm.pos = [3,1]
-    if n==14: bm.pos = [3,2]
-    if n==15: bm.pos = [3,3]
-    return True
-
-
-def autoplace_old(bm, n=0):
-    """Automatic placement of the given bookmark (bm) as the
-    nth panel on a bookpage"""
-
-    if n==0: bm.pos = [0,0]               # superfluous
-    
-    # 1st col:
-    if n==1: bm.pos = [1,0]
-    
-    # 2nd col:
-    if n==2: bm.pos = [0,1]
-    if n==3: bm.pos = [1,1]
-    
     # 3rd row:
     if n==4: bm.pos = [2,0]
     if n==5: bm.pos = [2,1]
@@ -304,6 +270,8 @@ def autoplace_old(bm, n=0):
     if n==13: bm.pos = [1,3]
     if n==14: bm.pos = [2,3]
     if n==15: bm.pos = [3,3]
+
+    # print '** bookmarks.autoplace(n=',n,bm.name,'): bm.pos =',bm.pos
     return True
 
 

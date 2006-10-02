@@ -1,4 +1,6 @@
-# demo_firstTime.py: demonstrates the following MeqTree features:
+# demo_firstTime.py:
+
+# Demonstrates the following MeqTree features:
 # - A simple tree 
 # - Basic use of the meqbrowser
 # - NB: This is all you need to get started!

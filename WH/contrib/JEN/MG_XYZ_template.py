@@ -199,13 +199,13 @@ def _define_forest (ns, **kwargs):
 #   1316 2006-09-14 14:36 Floor.cc
 
 # Binop:
+#   1367 2006-09-14 14:36 Pow.cc
 #   1373 2006-09-14 14:36 Polar.cc
 #   1409 2006-09-14 14:36 ToComplex.cc
 #   1395 2006-09-14 14:36 Add.cc
 #   1903 2006-09-14 14:36 Multiply.cc
 #   1367 2006-09-14 14:36 Divide.cc
 #   1479 2006-09-14 14:36 Subtract.cc
-#   1935 2006-09-14 14:36 WMean.cc
 
 # Leaves:
 #   5691 2006-09-14 14:36 Constant.cc
@@ -239,6 +239,7 @@ def _define_forest (ns, **kwargs):
 #   1921 2006-09-14 14:36 Max.cc
 #   1257 2006-09-14 14:36 Rms.cc
 #   1817 2006-09-14 14:36 Mean.cc
+#   1935 2006-09-14 14:36 WMean.cc
 #   1448 2006-09-14 14:36 Product.cc
 #   2391 2006-09-14 14:36 WSum.cc
 #   1747 2006-09-14 14:36 NElements.cc
