@@ -33,9 +33,13 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.MXM import TDL_Funklet
 
-from Timba.Trees import JEN_bookmarks
-from Timba.Trees import TDL_Expression
-from Timba.Trees import TDL_display
+# from Timba.Trees import JEN_bookmarks
+# from Timba.Trees import TDL_Expression
+# from Timba.Trees import TDL_display
+
+from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.util import TDL_Expression
+from Timba.Contrib.JEN.util import TDL_display
 
 
 #-------------------------------------------------------------------------
