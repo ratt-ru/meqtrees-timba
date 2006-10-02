@@ -37,8 +37,7 @@ has_vtk = False
 try:
   import vtk
   from vtk.qt.QVTKRenderWindowInteractor import *
-  #from vtk.util.vtkImageImportFromArray import *
-  from vtkImageImportFromNumarray import *
+  from Timba.Plugins.vtkImageImportFromNumarray import *
   has_vtk = True
 except:
   print 'Exception while importing vtk module:'
@@ -101,12 +100,10 @@ class vtk_qt_3d_display(qt.QWidget):
     self.scale_factor = 50
     self.data_min = 1000000.0
     self.data_max = -1000000.0
-    self.spacing_x = 1.0
-    self.spacing_y = 1.0
-    self.spacing_z = 1.0
     self.spacing = None
+    self.scale_values = (1.0, 1.0, 1.0)
 
-    self.setCaption("VTK 3D Demo")
+    self.setCaption("VTK 3D Display")
 
 #-----------------------------
     self.winlayout = qt.QVBoxLayout(self,20,20,"WinLayout")
@@ -137,6 +134,7 @@ class vtk_qt_3d_display(qt.QWidget):
     qt.QObject.connect(self.index_selector,PYSIGNAL('result_index'), self.SetSlice)
     qt.QObject.connect(self.index_selector,PYSIGNAL('twoD_display_requested'), self.two_D_Event)
     qt.QObject.connect(self.index_selector,PYSIGNAL('align_camera'), self.AlignCamera)
+    qt.QObject.connect(self.index_selector,PYSIGNAL('update_scale'), self.UpdateScale)
 
   def delete_vtk_renderer(self):
     if not self.renwininter is None:
@@ -160,6 +158,11 @@ class vtk_qt_3d_display(qt.QWidget):
       self.winsplitter.moveToLast(self.v_box_controls)
       self.winsplitter.setSizes([500,100])
       self.renwininter.show()
+
+# Paul Kemper suggested the following:
+      camstyle = vtk.vtkInteractorStyleTrackballCamera()
+      self.renwininter.SetInteractorStyle(camstyle)
+
 
     self.extents =  self.image_array.GetDataExtent()
     self.spacing = self.image_array.GetDataSpacing()
@@ -207,6 +210,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.mapper.SetLookupTable(self.lut)
       self.mapper.ImmediateModeRenderingOff()
       warp_actor = vtk.vtkActor()
+#     warp_actor.SetScale(2,1,1)
       warp_actor.SetMapper(self.mapper)
 
       min_range = 0.5 * self.scale_factor
@@ -219,6 +223,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setValue(self.scale_factor)
       self.index_selector.setLabel('scale factor')
       self.index_selector.hideNDControllerOption()
+      self.index_selector.reset_scale_toggle()
       self.index_selector.set_emit(True)
     else:
 # set up ImagePlaneWidgets ...
@@ -280,6 +285,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setRange(zMax, False)
       self.index_selector.setValue(z_index)
       self.index_selector.setLabel('Z axis')
+      self.index_selector.reset_scale_toggle()
       self.index_selector.set_emit(True)
 
 # create scalar bar for display of intensity range
@@ -338,6 +344,9 @@ class vtk_qt_3d_display(qt.QWidget):
       self.planeWidgetZ.SetInteractor(self.inter)
       self.planeWidgetZ.On()
 
+    self.initialize_camera()
+
+  def initialize_camera(self):
 # Create an initial interesting view
     cam1 = self.ren.GetActiveCamera()
     cam1.Azimuth(45)
@@ -357,10 +366,6 @@ class vtk_qt_3d_display(qt.QWidget):
     cam1.ParallelProjectionOn()
     self.ren.ResetCamera()
     self.ren.ResetCameraClippingRange()
-
-# Paul Kemper suggested the following:
-    camstyle = vtk.vtkInteractorStyleTrackballCamera()
-    self.renwininter.SetInteractorStyle(camstyle)
 
 # Align the camera so that it faces the desired widget
   def AlignCamera(self):
@@ -528,6 +533,48 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setLabel('scale factor')
       self.index_selector.set_emit(True)
 
+    else:
+
+      self.extents =  self.image_array.GetDataExtent()
+      self.spacing = self.image_array.GetDataSpacing()
+      self.origin = self.image_array.GetDataOrigin()
+
+# get locations for initial slices
+      xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
+      x_index = (xMax-xMin) / 2
+      y_index = (yMax-yMin) / 2
+      z_index = (zMax-zMin) / 2
+
+      self.planeWidgetX.SetSliceIndex(x_index)
+      self.planeWidgetY.SetSliceIndex(y_index)
+      self.planeWidgetZ.SetSliceIndex(z_index)
+    
+      self.current_widget = self.planeWidgetZ
+      self.mode_widget = self.planeWidgetZ
+      self.index_selector.set_emit(False)
+      self.index_selector.setMinValue(zMin)
+      self.index_selector.setMaxValue(zMax,False)
+      self.index_selector.setTickInterval( (zMax-zMin) / 10 )
+      self.index_selector.setRange(zMax, False)
+      self.index_selector.setValue(z_index)
+      self.index_selector.setLabel('Z axis')
+      self.index_selector.set_emit(True)
+
+  def UpdateScale(self, do_scale=False):
+    if do_scale:
+      self.image_array.SetDataSpacing(self.scale_values)
+    else:
+      if self.warped_surface:
+        self.image_array.SetDataSpacing((1.0, 1.0, 0.0))
+      else:
+        self.image_array.SetDataSpacing((1.0, 1.0, 1.0))
+    self.UpdateBounds()
+    self.initialize_camera()
+    self.renwin.Render()
+
+        
+      
+
 
 #=============================
 # VTK code for test arrays
@@ -683,7 +730,10 @@ class vtk_qt_3d_display(qt.QWidget):
         self.image_array.SetArray(plot_array)
 
 # use default VTK parameters for spacing at the moment
-      spacing = (self.spacing_x, self.spacing_y, self.spacing_z)
+      if self.warped_surface:
+        spacing = (1.0, 1.0, 0.0)
+      else:
+        spacing = (1.0, 1.0, 1.0)
       self.image_array.SetDataSpacing(spacing)
 
 # create new VTK pipeline
@@ -707,12 +757,14 @@ class vtk_qt_3d_display(qt.QWidget):
     """ used to set proper range of axes -
         not that useful at present 
     """
-#   if not axis_increments[0] is None:
-#     self.spacing_x = axis_increments[0]
-#   if not axis_increments[1] is None:
-#     self.spacing_y = axis_increments[1]
-#   spacing = (axis_increments[0], axis_increments[1], 1.0)
-#   self.image_array.SetDataSpacing(spacing)
+    if len(axis_increments) == 2:
+      if self.warped_surface:
+        self.scale_values = (axis_increments[0], axis_increments[1], 0.0)
+      else:
+        self.scale_values = (axis_increments[0], axis_increments[1], 1.0)
+    else:
+      self.scale_values = axis_increments
+    pass
 
   def reset_image_array(self):
     self.image_array = None
