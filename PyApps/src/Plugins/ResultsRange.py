@@ -63,12 +63,14 @@ class ResultsRange(QWidget):
       'Toggle ND Controller': 308,
       'Print to Postscript file': 309,
       'Align Camera': 310,
+      'Toggle VTK Scale': 311,
       }
 
       self.allow_emit = False
       self.allow_summary = False
       self.summary_request = True
       self.toggle_ND_Controller = 1
+      self.toggle_scale_display = False
       self.menu = None
       self.maxVal = 10
       self.minVal = 1
@@ -206,6 +208,18 @@ class ResultsRange(QWidget):
       if self.allow_emit:
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
 
+    def toggle_scale(self):
+      """ emit signal to toggle VTK display of scales """
+      toggle_id = self.menu_table['Toggle VTK Scale']
+      if self.toggle_scale_display:
+        self.toggle_scale_display = False
+        self.menu.changeItem(toggle_id, 'Apply Scaling to VTK Display')
+      else:
+        self.toggle_scale_display = True
+        self.menu.changeItem(toggle_id, 'Remove Scaling from VTK Display')
+      if self.allow_emit:
+        self.emit(PYSIGNAL("update_scale"),(self.toggle_scale_display,))
+
     def set_summary(self, summary=True):
       """ override default value for allowing summary plot """
       self.allow_summary = summary
@@ -242,6 +256,14 @@ class ResultsRange(QWidget):
         self.requestUpdate()
       elif menuid == self.menu_table['Print to Postscript file']:
         self.request_postscript()
+      elif menuid == self.menu_table['Toggle VTK Scale']:
+        self.toggle_scale()
+
+    def reset_scale_toggle(self):
+      """ reset options for toggling VTK scales to defaults """
+      self.toggle_scale_display = False
+      toggle_id = self.menu_table['Toggle VTK Scale']
+      self.menu.changeItem(toggle_id, 'Apply Scaling to VTK Display')
 
     def initContextmenu(self):
       """Initialize the result buffer context menu """
@@ -277,6 +299,10 @@ class ResultsRange(QWidget):
         self.menu.insertItem("Toggle ND Controller", toggle_id)
         self.menu.changeItem(toggle_id, 'Hide ND Controller')
         self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle VTK Scale']
+        self.menu.insertItem("Toggle VTK Scale", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
+        self.menu.changeItem(toggle_id, 'Apply Scaling to VTK Display')
         toggle_id = self.menu_table['Update']
         self.menu.insertItem("Update", toggle_id)
         self.menu.setItemVisible(toggle_id, False)
@@ -334,6 +360,8 @@ class ResultsRange(QWidget):
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Print to Postscript file']
       self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Toggle VTK Scale']
+      self.menu.setItemVisible(toggle_id, True)
 
       toggle_id = self.menu_table['Adjust results buffer size']
       self.menu.setItemVisible(toggle_id, False)
@@ -348,6 +376,8 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Toggle ND Controller']
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Print to Postscript file']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Toggle VTK Scale']
       self.menu.setItemVisible(toggle_id, True)
 
       toggle_id = self.menu_table['Adjust results buffer size']
