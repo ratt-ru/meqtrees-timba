@@ -118,24 +118,191 @@ def _define_forest (ns, **kwargs):
 
 
 # Ideas for demo/assignment scripts:
-# - demo_binop.py:
-# - demo_unop.py:
-# - demo_matrix22.py:
-# - demo_jones.py:
+# - demo_template.py:           low threshold, uniformity
+# - demo_onDefineEntry.py:            avoid clutter
+# - demo_onDefineExit.py:             avoid clutter
+
+# - demo_myFirstTree.py:
+# - demo_request.py:            4D           
+# - demo_errors.py:
+# - demo_nodeNames.py:          scope, duplicate names
+
+# - demo_allBinop.py:
+# - demo_allUnop.py:
+
+# - demo_leaves.py:             make some of them part of TDL?
+#     freq, time, l, m, 'grid', gauss, random, constant, parm, complex
+
+# - demo_tensor.py:
+#     behaviour of mean etc!
+# - demo_matrix22.py
+#     check of inverse
+
 # - demo_reqseq.py:
+# - demo_reqmux.py:
+
+# - demo_parm.py:
 # - demo_solve.py:
-# - demo_flag.py:
-# - demo_voltage_beam.py:
+
 # - demo_expression.py:
+# - demo_voltage_beam.py:
+ 
+# - demo_composer.py:
+# - demo_fitsImage.py:
+
 # - demo_dataCollect.py:
 # - demo_historyCollect.py:
 
+# - demo_flag.py:
+
+# - demo_MS.py:
+# - demo_jones.py:
+# - demo_lsm.py:
 
 
+# Unop:
+#   1336 2006-09-14 14:36 Exp.cc
+#   1294 2006-09-14 14:36 Log.cc
+#   1298 2006-09-14 14:36 Negate.cc
+#   1304 2006-09-14 14:36 Invert.cc
+#   1349 2006-09-14 14:36 Sqrt.cc
+#   1334 2006-09-14 14:36 Sqr.cc
 
+#   1367 2006-09-14 14:36 Pow.cc
+#   1218 2006-09-14 14:36 Pow2.cc
+#   1220 2006-09-14 14:36 Pow3.cc
+#   1218 2006-09-14 14:36 Pow4.cc
+#   1218 2006-09-14 14:36 Pow5.cc
+#   1218 2006-09-14 14:36 Pow6.cc
+#   1218 2006-09-14 14:36 Pow7.cc
+#   1218 2006-09-14 14:36 Pow8.cc
 
+#   1284 2006-09-14 14:36 Arg.cc
+#   1346 2006-09-14 14:36 Conj.cc
+#   1288 2006-09-14 14:36 Norm.cc
+#   1293 2006-09-14 14:36 Real.cc
+#   1298 2006-09-14 14:36 Imag.cc
 
+#   1334 2006-09-14 14:36 Cos.cc
+#   1332 2006-09-14 14:36 Sin.cc
+#   1283 2006-09-14 14:36 Tan.cc
+#   1294 2006-09-14 14:36 Acos.cc
+#   1292 2006-09-14 14:36 Asin.cc
+#   1295 2006-09-14 14:36 Atan.cc
+#   1354 2006-09-14 14:36 Cosh.cc
+#   1299 2006-09-14 14:36 Sinh.cc
+#   1302 2006-09-14 14:36 Tanh.cc
 
+#   1298 2006-09-14 14:36 Fabs.cc
+#   1290 2006-09-14 14:36 Abs.cc
+#   1306 2006-09-14 14:36 Ceil.cc
+#   1316 2006-09-14 14:36 Floor.cc
+
+# Binop:
+#   1373 2006-09-14 14:36 Polar.cc
+#   1409 2006-09-14 14:36 ToComplex.cc
+#   1395 2006-09-14 14:36 Add.cc
+#   1903 2006-09-14 14:36 Multiply.cc
+#   1367 2006-09-14 14:36 Divide.cc
+#   1479 2006-09-14 14:36 Subtract.cc
+#   1935 2006-09-14 14:36 WMean.cc
+
+# Leaves:
+#   5691 2006-09-14 14:36 Constant.cc
+#   2201 2006-09-14 14:36 Freq.cc
+#   2193 2006-09-14 14:36 Time.cc
+#   3008 2006-09-14 14:36 Grid.cc
+#   2466 2006-09-14 14:36 GridPoints.cc
+#    759 2006-09-14 14:36 NoiseNode.cc
+#   3568 2006-09-14 14:36 RandomNoise.cc
+#     64 2006-09-14 14:36 BlitzRandom.cc
+#   3432 2006-09-14 14:36 GaussNoise.cc
+#                         Spigot?
+#                         TDL_Leaves....?
+
+# Solving:
+#  55515 2006-09-14 14:36 Solver.cc
+#   7443 2006-09-14 14:36 Condeq.cc
+#  29654 2006-09-14 14:36 Parm.cc
+#  12215 2006-09-14 14:36 ParmDBInterface.cc
+#  18593 2006-09-14 14:36 ParmTable.cc
+
+# Tensor ops:
+#   3500 2006-09-14 14:36 Composer.cc
+#   5174 2006-09-14 14:36 Paster.cc
+#   5654 2006-09-14 14:36 Selector.cc
+
+# Tensor/cell ops:
+#   1306 2006-09-14 14:36 StdDev.cc
+#   1426 2006-09-14 14:36 Sum.cc
+#   1920 2006-09-14 14:36 Min.cc
+#   1921 2006-09-14 14:36 Max.cc
+#   1257 2006-09-14 14:36 Rms.cc
+#   1817 2006-09-14 14:36 Mean.cc
+#   1448 2006-09-14 14:36 Product.cc
+#   2391 2006-09-14 14:36 WSum.cc
+#   1747 2006-09-14 14:36 NElements.cc
+
+# Matrix ops:
+#   1511 2006-09-14 14:36 Identity.cc
+#   3039 2006-09-14 14:36 Transpose.cc
+#  16019 2006-09-14 14:36 MatrixMultiply.cc
+#   7603 2006-09-14 14:36 MatrixInvert22.cc
+#   3139 2006-09-14 14:36 Stokes.cc            ??
+
+# Flow:
+#   5519 2006-09-14 14:36 ReqSeq.cc
+#   2790 2006-09-14 14:36 ReqMux.cc
+#                         Sink, Visdatamux?
+
+# FITS interface:
+#  11971 2006-09-14 14:36 FITSDataMux.cc
+#  52533 2006-09-14 14:36 FITSUtils.cc
+#   1865 2006-09-14 14:36 FITSSpigot.cc
+#   3909 2006-09-14 14:36 FITSWriter.cc
+#   8607 2006-09-14 14:36 FITSImage.cc
+#   5932 2006-09-14 14:36 FITSReader.cc
+#                         shapelets?
+
+# Flagging:
+#   4474 2006-09-14 14:36 ZeroFlagger.cc
+#   4311 2006-09-14 14:36 MergeFlags.cc
+
+# Visualization:
+#   4572 2006-09-14 14:36 DataCollect.cc
+#   4245 2006-09-14 14:36 DataConcat.cc
+#   4197 2006-09-14 14:36 HistoryCollect.cc
+#   2208 2006-09-14 14:36 Stripper.cc
+
+# Resampling:
+#   9035 2006-09-14 14:36 ModRes.cc
+#  52063 2006-09-14 14:36 Resampler.cc
+
+# Domain change:
+#  33244 2006-09-14 14:36 Compounder.cc
+
+# Expression:
+#   7487 2006-10-02 10:29 PrivateFunction.cc
+#   7538 2006-09-14 14:36 CompiledFunklet.cc
+#   8445 2006-09-14 14:36 Functional.cc
+
+# uvbrick:
+#  18887 2006-09-14 14:36 UVBrick.cc
+#  19146 2006-09-14 14:36 FFTBrick.cc
+#  38778 2006-09-14 14:36 UVInterpol.cc
+#  46655 2006-09-14 14:36 UVInterpolWave.cc
+#  10251 2006-09-14 14:36 PatchComposer.cc
+
+# Coordinates:
+#   2553 2006-09-14 14:36 LMN.cc
+#   5454 2006-09-14 14:36 UVW.cc
+#   4235 2006-09-14 14:36 VisPhaseShift.cc
+#   5212 2006-10-02 10:29 AzEl.cc
+#   3883 2006-10-02 10:29 LMRaDec.cc
+#   4926 2006-10-02 10:29 ParAngle.cc
+
+# Misc:
+#   8386 2006-09-14 14:36 ReductionFunction.cc
 
 
 
