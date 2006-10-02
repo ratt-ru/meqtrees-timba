@@ -92,6 +92,9 @@ def totalpower( data, nx ):
 	C = len(data)
 	L = len(data[0])
 	m = 0.0
+        y_max = -1000
+        x_max = -1000
+        data_max = -1000000.0
 	for y in range(nx):
 		for x in range(nx):	
 			i = y + nx*x
@@ -99,12 +102,17 @@ def totalpower( data, nx ):
 			for j in range(C):
 				s = s + data[j][i]*data[j][i];
 			Z[x][y] = s
+                        if Z[x][y] > data_max:
+                          data_max = Z[x][y]
+                          x_max = x
+                          y_max = y
+
 			if s > m:
 				m = s;
 
 	Z = Z/m
 	
-	return Z
+	return Z, x_max, y_max
 
 def main( argv ):
         data, scale = getdata(argv[1])
@@ -128,12 +136,14 @@ def main( argv ):
 
         # presently get data array as total power 
         # we may want additional formats
-	Z = totalpower(data, nx);
+	Z, x_max, y_max = totalpower(data, nx);
         
         # create basic FITS file
         hdu = pyfits.PrimaryHDU(Z)
         hdu.header.update('CDELT1', scale, 'in radians')
         hdu.header.update('CDELT2', scale, 'in radians')
+        hdu.header.update('CRPIX1', x_max, 'in pixels (zero relative)')
+        hdu.header.update('CRPIX2', y_max, 'in pixels (zero relative)')
 
         # write out FITS file
         outfile = argv[2]
