@@ -1,11 +1,20 @@
 # demo_allUnop.py: demonstrates the following MeqTree features:
-# - all the nodes that provide unary math operations 
+# - All the nodes that provide unary math operations
+# - Unary operations are performed cell-by-cell
+# - The result has the same cells as the argument node
 
 # Tips:
-# - Try the three different execute options
-#   - Then check the state records of the unary ops that should not
-#     be able to deal with zero or negative arguments.
+# - First execute with TDL Exec 'execute'
+#   - If bm=True in _define_forest(), there are more bookmarks.
 
+# - Try the other TDL Exec options with arguments that can be illegal. 
+#   - Then check the state records of those unary ops that are not
+#     be able to deal with zero or negativbee arguments.
+
+# NB: Re-execute with new domain does NOT work!
+# NB: Results of illegal arguments produce 'nan' (not-a-number)
+#     but is not reported in any way (look at the vellset),
+#     and is even used in further math operations!!
 
 
  
@@ -18,6 +27,7 @@ from Timba.Meq import meq
 # from qt import *
 # from numarray import *
 
+# Optional:
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
 # Make sure that all nodes retain their results in their caches,
@@ -34,15 +44,31 @@ Settings.forest_state.bookmarks = []
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
-   bb = []
+   # Organised in named groups of related unary operations.
+   # The nodes of each group are collected in a list (cc).
+   # Groups are bundled by supplying the cc as children to an Add node.
+   # (this has the added advantage of detecting errors per group).
+   # The groups are bundled in the same way via child-list gg.
+   
+   gg = []
 
-   # Variation over freq gives a nice 1D plot: 
+   # Make node(s) to serve as argument for the unary ops.
+   # Variation over freq gives a nice 1D plot. 
    x = ns['x'] << Meq.Freq()
    x10 = ns['x10'] << Meq.Freq()/10
    cx = ns['cx'] << Meq.toComplex(1,x)
    xn = ns['xneg'] << Meq.Negate(x)
 
-   group = 'expon'
+   # Optionally, make separate bookmarks for each group.
+   # This produces a separate plot for each unary node.
+   # This makes use of a utlity module JEN_bookmarks, which
+   # generates named bookpages from lists (cc, bb) of nodes.
+   # This is convenient, but not ecouraged in demo scripts.
+
+   bm = False
+   bm = True
+
+   group = 'unop_expon'
    cc = [x]
    cc.append(ns << Meq.Exp(x)) 
    cc.append(ns << Meq.Log(x)) 
@@ -50,10 +76,10 @@ def _define_forest (ns, **kwargs):
    cc.append(ns << Meq.Invert(x)) 
    cc.append(ns << Meq.Sqrt(x)) 
    cc.append(ns << Meq.Sqr(x)) 
-   JEN_bookmarks.create(cc, group)
-   bb.append(ns[group] << Meq.Add(children=cc)) 
+   gg.append(ns[group] << Meq.Add(children=cc)) 
+   if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'pow'
+   group = 'unop_pow'
    cc = [x]
    cc.append(ns << Meq.Pow2(x)) 
    cc.append(ns << Meq.Pow3(x)) 
@@ -62,10 +88,10 @@ def _define_forest (ns, **kwargs):
    cc.append(ns << Meq.Pow6(x)) 
    cc.append(ns << Meq.Pow7(x)) 
    cc.append(ns << Meq.Pow8(x))
-   JEN_bookmarks.create(cc, group)
-   bb.append(ns[group] << Meq.Add(children=cc)) 
+   gg.append(ns[group] << Meq.Add(children=cc)) 
+   if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'circular'
+   group = 'unop_circular'
    cc = []
    cc.append(ns << Meq.Cos(x)) 
    cc.append(ns << Meq.Sin(x)) 
@@ -76,11 +102,11 @@ def _define_forest (ns, **kwargs):
    cc.append(ns << Meq.Cosh(x)) 
    cc.append(ns << Meq.Sinh(x)) 
    cc.append(ns << Meq.Tanh(x)) 
-   JEN_bookmarks.create(cc, group)
-   bb.append(ns[group] << Meq.Add(children=cc)) 
+   gg.append(ns[group] << Meq.Add(children=cc)) 
+   if bm: JEN_bookmarks.create(cc, group)
 
 
-   group = 'complex'
+   group = 'unop_complex'
    cc = [cx]
    cc.append(ns << Meq.Abs(cx)) 
    cc.append(ns << Meq.Norm(cx)) 
@@ -88,28 +114,30 @@ def _define_forest (ns, **kwargs):
    cc.append(ns << Meq.Real(cx)) 
    cc.append(ns << Meq.Imag(cx)) 
    cc.append(ns << Meq.Conj(cx)) 
-   JEN_bookmarks.create(cc, group)
-   bb.append(ns[group] << Meq.Add(children=cc)) 
+   gg.append(ns[group] << Meq.Add(children=cc)) 
+   if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'round'
+   group = 'unop_round'
    cc = [xn]
    cc.append(ns << Meq.Abs(xn)) 
    cc.append(ns << Meq.Fabs(xn)) 
    cc.append(ns << Meq.Ceil(xn)) 
    cc.append(ns << Meq.Floor(xn)) 
-   JEN_bookmarks.create(cc, group)
-   bb.append(ns[group] << Meq.Add(children=cc)) 
+   gg.append(ns[group] << Meq.Add(children=cc)) 
+   if bm: JEN_bookmarks.create(cc, group)
 
 
    # The root node of the tree can have any name, but in this example it
    # should be named 'result', because this name is used in the default
    # execute command (see below), and the bookmark.
-   result = ns['result'] << Meq.Add(children=bb)
+   result = ns['result'] << Meq.Add(children=gg)
 
-   bb.append(result)
-   JEN_bookmarks.create(bb, 'overall')
+   # Optionally, make a bookpage for the group bundling nodes (gg).
+   if bm:
+      gg.append(result)
+      JEN_bookmarks.create(gg, 'unop_overall')
 
-   # Make a bookmark of the result node, for easy viewing:
+   # Standard: make a bookmark of the result node, for easy viewing:
    bm = record(name='result', viewer='Result Plotter',
                udi='/node/result', publish=True)
    Settings.forest_state.bookmarks.append(bm)
