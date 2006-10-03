@@ -43,14 +43,56 @@ def _define_forest (ns, **kwargs):
 
    gg = []
 
-
-   group = 'qualifiers'
-   sp1 = ns['station_phase'](s1=3) << 2.2
-   sp2 = ns['station_phase'](s1=4) << -5.1
+   # 
+   group = 'user_specified_name'
    cc = []
+   cc.append(ns.xxx << 1.0)
+   cc.append(ns['yyy'] << 1.0)
+   gg.append(ns[group] << Meq.Composer(children=cc))
+
+   # Automatic generation of node-names:
+   group = 'automatic_name'
+   cc = []
+   x = ns.x << 1.0
+   y = ns.y << -1.0
+   cc.append(ns << 1.0)
+   cc.append(ns << -1.0)
+   cc.append(ns << x+y)
+   cc.append(ns << x-2/y)
+   gg.append(ns[group] << Meq.Composer(children=cc))
+
+   # Qualifiers:
+   group = 'name_qualifiers'
+   sp1 = ns['station_phase'](s=3) << 2.2
+   sp2 = ns['station_phase'](s=4) << -5.1
+   cc = [sp1,sp2]
    cc.append(ns['ifr_phase'](s1=3, s2=4) << Meq.Subtract(sp1,sp2))
    cc.append(ns['qmerge'].qmerge(sp1,sp2) << Meq.Subtract(sp1,sp2))
    cc.append(ns['qadd'](q=8).qadd(sp1,sp2) << Meq.Subtract(sp1,sp2))
+   cc.append(ns['list']('a','b',7) << 1.0)
+   cc.append(ns['kwargs'](a='a',b='b',c=7) << 1.0)
+   cc.append(ns['list+kwargs']('a','b',a='a',b='b',c=7) << 1.0)
+   cc.append(ns['dict'](**dict(a='a',b='b',c=7)) << 1.0)
+   cc.append(ns['dict2'](dict(a='a',b='b',c=7)) << 1.0)
+   gg.append(ns[group] << Meq.Composer(children=cc))
+
+   # Subscope:
+   group = 'Subscope'
+   cc = []
+   nsub = ns.Subscope('ssc')
+   cc.append(nsub.zzz << 1.0)
+   cc.append(nsub['list']('a','b',7) << 1.0)
+   nsub = ns.Subscope('ssc',['a','b'])
+   cc.append(nsub['qual_list'] << 1.0)
+   gg.append(ns[group] << Meq.Composer(children=cc))
+
+   # Node-name conflict:
+   group = 'name_conflict'
+   cc = []
+   # nsub = ns.Subscope('sub')          #....??
+   cc.append(nsub.conflict << 1.0)
+   cc.append(ns.conflict << 1.0)
+   # cc.append(ns.conflict << 1.0)
    gg.append(ns[group] << Meq.Composer(children=cc))
 
    # The root node of the tree can have any name, but in this example it
