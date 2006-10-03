@@ -138,12 +138,33 @@ def main( argv ):
         # we may want additional formats
 	Z, x_max, y_max = totalpower(data, nx);
         
+        # turn 2D array into a 4D array so that pyfits will
+        # generate an image with NAXIS = 4
+        temp_array = numarray.zeros((1,1,Z.shape[0],Z.shape[1]),type=Z.type())
+        temp_array[0,0,:Z.shape[0],:Z.shape[1]] = Z
         # create basic FITS file
-        hdu = pyfits.PrimaryHDU(Z)
+        hdu = pyfits.PrimaryHDU(temp_array)
+        hdu.header.update('CTYPE1', 'M')
         hdu.header.update('CDELT1', scale, 'in radians')
+        hdu.header.update('CRPIX1', x_max+1, 'in pixels (one relative)')
+        hdu.header.update('CRVAL1', 0.0, ' M = 0 at field centre')
+        hdu.header.update('CTYPE2', 'L')
         hdu.header.update('CDELT2', scale, 'in radians')
-        hdu.header.update('CRPIX1', x_max, 'in pixels (zero relative)')
-        hdu.header.update('CRPIX2', y_max, 'in pixels (zero relative)')
+        hdu.header.update('CRPIX2', y_max+1, 'in pixels (one relative)')
+        hdu.header.update('CRVAL2', 0.0, 'L = 0 at field centre')
+
+        # add dummy stuff for time (axis 3) / frequency (axis4)
+        # as a Vells must always have time and frequency axes
+        hdu.header.update('CTYPE3', 'TIME')
+        hdu.header.update('CDELT3', 1, 'in sec')
+        hdu.header.update('CRPIX3', 1, 'in pixels (one relative)')
+        hdu.header.update('CRVAL3', 1.0, 'equates to grid point')
+        hdu.header.update('CTYPE4', 'FREQ')
+        hdu.header.update('CDELT4', 1, 'in Hz')
+        hdu.header.update('CRPIX4', 1, 'in pixels (one relative)')
+        hdu.header.update('CRVAL4', 1.0, 'equates to grid point')
+        hdu.header.update('CPLX', 0, 'false as data is real ')
+        hdu.header.update('CELLS', 1, 'true as we want cells')
 
         # write out FITS file
         outfile = argv[2]
