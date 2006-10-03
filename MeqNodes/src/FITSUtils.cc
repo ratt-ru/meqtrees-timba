@@ -974,7 +974,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 				exit(1);
 			 }
 			 /* read the whole image increment=[1,1,1,..]*/
-			 fits_read_subset(fptr, datatype, fpix, lpix, increment,
+			 fits_read_subset(fptr, TDOUBLE, fpix, lpix, increment,
 													    0, *arr, &null_flag, &status);
 
 #ifdef DEBUG
@@ -1072,8 +1072,47 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 #endif
 
 			 } else {
-				 /* no cells present, a scalar */
-				*naxis=0;
+				/* no cells present, could be a scalar */
+				/* *naxis=0; */
+				/* but try to parse header keywords */
+				fits_read_key(fptr, TLONG,"NAXIS",naxis,0,&status);
+				*naxis=*naxis+2;
+				/* time and freq are 0, 1 */
+			  if ((*naxes=(long int*)calloc((size_t)(*naxis),sizeof(long int)))==0) {
+			    fprintf(stderr,"no free memory\n");
+				  exit(1);
+			  }
+				(*naxes)[0]=(*naxes)[1]=0; /* no t,f dependence */
+				fits_read_key(fptr, TLONG,"NAXIS1",&((*naxes)[2]),0,&status);
+				fits_read_key(fptr, TLONG,"NAXIS2",&((*naxes)[3]),0,&status);
+				/* determine the grid */
+        /* cells of each axes (centers) */
+	  	  if ((*cells=(double**)calloc((size_t)(*naxis),sizeof(double*)))==0) {
+			  	fprintf(stderr,"no free memory\n");
+			  	exit(1);
+			  }
+				for (ii=0; ii<*naxis; ii++) {
+				if ((*naxes)[ii]) {
+	  	   if (((*cells)[ii]=(double*)calloc((size_t)((*naxes)[ii]),sizeof(double)))==0) {
+				  fprintf(stderr,"no free memory\n");
+				  exit(1);
+			   }
+				}
+				}
+        double cdelt,crpix; 
+				fits_read_key(fptr, TDOUBLE,"CDELT1",&cdelt,0,&status);
+				fits_read_key(fptr, TDOUBLE,"CRPIX1",&crpix,0,&status);
+				/* axis 1 */
+				for (ii=0; ii<(*naxes)[2]; ii++) {
+         (*cells)[2][ii]=(ii+1-crpix)*cdelt;
+				}
+				fits_read_key(fptr, TDOUBLE,"CDELT2",&cdelt,0,&status);
+				fits_read_key(fptr, TDOUBLE,"CRPIX2",&crpix,0,&status);
+				/* axis 1 */
+				for (ii=0; ii<(*naxes)[3]; ii++) {
+         (*cells)[3][ii]=(ii+1-crpix)*cdelt;
+				}
+
 			 }
 			 fits_close_file(fptr,&status);
 
