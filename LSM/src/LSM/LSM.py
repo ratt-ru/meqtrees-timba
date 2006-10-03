@@ -1626,8 +1626,13 @@ class LSM:
 
 
  # build the LSM from a NewStar .MDL model file
- def build_from_newstar(self,infile_name,ns,verbose=1):
+ # if ignore_pol=True, Stokes Q,U,V are ignored
+ # if only_cleancomp=True, only clean components are used to build the LSM
+ # if no_cleancomp=True, no clean components are used to build the LSM
+ # dont use the above two together!
+ def build_from_newstar(self,infile_name,ns,verbose=1,ignore_pol=False, only_cleancomp=False, no_cleancomp=False):
 
+    # read mdl.dsc and "MDL_O_DEF" on how I did this
     ff=open(infile_name,mode="rb")
     #### read header -- 512 bytes
     gfh=numarray.fromfile(ff,'b',(512,1))
@@ -1770,37 +1775,119 @@ class LSM:
        RM=struct.unpack('f',mdl[44:48])
        RM=RM[0]
 
-       ###### the remaining is not needed
+       ### bits
+       ## Bits: bit 0= extended; bit 1= Q|U|V <>0
+       bit1=struct.unpack('B',mdl[52:53])
+       ### Type: bit 0= clean component; bit 3= beamed
+       bit2=struct.unpack('B',mdl[53:54])
+
+       bit1=bit1[0]
+       bit2=bit2[0]
 
        #print ii,id,ll,mm,sI,sQ,sU,sV,eX,eY,eP,SI,RM
+       ###### the remaining is not needed
 
-       # NEWSTAR MDL lists might have same source twice if they are 
-       # clean components, so make a unique name for them
-       bname='NEWS'+str(id);
-       if unamedict.has_key(bname):
-         uniqname=ns.MakeUniqueName(bname)
-         unamedict[bname]=unamedict[bname]+1
-       else:
-         uniqname=bname
-         unamedict[bname]=1
+       if only_cleancomp==True:
+          # only include extendend source with clean component
+          if bit1==0 and bit2==1:
+            # NEWSTAR MDL lists might have same source twice if they are 
+            # clean components, so make a unique name for them
+            bname='NEWS'+str(id);
+            if unamedict.has_key(bname):
+              uniqname=ns.MakeUniqueName(bname)
+              unamedict[bname]=unamedict[bname]+1
+            else:
+              uniqname=bname
+              unamedict[bname]=1
 
-       s=Source(uniqname, major=eX, minor=eY, pangle=eP)
-       (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
+            s=Source(uniqname, major=eX, minor=eY, pangle=eP)
+            (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
 
-       #print ii,id,ll,mm,source_RA,source_Dec
-       if SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
-        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
-       elif (RM==0):
-        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
-       else:
-        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+            #print ii,id,ll,mm,source_RA,source_Dec
+            if ignore_pol:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+            elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+            elif (RM==0):
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+            else:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
 
-       # first compose the sixpack before giving it to the LSM
-       my_sixpack.sixpack(ns)
-       self.add_source(s,brightness=sI,
-                sixpack=my_sixpack,
-                ra=source_RA, dec=source_Dec)
+            # first compose the sixpack before giving it to the LSM
+            my_sixpack.sixpack(ns)
+            self.add_source(s,brightness=sI,
+                     sixpack=my_sixpack,
+                     ra=source_RA, dec=source_Dec)
+          else:
+           pass
  
+       elif no_cleancomp==True:
+          # exclude extendend source with clean component
+          if bit1==0 and bit2==1:
+            pass
+          else:
+            # NEWSTAR MDL lists might have same source twice if they are 
+            # clean components, so make a unique name for them
+            bname='NEWS'+str(id);
+            if unamedict.has_key(bname):
+              uniqname=ns.MakeUniqueName(bname)
+              unamedict[bname]=unamedict[bname]+1
+            else:
+              uniqname=bname
+              unamedict[bname]=1
+
+            s=Source(uniqname, major=eX, minor=eY, pangle=eP)
+            (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
+
+            #print ii,id,ll,mm,source_RA,source_Dec
+            if ignore_pol:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+            elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+            elif (RM==0):
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+            else:
+             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+
+            # first compose the sixpack before giving it to the LSM
+            my_sixpack.sixpack(ns)
+            self.add_source(s,brightness=sI,
+                     sixpack=my_sixpack,
+                     ra=source_RA, dec=source_Dec)
+
+ 
+       else:
+          # add all sources
+          # NEWSTAR MDL lists might have same source twice if they are 
+          # clean components, so make a unique name for them
+          bname='NEWS'+str(id);
+          if unamedict.has_key(bname):
+            uniqname=ns.MakeUniqueName(bname)
+            unamedict[bname]=unamedict[bname]+1
+          else:
+            uniqname=bname
+            unamedict[bname]=1
+
+          s=Source(uniqname, major=eX, minor=eY, pangle=eP)
+          (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
+
+          #print ii,id,ll,mm,source_RA,source_Dec
+          if ignore_pol:
+           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+          elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
+           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+          elif (RM==0):
+           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+          else:
+           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+
+          # first compose the sixpack before giving it to the LSM
+          my_sixpack.sixpack(ns)
+          self.add_source(s,brightness=sI,
+                   sixpack=my_sixpack,
+                   ra=source_RA, dec=source_Dec)
+ 
+
     ff.close()
     self.setNodeScope(ns)
     self.setFileName(infile_name+'.lsm')
