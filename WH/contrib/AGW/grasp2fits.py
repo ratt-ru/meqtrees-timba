@@ -142,8 +142,15 @@ def main( argv ):
         # generate an image with NAXIS = 4
         temp_array = numarray.zeros((1,1,Z.shape[0],Z.shape[1]),type=Z.type())
         temp_array[0,0,:Z.shape[0],:Z.shape[1]] = Z
+
         # create basic FITS file
         hdu = pyfits.PrimaryHDU(temp_array)
+
+        # note: defining M as the fastest moving axis (FITS uses
+        # FORTRAN-style indexing) produces an image that when
+        # viewed with kview / ds9 etc looks correct on the sky 
+        # with M increasing to left and L increasing toward top
+        # of displayed image
         hdu.header.update('CTYPE1', 'M')
         hdu.header.update('CDELT1', (-1.0) * scale, 'in radians')
         hdu.header.update('CRPIX1', y_max+1, 'reference pixel (one relative)')
