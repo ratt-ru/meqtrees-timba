@@ -145,7 +145,7 @@ def main( argv ):
         # create basic FITS file
         hdu = pyfits.PrimaryHDU(temp_array)
         hdu.header.update('CTYPE1', 'M')
-        hdu.header.update('CDELT1', scale, 'in radians')
+        hdu.header.update('CDELT1', (-1.0) * scale, 'in radians')
         hdu.header.update('CRPIX1', y_max+1, 'in pixels (one relative)')
         hdu.header.update('CRVAL1', 0.0, ' M = 0 at field centre')
         hdu.header.update('CTYPE2', 'L')
