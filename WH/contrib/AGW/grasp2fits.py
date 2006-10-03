@@ -146,11 +146,11 @@ def main( argv ):
         hdu = pyfits.PrimaryHDU(temp_array)
         hdu.header.update('CTYPE1', 'M')
         hdu.header.update('CDELT1', scale, 'in radians')
-        hdu.header.update('CRPIX1', x_max+1, 'in pixels (one relative)')
+        hdu.header.update('CRPIX1', y_max+1, 'in pixels (one relative)')
         hdu.header.update('CRVAL1', 0.0, ' M = 0 at field centre')
         hdu.header.update('CTYPE2', 'L')
         hdu.header.update('CDELT2', scale, 'in radians')
-        hdu.header.update('CRPIX2', y_max+1, 'in pixels (one relative)')
+        hdu.header.update('CRPIX2', x_max+1, 'in pixels (one relative)')
         hdu.header.update('CRVAL2', 0.0, 'L = 0 at field centre')
 
         # add dummy stuff for time (axis 3) / frequency (axis4)
