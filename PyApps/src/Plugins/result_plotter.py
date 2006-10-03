@@ -165,6 +165,8 @@ class ResultPlotter(GriddedPlugin):
     self.actual_rank = None
     self.plot_3D = False
     self.ND_plotter = None
+    self.ND_labels = None
+    self.ND_parms = None 
     self.layout_created = False
 
     self.reset_plot_stuff()
