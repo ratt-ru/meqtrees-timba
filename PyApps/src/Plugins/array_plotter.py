@@ -159,10 +159,10 @@ class ArrayPlotter(GriddedPlugin):
             else:
               if first_axis is None:
                 first_axis = i
-        if not first_axis is None and not second_axis is None:
+        if not second_axis is None:
           self.array_selector = []
           for i in range(self.array_rank):
-            if i == first_axis:
+            if not first_axis is None and i == first_axis:
               axis_slice = slice(0,self.data.shape[first_axis])
               self.array_selector.append(axis_slice)
             elif i == second_axis:
