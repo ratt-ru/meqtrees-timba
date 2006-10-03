@@ -18,7 +18,7 @@
 # - demo_tensor.py:             JEN
 #     behaviour of mean etc!
 
-# - demo_matrix22.py            JEN
+# - demo_matrix.py              JEN
 #     check of inverse
 
 # - demo_reqseq.py:             OMS
@@ -38,7 +38,7 @@
 # - demo_dataCollect.py:        AGW
 # - demo_historyCollect.py:     AGW
 
-# - demo_flag.py:               JEN
+# - demo_flagging.py:           JEN
 
 # - demo_uvbrick.py:            RJN
 

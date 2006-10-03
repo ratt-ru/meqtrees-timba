@@ -37,18 +37,6 @@ Settings.forest_state.bookmarks = []
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
-# Binop:
-#   1367 2006-09-14 14:36 Pow.cc
-#   1373 2006-09-14 14:36 Polar.cc
-#   1409 2006-09-14 14:36 ToComplex.cc
-#   1395 2006-09-14 14:36 Add.cc
-#   1903 2006-09-14 14:36 Multiply.cc
-#   1367 2006-09-14 14:36 Divide.cc
-#   1479 2006-09-14 14:36 Subtract.cc
-#   1935 2006-09-14 14:36 WMean.cc
-
-
-
    # Organised in named groups of related unary operations.
    # The nodes of each group are collected in a list (cc).
    # Groups are bundled by supplying the cc as children to an Add node.
@@ -74,8 +62,10 @@ def _define_forest (ns, **kwargs):
    group = 'binop'
    cc = [x,y]
    cc.append(ns << Meq.Add(x,y)) 
+   cc.append(ns << Meq.Add(x,y,y,y)) 
    cc.append(ns << Meq.Subtract(x,y)) 
    cc.append(ns << Meq.Multiply(x,y)) 
+   cc.append(ns << Meq.Multiply(x,y,x,x)) 
    cc.append(ns << Meq.Divide(x,y)) 
    cc.append(ns << Meq.Pow(x,y)) 
    cc.append(ns << Meq.toComplex(x,y)) 
