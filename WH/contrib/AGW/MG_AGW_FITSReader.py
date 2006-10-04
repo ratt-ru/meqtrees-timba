@@ -63,8 +63,9 @@ def _define_forest(ns):
  MG_MXM_functional._add_axes_to_forest_state(['L','M']);
 
  home_dir = os.environ['HOME']
+ ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm')
  infile_name = home_dir + '/Timba/WH/contrib/AGW/demo.fits'
- image_root = ns.image << Meq.FITSImage(filename=infile_name);
+ image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0);
 
  # Define Bookmarks
  JEN_bookmarks.create(image_root,page="Image",viewer="Result Plotter");
