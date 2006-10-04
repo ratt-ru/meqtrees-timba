@@ -779,8 +779,9 @@ class ResultPlotter(GriddedPlugin):
 
       self._visu_plotter.setVellsPlot(self._vells_plot)
 
-      if self._vells_data.getShapeChange():
-        self.update_display_control()
+# vells axes can change even if data shape has not changed
+# so we been to always call this function
+      self.update_display_control()
 
 # generate basic menu
       self._visu_plotter.initVellsContextMenu()
