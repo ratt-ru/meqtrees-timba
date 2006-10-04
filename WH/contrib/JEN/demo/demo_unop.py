@@ -26,8 +26,6 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from qt import *
-# from numarray import *
 
 # Optional:
 from Timba.Contrib.JEN.util import JEN_bookmarks
@@ -163,9 +161,10 @@ def _tdl_job_execute (mqs, parent):
        
 def _tdl_job_zero (mqs, parent):
     """Execute the forest, with zero value(s) in the request"""
-    domain = meq.domain(0,10,0,1)                              # (f1,f2,t1,t2)
+    domain = meq.domain(-0.25,9.25,0,1)                              # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=20, num_time=1)
-    request = meq.request(cells, rqtype='ev')
+    rqid = meq.requestid(domain_id=2)
+    request = meq.request(cells, rqtype='ev', rqid=rqid)
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
 
@@ -173,7 +172,8 @@ def _tdl_job_negative (mqs, parent):
     """Execute the forest, with negative values in the request"""
     domain = meq.domain(-10,10,0,1)                               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=20, num_time=1)
-    request = meq.request(cells, rqtype='ev')
+    rqid = meq.requestid(domain_id=3)
+    request = meq.request(cells, rqtype='ev', rqid=rqid)
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        

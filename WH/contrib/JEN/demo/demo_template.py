@@ -15,10 +15,6 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from qt import *
-# from numarray import *
-
-# from Timba.Contrib.JEN.util import JEN_bookmarks
 
 # Make sure that all nodes retain their results in their caches,
 # for your viewing pleasure.
