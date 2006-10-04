@@ -153,7 +153,7 @@ class QwtImageDisplay(QwtPlot):
         'Delete X-Section Display': 305,
         'Toggle real/imag or ampl/phase Display': 306,
         'Toggle axis flip': 307,
-        'Toggle logarithmic range for image': 308,
+        'Toggle logarithmic range for data': 308,
         'Toggle results history': 309,
         'Toggle Metrics Display': 310,
         'Toggle log axis for chi_0': 311,
@@ -534,7 +534,7 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.display_image(self.complex_image)
         return True
-      if menuid == self.menu_table['Toggle logarithmic range for image']:
+      if menuid == self.menu_table['Toggle logarithmic range for data']:
         if self.toggle_log_display == False:
           self._menu.changeItem(menuid, 'Show Data with linear scale')
           self.toggle_log_display = True
@@ -602,7 +602,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(menuid, 'Show Solver Solutions')
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, False)
-          toggle_id = self.menu_table['Toggle logarithmic range for image']
+          toggle_id = self.menu_table['Toggle logarithmic range for data']
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
@@ -613,7 +613,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(menuid, 'Show chi-square surfaces')
           toggle_id = self.menu_table['Toggle Metrics Display']
           self._menu.setItemVisible(toggle_id, True)
-          toggle_id = self.menu_table['Toggle logarithmic range for image']
+          toggle_id = self.menu_table['Toggle logarithmic range for data']
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
@@ -1014,8 +1014,11 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemVisible(toggle_id, False)
       toggle_id = self.menu_table['Toggle Color/GrayScale Display']
       self._menu.setItemVisible(toggle_id, False)
-      toggle_id = self.menu_table['Toggle logarithmic range for image']
+      toggle_id = self.menu_table['Toggle logarithmic range for data']
       self._menu.setItemVisible(toggle_id, False)
+      self.log_switch_set = False
+
+
 
 # a scalar has no legends!
       toggle_id = self.menu_table['Toggle Plot Legend']
@@ -2187,8 +2190,11 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False and not self.log_switch_set:
-        toggle_id = self.menu_table['Toggle logarithmic range for image']
-        self._menu.changeItem(toggle_id, 'Show Data with logarithmic scale')
+        toggle_id = self.menu_table['Toggle logarithmic range for data']
+        if self.toggle_log_display:
+          self._menu.changeItem(toggle_id, 'Show Data with linear scale')
+        else:
+          self._menu.changeItem(toggle_id, 'Show Data with logarithmic scale')
         self._menu.setItemVisible(toggle_id, True)
         self.log_switch_set = True
 
@@ -2668,9 +2674,10 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
 
-        toggle_id = self.menu_table['Toggle logarithmic range for image']
-        self._menu.insertItem("Toggle logarithmic range for image", toggle_id)
+        toggle_id = self.menu_table['Toggle logarithmic range for data']
+        self._menu.insertItem("Toggle logarithmic range for data", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
+        self.log_switch_set = False
 
 # add potential menu for flagged data
         self.set_flag_toggles()
