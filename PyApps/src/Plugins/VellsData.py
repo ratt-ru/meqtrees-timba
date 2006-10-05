@@ -129,6 +129,8 @@ class VellsData:
 
    def getVellsDataParms(self):
      """ returns vells parameters for use with the visualization display """
+     _dprint(3,'received method call')
+
      return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape]
 
    def StoreVellsData(self, vells_rec, rq_label = ''):
@@ -143,6 +145,7 @@ class VellsData:
      self.rq_label = rq_label
      _dprint(3,' self.rq_label = ', self.rq_label)
      self.calc_vells_ranges(vells_rec)
+     _dprint(3,'now after calc_vells_ranges')
 
      self._number_of_planes = len(vells_rec["vellsets"])
      _dprint(3, 'number of planes ', self._number_of_planes)
