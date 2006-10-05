@@ -88,7 +88,7 @@ def getdata( filename ):
 	return data, (scale*180.0/math.pi)
 
 def totalpower( data, nx ):
-	Z = numarray.zeros( (nx, nx), numarray.Float32 )
+	Z = numarray.zeros( (nx, nx), numarray.Float64 )
 	C = len(data)
 	L = len(data[0])
 	m = 0.0
@@ -137,6 +137,7 @@ def main( argv ):
         # presently get data array as total power 
         # we may want additional formats
 	Z, x_max, y_max = totalpower(data, nx);
+        print 'array max and position ', Z.max(), ' ', x_max,' ', y_max
         
         # turn 2D array into a 4D array so that pyfits will
         # generate an image with NAXIS = 4
@@ -154,11 +155,11 @@ def main( argv ):
         hdu.header.update('CTYPE1', 'M')
         hdu.header.update('CDELT1', (-1.0) * scale, 'in radians')
         hdu.header.update('CRPIX1', y_max+1, 'reference pixel (one relative)')
-        hdu.header.update('CRVAL1', 0.0, ' M = 0 at field centre')
+        hdu.header.update('CRVAL1', 0.0, 'M = 0 at beam peak')
         hdu.header.update('CTYPE2', 'L')
         hdu.header.update('CDELT2', scale, 'in radians')
         hdu.header.update('CRPIX2', x_max+1, 'reference pixel (one relative)')
-        hdu.header.update('CRVAL2', 0.0, 'L = 0 at field centre')
+        hdu.header.update('CRVAL2', 0.0, 'L = 0 at beam peak')
 
         # add dummy stuff for time (axis 3) / frequency (axis4)
         # as a Vells must always have time and frequency axes
@@ -173,12 +174,43 @@ def main( argv ):
         hdu.header.update('CPLX', 0, 'false as data is real ')
         hdu.header.update('CELLS', 1, 'true as we want cells')
 
+        # create initial HDUList
+        hdulist = pyfits.HDUList([hdu])
+
+        # create auxiliary table for FitsReader with:
+        # No of columns  = no. of axes
+        # No. of rows = length of the axis with maximum grid points + 1
+        # Table name = 'Cells_TBL'
+        # In each column, the first element gives the length of that axis
+        # (column).
+        # So if an axis is undefined, this is 0 and no elements from 
+        # that column is read.
+        axis1_vals = numarray.zeros((Z.shape[1]+1,),type=numarray.Float32)
+        axis1_vals[0] = Z.shape[1]
+        for i in range(Z.shape[1]):
+          axis1_vals[i+1] =  scale * (y_max - i)
+        c1 = pyfits.Column(name='naxis1',format='E', array=axis1_vals)
+        axis2_vals = numarray.zeros((Z.shape[0]+1,),type=numarray.Float32)
+        axis2_vals[0] = Z.shape[0]
+        for i in range(Z.shape[0]):
+          axis2_vals[i+1] = (-1.0) * scale * (x_max - i)
+        c2 = pyfits.Column(name='naxis2',format='E', array=axis2_vals)
+
+        #last two columns are dummies
+        c3 = pyfits.Column(name='naxis3',format='E', array=[1,1])
+        c4 = pyfits.Column(name='naxis4',format='E', array=[1,1])
+
+        aux_table = pyfits.new_table([c1,c2,c3,c4])
+
+        # add this auxiliary table to HDUList
+        hdulist.append(aux_table)
+
         # write out FITS file
         outfile = argv[2]
         # delete any previous file
         if os.path.exists(outfile):
           os.remove(outfile)
-        hdu.writeto(outfile)
+        hdulist.writeto(outfile)
 #=============================
 if __name__ == "__main__":
   if len(sys.argv) < 3:

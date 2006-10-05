@@ -66,9 +66,12 @@ def _define_forest(ns):
  ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm')
  infile_name = home_dir + '/Timba/WH/contrib/AGW/demo.fits'
  image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0);
+ reader_root = ns.reader << Meq.FITSReader(filename=infile_name);
+ ns.reqseq << Meq.ReqSeq(ns.image, ns.reader, result_index=1)
 
  # Define Bookmarks
  JEN_bookmarks.create(image_root,page="Image",viewer="Result Plotter");
+ JEN_bookmarks.create(reader_root,page="Image",viewer="Result Plotter");
 
 ########################################################################
 
@@ -88,7 +91,7 @@ def _test_forest(mqs,parent):
                                              nr_cells=nr_cells)
 
  # And execute the Tree ...
- args=record(name='image', request=request);
+ args=record(name='reqseq', request=request);
  mqs.meq('Node.execute', args, wait=False);
    
 
