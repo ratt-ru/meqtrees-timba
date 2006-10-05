@@ -149,6 +149,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                             input_index=input_index,
                                                             top_label=hiid('history'))
       hcoll_nodes.append(hcoll)
+      print 'creating bookmark for ',hcoll
       JEN_bookmarks.create(hcoll, viewer='History Plotter',
                            page=pagename, folder=pp['bookfolder'])
 
@@ -162,6 +163,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
+         print 'creating bookmark for ',hcoll
          JEN_bookmarks.create(hcoll, viewer='History Plotter', 
                               page=pagename, folder=pp['bookfolder'])
 
@@ -178,6 +180,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
+         print 'creating bookmark for ',hcoll
          JEN_bookmarks.create(hcoll, viewer='History Plotter', 
                               page=pagename, folder=pp['bookfolder'])
 
@@ -191,6 +194,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                   input_index=input_index,
                                                                   top_label=hiid('history'))
             hcoll_nodes.append(hcoll)
+            print 'creating bookmark for ',hcoll
             JEN_bookmarks.create(hcoll, viewer='History Plotter', 
                                  page=pagename, folder=pp['bookfolder'])
 
@@ -235,7 +239,6 @@ def insert_hcoll(ns, node, **pp):
       name = 'hcoll_'+node.name             
    hcoll = ns[name](uniqual) << Meq.HistoryCollect(hcoll_input, verbose=True,
                                                    input_index=pp['input_index'],
-                                                   # top_label=hiid('visu'))
                                                    top_label=hiid('history'))
    # Make a bookmark for the hcoll, if required:
    if pp['bookpage'] or pp['bookfolder']:
@@ -264,11 +267,6 @@ def insert_hcoll_flags (ns, node, **pp):
 #------------------------------------------------------------------------------
 # Remarks:
 #------------------------------------------------------------------------------
-
-# -) From some emails between OMS and AGW, it appeared that top_label should be
-#     'history' rather than 'visu'. However, if I do that, the history plotter
-#     refuses to make a plot because it cannot find a visu field in the result!!
-#     So, what should I do here?
 
 # -) The input_index allows the specification of the field from which info is to
 #    be collected. Its syntax is still a bit primitive:
