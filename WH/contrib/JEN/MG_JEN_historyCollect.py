@@ -270,8 +270,8 @@ def insert_hcoll_flags (ns, node, **pp):
 
 # -) The input_index allows the specification of the field from which info is to
 #    be collected. Its syntax is still a bit primitive:
-#    - What if the result hase more 'planes' than one (0), but I do not know in
-#      advance hoe many?
+#    - What if the result has more 'planes' than one (0), but I do not know in
+#      advance how many?
 #    - The solver metrics produce a record with fit,rank,mu etc for each iteration.
 #      There does not seem to be a way to extract the vector of all mu-values for
 #      all iterations (the nr of which may vary from snippet to snippet!)
@@ -282,7 +282,7 @@ def insert_hcoll_flags (ns, node, **pp):
 #    It does not show any flags, while it does have them (use record browser)
 
 
-# -) The next step is to pull out data anf flags, and concatenate
+# -) The next step is to pull out data and flags, and concatenate
 #         with a dataCollect for AGW to handle....     
 
 
