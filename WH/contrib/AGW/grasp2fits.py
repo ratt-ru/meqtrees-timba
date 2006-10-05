@@ -180,7 +180,7 @@ def main( argv ):
         # create auxiliary table for FitsReader with:
         # No of columns  = no. of axes
         # No. of rows = length of the axis with maximum grid points + 1
-        # Table name = 'Cells_TBL'
+        # Table name = 'Cells_TBL' - not done
         # In each column, the first element gives the length of that axis
         # (column).
         # So if an axis is undefined, this is 0 and no elements from 
