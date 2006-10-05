@@ -302,8 +302,9 @@ def _test_forest (mqs, parent):
    global x
    x += 1
    MG_JEN_exec.meqforest (mqs, parent, nfreq=MG['nfreq'], ntime=MG['ntime'],
-                             f1=x, f2=x+1, t1=x, t2=x+1,
-                             save=True, trace=False) 
+                          f1=x, f2=x+1, t1=x, t2=x+1,
+                          increment=True,
+                          save=True, trace=False) 
    return True
 
 #--------------------------------------------------------
@@ -317,6 +318,7 @@ def _tdl_job_2D_freqtime (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=MG['nfreq'], ntime=MG['ntime'],
                              f1=x, f2=x+1, t1=x, t2=x+1,
+                             increment=True,
                              save=False, trace=False) 
    MG_JEN_forest_state.save_meqforest(mqs) 
    return True
@@ -330,6 +332,7 @@ def _tdl_job_1D_freq (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=MG['nfreq'], ntime=1,
                              f1=x, f2=x+1, t1=x, t2=x+1,
+                             increment=True,
                              save=False, trace=False)
    MG_JEN_forest_state.save_meqforest(mqs) 
    return True
@@ -343,6 +346,7 @@ def _tdl_job_1D_time (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=1, ntime=MG['ntime'],
                              f1=x, f2=x+1, t1=x, t2=x+1,
+                             increment=True,
                              save=False, trace=False)
    MG_JEN_forest_state.save_meqforest(mqs)  
    return True
@@ -356,6 +360,7 @@ def _tdl_job_scalar (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=1, ntime=1,
                              f1=x, f2=x+1, t1=x, t2=x+1,
+                             increment=True,
                              save=False, trace=False)
    MG_JEN_forest_state.save_meqforest(mqs)  
    return True

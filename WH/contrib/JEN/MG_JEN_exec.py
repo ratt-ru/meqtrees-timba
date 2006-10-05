@@ -15,6 +15,7 @@
 # - 21 mar 2006: -> JEN_bookmarks.py
 # - 21 mar 2006: -> JEN_object.py and TDL_display.py
 # - 15 apr 2006: added cache_policy etc to stream_control
+# - 05 oct 2006: implemented 'increment' option in .execute()
 
 # Copyright: The MeqTree Foundation 
 
@@ -698,9 +699,18 @@ def execute (mqs, parent, request=None, **pp):
 # Request generation functions:
 #================================================================================
 
+domain_id = 0
+
 def make_request (request=None, **pp):
    """Helper function to make sure of a request"""
    pp.setdefault('trace', False)
+   pp.setdefault('increment', False)       
+
+   global domain_id
+   if pp['increment']:
+      domain_id += 1
+   rqid = meq.requestid(domain_id=domain_id)
+
    s = '** make_request('+str(type(request))+'):'
    if request==None:
       pp.setdefault('cells', None)
@@ -710,11 +720,12 @@ def make_request (request=None, **pp):
       if True:
          # Simplest, but a bit limited:
          # request = meq.request(cells, eval_mode=0);
-         request = meq.request(cells, rqtype='ev');
+         request = meq.request(cells, rqtype='ev', rqid=rqid);
       else:
          # Better? (make sure that the domain/cell parameters in pp are not in the way)
          # pp.setdefault('eval_mode', 0)
          pp.setdefault('rqtype', 'ev')
+         pp.setdefault('rqid', rqid)
          request = meq.request(cells, **pp);
       if pp['trace']: print s,'pp =',pp
    if pp['trace']: print s,'->',request
