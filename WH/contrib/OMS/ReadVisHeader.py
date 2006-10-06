@@ -30,6 +30,6 @@ def process_vis_header (hdr):
                 set_state(label+':'+sn,value=pos[j,iant]);
         except: pass;
     # array reference position
-    #for (j,label) in enumerate(coords):
-    #  set_state(label+'0',value=pos[j,0]);
+    for (j,label) in enumerate(coords):
+      set_state(label+'0',value=pos[j,0]);
     print 'END OF READ_MSVIS_HEADER'
