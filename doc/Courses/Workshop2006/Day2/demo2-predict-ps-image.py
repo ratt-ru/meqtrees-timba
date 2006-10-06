@@ -52,7 +52,7 @@ def _define_forest (ns):
   ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
   
 
-def _test_forest (mqs,parent):
+def _tdl_job_1_simulate_MS (mqs,parent):
   # create an I/O request
   req = meq.request();
   req.input = record( 
@@ -69,6 +69,21 @@ def _test_forest (mqs,parent):
   );
   # execute    
   mqs.execute('vdm',req,wait=False);
+
+def _tdl_job_2_make_image (mqs,parent):
+  import os
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g','MODEL_DATA',
+    'ms=demo.MS','mode='+imaging_mode,
+    'weight='+imaging_weight,
+    'stokes='+imaging_stokes]);
+
+
+# some options for the imager -- these will be automatically placed
+# in the "TDL Exec" menu
+TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
+TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]);
+TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
+
 
 
 # setup a few bookmarks
