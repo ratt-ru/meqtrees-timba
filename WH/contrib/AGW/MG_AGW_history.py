@@ -31,7 +31,7 @@
 # Author: Tony Willis (AGW), DRAO
 
 # History:
-# - 04 oct 2006: first version checked in
+# - 09 oct 2006: first version checked in
 
 # Copyright: The MeqTree Foundation
 
@@ -47,55 +47,40 @@ from numarray import *
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
 
-# Make sure our solver root node is not cleaned up
-Settings.orphans_are_roots = True;
-
-global counter , request_number
-counter = 1.0
-request_number = 1
-
 def _define_forest (ns):
-  """define_forest() is a standard TDL name. When a forest script is
-  loaded by, e.g., the browser, this method is automatically called to
-  define the forest. The 'ns' argument is a NodeScope object in which
-  the forest is to be defined, usually this is simply the global scope.
-  """;
-  global counter
- 
-# first create GaussNoise node
+  """ standard TDL _define_forest node """
+# first create a GaussNoise node
   ns['noise'] <<Meq.GaussNoise(stddev=1.0)
-  amplified_noise = ns << ns['noise'] * counter
-  JEN_bookmarks.create (amplified_noise, viewer='Result Plotter', page="demo")
+# display contents of node by a bookmark`
+  JEN_bookmarks.create (ns['noise'], viewer='Result Plotter', page="demo")
+# create a HistoryCollect node that will store all the
+# data that is passed to it from the GaussNoise node
   input_index = hiid('VellSets/0/Value')
-  ns['history'] <<Meq.HistoryCollect(amplified_noise,  verbose=True,
+  ns['history'] <<Meq.HistoryCollect(ns['noise'],  verbose=True,
                          input_index=input_index, top_label=hiid('history'))
+# display contents of node by a bookmark`
   JEN_bookmarks.create (ns['history'], viewer='History Plotter', page="demo")
 
 def _test_forest (mqs,parent):
-  """test_forest() is a standard TDL name. When a forest script is
-  loaded by, e.g., the browser, and the "test" option is set to true,
-  this method is automatically called after define_forest() to run a 
-  test on the forest. The 'mqs' argument is a meqserver proxy object.
-  """;
-  global counter, request_number
-# we create a time-frequency 'domain' with range 0 to 2 in frequency and
-# 0 to 1 in time.
-# Split the domain into a 16 x 8 "cells' array in time and
+  """ standard TDL _test_forest node """
+# we create a time-frequency 'domain' with range 0 to 2 in 
+# frequency and 0 to 1 in time.
+# Split the domain into a 8 x 16 "cells' array in time and
 # frequency. The frequency range will be split into 16 increments,
-# while the time range will be split into 8 increments
-# time
+# while the time range will be split into 8 time increments
   cells = meq.cells(meq.domain(0,2,0,1),num_freq=16,num_time=8);
+
+# Then execute the tree 5 times. The HistoryCollect node will
+# collect the data for display.
+  request_number = 1
   for i in range(5):
     rqid = meq.requestid(domain_id=request_number)
     request = meq.request(cells,rqtype='ev',rqid=rqid)
     a = mqs.meq('Node.Execute',record(name='history',request=request),wait=True);
-    counter = counter * 2
     request_number = request_number + 1
-
 
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
-
 if __name__ == '__main__':
 #  from Timba.Meq import meqds 
   Timba.TDL._dbg.set_verbose(5);
