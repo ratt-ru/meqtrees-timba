@@ -1,6 +1,7 @@
 from Timba.TDL import *
-from Timba.Contrib.OMS.PointSource import *
-from Timba.Contrib.OMS.GaussianSource import *
+import Meow
+from Meow.PointSource import *
+from Meow.GaussianSource import *
 import random
 
 # reference frequency for IHPBW above, also for spectral index in sources below

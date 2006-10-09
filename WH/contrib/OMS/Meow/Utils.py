@@ -115,7 +115,7 @@ def create_inputrec (tiling=None):
       rec.tile_size = tiling;
     rec.selection = ms_selection or record();
     rec = record(ms=rec);
-  rec.python_init = 'Timba.Contrib.OMS.ReadVisHeader';
+  rec.python_init = 'Meow.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
   return rec;
 

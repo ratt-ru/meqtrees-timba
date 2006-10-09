@@ -23,10 +23,10 @@
 #
 
 from Timba.TDL import *
-from Timba.Contrib.OMS.Utils import *
-from Timba.Contrib.OMS.Direction import *
-from Timba.Contrib.OMS.PointSource import *
-from Timba.Contrib.OMS.GaussianSource import *
+from Meow.Utils import *
+from Meow.Direction import *
+from Meow.PointSource import *
+from Meow.GaussianSource import *
 import sets
 
 # some CLAR constants

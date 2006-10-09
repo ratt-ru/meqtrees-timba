@@ -5,11 +5,12 @@ import os
 import random
 
 import models
-from Timba.Contrib.OMS.IfrArray import IfrArray
-from Timba.Contrib.OMS.Observation import Observation
-from Timba.Contrib.OMS import Jones
-from Timba.Contrib.OMS import Bookmarks
-from Timba.Contrib.OMS import Utils
+import Meow
+from Meow.IfrArray import IfrArray
+from Meow.Observation import Observation
+from Meow import Jones
+from Meow import Bookmarks
+from Meow import Utils
 
 
 Utils.include_ms_options(

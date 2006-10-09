@@ -4,14 +4,15 @@ import random
 
 from Timba.TDL import *
 from Timba.Meq import meq
+import Meow
 
-from Timba.Contrib.OMS.IfrArray import IfrArray
-from Timba.Contrib.OMS.Observation import Observation
-from Timba.Contrib.OMS.Parameterization import create_polc 
-from Timba.Contrib.OMS.Patch import Patch
-from Timba.Contrib.OMS.CorruptComponent import CorruptComponent 
-from Timba.Contrib.OMS.GaussianSource import GaussianSource 
-from Timba.Contrib.OMS import Jones,Bookmarks,Utils
+from Meow.IfrArray import IfrArray
+from Meow.Observation import Observation
+from Meow.Parameterization import create_polc 
+from Meow.Patch import Patch
+from Meow.CorruptComponent import CorruptComponent 
+from Meow.GaussianSource import GaussianSource 
+from Meow import Jones,Bookmarks,Utils
 
 import StandardModels
 

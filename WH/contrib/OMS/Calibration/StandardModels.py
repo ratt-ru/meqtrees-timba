@@ -1,6 +1,8 @@
 from Timba.TDL import *
-from Timba.Contrib.OMS.PointSource import *
-from Timba.Contrib.OMS.GaussianSource import *
+
+import Meow
+from Meow.PointSource import *
+from Meow.GaussianSource import *
 import random
 import math
 
@@ -37,8 +39,4 @@ def cgs (ns,observation,tablename=''):
   
   
 
-
-# Admire
-if __name__ == '__main__':
-    main(sys.argv)
 

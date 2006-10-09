@@ -27,9 +27,9 @@ from Timba.Meq import meq
 from numarray import *
 import os
 
-from Timba.Contrib.OMS.IfrArray import IfrArray
-from Timba.Contrib.OMS.Observation import Observation
-from Timba.Contrib.OMS.SkyComponent import *
+from Meow.IfrArray import IfrArray
+from Meow.Observation import Observation
+from Meow.SkyComponent import *
 import clar_model
 
 # MS name

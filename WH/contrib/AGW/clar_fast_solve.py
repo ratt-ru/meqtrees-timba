@@ -29,11 +29,11 @@ import os
 import random
 
 import clar_model 
-from Timba.Contrib.OMS.IfrArray import IfrArray
-from Timba.Contrib.OMS.Observation import Observation
-from Timba.Contrib.OMS.Patch import Patch
-from Timba.Contrib.OMS.CorruptComponent import CorruptComponent 
-from Timba.Contrib.OMS import Bookmarks,Utils
+from Meow.IfrArray import IfrArray
+from Meow.Observation import Observation
+from Meow.Patch import Patch
+from Meow.CorruptComponent import CorruptComponent 
+from Meow import Bookmarks,Utils
 
 
 # MS name
