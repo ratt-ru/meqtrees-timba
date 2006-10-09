@@ -9,8 +9,8 @@ def process_vis_header (hdr):
     """handler for the visheader""";
     # phase center
     (ra0,dec0) = hdr.phase_ref;
+    print '[ReadVisHeader] phase centre: ',ra0,dec0;
     try:
-      print 'Setting',ra0,dec0;
       set_state('ra',value=ra0);
       set_state('dec',value=dec0);
     except: pass;
@@ -26,10 +26,24 @@ def process_vis_header (hdr):
         # ignore errors
         try:
             for (j,label) in enumerate(coords):
-                print label+':'+sn, 'value = ',pos[j,iant]
+                print '[ReadVisHeader] ',label+':'+sn, 'value = ',pos[j,iant]
                 set_state(label+':'+sn,value=pos[j,iant]);
         except: pass;
     # array reference position
     for (j,label) in enumerate(coords):
       set_state(label+'0',value=pos[j,0]);
-    print 'END OF READ_MSVIS_HEADER'
+    # time extent
+    (t0,t1) = hdr.time_extent;
+    print '[ReadVisHeader] time extent: ',t0,t1;
+    try:
+      set_state('time0',value=t0);
+      set_state('time1',value=t1);
+    except: pass;
+    # freq range
+    f0,f1 = hdr.channel_freq[0],hdr.channel_freq[-1];
+    print '[ReadVisHeader] freq range: ',f0,f1;
+    try:
+      set_state('freq0',value=f0);
+      set_state('freq1',value=f1);
+    except: pass;
+    
