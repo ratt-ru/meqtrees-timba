@@ -2,7 +2,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
-import random
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -11,12 +10,16 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 
 # useful constant: 1 deg in radians
 DEG = math.pi/180.;
+ARCMIN = DEG/60;
 
-# source parameters
-I = 1; Q = 0.2; U = V = 0;
-L = 1*(DEG/60);
-M = 1*(DEG/60);
-N = math.sqrt(1-L*L-M*M);
+# source flux (same for all sources)
+I = 1; Q = .2; U = .2; V = .2;
+
+# we'll put the sources on a grid (positions in arc min)
+LM = [(-1,-1),(-1,0),(-1,1),
+      ( 0,-1),( 0,0),( 0,1), 
+      ( 1,-1),( 1,0),( 1,1)];
+SOURCES = range(len(LM));       # 0...N-1
 
 def _define_forest (ns):
   # nodes for phase center
@@ -31,30 +34,38 @@ def _define_forest (ns):
     ns.xyz(p) << Meq.Composer(ns.x(p)<<0,ns.y(p)<<0,ns.z(p)<<0);
     ns.uvw(p) << Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p));
   
-  # source l,m,n-1 vector
-  ns.lmn_minus1 << Meq.Composer(L,M,N-1);
+  # define source brightness B0 (unprojected, same for all sources)
+  ns.B0 << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
   
-  # define K-jones and G-jones
+  # source l,m,n-1 vectors
+  for src in SOURCES:
+    l,m = LM[src];
+    l = l*ARCMIN;
+    m = m*ARCMIN;
+    n = math.sqrt(1-l*l-m*m);
+    ns.lmn_minus1(src) << Meq.Composer(l,m,n-1);
+    # and the projected brightness...
+    ns.B(src) << ns.B0 / n;
+    # the beam gain
+    ns.E(src) << Meq.Pow(Meq.Cos(math.sqrt(l*l+m*m)*1.5e-6*Meq.Freq()),6);
+    ns.Et(src) << Meq.ConjTranspose(ns.E(src));
+    
+  
+  # define K-jones matrices
   for p in ANTENNAS:
-    ns.K(p) << Meq.VisPhaseShift(lmn=ns.lmn_minus1,uvw=ns.uvw(p));
-    ns.Kt(p) << Meq.ConjTranspose(ns.K(p));
-    
-    ns.G(p) << 1;
-    ns.Gt(p) << 1;
-    
-    pa = ns.pa(p) << Meq.ParAngle(radec=ns.radec0,xyz=ns.xyz(p));
-    cospa = ns << Meq.Cos(pa);
-    sinpa = ns << Meq.Sin(pa);
-    ns.P(p) << Meq.Matrix22(cospa,Meq.Negate(sinpa),sinpa,cospa);
-    ns.Pt(p) << Meq.ConjTranspose(ns.P(p));
-  
-  # define source brightness, B
-  ns.B << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
+    for src in SOURCES:
+      ns.K(p,src) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src),uvw=ns.uvw(p));
+      ns.Kt(p,src) << Meq.ConjTranspose(ns.K(p,src));
   
   # now define predicted visibilities, attach to sinks
   for p,q in IFRS:
+    # make per-source predicted visibilities
+    for src in SOURCES:
+      ns.predict(p,q,src) << \
+        Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src));
+    # and sum them up via an Add node
     predict = ns.predict(p,q) << \
-      Meq.MatrixMultiply(ns.G(p),ns.P(p),ns.K(p),ns.B,ns.Kt(q),ns.Pt(q),ns.Gt(q));
+      Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define VisDataMux
@@ -73,7 +84,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   );
   req.output = record( 
     ms = record( 
-      data_column = 'DATA' 
+      data_column = 'MODEL_DATA' 
     )
   );
   # execute    
@@ -81,7 +92,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
 
 def _tdl_job_2_make_image (mqs,parent):
   import os
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',imaging_column,
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g','MODEL_DATA',
     'ms=demo.MS','mode='+imaging_mode,
     'weight='+imaging_weight,
     'stokes='+imaging_stokes]);
@@ -89,7 +100,6 @@ def _tdl_job_2_make_image (mqs,parent):
 
 # some options for the imager -- these will be automatically placed
 # in the "TDL Exec" menu
-TDLRuntimeOption('imaging_column',"MS column to image",["DATA","MODEL_DATA"]);
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
 TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]);
 TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
@@ -98,19 +108,24 @@ TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
+  record(name='Predicted visibilities',page=[
+    record(udi="/node/predict:1:2:0",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/predict:1:9:0",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/predict:1:2:4",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/predict:1:9:4",viewer="Result Plotter",pos=(1,1)) \
+  ]),
   record(name='K Jones',page=[
     record(udi="/node/K:1",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/K:2",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/K:9",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/K:26",viewer="Result Plotter",pos=(1,1)) \
   ]),
-  record(name='G Jones',page=[
-    record(udi="/node/G:1",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/G:2",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/G:3",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/G:4",viewer="Result Plotter",pos=(1,1)) \
-  ]),
-]);
+  record(name='E Jones',page=[
+    record(udi="/node/E:0",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/E:1",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/E:4",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/E:8",viewer="Result Plotter",pos=(1,1)) \
+  ])]);
 
 
 

@@ -11,6 +11,7 @@ stokes := "I";
 # parse command line
 for( a in argv )
 {
+  print 'arg: ',a;
   if( a =='DATA' )
     imagetype:="observed";
   else if( a =='MODEL_DATA' )
@@ -63,10 +64,11 @@ myimager.done()
 im := image(imgfile);
 fitsname := spaste(imgname,'.fits');
 im.tofits(fitsname,overwrite=T);
+im.done();
 
-print "\n\n--------- wrote AIPS++ image: ",imgfile;
 print "\n\n--------- wrote FITS image: ",fitsname," ---------\n";
 
 # run Karma
+shell(spaste('rm -fr ',imgfile));
 shell(spaste('kvis ',fitsname));
 exit

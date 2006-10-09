@@ -56,7 +56,7 @@ def _define_forest (ns):
   for p,q in IFRS:
     predict = ns.predict(p,q) << \
       Meq.MatrixMultiply(ns.G(p),ns.K(p),ns.B,ns.Kt(q),ns.Gt(q));
-    ns.sink(p,q) << Meq.Sink(predict,corr_index=(0,1,2,3),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define VisDataMux
   ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
