@@ -44,6 +44,7 @@ from qt import *
 from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
+from Timba.Plugins.plotting_functions import *
 from QwtPlotImage import *
 from QwtColorBar import *
 from ND_Controller import *
@@ -137,6 +138,7 @@ class HistoryPlotter(GriddedPlugin):
     self._attributes_checked = False
     self.displayed_invalid = False
     self.array_selector = None
+    self.ND_plotter = None
     self.reset_plot_stuff()
 
     self._window_controller = None
@@ -224,14 +226,13 @@ class HistoryPlotter(GriddedPlugin):
       except: pass;
       if self._plot_array is None:
         return
-      if self._plotter is None:
-        self.actual_rank = 0
-        shape = self._plot_array.shape
-        for i in range(self._plot_array.rank):
-          if shape[i] > 1:
-            self.actual_rank = self.actual_rank + 1
-        _dprint(3, 'plot_array actual rank ', self.actual_rank)
-        self.create_image_plotters()
+      self.actual_rank = 0
+      shape = self._plot_array.shape
+      for i in range(self._plot_array.rank):
+        if shape[i] > 1:
+          self.actual_rank = self.actual_rank + 1
+      _dprint(3, 'plot_array actual rank ', self.actual_rank)
+      self.create_image_plotters()
 
       if self._plot_array.rank > 2:
         if self.array_selector is None:
@@ -255,6 +256,7 @@ class HistoryPlotter(GriddedPlugin):
             else:
               self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
+        _dprint(3, 'array_selector tuple ', self.array_tuple)
         self._plotter.array_plot(self.label +' data', self._plot_array[self.array_tuple])
         self.addTupleFlags()
       else:
@@ -330,6 +332,7 @@ class HistoryPlotter(GriddedPlugin):
         if not prev_shape is None:
           self.invalid_array_sequence()
           return
+    _dprint(3, 'max dims ', max_dims)
     for i in range(list_length):
       data_array = history_list[i]
       if len(max_dims) == 0:
@@ -367,22 +370,9 @@ class HistoryPlotter(GriddedPlugin):
     self.addTupleFlags()
 
   def setSelectedAxes (self,first_axis,second_axis,third_axis=-1):
-    if not self._plotter is None:
-      self._plotter.delete_cross_sections()
-    self.array_selector = []
-    for i in range(self._plot_array.rank):
-      if i == first_axis: 
-        axis_slice = slice(0,self._plot_array.shape[first_axis])
-        self.array_selector.append(axis_slice)
-      elif i == second_axis:
-        axis_slice = slice(0,self._plot_array.shape[second_axis])
-        self.array_selector.append(axis_slice)
-      elif i == third_axis:
-        axis_slice = slice(0,self._plot_array_shape[third_axis])
-        self.array_selector.append(axis_slice)
-      else:
-        self.array_selector.append(0)
+    self.array_selector = create_array_selector(self._plotter, self._plot_array.rank, self._plot_array.shape, first_axis,second_axis,third_axis)
     self.array_tuple = tuple(self.array_selector)
+    _dprint(3, 'array_selector tuple ', self.array_tuple)
     self._plotter.array_plot(self.label+ ' data', self._plot_array[self.array_tuple])
     self.addTupleFlags()
 
@@ -397,19 +387,14 @@ class HistoryPlotter(GriddedPlugin):
 
   def create_image_plotters(self):
     _dprint(3,'starting create_image_plotters')
-    self.layout_parent = QWidget(self.wparent())
-    self.layout = QGridLayout(self.layout_parent)
-    self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-    _dprint(3,'self._plotter = ', self._plotter)
-
-    self.layout.addWidget(self._plotter, 0, 1)
-    QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
-
-    self.plotPrinter = plot_printer(self._plotter)
-    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-
-    self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
-    self._wtop = self.layout_parent;       
+    if self._plotter is None:
+      self.layout_parent = QWidget(self.wparent())
+      self.layout = QGridLayout(self.layout_parent)
+      self._plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent, self.ND_plotter)
+      QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
+      QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
+      self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+      self._wtop = self.layout_parent;       
     _dprint(3,'array has rank and shape: ', self._plot_array.rank, ' ', self._plot_array.shape)
     if self.actual_rank > 2:
       _dprint(3,'array has actual rank and shape: ', self.actual_rank, ' ', self._plot_array.shape)
@@ -424,34 +409,15 @@ class HistoryPlotter(GriddedPlugin):
         displaying data for a numarray of dimension 3 or greater """
 
     _dprint(3, 'plot_array shape ', self._plot_array.shape)
-    self.ND_Controls = ND_Controller(self._plot_array.shape, labels, parms, num_axes, self.layout_parent)
+    self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self._plot_array.shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
-    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
-    if self.ND_Controls.get_num_selectors() > num_axes:
-      self.ND_Controls.showDisplay(1)
-    else:
-      self.ND_Controls.showDisplay(0)
 
   def set_ColorBar (self):
-    """ this function adds a colorbar for 2 Ddisplays """
-    _dprint(3,' set_ColorBar parms = ', min, ' ', max)
-    self.colorbar = {}
-    for i in range(2):
-      self.colorbar[i] =  QwtColorBar(colorbar_number=i, parent=self.layout_parent)
-      self.colorbar[i].setRange(-1, 1)
-      QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
-      QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
-      QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
-      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange) 
-      if i == 0:
-        self.layout.addWidget(self.colorbar[i], 0, i)
-        self.colorbar[i].show()
-      else:
-        self.layout.addWidget(self.colorbar[i], 0, 2)
-        self.colorbar[i].hide()
-    self.plotPrinter.add_colorbar(self.colorbar)
+    """ this function adds a colorbar for 2-D displays """
+    # create two color bars in case we are displaying complex arrays
+    self.colorbar = create_ColorBar(self.layout, self.layout_parent, self._plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),HistoryPlotter,priority=40)
 Grid.Services.registerViewer(meqds.NodeClass('MeqHistoryCollect'),HistoryPlotter,priority=10)
