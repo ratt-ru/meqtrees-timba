@@ -30,8 +30,10 @@ def process_vis_header (hdr):
                 set_state(label+':'+sn,value=pos[j,iant]);
         except: pass;
     # array reference position
-    for (j,label) in enumerate(coords):
-      set_state(label+'0',value=pos[j,0]);
+    try:
+      for (j,label) in enumerate(coords):
+        set_state(label+'0',value=pos[j,0]);
+    except: pass;
     # time extent
     (t0,t1) = hdr.time_extent;
     print '[ReadVisHeader] time extent: ',t0,t1;

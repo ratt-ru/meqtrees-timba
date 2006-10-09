@@ -76,7 +76,7 @@ class LMDirection (Direction):
     n = self.ns.n;
     if not n.initialized():
       l,m = self._lm();
-      n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(n));
+      n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m));
     return n;
     
   def lmn (self,radec0=None):

@@ -1,27 +1,36 @@
-from CorruptComponent import CorruptComponent
-from Direction import Direction
-from LMDirection import LMDirection
-from FITSImageComponent import FITSImageComponent
-from GaussianSource import GaussianSource
-from IfrArray import IfrArray
-from Observation import Observation
-from Parameterization import Parameterization
-from Patch import Patch
-from PointSource import PointSource
-from SixpackComponent import SixpackComponent
-from SkyComponent import SkyComponent
+import sys
 
-__all__ = [
-            CorruptComponent,
-            Direction,
-            LMDirection,
-            FITSImageComponent,
-            GaussianSource,
-            IfrArray,
-            Observation,
-            Parameterization,
-            Patch,
-            PointSource,
-            SixpackComponent,
-            SkyComponent,
-];
+# do nothing if we're imported on the kernel-side, as reloading
+# the octopython stuff confuses the hell out of the kernel
+if "Timba.meqkernel" in sys.modules:
+  pass;
+  
+else:
+
+  from CorruptComponent import CorruptComponent
+  from Direction import Direction
+  from LMDirection import LMDirection
+  from FITSImageComponent import FITSImageComponent
+  from GaussianSource import GaussianSource
+  from IfrArray import IfrArray
+  from Observation import Observation
+  from Parameterization import Parameterization
+  from Patch import Patch
+  from PointSource import PointSource
+  from SixpackComponent import SixpackComponent
+  from SkyComponent import SkyComponent
+
+  __all__ = [
+              CorruptComponent,
+              Direction,
+              LMDirection,
+              FITSImageComponent,
+              GaussianSource,
+              IfrArray,
+              Observation,
+              Parameterization,
+              Patch,
+              PointSource,
+              SixpackComponent,
+              SkyComponent,
+  ];
