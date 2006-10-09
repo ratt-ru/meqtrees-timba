@@ -34,8 +34,10 @@ class Direction (Parameterization):
     matrix will be plugged in as-is""";
     self._jones.append((kind,jones,directional));
     
-  def radec (self):
-    """Returns ra-dec two-pack for this direction""";
+  def radec (self,radec0=None):
+    """Returns ra-dec two-pack for this direction.
+    Dummy radec0 argument is to supply a phase center.
+    """;
     radec = self.ns.radec;
     if not radec.initialized():
       if self._constant:
@@ -55,6 +57,15 @@ class Direction (Parameterization):
       lmn << Meq.LMN(radec_0=radec0,radec=self.radec());
     return lmn;
     
+  def lm (self,radec0):
+    """Returns an LM two-pack for this component, given an reference
+    direction radec0.
+    Qualifiers from radec0 are added in.""";
+    lm = self.ns.lm.qadd(radec0);
+    if not lm.initialized():
+      lm << Meq.Selector(self.lmn(),index=[0,1],multi=True);
+    return lm;
+    
   def n (self,radec0):
     """Returns 'n' coordinate for this source and relative to radec0
     Qualifiers from radec0 are added in.""";
@@ -72,6 +83,11 @@ class Direction (Parameterization):
     if not lmn_1.initialized():
       lmn_1 << Meq.Paster(self.lmn(radec0),self.n(radec0)-1,index=2);
     return lmn_1;
+    
+  def _same_as (self,radec0):
+    """Returns True if this direction is same as radec0""";
+    return self.radec(radec0) is radec0;
+    
     
   def KJones (self,array,radec0):
     """makes and returns a series of Kjones (phase shift) nodes
@@ -94,7 +110,7 @@ class Direction (Parameterization):
     given direction. Shifted visibilities are created as vis(sta1,sta2).
     """;
     # if direction is the same, use an Identity transform
-    if self.radec() is radec0: 
+    if self._same_as(radec0): 
       for sta1,sta2 in array.ifrs():
         vis(sta1,sta2) << Meq.Identity(vis0(sta1,sta2));
     # else apply KJones

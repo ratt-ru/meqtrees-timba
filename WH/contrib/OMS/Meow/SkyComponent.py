@@ -10,7 +10,6 @@ class SkyComponent (Parameterization):
   def __init__(self,ns,name,direction,
                parm_options=record(node_groups='Parm')):
     Parameterization.__init__(self,ns,name,parm_options=parm_options);
-    print direction;
     if isinstance(direction,Direction):
       self.direction = direction;
     else:

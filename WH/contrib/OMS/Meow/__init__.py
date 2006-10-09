@@ -1,5 +1,6 @@
 from CorruptComponent import CorruptComponent
 from Direction import Direction
+from LMDirection import LMDirection
 from FITSImageComponent import FITSImageComponent
 from GaussianSource import GaussianSource
 from IfrArray import IfrArray
@@ -13,6 +14,7 @@ from SkyComponent import SkyComponent
 __all__ = [
             CorruptComponent,
             Direction,
+            LMDirection,
             FITSImageComponent,
             GaussianSource,
             IfrArray,
