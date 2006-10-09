@@ -837,7 +837,11 @@ class NodeScope (object):
   def MakeUniqueName (self,name):
     num = self._uniqname_counters.get(name,0);
     self._uniqname_counters[name] = num+1;
-    return "%s%d" % (name,num);
+    if num:
+      return "(%s)%d" % (name,num);
+    else:
+      return "(%s)" % (name,);
+    
   
   def MakeConstant (self,value):
     """make or reuse a Meq.Constant node with the given value""";
