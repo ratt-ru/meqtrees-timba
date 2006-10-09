@@ -56,6 +56,9 @@ def _define_forest (ns):
     for src in SOURCES:
       ns.K(p,src) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src),uvw=ns.uvw(p));
       ns.Kt(p,src) << Meq.ConjTranspose(ns.K(p,src));
+    # reset gains
+    ns.G(p) << 1;
+    ns.Gt(p) << Meq.ConjTranspose(ns.G(p));
   
   # now define predicted visibilities, attach to sinks
   for p,q in IFRS:
@@ -64,8 +67,10 @@ def _define_forest (ns):
       ns.predict(p,q,src) << \
         Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src));
     # and sum them up via an Add node
-    predict = ns.predict(p,q) << \
-      Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);
+    predict = ns.predict(p,q) << Meq.MatrixMultiply(
+                ns.G(p),
+                Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]),
+                ns.Gt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define VisDataMux
