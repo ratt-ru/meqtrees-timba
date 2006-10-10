@@ -2029,7 +2029,7 @@ class LSM:
  ## build from a text file with extended sources
  ## format:
  ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
- def build_from_extlist(self,infile_name,ns):
+ def build_from_extlist(self,infile_name,ns,ignore_pol=False,f0=None):
   infile=open(infile_name,'r')
   all=infile.readlines()
   infile.close()
@@ -2099,9 +2099,12 @@ class LSM:
     kk=kk+1
 
     #print sI,sQ,sU,sV
-    freq0=1e6
-    if (SI==0 and sQ==0 and sU==0 and sV==0 and RM==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+    if f0==None:
+     freq0=1e6
+    else:
+     freq0=f0
+    if (ignore_pol==True or (sQ==0 and sU==0 and sV==0 and RM==0)):
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0 and RM==0):
      my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
     elif (SI==0):
@@ -2183,6 +2186,37 @@ class LSM:
      sQ=sQ*invscal
      sU=sU*invscal
      sV=sV*invscal
+     (eX,eY,eP)=pu.getExtParms()
+     # get degrees
+     [r_hr,r_min,r_sec]=common_utils.radToRA(ra)
+     [d_hr,d_min,d_sec]=common_utils.radToDec(dec)
+     strline ='C'+str(pu.name)+' '+str(r_hr)+' '+str(r_min)+' '+str(r_sec)+' '+str(d_hr)+' '+str(d_min)+' '+str(d_sec)+' '+str(sI)+' '+str(sQ)+' '+str(sU)+' '+str(sV)+' '+str(SIn)+' '+str(RM)+' '+str(eX)+' '+str(eY)+' '+str(eP)+'\n';
+     f.write(strline)
+ 
+  f.close()
+ 
+
+ # save sources as a text file with intrinsic fluxes
+ ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
+ ## ra0,dec0: phase center in radians
+ ## count: select the first brightest 'count' sources only 
+ ### f0: reference freq for beam calculation
+ def save_as_extlist(self,outfile_name,ns,count=0,f0=None):
+  # get all PUnits (assume all sources)
+  if count==0:
+   plist=self.queryLSM(all=1)
+  else:
+   plist=self.queryLSM(count=count)
+
+  f=open(outfile_name, 'w')
+  # gaussian params
+  # exp( -(l^2+m^2)/a^2)
+  # a = c/ (25.0 * f)
+  if f0==None:
+   f0=323875000.0;
+  a=3e8/(25.0*f0) 
+  for pu in plist:
+     (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
      (eX,eY,eP)=pu.getExtParms()
      # get degrees
      [r_hr,r_min,r_sec]=common_utils.radToRA(ra)
