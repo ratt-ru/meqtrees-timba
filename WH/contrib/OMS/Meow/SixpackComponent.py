@@ -27,7 +27,10 @@ class SixpackComponent (SkyComponent):
       direction = self.SixpackDirection(ns,name,self);
     SkyComponent.__init__(self,ns,name,direction);
     # setup various options
-    self._fluxscale = fluxscale and float(fluxscale);
+    if fluxscale:
+      self._fluxscale = self._parm("fluxscale",float(fluxscale));
+    else:
+      self._fluxscale = None;
     self._fft_pad_factor = 1.0;
     self._interpol_method = 1;
     self._interpol_debug = True;
