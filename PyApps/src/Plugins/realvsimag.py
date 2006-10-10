@@ -360,12 +360,13 @@ class realvsimag_plotter(object):
             raise ValueError, 'index must be in (0, 1, 2, 3)'
   # setZoomerMousePattern()
 
-  def __initContextMenu(self):
+  def __initContextMenu(self, Test=False):
         """Initialize the toolbar
         """
         # skip if no main window
-        if not self._mainwin:
-          return;
+        if not Test:
+          if not self._mainwin:
+            return;
           
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_display);
@@ -1666,6 +1667,11 @@ class realvsimag_plotter(object):
   def go(self, counter):
       """Create and plot some garbage data
       """
+      if counter == 0:
+        self.__initContextMenu(True)
+      self.set_compute_circles()
+      self.set_compute_std_dev_circles()
+
       item_tag = 'test'
       xx = self._radius * cos(self._angle/57.2957795)
       yy = self._radius * sin(self._angle/57.2957795)
@@ -1703,6 +1709,9 @@ class realvsimag_plotter(object):
         x_sq = pow(avg_r, 2)
         y_sq = pow(avg_i, 2)
         radius = sqrt(x_sq + y_sq)
+        self.plot_mean_arrows = True
+        self.setup_arrow (item_tag)
+        self.setup_circle(item_tag)
         self.compute_circles (item_tag, radius)
         self.compute_arrow (item_tag, avg_r, avg_i)
       if self.plot_stddev_circles:
@@ -1710,9 +1719,10 @@ class realvsimag_plotter(object):
         complex_data.setreal(x_pos)
         complex_data.setimag(y_pos)
         radius = standard_deviation(complex_data)
-        self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i, 'dotline' )
+        self.setup_circle(item_tag + 'stddev')
+        self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i)
       if counter == 0:
-        self.clearZoomStack()
+        self.reset_zoom()
       else:
         self.plot.replot()
 
@@ -1722,6 +1732,9 @@ class realvsimag_plotter(object):
   def go_errors(self, counter):
       """Create and plot some garbage error data
       """
+      if counter == 0:
+        self.__initContextMenu(True)
+
       item_tag = 'test'
       self._radius = 0.9 * self._radius
 
@@ -1749,8 +1762,6 @@ class realvsimag_plotter(object):
         self.plot.setTitle("Errors Demo")
         plot_curve = self.plot.curve(key_plot)
         plot_symbol = self.symbol_table["circle"]
-#        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
-#                     QPen(self._plot_color), QSize(10, 10)))
         plot_curve.setSymbol(QwtSymbol(
             QwtSymbol.Cross, QBrush(), QPen(Qt.yellow, 2), QSize(7, 7)))
 
@@ -1776,7 +1787,7 @@ class realvsimag_plotter(object):
         self.y_errors.setErrors(x_err);
 
       if counter == 0:
-        self.clearZoomStack()
+        self.reset_zoom()
       else:
         self.plot.replot()
   # go_errors()
@@ -1831,13 +1842,13 @@ class realvsimag_plotter(object):
       self._angle = self._angle + 5;
       self._radius = 5.0 + 2.0 * random.random()
       self.index = self.index + 1
-#      self.go(self.index)
+#     self.go(self.index)
 
 # for testing error plotting
-#     self.go_errors(self.index)
+      self.go_errors(self.index)
 
 # for testing meqparms plotting
-      self.go_meqparms(self.index)
+#     self.go_meqparms(self.index)
 
   # timerEvent()
 
