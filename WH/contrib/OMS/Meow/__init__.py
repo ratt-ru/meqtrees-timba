@@ -1,5 +1,7 @@
 import sys
 
+_meow_path = __path__[0];
+
 # do nothing if we're imported on the kernel-side, as reloading
 # the octopython stuff confuses the hell out of the kernel
 if "Timba.meqkernel" in sys.modules:

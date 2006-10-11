@@ -3,6 +3,7 @@ from Timba.Meq import meq
 import numarray
 import math
 import random
+import Meow
 
 input_column = output_column = None;
 tile_size = None;
@@ -19,6 +20,27 @@ def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,
     TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
   if tile_sizes:
     TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
+
+imaging_npix = 256;
+imaging_cellsize = '1arcsec';
+imaging_channels = [32,1,1];
+
+def include_imaging_options (npix=None,cellsize=None,channels=None):
+  """Instantiates imager options""";
+  TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
+  TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]);
+  TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
+  if npix:
+    if not isinstance(npix,(list,tuple)):
+      npix = [ npix ];
+    TDLRuntimeOption('imaging_npix',"Image size, in pixels",npix);
+  if cellsize:
+    if not isinstance(cellsize,(list,tuple)):
+      cellsize = [ cellsize ];
+    TDLRuntimeOption('imaging_cellsize',"Pixel size",cellsize);
+  if channels:
+    TDLRuntimeOption('imaging_channels',"Imaging channels selection",channels);
+  
 
 source_table = "sources.mep";
 mep_table = "calib.mep";
@@ -201,6 +223,26 @@ def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisD
   req = create_io_request(tiling);
   
   mqs.execute(vdm_node,req,wait=False);
-  
   pass
+  
+def make_dirty_image (npix=None,cellsize=None,channels=None):
+  import os
+  import os.path
+  (nchan,chanstart,chanstep) = (channels or imaging_channels);
+  script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
+  script_name = os.path.realpath(script_name);  # glish don't like symlinks...
+  args = [ 'glish','-l',
+    script_name,
+    output_column,
+    'ms='+msname,'mode='+imaging_mode,
+    'weight='+imaging_weight,'stokes='+imaging_stokes,
+    'npix='+str(npix or imaging_npix),
+    'cellsize='+(cellsize or imaging_cellsize),
+    'nchan='+str(nchan),
+    'chanstart='+str(chanstart),    
+    'chanstep='+str(chanstep)
+  ];
+  print args;
+  os.spawnvp(os.P_NOWAIT,'glish',args);
+  
 

@@ -71,36 +71,28 @@ class PointSource(SkyComponent):
         stokes = self._parm(st);
     return stokes;
     
-  def intrinsic_coherency (self,observation):
+  def coherency (self,observation):
     """Returns the intrinsic (i.e. non-projected) coherency matrix for this source,
     given an observation.""";
-    coh_node = self.ns.coherency_int;
-    if not coh_node.initialized():
-      if observation.circular():
-        # create coherency elements
-        rr = self.ns.rr << (self.stokes("I") + self.stokes("V"))*0.5;
-        rl = self.ns.rl << Meq.ToComplex(self.stokes("Q"),self.stokes("U"))*0.5;
-        lr = self.ns.lr << Meq.Conj(rl);
-        ll = self.ns.ll << (self.stokes("I") - self.stokes("V"))*0.5;
-        # create coherency node
-        coh_node << Meq.Matrix22(rr,rl,lr,ll);
-      else:
-        # create coherency elements
-        xx = self.ns.xx << (self.stokes("I") + self.stokes("Q"))*0.5;
-        yx = self.ns.yx << Meq.ToComplex(self.stokes("U"),self.stokes("V"))*0.5;
-        xy = self.ns.xy << Meq.Conj(yx);
-        yy = self.ns.yy << (self.stokes("I") - self.stokes("Q"))*0.5;
-        # create coherency node
-        coh_node << Meq.Matrix22(xx,xy,yx,yy);
-    return coh_node;
-    
-  def coherency (self,observation):
-    """Returns projected coherency matrix for this source, given an observation.
-    Qualifiers from radec0 are added in.""";
     radec0 = observation.radec0();
     coh_node = self.ns.coherency.qadd(radec0);
     if not coh_node.initialized():
-      coh_node << self.intrinsic_coherency(observation) / self.direction.n(radec0);
+      if observation.circular():
+        # create coherency elements
+        rr = self.ns.rr << (self.stokes("I") + self.stokes("V"));
+        rl = self.ns.rl << Meq.ToComplex(self.stokes("Q"),self.stokes("U"));
+        lr = self.ns.lr << Meq.Conj(rl);
+        ll = self.ns.ll << (self.stokes("I") - self.stokes("V"));
+        # create coherency node
+        coh_node << Meq.Matrix22(rr,rl,lr,ll)*0.5;
+      else:
+        # create coherency elements
+        xx = self.ns.xx << (self.stokes("I") + self.stokes("Q"));
+        yx = self.ns.yx << Meq.ToComplex(self.stokes("U"),self.stokes("V"));
+        xy = self.ns.xy << Meq.Conj(yx);
+        yy = self.ns.yy << (self.stokes("I") - self.stokes("Q"));
+        # create coherency node
+        coh_node << Meq.Matrix22(xx,xy,yx,yy)*0.5;
     return coh_node;
     
   def make_visibilities (self,nodes,array,observation):
