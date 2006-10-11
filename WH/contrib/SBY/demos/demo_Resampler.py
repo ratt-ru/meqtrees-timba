@@ -32,11 +32,10 @@ def _define_forest (ns, **kwargs):
    ns.z<<Meq.Resampler(children=ns.y,mode=1)
 
    # make bookmarks for the result before and after resampling
-   bm = record(name='original', viewer='Result Plotter',
-               udi='/node/y', publish=True)
-   Settings.forest_state.bookmarks.append(bm)
-   bm = record(name='result', viewer='Result Plotter',
-               udi='/node/z', publish=True)
+   bm = record(name='result', page=[record(viewer='Result Plotter',
+               udi='/node/y', publish=True, pos=(0,0)),
+               record(viewer='Result Plotter',
+               udi='/node/z', publish=True, pos=(1,0))])
    Settings.forest_state.bookmarks.append(bm)
 
    # Finished:
