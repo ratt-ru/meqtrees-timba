@@ -4,56 +4,60 @@ from Timba.Meq import meq
 import math
 
 import Meow
-import clar_model
+import Meow.Utils
+import Meow.Bookmarks
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10]);
 Meow.Utils.include_imaging_options();
 
-# GUI option for selecting a source model
-TDLCompileOption('source_model',"Source model",[
-    clar_model.point_sources_only,
-    clar_model.point_and_extended_sources,
-    clar_model.radio_galaxy,
-    clar_model.faint_source
-  ],default=0);
-
-TDLCompileOption('apply_clar_beam',"Apply CLAR beam",False);
 
 # define antenna list
 ANTENNAS = range(1,28);
+
+# useful constant: 1 deg in radians
+DEG = math.pi/180.;
+ARCMIN = DEG/60;
+
+# source flux (same for all sources)
+I = 1; Q = .2; U = .2; V = .2;
+
+# we'll put the sources on a grid (positions in arc min)
+LM = [(-1,-1),(-1,0),(-1,1),
+      ( 0,-1),( 0,0),( 0,1), 
+      ( 1,-1),( 1,0),( 1,1)];
 
 def _define_forest (ns):
   # create an Array object
   array = Meow.IfrArray(ns,ANTENNAS);
   # create an Observation object
   observation = Meow.Observation(ns);
-    
+  
   # create a Patch for the entire observed sky
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
-  
-  # create nominal CLAR source model by calling the specified
-  # model function
-  clar_model.init_directions(ns);
-  source_list = source_model(ns);
-  
-  if apply_clar_beam:
-    # create CLAR EJones terms
-    Ej = clar_model.EJones(ns,array,source_list);
 
-    # corrupt sources with CLAR beam and add to allsky patch
-    for src in source_list:
-      corrupt_src = Meow.CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name));
-      allsky.add(corrupt_src);
-  else:
-    allsky.add(*source_list);
+  # create 10 sources
+  for isrc in range(len(LM)):
+    l,m = LM[isrc];
+    l *= ARCMIN;
+    m *= ARCMIN;
+    # generate an ID for direction and source
+    src = 'S'+str(isrc);           
+    # create Direction object
+    src_dir = Meow.LMDirection(ns,src,l,m);
+    # create point source with this direction
+    source = Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V);
+    # add to patch
+    allsky.add(source);
   
   # create set of nodes to compute visibilities...
   predict = allsky.visibilities(array,observation);
-
-  # ...and attach them to sinks
+  
+  # ...and attach them to resamplers and sinks
   for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(predict(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    modres = ns.modres(p,q) << Meq.ModRes(predict(p,q),upsample=[5,5]);
+    resamp = ns.resampler(p,q) << Meq.Resampler(modres,mode=2);
+    ns.sink(p,q) << Meq.Sink(resamp,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define VisDataMux
   ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in array.ifrs()]);
@@ -72,9 +76,9 @@ def _tdl_job_2_make_image (mqs,parent):
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("K Jones",["K:S0:1","K:S0:9"],["K:S1:2","K:S1:9"]),
-  Meow.Bookmarks.PlotPage("E Jones",["E:S1:1","E:S1:9"],["E:S8:1","E:S8:9"]),
+  Meow.Bookmarks.PlotPage("K Jones",["K:S0:1","K:S0:9"],["K:S1:2","K:S1:9"])
 ]);
+
 
 
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
