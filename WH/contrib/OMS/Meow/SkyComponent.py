@@ -18,11 +18,11 @@ class SkyComponent (Parameterization):
       ra,dec = direction;
       self.direction = Direction(ns,name,ra,dec,parm_options=parm_options);
     
-  def radec (self):
+  def radec (self,radec0=None):
     """Returns ra-dec two-pack for this component's direction""";
-    return self.direction.radec();
+    return self.direction.radec(radec0);
     
-  def lmn (self,radec0):
+  def lmn (self,radec0=None):
     return self.direction.lmn(radec0);
     
   def make_visibilities (self,nodes,array,observation):

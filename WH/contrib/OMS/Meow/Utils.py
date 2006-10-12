@@ -18,7 +18,7 @@ def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,
   if has_input:
     TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
   if has_output:
-    TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
+    TDLRuntimeOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=0);
   if tile_sizes:
     TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
 

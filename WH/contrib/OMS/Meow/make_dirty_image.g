@@ -39,7 +39,7 @@ for( a in argv )
     stokes := a;
   else if( a =~ s/npix=// )
     npix := as_integer(a);
-  else if( a =~ s/cell=// )
+  else if( a =~ s/cellsize=// )
     cell := a;
   else if( a =~ s/viewer=// )
     image_viewer := a;

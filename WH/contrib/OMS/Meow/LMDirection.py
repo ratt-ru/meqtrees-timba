@@ -41,7 +41,6 @@ class LMDirection (Direction):
     Qualifiers from radec0 are added in.""";
     radec = self.ns.radec.qadd(radec0);
     if not radec.initialized():
-      raise RuntimeError;
       radec << Meq.LMRaDec(radec_0=radec0,lm=self.lm());
     return radec;
     
