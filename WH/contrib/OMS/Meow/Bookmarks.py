@@ -1,7 +1,11 @@
 from Timba.dmi import *
 
-def PlotPage (*rows):
+def PlotPage (name,*rows):
   bklist = [];
+  
+  if not isinstance(name,str):
+    # must be just another row...
+    rows = [name] + rows;
   
   for irow,onerow in enumerate(rows):
     for icol,node in enumerate(onerow):
@@ -10,4 +14,7 @@ def PlotPage (*rows):
         udi="/node/"+node,
         pos=(irow,icol)));
         
-  return bklist;
+  if not isinstance(name,str):
+    return bklist;
+  else:
+    return record(name=name,page=bklist);

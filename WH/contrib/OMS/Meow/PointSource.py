@@ -88,8 +88,8 @@ class PointSource(SkyComponent):
       else:
         # create coherency elements
         xx = self.ns.xx << (self.stokes("I") + self.stokes("Q"));
-        yx = self.ns.yx << Meq.ToComplex(self.stokes("U"),self.stokes("V"));
-        xy = self.ns.xy << Meq.Conj(yx);
+        xy = self.ns.xy << Meq.ToComplex(self.stokes("U"),self.stokes("V"));
+        yx = self.ns.yx << Meq.Conj(xy);
         yy = self.ns.yy << (self.stokes("I") - self.stokes("Q"));
         # create coherency node
         coh_node << Meq.Matrix22(xx,xy,yx,yy)*0.5;

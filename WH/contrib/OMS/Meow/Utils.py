@@ -7,6 +7,7 @@ import Meow
 
 input_column = output_column = None;
 tile_size = None;
+msname = '';
 
 def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
   """Instantiates MS input/output options""";
@@ -226,6 +227,10 @@ def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisD
   pass
   
 def make_dirty_image (npix=None,cellsize=None,channels=None):
+  if not output_column:
+    raise ValueError,"make_dirty_image: output column not set up";
+  if not msname:
+    raise ValueError,"make_dirty_image: MS not set up";
   import os
   import os.path
   (nchan,chanstart,chanstep) = (channels or imaging_channels);

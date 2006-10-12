@@ -21,6 +21,9 @@ else:
   from PointSource import PointSource
   from SixpackComponent import SixpackComponent
   from SkyComponent import SkyComponent
+  
+  import Bookmarks
+  import Utils
 
   __all__ = [
               CorruptComponent,
