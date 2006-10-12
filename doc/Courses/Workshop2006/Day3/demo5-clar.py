@@ -7,7 +7,7 @@ import Meow
 import clar_model
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10,30]);
 Meow.Utils.include_imaging_options();
 
 # GUI option for selecting a source model
@@ -39,7 +39,7 @@ def _define_forest (ns):
   
   if apply_clar_beam:
     # create CLAR EJones terms
-    Ej = clar_model.EJones(ns,array,source_list);
+    Ej = clar_model.EJones_pretab(ns,array,source_list);
 
     # corrupt sources with CLAR beam and add to allsky patch
     for src in source_list:

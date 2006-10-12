@@ -290,9 +290,10 @@ def faint_source (ns,tablename=''):
                   parm_options=parm_options));
   return source_model
 
-def EJones (ns,array,sources,name="E"):
+def EJones_pretab (ns,array,sources,name="E"):
   """creates E nodes for simulating the CLAR beam, with elevation-dependent
-  broadening.
+  broadening. The V_GAIN:src parameter is read from a MEP table, i.e it 
+  should have been pre-tabulated by running clar_fit_dq.
   """;
   ns.freq << Meq.Freq;
   # this is the inverse half-power beam width at reference frequency
@@ -314,12 +315,63 @@ def EJones (ns,array,sources,name="E"):
     vgain = ns.V_GAIN(dirname);
     if not Ej(array.stations()[0]).initialized():
       for station in array.stations():
-        # voltage gain parameter read from mep_derived table (see clar_beam_fit)
+        # voltage gain parameter read from mep (filled by clar_fit_dq)
         vg = vgain(station) << Meq.Parm(table_name=mep_derived);
         # derive diagonal term
         ediag = ns.ediag(dirname,station) << Meq.Sqrt(Meq.Exp(vg*ns.ihpbw_sq));
         # create E matrix
         Ej(station) << Meq.Matrix22(ediag,0,0,ediag);
+  return Ej0;
+
+def EJones (ns,array,observation,sources,name="E"):
+  """creates E nodes for simulating the CLAR beam, with elevation-dependent
+  broadening. V_GAIN is computed from scratch
+  """;
+  ns.freq << Meq.Freq;
+  # this is the inverse half-power beam width at reference frequency
+  width_polc = create_polc(c00=hpbeam_width);
+  ns.hpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
+                        use_previous=reuse_solutions,node_groups='Parm');
+  # this is the IHPBW at the given frequency
+  ns.hpbw << ns.hpbw0 * ref_frequency / ns.freq 
+  # take inverse and square
+  arcmin_radian = ns.arcmin_radian << 3437.75
+  ns.ihpbw = arcmin_radian / ns.hpbw
+  ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
+  ln16 = ns.ln16 << -2.7725887;
+  
+  Ej0 = ns[name];
+  # create per-direction, per-station E Jones matrices
+  for st in array.stations():
+    # get station position node
+    xyz = array.xyz()(st);
+    # first create AzEl node for field_centre as seen from this station
+    azel0 = ns.azel0(st) << Meq.AzEl(radec=observation.radec0(),xyz=xyz)
+    # get squared sine of elevation of field centre - used later to determine 
+    # CLAR beam broadening
+    sin_el_sq = ns.sin_el_sq(st) << Meq.Sqr(Meq.Sin(ns.el0(st) << Meq.Selector(azel0,index=1)));
+    # now for every source...
+    for src in sources:
+      name = src.direction.name;
+      Ej = Ej0(name,st);
+      if not Ej.initialized():
+        # create AzEl node for source as seen from this station
+        azel = ns.azel(name,st) << Meq.AzEl(radec=src.radec(observation.radec0()),xyz=xyz);
+
+        # do computation of LMN of source wrt field centre in AzEl frame
+        lmn_azel = ns.lmn_azel(name,st) << Meq.LMN(radec_0=azel0,radec=azel);
+        l_azel = ns.l_azel(name,st) << Meq.Selector(lmn_azel,index=0);
+        m_azel = ns.m_azel(name,st) << Meq.Selector(lmn_azel,index=1);
+
+        # compute CLAR voltage gain as seen for this source at this station
+        # first square L and M
+        l_sq = ns.l_sq(name,st) << Meq.Sqr(l_azel);
+        m_sq = ns.m_sq(name,st) << Meq.Sqr(m_azel);
+
+        # add L and M gains together, then multiply by log 16
+        vgain = ns.v_gain(name,st) << ( l_sq + m_sq*sin_el_sq )*ln16;
+        # make scalar matrix
+        Ej << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
   return Ej0;
       
 def EJones_unbroadened (ns,observation,sources,name="E0"):

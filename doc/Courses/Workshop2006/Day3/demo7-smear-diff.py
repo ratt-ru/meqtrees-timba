@@ -22,10 +22,9 @@ ARCMIN = DEG/60;
 # source flux (same for all sources)
 I = 1; Q = .2; U = .2; V = .2;
 
-# we'll put the sources on a grid (positions in arc min)
-LM = [(-1,-1),(-1,0),(-1,1),
-      ( 0,-1),( 0,0),( 0,1), 
-      ( 1,-1),( 1,0),( 1,1)];
+# we'll put the sources on a cross (positions in arc min)
+LM = [(-4, 0),(-2, 0),(0,0),(2,0),(4,0),
+      ( 0,-4),( 0,-2),      (0,2),(0,4) ]; 
 
 def _define_forest (ns):
   # create an Array object
@@ -76,7 +75,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   
   
 def _tdl_job_2_make_image (mqs,parent):
-  Meow.Utils.make_dirty_image(npix=256,cellsize='1arcsec',channels=[32,1,1]);
+  Meow.Utils.make_dirty_image(npix=512,cellsize='1arcsec',channels=[32,1,1]);
 
 
 
