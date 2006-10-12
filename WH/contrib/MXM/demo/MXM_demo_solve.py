@@ -1,11 +1,10 @@
-# demo_template.py:
+# MXM_demo_solve.py:
 
 # Demonstrates the following MeqTree features:
 # Simple Tree to solve a parameter 
 
 # Tips:
-
-#For more paramter options, see demo_parm.py
+#For more parameter options, see demo_parm.py
 
 
  
@@ -15,31 +14,21 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from qt import *
-# from numarray import *
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-
-# Make sure that all nodes retain their results in their caches,
-# for your viewing pleasure.
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
 
 
-#********************************************************************************
-# The function under the 'blue button':
-#********************************************************************************
-
 def _define_forest (ns, **kwargs):
-   """Definition of a 'forest' of one or more trees"""
+   """Definition of a solver node with 1 solvable parameter"""
 
    # Make a Parm  node, initialize it with constant 1.
    # The node_groups='Parm' options is needed to be recognized by the solver
    parm = ns['parm'] << Meq.Parm(1.,node_groups='Parm')
 
    #We are going to fit the constant to a node varying in frequency
-   b = ns['b'] << Meq.Freq()
+   freq = ns.freq << Meq.Freq()
 
    # The Condeq has exactly 2 children: the 'model' (in this case the parm)
    # and the 'data' on which you want to fit the 'model'.
@@ -57,7 +46,7 @@ def _define_forest (ns, **kwargs):
                [record(viewer='Result Plotter',udi='/node/solver', publish=True, pos=(0,0)),
                 record(viewer='Result Plotter',udi='/node/condeq', publish=True, pos=(0,1)),
                 record(viewer='Result Plotter',udi='/node/parm', publish=True, pos=(1,0)),
-                record(viewer='Result Plotter',udi='/node/b', publish=True, pos=(1,1))])
+                record(viewer='Result Plotter',udi='/node/freq', publish=True, pos=(1,1))])
    Settings.forest_state.bookmarks.append(bm)
 
    # Finished:
@@ -70,7 +59,7 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 def _tdl_job_execute (mqs, parent):
-    """Execute the forest, starting at the named node"""
+    """Execute the solver"""
     domain = meq.domain(1,10,1,10)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=10, num_time=11)
     request = meq.request(cells, rqtype='ev')
@@ -79,7 +68,8 @@ def _tdl_job_execute (mqs, parent):
        
 #********************************************************************************
 #********************************************************************************
-
+# The solver plot contains a lot of information about the number of iterations,
+# the number of parameters, the chi^2 surface, the change of the parameters per iteration
 
 
 
