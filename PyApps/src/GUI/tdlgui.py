@@ -261,6 +261,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.hide();
     self.clear_message();
     
+  def show_line_numbers (self,show):
+    if show:
+      self._editor.setMarginWidth(1,36);
+    else:
+      self._editor.setMarginWidth(1,12);
+    self._editor.setMarginLineNumbers(1,show);
+    
   def show_run_control (self,show=True):
     if self._closed:
       return;

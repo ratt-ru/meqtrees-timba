@@ -258,6 +258,13 @@ class meqserver_gui (app_proxy_gui):
     sync = Config.getbool('tdl-sync-to-external-editor',True);
     syncedit.setOn(sync);
     tdlgui.set_external_sync(sync);
+    
+    showlnum = QAction("Show line numbers in editor",0,self);
+    showlnum.addTo(tdl_menu);
+    showlnum.setToggleAction(True);
+    show = Config.getbool('tdl-show-line-numbers',True);
+    showlnum.setOn(show);
+    
     loadtdl = QAction("&Load TDL script...",Qt.CTRL+Qt.Key_L,self);
     loadtdl.addTo(tdl_menu);
     QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
@@ -268,6 +275,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(loadruntdl,SIGNAL("activated()"),self._run_tdl_script);
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
+    QObject.connect(showlnum,SIGNAL("toggled(bool)"),self._show_tdl_line_numbers);
     self._qa_runtdl.addTo(tdl_menu);
     # menu for tdl jobs is inserted when TDL script is run
     QObject.connect(self,PYSIGNAL("isConnected()"),self._clear_tdl_jobs);
@@ -667,6 +675,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # show this file
       self.show_tdl_file(str(dialog.selectedFile()),run=run);
       
+  def _show_tdl_line_numbers (self,show):
+    Config.set('tdl-show-line-numbers',show);
+    for tab in self._tdl_tabs.itervalues():
+      tab.show_line_numbers(show);
+  
   def show_tdl_file (self,pathname,run=False,mainfile=None,show=True):
     if self._main_tdlfile is None:
       self._main_tdlfile = pathname;
@@ -701,6 +714,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
       tab.hide_jobs_menu(self._connected);
       tab.show_run_control(self._connected);
+      tab.show_line_numbers(Config.getbool('tdl-show-line-numbers'));
       if show:
         self._tdltab_show(tab);
       QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
