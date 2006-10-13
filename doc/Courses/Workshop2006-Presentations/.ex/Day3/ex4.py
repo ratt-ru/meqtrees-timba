@@ -18,13 +18,13 @@ ANTENNAS = range(1,28);
 
 def point_source (ns,name,l,m):
   srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=1,Q=.2,U=.2,V=.2);
+  return Meow.PointSource(ns,name,srcdir,I=1);
   
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc):
   model = [ point_source(ns,basename+"+0+0",l0,m0) ];
   for n in range(1,nsrc+1):
-    for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
-      name = "%s%+d%+d" % (basename,dx*n,dy*n);
+    for dx,dy in ((n,0),(-n,0),(0,n),(0,-n)):
+      name = "%s%+d%+d" % (basename,dx,dy);
       model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
   return model;
 
@@ -38,7 +38,7 @@ def _define_forest (ns):
   src_lists = [ 
     cross_model(ns,'S0',0       ,0       ,.5*ARCMIN,.5*ARCMIN,2),
     cross_model(ns,'S2',2*ARCMIN,2*ARCMIN,.5*ARCMIN,.5*ARCMIN,2),
-    cross_model(ns,'S4',2*ARCMIN,2*ARCMIN,.5*ARCMIN,.5*ARCMIN,2)
+    cross_model(ns,'S4',4*ARCMIN,4*ARCMIN,.5*ARCMIN,.5*ARCMIN,2)
   ];
     
   # make master source list
@@ -87,7 +87,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   
   
 def _tdl_job_2_make_image (mqs,parent):
-  Meow.Utils.make_dirty_image(npix=600,cellsize='2arcsec',channels=[32,1,1]);
+  Meow.Utils.make_dirty_image(npix=330,cellsize='2arcsec',channels=[32,1,1]);
 
 
 

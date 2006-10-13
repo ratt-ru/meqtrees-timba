@@ -18,7 +18,7 @@ ANTENNAS = range(1,28);
 
 def point_source (ns,name,l,m):
   srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=1,Q=.2,U=.2,V=.2);
+  return Meow.PointSource(ns,name,srcdir,I=1);
   
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc):
   model = [ point_source(ns,basename+"+0+0",l0,m0) ];
@@ -84,7 +84,7 @@ def _tdl_job_2_make_image (mqs,parent):
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
   Meow.Bookmarks.PlotPage("K Jones",["K:S+0+1:2","K:S+0+1:9"],["K:S+0-1:2","K:S+0-1:9"]),
-  Meow.Bookmarks.PlotPage("E Jones",["E:S+0+1:1","E:S+0+1:9"],["Eavg:S+0+1","Eavg:S+0-1"]),
+  Meow.Bookmarks.PlotPage("E Jones",["E:S+0+1:1","E:S+0+1:9"],["Eavg:S+0+1","Eavg:S+1+1"]),
 ]);
 
 
