@@ -7,14 +7,24 @@ STOKES = ("I","Q","U","V");
 
 class PointSource(SkyComponent):
   def __init__(self,ns,name,direction,
-               I=0.0,Q=0.0,U=0.0,V=0.0,
+               I=0.0,Q=None,U=None,V=None,
                Iorder=0,Qorder=0,Uorder=0,Vorder=0,
                spi=0.0,freq0=None,RM=None,
                parm_options=record(node_groups='Parm')):
     SkyComponent.__init__(self,ns,name,direction,parm_options=parm_options);
-    # create flux polcs
-    for stokes in STOKES:
-      self._create_polc(stokes,locals()[stokes],locals()[stokes+"order"]);
+    # check if polarized
+    # NB: disable for now, as Sink can't handle scalar results
+    if True or Q is not None or U is not None or V is not None or RM is not None:
+      Q = Q or 0.;
+      U = U or 0.;
+      V = V or 0.;
+      self._polarized = True;
+      # create flux polcs
+      for stokes in STOKES:
+        self._create_polc(stokes,locals()[stokes],locals()[stokes+"order"]);
+    else:
+      self._polarized = False;
+      self._create_polc("I",I,Iorder);
     # see if a spectral index is present (freq0!=0 then), create polc
     self._freq0 = freq0;
     self._rm=RM
@@ -56,7 +66,7 @@ class PointSource(SkyComponent):
         i0 = self._parm("I0");
         spi = self._parm("spi");
         stokes << i0 * Meq.Pow((self.ns0.freq ** Meq.Freq())/self._freq0,spi);
-      elif (self._rm and (st=="Q" or st=="U")):
+      elif (self._polarized and self._rm and (st=="Q" or st=="U")):
         # squared wavelength
         iwl2 = self.ns0.wavelength2 << Meq.Sqr(2.99792458e+8/(self.ns0.freq<<Meq.Freq));
         # rotation node
@@ -67,17 +77,23 @@ class PointSource(SkyComponent):
          stokes<<cosf*self._parm("Q0")-sinf*self._parm("U0")
         else:
          stokes<<sinf*self._parm("Q0")+cosf*self._parm("U0")
-      else:
+      elif self._polarized or st == "I":
         stokes = self._parm(st);
+      else:
+        stokes << 0;
     return stokes;
     
   def coherency (self,observation):
     """Returns the intrinsic (i.e. non-projected) coherency matrix for this source,
     given an observation.""";
+    # else create matrix
     radec0 = observation.radec0();
     coh_node = self.ns.coherency.qadd(radec0);
     if not coh_node.initialized():
-      if observation.circular():
+      # if not polarized, just return I
+      if not self._polarized:
+        coh_node << self.stokes("I")*0.5;
+      elif observation.circular():
         # create coherency elements
         rr = self.ns.rr << (self.stokes("I") + self.stokes("V"));
         rl = self.ns.rl << Meq.ToComplex(self.stokes("Q"),self.stokes("U"));
