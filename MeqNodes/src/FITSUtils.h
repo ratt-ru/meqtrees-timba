@@ -55,7 +55,7 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 int get_min_max(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
 int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace,
-								double *ra0, double *dec0, double **fgrid, double **fspace);
+								double *ra0, double *dec0, double **fgrid, double **fspace, int mode);
 
 typedef struct drange_ {
 		double lims[2]; /* min, max values */

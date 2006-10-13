@@ -401,9 +401,10 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
  * lspace: spacing in l axis
  * mspace: spacing in m axis
  * ra0,dec0: coords of phase centre
+ * mode: 1 (shift grid if even), 2: no shift
  */
 int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
-								double *ra0, double *dec0, double **fgrid, double **fspace) {
+								double *ra0, double *dec0, double **fgrid, double **fspace, int mode) {
     fitsfile *fptr;
     iteratorCol cols[3];  /* structure used by the iterator function */
     int n_cols;
@@ -711,10 +712,19 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		printf("found center %d\n",kk);
 #endif
     /* find the phase centre in RA,Dec */
+             if(mode==1) {
+               /* shifted grid */
 		*ra0=(worldc[kk])*M_PI/180.0;
 		*dec0=(worldc[kk+1])*M_PI/180.0;
 		l0=imgc[kk];
 		m0=imgc[kk+1];
+             } else {
+               /* normal grid: average min, max values */
+	       *ra0=(worldc[0]+worldc[4*(ncoord-1)])*M_PI/360.0;
+	       *dec0=(worldc[1]+worldc[4*(ncoord-1)+1])*M_PI/360.0;
+	        l0=(imgc[0]+imgc[4*(ncoord-1)])*0.5;
+	        m0=(imgc[1]+imgc[4*(ncoord-1)+1])*0.5;
+             }
 
 #ifdef DEBUG
 		printf("phase centre celestial=(%lf,%lf) native l,m=(%lf,%lf)\n",*ra0,*dec0,l0,m0);

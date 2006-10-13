@@ -82,7 +82,8 @@ int FITSImage::getResult (Result::Ref &resref,
  double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0, *fgrid, *fspace;
  long int naxis[4]={0,0,0,0};
  //if (has_prev_result_) {resref=old_res_; return 0; }
- int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace);
+ int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace,mode_);
+ 
  FailWhen(flag," Error Reading Fits File "+flag);
 
 #ifdef DEBUG
