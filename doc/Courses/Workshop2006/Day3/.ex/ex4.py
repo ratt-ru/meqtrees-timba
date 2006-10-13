@@ -22,9 +22,9 @@ def point_source (ns,name,l,m):
   
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc):
   model = [ point_source(ns,basename+"+0+0",l0,m0) ];
-  for i in range(1,nsrc+1):
-    for dx in (-n,0,n):
-      for dy in (-n,0,n):
+  for n in range(1,nsrc+1):
+    for dx in (0,n):
+      for dy in (0,n):
         if dx or dy:
           name = "%s%+d%+d" % (basename,dx,dy);
           model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));

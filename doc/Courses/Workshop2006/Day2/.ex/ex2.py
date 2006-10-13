@@ -69,7 +69,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
       ms_name          = 'demo.MS',
       tile_size        = 30
     ),
-    python_init = 'Timba.Contrib.OMS.ReadVisHeader'
+    python_init = 'Meow.ReadVisHeader'
   );
   req.output = record( 
     ms = record( 

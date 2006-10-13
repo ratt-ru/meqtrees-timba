@@ -7,6 +7,9 @@ msname := "demo.MS"
 mode := "mfs";
 weighting := "briggs";
 stokes := "I";
+select := "";
+npix := 256;
+cell := '1arcsec';
 
 # parse command line
 for( a in argv )
@@ -28,6 +31,10 @@ for( a in argv )
     weighting := a;
   else if( a =~ s/stokes=// )
     stokes := a;
+  else if( a =~ s/npix=// )
+    npix := a;
+  else if( a =~ s/cell=// )
+    cell := a;
 }
 print "MS name is ",msname; 
 
@@ -36,11 +43,14 @@ myimager:=imager(msname)
 myimager.setdata(mode='channel',fieldid=1, spwid=1,
              nchan=32,
              start=1,
-             step=1,async=F);
+             step=1,
+             msselect=select,
+             async=F);
 
-myimager.setimage(nx=512,ny=512,cellx='0.5arcsec',celly='0.5arcsec', 
+print select;
+myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
   stokes=stokes,mode=mode,
-  fieldid=1, spwid=1,   
+  fieldid=1,spwid=1,
   nchan=32,start=1,step=1)
   
 myimager.weight(weighting); 

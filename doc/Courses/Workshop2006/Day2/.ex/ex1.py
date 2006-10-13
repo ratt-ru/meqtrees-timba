@@ -35,7 +35,7 @@ def _define_forest (ns):
   ns.lmn_minus1 << Meq.Composer(L,M,N-1);
   
   # nu - nu_0
-  ns.delta_freq = Meq.Freq() - 8e+8;   
+  ns.delta_freq = Meq.Freq() - (ns.freq0<<0);   
 
   # define K-jones and G-jones
   for p in ANTENNAS:
@@ -70,7 +70,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
       ms_name          = 'demo.MS',
       tile_size        = 30
     ),
-    python_init = 'Timba.Contrib.OMS.ReadVisHeader'
+    python_init = 'Meow.ReadVisHeader'
   );
   req.output = record( 
     ms = record( 
