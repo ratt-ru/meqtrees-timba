@@ -34,11 +34,12 @@ namespace Meq {
 
 const HIID FFilename= AidFilename;
 const HIID FCutoff= AidCutoff;
+const HIID FMode= AidMode;
 
 
 //##ModelId=400E5355029C
 FITSImage::FITSImage()
-	: Node(0),cutoff_(0.1),has_prev_result_(false)
+	: Node(0),cutoff_(0.1),has_prev_result_(false),mode_(1)
 {
 
 	//create 2 new axes -- Freq is already present
@@ -64,6 +65,11 @@ void FITSImage::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 #endif
 	}
 
+	if(rec[FMode].get(mode_,initializing)) {
+#ifdef DEBUG
+   cout<<"Mode ="<<mode_<<endl;
+#endif
+	}
 	//always cache
 	setCachePolicy(Node::CACHE_ALWAYS);
 }
@@ -82,10 +88,17 @@ int FITSImage::getResult (Result::Ref &resref,
 #ifdef DEBUG
  for (int i=0;i<4;i++) {cout<<" i="<<i<<" "<<naxis[i]<<endl;}
 #endif
+ if (mode_==1) {
  //create a result with 6 vellsets, is integrated
  //if integrated=0, cells is removed
- Result &result=old_res_<<= new Result(6,1); 
+ old_res_<<= new Result(6,1); 
+ } else {
+ //create a result a single vellset, is integrated
+ old_res_<<= new Result(1,1); 
+ }
 
+ Result &result=old_res_; 
+ if (mode_==1) {
  /* RA0 vellset */
  VellSet::Ref ref0;
  VellSet &vs0= ref0<<= new VellSet(0,1);
@@ -97,6 +110,7 @@ int FITSImage::getResult (Result::Ref &resref,
  VellSet &vs1= ref1<<= new VellSet(0,1);
  Vells dec_vells=vs1.setValue(new Vells(dec0));
  result.setVellSet(1,ref1);
+ }
 
 
  //the real business begins
@@ -189,9 +203,15 @@ int FITSImage::getResult (Result::Ref &resref,
  } else {
   slout=A(blitz::Range::all(), lrange, blitz::Range::all(),0);
  }
+ if (mode_==1) {
  result.setVellSet(2,refI);
+ } else {
+  //this is the only vellset
+ result.setVellSet(0,refI);
+ }
 
 
+ if (mode_==1) {
  //Stokes Q
  VellSet::Ref refQ;
  if (naxis[2]>1) {
@@ -248,6 +268,7 @@ int FITSImage::getResult (Result::Ref &resref,
   VellSet &vsV=refV<<= new VellSet(0,1);
   Vells &outV=vsV.setValue(new Vells(0.0));
   result.setVellSet(5,refV);
+ }
  }
  result.setCells(cells);
 

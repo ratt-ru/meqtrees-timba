@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::FITSImage
-#pragma aid Filename Cutoff
+#pragma aid Filename Cutoff Mode
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -41,6 +41,9 @@
 // FITS File Name
 //field: cutoff 0.1
 // Tolerance for cutoff 
+//field: mode (1 or 2)
+// mode=1 : default, returns a sixpack
+// mode=2 : returns the data as a cube, no axis mapping done
 //defrec end
 
 namespace Meq {    
@@ -70,6 +73,7 @@ private:
 	double cutoff_;
 	//for caching the old result
 	bool has_prev_result_;
+        int mode_;
 	Result::Ref old_res_;
 };
 
