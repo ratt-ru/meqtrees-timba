@@ -84,7 +84,8 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
         if len(node)>4:
             if not isinstance(folder, str): folder = '** AUTO_GROUPS **'
         if not isinstance(page, str): page = 'autopage'
-        if isinstance(name, str): page += '_'+name         # ....?
+        if isinstance(name, str): page = '_'+name          # ....?
+        # if isinstance(name, str): page += '_'+name       # ....?
         n = _counter (page, increment=-1)
         if n<-1: page += '('+str(n)+')'
         pagecount = 1
