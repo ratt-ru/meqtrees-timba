@@ -50,16 +50,17 @@ def _define_forest (ns, **kwargs):
    bm = True
 
    group = 'binop'
-   cc = [x,y]
-   cc.append(ns << Meq.Add(x,y)) 
-   cc.append(ns << Meq.Add(x,y,y,y)) 
-   cc.append(ns << Meq.Subtract(x,y)) 
-   cc.append(ns << Meq.Multiply(x,y)) 
-   cc.append(ns << Meq.Multiply(x,y,x,x)) 
-   cc.append(ns << Meq.Divide(x,y)) 
-   cc.append(ns << Meq.Pow(x,y)) 
-   cc.append(ns << Meq.toComplex(x,y)) 
-   cc.append(ns << Meq.Polar(x,y)) 
+   cc = [x,y,
+         ns << Meq.Add(x,y), 
+         ns << Meq.Add(x,y,y,y), 
+         ns << Meq.Subtract(x,y), 
+         ns << Meq.Multiply(x,y), 
+         ns << Meq.Multiply(x,y,x,x), 
+         ns << Meq.Divide(x,y), 
+         ns << Meq.Pow(x,y), 
+         ns << Meq.toComplex(x,y), 
+         ns << Meq.Polar(x,y)
+         ]
    gg.append(ns[group] << Meq.Add(children=cc)) 
    if bm: JEN_bookmarks.create(cc, group)
 

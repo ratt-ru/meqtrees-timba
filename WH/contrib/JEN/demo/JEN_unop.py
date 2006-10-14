@@ -52,62 +52,66 @@ def _define_forest (ns, **kwargs):
    bm = False
    bm = True
 
-   group = 'unop_expon'
-   cc = [x]
-   cc.append(ns << Meq.Exp(x)) 
-   cc.append(ns << Meq.Log(x)) 
-   cc.append(ns << Meq.Negate(x)) 
-   cc.append(ns << Meq.Invert(x)) 
-   cc.append(ns << Meq.Sqrt(x)) 
-   cc.append(ns << Meq.Sqr(x)) 
-   gg.append(ns[group] << Meq.Add(children=cc)) 
+   group = 'expon'
+   cc = [x,
+         ns << Meq.Exp(x), 
+         ns << Meq.Log(x), 
+         ns << Meq.Negate(x), 
+         ns << Meq.Invert(x), 
+         ns << Meq.Sqrt(x), 
+         ns << Meq.Sqr(x)
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
    if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'unop_pow'
-   cc = [x]
-   cc.append(ns << Meq.Pow2(x)) 
-   cc.append(ns << Meq.Pow3(x)) 
-   cc.append(ns << Meq.Pow4(x)) 
-   cc.append(ns << Meq.Pow5(x)) 
-   cc.append(ns << Meq.Pow6(x)) 
-   cc.append(ns << Meq.Pow7(x)) 
-   cc.append(ns << Meq.Pow8(x))
-   gg.append(ns[group] << Meq.Add(children=cc)) 
+   group = 'pow'
+   cc = [x,
+         ns << Meq.Pow2(x), 
+         ns << Meq.Pow3(x), 
+         ns << Meq.Pow4(x), 
+         ns << Meq.Pow5(x), 
+         ns << Meq.Pow6(x), 
+         ns << Meq.Pow7(x), 
+         ns << Meq.Pow8(x)
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
    if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'unop_circular'
-   cc = []
-   cc.append(ns << Meq.Cos(x)) 
-   cc.append(ns << Meq.Sin(x)) 
-   cc.append(ns << Meq.Tan(x)) 
-   cc.append(ns << Meq.Acos(x10)) 
-   cc.append(ns << Meq.Asin(x10)) 
-   cc.append(ns << Meq.Atan(x)) 
-   cc.append(ns << Meq.Cosh(x)) 
-   cc.append(ns << Meq.Sinh(x)) 
-   cc.append(ns << Meq.Tanh(x)) 
-   gg.append(ns[group] << Meq.Add(children=cc)) 
+   group = 'circular'
+   cc = [
+      ns << Meq.Cos(x), 
+      ns << Meq.Sin(x), 
+      ns << Meq.Tan(x), 
+      ns << Meq.Acos(x10), 
+      ns << Meq.Asin(x10), 
+      ns << Meq.Atan(x), 
+      ns << Meq.Cosh(x), 
+      ns << Meq.Sinh(x), 
+      ns << Meq.Tanh(x)
+      ]
+   gg.append(ns[group] << Meq.Add(children=cc))
    if bm: JEN_bookmarks.create(cc, group)
 
-
-   group = 'unop_complex'
-   cc = [cx]
-   cc.append(ns << Meq.Abs(cx)) 
-   cc.append(ns << Meq.Norm(cx)) 
-   cc.append(ns << Meq.Arg(cx)) 
-   cc.append(ns << Meq.Real(cx)) 
-   cc.append(ns << Meq.Imag(cx)) 
-   cc.append(ns << Meq.Conj(cx)) 
-   gg.append(ns[group] << Meq.Add(children=cc)) 
+   group = 'complex'
+   cc = [cx,
+         ns << Meq.Abs(cx), 
+         ns << Meq.Norm(cx), 
+         ns << Meq.Arg(cx), 
+         ns << Meq.Real(cx), 
+         ns << Meq.Imag(cx), 
+         ns << Meq.Conj(cx)
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
    if bm: JEN_bookmarks.create(cc, group)
 
-   group = 'unop_round'
-   cc = [xn]
-   cc.append(ns << Meq.Abs(xn)) 
-   cc.append(ns << Meq.Fabs(xn)) 
-   cc.append(ns << Meq.Ceil(xn)) 
-   cc.append(ns << Meq.Floor(xn)) 
-   gg.append(ns[group] << Meq.Add(children=cc)) 
+   group = 'round'
+   cc = [xn,
+         ns << Meq.Abs(xn), 
+         ns << Meq.Fabs(xn), 
+         ns << Meq.Ceil(xn), 
+         ns << Meq.Floor(xn)
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
    if bm: JEN_bookmarks.create(cc, group)
 
 
@@ -143,19 +147,21 @@ def _tdl_job_execute (mqs, parent):
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
-def _tdl_job_zero (mqs, parent):
-    """Execute the forest, with zero value(s) in the request"""
-    domain = meq.domain(-0.25,9.25,0,1)                              # (f1,f2,t1,t2)
+
+def _tdl_job_negapos (mqs, parent):
+    """Execute the forest, with negative and positive values in the request"""
+    domain = meq.domain(-10,10,0,1)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=20, num_time=1)
-    rqid = meq.requestid(domain_id=2)
+    rqid = meq.requestid(domain_id=3)
     request = meq.request(cells, rqtype='ev', rqid=rqid)
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
+       
 
-def _tdl_job_negative (mqs, parent):
-    """Execute the forest, with negative values in the request"""
-    domain = meq.domain(-10,10,0,1)                               # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=20, num_time=1)
+def _tdl_job_zero (mqs, parent):
+    """Execute the forest, with zeroes in the request"""
+    domain = meq.domain(-1,1,-1,1)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=1)
     rqid = meq.requestid(domain_id=3)
     request = meq.request(cells, rqtype='ev', rqid=rqid)
     result = mqs.meq('Node.Execute',record(name='result', request=request))
@@ -173,7 +179,6 @@ def _tdl_job_negative (mqs, parent):
 #   - Then check the state records of those unary ops that are not
 #     be able to deal with zero or negativbee arguments.
 
-# NB: Re-execute with new domain does NOT work!
 # NB: Results of illegal arguments produce 'nan' (not-a-number)
 #     but is not reported in any way (look at the vellset),
 #     and is even used in further math operations!!
