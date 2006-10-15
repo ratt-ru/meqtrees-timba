@@ -22,13 +22,13 @@ def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
    # Make two 'leaf' nodes that show some variation over freq/time. 
-   a = ns.a << Meq.Time()
-   b = ns.b << Meq.Freq()
+   y = ns.y << Meq.Time()
+   x = ns.x << Meq.Freq()
 
    # The root node of the tree can have any name, but in this example it
    # should be named 'result', because this name is used in the default
    # execute command (see below), and the bookmark.
-   result = ns.result << Meq.Add(a,b)
+   result = ns.result << Meq.Add(x,y)
 
    # Make a bookmark of the result node, for easy viewing:
    bm = record(name='result', viewer='Result Plotter',

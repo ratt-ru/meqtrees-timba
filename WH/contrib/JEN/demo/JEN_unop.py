@@ -39,6 +39,7 @@ def _define_forest (ns, **kwargs):
    # Make node(s) to serve as argument for the unary ops.
    # Variation over freq gives a nice 1D plot. 
    x = ns.x << Meq.Freq()
+   wgt = ns.wgt << Meq.Freq()
    x10 = ns.x10 << Meq.Freq()/10
    cx = ns.cx << Meq.toComplex(1,x)
    xn = ns.xneg << Meq.Negate(x)
@@ -49,48 +50,42 @@ def _define_forest (ns, **kwargs):
    # generates named bookpages from lists (cc, bb) of nodes.
    # This is convenient, but not ecouraged in demo scripts.
 
-   bm = False
-   bm = True
+   bms = False
+   bms = True
 
-   group = 'expon'
+   group = 'elementary'
    cc = [x,
-         ns << Meq.Exp(x), 
-         ns << Meq.Log(x), 
          ns << Meq.Negate(x), 
          ns << Meq.Invert(x), 
+         ns << Meq.Exp(x), 
+         ns << Meq.Log(x), 
          ns << Meq.Sqrt(x), 
-         ns << Meq.Sqr(x)
+         ns << Meq.Cos(x), 
+         ns << Meq.Sin(x), 
+         ns << Meq.Tan(x), 
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
-   if bm: JEN_bookmarks.create(cc, group)
+   if bms: JEN_bookmarks.create(cc, group)
 
-   group = 'pow'
-   cc = [x,
-         ns << Meq.Pow2(x), 
-         ns << Meq.Pow3(x), 
-         ns << Meq.Pow4(x), 
-         ns << Meq.Pow5(x), 
-         ns << Meq.Pow6(x), 
-         ns << Meq.Pow7(x), 
-         ns << Meq.Pow8(x)
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bm: JEN_bookmarks.create(cc, group)
-
-   group = 'circular'
-   cc = [
-      ns << Meq.Cos(x), 
-      ns << Meq.Sin(x), 
-      ns << Meq.Tan(x), 
+   group = 'inverse_circular'
+   cc = [x,x10,
+      ns << Meq.Acos(x), 
+      ns << Meq.Asin(x), 
+      ns << Meq.Atan(x),
       ns << Meq.Acos(x10), 
       ns << Meq.Asin(x10), 
-      ns << Meq.Atan(x), 
-      ns << Meq.Cosh(x), 
-      ns << Meq.Sinh(x), 
-      ns << Meq.Tanh(x)
       ]
    gg.append(ns[group] << Meq.Add(children=cc))
-   if bm: JEN_bookmarks.create(cc, group)
+   if bms: JEN_bookmarks.create(cc, group)
+
+   group = 'hyperbolic'
+   cc = [x,
+      ns << Meq.Cosh(x), 
+      ns << Meq.Sinh(x), 
+      ns << Meq.Tanh(x),
+      ]
+   gg.append(ns[group] << Meq.Add(children=cc))
+   if bms: JEN_bookmarks.create(cc, group)
 
    group = 'complex'
    cc = [cx,
@@ -99,31 +94,79 @@ def _define_forest (ns, **kwargs):
          ns << Meq.Arg(cx), 
          ns << Meq.Real(cx), 
          ns << Meq.Imag(cx), 
-         ns << Meq.Conj(cx)
+         ns << Meq.Conj(cx),
+         ns << Meq.Exp(cx), 
+         ns << Meq.Log(cx), 
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
-   if bm: JEN_bookmarks.create(cc, group)
+   if bms: JEN_bookmarks.create(cc, group)
 
-   group = 'round'
+   group = 'power'
+   cc = [x,
+         ns << Meq.Sqr(x),
+         ns << Meq.Pow2(x), 
+         ns << Meq.Pow3(x), 
+         ns << Meq.Pow4(x), 
+         ns << Meq.Pow5(x), 
+         ns << Meq.Pow6(x), 
+         ns << Meq.Pow7(x), 
+         ns << Meq.Pow8(x),
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
+   if bms: JEN_bookmarks.create(cc, group)
+
+   group = 'misc'
    cc = [xn,
          ns << Meq.Abs(xn), 
          ns << Meq.Fabs(xn), 
          ns << Meq.Ceil(xn), 
-         ns << Meq.Floor(xn)
+         ns << Meq.Floor(xn),
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
-   if bm: JEN_bookmarks.create(cc, group)
+   if bms: JEN_bookmarks.create(cc, group)
+
+   # Cell_statistics are Operations that calculate properties of
+   # the values of all the cells in the requested domain.
+   # Note that they produce a 'scalar' result, which will be
+   # expanded to a domain in which all cells have the same value
+   # when needed.
+   
+   group = 'cell_statistics'
+   cc = [x,
+         ns << Meq.NElements(x),
+         ns << Meq.Sum(x),
+         ns << Meq.Mean(x),
+         ns << Meq.StdDev(x),
+         ns << Meq.Min(x),
+         ns << Meq.Max(x),
+         ns << Meq.Product(x),
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
+   if bms: JEN_bookmarks.create(cc, group)
+
+   # It is not clear to me what these nodes are supposed to do: 
+
+   group = 'weighted_sum'
+   cc = [x,wgt,
+         ns << Meq.WSum(x,wgt,x),
+         ns << Meq.WSum(x,wgt),
+         ns << Meq.WMean(x,wgt),
+         ns << Meq.WSum(x),
+         ns << Meq.WMean(x),
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
+   if bms: JEN_bookmarks.create(cc, group)
 
 
-   # The root node of the tree can have any name, but in this example it
-   # should be named 'result', because this name is used in the default
-   # execute command (see below), and the bookmark.
+
+   #==============================================================
+   
    result = ns.result << Meq.Add(children=gg)
 
    # Optionally, make a bookpage for the group bundling nodes (gg).
-   if bm:
+   if bms:
       gg.append(result)
-      JEN_bookmarks.create(gg, 'unop_overall')
+      JEN_bookmarks.create(gg, 'overall')
 
    # Standard: make a bookmark of the result node, for easy viewing:
    bm = record(name='result', viewer='Result Plotter',
@@ -152,14 +195,14 @@ def _tdl_job_negapos (mqs, parent):
     """Execute the forest, with negative and positive values in the request"""
     domain = meq.domain(-10,10,0,1)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=20, num_time=1)
-    rqid = meq.requestid(domain_id=3)
+    rqid = meq.requestid(domain_id=2)
     request = meq.request(cells, rqtype='ev', rqid=rqid)
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
 
 def _tdl_job_zero (mqs, parent):
-    """Execute the forest, with zeroes in the request"""
+    """Execute the forest, with one-cell request (x=0)"""
     domain = meq.domain(-1,1,-1,1)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
     rqid = meq.requestid(domain_id=3)
@@ -173,7 +216,7 @@ def _tdl_job_zero (mqs, parent):
 #********************************************************************************
 
 # - First execute with TDL Exec 'execute'
-#   - If bm=True in _define_forest(), there are more bookmarks.
+#   - If bms=True in _define_forest(), there are more bookmarks.
 
 # - Try the other TDL Exec options with arguments that can be illegal. 
 #   - Then check the state records of those unary ops that are not

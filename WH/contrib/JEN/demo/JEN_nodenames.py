@@ -60,7 +60,7 @@ def _define_forest (ns, **kwargs):
    cc.append(ns.qadd(q=8).qadd(sp1,sp2) << Meq.Subtract(sp1,sp2))
    cc.append(ns.list('a','b',7) << 1.0)
    cc.append(ns.kwargs(a='a',b='b',c=7) << 1.0)
-   cc.append(ns.list+kwargs('a','b',a='a',b='b',c=7) << 1.0)
+   cc.append(ns['list+kwargs']('a','b',a='a',b='b',c=7) << 1.0)
    cc.append(ns.dict(**dict(a='a',b='b',c=7)) << 1.0)
    cc.append(ns.dict2(dict(a='a',b='b',c=7)) << 1.0)
    gg.append(ns[group] << Meq.Composer(children=cc))
