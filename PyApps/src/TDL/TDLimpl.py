@@ -266,6 +266,10 @@ class _NodeDef (object):
     return _Meq.Multiply(other,self);
   def __rdiv__ (self,other):
     return _Meq.Divide(other,self);
+  def __neg__ (self):
+    return _Meq.Negate(self);
+  def __abs__ (self):
+    return _Meq.Abs(self);
     
 def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
   """Merges qualifiers qual,kwqual into qual0,kwqual0.
@@ -487,6 +491,10 @@ class _NodeStub (object):
     return _Meq.Multiply(other,self);
   def __rdiv__ (self,other):
     return _Meq.Divide(other,self);
+  def __neg__ (self):
+    return _Meq.Negate(self);
+  def __abs__ (self):
+    return _Meq.Abs(self);
 
 class ClassGen (object):
   class _ClassStub (object):
