@@ -39,10 +39,9 @@ def _define_forest (ns, **kwargs):
    # Make node(s) to serve as argument for the unary ops.
    # Variation over freq gives a nice 1D plot. 
    x = ns.x << Meq.Freq()
-   wgt = ns.wgt << Meq.Freq()
    x10 = ns.x10 << Meq.Freq()/10
    cx = ns.cx << Meq.toComplex(1,x)
-   xn = ns.xneg << Meq.Negate(x)
+   wgt = ns.wgt << Meq.Freq()
 
    # Optionally, make separate bookmarks for each group.
    # This produces a separate plot for each unary node.
@@ -116,11 +115,12 @@ def _define_forest (ns, **kwargs):
    if bms: JEN_bookmarks.create(cc, group)
 
    group = 'misc'
-   cc = [xn,
-         ns << Meq.Abs(xn), 
-         ns << Meq.Fabs(xn), 
-         ns << Meq.Ceil(xn), 
-         ns << Meq.Floor(xn),
+   cc = [x,
+         ns << Meq.Abs(x), 
+         ns << Meq.Fabs(x), 
+         ns << Meq.Ceil(x), 
+         ns << Meq.Floor(x),
+         ns << Meq.Stripper(x),
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
@@ -148,11 +148,11 @@ def _define_forest (ns, **kwargs):
 
    group = 'weighted_sum'
    cc = [x,wgt,
-         ns << Meq.WSum(x,wgt,x),
-         ns << Meq.WSum(x,wgt),
-         ns << Meq.WMean(x,wgt),
-         ns << Meq.WSum(x),
-         ns << Meq.WMean(x),
+         # ns << Meq.WSum(x,wgt,x),
+         # ns << Meq.WSum(x,wgt),
+         # ns << Meq.WMean(x,wgt),
+         # ns << Meq.WSum(x, weights=[wgt]),
+         # ns << Meq.WMean(x, weights=[wgt]),
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
