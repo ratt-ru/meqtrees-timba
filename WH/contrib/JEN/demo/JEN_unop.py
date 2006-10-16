@@ -41,7 +41,6 @@ def _define_forest (ns, **kwargs):
    x = ns.x << Meq.Freq()
    x10 = ns.x10 << Meq.Freq()/10
    cx = ns.cx << Meq.toComplex(1,x)
-   wgt = ns.wgt << Meq.Freq()
 
    # Optionally, make separate bookmarks for each group.
    # This produces a separate plot for each unary node.
@@ -117,10 +116,10 @@ def _define_forest (ns, **kwargs):
    group = 'misc'
    cc = [x,
          ns << Meq.Abs(x), 
-         ns << Meq.Fabs(x), 
+         ns << Meq.Fabs(x),         # same as Abs, needed?
          ns << Meq.Ceil(x), 
          ns << Meq.Floor(x),
-         ns << Meq.Stripper(x),
+         ns << Meq.Stripper(x),     # just strips the derivatives off the result 
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
@@ -144,15 +143,19 @@ def _define_forest (ns, **kwargs):
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
 
-   # It is not clear to me what these nodes are supposed to do: 
+   # There are some nodes that operate on its CHILDREN,
+   # e.g. a weighted sum or a weighted mean:
 
-   group = 'weighted_sum'
-   cc = [x,wgt,
-         # ns << Meq.WSum(x,wgt,x),
-         # ns << Meq.WSum(x,wgt),
-         # ns << Meq.WMean(x,wgt),
-         # ns << Meq.WSum(x, weights=[wgt]),
-         # ns << Meq.WMean(x, weights=[wgt]),
+   group = 'child_ops'
+   a1 = ns.a1 << Meq.Freq()
+   a2 = ns.a2 << Meq.Cos(a1)
+   a3 = ns.a3 << Meq.Sin(a1)
+   wgt = [3.0,1.0,2.0]
+   wtot = ns.wtot << sum(wgt)
+   wsum = ns['wsum(3*a1,1*a2,2*a3)'] << Meq.WSum(a1,a2,a3, weights=wgt)
+   wmean = ns['wmean(3*a1,1*a2,2*a3)'] << Meq.WMean(a1,a2,a3, weights=wgt)
+   cc = [a1,a2,a3,wsum,wmean,wtot,
+         ns << wmean - wsum/wtot          # result should be zero
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
