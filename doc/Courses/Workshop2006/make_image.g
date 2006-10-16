@@ -5,7 +5,7 @@ include 'viewer.g'
 imagetype:="observed"
 msname := "demo.MS"
 mode := "mfs";
-weighting := "briggs";
+weighting := "natural";
 stokes := "I";
 select := "";
 npix := 256;
