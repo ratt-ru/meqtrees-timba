@@ -44,10 +44,10 @@ def _define_forest (ns, **kwargs):
   ns.x<<x_node
 
   # L,M coordinates
-  l=[0.1, 0.001]
-  m=[0.2, 0.002]
-  ns.l0<< Meq.Parm(l,node_groups='Parm')
-  ns.m0<< Meq.Parm(m,node_groups='Parm')
+  l=[[0.1, 0.001],[0.2,-0.002]]
+  m=[[0.2, 0.002],[0.1,-0.001]]
+  ns.l0<< Meq.Parm(l,node_groups='Parm')*0.01
+  ns.m0<< Meq.Parm(m,node_groups='Parm')*0.01
 
   # this will generate the LM grid
   ns.lm<<Meq.Composer(ns.l0, ns.m0)
