@@ -88,13 +88,13 @@ def _define_forest (ns, **kwargs):
    group = 'complex'
    cc = [cx,
          ns << Meq.Abs(cx), 
-         ns << Meq.Norm(cx), 
+         ns << Meq.Norm(cx),       # same as Abs() 
          ns << Meq.Arg(cx), 
          ns << Meq.Real(cx), 
          ns << Meq.Imag(cx), 
          ns << Meq.Conj(cx),
          ns << Meq.Exp(cx), 
-         ns << Meq.Log(cx), 
+         ns << Meq.Log(cx),        # elog(), show 10log()?
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
@@ -116,10 +116,11 @@ def _define_forest (ns, **kwargs):
    group = 'misc'
    cc = [x,
          ns << Meq.Abs(x), 
-         ns << Meq.Fabs(x),         # same as Abs, needed?
+         # ns << Meq.Fabs(x),         # same as Abs, needed?
          ns << Meq.Ceil(x), 
          ns << Meq.Floor(x),
          ns << Meq.Stripper(x),     # just strips the derivatives off the result 
+         ns << Meq.Identity(x),     # just makes a copy....
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)

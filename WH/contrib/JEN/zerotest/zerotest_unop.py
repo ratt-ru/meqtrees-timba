@@ -27,7 +27,11 @@ def _define_forest (ns, **kwargs):
    x = ns.x << Meq.Freq()
    y = ns.y << Meq.Time()
    xy = ns.xy << Meq.Add(x,y)
+
    x10 = ns.x10 << Meq.Freq()/10
+   y10 = ns.y10 << Meq.Time()/10
+   xy10 = ns.xy10 << Meq.Add(x10,y10)
+
    cx = ns.cx << Meq.toComplex(1,x)
    xn = ns.xneg << Meq.Negate(x)
 
@@ -36,30 +40,51 @@ def _define_forest (ns, **kwargs):
    #-------------------------------------------------------
    group = 'expon'
 
+   expz = ns << Meq.Exp(xy)
+   nexp = ns << Meq.Exp(ns << Meq.Negate(xy))
+   expz10 = ns << Meq.Exp(xy10)
+   nexp10 = ns << Meq.Exp(ns << Meq.Negate(xy10))
+
    zero = ns << Meq.Sqrt(ns << Meq.Sqr(xy)) - xy
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   # cc.append(JEN_zerotest.zerotest(ns, zero))
 
    zero = ns << Meq.Exp(ns << Meq.Log(xy)) - xy
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   # cc.append(JEN_zerotest.zerotest(ns, zero))
 
    zero = ns << Meq.Negate(xy) + xy
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   # cc.append(JEN_zerotest.zerotest(ns, zero))
 
    zero = ns << Meq.Multiply(ns << Meq.Invert(xy), xy) - 1
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   # cc.append(JEN_zerotest.zerotest(ns, zero))
 
    #-------------------------------------------------------
    group = 'circular'
 
-   zero = ns << Meq.Add(ns << Meq.Sqr(ns.sin1 << Meq.Sin(xy)),
-                        ns << Meq.Sqr(ns.cos1 << Meq.Cos(xy))) - 1
+   sinz = ns << Meq.Sin(xy)
+   cosz = ns << Meq.Cos(xy)
+   tanz = ns << Meq.Tan(xy)
+
+   zero = ns << Meq.Add(ns << Meq.Sqr(sinz), ns << Meq.Sqr(cosz)) - 1
    cc.append(JEN_zerotest.zerotest(ns, zero))
 
-   zero = ns << Meq.Subtract(ns << Meq.Divide(ns.sin2 << Meq.Sin(xy),
-                                              ns.cos2 << Meq.Cos(xy)),
-                             ns << Meq.Tan(xy))
+   zero = ns << Meq.Subtract(ns << Meq.Divide(sinz,cosz),tanz)
    cc.append(JEN_zerotest.zerotest(ns, zero))
 
+   sinh10 = ns << Meq.Sinh(xy10)
+   cosh10 = ns << Meq.Cosh(xy10)
+   tanh10 = ns << Meq.Tanh(xy10)
+
+   zero = ns << Meq.Subtract(ns << Meq.Sqr(sinh10), ns << Meq.Sqr(cosh10)) - 1
+   cc.append(JEN_zerotest.zerotest(ns, zero))
+
+   zero = ns << Meq.Subtract(ns << Meq.Divide(sinh10,cosh10),tanh10)
+   cc.append(JEN_zerotest.zerotest(ns, zero))
+
+   zero = ns << Meq.Subtract(2*sinh10, ns << Meq.Subtract(expz10,nexp10))
+   cc.append(JEN_zerotest.zerotest(ns, zero))
+
+   zero = ns << Meq.Subtract(2*cosh10, ns << Meq.Add(expz10,nexp10))
+   cc.append(JEN_zerotest.zerotest(ns, zero))
 
    #-------------------------------------------------------
    #-------------------------------------------------------

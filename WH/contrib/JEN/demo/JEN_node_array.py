@@ -41,6 +41,9 @@ def _define_forest (ns, **kwargs):
    y = ns.y << Meq.Time()
    x = ns.x << Meq.Freq()
 
+   # Use constants as children to allow mental verification?
+   # However, plotter only shows the first vells in that case...
+
    s = ns.scalar << -1.0
    v2 = ns.v2 << Meq.Composer(1,2)
    v3 = ns.v3 << Meq.Composer(1,2,3)
@@ -61,6 +64,16 @@ def _define_forest (ns, **kwargs):
    cc = [v2,
          ns << Meq.Add(v2,s),
          ns << Meq.Add(v2,v2),
+         ]
+   gg.append(ns[group] << Meq.Composer(children=cc))
+   JEN_bookmarks.create(cc, group)
+
+   group = 'wsum'
+   v20 = ns.v20 << Meq.Composer(1,2)
+   v21 = ns.v21 << Meq.Composer(3,4)
+   cc = [v20,v21,
+         ns << Meq.WSum(v20,v21, weights=[6.0,-2.0]),
+         ns << Meq.WMean(v20,v21, weights=[6.0,-2.0]),
          ]
    gg.append(ns[group] << Meq.Composer(children=cc))
    JEN_bookmarks.create(cc, group)

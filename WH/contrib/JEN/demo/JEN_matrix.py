@@ -32,7 +32,7 @@ def _define_forest (ns, **kwargs):
    gg = []
 
    # Matrix ops:
-   #   1511 2006-09-14 14:36 Identity.cc
+   #   3039 2006-09-14 14:36 Matrix22.cc
    #   3039 2006-09-14 14:36 Transpose.cc
    #   3039 2006-09-14 14:36 ConjTranspose.cc
    #  16019 2006-09-14 14:36 MatrixMultiply.cc
@@ -52,8 +52,6 @@ def _define_forest (ns, **kwargs):
    
    group = 'basic'
    cc = [m22,mx22,
-         # ns << Meq.Identity(3, dims=3),
-         ns << Meq.Identity(3),
          ns << Meq.Transpose(m22),
          ns << Meq.Transpose(mx22),
          ns['hermitian(mx22)'] << Meq.ConjTranspose(mx22),

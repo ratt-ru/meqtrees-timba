@@ -9,6 +9,7 @@
 # - 24 aug 2005: creation
 # - 26 nov 2005: modify 'all' -> '*'
 # - 02 feb 2006: added attrib 'results_buffer'
+# - 17 oct 2006: added attrib 'cache_policy'
 
 # Copyright: The MeqTree Foundation 
 
@@ -261,6 +262,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('bookpage', False)     # name of bookpage to be used (False=none)
    pp.setdefault('bookfolder', False)   # name of bookfolder to be used (False=none)
    pp.setdefault('results_buffer', 20)  # size of the results-buffer in the browser
+   pp.setdefault('cache_policy', 100)   # node cache-policy (100 = always)
    pp = record(pp)
    
    
@@ -295,8 +297,9 @@ def dcoll (ns, node=[], **pp):
                               spectrum_color='hippo',
                               x_axis=pp.xlabel, y_axis=pp.ylabel)
       dcoll['dcoll'] = ns[dcoll_name](uniqual) << Meq.DataCollect(children=dcoll['stripped'],
-                                                                 top_label=hiid('visu'),
-                                                                 attrib=attrib)
+                                                                  top_label=hiid('visu'),
+                                                                  cache_policy=pp['cache_policy'],
+                                                                  attrib=attrib)
 
    else:
       # Assume pp.type == 'realvsimag'
@@ -312,8 +315,9 @@ def dcoll (ns, node=[], **pp):
       if not pp.errorbars:
          # Indicate just the mean values of the child results:
          dcoll['dcoll'] = ns[dcoll_name](uniqual) << Meq.DataCollect(children=dcoll['mean'],
-                                                                    top_label=hiid('visu'),
-                                                                    attrib=attrib)
+                                                                     top_label=hiid('visu'),
+                                                                     cache_policy=pp['cache_policy'],
+                                                                     attrib=attrib)
       else:
          # Indicate the stddev of the child results with 'error bars':
 
@@ -323,6 +327,7 @@ def dcoll (ns, node=[], **pp):
          attr.tag.append('Mean')
          dc_mean = ns[dcoll_name+'_mean'](uniqual) << Meq.DataCollect(children=dcoll['mean'],
                                                                       top_label=hiid('visu'),
+                                                                      cache_policy=pp['cache_policy'],
                                                                       attrib=attr)
          dcoll['dcoll_mean'] = dc_mean
          
@@ -332,6 +337,7 @@ def dcoll (ns, node=[], **pp):
          attr.tag.append('StdDev')
          dc_stddev = ns[dcoll_name+'_stddev'](uniqual) << Meq.DataCollect(children=dcoll['stddev'],
                                                                           top_label=hiid('visu'),
+                                                                          cache_policy=pp['cache_policy'],
                                                                           attrib=attr)
          dcoll['dcoll_stddev'] = dc_stddev
          
@@ -343,8 +349,9 @@ def dcoll (ns, node=[], **pp):
          attr.plot.value_tag = 'Mean'
          attr.plot.error_tag = 'StdDev'
          dcoll['dcoll'] = ns[dcoll_name](uniqual) << Meq.DataCollect(children=[dc_mean, dc_stddev],
-                                                                    top_label=hiid('visu'),
-                                                                    attrib=attr)
+                                                                     top_label=hiid('visu'),
+                                                                     cache_policy=pp['cache_policy'],
+                                                                     attrib=attr)
 
    # Attach the attribute record to the output record, for later use:
    dcoll['attrib'] = attrib
@@ -383,6 +390,7 @@ def dconc (ns, dcoll, **pp):
    pp.setdefault('bookmark', False)       # name of dcoll bookmark (False=none)
    pp.setdefault('bookpage', False)       # name of bookpage to be used (False=none)
    pp.setdefault('bookfolder', False)     # name of bookfolder to be used (False=none)
+   pp.setdefault('cache_policy', 100)     # node cache-policy (100 = always)
    pp = record(pp)
 
 
@@ -406,6 +414,7 @@ def dconc (ns, dcoll, **pp):
    # Make concatenations (dconc) node:
    dconc['dcoll'] = ns[dconc_name](uniqual) << Meq.DataCollect(children=dconc['cc'],
                                                                top_label=hiid('visu'),
+                                                               cache_policy=pp['cache_policy'],
                                                                attrib=attrib)
 
    # Optionally, make a bookmark for the dconc node:
