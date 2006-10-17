@@ -713,11 +713,12 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 #endif
     /* find the phase centre in RA,Dec */
              if(mode==1) {
-               /* shifted grid */
+               /* shifted grid : apply NO shift at all */
 		*ra0=(worldc[kk])*M_PI/180.0;
 		*dec0=(worldc[kk+1])*M_PI/180.0;
-		l0=imgc[kk];
-		m0=imgc[kk+1];
+		//l0=imgc[kk];
+		//m0=imgc[kk+1];
+		l0=m0=0.0;
              } else {
                /* normal grid: average min, max values */
 	       *ra0=(worldc[0]+worldc[4*(ncoord-1)])*M_PI/360.0;
