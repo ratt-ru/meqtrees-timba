@@ -191,15 +191,30 @@ int main(int argc, char **argv) {
 			 }
 
 
- #ifdef DEBUG
+#ifdef DEBUG
 			 for (ii=0; ii<naxis; ii++) {
 				printf("axis %ld\n",ii);
-	  		 for (jj=0; jj<naxes[ii];jj++) 
+	  		 for (jj=0; jj<=naxes[ii];jj++) 
 		   			printf(" %lf, ",cells[ii][jj]);
 				 printf("\n");
 
 			 }
 #endif
+      /* only store the absolute value of the first element */
+		  for (ii=0; ii<naxis; ii++) {
+	  		 for (jj=2; jj<=naxes[ii];jj++) 
+		   			cells[ii][jj]-=cells[ii][1];
+			 }
+#ifdef DEBUG
+			 for (ii=0; ii<naxis; ii++) {
+				printf("axis %ld\n",ii);
+	  		 for (jj=0; jj<=naxes[ii];jj++) 
+		   			printf(" %lf, ",cells[ii][jj]);
+				 printf("\n");
+
+			 }
+#endif
+
 
 			 /* create table */
 			 fits_create_tbl( outfptr, BINARY_TBL, maxrow, naxis, ttype, tform,
