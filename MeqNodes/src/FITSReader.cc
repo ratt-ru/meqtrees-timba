@@ -115,6 +115,9 @@ int FITSReader::getResult (Result::Ref &resref,
 			 l_space(0)=1;
 			}
      //attach to cells
+#ifdef DEBUG
+		cout<<i<<": "<<l_center<<","<<l_space<<endl;
+#endif
      cells.setCells(i,l_center,l_space);
 		}
 	}

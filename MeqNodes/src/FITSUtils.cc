@@ -1061,6 +1061,11 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
     		fits_read_col(fptr, TDOUBLE, ii+1, firstrow, firstelem, nrows,
 														&null_flag, colarr, &anynulls, &status);
 
+#ifdef DEBUG
+   for (jj=0; jj<nrows; jj++) {
+		 printf("##%lf, ",colarr[jj]);
+   }
+#endif
 				(*naxes)[ii]=(long int)colarr[0];
 				if ((*naxes)[ii]) {
 	  	   if (((*cells)[ii]=(double*)calloc((size_t)(*naxes)[ii],sizeof(double)))==0) {
@@ -1068,6 +1073,12 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 				  exit(1);
 			   }
 					memcpy((*cells)[ii],&colarr[1],sizeof(double)*((size_t)((*naxes)[ii])));
+         /* since we have only stored the abs value of first point
+            and the offsets of others, calculate absolute values */
+
+        for (jj=1; jj<(*naxes)[ii]; jj++) {
+          (*cells)[ii][jj]+=(*cells)[ii][0];
+        }
 				}
 			 }
 
