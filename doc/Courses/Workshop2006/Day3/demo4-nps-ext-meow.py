@@ -43,12 +43,13 @@ def _define_forest (ns):
     # create Direction object
     src_dir = Meow.LMDirection(ns,src,l,m);
     # create point source with this direction
-    if (isrc%4):
+    if isrc%4:
       source = Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V);
     else:
       source = Meow.GaussianSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V,
                                     size=[.3*ARCMIN,.1*ARCMIN],
-                                    phi=math.pi/4);
+                                    phi=math.pi/(isrc+1),
+                                    spi=float(isrc),freq0=8e+8);
     allsky.add(source);
   
   # create set of nodes to compute visibilities...
