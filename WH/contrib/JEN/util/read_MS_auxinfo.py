@@ -11,7 +11,10 @@
 # NB: This should perhaps be in another 'official' MeqTree directory...
 
 # Derived from OMS: ../Timba/MeqServer/test/read_msvis_header.py
+#   See also the newer version: ../contrib/OMS/Meow/ReadVisHeader.py
 # To be turned into a WSRT-specific version: read_WSRT_auxinfo.py
+
+
 
 # from Timba.TDL import *
 # from Timba.Meq import meq                     # required in MG_JEN_exec !!
@@ -32,11 +35,28 @@ def process_vis_header (hdr):
 
     # phase center
     (ra0,dec0) = hdr.phase_ref;
-    if True:
-      set_state('ra0',value=ra0);
-      set_state('dec0',value=dec0);
     if trace: print '- ra0 =',ra0
     if trace: print '- dec0 =',dec0
+    try:
+      set_state('ra0',value=ra0);
+      set_state('dec0',value=dec0);
+    except: pass;
+
+    # time extent
+    (t0,t1) = hdr.time_extent;
+    if trace: print '- time extent: ',t0,t1;
+    try:
+      set_state('time0',value=t0);
+      set_state('time1',value=t1);
+    except: pass;
+
+    # freq range
+    f0,f1 = hdr.channel_freq[0],hdr.channel_freq[-1];
+    if trace: print '- freq range: ',f0,f1;
+    try:
+      set_state('freq0',value=f0);
+      set_state('freq1',value=f1);
+    except: pass;
 
     # antenna positions
     pos = hdr.antenna_pos;

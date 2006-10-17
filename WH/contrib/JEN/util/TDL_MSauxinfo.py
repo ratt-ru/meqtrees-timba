@@ -9,6 +9,7 @@
 #    - 04 dec 2005: creation
 #    - 05 jan 2006: added dcoll v vs w
 #    - 11 jan 2006: used in MG_JEN_Joneset::KJones()
+#    - 17 oct 2006: added cache_policy=100 to dataCollect
 #
 # Full description:
 #   The MS is read by the kernel when the tree is executed,
@@ -402,6 +403,7 @@ class MSauxinfo (TDL_common.Super):
                                     x_axis='ypos (E-W, relative) (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               cache_policy=100,
                                                top_label=hiid('visu'))
             self.__dcoll_xvsy = node
         return self.__dcoll_xvsy
@@ -426,6 +428,7 @@ class MSauxinfo (TDL_common.Super):
                                     x_axis='ypos (E-W, relative) (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               cache_policy=100,
                                                top_label=hiid('visu'))
             self.__dcoll_zvsy = node
         return self.__dcoll_zvsy
@@ -450,6 +453,7 @@ class MSauxinfo (TDL_common.Super):
                                     x_axis='u_coord (m)', y_axis='v_coord (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               cache_policy=100,
                                                top_label=hiid('visu'))
             self.__dcoll_uvsv = node
         return self.__dcoll_uvsv
@@ -474,6 +478,7 @@ class MSauxinfo (TDL_common.Super):
                                     x_axis='u_coord (m)', y_axis='w_coord (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               cache_policy=100,
                                                top_label=hiid('visu'))
             self.__dcoll_uvsw = node
         return self.__dcoll_uvsw
@@ -498,6 +503,7 @@ class MSauxinfo (TDL_common.Super):
                                     x_axis='v_coord (m)', y_axis='w_coord (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               cache_policy=100,
                                                top_label=hiid('visu'))
             self.__dcoll_vvsw = node
         return self.__dcoll_vvsw
