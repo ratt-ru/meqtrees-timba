@@ -221,7 +221,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setTickInterval( (max_range - min_range) / 10 )
       self.index_selector.setRange(max_range, False)
       self.index_selector.setValue(self.scale_factor)
-      self.index_selector.setLabel('scale factor')
+      self.index_selector.setLabel('display gain')
       self.index_selector.hideNDControllerOption()
       self.index_selector.reset_scale_toggle()
       self.index_selector.set_emit(True)
@@ -320,7 +320,11 @@ class vtk_qt_3d_display(qt.QWidget):
 # draw the axes.  Add the actor to the renderer.
     self.axes = vtk.vtkCubeAxesActor2D()
     if self.warped_surface:
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
+      if zMin < 0.0 and zMax > 0.0:
+        zAvg = 0.0
+      else:
+        zAvg = (zMin + zMax) * 0.5
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
       self.axes.SetZLabel(" ")
     else:
       self.axes.SetInput(self.image_array.GetOutput())
@@ -498,8 +502,12 @@ class vtk_qt_3d_display(qt.QWidget):
       yMax = sy * yMax
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
+      if zMin < 0.0 and zMax > 0.0:
+        zAvg = 0.0
+      else:
+        zAvg = (zMin + zMax) * 0.5
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
       self.warp.SetScaleFactor(self.scale_factor)
     else:
       self.current_widget.SetSliceIndex(sl)
@@ -517,8 +525,12 @@ class vtk_qt_3d_display(qt.QWidget):
       self.scale_factor = 0.5 * ((xMax-xMin) + (yMax-yMin)) / (self.data_max - self.data_min)
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
+      if zMin < 0.0 and zMax > 0.0:
+        zAvg = 0.0
+      else:
+        zAvg = (zMin + zMax) * 0.5
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, 0.0, 0.0)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
       self.warp.SetScaleFactor(self.scale_factor)
       self.mapper.SetScalarRange(self.data_min,self.data_max)
 
@@ -530,7 +542,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.index_selector.setTickInterval( (max_range - min_range) / 10 )
       self.index_selector.setRange(max_range, False)
       self.index_selector.setValue(self.scale_factor)
-      self.index_selector.setLabel('scale factor')
+      self.index_selector.setLabel('display gain')
       self.index_selector.set_emit(True)
 
     else:
