@@ -144,22 +144,51 @@ def _define_forest (ns, **kwargs):
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
 
-   # There are some nodes that operate on its CHILDREN,
-   # e.g. a weighted sum or a weighted mean:
+   # With multiple children, the operations are done over
+   # all the children. The results are per cell.
 
-   group = 'child_ops'
    a1 = ns.a1 << Meq.Freq()
    a2 = ns.a2 << Meq.Cos(a1)
    a3 = ns.a3 << Meq.Sin(a1)
+
+   group = 'child_ops'
+   cc = [a1,a2,a3,
+         ns << Meq.Min(a1,a2,a3),
+         ns << Meq.Max(a1,a2,a3),
+         ns << Meq.Min(a2,a3),
+         ns << Meq.Max(a2,a3),
+         ns << Meq.Mean(a1,a2,a3)
+         ]
+   gg.append(ns[group] << Meq.Add(children=cc))
+   if bms: JEN_bookmarks.create(cc, group)
+
+   # Some child-ops have weighted versions.
+   # Children with weight=0 are ignored (i.e. not evaluated).
+
+   group = 'weighted_child_ops'
    wgt = [3.0,1.0,2.0]
    wtot = ns.wtot << sum(wgt)
    wsum = ns['wsum(3*a1,1*a2,2*a3)'] << Meq.WSum(a1,a2,a3, weights=wgt)
    wmean = ns['wmean(3*a1,1*a2,2*a3)'] << Meq.WMean(a1,a2,a3, weights=wgt)
-   cc = [a1,a2,a3,wsum,wmean,wtot,
-         ns << wmean - wsum/wtot          # result should be zero
+   cc = [a1,a2,a3,
+         wsum,wmean,wtot,
+         ns << wmean - wsum/wtot,          # result should be zero
          ]
    gg.append(ns[group] << Meq.Add(children=cc))
    if bms: JEN_bookmarks.create(cc, group)
+
+   # It is possible to add children (and step_children) to
+   # an existing node:
+
+   group = 'add_children'
+   c1 = ns.c1 << Meq.Freq()
+   c2 = ns.c2 << Meq.Cos(c1)
+   sc = ns.step_child << Meq.Sin(c1)
+   parent = ns.parent << Meq.Add(c1)
+   parent.add_children(c2)
+   parent.add_stepchildren(sc)
+   gg.append(parent)
+   if bms: JEN_bookmarks.create(parent, group, recurse=1, step_children=True)
 
 
 

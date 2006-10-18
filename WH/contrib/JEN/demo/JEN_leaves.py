@@ -17,7 +17,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
@@ -45,19 +45,48 @@ def _define_forest (ns, **kwargs):
 #                         Spigot?
 #                         TDL_Leaves....?
 
-   # Make two 'leaf' nodes that show some variation over freq/time. 
-   a = ns['a'] << Meq.Time()
-   b = ns['b'] << Meq.Freq()
+   # Organise in groups (cc) of related nodes.
+   # These are bundled by supplying the cc as children to a MeqComposer node.
+   # Bundle the groups in the same way into a child-list (gg):
 
-   # The root node of the tree can have any name, but in this example it
-   # should be named 'result', because this name is used in the default
-   # execute command (see below), and the bookmark.
-   result = ns['result'] << Meq.Add(a,b)
+   gg = []
 
-   # Make a bookmark of the result node, for easy viewing:
-   bm = record(name='result', viewer='Result Plotter',
-               udi='/node/result', publish=True)
-   Settings.forest_state.bookmarks.append(bm)
+   # Freq, time etc 
+   group = 'dims'
+   cc = [
+      ns << Meq.Freq(),
+      ns << Meq.Time(),
+      ns << Meq.GridPoints(),
+      ]
+   gg.append(ns[group] << Meq.Composer(children=cc))
+   JEN_bookmarks.create(cc, group)
+
+
+   stddev = 1.0
+   g1 = ns['gaussnoise('+str(stddev)+')'] << Meq.GaussNoise(stddev=1.0)
+   # r1 = ns['randomnoise('+str(stddev)+')'] << Meq.RandomNoise(stddev=1.0)  # crashes the browser
+   # b1 = ns['blitzrandom('+str(stddev)+')'] << Meq.BlitzRandom(stddev=1.0)  # does not exist
+
+   # Generate cell-by-cell noise: 
+   group = 'noise'
+   cc = [
+      g1,
+      ns << g1 + 1,
+      ns << Meq.Exp(g1),
+      # r1, 
+      # b1, 
+      ]
+   gg.append(ns[group] << Meq.Composer(children=cc))
+   JEN_bookmarks.create(cc, group)
+
+
+
+   #==============================================================
+
+   # Make a group of groups:
+   result = ns.result << Meq.Composer(children=gg)
+   gg.append(result)
+   JEN_bookmarks.create(gg, 'overall')
 
    # Finished:
    return True
@@ -70,10 +99,20 @@ def _define_forest (ns, **kwargs):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(1,10,1,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
+    domain = meq.domain(1,10,-100,100)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=19, num_time=19)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+def _tdl_job_sequence (mqs, parent):
+    """Execute the forest a number of times"""
+    domain = meq.domain(1,10,-100,100)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=19, num_time=19)
+    for domain_id in range(10):
+       rqid = meq.requestid(domain_id=domain_id)
+       request = meq.request(cells, rqtype='ev', rqid=rqid)
+       result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
 

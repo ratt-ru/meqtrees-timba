@@ -46,16 +46,16 @@ def _define_forest (ns, **kwargs):
    nexp10 = ns << Meq.Exp(ns << Meq.Negate(xy10))
 
    zero = ns << Meq.Sqrt(ns << Meq.Sqr(xy)) - xy
-   # cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Exp(ns << Meq.Log(xy)) - xy
-   # cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Negate(xy) + xy
-   # cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Multiply(ns << Meq.Invert(xy), xy) - 1
-   # cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    #-------------------------------------------------------
    group = 'circular'
@@ -65,26 +65,26 @@ def _define_forest (ns, **kwargs):
    tanz = ns << Meq.Tan(xy)
 
    zero = ns << Meq.Add(ns << Meq.Sqr(sinz), ns << Meq.Sqr(cosz)) - 1
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Subtract(ns << Meq.Divide(sinz,cosz),tanz)
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    sinh10 = ns << Meq.Sinh(xy10)
    cosh10 = ns << Meq.Cosh(xy10)
    tanh10 = ns << Meq.Tanh(xy10)
 
-   zero = ns << Meq.Subtract(ns << Meq.Sqr(sinh10), ns << Meq.Sqr(cosh10)) - 1
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   zero = ns << Meq.Subtract(ns << Meq.Sqr(sinh10), ns << Meq.Sqr(cosh10)) + 1
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Subtract(ns << Meq.Divide(sinh10,cosh10),tanh10)
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Subtract(2*sinh10, ns << Meq.Subtract(expz10,nexp10))
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    zero = ns << Meq.Subtract(2*cosh10, ns << Meq.Add(expz10,nexp10))
-   cc.append(JEN_zerotest.zerotest(ns, zero))
+   cc.append(JEN_zerotest.zerotest(ns, zero, recurse=3))
 
    #-------------------------------------------------------
    #-------------------------------------------------------

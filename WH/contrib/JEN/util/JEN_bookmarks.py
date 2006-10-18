@@ -31,25 +31,30 @@ from copy import deepcopy
 
 #===============================================================================
 
-def family (fam=[], node=None, recurse=0, nmax=9):
+def family (fam=[], node=None, recurse=0, step_children=False, nmax=9):
     """Recursive function to extract the family from the given node,
     i.e. a list if the node itself and its multi-generation offspring."""
-    ncc = len(node.children)                       # nr of offspring
     # First the children:
     for i in range(len(node.children)):
         if len(fam)<nmax:
             fam.append(node.children[i][1])
+    # Then the step_children (if any):
+    if step_children:
+        for i in range(len(node.stepchildren)):
+            if len(fam)<nmax:
+                fam.append(node.stepchildren[i][1])
     # Then recurse to get grandchildren:
     if recurse>1:
         for i in range(len(node.children)):
             if len(fam)<nmax:
-                family (fam, node.children[i][1], recurse=recurse-1, nmax=nmax)
+                family (fam, node.children[i][1],
+                        recurse=recurse-1, nmax=nmax)
     return True
 
 #------------------------------------------------------------------------------
 
 def create (node=None, name=None, udi=None, viewer='Result Plotter',
-            recurse=0,
+            recurse=0, step_children=False,
             save=True, page=None, folder=None, perpage=9, trace=False):
     """Create a forest_state bookmark for the given node(s).
     - viewer = 'Result Plotter'   (default)
@@ -74,7 +79,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
             if page==None:                                 # automatic pagename
                 page = 'family of: '+node.name
             fam = [node]
-            family (fam, node, recurse=recurse, nmax=9)
+            family (fam, node, recurse=recurse, step_children=step_children, nmax=9)
             node = fam                                     # replace with list
 
     #------------------------------------------------------------------

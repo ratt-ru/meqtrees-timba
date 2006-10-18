@@ -29,8 +29,8 @@ def _define_forest (ns, **kwargs):
    # Apply zerotest() to various nodes whose result should be zero.
    # Collect these nodes into a vector cc (to be added below)
    cc = []
-   cc.append(zerotest(ns, ns << Meq.Subtract(xy,xy)))
-   cc.append(zerotest(ns, ns << Meq.Multiply(xy,xy)))
+   cc.append(zerotest(ns, ns << Meq.Subtract(xy,xy)), recurse=2)
+   cc.append(zerotest(ns, ns << Meq.Multiply(xy,xy)), recurse=3)
 
    # Do a final zerotest on the sum of all zerotest nodes (in cc).
    # The name of the sum node should be used in _tdl_job_execute() below.
@@ -40,16 +40,22 @@ def _define_forest (ns, **kwargs):
    return True
 
 
+
+
 #===============================================================================
 # Function to be called by other zerotest functions:
 #===============================================================================
 
-def zerotest(ns, node):
+def zerotest(ns, node, recurse=1):
    """This function is to be called from zerotest functions."""
    
    # Make a bookmark to plot the given node. It should be bright green(=0).
    # The argument recurse=1 causes its children to be plotted also.
-   JEN_bookmarks.create(node, recurse=1)
+   JEN_bookmarks.create(node, recurse=recurse)
+
+   # Make a bookmark of the root node on its own:
+   if node.name=='zerotest':
+      JEN_bookmarks.create(node)
 
    # Return the input node.
    return node
