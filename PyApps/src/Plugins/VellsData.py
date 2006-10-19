@@ -28,6 +28,8 @@ import sys
 from numarray import *
 
 from Timba.utils import verbosity
+from Timba.Plugins.plotting_functions import *
+
 _dbg = verbosity(0,name='VellsData');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
@@ -66,57 +68,75 @@ class VellsData:
           are used to set up proper axis labelling etc for the
           visualization displays.
       """
-      axis_map = vells_rec.cells.domain.get('axis_map',['time','freq'])
-      _dprint(3, 'axis map is ', axis_map)
       self.axis_labels = []
       self.vells_axis_parms = {}
       self.axis_shape = {}
       self.num_possible_ND_axes = 0
-      for i in range(len(axis_map)):
-        # convert from Hiid to string
-        current_label = str(axis_map[i]).lower()
-        _dprint(3,' ')
-        _dprint(3,'current label ', current_label)
-        if current_label != '(null)':
+      try:
+        axis_map = vells_rec.cells.domain.get('axis_map',['time','freq'])
+        _dprint(3, 'axis map is ', axis_map)
+        for i in range(len(axis_map)):
+          # convert from Hiid to string
+          current_label = str(axis_map[i]).lower()
+          _dprint(3,' ')
+          _dprint(3,'current label ', current_label)
+          if current_label != '(null)':
+            begin = 0
+            end = 0
+            title = current_label
+            if vells_rec.cells.domain.has_key(current_label):
+              begin = vells_rec.cells.domain.get(current_label)[0]
+              end = vells_rec.cells.domain.get(current_label)[1]
+              title = current_label
+              if current_label == 'time':
+                end = end - begin
+                begin = 0
+                title = 'Relative Time(sec)'
+              if current_label == 'freq':
+                if end >  1.0e6:
+                  begin = begin / 1.0e6
+                  end = end / 1.0e6
+                  title = 'Frequency(MHz)'
+                elif end >  1.0e3:
+                  begin = begin / 1.0e3
+                  end = end / 1.0e3
+                  title = 'Frequency(KHz)'
+                else:
+                  title = 'Frequency(Hz)'
+            if vells_rec.cells.grid.has_key(current_label):
+              grid_array = vells_rec.cells.grid.get(current_label)
+              try:
+                self.axis_shape[current_label] = grid_array.shape[0]
+                _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
+                self.num_possible_ND_axes = self.num_possible_ND_axes + 1
+                _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
+              except:
+                self.axis_shape[current_label] = 1
+            else:
+              self.axis_shape[current_label] = 1
+            _dprint(3,'assigning self.vells_axis_parms key ', current_label)
+            _dprint(3,'assigning begin ', begin)
+            _dprint(3,'assigning end ', end)
+            _dprint(3,'assigning title ', title)
+            self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
+            self.axis_labels.append(current_label)
+      except:
+      # we have no 'cells' field so need to create a fake one for
+      # display purposes
+        axis_map = ['time','freq']
+        for i in range(len(axis_map)):
+          current_label = axis_map[i]
           begin = 0
           end = 0
           title = current_label
-          if vells_rec.cells.domain.has_key(current_label):
-            begin = vells_rec.cells.domain.get(current_label)[0]
-            end = vells_rec.cells.domain.get(current_label)[1]
-            title = current_label
-            if current_label == 'time':
-              end = end - begin
-              begin = 0
-              title = 'Relative Time(sec)'
-            if current_label == 'freq':
-              if end >  1.0e6:
-                begin = begin / 1.0e6
-                end = end / 1.0e6
-                title = 'Frequency(MHz)'
-              elif end >  1.0e3:
-                begin = begin / 1.0e3
-                end = end / 1.0e3
-                title = 'Frequency(KHz)'
-              else:
-                title = 'Frequency(Hz)'
-          if vells_rec.cells.grid.has_key(current_label):
-            grid_array = vells_rec.cells.grid.get(current_label)
-            try:
-              self.axis_shape[current_label] = grid_array.shape[0]
-              _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
-              self.num_possible_ND_axes = self.num_possible_ND_axes + 1
-              _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
-            except:
-              self.axis_shape[current_label] = 1
-          else:
-            self.axis_shape[current_label] = 1
-          _dprint(3,'assigning self.vells_axis_parms key ', current_label)
-          _dprint(3,'assigning begin ', begin)
-          _dprint(3,'assigning end ', end)
-          _dprint(3,'assigning title ', title)
+          if current_label == 'time':
+            title = 'Relative Time(sec)'
+          if current_label == 'freq':
+            title = 'Frequency(MHz)'
+          self.axis_shape[current_label] = 1
           self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
           self.axis_labels.append(current_label)
+        print 'self.vells_axis_parms is ', self.vells_axis_parms
 
       # do we request a ND GUI?
       if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
@@ -422,18 +442,7 @@ class VellsData:
            _dprint(3, 'first axis becomes ', first_axis)
        if rank > 2:
          if not first_axis is None and not second_axis is None:
-           for i in range(rank):
-             if i == first_axis:            
-               axis_slice = slice(0,shape[first_axis])
-               self.array_selector.append(axis_slice)
-             elif i == second_axis:            
-               axis_slice = slice(0,shape[second_axis])
-               self.array_selector.append(axis_slice)
-             elif i == third_axis:            
-               axis_slice = slice(0,shape[third_axis])
-               self.array_selector.append(axis_slice)
-             else:
-               self.array_selector.append(0)
+           self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
            self.array_tuple = tuple(self.array_selector)
          _dprint(3, 'array selector tuple ', self.array_tuple)
      except:
@@ -454,22 +463,15 @@ class VellsData:
          return
        else:
          shape = self.getActiveData().shape
+         self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
+         self.array_tuple = tuple(self.array_selector)
          for i in range(rank):
            if i == first_axis:
-             axis_slice = slice(0,shape[first_axis])
-             self.array_selector.append(axis_slice)
              self.first_axis_parm = self.axis_labels[i]
            elif i == second_axis:
-             axis_slice = slice(0,shape[second_axis])
-             self.array_selector.append(axis_slice)
              self.second_axis_parm = self.axis_labels[i]
            elif i == third_axis:
-             axis_slice = slice(0,shape[third_axis])
-             self.array_selector.append(axis_slice)
              self.third_axis_parm = self.axis_labels[i]
-           else:
-             self.array_selector.append(0)
-         self.array_tuple = tuple(self.array_selector)
      except:
        self.array_selector = []
        self.array_tuple = None
