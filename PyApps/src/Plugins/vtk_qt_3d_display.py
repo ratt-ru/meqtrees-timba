@@ -321,10 +321,10 @@ class vtk_qt_3d_display(qt.QWidget):
     self.axes = vtk.vtkCubeAxesActor2D()
     if self.warped_surface:
       if zMin < 0.0 and zMax > 0.0:
-        zAvg = 0.0
+        zLoc = 0.0
       else:
-        zAvg = (zMin + zMax) * 0.5
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
+        zLoc = zMin 
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zLoc, zLoc)
       self.axes.SetZLabel(" ")
     else:
       self.axes.SetInput(self.image_array.GetOutput())
@@ -503,11 +503,11 @@ class vtk_qt_3d_display(qt.QWidget):
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
       if zMin < 0.0 and zMax > 0.0:
-        zAvg = 0.0
+        zLoc = 0.0
       else:
-        zAvg = (zMin + zMax) * 0.5
+        zLoc = zMin 
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zLoc, zLoc)
       self.warp.SetScaleFactor(self.scale_factor)
     else:
       self.current_widget.SetSliceIndex(sl)
@@ -526,11 +526,11 @@ class vtk_qt_3d_display(qt.QWidget):
       zMin = self.data_min * self.scale_factor
       zMax = self.data_max * self.scale_factor
       if zMin < 0.0 and zMax > 0.0:
-        zAvg = 0.0
+        zLoc = 0.0
       else:
-        zAvg = (zMin + zMax) * 0.5
+        zLoc = zMin 
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
-      self.axes.SetBounds(xMin, xMax, yMin, yMax, zAvg, zAvg)
+      self.axes.SetBounds(xMin, xMax, yMin, yMax, zLoc, zLoc)
       self.warp.SetScaleFactor(self.scale_factor)
       self.mapper.SetScalarRange(self.data_min,self.data_max)
 
