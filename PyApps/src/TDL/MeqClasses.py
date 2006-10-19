@@ -6,7 +6,10 @@ from Timba.Meq import meq
 from Timba.Contrib.MXM import TDL_Funklet  # needed for type Funklet.... 
 import sys
 import traceback
+from numarray import *
 
+def array_double (*args,**kw):
+  return array(typecode=dmi.arr_double,*args,**kw);
 
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;
@@ -39,8 +42,42 @@ class _MeqGen (TDLimpl.ClassGen):
           if _dbg.verbose>0:
             traceback.print_exc();
           return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
+      if not kw.has_key('node_groups'):
+        kw['node_groups']='Parm';
     return _NodeDef('Meq','Parm',**kw);
+
+
+  def WSum(self,**kw):
+    #make sure weights is vector of doubles
+    if not kw.has_key('weights'):
+      wgt=[1.];
+    else:
+      wgt = kw['weights'];
+      if isinstance(wgt,(tuple,list)):
+        wgt = array_double(wgt);
+      if dmi.is_scalar(wgt):
+        wgt = [float(wgt)];
+      elif dmi.is_array(wgt):
+        wgt= array_double(wgt);
+    kw['weights']=wgt;
+    return _NodeDef('Meq','WSum',**kw);
+
+  def WMean(self,**kw):
+    #make sure weights is vector of doubles
+    if not kw.has_key('weights'):
+      wgt=[1.];
+    else:
+      wgt = kw['weights'];
+      if isinstance(wgt,(tuple,list)):
+        wgt = array_double(wgt);
+      if dmi.is_scalar(wgt):
+        wgt = [float(wgt)];
+      elif dmi.is_array(wgt):
+        wgt= array_double(wgt);
+    kw['weights']=wgt;
     
+    return _NodeDef('Meq','WMean',**kw);
+  
   def Constant (self,value,**kw):
     if isinstance(value,(list,tuple)):
       if filter(lambda x:isinstance(x,complex),value):
