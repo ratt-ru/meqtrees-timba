@@ -44,6 +44,7 @@ from qt import *
 from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
+from Timba.Plugins.plotting_functions import *
 
 global has_vtk
 has_vtk = False
@@ -598,22 +599,13 @@ class ResultPlotter(GriddedPlugin):
     self._wtop = self.layout_parent;       
 
   def create_2D_plotter(self):
-    if not self.ND_plotter is None:
-      self.ND_plotter.delete_vtk_renderer()
-      self.ND_plotter.hide_vtk_controls()
-    self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-
-    self.layout.addWidget(self._visu_plotter, 0, 1)
+    self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent, self.ND_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_menu_id'), self.update_vells_display) 
     QObject.connect(self._visu_plotter, PYSIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
     QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
-    QObject.connect(self._visu_plotter, PYSIGNAL('show_Warp_Display'), self.show_3D_Display)
-
-    self.plotPrinter = plot_printer(self._visu_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-    self._visu_plotter.show()
   # create_2D_plotter
 
   def set_data (self,dataitem,default_open=None,**opts):
@@ -690,18 +682,6 @@ class ResultPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
-    if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
-      Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset." 
-      if self._rec.vellsets[0].has_key("value"):
-        value = self._rec.vellsets[0].value
-        str_value = str(value[0])
-        Message = "This vellset " + self.label + "  has scalar value: <b>" + str_value + "</b>";
-      cache_message = QLabel(Message,self.wparent())
-      cache_message.setTextFormat(Qt.RichText)
-      self._wtop = cache_message
-      self.set_widgets(cache_message)
-      self.reset_plot_stuff()
-      return process_result
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
       if self._rec.has_key("vellsets"):
@@ -942,7 +922,6 @@ class ResultPlotter(GriddedPlugin):
     """ callback to handle a request from the N-dimensional
         controller that the user has changed an index into a dimension 
     """
-    self._vells_data.updateArraySelector(lcd_number,slider_value)
     if self._vells_plot:
       self._vells_data.updateArraySelector(lcd_number,slider_value)
       plot_array = self._vells_data.getActiveData()
@@ -1028,21 +1007,10 @@ class ResultPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    if not self.ND_Controls is None:
-      self.ND_Controls.reparent(QWidget(), 0, QPoint())
-      self.ND_Controls = None
+    self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
-    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, num_axes,self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
-    if self.ND_Controls.get_num_selectors() > num_axes:
-      self.ND_Controls.showDisplay(1)
-    else:
-      self.ND_Controls.showDisplay(0)
-      if not self.ND_plotter is None:
-        self.ND_plotter.HideNDButton()
-    _dprint(3, 'self.ND_Controls object should appear ', self.ND_Controls)
 
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
@@ -1055,21 +1023,11 @@ class ResultPlotter(GriddedPlugin):
     axis_increments = self._visu_plotter.getActiveAxesInc()
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
-    self.colorbar[0].reparent(QWidget(), 0, QPoint())
-    self.colorbar[1].reparent(QWidget(), 0, QPoint())
-    self.colorbar = {}
-    self._visu_plotter.reparent(QWidget(), 0, QPoint())
-    self._visu_plotter = None
-
+    self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
     if self.ND_plotter is None:
-      self.ND_plotter = vtk_qt_3d_display(self.layout_parent)
-#     self.ND_plotter.Add2DButton()
-#     self.ND_plotter.AddNDButton()
-      self.layout.addMultiCellWidget(self.ND_plotter,0,0,0,2)
+      self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
-      self.ND_plotter.show()
-      _dprint(3, 'issued show call to self.ND_plotter')
     else:
       self.ND_plotter.delete_vtk_renderer()
       self.ND_plotter.show_vtk_controls()
@@ -1078,7 +1036,7 @@ class ResultPlotter(GriddedPlugin):
     if display_flag_3D:
       self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=3)
 
-      self._vells_data.set_3D_Display(True)
+      self._vells_data.set_3D_Display(display_flag_3D)
       self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
     else:
       if not self.ND_Controls is None:
@@ -1108,23 +1066,8 @@ class ResultPlotter(GriddedPlugin):
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2-D displays """
-
     # create two color bars in case we are displaying complex arrays
-    self.colorbar = {}
-    for i in range(2):
-      self.colorbar[i] =  QwtColorBar(colorbar_number= i, parent=self.layout_parent)
-      self.colorbar[i].setMaxRange((-1, 1))
-      QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
-      QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
-      QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
-      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
-      if i == 0:
-        self.layout.addWidget(self.colorbar[i], 0, i)
-        self.colorbar[i].show()
-      else:
-        self.layout.addWidget(self.colorbar[i], 0, 2)
-        self.colorbar[i].hide()
-    self.plotPrinter.add_colorbar(self.colorbar)
+    self.colorbar = create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
