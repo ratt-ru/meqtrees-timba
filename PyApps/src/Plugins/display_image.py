@@ -28,6 +28,7 @@ import sys
 from qt import *
 from qwt import *
 from numarray import *
+import numarray.ieeespecial as ieee
 from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
@@ -238,6 +239,7 @@ class QwtImageDisplay(QwtPlot):
         self.ymax = None
         self.xsect_xpos = None
         self.xsect_ypos = None
+        self.zoomState = None
         self.adjust_color_bar = True
         self.toggle_metrics = True
         self.array_selector = None
@@ -493,7 +495,7 @@ class QwtImageDisplay(QwtPlot):
         self.emit(PYSIGNAL("show_3D_Display"),(True,))
         return True
       if menuid == self.menu_table['Toggle Warp Display']:
-        self.emit(PYSIGNAL("show_Warp_Display"),(False,))
+        self.emit(PYSIGNAL("show_3D_Display"),(False,))
         return True
       if menuid == self.menu_table['Toggle results history']:
         if self.setResults:
@@ -1369,7 +1371,8 @@ class QwtImageDisplay(QwtPlot):
               #print 'zoom: final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
               if xmin == xmax or ymin == ymax:
                 return
-              self.zoomStack.append(self.zoomState)
+              if not self.zoomState is None:
+                self.zoomStack.append(self.zoomState)
               self.zoomState = (xmin, xmax, ymin, ymax)
               self.enableOutline(0)
         
@@ -2072,6 +2075,9 @@ class QwtImageDisplay(QwtPlot):
       """ Figure out shape, rank dimension etc of an array and
           plot it. This is perhaps the main method of this class. """
 
+# first sanitize any NaNs
+#     incoming_plot_array[ieee.isnan(incoming_plot_array)] = 999
+
 # delete any previous curves
       self.removeCurves()
       self.xrCrossSection = None
@@ -2199,10 +2205,9 @@ class QwtImageDisplay(QwtPlot):
         self.log_switch_set = True
 
       if self.is_vector == False:
-        if self.original_data_rank >= 2: 
-          if has_vtk:
-            toggle_id = self.menu_table['Toggle Warp Display']
-            self._menu.setItemVisible(toggle_id, True)
+        if has_vtk:
+          toggle_id = self.menu_table['Toggle Warp Display']
+          self._menu.setItemVisible(toggle_id, True)
 
         if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 1
