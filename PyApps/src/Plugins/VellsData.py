@@ -136,7 +136,6 @@ class VellsData:
           self.axis_shape[current_label] = 1
           self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
           self.axis_labels.append(current_label)
-        print 'self.vells_axis_parms is ', self.vells_axis_parms
 
       # do we request a ND GUI?
       if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
