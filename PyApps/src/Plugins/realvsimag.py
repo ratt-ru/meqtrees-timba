@@ -667,7 +667,11 @@ class realvsimag_plotter(object):
             label_index = len(start_pos) - 1
 # We should have now found the right group of points
 # and can get the appropriate label.
-          message = 'this data point comes from \n ' + label[label_index] 
+          print 'label index', label_index
+          if not label_index is None:
+            message = 'this data point comes from \n ' + label[label_index] 
+          else:
+            message = ''
 
 # alias
           fn = self.plot.fontInfo().family()
@@ -1290,7 +1294,7 @@ class realvsimag_plotter(object):
 # add the new data to a 'dict' of visualization lists, where the index to
 # the data is given by the self._label_r string
         self._plotter_dict[self._label_r] = data_r
-        _dprint(2, 'assigned error data to self._plotter_dict key ', self._label_r)
+        _dprint(2, 'assigned data to self._plotter_dict key ', self._label_r)
 # store the string giving the path to this data in a 'dict'
 # of plotterlabels where the index is again given by self._label_r
         self._plotterlabels_dict[self._label_r] = self._data_labels
