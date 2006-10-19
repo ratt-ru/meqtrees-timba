@@ -47,7 +47,7 @@ class _MeqGen (TDLimpl.ClassGen):
     return _NodeDef('Meq','Parm',**kw);
 
 
-  def WSum(self,**kw):
+  def WSum(self,*childlist,**kw):
     #make sure weights is vector of doubles
     if not kw.has_key('weights'):
       wgt=[1.];
@@ -60,9 +60,9 @@ class _MeqGen (TDLimpl.ClassGen):
       elif dmi.is_array(wgt):
         wgt= array_double(wgt);
     kw['weights']=wgt;
-    return _NodeDef('Meq','WSum',**kw);
+    return _NodeDef('Meq','WSum',*childlist,**kw);
 
-  def WMean(self,**kw):
+  def WMean(self,*childlist,**kw):
     #make sure weights is vector of doubles
     if not kw.has_key('weights'):
       wgt=[1.];
@@ -76,7 +76,7 @@ class _MeqGen (TDLimpl.ClassGen):
         wgt= array_double(wgt);
     kw['weights']=wgt;
     
-    return _NodeDef('Meq','WMean',**kw);
+    return _NodeDef('Meq','WMean',*childlist,**kw);
   
   def Constant (self,value,**kw):
     if isinstance(value,(list,tuple)):
