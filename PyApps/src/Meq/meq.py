@@ -55,9 +55,9 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
       raise TypeError,'coeff array must be one- or two-dimensional';
 ##    if coeff.type() not in (arr_double,arr_dcomplex):
 ##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
-    if not coeff.type() == arr_double:
-      raise TypeError,'coeff array must be float (Float64)';
-    rec.coeff = coeff;
+##    if not coeff.type() == arr_double:
+##      raise TypeError,'coeff array must be float (Float64)';
+    rec.coeff = array_double(coeff);
   else:
     raise TypeError,'illegal coeff argument';
   # process domain argument
@@ -68,15 +68,30 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
       raise TypeError,'domain argument must be a MeqDomain object';
   # other optional arguments
   if offset is not None:
-    rec.offset = offset;
+    if isinstance(coeff,(tuple,list)):
+      if shape and len(shape)>1:
+        raise ValueError,'offset array must be one-dimensional';
+      rec.offset  = array_double(offset,shape=shape);
+    elif is_array(offset):
+      if len(offset.getshape()) > 1:
+        raise TypeError,'offset array must be one-dimensional';
+      rec.offset = array_double(offset);
   if scale is not None:
-    rec.scale = scale;
+    if isinstance(coeff,(tuple,list)):
+      if shape and len(shape)>1:
+        raise ValueError,'scale array must be one-dimensional';
+      rec.scale  = array_double(scale,shape=shape);
+    elif is_array(scale):
+      if len(scale.getshape()) > 1:
+        raise TypeError,'scale array must be one-dimensional';
+      rec.scale = array_double(scale);
+
   if weight is not None:
-    rec.weight = weight;
+    rec.weight = float(weight);
   if dbid is not None:
-    rec.dbid = dbid;
+    rec.dbid = int(dbid);
   if pert is not None:
-    rec.pert = pert;
+    rec.pert = float(pert);
   
   return rec;
 
@@ -91,47 +106,9 @@ def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
 def composedpolc(coeff=0.,shape=None,offset=None,scale=None,domain=None,
                  weight=None,dbid=None,funklet_list=[],pert=1e-6):
   """creates a polclog record""";
-  rec =  _composedpolc_type();
+  rec = polc(coeff,shape,offset,scale,domain,
+             weight,dbid,pert,subclass=_composedpolc_type);
   rec.funklet_list=dmilist(funklet_list);
-  if isinstance(coeff,(tuple,list)):
-    if shape and len(shape)>2:
-      raise ValueError,'coeff array must be one- or two-dimensional';
-    #    if filter(lambda x:isinstance(x,complex),coeff):
-    #      coeff = array_complex(coeff,shape=shape);
-    #    else:
-    coeff = array_double(coeff,shape=shape);
-  if is_scalar(coeff):
-    #    if not isinstance(coeff,complex):  # force float or complex
-    coeff = float(coeff);
-    rec.coeff = array(coeff);
-  elif is_array(coeff):
-    if len(coeff.getshape()) > 2:
-      raise TypeError,'coeff array must be one- or two-dimensional';
-##    if coeff.type() not in (arr_double,arr_dcomplex):
-##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
-    if not coeff.type() == arr_double:
-      raise TypeError,'coeff array must be float (Float64)';
-    rec.coeff = coeff;
-  else:
-    raise TypeError,'illegal coeff argument';
-  # process domain argument
-  if domain is not None:
-    if isinstance(domain,_domain_type):
-      rec.domain = domain;
-    else:
-      raise TypeError,'domain argument must be a MeqDomain object';
-  # other optional arguments
-  if offset is not None:
-    rec.offset = offset;
-  if scale is not None:
-    rec.scale = scale;
-  if weight is not None:
-    rec.weight = weight;
-  if dbid is not None:
-    rec.dbid = dbid;
-  if pert is not None:
-    rec.pert = pert;
-  
   return rec;
 
 ##def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
