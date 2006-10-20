@@ -224,6 +224,7 @@ class QwtImageDisplay(QwtPlot):
         self.incr_soln_norm = None
         self.chi_zeros = None
         self.iteration_number = None
+        self.scalar_display = False
         self.ampl_phase = False
         self.complex_switch_set = False
         self.added_metrics_menu = False
@@ -431,7 +432,8 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_metrics and not self.metrics_rank is None:
           self.add_solver_metrics()
 
-	self.refresh_marker_display()
+        if not self.scalar_display:
+	  self.refresh_marker_display()
 
     def setResultsSelector(self):
       """ add option to toggle ResultsRange selector to context menu """
@@ -977,6 +979,9 @@ class QwtImageDisplay(QwtPlot):
       self._vells_plot = False
       dummy_array = zeros(shape=(2,2),type=Float32)
       self.array_plot(data_label, dummy_array)
+      self.scalar_display = True
+      self.enableAxis(QwtPlot.yLeft, False)
+      self.enableAxis(QwtPlot.xBottom, False)
       self.set_xaxis_title(' ')
       self.set_yaxis_title(' ')
       self.removeMarkers()
@@ -1022,9 +1027,10 @@ class QwtImageDisplay(QwtPlot):
 
 
 
-# a scalar has no legends!
+# a scalar has no legends or cross-sections!
       toggle_id = self.menu_table['Toggle Plot Legend']
       self._menu.setItemVisible(toggle_id, False)
+      self.delete_cross_sections()
 
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
@@ -1046,6 +1052,8 @@ class QwtImageDisplay(QwtPlot):
     def formatCoordinates(self, x, y):
         """Format mouse coordinates as real world plot coordinates.
         """
+        if self.scalar_display:
+          return
         result = ''
         xpos = self.invTransform(QwtPlot.xBottom, x)
         ypos = self.invTransform(QwtPlot.yLeft, y)
@@ -1186,6 +1194,8 @@ class QwtImageDisplay(QwtPlot):
       """ update all markers after new plot data has been displayed or
           modified 
       """ 
+      if self.scalar_display:
+        return
       self.removeMarkers()
       self.info_marker = None
       self.log_marker = None
@@ -1218,9 +1228,6 @@ class QwtImageDisplay(QwtPlot):
           self.removeMarker(self.source_marker)
           self.source_marker = None
           self.replot()
-      if self.is_vector:
-        return
-
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
@@ -1256,9 +1263,13 @@ class QwtImageDisplay(QwtPlot):
         elif Qt.RightButton == e.button():
             e.accept()
             self._menu.popup(e.globalPos());
+            if self.scalar_display:
+              return
 
         elif Qt.MidButton == e.button():
             if self.active_image:
+              if self.scalar_display:
+                return
               xpos = e.pos().x()
               ypos = e.pos().y()
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
@@ -1291,11 +1302,7 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseReleased(self, e):
         """ callback to handle MouseReleased event """
-        if Qt.RightButton == e.button():
-          return
-        elif Qt.MidButton == e.button():
-          return
-        elif Qt.LeftButton == e.button():
+        if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
 # assume a change of <= 2 screen pixels is just due to clicking
@@ -1397,7 +1404,6 @@ class QwtImageDisplay(QwtPlot):
               self.test_plot_array_sizes()
             self.replot()
             _dprint(3, 'called replot in onMouseReleased');
-
     # onMouseReleased()
 
     def resizeEvent(self, event):
@@ -1489,7 +1495,6 @@ class QwtImageDisplay(QwtPlot):
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
-
         # can't plot cross sections and chi display together
         if len(self.chis_plot) > 0:
           for i in range(len(self.chis_plot)):
@@ -2091,6 +2096,7 @@ class QwtImageDisplay(QwtPlot):
       self.myYScale = None
       self.split_axis = None
       self.array_parms = None
+      self.scalar_display = False
       self.adjust_color_bar = True
       if self.store_solver_array:
         self.solver_array = incoming_plot_array

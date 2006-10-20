@@ -682,6 +682,20 @@ class ResultPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
+
+#   if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
+#     Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset."
+#     if self._rec.vellsets[0].has_key("value"):
+#       value = self._rec.vellsets[0].value
+#       str_value = str(value[0])
+#       Message = "This vellset " + self.label + "  has scalar value: <b>" + str_value + "</b>";
+#     cache_message = QLabel(Message,self.wparent())
+#     cache_message.setTextFormat(Qt.RichText)
+#     self._wtop = cache_message
+#     self.set_widgets(cache_message)
+#     self.reset_plot_stuff()
+#     return process_result
+
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
       if self._rec.has_key("vellsets"):
