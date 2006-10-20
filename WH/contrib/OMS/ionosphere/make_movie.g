@@ -3,8 +3,8 @@ include 'image.g'
 
 msname := 'demo.MS';
 npix := 1024;
-cellsize := '10arcsec'; # full field
-# cellsize := '.1arcsec'; # full field
+# cellsize := '10arcsec'; # full field
+cellsize := '1arcsec'; # full field
 weight := "uniform";
 
 for( i in (0:95))

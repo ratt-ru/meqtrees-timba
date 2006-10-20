@@ -10,7 +10,10 @@ import iono_model
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
 Meow.Utils.include_imaging_options();
 
-TDLCompileOption("grid_stepping","Grid step, in minutes",[10,30,60,120,240]);
+TDLCompileOption("grid_stepping","Grid step, in minutes",[5,
+
+
+10,30,60,120,240]);
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -24,9 +27,9 @@ I = 1; Q = .2; U = .2; V = .2;
 
 # we'll put the sources on a grid (positions in arc min)
 #LM = [(0,0)];
-LM = [(-1,-1),(-1,0),(-1,1),
-     ( 0,-1),( 0,0),( 0,1), 
-     ( 1,-1),( 1,0),( 1,1)];
+LM = [(-1.1,-1.03),(-1,0.05),(-1.2,1.07),
+     ( 0.01,-.9),( 0,0),( 0.05,.93), 
+     ( .97,-.96),( 1.04,0.0399999991011),( 1.001,.999997)];
 
 def _define_forest (ns):
   # create an Array object

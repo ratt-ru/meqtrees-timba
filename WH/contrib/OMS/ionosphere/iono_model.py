@@ -4,7 +4,7 @@ import math
 H = 300000;  # height of ionospheric layer, in meters
 TEC0 = 10;
 TIDAmpl = .5; # 2;
-TIDSize = 500000;
+TIDSize = 100000;
 TIDSpeed = 3600; 
 Lightspeed = 3e+8;
 
