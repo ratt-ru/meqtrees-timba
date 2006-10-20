@@ -977,14 +977,23 @@ class QwtImageDisplay(QwtPlot):
           already been initiated
       """
       self._vells_plot = False
+      self.reset_zoom()
       dummy_array = zeros(shape=(2,2),type=Float32)
       self.array_plot(data_label, dummy_array)
-      self.scalar_display = True
-      self.enableAxis(QwtPlot.yLeft, False)
-      self.enableAxis(QwtPlot.xBottom, False)
+      self.zooming = False
       self.set_xaxis_title(' ')
       self.set_yaxis_title(' ')
       self.removeMarkers()
+      self.scalar_display = True
+      self.setAxisAutoScale(QwtPlot.xBottom)
+      self.setAxisAutoScale(QwtPlot.xTop)
+      self.setAxisAutoScale(QwtPlot.yLeft)
+      self.setAxisAutoScale(QwtPlot.yRight)
+      self.enableAxis(QwtPlot.yLeft, False)
+      self.enableAxis(QwtPlot.xBottom, False)
+      self._x_auto_scale = True
+      self._y_auto_scale = True
+
       Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
       _dprint(3,' scalar message ', Message)
       
@@ -1222,6 +1231,8 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseMoved(self, e):
       """ callback to handle MouseMoved event """ 
+      if self.scalar_display:
+        return
       # remove any 'source' descriptor if we are zooming
       if abs(self.xpos - e.pos().x()) >2 and abs(self.ypos - e.pos().y())>2:
         if not self.source_marker is None:
@@ -1296,7 +1307,8 @@ class QwtImageDisplay(QwtPlot):
               self.calculate_cross_sections()
            
 # fake a mouse move to show the cursor position
-        self.onMouseMoved(e)
+        if not self.scalar_display:
+          self.onMouseMoved(e)
 
     # onMousePressed()
 
@@ -2097,6 +2109,7 @@ class QwtImageDisplay(QwtPlot):
       self.split_axis = None
       self.array_parms = None
       self.scalar_display = False
+      self.zooming = True
       self.adjust_color_bar = True
       if self.store_solver_array:
         self.solver_array = incoming_plot_array
@@ -2365,7 +2378,8 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, ' we are plotting a vector')
 
 # remove any markers
-        self.removeMarkers()
+        if not self.scalar_display:
+          self.removeMarkers()
 # make sure color bar is hidden
         self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
         if self.complex_type:
