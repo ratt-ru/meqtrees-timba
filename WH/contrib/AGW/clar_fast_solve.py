@@ -38,6 +38,7 @@ from Meow import Bookmarks,Utils
 
 # MS name
 Utils.include_ms_options(tile_sizes=[30,48,60,96,480,960]);
+Utils.include_imaging_options();
 
 # how much to perturb starting values of solvables
 parm_options = [
@@ -194,6 +195,8 @@ def _tdl_job_5_solve_for_gaussian_parameters (mqs,parent,**kw):
   solvables += Utils.reset_parameters(mqs,["sigma2:S4"],0.0001)
   Utils.run_solve_job(mqs,solvables);
 
+def _tdl_job_6_make_image (mqs,parent):
+  Utils.make_dirty_image(npix=1024,cellsize='.25arcsec',channels=[32,1,1]);
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = True

@@ -38,6 +38,7 @@ from Meow import Bookmarks,Utils
 
 Utils.include_ms_options(has_input=False,
   tile_sizes=[30,48,60,96,480,960,2400]);
+Utils.include_imaging_options();
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -182,14 +183,13 @@ def _define_forest(ns):
   ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in array.ifrs()]);
 
 
-def _tdl_job_clar_predict(mqs,parent,write=True):
+def _tdl_job_1_clar_predict(mqs,parent,write=True):
   req = Utils.create_io_request();
   mqs.execute('VisDataMux',req,wait=(parent is None));
   pass
 
-def _tdl_job_make_dirty_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g']);
-  pass
+def _tdl_job_2_make_image (mqs,parent):
+  Utils.make_dirty_image(npix=1024,cellsize='.25arcsec',channels=[32,1,1]);
 
 
 

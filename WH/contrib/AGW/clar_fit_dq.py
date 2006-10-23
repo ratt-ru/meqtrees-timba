@@ -223,7 +223,7 @@ def create_inputrec(msname, tile_size=1500,short=False):
 #      else:
 #        rec.record_input = boioname;
       rec = record(ms=rec);
-    rec.python_init='Timba.Contrib.OMS.ReadVisHeader';
+    rec.python_init='Meow.ReadVisHeader';
     return rec;
 
 
