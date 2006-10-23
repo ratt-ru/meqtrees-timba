@@ -842,8 +842,9 @@ class GaussianSourceDisplay:
   else:
    eX=eX/(self.cview.x_scale)*self.cview.y_scale
 
+  ## no need to do this anymore, because we store the true value
   # flip sign or PA
-  eP=-eP
+  #eP=-eP
 
   xys1=self.cview.globalToLocal(punit.sp.getRA()+eX/2,punit.sp.getDec()+eY/2)
   major=int(abs(xys[0]-xys1[0]))*2
