@@ -226,6 +226,7 @@ def _tdl_job_sequence(mqs, parent):
    for x in range(10):
       MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
                              f1=x, f2=x+1, t1=x, t2=x+1,
+                             increment=True,
                              save=False, trace=False, wait=False)
    MG_JEN_forest_state.save_meqforest(mqs) 
    return True
