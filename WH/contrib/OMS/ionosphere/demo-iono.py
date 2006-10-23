@@ -10,10 +10,7 @@ import iono_model
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
 Meow.Utils.include_imaging_options();
 
-TDLCompileOption("grid_stepping","Grid step, in minutes",[5,
-
-
-10,30,60,120,240]);
+TDLCompileOption("grid_stepping","Grid step, in minutes",[5,10,30,60,120,240]);
 
 # define antenna list
 ANTENNAS = range(1,28);

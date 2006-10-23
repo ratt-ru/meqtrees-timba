@@ -56,14 +56,21 @@ def compute_tecs (ns,piercings,za_cos,source_list,array,observation):
       
   return tecs;
 
+def compute_zeta_jones_from_tecs (ns,tecs,source_list,array,observation):
+  """Creates the Z Jones for ionospheric phase, given TECs (per source, 
+  per station).""";
+  zeta = ns.Z;
+  for src in source_list:
+    for p in array.stations():
+      zeta(src.name,p) << Meq.Polar(1,-25*2*math.pi*Lightspeed*tecs(src.name,p)/Meq.Freq());
+  return zeta;
+
 def compute_zeta_jones (ns,source_list,array,observation):
   """Creates the Z Jones for ionospheric phase, given TECs (per source, 
   per station).""";
   piercings = compute_piercings(ns,source_list,array,observation);
   za_cos = compute_za_cosines(ns,source_list,array,observation);
   tecs = compute_tecs(ns,piercings,za_cos,source_list,array,observation);
-  zeta = ns.Z;
-  for src in source_list:
-    for p in array.stations():
-      zeta(src.name,p) << Meq.Polar(1,-25*2*math.pi*Lightspeed*tecs(src.name,p)/Meq.Freq());
+  zeta = compute_zeta_jones_from_tecs(ns,tecs,source_list,array,observation);
   return zeta;
+
