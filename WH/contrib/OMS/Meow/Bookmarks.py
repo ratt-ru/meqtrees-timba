@@ -5,7 +5,7 @@ def PlotPage (name,*rows):
   
   if not isinstance(name,str):
     # must be just another row...
-    rows = [name] + rows;
+    rows = [name] + list(rows);
   
   for irow,onerow in enumerate(rows):
     for icol,node in enumerate(onerow):
