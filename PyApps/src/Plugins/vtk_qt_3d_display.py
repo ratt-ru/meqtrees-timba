@@ -183,7 +183,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.outline = vtk.vtkOutlineSource();
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
     else:
-      self.index_selector.init3DContextmenu()
+#     self.index_selector.init3DContextmenu()
       self.outline = vtk.vtkOutlineFilter()
       self.outline.SetInput(self.image_array.GetOutput())
     outlineMapper = vtk.vtkPolyDataMapper();
@@ -262,9 +262,6 @@ class vtk_qt_3d_display(qt.QWidget):
       self.planeWidgetY.TextureInterpolateOff()
       self.planeWidgetY.SetResliceInterpolate(0)
 
-# for the z-slice, turn off texture interpolation:
-# interpolation is now nearest neighbour, to demonstrate
-# cross-hair cursor snapping to pixel centers
       self.planeWidgetZ = vtk.vtkImagePlaneWidget()
       self.planeWidgetZ.DisplayTextOn()
       self.planeWidgetZ.SetInput(self.image_array.GetOutput())
@@ -296,7 +293,6 @@ class vtk_qt_3d_display(qt.QWidget):
     self.scalar_bar.SetHeight(0.8)
     self.scalar_bar.SetTitle("Intensity")
     self.scalar_bar.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
-#   self.scalar_bar.GetPositionCoordinate().SetCoordinateSystemToViewport()
     self.scalar_bar.GetPositionCoordinate().SetValue(0.01, 0.1)
 
 
@@ -361,9 +357,6 @@ class vtk_qt_3d_display(qt.QWidget):
       cy = 0.5*(yMax-yMin)
       cz = 0
       cam1.SetFocalPoint(cx, cy, cz)
-# following statement does something really nasty here!
-#     cam1.SetPosition(cx,cy, cz)
-#     cam1.Zoom(-2)
     else:
       cam1.Elevation(110)
       cam1.SetViewUp(0, 0, 1)
@@ -406,7 +399,6 @@ class vtk_qt_3d_display(qt.QWidget):
     camera.ComputeViewPlaneNormal()
     camera.SetViewUp(vx, vy, vz)
     camera.OrthogonalizeViewUp()
-#    self.ren.ResetCameraClippingRange()
     self.ren.ResetCamera()
     self.renwin.Render()
  
@@ -445,7 +437,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval( (xMax-xMin) / 10 )
     self.index_selector.setLabel('X axis')
     self.index_selector.set_emit(True)
-#   self.AlignCamera()
+#   self.AlignXaxis()
 
   def AlignYaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -467,7 +459,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval( (yMax-yMin) / 10 )
     self.index_selector.setLabel('Y axis')
     self.index_selector.set_emit(True)
-#   self.AlignCamera()
+#   self.AlignYaxis()
  
   def AlignZaxis(self):
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -489,7 +481,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.setTickInterval((zMax-zMin) / 10 )
     self.index_selector.setLabel('Z axis')
     self.index_selector.set_emit(True)
-#   self.AlignCamera()
+#   self.AlignZaxis()
 
   def SetSlice(self, sl):
     if self.warped_surface:
@@ -785,7 +777,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.displayUpdateItem()
 
   def HideNDButton(self):
-    self.index_selector.HideNDOption()
+    self.index_selector.hideNDControllerOption()
 
   def start_timer(self, time):
     timer = qt.QTimer()

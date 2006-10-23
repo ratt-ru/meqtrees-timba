@@ -330,11 +330,6 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Z Axis']
       self.menu.changeItem(toggle_id, text)
 
-    def HideNDOption(self):
-      """ hide the Toggle ND Controller option """
-      toggle_id = self.menu_table['Toggle ND Controller']
-      self.menu.setItemVisible(toggle_id, False)
-
     def disableContextmenu(self):
       """ delete the result buffer context menu """
       if not self.menu is None:
