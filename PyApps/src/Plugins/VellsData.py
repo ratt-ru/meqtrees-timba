@@ -57,6 +57,7 @@ class VellsData:
      self.initialSelection = False
      self.display_3D = False
      self.shape_change = True
+     self.scalar_data = False
      self.rank = -1
      self.actual_rank = -1
      self.shape = (-1,)
@@ -124,6 +125,7 @@ class VellsData:
       # we have no 'cells' field so need to create a fake one for
       # display purposes
         axis_map = ['time','freq']
+        self.scalar_data = True
         for i in range(len(axis_map)):
           current_label = axis_map[i]
           begin = 0
@@ -161,10 +163,16 @@ class VellsData:
      self._plot_labels = {}
      self._menu_labels = {}
      self._perturbations_index = []
+     self.scalar_data = False
+     self.scalar_string = ""
      self.rq_label = rq_label
+
      _dprint(3,' self.rq_label = ', self.rq_label)
      self.calc_vells_ranges(vells_rec)
      _dprint(3,'now after calc_vells_ranges')
+     _dprint(3,'self.scalar_data ', self.scalar_data)
+     if self.scalar_data and len(self.rq_label) > 0:
+       self.scalar_string = self.rq_label + "\n"
 
      self._number_of_planes = len(vells_rec["vellsets"])
      _dprint(3, 'number of planes ', self._number_of_planes)
@@ -205,6 +213,8 @@ class VellsData:
              plot_string = tag[2:len(tag)] 
            else:
              plot_string = str(self.index)
+         if self.scalar_data:
+           self.scalar_string = self.scalar_string + plot_string + " " + str(self._plot_vells_dict[menu_label]) + "\n"
          if len(self.rq_label) > 0:
            plot_string = plot_string + " " + self.rq_label
          self._plot_labels[menu_label] = plot_string
@@ -234,6 +244,8 @@ class VellsData:
                plot_string = initial_plot_str + " " + self.rq_label
              else:
                plot_string = initial_plot_str
+             if self.scalar_data:
+               self.scalar_string = self.scalar_string + plot_string + " " + str(self._plot_vells_dict[menu_label]) + "\n"
              self._plot_labels[menu_label] = plot_string
            self._perturbations_index.append(perturbations_list)
 
@@ -273,6 +285,15 @@ class VellsData:
        self.setInitialSelectedAxes(rank,shape)
        _dprint(3, 'called setInitialSelectedAxes')
    # end StoreVellsData
+
+   def isVellsScalar(self):
+     """ returns true if no cells structure so data but be scalar """
+     _dprint(3,'returning self.scalar_data value ', self.scalar_data)
+     return self.scalar_data
+
+   def getScalarString(self):
+     """ returns string of scalar values """
+     return self.scalar_string
 
    def getShapeChange(self):
      """ returns true if data shape has changed """
