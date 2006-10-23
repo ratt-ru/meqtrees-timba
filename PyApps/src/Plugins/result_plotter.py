@@ -617,6 +617,7 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, '** in result_plotter:set_data callback')
     self._rec = dataitem.data;
+    _dprint(3, 'set_data: initial self._rec ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if self._rec is None:
@@ -640,9 +641,11 @@ class ResultPlotter(GriddedPlugin):
             self.label = "rq " + str(self._rec.request_id);
         else:
           data_failure = True
+        _dprint(3, 'we have req id ', self.label)
       except:
         data_failure = True
       if data_failure:
+        _dprint(3, ' we have a data failure')
 # cached_result not found, display an empty viewer with a "no result
 # in this node record" message (the user can then use the Display with
 # menu to switch to a different viewer)
@@ -683,18 +686,23 @@ class ResultPlotter(GriddedPlugin):
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
 
-#   if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
-#     Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset."
-#     if self._rec.vellsets[0].has_key("value"):
-#       value = self._rec.vellsets[0].value
-#       str_value = str(value[0])
-#       Message = "This vellset " + self.label + "  has scalar value: <b>" + str_value + "</b>";
-#     cache_message = QLabel(Message,self.wparent())
+    if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
+      _dprint(3, 'should have passed no-cells self._rec test')
+      if self._vells_data is None:
+        self._vells_data = VellsData()
+      self._vells_data.setInitialSelection(False)
+      self._vells_data.StoreVellsData(self._rec,self.label)
+      Message = ""
+      if self._vells_data.isVellsScalar():
+        _dprint(3, 'we have a scalar vells')
+        Message =  self._vells_data.getScalarString()
+        _dprint(3, 'vells message is ', Message)
+      cache_message = QLabel(Message,self.wparent())
 #     cache_message.setTextFormat(Qt.RichText)
-#     self._wtop = cache_message
-#     self.set_widgets(cache_message)
-#     self.reset_plot_stuff()
-#     return process_result
+      self._wtop = cache_message
+      self.set_widgets(cache_message)
+      self.reset_plot_stuff()
+      return process_result
 
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
@@ -774,7 +782,7 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.setVellsPlot(self._vells_plot)
 
 # vells axes can change even if data shape has not changed
-# so we been to always call this function
+# so we need to always call this function
       self.update_display_control()
 
 # generate basic menu
@@ -799,8 +807,15 @@ class ResultPlotter(GriddedPlugin):
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
-      if not self.test_vells_scalar(plot_data, plot_label):
-        self._visu_plotter.plot_vells_array(plot_data, plot_label)
+      if self._vells_data.isVellsScalar():
+#       try:
+#         plot_label =  self._vells_data.getScalarString()
+#         self._visu_plotter.report_scalar_value(plot_label)
+#       except:
+          self._visu_plotter.report_scalar_value(plot_label, plot_data)
+      else:
+        if not self.test_vells_scalar(plot_data, plot_label):
+          self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
 
@@ -883,6 +898,14 @@ class ResultPlotter(GriddedPlugin):
       if shape[0] == 1:
         is_scalar = True
         scalar_data = data_array[0]
+    if not is_scalar:
+      test_scalar = True
+      for i in range(len(shape)):
+        if shape[i] > 1:
+          test_scalar = False
+      is_scalar = test_scalar
+      if is_scalar:
+        scalar_data = data_array
     if is_scalar:
       self._visu_plotter.report_scalar_value(data_label, scalar_data)
       return True
@@ -901,8 +924,15 @@ class ResultPlotter(GriddedPlugin):
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
     self._visu_plotter.reset_color_bar(True)
-    if not self.test_vells_scalar(plot_data, plot_label):
-      self._visu_plotter.plot_vells_array(plot_data, plot_label)
+    if self._vells_data.isVellsScalar():
+#     try:
+#       plot_label =  self._vells_data.getScalarString()
+#       self._visu_plotter.report_scalar_value(plot_label)
+#     except:
+        self._visu_plotter.report_scalar_value(plot_label, plot_data)
+    else:
+      if not self.test_vells_scalar(plot_data, plot_label):
+        self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_spectrum_display(self, menuid):
     """ callback to handle a request from the lower level 
