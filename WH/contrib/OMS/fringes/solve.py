@@ -23,6 +23,7 @@ from Meow import Utils
 
 # MS name
 Utils.include_ms_options();
+Utils.include_imaging_options();
 
 # how much to perturb starting values of solvables
 parm_options = [
@@ -170,7 +171,7 @@ def _define_forest(ns):
                                    flag_bit=4,
                                    corr_index=[0,1,2,3],
                                    flag_mask=-1,
-                                   output_col='PREDICT',
+                                   output_col='DATA',
                                    children=reqseq
                                    );
                                    
@@ -230,15 +231,8 @@ def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
   os.system("rm -fr "+Utils.get_source_table());
   os.system("rm -fr "+Utils.get_mep_table());
 
-def _tdl_job_9a_make_corrected_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
-      'ms='+msname,'mode='+imaging_mode]);
-  pass
-  
-def _tdl_job_9b_make_residual_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g','RESIDUAL',
-      'ms='+msname,'mode='+imaging_mode]);
-  pass
+def _tdl_job_9a_make_dirty_image (mqs,parent,**kw):
+  Utils.make_dirty_image(npix=512,cellsize='.5arcsec',channels=[32,1,1]);
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = True
