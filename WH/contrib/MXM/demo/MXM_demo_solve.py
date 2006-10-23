@@ -33,7 +33,7 @@ def _define_forest (ns, **kwargs):
    # The Condeq has exactly 2 children: the 'model' (in this case the parm)
    # and the 'data' on which you want to fit the 'model'.
    # solvable parm can be on both sides, so there is no real distinction between 'model' and 'data' here.
-   condeq = ns['condeq'] << Meq.Condeq(children=(parm,b))
+   condeq = ns['condeq'] << Meq.Condeq(children=(parm,freq))
 
    # Now create a solver node. A solver can have several children, but they all must be condeqs.
    solver = ns['solver'] << Meq.Solver(children=(condeq),
