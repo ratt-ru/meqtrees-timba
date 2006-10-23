@@ -131,6 +131,14 @@ class ArrayPlotter(GriddedPlugin):
       if shape[0] == 1:
         is_scalar = True
         scalar_data = data_array[0]
+    if not is_scalar:
+      test_scalar = True
+      for i in range(len(shape)):
+        if shape[i] > 1:
+          test_scalar = False
+      is_scalar = test_scalar
+      if is_scalar:
+        scalar_data = data_array
     if is_scalar:
       self.twoD_plotter.report_scalar_value(data_label, scalar_data)
       return True
