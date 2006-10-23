@@ -37,7 +37,7 @@ def _define_forest (ns, **kwargs):
    
    # A more general, but sometimes slow, option is to make use of the Aips++ functional interpreter
    # to create any real function. This is done by setting the "function" field of the polc.
-   # use x0,...,xn for axes (freq,time etc.)
+   # use x0,...,xn for axes (time,freq etc.)
    # use p0,...,pn for your solvable coeffiecients
    functional = meq.polc([1.,2.,1.5]); # The number of coeffs should match the number of p# in function 
    functional.function = "p0+p1*exp(-0.01*x0^2)*sin(x1*p2)";
@@ -94,8 +94,8 @@ def _tdl_job_execute (mqs, parent):
 # You can also view the solutions of your parm on different domains by executing them again.
 # It will select the funklets in the meptable on name and domain. 
 
-def _tdl_job_test1 (mqs, parent):
-    """Execute the forest, starting at the named node"""
+def _tdl_job_plot_parm (mqs, parent):
+    """Executes our solvable parm  on the full domain. It gets its values from the meptable"""
     # Since the initialization of the parm is different for solvable and non-solvable parms, we make sure
     # that the state of the parm is set to solvable=False;
     
@@ -107,8 +107,8 @@ def _tdl_job_test1 (mqs, parent):
     return result
 
 
-def _tdl_job_test2 (mqs, parent):
-    """Execute the forest, starting at the named node"""
+def _tdl_job_plot_parm_on_partial_domain (mqs, parent):
+    """Executes our solvable parm  on part of the full domain. It gets its values from the meptable"""
     mqs.meq('Node.Set.State',record(name='simple_parm',state=record(solvable = False)));
     domain = meq.domain(1,5,3,7)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=5, num_time=4)
@@ -120,7 +120,8 @@ def _tdl_job_test2 (mqs, parent):
 # This is especially useful if you have parameters of a calibration run that you want to apply to a measurement taken at a different time
 
 def _tdl_job_test_calibration_parm (mqs, parent):
-    """Execute the forest, starting at the named node"""
+   """Executes our solvable parm on a domain for which we do not have time solutiosn. It gets its values from the meptable.
+   The ignore_time flag makes sure the parm is initialized from the table anyway."""
     mqs.meq('Node.Set.State',record(name='simple_parm',state=record(solvable = False,ignore_time=True)));
 
     #change the time domain

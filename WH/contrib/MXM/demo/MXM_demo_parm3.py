@@ -91,7 +91,8 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 #********************************************************************************
 def _tdl_job_execute(mqs,parent,write=True):
-   """Execute the compounder"""
+   """Execute the compounder, at the moment the display of the l,m axis doesnt work properly,
+   use display beam to see the beam"""
    domain = meq.domain(1408000000., 1408001000.,1,10)  # (f1,f2,t1,t2)
    cells = meq.cells(domain, num_freq=10, num_time=11)
    request = meq.request(cells, rqtype='ev')
