@@ -189,7 +189,7 @@ class QwtImageDisplay(QwtPlot):
 
         self._vells_plot = False
 	self._flags_array = None
-	self.flag_toggle = False
+	self.flag_toggle = None
 	self.flag_blink = False
 
 # save raw data
@@ -764,6 +764,24 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemEnabled(toggle_id, flag_setting)
       self._menu.setItemVisible(toggle_id, flag_setting)
 
+    def set_flag_toggles_active(self, flag_setting=False):
+      """ sets menu options for flagging to visible """
+# add flag toggling for vells but make hidden by default
+      toggle_flag_label = "toggle flagged data for plane "
+      toggle_id = self.menu_table[toggle_flag_label]
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
+
+      toggle_blink_label = "toggle blink of flagged data for plane "
+      toggle_id = self.menu_table[toggle_blink_label]
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
+
+      toggle_range_label = "Toggle display range to that of flagged image for plane "
+      toggle_id = self.menu_table[toggle_range_label]
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
+
     def initVellsContextMenu (self):
       """ intitialize context menu for selection of Vells data """
       # skip if no main window
@@ -972,7 +990,7 @@ class QwtImageDisplay(QwtPlot):
     def setVellsPlot(self, do_vells_plot=True):
       self._vells_plot = do_vells_plot
 
-    def report_scalar_value(self, data_label, scalar_data):
+    def report_scalar_value(self, data_label, scalar_data=None):
       """ report a scalar value in case where a vells plot has
           already been initiated
       """
@@ -993,8 +1011,10 @@ class QwtImageDisplay(QwtPlot):
       self.enableAxis(QwtPlot.xBottom, False)
       self._x_auto_scale = True
       self._y_auto_scale = True
-
-      Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
+      if scalar_data is None:
+        Message = data_label
+      else:
+        Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
       _dprint(3,' scalar message ', Message)
       
 # text marker giving source of point that was clicked
@@ -1009,7 +1029,7 @@ class QwtImageDisplay(QwtPlot):
       self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
       fn = self.fontInfo().family()
       self.setMarkerLabel( self.source_marker, Message,
-         QFont(fn, 10, QFont.Bold, False),
+         QFont(fn, 8, QFont.Bold, False),
          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # make sure we cannot try to show ND Controller
@@ -1033,8 +1053,6 @@ class QwtImageDisplay(QwtPlot):
       toggle_id = self.menu_table['Toggle logarithmic range for data']
       self._menu.setItemVisible(toggle_id, False)
       self.log_switch_set = False
-
-
 
 # a scalar has no legends or cross-sections!
       toggle_id = self.menu_table['Toggle Plot Legend']
@@ -2092,9 +2110,6 @@ class QwtImageDisplay(QwtPlot):
       """ Figure out shape, rank dimension etc of an array and
           plot it. This is perhaps the main method of this class. """
 
-# first sanitize any NaNs
-#     incoming_plot_array[ieee.isnan(incoming_plot_array)] = 999
-
 # delete any previous curves
       self.removeCurves()
       self.xrCrossSection = None
@@ -2165,6 +2180,14 @@ class QwtImageDisplay(QwtPlot):
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
+
+# check for NaNs
+
+      nan_test = ieee.isnan(plot_array)
+      if nan_test.max() > 0:
+        plot_array[ieee.isnan(plot_array)] = -0.0123456789
+        self.set_flag_toggles_active(True)
+        self.setFlagsData(nan_test,False)
 
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
@@ -2534,9 +2557,9 @@ class QwtImageDisplay(QwtPlot):
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
-# Note: We don't show the flag data in the initial display
-# but toggle it on or off (ditto for imaginary data flags).
-            self.curve(self.real_flag_vector).setEnabled(False)
+# Note: We  show the flag data in the initial display
+# but can toggle it on or off (ditto for imaginary data flags).
+            self.curve(self.real_flag_vector).setEnabled(True)
             self.imag_flag_vector = self.insertCurve('imag_flags')
             self.setCurvePen(self.imag_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.imag_flag_vector, QwtCurve.Dots)
@@ -2545,7 +2568,7 @@ class QwtImageDisplay(QwtPlot):
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.imag_flag_vector, self.flags_x_index, self.flags_i_values)
-            self.curve(self.imag_flag_vector).setEnabled(False)
+            self.curve(self.imag_flag_vector).setEnabled(True)
 
         else:
           self.enableAxis(QwtPlot.yLeft)
@@ -2574,7 +2597,7 @@ class QwtImageDisplay(QwtPlot):
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
-            self.curve(self.real_flag_vector).setEnabled(False)
+            self.curve(self.real_flag_vector).setEnabled(True)
 
 # do the replot
         self.replot()
@@ -2639,9 +2662,18 @@ class QwtImageDisplay(QwtPlot):
 
       if flag_is_vector == False:
         self.plotImage.setFlagsArray(flag_array)
+        if self.flag_toggle is None:
+          self.flag_toggle = True
+          self.plotImage.setDisplayFlag(self.flag_toggle)
+          toggle_id = self.menu_table['toggle flagged data for plane ']
+          self._menu.setItemChecked(toggle_id, self.flag_toggle)
       else:
         num_elements = n_rows*n_cols
         self._flags_array = reshape(flag_array,(num_elements,))
+        if self.flag_toggle is None:
+          self.flag_toggle = True
+          toggle_id = self.menu_table['toggle flagged data for plane ']
+          self._menu.setItemChecked(toggle_id, self.flag_toggle)
 
     # setFlagsData()
 
