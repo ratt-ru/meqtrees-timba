@@ -59,11 +59,12 @@ Settings.forest_state.cache_policy = 100
 
 ########################################################
 def _define_forest(ns):  
- # L,M coordinates
- l=0.0
- m=0.0015
+ # L,M coordinates (taken from mean beam)
+ l=0.00038
+ m=0.00084
 
- infile_name = '/home/twillis/brisken_stuff/311MHz/311MHz_beam_19.fits'
+#infile_name = '/home/twillis/brisken_stuff/311MHz/311MHz_beam_19.fits'
+ infile_name = './demo.fits'
  ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0,mode=2)
  ns.resampler << Meq.Resampler(ns.image)
  ns.l0<< Meq.Parm(l,node_groups='Parm')
