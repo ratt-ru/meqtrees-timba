@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 
-#% $Id: MG_AGW_FITSReader.py 3929 2006-09-01 20:17:51Z twillis $ 
+#% $Id: MG_AGW_project.py 3929 2006-09-01 20:17:51Z twillis $ 
 
 #
 # Copyright (C) 2006
@@ -24,15 +24,15 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_FITSReader.py'
+script_name = 'MG_AGW_project.py'
 
 # Short description:
 #  The script should just read in a 2-D array of points from a
-#  FITS file and assign them to a cell, which is independent of 
+#  FITS file and assign them to a FITSImage, which is independent of 
 #  time and frequency, but knows about L and M.
 
 # History:
-# - 3 Oct 2006: creatiion:
+# - 24 Oct 2006: creation:
 
 #=======================================================================
 # Import of Python / TDL modules:
@@ -101,7 +101,6 @@ def _test_forest(mqs,parent):
 
 # define request
   request = meq.request(cells,rqtype='e1')
-  print request
 # execute request
   mqs.meq('Node.Execute',record(name='result',request=request),wait=True);
    
