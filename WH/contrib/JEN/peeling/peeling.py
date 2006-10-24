@@ -68,17 +68,23 @@ def _define_forest (ns):
     I *= 0.5
 
   # Make sequence of peeling stages:
-  resid = allsky.visibilities(array,observation);
+  data = allsky.visibilities(array,observation);
+  resid = []
+  for ifr in array.ifrs():
+    resid.append(data(*ifr))
   for isrc in range(len(LM)):
     src = 'S'+str(isrc);           
-    predict = corrupt[isrc].visibilities(array,observation);
-    for p,q in array.ifrs():
-      resid(p,q) = ns.residual(p,q,src) << Meq.Subtract(resid(p,q),predict(p,q));
-  
+    predict = corrupt[isrc].visibilities(array,observation);       # Does NOT refresh!!
+    i = 0
+    for ifr in array.ifrs():
+      resid[i] = ns.residual(*ifr)(src) << Meq.Subtract(resid[i],predict(*ifr));
+      i += 1
 
   # ...and attach them to sinks
+  i = 0
   for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(resid(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    ns.sink(p,q) << Meq.Sink(resid[i],station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    i += 1
 
   # define VisDataMux
   ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in array.ifrs()]);
