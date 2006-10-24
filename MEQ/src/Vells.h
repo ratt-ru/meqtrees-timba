@@ -365,10 +365,10 @@ public:
   static bool isCompatible (const Axis::Shape &subshape,const Axis::Shape &mainshape)
   {
     int rank = subshape.size();
-    if( rank > int(mainshape.size()) )
-      return false;
-    for( int i=0; i<rank; i++ )
-      if( subshape[i] != 1 && subshape[i] != mainshape[i] )
+   /* if( rank > int(mainshape.size()) )
+      return false; */
+    for( int i=0; i<int(mainshape.size()) && i<rank; i++ )
+      if(  subshape[i] != 1 && subshape[i] != mainshape[i] )
         return false;
     return true;
   }
