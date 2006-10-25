@@ -10,30 +10,52 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 
 import Meow
 
-# some GUI options
+# Run-time menu:
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
 Meow.Utils.include_imaging_options();
+TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
+  
+# Compile-time menu:
+TDLCompileMenu("Source distribution",
+  TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20]),
+  TDLOption('source_pattern',"source pattern",['cps','ps1','ps2','ps3','ps9']),
+);
+TDLCompileOption('flux_factor',"Successive flux reduction factor",[0.5,0.4,0.3,0.2,0.1]);
+TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
+TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
+TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
+
+#================================================================================
 
 # define antenna list
-ANTENNAS = range(1,28);
+ANTENNAS = range(1,num_stations+1);
 
 # useful constant: 1 deg in radians
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
 
 # source flux (same for all sources)
-I = 1; Q = .2; U = .1; V = -0.02;
+# I = 1; Q = .2; U = .1; V = -0.02;
+I = 1.0; Q = 0.0; U = 0.0; V = 0.0;
 
-# we'll put the sources on a grid (positions in arc min)
-a = 1.0
-if True:
-  # LM = [(0,0)]
-  LM = [(0,0),(a,a),(0,1)]
-else:
+a = grid_spacing
+if source_pattern=='cps':
+  # NB: Problems with result shape if LM=[(0,0)]: 1D result!
+  LM = [(0,0)]
+elif source_pattern=='ps1':
+  LM = [(0,a)]
+elif source_pattern=='ps2':
+  # NB: Non-first solvers cannot find solvable parms (spids)
+  #     (i.e. only the solver closest to the sinks works)
+  LM = [(0,0),(a,a)]
+elif source_pattern=='ps3':
+  LM = [(0,0),(a,a),(0,a)]
+elif source_pattern=='ps9':
   LM = [(-a,-a),(-a,0),(-a,a),
         ( 0,-a),( 0,0),( 0,a), 
         ( a,-a),( a,0),( a,a)];
-
+else:
+  LM = [(0,0),(a,a),(0,a)]
 
 #===================================================================
 #===================================================================
@@ -44,70 +66,124 @@ def _define_forest (ns):
   # create an Observation object
   observation = Meow.Observation(ns);
   
-  # create a Patch for the entire observed sky
-  allsky = Meow.Patch(ns,'all',observation.phase_centre);
+  # The input 'data' is a Patch with all (uncorrupted) sources:
+  allsky = Meow.Patch(ns,'nominall',observation.phase_centre);
 
-  # create 10 sources
-  corrupt = []
-  I = 1.0                                         # needed...?
+  # There is a separate solver for each source.
+  # The predicted visibilities for each solver are in patches,
+  # each of which contains the sum of the visibilities
+  # from one or more sources: the source itself, and zero or more
+  # fainter ones. The latter is to reduce the contamination.
+  predicted = []
+  corrupted = []
   for isrc in range(len(LM)):
-    l,m = LM[isrc];
-    l *= ARCMIN;
-    m *= ARCMIN;
-    # generate an ID for direction and source
-    src = 'S'+str(isrc);           
-    # create Direction object
+    predicted.append(Meow.Patch(ns,'predicted_S'+str(isrc),
+                                observation.phase_centre));
+
+  # create sources
+  solvable = dict()
+  I = 1.0/flux_factor                             # needed...?
+  print 'I,Q,U,V =',I,Q,U,V
+
+  #-----------------------------------------------------------------------
+  
+  for isrc in range(len(LM)):
+    # Create source nr isrc:
+    I *= flux_factor                              # In order of decreasing flux
+    src = 'S'+str(isrc);                          # source label
+    l,m = LM[isrc];                               # arcmin
+    l *= ARCMIN;                                  # rad
+    m *= ARCMIN;                                  # rad
     src_dir = Meow.LMDirection(ns,src,l,m);
-    # create point source with this direction
-    source = Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V);
-    # create position-dependent 'beam' gain Jones for source
-    # ns.E(src) << Meq.Pow(Meq.Cos(math.sqrt(l*l+m*m)*1.5e-6*Meq.Freq()),6)
-    for p in ANTENNAS:
-      # ns.E(src)(p) << 1;
-      ns.E(src)(p) << Meq.Matrix22(1+0j,0,0,1+0j);
-    # create corrupted source
-    # corrupt = Meow.CorruptComponent(ns,source,'E',jones=ns.E(src));
-    corrupt.append(Meow.CorruptComponent(ns,source,'E',station_jones=ns.E(src)));
-    # add to patch
-    allsky.add(source);
-    # The next source has half the flux:
-    I *= 0.5
-    
+    source = Meow.PointSource(ns,src,src_dir, I=I, Q=Q, U=U, V=V);
 
-  # Make sequence of peeling stages: 
+    # Add the source to the allsky patch
+    allsky.add(source);
+
+    # Make a corrupted source:
+    solvable[src] = []
+    node_groups = ['Parm',src]     
+    for p in ANTENNAS:
+      phase = ns.Ephase(src)(p) << Meq.Parm(0.0, node_groups=node_groups);
+      gain = ns.Egain(src)(p) << Meq.Parm(1.0, node_groups=node_groups);
+      solvable[src].extend([phase,gain])
+      ns.E(src)(p) << Meq.Polar(gain,phase);
+      # ns.E(src)(p) << Meq.Matrix22(1+0j,0,0,1+0j);
+    corrupted.append(Meow.CorruptComponent(ns,source,'E',station_jones=ns.E(src)));
+
+    # Add the corrupted source to the relevant prediction patches,
+    # i.e. the patch for the source itself, and the patches for
+    # predict_window-1 earlier (brighter) sources. The idea is to reduce
+    # contamination by fainter sources by including them in the
+    # predict when solving for parameters in the direction of the
+    # peeling source. 
+    for i in range(predict_window):
+      if isrc-i>=0:
+        print 'isrc=',isrc,': i=',i
+        predicted[isrc-i].add(corrupted[isrc]);
+
+  #--------------------------------------------------------------------------
+  # Start some lists for the accumulation of nodes for bookmark pages 
+  ifr1 = (1,4)                                     # selected ifr
+  bm_resid = []        
+  bm_condeq = []                 
+  bm_solver = []               
+
+  #--------------------------------------------------------------------------
+  # Make sequence of peeling stages:
   cohset = allsky.visibilities(array,observation);
-  ifr1 = (1,12)                                   # select an ifr for bookmark
-  cc = [cohset(*ifr1)]                             # start bookmark list
+  bm_resid.append(cohset(*ifr1))        
+
   for isrc in range(len(LM)):
-    src = 'S'+str(isrc);           
-    predict = corrupt[isrc].visibilities(array,observation);
+    src = 'S'+str(isrc);                           # source label
+    
+    predict = predicted[isrc].visibilities(array,observation);
+    corrupt = corrupted[isrc].visibilities(array,observation);
+
+    # Optional: make a vector of condeqs for a solver:
+    if insert_solver:
+      condeqs = []
+      for ifr in array.ifrs():
+        condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),predict(*ifr));
+        condeqs.append(condeq);
+        if ifr==ifr1: bm_condeq.append(condeq)     # append to bookmark list
+
+    # Subtract the current peeling source:
     for ifr in array.ifrs():
-      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),predict(*ifr));
-    cohset = ns.residual(src)
+      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),corrupt(*ifr));
+    cohset = ns.residual(src)                      # the new residuals
 
     # Optional: insert a reqseq for a solver:
-    if True:
-      ns.solver(src) << Meq.Solver(children=condeqs,child_poll_order=cpo);
-      # ns.solver(src) << Meq.Add(*[predict(*ifr) for ifr in array.ifrs()]);
+    if insert_solver:
+      solver = ns.solver(src) << Meq.Solver(children=condeqs,
+                                            solvable=solvable[src],
+                                            parm_group=hiid(src),
+                                            # child_poll_order=cpo,
+                                            num_iter=3);
+      bm_solver.append(solver)                     # append to bookmark list
       for ifr in array.ifrs():
-        ns.reqseq(src)(*ifr) << Meq.ReqSeq(ns.solver(src),cohset(*ifr),
-                                           result_index=1,cache_num_active_parents=1);
+        ns.reqseq(src)(*ifr) << Meq.ReqSeq(solver, cohset(*ifr),
+                                           result_index=1,
+                                           cache_num_active_parents=1);
       cohset = ns.reqseq(src)
       
-    cc.append(cohset(*ifr1))                       # append to bookmark list
+    bm_resid.append(cohset(*ifr1))                 # append to bookmark list
 
-  # Make a bookmark for the chain of residuals for the same ifr:
-  JEN_bookmarks.create(cc, 'peeled')
 
-  # Finally, attach the current cohset to the sinks
-  for ifr in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(cohset(*ifr),
+  #----------------------------------------------------------------------
+  # Attach the current cohset to the sinks
+  for p,q in array.ifrs():
+    ns.sink(p,q) << Meq.Sink(cohset(p,q),
                              station_1_index=p-1,
                              station_2_index=q-1,
                              output_col='DATA');
+  ns.vdm << Meq.VisDataMux(*[ns.sink(*ifr) for ifr in array.ifrs()]);
 
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in array.ifrs()]);
+  # Finished: Make bookmark page(s) for the accumulated nodes:
+  JEN_bookmarks.create(bm_resid, 'residuals')
+  JEN_bookmarks.create(bm_condeq, 'condeqs')
+  JEN_bookmarks.create(bm_solver, 'solvers')
+  return True
 
 
 
