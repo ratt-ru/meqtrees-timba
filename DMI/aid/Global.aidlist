@@ -330,7 +330,7 @@ MeqFunction                      1283       ; from /home/oms/LOFAR/Timba/MEQ/src
 MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 #MeqGaussNoise                   1449       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
 #MeqGrid                         1681       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
-#MeqGridAligner                  1698       ; from /home/oms/Timba/MeqNodes/src/GridAligner.h:33
+MeqGridAligner                   1698       ; from /home/oms/Timba/MeqNodes/src/GridAligner.h:33
 #MeqGridPoints                   1666       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30
 #MeqHistoryCollect               1574       ; from /home/oms/LOFAR/Timba/MeqNodes/src/HistoryCollect.h:29
 #MeqIdentity                     1678       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Identity.h:31
@@ -345,6 +345,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqMatrixInvert22               1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
 #MeqMatrixMultiply               1516       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
 #MeqMax                          1452       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
+#MeqMaxLocation                  1699       ; from /home/sarod/Timba/MeqNodes/src/MaxLocation.h:30
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
 #MeqMergeFlags                   1441       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
 #MeqMin                          1392       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
