@@ -308,12 +308,13 @@ namespace Meq {
     map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap_.begin();
 
     //define axis of the new domain
+    if (mode_!=3) {
     if (old_dom.isDefined(Axis::TIME))
       domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
     if (old_dom.isDefined(Axis::FREQ))
       domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
+    }
 		std::vector<blitz::Array<double,1> > space;
-    if (mode_!=3) {
     //calculate grid spacing and bounds
 		space.resize(grid_.size());
 		for (unsigned int ch=0; ch<grid_.size(); ch++) {
@@ -330,19 +331,19 @@ namespace Meq {
       }
       domain().defineAxis(Axis::axis(comm_axes_[ch]),-INFINITY,INFINITY);
 		}
-    }
 
     Cells &outcells=outcells_ref<<=new Cells(*domain);
 
+    if (mode_!=3) {
     outcells.setCells(Axis::TIME,incells.center(Axis::TIME),incells.cellSize(Axis::TIME));
     outcells.setCells(Axis::FREQ,incells.center(Axis::FREQ),incells.cellSize(Axis::FREQ));
+    }
 
 #ifdef DEBUG
     cout<<"Request "<<grid_[0]<<" space "<<space[0]<<endl;
     cout<<"Request "<<grid_[1]<<" space "<<space[1]<<endl;
 #endif
 
-    if (mode_!=3) {
 		 for (unsigned int ch=0; ch<grid_.size(); ch++) {
       outcells.setCells(Axis::axis(comm_axes_[ch]),grid_[ch],space[ch]);
 		 }
@@ -350,7 +351,6 @@ namespace Meq {
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[0]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[0]))<<endl;
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[1]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[1]))<<endl;
 #endif
-    }
 
     newreq().setCells(outcells);
     //increment request sub id
