@@ -349,6 +349,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
 #MeqMergeFlags                   1441       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
 #MeqMin                          1392       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
+#MeqMinLocation                  1700       ; from /home/sarod/Timba/MeqNodes/src/MinLocation.h:30
 #MeqModRes                       1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
 #MeqMultiply                     1391       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 #MeqNegate                       1506       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Negate.h:29
