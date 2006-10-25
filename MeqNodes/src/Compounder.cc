@@ -119,7 +119,7 @@ namespace Meq {
       comm_axes_=tmp;
     }
     rec[FMode].get(mode_,initializing);
-    FailWhen((mode_!=1)&&(mode_!=2),FMode.toString()+" field must be 1 or 2");
+    FailWhen((mode_>3),FMode.toString()+" field must be 1 or 3, 2 not implementd");
 
     //Add these axes to Axis object
     Axis::addAxis(comm_axes_[0]);
@@ -185,15 +185,19 @@ namespace Meq {
       if (old_dom.isDefined(Axis::FREQ))
 	domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
       //add two more defined in the initrec()
-      domain().defineAxis(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY);
-      domain().defineAxis(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY);
+      if (mode_!=3) {
+       domain().defineAxis(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY);
+       domain().defineAxis(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY);
+      }
       Cells::Ref outcells_ref0;
       Cells &outcells=outcells_ref0<<=new Cells(*domain);
       outcells.setCells(Axis::TIME,incells.center(Axis::TIME),incells.cellSize(Axis::TIME));
       outcells.setCells(Axis::FREQ,incells.center(Axis::FREQ),incells.cellSize(Axis::FREQ));
 
-      outcells.setCells(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY,1);
-      outcells.setCells(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY,1);
+      if (mode_!=3) {
+       outcells.setCells(Axis::axis(comm_axes_[0]),-INFINITY,INFINITY,1);
+       outcells.setCells(Axis::axis(comm_axes_[1]),-INFINITY,INFINITY,1);
+      }
 
 
 
@@ -308,8 +312,9 @@ namespace Meq {
       domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
     if (old_dom.isDefined(Axis::FREQ))
       domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
-    //calculate grid spacing and bounds
 		std::vector<blitz::Array<double,1> > space;
+    if (mode_!=3) {
+    //calculate grid spacing and bounds
 		space.resize(grid_.size());
 		for (unsigned int ch=0; ch<grid_.size(); ch++) {
       space[ch].resize(grid_[ch].extent(0));
@@ -325,6 +330,7 @@ namespace Meq {
       }
       domain().defineAxis(Axis::axis(comm_axes_[ch]),-INFINITY,INFINITY);
 		}
+    }
 
     Cells &outcells=outcells_ref<<=new Cells(*domain);
 
@@ -336,15 +342,15 @@ namespace Meq {
     cout<<"Request "<<grid_[1]<<" space "<<space[1]<<endl;
 #endif
 
-		for (unsigned int ch=0; ch<grid_.size(); ch++) {
-     outcells.setCells(Axis::axis(comm_axes_[ch]),grid_[ch],space[ch]);
-		}
-
+    if (mode_!=3) {
+		 for (unsigned int ch=0; ch<grid_.size(); ch++) {
+      outcells.setCells(Axis::axis(comm_axes_[ch]),grid_[ch],space[ch]);
+		 }
 #ifdef DEBUG
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[0]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[0]))<<endl;
     cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[1]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[1]))<<endl;
 #endif
-
+    }
 
     newreq().setCells(outcells);
     //increment request sub id
@@ -465,6 +471,7 @@ namespace Meq {
 
 	  if (in.isScalar()) {
 		 ///handle scalar case
+		 //FIXME : collapse axes first
      vs.setValue(in);
 		} else {
 		/////////////////////////////////////// real data
@@ -475,6 +482,8 @@ namespace Meq {
     //find points a0,b0 in a and b axes respectively. this value will
     //go to the new grid point (t,f)
     blitz::Array<double,2> A=out.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+
+    if (mode_!=3)  {
     blitz::Array<double,4> B=in.getArray<double,4>();
 	
 		
@@ -536,6 +545,11 @@ namespace Meq {
        spmapiter++;
 			 sp_id++;
 		}
+    } else {
+     //simple 2D case 
+     blitz::Array<double,2> B=in.getArray<double,2>();
+     A=B;
+    }
 	
 		} else {
 		/////////////////////////////////////// complex data
@@ -545,9 +559,9 @@ namespace Meq {
     //find points a0,b0 in a and b axes respectively. this value will
     //go to the new grid point (t,f)
     blitz::Array<dcomplex,2> A=out.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
+
+    if (mode_!=3)  {
     blitz::Array<dcomplex,4> B=in.getArray<dcomplex,4>();
-	
-		
 
     //apply the grid to main value
     apply_grid_map_2d4d(A, B, 0);
@@ -598,7 +612,11 @@ namespace Meq {
 			 sp_id++;
 		}
 		
-
+    } else {
+     //simple 2D case 
+     blitz::Array<dcomplex,2> B=in.getArray<dcomplex,2>();
+     A=B;
+    }
 	  }
  
 		}

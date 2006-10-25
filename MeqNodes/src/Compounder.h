@@ -44,7 +44,8 @@
 //
 //field: mode
 //  mode 1 (sequential): passes the original requser to child 0, recreates a requset for child 1 according to the result returned by child 0.
-//  mode 2 (parallel): passes the same requset to both children
+//  mode 2 (parallel): passes the same requset to both children (not yet implemented)
+//  mode 3 (simple): only handle 2D results in Time,Freq
 //field: common_axes []
 //  a vector which gives the axes returned by the grid child that is given to the function. Axes names can be characters like 'L','M' etc
 //defrec end
