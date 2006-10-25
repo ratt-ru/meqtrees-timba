@@ -825,6 +825,25 @@ namespace Meq { class Max; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqMaxLocation
+#define _defined_id_TpMeqMaxLocation 1
+const DMI::TypeId TpMeqMaxLocation(-1699);        // from /home/sarod/Timba/MeqNodes/src/MaxLocation.h:30
+const int TpMeqMaxLocation_int = -1699;
+namespace Meq { class MaxLocation; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::MaxLocation> : public TypeTraits<Meq::MaxLocation>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqMaxLocation_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::MaxLocation & ContainerReturnType;
+                typedef const Meq::MaxLocation & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqMean
 #define _defined_id_TpMeqMean 1
 const DMI::TypeId TpMeqMean(-1416);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29

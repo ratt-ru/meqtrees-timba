@@ -498,6 +498,11 @@ const int AidMeqMatrixMultiply_int = -1516;
 const DMI::AtomicID AidMeqMax(-1452);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
 const int AidMeqMax_int = -1452;
 #endif
+#ifndef _defined_id_AidMeqMaxLocation
+#define _defined_id_AidMeqMaxLocation 1
+const DMI::AtomicID AidMeqMaxLocation(-1699);     // from /home/sarod/Timba/MeqNodes/src/MaxLocation.h:30
+const int AidMeqMaxLocation_int = -1699;
+#endif
 #ifndef _defined_id_AidMeqMean
 #define _defined_id_AidMeqMean 1
 const DMI::AtomicID AidMeqMean(-1416);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29

@@ -194,6 +194,8 @@ DMI::BObj * __construct_MeqFITSSpigot (int n) { return n>0 ? new Meq::FITSSpigot
 DMI::BObj * __construct_MeqFITSDataMux (int n) { return n>0 ? new Meq::FITSDataMux [n] : new Meq::FITSDataMux; }
 #include "PrivateFunction.h"
 DMI::BObj * __construct_MeqPrivateFunction (int n) { return n>0 ? new Meq::PrivateFunction [n] : new Meq::PrivateFunction; }
+#include "MaxLocation.h"
+DMI::BObj * __construct_MeqMaxLocation (int n) { return n>0 ? new Meq::MaxLocation [n] : new Meq::MaxLocation; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -597,6 +599,9 @@ DMI::BObj * __construct_MeqPrivateFunction (int n) { return n>0 ? new Meq::Priva
         AtomicID::registerId(-1692,"MeqPrivateFunction")+
         TypeInfoReg::addToRegistry(-1692,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1692,__construct_MeqPrivateFunction)+
+        AtomicID::registerId(-1699,"MeqMaxLocation")+
+        TypeInfoReg::addToRegistry(-1699,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1699,__construct_MeqMaxLocation)+
     0;
     return res;
   }

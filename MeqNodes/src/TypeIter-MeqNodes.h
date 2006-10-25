@@ -112,7 +112,8 @@
         Do(Meq::Functional,arg) separator \
         Do(Meq::FITSSpigot,arg) separator \
         Do(Meq::FITSDataMux,arg) separator \
-        Do(Meq::PrivateFunction,arg)
+        Do(Meq::PrivateFunction,arg) separator \
+        Do(Meq::MaxLocation,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         
