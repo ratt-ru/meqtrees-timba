@@ -901,6 +901,25 @@ namespace Meq { class Min; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqMinLocation
+#define _defined_id_TpMeqMinLocation 1
+const DMI::TypeId TpMeqMinLocation(-1700);        // from /home/sarod/Timba/MeqNodes/src/MinLocation.h:30
+const int TpMeqMinLocation_int = -1700;
+namespace Meq { class MinLocation; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::MinLocation> : public TypeTraits<Meq::MinLocation>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqMinLocation_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::MinLocation & ContainerReturnType;
+                typedef const Meq::MinLocation & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqModRes
 #define _defined_id_TpMeqModRes 1
 const DMI::TypeId TpMeqModRes(-1592);             // from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32

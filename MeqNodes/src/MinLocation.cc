@@ -1,4 +1,4 @@
-//# MaxLocation.cc: Calculate source MaxLocation from source position and phase center
+//# MinLocation.cc: Calculate source MinLocation from source position and phase center
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -18,9 +18,9 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id: MaxLocation.cc 3568 2006-05-15 14:11:19Z smirnov $
+//# $Id: MinLocation.cc 3568 2006-05-15 14:11:19Z smirnov $
 
-#include <MeqNodes/MaxLocation.h>
+#include <MeqNodes/MinLocation.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
@@ -38,18 +38,18 @@ const HIID FDomain = AidDomain;
 using Debug::ssprintf;
 
 //##ModelId=400E535502D1
-MaxLocation::MaxLocation()
+MinLocation::MinLocation()
 : TensorFunction(1)
 {
 }
 
 //##ModelId=400E535502D2
-MaxLocation::~MaxLocation()
+MinLocation::~MinLocation()
 {}
 
 
 
-void MaxLocation::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
+void MinLocation::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
 {
 #ifdef DEBUG
   std::cout<<"Cells "<<std::endl;
@@ -58,12 +58,12 @@ void MaxLocation::computeResultCells (Cells::Ref &ref,const std::vector<Result::
   //remember cells
   const Result &chres = *( childres.front() );
   cells_ <<= new Cells(chres.cells());
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::MaxLocation: no time axis in request, can't compute AzEls");
+  FailWhen(!cells.isDefined(Axis::TIME),"Meq::MinLocation: no time axis in request, can't compute AzEls");
   ref.attach(cells);
 }
 
 
-LoShape MaxLocation::getResultDims (const vector<const LoShape *> &input_dims)
+LoShape MinLocation::getResultDims (const vector<const LoShape *> &input_dims)
 {
   //const LoShape &dim = *input_dims[0];
 
@@ -76,7 +76,7 @@ LoShape MaxLocation::getResultDims (const vector<const LoShape *> &input_dims)
 }
     
 
-void MaxLocation::evaluateTensors (std::vector<Vells> & out,   
+void MinLocation::evaluateTensors (std::vector<Vells> & out,   
      const std::vector<std::vector<const Vells *> > &args )
 {
 
@@ -98,14 +98,14 @@ void MaxLocation::evaluateTensors (std::vector<Vells> & out,
   double *indata=const_cast<double*>(val.realStorage());
   if (dim==1) {
     blitz::Array<double,1> A(indata,val.shape(),blitz::neverDeleteData);
-    blitz::TinyVector<int,1> maxi=blitz::maxIndex(A);
+    blitz::TinyVector<int,1> maxi=blitz::minIndex(A);
     blitz::Array<double,1> xx=cells_->center(0);
     if (xx.size()>0) {
      out[0]=Vells(xx(maxi(0)),blitz::shape(1));
     } 
   } else if (dim==2) {
     blitz::Array<double,2> A(indata,val.shape(),blitz::neverDeleteData);
-    blitz::TinyVector<int,2> maxi=blitz::maxIndex(A);
+    blitz::TinyVector<int,2> maxi=blitz::minIndex(A);
     for (int ii=0; ii<2; ii++) {
      blitz::Array<double,1> xx=cells_->center(ii);
      if (xx.size()>0) {
@@ -114,7 +114,7 @@ void MaxLocation::evaluateTensors (std::vector<Vells> & out,
     }
   } else if (dim==3) {
     blitz::Array<double,3> A(indata,val.shape(),blitz::neverDeleteData);
-    blitz::TinyVector<int,3> maxi=blitz::maxIndex(A);
+    blitz::TinyVector<int,3> maxi=blitz::minIndex(A);
     for (int ii=0; ii<3; ii++) {
      blitz::Array<double,1> xx=cells_->center(ii);
      if (xx.size()>0) {
@@ -123,7 +123,7 @@ void MaxLocation::evaluateTensors (std::vector<Vells> & out,
     }
   } else if (dim==4) {
     blitz::Array<double,4> A(indata,val.shape(),blitz::neverDeleteData);
-    blitz::TinyVector<int,4> maxi=blitz::maxIndex(A);
+    blitz::TinyVector<int,4> maxi=blitz::minIndex(A);
 #ifdef DEBUG
     std::cout<<"Maxi "<<maxi<<std::endl;
 #endif

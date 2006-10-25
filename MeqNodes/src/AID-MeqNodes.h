@@ -518,6 +518,11 @@ const int AidMeqMergeFlags_int = -1441;
 const DMI::AtomicID AidMeqMin(-1392);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
 const int AidMeqMin_int = -1392;
 #endif
+#ifndef _defined_id_AidMeqMinLocation
+#define _defined_id_AidMeqMinLocation 1
+const DMI::AtomicID AidMeqMinLocation(-1700);     // from /home/sarod/Timba/MeqNodes/src/MinLocation.h:30
+const int AidMeqMinLocation_int = -1700;
+#endif
 #ifndef _defined_id_AidMeqModRes
 #define _defined_id_AidMeqModRes 1
 const DMI::AtomicID AidMeqModRes(-1592);          // from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32

@@ -22,7 +22,7 @@ LOCALSRCS = \
     CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc Functional.cc \
     FITSSpigot.cc FITSDataMux.cc FITSUtils.cc \
-    PrivateFunction.cc MaxLocation.cc
+    PrivateFunction.cc MaxLocation.cc MinLocation.cc
 
 
 DOCHDRS		= $(LOCALHDRS) \
