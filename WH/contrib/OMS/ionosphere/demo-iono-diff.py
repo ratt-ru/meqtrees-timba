@@ -10,6 +10,8 @@ import iono_model
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10,30]);
 Meow.Utils.include_imaging_options();
 
+TDLCompileOption("grid_size","Grid size",[2,3,4]);
+TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5]);
 TDLCompileOption("make_diff","Make delta-visibilities",False);
 
 DEG = math.pi/180.;
@@ -26,7 +28,7 @@ def grid_model (ns,basename,l0,m0,dl,dm,nsrc):
   model = [ point_source(ns,basename+"+0+0",l0,m0) ];
   for dx in range(-nsrc,nsrc+1):
     for dy in range(-nsrc,nsrc+1):
-      if dx != dy:
+      if dx or dy:
         name = "%s%+d%+d" % (basename,dx,dy);
         model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
   return model;
@@ -38,7 +40,7 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
     
   # make list of source lists for three crosses
-  all_sources = grid_model(ns,'S0',0,0,.5*ARCMIN,.5*ARCMIN,3);
+  all_sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,grid_size);
     
   # make Ejones for all positions in master list
   Zj = iono_model.compute_zeta_jones(ns,all_sources,array,observation);
@@ -78,7 +80,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   
   
 def _tdl_job_2_make_image (mqs,parent):
-  Meow.Utils.make_dirty_image(npix=600,arcmin=5,channels=[32,1,1]);
+  Meow.Utils.make_dirty_image(npix=600,arcmin=(grid_size+1)*grid_step*2,channels=[32,1,1]);
 
 
 
