@@ -374,15 +374,19 @@ namespace Meq {
 
     /**** begin processing of the result to correct for grid sorting */
     /** also create a new result with one vellset */
-    Result &res1=result_<<= new Result(1,childres[1]->isIntegrated());
-    const Vells vl=childres[1]->vellSet(0).getValue();
+    Result &res1=result_<<= new Result(childres[1]->numVellSets(),childres[1]->isIntegrated());
+
+
+//// begin looping over child vellsets
+    for (int ivs=0; ivs<childres[1]->numVellSets(); ivs++) {
+    const Vells vl=childres[1]->vellSet(ivs).getValue();
     Vells &in=const_cast<Vells &>(vl);
-    int npsetsf=childres[1]->vellSet(0).numPertSets();
-    int nspidsf=childres[1]->vellSet(0).numSpids();
+    int npsetsf=childres[1]->vellSet(ivs).numPertSets();
+    int nspidsf=childres[1]->vellSet(ivs).numSpids();
 
 		//merge spids, if any
 	  for (int ipert=0; ipert<nspidsf; ipert++)  {
-				VellSet::SpidType spid=childres[1]->vellSet(0).getSpid(ipert);
+				VellSet::SpidType spid=childres[1]->vellSet(ivs).getSpid(ipert);
         if (spidmap_.find(spid)==spidmap_.end()) {
 					//insert
 					int *dd=new int[naxis+1]; //last one for the funklet
@@ -620,7 +624,7 @@ namespace Meq {
 	  }
  
 		}
-		res1.setVellSet(0,ref);
+		res1.setVellSet(ivs,ref);
     res1.setCells(incells);
 
 
@@ -639,6 +643,8 @@ namespace Meq {
       spmapiter++;
     }
 		spidmap_.clear();
+    }
+//////// end loop over vellsets
 
     //return Node::pollChildren(resref,childres,newreq);
     unlockStateMutex();
