@@ -1,5 +1,6 @@
-# ../contrib/JEN/peeling/peeling.py
-# copied from Day3/demo3_...
+# ../contrib/JEN/peeling/peeling_cascade.py
+# A version of peeling.py with a cascade of solvers.
+# This does not work (yet) due to request-problems.
 
 # standard preamble
 from Timba.TDL import *
@@ -133,7 +134,6 @@ def _define_forest (ns):
   # Make sequence of peeling stages:
   cohset = allsky.visibilities(array,observation);
   bm_resid.append(cohset(*ifr1))        
-  cc_reqseq = []
 
   for isrc in range(len(LM)):
     src = 'S'+str(isrc);                           # source label
@@ -141,42 +141,34 @@ def _define_forest (ns):
     predict = predicted[isrc].visibilities(array,observation);
     corrupt = corrupted[isrc].visibilities(array,observation);
 
-    # Optional: insert a solver for the parameters related to this source:
+    # Optional: make a vector of condeqs for a solver:
     if insert_solver:
       condeqs = []
       for ifr in array.ifrs():
-        condeqs.append(ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
-                                                          predict(*ifr)));
-      bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
+        condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),predict(*ifr));
+        condeqs.append(condeq);
+        if ifr==ifr1: bm_condeq.append(condeq)     # append to bookmark list
+
+    # Subtract the current peeling source:
+    for ifr in array.ifrs():
+      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),corrupt(*ifr));
+    cohset = ns.residual(src)                      # the new residuals
+
+    # Optional: insert a reqseq for a solver:
+    if insert_solver:
       solver = ns.solver(src) << Meq.Solver(children=condeqs,
                                             solvable=solvable[src],
                                             parm_group=hiid(src),
                                             # child_poll_order=cpo,
                                             num_iter=3);
-      cc_reqseq.append(solver)                     # append to reqseq list
       bm_solver.append(solver)                     # append to bookmark list
-
-
-    # Subtract the current peeling source:
-    for ifr in array.ifrs():
-      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),
-                                             corrupt(*ifr));
-    cohset = ns.residual(src)                      # the new residuals
+      for ifr in array.ifrs():
+        ns.reqseq(src)(*ifr) << Meq.ReqSeq(solver, cohset(*ifr),
+                                           result_index=1,
+                                           cache_num_active_parents=1);
+      cohset = ns.reqseq(src)
+      
     bm_resid.append(cohset(*ifr1))                 # append to bookmark list
-
-
-  #----------------------------------------------------------------------
-  # Insert reqseq that first executes the solvers in order of creation,
-  # and then passes on the final residuals (in cohset):
-  if insert_solver:
-    n = len(cc_reqseq)
-    cc_reqseq.append(0)                            # dummy
-    for ifr in array.ifrs():
-      cc_reqseq[n] = cohset(*ifr)
-      ns.reqseq_solvers(*ifr) << Meq.ReqSeq(children=cc_reqseq,
-                                            result_index=n,
-                                            cache_num_active_parents=1);
-    cohset = ns.reqseq_solvers
 
 
   #----------------------------------------------------------------------
