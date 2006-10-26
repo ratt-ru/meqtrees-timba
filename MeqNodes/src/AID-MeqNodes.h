@@ -13,6 +13,11 @@
 const DMI::AtomicID AidAdditional(-1524);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 const int AidAdditional_int = -1524;
 #endif
+#ifndef _defined_id_AidAng
+#define _defined_id_AidAng 1
+const DMI::AtomicID AidAng(-1701);                // from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:30
+const int AidAng_int = -1701;
+#endif
 #ifndef _defined_id_AidArray
 #define _defined_id_AidArray 1
 const DMI::AtomicID AidArray(-1609);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:34
@@ -827,6 +832,11 @@ const int AidOutput_int = -1241;
 #define _defined_id_AidPlot 1
 const DMI::AtomicID AidPlot(-1432);               // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidPlot_int = -1432;
+#endif
+#ifndef _defined_id_AidPos
+#define _defined_id_AidPos 1
+const DMI::AtomicID AidPos(-1169);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
+const int AidPos_int = -1169;
 #endif
 #ifndef _defined_id_AidProfile
 #define _defined_id_AidProfile 1

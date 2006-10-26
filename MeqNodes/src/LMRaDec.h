@@ -27,6 +27,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::LMRaDec
+#pragma aid Pos Ang
 
 namespace Meq {    
 
@@ -41,6 +42,9 @@ public:
     { return TpMeqLMRaDec; }
 
 protected:
+  // sets up state from state record
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
   // method required by TensorFunction
   // Returns shape of result.
   // Also check child results for consistency
@@ -50,6 +54,9 @@ protected:
   // Gets Ra and Dec for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args );
+
+  // position angle for rotation - default is zero
+  double pos_ang_radians_;
 };
 
 } // namespace Meq
