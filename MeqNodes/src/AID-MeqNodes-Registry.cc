@@ -414,6 +414,8 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
         AtomicID::registerId(-1696,"MeqLMRaDec")+
         TypeInfoReg::addToRegistry(-1696,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1696,__construct_MeqLMRaDec)+
+        AtomicID::registerId(-1169,"Pos")+
+        AtomicID::registerId(-1701,"Ang")+
         AtomicID::registerId(-1695,"MeqParAngle")+
         TypeInfoReg::addToRegistry(-1695,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1695,__construct_MeqParAngle)+

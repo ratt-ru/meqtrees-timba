@@ -49,6 +49,7 @@ const HIID child_labels[] = { AidRADec|0,AidLM };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
+const HIID FPosAng = AidPos | AidAng;
 
 using Debug::ssprintf;
 
@@ -62,6 +63,15 @@ LMRaDec::LMRaDec()
 LMRaDec::~LMRaDec()
 {}
 
+
+void LMRaDec::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  pos_ang_radians_ = 0.0;
+  // get/init  parameter
+  if( rec[FPosAng].get(pos_ang_radians_,initializing) )
+  {
+  }
+}
 
 LoShape LMRaDec::getResultDims (const vector<const LoShape *> &input_dims)
 {
@@ -98,11 +108,10 @@ void LMRaDec::evaluateTensors (std::vector<Vells> & out,
 // lets allow for possible future coordinate system rotations
 // by specifying individual elements of the xform matrix rather
 // than just setting diagonals to 1.0
-  double pos_ang_radians = 0.0;
-  xform(0,0)= cos(pos_ang_radians);
-  xform(0,1)= sin(pos_ang_radians);
-  xform(1,0)= -sin(pos_ang_radians);
-  xform(1,1)= cos(pos_ang_radians);
+  xform(0,0)= cos(pos_ang_radians_);
+  xform(0,1)= sin(pos_ang_radians_);
+  xform(1,0)= -sin(pos_ang_radians_);
+  xform(1,1)= cos(pos_ang_radians_);
 
   DirectionCoordinate *DirCoord = new DirectionCoordinate(MDirection::J2000,
                           Projection(Projection::SIN),       
