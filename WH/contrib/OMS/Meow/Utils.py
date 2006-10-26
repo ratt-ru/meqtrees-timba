@@ -226,11 +226,22 @@ def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisD
   mqs.execute(vdm_node,req,wait=False);
   pass
   
-def make_dirty_image (npix=None,cellsize=None,channels=None):
+def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None):
+  """Runs glish script to make an image
+  npix is image size, in pixels
+  cellsize is pixel size, as an aips++ Measures string (e.g. "0.5arcsec")
+  arcmin is image size, in arcminutes. Either cellsize or arcmin must be 
+        specified, but not both.
+  """;
   if not output_column:
     raise ValueError,"make_dirty_image: output column not set up";
   if not msname:
     raise ValueError,"make_dirty_image: MS not set up";
+  npix = (npix or imaging_npix);
+  if arcmin is not None:
+    if cellsize is not None:
+      raise ValueError,"make_dirty_image: can't specify both 'cellsize' and 'arcmin'";
+    cellsize = str(float(arcmin*60)/npix)+"arcsec";
   import os
   import os.path
   (nchan,chanstart,chanstep) = (channels or imaging_channels);
@@ -241,7 +252,7 @@ def make_dirty_image (npix=None,cellsize=None,channels=None):
     output_column,
     'ms='+msname,'mode='+imaging_mode,
     'weight='+imaging_weight,'stokes='+imaging_stokes,
-    'npix='+str(npix or imaging_npix),
+    'npix='+str(npix),
     'cellsize='+(cellsize or imaging_cellsize),
     'nchan='+str(nchan),
     'chanstart='+str(chanstart),    
