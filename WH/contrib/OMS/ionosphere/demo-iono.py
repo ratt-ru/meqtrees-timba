@@ -5,12 +5,18 @@ import math
 
 import Meow
 import iono_model
+import sky_models
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[1,2,5,30,48,96]);
 Meow.Utils.include_imaging_options();
 
-TDLCompileOption("grid_stepping","Grid step, in minutes",[5,10,30,60,120,240]);
+TDLCompileOption("sky_model","Sky model",
+            [sky_models.Grid9,
+             sky_models.PerleyGates,
+             sky_models.PerleyGates_ps]);
+TDLCompileOption("grid_stepping","Grid step, in minutes",[1,5,10,30,60,120,240]);
+TDLCompileOption("apply_iono","Apply ionospheric corruption",False);
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -37,27 +43,41 @@ def _define_forest (ns):
   # create a Patch for the entire observed sky
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
 
+  # create sources
   sources = [];
-  # create 10 sources
-  for isrc in range(len(LM)):
-    l,m = LM[isrc];
-    l *= ARCMIN*grid_stepping;
-    m *= ARCMIN*grid_stepping;
+  global maxrad;
+  maxrad = 0;
+  for i,srctuple in enumerate(sky_model()):  # sky_model comes from GUI option
+    l = srctuple[0]*grid_stepping; 
+    m = srctuple[1]*grid_stepping;
+    # figure out max image radius in arcmin
+    maxrad = max(abs(l)+.5,abs(m)+.5,maxrad);
+    # convert to radians
+    l *= ARCMIN;
+    m *= ARCMIN;
     # generate an ID for direction and source
-    src = 'S'+str(isrc);           
+    src = 'S'+str(i);
     # create Direction object
     src_dir = Meow.LMDirection(ns,src,l,m);
-    # create point source with this direction
-    sources.append(Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V));
+    # create source with this direction, depending on tuple type
+    if len(srctuple) == 2:
+      sources.append(Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V));
+    else:
+      l,m,iflux,sx,sy,pa = srctuple;
+      sources.append(Meow.GaussianSource(ns,src,src_dir,I=iflux,
+                                         size=[sx*ARCMIN,sy*ARCMIN],phi=pa));
+                                         
+  if apply_iono:
+   zetas = iono_model.compute_zeta_jones(ns,sources,array,observation);
+   for src in sources:
+     # create corrupted source
+     corrupt = Meow.CorruptComponent(ns,src,'Z',station_jones=zetas(src.name));
+     # add to patch
+     allsky.add(corrupt);
+  # no corruption, just take all the sources directly
+  else:
+    allsky.add(*sources);
 
-  zetas = iono_model.compute_zeta_jones(ns,sources,array,observation);
-  
-  for src in sources:
-    # create corrupted source
-    corrupt = Meow.CorruptComponent(ns,src,'Z',station_jones=zetas(src.name));
-    # add to patch
-    allsky.add(corrupt);
-  
   # create set of nodes to compute visibilities...
   predict = allsky.visibilities(array,observation);
 
@@ -76,8 +96,8 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   
   
 def _tdl_job_2_make_image (mqs,parent):
-  imsize_pixels = 512;
-  imsize_seconds = grid_stepping*2.5*60;
+  imsize_pixels = 1024;
+  imsize_seconds = maxrad*2*60;
   cellsize = str(imsize_seconds/imsize_pixels)+'arcsec';
   Meow.Utils.make_dirty_image(npix=imsize_pixels,cellsize=cellsize,channels=[32,1,1]);
 
@@ -85,9 +105,8 @@ def _tdl_job_2_make_image (mqs,parent):
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("K Jones",["K:S0:1","K:S0:9"],["K:S1:2","K:S1:9"]),
-  Meow.Bookmarks.PlotPage("E Jones",["E:S0","E:S1"],["E:S3","E:S4"]),
-  Meow.Bookmarks.PlotPage("G Jones",["G:1","G:2"],["G:3","G:3"])
+  Meow.Bookmarks.PlotPage("TECS",["tec:S0:1","tec:S0:9"],["tec:S1:1","solver"]),
+  Meow.Bookmarks.PlotPage("Z Jones",["Z:S0:1","Z:S0:9"],["Z:S8:1","Z:S8:9"])
 ]);
 
 

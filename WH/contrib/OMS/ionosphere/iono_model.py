@@ -3,8 +3,8 @@ import math
 
 H = 300000;  # height of ionospheric layer, in meters
 TEC0 = 10;
-TIDAmpl = .5; # 2;
-TIDSize = 100000;
+TIDAmpl = .2; # 2;
+TIDSize = 500000;
 TIDSpeed = 3600; 
 Lightspeed = 3e+8;
 
@@ -13,7 +13,7 @@ def compute_piercings (ns,source_list,array,observation):
   """Creates nodes to compute the "piercing points" of each
   source in source_list, for each antenna in array.""";
   
-  xyz = array.xyz()
+  xyz = array.xyz();
   for p in array.stations():
     ns.xy(p) << Meq.Selector(xyz(p) - xyz(array.stations()[0]),index=[0,1],multi=True);
 

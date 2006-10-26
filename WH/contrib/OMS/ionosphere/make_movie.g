@@ -1,7 +1,7 @@
 include 'imager.g'
 include 'image.g'
 
-msname := 'demo.MS';
+msname := 'demo-sim.MS';
 npix := 1024;
 # cellsize := '10arcsec'; # full field
 cellsize := '1arcsec'; # full field
