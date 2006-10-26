@@ -9,6 +9,7 @@ Agent                            1243       ; from /home/oms/LOFAR/Timba/AppAgen
 AIPSPP                           1125       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:36
 All                              1286       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Always                           1225       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
+Ang                              1701       ; from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:30
 Angle                            1174       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
 Antenna                          1202       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 App                              1203       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
