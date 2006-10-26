@@ -44,6 +44,7 @@ from numarray import *
 
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
+from Timba.Meq import meqds
 from Timba.Meq import meq
 
 # to force caching put 100
@@ -53,34 +54,32 @@ Settings.forest_state.cache_policy = 100
 ########################################################
 def _define_forest(ns):  
 
-# first read in locations of beam peaks given to nearest pixel
-# from 'beam_locations' text file
+  # first read in locations of beam peaks given to nearest pixel
+  # from 'beam_locations' text file
+  # fits aGaussian to each beam to locate its maximum 
 
-  text = open("./beam_locations", 'r').readlines()
-  num_beams = len(text)
-  l = zeros((num_beams,),type=Float64)
-  m = zeros((num_beams,),type=Float64)
-  for i in range(num_beams):
-    info = split(strip(text[i]))
-    beam = int(info[0])
-    l[i] = float(info[1])
-    m[i] = float(info[2])
+  l=0.
+  m=0.0
+  constrain = [-0.002,0.002]
+  width  = ns.width << Meq.Parm(3e-7)
 
-# BEAMS = range(1,num_beams+1)
-# Only fit first 26 beams
+  laxis = ns.laxis << Meq.Grid(axis=2);
+  maxis = ns.maxis << Meq.Grid(axis=3);
+  # BEAMS = range(1,num_beams+1)
+  # Only fit first 26 beams
   BEAMS = range(1,26)
 
   home_dir = os.environ['HOME']
   for k in BEAMS:
     infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(k) + '.fits'
     ns.image(k) << Meq.FITSImage(filename=infile_name,cutoff=1.0,mode=2)
-    ns.resampler(k) << Meq.Resampler(ns.image(k), dep_mask=0xff)
-    # add 0.00005 offsets in L, M so solvers have something to work at
-    ns.l0(k)<< Meq.Parm(l[k-1]+0.00005,node_groups='Parm')
-    ns.m0(k)<< Meq.Parm(m[k-1]-0.00005,node_groups='Parm')
-    ns.lm(k)<<Meq.Composer(ns.l0(k),ns.m0(k))
-    ns.compounder(k)<<Meq.Compounder(children=[ns.lm(k),ns.resampler(k)],common_axes=[hiid('l'),hiid('m')])
-    ns.condeq(k)<<Meq.Condeq(children=(ns.compounder(k), 1))
+    ns.resampler(k) << Meq.Resampler(ns.image(k))
+    ns.l0(k)<< Meq.Parm(l,node_groups='Parm',constrain=constrain)
+    ns.m0(k)<< Meq.Parm(m,node_groups='Parm',constrain=constrain)
+
+    ns.gaussian(k) << Meq.Exp((-Meq.Sqr(laxis - ns.l0(k)) -Meq.Sqr(maxis - ns.m0(k)))/width);
+
+    ns.condeq(k)<<Meq.Condeq(children=(ns.resampler(k), ns.gaussian(k)))
     ns.solver(k)<<Meq.Solver(ns.condeq(k),num_iter=50,epsilon=1e-4,solvable=[ns.l0(k),ns.m0(k)])
   ns.req_mux<<Meq.ReqMux(children=[ns.solver(k) for k in BEAMS])
 
@@ -97,15 +96,60 @@ def _test_forest(mqs,parent):
   f0 = 0.5
   f1 = 1.5
 
-# Make cells array
-  cells = meq.cells(meq.domain(f0,f1,t0,t1),num_freq=1,num_time=1);
-
+  lm_range = [-0.003,0.003];
+  lm_num = 50;
 # define request
-  request = meq.request(cells,rqtype='e1')
+  request = make_request(dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
   mqs.meq('Node.Execute',record(name='req_mux',request=request),wait=True);
 
 #####################################################################
+def make_request(Ndim=4,dom_range=[0.,1.],nr_cells=5):
+
+    """make multidimensional request, dom_range should have length 2 or be a list of
+    ranges with length Ndim, nr_cells should be scalar or list of scalars with length Ndim"""
+    forest_state=meqds.get_forest_state();
+    axis_map=forest_state.axis_map;
+    
+    range0 = [];
+    if is_scalar(dom_range[0]):
+        for i in range(Ndim):		
+            range0.append(dom_range);
+    else:
+        range0=dom_range;
+    nr_c=[];
+    if is_scalar(nr_cells):
+        for i in range(Ndim):		
+            nr_c.append(nr_cells);
+    else:
+        nr_c =nr_cells;
+    dom = meq.domain(range0[0][0],range0[0][1],range0[1][0],range0[1][1]); #f0,f1,t0,t1
+    cells = meq.cells(dom,num_freq=nr_c[0],num_time=nr_c[1]);
+    
+    # workaround to get domain with more axes running 
+
+    for dim in range(2,Ndim):
+        id = axis_map[dim].id;
+        if id:
+            dom[id] = [float(range0[dim][0]),float(range0[dim][1])];
+            step_size=float(range0[dim][1]-range0[dim][0])/nr_c[dim];
+            startgrid=0.5*step_size+range0[dim][0];
+            grid = [];
+            cell_size=[];
+        for i in range(nr_c[dim]):
+            grid.append(i*step_size+startgrid);
+            cell_size.append(step_size);
+            cells.cell_size[id]=array(cell_size);
+            cells.grid[id]=array(grid);
+            cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
+
+    cells.domain=dom;
+    request = meq.request(cells);
+    return request;
+
+
+
+    
 
 if __name__=='__main__':
   ns=NodeScope()
