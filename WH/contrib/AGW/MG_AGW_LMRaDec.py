@@ -78,6 +78,10 @@ def _define_forest (ns):
 # specified L,M offset
   ns.LMRaDec << Meq.LMRaDec(radec_0=ns.RADec0, lm=ns.LM)
 
+# the following call would cause the output Ra, Dec to be rotated
+# by 1 radian 
+  # ns.LMRaDec << Meq.LMRaDec(radec_0=ns.RADec0, lm=ns.LM, pos_ang=1.0)
+
 # Finally, as a check: convert the resulting RA and DEC back to L,M
 # with respect to the original field centre. This is done by
 # creating an LMN node which has the field centre RA and DEC
