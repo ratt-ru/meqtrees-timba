@@ -28,12 +28,6 @@ ARCMIN = DEG/60;
 # source flux (same for all sources)
 I = 1; Q = .2; U = .2; V = .2;
 
-# we'll put the sources on a grid (positions in arc min)
-#LM = [(0,0)];
-LM = [(-1.1,-1.03),(-1,0.05),(-1.2,1.07),
-     ( 0.01,-.9),( 0,0),( 0.05,.93), 
-     ( .97,-.96),( 1.04,0.0399999991011),( 1.001,.999997)];
-
 def _define_forest (ns):
   # create an Array object
   array = Meow.IfrArray(ns,ANTENNAS);

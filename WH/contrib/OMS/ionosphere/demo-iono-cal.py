@@ -5,6 +5,9 @@ import math
 
 import Meow
 import iono_model
+import sky_models
+
+
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=True,tile_sizes=[1,2,5,30,48,96]);
@@ -14,8 +17,14 @@ Meow.Utils.include_imaging_options();
 TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
 
 
+
+TDLCompileOption("sky_model","Sky model",
+            [sky_models.Grid9,
+             sky_models.PerleyGates,
+             sky_models.PerleyGates_ps]);
+TDLCompileOption("grid_stepping","Grid step, in minutes",[1,5,10,30,60,120,240]);
+
 TDLCompileOption("polc_deg_time","Polc degree, in time",[0,1,2,3,4,5]);
-TDLCompileOption("grid_stepping","Grid step, in minutes",[5,10,30,60,120,240]);
 TDLCompileOption("centre_tec_only","Fit centre TEC only",False);
 
 # define antenna list
@@ -50,22 +59,33 @@ def _define_forest (ns):
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
 
   tecs = ns.tec;
+  # create sources
   sources = [];
-  # create 10 sources
-  for isrc in range(len(LM)):
-    l,m = LM[isrc];
-    l *= ARCMIN*grid_stepping;
-    m *= ARCMIN*grid_stepping;
+  global maxrad;
+  maxrad = 0;
+  for i,srctuple in enumerate(sky_model()):  # sky_model comes from GUI option
+    l = srctuple[0]*grid_stepping; 
+    m = srctuple[1]*grid_stepping;
+    # figure out max image radius in arcmin
+    maxrad = max(abs(l)+.5,abs(m)+.5,maxrad);
+    # convert to radians
+    l *= ARCMIN;
+    m *= ARCMIN;
     # generate an ID for direction and source
-    src = 'S'+str(isrc);           
+    src = 'S'+str(i);
     # create Direction object
     src_dir = Meow.LMDirection(ns,src,l,m);
-    # create point source with this direction
-    sources.append(Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V));
+    # create source with this direction, depending on tuple type
+    if len(srctuple) == 2:
+      sources.append(Meow.PointSource(ns,src,src_dir,I=I,Q=Q,U=U,V=V));
+    else:
+      l,m,iflux,sx,sy,pa = srctuple;
+      sources.append(Meow.GaussianSource(ns,src,src_dir,I=iflux,
+                                         size=[sx*ARCMIN,sy*ARCMIN],phi=pa));
     # create TEC parm for source and antenna
     for p in array.stations():
       shape = [polc_deg_time+1,1];
-      if isrc == 0:  # centre source
+      if i == 0:  # centre source
         tecs(src,p) << Meq.Parm(10.,shape=shape,node_groups='Parm',
                                 constrain=[8.,12.],user_previous=True,table_name=get_mep_table());
         tec_parms.append(tecs(src,p).name);
@@ -90,20 +110,28 @@ def _define_forest (ns):
   # ...and attach them to sinks
   condeqs = [];
   for p,q in array.ifrs():
+  
     spigot = ns.spigot(p,q) << Meq.Spigot( station_1_index=p-1,
                                            station_2_index=q-1,
                                            input_col='DATA');
     pred = predict(p,q);
     ce = ns.ce(p,q) << Meq.Condeq(spigot,pred);
     condeqs.append(ce);
-    ns.residual(p,q) << spigot - pred;
-    
+    residual = ns.residual(p,q) << spigot-pred;
+  
+  # create dummy zeta as a 2x2 matrix (otherwise invert fails)
+  for p in array.stations():
+    z = zetas(sources[0].name,p);
+    ns.Z22(p) << Meq.Matrix22(z,0,0,z);
+  
+  Meow.Jones.apply_correction(ns.corrected,ns.residual,ns.Z22,array.ifrs());
+
   # create solver node
   ns.solver << Meq.Solver(children=condeqs);
   
   # create sinks and reqseqs 
   for p,q in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.residual(p,q),
+    reqseq = Meq.ReqSeq(ns.solver,ns.corrected(p,q),
                   result_index=1,cache_num_active_parents=1);
     ns.sink(p,q) << Meq.Sink(station_1_index=p-1,
                              station_2_index=q-1,

@@ -1,11 +1,11 @@
 from Timba.TDL import *
 import math
 
-H = 300000;  # height of ionospheric layer, in meters
-TEC0 = 10;
-TIDAmpl = .2; # 2;
-TIDSize = 500000;
-TIDSpeed = 3600; 
+H = 300000;           # height of ionospheric layer, in meters
+TEC0 = 10;            # base TEC, in TECU
+TIDAmpl = 0.05;       # TID amplitude, relative to base TEC
+TIDSize = 100000;     # TID extent, in meters (one half of a sine wave)
+TIDSpeed = 600;       # TID time scale, in seconds
 Lightspeed = 3e+8;
 
 
@@ -51,7 +51,7 @@ def compute_tecs (ns,piercings,za_cos,source_list,array,observation):
     for p in array.stations():
       px = ns.px(src.name,p) << Meq.Selector(piercings(src.name,p),index=0); 
       tecs(src.name,p) << (TEC0 +   \
-            TIDAmpl*Meq.Sin(2*math.pi*(px/TIDSize + Meq.Time()/TIDSpeed))) / \
+            (TIDAmpl*TEC0)*Meq.Sin(2*math.pi*(px/(2*TIDSize) + Meq.Time()/TIDSpeed))) / \
             za_cos(src.name,p); 
       
   return tecs;
