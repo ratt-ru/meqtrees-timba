@@ -57,6 +57,8 @@ def _define_forest (ns, **kwargs):
    sp1 = ns.station_phase(s=3) << 2.2
    sp2 = ns.station_phase(s=4) << -5.1
    cc = [sp1,sp2,
+         ns.xxx('a')(2)(b='c')('d','e') << 1,
+         ns.yyy('a','b',-3.5,'d',a='e') << 1,
          ns.ifr_phase(s1=3, s2=4) << Meq.Subtract(sp1,sp2),
          ns.qmerge.qmerge(sp1,sp2) << Meq.Subtract(sp1,sp2),
          ns.qadd(q=8).qadd(sp1,sp2) << Meq.Subtract(sp1,sp2),

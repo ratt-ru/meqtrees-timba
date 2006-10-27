@@ -7,6 +7,7 @@ from Timba.Meq import meq
 import math
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 import Meow
 
@@ -18,12 +19,16 @@ TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
 # Compile-time menu:
 TDLCompileMenu("Source distribution",
   TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20]),
-  TDLOption('source_pattern',"source pattern",['cps','ps1','ps2','ps3','ps9']),
+  TDLOption('source_pattern',"source pattern",['cps','ps1','ps2','ps3','ps4','ps5','ps9']),
 );
-TDLCompileOption('flux_factor',"Successive flux reduction factor",[0.5,0.4,0.3,0.2,0.1]);
+TDLCompileOption('flux_factor',"Successive flux mult factor",[1.0,0.5,0.4,0.3,0.2,0.1]);
 TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
+TDLCompileOption('cache_policy',"Node result caching policy",[0,100]);
+
+# Alternative: see tdl_job below
+# Settings.forest_state.cache_policy = 100
 
 #================================================================================
 
@@ -50,6 +55,10 @@ elif source_pattern=='ps2':
   LM = [(0,0),(a,a)]
 elif source_pattern=='ps3':
   LM = [(0,0),(a,a),(0,a)]
+elif source_pattern=='ps4':
+  LM = [(0,0),(a,a),(0,a),(0,-a)]
+elif source_pattern=='ps5':
+  LM = [(0,0),(a,a),(0,a),(0,-a),(-a,-a)]
 elif source_pattern=='ps9':
   LM = [(-a,-a),(-a,0),(-a,a),
         ( 0,-a),( 0,0),( 0,a), 
@@ -65,6 +74,15 @@ def _define_forest (ns):
   array = Meow.IfrArray(ns,ANTENNAS);
   # create an Observation object
   observation = Meow.Observation(ns);
+
+  #--------------------------------------------------------------------------
+  # Start some lists for the accumulation of nodes for bookmark pages 
+  ifr1 = (1,4)                                     # selected ifr
+  p1 = 1                                           # selected station
+  bm_resid = []        
+  bm_condeq = []                 
+  bm_solver = []               
+  bm_cxparm = []               
   
   # The input 'data' is a Patch with all (uncorrupted) sources:
   allsky = Meow.Patch(ns,'nominall',observation.phase_centre);
@@ -76,6 +94,7 @@ def _define_forest (ns):
   # fainter ones. The latter is to reduce the contamination.
   predicted = []
   corrupted = []
+  dc_cxparm = []
   for isrc in range(len(LM)):
     predicted.append(Meow.Patch(ns,'predicted_S'+str(isrc),
                                 observation.phase_centre));
@@ -86,7 +105,7 @@ def _define_forest (ns):
   print 'I,Q,U,V =',I,Q,U,V
 
   #-----------------------------------------------------------------------
-  
+
   for isrc in range(len(LM)):
     # Create source nr isrc:
     I *= flux_factor                              # In order of decreasing flux
@@ -102,14 +121,26 @@ def _define_forest (ns):
 
     # Make a corrupted source:
     solvable[src] = []
+    cxparms = []
     node_groups = ['Parm',src]     
     for p in ANTENNAS:
       phase = ns.Ephase(src)(p) << Meq.Parm(0.0, node_groups=node_groups);
       gain = ns.Egain(src)(p) << Meq.Parm(1.0, node_groups=node_groups);
       solvable[src].extend([phase,gain])
-      ns.E(src)(p) << Meq.Polar(gain,phase);
+      cxparm = ns.E(src)(p) << Meq.Polar(gain,phase);
       # ns.E(src)(p) << Meq.Matrix22(1+0j,0,0,1+0j);
+      cxparms.append(cxparm)
     corrupted.append(Meow.CorruptComponent(ns,source,'E',station_jones=ns.E(src)));
+    if True:
+      dc = MG_JEN_dataCollect.dcoll (ns, cxparms, 
+                                     scope=src, tag='parm',
+                                     # color=Cohset.plot_color()[corr],
+                                     # style=Cohset.plot_style()[corr],
+                                     # size=Cohset.plot_size()[corr],
+                                     # pen=Cohset.plot_pen()[corr],
+                                     type='realvsimag', errorbars=True)
+      dc_cxparm.append(dc['dcoll'])              # to be appended to reqseq list
+      bm_cxparm.append(dc['dcoll'])              # append to bookmark list
 
     # Add the corrupted source to the relevant prediction patches,
     # i.e. the patch for the source itself, and the patches for
@@ -121,13 +152,6 @@ def _define_forest (ns):
       if isrc-i>=0:
         print 'isrc=',isrc,': i=',i
         predicted[isrc-i].add(corrupted[isrc]);
-
-  #--------------------------------------------------------------------------
-  # Start some lists for the accumulation of nodes for bookmark pages 
-  ifr1 = (1,4)                                     # selected ifr
-  bm_resid = []        
-  bm_condeq = []                 
-  bm_solver = []               
 
   #--------------------------------------------------------------------------
   # Make sequence of peeling stages:
@@ -144,10 +168,12 @@ def _define_forest (ns):
     # Optional: insert a solver for the parameters related to this source:
     if insert_solver:
       condeqs = []
+      condeqs_XX = []
       for ifr in array.ifrs():
-        condeqs.append(ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
-                                                          predict(*ifr)));
-      bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
+        condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
+                                                    predict(*ifr));
+        condeqs.append(condeq)
+        condeqs_XX.append(ns.condeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
       solver = ns.solver(src) << Meq.Solver(children=condeqs,
                                             solvable=solvable[src],
                                             parm_group=hiid(src),
@@ -155,7 +181,19 @@ def _define_forest (ns):
                                             num_iter=3);
       cc_reqseq.append(solver)                     # append to reqseq list
       bm_solver.append(solver)                     # append to bookmark list
-
+      bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
+      if True:
+        dc = MG_JEN_dataCollect.dcoll (ns, condeqs_XX, 
+                                       scope=src, tag='condeq_XX',
+                                       # color=Cohset.plot_color()[corr],
+                                       # style=Cohset.plot_style()[corr],
+                                       # size=Cohset.plot_size()[corr],
+                                       # pen=Cohset.plot_pen()[corr],
+                                       type='realvsimag', errorbars=True)
+        cc_reqseq.append(dc['dcoll'])              # append to reqseq list
+        cc_reqseq.append(dc_cxparm[isrc])          # append to reqseq list
+        bm_condeq.append(dc['dcoll'])              # append to bookmark list
+                          
 
     # Subtract the current peeling source:
     for ifr in array.ifrs():
@@ -192,6 +230,7 @@ def _define_forest (ns):
   JEN_bookmarks.create(bm_resid, 'residuals')
   JEN_bookmarks.create(bm_condeq, 'condeqs')
   JEN_bookmarks.create(bm_solver, 'solvers')
+  JEN_bookmarks.create(bm_cxparm, 'parms')
   return True
 
 
@@ -201,25 +240,22 @@ def _define_forest (ns):
 #==============================================================================
 
 def _tdl_job_1_simulate_MS (mqs,parent):
+  mqs.meq('Set.Forest.State', record(state=record(cache_policy=cache_policy)))
   req = Meow.Utils.create_io_request();
-  # execute    
   mqs.execute('vdm',req,wait=False);
-  
+  return True
+                                     
   
 def _tdl_job_2_make_image (mqs,parent):
   Meow.Utils.make_dirty_image(npix=256,cellsize='1arcsec',channels=[32,1,1]);
+  return True
 
 
 
-# setup a few bookmarks
-Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("K Jones",["K:S0:1","K:S0:9"],["K:S1:2","K:S1:9"]),
-  Meow.Bookmarks.PlotPage("E Jones",["E:S0","E:S1"],["E:S3","E:S4"]),
-  Meow.Bookmarks.PlotPage("G Jones",["G:1","G:2"],["G:3","G:3"])
-]);
 
-
-# this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
+#==============================================================================
+# This is a useful thing to have at the bottom of the script.
+# It allows us to check the tree for consistency
 # simply by running 'python script.tdl'
 
 if __name__ == '__main__':

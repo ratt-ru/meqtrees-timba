@@ -167,6 +167,7 @@ def _define_forest (ns, **kwargs):
 
    group = 'weighted_child_ops'
    wgt = [3.0,1.0,2.0]
+   wgt = [3,1,2]
    wtot = ns.wtot << sum(wgt)
    wsum = ns['wsum(3*a1,1*a2,2*a3)'] << Meq.WSum(a1,a2,a3, weights=wgt)
    wmean = ns['wmean(3*a1,1*a2,2*a3)'] << Meq.WMean(a1,a2,a3, weights=wgt)

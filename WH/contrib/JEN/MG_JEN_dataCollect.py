@@ -10,6 +10,7 @@
 # - 26 nov 2005: modify 'all' -> '*'
 # - 02 feb 2006: added attrib 'results_buffer'
 # - 17 oct 2006: added attrib 'cache_policy'
+# - 26 oct 2006: temporary placeholder for failing StdDev
 
 # Copyright: The MeqTree Foundation 
 
@@ -278,9 +279,17 @@ def dcoll (ns, node=[], **pp):
       stripped = ns << Meq.Stripper (node[i])
       dcoll['stripped'].append (stripped)
       if pp.type == 'realvsimag':
-         dcoll['mean'].append (ns << Meq.Mean(stripped))
+         mean = ns << Meq.Mean(stripped)
+         dcoll['mean'].append(mean)
          if pp.errorbars:
-            dcoll['stddev'].append (ns << Meq.StdDev(stripped))
+            if True:
+               # Place-holder until Meq.StdDev is repaired:
+               ms = ns << Meq.Mean(ns << Meq.Sqr(ns << Meq.Abs(stripped)))
+               m2 = ns << Meq.Sqr(ns << Meq.Abs(mean))
+               stddev = ns << Meq.Sqrt(ms-m2)
+            else:
+               stddev = ns << Meq.StdDev(stripped)
+            dcoll['stddev'].append (stddev)
             
 
    # Make dataCollection node(s):

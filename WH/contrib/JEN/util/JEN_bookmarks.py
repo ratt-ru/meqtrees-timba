@@ -86,7 +86,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
     # If node is a list, make multiple bookmarks:
 
     if isinstance(node, (list, tuple)):
-        if len(node)>4:
+        if len(node)>=perpage:
             if not isinstance(folder, str): folder = '** AUTO_GROUPS **'
         if not isinstance(page, str): page = 'autopage'
         if isinstance(name, str): page = '_'+name          # ....?
