@@ -476,7 +476,15 @@ namespace Meq {
 	  if (in.isScalar()) {
 		 ///handle scalar case
 		 //FIXME : collapse axes first
-     vs.setValue(in);
+		  if (in.isReal()) {
+        double a=in.as<double>();
+        Vells *out=new Vells(a);
+        vs.setValue(out);
+      } else {
+        dcomplex a=in.as<dcomplex>();
+        Vells *out=new Vells(a);
+        vs.setValue(out);
+      }
 		} else {
 		/////////////////////////////////////// real data
 		if (in.isReal()) {
