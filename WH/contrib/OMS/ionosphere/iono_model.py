@@ -4,7 +4,7 @@ import math
 H = 300000;           # height of ionospheric layer, in meters
 TEC0 = 10;            # base TEC, in TECU
 TIDAmpl = 0.05;       # TID amplitude, relative to base TEC
-TIDSize = 100000;     # TID extent, in meters (one half of a sine wave)
+TIDSize = 200000;     # TID extent, in meters (one half of a sine wave)
 TIDSpeed = 600;       # TID time scale, in seconds
 Lightspeed = 3e+8;
 
