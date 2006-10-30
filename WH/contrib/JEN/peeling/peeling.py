@@ -12,7 +12,7 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 import Meow
 
 # Run-time menu:
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96]);
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96,20,10,5,2,1]);
 Meow.Utils.include_imaging_options();
 TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
   
@@ -134,13 +134,13 @@ def _define_forest (ns):
     if True:
       dc = MG_JEN_dataCollect.dcoll (ns, cxparms, 
                                      scope=src, tag='parm',
-                                     # color=Cohset.plot_color()[corr],
+                                     color='red',
                                      # style=Cohset.plot_style()[corr],
                                      # size=Cohset.plot_size()[corr],
                                      # pen=Cohset.plot_pen()[corr],
                                      type='realvsimag', errorbars=True)
       dc_cxparm.append(dc['dcoll'])              # to be appended to reqseq list
-      bm_cxparm.append(dc['dcoll'])              # append to bookmark list
+      bm_cxparm.append(dc['dcoll'])              #   append to bookmark list
 
     # Add the corrupted source to the relevant prediction patches,
     # i.e. the patch for the source itself, and the patches for
@@ -185,14 +185,16 @@ def _define_forest (ns):
       if True:
         dc = MG_JEN_dataCollect.dcoll (ns, condeqs_XX, 
                                        scope=src, tag='condeq_XX',
-                                       # color=Cohset.plot_color()[corr],
+                                       color='blue',
                                        # style=Cohset.plot_style()[corr],
                                        # size=Cohset.plot_size()[corr],
                                        # pen=Cohset.plot_pen()[corr],
                                        type='realvsimag', errorbars=True)
         cc_reqseq.append(dc['dcoll'])              # append to reqseq list
         cc_reqseq.append(dc_cxparm[isrc])          # append to reqseq list
-        bm_condeq.append(dc['dcoll'])              # append to bookmark list
+        if isrc == len(LM)-1:                      # last one only:
+          bm_condeq.append(dc['dcoll'])            #   append to bookmark list
+          bm_cxparm.append(dc['dcoll'])            #   append to bookmark list
                           
 
     # Subtract the current peeling source:
