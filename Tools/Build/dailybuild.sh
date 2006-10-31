@@ -2,21 +2,21 @@
 
 export DATE_STR=$(date +%Y%m%d)
 export DAILY_DIR=$HOME/DAILY${DATE_STR}
-export CVSROOT=:pserver:brentjens@cvs:/cvs/cvsroot
+export SVN_REPOSITORY="file:///var/svn/repos/trunk/Timba"
 export CCACHE_PREFIX=distcc
 export WEB_DIR="$HOME/public_html"
 
 export DOCSUBDIR=pydoc
-export GENERATEDOCSSCRIPT=$DAILY_DIR/LOFAR/Timba/Tools/Build/generate-docs.py
+export GENERATEDOCSSCRIPT=$DAILY_DIR/Timba/Tools/Build/generate-docs.py
 
 
-export PYTHONPATH=$DAILY_DIR/LOFAR/installed/current/libexec/python
-export PATH=".:$HOME/usr/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:$DAILY_DIR/LOFAR/installed/current/bin"
+export PYTHONPATH=$DAILY_DIR/Timba/install/symlinked/libexec/python
+export PATH=".:$HOME/usr/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:$DAILY_DIR/Timba/install/symlinked/bin"
 export LD_LIBRARY_PATH="$HOME/usr/lib:/aips++/rh7/pgplot:/usr/local/lib:/usr/lib:/lib:/usr/X11R6/lib"
 
 
-source /aips++/weekly/aipsinit.sh
-aipsinit gnu34
+source /aips++/prod/aipsinit.sh
+#aipsinit gnu34
 
 
 export TOTAL_TESTS=0
@@ -38,7 +38,7 @@ function Cleanup {
 function GenerateDocs {
     DOCSOUTPUT=$1 && \
     pushd $DOCSOUTPUT && \
-    python $GENERATEDOCSSCRIPT $DAILY_DIR/LOFAR/installed/symlinked/libexec/python/Timba && \
+    python $GENERATEDOCSSCRIPT $DAILY_DIR/TIMBA/install/symlinked/libexec/python/Timba && \
     ln -s Timba.html index.html && \
     popd
 }
@@ -48,19 +48,10 @@ function GenerateDocs {
 
 
 function Checkout {
-
-    cvs co LOFAR/autoconf_share && \
-    cvs co LOFAR/LCS/Common && \
-    cvs co LOFAR/Timba && \
-    \
-    mkdir -p $DAILY_DIR/LOFAR/installed && \
-    cd $DAILY_DIR/LOFAR/installed && \
-    tar xvzf ../Timba/install-symlinked.tgz && \
-    ln -s symlinked current && \
-    \
-    mkdir -p $DAILY_DIR/LOFAR/LCS/Common/build
+    cd $DAILY_DIR && \
+    svn checkout $SVN_REPOSITORY && \
+    ln -s $DAILY_DIR/Timba/install/symlinked $DAILY_DIR/Timba/install/current
 }
-
 
 
 
@@ -69,23 +60,12 @@ function Checkout {
 function BuildVariant {
    variant=$1 && \
    \
-   cd $DAILY_DIR/LOFAR/LCS/Common && \
+   pushd $DAILY_DIR/Timba && \
    ./bootstrap && \
-   mkdir -p $DAILY_DIR/LOFAR/LCS/Common/build/$variant && \
-   cd $DAILY_DIR/LOFAR/LCS/Common/build/$variant && \
-   ../../lofarconf && \
-   \
-   pushd $DAILY_DIR/LOFAR && \
-   autoconf_share/rub -conf -build $variant   CEP/BB/ParmDB && \
-   cat $DAILY_DIR/LOFAR/build.log&&\
-   popd && \
-   \
-   cd $DAILY_DIR/LOFAR/Timba && \
-   ./bootstrap && \
-   mkdir -p $DAILY_DIR/LOFAR/Timba/build/$variant && \
-   cd $DAILY_DIR/LOFAR/Timba/build/$variant && \
-   ../../lofarconf && \
-   make -j 24
+   cd $DAILY_DIR/Timba/build/$variant &&\
+   ../../lofarconf --with-old-lsqfit && \
+   make -j 24 && \
+   popd
 }
 
 
@@ -146,8 +126,8 @@ function BuildAndFilter {
    errorfile=$DAILY_DIR/${variant}.errors && \
    echo Building $variant && \
    \
-   BuildVariant   $variant  &> $logfile && \
-   FilterWarnings $logfile  &> $warningfile && \
+   BuildVariant   $variant  &> $logfile
+   FilterWarnings $logfile  &> $warningfile
    FilterErrors   $logfile  &> $errorfile
 }
 
@@ -227,7 +207,7 @@ function PrintTestResults {
 
 function CheckStartupOfMeqServer {
    variant=$1
-   servername=$DAILY_DIR/LOFAR/Timba/MeqServer/build/$variant/src/meqserver
+   servername=$DAILY_DIR/Timba/MeqServer/build/$variant/src/meqserver
    echo Starting $servername
    $servername &> $DAILY_DIR/meqserver.$variant.log&
    serverpid=$!
