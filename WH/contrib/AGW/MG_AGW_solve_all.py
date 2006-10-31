@@ -113,7 +113,6 @@ def _define_forest(ns):
     ns.gaussian(k) << Meq.Exp((-Meq.Sqr(laxis - ns.l0(k)) -Meq.Sqr(maxis - ns.m0(k)))/width);
 
     ns.condeq(k)<<Meq.Condeq(children=(ns.resampler(k), ns.gaussian(k)))
-#   ns.solver(k)<<Meq.Solver(ns.condeq(k),num_iter=50,epsilon=1e-4,solvable=[ns.l0(k),ns.m0(k)],save_funklets=True,last_update=True)
     ns.solver(k)<<Meq.Solver(ns.condeq(k),num_iter=50,epsilon=1e-4,solvable=[ns.l0(k),ns.m0(k)],save_funklets=True,last_update=True)
   ns.req_mux<<Meq.ReqMux(children=[ns.solver(k) for k in BEAMS])
 
@@ -122,11 +121,11 @@ def _define_forest(ns):
 
 def _test_forest(mqs,parent):
 
-# any old time will do
+# any large time range will do
   t0 = 0.0;
   t1 = 1.5e70
 
-# any old frequency
+# any large frequency range will do
   f0 = 0.0
   f1 = 1.5e70
 
