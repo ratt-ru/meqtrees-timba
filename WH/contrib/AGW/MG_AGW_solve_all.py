@@ -78,8 +78,6 @@ def tpolc (tdeg,c00=0.0):
 ########################################################
 def _define_forest(ns):  
 
-  # first read in locations of beam peaks given to nearest pixel
-  # from 'beam_locations' text file
   # fits a Gaussian to each beam to locate its maximum 
 
   l=0.
