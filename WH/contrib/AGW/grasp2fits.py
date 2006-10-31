@@ -35,7 +35,7 @@ import math
 from string import split, strip
 
 def usage( prog ):
-        print 'usage : %s <infile_grasp> <outfile_fits> ' % prog
+        print 'usage : %s <infile_grasp> <outfile_fits> rot_multiplier' % prog
         return 1
 
 def getdata( filename ):
@@ -139,10 +139,16 @@ def main( argv ):
 	Z, x_max, y_max = totalpower(data, nx);
         print 'array max and position ', Z.max(), ' ', x_max,' ', y_max
         
+        # rotate matrix by x * 90 deg
+        try:
+          rot_factor = argv[3]
+        except:
+          rot_factor = 0
         # turn 2D array into a 4D array so that pyfits will
         # generate an image with NAXIS = 4
-        temp_array = numarray.zeros((1,1,Z.shape[0],Z.shape[1]),type=Z.type())
-        temp_array[0,0,:Z.shape[0],:Z.shape[1]] = Z
+        Z1 = numarray.mlab.rot90(Z, rot_factor)
+        temp_array = numarray.zeros((1,1,Z1.shape[0],Z1.shape[1]),type=Z1.type())
+        temp_array[0,0,:Z1.shape[0],:Z1.shape[1]] = Z1
 
         # create basic FITS file
         hdu = pyfits.PrimaryHDU(temp_array)
