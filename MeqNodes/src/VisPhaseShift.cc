@@ -127,7 +127,9 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
   else // slower but much simpler
   {
     // create freq vells from grid 
-    Vells freq = Vells(cells.center(Axis::FREQ));
+    int nfreq = cells.ncells(Axis::FREQ);
+    Vells freq(0,Axis::vectorShape(Axis::FREQ,nfreq),false);
+    memcpy(freq.realStorage(),cells.center(Axis::FREQ).data(),nfreq*sizeof(double));
     out[0] = polar(1,r1*(_2pi_over_c*freq));
   }
 
