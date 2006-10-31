@@ -30,6 +30,7 @@
 import os
 import sys
 import numarray
+import numarray.mlab
 import pyfits
 import math 
 from string import split, strip
@@ -141,7 +142,7 @@ def main( argv ):
         
         # rotate matrix by x * 90 deg
         try:
-          rot_factor = argv[3]
+          rot_factor = int(argv[3])
         except:
           rot_factor = 0
         # turn 2D array into a 4D array so that pyfits will
