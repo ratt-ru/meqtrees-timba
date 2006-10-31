@@ -5,12 +5,13 @@ mkimage:=function(msname)
     include 'imager.g';
     include 'measures.g';
     myimager := imager(msname)
-    cellsize := '2.0arcsec'
+    cellsize := '1.0arcsec'
     imsize := 1024
-    dir1:=dm.direction('J2000', '00h07m00', '-48d00m00')
+#   dir1:=dm.direction('J2000', '00h07m00', '-48d00m00')
     myimager.setimage(stokes='I',fieldid=1, spwid=1, mode='channel', 
         nchan=1,start=1,step=1, cellx=cellsize, celly=cellsize, 
-        nx=imsize, ny=imsize, doshift=T,phasecenter=dir1)
+        nx=imsize, ny=imsize)
+#       nx=imsize, ny=imsize, doshift=T,phasecenter=dir1)
     restored_image := 'image.restored'
     model_image := 'image.clean'
     residual_image := 'image.residual'
@@ -27,4 +28,4 @@ mkimage:=function(msname)
 # first delete old MS, test images, etc
 shell('rm -rf image.res* image.clean image_xntd.fits')
 # now do processing
-mkimage('TEST_XNTD_30_480.MS')
+mkimage('TEST_XNTD_30_640.MS')
