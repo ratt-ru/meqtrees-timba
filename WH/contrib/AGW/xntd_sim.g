@@ -27,7 +27,8 @@ mkcomplist:=function(N,ref flux,ref ra,ref dec)
 
     r.done();
 
-    val flux:=array(1.0,N);
+#   val flux:=array(0.000001,N);
+    val flux:=array(5.0,N);
 
 #     val flux:=1;
 #     val ra[1]:=spaste('1.5arcmin');
@@ -129,7 +130,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     
     mysim.setspwindow(spwname='SKA', freq=freq,
 		      deltafreq='50.0MHz', freqresolution='50.0MHz', 
-		      nchannels=1, stokes='RR RL LR LL');
+		      nchannels=4, stokes='RR RL LR LL');
     
     note('Simulating scaled ATCA');
     posatca := dm.observatory('ATCA');
@@ -157,7 +158,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
 		   sourcedirection=dir0)
 
     ref_time := dm.epoch('iat', '2001/01/01');
-    mysim.settimes(integrationtime='6s', usehourangle=T, referencetime=ref_time);
+    mysim.settimes(integrationtime='9s', usehourangle=T, referencetime=ref_time);
 
     mysim.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
     mysim.setauto(autocorrwt=0.0);
@@ -203,4 +204,4 @@ mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
-simms('TEST_XNTD_30_960.MS','mymodel.cl', ,noise='0.1Jy');
+simms('TEST_XNTD_30_640.MS','mymodel.cl', ,noise='0.1Jy');
