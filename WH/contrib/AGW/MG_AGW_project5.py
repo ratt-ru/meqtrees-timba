@@ -55,7 +55,7 @@ ANTENNAS = range(1,31);
 IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 
 # source flux (same for all sources)
-I = 1; Q = .2; U = .2; V = .2;
+I = 2; Q = .0; U = .0; V = .0;
 
 # location of 'phased up' beam
 BEAM_LM = [(0.0,-0.0087)]  # offset of -0.5 deg in DEC (mirrored in aips++ - moved in opposite direction) 
@@ -64,6 +64,7 @@ BEAM_LM = [(0.0,-0.0087)]  # offset of -0.5 deg in DEC (mirrored in aips++ - mov
 LM = [(-0.0087,-0.0087),(-0.0087,0),(-0.0087,0.0087),
       ( 0,-0.0087),( 0,0),( 0,0.0087),
       ( 0.0087,-0.0087),( 0.0087,0),( 0.0087,0.0087)];
+LM = [(0,-0.0087)]
 SOURCES = range(len(LM));       # 0...N-1
 
 ########################################################
@@ -126,13 +127,13 @@ def _test_forest(mqs,parent):
   req.input = record(
     ms = record(
       ms_name          = 'TEST_XNTD_30_960.MS',
-      tile_size        = 40
+      tile_size        = 960
     ),
     python_init = 'Meow.ReadVisHeader'
   );
   req.output = record(
     ms = record(
-      data_column = 'CORRECTED_DATA'
+      data_column = 'MODEL_DATA'
     )
   );
   # execute
