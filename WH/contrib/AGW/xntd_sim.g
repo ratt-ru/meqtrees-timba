@@ -157,7 +157,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
 		   sourcedirection=dir0)
 
     ref_time := dm.epoch('iat', '2001/01/01');
-    mysim.settimes(integrationtime='9s', usehourangle=T, referencetime=ref_time);
+    mysim.settimes(integrationtime='6s', usehourangle=T, referencetime=ref_time);
 
     mysim.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
     mysim.setauto(autocorrwt=0.0);
