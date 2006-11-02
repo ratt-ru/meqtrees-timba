@@ -27,8 +27,7 @@ mkcomplist:=function(N,ref flux,ref ra,ref dec)
 
     r.done();
 
-#   val flux:=array(0.000001,N);
-    val flux:=array(5.0,N);
+    val flux:=array(0.0,N);
 
 #     val flux:=1;
 #     val ra[1]:=spaste('1.5arcmin');
@@ -204,4 +203,4 @@ mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
-simms('TEST_XNTD_30_640.MS','mymodel.cl', ,noise='0.1Jy');
+simms('TEST_XNTD_30_960.MS','mymodel.cl', ,noise='0.0Jy');
