@@ -129,7 +129,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     
     mysim.setspwindow(spwname='SKA', freq=freq,
 		      deltafreq='50.0MHz', freqresolution='50.0MHz', 
-		      nchannels=4, stokes='RR RL LR LL');
+		      nchannels=2, stokes='RR RL LR LL');
     
     note('Simulating scaled ATCA');
     posatca := dm.observatory('ATCA');
