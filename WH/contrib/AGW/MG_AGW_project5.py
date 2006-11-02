@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#% $Id: MG_AGW_project2.py 3929 2006-09-01 20:17:51Z twillis $ 
+#% $Id: MG_AGW_project5.py 3929 2006-09-01 20:17:51Z twillis $ 
 
 #
 # Copyright (C) 2006
@@ -23,7 +23,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_project2.py'
+script_name = 'MG_AGW_project5.py'
 
 # Short description:
 # We read in a 3 x 3 grid of sources, and essentially observe them
