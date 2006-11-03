@@ -4,9 +4,9 @@ from Timba.Meq import meq
 import math
 
 import Meow
-import iono_model
 import sky_models
-
+import mims
+import iono_geometry
 
 
 # some GUI options
@@ -17,15 +17,16 @@ Meow.Utils.include_imaging_options();
 TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
 
 
-
 TDLCompileOption("sky_model","Sky model",
             [sky_models.Grid9,
              sky_models.PerleyGates,
              sky_models.PerleyGates_ps]);
 TDLCompileOption("grid_stepping","Grid step, in minutes",[1,5,10,30,60,120,240]);
-
-TDLCompileOption("polc_deg_time","Polc degree, in time",[0,1,2,3,4,5]);
-TDLCompileOption("centre_tec_only","Fit centre TEC only",False);
+TDLCompileOption("ionospheric_model","Ionospheric model",
+            [ mims.center_tecs_only,
+              mims.per_direction_tecs,
+              mims.mim_poly]);
+TDLCompileOption("output_type","Output visibilities",["corrected","residual"]);
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -36,19 +37,10 @@ ARCMIN = DEG/60;
 
 # source flux (same for all sources)
 I = 1; Q = .2; U = .2; V = .2;
-
-# we'll put the sources on a grid (positions in arc min)
-#LM = [(0,0)];
-LM = [( 0,0),(-1.1,-1.03),(-1,0.05),(-1.2,1.07),
-      ( 0.01,-.9),( 0.05,.93), 
-      ( .97,-.96),( 1.04,0.0399999991011),( 1.001,.999997)];
      
 def get_mep_table ():
   return "iono.mep";
   
-tec0_parms = [];
-tec_parms = [];
-
 def _define_forest (ns):
   # create an Array object
   array = Meow.IfrArray(ns,ANTENNAS);
@@ -82,21 +74,12 @@ def _define_forest (ns):
       l,m,iflux,sx,sy,pa = srctuple;
       sources.append(Meow.GaussianSource(ns,src,src_dir,I=iflux,
                                          size=[sx*ARCMIN,sy*ARCMIN],phi=pa));
-    # create TEC parm for source and antenna
-    for p in array.stations():
-      shape = [polc_deg_time+1,1];
-      if i == 0:  # centre source
-        tecs(src,p) << Meq.Parm(10.,shape=shape,node_groups='Parm',
-                                constrain=[8.,12.],user_previous=True,table_name=get_mep_table());
-        tec_parms.append(tecs(src,p).name);
-        tec0_parms.append(tecs(src,p).name);
-      else:
-        tecs(src,p) << tecs('S0',p) + \
-           ( ns.dtec(src,p) << Meq.Parm(0.,shape=shape,node_groups='Parm',
-                                 constrain=[-2.,2.],user_previous=True,table_name=get_mep_table()));
-        tec_parms.append(ns.dtec(src,p).name);
-    
-  zetas = iono_model.compute_zeta_jones_from_tecs(ns,tecs,sources,array,observation);
+  # create ionospheric model
+  global parmlist;
+  tecs,parmlist = ionospheric_model(ns,sources,array,observation);
+  
+  # compute zeta-jones from model tecs
+  zetas = iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,sources,array,observation);
   
   for src in sources:
     # create corrupted source
@@ -107,7 +90,7 @@ def _define_forest (ns):
   # create set of nodes to compute visibilities...
   predict = allsky.visibilities(array,observation);
 
-  # ...and attach them to sinks
+  # create condeqs and spigots
   condeqs = [];
   for p,q in array.ifrs():
   
@@ -117,14 +100,17 @@ def _define_forest (ns):
     pred = predict(p,q);
     ce = ns.ce(p,q) << Meq.Condeq(spigot,pred);
     condeqs.append(ce);
-    residual = ns.residual(p,q) << spigot-pred;
+    if output_type == "residual":
+      residual = ns.residual(p,q) << spigot - pred;
   
-  # create dummy zeta as a 2x2 matrix (otherwise invert fails)
-  for p in array.stations():
-    z = zetas(sources[0].name,p);
-    ns.Z22(p) << Meq.Matrix22(z,0,0,z);
-  
-  Meow.Jones.apply_correction(ns.corrected,ns.residual,ns.Z22,array.ifrs());
+  # create corrected or residual data if needed
+  # use zeta-jones of center source
+  Z0 = zetas(sources[0].direction.name);
+  if output_type == "corrected":
+    what_to_correct = ns.spigot;
+  else:
+    what_to_correct = ns.residual;
+  Meow.Jones.apply_correction(ns.corrected,what_to_correct,Z0,array.ifrs());
 
   # create solver node
   ns.solver << Meq.Solver(children=condeqs);
@@ -141,25 +127,27 @@ def _define_forest (ns):
                                    
   
 
-def _tdl_job_1_solve_for_centre_TECs (mqs,parent):
-  Meow.Utils.run_solve_job(mqs,tec0_parms);
+def _tdl_job_1_calibrate_ionosphere (mqs,parent):
+  print parmlist;
+  Meow.Utils.run_solve_job(mqs,parmlist);
 
-def _tdl_job_1_solve_for_all_TECs (mqs,parent):
-  Meow.Utils.run_solve_job(mqs,tec_parms);
-  
-  
-def _tdl_job_2_make_image (mqs,parent):
-  imsize_pixels = 512;
-  imsize_seconds = grid_stepping*2.5*60;
-  cellsize = str(imsize_seconds/imsize_pixels)+'arcsec';
-  Meow.Utils.make_dirty_image(npix=imsize_pixels,cellsize=cellsize,channels=[32,1,1]);
+def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
+  os.system("rm -fr iono.mep");
+
+def _tdl_job_9_make_image (mqs,parent):
+  Meow.Utils.make_dirty_image(npix=1024,arcmin=grid_stepping*2.5,
+                              channels=[32,1,1]);
+                              
+                          
 
 
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("TECS",["tec:S0:1","tec:S0:9"],["tec:S1:1","solver"]),
-  Meow.Bookmarks.PlotPage("Z Jones",["Z:S0:1","Z:S0:9"],["Z:S8:1","Z:S8:9"])
+  Meow.Bookmarks.PlotPage("TECs",["tec:S1:1","tec:S1:9"],["tec:S8:1","tec:S8:9"]),
+  Meow.Bookmarks.PlotPage("TECs + Solver",["solver","tec:S1:9"],["tec:S8:1","tec:S8:9"]),
+  Meow.Bookmarks.PlotPage("TECs per station",["tec:1","tec:9"],["tec:27","solver"]),
+  Meow.Bookmarks.PlotPage("Z Jones",["Z:S1:1","Z:S1:9"],["Z:S8:1","Z:S8:9"])
 ]);
 
 

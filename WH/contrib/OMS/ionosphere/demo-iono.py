@@ -17,6 +17,7 @@ TDLCompileOption("sky_model","Sky model",
              sky_models.PerleyGates_ps]);
 TDLCompileOption("grid_stepping","Grid step, in minutes",[1,5,10,30,60,120,240]);
 TDLCompileOption("apply_iono","Apply ionospheric corruption",False);
+TDLCompileOption("noise_level","Add noise per sample, Jy",[0,1e-6,1e-5,1e-4,1e-3,1e-2]);
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -74,6 +75,13 @@ def _define_forest (ns):
 
   # create set of nodes to compute visibilities...
   predict = allsky.visibilities(array,observation);
+  
+  # add noise if needed
+  if noise_level != 0:
+    Noise = Meq.GaussNoise(stddev=noise_level); # "reusable" node definition
+    for p,q in array.ifrs():
+      ns.noisy_predict(p,q) << predict(p,q) + Meq.Matrix22(Noise,Noise,Noise,Noise);
+    predict = ns.noisy_predict;
 
   # ...and attach them to sinks
   for p,q in array.ifrs():
@@ -99,8 +107,8 @@ def _tdl_job_2_make_image (mqs,parent):
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("TECS",["tec:S0:1","tec:S0:9"],["tec:S1:1","solver"]),
-  Meow.Bookmarks.PlotPage("Z Jones",["Z:S0:1","Z:S0:9"],["Z:S8:1","Z:S8:9"])
+  Meow.Bookmarks.PlotPage("TECS",["tec:S1:1","tec:S1:9"],["tec:S8:1","tec:S8:9"]),
+  Meow.Bookmarks.PlotPage("Zeta-Jones",["Z:S1:1","Z:S1:9"],["Z:S8:1","Z:S8:9"])
 ]);
 
 
