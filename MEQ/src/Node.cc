@@ -197,7 +197,7 @@ bool Node::Cache::fromRecord (const Record &rec)
     clear();
     return false;
   }
-  FailWhen1(rec.size()<3 || rec.size()>4,"illegal cache record");
+// FailWhen1(rec.size()<2 || rec.size()>4,"illegal cache record");
   try
   {
     const Result *res = rec[FResult].as_po<Result>();

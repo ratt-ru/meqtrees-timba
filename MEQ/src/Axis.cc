@@ -120,16 +120,28 @@ void setAxisMap (const HIID names[],int num)
   setAxisMap(names,names+num);
 }
 
-const DMI::Vec & getAxisRecords ()
+DMI::Vec::Ref getAxisRecords ()
 {
   _init();
-  return *axis_recs;
+  return axis_recs.copy();
 }
 
-const DMI::Vec & getAxisIds ()
+DMI::Vec::Ref getAxisIds ()
 {
   _init();
-  return *axis_ids;
+  return axis_ids.copy();
+}
+
+void getAxisRecords (ObjRef &ref)
+{
+  _init();
+  ref = axis_recs;
+}
+
+void getAxisIds (ObjRef &ref)
+{
+  _init();
+  ref = axis_ids;
 }
 
 void setAxisRecords (const DMI::Vec & vec)

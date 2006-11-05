@@ -111,12 +111,16 @@ namespace Axis
   
   // returns a Vec containing MaxAxis axis ids (HIIDs). For undefined
   // axes, this is simply their ordinal number, e.g. "3", "4", etc.
-  const DMI::Vec & getAxisIds ();
+  DMI::Vec::Ref getAxisIds ();
+  // alternate version to attach it to a ref
+  void getAxisIds (ObjRef &ref);
   
   // returns a Vec containing MaxAxis axis Records. For each defined axis the
   // record contains, as a minimum, the field "Id" giving the axis id.  
   // Undefined axes are represented by empty records.
-  const DMI::Vec & getAxisRecords ();
+  DMI::Vec::Ref getAxisRecords ();
+  // alternate version to attach it to a ref
+  void getAxisRecords (ObjRef &ref);
   
     
 //=========== functions to set up the axis mappings

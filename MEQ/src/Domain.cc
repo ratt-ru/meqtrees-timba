@@ -73,7 +73,8 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
   if( !Axis::isDefaultMap() && !map_attached_ )
   {
     map_attached_ = true;
-    Record::addField(FAxisMap,&( Axis::getAxisIds() ),Record::PROTECT);
+    ObjRef ref;  Axis::getAxisIds(ref);
+    Record::addField(FAxisMap,ref,Record::PROTECT);
   }
 }
 
@@ -119,7 +120,8 @@ void Domain::validateContent (bool)
     if( !Axis::isDefaultMap() && !map_attached_ )
     {
       map_attached_ = true;
-      Record::addField(FAxisMap,&( Axis::getAxisIds() ),Record::PROTECT);
+      ObjRef ref;  Axis::getAxisIds(ref);
+      Record::addField(FAxisMap,ref,Record::PROTECT);
     }
   }
   catch( std::exception &err )
