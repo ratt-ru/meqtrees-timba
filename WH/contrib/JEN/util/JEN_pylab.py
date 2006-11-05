@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# file: ../PyApps/src/Trees/JEN_pylab.py
+# file: ../contrib/JEN/util/JEN_pylab.py
 
 # JEN_pylab.py
 #
@@ -12,6 +12,8 @@
 # History:
 #    - 14 aug 2006: creation, from pylab_transients.py
 #    - 28 aug 2006: plot_ellipse()
+#    - 29 oct 2006: copied from LOFAR/Timba/PyApps/src/Trees/JEN_pylab.py
+#    - 02 nov 2006: extended plot_xaxis and plot_yaxis
 #
 # Remarks:
 #
@@ -215,11 +217,31 @@ def set_window(ctrl):
     ww.setdefault('ymin',-1.0)
     ww.setdefault('ymax',1.0)
 
-    # Calculate the window coordinates by adding a small margin in all directions:
+    # Some helper values:
     yspan = ww['ymax'] - ww['ymin']
     xspan = ww['xmax'] - ww['xmin']
     if yspan<=0: yspan = 2.0
     if xspan<=0: xspan = 2.0
+ 
+    # Plot the x and y axes, if appropriate:
+    plot_xaxis = False
+    plot_yaxis = False
+    if ww['ymin']*ww['ymax']<=0: plot_xaxis = True
+    if ww['xmin']*ww['xmax']<=0: plot_yaxis = True
+    if abs(xspan)>10*abs(ww['xmin']):
+        plot_yaxis = True
+        ww['xmin'] = 0.0
+    elif abs(xspan)>10*abs(ww['xmax']):
+        plot_yaxis = True
+        ww['xmax'] = 0.0
+    if abs(yspan)>10*abs(ww['ymin']):
+        plot_xaxis = True
+        ww['ymin'] = 0.0
+    elif abs(yspan)>10*abs(ww['ymax']):
+        plot_xaxis = True
+        ww['ymax'] = 0.0
+
+    # Calculate the window coordinates by adding a small margin in all directions:
     ww['wxmin'] = ww['xmin'] - xspan*ctrl['lmargin']
     ww['wxmax'] = ww['xmax'] + xspan*ctrl['rmargin']
     ww['wymin'] = ww['ymin'] - yspan*ctrl['bmargin']
@@ -234,9 +256,9 @@ def set_window(ctrl):
         # Plot the x and y axes, if appropriate:
         mult = 1.0
         mult = 1.05
-        if ww['wxmin']*ww['wxmax']<=0:
+        if plot_xaxis:
             pylab.plot([mult*ww['xmin'], mult*ww['xmax']], [0.0,0.0], color='gray')
-        if ww['wymin']*ww['wymax']<=0:
+        if plot_yaxis:
             pylab.plot([0.0,0.0], [mult*ww['ymin'], mult*ww['ymax']], color='gray')
     # NB: Do this LAST (otherwise it makes its own margin....)
     pylab.axis([ww['wxmin'], ww['wxmax'], ww['wymin'], ww['wymax']])
@@ -330,6 +352,12 @@ def plot_line (ctrl, xx=[0,1], yy=[0,1], color='red',
     Do some bookkeeping, like updating the extreme values for the plot."""
     # if not isinstance(xx, (list,tuple,type(pylab.array(0)))): return False
     # if not isinstance(yy, (list,tuple,type(pylab.array(0)))): return False
+    if len(yy)==1:
+        xx = [min(xx),max(xx)]
+        yy = [yy[0],yy[0]]
+    elif len(xx)==1:
+        yy = [min(yy),max(yy)]
+        xx = [xx[0],xx[0]]
     adjust_window(ctrl, xx=xx, yy=yy)
     if style=='dashed': style='--'   
     if style=='solid': style='-'
@@ -416,6 +444,7 @@ def plot_marker (ctrl, xx=0.5, yy=0.5, color='blue',
     # OK, make the markers and their labels:
     pp = ctrl['plopos']                                  # convenience
     for i in range(len(xx)):
+        # pylab.semilogy([xx[i]], [yy[i]], marker=style, # needs some thought...
         pylab.plot([xx[i]], [yy[i]], marker=style,
                    markerfacecolor=color, markersize=size,
                    markeredgecolor=color, markeredgewidth=1)
@@ -445,7 +474,6 @@ def show_colors():
     print '  y: yellow'
     print '  k: black'
     print '  w: white'
-    print '  k: black'
     print '  k: black'
     print ' Style 2: standard color string, e.g. yellow, wheat, etc'
     print ' Style 3: grayscale intensity (between 0. and 1., inclusive)'

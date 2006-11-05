@@ -7,10 +7,19 @@ import pylab
 
 #-------------------------------------------------------------------------------
 
+def contam_mosaic(**ctrl):
+    funcname = JEN_pylab.on_entry(ctrl, 'contam_mosaic')
+    contam_error(subplot=321)
+    contam_error(subplot=322)
+    return JEN_pylab.on_exit(ctrl, mosaic=True)
+
+
+#-------------------------------------------------------------------------------
+
 def contam_error(**ctrl):
     """Plot the parm errors and final residuals caused by peeling contamination"""
     funcname = JEN_pylab.on_entry(ctrl, 'contam_error',
-                                  # savefile='transients_sine_plot',
+                                  save=True, savefile='contam_error',
                                   xlabel='peeling source index',
                                   ylabel='log(parm error) or log(final resdidual)(+)',
                                   title='Errors caused by peeling contamination')
