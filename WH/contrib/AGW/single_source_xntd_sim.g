@@ -103,7 +103,7 @@ mkcomps:=function(clname='model.cl',flux,dRA,dDEC)
         print 'source ra dec ', i, ' ', rai, ' ', deci
         print 'source ra dec ', i, ' ', ra_demo, ' ', dec_demo
 #        cl.addcomponent(flux=[flux[i],0,0,0], ra=rai, dec=deci,freq=Freq);
-        cl.addcomponent(flux=[1.0,0,0,0], ra='0h7m0.0', dec='-44d00m00s',freq=Freq);
+        cl.addcomponent(flux=[1.0,0,0,0], ra='0h7m0.0', dec='-42d00m00s',freq=Freq);
         cl.setfreq(i, 1400, 'MHz');
     }
     cl.setspectrum(1:1, 'spectral index', -0.8)
@@ -130,7 +130,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     
     mysim.setspwindow(spwname='SKA', freq=freq,
 		      deltafreq='50.0MHz', freqresolution='50.0MHz', 
-		      nchannels=2, stokes='RR RL LR LL');
+		      nchannels=1, stokes='RR RL LR LL');
     
     note('Simulating scaled ATCA');
     posatca := dm.observatory('ATCA');
@@ -163,10 +163,14 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     mysim.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
     mysim.setauto(autocorrwt=0.0);
 
+    starttime:=-14400.0;
+    scanlength:=28800.0
+# over-ride for shorter observation
     starttime:=-2880.0;
     scanlength:=5760.0
 
     scan:=1;
+#   while(starttime<14400) {
     while(starttime<2880) {
       mysim.observe('test_image', 'SKA',
 		    starttime=spaste(starttime, 's'),
