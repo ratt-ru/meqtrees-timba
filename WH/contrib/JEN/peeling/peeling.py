@@ -22,9 +22,11 @@ TDLCompileMenu("Source distribution",
   TDLOption('source_pattern',"source pattern",['cps','ps1','ps2','ps3','ps4','ps5','ps9']),
 );
 TDLCompileOption('flux_factor',"Successive flux mult factor",[1.0,0.5,0.4,0.3,0.2,0.1]);
+TDLCompileOption('condeq_group',"nr of ifrs in condeq-group",[1,2,3,4]);
 TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
+TDLCompileOption('num_iter',"max nr of solver iterations",[1,2,3,5,10,20,None]);
 TDLCompileOption('cache_policy',"Node result caching policy",[0,100]);
 
 # Alternative: see tdl_job below
@@ -161,6 +163,7 @@ def _define_forest (ns):
 
   for isrc in range(len(LM)):
     src = 'S'+str(isrc);                           # source label
+    print src
     
     predict = predicted[isrc].visibilities(array,observation);
     corrupt = corrupted[isrc].visibilities(array,observation);
@@ -169,19 +172,39 @@ def _define_forest (ns):
     if insert_solver:
       condeqs = []
       condeqs_XX = []
-      for ifr in array.ifrs():
-        condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
-                                                    predict(*ifr));
-        condeqs.append(condeq)
-        condeqs_XX.append(ns.condeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
+      if condeq_group==1:
+        # Direct comparison of measured with predicted
+        for ifr in array.ifrs():
+          condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
+                                                      predict(*ifr));
+          condeqs.append(condeq)
+          condeqs_XX.append(ns.condeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
+        bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
+
+      else:
+        # Comparison of groups of multiplied ifrs (contamination reduction)
+        ifrs = array.ifrs()      
+        for i in range(len(ifrs)-1-condeq_group):
+          meas = []
+          pred = []
+          for j in range(i,i+condeq_group):
+            print '** i=',i,': ifrs[',j,'] =',ifrs[j]
+            meas.append(cohset(*ifrs[j]))
+            pred.append(predict(*ifrs[j]))
+          condeq = ns.condeq(src)(i) << Meq.Condeq(ns.meas(src)(i) << Meq.Multiply(children=meas),
+                                                   ns.pred(src)(i) << Meq.Multiply(children=pred));
+          condeqs.append(condeq)
+          condeqs_XX.append(ns.condeq_XX(src)(i) << Meq.Selector(condeq, index=0))
+        bm_condeq.append(ns.condeq(src)(2))        # append to bookmark list
+
+          
       solver = ns.solver(src) << Meq.Solver(children=condeqs,
                                             solvable=solvable[src],
                                             parm_group=hiid(src),
                                             # child_poll_order=cpo,
-                                            num_iter=3);
+                                            num_iter=num_iter);
       cc_reqseq.append(solver)                     # append to reqseq list
       bm_solver.append(solver)                     # append to bookmark list
-      bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
       if True:
         dc = MG_JEN_dataCollect.dcoll (ns, condeqs_XX, 
                                        scope=src, tag='condeq_XX',
