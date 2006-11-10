@@ -74,8 +74,8 @@ def apply_correction (vis,vis0,jones,ifr_list):
   for (sta1,sta2) in ifr_list:
     # collect list of per-source station-qualified Jones terms
     J1i = jones(sta1)('inv') ** Meq.MatrixInvert22(jones(sta1));
-    J2c = jones(sta2)('conj') ** Meq.ConjTranspose(jones(sta2));
-    J2ci = J2c('inv') ** Meq.MatrixInvert22(J2c);
+    J2i = jones(sta2)('inv') ** Meq.MatrixInvert22(jones(sta2));
+    J2ci = J2i('conj') ** Meq.ConjTranspose(J2i);
     # create multiplication node
     vis(sta1,sta2) << Meq.MatrixMultiply(J1i,vis0(sta1,sta2),J2ci);
   return vis;
