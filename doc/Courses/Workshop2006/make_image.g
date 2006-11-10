@@ -32,9 +32,11 @@ for( a in argv )
   else if( a =~ s/stokes=// )
     stokes := a;
   else if( a =~ s/npix=// )
-    npix := a;
+    npix := as_integer(a);
   else if( a =~ s/cell=// )
     cell := a;
+  else if( a =~ s/msselect=// )
+    select := a;
 }
 print "MS name is ",msname; 
 

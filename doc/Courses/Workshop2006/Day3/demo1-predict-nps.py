@@ -34,8 +34,8 @@ def _define_forest (ns):
     ns.xyz(p) << Meq.Composer(ns.x(p)<<0,ns.y(p)<<0,ns.z(p)<<0);
     ns.uvw(p) << Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p));
   
-  # define source brightness B0 (unprojected, same for all sources)
-  ns.B0 << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
+  # define source brightness B (same for all sources)
+  ns.B << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
   
   # source l,m,n-1 vectors
   for src in SOURCES:
@@ -44,8 +44,6 @@ def _define_forest (ns):
     m = m*ARCMIN;
     n = math.sqrt(1-l*l-m*m);
     ns.lmn_minus1(src) << Meq.Composer(l,m,n-1);
-    # and the projected brightness...
-    ns.B(src) << ns.B0 / n;
   
   # define K-jones matrices
   for p in ANTENNAS:
@@ -57,7 +55,7 @@ def _define_forest (ns):
   for p,q in IFRS:
     # make per-source predicted visibilities
     for src in SOURCES:
-      ns.predict(p,q,src) << Meq.MatrixMultiply(ns.K(p,src),ns.B(src),ns.Kt(q,src));
+      ns.predict(p,q,src) << Meq.MatrixMultiply(ns.K(p,src),ns.B,ns.Kt(q,src));
     # and sum them up via an Add node
     predict = ns.predict(p,q) << \
       Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);

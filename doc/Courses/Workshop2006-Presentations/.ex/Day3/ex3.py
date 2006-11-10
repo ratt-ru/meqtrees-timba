@@ -77,7 +77,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   
   
 def _tdl_job_2_make_image (mqs,parent):
-  Meow.Utils.make_dirty_image(npix=300,cellsize='2arcsec',channels=[32,1,1]);
+  Meow.Utils.make_dirty_image(npix=1200,cellsize='.5arcsec',channels=[32,1,1]);
 
 
 
