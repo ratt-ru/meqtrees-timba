@@ -9,6 +9,7 @@ Freq         := '100MHz';
 DFreq        := '10kHz';
 Diameter     := 250.0;
 holderdir    := './';
+Integration  := '120s';
 
 mkcomplist:=function(N,ref flux,ref ra,ref dec)
 {
@@ -187,7 +188,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
 		   sourcedirection=dir0)
 
     ref_time := dm.epoch('iat', '2001/01/01');
-    mysim.settimes(integrationtime='300s', usehourangle=T, referencetime=ref_time);
+    mysim.settimes(integrationtime=Integration, usehourangle=T, referencetime=ref_time);
 
     mysim.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
     mysim.setauto(autocorrwt=0.0);

@@ -6,7 +6,7 @@ import iono_geometry
 TDLCompileOption('polc_deg_time',"Polc degree, in time",[0,1,2,3,4,5]);
 
 TDLCompileMenu('MIM options',
-  TDLOption('mim_polc_degree',"Polc degree in X/Y",[0,1,2,3,4])
+  TDLOption('mim_polc_degree',"Polc degree in X/Y",[0,1,2,3,4,5,6,7])
 );
   
 

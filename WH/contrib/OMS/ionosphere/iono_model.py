@@ -15,16 +15,21 @@ to get the TEC value for that source and station.
 def sine_tid_model_1D (ns,piercings,za_cos,source_list,array,observation):
   """This implements a 1D sine wave moving over the array""";
   ns.delta_time = Meq.Time() - (ns.time0<<0);
-  ns.tid_ampl << tid_ampl_0*TEC0 + (tid_ampl_1hr-tid_ampl_0)*TEC0/3600.*ns.delta_time;
-  tid_rate = tid_speed_kmh/(2.*tid_size_km);   # number of periods per hour
+  ns.tid_x_ampl << tid_ampl_0*TEC0 + (tid_x_ampl_1hr-tid_ampl_0)*TEC0/3600.*ns.delta_time;
+  ns.tid_y_ampl << tid_ampl_0*TEC0 + (tid_y_ampl_1hr-tid_ampl_0)*TEC0/3600.*ns.delta_time;
+  tid_x_rate = tid_x_speed_kmh/(2.*tid_x_size_km);   # number of periods per hour
+  tid_y_rate = tid_y_speed_kmh/(2.*tid_y_size_km);   # number of periods per hour
   tecs = ns.tec;
   for src in source_list:
     for p in array.stations():
       px = ns.px(src.name,p) << Meq.Selector(piercings(src.name,p),index=0); 
+      py = ns.py(src.name,p) << Meq.Selector(piercings(src.name,p),index=1); 
       tecs(src.name,p) << (TEC0 +   \
-            ns.tid_ampl*Meq.Sin(2*math.pi*(px/(2*1000*tid_size_km) + \
-                                ns.delta_time*tid_rate/3600.))) / \
-            za_cos(src.name,p); 
+            ns.tid_x_ampl*Meq.Sin(2*math.pi*(px/(2*1000*tid_x_size_km) + \
+                                  ns.delta_time*tid_x_rate/3600.))     + \
+            ns.tid_y_ampl*Meq.Cos(2*math.pi*(py/(2*1000*tid_y_size_km) + \
+                                  ns.delta_time*tid_y_rate/3600.))       \
+            ) / za_cos(src.name,p); 
       
   return tecs;
   
@@ -60,9 +65,12 @@ TDLCompileOption('TEC0',"Base TEC value",[0,5,10]);
 
 TDLCompileMenu('Sine TID model options',
   TDLOption('tid_ampl_0',"Relative TID amplitude at t=0",[0,0.01,0.05,0.1]),
-  TDLOption('tid_ampl_1hr',"Relative TID amplitude at t=1hr",[0.002,0.01,0.05,0.1]),
-  TDLOption('tid_size_km',"TID size, in km",[50,100,200,1000]),
-  TDLOption('tid_speed_kmh',"TID speed, in km/h",[50,100,200,300,500]),
+  TDLOption('tid_x_ampl_1hr',"Relative TID-X amplitude at t=1hr",[0.002,0.01,0.05,0.1]),
+  TDLOption('tid_x_size_km',"TID-X size, in km",[25,50,100,200,1000]),
+  TDLOption('tid_x_speed_kmh',"TID-X speed, in km/h",[25,50,100,200,300,500]),
+  TDLOption('tid_y_ampl_1hr',"Relative TID-Y amplitude at t=1hr",[0.002,0.01,0.05,0.1]),
+  TDLOption('tid_y_size_km',"TID-Y size, in km",[25,50,100,200,1000]),
+  TDLOption('tid_y_speed_kmh',"TID-Y speed, in km/h",[25,50,100,200,300,500]),
 );
 TDLCompileMenu('Wedge model options',
   TDLOption('wedge_min','Min delta-TEC over 100km',[0,0.001,0.1,1,2,5]),
