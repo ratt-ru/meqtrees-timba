@@ -296,6 +296,10 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
 def NodeType ():
   return _NodeStub;
   
+def is_node (x):
+  return isinstance(x,_NodeStub);
+  
+  
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
   a name. To make a fully-fledged node, a stub must be bound with a NodeDef 
@@ -307,16 +311,22 @@ class _NodeStub (object):
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
             "nodeindex","_initrec","_caller","_deftb","_debuginfo" );
-  # The Parents class is used to manage a weakly-reffed dictionary of the node's parents
-  # We redefine it as a class to implement __copy__ and __depcopy__ (which otherwise
-  # crashes and burns on weakrefs)
   class Parents (weakref.WeakValueDictionary):
+    """The Parents class is used to manage a weakly-reffed dictionary of the 
+    node's parents. We only redefine it as a class to implement __copy__ 
+    and __depcopy__ (which otherwise crashes and burns on weakrefs)
+    """;
     def __copy__ (self):
       return self.__class__(self);
     def __deepcopy__ (self,memo):
       return self.__class__(self);
   
   def __init__ (self,fqname,basename,scope,*quals,**kwquals):
+    """Creates a NodeStub. This is usually called as a result of
+    ns.name(...). fqname is the fully-qualified node name. Basename
+    is the unqualified name. Scope is the parent scope object.
+    Quals and kwquals are the qualifiers that were applied.
+    """;
     _dprint(5,'creating node stub',fqname,basename,scope._name,quals,kwquals);
     self.name = fqname;
     self.scope = scope;
@@ -350,7 +360,6 @@ class _NodeStub (object):
     if self.initialized():
       return self;
     return self << arg;
-  
   def __lshift__ (self,arg):
     """The << operator binds a node with a definition""";
     try:
@@ -675,7 +684,80 @@ class _NodeRepository (dict):
       
   def get_errors (self):
     return self._errors;
-      
+    
+    
+  def _make_OR_conditional (arg,argname):
+    """helper function to make a OR-conditional from an argument.
+    The argument can be either boolean false (corresponding to an 
+    always-true conditional), a string, or a sequence of strings giving
+    a regex. Returns a callable conditional
+    """;
+    if not arg:
+      return lambda x:True;
+    elif isinstance(arg,str):
+      return re.compile(arg).match;
+    elif isinstance(arg,(list,tuple)):
+      for x in arg:
+        if not isinstance(x,str):
+          raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
+      return re.compile('('+')|('.join(arg)+')').match;
+    else:
+      raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
+  _make_OR_conditional = staticmethod(_make_OR_conditional);
+    
+  def find (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
+    """Searches repository for nodes matching the specified criteria.
+    If subtree is None, searches entire repository, else seraches
+    the subtree rooted at the given node.
+    name and class_name are strings.
+    tags may be a string or a list of strings.
+    All strings may contain wildcards, and will be interpreted as regexes.
+    If return_names is true, returns node names, else returns node objects.
+    """;
+    # make OR-conditionals for names and classnames
+    name_conditional = self._make_OR_conditional(name,"find: 'name'");
+    class_conditional = self._make_OR_conditional(class_name,"find: 'class_name'");
+    # make a list of tag conditonals
+    tag_conds = [];
+    if tags:
+      if isinstance(tags,str):
+        tags = [ tags ];
+      for tag in tags:
+        if not isinstance(tag,str):
+          raise TypeError,"find: 'tags' argument must be a a string, or a list of strings, or None";
+        tag_conds.append(re.compile(tag).match);
+    # create search function
+    def search_condition (node):
+      if name_conditional(node.name) and class_conditional(node.classname):
+        # else must have a matching tag for every tag in list
+        node_tags = node._initrec.get('tags',[]);
+        for cond in tag_conds:
+          for t in node_tags:
+            if cond(t):
+              break;  # break and go to next condition
+          # no node tag found for this conditon
+          else:
+            return False;
+    # if no subtree specified, search whole repository
+    if subtree is None:
+      if return_names:
+        return [ name for name,node in self.iteritems() if search_condition(node) ];
+      else:
+        return [ node for name,node in self.iteritems() if search_condition(node) ];
+    # else search subtree rooted at 'subtree'
+    else:
+      if not is_node(subtree):
+        raise TypeError,"find: 'subtree' argument must be a node, or None";
+      # define function recurse into children
+      def recursive_find (result,node):
+        if search_condition(node):
+          result.append(node);
+        if node.children:
+          for child in node.children:
+            recursive_find(result,child);
+        return result;
+      return recursive_find([],subtree);
+  
   def resolve (self,cleanup_orphans):
     """resolves contents of repository. 
     cleanup_orphans: If True, then all orphan nodes are deleted. 
@@ -869,6 +951,9 @@ class NodeScope (object):
     # add to map of constants 
     self._constants[value] = node;
     return node;
+    
+  def Find (self,*args,**kw):
+    return self._repository.find(*args,**kw);    
     
   def Repository (self):
     """Returns the repository""";
