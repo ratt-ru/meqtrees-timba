@@ -12,11 +12,11 @@ to get the TEC value for that source and station.
 """;
 
 
-def sine_tid_model_1D (ns,piercings,za_cos,source_list,array,observation):
+def sine_tid_model (ns,piercings,za_cos,source_list,array,observation):
   """This implements a 1D sine wave moving over the array""";
   ns.delta_time = Meq.Time() - (ns.time0<<0);
-  ns.tid_x_ampl << tid_ampl_0*TEC0 + (tid_x_ampl_1hr-tid_ampl_0)*TEC0/3600.*ns.delta_time;
-  ns.tid_y_ampl << tid_ampl_0*TEC0 + (tid_y_ampl_1hr-tid_ampl_0)*TEC0/3600.*ns.delta_time;
+  ns.tid_x_ampl << tid_x_ampl_0*TEC0 + (tid_x_ampl_1hr-tid_x_ampl_0)*TEC0/3600.*ns.delta_time;
+  ns.tid_y_ampl << tid_y_ampl_0*TEC0 + (tid_y_ampl_1hr-tid_y_ampl_0)*TEC0/3600.*ns.delta_time;
   tid_x_rate = tid_x_speed_kmh/(2.*tid_x_size_km);   # number of periods per hour
   tid_y_rate = tid_y_speed_kmh/(2.*tid_y_size_km);   # number of periods per hour
   tecs = ns.tec;
@@ -54,21 +54,22 @@ def compute_zeta_jones (ns,source_list,array,observation):
   piercings = iono_geometry.compute_piercings(ns,source_list,array,observation);
   za_cos = iono_geometry.compute_za_cosines(ns,source_list,array,observation);
   tecs = iono_model(ns,piercings,za_cos,source_list,array,observation);
-  zeta = iono_geometry.                   compute_zeta_jones_from_tecs(ns,tecs,source_list,array,observation);
+  zeta = iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,source_list,array,observation);
   return zeta;
 
 TDLCompileOption('iono_model',"Ionospheric model",
-  [sine_tid_model_1D,wedge_model]
+  [sine_tid_model,wedge_model]
 );
 
 TDLCompileOption('TEC0',"Base TEC value",[0,5,10]);
 
 TDLCompileMenu('Sine TID model options',
-  TDLOption('tid_ampl_0',"Relative TID amplitude at t=0",[0,0.01,0.05,0.1]),
-  TDLOption('tid_x_ampl_1hr',"Relative TID-X amplitude at t=1hr",[0.002,0.01,0.05,0.1]),
+  TDLOption('tid_x_ampl_0',"Relative TID-X amplitude at t=0",[0,0.01,0.02,0.05,0.1]),
+  TDLOption('tid_x_ampl_1hr',"Relative TID-X amplitude at t=1hr",[0,0.002,0.01,0.02,0.05,0.1]),
   TDLOption('tid_x_size_km',"TID-X size, in km",[25,50,100,200,1000]),
   TDLOption('tid_x_speed_kmh',"TID-X speed, in km/h",[25,50,100,200,300,500]),
-  TDLOption('tid_y_ampl_1hr',"Relative TID-Y amplitude at t=1hr",[0.002,0.01,0.05,0.1]),
+  TDLOption('tid_y_ampl_0',"Relative TID-Y amplitude at t=0",[0,0.01,0.02,0.05,0.1]),
+  TDLOption('tid_y_ampl_1hr',"Relative TID-Y amplitude at t=1hr",[0,0.002,0.01,0.02,0.05,0.1]),
   TDLOption('tid_y_size_km',"TID-Y size, in km",[25,50,100,200,1000]),
   TDLOption('tid_y_speed_kmh',"TID-Y speed, in km/h",[25,50,100,200,300,500]),
 );

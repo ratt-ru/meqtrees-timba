@@ -69,7 +69,8 @@ def mim_poly (ns,source_list,array,observation,poly_deg=3,tec0=10.):
       mc(degx,degy) << tec0;
     else:
       mc(degx,degy) << Meq.Parm(0.,shape=polc_shape,node_groups='Parm',
-                                user_previous=True,table_name='iono.mep');
+                                user_previous=True,table_name='iono.mep',
+                                tags=("mim","solvable"));
     parmlist.append(mc(degx,degy).name);
   # make TEC subtrees
   tecs = ns.tec;

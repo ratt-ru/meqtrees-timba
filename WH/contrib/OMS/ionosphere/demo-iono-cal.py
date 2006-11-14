@@ -124,6 +124,14 @@ def _define_forest (ns):
                                  output_col='DATA',
                                  children=reqseq
                             );
+                            
+  # do some searches
+  
+  print "Zs: ",ns.Find(name="Z:.*");
+  print "Zs by name: ",ns.Find(name="Z:.*",return_names=True);
+  print "Parms: ",ns.Find(class_name="MeqParm",return_names=True);
+  print "Sinks or Spigots: ",ns.Find(class_name=["Sink","Spigot"],return_names=True);
+  print "MIM solvables: ",ns.Find(tags=("mim","solvable"),return_names=True);
                                    
   
 

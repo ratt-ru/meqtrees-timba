@@ -97,8 +97,9 @@ def _tdl_job_2_make_image (mqs,parent):
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("TECS",["tec:S0:1","tec:S0:9"],["tec:S1:1","solver"]),
-  Meow.Bookmarks.PlotPage("Z Jones",["Z:S0:1","Z:S0:9"],["Z:S8:1","Z:S8:9"])
+  Meow.Bookmarks.PlotPage("TECS",["tec:S0+0+0:1","tec:S0+0+0:9"],
+                                 ["tec:S0+1+1:1","tec:S0+1+1:9"]),
+  Meow.Bookmarks.PlotPage("Z Jones",["Z:S0+0+0:1","Z:S0+0+0:9"],["Z:S0+1+1:1","Z:S1+1+1:9"])
 ]);
 
 
