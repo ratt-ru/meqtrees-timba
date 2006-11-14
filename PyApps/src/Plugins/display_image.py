@@ -225,8 +225,7 @@ class QwtImageDisplay(QwtPlot):
         self.chi_zeros = None
         self.iteration_number = None
         self.scalar_display = False
-        self.ampl_phase = False
-        self.complex_switch_set = False
+        self.ampl_phase = None
         self.added_metrics_menu = False
         self.log_switch_set = False
         self._active_perturb = None
@@ -794,7 +793,6 @@ class QwtImageDisplay(QwtPlot):
          self._menu = None
 
       self.log_switch_set = False
-      self.complex_switch_set = False
       if self._menu is None:
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
@@ -2230,11 +2228,17 @@ class QwtImageDisplay(QwtPlot):
         self.complex_image = plot_array
 
 # add possibility to switch between real/imag and ampl/phase
-      if self.complex_type and not self.complex_switch_set:
+      if self.complex_type:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
+        if self.ampl_phase is None:
+          self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
+          self.ampl_phase = False
+        else:
+          if self.ampl_phase:
+            self._menu.changeItem(toggle_id, 'Show Data as Real and Imaginary')
+          else:
+            self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
         self._menu.setItemVisible(toggle_id, True)
-        self.complex_switch_set = True
 
 # test if we have a 2-D array
       if self.is_vector == False and not self.log_switch_set:
