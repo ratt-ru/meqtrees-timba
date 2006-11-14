@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-#% $Id: MG_AGW_project6.py 3929 2006-09-01 20:17:51Z twillis $ 
-
 #
 # Copyright (C) 2006
 # ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -26,21 +24,16 @@
 script_name = 'MG_AGW_project6.py'
 
 # Short description:
-# We read in a 3 x 3 grid of sources, and essentially observe them
-# with a single 'phased up' beam located at the BEAM_LM position
+# Tests MeqTrees computation of source phases
 
 
 # History:
-# - 24 Oct 2006: creation:
+# - 4 Nov 2006: creation:
 
 #=======================================================================
 # Import of Python / TDL modules:
 
 import math
-import random
-
-from string import split, strip
-from numarray import *
 
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
@@ -57,11 +50,11 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 # source flux (same for all sources)
 I = 1; Q = .0; U = .0; V = .0;
 
-BEAM_LM = [(0.0,0.052359879)]  # offset of +3 deg in M
+BEAM_LM = [(0.0,0.0523598283761181)]  # offset of +3 deg in M
 
-# we'll put the sources on a grid (positions relative to beam centre in radians)
+# we'll put the sources on a grid (positions relative to beam centre)
 LM = [(-0.0087266463,-0.0087266463),(-0.0087266463,0),(-0.0087266463,0.0087266463),
-      ( 0,-0.0087266463),( 0.0,0.0),( 0,0.0087266463),
+      ( 0,-0.0087266463),( 0,0),( 0,0.0087266463),
       ( 0.0087266463,-0.0087266463),( 0.0087266463,0),( 0.0087266463,0.0087266463)];
 SOURCES = range(len(LM));       # 0...N-1
 
@@ -81,11 +74,12 @@ def _define_forest(ns):
   ns.B0 << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
 
   l_beam,m_beam = BEAM_LM[0]
+
   # source l,m,n-1 vectors
   for src in SOURCES:
-    l_off,m_off = LM[src];
-    l = l_beam + l_off
-    m = m_beam + m_off
+    l_src,m_src = LM[src];
+    l = l_beam + l_src
+    m = m_beam + m_src
     n = math.sqrt(1-l*l-m*m);
     ns.lmn_minus1(src) << Meq.Composer(l,m,n-1);
     ns.coherency(src) << ns.B0 / n;
