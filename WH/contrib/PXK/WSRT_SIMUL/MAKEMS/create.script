@@ -1,5 +1,5 @@
 #!/bin/sh
-# 2006.10.03
+# 2006.11.03
 
 # channels have frequencies [StartFreq + (i+0.5)*StepFreq] for i=0,1,2,...
 # StepFreq should be relatively small compared to StartFreq, else
@@ -16,7 +16,7 @@ FILE='create.script.'$NAME'.cfg'
 rm -rf makems.$NAME.cfg
 rm -rf $FILE
 echo StartFreq=1400e6                 >> $FILE # [Hz] in range of telescope
-echo StepFreq=1e6                     >> $FILE
+echo StepFreq=2e6                     >> $FILE
 echo StartTime=2006/02/18/17:55:59.5  >> $FILE
 echo StepTime=60                      >> $FILE # StepTime*NTimes = t_obs [sec]
 echo RightAscension=10:17:14.21       >> $FILE
@@ -28,8 +28,8 @@ echo NBands=1                         >> $FILE
 echo "#TileSizeFreq=16"               >> $FILE
 echo "#TileSizeRest=10"               >> $FILE
 echo WriteAutoCorr=T                  >> $FILE
-echo -n AntennaTableName=$NAME        >> $FILE
-echo _ANTENNA                         >> $FILE
+echo -n ANTENNA_                      >> $FILE
+echo AntennaTableName=$NAME           >> $FILE
 echo MSName=$NAME.MS                  >> $FILE
 echo MSDesPath=.                      >> $FILE
 
