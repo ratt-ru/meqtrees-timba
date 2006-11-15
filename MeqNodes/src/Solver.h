@@ -35,6 +35,7 @@
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
 #pragma aid Begin End Deriv Balanced Equations Ready String 
+#pragma aid Debug File
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -69,6 +70,9 @@
 //  which returns such a record, given a  vector of solvable parm names. 
 //  It is also possible to create more elaborate command records from scratch,
 //  if more sophisticated manipulation of state is required.
+//  field: debug_file='filename'
+//  Write condeq residuals after each call to getResult()
+//  If not specified, not written.
 //defrec end
 
 
@@ -452,6 +456,11 @@ private:
   
   // exceptions raised by workers are accumulated here
   DMI::ExceptionList wt_exceptions_; 
+
+
+  //for writing debug output
+  std::string debug_filename_;
+  bool write_debug_;
   
 };
 

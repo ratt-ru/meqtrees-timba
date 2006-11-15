@@ -42,6 +42,10 @@
 #endif
 #include <iostream>
 
+
+#include <fstream>
+#include <complex>
+
 using namespace std;
 
 using namespace casa;
@@ -117,6 +121,7 @@ const HIID FNumSpids     = AidNum|AidSpids;
 const HIID FNumConverged = AidNum|AidConverged;
 
 
+const HIID  FDebugFile       = AidDebug|AidFile;
 
 #if LOFAR_DEBUG
 const int DefaultDebugLevel = 0;
@@ -150,6 +155,8 @@ Solver::Solver()
   // enable multithreading by default if available
   enableMultiThreadedPolling();
   mt_solve_ = true;
+
+  write_debug_= false;
 }
 
 //##ModelId=400E53550261
@@ -782,6 +789,13 @@ int Solver::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &request, bool newreq)
 {
+
+  //SBY open file
+  ofstream logfile_;
+  if (write_debug_) {
+   logfile_.open(debug_filename_.c_str(), ios::out | ios::app);
+  }
+ 
   iter_depmask_ = symdeps().getMask(iter_symdeps_);
   cells_shape_ = request.cells().shape();
   // Use single derivative by default, or a higher mode if specified in request
@@ -1046,6 +1060,37 @@ int Solver::getResult (Result::Ref &resref,
     postEvent(FSolverEnd,evrec);
   if( forest().abortFlag() )
     return 0;
+  ///////////////////////////////////////
+  //SBY: loop over child results to save them
+  if (write_debug_) {
+  int rescode;
+  Result::Ref child_res;
+  // wait for child results until all have been polled (await will return -1 when this is the case)
+  int numc=children().numChildren();
+  logfile_<<numc;
+  for(int ich=0; ich<numc; ich++) {
+   children().getChild(ich).execute(child_res,reqref);
+  for( int ivs = 0; ivs < child_res->numVellSets(); ivs++ )
+  {
+        const VellSet &vs = child_res->vellSet(ivs);
+        // ignore failed or null vellsets
+        if( vs.isFail() || vs.isNull() ) {
+          logfile_<<" -1";
+          continue;
+        }
+        //SBY: write vs to file
+        const Vells &invl=vs.getValue();
+        const Vells &ivl=Meq::VellsMath::mean(Meq::VellsMath::sqr(Meq::VellsMath::abs(invl)));
+        double *indata=const_cast<double*>(ivl.realStorage());
+        blitz::Array<double,2> A(indata,blitz::shape(ivl.extent(0),ivl.extent(1)),blitz::neverDeleteData);
+        //reshape to a column vector
+        logfile_<<" "<<A(0,0);
+
+  }
+  }
+   logfile_<<std::endl;
+  }
+  //////////////////////////////////////
   // send up one final update if needed
   if( do_last_update_ && (cur_iter_ == max_num_iter_ || converged))
   {
@@ -1124,6 +1169,10 @@ int Solver::getResult (Result::Ref &resref,
     }
   }
   
+  //SBY close file
+  if (write_debug_)
+    logfile_.close();
+
   // insert solver result into result object and into state
   wstate()[FSolverResult].replace() = solveResult;
   resref()[FSolverResult] = solveResult;
@@ -1354,6 +1403,20 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
     startWorkerThreads();
   else if( !mt_solve_ )
     stopWorkerThreads();
+  //// SBY open file for writing, and write all names of children
+  if (newst[FDebugFile].get(debug_filename_,initializing)) {
+    write_debug_=true;
+    ofstream logfile_;
+    logfile_.open(debug_filename_.c_str(), ios::out | ios::app);
+    //write names of condeqs to file first
+    int numc=children().numChildren();
+    logfile_<<numc<<" ";
+    for(int ich=0; ich<numc; ich++) {
+     logfile_<<" "<<children().getChild(ich).name();
+    }
+    logfile_<<std::endl;
+  }
+  ////////////////////////////////////
 }
 
 void Solver::startWorkerThreads ()
