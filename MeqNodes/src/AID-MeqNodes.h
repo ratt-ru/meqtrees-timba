@@ -118,6 +118,11 @@ const int AidCutoff_int = -1648;
 const DMI::AtomicID AidData(-1103);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 const int AidData_int = -1103;
 #endif
+#ifndef _defined_id_AidDebug
+#define _defined_id_AidDebug 1
+const DMI::AtomicID AidDebug(-1482);              // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16
+const int AidDebug_int = -1482;
+#endif
 #ifndef _defined_id_AidDec
 #define _defined_id_AidDec 1
 const DMI::AtomicID AidDec(-1446);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
@@ -162,6 +167,11 @@ const int AidError_int = -1056;
 #define _defined_id_AidFactor 1
 const DMI::AtomicID AidFactor(-1593);             // from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 const int AidFactor_int = -1593;
+#endif
+#ifndef _defined_id_AidFile
+#define _defined_id_AidFile 1
+const DMI::AtomicID AidFile(-1224);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+const int AidFile_int = -1224;
 #endif
 #ifndef _defined_id_AidFilename
 #define _defined_id_AidFilename 1
