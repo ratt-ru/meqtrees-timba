@@ -131,11 +131,12 @@ def _define_forest (ns):
   print "Zs: ",ns.Search(name="Z:.*");
   print "Zs by name: ",ns.Search(return_names=True,name="Z:.*");
   print "Parms: ",ns.Search(return_names=True,class_name="MeqParm");
-  print "Sinks or Spigots: ",ns.Search(return_names=True,class_name=["MeqSink","MeqSpigot"]);
+  print "Sinks or Spigots: ",ns.Search(return_names=True,class_name="MeqSink|MeqSpigot");
   print "MIM nodes: ",ns.Search(return_names=True,tags="mim");
   print "MIM solvables: ",ns.Search(return_names=True,tags=("mim","solvable"));
   print "Z family: ",[node.name for node in zetas.family()];
   print "MIM solvables from Z: ",zetas.search(return_names=True,tags=("mim","solvable"));
+  print "This should be empty: ",zetas.search(no_family=True,return_names=True,tags=("mim","solvable"));
                                    
   
 

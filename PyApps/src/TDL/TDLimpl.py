@@ -189,6 +189,13 @@ class _NodeDef (object):
       if isinstance(stepchildren,dict):
         raise ChildError,"'stepchildren' must be a list or a single node";
       self.stepchildren = self.ChildList(stepchildren);
+      # make sure tags is a list or tuple
+      tags = kw.get('tags',None);
+      if tags is not None:
+        if isinstance(tags,str):
+          kw['tags'] = (tags,);
+        elif not isinstance(tags,(list,tuple)):
+          raise TypeError,"'tags' must be a string, or a list or tuple of strings";
       # create init-record 
       initrec = dmi.record(**kw);
       initrec['class'] = ''.join((pkgname,classname));
@@ -488,11 +495,15 @@ class _NodeStub (object):
     """Returns the node's "family": i.e. all (initialized) nodes which have 
     been derived from this one using any set of qualifiers.""";
     return self.scope.FindFamily(self);
-  def search (self,*args,**kw):
+  def search (self,no_family=False,*args,**kw):
     """Does a search operation on the node's entire family tree (i.e. all
     subtrees in the node's family.) Arguments are the same as to 
     NodeScope.Search()""";
-    return self.scope.Search(subtree=self.family(),*args,**kw);
+    if no_family:
+      subtree = [ self ];
+    else:
+      subtree = self.family();
+    return self.scope.Search(subtree=subtree,*args,**kw);
   # define implicit arithmetic
   def __add__ (self,other):
     return _Meq.Add(self,other);
@@ -708,18 +719,13 @@ class _NodeRepository (dict):
       return lambda x:True;
     elif isinstance(arg,str):
       return re.compile(arg+'$').match;
-    elif isinstance(arg,(list,tuple)):
-      for x in arg:
-        if not isinstance(x,str):
-          raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
-      return re.compile('('+')|('.join(arg)+')$').match;
     else:
-      raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
+      raise TypeError,("%s argument must be a a string, or None"%argname);
   _make_OR_conditional = staticmethod(_make_OR_conditional);
   
   def search (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
     """Searches repository for nodes matching the specified criteria.
-    If subtree is None, searches entire repository, else seraches
+    If subtree is None, searches entire repository, else searches
     the subtree rooted at the given node or list of nodes.
     name and class_name are strings.
     tags may be a string or a list of strings.
@@ -740,6 +746,9 @@ class _NodeRepository (dict):
         tag_conds.append(re.compile(tag).match);
     # create search function
     def search_condition (node):
+      # check if initialized
+      if node._initrec is None:
+        return False;
       # check class match
       if not class_conditional(node.classname):
         return False;
@@ -779,11 +788,12 @@ class _NodeRepository (dict):
       def recursive_find (result,node):
         if getattr(node,'_search_cookie',None) != self._search_cookie:
           node._search_cookie = self._search_cookie;
-          if name_conditional(node.name) and search_condition(node):
-            result.append(node);
-          if node.children:
-            for label,child in node.children:
-              recursive_find(result,child);
+          if node._initrec is not None:
+            if name_conditional(node.name) and search_condition(node):
+              result.append(node);
+            if node.children:
+              for label,child in node.children:
+                recursive_find(result,child);
         return result;
       # now do the search
       found = [];
