@@ -23,9 +23,10 @@ TDLCompileOption("sky_model","Sky model",
              sky_models.PerleyGates_ps]);
 TDLCompileOption("grid_stepping","Grid step, in minutes",[1,5,10,30,60,120,240]);
 TDLCompileOption("ionospheric_model","Ionospheric model",
-            [ mims.center_tecs_only,
+            [ mims.mim_poly,
+              mims.center_tecs_only,
               mims.per_direction_tecs,
-              mims.mim_poly]);
+            ]);
 TDLCompileOption("output_type","Output visibilities",["corrected","residual"]);
 
 # define antenna list
@@ -127,11 +128,14 @@ def _define_forest (ns):
                             
   # do some searches
   
-  print "Zs: ",ns.Find(name="Z:.*");
-  print "Zs by name: ",ns.Find(name="Z:.*",return_names=True);
-  print "Parms: ",ns.Find(class_name="MeqParm",return_names=True);
-  print "Sinks or Spigots: ",ns.Find(class_name=["Sink","Spigot"],return_names=True);
-  print "MIM solvables: ",ns.Find(tags=("mim","solvable"),return_names=True);
+  print "Zs: ",ns.Search(name="Z:.*");
+  print "Zs by name: ",ns.Search(return_names=True,name="Z:.*");
+  print "Parms: ",ns.Search(return_names=True,class_name="MeqParm");
+  print "Sinks or Spigots: ",ns.Search(return_names=True,class_name=["MeqSink","MeqSpigot"]);
+  print "MIM nodes: ",ns.Search(return_names=True,tags="mim");
+  print "MIM solvables: ",ns.Search(return_names=True,tags=("mim","solvable"));
+  print "Z family: ",[node.name for node in zetas.family()];
+  print "MIM solvables from Z: ",zetas.search(return_names=True,tags=("mim","solvable"));
                                    
   
 

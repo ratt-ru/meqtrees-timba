@@ -6,7 +6,7 @@ import iono_geometry
 TDLCompileOption('polc_deg_time',"Polc degree, in time",[0,1,2,3,4,5]);
 
 TDLCompileMenu('MIM options',
-  TDLOption('mim_polc_degree',"Polc degree in X/Y",[0,1,2,3,4,5,6,7])
+  TDLOption('mim_polc_degree',"Polc degree in X/Y",[1,2,3,4,5,6,7])
 );
   
 
@@ -84,6 +84,6 @@ def mim_poly (ns,source_list,array,observation,poly_deg=3,tec0=10.):
         npxypow = ns.npxypow(name,p,degx,degy) << Meq.Pow(npx,degx)*Meq.Pow(npy,degy);
         ns.vtecs(name,p,degx,degy) << mc(degx,degy)*npxypow;
       ns.vtec(name,p) << Meq.Add(*[ns.vtecs(name,p,dx,dy) for dx,dy in polc_degs]);
-      tecs(name,p) << ns.vtec(name,p) / za_cos(name,p);
+      tecs(name,p) << Meq.Divide(ns.vtec(name,p),za_cos(name,p),tags=["mim"]);
 
   return tecs,parmlist;  

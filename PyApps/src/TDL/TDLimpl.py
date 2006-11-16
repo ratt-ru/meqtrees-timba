@@ -310,7 +310,8 @@ class _NodeStub (object):
   """;
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
-            "nodeindex","_initrec","_caller","_deftb","_debuginfo" );
+            "nodeindex","_initrec","_caller","_deftb","_debuginfo",
+            "_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the 
     node's parents. We only redefine it as a class to implement __copy__ 
@@ -483,6 +484,15 @@ class _NodeStub (object):
     for num,child in stepchildren:
       child.parents[self.name] = self;
     return self;
+  def family (self):
+    """Returns the node's "family": i.e. all (initialized) nodes which have 
+    been derived from this one using any set of qualifiers.""";
+    return self.scope.FindFamily(self);
+  def search (self,*args,**kw):
+    """Does a search operation on the node's entire family tree (i.e. all
+    subtrees in the node's family.) Arguments are the same as to 
+    NodeScope.Search()""";
+    return self.scope.Search(subtree=self.family(),*args,**kw);
   # define implicit arithmetic
   def __add__ (self,other):
     return _Meq.Add(self,other);
@@ -580,6 +590,8 @@ class _NodeRepository (dict):
     self._sinks = [];
     self._spigots = [];
     self._have_vdm = None;
+    # used during recursive searches
+    self._search_cookie = 0;
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
@@ -704,11 +716,11 @@ class _NodeRepository (dict):
     else:
       raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
   _make_OR_conditional = staticmethod(_make_OR_conditional);
-    
-  def find (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
+  
+  def search (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
     """Searches repository for nodes matching the specified criteria.
     If subtree is None, searches entire repository, else seraches
-    the subtree rooted at the given node.
+    the subtree rooted at the given node or list of nodes.
     name and class_name are strings.
     tags may be a string or a list of strings.
     All strings may contain wildcards, and will be interpreted as regexes.
@@ -724,39 +736,72 @@ class _NodeRepository (dict):
         tags = [ tags ];
       for tag in tags:
         if not isinstance(tag,str):
-          raise TypeError,"find: 'tags' argument must be a a string, or a list of strings, or None";
+          raise TypeError,"find: 'tags' argument must be a string, or a list of strings, or None";
         tag_conds.append(re.compile(tag).match);
     # create search function
     def search_condition (node):
-      if name_conditional(node.name) and class_conditional(node.classname):
-        # else must have a matching tag for every tag in list
-        node_tags = node._initrec.get('tags',[]);
-        for cond in tag_conds:
-          for t in node_tags:
-            if cond(t):
-              break;  # break and go to next condition
-          # no node tag found for this conditon
-          else:
-            return False;
+      # check class match
+      if not class_conditional(node.classname):
+        return False;
+      # no tag conditionals, we have a match
+      if not tag_conds:
+        return True;
+      # else must have a matching tag for every tag in list
+      node_tags = node._initrec.get('tags',[]);
+      if not node_tags:
+        return False;
+      for cond in tag_conds:
+        for t in node_tags:
+          if cond(t):
+            break;  # found, break and go to next condition
+        # no node tag found for this conditon
+        else:
+          return False;
+      return True;
     # if no subtree specified, search whole repository
     if subtree is None:
       if return_names:
-        return [ name for name,node in self.iteritems() if search_condition(node) ];
+        return [ name for name,node in self.iteritems() 
+                 if name_conditional(name) and search_condition(node) ];
       else:
-        return [ node for name,node in self.iteritems() if search_condition(node) ];
+        return [ node for name,node in self.iteritems() 
+                 if name_conditional(name) and search_condition(node) ];
     # else search subtree rooted at 'subtree'
     else:
-      if not is_node(subtree):
-        raise TypeError,"find: 'subtree' argument must be a node, or None";
-      # define function recurse into children
+      if is_node(subtree):
+        subtree = [ subtree ];
+      elif not isinstance(subtree,(list,tuple)):
+        raise TypeError,"find: 'subtree' argument must be a node or a list of nodes";
+      self._search_cookie += 1;
+      # Define function to recursively search node and its children. 
+      # A list of matching nodes is returned.
+      # We use search_cookie to mark branches that have already been searched.
       def recursive_find (result,node):
-        if search_condition(node):
-          result.append(node);
-        if node.children:
-          for child in node.children:
-            recursive_find(result,child);
+        if getattr(node,'_search_cookie',None) != self._search_cookie:
+          node._search_cookie = self._search_cookie;
+          if name_conditional(node.name) and search_condition(node):
+            result.append(node);
+          if node.children:
+            for label,child in node.children:
+              recursive_find(result,child);
         return result;
-      return recursive_find([],subtree);
+      # now do the search
+      found = [];
+      for node in subtree:
+        recursive_find(found,node);
+      # make list of names if needed
+      if return_names:
+        return [ node.name for node in found ];
+      else:
+        return found;
+      
+  def find_node_family (self,name_prefix):
+    """finds the node "family" with the given name prefix: 
+    i.e. all nodes that are initialized, and whose name is "name_prefix" 
+    or "name_prefix:*" """;
+    regex = re.compile(name_prefix+"(:.*)?$").match;
+    return [ node for name,node in self.iteritems() \
+                  if regex(name) and node._initrec is not None ];
   
   def resolve (self,cleanup_orphans):
     """resolves contents of repository. 
@@ -952,8 +997,17 @@ class NodeScope (object):
     self._constants[value] = node;
     return node;
     
-  def Find (self,*args,**kw):
-    return self._repository.find(*args,**kw);    
+  def Search (self,*args,**kw):
+    return self._repository.search(*args,**kw);
+    
+  def FindFamily (self,node):
+    if isinstance(node,str):
+      name = node;
+    elif is_node(node):
+      name = node.name;
+    else:
+      raise TypeError,"FindFamily: 'node' argument must be a node or a node name";
+    return self._repository.find_node_family(name);
     
   def Repository (self):
     """Returns the repository""";
