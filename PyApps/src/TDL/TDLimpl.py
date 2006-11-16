@@ -707,12 +707,12 @@ class _NodeRepository (dict):
     if not arg:
       return lambda x:True;
     elif isinstance(arg,str):
-      return re.compile(arg).match;
+      return re.compile(arg+'$').match;
     elif isinstance(arg,(list,tuple)):
       for x in arg:
         if not isinstance(x,str):
           raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
-      return re.compile('('+')|('.join(arg)+')').match;
+      return re.compile('('+')|('.join(arg)+')$').match;
     else:
       raise TypeError,("%s argument must be a a string, or a list of strings, or None"%argname);
   _make_OR_conditional = staticmethod(_make_OR_conditional);
