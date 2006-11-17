@@ -22,8 +22,8 @@ TDLCompileMenu("Source distribution",
   TDLOption('source_pattern',"source pattern",['cps','ps1','ps2','ps3','ps4','ps5','ps9']),
 );
 TDLCompileOption('flux_factor',"Successive flux mult factor",[1.0,0.5,0.4,0.3,0.2,0.1]);
-TDLCompileOption('condeq_group',"nr of ifrs in condeq-group",[1,2,3,4]);
 TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
+TDLCompileOption('repeel',"re-peel a second time",[True,False]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
 TDLCompileOption('num_iter',"max nr of solver iterations",[1,2,3,5,10,20,None]);
@@ -78,13 +78,16 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
 
   #--------------------------------------------------------------------------
-  # Start some lists for the accumulation of nodes for bookmark pages 
+  # Select a single station and ifr for display: 
   ifr1 = (1,4)                                     # selected ifr
   p1 = 1                                           # selected station
-  bm_resid = []        
-  bm_condeq = []                 
-  bm_solver = []               
-  bm_cxparm = []               
+  bm_resid = []
+  bm_reresid = []
+  bm_solver = []
+  bm_resolver = []
+  bm_condeq = []
+  bm_recondeq = []
+  bm_cxparm = []
   
   # The input 'data' is a Patch with all (uncorrupted) sources:
   allsky = Meow.Patch(ns,'nominall',observation.phase_centre);
@@ -126,8 +129,10 @@ def _define_forest (ns):
     cxparms = []
     node_groups = ['Parm',src]     
     for p in ANTENNAS:
+      # v = 0.5*(1+isrc)
+      v = 1.0
       phase = ns.Ephase(src)(p) << Meq.Parm(0.0, node_groups=node_groups);
-      gain = ns.Egain(src)(p) << Meq.Parm(1.0, node_groups=node_groups);
+      gain = ns.Egain(src)(p) << Meq.Parm(1+v, node_groups=node_groups);
       solvable[src].extend([phase,gain])
       cxparm = ns.E(src)(p) << Meq.Polar(gain,phase);
       # ns.E(src)(p) << Meq.Matrix22(1+0j,0,0,1+0j);
@@ -137,12 +142,9 @@ def _define_forest (ns):
       dc = MG_JEN_dataCollect.dcoll (ns, cxparms, 
                                      scope=src, tag='parm',
                                      color='red',
-                                     # style=Cohset.plot_style()[corr],
-                                     # size=Cohset.plot_size()[corr],
-                                     # pen=Cohset.plot_pen()[corr],
+                                     # bookpage='parms',
                                      type='realvsimag', errorbars=True)
       dc_cxparm.append(dc['dcoll'])              # to be appended to reqseq list
-      bm_cxparm.append(dc['dcoll'])              #   append to bookmark list
 
     # Add the corrupted source to the relevant prediction patches,
     # i.e. the patch for the source itself, and the patches for
@@ -166,38 +168,18 @@ def _define_forest (ns):
     print src
     
     predict = predicted[isrc].visibilities(array,observation);
-    corrupt = corrupted[isrc].visibilities(array,observation);
 
     # Optional: insert a solver for the parameters related to this source:
     if insert_solver:
       condeqs = []
       condeqs_XX = []
-      if condeq_group==1:
-        # Direct comparison of measured with predicted
-        for ifr in array.ifrs():
-          condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
-                                                      predict(*ifr));
-          condeqs.append(condeq)
-          condeqs_XX.append(ns.condeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
-        bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list
-
-      else:
-        # Comparison of groups of multiplied ifrs (contamination reduction)
-        ifrs = array.ifrs()      
-        for i in range(len(ifrs)-1-condeq_group):
-          meas = []
-          pred = []
-          for j in range(i,i+condeq_group):
-            print '** i=',i,': ifrs[',j,'] =',ifrs[j]
-            meas.append(cohset(*ifrs[j]))
-            pred.append(predict(*ifrs[j]))
-          condeq = ns.condeq(src)(i) << Meq.Condeq(ns.meas(src)(i) << Meq.Multiply(children=meas),
-                                                   ns.pred(src)(i) << Meq.Multiply(children=pred));
-          condeqs.append(condeq)
-          condeqs_XX.append(ns.condeq_XX(src)(i) << Meq.Selector(condeq, index=0))
-        bm_condeq.append(ns.condeq(src)(2))        # append to bookmark list
-
-          
+      # Direct comparison of measured with predicted
+      for ifr in array.ifrs():
+        condeq = ns.condeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
+                                                    predict(*ifr));
+        condeqs.append(condeq)
+        condeqs_XX.append(ns.condeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
+      bm_condeq.append(ns.condeq(src)(*ifr1))      # append to bookmark list          
       solver = ns.solver(src) << Meq.Solver(children=condeqs,
                                             solvable=solvable[src],
                                             parm_group=hiid(src),
@@ -209,9 +191,8 @@ def _define_forest (ns):
         dc = MG_JEN_dataCollect.dcoll (ns, condeqs_XX, 
                                        scope=src, tag='condeq_XX',
                                        color='blue',
-                                       # style=Cohset.plot_style()[corr],
-                                       # size=Cohset.plot_size()[corr],
-                                       # pen=Cohset.plot_pen()[corr],
+                                       # bookpage='condeqs',
+                                       # bookfolder='yyy',
                                        type='realvsimag', errorbars=True)
         cc_reqseq.append(dc['dcoll'])              # append to reqseq list
         cc_reqseq.append(dc_cxparm[isrc])          # append to reqseq list
@@ -221,13 +202,68 @@ def _define_forest (ns):
                           
 
     # Subtract the current peeling source:
+    corrupt = corrupted[isrc].visibilities(array,observation);
     for ifr in array.ifrs():
-      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),
-                                             corrupt(*ifr));
+      ns.residual(src)(*ifr) << Meq.Subtract(cohset(*ifr),corrupt(*ifr));
     cohset = ns.residual(src)                      # the new residuals
     bm_resid.append(cohset(*ifr1))                 # append to bookmark list
 
 
+  #-----------------------------------------------------------------------
+  if repeel:
+    # Second series: peel the residuals with each source added in
+    # sequentially. This is equivalent to peeling without contamination
+    for isrc in range(len(LM)):
+      src = 'S'+str(isrc);                         # source label
+      print src
+
+      predict = predicted[isrc].visibilities(array,observation);
+      corrupt = corrupted[isrc].visibilities(array,observation);
+
+      # Add the (slightly wrong) current peeling source:
+      for ifr in array.ifrs():
+        ns.restored(src)(*ifr) << Meq.Add(cohset(*ifr),
+                                          ns << Meq.Stripper(corrupt(*ifr)));
+      cohset = ns.restored(src)              
+
+      condeqs = []
+      condeqs_XX = []
+      for ifr in array.ifrs():
+        condeq = ns.recondeq(src)(*ifr) << Meq.Condeq(cohset(*ifr),
+                                                      predict(*ifr));
+        condeqs.append(condeq)
+        condeqs_XX.append(ns.recondeq_XX(src)(*ifr) << Meq.Selector(condeq, index=0))
+      bm_recondeq.append(ns.recondeq(src)(*ifr1))      # append to bookmark list          
+      solver = ns.resolver(src) << Meq.Solver(children=condeqs,
+                                              solvable=solvable[src],
+                                              parm_group=hiid(src),
+                                              # child_poll_order=cpo,
+                                              num_iter=num_iter);
+      cc_reqseq.append(solver)                     # append to reqseq list
+      bm_resolver.append(solver)                     # append to bookmark list
+      if True:
+        dc = MG_JEN_dataCollect.dcoll (ns, condeqs_XX, 
+                                       scope=src, tag='recondeq_XX',
+                                       color='blue',
+                                       type='realvsimag', errorbars=True)
+        cc_reqseq.append(dc['dcoll'])              # append to reqseq list
+        cc_reqseq.append(dc_cxparm[isrc])          # append to reqseq list
+        if isrc == len(LM)-1:                      # last one only:
+          bm_recondeq.append(dc['dcoll'])          #   append to bookmark list
+          bm_cxparm.append(dc['dcoll'])            #   append to bookmark list
+                          
+
+      # Subtract the current peeling source:
+      for ifr in array.ifrs():
+        ns.reresidual(src)(*ifr) << Meq.Subtract(cohset(*ifr),corrupt(*ifr));
+      cohset = ns.reresidual(src)                    # the new residuals
+      bm_reresid.append(cohset(*ifr1))               # append to bookmark list
+  #-----------------------------------------------------------------------
+
+
+
+
+  #----------------------------------------------------------------------
   #----------------------------------------------------------------------
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
@@ -256,6 +292,9 @@ def _define_forest (ns):
   JEN_bookmarks.create(bm_condeq, 'condeqs')
   JEN_bookmarks.create(bm_solver, 'solvers')
   JEN_bookmarks.create(bm_cxparm, 'parms')
+  JEN_bookmarks.create(bm_reresid, 'reresiduals')
+  JEN_bookmarks.create(bm_recondeq, 'recondeqs')
+  JEN_bookmarks.create(bm_resolver, 'resolvers')
   return True
 
 

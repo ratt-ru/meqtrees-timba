@@ -55,7 +55,8 @@ def family (fam=[], node=None, recurse=0, step_children=False, nmax=9):
 
 def create (node=None, name=None, udi=None, viewer='Result Plotter',
             recurse=0, step_children=False,
-            save=True, page=None, folder=None, perpage=9, trace=False):
+            page=None, folder=None, perpage=9,
+            save=True, trace=False):
     """Create a forest_state bookmark for the given node(s).
     - viewer = 'Result Plotter'   (default)
     - viewer = 'History Plotter'
@@ -81,6 +82,20 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
             fam = [node]
             family (fam, node, recurse=recurse, step_children=step_children, nmax=9)
             node = fam                                     # replace with list
+
+
+    #------------------------------------------------------------------
+    # Page can be a list or a string (this requires a little thought...)
+
+    pagelist = []
+    if isinstance(page, (list,tuple)):
+        pagelist = page
+    elif isinstance(page, str):
+        pagelist = [page]
+    elif isinstance(node, (list, tuple)):
+        pagelist = ['autopage']
+    else:
+        pagelist = [None]
 
     #------------------------------------------------------------------
     # If node is a list, make multiple bookmarks:
