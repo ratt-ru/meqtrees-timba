@@ -1,5 +1,6 @@
-#include <MeqServer/MeqServer.h>    
 #include "MeqPython.h"
+#include <MeqServer/MeqServer.h>    
+#include <MeqServer/PyNode.h>
 
 #include <stdio.h>
 #include <list>
@@ -16,6 +17,7 @@ static bool meq_initialized = false;
 static MeqServer *pmqs = 0;
 
 static PyObject 
+      *create_pynode,
       *process_init_record,
       *process_vis_header,
       *process_vis_tile,
@@ -84,6 +86,22 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
     PyErr_Print();
   return val;
 }
+
+// -----------------------------------------------------------------------
+// createPyNode
+// creates a PyNode object associated with the given C++ PyNode
+// -----------------------------------------------------------------------
+PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const string &modulename)
+{
+  PyObjectRef pynode_ptr = PyCObject_FromVoidPtr(&pynode,0);
+  PyObjectRef args = Py_BuildValue("(Oss)",*pynode_ptr,classname.c_str(),modulename.c_str());
+  FailWhen(!args,"failed to build args tuple");
+  PyObjectRef val = PyObject_CallObject(create_pynode,*args);
+  if( !val )
+    PyErr_Print();
+  return val;
+}
+
 
 // -----------------------------------------------------------------------
 // testConversion
@@ -189,6 +207,9 @@ void initMeqPython (MeqServer *mq)
     PyErr_Print();
     Throw("Python meqserver: import of Timba.meqkernel module failed");
   }
+  
+  create_pynode       = PyObject_GetAttrString(kernelmod,"create_pynode");
+  
   // get optional handlers
   process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
   PyErr_Clear();

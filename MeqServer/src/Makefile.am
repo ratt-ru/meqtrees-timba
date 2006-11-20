@@ -9,14 +9,14 @@ LDFLAGS += -L/usr/lib -Wl,-v
 
 lib_LTLIBRARIES = libmeqserver.la
 
-DOCHDRS = MeqServer.h MeqPython.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h
+DOCHDRS = MeqServer.h MeqPython.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h PyNode.h
 
 libmeqserver_la_SOURCES = \
   AID-MeqServer-Registry.cc \
   MeqServer.cc MeqPython.cc \
   VisDataMux.cc \
   VisHandlerNode.cc \
-  Sink.cc Spigot.cc
+  Sink.cc Spigot.cc PyNode.cc
   
 bin_PROGRAMS   		= meqserver
   

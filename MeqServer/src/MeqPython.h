@@ -8,6 +8,7 @@
 namespace Meq
 {
   class MeqServer;
+  class PyNode;
 }
 
 namespace VisCube
@@ -37,6 +38,10 @@ namespace MeqPython
   void processVisHeader (const DMI::Record &hdr);
   void processVisTile   (const VisCube::VTile &tile);
   void processVisFooter (const DMI::Record &hdr);
+  
+  // creates a PyNode Python-side object with the given node name and 
+  // class, and associates it with the given PyNode
+  PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const string &modulename);
   
   // testing function -- converts object to python object, then discards
   void testConversion   (const BObj &obj);
