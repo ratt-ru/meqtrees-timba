@@ -1794,7 +1794,7 @@ class LSM:
             # clean components, so make a unique name for them
             bname='NEWS'+str(id);
             if unamedict.has_key(bname):
-              uniqname=ns.MakeUniqueName(bname)
+              uniqname=bname+'_'+str(unamedict[bname])
               unamedict[bname]=unamedict[bname]+1
             else:
               uniqname=bname
@@ -1830,7 +1830,7 @@ class LSM:
             # clean components, so make a unique name for them
             bname='NEWS'+str(id);
             if unamedict.has_key(bname):
-              uniqname=ns.MakeUniqueName(bname)
+              uniqname=bname+'_'+str(unamedict[bname])
               unamedict[bname]=unamedict[bname]+1
             else:
               uniqname=bname
@@ -1862,7 +1862,7 @@ class LSM:
           # clean components, so make a unique name for them
           bname='NEWS'+str(id);
           if unamedict.has_key(bname):
-            uniqname=ns.MakeUniqueName(bname)
+            uniqname=bname+'_'+str(unamedict[bname])
             unamedict[bname]=unamedict[bname]+1
           else:
             uniqname=bname
