@@ -3,11 +3,13 @@ import math
 
 import iono_geometry
 
+
 TDLCompileOption('polc_deg_time',"Polc degree, in time",[0,1,2,3,4,5]);
 
 TDLCompileMenu('MIM options',
   TDLOption('mim_polc_degree',"Polc degree in X/Y",[1,2,3,4,5,6,7])
 );
+
   
 
 def center_tecs_only (ns,source_list,array,observation):
