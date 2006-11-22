@@ -3,7 +3,6 @@ import math
 
 import iono_geometry
 
-
 TDLCompileOption('polc_deg_time',"Polc degree, in time",[0,1,2,3,4,5]);
 
 TDLCompileMenu('MIM options',
