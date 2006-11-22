@@ -214,8 +214,8 @@ def insert_hcoll(ns, node, **pp):
    pp.setdefault('input_index', 'VellSets/0/Value')   
    pp.setdefault('strip', True)                      # if True, strip off perturbed vells   
    pp.setdefault('mean', False)                      # if True, take the mean first   
-   pp.setdefault('bookpage', None)                       # if string, make a bookmark
-   pp.setdefault('bookfolder', None)                     # if string, make a bookfolder
+   pp.setdefault('bookpage', None)                   # if string, make a bookmark
+   pp.setdefault('bookfolder', None)                 # if string, make a bookfolder
    pp.setdefault('graft', True)                      # if True, insert a ReqSeq for requests
 
    # Make a qualifying integer to avoid node name clashes:
