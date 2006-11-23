@@ -35,6 +35,7 @@ TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
 TDLCompileOption('num_iter',"max nr of solver iterations",[1,2,3,5,10,20,None]);
 TDLCompileOption('cache_policy',"Node result caching policy",[0,100]);
+TDLCompileOption('visualization_mode',"Visualization",['full','min','off']);
 
 # Alternative: see tdl_job below
 # Settings.forest_state.cache_policy = 100
@@ -58,7 +59,7 @@ if True:
 
 a = grid_spacing
 if source_pattern=='cps':
-  # NB: Problems with result shape if LM=[(0,0)]: 1D result!
+  # NB: Problems with result shape if LM=[(0,0)]: 1D result!!!!!!!!!!!!!!1    
   LM = [(0,0)]
 elif source_pattern=='ps1':
   LM = [(0,a)]
@@ -91,11 +92,11 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
 
   # Make a solver-chain object:
-  sc = JEN_SolverChain.SolverChain(ns)
+  sc = JEN_SolverChain.SolverChain(ns, array=array)
 
   #--------------------------------------------------------------------------
   # Select a single ifr for display: 
-  sc.visumap('ifr',(1,4))
+  sc.visumap('mode',visualization_mode)
   
   # The input 'data' is a Patch with all (uncorrupted) sources:
   allsky = Meow.Patch(ns,'nominall',observation.phase_centre);
@@ -159,62 +160,60 @@ def _define_forest (ns):
     U *= flux_factor      
     V *= flux_factor      
 
-  #--------------------------------------------------------------------------
-  # Make sequence of peeling stages:
-  cohset = allsky.visibilities(array,observation);
-  sc.visualize_cohset (cohset, array.ifrs(), tag='input',
-                       plot_type='spectra',errorbars=True)
 
+  #--------------------------------------------------------------------------
+  # The input 'measured' uv-data (cohset) is the sum of the uncorrupted sources: 
+  sc.cohset(allsky.visibilities(array,observation))
+
+  # Make sequence of peeling stages:
   for isrc in range(len(LM)):
     src = 'S'+str(isrc);                           # source label
     scope = src
     
-    predict = predicted[isrc].visibilities(array,observation);
-    corrupt = corrupted[isrc].visibilities(array,observation);
+    predict = predicted[isrc].visibilities(array, observation)
+    corrupt = corrupted[isrc].visibilities(array, observation)
 
     # Optional: insert a solver for the parameters related to this source:
     if insert_solver:
-      solver = sc.make_solver(scope=scope, parm_tags=src, parm_group=src,
-                              ifrs=array.ifrs(),
-                              measured=cohset, predicted=predict,
-                              num_iter=num_iter)
-
+      sc.make_solver(scope=scope, measured=None, predicted=predict,
+                     parm_tags=src, parm_group=src,
+                     num_iter=num_iter)
+      
     # Subtract (peel) the current peeling source:
-    cohset = sc.peel (ifrs=array.ifrs(), cohset=cohset, subtract=corrupt)
+    sc.peel (subtract=corrupt)
 
 
   #-----------------------------------------------------------------------
   if insert_solver and repeel:
     # Second series: peel the residuals with each source added in
     # sequentially. This is equivalent to peeling without contamination
+    
     for isrc in range(len(LM)):
       src = 'S'+str(isrc);                         # source label
       scope = 'repeel_'+src
 
-      predict = predicted[isrc].visibilities(array,observation);
-      corrupt = corrupted[isrc].visibilities(array,observation);
+      predict = predicted[isrc].visibilities(array, observation)
+      corrupt = corrupted[isrc].visibilities(array, observation)
 
       # Add the (slightly wrong) current peeling source:
-      cohset = sc.unpeel (scope=scope, ifrs=array.ifrs(),
-                          cohset=cohset, add=corrupt)
+      sc.unpeel (scope=scope, add=corrupt)
 
-      solver = sc.make_solver(scope=scope, parm_tags=src, parm_group=src,
-                              ifrs=array.ifrs(),
-                              measured=cohset, predicted=predict,
-                              num_iter=num_iter)
+      sc.make_solver(scope=scope, measured=None, predicted=predict,
+                     parm_tags=src, parm_group=src,
+                     num_iter=num_iter)
 
       # Subtract the current peeling source:
-      cohset = sc.peel (ifrs=array.ifrs(), cohset=cohset, subtract=corrupt)
-
+      sc.peel (subtract=corrupt)
 
 
   #----------------------------------------------------------------------
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
   if insert_solver:
-    cohset = sc.insert_into_cohset (cohset, array.ifrs())
+    sc.insert_into_cohset()
 
   # Attach the current cohset to the sinks
+  cohset = sc.cohset()
   for p,q in array.ifrs():
     ns.sink(p,q) << Meq.Sink(cohset(p,q),
                              station_1_index=p-1,
