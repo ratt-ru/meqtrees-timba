@@ -244,7 +244,11 @@ class SolverChain (object):
         # Return a list of zero or more condeq nodes:
         return cc
 
-    #...........................................................................
+
+
+    #--------------------------------------------------------------------------
+    # Operations on the internal self._cohset:
+    #--------------------------------------------------------------------------
 
     def peel (self, subtract=None):
         """Subtract (peel) a cohset (e.g. a source) from the internal cohset"""
@@ -271,6 +275,39 @@ class SolverChain (object):
         self._cohset = self._ns.unpeeled(scope)              
         if self.visumap('unpeeled'):
             self.visualize_cohset (tag='unpeeled', errorbars=True)
+        return self.cohset()
+
+    #...........................................................................
+
+    def corrupt (self, jones=None):
+        """Corrupt the internal cohset with the given Jones matrices"""
+        scope = self.scope()
+        cohset = self.cohset()
+        for ifr in self.ifrs():
+            j1 = jones(ifr[0])
+            j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
+            node = self._ns.corrupted(scope)(*ifr) << Meq.MatrixMultiply(j1,cohset(*ifr),j2c)
+            self.visumap_bookmark(node, key='ifr', value=ifr)
+        self._cohset = self._ns.corrupted(scope)              
+        if self.visumap('corrupted'):
+            self.visualize_cohset (tag='corrupted', errorbars=True)
+        return self.cohset()
+
+    #...........................................................................
+
+    def correct (self, jones=None):
+        """Correct the internal cohset with the given Jones matrices"""
+        scope = self.scope()
+        cohset = self.cohset()
+        for ifr in self.ifrs():
+            j1i = jones(ifr[0])('inv') ** Meq.MatrixInvert22(jones(ifr[0]))
+            j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
+            j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
+            node = self._ns.corrected(scope)(*ifr) << Meq.MatrixMultiply(j1i,cohset(*ifr),j2ci)
+            self.visumap_bookmark(node, key='ifr', value=ifr)
+        self._cohset = self._ns.corrected(scope)              
+        if self.visumap('corrected'):
+            self.visualize_cohset (tag='corrected', errorbars=True)
         return self.cohset()
 
 
