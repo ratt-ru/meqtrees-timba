@@ -24,7 +24,10 @@
 
 from qt import *
 from numarray import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 
 class QwtPlotCurveSizes(QwtPlotCurve):
     """ A QwtCurve with adjustable Symbols """

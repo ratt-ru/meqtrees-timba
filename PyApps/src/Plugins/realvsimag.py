@@ -31,7 +31,10 @@ import math
 import random
 import sys
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 from numarray import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *

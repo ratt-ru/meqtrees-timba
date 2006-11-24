@@ -23,7 +23,10 @@
 #
 
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 
 class ComplexScaleDraw(QwtScaleDraw):
     """ override default behaviour of QwtScaleDraw class """

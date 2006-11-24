@@ -34,7 +34,10 @@
 
 import sys
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 from numarray import *
 from UVPAxis import *
 from ImageScaler import *

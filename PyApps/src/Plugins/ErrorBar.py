@@ -32,7 +32,10 @@ import random
 import sys
 from numarray import *
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 
 class QwtErrorPlotCurve (QwtPlotCurve):
 

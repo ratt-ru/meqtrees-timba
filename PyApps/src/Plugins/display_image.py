@@ -26,7 +26,10 @@
 
 import sys
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 from numarray import *
 import numarray.ieeespecial as ieee
 from UVPAxis import *

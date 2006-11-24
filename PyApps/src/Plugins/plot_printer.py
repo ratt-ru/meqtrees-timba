@@ -25,7 +25,10 @@
 #
 
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 
 class PrintFilter(QwtPlotPrintFilter):
     def __init__(self):

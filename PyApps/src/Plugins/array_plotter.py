@@ -53,7 +53,10 @@ except:
 
 from numarray import *
 from qt import *
-from qwt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 from QwtPlotImage import *
 from QwtColorBar import *
 from ND_Controller import *
