@@ -20,7 +20,7 @@ TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
 TDLCompileMenu("Source distribution",
                TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20]),
                TDLOption('source_pattern',"source pattern",
-                         ['cps','ps1','ps2','ps3','ps4','ps5','ps9']),
+                         ['ps1','ps2','ps3','ps4','ps5','ps9','cps']),
                );
 TDLCompileMenu("Source parameters",
                TDLCompileOption('flux_factor',"Successive flux mult factor",
@@ -32,8 +32,8 @@ TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
 TDLCompileOption('repeel',"re-peel a second time",[True,False]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
-TDLCompileOption('num_iter',"max nr of solver iterations",[1,2,3,5,10,20,None]);
-TDLCompileOption('cache_policy',"Node result caching policy",[0,100]);
+TDLCompileOption('num_iter',"max nr of solver iterations",[3,1,2,4,5,10,20,None]);
+TDLCompileOption('cache_policy',"Node result caching policy",[100,0]);
 TDLCompileOption('visualization_mode',"Visualization",['full','min','off']);
 
 # Alternative: see tdl_job below
@@ -207,7 +207,7 @@ def _define_forest (ns):
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
   if insert_solver:
-    sc.insert_into_cohset()
+    sc.insert_reqseq()
 
   # Attach the current cohset to the sinks
   cohset = sc.cohset()

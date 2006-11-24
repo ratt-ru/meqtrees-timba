@@ -20,7 +20,7 @@ TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
 TDLCompileMenu("Source distribution",
                TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20]),
                TDLOption('source_pattern',"source pattern",
-                         ['cps','ps1','ps2','ps3','ps4','ps5','ps9']),
+                         ['ps1','ps2','ps3','ps4','ps5','ps9','cps']),
                );
 TDLCompileMenu("Source parameters",
                TDLCompileOption('flux_factor',"Successive flux mult factor",
@@ -31,9 +31,10 @@ TDLCompileMenu("Source parameters",
 # TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
 # TDLCompileOption('repeel',"re-peel a second time",[True,False]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
+TDLCompileOption('rms_noise',"Rms noise (Jy)",[0.1,0.01,0.001,0.0,1.0]);
 # TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
-TDLCompileOption('num_iter',"max nr of solver iterations",[1,2,3,5,10,20,None]);
-TDLCompileOption('cache_policy',"Node result caching policy",[0,100]);
+TDLCompileOption('num_iter',"max nr of solver iterations",[3,1,2,4,5,10,20,None]);
+TDLCompileOption('cache_policy',"Node result caching policy",[100,0]);
 TDLCompileOption('visualization_mode',"Visualization",['full','min','off']);
 
 # Alternative: see tdl_job below
@@ -95,48 +96,60 @@ def _define_forest (ns):
   sc.visumap('mode',visualization_mode)
 
   #-------------------------------------------------------------------------- 
-  # The input 'data' is a Patch with all (uncorrupted) sources:
+  # Make the cohset of input visbilities
+  # (a Patch with all (uncorrupted) sources)
   allsky = Meow.Patch(ns,'nominall',observation.phase_centre);
   global I,Q,U,V
   for isrc in range(len(LM)):
-    # Create source nr isrc:
     src = 'S'+str(isrc);                          # source label
     l,m = LM[isrc];                               # arcmin
     print '\n**',src,': [I,Q,U,V]=',[I,Q,U,V],' [l,m]=',[l,m],'arcmin\n'
-
     l *= ARCMIN;                                  # rad
     m *= ARCMIN;                                  # rad
     src_dir = Meow.LMDirection(ns,src,l,m);
     source = Meow.PointSource(ns,src,src_dir, I=I, Q=Q, U=U, V=V);
-
     # Add the source to the allsky patch
     allsky.add(source);
   sc.cohset(allsky.visibilities(array,observation))
 
-
-  # Make the Jones matrices (Jones object?):
-  scope = 'uvp'
-  node_groups = ['Parm',scope]     
+  # Corrupt the input visibilities:
+  scope = 'corrupt'
   for p in ANTENNAS:
-    v = 1.0
-    phase = ns.Ephase(scope)(p) << Meq.Parm(v/10, node_groups=node_groups,
-                                          tags=[scope,'Ephase','EJones']);
-    gain = ns.Egain(scope)(p) << Meq.Parm(1+v, node_groups=node_groups,
-                                        tags=[scope,'Egain','EJones']);
+    v = (p+1)/10.0
+    print 'p =',p,'->',v
+    phase = ns.Ephase(scope)(p) << Meq.Constant(0.0)
+    gain = ns.Egain(scope)(p) << Meq.Constant(1+v)
     cxparm = ns.E(scope)(p) << Meq.Polar(gain,phase);
     sc.cxparm(cxparm, scope=scope)
-  sc.corrupt(jones=ns.E(scope))
+  sc.corrupt(jones=ns.E(scope), rms=rms_noise)
 
-  if False:  
-    sc.make_redun_solver(scope=scope,
-                         parm_tags=scope, parm_group=scope,
-                         num_iter=num_iter)
-  
+
+  # Attach the correction Jones matrices (to be solved for):
+  scope = 'correct'
+  node_groups = ['Parm',scope]     
+  for p in ANTENNAS:
+    phase = ns.Ephase(scope)(p) << Meq.Parm(0.0, node_groups=node_groups,
+                                            tags=[scope,'Ephase','EJones']);
+    gain = ns.Egain(scope)(p) << Meq.Parm(1.0, node_groups=node_groups,
+                                          tags=[scope,'Egain','EJones']);
+    cxparm = ns.E(scope)(p) << Meq.Polar(gain,phase);
+    sc.cxparm(cxparm, scope=scope)
+  sc.correct(jones=ns.E(scope))
+
+  # Make a solver with condeqs that compare redundant spacings:
+  sc.make_solver(scope=scope,
+                 parm_tags=scope, parm_group=scope,
+                 num_iter=num_iter)
+
+  # Since the last read of the reqseq applies the estimated jones matrices again,
+  # this has to be compensated by re-correcting(?) the data:
+  sc.correct(jones=ns.E(scope), scope='recorrect')
+  sc.visualize_cxparm()                            # optional
 
   #----------------------------------------------------------------------
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
-  sc.insert_into_cohset()
+  sc.insert_reqseq()
 
   # Attach the current cohset to the sinks
   cohset = sc.cohset()

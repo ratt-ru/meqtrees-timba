@@ -16,7 +16,7 @@ class SolverChain (object):
         self._ns = ns                          # nodescope
         self._array = array                    # Meow array object
         self._label = label
-        self._scope = None
+        self._scope = '<scope>'
         self._cohset = None                    # 
         self._clear()
 
@@ -44,8 +44,10 @@ class SolverChain (object):
         """Access to the internal self._cohset"""
         if new:
             self._cohset = new
+            self._scope = 'input'
             if self.visumap('input'):
-                self.visualize_cohset (tag='input',plot_type='spectra',errorbars=True)
+                self.visualize_cohset (tag='input',plot_type='spectra')
+                self.visualize_cohset (tag='input', errorbars=True)
         return self._cohset
 
     #--------------------------------------------------------------------------
@@ -91,7 +93,6 @@ class SolverChain (object):
         self._cxparm[scope].append(cx)
         return True
 
-
     def append (self, node, scope=None):
         """Append a node to the internal list of reqseq children"""
         if isinstance(node, (list,tuple)):
@@ -101,11 +102,10 @@ class SolverChain (object):
         return True
 
 
-    def insert_into_cohset (self):
-        """Make the reqseq node(s) and insert in the cohset (...).
+    def insert_reqseq (self):
+        """Make the reqseq node(s) and insert it in the cohset (...).
         The reqseq that executes the solvers in order of creation,
-        and then passes on the final residuals (in new cohset).
-        NB: ifrs = array.ifrs()"""
+        and then passes on the final residuals (in new cohset)."""
         n = len(self._reqseq_children)
         self._reqseq_children.append(0)               # placeholder 
         cohset = self.cohset()
@@ -114,7 +114,7 @@ class SolverChain (object):
             self._ns.reqseq_SolverChain(*ifr) << Meq.ReqSeq(children=self._reqseq_children,
                                                             result_index=n,
                                                             cache_num_active_parents=1)
-        if True: self.display('insert_into_cohset')
+        if True: self.display('insert_reqseq')
 
         # Make the new cohset, and return it:
         self._cohset = self._ns.reqseq_SolverChain
@@ -148,14 +148,19 @@ class SolverChain (object):
             return self._visumap
         if key=='mode':
             if value=='full':
-                ifr1 = (1,4)
+                ifr1 = (1,3)
+                ifr2 = (2,4)
                 self._visumap = dict(mode=value, input=True, peeled=True, unpeeled=True,
-                                     condeqs=True, solvables=False, solvers=True, ifr=[ifr1]) 
+                                     addnoise=True, corrupted=True, corrected=True,
+                                     condeqs=True, solvables=True, solvers=True,
+                                     ifr=[ifr1,ifr2]) 
             elif value=='off':
                 self._visumap = dict(mode=value, input=False, peeled=False, unpeeled=False,
+                                     addnoise=False, corrupted=False, corrected=False,
                                      condeqs=False, solvables=False, solvers=False, ifr=[]) 
             else:
                 self._visumap = dict(mode='min', input=False, peeled=False, unpeeled=False,
+                                     addnoise=True, corrupted=False, corrected=True,
                                      condeqs=True, solvables=False, solvers=True, ifr=[]) 
             print '\n** visumap (mode):',self._visumap,'\n'
         elif not value==None:
@@ -168,13 +173,15 @@ class SolverChain (object):
         return None
         
 
-    def visumap_bookmark(self, node=None, key='ifr', value=None):
+    def visumap_bookmark(self, node=None, key='ifr', value=None, page=None):
         """Make a bookmark of the node if value is in _visumap[key]"""
         if self._visumap.has_key(key):
             if isinstance(self._visumap[key], (list,tuple)):
                 if value in self._visumap[key]:
-                    self.bookmark(node, key+'_'+str(value))
-        return True
+                    if not isinstance(page,str):
+                        page = key+'_'+str(value)
+                    self.bookmark(node, page)
+        return page
 
 
     #--------------------------------------------------------------------------
@@ -188,9 +195,18 @@ class SolverChain (object):
         """Create a solver node for the specified (parm_tags) MeqParms,
         making condeqs from the given cohsets (measured and predicted),
         and append it to the list of reqseq children"""
+
         scope = self.scope(scope)
-        condeqs = self.make_condeqs (measured=measured, predicted=predicted,
-                                     select='all')
+
+        if predicted:
+            # Compare measured visibilities with predicted values:
+            condeqs = self.make_condeqs (measured=measured, predicted=predicted,
+                                         select='all')
+        else:
+            # No predicted cohset: compare redundant spacings:
+            condeqs = self.make_redun_condeqs (measured=measured, select='all')
+
+        # Get a list of names of MeqParms to be solved for:
         solvables = self._ns.Search(tags=parm_tags, class_name='MeqParm',
                                     return_names=False)
 
@@ -214,8 +230,10 @@ class SolverChain (object):
 
             # Append the solver to the internal list of reqseq children: 
             self.append(solver)
-            self.bookmark(solver, 'solvers')
+
+            # Visualization (controlled by the 'visualization map'):
             if self.visumap('solvers'):
+                self.bookmark(solver, 'solvers')
                 self.hcoll_solver_metrics(solver)
             if self.visumap('condeqs'):
                 dcoll = self.dataConcat(condeqs, tag='condeqs', errorbars=True)
@@ -244,11 +262,59 @@ class SolverChain (object):
         # Return a list of zero or more condeq nodes:
         return cc
 
+    #...........................................................................
+
+    def make_redun_condeqs (self, measured=None, select='all'):
+        """Create a list of (selected) condeq nodes by comparing redundant
+        spacings (WSRT only) in the given cohset (measured)"""
+        cc = []
+        scope = self.scope()
+        if not measured: measured = self.cohset()
+        ifrs = self.ifrs()
+        for i in range(len(ifrs)-1):
+            ifr1 = ifrs[i]
+            b1 = ifr1[1] - ifr1[0]
+            # print '-',i,ifr1,b1
+            for j in range(i+1,len(ifrs)):
+                ifr2 = ifrs[j]
+                b2 = ifr2[1] - ifr2[0]
+                # print '  -',j,ifr2,b2
+                if b2==b1:
+                # if b2==b1 and (not ifr2[0]==ifr1[1]):
+                    condeq = self._ns.condeq(scope)(*ifr1)(*ifr2) << Meq.Condeq(measured(*ifr1),
+                                                                                measured(*ifr2))
+                    cc.append(condeq)
+                    page = self.visumap_bookmark(condeq, key='ifr', value=ifr1)
+                    self.visumap_bookmark(measured(*ifr1), key='ifr', value=ifr1, page=page)
+                    self.visumap_bookmark(measured(*ifr2), key='ifr', value=ifr2, page=page)
+                    # self.visumap_hcoll(condeq, key='ifr', value=ifr1)
+                    # print '     redundant condeq:',condeq,':',b1,b2,ifr1,ifr2
+                    break
+        # Return a list of zero or more condeq nodes:
+        return cc
+
 
 
     #--------------------------------------------------------------------------
     # Operations on the internal self._cohset:
     #--------------------------------------------------------------------------
+
+    def addnoise (self, rms=0.1):
+        """Add gaussian noise with given rms to the internal cohset"""
+        scope = self.scope()
+        cohset = self.cohset()
+        for ifr in self.ifrs():
+            rnoise = self._ns.rnoise(scope)(*ifr) << Meq.GaussNoise(stddev=rms)
+            inoise = self._ns.inoise(scope)(*ifr) << Meq.GaussNoise(stddev=rms)
+            noise = self._ns.noise(scope)(*ifr) << Meq.ToComplex(rnoise,inoise)
+            node = self._ns.addnoise(scope)(*ifr) << Meq.Add(cohset(*ifr),noise)
+            self.visumap_bookmark(node, key='ifr', value=ifr)
+        self._cohset = self._ns.addnoise(scope)           
+        if self.visumap('addnoise'):
+            self.visualize_cohset (tag='addnoise', errorbars=True)
+        return self.cohset()
+
+    #...........................................................................
 
     def peel (self, subtract=None):
         """Subtract (peel) a cohset (e.g. a source) from the internal cohset"""
@@ -259,7 +325,7 @@ class SolverChain (object):
             self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.peeled(scope)           
         if self.visumap('peeled'):
-            self.visualize_cohset (tag='peeled', plot_type='spectra', errorbars=True)
+            self.visualize_cohset (tag='peeled', errorbars=True)
         return self.cohset()
 
     #...........................................................................
@@ -279,9 +345,9 @@ class SolverChain (object):
 
     #...........................................................................
 
-    def corrupt (self, jones=None):
+    def corrupt (self, jones=None, rms=0.0, scope=None):
         """Corrupt the internal cohset with the given Jones matrices"""
-        scope = self.scope()
+        scope = self.scope(scope)
         cohset = self.cohset()
         for ifr in self.ifrs():
             j1 = jones(ifr[0])
@@ -291,13 +357,16 @@ class SolverChain (object):
         self._cohset = self._ns.corrupted(scope)              
         if self.visumap('corrupted'):
             self.visualize_cohset (tag='corrupted', errorbars=True)
+        if rms>0.0:
+            # Optional: add gaussian noise (AFTER corruption, of course):
+            self.addnoise(rms)
         return self.cohset()
 
     #...........................................................................
 
-    def correct (self, jones=None):
+    def correct (self, jones=None, scope=None):
         """Correct the internal cohset with the given Jones matrices"""
-        scope = self.scope()
+        scope = self.scope(scope)
         cohset = self.cohset()
         for ifr in self.ifrs():
             j1i = jones(ifr[0])('inv') ** Meq.MatrixInvert22(jones(ifr[0]))
@@ -325,7 +394,14 @@ class SolverChain (object):
         self.bookmark(dcoll, tag)
         return dcoll
 
+    def visualize_cxparm(self):
+        """Visualize the accumulated cxparm values"""
+        for scope in self._cxparm.keys():
+            dcoll = self.dataCollect(self._cxparm[scope], tag='cxparm_'+scope)
+            self.bookmark(dcoll, 'cxparm')
+        return True
 
+    #........................................................................
     # From TDL_radioconventions.py
     # rr = dict(XX='circle', XY='xcross', YX='xcross', YY='circle')
     # rr = dict(XX='red', XY='magenta', YX='darkCyan', YY='blue')
@@ -485,7 +561,7 @@ if __name__ == '__main__':
                                 measured=None, predicted=cohset)
 
     if 0:
-        cs = sc.insert_into_cohset ()
+        cs = sc.insert_reqseq ()
         for ifr in array.ifrs():
             print ifr,':',cs(*ifr)
 
