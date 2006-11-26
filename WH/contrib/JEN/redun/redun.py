@@ -93,7 +93,6 @@ def _define_forest (ns):
 
   # Make a solver-chain object:
   sc = JEN_SolverChain.SolverChain(ns, array=array)
-  sc.visumap('mode',visualization_mode)
 
   #-------------------------------------------------------------------------- 
   # Make the cohset of input visbilities
@@ -121,7 +120,7 @@ def _define_forest (ns):
     gain = ns.Egain(scope)(p) << Meq.Constant(1+v)
     cxparm = ns.E(scope)(p) << Meq.Polar(gain,phase);
     sc.cxparm(cxparm, scope=scope)
-  sc.corrupt(jones=ns.E(scope), rms=rms_noise)
+  sc.corrupt(jones=ns.E(scope), rms=rms_noise, page='e2e')
 
 
   # Attach the correction Jones matrices (to be solved for):
@@ -136,15 +135,18 @@ def _define_forest (ns):
     sc.cxparm(cxparm, scope=scope)
   sc.correct(jones=ns.E(scope))
 
+
+  # Constrain the sum of phases and the product of gains:
+  constraint = []
+  if True:
+    constraint = [dict(tags='Ephase', unop='Add', value=0.0),
+                  dict(tags='Egain', unop='Multiply', value=1.0)]
+
   # Make a solver with condeqs that compare redundant spacings:
   sc.make_solver(scope=scope,
                  parm_tags=scope, parm_group=scope,
+                 constraint=constraint,
                  num_iter=num_iter)
-
-  # Since the last read of the reqseq applies the estimated jones matrices again,
-  # this has to be compensated by re-correcting(?) the data:
-  sc.correct(jones=ns.E(scope), scope='recorrect')
-  sc.visualize_cxparm()                            # optional
 
   #----------------------------------------------------------------------
   # Insert reqseq that first executes the solvers in order of creation,
@@ -152,13 +154,7 @@ def _define_forest (ns):
   sc.insert_reqseq()
 
   # Attach the current cohset to the sinks
-  cohset = sc.cohset()
-  for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(cohset(p,q),
-                             station_1_index=p-1,
-                             station_2_index=q-1,
-                             output_col='DATA');
-  ns.vdm << Meq.VisDataMux(*[ns.sink(*ifr) for ifr in array.ifrs()]);
+  sc.make_sinks(output_col='DATA', vdm='vdm')
 
   # Finished: 
   return True
@@ -169,7 +165,7 @@ def _define_forest (ns):
 #==============================================================================
 #==============================================================================
 
-def _tdl_job_1_redun (mqs,parent):
+def _tdl_job_1_redundandize (mqs,parent):
   mqs.meq('Set.Forest.State', record(state=record(cache_policy=cache_policy)))
   req = Meow.Utils.create_io_request();
   mqs.execute('vdm',req,wait=False);

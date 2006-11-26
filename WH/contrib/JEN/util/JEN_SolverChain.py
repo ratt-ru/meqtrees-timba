@@ -25,7 +25,6 @@ class SolverChain (object):
         self._reqseq_children = []
         self._bookmark = dict()
         self._cxparm = dict()
-        self._visumap = dict()
         return True
 
     #--------------------------------------------------------------------------
@@ -40,14 +39,12 @@ class SolverChain (object):
         ifrs = self._array.ifrs()
         return ifrs
 
-    def cohset (self, new=None):
+    def cohset (self, new=None, **pp):
         """Access to the internal self._cohset"""
         if new:
             self._cohset = new
             self._scope = 'input'
-            if self.visumap('input'):
-                self.visualize_cohset (tag='input',plot_type='spectra')
-                self.visualize_cohset (tag='input', errorbars=True)
+            self._visualize_cohop(**pp)
         return self._cohset
 
     #--------------------------------------------------------------------------
@@ -75,9 +72,6 @@ class SolverChain (object):
         print '** _bookmarks:'
         for key in self._bookmark.keys():
             print '  - '+key+': '+str(len(self._bookmark[key]))
-        print '** _visumap:'
-        for key in self._visumap.keys():
-            print '  - '+key+': '+str(self._visumap[key])
         print '** _ns: '+str(type(self._ns))
         print '** _array: '+str(type(self._array))
         print '** _cohset: '+str(type(self._cohset))
@@ -101,11 +95,11 @@ class SolverChain (object):
             self._reqseq_children.append(node)
         return True
 
-
     def insert_reqseq (self):
         """Make the reqseq node(s) and insert it in the cohset (...).
         The reqseq that executes the solvers in order of creation,
         and then passes on the final residuals (in new cohset)."""
+        self.visualize_cohset (tag='e2e', errorbars=True)
         n = len(self._reqseq_children)
         self._reqseq_children.append(0)               # placeholder 
         cohset = self.cohset()
@@ -115,73 +109,11 @@ class SolverChain (object):
                                                             result_index=n,
                                                             cache_num_active_parents=1)
         if True: self.display('insert_reqseq')
-
-        # Make the new cohset, and return it:
         self._cohset = self._ns.reqseq_SolverChain
-        self.make_bookmarks()
+        self.make_actual_bookmarks()
         self._clear()                                 # ....??
         return self.cohset()
 
-    def bookmark(self, node, page):
-        """Append the given node to the specified bookpage"""
-        self._bookmark.setdefault(page, [])
-        self._bookmark[page].append(node)
-        return True
-
-    def make_bookmarks(self):
-        """Make the actual bookmarks from the accumulated info"""
-        for key in self._bookmark.keys():
-            JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
-        return True
-
-    #--------------------------------------------------------------------------
-    # Visualisation map
-    #--------------------------------------------------------------------------
-
-    def visumap(self, key=None, value=None):
-        """Interaction with the 'visualisation map', which enables the
-        various inbuilt visualisation possibilities of this object"""
-        if len(self._visumap)==0:
-            self._visumap = dict(mode='off', input=False, peeled=False, unpeeled=False,
-                                 condeqs=False, solvables=False, solvers=False, ifr=[]) 
-        if not isinstance(key, str):
-            return self._visumap
-        if key=='mode':
-            if value=='full':
-                ifr1 = (1,3)
-                ifr2 = (2,4)
-                self._visumap = dict(mode=value, input=True, peeled=True, unpeeled=True,
-                                     addnoise=True, corrupted=True, corrected=True,
-                                     condeqs=True, solvables=True, solvers=True,
-                                     ifr=[ifr1,ifr2]) 
-            elif value=='off':
-                self._visumap = dict(mode=value, input=False, peeled=False, unpeeled=False,
-                                     addnoise=False, corrupted=False, corrected=False,
-                                     condeqs=False, solvables=False, solvers=False, ifr=[]) 
-            else:
-                self._visumap = dict(mode='min', input=False, peeled=False, unpeeled=False,
-                                     addnoise=True, corrupted=False, corrected=True,
-                                     condeqs=True, solvables=False, solvers=True, ifr=[]) 
-            print '\n** visumap (mode):',self._visumap,'\n'
-        elif not value==None:
-            if key=='ifr' and not isinstance(value,list): value = [value]
-            self._visumap[key] = value
-            print '\n** visumap (',key,'):',self._visumap,'\n'
-        if self._visumap.has_key(key):
-            return self._visumap[key]
-        print '\n** .visumap(): key not recognised:',key,'\n'
-        return None
-        
-
-    def visumap_bookmark(self, node=None, key='ifr', value=None, page=None):
-        """Make a bookmark of the node if value is in _visumap[key]"""
-        if self._visumap.has_key(key):
-            if isinstance(self._visumap[key], (list,tuple)):
-                if value in self._visumap[key]:
-                    if not isinstance(page,str):
-                        page = key+'_'+str(value)
-                    self.bookmark(node, page)
-        return page
 
 
     #--------------------------------------------------------------------------
@@ -191,6 +123,7 @@ class SolverChain (object):
     def make_solver (self, scope=None,
                      parm_tags=None, parm_group='Parm',
                      measured=None, predicted=None,
+                     constraint=[],
                      num_iter=3):
         """Create a solver node for the specified (parm_tags) MeqParms,
         making condeqs from the given cohsets (measured and predicted),
@@ -205,6 +138,9 @@ class SolverChain (object):
         else:
             # No predicted cohset: compare redundant spacings:
             condeqs = self.make_redun_condeqs (measured=measured, select='all')
+
+        # Append zero or more constraints to the list of condeqs:
+        self.append_constraints(condeqs, constraint)
 
         # Get a list of names of MeqParms to be solved for:
         solvables = self._ns.Search(tags=parm_tags, class_name='MeqParm',
@@ -232,18 +168,39 @@ class SolverChain (object):
             self.append(solver)
 
             # Visualization (controlled by the 'visualization map'):
-            if self.visumap('solvers'):
-                self.bookmark(solver, 'solvers')
+            if True:
+                self.append_to_bookpage(solver, 'solvers')
                 self.hcoll_solver_metrics(solver)
-            if self.visumap('condeqs'):
+            if True:
                 dcoll = self.dataConcat(condeqs, tag='condeqs', errorbars=True)
-                self.bookmark(dcoll, 'condeqs')
-            if self.visumap('solvables'):
+                self.append_to_bookpage(dcoll, 'condeqs')
+            if True:
                 if self._cxparm.has_key(scope):
                     solvables = self._cxparm[scope] 
                 dcoll = self.dataCollect(solvables, tag='solvables')
-                self.bookmark(dcoll, 'solvables')
+                self.append_to_bookpage(dcoll, 'solvables')
         return solver
+
+    #...........................................................................
+
+    def append_constraints(self, condeqs=[], constraint=[]):
+        """Append zero or more constraints to the list of condeqs.
+        A constraint-description is a record dict(tags=.., unop=.., value=..)"""
+        scope = self.scope()
+        if not isinstance(constraint,(list,tuple)):
+            constraint = [constraint]
+        for i in range(len(constraint)):
+            rr = constraint[i]
+            print '\n** constraint:',rr
+            # Get a list of MeqParms to be constrained (e.g. their sum = 0):
+            parms = self._ns.Search(tags=rr['tags'], class_name='MeqParm',
+                                    return_names=False)
+            print '  -',len(parms),'parm[0]=',parms[0],'...'
+            unop = self._ns.unop(scope)(i) << getattr(Meq,rr['unop'])(children=parms)
+            condeq = self._ns.constraint(scope)(i) << Meq.Condeq(unop,rr['value'])
+            condeqs.append(condeq)
+            print
+        return True
 
     #...........................................................................
 
@@ -257,7 +214,7 @@ class SolverChain (object):
             condeq = self._ns.condeq(scope)(*ifr) << Meq.Condeq(predicted(*ifr),
                                                                 measured(*ifr))
             cc.append(condeq)
-            self.visumap_bookmark(condeq, key='ifr', value=ifr)
+            # self.visumap_bookmark(condeq, key='ifr', value=ifr)
             # self.selected_hcoll(condeq, key='ifr', value=ifr)
         # Return a list of zero or more condeq nodes:
         return cc
@@ -284,9 +241,9 @@ class SolverChain (object):
                     condeq = self._ns.condeq(scope)(*ifr1)(*ifr2) << Meq.Condeq(measured(*ifr1),
                                                                                 measured(*ifr2))
                     cc.append(condeq)
-                    page = self.visumap_bookmark(condeq, key='ifr', value=ifr1)
-                    self.visumap_bookmark(measured(*ifr1), key='ifr', value=ifr1, page=page)
-                    self.visumap_bookmark(measured(*ifr2), key='ifr', value=ifr2, page=page)
+                    # page = self.visumap_bookmark(condeq, key='ifr', value=ifr1)
+                    # self.visumap_bookmark(measured(*ifr1), key='ifr', value=ifr1, page=page)
+                    # self.visumap_bookmark(measured(*ifr2), key='ifr', value=ifr2, page=page)
                     # self.visumap_hcoll(condeq, key='ifr', value=ifr1)
                     # print '     redundant condeq:',condeq,':',b1,b2,ifr1,ifr2
                     break
@@ -299,7 +256,22 @@ class SolverChain (object):
     # Operations on the internal self._cohset:
     #--------------------------------------------------------------------------
 
-    def addnoise (self, rms=0.1):
+    def make_sinks (self, output_col='DATA', vdm='vdm'):
+        """Make sinks for the cohset, and a named VisDataMux"""
+        cohset = self.cohset()
+        for p,q in self.ifrs():
+            node = self._ns.sink(p,q) << Meq.Sink(cohset(p,q),
+                                                  station_1_index=p-1,
+                                                  station_2_index=q-1,
+                                                  output_col=output_col)
+            # self.visumap_bookmark(node, key='ifr', value=(p,q))
+        self._ns[vdm] << Meq.VisDataMux(*[self._ns.sink(*ifr) for ifr in self.ifrs()]);
+        self._cohset = self._ns.sink           
+        return self.cohset()
+
+    #...........................................................................
+
+    def addnoise (self, rms=0.1, **pp):
         """Add gaussian noise with given rms to the internal cohset"""
         scope = self.scope()
         cohset = self.cohset()
@@ -308,44 +280,41 @@ class SolverChain (object):
             inoise = self._ns.inoise(scope)(*ifr) << Meq.GaussNoise(stddev=rms)
             noise = self._ns.noise(scope)(*ifr) << Meq.ToComplex(rnoise,inoise)
             node = self._ns.addnoise(scope)(*ifr) << Meq.Add(cohset(*ifr),noise)
-            self.visumap_bookmark(node, key='ifr', value=ifr)
+            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.addnoise(scope)           
-        if self.visumap('addnoise'):
-            self.visualize_cohset (tag='addnoise', errorbars=True)
+        self._visualize_cohop(**pp)
         return self.cohset()
 
     #...........................................................................
 
-    def peel (self, subtract=None):
+    def peel (self, subtract=None, **pp):
         """Subtract (peel) a cohset (e.g. a source) from the internal cohset"""
         scope = self.scope()
         cohset = self.cohset()
         for ifr in self.ifrs():
             node = self._ns.peeled(scope)(*ifr) << Meq.Subtract(cohset(*ifr),subtract(*ifr))
-            self.visumap_bookmark(node, key='ifr', value=ifr)
+            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.peeled(scope)           
-        if self.visumap('peeled'):
-            self.visualize_cohset (tag='peeled', errorbars=True)
+        self._visualize_cohop(**pp)
         return self.cohset()
 
     #...........................................................................
 
-    def unpeel (self, scope=None, add=None):
+    def unpeel (self, scope=None, add=None, **pp):
         """Add (unpeel/restore) a cohset (e.g. a source) to the internal cohset"""
         scope = self.scope(scope)
         cohset = self.cohset()
         for ifr in self.ifrs():
             unpeel = self._ns << Meq.Stripper(add(*ifr))
             node = self._ns.unpeeled(scope)(*ifr) << Meq.Add(cohset(*ifr), unpeel)
-            self.visumap_bookmark(node, key='ifr', value=ifr)
+            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.unpeeled(scope)              
-        if self.visumap('unpeeled'):
-            self.visualize_cohset (tag='unpeeled', errorbars=True)
+        self._visualize_cohop(**pp)
         return self.cohset()
 
     #...........................................................................
 
-    def corrupt (self, jones=None, rms=0.0, scope=None):
+    def corrupt (self, jones=None, rms=0.0, scope=None, **pp):
         """Corrupt the internal cohset with the given Jones matrices"""
         scope = self.scope(scope)
         cohset = self.cohset()
@@ -353,10 +322,9 @@ class SolverChain (object):
             j1 = jones(ifr[0])
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
             node = self._ns.corrupted(scope)(*ifr) << Meq.MatrixMultiply(j1,cohset(*ifr),j2c)
-            self.visumap_bookmark(node, key='ifr', value=ifr)
+            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.corrupted(scope)              
-        if self.visumap('corrupted'):
-            self.visualize_cohset (tag='corrupted', errorbars=True)
+        self._visualize_cohop(**pp)
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
             self.addnoise(rms)
@@ -364,7 +332,7 @@ class SolverChain (object):
 
     #...........................................................................
 
-    def correct (self, jones=None, scope=None):
+    def correct (self, jones=None, scope=None, **pp):
         """Correct the internal cohset with the given Jones matrices"""
         scope = self.scope(scope)
         cohset = self.cohset()
@@ -373,10 +341,9 @@ class SolverChain (object):
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             node = self._ns.corrected(scope)(*ifr) << Meq.MatrixMultiply(j1i,cohset(*ifr),j2ci)
-            self.visumap_bookmark(node, key='ifr', value=ifr)
+            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.corrected(scope)              
-        if self.visumap('corrected'):
-            self.visualize_cohset (tag='corrected', errorbars=True)
+        self._visualize_cohop(**pp)
         return self.cohset()
 
 
@@ -384,21 +351,48 @@ class SolverChain (object):
     # Visualisation:
     #--------------------------------------------------------------------------
 
-    def visualize_cohset (self, tag='cohset',
+    def append_to_bookpage(self, node, page):
+        """Append the given node to the specified bookpage"""
+        self._bookmark.setdefault(page, [])
+        self._bookmark[page].append(node)
+        return True
+
+    def make_actual_bookmarks(self):
+        """Make the actual bookmarks from the accumulated info"""
+        for key in self._bookmark.keys():
+            JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
+        return True
+
+    def _visualize_cohop (self, **pp):
+        """Called from the cohset operation functions in this object,
+        provided a (book)page name is provided"""
+        for key in ['scope','cohop','ifr','page','folder',
+                    'color','style','size','pen']:
+            pp.setdefault(key, None)
+        pp.setdefault('plot_type', 'realvsimag')
+        pp.setdefault('errorbars', True)
+        if isinstance(pp['page'],str):
+            self.visualize_cohset (tag=pp['page'], errorbars=pp['errorbars'])
+        return True
+
+
+    def visualize_cohset (self, tag='cohset', page=None, folder=None,
                           plot_type='realvsimag', errorbars=False):
-        """Visualise the given cohset"""
+        """Visualise the given cohset. The page is 'tag'"""
+        print '\n** visualize_cohset(',tag,')'
         # scope = self.scope()
         nodelist = self.cohset_list (self._cohset, ifrs=self.ifrs())
         dcoll = self.dataConcat (nodelist, tag=tag,
                                  plot_type=plot_type, errorbars=errorbars)
-        self.bookmark(dcoll, tag)
+        if not isinstance(page, str): page = tag
+        self.append_to_bookpage(dcoll, page)
         return dcoll
 
     def visualize_cxparm(self):
         """Visualize the accumulated cxparm values"""
         for scope in self._cxparm.keys():
             dcoll = self.dataCollect(self._cxparm[scope], tag='cxparm_'+scope)
-            self.bookmark(dcoll, 'cxparm')
+            self.append_to_bookpage(dcoll, 'cxparm')
         return True
 
     #........................................................................
@@ -460,12 +454,12 @@ class SolverChain (object):
         return True
 
     def selected_hcoll(self, node=None, key='ifr', value=None):
-        """Make a historyCollect of the node if value is in _visumap[key]"""
-        if self._visumap.has_key(key):
-            if value in self._visumap[key]:
+        """Make a historyCollect of the node if required"""
+        if True:
+            if True:
                 hcoll = MG_JEN_historyCollect.insert_hcoll(self._ns, node,
                                                            graft=False)
-                self.bookmark(hcoll, key+'_'+str(value))
+                self.append_to_bookpage(hcoll, key+'_'+str(value))
                 self.append(hcoll)
         return True
 
@@ -535,14 +529,6 @@ if __name__ == '__main__':
         sc = SolverChain(ns, label='test', array=array)
         sc.cohset(cohset)
         sc.cohset_list (cohset, ifrs=array.ifrs())
-
-    if 1:
-        sc.visumap('mode')
-        sc.visumap('mode', 'off')
-        sc.visumap('mode', 'full')
-        sc.visumap('mode', 'min')
-        sc.visumap('ifr', [(1,4)])
-        sc.visumap('ifr', (1,4))
 
     if 0:
         sc.append(ns << Meq.Parm(0, tags='tag0'))
