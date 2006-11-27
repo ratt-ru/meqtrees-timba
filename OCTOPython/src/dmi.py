@@ -515,6 +515,7 @@ def dmi_coerce (obj,dmitype):
   if not issubclass(dmitype,type(obj)):
     raise TypeError,str(dmitype)+' is not a subclass of '+str(type(obj));
   obj.__class__ = dmitype;
+  return obj;
   
 # import C module
 try:

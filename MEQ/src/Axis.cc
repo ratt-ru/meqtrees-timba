@@ -9,8 +9,8 @@ using namespace DebugMeq;
 
 namespace Axis {
   
-int FREQ = 0;
-int TIME = 1;
+int TIME = 0;
+int FREQ = 1;
 
 // mappings between names and numbers
 HIID _name_map[MaxAxis];

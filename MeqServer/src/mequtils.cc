@@ -10,6 +10,46 @@ inline std::string sdebug (int=0) { return "MeqUtils"; }
 
 static int dum = aidRegistry_Meq();
 
+static PyObject * get_axis_number (PyObject *, PyObject *args)
+{
+  PyObject * axis_id;
+  // ref count of object is not increased, so do not attach ref
+  if( !PyArg_ParseTuple(args,"O",&axis_id) )
+    return NULL;
+  try
+  {
+    // convert ID to string, then to HIID
+    HIID id;
+    if( PyString_Check(axis_id) )
+      id = HIID(PyString_AsString(axis_id));
+    else 
+    {
+      PyObjectRef objstr(PyObject_Str(axis_id));
+      id = HIID(PyString_AsString(*objstr));
+    }
+    // look up in map
+    int iaxis = Meq::Axis::axis(id);
+    return PyInt_FromLong(iaxis);
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+static PyObject * get_axis_id (PyObject *, PyObject *args)
+{
+  int axis_num;
+  // ref count of object is not increased, so do not attach ref
+  if( !PyArg_ParseTuple(args,"i",&axis_num) )
+    return NULL;
+  try
+  {
+    const HIID & id = Meq::Axis::axisId(axis_num);
+    return PyString_FromString(id.toString().c_str());
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
 static PyObject * set_axis_list (PyObject *, PyObject *args)
 {
   PyObject * axislist;
@@ -54,6 +94,10 @@ static PyObject * set_axis_list (PyObject *, PyObject *args)
 // Module initialization
 // -----------------------------------------------------------------------
 static PyMethodDef MeqUtilMethods[] = {
+    { "get_axis_number",get_axis_number,METH_VARARGS,
+          "returns axis associated with given ID" },
+    { "get_axis_id",get_axis_id,METH_VARARGS,
+          "returns axis ID for given axis number" },
     { "set_axis_list",set_axis_list,METH_VARARGS,
           "changes the axis list" },
     { NULL, NULL, 0, NULL} };       /* Sentinel */
@@ -71,6 +115,8 @@ void initMeqUtilsModule ()
   
   PyObjectRef timbamod = PyImport_ImportModule("Timba");  
   PyModule_AddObject(*timbamod,"mequtils",module);
+
+  PyModule_AddObject(module,"max_axis",PyInt_FromLong(Meq::Axis::MaxAxis));
   
   // drop out on error
   if( PyErr_Occurred() )

@@ -97,14 +97,46 @@ PyObject * set_node_state_field (PyObject *, PyObject *args)
   // catch all exceptions below
   try 
   {
-    FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
+    FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
     PyNode * pnode = static_cast<PyNode*>(PyCObject_AsVoidPtr(node_baton));
-    FailWhen(!pnode,"get_node_state_field: first argument must be a valid node baton");
+    FailWhen(!pnode,"set_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"set_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
     ObjRef ref;
     pyToDMI(ref,value);
     pnode->wstate()[field].replace() = ref;
+    returnNone;
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+// -----------------------------------------------------------------------
+// set_node_active_symdeps ()
+// Python method to change a node's symdeps
+// -----------------------------------------------------------------------
+PyObject * set_node_active_symdeps (PyObject *, PyObject *args)
+{
+  PyObject *node_baton,*symdep_list;
+  char * field_str;
+  if( !PyArg_ParseTuple(args, "OO",&node_baton,&symdep_list) )
+    return NULL;
+  // catch all exceptions below
+  try 
+  {
+    FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
+    PyNode * pnode = static_cast<PyNode*>(PyCObject_AsVoidPtr(node_baton));
+    FailWhen(!pnode,"set_node_acrive_symdeps: first argument must be a valid node baton");
+    FailWhen(!PySequence_Check(symdep_list),"set_node_active_symdeps: second argument must be a list of symdeps");
+    int ndep = PySequence_Length(symdep_list);
+    std::vector<HIID> symdeps(ndep);
+    for( int i=0; i<ndep; i++ )
+    {
+      PyObjectRef item = PySequence_GetItem(symdep_list,i);
+      symdeps[i] = HIID(PyString_AsString(*item));
+      cdebug(3)<<"set_node_active_symdeps: node '"<<pnode->name()<<" symdeps "<<symdeps[i]<<endl;
+    }
+    pnode->setActiveSymDeps(symdeps);
     returnNone;
   }
   catchStandardErrors(NULL);
@@ -146,6 +178,8 @@ static PyMethodDef MeqMethods[] = {
              "sets one field of the node state" },
     { "get_forest_state_field", get_forest_state_field, METH_VARARGS, 
              "returns one field of the forest state" },
+    { "set_node_active_symdeps", set_node_active_symdeps, METH_VARARGS, 
+             "sets the current set of a node's symdeps" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

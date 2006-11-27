@@ -96,8 +96,8 @@ int PyNode::getResult (Result::Ref &resref,
   // by default we treat retval as a Result object
   PyObject * pyobj_result = *retval;
   int retcode = 0;
-  // ..but it can also be a tuple of (Result,retcode)...
-  if( PySequence_Check(*retval) )
+  // ...but it can also be a tuple of (Result,retcode)...
+  if( PySequence_Check(*retval) && !PyMapping_Check(*retval) )
   {
     if( PySequence_Length(*retval) != 2 )
       Throw("Python-side get_result() returned an ill-formed value");

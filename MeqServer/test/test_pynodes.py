@@ -3,6 +3,7 @@ from Timba.TDL import *
 from Timba import pynode
 from Timba import dmi
 from Timba import utils
+from Timba.Meq import meq
 
 import inspect
 
@@ -98,21 +99,35 @@ class PyDemoNode (pynode.PyNode):
       _dprint(0,"child",i,":",dmi.dmi_typename(ch),ch);
     return None;
 
+import random
+
+# This shows a rather more functional PyNode.
+# PyRandom can be configured to return random values using any
+# of the functions in the Python random module.
 
 class PyRandom (pynode.PyNode):
-  import random
+  
+  def __init__ (self,*args):
+    pynode.PyNode.__init__(self,*args);
+    # this tells the caching system what our result depends on
+    self.set_symdeps('domain','resolution');
 
   def update_state (self,mystate):
     # setup distribution type and arguments
-    if mystate('distribution_type','uniform') or mystate('distribution_args',[0.,1.]):
+    got_args = mystate('distribution_args',[0.,1.]);
+    if mystate('distribution_type','uniform') or got_args:
+      # treat 'distribution_type' as a function name, and look for such
+      # a function in the standard random module.
       gen = getattr(random,self.distribution_type,None);
       if not callable(gen):
         raise ValueError,"unknown distribution type '"+self.distribution_type+"'";
       self._generator = gen;
+      # now check distribution arguments
       # single argument converts to single-element tuple
       if isinstance(self.distribution_args,(int,float,complex)):
         self.distribution_args = (self.distribution_args,);
-      # check number of arguments to the specified Python method
+      # use the inspect module to look at the selected function,
+      # and make sure that the given number of arguments matches the function
       narg = len(inspect.getargspec(self._generator)[0]);
       if inspect.ismethod(self._generator):
         narg -= 1;
@@ -121,23 +136,37 @@ class PyRandom (pynode.PyNode):
                           (self.distribution_type,narg,len(self.distribution_args));
                           
   def get_result (self,children,request):
-    _dprint(0,"get_result: request is ",request);
-    _dprint(0,"get_result: children are ",children);
-    return None;
-  
-
+    if len(children):
+      raise TypeError,"this is a leaf node, no children expected!";
+    # make value of same shape as cells
+    cells = request.cells;
+    shape = meq.shape(cells);
+    print "cells shape is",shape;
+    value = meq.vells(shape);
+    # fill in random numbers with the given distribution
+    flat = value.getflat();
+    for i in range(len(flat)):
+      flat[i] = self._generator(*self.distribution_args);
+    return meq.result(meq.vellset(value),cells);
 
 def _define_forest (ns,**kwargs):
   ns.a << Meq.Time;
   ns.b << Meq.Freq;
-  ns.c << ns.a+ns.b;
+  ns.c << Meq.Add(ns.a,ns.b,
+    ns.ran1 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
+                          distribution_type='gauss',distribution_args=(6.,1.)) , \
+    ns.ran2 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
+                          distribution_type='lognormvariate',distribution_args=(6.,1.)) , \
+    ns.ran3 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
+                          distribution_type='gammavariate',distribution_args=(6.,1.)));
+  
   ns.pynode << Meq.PyNode(ns.c,Meq.Sin(ns.b),class_name="PyDemoNode",module_name=__file__);
   
 
 def _test_forest (mqs,parent,**kwargs):
   from Timba.Meq import meq
   # run tests on the forest
-  cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
+  cells = meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=10);
   request = meq.request(cells,rqtype='ev');
   mqs.execute('pynode',request);
 

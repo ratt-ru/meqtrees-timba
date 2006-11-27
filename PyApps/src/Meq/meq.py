@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
+from Timba import dmi
 from Timba.dmi import *
 
 from numarray import *
 from Timba.Meq import meqds
+from Timba import mequtils
 
 domain_ndim = 2;
-domain_axes = ( "freq","time" );
+domain_axes = ( "time","freq" );
 
 _funklet_type = dmi_type('MeqFunklet',record);
 _composedpolc_type = dmi_type('MeqComposedPolc',_funklet_type);
@@ -16,6 +18,8 @@ _domain_type = dmi_type('MeqDomain',record);
 _cells_type = dmi_type('MeqCells',record);
 _request_type = dmi_type('MeqRequest',record);
 _result_type = dmi_type('MeqResult',record);
+_vells_type = dmi_type('MeqVells',array_class);
+_vellset_type = dmi_type('MeqVellSet',record);
 
 def node (classname,name,children=None,groups=None,**kwargs):
   "creates a node record";
@@ -307,53 +311,91 @@ def gen_cells (domain,**kw):
         _resolve_grid(axis,dom,nc,[],[]);
   return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);
   
-  
-# #-- meq.vells() -------------------------------------------------------------
-# # Creates a Meq::Vells
-def vells ():
-  pass;
-  
-# #-- meq.vellsset() -------------------------------------------------------------
-# # Creates a Meq::VellSet
-def vellset ():
-  pass;
 
-# #-- meq.result() -------------------------------------------------------------
-# # Creates a Meq::Result, data should be numarray, matching the cells grid?? 
-def result (cells=None,data=None,rqid=hiid(0)):
-  # decompose domain into axis ranges
-  if cells is not None:
-    if not isinstance(cells,_cells_type):
-      raise TypeError,'cells argument must be a MeqCells object';
+def shape (arg0=None,*args,**kw):
+  """Returns a shape object -- basically just a tuple of dimensions. Can
+  be used as follows:
+    meq.shape(cells)      shape corresponding to Cells
+    meq.shape(vells)      shape of Vells array
+    meq.shape(vellset)    shape of VellSet
+    meq.shape(nfreq,ntime,...)       [nfreq,ntime,...] shape
+    meq.shape(freq=nf,time=nt,...)   [nfreq,ntime,...] shape
+  """;
+  if isinstance(arg0,_cells_type):
+    return shape(**dict([(axis,len(grid)) for axis,grid in arg0.grid.iteritems()]));
+  elif isinstance(arg0,dmi.array_class):
+    return arg0.getshape();
   else:
-    raise ValueError,'cells should be specified';
-
-  if data is None:
-    raise ValueError,'data should be specified';
-
-  # create record
+    # form up shape from arguments
+    if isinstance(arg0,(int,long)):
+      shp = [arg0] + list(args);
+    else:
+      shp = list(args);
+    # now go over keywords
+    for axis,extent in kw.iteritems():
+      iaxis = mequtils.get_axis_number(axis);
+      if iaxis >= len(shp):
+        shp += [1]*(iaxis-len(shp)+1);
+      shp[iaxis] = extent;
+    return shp;
   
-  rec = _result_type(cells = cells,
-                 vellsets      = [record(shape=data.shape,value=data)],
-                 result_code = 0,
-                 request_id = rqid);
-
-  #result assumes axis_map in domain needed for result_plotter
-
-  dom  =  cells.domain;
-  forest_state=meqds.get_forest_state();
-  axis_map=forest_state.axis_map;
-  axis_list = [];
-
-  for i in range(len(axis_map)):
-    if axis_map[i].has_key('id') and axis_map[i]['id']:
-      axis_list.append(str(axis_map[i]['id']).lower());
-  dom['axis_map'] = axis_list;
-
-  rec.cells.domain = dom;
-  return rec;
-
   
+def vells (shape,is_complex=False):
+  """Creates a Meq::Vells of the given shape.""";
+  if is_complex:
+    arr = array(typecode=arr_dcomplex,shape=shape);
+  else:
+    arr = array(typecode=arr_double,shape=shape);
+  return dmi_coerce(arr,_vells_type);
+   
+def complex_vells (shape):
+  return vells(shape,is_complex=True); 
+  
+def vellset (mainval):
+  """Creates a VellSet from the given main value""";
+  return _vellset_type(value=mainval);
+  
+def result (vellset,cells):
+  """Creates a Result from the given VellSet and Cells""";
+  return _result_type(vellsets=[vellset],cells=cells);
+  
+
+# # #-- meq.result() -------------------------------------------------------------
+# # # Creates a Meq::Result, data should be numarray, matching the cells grid?? 
+# def result (cells=None,data=None,rqid=hiid(0)):
+#   # decompose domain into axis ranges
+#   if cells is not None:
+#     if not isinstance(cells,_cells_type):
+#       raise TypeError,'cells argument must be a MeqCells object';
+#   else:
+#     raise ValueError,'cells should be specified';
+# 
+#   if data is None:
+#     raise ValueError,'data should be specified';
+# 
+#   # create record
+#   
+#   rec = _result_type(cells = cells,
+#                  vellsets      = [record(shape=data.shape,value=data)],
+#                  result_code = 0,
+#                  request_id = rqid);
+# 
+#   #result assumes axis_map in domain needed for result_plotter
+# 
+#   dom  =  cells.domain;
+#   forest_state=meqds.get_forest_state();
+#   axis_map=forest_state.axis_map;
+#   axis_list = [];
+# 
+#   for i in range(len(axis_map)):
+#     if axis_map[i].has_key('id') and axis_map[i]['id']:
+#       axis_list.append(str(axis_map[i]['id']).lower());
+#   dom['axis_map'] = axis_list;
+# 
+#   rec.cells.domain = dom;
+#   return rec;
+# 
+#   
 
 _meqdataset_id = 0;
 

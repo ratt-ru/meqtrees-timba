@@ -50,6 +50,7 @@ namespace MeqPython
   extern "C" 
   { 
       PyObject * set_node_state_field (PyObject *, PyObject *args);
+      PyObject * set_node_active_symdeps (PyObject *, PyObject *args);
   }
 
   

@@ -3,6 +3,7 @@
 
 from Timba import dmi
 from Timba import utils
+import meqserver_interface
 
 _dbg = utils.verbosity(0,name='pynode');
 _dprint = _dbg.dprint;
@@ -28,7 +29,7 @@ class PyNode (object):
     
     def __call__ (self,field,default_value=None):
       if field in self.staterec:
-        setattr(pynode,field,self.staterec[field]);
+        setattr(self.pynode,field,self.staterec[field]);
         return True;
       elif self.initializing:
         if default_value is not None:
@@ -58,6 +59,11 @@ class PyNode (object):
   def set_state (self,field,value):
     """Sets the given field of the node's state record."""
     return meqserver_interface.set_node_state_field(self._baton,str(field),value);
+    
+  def set_symdeps (self,*symdeps):
+    """Sets the given field of the node's state record."""
+    symdeps = map(str,symdeps);
+    return meqserver_interface.set_node_active_symdeps(self._baton,symdeps);
     
   def get_forest_state (field):
     """Returns the given field of the forest state record."""

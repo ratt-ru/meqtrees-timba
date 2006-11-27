@@ -28,6 +28,7 @@ class PyNode : public Node
     LocalDebugContext;
     
     friend PyObject * MeqPython::set_node_state_field (PyObject *,PyObject *);
+    friend PyObject * MeqPython::set_node_active_symdeps (PyObject *,PyObject *);
 
   protected:
     //##ModelId=3F9FF6AA0300
