@@ -16,7 +16,7 @@ libmeqserver_la_SOURCES = \
 bin_PROGRAMS   		= meqserver
   
 meqserver_SOURCES	      = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la mequtils.la
+meqserver_LDADD		      = libmeqserver.la 
 # NB: older systems may require -ldl -lutil as well
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 
