@@ -149,6 +149,11 @@ class MeqServer : public DMI::EventRecepient
     void postEvent (const HIID &type,const ObjRef &data = ObjRef());
     void postEvent (const HIID &type,const DMI::Record::Ref &data);
     
+    
+    // returns forest object
+    Forest & getForest ()
+    { return forest; }
+    
     //##ModelId=3F5F195E0156
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
 

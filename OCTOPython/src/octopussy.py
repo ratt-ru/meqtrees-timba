@@ -6,7 +6,9 @@ import DLFCN
 # shared across dynamically-loaded modules
 sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
 
-import Timba.octopython
+import Timba
+if not hasattr(Timba,'octopython'):
+  import Timba.octopython
 octopython = Timba.octopython
 from Timba.dmi import *
 from Timba.utils import *

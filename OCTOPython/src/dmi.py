@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
 import sys
-import DLFCN
+
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
+import DLFCN
 sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
 
 import string

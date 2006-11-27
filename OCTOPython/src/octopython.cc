@@ -208,60 +208,81 @@ static PyMethodDef OctoMethods[] = {
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+
+// -----------------------------------------------------------------------
+// initoctopython
+// standard entrypoint called by Python when loading the module from an .so
+// -----------------------------------------------------------------------
 PyMODINIT_FUNC initoctopython ()
 {
   Debug::Context::initialize();
+  try
+  {
+    initOctoPythonModule();
+  }
+  catch (std::exception &exc)
+  {
+    Py_FatalError(exc.what());
+  }
+}
 
+
+} // extern "C"
+
+
+// -----------------------------------------------------------------------
+// initOctoPythonModule
+// initializes and registers the module. This function can be called
+// from the standard initoctopython() above (when loading module as an
+// .so), or directly, when using an embedded interpreter.
+// Errors are thrown as exceptions
+// -----------------------------------------------------------------------
+void initOctoPythonModule ()
+{
   // init datatypes
   if( PyType_Ready(&PyProxyWPType) < 0 ||
       PyType_Ready(&PyThreadCondType) < 0 ||
       PyType_Ready(&PyLazyObjRefType) )
-    return;
+    Throw("failed to register octopython datatypes");
   
   // init the module
   PyObject *module = Py_InitModule3("octopython", OctoMethods,
         "C++ support module for octopussy.py");
   if( !module )
-    return;
+    Throw("Py_InitModule3(\"octopython\") failed");
   
   // init the DataConversion layer
   initDataConv();
   
   // add types
-  static PyObjectRef proxy_type ((PyObject *)&PyProxyWPType,true); // create new ref
-  PyModule_AddObject(module, "proxy_wp", ~proxy_type); // steals ref
+  PyModule_AddObject(module, "proxy_wp",(PyObject *)&PyProxyWPType); // steals ref
+  PyModule_AddObject(module, "thread_condition",(PyObject *)&PyThreadCondType); // steals ref
+  PyModule_AddObject(module, "lazy_objref",(PyObject *)&PyLazyObjRefType); // steals ref
   
-  static PyObjectRef tc_type((PyObject *)&PyThreadCondType,true); // create new ref
-  PyModule_AddObject(module, "thread_condition", ~tc_type); // steals ref
+  PyObject * timbamod = PyImport_ImportModule("Timba");  // returns new ref
+  PyModule_AddObject(timbamod,"octopython",module);
   
-  static PyObjectRef lor_type((PyObject *)&PyLazyObjRefType,true); // create new ref
-  PyModule_AddObject(module, "lazy_objref", ~lor_type); // steals ref
-  
-  static PyObjectRef timbamod(PyImport_ImportModule("Timba"));  // returns new ref
   if( !timbamod )
   {
     PyErr_Print();
-    Py_FatalError("octopython init error: import of Timba module failed");
-    return;
+    Throw("octopython init error: import of Timba module failed");
   }
-  static PyObjectRef dmimod(PyImport_ImportModule("Timba.dmi")); // new ref
+  PyObject * dmimod = PyImport_ImportModule("Timba.dmi"); // returns new ref
   if( !dmimod )
   {
     PyErr_Print();
-    Py_FatalError("octopython init error: import of dmi module failed");
-    return;
+    Throw("octopython init error: import of Timba.dmi module failed");
   }
-  PyObject * dmidict = PyModule_GetDict(*dmimod); // borrowed ref
+  PyObject * dmidict = PyModule_GetDict(dmimod); // borrowed ref
   if( !dmidict )
   {
-    Py_FatalError("octopython init error: can't access dmi module dict");
-    return;
+    Throw("octopython init error: can't access Timba.dmi module dict");
   }
   
   // PyDict_GetItemString returns borrowed ref, so increment ref count
   #define GetSym(cls) \
     if( ! ( py_dmisyms.cls << PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Py_FatalError("octopython: symbol dmi." #cls " not found"); return; } 
+      { Throw("octopython: symbol dmi." #cls " not found"); }
   
   GetSym(hiid);
   GetSym(message);
@@ -303,11 +324,14 @@ PyMODINIT_FUNC initoctopython ()
   
   // drop out on error
   if( PyErr_Occurred() )
-    Py_FatalError("can't initialize module octopython");
+  {
+    PyErr_Print();
+    Throw("can't initialize module octopython");
+  }
 }
 
 
-} // extern "C"
+
 
 } // namespace OctoPython
 

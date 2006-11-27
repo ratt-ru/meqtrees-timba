@@ -12,7 +12,6 @@
 
 namespace Meq {
   
-
 //##ModelId=3F98DAE503C9
 class PyNode : public Node
 {
@@ -25,10 +24,10 @@ class PyNode : public Node
     virtual TypeId objectType() const
     { return TpMeqPyNode; }
     
-    // changes a state field without 
-    
     //##ModelId=3F9FF6AA016C
     LocalDebugContext;
+    
+    friend PyObject * MeqPython::set_node_state_field (PyObject *,PyObject *);
 
   protected:
     //##ModelId=3F9FF6AA0300

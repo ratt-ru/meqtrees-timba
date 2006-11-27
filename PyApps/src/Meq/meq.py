@@ -306,11 +306,21 @@ def gen_cells (domain,**kw):
     grid[axis],cell_size[axis],segments[axis] = \
         _resolve_grid(axis,dom,nc,[],[]);
   return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);
+  
+  
+# #-- meq.vells() -------------------------------------------------------------
+# # Creates a Meq::Vells
+def vells ():
+  pass;
+  
+# #-- meq.vellsset() -------------------------------------------------------------
+# # Creates a Meq::VellSet
+def vellset ():
+  pass;
 
 # #-- meq.result() -------------------------------------------------------------
 # # Creates a Meq::Result, data should be numarray, matching the cells grid?? 
-#
-def result(cells=None,data = None,rqid=hiid(0)):
+def result (cells=None,data=None,rqid=hiid(0)):
   # decompose domain into axis ranges
   if cells is not None:
     if not isinstance(cells,_cells_type):
@@ -342,97 +352,8 @@ def result(cells=None,data = None,rqid=hiid(0)):
 
   rec.cells.domain = dom;
   return rec;
+
   
-
-
-
-# #-- meq.reclist() -------------------------------------------------------------
-# # Creates a record list from its arguments.
-# # A record list is turned into a DataField of DataRecords on the C++ side.
-# # Arguments may be records or record lists; all arguments are concatenated 
-# # into a single list.
-# # If called with no arguments, returns an empty list.
-# 
-# const meq.reclist := function (...)
-# {
-#   list := [=];
-#   const list::dmi_datafield_content_type := 'DataRecord';
-#   const list::dmi_is_reclist := T;
-#   if( num_args(...) )
-#     for( i in 1:num_args(...) )
-#     {
-#       arg := nth_arg(i,...);
-#       if( !is_record(arg) )
-#         fail 'meq.reclist(): arguments must be records';
-#       # if argument is a reclist, merge wtih list
-#       if( arg::dmi_is_reclist )
-#       {
-#         for( j in 1:len(arg) )
-#           list[spaste('#',len(list)+1)] := arg[j];
-#       }
-#       else # else add to list
-#       {
-#         list[spaste('#',len(list)+1)] := arg;
-#       }
-#     }
-#   return list;
-# }
-# 
-# 
-# #-- meq_private.merge_records()  ------------------------------------------------
-# # private helper function to merge command records
-# 
-# const meq_private.merge_records := function (ref rec,command,value)
-# {
-#   if( is_string(command) )
-#     rec[command] := value;
-#   else if( is_record(command) )
-#     for( f in field_names(command) )
-#       rec[f] := command[f];
-#   else
-#     fail 'command argument must be string or record';
-# }
-# 
-# #-- meq_private.initcmdlist() -------------------------------------------------------------
-# # creates a command list for inclusion in a request
-# 
-# const meq_private.initcmdlist := function ()
-# {
-#   return meq.reclist();
-# }
-# 
-# #-- meq_private.addcmdlist() -------------------------------------------------------------
-# # adds to a command list 
-# 
-# const meq_private.addcmdlist := function (ref cmdlist,node,command,value=F)
-# {
-#   if( !is_record(cmdlist) || !cmdlist::dmi_is_reclist )
-#     cmdlist := meq.reclist();
-#   local cmd;
-#   # resolve command argument
-#   if( is_string(command) )
-#   {
-#     cmd := [=];
-#     cmd[command] := value;
-#   }
-#   else if( is_record(command) )
-#     cmd := command;
-#   else
-#     fail 'command argument must be string or record';
-#   # zero-length node is wildcard
-#   if( len(node) )
-#   {
-#     if( is_integer(node) )
-#       cmd.nodeindex := node;
-#     else if( is_string(node) )
-#       cmd.name := node;
-#     else 
-#       fail 'node must be specified by index or name';
-#   }
-#   cmdlist[spaste('#',len(cmdlist)+1)] := cmd;
-#   return ref cmdlist;
-# }
-# 
 
 _meqdataset_id = 0;
 
@@ -473,78 +394,3 @@ def request (cells=None,rqtype=None,dataset_id=None,rqid=None,eval_mode=None):
     rec.cells = cells;
   return rec;
   
-# #-- meq.add_command() -------------------------------------------------------------
-# # adds a command to a request rider
-# # req:    request to add command to (passed in by ref)
-# # group:  this is the node group that the command is targeted at. Only
-# #         nodes belonging to this group will be checked. Use 'all' for
-# #         all nodes (NB: the 'all' group may be phased out in the future)
-# # node:   specifies the target node. Four options are available:
-# #         (a) empty scalar array (i.e. '[]'): targets command at all nodes   
-# #             (adds it to the command_all list of the rider)
-# #         (b) single integer: assumes this is a node index
-# #             (adds command to the command_by_nodeindex map)
-# #         (c) vector of integers: assumes these are node indices
-# #             (adds command to command_by_list, with a nodeindex key)
-# #         (d) one or more strings: assumes node names
-# #             (adds command to command_by_list, with a name key)
-# #         (e) empty string array (""): adds a wildcard entry to 
-# #             command_by_list, which will match all nodes not matched
-# #             by a previous entry.
-# # command: string command (used as field name in the maps), or a command 
-# #         record. If a string is used, then the record is extended with 
-# #         field command=value. If a record is used, then value is ignored.
-# const meq.add_command := function (ref req,group,node,command,value=F)
-# {
-#   # add node_state and group subrecord
-#   if( !has_field(req,'rider') )
-#     req.rider := [=];
-#   if( !has_field(req.rider,group) )
-#     req.rider[group] := [=];
-#   ns := ref req.rider[group];
-#   if( !is_integer(node) && !is_string(node) )
-#     fail 'node must be specified by index or name(s)';
-#   # empty node argument: add to command_all list
-#   if( len(node) == 0 )
-#   {
-#     if( !has_field(ns,'command_all') )
-#       ns.command_all := [=];
-#     mqs_private.merge_records(ns.command_all,command,value);
-#   }
-#   # single nodeindex: add to command_by_nodeindex map
-#   else if( is_integer(node) && len(node)==1 ) 
-#   {
-#     if( !has_field(ns,'command_by_nodeindex') )
-#       ns.command_by_nodeindex := [=];
-#     key := spaste('#',as_string(node));
-#     if( !has_field(ns.command_by_nodeindex,key) )
-#       ns.command_by_nodeindex[key] := [=];
-#     mqs_private.merge_records(ns.command_by_nodeindex[key],command,value);
-#   }
-#   else # multiple indices or names: add to command_by_list map
-#   {
-#     if( !has_field(ns,'command_by_list') )
-#       ns.command_by_list := meq_private.initcmdlist();
-#     meq_private.addcmdlist(ns.command_by_list,node,command,value);
-#   }
-#   return T;
-# }
-# 
-# #-- meq.add_state() -------------------------------------------------------------
-# # shortcut for adding state change command to a request rider
-# 
-# const meq.add_state := function (ref req,group,node,state)
-# {
-#   return add_command(req,group,node,'state',state);
-# }
-# 
-# 
-# #-- meq.solvable_list() -------------------------------------------------------------
-# # creates a command list to set the names parms solvable
-# 
-# const meq.solvable_list := function (names)
-# {
-#   return [ command_by_list=
-#             meq.reclist([name=names,state=[solvable=T]],
-#                         [state=[solvable=F]]) ];
-# }

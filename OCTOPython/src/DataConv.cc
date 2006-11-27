@@ -932,6 +932,11 @@ PyObject * pyConvError (const string &msg)
 // -----------------------------------------------------------------------
 void initDataConv ()
 {
+  static bool initialized = false;
+  if( initialized )
+    return;
+  initialized = true;
+  
   if( sizeof(bool) != sizeof(NumarrayBool) )
   {
     Py_FatalError("C++ bool != numarray bool, conversion code must be implemented");

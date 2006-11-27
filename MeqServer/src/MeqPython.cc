@@ -1,5 +1,6 @@
 #include "MeqPython.h"
 #include <MeqServer/MeqServer.h>    
+#include <MeqServer/MeqUtils.h>    
 #include <MeqServer/PyNode.h>
 
 #include <stdio.h>
@@ -28,6 +29,7 @@ extern "C"
 
 // -----------------------------------------------------------------------
 // mqexec ()
+// Python method to execute an arbitrary MeqServer command
 // -----------------------------------------------------------------------
 static PyObject * mqexec (PyObject *, PyObject *args)
 {
@@ -58,11 +60,92 @@ static PyObject * mqexec (PyObject *, PyObject *args)
 }
 
 // -----------------------------------------------------------------------
+// get_node_state_field ()
+// Python method to access node state
+// -----------------------------------------------------------------------
+static PyObject * get_node_state_field (PyObject *, PyObject *args)
+{
+  PyObject * node_baton;
+  char * field_str;
+  if( !PyArg_ParseTuple(args, "Os",&node_baton,&field_str) )
+    return NULL;
+  // catch all exceptions below
+  try 
+  {
+    FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
+    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    FailWhen(!pnode,"get_node_state_field: first argument must be a valid node baton");
+    HIID field(field_str);
+    cdebug(3)<<"get_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
+    ObjRef ref = pnode->syncState()[field].ref();
+    return pyFromDMI(*ref);
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+// -----------------------------------------------------------------------
+// set_node_state_field ()
+// Python method to change node state
+// -----------------------------------------------------------------------
+PyObject * set_node_state_field (PyObject *, PyObject *args)
+{
+  PyObject *node_baton, *value;
+  char * field_str;
+  if( !PyArg_ParseTuple(args, "OsO",&node_baton,&field_str,&value) )
+    return NULL;
+  // catch all exceptions below
+  try 
+  {
+    FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
+    PyNode * pnode = static_cast<PyNode*>(PyCObject_AsVoidPtr(node_baton));
+    FailWhen(!pnode,"get_node_state_field: first argument must be a valid node baton");
+    HIID field(field_str);
+    cdebug(3)<<"set_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
+    ObjRef ref;
+    pyToDMI(ref,value);
+    pnode->wstate()[field].replace() = ref;
+    returnNone;
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+// -----------------------------------------------------------------------
+// get_forest_state_field ()
+// Python method to access forest state
+// -----------------------------------------------------------------------
+static PyObject * get_forest_state_field (PyObject *, PyObject *args)
+{
+  char * field_str;
+  if( !PyArg_ParseTuple(args, "s",&field_str) )
+    return NULL;
+  if( !pmqs )
+    returnError(NULL,OctoPython,"meqserver not initialized");
+  // catch all exceptions below
+  try 
+  {
+    HIID field(field_str);
+    cdebug(3)<<"get_forest_state_field: field "<<field<<endl;
+    ObjRef ref = pmqs->getForest().state()[field].ref();
+    return pyFromDMI(*ref);
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+// -----------------------------------------------------------------------
 // Module initialization
 // -----------------------------------------------------------------------
 static PyMethodDef MeqMethods[] = {
     { "mqexec", mqexec, METH_VARARGS, 
              "issues a MeqServer command" },
+    { "get_node_state_field", get_node_state_field, METH_VARARGS, 
+             "returns one field of the node state" },
+    { "set_node_state_field", set_node_state_field, METH_VARARGS, 
+             "sets one field of the node state" },
+    { "get_forest_state_field", get_forest_state_field, METH_VARARGS, 
+             "returns one field of the forest state" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -93,12 +176,15 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 // -----------------------------------------------------------------------
 PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const string &modulename)
 {
-  PyObjectRef pynode_ptr = PyCObject_FromVoidPtr(&pynode,0);
-  PyObjectRef args = Py_BuildValue("(Oss)",*pynode_ptr,classname.c_str(),modulename.c_str());
+  PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
+  PyObjectRef args = Py_BuildValue("(Osss)",*pynode_baton,pynode.name().c_str(),classname.c_str(),modulename.c_str());
   FailWhen(!args,"failed to build args tuple");
   PyObjectRef val = PyObject_CallObject(create_pynode,*args);
   if( !val )
+  {
     PyErr_Print();
+    Throw("failed to create PyNode of class "+classname+" ("+modulename+")");
+  }
   return val;
 }
 
@@ -191,6 +277,13 @@ void initMeqPython (MeqServer *mq)
   meq_initialized = true;
   // init Python
   Py_Initialize();
+  
+  // import the octopython and mequtils modules -- we don't want Python to pull 
+  // in the shared lib, but would rather use our (linked in) version. Doing 
+  // anything else causes problems with C++ RTTI symbols.
+  OctoPython::initOctoPythonModule();
+  MeqUtils::initMeqUtilsModule();
+  
   // register ourselves as a module
   PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
             "interface to the MeqServer object");

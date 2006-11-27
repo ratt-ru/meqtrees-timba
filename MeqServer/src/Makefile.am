@@ -2,28 +2,25 @@ CXXFLAGS += -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 dmi_dir = $(lofar_sharedir)/../DMI
 
-LDFLAGS += -L/usr/lib -Wl,-v
-
-## these ought to be brought in via configure
-# LIBS += -llapack -lblas -lg2c -lfftw3
-
 lib_LTLIBRARIES = libmeqserver.la
 
-DOCHDRS = MeqServer.h MeqPython.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h PyNode.h
+DOCHDRS = MeqServer.h MeqPython.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h PyNode.h MeqUtils.h
 
 libmeqserver_la_SOURCES = \
   AID-MeqServer-Registry.cc \
-  MeqServer.cc MeqPython.cc \
+  MeqServer.cc MeqPython.cc mequtils.cc \
   VisDataMux.cc \
   VisHandlerNode.cc \
   Sink.cc Spigot.cc PyNode.cc
-  
+
 bin_PROGRAMS   		= meqserver
   
-meqserver_SOURCES		    = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la 
+meqserver_SOURCES	      = meqserver.cc
+meqserver_LDADD		      = libmeqserver.la mequtils.la
 # NB: older systems may require -ldl -lutil as well
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
+
+
 
 check_PROGRAMS = octolistener
 

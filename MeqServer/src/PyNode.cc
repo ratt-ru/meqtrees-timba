@@ -26,12 +26,13 @@ PyNode::~PyNode()
 //##ModelId=3F9918390169
 void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
+  Node::setStateImpl(rec,initializing);
   if( initializing )
   {
     string classname  = rec[FClassName].as<string>(); 
     string modulename = rec[FModuleName].as<string>(""); 
     pynode_obj_ = MeqPython::createPyNode(*this,classname,modulename);
-    pynode_setstate_ = PyObject_GetAttrString(*pynode_obj_,"set_state");
+    pynode_setstate_ = PyObject_GetAttrString(*pynode_obj_,"set_state_impl");
     pynode_getresult_ = PyObject_GetAttrString(*pynode_obj_,"get_result");
   }
   else
@@ -51,6 +52,15 @@ void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     {
       PyErr_Print();
       Throw("Python-side set_state() method failed");
+    }
+    // now, if the set_state_impl method returned a non-false object,
+    // this must be a record of state fields to be merged into 'rec'
+    if( PyObject_IsTrue(*val) )
+    {
+      ObjRef objref;
+      OctoPython::pyToDMI(objref,*val);
+      const DMI::Record &newrec = objref.as<DMI::Record>();
+      rec().merge(newrec,true);
     }
   }
 }
@@ -76,19 +86,26 @@ int PyNode::getResult (Result::Ref &resref,
   PyObjectRef args = Py_BuildValue("(OO)",*chres_tuple,*pyreq);
   FailWhen(!args,"failed to build args tuple");
   // call get_result() method
-  PyObjectRef retval = PyObject_CallObject(*pynode_setstate_,*args);
+  PyObjectRef retval = PyObject_CallObject(*pynode_getresult_,*args);
   if( !retval )
   {
     PyErr_Print();
     Throw("Python-side get_result() method failed");
   }
-  // extract return value
-  PyObject * pyobj_result;
-  int retcode;
-  if( !PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode) )
+  // else extract return value
+  // by default we treat retval as a Result object
+  PyObject * pyobj_result = *retval;
+  int retcode = 0;
+  // ..but it can also be a tuple of (Result,retcode)...
+  if( PySequence_Check(*retval) )
   {
-    PyErr_Print();
-    Throw("Python-side get_result() returned an ill-formed value");
+    if( PySequence_Length(*retval) != 2 )
+      Throw("Python-side get_result() returned an ill-formed value");
+    if( !PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode) )
+    {
+      PyErr_Print();
+      Throw("Python-side get_result() returned an ill-formed value");
+    }
   }
   // None corresponds to empty result
   if( pyobj_result == Py_None )

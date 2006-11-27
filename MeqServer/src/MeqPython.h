@@ -45,6 +45,13 @@ namespace MeqPython
   
   // testing function -- converts object to python object, then discards
   void testConversion   (const BObj &obj);
+
+  // visible here because we use it in a friend declaration (see PyNode.h)
+  extern "C" 
+  { 
+      PyObject * set_node_state_field (PyObject *, PyObject *args);
+  }
+
   
   // -----------------------------------------------------------------------
   // Various internal declarations

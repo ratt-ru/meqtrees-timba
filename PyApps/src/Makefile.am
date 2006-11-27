@@ -5,7 +5,7 @@ lib_LTLIBRARIES = mequtils.la
 DOCHDRS = 
 
 mequtils_la_SOURCES = \
-  mequtils.cc
+  mequtils_symlink.cc
   
 mequtils_la_LDFLAGS = -module
 

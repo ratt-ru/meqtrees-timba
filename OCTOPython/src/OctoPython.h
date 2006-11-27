@@ -36,6 +36,9 @@ namespace OctoPython
   // error policy for data conversion functions
   typedef enum { EP_THROW,EP_RETNULL,EP_CONV_ERROR } ErrorPolicy;
   
+  // initializes octopython module -- can also be called from elsewhere
+  // when embedding the interpreter
+  void initOctoPythonModule ();
   // initializes conversion layer (needed for numarray mostly)
   void initDataConv ();
   
