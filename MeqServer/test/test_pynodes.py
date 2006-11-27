@@ -106,12 +106,11 @@ import random
 # of the functions in the Python random module.
 
 class PyRandom (pynode.PyNode):
-  
   def __init__ (self,*args):
     pynode.PyNode.__init__(self,*args);
     # this tells the caching system what our result depends on
     self.set_symdeps('domain','resolution');
-
+    
   def update_state (self,mystate):
     # setup distribution type and arguments
     got_args = mystate('distribution_args',[0.,1.]);
@@ -148,6 +147,15 @@ class PyRandom (pynode.PyNode):
     for i in range(len(flat)):
       flat[i] = self._generator(*self.distribution_args);
     return meq.result(meq.vellset(value),cells);
+    
+class PyRFI (pynode.PyNode):
+  def evaluate (self,request,childres):
+    # pick random timeslot for RFI
+    value = childres[0];
+    itime = random.randint(value.shape[0]);
+    value[itime] = 999;
+    return value;
+    
 
 def _define_forest (ns,**kwargs):
   ns.a << Meq.Time;
@@ -159,8 +167,9 @@ def _define_forest (ns,**kwargs):
                           distribution_type='lognormvariate',distribution_args=(6.,1.)) , \
     ns.ran3 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
                           distribution_type='gammavariate',distribution_args=(6.,1.)));
-  
-  ns.pynode << Meq.PyNode(ns.c,Meq.Sin(ns.b),class_name="PyDemoNode",module_name=__file__);
+
+  ns.rfi <<  Meq.PyFunctionNode(class_name="PyRFI",module_name=__file__);
+  ns.pynode << Meq.PyNode(ns.rfi,Meq.Sin(ns.b),class_name="PyDemoNode",module_name=__file__);
   
 
 def _test_forest (mqs,parent,**kwargs):

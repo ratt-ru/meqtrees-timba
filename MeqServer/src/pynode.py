@@ -3,7 +3,10 @@
 
 from Timba import dmi
 from Timba import utils
-import meqserver_interface
+try:
+  import meqserver_interface
+except:
+  pass;
 
 _dbg = utils.verbosity(0,name='pynode');
 _dprint = _dbg.dprint;
