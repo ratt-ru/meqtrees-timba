@@ -317,11 +317,10 @@ public:
   virtual void changeSolveDomain(const std::vector<double> & solveDomain){};
 
 
-  //reimplement in FuncTest (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
-  virtual Funklet::Ref getState(){
- 
-    Funklet::Ref funkref;
-    funkref<<=this;
+  //reimplement in  (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
+  virtual Record::Ref getState(){
+    Record::Ref funkref;
+    funkref<<=new Record(*this);
     return funkref;
   }
 

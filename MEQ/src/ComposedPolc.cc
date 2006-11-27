@@ -13,8 +13,8 @@ namespace Meq {
   ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double pert,double weight,DbId id):Polc(*funklets.begin()),nr_funklets_(funklets.size())
   {
     //   cdebug(3)<<"creating composed polc"<<endl;
-    
-    (*this)[AidClass].replace() = "MeqComposedPolc";
+    (*this)[FClass]=objectType().toString();
+   
     initFunklets(funklets);
   }
 
@@ -22,23 +22,23 @@ namespace Meq {
   ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) : 
     Polc(other,flags,depth),nr_funklets_(other.nr_funklets_)
   {
+    (*this)[FClass]=objectType().toString();
     for(int i=0;i<Axis::MaxAxis;i++)
       axisHasShape_[i]=other.axisHasShape_[i];
-    (*this)[AidClass].replace() = "MeqComposedPolc";
   }
 
   ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) : 
     Polc(other,flags,depth),nr_funklets_(0)
   {
-    (*this)[AidClass].replace() = "MeqComposedPolc";
+    (*this)[FClass]=objectType().toString();
     
   }
   
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
     Polc(pert,weight,id),nr_funklets_(0)
    {
+    (*this)[FClass]=objectType().toString();
       
-    (*this)[AidClass].replace() = "MeqComposedPolc";
    }
 
 void ComposedPolc::validateContent (bool recursive)    
@@ -114,8 +114,7 @@ void ComposedPolc::validateContent (bool recursive)
     funklist <<= new  DMI::List();
 
     std::sort(funklets.begin(),funklets.end(),compareDomain);
-    Domain::Ref domref;
-    Domain newdom = domref<<= new Domain();
+    Domain newdom;
     for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
       {
 	FailWhen(!(*funkIt).valid(),"this is not a valid funkIt");

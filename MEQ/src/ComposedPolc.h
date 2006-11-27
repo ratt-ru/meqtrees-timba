@@ -121,7 +121,7 @@ namespace Meq
   
   //define  compare functions, for sorting
 
-  static bool compareDomain(const Polc::Ref & f1, const Polc::Ref & f2)
+  static bool compareDomain(const Funklet::Ref & f1, const Funklet::Ref & f2)
   {
     if(f1 == f2) return 0;
     

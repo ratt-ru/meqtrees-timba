@@ -39,7 +39,7 @@
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert Use Previous Reset
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override Policy Discover Spids Map Eval Mode Incr
-#pragma aid Iteration Solution Dataset Next Service Sequence
+#pragma aid Iteration Solution Dataset Next Service Sequence Spline
 #pragma aid Tile Tiled Tiles Tiling Sizes Constrain Force Positive Negative Cyclic Min Max Lib
 
 

@@ -7,7 +7,7 @@ LOCALSRCS = \
   Vells.cc VellSet.cc VellsSlicer.cc Result.cc \
   Funklet.cc Polc.cc ComposedPolc.cc PolcLog.cc \
   Node.cc NodeNursery.cc Function.cc TensorFunction.cc \
-  Rider.cc SymdepMap.cc Forest.cc MTPool.cc
+  Rider.cc SymdepMap.cc Forest.cc MTPool.cc Spline.cc
 
 ## removed for now, as it needs to be re-worked for the new Vells
 ## structure
