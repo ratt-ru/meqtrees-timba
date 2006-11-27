@@ -12,6 +12,8 @@ DMI::BObj * __construct_MeqSink (int n) { return n>0 ? new Meq::Sink [n] : new M
 DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : new Meq::Spigot; }
 #include "PyNode.h"
 DMI::BObj * __construct_MeqPyNode (int n) { return n>0 ? new Meq::PyNode [n] : new Meq::PyNode; }
+#include "PyFunctionNode.h"
+DMI::BObj * __construct_MeqPyFunctionNode (int n) { return n>0 ? new Meq::PyFunctionNode [n] : new Meq::PyFunctionNode; }
     using namespace DMI;
   
     int aidRegistry_MeqServer ()
@@ -139,6 +141,9 @@ DMI::BObj * __construct_MeqPyNode (int n) { return n>0 ? new Meq::PyNode [n] : n
         DynamicTypeManager::addToRegistry(-1705,__construct_MeqPyNode)+
         AtomicID::registerId(-1371,"Class")+
         AtomicID::registerId(-1706,"Module")+
+        AtomicID::registerId(-1707,"MeqPyFunctionNode")+
+        TypeInfoReg::addToRegistry(-1707,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1707,__construct_MeqPyFunctionNode)+
     0;
     return res;
   }

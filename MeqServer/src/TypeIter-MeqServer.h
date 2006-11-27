@@ -21,7 +21,8 @@
         Do(Meq::VisDataMux,arg) separator \
         Do(Meq::Sink,arg) separator \
         Do(Meq::Spigot,arg) separator \
-        Do(Meq::PyNode,arg)
+        Do(Meq::PyNode,arg) separator \
+        Do(Meq::PyFunctionNode,arg)
 
 #define DoForAllNumericTypes_MeqServer(Do,arg,separator) \
         
