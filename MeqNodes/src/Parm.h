@@ -28,6 +28,7 @@
 #include <MEQ/Funklet.h>
 #include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/ComposedPolc.h>
+#include <MEQ/Spline.h>
 #include <MEQ/Polc.h>
 #include <MEQ/PolcLog.h>
 
@@ -91,6 +92,7 @@ namespace Meq {
     FUsePrevious = AidUse|AidPrevious,
     FTileSize = AidTile|AidSize,
     FTiling = AidTiling,
+    FSpline = AidSpline,
     FInitFunklet  = AidInit|AidFunklet,
     FConverged  = AidConverged,
     FSaveAll  = AidSave|AidAll,
@@ -160,6 +162,7 @@ namespace Meq {
     LocalDebugContext;
 
   protected:
+    Funklet * initSplineFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
     Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
     bool checkTiledFunklet(Funklet::Ref &funkletref,std::vector<Domain::Ref> domainV);
     // checks if current funklet can be reused
@@ -188,10 +191,12 @@ namespace Meq {
     bool auto_save_;
     bool tiled_;//true for tiled solvables
     int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
+    bool splined_;//true for spline funklet
+    int splining_[Axis::MaxAxis]; //vector containing spline_sizes per axis (<= 0 means no splining)
     bool _use_previous;// if available use previous funklet,  instead of default_funklet
 
     bool converged_; // only use previous if previous solution converged..
-    bool ignore_convergence_; // only use previous if previous solution converged..
+    bool ignore_convergence_; // also use previous if previous solution did not converge..
 
     bool reset_funklet_;//reset funklet instead of using values from database
     bool ignore_time_;// if true time stamp is ignored when retrieving from ParmDB

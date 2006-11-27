@@ -59,6 +59,7 @@ namespace Meq {
       solvable_ (false),
       auto_save_(false),
       tiled_ (false),
+      splined_ (false),
       _use_previous(true),
       converged_(false),
       ignore_convergence_(false),
@@ -228,6 +229,42 @@ namespace Meq {
 
     return nr;
   }
+ 
+  Funklet * Parm::initSplineFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){//divide domain, to get coeff shape + dx per axis
+    //if splined funklet is also tiled, first get the size of the tiled domains, then the number of coeffs
+    //if shape is 1,1 just use a polc...
+    
+    LoShape shape;
+    shape.resize(MaxSplineRank);
+    shape.assign(MaxSplineRank,1);
+    int rank_nr=-1;//save the largest rank
+    for(int axis=cells.rank()-1;axis>=0;axis--){
+      shape[axis]=1;
+      if(splining_[axis]<=0) continue; //not splined in this direction
+      int nr_cells=cells.ncells(axis);
+      if (tiled_ and tiling_[axis]>0)
+	{//first tile than spline
+	  nr_cells =  tiling_[axis];
+	}
+      if(nr_cells <=splining_[axis]) //spline of 1 point is just a constant polc
+	continue;
+      int nr_spline_points = nr_cells/splining_[axis];
+      if (nr_spline_points<=1) continue; 
+      if(rank_nr<0) rank_nr = axis+1;
+      //dx = ((domain_size/splining_[axis] , can be calculated in Spline.cc?? yes because Cells are known)
+      shape[axis]=nr_spline_points;
+    }
+    if(rank_nr<0) return funkletref.dewr_p();
+    shape.resize(rank_nr);//does it remember its coeff's??
+    DMI::NumArray::Ref coeff;
+    coeff<<= &funkletref->coeffWr();
+    Spline * cpolc =new Spline(coeff.dewr_p(),domain);
+    cpolc->setCoeffShape(shape);
+    funkletref<<=cpolc;
+    return cpolc;
+    
+  }
+
 
   void Parm::GetTiledDomains(Domain::Ref & domain, const Cells & cells,vector<Domain::Ref> & domainV){
     //   vector<Domain> domainV; //create vector of domains..1 per funklettile
@@ -389,14 +426,20 @@ namespace Meq {
 	// reuse the funklet if domain and dataset do not change
          if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
           {
-	    if(!tiled_ || (rq_res_id == res_id_)){
+	    if(!(tiled_||splined_) || (rq_res_id == res_id_)){
 	      cdebug(3)<<"current funklet request ID matches, re-using"<<endl;
 	      return its_funklet_.dewr_p();
 	    }
 	    else{
-	      //resolution has changed, reinit tiled funklet?
+	      //resolution has changed, reinit tiled/spline funklet?
+	      Funklet *newfunklet;
+	      if(splined_)
+		{
+		  newfunklet =  initSplineFunklet(funkref,domain,cells);
+		  funkref<<=newfunklet;
+		}
 	      //only if the funklet doesnt match (resolution can change in non-tiling direction)
-	      Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
+	      newfunklet = initTiledFunklet(funkref,domain,cells);
 	      funkref().setDomain(domain);
 	      its_funklet_<<=funkref;
 	      wstate()[FFunklet].replace() = its_funklet_().getState();
@@ -406,7 +449,7 @@ namespace Meq {
 	  }
  
         // (b) no domain in funklet (i.e. effectively infinite domain of applicability)
-        if( ! tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
+	 if( ! (tiled_ ||splined_)&& (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
           {
             cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
             wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -420,7 +463,7 @@ namespace Meq {
             return its_funklet_.dewr_p();
           }
         // (c) funklet domain is a superset of the requested domain
-        if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
+	 if(!(tiled_||splined_) && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
           {
             cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
 	    if(pfunklet->domain().start(0)!=domain.start(0) || pfunklet->domain().start(1)!=domain.start(1) ||
@@ -465,6 +508,12 @@ namespace Meq {
 	funkref<<=pfunklet;
       }
     
+    if(splined_ && isSolvable()){
+
+        cdebug(3)<<"splining funklet, "<<endl;
+        Funklet *newfunklet = initSplineFunklet(funkref,domain,cells);
+	cdebug(3)<<"found relevant funklet,after splining type "<<newfunklet->objectType()<<endl;
+      }
     if(tiled_ && isSolvable()){
 
         cdebug(3)<<"tiling funklet, "<<endl;
@@ -486,7 +535,6 @@ namespace Meq {
     return its_funklet_.dewr_p();
     
    
-    //MMMMreimplement
   }
 
 
@@ -646,6 +694,16 @@ namespace Meq {
 	if(!tiled_&&tiling_[i]) tiled_=true;
       }
     }
+    const DMI::Record *spline = rec[FSpline].as_po<DMI::Record>();
+    if(spline){
+      for(int i=0;i<Axis::MaxAxis;i++){
+	splining_[i]=0;
+	(*spline)[Axis::axisId(i)].get(splining_[i],0);
+      
+	if(!splined_&&splining_[i]) {splined_=true; force_shape_=false;}
+	
+      }
+    }
 
     // recompute depmasks if active sysdeps change
     if( rec[FDomainSymDeps].get_vector(domain_symdeps_,initializing) )
@@ -711,7 +769,7 @@ namespace Meq {
 	   shape_=LoShape(shape[0],shape[1]);
 	 else
 	   shape_=LoShape(shape[0],1);
-	 force_shape_=true;
+	 force_shape_=!splined_; //if splined, force_shape cannot be applied
 	   
        }
 

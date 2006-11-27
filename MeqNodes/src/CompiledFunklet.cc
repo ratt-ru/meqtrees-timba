@@ -16,6 +16,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
   CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id):
     Funklet(pert,weight,id)
   {
+    (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
@@ -31,6 +32,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
   CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth):
     Funklet(other,flags,depth)
   {
+    (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
@@ -46,6 +48,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
   CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth):
     Funklet(other,flags,depth),Npar(other.Npar),Ndim(other.Ndim)
   {
+    (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   
     itsFunction=new casa::CompiledFunction<casa::Double>((*other.itsFunction));
