@@ -1,3 +1,5 @@
+# Author : Paul Kemper (PXK)
+#
 # History:
 # - 2006.10.23: creation
 # - 2006.10.24: added EJones - wsrt beam cos^3(pi/2 rD/lambda)
@@ -19,7 +21,11 @@
 # - 2006.11.06: splitted pxk_sourcelist.py from this file
 # - 2006.11.07: moved all Jones matrices to pxk_jones.py
 #               added RJones: Errors In Maps
-# - 2006.11.08: added QJonesto pxk_jones.py: for test purposes only!
+# - 2006.11.08: added QJones to pxk_jones.py: for test purposes only!
+#               added DJones to pxk_jones.py
+# - 2006.11.17: separated uv-plane from image-plane effects in JM
+# - 2006.11.27: moved creation of truesky to define forest
+
 
 
 
@@ -33,14 +39,16 @@ import random
 import pxk_manual
 import pxk_sourcelist
 import pxk_tools
-import pxk_jones
+from   pxk_jones import *
+import pxk_zjones
+
 
 
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,60,120,240,720]) 
 Meow.Utils.include_imaging_options() 
-TDLCompileOption('arcmin',    "FOV (arcmin)",[1,5,10,30,60,90,120],default=3)
+TDLCompileOption('arcmin',    "FOV (arcmin)",[1,2,5,10,30,60,90,120],default=3)
 TDLCompileOption('antennas',  "antennas    ",[14, 27], default=0) 
 TDLCompileOption('data_input',"input       ", ['model', 'data']),
 TDLCompileOption('residual',  "residual    ",[False, True])
@@ -54,43 +62,46 @@ ANTENNAS   = range(1,antennas+1)
 
 
 ########################################################################
-"""
-(!) why is PJones not always 1 for WSRT measurement? Should I simply
-    not apply it then?
-"""
-
 def _define_forest (ns):
   print "\n____________________________________________________________"
-  #pxk_manual.KGE(ns, ANTENNAS)
 
   array       = Meow.IfrArray(ns,ANTENNAS)  # create Array object
   observation = Meow.Observation(ns)        # create Observation object
-
-  # Make Patches
-  patch       = Meow.Patch(ns,'corrupt', observation.phase_centre) 
+  patch       = Meow.Patch(ns,'predict', observation.phase_centre) 
+  model       = Meow.Patch(ns,'truesky', observation.phase_centre)
   
   # create source list
-  source_list     = pxk_sourcelist.SourceList(
-    ns, kind='cross', lm0=(1e-100,0), nsrc=0)
-  source_list_all = pxk_sourcelist.SourceList(LIST = source_list)
-  
-  # patch with Jones matrices # Jones = ["E", "P", "D", "G", "R"]
-  Jones = ["R"]
-  if "E" not in Jones: patch.add(*source_list.sources)
-  for J in Jones:
-    if J=="E": patch = pxk_jones.EJones(ns,patch,source_list)
-    if J=="P": patch = pxk_jones.PJones(ns,patch,array, observation)
-    if J=="D": patch = pxk_jones.DJones(ns,patch,array)
-    if J=="G": patch = pxk_jones.GJones(ns,patch,array, damp=0,dphi=0)
-    if J=="R": patch = pxk_jones.RJones(ns,patch,array, "3.6")
-    if J=="Q": patch = pxk_jones.QJones(ns,patch,array)
-    pass
+  slist       = pxk_sourcelist.SourceList(ns, LM=[(1E-100,0)], Q=0.2)
+  s_all       = slist.copy()
 
+  # apply source-DE-pendent image-plane effects
+  J = ["Z", "M"]
+  if "E" in J:
+    slist = EJones(ns,slist)
+    s_all = EJones(ns,s_all, residual=1)
+    pass
+  if "F" in J: slist = FJones(ns,slist,array, observation)
+  if "Z" in J: slist = pxk_zjones.ZJones(ns,slist,array, observation)
+  if "T" in J: pass
+  patch.add (*slist.sources)
+  model.add (*s_all.sources)
+  
+  # apply source-IN-dependent uv-plane effects
+  if "P" in J: patch = PJones(ns,patch,array, observation)
+  if "B" in J: patch = BJones(ns,patch,array)
+  if "D" in J: patch = DJones(ns,patch,array)
+  if "G" in J: patch = GJones(ns,patch,array)
+  if "R" in J: patch = RJones(ns,patch,array, "3.7")
+  if "M" in J:
+    patch = MJones(ns,patch,array)
+    model = MJones(ns,model,array, residual=1)
+    pass
   
   # create set of nodes to compute visibilities
-  predict     = patch.visibilities(array,observation) 
+  predict = patch.visibilities(array,observation) 
+  truesky = model.visibilities(array,observation)
   
-  write_data(ns, array, observation, predict, Jones, source_list_all)
+  write_data(ns, array, observation, predict, truesky)
   pass
 
 
@@ -108,29 +119,17 @@ def get_data(ns, array):
   pass
 
 
-def write_data (ns, array, observation, predict, Jones=[],
-                source_list_all=None):
-  """ Write the data. If residual==1, then first the uncorrupted model
-  is calculated, for which the beam IS applied first. In that case the
-  uncorrupted source_list_all must be supplied.
+def write_data (ns, array, observation, predict, model=None):
+  """ Create nodes for writing the data. If residual==1, then model
+  must also be supplied.
   """
-  
   if residual:
-    # create uncorrupted sky model
-    uncorrupted = Meow.Patch(ns,'truesky', observation.phase_centre)
-    if "E" in Jones:
-      uncorrupted = pxk_jones.EJones(
-        ns, uncorrupted, source_list_all, residual=1)
-      pass
-    else: uncorrupted.add(*source_list_all.sources)
-    
-    print "___ Writing residuals"
-    model       = uncorrupted.visibilities(array,observation)
+    print "___ Creating residuals nodes"
     output      = ns.residual
     for p,q in array.ifrs(): output(p,q) << predict(p,q) - model(p,q)
     pass
   else:
-    print "___ Writing corrupted data"
+    print "___ Creatting corrupted nodes"
     output = predict
     pass
 

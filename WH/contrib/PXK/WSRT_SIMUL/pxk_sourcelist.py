@@ -1,6 +1,9 @@
 # History:
 # - 2006.11.06: creation
-
+# - 2006.11.20: changed SourceList.custum_model a bit
+# - 2006.11.23: added SourceList.copy()
+#               added LM()
+#               added SourceList.add_random()
 
 
 
@@ -12,6 +15,22 @@ import math
 import Meow
 import random
 import pxk_tools
+
+
+
+########################################################################
+def LM(kind='circle', r=7, lm0=(0,0), nsrc=3, offset=-0.5*math.pi):
+  """ create LM coordinate list
+  """
+  if kind=='circle':
+    LM          = [(0,0)]
+    for i in range(nsrc):
+      th = offset + math.pi*2*i/nsrc
+      LM.append((lm0[0] + r*math.cos(th),
+                 lm0[1] + r*math.sin(th)))
+      pass
+    pass
+  return LM
 
 
 
@@ -28,7 +47,7 @@ class SourceList:
 
   def __init__ (self, ns=None, kind='custom',
                 lm0=(0,0), dlm=(5,5), nsrc=2, LM=[(0,0)],
-                I=1,  Q=0,  U=0,  V=0, LIST=None):
+                I=1,  Q=0,  U=0,  V=0, LIST=None, LM_list=None):
     """ Create list of sources
     """
     self.sources     = []
@@ -59,12 +78,21 @@ class SourceList:
       pass
     pass
 
+  def test(self):
+    return [(1,0)]
+
+
   def copy_list(self, LIST):
     print "___ Copying SourceList"
     self.sources = [src for src in LIST.sources]
     self.LM      = [lm  for lm  in LIST.LM]
     pass
-  
+
+  def copy(self):
+    """ create copy of list and return it """
+    list_copy = SourceList(LIST = self)
+    return list_copy
+    
   def set_lm (self, LM=[(0,0)]):
     """ Set LM coords per source in arcmin"""
     self.LM   = []
@@ -87,6 +115,33 @@ class SourceList:
       phi   = math.pi/4.0,
       spi   = 2.0,
       freq0 = 1400e6) 
+
+  def add_random(self, ns, nsrc=1, I=[0.1,1.0], Q=[0,0], U=[0,0], V=[0,0],
+                 lm0=(0,0), rmax=15, kind=point_source):
+    """ Add 'nsrc' number of random sources
+    nsrc  : number of sources to add
+    IQUV  : Stokes values vary in range [min,max]
+    lm0   : pointing center
+    r     : Max distance to x,y-axes (through pointing center)
+    """
+    for n in range(nsrc):
+      # create random (l,m) coords
+      th = random.uniform(0, math.pi*2)
+      l  = random.uniform(-rmax, rmax) * self.ARCMIN
+      m  = random.uniform(-rmax, rmax) * self.ARCMIN
+      self.LM.append((l, m))
+
+      # create random Stokes parameters
+      Ir  = random.uniform(I[0], I[1])
+      Qr  = random.uniform(Q[0], Q[1])
+      Ur  = random.uniform(U[0], U[1])
+      Vr  = random.uniform(V[0], V[1])
+
+      # add source
+      name = "S%s" % (self.num_sources + n)
+      self.add_source(kind(self, ns, name,l,m, I=Ir, Q=Qr, U=Ur, V=Vr))
+      pass
+    pass
   
   def create_list(self, ns, LIST, basename,
                   lm0=(0,0), dlm=(5,5), kind=point_source,I=1,Q=0,U=0,V=0):
@@ -153,20 +208,17 @@ class SourceList:
                      kind=kind,I=I,Q=Q,U=U,V=V)
     pass
 
-  def custom_model (self, ns, LM=[(0,0)], I=1, Q=0, U=0, V=0):
+  def custom_model (self, ns, LM=[(0,0)], I=1, Q=0, U=0, V=0,
+                    kind=point_source):
     """ Create custom model of sources
     """
     self.set_lm(LM)
     
-    # loop (l,m) in LM
+    # loop (l,m) in LM, then create source and append to list
     for isrc in range(len(self.LM)):
       l,m     = self.LM[isrc] 
       name    = 'S'+str(isrc)  
-
-      # create source and append to list
-      if isrc==4: source = self.gauss_source(ns, name, l, m, I=5)
-      else:       source = self.point_source(ns, name, l, m)
-      self.add_source(source)
+      self.add_source(kind(self, ns, name,l,m, I=I, Q=Q, U=U, V=V))
       pass
     pass
 

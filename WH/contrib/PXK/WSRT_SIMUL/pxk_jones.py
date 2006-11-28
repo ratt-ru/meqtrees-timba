@@ -1,6 +1,12 @@
 # History:
 # - 2006.11.07: creation.
 # - 2006.11.10: adjusted DJones: time dependency / randomness
+# - 2006.11.16: added FJones
+#               image-plane Jones now only corrupt sources so EJones
+#               does not add the up in a patch anymore
+# - 2006.11.20: added moving source to EJones
+
+
 
 # standard preamble
 from   Timba.TDL import *
@@ -12,96 +18,352 @@ import pxk_tools
 
 
 
-def EJones (ns, patch, source_list, residual=0):
+def EJones (ns, slist, residual=0, alpha=0.0, beam="WSRT_moving"):
   """ create EJones (beam gain Jones) for each source. Beam is
   elongated in X-feed direction and squeezed in Y-feed direction.
   (image-plane effect)
-  patch       : the patch to add the corrupted sources
-  source_list : provided to apply EJones to particular set of sources
+  slist    : source list to apply EJones to
+  residual : residuals will be made or not
+  alpha    : ellipticity of feed-sensitivities
+  beam     : type of beam
   """
   print "___ Applying E Jones", "[", str(residual), "]"
-  
-  alpha  = 0.0      # ellipticity of feed-sensitivities
-
-  for isrc in range(len(source_list.sources)):
+    
+  for isrc in range(len(slist.sources)):
 
     # get l,m positions
-    src     = source_list.sources[isrc]    
-    l,m     = source_list.LM     [isrc] 
+    src     = slist.sources[isrc]    
+    l,m     = slist.LM     [isrc] 
+
+    if   beam[:4]=="WSRT": # pow = E^2 ~ cos^6
+      
+      if beam[-6:]=="moving" and not residual:
+        l0      = pxk_tools.ARCMIN*-2.5 + pxk_tools.arcmin_per_obs(ns, 5.0)
+        m0      = 0
+        l       = l - l0
+        m       = m - m0
+        pass
+
+      # create beam
+      e     = []
+      labda = 3e8/Meq.Freq()
+      for feed in [['x',1], ['y',-1]]:
+        r     = Meq.Sqrt(Meq.Pow2(l + alpha*feed[1]) +
+                         Meq.Pow2(m - alpha*feed[1]))
+        amp   = Meq.Pow(Meq.Cos((math.pi/2) * r*25/labda),3)
+        phase = (r * 60.0)  # (r/ARCMIN) DEG
+        e.append(Meq.Polar(amp, phase))
+        pass
+      pass
     
-    # create wsrt beam (diff for X/Y-feed /freq); pow = E^2 ~ cos^6
-    labda   = 3e8/Meq.Freq()
-    r_X     = math.sqrt(l*l*(1+alpha)**2 + m*m*(1-alpha)**2)
-    r_Y     = math.sqrt(l*l*(1-alpha)**2 + m*m*(1+alpha)**2)
-    wsrt_X  = Meq.Pow(Meq.Cos((math.pi/2) * r_X*25/labda),3)
-    wsrt_Y  = Meq.Pow(Meq.Cos((math.pi/2) * r_Y*25/labda),3)
-
-    E       = ns.E(src.direction.name, residual) << \
-              Meq.Matrix22(wsrt_X,0,0,wsrt_Y)
-    name = "E Jones" + str(residual)
-    if not residual: pxk_tools.Book_Mark(E, "E Jones")
-
+    # create EJones
+    E  = ns.E(src.direction.name, residual) << Meq.Matrix22(e[0], 0, 0, e[1])
+    
+    if not residual and isrc<4:
+      pxk_tools.Book_Mark(E,                 'E Jones')
+      pxk_tools.Book_Mark(ns.K('S0',isrc+1), 'K Jones')
+      pass
+    
     # corrupt *source* with EJones (this uses MatrixMultiply)
-    corrupt = Meow.CorruptComponent(
+    slist.sources[isrc] = Meow.CorruptComponent(
       ns, src, 'E'+str(residual), jones=E)
-
-    patch.add(corrupt)  # add to patch
     pass
 
-  # some bookmarks
-  pxk_tools.Book_Mark(ns.K('S0',1), 'K Jones') # different sources, stations
-  pxk_tools.Book_Mark(ns.K('S0',2), 'K Jones')
-  pxk_tools.Book_Mark(ns.K('S0',3), 'K Jones')
-  pxk_tools.Book_Mark(ns.K('S0',4), 'K Jones')
-
-  return patch
+  return slist
 
 
+def FJones_zenith (ns, slist, array):
+  """ create FJones (Faraday Rotation) for each station.  (image-plane
+  effect).
+  NOTE : Make sure that there is flux in either Stoke Q or Stokes U,
+  else F Jones will not do anything (since it interchanges flux
+  between Q and U).
+  slist : source list to apply FJones to
+  """
+  
+  print "___ Applying F Jones"  # Faraday rotation
+  from pxk_tools import Rot
 
-def GJones (ns, patch, array, damp=1e-9, dphi=math.pi):
+  ENHANCE_RM  = 20.0  # set to 1 for no effect
+  t0,t1,time = pxk_tools.scaled_time(ns)
+  f0,f1,freq = pxk_tools.scaled_freq(ns)
+  lambda2  = ns.lambda2 << Meq.Pow2(pxk_tools.C / (Meq.Freq()*(1+freq) )) # (!)
+  pxk_tools.Book_Mark(lambda2, 'lambda^2')
+
+  for isrc in range(len(slist.sources)):
+
+    # get l,m positions
+    src      = slist.sources[isrc]    
+    l,m      = slist.LM     [isrc] 
+    r        = math.sqrt(l*l + m*m)
+
+    # get far rot per station, per source position
+    for p in array.stations():    # some (l,m) var.
+      RM      = ns.RM(src.direction.name, p) << \
+                (1.0 + r) * Meq.Negate(Meq.Cos(time*math.pi))
+      pxk_tools.Book_Mark(RM, 'RM')
+      
+      F       = ns.F (src.direction.name, p) << Rot(RM*ENHANCE_RM*lambda2)
+      pass
+    
+    # and corrupt *source* by F term
+    slist.sources[isrc] = Meow.CorruptComponent(
+      ns,src,'F', station_jones=ns.F(src.direction.name))
+    
+    pass
+  
+  # some bookmarks  (source S0, station i)
+  for i in range(4): pxk_tools.Book_Mark(ns.F('S0',i+1), 'F Jones')
+  return slist
+
+
+
+
+
+def FJones (ns, slist, array, observation):
+  """ create FJones (Faraday Rotation) for each station.  (image-plane
+  effect).
+  NOTE : Make sure that there is flux in either Stoke Q or Stokes U,
+  else F Jones will not do anything (since it interchanges flux
+  between Q and U).
+  slist : source list to apply FJones to
+  """
+  print "___ Applying F Jones"  # Faraday rotation
+
+  H        = 300000;    # height of ionospheric layer, in meters
+  TEC0     = 10;        # base TEC, in TECU
+  TIDAmpl  = 0.05;      # TID amplitude, relative to base TEC
+  TIDSize  = 200000;    # TID extent, in meters (one half of a sine wave)
+  TIDSpeed = 600;       # TID time scale, in seconds
+
+
+  def compute_piercings (ns,slist,array,observation):
+    """Creates nodes to compute the 'piercing points' of each
+    source in slist, for each antenna in array.
+    """
+    xyz    = array.xyz();
+    xyz_p0 = xyz(array.stations()[0])
+    for p in array.stations():
+      ns.xy(p) << Meq.Selector(xyz(p) - xyz_p0,index=[0,1],multi=True);
+      pass
+    
+    for src in slist.sources:
+      lm    = src.direction.lm(); # (l,m)
+      lm_sq = ns.lm_sq(src.name) << Meq.Sqr(lm);
+      # dxy is the relative X,Y coord of the piercing point for this
+      # source, relative to centre. Its equals H*tan(z), where z is
+      # the zenith angle
+      ns.dxy(src.name) << H*lm/Meq.Sqrt(1-lm_sq);
+      
+      # now compute absolute piercings per source, per antenna
+      for p in array.stations():
+        ns.pxy(src.name,p) << ns.xy(p) + ns.dxy(src.name);
+        pass
+      pass
+    return ns.pxy;
+  
+
+  def compute_za_cosines (ns,slist,array,observation):
+    """Creates nodes to compute the zenith angle cosine of each
+    source in slist, for each antenna in array.
+    """
+    za_cos = ns.za_cos;
+    for src in slist.sources:
+      for p in array.stations():
+        za_cos(src.name,p) << Meq.Identity(
+          src.direction.n(observation.phase_centre))
+        pass
+      pass
+    return za_cos
+
+
+  def compute_tecs (ns,piercings,za_cos,slist,array,observation):
+    """Creates nodes to compute the TEC for each piercing (per
+    source, per station).
+    """
+    tecs = ns.tec;
+    for src in slist.sources:
+      for p in array.stations():
+        # TEC moves only in x-dir as fct of time
+        px  = ns.px(src.name,p) << \
+              Meq.Selector(piercings(src.name,p),index=0)
+        amp = (TIDAmpl*TEC0)
+        sin = Meq.Sin(2*math.pi*(px/(2*TIDSize) + Meq.Time()/TIDSpeed))
+        tecs(src.name,p) << (TEC0 + amp*sin) / za_cos(src.name,p);
+        pass
+      pass
+    return tecs;
+  
+
+  """Create F Jones for Faraday rot, given TECs (per source, station).
+  """
+  piercings = compute_piercings  (ns, slist, array, observation);
+  za_cos    = compute_za_cosines (ns, slist, array, observation);
+  tecs      = compute_tecs (ns,piercings,za_cos,slist,array,observation);
+
+  labda     = pxk_tools.C / Meq.Freq()  
+  for isrc in range(len(slist.sources)):
+    src      = slist.sources[isrc]
+    
+    # get Far Rot per station, per source position
+    for p in array.stations():
+      phase = 2*math.pi * -25 * tecs(src.direction.name,p) * labda
+      ns.F(src.direction.name,p) << pxk_tools.Rot(phase * labda * labda)
+      pass
+
+    # and corrupt *source* by F term
+    slist.sources[isrc] = Meow.CorruptComponent(
+      ns,src,'F', station_jones=ns.F(src.direction.name))
+    pass
+  
+  # some bookmarks  (source S0, station i)
+  for i in range(4): pxk_tools.Book_Mark(ns.F('S0',i+1), 'F Jones')
+  return slist
+
+
+
+
+
+
+
+
+
+
+def ZJones (ns, slist, array, observation):
+  """ create ZJones (Ionospheric phase) for each station.  (image-plane
+  effect).
+  slist : source list to apply ZJones to
+  """
+  print "___ Applying Z Jones"  # Ionospheric phase
+
+  H        = 300000;    # height of ionospheric layer, in meters
+  TEC0     = 10;        # base TEC, in TECU
+  TIDAmpl  = 0.05;      # TID amplitude, relative to base TEC
+  TIDSize  = 200000;    # TID extent, in meters (one half of a sine wave)
+  TIDSpeed = 100;       # TID time scale, in seconds
+
+
+  def compute_piercings (ns,slist,array,observation):
+    """Creates nodes to compute the 'piercing points' of each
+    source in slist, for each antenna in array.
+    """
+  
+    xyz    = array.xyz();
+    xyz_p0 = xyz(array.stations()[0])
+    for p in array.stations():
+      ns.xy(p) << Meq.Selector(xyz(p) - xyz_p0,index=[0,1],multi=True);
+      pass
+    
+    for src in slist:
+      lm    = src.direction.lm(); # (l,m)
+      lm_sq = ns.lm_sq(src.name) << Meq.Sqr(lm);
+      # dxy is the relative X,Y coord of the piercing point for this
+      # source, relative to centre. Its equals H*tan(z), where z is
+      # the zenith angle
+      ns.dxy(src.name) << H*lm/Meq.Sqrt(1-lm_sq);
+      
+      # now compute absolute piercings per source, per antenna
+      for p in array.stations():
+        ns.pxy(src.name,p) << ns.xy(p) + ns.dxy(src.name);
+        pass
+      pass
+    return ns.pxy;
+  
+
+  def compute_za_cosines (ns,slist,array,observation):
+    """Creates nodes to compute the zenith angle cosine of each
+    source in slist, for each antenna in array.
+    """
+    za_cos = ns.za_cos;
+    for src in slist:
+      for p in array.stations():
+        za_cos(src.name,p) <<  Meq.Identity(
+          src.direction.n(observation.phase_centre))
+        pass
+      pass
+    return za_cos
+
+
+  def compute_tecs (ns,piercings,za_cos,slist,array,observation):
+    """Creates nodes to compute the TEC for each piercing (per
+    source, per station).
+    """
+    tecs = ns.tec;
+    for src in slist:
+      for p in array.stations():
+        px  = ns.px(src.name,p) << \
+              Meq.Selector(piercings(src.name,p),index=0)
+        amp = (TIDAmpl*TEC0)
+        sin = Meq.Sin(2*math.pi*(px/(2*TIDSize) + Meq.Time()/TIDSpeed))
+        tecs(src.name,p) << (TEC0 + amp*sin) / za_cos(src.name,p);
+        pass
+      pass
+    return tecs;
+  
+
+
+  """Creates the Z Jones for ionospheric phase, given TECs (per source, 
+  per station).
+  """
+  piercings = compute_piercings(ns,slist.sources,array,observation);
+  za_cos    = compute_za_cosines(ns,slist.sources,array,observation);
+  tecs      = compute_tecs(
+    ns,piercings,za_cos,slist.sources,array,observation);
+
+  labda     = pxk_tools.C / Meq.Freq()  
+  for isrc in range(len(slist.sources)):
+    src     = slist.sources[isrc]
+    
+    # get Ionospheric phase per station, per source position
+    for p in array.stations():
+      ns.Z(src.direction.name,p) << Meq.Polar(
+        1, 2*math.pi * -25 * tecs(src.direction.name,p) * labda)
+      pass
+
+    # and corrupt *source* by Z term
+    slist.sources[isrc] = Meow.CorruptComponent(
+      ns,src,'Z', station_jones=ns.Z(src.direction.name))
+    pass
+  
+  # some bookmarks  (source S0, station i)
+  for i in range(4): pxk_tools.Book_Mark(ns.Z('S0',i+1), 'Z Jones')
+  return slist
+
+
+
+
+
+def GJones (ns, patch, array, kind='noise'):
   """ create GJones (electronic gain) for each station (uv-plane
   effect)
   dphi   : max amp of phase variation
   damp   : max amp of gain  variation
   """
-
-  print "___ Applying G Jones"
+  print "___ Applying G Jones" # electronic gain
   
-  types     = ['', 'random_sine', 'sine_phase', 'sine_amp']
-  gain_type = types[0]
-
-  # create GJones: electronic gain
   for p in array.stations():
 
-    if    gain_type is 'random_sine':
-      f0 = ns.freq0 << 0
-      ap = random.uniform(0.0, damp)
+    if    kind=='periodic':
+      f0   = ns.freq0 << 0
+      damp = 1e-9
+      dphi = math.pi*0.02
+      ap   = random.uniform(-damp, damp)
       for feed in ['gx', 'gy']:
-        a = random.uniform(0,dphi)               # amp of phase variation
+        a = random.uniform(-dphi,dphi)           # amp of phase variation
         b = 2*math.pi/random.uniform(3600,7200)  # period of variation 
         c = random.uniform(0,2*math.pi)          # initial phase of variation
         d = 1 + ap * (Meq.Freq()-f0)             # amp of freq. variation
         g = ns[feed](p) << Meq.Polar(d,a*Meq.Sin(Meq.Time()*b+c))
         pass
       pass
-    
-    elif gain_type is 'sine_phase':
-      for feed in ['gx', 'gy']:
-        period = 2*math.pi/3600
-        ns[feed](p) << Meq.Polar(1, Meq.Sin(Meq.Time()*period))
-        pass
-      pass
 
-    elif gain_type is 'sine_amp':
-      t0, t1, time = pxk_tools.scaled_time(ns)
+    elif kind=='noise':
+      damp = 0.2 # sigma
+      dphi = 10  # degrees
       for feed in ['gx', 'gy']:
-        ns[feed](p) << Meq.Sin(math.pi*(2*time-1))
-        pass
-      pass
-
-    else: # default
-      for feed in ['gx', 'gy']:
-        ns[feed](p) << 1
+        amp   = Meq.GaussNoise(1.0, damp)
+        phase = Meq.RandomNoise(-dphi, dphi) * pxk_tools.DEG
+        g = ns[feed](p) << Meq.Polar(amp,phase)
         pass
       pass
 
@@ -114,19 +376,46 @@ def GJones (ns, patch, array, damp=1e-9, dphi=math.pi):
   return corrupt
 
 
+def BJones (ns, patch, array):
+  """ create BJones (bandpass) for each station (image-plane effect)
+  """
+  print "___ Applying B Jones"  # bandpass
+
+
+  # create sawtooth and BSR
+  f0,f1,freq = pxk_tools.scaled_freq(ns)
+  sawtooth   = ns.sawtooth << 0.01 * (pxk_tools.sawtooth(
+    ns,nparts=16, dir="freq", combine=True) - freq*0.5 - 0.25)
+  smooth     = ns.smooth   << 0.1 * Meq.Sin(freq*2*math.pi)
+  BSR        = ns.BSR      << (freq-0.5)  # 1.0 + sawtooth + smooth
+  pxk_tools.Book_Mark(sawtooth, "Sawtooth")
+  pxk_tools.Book_Mark(smooth,   "Smooth")
+  pxk_tools.Book_Mark(BSR,      "BSR")
+  
+  for p in array.stations():
+    
+    # create gains
+    B    = ns.B(p)  << Meq.Matrix22(BSR,0,0,BSR)
+    if p<5: pxk_tools.Book_Mark(B,   'B Jones')
+    pass
+
+  # and corrupt patch by B term
+  corrupt = Meow.CorruptComponent(ns,patch,'B',station_jones=ns.B) 
+  return corrupt
+
 
 def PJones (ns, patch, array, observation):
   """ create PJones (sky rotation) for each station to account for
   rotating sky in case of alt-az mounts. This is NOT necessary for
   WSRT or other equatorial mounts  (uv-plane effect).
   """
-  print "___ Applying P Jones"
-
-  # create PJones: rotation matrix  
+  print "___ Applying P Jones"  # sky rotation
+  
   for p in array.stations():
     par_angle = ns.par_angle(p) << \
                 Meq.ParAngle(radec = observation.radec0(),
                              xyz   = array.xyz()(p))
+    if p==1: pxk_tools.Book_Mark(par_angle,   'par_angle')
     P  = ns.P (p) << pxk_tools.Rot(par_angle)
     if p<5: pxk_tools.Book_Mark(P,   'P Jones')
     pass
@@ -136,27 +425,24 @@ def PJones (ns, patch, array, observation):
   return corrupt
 
 
-
-def DJones (ns, patch, array,
-            dphi   = 0.1,
-            dtheta = 0.01):
+def DJones (ns, patch, array, dphi=2, dtheta=1):
   """ create DJones (receptor cross-leakage) for each station.
   Receptor leakage is the extent to which each receptor is sensitive
   to radiation that is supposed to be picked up by the other
-  one.(uv-plane effect).
+  one (uv-plane effect).
   phi   : deviation from nominal receptor position angle
   theta : deviation from nominal receptor ellipticities
   """
 
-  print "___ Applying D Jones"
+  print "___ Applying D Jones"  # receptor cross-leakage
 
   t0, t1, time = pxk_tools.scaled_time(ns)
+  dphi        *= pxk_tools.DEG
+  dtheta      *= pxk_tools.DEG
 
-  # create DJones: receptor cross-leakage
   for p in array.stations():
-    rnd_phi   = random.uniform(0, dphi*pxk_tools.DEG)
-    rnd_theta = random.uniform(0, dtheta*pxk_tools.DEG)
-    #print pxk_tools.format_array([rnd_phi, rnd_theta], "%7.5f")
+    rnd_phi   = random.uniform(dphi  *0.9, dphi  *1.1)
+    rnd_theta = random.uniform(dtheta*0.9, dtheta*1.1)
     
     ns.phi_a  (p) << (time*2-1) * rnd_phi
     ns.theta_a(p) << rnd_theta
@@ -165,15 +451,37 @@ def DJones (ns, patch, array,
     
     D  = ns.D (p) << (pxk_tools.Ell(ns.theta_a(p), ns.theta_b(p)) *
                       pxk_tools.Rot(ns.phi_a  (p), ns.phi_b  (p)))
-    if p<5:
-      pxk_tools.Book_Mark(D,             'D Jones')
-      pxk_tools.Book_Mark(ns.phi_a  (p),   'phi_a')
-      pxk_tools.Book_Mark(ns.theta_a(p), 'theta_a')
-      pass
+    if p<5: pxk_tools.Book_Mark(D, 'D Jones')
     pass
 
   # and corrupt patch by D term
   corrupt = Meow.CorruptComponent(ns,patch,'D',station_jones=ns.D) 
+  return corrupt
+
+
+
+
+
+def MJones(ns, patch, array, parts=32, residual=0):
+  """ Movie Jones. Makes a 'movie' by putting different timeslots in
+  different channels. Works best when number of channels and number of
+  time-slots are both integer multiple of 'parts'.
+  """
+  print "___ Applying M Jones", "[", str(residual), "]"
+
+  # Create time-frequency band
+  if ns.time_freq_band.initialized():
+    band = ns.time_freq_band
+  else:
+    band  = pxk_tools.time_freq_band(ns, parts=parts, bookmarks=False)
+    pass
+  
+  for p in array.stations():
+    M  = ns.M(p) << Meq.Identity(band)
+    if p<5: pxk_tools.Book_Mark(M,   'M Jones')
+    pass
+
+  corrupt = Meow.CorruptComponent(ns,patch,'M',station_jones=ns.M) 
   return corrupt
 
 
@@ -196,7 +504,7 @@ def RJones(ns, patch, array, ERROR="3.1a"):
   - Included telescopes: all of WSRT, maxi-short:
   144,144,...,36,54,1242,72
   
-  - Field measures: 512*512 pixels ( _ x _ degrees)
+  - Field measures: 512*512 pixels (cell=1arcsec => 8x8 arcmin FOV)
   """
   
   # Symmetries of errors 
@@ -219,34 +527,6 @@ def RJones(ns, patch, array, ERROR="3.1a"):
   """
 
   print "___ Applying R Jones", "[", ERROR, "]"
-
-  def scaledParm(polc=[0.]):
-    """ returns a parm scaled to time-domain [0,1] == 0hr-12hr """
-    #HA      = ns["HA"] << scaledParm([-math.pi/2, math.pi])
-    starttime  = 4647002189.5  # ns.time0
-    startfreq  = 1401000000.0  # ns.freq0
-    time_extent= 43008.0       # ns.time1 - ns.time0
-    freq_extent= 62e6          # ns.freq1 - ns.freq0
-    funk       = meq.polc(polc)
-    funk.offset= [float(starttime),   float(startfreq)  ]
-    funk.scale = [float(time_extent), float(freq_extent)]
-    return Meq.Parm(funk)
-
-  def tile_time(ns, nparts=12):
-    """ returns a composed parm by tiling the time
-    nparts : num timeslots that the full timerange will be divided in
-    """
-    t0,t1,ts = pxk_tools.scaled_time(ns)
-    parm     = []
-    for part in range(nparts):
-      t_start  = t0 + part/float(nparts)*(t1-t0)
-      time     = (Meq.Time()-t_start)/(t1-t0)
-      x        = Meq.Max(Meq.Ceil(1.0/nparts - time) *time*nparts,0)
-      y        = Meq.Ceil(x)   # block function
-      parm.append(x)
-      pass
-    return parm
-  
 
   for p in array.stations():
     
@@ -329,14 +609,11 @@ def RJones(ns, patch, array, ERROR="3.1a"):
         
         INCLUDE = 1
         # set HA from [-6hr, 6hr]
-        # (!) The following line doesn't work anymore!
-        # HA      = scaledParm([-math.pi/2, math.pi], ns, p)
-        # So use Meq.Time() function instead
         t0, t1, ts = pxk_tools.scaled_time(ns)
-        HA         = ns["HA"](s=str(p)) << math.pi*0.5 * (ts*2 - 1)
-        #pxk_tools.Book_Mark(HA, "HA"+str(p))
+        HA         = ns["HA"] << math.pi*0.5 * (ts*2 - 1)
+        #pxk_tools.Book_Mark(HA, "HA")
         
-        CST     = math.pi*0.5 #scaledParm([math.pi*0.5])
+        CST     = math.pi*0.5
         amp     = 1
         phase   = 0
         
@@ -369,7 +646,7 @@ def RJones(ns, patch, array, ERROR="3.1a"):
       # Just baselines 02 and 03 (288 m and )
       if   p == 1:
         INCLUDE = 1
-        CST     = math.pi*0.5 #scaledParm([math.pi*0.5])
+        CST     = math.pi*0.5
         amp     = 1
         if   ERROR[3:]=="a": phase = 0;   pass # cst gain offset
         elif ERROR[3:]=="c": phase = CST; pass # cst phase offset
@@ -449,35 +726,20 @@ def RJones(ns, patch, array, ERROR="3.1a"):
       pass
 
 
-    elif ERROR=="3.6": 
+    elif ERROR=="3.7": 
       """______________________________________________________
       |______ Composed Parm ___________________________________|
       """
       
-      if   p == 1:     # Just baseline 02 (288 m)
-        INCLUDE  = 1
-        nparts   = 3
-        compparm = tile_time(ns, nparts=nparts)
-        #LIST     = []
-        #for part in range(nparts):
-        #  x   = compparm[part]
-        #  LIST.append(x)
-        #  pass
-        #gain     = ns["composed_parm"] << Meq.Add(*LIST)
-        gain     = ns["composed_parm"] << Meq.Add(*compparm)
+      # make a parm tiled in time
+      coeff    = pxk_tools.random_coeff(12, min=-math.pi/2, max=math.pi/2)
+      polcparm = pxk_tools.polc_parm(ns, coeff)
 
-        pxk_tools.Book_Mark(gain, "composed_parm")
-        amp      = Meq.Identity(gain)
-        phase    = 0
-        pass
-      
-      elif p == 3:     # include antenna 2
-        INCLUDE  = 1
-        amp      = 1
-        phase    = 0
-        pass
+      INCLUDE  = 1
+      amp      = 1
+      phase    = Meq.Identity(polcparm)
       pass
-    
+      
 
     else:
       raise ValueError, \
@@ -492,8 +754,10 @@ def RJones(ns, patch, array, ERROR="3.1a"):
 
     AMP     = ns.amp(s=str(p)) << amp
     PHASE   = ns.phi(s=str(p)) << phase
-    #pxk_tools.Book_Mark(AMP,   "AMP")
-    #pxk_tools.Book_Mark(PHASE, "PHASE")
+    if 0:
+      pxk_tools.Book_Mark(AMP,   "AMP")
+      pxk_tools.Book_Mark(PHASE, "PHASE")
+      pass
     
     # change rx, ry
     rx  = ns.rx(p) << Meq.Polar(AMP, PHASE)
@@ -506,31 +770,9 @@ def RJones(ns, patch, array, ERROR="3.1a"):
   # and corrupt patch by R term
   corrupt = Meow.CorruptComponent(ns,patch,'R',station_jones=ns.R)
   return corrupt
+
+
+
+
   
-
-
-
-
-
-
-
-def QJones(ns, patch, array):
-  """ TEST JONES """ ### TEST JONES ###
-  import pxk_sourcelist
-
-  source_list = pxk_sourcelist.SourceList(ns, LM=[(1e-100,0)])
-  patch.add(*source_list.sources)
-
-  # Missing HA
-  t0,t1,ts = pxk_tools.scaled_time(ns)
-  gain     = Meq.Ceil(ts - 1.0/12)
-
-  for p in array.stations():
-    Q        = ns.Q(p) << Meq.Matrix22(gain, 0, 0, gain) 
-    if p<5: pxk_tools.Book_Mark(Q,   'Q Jones')
-    pass
-
-
-  corrupt = Meow.CorruptComponent(ns,patch,'Q',station_jones=ns.Q)
-  return corrupt
   

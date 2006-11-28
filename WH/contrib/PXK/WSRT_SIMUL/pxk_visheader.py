@@ -6,6 +6,7 @@
 # - 2006.10.31: creation
 # - 2006.11.13: added function 'print_relative_ant_pos'
 # - 2006.11.14: added printing MS info from header
+# - 2006.11.27: improved printing MS info
 
 
 from Timba.meqkernel import set_state
@@ -106,7 +107,8 @@ def print_relative_ant_pos(ant_pos=[[0,[0,0,0]]]):
 
     rel_ant_pos = []
     rel_dist    = []
-    print "\n ant     rel_x     rel_y     rel_z    rel_dist   incr (m)\n"
+    print "\n ant      rel_x      rel_y      rel_z   ",
+    print "rel_dist  incr (m)\n"
     for ant in range(len(ant_pos)):
         rel_ant_pos.append([])
         rel_ant_pos[ant].append(ant_pos[ant][0])
@@ -116,8 +118,8 @@ def print_relative_ant_pos(ant_pos=[[0,[0,0,0]]]):
             pass
         rel_ant_pos[ant].append(
             sqrt(sum([i**2 for i in rel_ant_pos[ant][1:4]])) )
-        print "%4i %9.3f %9.3f %9.3f   %9.3f   %7.0f" % (
-            rel_ant_pos[ant][0], 
+        print "%4i %10.3f %10.3f %10.3f   %9.3f   %7.0f" % (
+            rel_ant_pos[ant][0] + 1, 
             rel_ant_pos[ant][1], 
             rel_ant_pos[ant][2], 
             rel_ant_pos[ant][3], 
