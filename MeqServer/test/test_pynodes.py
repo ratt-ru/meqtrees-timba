@@ -143,19 +143,19 @@ class PyRandom (pynode.PyNode):
     print "cells shape is",shape;
     value = meq.vells(shape);
     # fill in random numbers with the given distribution
-    flat = value.getflat();
+    flat = value.getflat();   # 'flat' reference to array data
     for i in range(len(flat)):
       flat[i] = self._generator(*self.distribution_args);
     return meq.result(meq.vellset(value),cells);
     
-class PyRFI (pynode.PyNode):
-  def evaluate (self,request,childres):
-    # pick random timeslot for RFI
-    value = childres[0];
-    itime = random.randint(value.shape[0]);
-    value[itime] = 999;
-    return value;
-    
+# class PyRFI (pynode.PyNode):
+#   def evaluate (self,request,childres):
+#     # pick random timeslot for RFI
+#     value = childres[0];
+#     itime = random.randint(value.shape[0]);
+#     value[itime] = 999;
+#     return value;
+#     
 
 def _define_forest (ns,**kwargs):
   ns.a << Meq.Time;
