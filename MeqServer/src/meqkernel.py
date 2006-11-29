@@ -148,6 +148,15 @@ def process_init (rec):
     _dprint(0,'exception',sys.exc_info(),'importing init-module',script);
     traceback.print_exc();
     raise;
+  # add standard names from script, if found
+  global _header_handlers;
+  global _footer_handlers;
+  for nm,lst in (('process_vis_header',_header_handlers),('process_vis_footer',_footer_handlers)):
+    handler = getattr(_initmod,nm,None);
+    _dprint(0,'found handler',nm,'in script');
+    if handler:
+      lst.append(handler);
+  return None;
 
 
 def create_pynode (node_baton,node_name,class_name,module_name):
