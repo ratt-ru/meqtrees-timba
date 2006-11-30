@@ -282,6 +282,7 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
         AtomicID::registerId(-1410,"MeqLMN")+
         TypeInfoReg::addToRegistry(-1410,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1410,__construct_MeqLMN)+
+        AtomicID::registerId(-1702,"PA")+
         AtomicID::registerId(-1397,"MeqLog")+
         TypeInfoReg::addToRegistry(-1397,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1397,__construct_MeqLog)+

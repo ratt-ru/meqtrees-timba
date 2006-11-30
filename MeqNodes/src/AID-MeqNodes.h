@@ -838,6 +838,11 @@ const int AidOut_int = -1217;
 const DMI::AtomicID AidOutput(-1241);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
 const int AidOutput_int = -1241;
 #endif
+#ifndef _defined_id_AidPA
+#define _defined_id_AidPA 1
+const DMI::AtomicID AidPA(-1702);                 // from /home/twillis/Timba/MeqNodes/src/LMN.h:31
+const int AidPA_int = -1702;
+#endif
 #ifndef _defined_id_AidPlot
 #define _defined_id_AidPlot 1
 const DMI::AtomicID AidPlot(-1432);               // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
