@@ -12,9 +12,10 @@ unique = -1
 
 class SolverChain (object):
     
-    def __init__(self, ns, label=None, array=None):
+    def __init__(self, ns, label=None, array=None, WSRT_sep9A=72):
         self._ns = ns                          # nodescope
         self._array = array                    # Meow array object
+        self._WSRT_sep9A = WSRT_sep9A
         self._label = label
         self._scope = '<scope>'
         self._cohset = None                    # 
@@ -44,7 +45,7 @@ class SolverChain (object):
         if new:
             self._cohset = new
             self._scope = 'input'
-            self._visualize_cohop(**pp)
+            self._visualize_cohop('cohset', **pp)
         return self._cohset
 
     #--------------------------------------------------------------------------
@@ -72,6 +73,7 @@ class SolverChain (object):
         print '** _bookmarks:'
         for key in self._bookmark.keys():
             print '  - '+key+': '+str(len(self._bookmark[key]))
+        print '** _WSRT_sep9A = '+str(self._WSRT_sep9A)+' (m)'
         print '** _ns: '+str(type(self._ns))
         print '** _array: '+str(type(self._array))
         print '** _cohset: '+str(type(self._cohset))
@@ -99,7 +101,7 @@ class SolverChain (object):
         """Make the reqseq node(s) and insert it in the cohset (...).
         The reqseq that executes the solvers in order of creation,
         and then passes on the final residuals (in new cohset)."""
-        self.visualize_cohset (tag='e2e', errorbars=True)
+        self.visualize_cohset (tag='reqseq', page='e2e', errorbars=True)
         n = len(self._reqseq_children)
         self._reqseq_children.append(0)               # placeholder 
         cohset = self.cohset()
@@ -141,10 +143,12 @@ class SolverChain (object):
 
         # Append zero or more constraints to the list of condeqs:
         self.append_constraints(condeqs, constraint)
+        # print 'condeqs:',condeqs
 
         # Get a list of names of MeqParms to be solved for:
         solvables = self._ns.Search(tags=parm_tags, class_name='MeqParm',
                                     return_names=False)
+        # print 'solvables:',solvables
 
         # The solver writes (the stddev of) its condeq resunts as ascii
         # into a debug-file (SBY), for later visualisation.
@@ -193,7 +197,7 @@ class SolverChain (object):
             rr = constraint[i]
             print '\n** constraint:',rr
             # Get a list of MeqParms to be constrained (e.g. their sum = 0):
-            parms = self._ns.Search(tags=rr['tags'], class_name='MeqParm',
+            parms = self._ns.Search(tags=rr['tags'], class_name=rr['class_name'],
                                     return_names=False)
             print '  -',len(parms),'parm[0]=',parms[0],'...'
             unop = self._ns.unop(scope)(i) << getattr(Meq,rr['unop'])(children=parms)
@@ -201,6 +205,13 @@ class SolverChain (object):
             condeqs.append(condeq)
             print
         return True
+
+
+    def constraint(self, tags=None, class_name='MeqParm', unop='Add', value=0.0):
+        """Helper function to form a valid constraint for use in append_constraints()"""
+        rr = dict(tags=tags, class_name=class_name, unop=unop, value=value)
+        print '\n** constraint() ->',rr,'\n'
+        return rr
 
     #...........................................................................
 
@@ -214,7 +225,6 @@ class SolverChain (object):
             condeq = self._ns.condeq(scope)(*ifr) << Meq.Condeq(predicted(*ifr),
                                                                 measured(*ifr))
             cc.append(condeq)
-            # self.visumap_bookmark(condeq, key='ifr', value=ifr)
             # self.selected_hcoll(condeq, key='ifr', value=ifr)
         # Return a list of zero or more condeq nodes:
         return cc
@@ -228,28 +238,38 @@ class SolverChain (object):
         scope = self.scope()
         if not measured: measured = self.cohset()
         ifrs = self.ifrs()
+        xx = self.get_WSRT_1D_station_pos()
         for i in range(len(ifrs)-1):
             ifr1 = ifrs[i]
-            b1 = ifr1[1] - ifr1[0]
+            b1 = xx[ifr1[1]-1] - xx[ifr1[0]-1]        # ifr stations are 1-relative!
             # print '-',i,ifr1,b1
             for j in range(i+1,len(ifrs)):
                 ifr2 = ifrs[j]
-                b2 = ifr2[1] - ifr2[0]
+                b2 = xx[ifr2[1]-1] - xx[ifr2[0]-1]        # ifr stations are 1-relative!
                 # print '  -',j,ifr2,b2
                 if b2==b1:
-                # if b2==b1 and (not ifr2[0]==ifr1[1]):
                     condeq = self._ns.condeq(scope)(*ifr1)(*ifr2) << Meq.Condeq(measured(*ifr1),
                                                                                 measured(*ifr2))
                     cc.append(condeq)
-                    # page = self.visumap_bookmark(condeq, key='ifr', value=ifr1)
-                    # self.visumap_bookmark(measured(*ifr1), key='ifr', value=ifr1, page=page)
-                    # self.visumap_bookmark(measured(*ifr2), key='ifr', value=ifr2, page=page)
-                    # self.visumap_hcoll(condeq, key='ifr', value=ifr1)
-                    # print '     redundant condeq:',condeq,':',b1,b2,ifr1,ifr2
+                    print '     redundant condeq:',condeq,':',b1,b2,ifr1,ifr2
                     break
         # Return a list of zero or more condeq nodes:
         return cc
 
+
+    def get_WSRT_1D_station_pos(self, sep9A=None):
+        """Helper function to get 1D WSRT station positions (m), depending on
+        separation 9-A. Used for redundant-spacing calibration.""" 
+        if sep9A==None: sep9A = self._WSRT_sep9A
+        xx = range(14)
+        for i in range(10): xx[i] = i*144.0
+        xx[10] = xx[9]+sep9A                     # A = 9 + sep9A
+        xx[11] = xx[10]+72                       # B = A + 72
+        xx[12] = xx[10]+(xx[9]-xx[0])            # C = A + (9-0)
+        xx[13] = xx[12]+72                       # D = C + 72
+        # print 'get_1D_WSRT_station_pos(',sep9A,') ->',xx
+        return xx
+    
 
 
     #--------------------------------------------------------------------------
@@ -264,7 +284,6 @@ class SolverChain (object):
                                                   station_1_index=p-1,
                                                   station_2_index=q-1,
                                                   output_col=output_col)
-            # self.visumap_bookmark(node, key='ifr', value=(p,q))
         self._ns[vdm] << Meq.VisDataMux(*[self._ns.sink(*ifr) for ifr in self.ifrs()]);
         self._cohset = self._ns.sink           
         return self.cohset()
@@ -280,9 +299,8 @@ class SolverChain (object):
             inoise = self._ns.inoise(scope)(*ifr) << Meq.GaussNoise(stddev=rms)
             noise = self._ns.noise(scope)(*ifr) << Meq.ToComplex(rnoise,inoise)
             node = self._ns.addnoise(scope)(*ifr) << Meq.Add(cohset(*ifr),noise)
-            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.addnoise(scope)           
-        self._visualize_cohop(**pp)
+        self._visualize_cohop('addnoise', **pp)
         return self.cohset()
 
     #...........................................................................
@@ -293,9 +311,8 @@ class SolverChain (object):
         cohset = self.cohset()
         for ifr in self.ifrs():
             node = self._ns.peeled(scope)(*ifr) << Meq.Subtract(cohset(*ifr),subtract(*ifr))
-            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.peeled(scope)           
-        self._visualize_cohop(**pp)
+        self._visualize_cohop('peel', **pp)
         return self.cohset()
 
     #...........................................................................
@@ -307,9 +324,8 @@ class SolverChain (object):
         for ifr in self.ifrs():
             unpeel = self._ns << Meq.Stripper(add(*ifr))
             node = self._ns.unpeeled(scope)(*ifr) << Meq.Add(cohset(*ifr), unpeel)
-            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.unpeeled(scope)              
-        self._visualize_cohop(**pp)
+        self._visualize_cohop('unpeel', **pp)
         return self.cohset()
 
     #...........................................................................
@@ -322,9 +338,8 @@ class SolverChain (object):
             j1 = jones(ifr[0])
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
             node = self._ns.corrupted(scope)(*ifr) << Meq.MatrixMultiply(j1,cohset(*ifr),j2c)
-            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.corrupted(scope)              
-        self._visualize_cohop(**pp)
+        self._visualize_cohop('corrupt', **pp)
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
             self.addnoise(rms)
@@ -341,9 +356,8 @@ class SolverChain (object):
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             node = self._ns.corrected(scope)(*ifr) << Meq.MatrixMultiply(j1i,cohset(*ifr),j2ci)
-            # self.visumap_bookmark(node, key='ifr', value=ifr)
         self._cohset = self._ns.corrected(scope)              
-        self._visualize_cohop(**pp)
+        self._visualize_cohop('correct', **pp)
         return self.cohset()
 
 
@@ -363,23 +377,25 @@ class SolverChain (object):
             JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
         return True
 
-    def _visualize_cohop (self, **pp):
+    def _visualize_cohop (self, cohop='<cohop>', **pp):
         """Called from the cohset operation functions in this object,
         provided a (book)page name is provided"""
-        for key in ['scope','cohop','ifr','page','folder',
+        # scope = self.scope()
+        for key in ['ifr','page','folder',
                     'color','style','size','pen']:
             pp.setdefault(key, None)
-        pp.setdefault('plot_type', 'realvsimag')
+        pp.setdefault('type', 'realvsimag')
         pp.setdefault('errorbars', True)
         if isinstance(pp['page'],str):
-            self.visualize_cohset (tag=pp['page'], errorbars=pp['errorbars'])
+            self.visualize_cohset (tag=cohop, page=pp['page'], folder=pp['folder'],
+                                   plot_type=pp['type'], errorbars=pp['errorbars'])
         return True
 
 
     def visualize_cohset (self, tag='cohset', page=None, folder=None,
                           plot_type='realvsimag', errorbars=False):
         """Visualise the given cohset. The page is 'tag'"""
-        print '\n** visualize_cohset(',tag,')'
+        # print '\n** visualize_cohset(',tag,')'
         # scope = self.scope()
         nodelist = self.cohset_list (self._cohset, ifrs=self.ifrs())
         dcoll = self.dataConcat (nodelist, tag=tag,
@@ -419,6 +435,7 @@ class SolverChain (object):
                                            type=plot_type, errorbars=errorbars)
             dcolls.append(rr)
         # Make a combined plot of all the corrs:
+        # NB: nodename -> dconc_scope_tag
         rr = MG_JEN_dataCollect.dconc(self._ns, dcolls, scope=scope,
                                       tag=tag, bookpage=None)
         # Append the dataConcat node to the reqseq, and return it
@@ -550,6 +567,10 @@ if __name__ == '__main__':
         cs = sc.insert_reqseq ()
         for ifr in array.ifrs():
             print ifr,':',cs(*ifr)
+
+    if 1:
+        sc.get_WSRT_1D_station_pos()
+        sc.get_WSRT_1D_station_pos(36)
 
     if 1:
         sc.display()
