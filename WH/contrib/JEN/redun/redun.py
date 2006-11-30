@@ -4,12 +4,9 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
-
 from Timba.Contrib.JEN.util import JEN_SolverChain
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-
 import Meow
+
 
 # Run-time menu:
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96,20,10,5,2,1]);
@@ -28,14 +25,13 @@ TDLCompileMenu("Source parameters",
                TDLOption('polarization',"source polarization",
                          ['unpol','Q','U','V','QU','QUV','UV','QV']),
                );
-# TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
-# TDLCompileOption('repeel',"re-peel a second time",[True,False]);
 TDLCompileOption('num_stations',"Number of stations",[5, 27,14,3]);
+TDLCompileOption('WSRT_sep9A',"WSRT separation 9-A",[72.0,36.0,54.0,90.0,144.0]);
+TDLCompileOption('apply_constraints',"Apply Gphase/Ggain constraints",[True,False]);
+TDLCompileOption('zero_slope',"Make Gphase slope zero",[True,False]);
 TDLCompileOption('rms_noise',"Rms noise (Jy)",[0.1,0.01,0.001,0.0,1.0]);
-# TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
 TDLCompileOption('num_iter',"max nr of solver iterations",[3,1,2,4,5,10,20,None]);
 TDLCompileOption('cache_policy',"Node result caching policy",[100,0]);
-TDLCompileOption('visualization_mode',"Visualization",['full','min','off']);
 
 # Alternative: see tdl_job below
 # Settings.forest_state.cache_policy = 100
@@ -92,7 +88,7 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
 
   # Make a solver-chain object:
-  sc = JEN_SolverChain.SolverChain(ns, array=array)
+  sc = JEN_SolverChain.SolverChain(ns, array=array, WSRT_sep9A=WSRT_sep9A)
 
   #-------------------------------------------------------------------------- 
   # Make the cohset of input visbilities
@@ -125,26 +121,32 @@ def _define_forest (ns):
 
   # Attach the correction Jones matrices (to be solved for):
   scope = 'correct'
+  xpos = sc.get_WSRT_1D_station_pos()
   node_groups = ['Parm',scope]     
   for p in ANTENNAS:
-    phase = ns.Ephase(scope)(p) << Meq.Parm(0.0, node_groups=node_groups,
-                                            tags=[scope,'Ephase','EJones']);
-    gain = ns.Egain(scope)(p) << Meq.Parm(1.0, node_groups=node_groups,
-                                          tags=[scope,'Egain','EJones']);
-    cxparm = ns.E(scope)(p) << Meq.Polar(gain,phase);
+    phase = ns.Gphase(scope)(p) << Meq.Parm(0.0, node_groups=node_groups,
+                                            tags=['Gphase','GJones']);
+    gain = ns.Ggain(scope)(p) << Meq.Parm(1.0, node_groups=node_groups,
+                                          tags=['Ggain','GJones']);
+    cxparm = ns.G(scope)(p) << Meq.Polar(gain,phase);
     sc.cxparm(cxparm, scope=scope)
-  sc.correct(jones=ns.E(scope))
+    if zero_slope:
+      ns.Gphase_slope(scope)(p) << Meq.Multiply(phase, xpos[p-1],
+                                                tags=['Gphase_slope'])
+  sc.correct(jones=ns.G(scope))
 
 
-  # Constrain the sum of phases and the product of gains:
+  # Optional: Constrain the sum of phases and the product of gains:
   constraint = []
-  if True:
-    constraint = [dict(tags='Ephase', unop='Add', value=0.0),
-                  dict(tags='Egain', unop='Multiply', value=1.0)]
-
+  if apply_constraints:
+    constraint = [sc.constraint(tags='Gphase', unop='Add', value=0.0),
+                  sc.constraint(tags='Ggain', unop='Multiply', value=1.0)]
+    if zero_slope:
+      constraint.append(sc.constraint(tags='Gphase_slope', class_name=None,
+                                      unop='Add', value=0.0))
+      
   # Make a solver with condeqs that compare redundant spacings:
-  sc.make_solver(scope=scope,
-                 parm_tags=scope, parm_group=scope,
+  sc.make_solver(scope=scope, parm_tags='GJones', parm_group=scope,
                  constraint=constraint,
                  num_iter=num_iter)
 
