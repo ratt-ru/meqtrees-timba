@@ -28,6 +28,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::LMN
+#pragma aid PA
 
 namespace Meq {    
 
@@ -42,6 +43,7 @@ public:
     { return TpMeqLMN; }
 
 protected:
+
   // method required by TensorFunction
   // Returns shape of result.
   // Also check child results for consistency
