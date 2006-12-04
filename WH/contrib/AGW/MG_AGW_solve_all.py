@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#% $Id: MG_AGW_solver.py 3929 2006-09-01 20:17:51Z twillis $ 
+#% $Id: MG_AGW_solve_all.py 3929 2006-09-01 20:17:51Z twillis $ 
 
 #
 # Copyright (C) 2006
@@ -23,12 +23,13 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_solver.py'
+script_name = 'MG_AGW_solve_all.py'
 
 # Short description:
 #  The script should just read in a 2-D array of points from a
 #  FITS file, assign them to a FITSImage, and then solve for
 #  the maximum position
+#  It solves for all 180 beams in the Brisken vivaldi array
 
 # History:
 # - 24 Oct 2006: creation:
@@ -71,7 +72,7 @@ def create_polc(c00=0.0,degree_f=0,degree_t=0):
 def tpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
                   node_groups='Parm',
-                  constrain = [-0.002,0.002],
+                  constrain = [-0.04,0.04],
                   table_name=mep_beam_locations);
 
 
@@ -82,28 +83,22 @@ def _define_forest(ns):
 
   l=0.
   m=0.0
-  width  = ns.width << Meq.Parm(3e-7)
+  width  = ns.width << Meq.Parm(1e-4)
 
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
 
-  # fit all 100 beams
-  BEAMS = range(1,101)
+  # fit all 180 beams
+  BEAMS = range(1,181)
   home_dir = os.environ['HOME']
   for k in BEAMS:
     infile_name = ""
-    if k <= 25:
+    if k <= 90:
       fits_num = k
-      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + '.fits'
-    elif k > 25 and k <= 50:
-      fits_num = k - 25
-      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + '_90.fits'
-    elif k > 50 and k <= 75:
-      fits_num = k - 50
-      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + '_180.fits'
-    elif k > 75:
-      fits_num = k - 75
-      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + '_270.fits'
+      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + 'y.fits'
+    else:
+      fits_num = k - 90
+      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + 'x.fits'
     ns.image(k) << Meq.FITSImage(filename=infile_name,cutoff=1.0,mode=2)
     ns.resampler(k) << Meq.Resampler(ns.image(k))
     ns.l0(k)<< tpolc(0)
@@ -127,7 +122,7 @@ def _test_forest(mqs,parent):
   f0 = 0.0
   f1 = 1.5e70
 
-  lm_range = [-0.003,0.003];
+  lm_range = [-0.04,0.04];
   lm_num = 50;
 # define request
   request = make_request(dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
