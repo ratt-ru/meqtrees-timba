@@ -53,12 +53,12 @@ import Meow.Bookmarks
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("E Jones",["sink:1:30","sink:12:25"],["image:1","image:20"])
+  Meow.Bookmarks.PlotPage("E Jones",["sink:1:30","sink:12:25"],["image:1","image:25"])
 ]);
 
 
 # to force caching put 100
-#Settings.forest_state.cache_policy = 100
+Settings.forest_state.cache_policy = 100
 
 # define antenna list
 ANTENNAS = range(1,31);
@@ -69,17 +69,21 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 mep_beam_locations = 'beam_locations.mep';
 
 # source flux (same for all sources)
-I = 1; Q = .2; U = .2; V = .2;
+#I = 1; Q = .2; U = .2; V = .2;
+I = 1; Q = .0; U = .0; V = .0;
 
 # location of 'phased up' beam
 #BEAM_LM = [(0.0,0.0087266463)]  # offset of 0.5 deg in DEC
 #BEAM_LM = [(0.0,0.017453293)]  # offset of 1 deg in DEC
-BEAM_LM = [(0.0,0.052359879)]  # offset of 3 deg in DEC
+#BEAM_LM = [(0.0,0.052359879)]  # offset of 3 deg in DEC
+#`BEAM_LM = [(0.052359879,0.0)]  # offset of 3 deg in L
+BEAM_LM = [(0.024682684,0.024682684)]  # offset of 2 deg on diagonal
 
 # we'll put the sources on a grid (positions relative to beam centre in radians)
-LM = [(-0.0087266463,-0.0087266463),(-0.0087266463,0),(-0.0087266463,0.0087266463),
-      ( 0,-0.0087266463),( 0,0),( 0,0.0087266463),
-      ( 0.0087266463,-0.0087266463),( 0.0087266463,0),( 0.0087266463,0.0087266463)];
+#LM = [(-0.0087266463,-0.0087266463),(-0.0087266463,0),(-0.0087266463,0.0087266463),
+#      ( 0,-0.0087266463),( 0,0),( 0,0.0087266463),
+#      ( 0.0087266463,-0.0087266463),( 0.0087266463,0),( 0.0087266463,0.0087266463)];
+LM = [(0,0)]
 SOURCES = range(len(LM));       # 0...N-1
 
 
@@ -87,29 +91,25 @@ SOURCES = range(len(LM));       # 0...N-1
 def _define_forest(ns):  
 
 # read in beam images
-  BEAMS = range(1,101)
+  BEAMS = range(1,181)
   home_dir = os.environ['HOME']
   for k in BEAMS:
     infile_name = ""
-    if k <= 25:
+    if k <= 90:
       fits_num = k
-      infile_name = home_dir + '/brisken_stuff/1420_simul/311MHz_beam_' + str(fits_num) + '.fits'
-    elif k > 25 and k <= 50:
-      fits_num = k - 25
-      infile_name = home_dir + '/brisken_stuff/1420_simul/311MHz_beam_' + str(fits_num) + '_90.fits'
-    elif k > 50 and k <= 75:
-      fits_num = k - 50
-      infile_name = home_dir + '/brisken_stuff/1420_simul/311MHz_beam_' + str(fits_num) + '_180.fits'
-    elif k > 75:
-      fits_num = k - 75
-      infile_name = home_dir + '/brisken_stuff/1420_simul/311MHz_beam_' + str(fits_num) + '_270.fits'
+      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + 'y.fits'
+    else:
+      fits_num = k - 90
+      infile_name = home_dir + '/brisken_stuff/311MHz/311MHz_beam_' + str(fits_num) + 'x.fits'
+
     ns.image(k) << Meq.FITSImage(filename=infile_name,cutoff=1.0,mode=2)
     ns.resampler(k) << Meq.Resampler(ns.image(k), dep_mask=0xff)
+#   ns.resampler(k) << Meq.Resampler(ns.image(k))
 
 # get positions of beam peaks from mep table
 # scale factor of 17 used to increase size of beam offsets
 # proportional to beam multiplication done from brisken stuff
-    ns.scale_factor << Meq.Constant(17.0)
+    ns.scale_factor << Meq.Constant(1.0)
     ns.l0(k)<< Meq.Parm(table_name=mep_beam_locations)
     ns.m0(k)<< Meq.Parm(table_name=mep_beam_locations)
     ns.l00(k)<< ns.l0(k) * ns.scale_factor 
@@ -210,7 +210,7 @@ def _define_forest(ns):
     ns.Et(src) << Meq.ConjTranspose(ns.E(src));
     ns.E_diff(src) <<  ns.E(src) - ns.E_mean(src)
     ns.Et_diff(src) << Meq.ConjTranspose(ns.E_diff(src));
-    ns.E_div(src) << Meq.Divide( ns.E_diff(src), ns.E(src))
+    ns.E_div(src) << Meq.Divide( ns.E_diff(src), ns.E(src)) 
     ns.Et_div(src) << Meq.ConjTranspose(ns.E_div(src))
 
  # define K-jones matrices
@@ -224,9 +224,9 @@ def _define_forest(ns):
     # make per-source predicted visibilities
     for src in SOURCES:
       ns.predict(p,q,src) << \
-        Meq.MatrixMultiply(ns.E_div(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et_div(src));
+        Meq.MatrixMultiply(ns.E_diff(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et_diff(src));
+#       Meq.MatrixMultiply(ns.E_div(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et_div(src)) * 100.0;
 #       Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src));
-#       Meq.MatrixMultiply(ns.E_diff(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et_diff(src));
     # and sum them up via an Add node
     predict = ns.predict(p,q) << Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
