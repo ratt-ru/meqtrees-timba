@@ -18,6 +18,9 @@
 #                     arcmin_per_obs(),  arcsec_per_obs()
 # - 2006.11.24: added time_freq_band()
 #               corrected small error in freq_band()
+# - 2006.11.30: added search_node()
+# - 2006.12.05: added calc_FOV()
+
 
 
 # imports
@@ -25,13 +28,14 @@ from   Timba.TDL import *
 from   Timba.Meq import meq
 import math
 import random
+import Meow
 
 
 # constants
 DEG    = math.pi/180.
 ARCMIN = DEG/60.0 
-ARCSEC = ARCMIN/60 
-C      = 3E8
+ARCSEC = ARCMIN/60.0
+C      = 3.0E8
 
 
 def set_uvw_node(ns, p=1):
@@ -335,32 +339,57 @@ def time_freq_band(ns, parts=32, bookmarks=False):
 
 
 def rprint(rec):
-   """ Prints a record recursively up to 2nd level """
-   for subkey0 in rec.keys():
-      print subkey0
-      try:
-         for subkey1 in rec[subkey0].keys():
-            print "  ", subkey1
-            try:
-               for subkey2 in rec[subkey0][subkey1].keys():
-                  print "     ", subkey2
-                  pass
-               pass
-            except: pass
+  """ Prints a record recursively up to 2nd level """
+  for subkey0 in rec.keys():
+    print subkey0
+    try:
+      for subkey1 in rec[subkey0].keys():
+        print "  ", subkey1
+        try:
+          for subkey2 in rec[subkey0][subkey1].keys():
+            print "     ", subkey2
             pass
-         pass
-      except: pass
+          pass
+        except: pass
+        pass
       pass
-   pass
-
+    except: pass
+    pass
+  pass
+ 
 
 def format_array(array=[], format="%f"):
-   """ returns array as string in given 'format'
-   """
-   s  = "["
-   for i in array:
-      s += format % i + ", "
-      pass
-   s = s[0:len(s)-2] + "]"
-   return s
+  """ returns array as string in given 'format'
+  """
+  s  = "["
+  for i in array:
+    s += format % i + ", "
+    pass
+  s = s[0:len(s)-2] + "]"
+  return s
+
+def search_node(ns, name="", classname=""):
+  if classname=="": classname=name
+  print name,     "[name] :",ns.Search(return_names=True,name=name);
+  print classname,"[class]:",ns.Search(return_names=True,class_name=classname)
+  pass
+
+
+def calc_FOV(arcmin='auto', maxrad=1.0):
+  # Calculate Field Of View in arcsec
+  if arcmin=='auto':
+    MSNAME  = Meow.Utils.msname.upper()
+    FOV_min = {
+      True              : maxrad*2,            # default FOV
+      "LOFAR" in MSNAME or
+      "CORE"  in MSNAME or
+      "FULL"  in MSNAME : max(maxrad*2, 600),  # LOFAR minimum 600' FOV
+      "WSRT"  in MSNAME : max(maxrad*2,  30),  # WSRT  minimum  30' FOV
+      "VLA"   in MSNAME or
+      "DEMO"  in MSNAME : max(maxrad*2,   5),  # VLA   minimum   5' FOV
+      }[True]
+  else: FOV_min = arcmin
+  
+  print "FOV (arcmin): ", FOV_min  
+  return FOV_min * 60.0
 

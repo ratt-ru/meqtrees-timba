@@ -4,7 +4,7 @@
 # - 2006.11.23: added SourceList.copy()
 #               added LM()
 #               added SourceList.add_random()
-
+# - 2006.11.29: added SourceList.maxrad
 
 
 
@@ -51,7 +51,9 @@ class SourceList:
     """ Create list of sources
     """
     self.sources     = []
+    self.maxrad      = 0; # maximum radius of image
 
+    
     # Create source list
     if   ns is None:
       if LIST is None:
@@ -86,6 +88,7 @@ class SourceList:
     print "___ Copying SourceList"
     self.sources = [src for src in LIST.sources]
     self.LM      = [lm  for lm  in LIST.LM]
+    self.maxrad  = LIST.maxrad
     pass
 
   def copy(self):
@@ -97,8 +100,10 @@ class SourceList:
     """ Set LM coords per source in arcmin"""
     self.LM   = []
     for isrc in range(len(LM)):
-      self.LM.append((LM[isrc][0]*self.ARCMIN,
-                      LM[isrc][1]*self.ARCMIN)) 
+      l           = LM[isrc][0]
+      m           = LM[isrc][1]
+      self.maxrad = max(abs(l)+.5, abs(m)+.5, self.maxrad);
+      self.LM.append((l*self.ARCMIN, m*self.ARCMIN)) 
       pass
     pass
 
@@ -125,10 +130,13 @@ class SourceList:
     r     : Max distance to x,y-axes (through pointing center)
     """
     for n in range(nsrc):
+      
       # create random (l,m) coords
-      th = random.uniform(0, math.pi*2)
-      l  = random.uniform(-rmax, rmax) * self.ARCMIN
-      m  = random.uniform(-rmax, rmax) * self.ARCMIN
+      l           = random.uniform(-rmax, rmax)
+      m           = random.uniform(-rmax, rmax)
+      self.maxrad = max(abs(l)+.5, abs(m)+.5, self.maxrad);
+      l          *=  self.ARCMIN
+      m          *=  self.ARCMIN
       self.LM.append((l, m))
 
       # create random Stokes parameters

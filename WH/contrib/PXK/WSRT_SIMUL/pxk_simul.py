@@ -11,9 +11,9 @@
 # - 2006.10.30: added job that creates image and opens imager (not
 #               working yet
 # - 2006.10.31: created pxk_tools.py
-#               created pxk_manual.py  -- to simulate without Meow
-#               manually added moving source to pxk_manual.py
-#               added PJones
+#               created pxk_manual.py -- to simulate without Meow
+#               manually added moving source to pxk_manual.py added
+#               PJones
 # - 2006.11.01: added possibility to write residuals
 #               added possibility to read in MS
 # - 2006.11.02: added possibility to write residuals WITH beam applied
@@ -25,38 +25,56 @@
 #               added DJones to pxk_jones.py
 # - 2006.11.17: separated uv-plane from image-plane effects in JM
 # - 2006.11.27: moved creation of truesky to define forest
-
+# - 2006.11.29: added possibility to auto-scale F.O.V.
+# - 2006.12.04: added input improvements (for corruptions/channels)
+# - 2006.12.05: improved automatic selection of FOV dependent on name
+#               of MS.
 
 
 
 
 # standard preamble
-from   Timba.TDL import *
-from   Timba.Meq import meq
+from   Timba.TDL  import *
+from   Timba.Meq  import meq
 import math
 import Meow
+
+# some GUI options
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,60,120,240,720]) 
+Meow.Utils.include_imaging_options()
+TDLCompileMenu("JONES             :",
+               TDLCompileOption('applyE', "E",False),
+               TDLCompileOption('applyF', "F",False),
+               TDLCompileOption('applyZ', "Z",False),
+               TDLCompileOption('applyT', "T",False),
+               TDLCompileOption('applyP', "P",False),
+               TDLCompileOption('applyB', "B",False),
+               TDLCompileOption('applyD', "D",False),
+               TDLCompileOption('applyG', "G",False),
+               TDLCompileOption('applyR', "R",False),
+               TDLCompileOption('applyM', "M",False))
+
+# FOV: LOFAR: 9.5 deg @ 30MHz - 1.4 deg @ 240MHz
+TDLCompileOption('arcmin', "FOV (arcmin)      ",
+                 ['auto', 1,2,5,10,15,30,60,120,240, 480, 600, 1200],default=0)
+TDLCompileOption('antennas',  "antennas          ",
+                 [14, 27, 32, 77], default=0) 
+TDLCompileOption('channels',  "channels          ",
+                 [32, 64], default=0) 
+TDLCompileOption('data_input',"input             ", ['model', 'data']),
+TDLCompileOption('residual',  "residual          ",[False, True])
+
+ANTENNAS   = range(1,antennas+1)
+
+# extra imports
 import random
 import pxk_manual
 import pxk_sourcelist
 import pxk_tools
-from   pxk_jones import *
-import pxk_zjones
+from   pxk_jones  import *
+TDLCompileOption('empty_line'," ", False),
 
 
-
-
-# some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,60,120,240,720]) 
-Meow.Utils.include_imaging_options() 
-TDLCompileOption('arcmin',    "FOV (arcmin)",[1,2,5,10,30,60,90,120],default=3)
-TDLCompileOption('antennas',  "antennas    ",[14, 27], default=0) 
-TDLCompileOption('data_input',"input       ", ['model', 'data']),
-TDLCompileOption('residual',  "residual    ",[False, True])
-TDLCompileMenu("",
-               TDLOption('',"",['a', 'b']),
-               TDLOption('',"",['c', 'd']))
-
-ANTENNAS   = range(1,antennas+1)
 
 
 
@@ -65,36 +83,40 @@ ANTENNAS   = range(1,antennas+1)
 def _define_forest (ns):
   print "\n____________________________________________________________"
 
+  global maxrad                             # set global maxrad
   array       = Meow.IfrArray(ns,ANTENNAS)  # create Array object
   observation = Meow.Observation(ns)        # create Observation object
   patch       = Meow.Patch(ns,'predict', observation.phase_centre) 
   model       = Meow.Patch(ns,'truesky', observation.phase_centre)
+
   
   # create source list
-  slist       = pxk_sourcelist.SourceList(ns, LM=[(1E-100,0)], Q=0.2)
+  slist       = pxk_sourcelist.SourceList(ns, kind="grid", nsrc=1,
+                                          lm0=(1E-100,0),dlm=(180,180))
   s_all       = slist.copy()
+  maxrad      = slist.maxrad
+ 
 
   # apply source-DE-pendent image-plane effects
-  J = ["Z", "M"]
-  if "E" in J:
+  if applyE:
     slist = EJones(ns,slist)
     s_all = EJones(ns,s_all, residual=1)
     pass
-  if "F" in J: slist = FJones(ns,slist,array, observation)
-  if "Z" in J: slist = pxk_zjones.ZJones(ns,slist,array, observation)
-  if "T" in J: pass
+  if applyF: slist = FJones(ns,slist,array, observation)
+  if applyZ: slist = ZJones(ns,slist,array, observation)
+  if applyT: pass
   patch.add (*slist.sources)
   model.add (*s_all.sources)
-  
+
   # apply source-IN-dependent uv-plane effects
-  if "P" in J: patch = PJones(ns,patch,array, observation)
-  if "B" in J: patch = BJones(ns,patch,array)
-  if "D" in J: patch = DJones(ns,patch,array)
-  if "G" in J: patch = GJones(ns,patch,array)
-  if "R" in J: patch = RJones(ns,patch,array, "3.7")
-  if "M" in J:
-    patch = MJones(ns,patch,array)
-    model = MJones(ns,model,array, residual=1)
+  if applyP: patch = PJones(ns,patch,array, observation)
+  if applyB: patch = BJones(ns,patch,array)
+  if applyD: patch = DJones(ns,patch,array)
+  if applyG: patch = GJones(ns,patch,array)
+  if applyR: patch = RJones(ns,patch,array, "3.7")
+  if applyM:
+    patch = MJones(ns,patch,array, parts=channels)
+    model = MJones(ns,model,array, parts=channels, residual=1)
     pass
   
   # create set of nodes to compute visibilities
@@ -129,7 +151,7 @@ def write_data (ns, array, observation, predict, model=None):
     for p,q in array.ifrs(): output(p,q) << predict(p,q) - model(p,q)
     pass
   else:
-    print "___ Creatting corrupted nodes"
+    print "___ Creating corrupted nodes"
     output = predict
     pass
 
@@ -155,52 +177,45 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   pass
 
   
-  
 def _tdl_job_2_make_image (mqs,parent):
   """ Use the AIPS++ imager to image the MS """
+  FOV          = pxk_tools.calc_FOV(arcmin, maxrad)
   npix         = 512.0
-  FOV          = arcmin*60.0             # Field Of View in arcsec  
   cellsize     = str(FOV/npix)+"arcsec"  # cellsize*npix = FOV
   Meow.Utils.make_dirty_image(npix     = npix,
                               cellsize = cellsize,
-                              channels = [32,1,1],
+                              channels = [channels,1,1],
                               msselect="ANTENNA1 != ANTENNA2") 
   pass
   
 
-def _tdl_job_3_open_imager (mqs,parent):
-  """ Runs glish script to make an image and view it in imager"""
-  # (!) doesn't work yet
-  npix          = 512.0
-  image_radius  = arcmin*60.0                      # image "radius" in arcsec  
-  cellsize      = str(image_radius/npix)+"arcsec"  # cellsize*npix =FOV
-  channels      = [32,1,1]
-  output_column = 'DATA'
-  msname        = 'WSRT.MS'
-  imaging_mode  = 'mfs'         # channel
-  imaging_weight= "natural"     # "uniform" "briggs"
-  imaging_stokes= "I"           # "IQUV"
-  
+def _tdl_job_3_make_movie (mqs,parent):
+  """ Use AIPS++ and karma to make a movie """
+  FOV          = pxk_tools.calc_FOV(arcmin, maxrad)
+  npix         = 512.0
+  cellsize     = str(FOV/npix)+"arcsec"  # cellsize*npix = FOV
+
   import os
   import os.path
-  (nchan,chanstart,chanstep) = channels
-  script_name = 'SCRIPTS/' + 'create_image.g'
-  script_name = os.path.realpath(script_name)     # glish don't like symlinks
+  print Meow._meow_path
+  script_name = os.path.join("./SCRIPTS/",'time_movie.g');
+  script_name = os.path.realpath(script_name);  # glish don't like symlinks...
   args = [ 'glish','-l',
            script_name,
-           output_column,
-           'ms='+msname,'mode='+imaging_mode,
-           'weight='+imaging_weight,'stokes='+imaging_stokes,
-           'npix='+str(npix),
-           'cellsize='+cellsize,
-           'nchan='+str(nchan),
-           'chanstart='+str(chanstart),    
-           'chanstep='+str(chanstep)
-           ] 
-  print args 
-  os.spawnvp(os.P_NOWAIT,'glish',args) 
-  pass
+           Meow.Utils.output_column,
+           'ms='      + Meow.Utils.msname,
+           'mode='    + 'mfs',
+           'weight='  + Meow.Utils.imaging_weight,
+           'stokes='  + Meow.Utils.imaging_stokes,
+           'npix='    + str(npix),
+           'cell='    + cellsize,
+           'msselect='+"ANTENNA1 != ANTENNA2"
+           ];
+  print args;
+  os.spawnvp(os.P_NOWAIT,'glish',args);
 
+  pass
+  
 
 
 # 'python script.tdl'

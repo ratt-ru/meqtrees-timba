@@ -15,6 +15,8 @@ import math
 import Meow
 import random
 import pxk_tools
+import pxk_tecs
+
 
 
 
@@ -72,6 +74,37 @@ def EJones (ns, slist, residual=0, alpha=0.0, beam="WSRT_moving"):
   return slist
 
 
+
+def ZJones (ns, slist, array, observation):
+  """ create ZJones (Ionospheric phase), given TECs (per source, per
+  station). (image-plane effect).
+  slist : source list to apply ZJones to
+  """
+  print "___ Applying Z Jones"  # Ionospheric phase
+
+  tecs    = pxk_tecs.compute_tecs(ns, slist.sources, array, observation)
+  labda   = pxk_tools.C/Meq.Freq()
+  
+  for isrc in range(len(slist.sources)):
+    src   = slist.sources[isrc]
+
+    # create Z Jones for ionospheric phase delay, with TECs (per source/stat.)
+    for p in array.stations():
+      phase = -25*tecs(src.name,p)*labda
+      ns.Z(src.name,p) << Meq.Polar(1,phase);
+      pass
+
+    # corrupt *source* by Z term
+    slist.sources[isrc] = Meow.CorruptComponent(
+      ns,src,'Z',station_jones=ns.Z(src.name))
+    pass
+  
+  # some bookmarks  (source S0, station i)
+  for i in range(4): pxk_tools.Book_Mark(ns.Z('S0',i+1), 'Z Jones')
+  return slist
+
+
+
 def FJones_zenith (ns, slist, array):
   """ create FJones (Faraday Rotation) for each station.  (image-plane
   effect).
@@ -118,90 +151,19 @@ def FJones_zenith (ns, slist, array):
 
 
 
-
-
 def FJones (ns, slist, array, observation):
-  """ create FJones (Faraday Rotation) for each station.  (image-plane
-  effect).
-  NOTE : Make sure that there is flux in either Stoke Q or Stokes U,
-  else F Jones will not do anything (since it interchanges flux
-  between Q and U).
+  """ create FJones (Faraday Rotation), given TECs (per source,
+  station).  (image-plane effect).  NOTE : Make sure that there is
+  flux in either Stoke Q or Stokes U, else F Jones will not do
+  anything (since it interchanges flux between Q and U).
+  
   slist : source list to apply FJones to
   """
   print "___ Applying F Jones"  # Faraday rotation
 
-  H        = 300000;    # height of ionospheric layer, in meters
-  TEC0     = 10;        # base TEC, in TECU
-  TIDAmpl  = 0.05;      # TID amplitude, relative to base TEC
-  TIDSize  = 200000;    # TID extent, in meters (one half of a sine wave)
-  TIDSpeed = 600;       # TID time scale, in seconds
-
-
-  def compute_piercings (ns,slist,array,observation):
-    """Creates nodes to compute the 'piercing points' of each
-    source in slist, for each antenna in array.
-    """
-    xyz    = array.xyz();
-    xyz_p0 = xyz(array.stations()[0])
-    for p in array.stations():
-      ns.xy(p) << Meq.Selector(xyz(p) - xyz_p0,index=[0,1],multi=True);
-      pass
-    
-    for src in slist.sources:
-      lm    = src.direction.lm(); # (l,m)
-      lm_sq = ns.lm_sq(src.name) << Meq.Sqr(lm);
-      # dxy is the relative X,Y coord of the piercing point for this
-      # source, relative to centre. Its equals H*tan(z), where z is
-      # the zenith angle
-      ns.dxy(src.name) << H*lm/Meq.Sqrt(1-lm_sq);
-      
-      # now compute absolute piercings per source, per antenna
-      for p in array.stations():
-        ns.pxy(src.name,p) << ns.xy(p) + ns.dxy(src.name);
-        pass
-      pass
-    return ns.pxy;
+  tecs    = pxk_tecs.compute_tecs (ns,slist.sources,array,observation);
+  labda   = pxk_tools.C / Meq.Freq()
   
-
-  def compute_za_cosines (ns,slist,array,observation):
-    """Creates nodes to compute the zenith angle cosine of each
-    source in slist, for each antenna in array.
-    """
-    za_cos = ns.za_cos;
-    for src in slist.sources:
-      for p in array.stations():
-        za_cos(src.name,p) << Meq.Identity(
-          src.direction.n(observation.phase_centre))
-        pass
-      pass
-    return za_cos
-
-
-  def compute_tecs (ns,piercings,za_cos,slist,array,observation):
-    """Creates nodes to compute the TEC for each piercing (per
-    source, per station).
-    """
-    tecs = ns.tec;
-    for src in slist.sources:
-      for p in array.stations():
-        # TEC moves only in x-dir as fct of time
-        px  = ns.px(src.name,p) << \
-              Meq.Selector(piercings(src.name,p),index=0)
-        amp = (TIDAmpl*TEC0)
-        sin = Meq.Sin(2*math.pi*(px/(2*TIDSize) + Meq.Time()/TIDSpeed))
-        tecs(src.name,p) << (TEC0 + amp*sin) / za_cos(src.name,p);
-        pass
-      pass
-    return tecs;
-  
-
-  """Create F Jones for Faraday rot, given TECs (per source, station).
-  """
-  piercings = compute_piercings  (ns, slist, array, observation);
-  za_cos    = compute_za_cosines (ns, slist, array, observation);
-  tecs      = compute_tecs (ns,piercings,za_cos,slist,array,observation);
-
-  labda     = pxk_tools.C / Meq.Freq()  
   for isrc in range(len(slist.sources)):
     src      = slist.sources[isrc]
     
@@ -219,117 +181,6 @@ def FJones (ns, slist, array, observation):
   # some bookmarks  (source S0, station i)
   for i in range(4): pxk_tools.Book_Mark(ns.F('S0',i+1), 'F Jones')
   return slist
-
-
-
-
-
-
-
-
-
-
-def ZJones (ns, slist, array, observation):
-  """ create ZJones (Ionospheric phase) for each station.  (image-plane
-  effect).
-  slist : source list to apply ZJones to
-  """
-  print "___ Applying Z Jones"  # Ionospheric phase
-
-  H        = 300000;    # height of ionospheric layer, in meters
-  TEC0     = 10;        # base TEC, in TECU
-  TIDAmpl  = 0.05;      # TID amplitude, relative to base TEC
-  TIDSize  = 200000;    # TID extent, in meters (one half of a sine wave)
-  TIDSpeed = 100;       # TID time scale, in seconds
-
-
-  def compute_piercings (ns,slist,array,observation):
-    """Creates nodes to compute the 'piercing points' of each
-    source in slist, for each antenna in array.
-    """
-  
-    xyz    = array.xyz();
-    xyz_p0 = xyz(array.stations()[0])
-    for p in array.stations():
-      ns.xy(p) << Meq.Selector(xyz(p) - xyz_p0,index=[0,1],multi=True);
-      pass
-    
-    for src in slist:
-      lm    = src.direction.lm(); # (l,m)
-      lm_sq = ns.lm_sq(src.name) << Meq.Sqr(lm);
-      # dxy is the relative X,Y coord of the piercing point for this
-      # source, relative to centre. Its equals H*tan(z), where z is
-      # the zenith angle
-      ns.dxy(src.name) << H*lm/Meq.Sqrt(1-lm_sq);
-      
-      # now compute absolute piercings per source, per antenna
-      for p in array.stations():
-        ns.pxy(src.name,p) << ns.xy(p) + ns.dxy(src.name);
-        pass
-      pass
-    return ns.pxy;
-  
-
-  def compute_za_cosines (ns,slist,array,observation):
-    """Creates nodes to compute the zenith angle cosine of each
-    source in slist, for each antenna in array.
-    """
-    za_cos = ns.za_cos;
-    for src in slist:
-      for p in array.stations():
-        za_cos(src.name,p) <<  Meq.Identity(
-          src.direction.n(observation.phase_centre))
-        pass
-      pass
-    return za_cos
-
-
-  def compute_tecs (ns,piercings,za_cos,slist,array,observation):
-    """Creates nodes to compute the TEC for each piercing (per
-    source, per station).
-    """
-    tecs = ns.tec;
-    for src in slist:
-      for p in array.stations():
-        px  = ns.px(src.name,p) << \
-              Meq.Selector(piercings(src.name,p),index=0)
-        amp = (TIDAmpl*TEC0)
-        sin = Meq.Sin(2*math.pi*(px/(2*TIDSize) + Meq.Time()/TIDSpeed))
-        tecs(src.name,p) << (TEC0 + amp*sin) / za_cos(src.name,p);
-        pass
-      pass
-    return tecs;
-  
-
-
-  """Creates the Z Jones for ionospheric phase, given TECs (per source, 
-  per station).
-  """
-  piercings = compute_piercings(ns,slist.sources,array,observation);
-  za_cos    = compute_za_cosines(ns,slist.sources,array,observation);
-  tecs      = compute_tecs(
-    ns,piercings,za_cos,slist.sources,array,observation);
-
-  labda     = pxk_tools.C / Meq.Freq()  
-  for isrc in range(len(slist.sources)):
-    src     = slist.sources[isrc]
-    
-    # get Ionospheric phase per station, per source position
-    for p in array.stations():
-      ns.Z(src.direction.name,p) << Meq.Polar(
-        1, 2*math.pi * -25 * tecs(src.direction.name,p) * labda)
-      pass
-
-    # and corrupt *source* by Z term
-    slist.sources[isrc] = Meow.CorruptComponent(
-      ns,src,'Z', station_jones=ns.Z(src.direction.name))
-    pass
-  
-  # some bookmarks  (source S0, station i)
-  for i in range(4): pxk_tools.Book_Mark(ns.Z('S0',i+1), 'Z Jones')
-  return slist
-
-
 
 
 
@@ -376,6 +227,7 @@ def GJones (ns, patch, array, kind='noise'):
   return corrupt
 
 
+
 def BJones (ns, patch, array):
   """ create BJones (bandpass) for each station (image-plane effect)
   """
@@ -404,6 +256,7 @@ def BJones (ns, patch, array):
   return corrupt
 
 
+
 def PJones (ns, patch, array, observation):
   """ create PJones (sky rotation) for each station to account for
   rotating sky in case of alt-az mounts. This is NOT necessary for
@@ -423,6 +276,7 @@ def PJones (ns, patch, array, observation):
   # and corrupt patch by P term
   corrupt = Meow.CorruptComponent(ns,patch,'P',station_jones=ns.P) 
   return corrupt
+
 
 
 def DJones (ns, patch, array, dphi=2, dtheta=1):
@@ -460,8 +314,6 @@ def DJones (ns, patch, array, dphi=2, dtheta=1):
 
 
 
-
-
 def MJones(ns, patch, array, parts=32, residual=0):
   """ Movie Jones. Makes a 'movie' by putting different timeslots in
   different channels. Works best when number of channels and number of
@@ -483,6 +335,22 @@ def MJones(ns, patch, array, parts=32, residual=0):
 
   corrupt = Meow.CorruptComponent(ns,patch,'M',station_jones=ns.M) 
   return corrupt
+
+
+
+def addNoise(ns, array, predict, noise_level=0):
+  """ add noise if needed """
+  if noise_level != 0:
+    Noise = Meq.GaussNoise(stddev=noise_level); # "reusable" node definition
+    for p,q in array.ifrs():
+      ns.noisy_predict(p,q) << predict(p,q) + \
+                            Meq.Matrix22(Noise,Noise,Noise,Noise);
+      pass
+    return ns.noisy_predict;
+  pass
+
+
+
 
 
 
