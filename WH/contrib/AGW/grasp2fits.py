@@ -88,7 +88,7 @@ def getdata( filename ):
 
 	return data, (scale*180.0/math.pi)
 
-def totalpower( data, nx ):
+def totalpower( data, nx, mV=0, mH=0 ):
 	Z = numarray.zeros( (nx, nx), numarray.Float64 )
 	C = len(data)
 	L = len(data[0])
@@ -98,15 +98,23 @@ def totalpower( data, nx ):
         data_max = -1000000.0
 	for y in range(nx):
 		for x in range(nx):	
+                        if mV > 0:
+                         x_index = nx - 1 - x
+                        else:
+                         x_index = x
+                        if mH > 0:
+                         y_index = nx - 1 - y
+                        else:
+                         y_index = y
 			i = y + nx*x
 			s = 0.0;
 			for j in range(C):
 				s = s + data[j][i]*data[j][i];
-			Z[x][y] = s
-                        if Z[x][y] > data_max:
-                          data_max = Z[x][y]
-                          x_max = x
-                          y_max = y
+			Z[x_index][y_index] = s
+                        if Z[x_index][y_index] > data_max:
+                          data_max = Z[x_index][y_index]
+                          x_max = x_index
+                          y_max = y_index
 
 			if s > m:
 				m = s;
@@ -129,20 +137,29 @@ def main( argv ):
 		print 'data not square'
 		exit
 
-	print 'grd file x, y dimensions = %d' % nx
-	print 'grd file scale = %f deg / pix' % scale
-
         # convert to radians'
         scale = math.pi * scale  / 180.0
+        # note: multiply scale by approx 17 for xntd
+        scale = 17.0 * scale
 
         # presently get data array as total power 
         # we may want additional formats
-	Z, x_max, y_max = totalpower(data, nx);
-        print 'array max and position ', Z.max(), ' ', x_max,' ', y_max
+        # mirror horizontally?
+        mV = 0
+        try:
+          mV = int(argv[3])
+        except:
+          pass
+        mH = 0
+        try:
+          mH = int(argv[4])
+        except:
+          pass
+	Z, x_max, y_max = totalpower(data, nx, mV, mH);
         
         # rotate matrix by x * 90 deg
         try:
-          rot_factor = int(argv[3])
+          rot_factor = int(argv[5])
         except:
           rot_factor = 0
         # turn 2D array into a 4D array so that pyfits will
@@ -161,11 +178,11 @@ def main( argv ):
         # of displayed image
         hdu.header.update('CTYPE1', 'M')
         hdu.header.update('CDELT1', (-1.0) * scale, 'in radians')
-        hdu.header.update('CRPIX1', y_max+1, 'reference pixel (one relative)')
+        hdu.header.update('CRPIX1', x_max+1, 'reference pixel (one relative)')
         hdu.header.update('CRVAL1', 0.0, 'M = 0 at beam peak')
         hdu.header.update('CTYPE2', 'L')
         hdu.header.update('CDELT2', scale, 'in radians')
-        hdu.header.update('CRPIX2', x_max+1, 'reference pixel (one relative)')
+        hdu.header.update('CRPIX2', y_max+1, 'reference pixel (one relative)')
         hdu.header.update('CRVAL2', 0.0, 'L = 0 at beam peak')
 
         # add dummy stuff for freq (axis 3) / time (axis4)
