@@ -653,7 +653,6 @@ namespace Meq {
  
 		}
 		res1.setVellSet(ivs,ref);
-    res1.setCells(incells);
 
 
     //delete map
@@ -674,7 +673,12 @@ namespace Meq {
     }
 //////// end loop over vellsets
 
-    //return Node::pollChildren(resref,childres,newreq);
+    res1.setCells(incells);
+  /// if funklet child has more than 1 vellset and it also has dims, copy them
+    if (childres[1]->numVellSets()> 1) {
+	    res1.setDims(childres[1]->dims());
+    }
+
     unlockStateMutex();
     stepchildren().backgroundPoll(request);
     timers().children.stop();
