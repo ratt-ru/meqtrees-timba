@@ -427,10 +427,16 @@ namespace Meq {
        npsets=childres[0]->vellSet(ch).numPertSets();
 			}
 		}
+#ifdef  DEBUG
+    cout<<"NPset "<<npsets<<endl;
+#endif
 		//check out the funklet too
-		if (childres[1]->vellSet(0).numPertSets()>npsets) {
-       npsets=childres[1]->vellSet(0).numPertSets();
+		if (childres[1]->vellSet(ivs).numPertSets()>npsets) {
+       npsets=childres[1]->vellSet(ivs).numPertSets();
 		}
+#ifdef DEBUG
+    cout<<"NPset "<<npsets<<endl;
+#endif
 		//create a spids vector
     std::vector<VellSet::SpidType> newspids(spidmap_.size());
     spmapiter=spidmap_.begin();
@@ -441,6 +447,8 @@ namespace Meq {
 		}
 		nspids=spidmap_.size();
     //create new vellset
+    //FIXME: if nspids==0, no need to have npsets>0, so adjust it
+    if (!nspids) npsets=0;
     VellSet &vs=ref <<=new VellSet(incells.shape(),nspids,npsets);
     vs.setSpids(newspids);
 #ifdef DEBUG
@@ -456,7 +464,7 @@ namespace Meq {
 						if (dd[2] !=-1) {
 							//copy from funklet
 							for (int ii=0; ii<npsets; ii++) 
-							  vs.setPerturbation(sp_id,childres[1]->vellSet(0).getPerturbation(dd[2],ii),ii);
+							  vs.setPerturbation(sp_id,childres[1]->vellSet(ivs).getPerturbation(dd[2],ii),ii);
 						} else if (dd[0] != -1) {
 						 //copy from grid child 1
 							for (int ii=0; ii<npsets; ii++) 
@@ -520,8 +528,11 @@ namespace Meq {
        int *value=spmapiter->second;
        if (value[2]!=-1) {
 					//spid in funklet, use the perturbed value from funklet
-          for (int ipset=0; ipset< childres[1]->vellSet(0).numPertSets(); ipset++) {
-	          const Vells pvl=childres[1]->vellSet(0).getPerturbedValue(value[2],ipset);
+#ifdef DEBUG
+          cout<<"(Real) Pert sets ="<< childres[1]->vellSet(ivs).numPertSets()<<endl;
+#endif
+          for (int ipset=0; ipset< childres[1]->vellSet(ivs).numPertSets(); ipset++) {
+	          const Vells pvl=childres[1]->vellSet(ivs).getPerturbedValue(value[2],ipset);
 	          Vells &pin=const_cast<Vells &>(pvl);
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
 	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
@@ -540,14 +551,17 @@ namespace Meq {
 				  //no spid in funklet, use the main value of the funklet
 					//use the main value from funklet, but use the grid
 					//of the spid
-					int npsets=0;
+					int npsets0=0;
 					int spid=0;
 					if (value[0]!=-1) {
-							npsets=childres[0]->vellSet(0).numPertSets();
+							npsets0=childres[0]->vellSet(0).numPertSets();
 					} else {
-							npsets=childres[0]->vellSet(1).numPertSets();
+							npsets0=childres[0]->vellSet(1).numPertSets();
 					}
-					for (int ipset=0; ipset<npsets; ipset++) {
+#ifdef DEBUG
+          cout<<"(Real) Pert sets ="<<npsets0<<endl;
+#endif
+					for (int ipset=0; ipset<npsets0; ipset++) {
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
 	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	
@@ -586,8 +600,11 @@ namespace Meq {
        int *value=spmapiter->second;
        if (value[2]!=-1) {
 					//spid in funklet, use the perturbed value from funklet
-          for (int ipset=0; ipset< childres[1]->vellSet(0).numPertSets(); ipset++) {
-	          const Vells pvl=childres[1]->vellSet(0).getPerturbedValue(value[2],ipset);
+#ifdef DEBUG
+          cout<<"(Complex ) Pert sets ="<< childres[1]->vellSet(ivs).numPertSets()<<endl;
+#endif
+          for (int ipset=0; ipset< childres[1]->vellSet(ivs).numPertSets(); ipset++) {
+	          const Vells pvl=childres[1]->vellSet(ivs).getPerturbedValue(value[2],ipset);
 	          Vells &pin=const_cast<Vells &>(pvl);
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(dcomplex(0.0),incells.shape()),ipset);
 	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
@@ -606,14 +623,17 @@ namespace Meq {
 				  //no spid in funklet, use the main value of the funklet
 					//use the main value from funklet, but use the grid
 					//of the spid
-					int npsets=0;
+					int npsets0=0;
 					int spid=0;
 					if (value[0]!=-1) {
-							npsets=childres[0]->vellSet(0).numPertSets();
+							npsets0=childres[0]->vellSet(0).numPertSets();
 					} else {
-							npsets=childres[0]->vellSet(1).numPertSets();
+							npsets0=childres[0]->vellSet(1).numPertSets();
 					}
-					for (int ipset=0; ipset<npsets; ipset++) {
+#ifdef DEBUG
+          cout<<"(Complex ) Pert sets ="<<npsets0<<endl;
+#endif
+					for (int ipset=0; ipset<npsets0; ipset++) {
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(dcomplex(0.0),incells.shape()),ipset);
 	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
 	
