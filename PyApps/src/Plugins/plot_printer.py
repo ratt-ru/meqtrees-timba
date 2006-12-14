@@ -95,19 +95,19 @@ class plot_printer:
         height = metrics.height() / hor_widgets
         width = height # quadratically sized plots
       if not self.colorbar is None:
-        self.colorbar[0].printPlot(qpainter,
+        self.colorbar[0].print_(qpainter,
           QRect(0, 0, 0.12 * width, height), filter)
         if is_complex:
-          self.colorbar[1].printPlot(qpainter,
+          self.colorbar[1].print_(qpainter,
             QRect(1.6* width, 0, 0.12 * width, height), filter)
-      self.plotter.printPlot(qpainter,
+      self.plotter.print_(qpainter,
         QRect(0.16 * width, 0, 1.4 * width, height), filter)
     else:
       width = metrics.width()
       if metrics.width() > metrics.height():
         width =  metrics.height()
       height = width
-      self.plotter.printPlot(qpainter,
+      self.plotter.print_(qpainter,
         QRect(0, 0, width, height), filter)
     qpainter.end()
 
