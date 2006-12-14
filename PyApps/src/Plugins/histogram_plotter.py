@@ -255,7 +255,10 @@ class QwtHistogramPlotter(QwtPlot):
           if (QPrinter.GrayScale == printer.colorMode()):
               filter.setOptions(QwtPlotPrintFilter.PrintAll
                                 & ~QwtPlotPrintFilter.PrintCanvasBackground)
-          self.print_(printer, filter)
+          try:
+            self.print_(printer, filter)
+          except:
+            self.printPlot(printer, filter)
     # printplot()
 
 

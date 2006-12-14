@@ -1896,7 +1896,10 @@ class realvsimag_plotter(object):
             if (QPrinter.GrayScale == printer.colorMode()):
                 filter.setOptions(QwtPlotPrintFilter.PrintAll
                                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-            self.plot.print_(printer, filter)
+            try:
+              self.plot.print_(printer, filter)
+            except:
+              self.plot.printPlot(printer, filter)
     # printPlot()
 
   def selected(self, points):
