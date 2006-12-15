@@ -28,13 +28,14 @@ script_name = 'MG_AGW_solve_720_beams.py'
 # Short description:
 #  The script should just read in a 2-D array of points from a
 #  FITS file, assign them to a FITSImage, and then solve for
-#  the maximum position
+#  the maximum position.
+
 #  It solves for all 180 beams in the Brisken vivaldi array
 #  It first reads in and combines the data from the Re(x) Im(x) Re(y) Im(y)
 #  data for each beam
 
 # History:
-# - 24 Oct 2006: creation:
+# - 24 Nov 2006: creation:
 
 #=======================================================================
 # Import of Python / TDL modules:
@@ -55,8 +56,16 @@ import Meow.Bookmarks
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
   Meow.Bookmarks.PlotPage("Beams",["image:1","image:12"],["image:19","image:25"],["image:91","image:102"],["image:109","image:115"]),
-  Meow.Bookmarks.PlotPage("All Beams 1",["image:1","image:2","image:3","image:4"],["image:6","image:7","image:8","image:9"],["image:11","image:12","image:13", "image:14"],["image:16","image:17","image:18","image:19"]),
-  Meow.Bookmarks.PlotPage("All Beams 2",["image:5","image:10","image:15","image:20"],["image:21","image:22","image:23","image:24"],["image:25"]),
+  Meow.Bookmarks.PlotPage("All Beams y1",["image:1","image:16","image:17","image:18"],["image:2","image:5","image:20","image:21"],["image:3","image:6","image:8", "image:23"],["image:4","image:7","image:9","image:10"]),
+  Meow.Bookmarks.PlotPage("All Beams y2",["image:19","image:22","image:24","image:25"],["image:11","image:12","image:13","image:14"],["image:15"]),
+  Meow.Bookmarks.PlotPage("All Beams y3",["image:26","image:41","image:42","image:43"],["image:27","image:30","image:45","image:46"],["image:28","image:31","image:33", "image:48"],["image:29","image:32","image:34","image:35"]),
+  Meow.Bookmarks.PlotPage("All Beams y4",["image:44","image:47","image:49","image:50"],["image:36","image:37","image:38","image:39"],["image:40"]),
+  Meow.Bookmarks.PlotPage("All Beams y5",["image:51","image:66","image:67","image:68"],["image:52","image:55","image:70"],["image:53","image:56","image:58"],["image:54","image:57","image:59","image:60"]),
+  Meow.Bookmarks.PlotPage("All Beams y6",["image:69"],["image:61","image:62","image:63","image:64"],["image:65"]),
+  Meow.Bookmarks.PlotPage("All Beams y7",["image:71","image:86","image:87","image:88"],["image:72","image:75","image:90"],["image:73","image:76","image:78"],["image:74","image:77","image:79","image:80"]),
+  Meow.Bookmarks.PlotPage("All Beams y8",["image:89"],["image:81","image:82","image:83","image:84"],["image:85"]),
+  Meow.Bookmarks.PlotPage("All Beams x1",["image:91","image:106","image:107","image:108"],["image:92","image:95","image:110","image:111"],["image:93","image:96","image:98", "image:113"],["image:94","image:97","image:99","image:100"]),
+  Meow.Bookmarks.PlotPage("All Beams x2",["image:109","image:112","image:114","image:115"],["image:101","image:102","image:103","image:104"],["image:105"]),
   Meow.Bookmarks.PlotPage("Condeqs",["condeq:1","condeq:12"],["condeq:19","condeq:25"],["condeq:91","condeq:102"],["condeq:109","condeq:115"])
 ]);
 
