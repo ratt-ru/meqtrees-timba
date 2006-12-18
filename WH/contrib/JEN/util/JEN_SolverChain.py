@@ -276,7 +276,7 @@ class SolverChain (object):
     # Operations on the internal self._cohset:
     #--------------------------------------------------------------------------
 
-    def make_sinks (self, output_col='DATA', vdm='vdm'):
+    def make_sinks (self, output_col='RESIDUALS', vdm='vdm'):
         """Make sinks for the cohset, and a named VisDataMux"""
         cohset = self.cohset()
         for p,q in self.ifrs():

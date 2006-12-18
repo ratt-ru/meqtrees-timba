@@ -227,7 +227,7 @@ def _define_forest (ns):
     sc.insert_reqseq()
 
   # Attach the current cohset to the sinks
-  sc.make_sinks(output_col='DATA', vdm='vdm')
+  sc.make_sinks(output_col='RESIDUALS', vdm='vdm')
 
   # Finished: 
   return True

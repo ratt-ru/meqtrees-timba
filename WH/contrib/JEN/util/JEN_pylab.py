@@ -309,7 +309,8 @@ def show_auxinfo(ctrl):
         rr = ctrl['auxinfo'][key]
         s = key
         if rr['count']==1:                                       # single call 
-            s += ' = '+str(rr['value'])
+            if not rr['value']==None:
+                s += ' = '+str(rr['value'])
         else:                                                    # multiple calls
             # Condense the information from multiple calls:
             v = rr['value']
@@ -385,7 +386,7 @@ def plot_line (ctrl, xx=[0,1], yy=[0,1], color='red',
             else:
                 valign = 'bottom'
                 halign = 'left'                        # to the right(!) of the start-point
-            pylab.text(xx[0], yy[0], '. '+label, color=color,
+            pylab.text(xx[0], yy[0], label+' .', color=color,
                        fontsize=12,
                        horizontalalignment=halign,    
                        verticalalignment=valign)      
