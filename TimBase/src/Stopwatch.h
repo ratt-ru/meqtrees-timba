@@ -104,7 +104,7 @@ namespace LOFAR
     }
 
     // adds elapsed clockticks to st[] array (fastest way to do it)
-    void Stopwatch::add_delta (long long st[4],bool do_reset=false)
+    void add_delta (long long st[4],bool do_reset=false)
     {
       struct tms tms1;
       clock_t tick1 = times(&tms1); 
