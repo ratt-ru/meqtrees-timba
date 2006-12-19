@@ -414,6 +414,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           }
           break;
     case Tpdcomplex_int:
+         {
           Py_complex pc = PyComplex_AsCComplex(obj);
           if( pvec0 )
             (*pvec0)[pvec_pos] = make_dcomplex(pc.real,pc.imag);
@@ -423,6 +424,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
             *static_cast<dcomplex*>(parr->getDataPtr()) = make_dcomplex(pc.real,pc.imag);
           }
           break;
+         }
     case Tpstring_int:
           if( !pvec0 )
             objref <<= pvec0 = new DMI::Vec(Tpstring);
