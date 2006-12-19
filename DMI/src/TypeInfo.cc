@@ -21,11 +21,29 @@ DefineRegistry(TypeInfoReg,TypeInfo::NONE);
 // -----------------------------------------------------------------------
 // type converter, scalar-scalar
 // -----------------------------------------------------------------------
+
+// templated inline function to convert scalars. Sadly needed because g++ 4.x
+// does not allow implicit conversions from non-complex type (e.g. 
+// "float y; float _Complex x = y" is an error), but instead needs an explicit 
+// "float _Complex x = y + 0i". 
+template <class From,class To>
+static inline void _Convert (const From *x,To *y)
+{ *y = To(*x); }
+
+#ifndef USE_STD_COMPLEX
+template <class From>
+static inline void _Convert (const From *x,fcomplex *y)
+{ *y = float(*x) + 0.fi; }
+template <class From>
+static inline void _Convert (const From *x,dcomplex *y)
+{ *y = double(*x) + 0.i; }
+#endif
+
 //--- templated implementation of a type converter, scalar to scalar
 template<class From,class To> 
 bool _convertScaSca (const void * from,void * to)
 { 
-  *static_cast<To*>(to) = To(*static_cast<const From *>(from)); 
+  _Convert(static_cast<const From *>(from),static_cast<To*>(to)); 
   return true;
 }
 //    special case for complex-to-non-complex: use real part

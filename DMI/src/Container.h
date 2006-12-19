@@ -543,6 +543,9 @@ class Container : public BObj
     class Subscriber
     {
       public:
+        virtual ~Subscriber ()
+        {}
+          
         //##ModelId=400E4D670364
         //##Documentation
         //## Container event types
