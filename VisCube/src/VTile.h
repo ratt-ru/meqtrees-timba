@@ -380,9 +380,6 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##ModelId=3DB964F901E4
       TypeId objectType () const { return TpVisCubeVTile; }
       
-    //##ModelId=3DB964F901EB
-      typedef CountedRef<VTile> Ref;
-      
     //##ModelId=3DD3C6CB02E9
     //##Documentation
     //## standard debug info method, depending on level includes:
