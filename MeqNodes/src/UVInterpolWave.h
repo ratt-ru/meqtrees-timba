@@ -98,45 +98,45 @@ class UVInterpolWave: public Node
     uint _out2axis0;
     uint _out2axis1;
     
-    void UVInterpolWave::fillVells(const std::vector<Result::Ref> &fchildres, 
+    void fillVells(const std::vector<Result::Ref> &fchildres, 
 				   Vells &fvells0, Vells &fvells1, Vells &fvells2, 
 				   Vells &fvells3, const Cells &fcells);
     
-    bool UVInterpolWave::line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
+    bool line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
   
-    bool UVInterpolWave::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4, double freq);
+    bool arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4, double freq);
     
-    void UVInterpolWave::fillVells2(const std::vector<Result::Ref> &fchildres, 
+    void fillVells2(const std::vector<Result::Ref> &fchildres, 
 				    Vells &fvells1, Vells &fvells2, Vells &fvells3, 
 				    Vells &fvells4, Vells &fvells5, const Cells &fcells);
     
-    void UVInterpolWave::fillVells3(const std::vector<Result::Ref> &fchildres, 
+    void fillVells3(const std::vector<Result::Ref> &fchildres, 
 				    Vells &fvells1, Vells &fvells2, Vells &fvells3, 
 				    Vells &fvells4, Vells &fvells5, const Cells &fcells);
     
-    void UVInterpolWave::interpolate(int &j, int &ni,int &imin, int &nj, int &jmin, LoMat_dcomplex &coeff, blitz::Array<dcomplex,3> &barr,LoVec_double uu,LoVec_double vv);
+    void interpolate(int &j, int &ni,int &imin, int &nj, int &jmin, LoMat_dcomplex &coeff, blitz::Array<dcomplex,3> &barr,LoVec_double uu,LoVec_double vv);
     
-    void UVInterpolWave::myludcmp(blitz::Array<double,2> &A,int n,blitz::Array<int,1> &indx);
+    void myludcmp(blitz::Array<double,2> &A,int n,blitz::Array<int,1> &indx);
     
-    void UVInterpolWave::mylubksb(blitz::Array<double,2> &A,int n,blitz::Array<int,1>&indx,blitz::Array<dcomplex,1> &B);
+    void mylubksb(blitz::Array<double,2> &A,int n,blitz::Array<int,1>&indx,blitz::Array<dcomplex,1> &B);
     
-    void UVInterpolWave::mysplie2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int &m, int &n, blitz::Array<dcomplex,2> &y2a);
+    void mysplie2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int &m, int &n, blitz::Array<dcomplex,2> &y2a);
     
-    void UVInterpolWave::mysplin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, blitz::Array<dcomplex,2> &y2a, int &m, int &n, double &x1, double &x2, dcomplex &y);
+    void mysplin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, blitz::Array<dcomplex,2> &y2a, int &m, int &n, double &x1, double &x2, dcomplex &y);
     
-    void UVInterpolWave::myspline(blitz::Array<double,1> &x, blitz::Array<dcomplex,1> &y,int &n, double yp1, double ypn, blitz::Array<dcomplex,1> &y2);
+    void myspline(blitz::Array<double,1> &x, blitz::Array<dcomplex,1> &y,int &n, double yp1, double ypn, blitz::Array<dcomplex,1> &y2);
   
-    void UVInterpolWave::mysplint(blitz::Array<double,1> &xa, blitz::Array<dcomplex,1> &ya, blitz::Array<dcomplex,1> &y2a, int &n, double &x, dcomplex &y);
+    void mysplint(blitz::Array<double,1> &xa, blitz::Array<dcomplex,1> &ya, blitz::Array<dcomplex,1> &y2a, int &n, double &x, dcomplex &y);
     
-    void UVInterpolWave::mypolin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int m, int n, double &x1, double &x2, dcomplex &y, dcomplex &dy);
+    void mypolin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int m, int n, double &x1, double &x2, dcomplex &y, dcomplex &dy);
     
-    void UVInterpolWave::mypolint(blitz::Array<double,1> &xa, blitz::Array<double,1> &ya, int n, double &x, double &y, double &dy);
+    void mypolint(blitz::Array<double,1> &xa, blitz::Array<double,1> &ya, int n, double &x, double &y, double &dy);
     
-    dcomplex UVInterpolWave::scheme1(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja, dcomplex fuiaja, dcomplex fuiajb, dcomplex fuibjb, dcomplex fuibja, dcomplex fviaja, dcomplex fviajb, dcomplex fvibjb, dcomplex fvibja, dcomplex fuviaja, dcomplex fuviajb, dcomplex fuvibjb, dcomplex fuvibja );
+    dcomplex scheme1(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja, dcomplex fuiaja, dcomplex fuiajb, dcomplex fuibjb, dcomplex fuibja, dcomplex fviaja, dcomplex fviajb, dcomplex fvibjb, dcomplex fvibja, dcomplex fuviaja, dcomplex fuviajb, dcomplex fuvibjb, dcomplex fuvibja );
     
-    dcomplex UVInterpolWave::scheme3(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja );
+    dcomplex scheme3(double s, double t, dcomplex fiaja, dcomplex fiajb, dcomplex fibjb, dcomplex fibja );
     
-    void UVInterpolWave::fill1Vells(Vells &vellsin, Vells &vellsin1, Vells &vellsin2, Vells &vellsin3, Vells &vellsout, const Result::Ref &uvpoints, const Cells &tfcells, const Cells &brickcells);
+    void fill1Vells(Vells &vellsin, Vells &vellsin1, Vells &vellsin2, Vells &vellsin3, Vells &vellsout, const Result::Ref &uvpoints, const Cells &tfcells, const Cells &brickcells);
     
   };
   

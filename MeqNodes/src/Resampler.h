@@ -226,10 +226,10 @@ class Integrator: public ResampleMachine {
 	 blitz::Array<double,2> cell_weight_;
 
   template<class T> int  
-   Integrator::do_resample(
+   do_resample(
 				blitz::Array<T,2> A,  blitz::Array<T,2> B ); 
   template<class T> int  
-   Integrator::do_resample( 
+   do_resample( 
 				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
 			  VellsFlagType *Fp, bool has_flags, blitz::Array<VellsFlagType,2> Aflag);
 

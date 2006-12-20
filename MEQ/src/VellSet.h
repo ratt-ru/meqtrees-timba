@@ -210,7 +210,7 @@ public:
     //##ModelId=400E53550363
   Vells & setValue   (const Vells & value) { return setValue(new Vells(value)); }
   Vells & setReal    (const Vells::Shape &shp) { return setValue(new Vells(0.,shp,false)); }
-  Vells & setComplex (const Vells::Shape &shp) { return setValue(new Vells(dcomplex(0),shp,false)); }
+  Vells & setComplex (const Vells::Shape &shp) { return setValue(new Vells(numeric_zero<dcomplex>(),shp,false)); }
   Vells & setReal    () { return setReal(shape()); }
   Vells & setComplex () { return setComplex(shape()); }
 

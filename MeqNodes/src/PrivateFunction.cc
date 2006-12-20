@@ -234,7 +234,7 @@ Vells PrivateFunction::evaluateComplex(const std::vector<Vells::Ref>  &grid,cons
   }
   
   //now loop over your vells
-  Vells output =  Vells(dcomplex(0.),outshape);
+  Vells output =  Vells(make_dcomplex(0.),outshape);
   dcomplex * res = output.getStorage<dcomplex>();
   dcomplex x[Nx];
   dcomplex par[Npar];

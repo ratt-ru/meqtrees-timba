@@ -74,11 +74,11 @@ public:
 
   bool _image_exists;
 
-  bool UVBrick::checkValidity(const Cells &fcells);
+  bool checkValidity(const Cells &fcells);
 
-  void UVBrick::makeUVImage(const Cells &fcells, const std::vector<Result::Ref> &fchildres);
+  void makeUVImage(const Cells &fcells, const std::vector<Result::Ref> &fchildres);
 
-  void UVBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells);
+  void fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells);
    
 };
 

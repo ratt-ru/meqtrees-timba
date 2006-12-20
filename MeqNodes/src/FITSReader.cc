@@ -179,7 +179,7 @@ int FITSReader::getResult (Result::Ref &resref,
 	    vs0.setValue(new Vells(*cdata));
 	   } else { 
 	    vs0.setShape(shape);
-	    Vells &out=vs0.setValue(new Vells((dcomplex)0.0,shape));
+	    Vells &out=vs0.setValue(new Vells(make_dcomplex(0.0),shape));
 	    if (naxis==1) {
 	     blitz::Array<dcomplex,1> A(cdata,shape,blitz::duplicateData);
 		   VellsSlicer<dcomplex,1> slout(out,0);

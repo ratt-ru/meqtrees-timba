@@ -167,10 +167,10 @@ namespace Meq {
 	tfcells().setCells(Axis::FREQ,fmin,fmax,nf);
     
 	// Make a new Vells and fill with zeros
-	//Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
-	//Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,true));
-	//Vells & vells2 = vs2.setValue(new Vells(dcomplex(0),tfshape,true));
-	//Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,true));
+	//Vells & vells0 = vs0.setValue(new Vells(make_dcomplex(0),tfshape,true));
+	//Vells & vells1 = vs1.setValue(new Vells(make_dcomplex(0),tfshape,true));
+	//Vells & vells2 = vs2.setValue(new Vells(make_dcomplex(0),tfshape,true));
+	//Vells & vells3 = vs3.setValue(new Vells(make_dcomplex(0),tfshape,true));
 	    
 	// Fill the Vells (this is were the interpolation takes place)
 	//fillVells(childres,vells0,vells1,vells2,vells3,tfcells);	
@@ -183,7 +183,7 @@ namespace Meq {
 	  vs0 = childres.at(0)-> vellSet(0);
 	} else {
 	  cdebug(1) << "XXVells is no scalar" << endl;
-	  Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
+	  Vells & vells0 = vs0.setValue(new Vells(make_dcomplex(0),tfshape,true));
 	  Vells XXvells1 = childres.at(0)->vellSet(1).getValue();
 	  Vells XXvells2 = childres.at(0)->vellSet(2).getValue();
 	  Vells XXvells3 = childres.at(0)->vellSet(3).getValue();
@@ -196,7 +196,7 @@ namespace Meq {
 	  vs1 = childres.at(0)-> vellSet(4);
 	} else {
 	  cdebug(1) << "XYVells is no scalar" << endl;
-	  Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,true));
+	  Vells & vells1 = vs1.setValue(new Vells(make_dcomplex(0),tfshape,true));
 	  Vells XYvells1 = childres.at(0)->vellSet(5).getValue();
 	  Vells XYvells2 = childres.at(0)->vellSet(6).getValue();
 	  Vells XYvells3 = childres.at(0)->vellSet(7).getValue();
@@ -209,7 +209,7 @@ namespace Meq {
 	  vs2 = childres.at(0)-> vellSet(8);
 	} else {
 	  cdebug(1) << "YXVells is no scalar" << endl;
-	  Vells & vells2 = vs2.setValue(new Vells(dcomplex(0),tfshape,true));
+	  Vells & vells2 = vs2.setValue(new Vells(make_dcomplex(0),tfshape,true));
 	  Vells YXvells1 = childres.at(0)->vellSet(9).getValue();
 	  Vells YXvells2 = childres.at(0)->vellSet(10).getValue();
 	  Vells YXvells3 = childres.at(0)->vellSet(11).getValue();
@@ -222,7 +222,7 @@ namespace Meq {
 	  vs3 = childres.at(0)-> vellSet(12);
 	} else {
 	  cdebug(1) << "YYVells is no scalar" << endl;
-	  Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,true));
+	  Vells & vells3 = vs3.setValue(new Vells(make_dcomplex(0),tfshape,true));
 	  Vells YYvells1 = childres.at(0)->vellSet(13).getValue();
 	  Vells YYvells2 = childres.at(0)->vellSet(14).getValue();
 	  Vells YYvells3 = childres.at(0)->vellSet(15).getValue();
@@ -400,10 +400,10 @@ namespace Meq {
     VellsSlicer<dcomplex,2> YYtf_slicer(fvells3,_out1axis0,_out1axis1);
     blitz::Array<dcomplex,2> arrYY = YYtf_slicer();
 
-    arrXX = dcomplex(0.0);
-    arrXY = dcomplex(0.0);
-    arrYX = dcomplex(0.0);
-    arrYY = dcomplex(0.0);
+    arrXX = make_dcomplex(0.0);
+    arrXY = make_dcomplex(0.0);
+    arrYX = make_dcomplex(0.0);
+    arrYY = make_dcomplex(0.0);
 
     double uc,vc;
     int    ia,ib,ja,jb;
@@ -614,23 +614,23 @@ namespace Meq {
 	      };
 	    };
 	    
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
+	    value = make_dcomplex(0.0);
+	    dvalue = make_dcomplex(0.0);
 	    UVInterpol::mypolin2(x1,x2,yXX,4,4,uc,vc,value, dvalue);
 	    arrXX(i,j) = value;
 
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
+	    value = make_dcomplex(0.0);
+	    dvalue = make_dcomplex(0.0);
 	    UVInterpol::mypolin2(x1,x2,yXY,4,4,uc,vc,value, dvalue);
 	    arrXY(i,j) = value;
 
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
+	    value = make_dcomplex(0.0);
+	    dvalue = make_dcomplex(0.0);
 	    UVInterpol::mypolin2(x1,x2,yYX,4,4,uc,vc,value, dvalue);
 	    arrYX(i,j) = value;
 
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
+	    value = make_dcomplex(0.0);
+	    dvalue = make_dcomplex(0.0);
 	    UVInterpol::mypolin2(x1,x2,yYY,4,4,uc,vc,value, dvalue);
 	    arrYY(i,j) = value;
 
@@ -933,8 +933,8 @@ namespace Meq {
     dytmp=0.0;
     UVInterpol::mypolint(x1a,ymtmp,m,x1,ytmp,dytmp);
 
-    y = dcomplex(ytmp);
-    dy = dcomplex(dytmp);
+    y = make_dcomplex(ytmp);
+    dy = make_dcomplex(dytmp);
 
     for (int j=0; j<m; j++){
       for (int i=0; i<n; i++){
@@ -1064,7 +1064,7 @@ namespace Meq {
     // Make an array, connected to the Vells, with which we fill the Vells.
     VellsSlicer<dcomplex,2> out_slicer(vellsout,_out1axis0,_out1axis1);
     blitz::Array<dcomplex,2> arrout = out_slicer();
-    arrout = dcomplex(0.0);
+    arrout = make_dcomplex(0.0);
 
     double uc,vc;
     int    ia,ib,ja,jb;
@@ -1158,8 +1158,8 @@ namespace Meq {
 	      };
 	    };
 	      
-	    value = dcomplex(0.0);
-	    dvalue = dcomplex(0.0);
+	    value = make_dcomplex(0.0);
+	    dvalue = make_dcomplex(0.0);
 	    UVInterpol::mypolin2(x1,x2,yin,4,4,uc,vc,value, dvalue);
 	    arrout(i,j) = value;
 

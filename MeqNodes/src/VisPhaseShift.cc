@@ -104,7 +104,7 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
     int nfreq = cells.ncells(Axis::FREQ);
     LoShape result_shape(ntime,nfreq);
 
-    out[0]              = Vells(dcomplex(0),result_shape);
+    out[0]              = Vells(numeric_zero<dcomplex>(),result_shape);
     dcomplex* resdata   = out[0].complexStorage();
     const dcomplex* pf0 = vf0.complexStorage();
     const dcomplex* pdf = vdf.complexStorage();

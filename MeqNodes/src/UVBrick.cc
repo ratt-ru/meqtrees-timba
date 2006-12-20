@@ -176,13 +176,13 @@ namespace Meq {
 	shape[Axis::axis("v")]    = cells->ncells(Axis::axis("v"));
 
 	VellSet& vs1  = resref().setNewVellSet(0);  
-	Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,false));
+	Vells& vells1 = vs1.setValue(new Vells(make_dcomplex(0.0),shape,false));
 	VellSet& vs2  = resref().setNewVellSet(1);  
-	Vells& vells2 = vs2.setValue(new Vells(dcomplex(0.0),shape,false));
+	Vells& vells2 = vs2.setValue(new Vells(make_dcomplex(0.0),shape,false));
 	VellSet& vs3  = resref().setNewVellSet(2);  
-	Vells& vells3 = vs3.setValue(new Vells(dcomplex(0.0),shape,false));
+	Vells& vells3 = vs3.setValue(new Vells(make_dcomplex(0.0),shape,false));
 	VellSet& vs4  = resref().setNewVellSet(3);  
-	Vells& vells4 = vs4.setValue(new Vells(dcomplex(0.0),shape,false));
+	Vells& vells4 = vs4.setValue(new Vells(make_dcomplex(0.0),shape,false));
 
 	fillVells(vells1, vells2, vells3, vells4, cells);
 
@@ -466,10 +466,10 @@ namespace Meq {
     // Note that the Vells are 4D (including time), whereas the corresponding 
     //  Cells are 3D (without time).
     // arr(k,i,j)
-    arr1 = dcomplex(0.0);
-    arr2 = dcomplex(0.0);
-    arr3 = dcomplex(0.0);
-    arr4 = dcomplex(0.0);
+    arr1 = make_dcomplex(0.0);
+    arr2 = make_dcomplex(0.0);
+    arr3 = make_dcomplex(0.0);
+    arr4 = make_dcomplex(0.0);
 
     // For now fill Vells with image values.    
     casa::IPosition image_shape = _uvreal->shape();

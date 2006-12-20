@@ -49,7 +49,7 @@ noinst_HEADERS = $(NOINSTHDRS)
 
 DOCHDRS	= $(INSTHDRS) $(NOINSTHDRS)
 
-lib_LTLIBRARIES 	= libtimbase.la
+noinst_LTLIBRARIES 	= libtimbase.la
 
 libtimbase_la_SOURCES 	= \
         AipsppMutex.cc \
@@ -64,6 +64,8 @@ libtimbase_la_SOURCES 	= \
         Thread/SmartLock.cc \
         Thread/Thread.cc \
 	Timer.cc
+	
+libtimbase_la_LIBADD = -lblitz
 
 AM_YFLAGS		= -d -p KeyParse
 AM_LFLAGS		= -PKeyTokenize

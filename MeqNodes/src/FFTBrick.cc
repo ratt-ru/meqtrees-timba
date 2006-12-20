@@ -227,11 +227,11 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
     //FailWhen(_inaxis0>=input_shape.size() && _inaxis1>=input_shape.size(),
     //    "one or both input axes are not present in input Vells");
     // No input shape, just a constant input value.
-    output_vells[0] <<= new Vells(dcomplex(0.0));
+    output_vells[0] <<= new Vells(make_dcomplex(0.0));
     // create additional Vells for higher order interpolation coefficients
-    output_vells[1] <<= new Vells(dcomplex(0.0));
-    output_vells[2] <<= new Vells(dcomplex(0.0));
-    output_vells[3] <<= new Vells(dcomplex(0.0));
+    output_vells[1] <<= new Vells(make_dcomplex(0.0));
+    output_vells[2] <<= new Vells(make_dcomplex(0.0));
+    output_vells[3] <<= new Vells(make_dcomplex(0.0));
   } else {
   
   // check that input axes are present
@@ -262,7 +262,7 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   padded_shape[_inaxis0] = nu;
   padded_shape[_inaxis1] = nv;
 	//SBY: changed false to true to reset memory
-  Vells padded_vells(dcomplex(0.0),padded_shape,true); // filled in below
+  Vells padded_vells(make_dcomplex(0.0),padded_shape,true); // filled in below
 
   // Rearrange the data and pad with zeros
   // set up VellsSlicers over input vells and over padded vells, so that
@@ -296,7 +296,7 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   output_shape[_inaxis1] = 1;
   output_shape[_outaxis0] = nu;     // fill output axes
   output_shape[_outaxis1] = nv;
-  Vells fft_vells(dcomplex(0.0),output_shape,false); // no need to fill it, fft will do it
+  Vells fft_vells(make_dcomplex(0.0),output_shape,false); // no need to fill it, fft will do it
 
   // Prepare the FFT
   // compute array strides (using the Vells' convenience function)
@@ -349,11 +349,11 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   
   // ok, now we need to reshuffle the fft_result and generate interpolation
   // planes. Create 4 output Vells for this
-  Vells & vells0  = output_vells[0] <<= new Vells(dcomplex(0.0),output_shape,true);
+  Vells & vells0  = output_vells[0] <<= new Vells(make_dcomplex(0.0),output_shape,true);
   // create additional Vells for higher order interpolation coefficients
-  Vells & vells0u = output_vells[1] <<= new Vells(dcomplex(0.0),output_shape,false);
-  Vells & vells0v = output_vells[2] <<= new Vells(dcomplex(0.0),output_shape,false);
-  Vells & vells0uv = output_vells[3] <<= new Vells(dcomplex(0.0),output_shape,false);
+  Vells & vells0u = output_vells[1] <<= new Vells(make_dcomplex(0.0),output_shape,false);
+  Vells & vells0v = output_vells[2] <<= new Vells(make_dcomplex(0.0),output_shape,false);
+  Vells & vells0uv = output_vells[3] <<= new Vells(make_dcomplex(0.0),output_shape,false);
 
   // Reshuffle fft'd data around, and fill in the interpolation planes
   // This is similar to the operation above.

@@ -226,7 +226,7 @@ void Vells::zeroData ()
 // 
 
 //##ModelId=400E5356019D
-inline bool Vells::tryReference (const Vells &other)
+inline bool Vells::tryReference (const Vells &)
 {
 // disable for now: figure out how this plays with COWs later
 //   // the 'other' array can be reused if it's a temp, it has the
@@ -650,6 +650,10 @@ inline dcomplex pow (dcomplex x,double y)
 inline dcomplex pow (double x,dcomplex y) 
 { return __builtin_cpow(x+0i,y); }
 
+// version of arg() for doubles
+inline double arg (const double x) 
+{ return x>=0 ? 0 : -M_PI; }
+
 #endif
 
 
@@ -750,9 +754,6 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_imag_lut[VELLS_LUT_SIZE] =
 Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_norm_lut[VELLS_LUT_SIZE] = 
     ExpandMethodList2_FixOut(sqr,norm,double);
 
-// version of arg() for doubles
-static inline double arg (double x) 
-{ return x>=0 ? 0 : -M_PI; }
 // arg()
 Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_arg_lut[VELLS_LUT_SIZE] = 
     ExpandMethodList_FixOut(arg,double);
@@ -781,6 +782,8 @@ inline double mkconst (double x,double *)
 { return x; }
 inline dcomplex mkconst (double x,dcomplex *)
 { return x + 0i; }
+inline dcomplex mkconst (int x,dcomplex *)
+{ return double(x) + 0.i; }
 
 // Defines a templated implementation of an unary reduction function 
 // which computes: y=y0, then y=FUNC(y,x(i)) for all i, and returns y
@@ -853,7 +856,7 @@ static void implement_mean (Meq::Vells &y,const Meq::Vells &x,FT flagmask)
 { 
   int nel;
   TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
-  y.as(Type2Type<TY>()) = nel ? y0/TY(nel) : mkconst(0,&y0);
+  y.as(Type2Type<TY>()) = nel ? y0/mkconst(nel,&y0) : mkconst(0,&y0);
 }
 Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList(mean);
@@ -873,7 +876,7 @@ static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::S
   int nel;
   TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
   int renorm = shape.product()/x.nelements(); // renorm factor for collapsed dimensions
-  y.as(Type2Type<TY>()) = y0 * TY(renorm);
+  y.as(Type2Type<TY>()) = y0 * mkconst(renorm,&y0);
 }
 
 #define DOPROD(y,x) ((y) *= (x))

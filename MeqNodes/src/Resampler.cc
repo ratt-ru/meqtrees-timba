@@ -863,7 +863,7 @@ void
 	h(n-1)=h(n-2);
 	for (int k=1; k<n-1; k++) {
 		if (del(k-1)==0 || del(k)==0)	{
-				d(k)=dcomplex(0);
+				d(k)=make_dcomplex(0);
 		} else {
 		//if del(k) and del(k-1) have same sign and two intervals
 		//have same length, take harmonic mean

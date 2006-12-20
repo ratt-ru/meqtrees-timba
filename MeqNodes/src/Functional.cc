@@ -222,7 +222,12 @@ namespace Meq {
   }
   complex<double> xval[Ndim_];
   Vells & output = out[0];
-  output=Vells(reinterpret_cast<dcomplex> (*reinterpret_cast<dcomplex*>(&xval[0])),outshape,false);
+//// OMS 19/12/06: the line below used to say:
+//  output=Vells(reinterpret_cast<dcomplex> (*reinterpret_cast<dcomplex*>(&xval[0])),outshape,false);
+//// which I don't understand. Why the double cast??. gcc4 trips up over it. In any case, since the
+//// third argument('init') = false, the actual value does not matter, so it's easier to just
+//// pass in a dcomplex 0.
+  output=Vells(make_dcomplex(0),outshape,false);
   dcomplex * res = output.getStorage<dcomplex>();
   while(true){
     for(int i =0; i<Ndim_;i++)

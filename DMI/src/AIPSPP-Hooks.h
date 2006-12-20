@@ -89,7 +89,7 @@ casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
 template<class T>
 casa::Vector<T> DMI::Container::Hook::as_AipsVector (Type2Type<T>) const
 {
-  casa::Array<T> arr = as_AipsArray();
+  casa::Array<T> arr = as_AipsArray(Type2Type<T>());
   FailWhen( arr.ndim() != 1,"can't access array as Vector" );
   return casa::Vector<T>(arr);
 }
@@ -97,7 +97,7 @@ casa::Vector<T> DMI::Container::Hook::as_AipsVector (Type2Type<T>) const
 template<class T>
 casa::Matrix<T> DMI::Container::Hook::as_AipsMatrix (Type2Type<T>) const
 {
-  casa::Array<T> arr = as_AipsArray();
+  casa::Array<T> arr = as_AipsArray(Type2Type<T>());
   FailWhen( arr.ndim() != 2,"can't access array as Matrix" );
   return casa::Matrix<T>(arr);
 }

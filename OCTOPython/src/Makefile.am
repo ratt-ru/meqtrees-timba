@@ -15,13 +15,17 @@ liboctopython_la_SOURCES = \
 
 liboctopython_la_LDFLAGS = -module
 
-liboctopython_la_LIBADD =  \
-  ../pkgbldinc/TimBase/.libs/libtimbase.a \
-  ../pkgbldinc/DMI/.libs/libdmi.a
+liboctopython_la_LIBADD =  
+#\
+#  ../pkgbldinc/TimBase/libtimbase.la \
+#  ../pkgbldinc/DMI/libdmi.la \
+#  ../pkgbldinc/OCTOPUSSY/liboctopussy.la 
 
-liboctopython_la_DEPENDENCIES = \
-  ../pkgbldinc/DMI/libdmi.la \
-  ../pkgbldinc/TimBase/libtimbase.la
+liboctopython_la_DEPENDENCIES = 
+#\
+#  ../pkgbldinc/DMI/libdmi.la \
+#  ../pkgbldinc/TimBase/libtimbase.la \
+#  ../pkgbldinc/OCTOPUSSY/liboctopussy.la 
 
 #liboctopython.la:
 #	@ln -s octopython.la liboctopython.la

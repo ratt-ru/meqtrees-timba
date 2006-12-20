@@ -51,7 +51,7 @@ dnl
 dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
-lofar_BLITZ
+lofar_BLITZ(1)
 dnl lofar_MPI
 dnl
 dnl Output Makefiles

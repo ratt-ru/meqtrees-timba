@@ -52,6 +52,8 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
+dnl lofar_PACKAGE(TimBase)
+dnl lofar_PACKAGE(DMI)
 lofar_PACKAGE(OCTOPUSSY)
 lofar_PYTHON(1)
 

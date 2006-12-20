@@ -16,7 +16,7 @@ LOCALSRCS = \
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 
 
-lib_LTLIBRARIES 	= libmeq.la
+noinst_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
   Node_commands.cc Node_init.cc AID-Meq-Registry.cc

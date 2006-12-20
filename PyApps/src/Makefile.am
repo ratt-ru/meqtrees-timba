@@ -9,8 +9,9 @@ mequtils_la_SOURCES = \
   
 mequtils_la_LDFLAGS = -module
 
-mequtils_la_LIBADD = \
-  ../pkgbldinc/TimBase/.libs/libtimbase.a
+mequtils_la_LIBADD = -lblitz
+
+#  ../pkgbldinc/TimBase/.libs/libtimbase.a
 
 mequtils_la_DEPENDENCIES = $(LOFAR_DEPEND)
 
