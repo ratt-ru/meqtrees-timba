@@ -17,8 +17,8 @@ I = 1; Q = .2; U = .2; V = .2;
 L0 = 0;
 M0 = 0;
 # speed
-DL = .25*(DEG/60) / 3600;   # .25'/hour 
-DM = .25*(DEG/60) / 3600;
+DL0 = 0.25*(DEG/60) / 3600;   # 0.25'/hour is max speed
+DM0 = 0.25*(DEG/60) / 3600;
 
 
 def _define_forest (ns):
@@ -35,9 +35,12 @@ def _define_forest (ns):
     ns.uvw(p) << Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p));
   
   # source l,m,n-1 vector
+  ns.freq0 << 0;
+  ns.freq1 << 0;
   ns.dt = Meq.Time() - (ns.time0<<0);
-  ns.l = L0 + DL*ns.dt;
-  ns.m = M0 + DM*ns.dt;
+  ns.df = (Meq.Freq() - ns.freq0)/(ns.freq1-ns.freq0);
+  ns.l = L0 + DL0*ns.df*ns.dt;
+  ns.m = M0 + DM0*ns.df*ns.dt;
   ns.n = Meq.Sqrt(1-Meq.Sqr(ns.l)-Meq.Sqr(ns.m));
   ns.lmn_minus1 << Meq.Composer(ns.l,ns.m,ns.n-1);
   
@@ -81,7 +84,7 @@ def _tdl_job_2_make_image (mqs,parent):
   import os
   os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g','MODEL_DATA',
     'ms=demo.MS','mode='+imaging_mode,
-    'weight='+imaging_weight,
+    'weight='+imaging_weight,"npix=512","cell=.5arcsec",
     'stokes='+imaging_stokes]);
 
 
