@@ -25,12 +25,14 @@ class PyDemoNode (pynode.PyNode):
     self.some_field = 1;
     self.another_field = 2;
 
-  ## Next, we need to keep track of the node state record. This includes
-  ## initializing from this record when the node is first created.
-  ## There's two ways to do it:
+  ## Next, we may need to keep track of the node state record. This includes
+  ## initializing from this record when the node is first created. 
+  ## There's three ways to do it:
   ## * The low-level way to do it is to define a set_state_impl() method
   ##   (see below).
   ## * An easier, high-level approach is to define an update_state() method.
+  ## * Easiest way is to have no state at all. Does your pynode really
+  ##   need "state"? If not, you can skip this entirely.
   
   ## update_state() is called when the node is first created and a full
   ## state record is available, but also when state changes, and only a
