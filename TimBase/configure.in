@@ -52,7 +52,32 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
-dnl lofar_MPI
+
+dnl
+dnl Check how to get at the mutex 'kind' attribute
+dnl
+AC_MSG_CHECKING([how to access the mutex 'kind' attribute])
+AC_COMPILE_IFELSE(    
+  AC_LANG_PROGRAM(
+    [[#include <pthread.h>]],
+    [[
+      pthread_mutex_t mutex;
+      mutex.__data.__kind /* ; */
+    ]]),
+  ac_mutex_kind=__data.__kind,
+  [AC_COMPILE_IFELSE(    
+    AC_LANG_PROGRAM(
+      [[#include <pthread.h>]],
+      [[
+	pthread_mutex_t mutex;
+	mutex.__m_kind /* ; */
+      ]]),
+    ac_mutex_kind=__m_kind,
+    [AC_MSG_ERROR([sorry, I don't know how to do this with your pthread library])]
+  )]
+)
+AC_MSG_RESULT($ac_mutex_kind)
+AC_DEFINE_UNQUOTED(PTHREAD_MUTEX_KIND,${ac_mutex_kind},[accesses the 'kind' attribute of a mutex structure])
 dnl
 dnl Output Makefiles
 dnl

@@ -33,6 +33,7 @@ namespace LOFAR
     // Otherwise, declare just a skeleton class (to keep, e.g., declarations
     // consistent)
 #ifdef USE_THREADS
+    int pthread_mutex_kind (const pthread_mutex_t &mutex);
 
     //##ModelId=3D1049B40332
     class Mutex 
@@ -49,18 +50,6 @@ namespace LOFAR
 
       //##ModelId=3DB935A103C9
       typedef enum { TRY=1 } MutexOptions;
-
-      //##ModelId=3D1049B40396
-      static inline int pthread_mutex_kind (const pthread_mutex_t &mutex)
-      {
-// sadly, I can find no portable API to get the mutex 'kind' out, and the structures
-// seem to differ on different platforms
-#ifdef __x86_64__
-        return mutex.__data.__kind;
-#else
-        return mutex.__m_kind;
-#endif
-      }
 
       class Lock 
       {

@@ -8,6 +8,8 @@ CHECK_CONFIG_CC(UseThreads,yes);
 CHECK_CONFIG_CC(UseThreads,no);
 #endif
 
+#include <config.h>
+
 namespace LOFAR
 {
   namespace Thread 
@@ -61,6 +63,13 @@ namespace LOFAR
     
 
     // Additional Declarations
+    
+    int pthread_mutex_kind (const pthread_mutex_t &mutex)
+    {
+      // PTHREAD_MUTEX_KIND should be setup in config.h, via lofarconf
+      return mutex.PTHREAD_MUTEX_KIND;
+    }
+    
 #endif
 
   } // namespace Thread
