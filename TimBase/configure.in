@@ -57,6 +57,7 @@ dnl
 dnl Check how to get at the mutex 'kind' attribute
 dnl
 AC_MSG_CHECKING([how to access the mutex 'kind' attribute])
+AC_LANG(C++)
 AC_COMPILE_IFELSE(    
   AC_LANG_PROGRAM(
     [[#include <pthread.h>]],
