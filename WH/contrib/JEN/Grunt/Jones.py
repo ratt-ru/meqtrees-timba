@@ -160,16 +160,13 @@ class DJones (Jones):
 if __name__ == '__main__':
     ns = NodeScope()
     jones = Jones(ns, 'test')
-    print jones.oneliner()
+    jones.display()
     Gjones = GJones(ns)
-    print Gjones.oneliner()
-    print Gjones.display()
+    Gjones.display()
     Djones = DJones(ns)
-    print Djones.display()
+    Djones.display()
     Gjones.multiply(Djones)
-    print Gjones.display()
-    for key in Gjones.ParmGroups():
-        print '-',key,':',Gjones.ParmGroup(key).oneliner()
+    Gjones.display()
 
 #===============================================================
     
