@@ -53,7 +53,6 @@ lofar_GENERAL
 lofar_BLITZ(1)
 # lofar_AIPSPP(1)
 lofar_PACKAGE(OCTOPython)
-lofar_PACKAGE(VisCube)
 lofar_PACKAGE(MEQ)
 dnl
 dnl Output Makefiles

@@ -1,6 +1,6 @@
 CXXFLAGS += -D_GNU_SOURCE 
 
-noinst_LTLIBRARIES = liboctopussy.la
+lib_LTLIBRARIES = liboctopussy.la
 
 DOCHDRS =  LatencyVector.h  Octopussy.h \
   LoggerWP.h         ReflectorWP.h \

@@ -20,6 +20,8 @@ noinst_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
   Node_commands.cc Node_init.cc AID-Meq-Registry.cc
+  
+libmeq_la_LIBADD = -lblitz
 
 check_PROGRAMS = 
 

@@ -7,9 +7,9 @@ DOCHDRS =
 mequtils_la_SOURCES = \
   mequtils_symlink.cc
   
-mequtils_la_LDFLAGS = -module
+mequtils_la_LDFLAGS = -module -lblitz
 
-mequtils_la_LIBADD = -lblitz
+#mequtils_la_LIBADD = -lblitz
 
 #  ../pkgbldinc/TimBase/.libs/libtimbase.a
 
