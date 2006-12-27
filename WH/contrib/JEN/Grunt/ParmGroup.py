@@ -14,23 +14,29 @@
 # user interfaces that offer a choice of solvers, etc.
 
 from Timba.TDL import *
-# from copy import deepcopy
+from Timba.Contrib.JEN.util import TDL_display
+from copy import deepcopy
+import random
 
 class ParmGroup (object):
     """Class that represents a group of MeqParm nodes"""
 
     def __init__(self, ns, name='<pg>', descr=None, 
-                 default=0.0, node_groups=[], tags=[],
-                 simulate=False, Tsec=[1000.0,0.0], stddev=0.0,
+                 default=0.0, scale=None, node_groups=[], tags=[],
+                 simulate=False, Tsec=[1000.0,0.1], stddev=0.1,
                  pg=None):
         self._ns = ns                   # node-scope (required)
         self._name = name               # name of the parameter group 
         self._descr = descr             # brief description 
-        self._nodelist = []             # initialise
+        self._nodelist = []             # initialise the internal nodelist
 
         # Information needed to create MeqParm nodes (see create())
-        self._default = default
+        if not isinstance(tags,(list,tuple)):
+            tags = [tags]
+        if simulate:
+            tags.append('simul')
         self._tags = tags
+        self._default = default
         if not isinstance(node_groups,(list,tuple)):
             node_groups = [node_groups]
         if not 'Parm' in node_groups:
@@ -41,6 +47,10 @@ class ParmGroup (object):
         self._simulate = simulate
         self._Tsec = Tsec
         self._stddev = stddev
+        if scale==None:
+            scale = abs(self._default)
+            if scale==0.0: scale = 1.0
+        self._scale = scale
 
         # Optional: If a (list of) ParmGroup objects is specified,
         # use their contents to fill the nodelist (etc).
@@ -67,27 +77,62 @@ class ParmGroup (object):
             ss += ' (simulate)'
         return ss
 
-    def display(self, txt=None):
+    def display(self, txt=None, full=True):
         """Return a summary of this object"""
         print ' '
         print '** '+self.oneliner()
-        if txt: print '** (txt='+str(txt)+')'
-        print '** descr: '+self.descr()
+        if txt: print ' * (txt='+str(txt)+')'
+        print ' * descr: '+self.descr()
         if self._composite:
-            print '** composite: '+str(self._composite)
+            print ' * composite: '+str(self._composite)
         else:
             if self._simulate:
-                print '** simulation mode: '
+                print ' * simulation mode: '
                 print '  - period Tsec (mean,stddev) = '+str(self._Tsec)
                 print '  - sttdev (w.r.t. default) = '+str(self._stddev)
             else:
-                print '** MeqParm definition:'
+                print ' * MeqParm definition:'
                 print '  - node tags: '+str(self._tags)
                 print '  - node_groups: '+str(self._node_groups)
-        print '** nodelist: '
+        print ' * its nodelist: '
         for node in self._nodelist:
-            print '  - '+str(node)
-        print ' '
+            if full:
+                self.display_subtree(node)
+            else:
+                print '  - '+str(node)
+        if not full:
+            print ' * the first node/subtree:'
+            self.display_node (index=0)
+        print '**\n'
+        return True
+
+    #............................................................................
+
+    def display_node (self, index=0):
+        """Helper function to dispay the specified node(s)/subtree(s)"""
+        if index=='*': index = range(len(self._nodelist))
+        if not isinstance(index,(list,tuple)): index=[index]
+        for i in index:
+            if i<len(self._nodelist):
+                node = self._nodelist[i]
+                # TDL_display.subtree (node, txt='1st node', full=True)
+                self.display_subtree(node)
+        return True
+
+    def display_subtree (self, node, level=1):
+        """Helper function to display a subtree recursively"""
+        prefix = '    '+level*'..'
+        initrec = deepcopy(node.initrec())
+        if len(initrec.keys()) > 1:
+            hide = ['name','class','defined_at','children','stepchildren','step_children']
+            for field in hide:
+                if initrec.has_key(field): initrec.__delitem__(field)
+                if initrec.has_key('default_funklet'):
+                    coeff = initrec.default_funklet.coeff
+                    initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
+        print prefix+' '+str(node.classname)+' '+str(node.name)+' '+str(initrec)
+        for child in node.children:
+            self.display_subtree (child[1], level=level+1)
         return True
 
     #-------------------------------------------------------------------
@@ -125,7 +170,12 @@ class ParmGroup (object):
 
         if self._simulate:
             # Simulation mode:
-            node = self._ns[name]('simul')(index) << Meq.Constant(self._default,
+            value = self._default
+            if self._stddev:
+                stddev = self._stddev*self._scale      # self._stddev is relative
+                value = random.gauss(self._default, stddev)
+                print '-',name,index,' (',self._default,stddev,') ->',value
+            node = self._ns[name](index)('simul') << Meq.Constant(value,
                                                                   tags=self._tags) 
 
         else:

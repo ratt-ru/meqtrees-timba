@@ -1,5 +1,14 @@
 # file: ../Grunt/Jones.py
 
+# History:
+# - 25dec2006: creation
+
+# Description:
+
+# The Jones class is a base-class for classes that define and
+# encapsulate groups of 2x2 station Jones matrices.
+
+
 from Timba.TDL import *
 # from Timba.Contrib.JEN.Grunt import ParmGroup
 from ParmGroup import *
@@ -59,32 +68,39 @@ class Jones (object):
         ss = str(type(self))
         ss += ' '+str(self._name)
         ss += ' scope='+str(self._scope)
+        if self._simulate: ss += ' (simulate)'
         return ss
 
-    def display(self, txt=None):
+    def display(self, txt=None, full=True):
         """Return a summary of this object"""
         print ' '
         print '** '+self.oneliner()
-        if txt: print '** (txt='+str(txt)+')'
-        print '** stations: '+str(self.stations())
-        print '** station Jones matrices: '
+        if txt: print ' * (txt='+str(txt)+')'
+        print ' * stations: '+str(self.stations())
+        print ' * polrep: '+str(self._polrep)+' '+str(self._pols)
+        print ' * station Jones matrices: '
         for s in self.stations():
             print '  - '+str(s)+': '+str(self.matrix()(s))
-        print '** elements of the first Jones matrix:'
+        print ' * elements of the first Jones matrix:'
         node = self.matrix()(self.stations()[0])
         for c in node.children:
-            print '  - '+str(c[1])
-        print '** available ParmGroup objects: '
+            if full:
+                key = self.parmgroups()[0]
+                self._parmgroup[key].display_subtree(c[1])
+            else:
+                print '  - '+str(c[1])
+        print ' * available ParmGroup objects: '
         for key in self.parmgroups():
-            print '  - '+str(key)+': '+str(self._parmgroup[key].oneliner())
-        print ' '
+            print '  - '+str(self._parmgroup[key].oneliner())
+            if full: self._parmgroup[key].display_node (index=0)
+        print '**\n'
         return True
 
     #-------------------------------------------------------------------
 
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[],
-                         Tsec=[1000.0,0.0], stddev=0.0,
+                         Tsec=[1000.0,0.1], scale=None, stddev=0.1,
                          pg=None):
         """Define a named ParmGroup object"""
 
@@ -108,9 +124,10 @@ class Jones (object):
                 
         # OK, define the ParmGroup:
         # NB: If self._simulate, use simulation subtrees rather than MeqParms
-        self._parmgroup[name] = ParmGroup (subscope, name=name, descr=descr,
-                                           default=default, tags=tags, node_groups=node_groups,
-                                           simulate=self._simulate, Tsec=Tsec, stddev=stddev,
+        self._parmgroup[name] = ParmGroup (subscope, name=name, descr=descr, default=default,
+                                           tags=tags, node_groups=node_groups,
+                                           simulate=self._simulate, Tsec=Tsec,
+                                           scale=scale, stddev=stddev,
                                            pg=pg)
         return self._parmgroup[name]
 
@@ -137,7 +154,7 @@ class Jones (object):
                 return None
         print '\n** parmlist(',keys,'):'
         for node in nodelist: print ' -',node
-        print
+        print 
         return nodelist
 
     #-------------------------------------------------------------------
@@ -179,7 +196,7 @@ class GJones (Jones):
         gg = []
         for pol in pols:
             pp.append(self.define_parmgroup('Gphase'+pol, descr=pol+'-dipole phases',
-                                            tags=['Gphase','GJones']))
+                                            tags=['Gphase','GJones'], scale=1.0))
             gg.append(self.define_parmgroup('Ggain'+pol, descr=pol+'-dipole gains',
                                             tags=['Ggain','GJones'], default=1.0))
         # Make the Jones matrices per station:
