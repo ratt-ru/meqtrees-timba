@@ -119,19 +119,22 @@ class Jones (object):
         if txt: print ' * (txt='+str(txt)+')'
         print ' * stations: '+str(self.stations())
         print ' * polrep: '+str(self._polrep)+' '+str(self._pols)
-        print ' * Station Jones matrices: '
-        for s in self.stations():
-            print '  - '+str(s)+': '+str(self.matrix()(s))
-        print ' * Elements of the first Jones matrix:'
-        node = self.matrix()(self.stations()[0])
-        ii = ['11','12','21','22']
-        for i in range(len(node.children)):
-            c = node.children[i]
-            if full:
-                key = self.parmgroups()[0]
-                self._parmgroup[key].display_subtree(c[1], txt=ii[i])
-            else:
-                print '  - '+str(c[1])
+        if not self._matrix:
+            print '** self._matrix not defined (yet)....'
+        else:
+            print ' * Station Jones matrices: '
+            for s in self.stations():
+                print '  - '+str(s)+': '+str(self.matrix()(s))
+            print ' * Elements of the first Jones matrix:'
+            node = self.matrix()(self.stations()[0])
+            ii = ['11','12','21','22']
+            for i in range(len(node.children)):
+                c = node.children[i]
+                if full:
+                    key = self.parmgroups()[0]
+                    self._parmgroup[key].display_subtree(c[1], txt=ii[i])
+                else:
+                    print '  - '+str(c[1])
         print ' * Available ParmGroup objects: '
         for key in self.parmgroups():
             print '  - '+str(self._parmgroup[key].oneliner())
@@ -248,7 +251,7 @@ class Jones (object):
 class GJones (Jones):
     """Class that represents a set of 2x2 GJones matrices"""
 
-    def __init__(self, ns, scope=None, letter='G',
+    def __init__(self, ns, scope=[], letter='G',
                  telescope='WSRT', stations=None,
                  simulate=False):
         Jones.__init__(self, ns, scope=scope, letter=letter,
@@ -282,45 +285,55 @@ class GJones (Jones):
 
 
 #--------------------------------------------------------------------------------------------
+
 class JJones (Jones):
     """Class that represents a set of 2x2 JJones matrices"""
 
-    def __init__(self, ns, scope='<scope>', letter='J', diagonal=False):
-        Jones.__init__(self, ns, letter, scope)
-        mels = ['J11','J22']
-        r11 = self.define_parmgroup('J11real', descr='Real part of matrix element 11')
-        i11 = self.define_parmgroup('J11imag', descr='Imag part of matrix element 11')
-        r22 = self.define_parmgroup('J22real', descr='Real part of matrix element 22')
-        i22 = self.define_parmgroup('J22imag', descr='Imag part of matrix element 22')
+    def __init__(self, ns, scope=[], letter='J',
+                 diagonal=False,
+                 telescope=None, stations=None,
+                 simulate=False):
+        Jones.__init__(self, ns, scope=scope, letter=letter,
+                       telescope=telescope, stations=stations,
+                       simulate=simulate)
+        scope = self._scope
+        jname = self._letter+'Jones'
+        enames = ['J11','J12','J21','J22']
+        ee = []
+        # Define the various primary ParmGroups:
+        for ename in ['J11','J22']:
+            ee.append(ename)
+            for rim in ['real','imag']:
+                default = 0.0
+                if rim=='real': default = 1.0
+                self.define_parmgroup(ename+rim, default=default, scale=1.0, Tsec=200,
+                                      descr=rim+' part of matrix element '+ename,
+                                      tags=[jname,'Jdiag'])
         if not diagonal:
-            mels = ['J11','J12','J21','J22']
-            r12 = self.define_parmgroup('J12real', descr='Real part of matrix element 12')
-            i12 = self.define_parmgroup('J12imag', descr='Imag part of matrix element 12')
-            r21 = self.define_parmgroup('J21real', descr='Real part of matrix element 21')
-            i21 = self.define_parmgroup('J21imag', descr='Imag part of matrix element 21')
-        scope = self.scope()
-        node_groups = ['Parm',scope]
+            for ename in ['J12','J21']:
+                ee.append(ename)
+                for rim in ['real','imag']:
+                    self.define_parmgroup(ename+rim, scale=1.0, Tsec=200,
+                                          descr=rim+' part of matrix element '+ename,
+                                          tags=[jname,'Joffdiag'])
+        self.display(full=True)
+
+        # Make the Jones matrices per station:
         for s in self._stations:
-            elem = dict(J11=0.0, J12=0.0, J21=0.0, J22=0.0)
-            for mel in mels:
-                pletter = mel+'real'
-                v = 0.0
-                if mel in ['11','22']: v = 1.0
-                real = self._ns[pletter](s) << Meq.Parm(v, node_groups=node_groups,
-                                                             tags=[pletter,mel,'JJones'])
-                self._parmgroup[pletter].append(real)
-                pletter = mel+'imag'
-                imag = self._ns[pletter](s) << Meq.Parm(0.0, node_groups=node_groups,
-                                                             tags=[pletter,mel,'JJones'])
-                self._parmgroup[pletter].append(imag)
-                elem[mel] = self._ns[mel](s) << Meq.ToComplex(real,imag)
-            self._ns[self._letter](s) << Meq.Matrix22(elem['J11'],elem['J12'],
-                                                           elem['J21'],elem['J22'])
-        self._matrix = self._ns[letter]
-        # Make some derived parmgroups:
-        # self.define_parmgroup('JJones', descr='all JJones parameters', pg='*')
-        # self.define_parmgroup('Jdiag', descr='diagonal elements (11,22)', pg=[r11,i11,r22,i22])
+            mm = dict(J12=0.0, J21=0.0)
+            for ename in ee:
+                real = self._parmgroup[ename+'real'].create(s)
+                imag = self._parmgroup[ename+'imag'].create(s)
+                mm[ename] = self._ns[ename](*scope)(s) << Meq.ToComplex(real,imag)
+            self._ns[jname](*scope)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
+                                                       mm[enames[2]],mm[enames[3]])
+        self._matrix = self._ns[jname](*scope)
+        # Make some secondary (derived) ParmGroups:
+        self.define_composite_parmgroups(jname)
         return None
+
+
+
 
 #--------------------------------------------------------------------------------------------
 
@@ -352,8 +365,10 @@ class DJones (Jones):
 
 if __name__ == '__main__':
     ns = NodeScope()
-    Gjones = GJones(ns, scope=['3c84','xxx'], simulate=True)
-    Gjones.display()
+
+    if 0:
+        Gjones = GJones(ns, scope=['3c84','xxx'], simulate=True)
+        Gjones.display()
 
     if 0:
         Gjones.parmlist()
@@ -373,11 +388,12 @@ if __name__ == '__main__':
         Gjones.matrel([2,2])
         Gjones.matrel([3,2])          # !!
 
-    if 0:
-        Jjones = JJones(ns)
-        Jjones.display()
-        Gjones.multiply(Jjones)
-        Gjones.display()
+    if 1:
+        Jjones = JJones(ns, diagonal=True)
+        Jjones.display(full=True)
+        if 0:
+            Gjones.multiply(Jjones)
+            Gjones.display()
 
     if 0:
         Djones = DJones(ns)

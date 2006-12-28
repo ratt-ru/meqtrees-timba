@@ -96,7 +96,7 @@ class ParmGroup (object):
             if self._simulate:
                 print ' * simulation mode: '
                 print '  - sttdev (relative, w.r.t. default) = '+str(self._stddev)
-                print '  - scale: '+str(self._scale)+' -> stddev = '+str(self._scale*self._stddev)
+                print '  - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
                 print '  - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
             else:
                 print ' * MeqParm definition:'
@@ -155,6 +155,11 @@ class ParmGroup (object):
     def name(self):
         """Return the group name""" 
         return self._name
+
+    def scope(self):
+        """Return the object scope (e.g. the peeling source name).
+        The scope is translated into nodename qualifiers. It can be a list.""" 
+        return self._scope
 
     def descr(self):
         """Return the group description""" 
@@ -230,7 +235,7 @@ class ParmGroup (object):
     #-------------------------------------------------------------------
 
     def compare(self, pg):
-        """Compare with the given ParmGroup object"""
+        """Compare (visualize) with the given ParmGroup object"""
         return True
 
 
