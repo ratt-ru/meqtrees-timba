@@ -21,27 +21,30 @@ import random
 class ParmGroup (object):
     """Class that represents a group of MeqParm nodes"""
 
-    def __init__(self, ns, name='<pg>', descr=None, 
+    def __init__(self, ns, name='<pg>', scope=[], descr=None, 
                  default=0.0, scale=None, node_groups=[], tags=[],
                  simulate=False, Tsec=[1000.0,0.1], stddev=0.1,
                  pg=None):
-        self._ns = ns                   # node-scope (required)
-        self._name = name               # name of the parameter group 
-        self._descr = descr             # brief description 
-        self._nodelist = []             # initialise the internal nodelist
+        self._ns = ns                         # node-scope (required)
+        self._name = name                     # name of the parameter group 
+        self._descr = descr                   # brief description 
+        self._nodelist = []                   # initialise the internal nodelist
 
         # Information needed to create MeqParm nodes (see create())
-        if not isinstance(tags,(list,tuple)):
-            tags = [tags]
+        self._tags = deepcopy(tags)
+        if not isinstance(self._tags,(list,tuple)):
+            self._tags = [self._tags]
+        self._scope = deepcopy(scope)         # scope -> nodename qualifier(s)
+        if not isinstance(self._scope,(list,tuple)):
+            self._scope = [self._scope]
         if simulate:
-            tags.append('simul')
-        self._tags = tags
+            self._tags.append('simul')        # ....??
         self._default = default
-        if not isinstance(node_groups,(list,tuple)):
-            node_groups = [node_groups]
-        if not 'Parm' in node_groups:
-            node_groups.append('Parm')
-        self._node_groups = node_groups
+        self._node_groups = deepcopy(node_groups)
+        if not isinstance(self._node_groups,(list,tuple)):
+            self._node_groups = [self._node_groups]
+        if not 'Parm' in self._node_groups:
+            self._node_groups.append('Parm')
 
         # Information to create a simulation subtree (see create())
         self._simulate = simulate
@@ -70,15 +73,16 @@ class ParmGroup (object):
         """Return a one-line summary of this object"""
         ss = str(type(self))
         ss += ' '+str(self._name)
+        ss += ' scope='+str(self._scope)
         ss += ' (n='+str(len(self._nodelist))+')'
         if self._composite:
-            ss += ' '+str(self._composite)
+            ss += ' (composite of '+str(self._composite)+')'
         elif self._simulate:
             ss += ' (simulate)'
         return ss
 
     def display(self, txt=None, full=True):
-        """Return a summary of this object"""
+        """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
@@ -94,14 +98,15 @@ class ParmGroup (object):
                 print ' * MeqParm definition:'
                 print '  - node tags: '+str(self._tags)
                 print '  - node_groups: '+str(self._node_groups)
-        print ' * its nodelist: '
-        for node in self._nodelist:
+        print ' * Its nodelist: '
+        for i in range(len(self._nodelist)):
+            node = self._nodelist[i]
             if full:
-                self.display_subtree(node)
+                self.display_subtree(node, txt=str(i))
             else:
                 print '  - '+str(node)
         if not full:
-            print ' * the first node/subtree:'
+            print ' *Tthe first node/subtree:'
             self.display_node (index=0)
         print '**\n'
         return True
@@ -116,23 +121,29 @@ class ParmGroup (object):
             if i<len(self._nodelist):
                 node = self._nodelist[i]
                 # TDL_display.subtree (node, txt='1st node', full=True)
-                self.display_subtree(node)
+                self.display_subtree(node, txt=str(i))
         return True
 
-    def display_subtree (self, node, level=1):
+    def display_subtree (self, node, txt=None, level=1):
         """Helper function to display a subtree recursively"""
-        prefix = '    '+level*'..'
-        initrec = deepcopy(node.initrec())
-        if len(initrec.keys()) > 1:
-            hide = ['name','class','defined_at','children','stepchildren','step_children']
-            for field in hide:
-                if initrec.has_key(field): initrec.__delitem__(field)
-                if initrec.has_key('default_funklet'):
-                    coeff = initrec.default_funklet.coeff
-                    initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
-        print prefix+' '+str(node.classname)+' '+str(node.name)+' '+str(initrec)
+        prefix = '  '
+        if txt: prefix += ' ('+str(txt)+')'
+        prefix += level*'..'
+        s = prefix
+        s += ' '+str(node.classname)+' '+str(node.name)
+        if True:
+            initrec = deepcopy(node.initrec())
+            if len(initrec.keys()) > 1:
+                hide = ['name','class','defined_at','children','stepchildren','step_children']
+                for field in hide:
+                    if initrec.has_key(field): initrec.__delitem__(field)
+                    if initrec.has_key('default_funklet'):
+                        coeff = initrec.default_funklet.coeff
+                        initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
+            s += ' '+str(initrec)
+        print s
         for child in node.children:
-            self.display_subtree (child[1], level=level+1)
+            self.display_subtree (child[1], txt=txt, level=level+1)
         return True
 
     #-------------------------------------------------------------------
@@ -167,6 +178,7 @@ class ParmGroup (object):
         """Create a MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
         name = self._name
+        scope = self._scope
 
         if self._simulate:
             # Simulation mode:
@@ -175,15 +187,15 @@ class ParmGroup (object):
                 stddev = self._stddev*self._scale      # self._stddev is relative
                 value = random.gauss(self._default, stddev)
                 print '-',name,index,' (',self._default,stddev,') ->',value
-            node = self._ns[name](index)('simul') << Meq.Constant(value,
-                                                                  tags=self._tags) 
+            node = self._ns[name](*scope)(index) << Meq.Constant(value,
+                                                                 tags=self._tags) 
 
         else:
             # Normal mode:
             # print 'name=',name,index,self._ns
-            node = self._ns[name](index) << Meq.Parm(self._default,
-                                                     node_groups=self._node_groups,
-                                                     tags=self._tags)
+            node = self._ns[name](*scope)(index) << Meq.Parm(self._default,
+                                                             node_groups=self._node_groups,
+                                                             tags=self._tags)
             
         # Append the new node to the internal nodelist:
         self._nodelist.append(node)
