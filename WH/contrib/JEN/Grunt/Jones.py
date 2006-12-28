@@ -145,7 +145,7 @@ class Jones (object):
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[],
                          Tsec=1000.0, Tstddev=0.1,
-                         scale=None, stddev=0.1,
+                         scale=1.0, stddev=0.1,
                          pg=None):
         """Helper function to define a named ParmGroup object"""
 
@@ -262,7 +262,7 @@ class GJones (Jones):
         # Define the various primary ParmGroups:
         for pol in pols:
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  tags=[pname,jname], scale=1.0, Tsec=200)
+                                  tags=[pname,jname], Tsec=200)
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
                                   tags=[gname,jname], default=1.0)
         # Make the Jones matrices per station:
@@ -274,6 +274,96 @@ class GJones (Jones):
                 mm[pol] = self._ns[jname+pol](*scope)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*scope)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
+        self._matrix = self._ns[jname](*scope)
+        # Make some secondary (derived) ParmGroups:
+        self.define_composite_parmgroups(jname)
+        return None
+
+
+
+#--------------------------------------------------------------------------------------------
+
+class DJones (Jones):
+    """Class that represents a set of 2x2 DJones matrices"""
+
+    def __init__(self, ns, scope=[], letter='D',
+                 telescope=None, stations=None,
+                 coupled_dang=True, coupled_dell=True,
+                 simulate=False):
+        Jones.__init__(self, ns, scope=scope, letter=letter,
+                       telescope=telescope, stations=stations, polrep='linear',
+                       simulate=simulate)
+        pols = self._pols
+        scope = self._scope
+        dname = self._letter+'dang'
+        ename = self._letter+'dell'
+        pname = self._letter+'pzd'
+        jname = self._letter+'Jones'
+        # Define the various primary ParmGroups:
+        if coupled_dang:
+            self.define_parmgroup(dname, descr='dipole angle error',
+                                  tags=[dname,jname])
+        else:
+            for pol in pols:
+                self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
+                                      tags=[dname,jname])
+        if coupled_dell:
+            self.define_parmgroup(ename, descr='dipole ellipticity',
+                                  tags=[ename,jname])
+        else:
+            for pol in pols:
+                self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
+                                      tags=[ename,jname])
+        self.define_parmgroup(pname, descr='XY/RL phase-zero difference',
+                              tags=[pname,jname])
+
+        # Make the (overall) 2x2 PZD jones matrix:
+        pzd = self._parmgroup[pname].create()
+        pzd2 = self._ns << pzd/2
+        pzd2neg = self._ns << Meq.Negate(pzd2)
+        pmat = self._ns[pname](*scope) << Meq.Matrix22(pzd2,0.0,0.0,pzd2neg)
+        # pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
+
+        # Make the Jones matrices per station:
+        for s in self._stations:
+
+            # Dipole rotation angles:
+            if coupled_dang:
+                dang = self._parmgroup[dname].create(s)
+                cos = self._ns << Meq.Cos(dang)
+                sin = self._ns << Meq.Sin(dang)
+                sinneg = self._ns << Meq.Negate(sin)
+                dmat = self._ns[dname](*scope)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
+            else:
+                dang1 = self._parmgroup[dname+pols[0]].create(s)
+                dang2 = self._parmgroup[dname+pols[1]].create(s)
+                cos1 = self._ns << Meq.Cos(dang1)
+                cos2 = self._ns << Meq.Cos(dang2)
+                sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
+                sin2 = self._ns << Meq.Sin(dang2)
+                dmat = self._ns[dname](*scope)(s) << Meq.Matrix22(cos1,sin1,sin2,cos2)
+
+
+            # Dipole ellipticities:
+            if coupled_dell:
+                dell = self._parmgroup[ename].create(s)
+                cos = self._ns << Meq.Cos(dell)
+                sin = self._ns << Meq.Sin(dell)
+                isin = self._ns << Meq.ToComplex(0.0, sin)
+                emat = self._ns[ename](*scope)(s) << Meq.Matrix22(cos,isin,isin,cos)
+            else:
+                dell1 = self._parmgroup[ename+pols[0]].create(s)
+                dell2 = self._parmgroup[ename+pols[1]].create(s)
+                cos1 = self._ns << Meq.Cos(dell1)
+                cos2 = self._ns << Meq.Cos(dell2)
+                isin1 = self._ns << Meq.ToComplex(0, self._ns << Meq.Sin(dell1))
+                isin2 = self._ns << Meq.ToComplex(0, self._ns << Meq.Sin(dell2))
+                isin2 = self._ns << Meq.Conj(isin2)
+                emat = self._ns[ename](*scope)(s) << Meq.Matrix22(cos1,isin1,isin2,cos2)
+
+            # Make the station Jones matrix by multiplying the sub-matrices:
+            self._ns[jname](*scope)(s) << Meq.MatrixMultiply (dmat, emat, pmat)
+
         self._matrix = self._ns[jname](*scope)
         # Make some secondary (derived) ParmGroups:
         self.define_composite_parmgroups(jname)
@@ -303,14 +393,14 @@ class JJones (Jones):
             for rim in ['real','imag']:
                 default = 0.0
                 if rim=='real': default = 1.0
-                self.define_parmgroup(ename+rim, default=default, scale=1.0, Tsec=200,
+                self.define_parmgroup(ename+rim, default=default, Tsec=200,
                                       descr=rim+' part of matrix element '+ename,
                                       tags=[jname,'Jdiag'])
         if not diagonal:
             for ename in ['J12','J21']:
                 ee.append(ename)
                 for rim in ['real','imag']:
-                    self.define_parmgroup(ename+rim, scale=1.0, Tsec=200,
+                    self.define_parmgroup(ename+rim, Tsec=200,
                                           descr=rim+' part of matrix element '+ename,
                                           tags=[jname,'Joffdiag'])
 
@@ -333,7 +423,7 @@ class JJones (Jones):
 
 #--------------------------------------------------------------------------------------------
 
-class DJones (Jones):
+class DJones_old (Jones):
     """Class that represents a set of 2x2 WSRT DJones matrices"""
 
     def __init__(self, ns, scope='<scope>', letter='D'):
@@ -385,6 +475,11 @@ if __name__ == '__main__':
         Gjones.matrel([3,2])          # !!
 
     if 1:
+        # Djones = DJones(ns, coupled_dang=True, coupled_dell=True)
+        Djones = DJones(ns, coupled_dang=False, coupled_dell=False)
+        Djones.display(full=True)
+
+    if 0:
         Jjones = JJones(ns, diagonal=False)
         Jjones.display(full=True)
         if 1:

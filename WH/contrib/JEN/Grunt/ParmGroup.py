@@ -23,7 +23,7 @@ class ParmGroup (object):
     """Class that represents a group of MeqParm nodes"""
 
     def __init__(self, ns, name='<pg>', scope=[], descr=None, 
-                 default=0.0, scale=None, node_groups=[], tags=[],
+                 default=0.0, scale=1.0, node_groups=[], tags=[],
                  simulate=False, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
                  pg=None):
         self._ns = ns                         # node-scope (required)
@@ -104,7 +104,7 @@ class ParmGroup (object):
                 print ' * MeqParm definition:'
                 print '  - node tags: '+str(self._tags)
                 print '  - node_groups: '+str(self._node_groups)
-        print ' * Its nodelist: '
+        print ' * The internal nodelist: '
         for i in range(len(self._nodelist)):
             node = self._nodelist[i]
             if full:
@@ -112,8 +112,9 @@ class ParmGroup (object):
             else:
                 print '  - '+str(node)
         if not full:
-            print ' *Tthe first node/subtree:'
+            print ' * The first node/subtree:'
             self.display_node (index=0)
+            if True: self.display_node (index=1)
         print '**\n'
         return True
 
@@ -148,9 +149,7 @@ class ParmGroup (object):
                     initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
             if len(initrec)>0: s += ' '+str(initrec)
         print s
-        if recurse<=0:
-            print prefix+'              ** further recursion inhibited **'
-        else:
+        if recurse>0:
             for child in node.children:
                 self.display_subtree (child[1], txt=txt, level=level+1, recurse=recurse-1)
         return True
@@ -188,52 +187,56 @@ class ParmGroup (object):
 
     #-------------------------------------------------------------------
     
-    def create(self, index):
+    def create(self, index=None):
         """Create a MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
         name = self._name
-        scope = self._scope
-        
+
+        # If in an index is specified, append it to the temporary scope list: 
+        scope = deepcopy(self._scope)
+        if not index==None:
+            scope.append(index)
+            
         if self._simulate:
-            node = self.simulation_subtree(index)
+            node = self.simulation_subtree(scope)
         else:
-            node = self._ns[name](*scope)(index) << Meq.Parm(self._default,
-                                                             node_groups=self._node_groups,
-                                                             tags=self._tags)
+            node = self._ns[name](*scope) << Meq.Parm(self._default,
+                                                      node_groups=self._node_groups,
+                                                      tags=self._tags)
         # Append the new node to the internal nodelist:
         self._nodelist.append(node)
         return node
 
     #....................................................................
 
-    def simulation_subtree(self, index):
+    def simulation_subtree(self, scope=scope):
         """Create a subtree that simulates a MeqParm node"""
         name = self._name
-        scope = self._scope
 
         # default += ampl*cos(2pi*time/Tsec),
         # where both ampl and Tsec may vary from node to node.
+        
         ampl = 0.0
         if self._stddev:                                # default variation
             stddev = self._stddev*self._scale           # NB: self._stddev is relative
             ampl = random.gauss(ampl, stddev)
-            print '-',name,index,' (',self._default,stddev,') -> ampl=',ampl
-        ampl = self._ns.ampl(*scope)(index) << Meq.Constant(ampl)
+            # print '-',name,index,' (',self._default,stddev,') -> ampl=',ampl
+        ampl = self._ns.ampl(*scope) << Meq.Constant(ampl)
         
         Tsec = self._Tsec                               # variation period (sec)
         if self._Tstddev:
             stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
             Tsec = random.gauss(self._Tsec, stddev) 
-            print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
-        Tsec = self._ns.Tsec(*scope)(index) << Meq.Constant(Tsec)
+            # print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
+        Tsec = self._ns.Tsec(*scope) << Meq.Constant(Tsec)
         time = self._ns << Meq.Time()
         pi2 = 2*math.pi
         costime = self._ns << Meq.Cos(pi2*time/Tsec)
-        variation = self._ns.variation(*scope)(index) << Meq.Multiply(ampl,costime)
+        variation = self._ns.variation(*scope) << Meq.Multiply(ampl,costime)
 
-        default = self._ns.default(*scope)(index) << Meq.Constant(self._default)
-        node = self._ns[name](*scope)(index) << Meq.Add(default, variation,
-                                                        tags=self._tags)
+        # Finally, add the variation to the default value:
+        default = self._ns.default(*scope) << Meq.Constant(self._default)
+        node = self._ns[name](*scope) << Meq.Add(default, variation, tags=self._tags)
         return node
 
 
@@ -255,6 +258,7 @@ if __name__ == '__main__':
 
 
     if 1:
+        pg1.create()
         pg1.create(5)
         pg1.create(6)
         pg1.display()
