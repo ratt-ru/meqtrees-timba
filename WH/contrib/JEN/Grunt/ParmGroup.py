@@ -38,6 +38,8 @@ class ParmGroup (object):
         self._scope = deepcopy(scope)         # scope -> nodename qualifier(s)
         if not isinstance(self._scope,(list,tuple)):
             self._scope = [self._scope]
+        if not name in self._scope:
+            self._scope.append(name)  
         if simulate:
             self._tags.append('simul')        # ....??
             if not 'simul' in self._scope:
@@ -83,7 +85,7 @@ class ParmGroup (object):
             ss += ' (composite of '+str(self._composite)+')'
         return ss
 
-    def display(self, txt=None, full=True):
+    def display(self, txt=None, full=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -128,7 +130,7 @@ class ParmGroup (object):
                 self.display_subtree(node, txt=str(i))
         return True
 
-    def display_subtree (self, node, txt=None, level=1):
+    def display_subtree (self, node, txt=None, level=1, recurse=1000):
         """Helper function to display a subtree recursively"""
         prefix = '  '
         if txt: prefix += ' ('+str(txt)+')'
@@ -146,8 +148,11 @@ class ParmGroup (object):
                     initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
             if len(initrec)>0: s += ' '+str(initrec)
         print s
-        for child in node.children:
-            self.display_subtree (child[1], txt=txt, level=level+1)
+        if recurse<=0:
+            print prefix+'              ** further recursion inhibited **'
+        else:
+            for child in node.children:
+                self.display_subtree (child[1], txt=txt, level=level+1, recurse=recurse-1)
         return True
 
     #-------------------------------------------------------------------
@@ -213,20 +218,20 @@ class ParmGroup (object):
             stddev = self._stddev*self._scale           # NB: self._stddev is relative
             ampl = random.gauss(ampl, stddev)
             print '-',name,index,' (',self._default,stddev,') -> ampl=',ampl
-        ampl = self._ns.ampl(name)(*scope)(index) << Meq.Constant(ampl)
+        ampl = self._ns.ampl(*scope)(index) << Meq.Constant(ampl)
         
         Tsec = self._Tsec                               # variation period (sec)
         if self._Tstddev:
             stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
             Tsec = random.gauss(self._Tsec, stddev) 
             print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
-        Tsec = self._ns.Tsec(name)(*scope)(index) << Meq.Constant(Tsec)
+        Tsec = self._ns.Tsec(*scope)(index) << Meq.Constant(Tsec)
         time = self._ns << Meq.Time()
         pi2 = 2*math.pi
         costime = self._ns << Meq.Cos(pi2*time/Tsec)
         variation = self._ns.variation(*scope)(index) << Meq.Multiply(ampl,costime)
 
-        default = self._ns.default(name)(*scope)(index) << Meq.Constant(self._default)
+        default = self._ns.default(*scope)(index) << Meq.Constant(self._default)
         node = self._ns[name](*scope)(index) << Meq.Add(default, variation,
                                                         tags=self._tags)
         return node

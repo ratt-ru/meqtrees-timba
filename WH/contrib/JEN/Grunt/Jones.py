@@ -19,7 +19,7 @@ from copy import deepcopy
 class Jones (object):
     """Class that represents a set of 2x2 Jones matrices"""
 
-    def __init__(self, ns, scope=[], letter='<J>',
+    def __init__(self, ns, scope=[], letter='<j>',
                  telescope=None, stations=None, polrep=None,
                  simulate=False):
 
@@ -58,6 +58,7 @@ class Jones (object):
         self._matrix = None                          # the actual jones matrices (contract!)
         self._parmgroup = dict()                     # available parameter group objects
         self._composite = dict()                     # see define_composite_parmgroups()
+        self._dummyParmGroup = ParmGroup('dummy')
         return None
 
     def telescope(self):
@@ -112,7 +113,7 @@ class Jones (object):
         # if self._simulate: ss += ' (simulate)'
         return ss
 
-    def display(self, txt=None, full=True):
+    def display(self, txt=None, full=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -125,21 +126,17 @@ class Jones (object):
             print ' * Station Jones matrices: '
             for s in self.stations():
                 print '  - '+str(s)+': '+str(self.matrix()(s))
-            print ' * Elements of the first Jones matrix:'
+            print ' * The first Jones matrix:'
             node = self.matrix()(self.stations()[0])
-            ii = ['11','12','21','22']
-            for i in range(len(node.children)):
-                c = node.children[i]
-                if full:
-                    key = self.parmgroups()[0]
-                    self._parmgroup[key].display_subtree(c[1], txt=ii[i])
-                else:
-                    print '  - '+str(c[1])
+            self._dummyParmGroup.display_subtree(node, txt=str(0), recurse=2)
         print ' * Available ParmGroup objects: '
         for key in self.parmgroups():
-            print '  - '+str(self._parmgroup[key].oneliner())
-            if full and not self._parmgroup[key]._composite:
-                self._parmgroup[key].display_node (index=0)
+            if not self._parmgroup[key]._composite:
+                print '  - '+str(self._parmgroup[key].oneliner())
+                # if full: self._parmgroup[key].display_node (index=0)
+        for key in self.parmgroups():
+            if self._parmgroup[key]._composite:
+                print '  - '+str(self._parmgroup[key].oneliner())
         print '**\n'
         return True
 
@@ -147,24 +144,25 @@ class Jones (object):
 
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[],
-                         Tsec=[1000.0,0.1], scale=None, stddev=0.1,
+                         Tsec=1000.0, Tstddev=0.1,
+                         scale=None, stddev=0.1,
                          pg=None):
         """Helper function to define a named ParmGroup object"""
 
-        # The ParmGroup objects use a subscope:
-        subscope = self._ns
+        # ....
         node_groups = ['Parm']
-        node_groups.extend(self._scope)
+        # node_groups.extend(self._scope)               # <---------- !!!
 
         # Make sure that the group name is in the list of node tags:
         if not isinstance(tags,(list,tuple)): tags = [tags]
         if not name in tags: tags.append(name)
-            
+
         # OK, define the ParmGroup:
         self._parmgroup[name] = ParmGroup (self._ns, name=name, scope=self._scope,
                                            descr=descr, default=default,
                                            tags=tags, node_groups=node_groups,
-                                           simulate=self._simulate, Tsec=Tsec,
+                                           simulate=self._simulate,
+                                           Tsec=Tsec, Tstddev=Tstddev,
                                            scale=scale, stddev=stddev,
                                            pg=pg)
 
@@ -225,15 +223,14 @@ class Jones (object):
 
     def multiply(self, jones):
         """Multiply with the given Jones object"""
-        name = self.letter()+jones.letter()
-        # NB: Check whether both have the same scope...?
+        name = self.letter()+jones.letter()+'Jones'
         scope = self.scope()
         for s in self._stations:
             self._ns[name](*scope)(s) << Meq.MatrixMultiply(self._matrix(s),
                                                             jones._matrix(s))
         # Update the Jones object attributes:
-        self._matrix = self._ns[name]
-        self._letter = letter
+        self._matrix = self._ns[name](*scope)
+        self._letter += jones._letter
         self._parmgroup.update(jones._parmgroup)
         return True
 
@@ -252,7 +249,7 @@ class GJones (Jones):
     """Class that represents a set of 2x2 GJones matrices"""
 
     def __init__(self, ns, scope=[], letter='G',
-                 telescope='WSRT', stations=None,
+                 telescope=None, stations=None,
                  simulate=False):
         Jones.__init__(self, ns, scope=scope, letter=letter,
                        telescope=telescope, stations=stations,
@@ -316,7 +313,6 @@ class JJones (Jones):
                     self.define_parmgroup(ename+rim, scale=1.0, Tsec=200,
                                           descr=rim+' part of matrix element '+ename,
                                           tags=[jname,'Joffdiag'])
-        self.display(full=True)
 
         # Make the Jones matrices per station:
         for s in self._stations:
@@ -368,7 +364,7 @@ if __name__ == '__main__':
 
     if 0:
         Gjones = GJones(ns, scope=['3c84','xxx'], simulate=True)
-        Gjones.display()
+        Gjones.display(full=True)
 
     if 0:
         Gjones.parmlist()
@@ -389,11 +385,13 @@ if __name__ == '__main__':
         Gjones.matrel([3,2])          # !!
 
     if 1:
-        Jjones = JJones(ns, diagonal=True)
+        Jjones = JJones(ns, diagonal=False)
         Jjones.display(full=True)
-        if 0:
+        if 1:
+            Gjones = GJones(ns, scope=['3c84','xxx'], simulate=True)
+            Gjones.display(full=True)
             Gjones.multiply(Jjones)
-            Gjones.display()
+            Gjones.display(full=True)
 
     if 0:
         Djones = DJones(ns)
