@@ -19,29 +19,50 @@ from copy import deepcopy
 class Jones (object):
     """Class that represents a set of 2x2 Jones matrices"""
 
-    def __init__(self, ns, scope=[], name='<Jones>',
-                 stations=None, polrep=None,
+    def __init__(self, ns, scope=[], letter='<J>',
+                 telescope=None, stations=None, polrep=None,
                  simulate=False):
-        if stations==None: stations = range(1,4)     # for testing convenience....
-        self._ns = ns                # node-scope (required)
-        self._name = name            # name of the Jones matrix (e.g. G) 
-        self._scope = scope          # scope, e.g. (peeling)source-name
-        if not isinstance(self._scope,(list,tuple)):
-            self._scope = [self._scope]
-        self._simulate = simulate    # if True, use simulation subtrees (i.s.o. MeqParms)
-        if self._simulate:
-            self._scope.append('simul')
-        self._stations = stations    # list of (array) stations
-        self._polrep = polrep        # polarization representation (linear, circular)
+
+        # Telescope-specific information:
+        self._telescope = telescope
+        self._stations = deepcopy(stations)          # list of (array) stations
+        self._polrep = polrep                        # polarization representation (linear, circular)
+        if self._telescope=='WSRT':
+            if self._stations==None: self._stations = range(1,15)
+            self._polrep = 'linear'
+        elif self._telescope=='VLA':
+            if self._stations==None: self._stations = range(1,28)
+            self._polrep = 'circular'
+        elif self._telescope=='ATCA':
+            if self._stations==None: self._stations = range(1,7)
+            self._polrep = 'linear'
+        elif self._telescope=='GMRT':
+            if self._stations==None: self._stations = range(1,31)
+            self._polrep = 'linear'
+        elif self._stations==None:
+            self._stations = range(1,4)              # for testing convenience....
         self._pols = ['A','B']
         if self._polrep == 'linear':
             self._pols = ['X','Y']
         elif self._polrep == 'circular':
             self._pols = ['R','L']
-        self._matrix = None          # the actual jones matrices
-        self._parmgroup = dict()     # available parameter group objects
-        self._composite = dict()     # see define_composite_parmgroups()
+
+        self._ns = ns                                # node-scope (required)
+        self._letter = letter                        # letter(s) of the Jones matrix (e.g. G) 
+        self._scope = scope                          # scope, e.g. (peeling)source-name
+        if not isinstance(self._scope,(list,tuple)):
+            self._scope = [self._scope]
+        self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
+        if self._simulate:
+            self._scope.append('simul')
+        self._matrix = None                          # the actual jones matrices (contract!)
+        self._parmgroup = dict()                     # available parameter group objects
+        self._composite = dict()                     # see define_composite_parmgroups()
         return None
+
+    def telescope(self):
+        """Return the name of the relevant telescope (e.g. WSRT)"""
+        return self._telescope
 
     def stations(self):
         """Return a list of (array) stations"""
@@ -55,9 +76,9 @@ class Jones (object):
         """Return the list of 2 polarization names (e.g. ['X','Y'])"""
         return self._pols
 
-    def name(self):
-        """Return the object name (e.g. G)""" 
-        return self._name
+    def letter(self):
+        """Return the Jones object name-letter (e.g. G)""" 
+        return self._letter
 
     def scope(self):
         """Return the object scope (e.g. the peeling source name).
@@ -70,24 +91,25 @@ class Jones (object):
 
     def matrel(self, index=[1,1]):
         """Return the specified matrix element(s) only""" 
-        name = self.name()
         scope = self.scope()
-        sindex = str(index[0])+str(index[1])
+        name = self.letter()+'jones'+str(index[0])+str(index[1])
         print '\n** matrel(index=',index,'):'
         for s in self.stations():
-            node = self._ns.matrel(name)(*scope)(sindex)(s) << Meq.Selector(self._matrix(s),
-                                                                            index=index)
+            node = self._ns[name](*scope)(s) << Meq.Selector(self._matrix(s),
+                                                             index=index)
             print '-',s,':',node
-        return self._ns.matrel(name)(sindex)
+        return self._ns[name](*scope)
 
     #-------------------------------------------------------------------
 
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
-        ss += ' '+str(self._name)
+        ss += ' '+str(self._letter)
+        if self._telescope: ss += ' '+str(self._telescope)
+        ss += ' (n='+str(len(self._stations))+')'
         ss += ' scope='+str(self._scope)
-        if self._simulate: ss += ' (simulate)'
+        # if self._simulate: ss += ' (simulate)'
         return ss
 
     def display(self, txt=None, full=True):
@@ -200,7 +222,7 @@ class Jones (object):
 
     def multiply(self, jones):
         """Multiply with the given Jones object"""
-        name = self.name()+jones.name()
+        name = self.letter()+jones.letter()
         # NB: Check whether both have the same scope...?
         scope = self.scope()
         for s in self._stations:
@@ -208,7 +230,7 @@ class Jones (object):
                                                             jones._matrix(s))
         # Update the Jones object attributes:
         self._matrix = self._ns[name]
-        self._name = name
+        self._letter = letter
         self._parmgroup.update(jones._parmgroup)
         return True
 
@@ -226,29 +248,33 @@ class Jones (object):
 class GJones (Jones):
     """Class that represents a set of 2x2 GJones matrices"""
 
-    def __init__(self, ns, scope=None, name='GJones',
-                 stations=None, simulate=False):
-        Jones.__init__(self, ns, scope=scope, name=name,
-                       stations=stations, simulate=simulate)
+    def __init__(self, ns, scope=None, letter='G',
+                 telescope='WSRT', stations=None,
+                 simulate=False):
+        Jones.__init__(self, ns, scope=scope, letter=letter,
+                       telescope=telescope, stations=stations,
+                       simulate=simulate)
         pols = self._pols
         scope = self._scope
-        jname = self._name
+        pname = self._letter+'phase'
+        gname = self._letter+'gain'
+        jname = self._letter+'Jones'
         # Define the various primary ParmGroups:
         for pol in pols:
-            self.define_parmgroup('Gphase'+pol, descr=pol+'-dipole phases',
-                                  tags=['Gphase',jname], scale=1.0)
-            self.define_parmgroup('Ggain'+pol, descr=pol+'-dipole gains',
-                                  tags=['Ggain',jname], default=1.0)
+            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  tags=[pname,jname], scale=1.0, Tsec=200)
+            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  tags=[gname,jname], default=1.0)
         # Make the Jones matrices per station:
         for s in self._stations:
-            elem = dict()
+            mm = dict()
             for pol in pols:
-                phase = self._parmgroup['Gphase'+pol].create(s)
-                gain = self._parmgroup['Ggain'+pol].create(s)
-                elem[pol] = self._ns[jname+pol](*scope)(s) << Meq.Polar(gain,phase)
-            self._ns[self._name](*scope)(s) << Meq.Matrix22(elem[pols[0]],0.0,
-                                                            0.0,elem[pols[1]])
-        self._matrix = self._ns[name](*scope)
+                phase = self._parmgroup[pname+pol].create(s)
+                gain = self._parmgroup[gname+pol].create(s)
+                mm[pol] = self._ns[jname+pol](*scope)(s) << Meq.Polar(gain,phase)
+            self._ns[jname](*scope)(s) << Meq.Matrix22(mm[pols[0]],0.0,
+                                                       0.0,mm[pols[1]])
+        self._matrix = self._ns[jname](*scope)
         # Make some secondary (derived) ParmGroups:
         self.define_composite_parmgroups(jname)
         return None
@@ -259,8 +285,8 @@ class GJones (Jones):
 class JJones (Jones):
     """Class that represents a set of 2x2 JJones matrices"""
 
-    def __init__(self, ns, scope='<scope>', name='J', diagonal=False):
-        Jones.__init__(self, ns, name, scope)
+    def __init__(self, ns, scope='<scope>', letter='J', diagonal=False):
+        Jones.__init__(self, ns, letter, scope)
         mels = ['J11','J22']
         r11 = self.define_parmgroup('J11real', descr='Real part of matrix element 11')
         i11 = self.define_parmgroup('J11imag', descr='Imag part of matrix element 11')
@@ -277,20 +303,20 @@ class JJones (Jones):
         for s in self._stations:
             elem = dict(J11=0.0, J12=0.0, J21=0.0, J22=0.0)
             for mel in mels:
-                pname = mel+'real'
+                pletter = mel+'real'
                 v = 0.0
                 if mel in ['11','22']: v = 1.0
-                real = self._ns[pname](s) << Meq.Parm(v, node_groups=node_groups,
-                                                             tags=[pname,mel,'JJones'])
-                self._parmgroup[pname].append(real)
-                pname = mel+'imag'
-                imag = self._ns[pname](s) << Meq.Parm(0.0, node_groups=node_groups,
-                                                             tags=[pname,mel,'JJones'])
-                self._parmgroup[pname].append(imag)
+                real = self._ns[pletter](s) << Meq.Parm(v, node_groups=node_groups,
+                                                             tags=[pletter,mel,'JJones'])
+                self._parmgroup[pletter].append(real)
+                pletter = mel+'imag'
+                imag = self._ns[pletter](s) << Meq.Parm(0.0, node_groups=node_groups,
+                                                             tags=[pletter,mel,'JJones'])
+                self._parmgroup[pletter].append(imag)
                 elem[mel] = self._ns[mel](s) << Meq.ToComplex(real,imag)
-            self._ns[self._name](s) << Meq.Matrix22(elem['J11'],elem['J12'],
+            self._ns[self._letter](s) << Meq.Matrix22(elem['J11'],elem['J12'],
                                                            elem['J21'],elem['J22'])
-        self._matrix = self._ns[name]
+        self._matrix = self._ns[letter]
         # Make some derived parmgroups:
         # self.define_parmgroup('JJones', descr='all JJones parameters', pg='*')
         # self.define_parmgroup('Jdiag', descr='diagonal elements (11,22)', pg=[r11,i11,r22,i22])
@@ -301,11 +327,11 @@ class JJones (Jones):
 class DJones (Jones):
     """Class that represents a set of 2x2 WSRT DJones matrices"""
 
-    def __init__(self, ns, scope='<scope>', name='D'):
-        Jones.__init__(self, ns, name, scope)
+    def __init__(self, ns, scope='<scope>', letter='D'):
+        Jones.__init__(self, ns, letter, scope)
         self.define_parmgroup('Dell', descr='dipole ellipticity')
         self.define_parmgroup('Dang', descr='dipole angle error')
-        name = self.name()
+        letter = self.letter()
         scope = self.scope()
         node_groups = ['Parm',scope]
         for s in self._stations:
@@ -315,8 +341,8 @@ class DJones (Jones):
             dang = self._ns.Dang(s) << Meq.Parm(0.0, node_groups=node_groups,
                                                        tags=['Dang','DJones'])
             self._parmgroup['Dang'].append(dang)
-            self._ns[name](s) << Meq.ToComplex(dang,dell)
-        self._matrix = self._ns[name]
+            self._ns[letter](s) << Meq.ToComplex(dang,dell)
+        self._matrix = self._ns[letter]
         return None
 
      

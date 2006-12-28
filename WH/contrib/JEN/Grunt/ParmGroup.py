@@ -17,13 +17,14 @@ from Timba.TDL import *
 from Timba.Contrib.JEN.util import TDL_display
 from copy import deepcopy
 import random
+import math
 
 class ParmGroup (object):
     """Class that represents a group of MeqParm nodes"""
 
     def __init__(self, ns, name='<pg>', scope=[], descr=None, 
                  default=0.0, scale=None, node_groups=[], tags=[],
-                 simulate=False, Tsec=[1000.0,0.1], stddev=0.1,
+                 simulate=False, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
                  pg=None):
         self._ns = ns                         # node-scope (required)
         self._name = name                     # name of the parameter group 
@@ -39,6 +40,8 @@ class ParmGroup (object):
             self._scope = [self._scope]
         if simulate:
             self._tags.append('simul')        # ....??
+            if not 'simul' in self._scope:
+                self._scope.append('simul')  
         self._default = default
         self._node_groups = deepcopy(node_groups)
         if not isinstance(self._node_groups,(list,tuple)):
@@ -48,12 +51,13 @@ class ParmGroup (object):
 
         # Information to create a simulation subtree (see create())
         self._simulate = simulate
-        self._Tsec = Tsec
-        self._stddev = stddev
-        if scale==None:
-            scale = abs(self._default)
-            if scale==0.0: scale = 1.0
-        self._scale = scale
+        self._scale = scale                   # the scale of the MeqParm value
+        if self._scale==None:                 # if not specified:
+            self._scale = abs(self._default)  #   use the (non-zero!) default value
+            if self._scale==0.0: self._scale = 1.0
+        self._stddev = stddev                 # relative to scale, but w.r.t. default 
+        self._Tsec = Tsec                     # period of cosinusoidal variation(time) 
+        self._Tstddev = Tstddev               # variation of the period
 
         # Optional: If a (list of) ParmGroup objects is specified,
         # use their contents to fill the nodelist (etc).
@@ -73,12 +77,10 @@ class ParmGroup (object):
         """Return a one-line summary of this object"""
         ss = str(type(self))
         ss += ' '+str(self._name)
-        ss += ' scope='+str(self._scope)
         ss += ' (n='+str(len(self._nodelist))+')'
+        ss += ' scope='+str(self._scope)
         if self._composite:
             ss += ' (composite of '+str(self._composite)+')'
-        elif self._simulate:
-            ss += ' (simulate)'
         return ss
 
     def display(self, txt=None, full=True):
@@ -87,13 +89,15 @@ class ParmGroup (object):
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
         print ' * descr: '+self.descr()
+        print ' * default: '+str(self._default)
         if self._composite:
             print ' * composite: '+str(self._composite)
         else:
             if self._simulate:
                 print ' * simulation mode: '
-                print '  - period Tsec (mean,stddev) = '+str(self._Tsec)
-                print '  - sttdev (w.r.t. default) = '+str(self._stddev)
+                print '  - sttdev (relative, w.r.t. default) = '+str(self._stddev)
+                print '  - scale: '+str(self._scale)+' -> stddev = '+str(self._scale*self._stddev)
+                print '  - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
             else:
                 print ' * MeqParm definition:'
                 print '  - node tags: '+str(self._tags)
@@ -133,14 +137,14 @@ class ParmGroup (object):
         s += ' '+str(node.classname)+' '+str(node.name)
         if True:
             initrec = deepcopy(node.initrec())
-            if len(initrec.keys()) > 1:
-                hide = ['name','class','defined_at','children','stepchildren','step_children']
-                for field in hide:
-                    if initrec.has_key(field): initrec.__delitem__(field)
-                    if initrec.has_key('default_funklet'):
-                        coeff = initrec.default_funklet.coeff
-                        initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
-            s += ' '+str(initrec)
+            # if len(initrec.keys()) > 1:
+            hide = ['name','class','defined_at','children','stepchildren','step_children']
+            for field in hide:
+                if initrec.has_key(field): initrec.__delitem__(field)
+                if initrec.has_key('default_funklet'):
+                    coeff = initrec.default_funklet.coeff
+                    initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
+            if len(initrec)>0: s += ' '+str(initrec)
         print s
         for child in node.children:
             self.display_subtree (child[1], txt=txt, level=level+1)
@@ -179,26 +183,47 @@ class ParmGroup (object):
         and append it to the nodelist"""
         name = self._name
         scope = self._scope
-
+        
         if self._simulate:
-            # Simulation mode:
-            value = self._default
-            if self._stddev:
-                stddev = self._stddev*self._scale      # self._stddev is relative
-                value = random.gauss(self._default, stddev)
-                print '-',name,index,' (',self._default,stddev,') ->',value
-            node = self._ns[name](*scope)(index) << Meq.Constant(value,
-                                                                 tags=self._tags) 
-
+            node = self.simulation_subtree(index)
         else:
-            # Normal mode:
-            # print 'name=',name,index,self._ns
             node = self._ns[name](*scope)(index) << Meq.Parm(self._default,
                                                              node_groups=self._node_groups,
                                                              tags=self._tags)
-            
         # Append the new node to the internal nodelist:
         self._nodelist.append(node)
+        return node
+
+    #....................................................................
+
+    def simulation_subtree(self, index):
+        """Create a subtree that simulates a MeqParm node"""
+        name = self._name
+        scope = self._scope
+
+        # default += ampl*cos(2pi*time/Tsec),
+        # where both ampl and Tsec may vary from node to node.
+        ampl = 0.0
+        if self._stddev:                                # default variation
+            stddev = self._stddev*self._scale           # NB: self._stddev is relative
+            ampl = random.gauss(ampl, stddev)
+            print '-',name,index,' (',self._default,stddev,') -> ampl=',ampl
+        ampl = self._ns.ampl(name)(*scope)(index) << Meq.Constant(ampl)
+        
+        Tsec = self._Tsec                               # variation period (sec)
+        if self._Tstddev:
+            stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
+            Tsec = random.gauss(self._Tsec, stddev) 
+            print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
+        Tsec = self._ns.Tsec(name)(*scope)(index) << Meq.Constant(Tsec)
+        time = self._ns << Meq.Time()
+        pi2 = 2*math.pi
+        costime = self._ns << Meq.Cos(pi2*time/Tsec)
+        variation = self._ns.variation(*scope)(index) << Meq.Multiply(ampl,costime)
+
+        default = self._ns.default(name)(*scope)(index) << Meq.Constant(self._default)
+        node = self._ns[name](*scope)(index) << Meq.Add(default, variation,
+                                                        tags=self._tags)
         return node
 
 
@@ -214,24 +239,24 @@ class ParmGroup (object):
 
 if __name__ == '__main__':
     ns = NodeScope()
-    ss = ns.Subscope('subscope')
-    pg1 = ParmGroup(ss, 'pg1')
+    pg1 = ParmGroup(ns, 'pg1', simulate=True)
     nn = pg1.nodelist(trace=True)
     pg1.display()
+
 
     if 1:
         pg1.create(5)
         pg1.create(6)
         pg1.display()
 
-    if 1:
-        pg2 = ParmGroup(ss, 'pg2')
+    if 0:
+        pg2 = ParmGroup(ns, 'pg2')
         pg2.append(ss << 1.0)
         pg2.append(ss << 2.0)
         nn = pg2.nodelist(trace=True)
         pg2.display()
         if 1:
-            pg12 = ParmGroup(ss, 'pg12', pg=[pg1,pg2], descr='combination')
+            pg12 = ParmGroup(ns, 'pg12', pg=[pg1,pg2], descr='combination')
             pg12.display()
 
 #===============================================================
