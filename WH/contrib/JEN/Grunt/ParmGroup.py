@@ -131,14 +131,15 @@ class ParmGroup (object):
                 self.display_subtree(node, txt=str(i))
         return True
 
-    def display_subtree (self, node, txt=None, level=1, recurse=1000):
+    def display_subtree (self, node, txt=None, level=1,
+                         show_initrec=True, recurse=1000):
         """Helper function to display a subtree recursively"""
         prefix = '  '
         if txt: prefix += ' ('+str(txt)+')'
         prefix += level*'..'
         s = prefix
         s += ' '+str(node.classname)+' '+str(node.name)
-        if True:
+        if show_initrec:
             initrec = deepcopy(node.initrec())
             # if len(initrec.keys()) > 1:
             hide = ['name','class','defined_at','children','stepchildren','step_children']
@@ -151,7 +152,8 @@ class ParmGroup (object):
         print s
         if recurse>0:
             for child in node.children:
-                self.display_subtree (child[1], txt=txt, level=level+1, recurse=recurse-1)
+                self.display_subtree (child[1], txt=txt, level=level+1,
+                                      show_initrec=show_initrec, recurse=recurse-1)
         return True
 
     #-------------------------------------------------------------------

@@ -8,12 +8,17 @@
 # The Jones class is a base-class for classes that define and
 # encapsulate groups of 2x2 station Jones matrices.
 
+#======================================================================================
 
 from Timba.TDL import *
+from Timba.Meq import meq
+
+from ParmGroup import *
+
 # from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
-from ParmGroup import *
+
 from copy import deepcopy
 
 #======================================================================================
@@ -128,19 +133,19 @@ class Jones (object):
             # Not yet extracted: do so: 
             scope = self.scope()
             name = self.letter()+'Jones_'+key[1:]
-            index = dict(J11=[1,1], J12=[1,2], J21=[2,1], J22=[2,2])
-            print '\n** matrel(',key,') index=',index[key],':'
+            index = dict(J11=[0,0], J12=[0,1], J21=[1,0], J22=[1,1])
+            # print '\n** matrel(',key,') index=',index[key],':'
             for s in self.stations():
                 node = self._ns[name](*scope)(s) << Meq.Selector(self._matrix(s),
                                                                  index=index[key])
-                print '-',s,':',node
+                # print '-',s,':',node
             self._matrel[key] = self._ns[name](*scope)
         # Return a list of nodes, if required:
         if return_nodes:
             nodes = []
             for s in self.stations():
                 nodes.append(self._matrel[key](s))
-            for node in nodes: print '-',node 
+            # for node in nodes: print '-',node 
             return nodes
         # Otherwise, return the 'contract':
         return self._matrel[key] 
@@ -168,6 +173,7 @@ class Jones (object):
         print ' * stations ('+str(len(self.stations()))+'): '+str(self.stations())
         print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
         print ' * Antenna mount: '+str(self._mount)+', diam='+str(self._diam)+'(m)'
+        #...............................................................
         if not self._matrix:
             print '** self._matrix not defined (yet)....'
         else:
@@ -179,20 +185,23 @@ class Jones (object):
                 if i<2:
                     node = self.matrix()(self.stations()[i])
                     self._dummyParmGroup.display_subtree(node, txt=str(i), recurse=2)
+        #...............................................................
         print ' * Extracted Jones matrix elements: '
         for key in self._matrel.keys():
             print '  - '+str(key)+': '+str(self._matrel[key])
+        #...............................................................
         print ' * Available ParmGroup objects: '
         for key in self.parmgroups():
             if not self._parmgroup[key]._composite:
                 print '  - '+str(self._parmgroup[key].oneliner())
-                # if full: self._parmgroup[key].display_node (index=0)
         for key in self.parmgroups():
             if self._parmgroup[key]._composite:
                 print '  - '+str(self._parmgroup[key].oneliner())
+        #...............................................................
         if self._dcoll:
             print ' * Visualization subtree (dcoll): '
-            self._dummyParmGroup.display_subtree(self._dcoll, txt='dcoll', recurse=1)
+            self._dummyParmGroup.display_subtree(self._dcoll, txt=':',
+                                                 show_initrec=False, recurse=1)
         print '**\n'
         return True
 
@@ -259,6 +268,16 @@ class Jones (object):
         """Return the specified parmgroup (object)""" 
         return self._parmgroup[key]
 
+    def display_parmgroups(self, full=False, composite=False):
+        """Display its ParmGroup objects"""
+        print '\n******** .display_parmgroups(full=',full,', composite=',composite,'):'
+        print '           ',self.oneliner()
+        for key in self.parmgroups():
+            if not self._parmgroup[key]._composite:
+                self._parmgroup[key].display(full=full)
+        print '********\n'
+        return True
+
     def parmlist(self, keys='*'):
         """Return the list of nodes from the specified parmgroup(s)"""
         if keys=='*': keys = self._parmgroup.keys()
@@ -298,7 +317,7 @@ class Jones (object):
 
     #-------------------------------------------------------------------
 
-    def visualize (self):
+    def visualize (self, bookpage='Jones', folder=None):
         """Visualise the 4 complex matrix elements of all station
         Jones matrices in a single real-vs-imag plot. Different
         matrix elements (J11,J12,J21,J22) have different styles
@@ -307,24 +326,26 @@ class Jones (object):
             style = dict(J11='circle', J12='xcross', J21='xcross', J22='circle')
             color = dict(J11='red', J12='magenta', J21='darkCyan', J22='blue')
             scope = self.scope()
-            dcoll_scope = self.letter()
+            dcoll_scope = self.letter()+'Jones'
             for s in scope: dcoll_scope += '_'+s 
             dcolls = []
-            for key in self._matrel.keys():
+            for key in self._matrel.keys():             # i.e. J11,J12,J21,J22
                 cc = self.matrel(key, return_nodes=True) 
                 rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                               scope=dcoll_scope, tag=key,
+                                               scope=dcoll_scope,
+                                               tag=self.letter()+key[1:],
                                                color=color[key], style=style[key],
                                                size=8, pen=2,
                                                type='realvsimag', errorbars=True)
                 dcolls.append(rr)
                 # Make a combined plot of all the matrix elements:
                 # NB: nodename -> dconc_scope_tag
-            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls,
-                                          scope=dcoll_scope,
-                                          tag=key, bookpage=None)
+            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls, scope=dcoll_scope,
+                                          tag=' ', bookpage=None)
         # Return the dataConcat node:
         self._dcoll = rr['dcoll']
+        JEN_bookmarks.create(self._dcoll, self.letter()+'Jones',
+                             page=bookpage, folder=folder)
         return self._dcoll
 
 
@@ -450,8 +471,9 @@ class FJones (Jones):
         if polrep=='circular':
             # Circular pol: The Faraday rotation is just a phase effect:
             farot2 = self._ns << farot/2
-            farot2neg = self._ns << Meq.Negate(farot2)
-            fmat = self._ns[jname](*scope)(polrep) << Meq.Matrix22(farot2,0.0,0.0,farot2neg)
+            F11 = self._ns << Meq.Polar(1.0, farot2)
+            F22 = self._ns << Meq.Polar(1.0, self._ns << Meq.Negate(farot2))
+            fmat = self._ns[jname](*scope)(polrep) << Meq.Matrix22(F11,0.0,0.0,F22)
 
         else:
             # Linear pol: The Faraday rotation is a (dipole) rotation:
@@ -546,8 +568,8 @@ class DJones (Jones):
                 dell2 = self._parmgroup[ename+pols[1]].create(s)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
-                isin1 = self._ns << Meq.ToComplex(0, self._ns << Meq.Sin(dell1))
-                isin2 = self._ns << Meq.ToComplex(0, self._ns << Meq.Sin(dell2))
+                isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
+                isin2 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell2))
                 isin2 = self._ns << Meq.Conj(isin2)
                 emat = self._ns[ename](*scope)(s) << Meq.Matrix22(cos1,isin1,isin2,cos2)
 
@@ -618,7 +640,52 @@ class JJones (Jones):
 
      
 #===============================================================
+# Test routine (with meqbrowser):
+#===============================================================
 
+def _define_forest(ns):
+
+    dcolls = []
+    simulate = True
+
+    jones = GJones(ns, scope=[], simulate=simulate)
+    dcolls.append(jones.visualize())
+    # jones.display(full=True)
+
+    jones = JJones(ns, scope=[], simulate=simulate)
+    dcolls.append(jones.visualize())
+    # jones.display(full=True)
+
+    jones = DJones(ns, scope=[], simulate=simulate)
+    dcolls.append(jones.visualize())
+    # jones.display(full=True)
+
+    jones = FJones(ns, scope=['L'], simulate=simulate, polrep='linear')
+    dcolls.append(jones.visualize())
+    jones.display(full=True)
+    jones.display_parmgroups(full=False, composite=False)
+
+    jones = FJones(ns, scope=['C'], simulate=simulate, polrep='circular')
+    dcolls.append(jones.visualize())
+    jones.display(full=True)
+
+    ns.result << Meq.Composer(children=dcolls)
+    return True
+
+#---------------------------------------------------------------
+
+def _tdl_job_execute (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=11)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+
+
+#===============================================================
+# Test routine:
 #===============================================================
 
 if __name__ == '__main__':
