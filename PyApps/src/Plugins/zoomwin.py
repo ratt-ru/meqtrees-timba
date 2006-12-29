@@ -29,11 +29,21 @@ try:
 except:
   from qwt import *
 from numarray import *
-import zoomcontrol
 
 #widget to show a zoomed chanel of the plot
 
 class ZoomPopup(QWidget):
+
+  menu_table = {
+        'Zoom ': 200,
+        'Close ': 201,
+        'Print ': 202,
+        'Pause ': 203,
+        'Comparison ': 204,
+        'Linear Scale ': 206,
+        'Fixed Scale ': 207,
+        }
+
 
   def __init__(self, CurveNumber, x_values, y_values , pen, parent=None, name=None):
     """ Initialises all the variables.  
@@ -82,49 +92,37 @@ class ZoomPopup(QWidget):
 #    self.setOutlinePen(Qt.green)
   #####end of parameters setted for the plot#######/
 
-    self._ControlFrame = zoomcontrol.ZoomControlFrame(self)
-    self._ControlFrame.setMinimumSize(self._ControlFrame.sizeHint() )
-    self._ControlFrame._lblchno.setNum(CurveNumber)
-    self._ControlFrame.setFrameStyle(QFrame.Panel|QFrame.Raised)
-    self._ControlFrame.setLineWidth(2)
-
     # we seem to need a layout for PyQt
     vbox_left = QVBoxLayout( self )
     vbox_left.setSpacing(10)
     box1 = QHBoxLayout( vbox_left )
     box1.addWidget(self._plotzoom)
-    box2 = QHBoxLayout(vbox_left)
-    box2.addWidget(self._ControlFrame)
 
     self._x_values = x_values
     self._y_values = y_values
     self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
 
-  ###Connections
-    self.connect(self._ControlFrame._btnClose, SIGNAL("clicked()"), self.Closing)
-  
-    #Send the number of the pausing curve
-    self.connect(self._ControlFrame._btnPause, SIGNAL("clicked()"), self.Pausing)
+# create context menu
+    self._parent = parent
+    self._mainwin = parent and parent.topLevelWidget()
+    self._menu = QPopupMenu(self._mainwin)
+    toggle_id = self.menu_table['Zoom ']
+    self._menu.insertItem("Zoom", toggle_id)
+    toggle_id = self.menu_table['Close ']
+    self._menu.insertItem("Close Window", toggle_id)
+    toggle_id = self.menu_table['Print ']
+    self._menu.insertItem("Print", toggle_id)
+    toggle_id = self.menu_table['Pause ']
+    self._menu.insertItem("Pause", toggle_id)
+    toggle_id = self.menu_table['Comparison ']
+    self._menu.insertItem("Do Comparison", toggle_id)
+    toggle_id = self.menu_table['Linear Scale ']
+    self._menu.insertItem("Log Scale", toggle_id)
+    toggle_id = self.menu_table['Fixed Scale ']
+    self._menu.insertItem("Fixed Scale", toggle_id)
 
-    #When a zoom closes, substract 1 from the number of zoom opened
-    if not parent is None:
-  	self.connect(self._ControlFrame._btnClose, SIGNAL("clicked()"), parent.zoomCountmin)
-  
-    #Button Print to the print slot
-    self.connect(self._ControlFrame._btnPrint, SIGNAL("clicked()"), self.Printzoom)
-
-    #Button zoom used to zoom on the plot of the curve
-    self.connect(self._ControlFrame._btnZoom, SIGNAL("clicked()"), self.zoom)
-
-    #Show envelope of data?
-    self.connect(self._ControlFrame._btnStartCompare, SIGNAL("clicked()"), self.do_compare)
-  
-    #reset envelop of data?
-    self.connect(self._ControlFrame._btnReset, SIGNAL("clicked()"), self.reset_max)
-
-    #change Y axis
-    self.connect(self._ControlFrame._btnScale, SIGNAL("clicked()"), self.change_scale)
-    self.connect(self._ControlFrame._btnSetScale, SIGNAL("clicked()"), self.change_scale_type)
+    ########### Connections for Signals ############
+    self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
 
     #Signal when the mouse is moved on the plot
     self.connect(self._plotzoom,SIGNAL('plotMouseMoved(const QMouseEvent&)'),
@@ -139,6 +137,33 @@ class ZoomPopup(QWidget):
 	  self.plotMouseReleased)
     self.show()
 
+  def process_menu(self, menuid):
+    if menuid < 0:
+      return
+    if menuid == self.menu_table['Zoom ']:
+      self.zoom()
+      return True
+    if menuid == self.menu_table['Close ']:
+      self.Closing()
+      if not self._parent is None:
+  	self._parent.zoomCountmin()
+      return True
+    if menuid == self.menu_table['Print ']:
+      self.Printzoom()
+      return True
+    if menuid == self.menu_table['Pause ']:
+      self.Pausing()
+      return True
+    if menuid == self.menu_table['Compare ']:
+      self.do_compare()
+      return True
+    if menuid == self.menu_table['Linear Scale ']:
+      self.change_scale()
+      return True
+    if menuid == self.menu_table['Fixed Scale ']:
+      self.change_scale_type()
+      return True
+
   def do_compare_max(self, x_values):
     ### instantiate the envelop that will show min/max deviations
     self._max_envelop = self._y_values
@@ -150,10 +175,11 @@ class ZoomPopup(QWidget):
     self._compare_max = True
 
   def do_compare(self):
+    toggle_id = self.menu_table['Compare ']
     if self._compare_max:
       self.stop_compare_max()
       self._compare_max = False
-      self._ControlFrame._btnStartCompare.setText("DoComparison")
+      self._menu.changeItem(toggle_id, 'Do Comparison')
     else:
       self._max_envelop = self._y_values
       self._min_envelop = self._y_values
@@ -162,7 +188,8 @@ class ZoomPopup(QWidget):
       self._plotzoom.setCurveData(self._max_crv,self._x_values,self._max_envelop)
       self._plotzoom.setCurveData(self._min_crv,self._x_values,self._min_envelop)
       self._compare_max = True
-      self._ControlFrame._btnStartCompare.setText("StopComparison")
+      self._menu.changeItem(toggle_id, 'Stop Comparison')
+    self.reset_max()
 
   def stop_compare_max(self):
     if self._compare_max:
@@ -174,15 +201,10 @@ class ZoomPopup(QWidget):
       self._max_crv = -1
       self._min_crv = -1
 
-  def get_max(self, y_data):
-    if self._compare_max:
-      self._max_envelop = self.max(self._max_envelop, y_data)
-      self._min_envelop = self.min(self._min_envelop, y_data)
-
   def get_max(self):
     if self._compare_max:
-      self._max_envelop = self.max(self._max_envelop, self._y_data)
-      self._min_envelop = self.min(self._min_envelop, self._y_data)
+      self._max_envelop = self.max(self._max_envelop, self._y_values)
+      self._min_envelop = self.min(self._min_envelop, self._y_values)
 
   def max(self, array1, array2):
      shape = array1.shape
@@ -239,37 +261,40 @@ class ZoomPopup(QWidget):
     self.close()
 
   def Pausing(self):
-    self.emit(PYSIGNAL("winpaused"),(self._curve_number,))
+    toggle_id = self.menu_table['Pause ']
     if self._do_pause:
-  	self._ControlFrame._btnPause.setText("Pause")
+        self._menu.changeItem(toggle_id, 'Pause')
 	self._do_pause = False
     else:
-  	self._ControlFrame._btnPause.setText("Resume")
-  	self._do_pause = True
+        self._menu.changeItem(toggle_id, 'Resume')
+   	self._do_pause = True
+    self.emit(PYSIGNAL("winpaused"),(self._curve_number,))
 
   def change_scale(self):
+    toggle_id = self.menu_table['Linear Scale ']
     if self._do_linear_scale:
 # click means change to log scale
       self._do_linear_scale = False
-      self._ControlFrame._btnScale.setText("Linear Scale")
+      self._menu.changeItem(toggle_id, 'Linear Scale')
       self._plotzoom.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.Logarithmic)
       self._plotzoom.replot()
     else:
       self._do_linear_scale = True
-      self._ControlFrame._btnScale.setText("Log Scale")
+      self._menu.changeItem(toggle_id, 'Log Scale')
       self._plotzoom.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
       self._plotzoom.replot()
 
   def change_scale_type(self):
 # click means change to fixed scale
+    toggle_id = self.menu_table['Fixed Scale ']
     if self._do_fixed_scale:
       self._do_fixed_scale = False
-      self._ControlFrame._btnSetScale.setText("Fixed Scale")
+      self._menu.changeItem(toggle_id, 'Fixed Scale')
       self._plotzoom.setAxisAutoScale(QwtPlot.yLeft)
       self.emit(PYSIGNAL("image_auto_scale"),(0,))
     else:
       self._do_fixed_scale = True
-      self._ControlFrame._btnSetScale.setText("Auto Scale")
+      self._menu.changeItem(toggle_id, 'Auto Scale')
 # find current data min and max
       scale_max = self._y_values.max()
       scale_min = self._y_values.min()
@@ -285,9 +310,10 @@ class ZoomPopup(QWidget):
 
   def cancel_scale_request(self):
     if self._do_fixed_scale:
-      self._do_fixed_scale = False
-      self._ControlFrame._btnSetScale.setText("Fixed Scale")
+      toggle_id = self.menu_table['Fixed Scale ']
+      self._menu.changeItem(toggle_id, 'Fixed Scale')
       self._plotzoom.setAxisAutoScale(QwtPlot.yLeft)
+      self._do_fixed_scale = False
   
   def update_plot(self,y_values):
     if not self._do_pause:
@@ -335,14 +361,12 @@ class ZoomPopup(QWidget):
       else:
         self._d_zoom =  True
     
+    toggle_id = self.menu_table['Zoom ']
     if self._d_zoom:
-      self._ControlFrame._btnZoom.setText("Unzoom")
-      zoomInfo2 = "Zoom: Press mouse button and drag"
-      self._ControlFrame._lblInfo.setText(zoomInfo2)
+      self._menu.changeItem(toggle_id, 'Unzoom')
     else:
-      self._ControlFrame._btnZoom.setText("Zoom")
-      cursorInfo = "Cursor Pos: Press mouse button in plot region"
-      self._ControlFrame._lblInfo.setText(cursorInfo)
+      self._menu.changeItem(toggle_id, 'Zoom')
+
 
   def plotMouseMoved(self, e):
     """	Gets x and y position of the mouse on the plot according to axis' value
@@ -355,7 +379,7 @@ class ZoomPopup(QWidget):
     lbl += lbl2 + ",  Signal="
     lbl2.setNum(self._plotzoom.invTransform(QwtPlot.yLeft, e.pos().y() ), 'g', 3)
     lbl += lbl2
-    self._ControlFrame._lblInfo.setText(lbl)
+#   self._ControlFrame._lblInfo.setText(lbl)
 
   def plotMousePressed(self, e):
     """ Gets position of the mouse on the main plot
@@ -366,16 +390,20 @@ class ZoomPopup(QWidget):
         if not
         the mouse pointer appears as a cross
     """
-    # store position
-    self._p1 = e.pos()
-
-    # update cursor pos display
-    self.plotMouseMoved(e)
-    
-    if self._d_zoom and not self._d_zoomActive:
-      self._plotzoom.setOutlineStyle(Qwt.Rect) 
+    if Qt.RightButton == e.button():
+      e.accept()
+      self._menu.popup(e.globalPos());     
     else:
-      self._plotzoom.setOutlineStyle(Qwt.Cross)
+      # store position
+      self._p1 = e.pos()
+
+      # update cursor pos display
+      self.plotMouseMoved(e)
+    
+      if self._d_zoom and not self._d_zoomActive:
+        self._plotzoom.setOutlineStyle(Qwt.Rect) 
+      else:
+        self._plotzoom.setOutlineStyle(Qwt.Cross)
 
   def plotMouseReleased(self, e):
     """ If the zoom button is pressed 
@@ -402,7 +430,7 @@ class ZoomPopup(QWidget):
 # this may affect zoom in on e.g. velocity plots
       self._plotzoom.setAxisScale(QwtPlot.xBottom,self._plotzoom.invTransform(QwtPlot.xBottom,x1),self._plotzoom.invTransform(QwtPlot.xBottom,x2))
       self._plotzoom.replot()
-      self._ControlFrame._lblInfo.setText(_cursorInfo)
+#     self._ControlFrame._lblInfo.setText(_cursorInfo)
       self._plotzoom.setOutlineStyle(Qwt.Triangle)
 
   def closeEvent(self, ce):
@@ -426,8 +454,8 @@ class ZoomPopup(QWidget):
       self._plotzoom.setAxisAutoScale(QwtPlot.xBottom)
       self._d_zoom = FALSE
       self._d_zoomActive = 0
-      self._ControlFrame._btnZoom.setText("Zoom")
-      self._ControlFrame._lblInfo.setText(_cursorInfo)
+      toggle_id = self.menu_table['Zoom ']
+      self._menu.changeItem(toggle_id, 'Zoom')
       if self._max_crv >= 0:
         self._plotzoom.setCurveData(self._max_crv, self._x_values, self._max_envelop)
       if self._min_crv >= 0:
@@ -443,11 +471,13 @@ class ZoomPopup(QWidget):
     self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
 
   def suppressChannelText(self):
-    self._ControlFrame._lblchan.setText("")
-    self._ControlFrame._lblchno.setText("")
+    return
+#   self._ControlFrame._lblchan.setText("")
+#   self._ControlFrame._lblchno.setText("")
 
   def setLabelText(self, text_label):
-    self._ControlFrame._lblchan.setText(text_label)
+#   self._ControlFrame._lblchan.setText(text_label)
+    return
 
 def main(args):
     app = QApplication(args)
