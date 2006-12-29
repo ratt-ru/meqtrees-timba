@@ -29,12 +29,20 @@ try:
 except:
   from qwt import *
 from numarray import *
-import maincontrol
 import openzoom
 import zoomwin
 import random
 
 class ChartPlot(QWidget):
+
+  menu_table = {
+        'Zoom ': 200,
+        'Close ': 201,
+        'Print ': 202,
+        'Fixed Scale ': 203,
+        'Offset Value ': 204,
+        }
+
 
   def __init__(self, num_curves=None,parent=None, name=None):
     """ Collects information about timing from setup_parameters dict.
@@ -73,20 +81,12 @@ class ChartPlot(QWidget):
     self._plotter.enableLegend(False)
     self._plotter.enableOutline(True)
     self._plotter.setOutlinePen(QPen(Qt.green))
-
-    #Create the bottom frame 
-    self._ControlFrame = maincontrol.MainControl(self)
-    self._ControlFrame.setFrameStyle(QFrame.Panel|QFrame.Raised)
-    self._ControlFrame.setLineWidth(2)
-
-  # we seem to need a layout for PyQt
+    # we seem to need a layout for PyQt
     self.vbox_left = QVBoxLayout( self )
     self.vbox_left.setSpacing(10)
     self.box1 = QHBoxLayout( self.vbox_left )
     self.box1.addWidget(self._plotter)
-    self.box2 = QHBoxLayout(self.vbox_left)
-    self.box2.addWidget(self._ControlFrame)
-    
+
     #Number of curves/beams
     if not num_curves is None:
       self._nbcrv = num_curves
@@ -144,25 +144,23 @@ class ChartPlot(QWidget):
     self._display_refresh.start(self._display_interval_ms)
     self._refresh_flag = True
 
+
+    # create context menu
+    self._mainwin = parent and parent.topLevelWidget()
+    self._menu = QPopupMenu(self._mainwin)
+    toggle_id = self.menu_table['Zoom ']
+    self._menu.insertItem("Zoom", toggle_id)
+    toggle_id = self.menu_table['Close ']
+    self._menu.insertItem("Close Window", toggle_id)
+    toggle_id = self.menu_table['Print ']
+    self._menu.insertItem("Print", toggle_id)
+    toggle_id = self.menu_table['Fixed Scale ']
+    self._menu.insertItem("Fixed Scale", toggle_id)
+    toggle_id = self.menu_table['Offset Value ']
+    self._menu.insertItem("Offset Value", toggle_id)
+
     ########### Connections for Signals ############
-
-    #Print
-    self.connect(self._ControlFrame._btnPrint, SIGNAL("clicked()"), self.do_print)
-    
-    #Zoom
-    self.connect(self._ControlFrame._btnZoom, SIGNAL("clicked()"), self.zoom)
-    
-    # Pause
-    self.connect(self._ControlFrame._btnPause, SIGNAL("clicked()"), self.chartpltPaused)
-    
-    #Quit button
-    self.connect(self._ControlFrame._btnQuit, SIGNAL("clicked()"), self.quit)
-
-    # set scale
-    self.connect(self._ControlFrame._btnSetScale, SIGNAL("clicked()"), self.change_scale_type)
-
-    # set offset
-    self.connect(self._ControlFrame._btnSetOffset, SIGNAL("clicked()"), self.change_offset_value)
+    self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
 
     #get position where the mouse was pressed
     self.connect(self._plotter, SIGNAL("plotMousePressed(const QMouseEvent &)"),
@@ -178,6 +176,24 @@ class ChartPlot(QWidget):
     # construct plot / array storage structures etc
     self.createplot()
     
+  def process_menu(self, menuid):
+    if menuid < 0:
+      return
+    if menuid == self.menu_table['Zoom ']:
+      self.zoom()
+      return True
+    if menuid == self.menu_table['Close ']:
+      self.quit()
+      return True
+    if menuid == self.menu_table['Print ']:
+      self.do_print()
+      return True
+    if menuid == self.menu_table['Fixed Scale ']:
+      self.change_scale_type()
+      return True
+    if menuid == self.menu_table['Offset Value ']:
+      self.change_offset_value()
+      return True
 
   def destruct_chartplot(self):
     """	turn off global mouse tracking
@@ -257,13 +273,12 @@ class ChartPlot(QWidget):
       self._d_zoomActive = False
     else:
       self._d_zoom = not self._d_zoom
-      #Set right text on button and label depending on the value of d_zoom
-      if self._d_zoom:
-        self._ControlFrame._btnZoom.setText("Unzoom")
-        self._ControlFrame._lblInfo.setText(self._zoomInfo)
-      else:
-        self._ControlFrame._btnZoom.setText("Zoom")
-        self._ControlFrame._lblInfo.setText(self._cursorInfo)
+      #Set right text on context menu label
+    toggle_id = self.menu_table['Zoom ']
+    if self._d_zoom:
+      self._menu.changeItem(toggle_id, 'Unzoom')
+    else:
+      self._menu.changeItem(toggle_id, 'Zoom')
 
   def infoDisplay(self):
     """ Display text under cursor in plot
@@ -312,7 +327,7 @@ class ChartPlot(QWidget):
     # Sets value of the label
     
     lbl += ", " + self._position[closest_curve]
-    self._ControlFrame._lblInfo.setText(lbl)
+#    self._ControlFrame._lblInfo.setText(lbl)
 
   def plotMousePressed(self, e):
     """ Gets position of the mouse on the chart plot
@@ -323,17 +338,21 @@ class ChartPlot(QWidget):
         if not
         the mouse pointer appears as a cross
     """
-    # store position
-    self._p1 = e.pos()
-    # update cursor pos display
-    self._e_pos_x = e.pos().x()
-    self._e_pos_y = e.pos().y()
-    if e.button() == Qt.MidButton: 
-      self.infoDisplay()
-    if self._d_zoom and not self._d_zoomActive:
-      self._plotter.setOutlineStyle(Qwt.Rect) 
+    if Qt.RightButton == e.button():
+      e.accept()
+      self._menu.popup(e.globalPos());
     else:
-      self._plotter.setOutlineStyle(Qwt.Cross)
+      # store position
+      self._p1 = e.pos()
+      # update cursor pos display
+      self._e_pos_x = e.pos().x()
+      self._e_pos_y = e.pos().y()
+      if e.button() == Qt.MidButton: 
+        self.infoDisplay()
+      if self._d_zoom and not self._d_zoomActive:
+        self._plotter.setOutlineStyle(Qwt.Rect) 
+      else:
+        self._plotter.setOutlineStyle(Qwt.Cross)
 
 
   def closezoomfun(self):
@@ -430,7 +449,7 @@ class ChartPlot(QWidget):
       #get value of where the mouse was released
       closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
       self.zoomcrv(closest_curve-1)
-    self._ControlFrame._lblInfo.setText(self._cursorInfo)
+#   self._ControlFrame._lblInfo.setText(self._cursorInfo)
     self._plotter.setOutlineStyle(Qwt.Triangle)
 
   def zoomcrv(self, crv):
@@ -479,17 +498,6 @@ class ChartPlot(QWidget):
       self._Zoom[crv]._plotzoom.setAxisTitle(QwtPlot.yLeft, "Signal Value")
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
-
-# def resizeEvent(self, e):
-#   """ When the chartplot window gets resized, everything inside follows
-#       Get the size of the whole rectangle
-#       Set the sizes for the bottom frame
-#   """
-#(I) e (QResizeEvent) Event sent by resizing the window
-#   rect = QRect(0, 0, e.size().width(), e.size().height()-50)
-#   self._plotter.setGeometry(rect)
-#   self._ControlFrame.setGeometry(0, rect.bottom() + 1, rect.width(), 50)
-
 
   def set_offset(self,parameters=None):
     """ Update the display offset.
@@ -551,14 +559,6 @@ class ChartPlot(QWidget):
     self._pause[crvtemp] = not self._pause[crvtemp]
 
 
-  def chartpltPaused(self):
-    if not self._mainpause:
-      self._ControlFrame._btnPause.setText("Resume")
-      self._mainpause = True
-    else:
-      self._ControlFrame._btnPause.setText("Pause")
-      self._mainpause = False
-
   def myindex(self, crvtemp):
     """ Sets the indexzoom flag of the curve that just closed to False
     """
@@ -597,13 +597,14 @@ class ChartPlot(QWidget):
 
   def change_scale_type(self):
     # click means change to fixed scale
+    toggle_id = self.menu_table['Fixed Scale ']
     if self._do_fixed_scale:
       self._do_fixed_scale = False
-      self._ControlFrame._btnSetScale.setText("Fixed Scale")
+      self._menu.changeItem(toggle_id,'Fixed Scale')
       self._plotter.setAxisAutoScale(QwtPlot.yLeft)
     else: 
       self._do_fixed_scale = True
-      self._ControlFrame._btnSetScale.setText("Auto Scale")
+      self._menu.changeItem(toggle_id, 'Auto Scale')
 
       # find current data min and max
       scale_max = self._spec_grid_offset.max()
@@ -630,7 +631,8 @@ class ChartPlot(QWidget):
   def cancel_scale_request(self):
     if self._do_fixed_scale: 
       self._do_fixed_scale = False
-      self._ControlFrame._btnSetScale.setText("Fixed Scale")
+      toggle_id = self.menu_table['Fixed Scale ']
+      self._menu.changeItem(toggle_id,'Fixed Scale')
       self._plotter.setAxisAutoScale(QwtPlot.yLeft)
 
   def set_offset_value(self, offset_value):
