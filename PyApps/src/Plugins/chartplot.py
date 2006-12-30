@@ -31,6 +31,7 @@ except:
 from numarray import *
 import openzoom
 import zoomwin
+import printfilter
 import random
 
 class ChartPlot(QWidget):
@@ -62,17 +63,19 @@ class ChartPlot(QWidget):
     self._highest_value = -10000
     self._lowest_value = 10000
     self._do_fixed_scale = False
+    self._data_label = None
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
     self._plotter_has_curve = False
     self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal (Relative Scale)")
+    self._plotter.setAxisTitle(QwtPlot.xBottom, "Event Sequence(Relative Scale)")
     # turn off grid
     self._plotter.enableGridX(False)
     self._plotter.enableGridY(False)
 
-    # turn off axis
-    self._plotter.enableAxis(QwtPlot.xBottom, False)
+    # turn off bottom axis?
+#   self._plotter.enableAxis(QwtPlot.xBottom, False)
     
     #Set the background color
     self._plotter.setCanvasBackground(Qt.black)
@@ -195,6 +198,11 @@ class ChartPlot(QWidget):
       self.change_offset_value()
       return True
 
+  def setDataLabel(self, data_label):
+    self._data_label = data_label
+    title = self._data_label + " Event Sequence(Relative Scale)"
+    self._plotter.setAxisTitle(QwtPlot.xBottom, title)
+
   def destruct_chartplot(self):
     """	turn off global mouse tracking
     """
@@ -249,13 +257,13 @@ class ChartPlot(QWidget):
     printer.setOrientation(QPrinter.Landscape)
     printer.setColorMode(QPrinter.Color)
     printer.setOutputToFile(True)
-    printer.setOutputFileName('bode-example-%s.ps' % qVersion())
+    printer.setOutputFileName('screen_plot-%s.ps' % qVersion())
     if printer.setup():
-      filter = PrintFilter()
+      filter = printfilter.PrintFilter()
       if (QPrinter.GrayScale == printer.colorMode()):
         filter.setOptions(QwtPlotPrintFilter.PrintAll
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-      self.plot.print_(printer, filter)
+      self._plotter.print_(printer, filter)
 
   def zoom(self):
     """ if unzoom is clicked
@@ -434,10 +442,6 @@ class ChartPlot(QWidget):
         else:
           y2 =  e.pos().y()
           y1 = self._p1.y()
-#       x1 = qwtMin(self._p1.x(), e.pos().x())
-#       x2 = qwtMax(self._p1.x(), e.pos().x())
-#       y1 = qwtMin(self._p1.y(), e.pos().y())
-#       y2 = qwtMax(self._p1.y(), e.pos().y())
 
         # Set fixed scales
         self._plotter.setAxisScale(axl, self._plotter.invTransform(axl,y1), self._plotter.invTransform(axl,y2))
@@ -449,7 +453,6 @@ class ChartPlot(QWidget):
       #get value of where the mouse was released
       closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
       self.zoomcrv(closest_curve-1)
-#   self._ControlFrame._lblInfo.setText(self._cursorInfo)
     self._plotter.setOutlineStyle(Qwt.Triangle)
 
   def zoomcrv(self, crv):
@@ -480,6 +483,7 @@ class ChartPlot(QWidget):
       PlotArraySize = self._x1.nelements()
       chart = array(self._chart_data[crv])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
+      self._Zoom[crv].setDataLabel(self._data_label)
       if self._good_data[crv]:
         self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
       else:
@@ -492,10 +496,6 @@ class ChartPlot(QWidget):
       self._Zoom[crv]._plotzoom.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
       self._Zoom[crv]._plotzoom.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
       self._Zoom[crv]._plotzoom.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
-      zoom_plot_label = "Sequence (oldest to most recent)"
-#     self._Zoom[crv].setLabelText(zoom_plot_label)
-      self._Zoom[crv]._plotzoom.setAxisTitle(QwtPlot.xBottom, zoom_plot_label)
-      self._Zoom[crv]._plotzoom.setAxisTitle(QwtPlot.yLeft, "Signal Value")
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
 
@@ -520,7 +520,7 @@ class ChartPlot(QWidget):
     if self._zoomcount == 0:
       resizex(self._ArraySize)
     else:
-      warning = zoomwarn(self)
+      warning = zoomwarn.zoomwarn(self)
       warning.set_warning("All zoom windows should be closed\nto perform action.")
       warning.show() 
 
@@ -552,10 +552,6 @@ class ChartPlot(QWidget):
     self._zoomcount = self._zoomcount - 1
 
   def zoomPaused(self, crvtemp):
-    if self._pause[crvtemp] == 0:
-      self._Zoom[crvtemp]._ControlFrame._btnPause.setText("Resume")
-    else:
-      self._Zoom[crvtemp]._ControlFrame._btnPause.setText("Pause")
     self._pause[crvtemp] = not self._pause[crvtemp]
 
 
