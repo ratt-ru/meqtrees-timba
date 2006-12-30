@@ -151,16 +151,19 @@ class ChartPlot(QWidget):
     # create context menu
     self._mainwin = parent and parent.topLevelWidget()
     self._menu = QPopupMenu(self._mainwin)
-    toggle_id = self.menu_table['Zoom ']
-    self._menu.insertItem("Zoom", toggle_id)
     toggle_id = self.menu_table['Close ']
     self._menu.insertItem("Close Window", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
+    toggle_id = self.menu_table['Zoom ']
+    self._menu.insertItem("Zoom", toggle_id)
     toggle_id = self.menu_table['Print ']
     self._menu.insertItem("Print", toggle_id)
     toggle_id = self.menu_table['Fixed Scale ']
     self._menu.insertItem("Fixed Scale", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Offset Value ']
     self._menu.insertItem("Offset Value", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
 
     ########### Connections for Signals ############
     self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
