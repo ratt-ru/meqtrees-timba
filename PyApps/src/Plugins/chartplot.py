@@ -83,6 +83,7 @@ class ChartPlot(QWidget):
     self._plotter.enableLegend(False)
     self._plotter.enableOutline(True)
     self._plotter.setOutlinePen(QPen(Qt.green))
+
     # we seem to need a layout for PyQt
     self.vbox_left = QVBoxLayout( self )
     self.vbox_left.setSpacing(10)
@@ -103,21 +104,18 @@ class ChartPlot(QWidget):
 
     #Initialization of the size of the arrays to put the curve in
     self._ArraySize = 50
-    self._DispArraySize = 50
-    self._x1 = zeros((self._DispArraySize,), Float32)
-    self._x2 = zeros((self._DispArraySize,), Float32)
-    self._x3 = zeros((self._DispArraySize,), Float32)
-    self._x4 = zeros((self._DispArraySize,), Float32)
+    self._x1 = zeros((self._ArraySize,), Float32)
+    self._x2 = zeros((self._ArraySize,), Float32)
+    self._x3 = zeros((self._ArraySize,), Float32)
+    self._x4 = zeros((self._ArraySize,), Float32)
 
     # layout parameter for x_axis offsets 
     self._x_displacement = 50
-
-    for i in range(self._DispArraySize):
+    for i in range(self._ArraySize):
       self._x1[i] = float(i)
-      self._x2[i] = self._DispArraySize + self._x_displacement +i
-      self._x3[i] = 2 * (self._DispArraySize + self._x_displacement) + i
-      self._x4[i] = 3 * (self._DispArraySize + self._x_displacement) + i
-
+      self._x2[i] = self._ArraySize + self._x_displacement +i
+      self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
+      self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
 
     # Initialize all the arrays containing the curve data 
     # code for this?
@@ -527,6 +525,16 @@ class ChartPlot(QWidget):
                      QMessageBox.NoButton)
       zoom_message.exec_loop()
 
+# this is the equivalent of zoomwarn2.py - use this instead if and when ...
+#   Message = "Please put the offset at its maximum value\nbefore zooming by a click on the plot"
+#   zoom2_message = QMessageBox("chartplot.py",
+#                  Message,
+#                  QMessageBox.Warning,
+#                  QMessageBox.Ok | QMessageBox.Default,
+#                  QMessageBox.NoButton,
+#                  QMessageBox.NoButton)
+#   zoom2_message.exec_loop()
+
   def resizex(self, size):
     """ Get the size the arrays should have
         reinitialize the arrays
@@ -534,20 +542,20 @@ class ChartPlot(QWidget):
       
     for i in range(self._nbcrv):
       if self._indexzoom[i] and not self._Zoom[i] is None:
-        self._Zoom[i].resize_x_axis(self._DispArraySize)
+        self._Zoom[i].resize_x_axis(self._ArraySize)
     # y data with offset for plotting on the main display
-    self._spec_grid_offset.resize(self._DispArraySize, self._nbcrv+1)
+    self._spec_grid_offset.resize(self._ArraySize, self._nbcrv+1)
     self._spec_grid_offset = 0
     self._spec_ptr.resize(self._nbcrv+1)
     for i in range(self._nbcrv):
-      self._spec_ptr[i] = dtemp + self._DispArraySize * i 
+      self._spec_ptr[i] = dtemp + self._ArraySize * i 
 
     # the y values for zoom pop up windows without the offset
-    self._spec_grid.resize(self._DispArraySize,self._nbcrv+1)
+    self._spec_grid.resize(self._ArraySize,self._nbcrv+1)
     self._spec_grid = 0
     self._spec_ptr_actual.resize(self._nbcrv+1)
     for i in range(self._nbcrv):
-      self._spec_ptr_actual[i] = dtemp + self._DispArraySize * i 
+      self._spec_ptr_actual[i] = dtemp + self._ArraySize * i 
 
   def zoomCountmin(self):
     """ Reduces the count of zoom windows opened
@@ -571,8 +579,8 @@ class ChartPlot(QWidget):
     # ---
     # if necessary, first remove old data from front of queue
     # add new data to end of queue
-    if len(self._chart_data[channel]) > self._DispArraySize-1:
-      differ = len(self._chart_data[channel]) - (self._DispArraySize-1)
+    if len(self._chart_data[channel]) > self._ArraySize-1:
+      differ = len(self._chart_data[channel]) - (self._ArraySize-1)
       for i in range(differ):
         del self._chart_data[channel][0]
     self._chart_data[channel].append(new_chart_val)
