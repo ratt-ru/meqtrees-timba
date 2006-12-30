@@ -29,6 +29,7 @@ try:
 except:
   from qwt import *
 from numarray import *
+import printfilter
 
 #widget to show a zoomed chanel of the plot
 
@@ -71,13 +72,13 @@ class ZoomPopup(QWidget):
 
 #  plotzoom,enableAxis(QwtPlot.yRight)
  
-    self._plotzoom.setAxisTitle(QwtPlot.xBottom, "Channel")
-    self._plotzoom.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
-    self._plotzoom.setGridMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
-
- # _plotzoom.setTitle("Individual Spectrum")
-    self._plotzoom.setCurvePen(self._crv, QPen(pen))
+    self._zoom_plot_label = "Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
+    self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
     self._plotzoom.setAxisTitle(QwtPlot.yLeft, "Signal")
+    self._plotzoom.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
+
+    self._plotzoom.setGridMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
+    self._plotzoom.setCurvePen(self._crv, QPen(pen))
 
     label_char = 'G'
     label_prec = 5
@@ -116,10 +117,12 @@ class ZoomPopup(QWidget):
     self._menu.insertItem("Pause", toggle_id)
     toggle_id = self.menu_table['Comparison ']
     self._menu.insertItem("Do Comparison", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Linear Scale ']
     self._menu.insertItem("Log Scale", toggle_id)
     toggle_id = self.menu_table['Fixed Scale ']
     self._menu.insertItem("Fixed Scale", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
 
     ########### Connections for Signals ############
     self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
@@ -135,6 +138,7 @@ class ZoomPopup(QWidget):
     #Signal when the mouse is released on the plot
     self.connect(self._plotzoom,SIGNAL('plotMouseReleased(const QMouseEvent&)'),
 	  self.plotMouseReleased)
+    self._plotzoom.replot()
     self.show()
 
   def process_menu(self, menuid):
@@ -154,7 +158,7 @@ class ZoomPopup(QWidget):
     if menuid == self.menu_table['Pause ']:
       self.Pausing()
       return True
-    if menuid == self.menu_table['Compare ']:
+    if menuid == self.menu_table['Comparison ']:
       self.do_compare()
       return True
     if menuid == self.menu_table['Linear Scale ']:
@@ -175,7 +179,7 @@ class ZoomPopup(QWidget):
     self._compare_max = True
 
   def do_compare(self):
-    toggle_id = self.menu_table['Compare ']
+    toggle_id = self.menu_table['Comparison ']
     if self._compare_max:
       self.stop_compare_max()
       self._compare_max = False
@@ -209,7 +213,7 @@ class ZoomPopup(QWidget):
   def max(self, array1, array2):
      shape = array1.shape
      max_envelop = array1
-     for i in range(shape):
+     for i in range(shape[0]):
        if array2[i] > array1[i]:
          max_envelop[i] = array2[i]
      return max_envelop
@@ -217,7 +221,7 @@ class ZoomPopup(QWidget):
   def min(self, array1, array2):
      shape = array1.shape
      min_envelop = array1
-     for i in range(shape):
+     for i in range(shape[0]):
        if array2[i] < array1[i]:
          min_envelop[i] = array2[i]
      return min_envelop
@@ -238,16 +242,6 @@ class ZoomPopup(QWidget):
       return True
     else:
       return False
-
-# def resizeEvent(self, e):
-#   """ When the zoom window gets resized, everything inside follows
-#       Get the size of the whole rectangle
-#      	Set the sizes for the bottom frame
-#   """	
-#(I) e (QResizeEvent) Event sent by resizing the window
-#   rect = QRect(0, 0, e.size().width(), e.size().height()-90)
-#   self._plotzoom.setGeometry(rect)
-#   self._ControlFrame.setGeometry(0, rect.bottom() + 1, rect.width(), 90)
 
   def Closing(self):
     """ Closes the zoom window
@@ -331,13 +325,19 @@ class ZoomPopup(QWidget):
     printer.setOrientation(QPrinter.Landscape)
     printer.setColorMode(QPrinter.Color)
     printer.setOutputToFile(True)
-    printer.setOutputFileName('bode-example-%s.ps' % qVersion())
+    printer.setOutputFileName('screen_plot-%s.ps' % qVersion())
     if printer.setup():
-      filter = PrintFilter()
+      filter = printfilter.PrintFilter()
       if (QPrinter.GrayScale == printer.colorMode()):
         filter.setOptions(QwtPlotPrintFilter.PrintAll
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-      self.plot.print_(printer, filter)
+      self._plotzoom.print_(printer, filter)
+
+  def setDataLabel(self, data_label):
+    self._data_label = data_label
+    self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
+    self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
+
 
   def zoom(self):
     """ Zoom the curve in the main plot
@@ -416,12 +416,19 @@ class ZoomPopup(QWidget):
     """
     if self._d_zoom and not self._d_zoomActive:
       self._d_zoomActive = 1
-      # Don't invert any scales which aren't inverted
-      x1 = qwtMin(_p1.x(), e.pos().x())
-      x2 = qwtMax(_p1.x(), e.pos().x())
-      y1 = qwtMin(_p1.y(), e.pos().y())
-      y2 = qwtMax(_p1.y(), e.pos().y())
-	
+      if e.pos().x() < self._p1.x():
+        x1 =  e.pos().x()
+        x2 = self._p1.x()
+      else:
+        x2 =  e.pos().x()
+        x1 = self._p1.x()
+      if e.pos().y() < self._p1.y():
+        y1 =  e.pos().y()
+        y2 = self._p1.y()
+      else:
+        y2 =  e.pos().y()
+        y1 = self._p1.y()
+
       # Set fixed scales
       self._plotzoom.setAxisScale(QwtPlot.yLeft,self._plotzoom.invTransform(QwtPlot.yLeft,y1),self._plotzoom.invTransform(QwtPlot.yLeft,y2))
 # unfortunately, if self._plotzoom.invTransform(QwtPlot.xBottom,x2) is
@@ -469,15 +476,6 @@ class ZoomPopup(QWidget):
     if self._min_crv >= 0:
       self._plotzoom.setCurveData(self._min_crv, self._x_values, self._min_envelop)
     self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
-
-  def suppressChannelText(self):
-    return
-#   self._ControlFrame._lblchan.setText("")
-#   self._ControlFrame._lblchno.setText("")
-
-  def setLabelText(self, text_label):
-#   self._ControlFrame._lblchan.setText(text_label)
-    return
 
 def main(args):
     app = QApplication(args)
