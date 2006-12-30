@@ -75,6 +75,7 @@ class QwtColorBar(QwtPlot):
         self.plotImage = QwtPlotImage(self)
         self.min = 0.0
         self.max = 256.0
+        self.is_active = False
         self.log_scale = False
         self.bar_array = reshape(arange(self.max), (1,256))
         self.y_scale = (self.min, self.max)
@@ -205,12 +206,17 @@ class QwtColorBar(QwtPlot):
 
     def showDisplay(self, show_self, colorbar_number=0):
       if colorbar_number == self.colorbar_number:
+        self.is_active = True
         if show_self > 0:
           self.show()
         else:
           self.hide()
         self.replot()
     # showDisplay
+
+    def unHide(self):
+      if self.is_active:
+        self.show()
 
     def unzoom(self):
         if len(self.zoomStack):
