@@ -29,7 +29,6 @@ try:
 except:
   from qwt import *
 from numarray import *
-import openzoom
 import zoomwin
 import printfilter
 import random
@@ -458,10 +457,15 @@ class ChartPlot(QWidget):
     if self._indexzoom[crv]:
       if not self._Zoom[crv] is None:
         self._Zoom[crv].show()
+        Message = "A zoom of this curve is already opened"
+        zoom_message = QMessageBox("chartplot.py",
+                       Message,
+                       QMessageBox.Warning,
+                       QMessageBox.Ok | QMessageBox.Default,
+                       QMessageBox.NoButton,
+                       QMessageBox.NoButton)
+        zoom_message.exec_loop()
 #       self._Zoom[crv].raise()
-      else:
-        warning = openzoom.OpenZoom()
-        warning.show()
     else:
       #To know how many zoom windows opened (so +1)
       self._zoomcount = self._zoomcount + 1
@@ -476,7 +480,8 @@ class ChartPlot(QWidget):
       PlotArraySize = self._x1.nelements()
       chart = array(self._chart_data[crv])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
-      self._Zoom[crv].setDataLabel(self._data_label)
+      if not self._data_label is None:
+        self._Zoom[crv].setDataLabel(self._data_label)
       if self._good_data[crv]:
         self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
       else:
@@ -513,9 +518,14 @@ class ChartPlot(QWidget):
     if self._zoomcount == 0:
       resizex(self._ArraySize)
     else:
-      warning = zoomwarn.zoomwarn(self)
-      warning.set_warning("All zoom windows should be closed\nto perform action.")
-      warning.show() 
+      Message = "All zoom windows should be closed\nto perform action."
+      zoom_message = QMessageBox("chartplot.py",
+                     Message,
+                     QMessageBox.Warning,
+                     QMessageBox.Ok | QMessageBox.Default,
+                     QMessageBox.NoButton,
+                     QMessageBox.NoButton)
+      zoom_message.exec_loop()
 
   def resizex(self, size):
     """ Get the size the arrays should have
