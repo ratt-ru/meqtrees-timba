@@ -53,6 +53,7 @@ class DisplayMainWindow(QMainWindow):
       self._ChartPlot[data_type] = chartplot.ChartPlot(parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
       self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
+      self._tabwidget.showPage(self._ChartPlot[data_type])
 #     if not self._tab_resized:
 #       self._tabwidget.resize(self._tabwidget.minimumSizeHint())
 #       self._tab_resized = True
