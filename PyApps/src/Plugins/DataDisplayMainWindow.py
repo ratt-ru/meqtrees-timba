@@ -47,20 +47,17 @@ class DisplayMainWindow(QMainWindow):
     self._ChartPlot = {}
     self._click_on = " If you click on an individual stripchart with the left mouse button, a popup window will appear that gives a more detailed view of the data from that particular object."
 
-    col = QColor()
-    col.setNamedColor("LightYellow")
-    self.statusBar().setPaletteBackgroundColor(col)
-    self.statusBar().message( "Real-time Data Display GUI")
-
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
     if not self._ChartPlot.has_key(data_type):
       self._ChartPlot[data_type] = chartplot.ChartPlot(parent=self)
+      self._ChartPlot[data_type].setDataLabel(data_type)
       self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
-      if not self._tab_resized:
-        self._tabwidget.resize(self._ChartPlot[data_type].sizeHint()* 1.2)
-        self._tab_resized = True
-      self.resize(self._tabwidget.sizeHint())
+#     if not self._tab_resized:
+#       self._tabwidget.resize(self._tabwidget.minimumSizeHint())
+#       self._tab_resized = True
+      self._tabwidget.resize(self._tabwidget.minimumSizeHint())
+      self.resize(self._tabwidget.minimumSizeHint())
       dcm_sn_descriptor = "This window shows stripcharts of the " + data_type + " as a function of time."
       dcm_sn_descriptor = dcm_sn_descriptor + self._click_on
       QWhatsThis.add(self._ChartPlot[data_type], dcm_sn_descriptor)
@@ -68,6 +65,12 @@ class DisplayMainWindow(QMainWindow):
       self._ChartPlot[data_type].show()
     q_info = "Sequence Number " + str( data_dict['sequence_number'])
     self._ChartPlot[data_type].updateEvent(data_dict['channel'], data_dict['value'], q_info)
+
+  def resizeEvent(self, event):
+    keys = self._ChartPlot.keys()
+    for i in range(len(keys)):
+      self._ChartPlot[keys[i]].resize(event.size())
+    self._tabwidget.resize(event.size())
 
 #void IfDisplayMainWindow.set_data_flag(Int channel, Bool flag_value)
 #{
@@ -100,8 +103,6 @@ class DisplayMainWindow(QMainWindow):
 #
   def quit_event(self):
     self.close()
-
-
   def start_test_timer(self, time):
     # stuff for tests
     self.seq_num = 0
