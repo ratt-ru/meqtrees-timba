@@ -29,7 +29,7 @@ class Matrix22 (object):
     It also contains the named ParmGroup objects that encapsulate
     groups of MeqParm nodes (or their simulation subtrees)"""
 
-    def __init__(self, ns, scope=[], label='M', simulate=False):
+    def __init__(self, ns, scope=[], label='M', indices=[], simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
         self._scope = deepcopy(scope)                # scope -> used for nodename qualifiers
@@ -40,7 +40,7 @@ class Matrix22 (object):
             self._scope.append('simul')
 
         self._matrix = None                          # the actual matrices (contract!)
-        self._indices = []                           # list of matrix 'indices' (e.g. stations)
+        self._indices = indices                      # list of matrix 'indices' (e.g. stations)
 
         self._matrel = dict(m11=None, m12=None, m21=None, m22=None)  # Matrix22 matrix elements (contract!)
         self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
@@ -256,22 +256,22 @@ class Matrix22 (object):
 
     #-------------------------------------------------------------------
 
-    def multiply(self, jones):
+    def multiply(self, other):
         """Multiply with the given Matrix22 object"""
-        name = self.label()+jones.label()
+        name = self.label()+other.label()
         scope = self.scope()
         for s in self._indices:
             self._ns[name](*scope)(s) << Meq.MatrixMultiply(self._matrix(s),
-                                                            jones._matrix(s))
+                                                            other._matrix(s))
         # Update the Matrix22 object attributes:
         self._matrix = self._ns[name](*scope)
-        self._label += jones._label
-        self._parmgroup.update(jones._parmgroup)
+        self._label += other._label
+        self._parmgroup.update(other._parmgroup)
         return True
 
     #-------------------------------------------------------------------
 
-    def compare(self, jones):
+    def compare(self, other):
         """Compare with the given Matrix22 object"""
         return True
 
