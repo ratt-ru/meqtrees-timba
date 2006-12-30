@@ -432,20 +432,10 @@ class ChartPlot(QWidget):
     if self._d_zoom and not self._d_zoomActive:
       if e.button() == Qt.LeftButton:
         self._d_zoomActive = True
-        # Don't invert any scales which aren't inverted
-        if e.pos().x() < self._p1.x():
-          x1 =  e.pos().x()
-          x2 = self._p1.x()
-        else:
-          x2 =  e.pos().x()
-          x1 = self._p1.x()
-        if e.pos().y() < self._p1.y():
-          y1 =  e.pos().y()
-          y2 = self._p1.y()
-        else:
-          y2 =  e.pos().y()
-          y1 = self._p1.y()
-
+        x1 = min(self._p1.x(), e.pos().x())
+        x2 = max(self._p1.x(), e.pos().x())
+        y1 = min(self._p1.y(), e.pos().y())
+        y2 = max(self._p1.y(), e.pos().y())
         # Set fixed scales
         self._plotter.setAxisScale(axl, self._plotter.invTransform(axl,y1), self._plotter.invTransform(axl,y2))
         self._plotter.setAxisScale(axb, self._plotter.invTransform(axb,x1), self._plotter.invTransform(axb,x2))

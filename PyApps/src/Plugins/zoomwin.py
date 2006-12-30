@@ -107,10 +107,10 @@ class ZoomPopup(QWidget):
     self._parent = parent
     self._mainwin = parent and parent.topLevelWidget()
     self._menu = QPopupMenu(self._mainwin)
-    toggle_id = self.menu_table['Zoom ']
-    self._menu.insertItem("Zoom", toggle_id)
     toggle_id = self.menu_table['Close ']
     self._menu.insertItem("Close Window", toggle_id)
+    toggle_id = self.menu_table['Zoom ']
+    self._menu.insertItem("Zoom", toggle_id)
     toggle_id = self.menu_table['Print ']
     self._menu.insertItem("Print", toggle_id)
     toggle_id = self.menu_table['Pause ']
@@ -416,19 +416,10 @@ class ZoomPopup(QWidget):
     """
     if self._d_zoom and not self._d_zoomActive:
       self._d_zoomActive = 1
-      if e.pos().x() < self._p1.x():
-        x1 =  e.pos().x()
-        x2 = self._p1.x()
-      else:
-        x2 =  e.pos().x()
-        x1 = self._p1.x()
-      if e.pos().y() < self._p1.y():
-        y1 =  e.pos().y()
-        y2 = self._p1.y()
-      else:
-        y2 =  e.pos().y()
-        y1 = self._p1.y()
-
+      x1 = min(self._p1.x(), e.pos().x())
+      x2 = max(self._p1.x(), e.pos().x())
+      y1 = min(self._p1.y(), e.pos().y())
+      y2 = max(self._p1.y(), e.pos().y())
       # Set fixed scales
       self._plotzoom.setAxisScale(QwtPlot.yLeft,self._plotzoom.invTransform(QwtPlot.yLeft,y1),self._plotzoom.invTransform(QwtPlot.yLeft,y2))
 # unfortunately, if self._plotzoom.invTransform(QwtPlot.xBottom,x2) is
