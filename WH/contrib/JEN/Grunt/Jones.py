@@ -173,8 +173,8 @@ class GJones (Jones):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self._parmgroup[pname+pol].create(s)
-                gain = self._parmgroup[gname+pol].create(s)
+                phase = self._parmgroup[pname+pol].create_entry(s)
+                gain = self._parmgroup[gname+pol].create_entry(s)
                 mm[pol] = self._ns[jname+pol](*scope)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*scope)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -211,8 +211,8 @@ class EJones (Jones):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self._parmgroup[pname+pol].create(s)
-                gain = self._parmgroup[gname+pol].create(s)
+                phase = self._parmgroup[pname+pol].create_entry(s)
+                gain = self._parmgroup[gname+pol].create_entry(s)
                 mm[pol] = self._ns[jname+pol](*scope)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*scope)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -245,7 +245,7 @@ class FJones (Jones):
         self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
                               tags=[rname,jname])
 
-        RM = self._parmgroup[rname].create()                  # Rotation Measure (rad/m2)
+        RM = self._parmgroup[rname].create_entry()                  # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())
         wvl2 = self._ns << Meq.Sqr(wvl)                       # lambda squared
         farot = self._ns.farot(*scope) << (RM * wvl2)         # Faraday rotation angle
@@ -314,7 +314,7 @@ class DJones (Jones):
                               tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pzd = self._parmgroup[pname].create()
+        pzd = self._parmgroup[pname].create_entry()
         pzd2 = self._ns << pzd/2
         pzd2neg = self._ns << Meq.Negate(pzd2)
         pmat = self._ns[pname](*scope) << Meq.Matrix22(pzd2,0.0,0.0,pzd2neg)
@@ -324,14 +324,14 @@ class DJones (Jones):
 
             # Dipole rotation angles:
             if coupled_dang:
-                dang = self._parmgroup[dname].create(s)
+                dang = self._parmgroup[dname].create_entry(s)
                 cos = self._ns << Meq.Cos(dang)
                 sin = self._ns << Meq.Sin(dang)
                 sinneg = self._ns << Meq.Negate(sin)
                 dmat = self._ns[dname](*scope)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = self._parmgroup[dname+pols[0]].create(s)
-                dang2 = self._parmgroup[dname+pols[1]].create(s)
+                dang1 = self._parmgroup[dname+pols[0]].create_entry(s)
+                dang2 = self._parmgroup[dname+pols[1]].create_entry(s)
                 cos1 = self._ns << Meq.Cos(dang1)
                 cos2 = self._ns << Meq.Cos(dang2)
                 sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
@@ -341,14 +341,14 @@ class DJones (Jones):
 
             # Dipole ellipticities:
             if coupled_dell:
-                dell = self._parmgroup[ename].create(s)
+                dell = self._parmgroup[ename].create_entry(s)
                 cos = self._ns << Meq.Cos(dell)
                 sin = self._ns << Meq.Sin(dell)
                 isin = self._ns << Meq.ToComplex(0.0, sin)
                 emat = self._ns[ename](*scope)(s) << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = self._parmgroup[ename+pols[0]].create(s)
-                dell2 = self._parmgroup[ename+pols[1]].create(s)
+                dell1 = self._parmgroup[ename+pols[0]].create_entry(s)
+                dell2 = self._parmgroup[ename+pols[1]].create_entry(s)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
                 isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
@@ -407,8 +407,8 @@ class JJones (Jones):
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in ee:
-                real = self._parmgroup[ename+'real'].create(s)
-                imag = self._parmgroup[ename+'imag'].create(s)
+                real = self._parmgroup[ename+'real'].create_entry(s)
+                imag = self._parmgroup[ename+'imag'].create_entry(s)
                 mm[ename] = self._ns[ename](*scope)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*scope)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])

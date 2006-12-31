@@ -35,6 +35,8 @@ class Matrix22 (object):
         self._scope = deepcopy(scope)                # scope -> used for nodename qualifiers
         if not isinstance(self._scope,(list,tuple)):
             self._scope = [self._scope]
+        if not label in self._scope:
+            self._scope.insert(0,label)  
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
         if self._simulate:
             self._scope.append('simul')
@@ -326,7 +328,7 @@ class Matrix22 (object):
                                   default=index/10.0, stddev=0.01,
                                   tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self._parmgroup[key].create(index)
+            mm[key] = self._parmgroup[key].create_entry(index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
             mat = self._ns[label](*scope)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                  mm['m21'],mm['m22'])
