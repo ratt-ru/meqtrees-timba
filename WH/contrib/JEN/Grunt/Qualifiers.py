@@ -20,8 +20,7 @@ from copy import deepcopy
 class Qualifiers (object):
     """Class that represents a list of node-name qualifiers"""
 
-    def __init__(self, quals=[], append=None, prepend=None,
-                 simulate=False, include=None, exclude=None):
+    def __init__(self, quals=[], append=None, prepend=None, exclude=None):
 
         # The input may be a value, a list, or another Qualifiers object.
         # print type(quals)
@@ -32,12 +31,10 @@ class Qualifiers (object):
             self._quals = deepcopy(quals)      
             
         self._input = dict(quals=quals, append=append, prepend=prepend,
-                           exclude=exclude, simulate=simulate)
+                           exclude=exclude)
         if not isinstance(self._quals,(list,tuple)):
             self._quals = [self._quals]
         self._quals = self.get(append=append, prepend=prepend, exclude=exclude)
-        if simulate:
-            self._quals = self.get(append='simul')
         return None
 
     #-------------------------------------------------------------------
@@ -107,7 +104,7 @@ class Qualifiers (object):
 
 if __name__ == '__main__':
 
-    q = Qualifiers('rr', simulate=False)
+    q = Qualifiers('rr')
     q.display()
 
     if 1:
