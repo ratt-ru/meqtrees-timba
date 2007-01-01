@@ -18,8 +18,11 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
+from Qualifiers import *
+
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
+
 from copy import deepcopy
 import random
 import math
@@ -29,7 +32,7 @@ import math
 class ParmGroup (object):
     """Class that represents a group of MeqParm nodes"""
 
-    def __init__(self, ns, label='<pg>', scope=[], descr=None, 
+    def __init__(self, ns, label='<pg>', quals=[], descr=None, 
                  default=0.0, scale=1.0, node_groups=[], tags=[],
                  simulate=False, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
                  pg=None):
@@ -38,15 +41,13 @@ class ParmGroup (object):
         self._descr = descr                   # brief description 
         self._nodelist = []                   # initialise the internal nodelist
 
-        # Information needed to create MeqParm nodes (see entry())
+        # Information needed to create MeqParm nodes (see create_entry())
         self._default = default               # default value
-        
-        self._scope = deepcopy(scope)         # scope -> nodename qualifier(s)
-        if not isinstance(self._scope,(list,tuple)):
-            self._scope = [self._scope]
-        if not label in self._scope:
-            self._scope.insert(0,label)  
 
+        # Node-name qualifiers:
+        self._quals = Qualifiers(quals, prepend=label)
+
+        # Node tags (for searching the nodescope)
         self._tags = deepcopy(tags)
         if not isinstance(self._tags,(list,tuple)):
             self._tags = [self._tags]
@@ -59,8 +60,7 @@ class ParmGroup (object):
 
         if simulate:
             self._tags.append('simul')        # ....??
-            if not 'simul' in self._scope:
-                self._scope.append('simul')  
+            self._quals.append('simul')
 
         # Information to create a simulation subtree (see create_entry())
         self._simulate = simulate
@@ -102,7 +102,7 @@ class ParmGroup (object):
         ss = str(type(self))
         ss += ' '+str(self._label)
         ss += ' (n='+str(len(self._nodelist))+')'
-        ss += ' scope='+str(self._scope)
+        ss += ' quals='+str(self._quals.get())
         if self._composite:
             ss += ' (composite of '+str(self._composite)+')'
         return ss
@@ -149,10 +149,9 @@ class ParmGroup (object):
         """Return the group label""" 
         return self._label
 
-    def scope(self):
-        """Return the object scope (e.g. the peeling source name).
-        The scope is translated into nodename qualifiers. It can be a list.""" 
-        return self._scope
+    def quals(self, append=None, prepend=None, exclude=None):
+        """Return the nodename qualifier(s), with temporary modifications"""
+        return self._quals.get(append=append, prepend=prepend, exclude=exclude)
 
     def descr(self):
         """Return the group description""" 
@@ -173,31 +172,27 @@ class ParmGroup (object):
         return len(self._nodelist)
 
 
-    def create_entry (self, index=None):
+    def create_entry (self, qual=None):
         """Create an entry, i.e. MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
-        label = self._label
 
-        # If in an index is specified, append it to the temporary scope list: 
-        scope = deepcopy(self._scope)
-        if not index==None:
-            scope.append(index)
+        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
+        quals = self._quals.get(append=qual)
             
         if self._simulate:
-            node = self._make_simulation_subtree(scope)
+            node = self._make_simulation_subtree(quals)
         else:
-            node = self._ns[label](*scope) << Meq.Parm(self._default,
-                                                      node_groups=self._node_groups,
-                                                      tags=self._tags)
+            node = self._ns.parm(*quals) << Meq.Parm(self._default,
+                                                     node_groups=self._node_groups,
+                                                     tags=self._tags)
         # Append the new node to the internal nodelist:
         self._nodelist.append(node)
         return node
 
     #....................................................................
 
-    def _make_simulation_subtree(self, scope=scope):
+    def _make_simulation_subtree(self, quals=quals):
         """Helper function to create a subtree that simulates a MeqParm node"""
-        label = self._label
 
         # default += ampl*cos(2pi*time/Tsec),
         # where both ampl and Tsec may vary from node to node.
@@ -207,22 +202,22 @@ class ParmGroup (object):
             stddev = self._stddev*self._scale           # NB: self._stddev is relative
             ampl = random.gauss(ampl, stddev)
             # print '-',label,index,' (',self._default,stddev,') -> ampl=',ampl
-        ampl = self._ns.ampl(*scope) << Meq.Constant(ampl)
+        ampl = self._ns.ampl(*quals) << Meq.Constant(ampl)
         
         Tsec = self._Tsec                               # variation period (sec)
         if self._Tstddev:
             stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
             Tsec = random.gauss(self._Tsec, stddev) 
             # print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
-        Tsec = self._ns.Tsec(*scope) << Meq.Constant(Tsec)
+        Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
         time = self._ns << Meq.Time()
         pi2 = 2*math.pi
         costime = self._ns << Meq.Cos(pi2*time/Tsec)
-        variation = self._ns.variation(*scope) << Meq.Multiply(ampl,costime)
+        variation = self._ns.variation(*quals) << Meq.Multiply(ampl,costime)
 
         # Finally, add the variation to the default value:
-        default = self._ns.default(*scope) << Meq.Constant(self._default)
-        node = self._ns[label](*scope) << Meq.Add(default, variation, tags=self._tags)
+        default = self._ns.default(*quals) << Meq.Constant(self._default)
+        node = self._ns.parm(*quals) << Meq.Add(default, variation, tags=self._tags)
         return node
 
 
@@ -230,9 +225,9 @@ class ParmGroup (object):
 
     def compare(self, other):
         """Compare with the given ParmGroup object"""
-        scope = self.scope()
+        quals = self.quals()
         name = 'absdiff'
-        if not self._ns[name](*scope).initialized():
+        if not self._ns[name](*quals).initialized():
             nn1 = self.nodelist()
             nn2 = other.nodelist()
             diff = []
@@ -242,26 +237,26 @@ class ParmGroup (object):
                 diff.append(node)
                 node = self._ns << Meq.Abs(node)
                 absdiff.append(node)
-            self._ns[name](*scope) << Meq.Add(children=absdiff)
-        return self._ns[name](*scope)
+            self._ns[name](*quals) << Meq.Add(children=absdiff)
+        return self._ns[name](*quals)
 
     def sum(self):
         """Return the sum (node) of its nodes (used for solver constraints)"""
-        scope = self.scope()
+        quals = self.quals()
         name = 'sum'
         # name = 'sum_'+self.label()
-        if not self._ns[name](*scope).initialized():
-            self._ns[name](*scope) << Meq.Add(children=self._nodelist)
-        return self._ns[name](*scope)
+        if not self._ns[name](*quals).initialized():
+            self._ns[name](*quals) << Meq.Add(children=self._nodelist)
+        return self._ns[name](*quals)
 
     def product(self):
         """Return the product (node) of its nodes (used for solver constraints)"""
-        scope = self.scope()
+        quals = self.quals()
         name = 'product'
         # name = 'product_'+self.label()
-        if not self._ns[name](*scope).initialized():
-            self._ns[name](*scope) << Meq.Multiply(children=self._nodelist)
-        return self._ns[name](*scope)
+        if not self._ns[name](*quals).initialized():
+            self._ns[name](*quals) << Meq.Multiply(children=self._nodelist)
+        return self._ns[name](*quals)
 
 
     #----------------------------------------------------------------------
@@ -271,13 +266,11 @@ class ParmGroup (object):
         in a single real-vs-imag plot."""
         if self._dcoll:
             return self._dcoll
-        scope = self.scope()
-        dcoll_scope = 'pg'
-        for s in scope:
-            dcoll_scope += '_'+s 
+        # quals = self.quals()
+        dcoll_quals = self._quals.concat()
         cc = self.nodelist() 
         rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                       scope=dcoll_scope,
+                                       scope=dcoll_quals,
                                        tag='',
                                        color=self._color,
                                        style=self._style,

@@ -14,6 +14,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from ParmGroup import *
+from Qualifiers import *
 
 # from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.util import JEN_bookmarks
@@ -29,30 +30,30 @@ class Matrix22 (object):
     It also contains the named ParmGroup objects that encapsulate
     groups of MeqParm nodes (or their simulation subtrees)"""
 
-    def __init__(self, ns, scope=[], label='M', indices=[], simulate=False):
+    def __init__(self, ns, quals=[], label='M', indices=[], simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
-        self._scope = deepcopy(scope)                # scope -> used for nodename qualifiers
-        if not isinstance(self._scope,(list,tuple)):
-            self._scope = [self._scope]
-        if not label in self._scope:
-            self._scope.insert(0,label)  
+
+        # Node-name qualifiers:
+        self._quals = Qualifiers(quals, prepend=label)
+
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
         if self._simulate:
-            self._scope.append('simul')
+            self._quals.append('simul')
 
         self._matrix = None                          # the actual matrices (contract!)
         self._indices = indices                      # list of matrix 'indices' (e.g. stations)
 
-        self._matrel = dict(m11=None, m12=None, m21=None, m22=None)  # Matrix22 matrix elements (contract!)
+        # Matrix22 matrix elements (contract!)
+        self._matrel = dict(m11=None, m12=None, m21=None, m22=None)
+        self._dcoll = None                           # visualization
         self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
 
         self._parmgroup = dict()                     # available parameter group objects
         self._composite = dict()                     # see define_composite_parmgroups()
-        self._dummyParmGroup = ParmGroup('dummy')
-        self._dcoll = None
+        self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
         return None
 
     #-------------------------------------------------------------------
@@ -61,19 +62,9 @@ class Matrix22 (object):
         """Return the Matrix22 object label""" 
         return self._label
 
-    def scope(self, append=None):
-        """Return the object scope (e.g. the peeling source name).
-        Optionally, append the given qualifiers to the returned scope.
-        The scope is translated into nodename qualifiers. It can be a list.""" 
-        scope = deepcopy(self._scope)
-        if not append==None:
-            if not isinstance(scope,(list,tuple)):
-                scope = [scope]
-            if isinstance(append,(list,tuple)):
-                scope.extend(append)
-            else:
-                scope.append(append)
-        return scope
+    def quals(self, append=None, prepend=None, exclude=None):
+        """Return the nodename qualifier(s), with temporary modifications"""
+        return self._quals.get(append=append, prepend=prepend, exclude=exclude)
 
     #-------------------------------------------------------------------
 
@@ -97,13 +88,13 @@ class Matrix22 (object):
         if not self._matrel.has_key(key):
             return False                                # invalid key.....
         if not self._matrel[key]:                       # do only once
-            scope = self.scope()
+            quals = self.quals()
             name = self.label()+'_'+key[1:]
             for s in self.indices():
                 index = self._matrel_index[key]
-                node = self._ns[name](*scope)(s) << Meq.Selector(self._matrix(s),
+                node = self._ns[name](*quals)(s) << Meq.Selector(self._matrix(s),
                                                                  index=index)
-            self._matrel[key] = self._ns[name](*scope)
+            self._matrel[key] = self._ns[name](*quals)
 
         # Return a list of nodes, if required:
         if return_nodes:
@@ -120,9 +111,9 @@ class Matrix22 (object):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
-        ss += '  '+str(self._label)
-        ss += '  n='+str(len(self._indices))
-        ss += '  scope='+str(self._scope)
+        ss += '  '+str(self.label())
+        ss += '  n='+str(len(self.indices()))
+        ss += '  quals='+str(self.quals())
         # if self._simulate: ss += ' (simulate)'
         return ss
 
@@ -133,7 +124,7 @@ class Matrix22 (object):
         if txt: print ' * (txt='+str(txt)+')'
         print ' * Available indices ('+str(len(self.indices()))+'): '+str(self.indices())
         #...............................................................
-        print ' * Available matrices ('+str(len(self.indices()))+'): '
+        print ' * Available 2x2 matrices ('+str(len(self.indices()))+'): '
         if self._matrix:
             for s in self.indices():
                 print '  - '+str(s)+': '+str(self.matrix()(s))
@@ -177,7 +168,7 @@ class Matrix22 (object):
 
         # ....
         node_groups = ['Parm']
-        # node_groups.extend(self._scope)               # <---------- !!!
+        # node_groups.extend(self.quals())               # <---------- !!!
 
         # Make sure that the group name is in the list of node tags:
         ptags = deepcopy(tags)
@@ -185,7 +176,8 @@ class Matrix22 (object):
         if not name in ptags: ptags.append(name)
 
         # OK, define the ParmGroup:
-        self._parmgroup[name] = ParmGroup (self._ns, name=name, scope=self._scope,
+        self._parmgroup[name] = ParmGroup (self._ns, label=name,
+                                           quals=self.quals(),
                                            descr=descr, default=default,
                                            tags=ptags, node_groups=node_groups,
                                            simulate=self._simulate,
@@ -261,12 +253,12 @@ class Matrix22 (object):
     def multiply(self, other):
         """Multiply with the given Matrix22 object"""
         name = self.label()+other.label()
-        scope = self.scope()
+        quals = self.quals()
         for s in self._indices:
-            self._ns[name](*scope)(s) << Meq.MatrixMultiply(self._matrix(s),
+            self._ns[name](*quals)(s) << Meq.MatrixMultiply(self._matrix(s),
                                                             other._matrix(s))
         # Update the Matrix22 object attributes:
-        self._matrix = self._ns[name](*scope)
+        self._matrix = self._ns[name](*quals)
         self._label += other._label
         self._parmgroup.update(other._parmgroup)
         return True
@@ -285,15 +277,13 @@ class Matrix22 (object):
         matrix elements (m11,m12,m21,m22) have different styles
         and colors, which are the same for all Matrix22 matrices."""
         if not self._dcoll:
-            scope = self.scope()
-            dcoll_scope = self.label()
-            for s in scope:
-                dcoll_scope += '_'+s 
+            # quals = self.quals()
+            dcoll_quals = self._quals.concat()
             dcolls = []
             for key in self._matrel.keys():  
                 cc = self.matrel(key, return_nodes=True) 
                 rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                               scope=dcoll_scope,
+                                               scope=dcoll_quals,
                                                tag=key,
                                                color=self._matrel_color[key],
                                                style=self._matrel_style[key],
@@ -302,7 +292,7 @@ class Matrix22 (object):
                 dcolls.append(rr)
                 # Make a combined plot of all the matrix elements:
                 # NB: nodename -> dconc_scope_tag
-            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls, scope=dcoll_scope,
+            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls, scope=dcoll_quals,
                                           tag=' ', bookpage=None)
         # Return the dataConcat node:
         self._dcoll = rr['dcoll']
@@ -316,8 +306,8 @@ class Matrix22 (object):
 
     def test (self):
         """Helper function to make some test-matrices"""
-        scope = self.scope()
-        label = self.label()
+        quals = self.quals()
+        name = 'matrix22'
         keys = self._matrel.keys()
         index = 0
         indices = []
@@ -330,11 +320,11 @@ class Matrix22 (object):
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             mm[key] = self._parmgroup[key].create_entry(index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
-            mat = self._ns[label](*scope)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
-                                                                 mm['m21'],mm['m22'])
+            mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
+                                                                mm['m21'],mm['m22'])
         # Store the matrices and the list if indices:
         self.indices(new=indices)
-        self.matrix(new=self._ns[label](*scope))
+        self.matrix(new=self._ns[name](*quals))
 
         # Make some secondary (derived) ParmGroups:
         self.define_composite_parmgroups()
@@ -356,7 +346,7 @@ def _define_forest(ns):
     dcolls = []
     simulate = True
 
-    mat = Matrix22(ns, scope=[], simulate=simulate)
+    mat = Matrix22(ns, quals=[], simulate=simulate)
     mat.test()
     dcolls.append(mat.visualize())
     mat.display(full=True)
@@ -384,7 +374,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrix22(ns, scope=['3c84','xxx'], label='HH', simulate=False)
+        m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=False)
         m1.test()
         m1.visualize()
         m1.display_parmgroups(full=False, composite=True)
