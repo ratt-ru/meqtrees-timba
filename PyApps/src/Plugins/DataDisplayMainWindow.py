@@ -54,9 +54,6 @@ class DisplayMainWindow(QMainWindow):
       self._ChartPlot[data_type].setDataLabel(data_type)
       self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
       self._tabwidget.showPage(self._ChartPlot[data_type])
-#     if not self._tab_resized:
-#       self._tabwidget.resize(self._tabwidget.minimumSizeHint())
-#       self._tab_resized = True
       self._tabwidget.resize(self._tabwidget.minimumSizeHint())
       self.resize(self._tabwidget.minimumSizeHint())
       dcm_sn_descriptor = "This window shows stripcharts of the " + data_type + " as a function of time."
@@ -107,6 +104,7 @@ class DisplayMainWindow(QMainWindow):
   def start_test_timer(self, time):
     # stuff for tests
     self.seq_num = 0
+    self.gain = 0
 
     self.startTimer(time)
 
@@ -129,16 +127,22 @@ class DisplayMainWindow(QMainWindow):
 
     data_dict['data_type'] = 'xyz'
     data_dict['channel'] = 1
-    data_dict['value'] = 1.0 + 1 * random.random()
+    data_dict['value'] = self.gain + 2 * random.random()
     self.updateEvent(data_dict)
 
     data_dict['channel'] = 3
-    data_dict['value'] = 1.0 + 1 * random.random()
+    data_dict['value'] = self.gain + 3 * random.random()
     self.updateEvent(data_dict)
 
-    data_dict['channel'] = 9
-    data_dict['value'] = 1.0 + 1 * random.random()
+    data_dict['channel'] = 5
+    data_dict['value'] = self.gain + 1 * random.random()
     self.updateEvent(data_dict)
+
+    data_dict['channel'] = 11
+    data_dict['value'] = self.gain + 4 * random.random()
+    self.updateEvent(data_dict)
+
+    self.gain = self.gain + 2.0
     return
 
 def make():
