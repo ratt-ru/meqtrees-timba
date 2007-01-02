@@ -104,18 +104,7 @@ class ChartPlot(QWidget):
 
     #Initialization of the size of the arrays to put the curve in
     self._ArraySize = 50
-    self._x1 = zeros((self._ArraySize,), Float32)
-    self._x2 = zeros((self._ArraySize,), Float32)
-    self._x3 = zeros((self._ArraySize,), Float32)
-    self._x4 = zeros((self._ArraySize,), Float32)
-
-    # layout parameter for x_axis offsets 
-    self._x_displacement = 50
-    for i in range(self._ArraySize):
-      self._x1[i] = float(i)
-      self._x2[i] = self._ArraySize + self._x_displacement +i
-      self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
-      self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
+    self.set_x_axis_sizes()
 
     # Initialize all the arrays containing the curve data 
     # code for this?
@@ -125,6 +114,7 @@ class ChartPlot(QWidget):
     
     #initialize the mainplot zoom variables
     self._d_zoomActive = self._d_zoom = False
+    self._is_spectra = False
 	    
     #initialize zoomcount.  Count the number of zoom windows opened
     self._zoomcount = 0
@@ -179,6 +169,21 @@ class ChartPlot(QWidget):
     # construct plot / array storage structures etc
     self.createplot()
     
+  def set_x_axis_sizes(self):
+
+    self._x1 = zeros((self._ArraySize,), Float32)
+    self._x2 = zeros((self._ArraySize,), Float32)
+    self._x3 = zeros((self._ArraySize,), Float32)
+    self._x4 = zeros((self._ArraySize,), Float32)
+
+    # layout parameter for x_axis offsets 
+    self._x_displacement = 50
+    for i in range(self._ArraySize):
+      self._x1[i] = float(i)
+      self._x2[i] = self._ArraySize + self._x_displacement +i
+      self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
+      self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
+
   def process_menu(self, menuid):
     if menuid < 0:
       return
@@ -479,7 +484,7 @@ class ChartPlot(QWidget):
       chart = array(self._chart_data[crv])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
       if not self._data_label is None:
-        self._Zoom[crv].setDataLabel(self._data_label)
+        self._Zoom[crv].setDataLabel(self._data_label,self._is_spectra)
       if self._good_data[crv]:
         self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
       else:
@@ -579,15 +584,49 @@ class ChartPlot(QWidget):
     # ---
     # if necessary, first remove old data from front of queue
     # add new data to end of queue
-    if len(self._chart_data[channel]) > self._ArraySize-1:
-      differ = len(self._chart_data[channel]) - (self._ArraySize-1)
-      for i in range(differ):
-        del self._chart_data[channel][0]
-    self._chart_data[channel].append(new_chart_val)
-    self._updated_data[channel] = True
+
+# first, do we have a scalar?
+    is_scalar = False
+    scalar_data = 0.0
+    try:
+      shape = new_chart_val.shape
+#     _dprint(3,'data_array shape is ', shape)
+    except:
+      is_scalar = True
+      scalar_data = new_chart_val
+    if not is_scalar and len(shape) == 1:
+      if shape[0] == 1:
+        is_scalar = True
+        scalar_data = new_chart_val[0]
+    if not is_scalar:
+      test_scalar = True
+      for i in range(len(shape)):
+        if shape[i] > 1:
+          test_scalar = False
+      is_scalar = test_scalar
+      if is_scalar:
+        scalar_data = new_chart_val
+    if is_scalar:
+      if len(self._chart_data[channel]) > self._ArraySize-1:
+        differ = len(self._chart_data[channel]) - (self._ArraySize-1)
+        for i in range(differ):
+          del self._chart_data[channel][0]
+      self._chart_data[channel].append(scalar_data)
+      self._updated_data[channel] = True
     
-    # take care of position string
-    self._position[channel] = q_pos_str
+      # take care of position string
+      self._position[channel] = q_pos_str
+
+    # otherwise we have an array (assumed to be 1D for the moment), 
+    # so we replace the stored chart data in its entirety
+    else:
+      self._is_spectra = True
+      self._chart_data[channel] = []
+      if self._ArraySize != new_chart_val.shape[0]:
+        self._ArraySize = new_chart_val.shape[0]
+        self.set_x_axis_sizes()
+      self._chart_data[channel] = new_chart_val.copy()
+      self._updated_data[channel] = True
 
   def set_data_flag(self, channel, data_flag):
     if data_flag != self._good_data[channel]:
@@ -717,15 +756,30 @@ class ChartPlot(QWidget):
   def start_test_timer(self, time):
     # stuff for tests
     self.counter = 1.0
+    self._array = zeros((128,), Float32)
     self.startTimer(time)
 
   def timerEvent(self, e):
-    self.counter = 1.0 + 1 * random.random()
-    self.updateEvent(1, self.counter, 'xyz')
-    self.counter = 1.0 + 1 * random.random()
-    self.updateEvent(3, self.counter, 'xyz')
-    self.counter = 1.0 + 1 * random.random()
-    self.updateEvent(9, self.counter, 'xyz')
+#   self.counter = 1.0 + 1 * random.random()
+#   self.updateEvent(1, self.counter, 'xyz')
+#   self.counter = 1.0 + 1 * random.random()
+#   self.updateEvent(3, self.counter, 'xyz')
+#   self.counter = 1.0 + 1 * random.random()
+#   self.updateEvent(9, self.counter, 'xyz')
+
+
+    for i in range(self._array.shape[0]):
+      self._array[i] = 0.05 * random.random()
+    self.updateEvent(1, self._array, 'spectra')
+
+    for i in range(self._array.shape[0]):
+      self._array[i] = 3 * random.random()
+    self.updateEvent(3, self._array, 'spectra')
+
+    for i in range(self._array.shape[0]):
+      self._array[i] = 11 * random.random()
+    self.updateEvent(11, self._array, 'spectra')
+
     return
 
 def make():

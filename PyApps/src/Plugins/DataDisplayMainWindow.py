@@ -105,13 +105,13 @@ class DisplayMainWindow(QMainWindow):
     # stuff for tests
     self.seq_num = 0
     self.gain = 0
-
+    self._array = zeros((128,), Float32)
     self.startTimer(time)
 
   def timerEvent(self, e):
     self.seq_num = self.seq_num + 1
     data_dict = {}
-    data_dict['data_type'] = 'abc'
+    data_dict['data_type'] = 'scalar'
     data_dict['sequence_number'] = self.seq_num
     data_dict['channel'] = 1
     data_dict['value'] = 1.0 + 1 * random.random()
@@ -125,7 +125,7 @@ class DisplayMainWindow(QMainWindow):
     data_dict['value'] = 1.0 + 1 * random.random()
     self.updateEvent(data_dict)
 
-    data_dict['data_type'] = 'xyz'
+    data_dict['data_type'] = 'another scalar'
     data_dict['channel'] = 1
     data_dict['value'] = self.gain + 2 * random.random()
     self.updateEvent(data_dict)
@@ -140,6 +140,26 @@ class DisplayMainWindow(QMainWindow):
 
     data_dict['channel'] = 11
     data_dict['value'] = self.gain + 4 * random.random()
+    self.updateEvent(data_dict)
+
+
+    data_dict['data_type'] = 'spectra'
+    data_dict['channel'] = 1
+    for i in range(self._array.shape[0]):
+      self._array[i] = random.random()
+    data_dict['value'] = self._array
+    self.updateEvent(data_dict)
+
+    data_dict['channel'] = 5
+    for i in range(self._array.shape[0]):
+      self._array[i] = 5 * random.random()
+    data_dict['value'] = self._array
+    self.updateEvent(data_dict)
+
+    data_dict['channel'] = 11
+    for i in range(self._array.shape[0]):
+      self._array[i] = 11 * random.random()
+    data_dict['value'] = self._array
     self.updateEvent(data_dict)
 
     self.gain = self.gain + 2.0
