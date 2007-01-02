@@ -55,20 +55,11 @@ AC_ARG_WITH(wcs,
 	[  --with-wcs[=PFX]            specific path for wcslib if needed by AIPS++],
 	[with_wcs="$withval"],
 	[with_wcs=""])
-AC_ARG_WITH(old-lsqfit,
-	[  --with-oldlsqfit            compile for old (pre-July 2006) version of casa::LSQFit],
-	[with_old_lsqfit="$withval"],
-	[with_old_lsqfit=""])
 [
 
 
 if test "$with_pgplot" = ""; then
     with_pgplot=no;
-fi
-if test "$with_old_lsqfit" = ""; then
-    with_old_lsqfit=no;
-else
-    with_old_lsqfit=yes;
 fi
 if test "$with_wcs" = ""; then
     with_wcs=yes;
@@ -195,9 +186,6 @@ else
         ]AC_MSG_ERROR([WCS directory not found])[
       fi
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -I$with_wcs"
-    fi      
-    if [ "$with_old_lsqfit" != "no" ]; then
-      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DUSE_OLD_LSQFIT"
     fi      
     AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_$arch -DAIPS_NO_TEMPLATE_SRC"
     if test "$lofar_compiler" = "kcc"; then

@@ -83,6 +83,11 @@ AC_ARG_WITH(lofar-default,
 	[with_lofar_def=$withval;
          lfr_use_root_def=1])
 
+AC_ARG_WITH(old-libtool,
+	[  --with-old-libtool            work around bugs in older (pre-1.5.22) libtools, should be auto-detected],
+	[lofar_old_libtool="$withval"],
+	[lofar_old_libtool="no"])
+
 AC_ARG_WITH(lofar-libdir,
   [  --with-lofar-libdir=PFX   specific tree for lofar libraries],
   [lofar_root_libdir="$withval"])
@@ -337,6 +342,15 @@ AC_ARG_WITH(lofar-libdir,
   srcdirx=`cd $srcdir && pwd`
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd -I$srcdirx/include"
   LOFAR_DEPEND=
+
+  ]AC_MSG_CHECKING([if older libtool is being used])[
+  if test "$lofar_old_libtool" = no -o "$lofar_old_libtool" = ""; then
+    lofar_old_libtool=no
+  else
+    lofar_old_libtool=yes
+  fi
+  ]AC_MSG_RESULT([$lofar_old_libtool])[
+  ]AM_CONDITIONAL(OLD_LIBTOOL,test "$lofar_old_libtool" = "yes")[
 ]
 AC_CHECK_FILE([$lofar_root],
 			[lfr_root=yes],
@@ -382,6 +396,7 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_SUBST(lofar_variant)
   AC_SUBST(lofar_top_srcdir)
   AC_SUBST(lofar_sharedir)
+  AC_SUBST(lofar_old_libtool)
   AC_SUBST(LOFAR_DEPEND)
   AC_SUBST(CPPFLAGS)
   AC_SUBST(LDFLAGS)
@@ -395,4 +410,5 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   MAKE_RPMS=false
   AC_SUBST(MAKE_RPMS)
 #  AM_CONDITIONAL(MAKE_RPMS, test xfalse = xtrue)
+
 ])

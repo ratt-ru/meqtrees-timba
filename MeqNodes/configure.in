@@ -62,6 +62,27 @@ lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
 lofar_EXTERNAL(fftw3,1,fftw3.h,,)
 
 dnl
+dnl Check for old LSQFit
+dnl
+AC_MSG_CHECKING([if old interface to casa::LSQFit should be used])
+AC_LANG(C++)
+AC_COMPILE_IFELSE(    
+  AC_LANG_PROGRAM(
+    [[#include <scimath/Fitting/LSQaips.h>]],
+    [[
+      casa::LSQaips solver;
+      solver.isReady();
+    ]]),
+  ac_old_lsqfit=no,
+  ac_old_lsqfit=yes
+)
+AC_MSG_RESULT($ac_old_lsqfit)
+if test $ac_old_lsqfit = yes; then
+  AC_DEFINE_UNQUOTED(USE_OLD_LSQFIT,${ac_old_lsqfit},[use the old interface to casa::LSQFit])
+fi
+
+
+dnl
 dnl Output Makefiles
 dnl
 AC_OUTPUT(
