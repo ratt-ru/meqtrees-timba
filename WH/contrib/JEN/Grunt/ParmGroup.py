@@ -35,11 +35,15 @@ class ParmGroup (object):
     def __init__(self, ns, label='<pg>', quals=[], descr=None, 
                  default=0.0, scale=1.0, node_groups=[], tags=[],
                  simulate=False, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
-                 pg=None):
+                 pg=None, rider=dict()):
         self._ns = ns                         # node-scope (required)
         self._label = label                   # label of the parameter group 
         self._descr = descr                   # brief description 
         self._nodelist = []                   # initialise the internal nodelist
+
+        # A ParmGroup carries a rider (dict), which contains user-defined info:
+        self._rider = dict()
+        if isinstance(rider, dict): self._rider = rider
 
         # Information needed to create MeqParm nodes (see create_entry())
         self._default = default               # default value
@@ -126,6 +130,9 @@ class ParmGroup (object):
                 print ' * MeqParm definition:'
                 print '  - node tags: '+str(self._tags)
                 print '  - node_groups: '+str(self._node_groups)
+        print ' * Rider ('+str(len(self.rider()))+'):'
+        for key in self._rider.keys():
+            print '  - '+key+': '+str(self._rider[key])
         print ' * The internal nodelist: '
         for i in range(len(self._nodelist)):
             node = self._nodelist[i]
@@ -146,7 +153,7 @@ class ParmGroup (object):
     #-------------------------------------------------------------------
 
     def label(self):
-        """Return the group label""" 
+        """Return the label (name) of this ParmGroup""" 
         return self._label
 
     def quals(self, append=None, prepend=None, exclude=None):
@@ -157,8 +164,16 @@ class ParmGroup (object):
         """Return the group description""" 
         return str(self._descr)
 
+    def rider(self, key=None):
+        """Return (a field of) the rider (dict), with user-defined info""" 
+        if key==None: return self._rider
+        if self._rider.has_key(key):
+            return self._rider[key]
+        print '\n** ParmGroup.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
+        return None
+
     def nodelist(self):
-        """Return a copy of the list of (MeqParm) nodes"""
+        """Return a copy of the list of (MeqParm or other) nodes"""
         nodelist = []
         nodelist.extend(self._nodelist)           # Do NOT modify self._nodelist!!
         return nodelist
@@ -166,7 +181,7 @@ class ParmGroup (object):
     #-------------------------------------------------------------------
 
     def append_entry(self, node):
-        """Append the given entry (node) to the nodelist."""
+        """Append the given entry (node) to the internal nodelist."""
         self._composite = True                    # ......!!
         self._nodelist.append(node)
         return len(self._nodelist)
@@ -201,14 +216,12 @@ class ParmGroup (object):
         if self._stddev:                                # default variation
             stddev = self._stddev*self._scale           # NB: self._stddev is relative
             ampl = random.gauss(ampl, stddev)
-            # print '-',label,index,' (',self._default,stddev,') -> ampl=',ampl
         ampl = self._ns.ampl(*quals) << Meq.Constant(ampl)
         
         Tsec = self._Tsec                               # variation period (sec)
         if self._Tstddev:
             stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
             Tsec = random.gauss(self._Tsec, stddev) 
-            # print '                (',self._Tsec,stddev,') -> Tsec=',Tsec
         Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
         time = self._ns << Meq.Time()
         pi2 = 2*math.pi
@@ -224,7 +237,9 @@ class ParmGroup (object):
     #-------------------------------------------------------------------
 
     def compare(self, other):
-        """Compare with the given ParmGroup object"""
+        """Compare its nodes with the corresponding nodes of another ParmGroup object,
+        for instance simulated and the actual values. It is assumed that the two sets
+        of nodes have the same order."""
         quals = self.quals()
         name = 'absdiff'
         if not self._ns[name](*quals).initialized():
@@ -240,11 +255,11 @@ class ParmGroup (object):
             self._ns[name](*quals) << Meq.Add(children=absdiff)
         return self._ns[name](*quals)
 
+
     def sum(self):
         """Return the sum (node) of its nodes (used for solver constraints)"""
         quals = self.quals()
         name = 'sum'
-        # name = 'sum_'+self.label()
         if not self._ns[name](*quals).initialized():
             self._ns[name](*quals) << Meq.Add(children=self._nodelist)
         return self._ns[name](*quals)
@@ -253,7 +268,6 @@ class ParmGroup (object):
         """Return the product (node) of its nodes (used for solver constraints)"""
         quals = self.quals()
         name = 'product'
-        # name = 'product_'+self.label()
         if not self._ns[name](*quals).initialized():
             self._ns[name](*quals) << Meq.Multiply(children=self._nodelist)
         return self._ns[name](*quals)
@@ -264,22 +278,19 @@ class ParmGroup (object):
     def visualize (self, bookpage='ParmGroup', folder=None):
         """Visualise all the entries (MeqParms or their simulated subtrees)
         in a single real-vs-imag plot."""
-        if self._dcoll:
-            return self._dcoll
-        # quals = self.quals()
-        dcoll_quals = self._quals.concat()
-        cc = self.nodelist() 
-        rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                       scope=dcoll_quals,
-                                       tag='',
-                                       color=self._color,
-                                       style=self._style,
-                                       size=8, pen=2,
-                                       type='realvsimag', errorbars=True)
-        # Return the dataConcat node:
-        self._dcoll = rr['dcoll']
-        JEN_bookmarks.create(self._dcoll, self.label(),
-                             page=bookpage, folder=folder)
+        if not self._dcoll:
+            dcoll_quals = self._quals.concat()
+            cc = self.nodelist() 
+            rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
+                                           scope=dcoll_quals,
+                                           tag='',
+                                           color=self._color,
+                                           style=self._style,
+                                           size=8, pen=2,
+                                           type='realvsimag', errorbars=True)
+            self._dcoll = rr['dcoll']
+            JEN_bookmarks.create(self._dcoll, self.label(),
+                                 page=bookpage, folder=folder)
         return self._dcoll
 
 

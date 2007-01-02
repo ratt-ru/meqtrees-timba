@@ -58,6 +58,19 @@ class Matrix22 (object):
 
     #-------------------------------------------------------------------
 
+    def copy(self):
+        """Return a (limited) copy of the current Matrix22 object.
+        For the moment, for limited use only (no self._parmgroups)."""
+        # return deepcopy(self)
+        c = Matrix22(self._ns, quals=self.quals(),
+                     label='copy('+self.label()+')',
+                     indices=self.indices(),
+                     simulate=self._simulate)
+        c.matrix(new=self.matrix())
+        return c
+
+    #-------------------------------------------------------------------
+
     def label(self):
         """Return the Matrix22 object label""" 
         return self._label
@@ -163,7 +176,7 @@ class Matrix22 (object):
                          default=0.0, tags=[],
                          Tsec=1000.0, Tstddev=0.1,
                          scale=1.0, stddev=0.1,
-                         pg=None):
+                         pg=None, rider=None):
         """Helper function to define a named ParmGroup object"""
 
         # ....
@@ -175,6 +188,9 @@ class Matrix22 (object):
         if not isinstance(ptags,(list,tuple)): ptags = [ptags]
         if not name in ptags: ptags.append(name)
 
+        if not isinstance(rider, dict): rider = dict()
+        rider.setdefault('matrel','*')
+
         # OK, define the ParmGroup:
         self._parmgroup[name] = ParmGroup (self._ns, label=name,
                                            quals=self.quals(),
@@ -183,7 +199,7 @@ class Matrix22 (object):
                                            simulate=self._simulate,
                                            Tsec=Tsec, Tstddev=Tstddev,
                                            scale=scale, stddev=stddev,
-                                           pg=pg)
+                                           pg=pg, rider=rider)
 
         # Collect information for define_composite_parmgroups():
         for tag in ptags:
@@ -204,12 +220,15 @@ class Matrix22 (object):
         pg = []
         for key in self._parmgroup.keys():
             pg.append(self._parmgroup[key])
-            print '-',name,key
+            
         # Then make separate composites, as defined by the tags above:
         for key in self._composite.keys():
-            print '-',key,len(self._composite[key])
             self.define_parmgroup(key, descr='<descr>', pg=self._composite[key])
+
+        # Make the overall parmgroup(s) last, using the pg collected first:
+        # (Otherwise it gets in the way of the automatic group finding process). 
         self.define_parmgroup(name, descr='all '+name+' parameters', pg=pg)
+        self.define_parmgroup('*', descr='all '+name+' parameters', pg=pg)
         return None
 
     #.....................................................................................
@@ -232,6 +251,11 @@ class Matrix22 (object):
         print '********\n'
         return True
 
+    def merge_parmgroups(self, other):
+        """Helper function to merge its parmgroups with those of another Matrix22 object"""
+        self._parmgroup.update(other._parmgroup)
+        return True
+
     def parmlist(self, keys='*'):
         """Return the list of nodes from the specified parmgroup(s)"""
         if keys=='*': keys = self._parmgroup.keys()
@@ -250,17 +274,26 @@ class Matrix22 (object):
 
     #-------------------------------------------------------------------
 
-    def multiply(self, other):
-        """Multiply with the given Matrix22 object"""
-        name = self.label()+other.label()
+    def binop(self, binop=None, other=None):
+        """Do an (item-by-item) binary operation (e.g. Subtract)
+        between itself and another Matrix22 object."""
         quals = self.quals()
-        for s in self._indices:
-            self._ns[name](*quals)(s) << Meq.MatrixMultiply(self._matrix(s),
-                                                            other._matrix(s))
-        # Update the Matrix22 object attributes:
-        self._matrix = self._ns[name](*quals)
-        self._label += other._label
-        self._parmgroup.update(other._parmgroup)
+        qother = other._quals.concat()        # -> one string, with _ between quals
+        for i in self._indices:
+            self._ns[binop](*quals)(qother)(i) << getattr(Meq,binop)(self._matrix(i),
+                                                                     other._matrix(i))
+        self._matrix = self._ns[binop](*quals)(qother)     # replace
+        self.merge_parmgroups(other)
+        return True
+
+    #....................................................................
+
+    def unop(self, unop=None):
+        """Do an (item-by-item) unary operation on itself (e.g. Abs)"""
+        quals = self.quals()
+        for i in self._indices:
+            self._ns[unop](*quals)(i) << getattr(Meq,unop)(self._matrix(i))
+        self._matrix = self._ns[unop](*quals)              # replace
         return True
 
     #-------------------------------------------------------------------
@@ -271,16 +304,18 @@ class Matrix22 (object):
 
     #-------------------------------------------------------------------
 
-    def visualize (self, bookpage='Matrix22', folder=None):
-        """Visualise the 4 complex matrix elements of all station
+    def visualize (self, matrel='*', bookpage='Matrix22', folder=None):
+        """Visualise (a subset of) the 4 complex matrix elements of all 
         Matrix22 matrices in a single real-vs-imag plot. Different
         matrix elements (m11,m12,m21,m22) have different styles
         and colors, which are the same for all Matrix22 matrices."""
         if not self._dcoll:
-            # quals = self.quals()
             dcoll_quals = self._quals.concat()
             dcolls = []
-            for key in self._matrel.keys():  
+            keys = deepcopy(matrel)
+            if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
+            if not isinstance(keys,(list,tuple)): keys = [keys]
+            for key in keys:  
                 cc = self.matrel(key, return_nodes=True) 
                 rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                                scope=dcoll_quals,
@@ -300,7 +335,90 @@ class Matrix22 (object):
                              page=bookpage, folder=folder)
         return self._dcoll
 
+    #==============================================================================
+    # Solving:
+    #==============================================================================
 
+    def make_condeqs (self, other=None, matrel='*', replace=False):
+        """Make a list of condeq nodes by comparing its matrices (or -elements)
+        with the corresponding matrices of another Matrix22 object."""
+        quals = self.quals()
+        qother = other._quals.concat()        # -> one string, with _ between quals
+
+        # It is possible to use only a subset of the matrix elements:
+        keys = self._matrel.keys()            # i.e. ['m11','m12','m21','m22']
+        mel = deepcopy(matrel)
+        if mel=='*': mel = keys
+        if not isinstance(mel,(list,tuple)): mel = [mel]
+        index = []
+        postfix = ''
+        for i in range(len(keys)):
+            if keys[i] in mel:
+                index.append(i)
+                postfix += '_'+str(i)
+
+        # First make condeq nodes for all 4 matrix elements:
+        # These are used for visualisation later (if replace=True)
+        if replace or (len(index)==4):
+            condeqs = []
+            for i in self.indices():
+                c = self._ns.condeq(*quals)(qother)(i) << Meq.Condeq(self._matrix(i),
+                                                                     other._matrix(i))
+                condeqs.append(c)
+            if replace: self._matrix = self._ns.condeq(*quals)(qother)   # replace 
+
+        # If a subset of the matrix elements is required, generate a new set of condeqs,
+        # which contain the relevant selections.
+        if len(index)<4:
+            condeqs = []
+            name = 'condeq'+postfix
+            name1 = 'lhs'+postfix
+            name2 = 'rhs'+postfix
+            for i in self.indices():
+                node1 = self._matrix(i)
+                node2 = other._matrix(i)
+                node1 = self._ns[name1].qadd(node1) << Meq.Selector(node1, index=index)
+                node2 = self._ns[name2].qadd(node2) << Meq.Selector(node2, index=index)
+                c = self._ns[name](*quals)(qother)(i) << Meq.Condeq(node1, node2)
+                condeqs.append(c)
+        # Return a list of condeq nodes:
+        return condeqs
+
+    #----------------------------------------------------------------------------------
+
+    def make_solver (self, parmgroup='*', other=None, compare=None):
+        """Make a solver that solves for the specified parmgroup, by comparing its
+        matrices with the corresponding matrices of another Matrix22 object."""
+        quals = self.quals()
+        qother = other._quals.concat()        # -> one string, with _ between quals
+
+        # Get the list of solvable MeqParm nodes:
+        # ONLY from this Matrix22 object, NOT from the other.....(?)
+        if not self._parmgroup.has_key(parmgroup):
+            print '** parmgroup (',parmgroup,') not recognised in:',self._parmgroup.keys()
+            return False
+        pg = self.parmgroup[parmgroup]
+        solvable = pg.nodelist()
+        matrel = pg.rider('matrel')           # (subset of) the 4 matrix elements
+
+        # Make a list of condeq nodes:
+        condeq_copy = self.copy()
+        condeqs = condeq_copy.make_condeqs (other, matrel=matrel, replace=True)
+
+        # Create the solver
+        solver = ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
+                                                         solvable=pg.nodelist())
+        cc.append(solver)
+        JEN_bookmarks.create(solver, page='solver')
+
+        # Visualize the condeqs and the solvable MeqParms:
+        cc.append(condeq_copy.visualize(matrel=matrel))
+
+        # Return the ReqSeq node that bundles solving and visualisation: 
+        reqseq = self._ns.solver_reqseq(*quals)(qother) << Meq.ReqSeq(children=cc)
+        return reqseq
+        
+    
     #------------------------------------------------------------------------------
     #------------------------------------------------------------------------------
 
@@ -343,15 +461,23 @@ class Matrix22 (object):
 
 def _define_forest(ns):
 
-    dcolls = []
+    cc = []
     simulate = True
 
-    mat = Matrix22(ns, quals=[], simulate=simulate)
-    mat.test()
-    dcolls.append(mat.visualize())
-    mat.display(full=True)
+    mat1 = Matrix22(ns, quals=[], simulate=False)
+    mat1.test()
+    cc.append(mat1.visualize())
+    mat1.display(full=True)
 
-    ns.result << Meq.Composer(children=dcolls)
+    mat2 = Matrix22(ns, quals=[], simulate=True)
+    mat2.test()
+    cc.append(mat2.visualize())
+    mat2.display(full=True)
+
+    reqseq = mat1.make_solver('*', mat2)
+    cc.append(reqseq)
+
+    ns.result << Meq.ReqSeq(children=cc)
     return True
 
 #---------------------------------------------------------------
@@ -377,8 +503,42 @@ if __name__ == '__main__':
         m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=False)
         m1.test()
         m1.visualize()
-        m1.display_parmgroups(full=False, composite=True)
+        # m1.display_parmgroups(full=False, composite=True)
         m1.display(full=True)
+
+    if 0:
+        mc = m1.copy()
+        mc.display('copy', full=True)
+
+    if 0:
+        m1.unop('Cos')
+        m1.display('after unop', full=True)
+        
+    if 1:
+        m2 = Matrix22(ns, quals=['3c84','yyy'], label='TT', simulate=True)
+        m2.test()
+        m2.display('m2',full=True)
+
+        if 0:
+            m1.binop('Subtract',m2)
+            m1.display('after binop', full=True)
+        
+        if 1:
+            mc = m1.copy()
+            reqseq = mc.make_solver('*',m2)
+        
+        if 0:
+            mc = m1.copy()
+            matrel = '*'
+            matrel = ['m11','m22']
+            cc = mc.make_condeqs(m2, matrel=matrel, replace=True)
+            print ' -> nr of condeqs:',len(cc)
+            for i in range(4):
+                mc._dummyParmGroup.display_subtree (cc[i], txt='condeq'+str(i), recurse=2)
+            mc.visualize(matrel=matrel)
+            mc.display('make_condeqs', full=True)
+            # m1.display('make_condeqs', full=True)
+        
 
     if 0:
         m1.parmlist()

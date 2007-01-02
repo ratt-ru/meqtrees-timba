@@ -55,6 +55,21 @@ class Qualifiers (object):
 
     #------------------------------------------------------------------------
 
+    def merge(self, other):
+        """Merge its quals with those of the other Qualifiers object.
+        Return the result, without modifying the internal quals."""
+        quals = self.get()
+        if isinstance(other,(list,tuple)):
+            oq = other
+        elif isinstance(other,type(self)):
+            oq = other.get()
+        for item in oq:
+            if not item in quals:
+                quals.append(item)
+        return quals
+
+    #------------------------------------------------------------------------
+
     def get(self, append=None, prepend=None, exclude=None, trace=False):
         """Return the current list of qualifiers.
         Optionally, append/prepend/exclude the specified qualifiers."""
@@ -121,14 +136,14 @@ class Qualifiers (object):
 
     #------------------------------------------------------------------------
 
-    def concat (self, append=None, prepend=None, exclude=None):
+    def concat (self, append=None, prepend=None, exclude=None, trace=False):
         """Concatenate the qualifiers into a single string, separated by underscores"""
         quals = self.get (append=append, prepend=prepend, exclude=exclude)
         if len(quals)==0: return ''
         for i in range(len(quals)):
             if i==0: s = str(quals[i])
             if i>0: s += '_'+str(quals[i])
-        print '.concat() ->',s
+        if trace: print '.concat() ->',s
         return s
         
 
