@@ -25,6 +25,8 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
 
+
+
 #==========================================================================
 
 class NodeGroup (object):
@@ -76,7 +78,6 @@ class NodeGroup (object):
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
         print ' * descr: '+self.descr()
-        print ' * plot: '+str(self._plot)
         print ' * node tags: '+str(self._tags)
         print ' * rider ('+str(len(self.rider()))+'):'
         for key in self._rider.keys():
@@ -94,6 +95,12 @@ class NodeGroup (object):
             if True:
                 print ' * The second node/subtree:'
                 self.display_node (index=1)
+        #...............................................................
+        print ' * Visualization subtree: '
+        if self._dcoll:
+            self.display_subtree(self._dcoll, txt=':',
+                                 show_initrec=False, recurse=1)
+        print ' * plot: '+str(self._plot)
         print '**\n'
         return True
 
@@ -119,6 +126,10 @@ class NodeGroup (object):
             return self._rider[key]
         print '\n** NodeGroup.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
         return None
+
+    def plot(self):
+        """Return its dict with plot instructions"""
+        return self._plot
 
     def len(self):
         """Return the length of the nodelist"""
@@ -247,11 +258,184 @@ class NodeGroup (object):
 
     #======================================================================
 
-    def test(self, n=4):
+    def test(self, n=4, offset=0):
         """Helper function to put in some standard entries for testing"""
         for i in range(n):
-            self.append_entry(self._ns.entry(i) << Meq.Constant(i))
+            self.append_entry(self._ns << (i+offset))
         return True
+
+
+
+
+#==========================================================================
+#==========================================================================
+#==========================================================================
+#==========================================================================
+
+
+class NodeGog (object):
+    """Class that represents a group of NodeGroup objects"""
+
+    def __init__(self, ns, label='<gog>', group=[],
+                 descr=None, rider=dict()):
+        self._ns = ns                         # node-scope (required)
+        self._label = label                   # label of the parameter group 
+        self._descr = descr                   # brief description 
+
+        self._group = []                      # initialise the internal group
+        if len(group)>0:
+            for node in group:
+                self.append_entry(node)
+
+        # A NodeGog carries a rider (dict), which contains user-defined info:
+        self._rider = dict()
+        if isinstance(rider, dict): self._rider = rider
+
+        # Plotting:
+        self._dcoll = None                           # visualization
+        self._dummyNodeGroup = NodeGroup('dummy')    # used for its printing functions...
+        return None
+                
+    #-------------------------------------------------------------------
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = str(type(self))
+        ss += ' '+str(self.label())
+        ss += ' (n='+str(len(self._group))+')'
+        ss += ' '+str(self.labels())
+        return ss
+
+    def display(self, txt=None, full=False):
+        """Print a summary of this object"""
+        print ' '
+        print '** '+self.oneliner()
+        if txt: print ' * (txt='+str(txt)+')'
+        print ' * descr: '+self.descr()
+        print ' * rider ('+str(len(self.rider()))+'):'
+        for key in self._rider.keys():
+            print '  - '+key+': '+str(self._rider[key])
+        print ' * group: '
+        for ng in self._group:
+            print '  - '+str(ng.oneliner())
+        #...............................................................
+        print ' * Visualization subtree: '
+        if self._dcoll:
+            self._dummyNodeGroup.display_subtree(self._dcoll, txt=':',
+                                                 show_initrec=False, recurse=1)
+        print '**\n'
+        return True
+
+
+    #-------------------------------------------------------------------
+
+    def label(self):
+        """Return the label (name) of this NodeGog""" 
+        return self._label
+
+    def descr(self):
+        """Return the group description""" 
+        return str(self._descr)
+
+    def rider(self, key=None):
+        """Return (a field of) the rider (dict), with user-defined info""" 
+        if key==None: return self._rider
+        if self._rider.has_key(key):
+            return self._rider[key]
+        print '\n** NodeGog.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
+        return None
+
+    #-------------------------------------------------------------------
+
+    def append_entry(self, group):
+        """Append the given entry (group) to the internal group."""
+        # Check whether group is a valid NodeGroup....?
+        self._group.append(group)
+        return len(self._group)
+
+    #----------------------------------------------------------------------
+
+    def nodelist(self):
+        """Return a copy of the (combined) list of nodes"""
+        nodelist = []
+        for ng in self._group:
+            nodelist.extend(ng.nodelist())  
+        return nodelist
+
+    def labels(self):
+        """Return a list of the labels (name) of its NodeGroups""" 
+        ll = []
+        for ng in self._group:
+            ll.append(ng.label())
+        return ll
+
+    def sum(self):
+        """Return the sum (node) of the nodes of its NodeGroups"""
+        cc = []
+        for ng in self._group:
+            cc.append(ng.sum())
+        return self._ns << Meq.Add(children=cc)
+
+    def product(self):
+        """Return the product (node) of the nodes of its NodeGroups"""
+        cc = []
+        for ng in self._group:
+            cc.append(ng.product())
+        return self._ns << Meq.Multiply(children=cc)
+
+
+    #----------------------------------------------------------------------
+
+    def visualize (self, bookpage='NodeGog', folder=None):
+        """Visualise all the nodes of the various NodeGroups in
+        a single (realvsimag) plot, each with its own plot-style"""
+        if not self._dcoll:
+            # dcoll_quals = self._quals.concat()
+            dcolls = []
+            for ng in self._group:
+                cc = ng.nodelist()
+                rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
+                                               # scope=dcoll_quals,
+                                               tag=ng.label(),
+                                               color=ng._plot['color'],
+                                               style=ng._plot['style'],
+                                               size=ng._plot['size'],
+                                               pen=ng._plot['pen'],
+                                               type='realvsimag', errorbars=True)
+                dcolls.append(rr)
+            # Make a combined plot of all the matrix elements:
+            # NB: nodename -> dconc_scope_tag
+            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls,
+                                          # scope=dcoll_quals,
+                                          tag=self.label(), bookpage=None)
+            # Return the dataConcat node:
+            self._dcoll = rr['dcoll']
+            JEN_bookmarks.create(self._dcoll, self.label(),
+                                 page=bookpage, folder=folder)
+        return self._dcoll
+
+
+    #======================================================================
+
+    def test(self):
+        """Helper function to put in some standard entries for testing"""
+
+        ng = NodeGroup(self._ns, 'first', color='red')
+        ng.test(4)
+        self.append_entry(ng)
+
+        ng = NodeGroup(self._ns, 'second', color='blue')
+        ng.test(7, offset=0.2)
+        self.append_entry(ng)
+        
+        return True
+
+
+
+
+
+
+
 
 
 
@@ -271,10 +455,13 @@ def _define_forest(ns):
     print 'nn1 =',nn1
 
     ng2 = NodeGroup(ns, 'ng2', color='red')
-    ng2.test()
+    ng2.test(offset=0.2)
     cc.append(ng2.visualize())
     nn2 = ng2.nodelist()
     print 'nn2 =',nn2
+
+    gog = NodeGog(ns, 'gog', group=[ng1,ng2])
+    cc.append(gog.visualize())
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -297,10 +484,12 @@ def _tdl_job_execute (mqs, parent):
 
 if __name__ == '__main__':
     ns = NodeScope()
-    ng1 = NodeGroup(ns, 'ng1')
-    ng1.test()
-    ng1.display()
 
+    if 0:
+        ng1 = NodeGroup(ns, 'ng1')
+        ng1.test()
+        ng1.display()
+        
     if 0:
         cc = []
         cc = [ns << 45]
@@ -308,7 +497,7 @@ if __name__ == '__main__':
         # ng2.test(6)
         ng2.display()
 
-    if 1:
+    if 0:
         dcoll = ng1.visualize()
         ng1.display_subtree (dcoll, txt='dcoll')
 
@@ -326,6 +515,16 @@ if __name__ == '__main__':
         if 1:
             ng12 = NodeGroup(ns, 'ng12', ng=[ng1,ng2], descr='combination')
             ng12.display()
+
+    #------------------------------------------------------------
+
+    if 1:
+        gog1 = NodeGog(ns, 'gog1')
+        gog1.test()
+        gog1.visualize()
+        gog1.display()
+
+
 
 #===============================================================
     

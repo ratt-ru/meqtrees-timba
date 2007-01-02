@@ -333,14 +333,14 @@ class Matrix22 (object):
                                                size=8, pen=2,
                                                type='realvsimag', errorbars=True)
                 dcolls.append(rr)
-                # Make a combined plot of all the matrix elements:
-                # NB: nodename -> dconc_scope_tag
+            # Make a combined plot of all the matrix elements:
+            # NB: nodename -> dconc_scope_tag
             rr = MG_JEN_dataCollect.dconc(self._ns, dcolls, scope=dcoll_quals,
                                           tag=' ', bookpage=None)
+            self._dcoll = rr['dcoll']
+            JEN_bookmarks.create(self._dcoll, self.label(),
+                                 page=bookpage, folder=folder)
         # Return the dataConcat node:
-        self._dcoll = rr['dcoll']
-        JEN_bookmarks.create(self._dcoll, self.label(),
-                             page=bookpage, folder=folder)
         return self._dcoll
 
     #==============================================================================
