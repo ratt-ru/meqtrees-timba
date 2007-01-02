@@ -333,9 +333,12 @@ class ZoomPopup(QWidget):
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
       self._plotzoom.print_(printer, filter)
 
-  def setDataLabel(self, data_label):
+  def setDataLabel(self, data_label, is_array=False):
     self._data_label = data_label
-    self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
+    if is_array:
+      self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) 
+    else:
+      self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
     self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
 
 
