@@ -51,7 +51,8 @@ class Matrix22 (object):
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
 
-        self._parmgroup = dict()                     # available parameter group objects
+        self._parmgroup = dict()                     # available ParmGroup objects (solvable)
+        self._simgroup = dict()                      # available ParmGroup objects (simulated)
         self._composite = dict()                     # see define_composite_parmgroups()
         self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
         return None
@@ -233,9 +234,16 @@ class Matrix22 (object):
 
     #.....................................................................................
 
-    def parmgroups(self):
-        """Return the available parmgroup names""" 
-        return self._parmgroup.keys()
+    def parmgroups(self, simulated=False):
+        """Return the available parmgroup names. If simulated=False (default),
+        only return the names of those that are not simulated (i.e. solvable)."""
+        keys = []
+        for key in self._parmgroup.keys():
+            if simulated:
+                keys.append(key)
+            elif not self._parmgroup[key]._simulate:
+                keys.append(key)
+        return keys    
     
     def parmgroup(self, key=None):
         """Return the specified parmgroup (object)""" 
@@ -393,20 +401,22 @@ class Matrix22 (object):
         qother = other._quals.concat()        # -> one string, with _ between quals
 
         # Get the list of solvable MeqParm nodes:
-        # ONLY from this Matrix22 object, NOT from the other.....(?)
-        if not self._parmgroup.has_key(parmgroup):
-            print '** parmgroup (',parmgroup,') not recognised in:',self._parmgroup.keys()
+        # ONLY from the other Matrix22 object, NOT from this one.....(?)
+        if not other._parmgroup.has_key(parmgroup):
+            print '** parmgroup (',parmgroup,') not recognised in:',other._parmgroup.keys()
             return False
-        pg = self.parmgroup[parmgroup]
+        pg = other._parmgroup[parmgroup]
         solvable = pg.nodelist()
         matrel = pg.rider('matrel')           # (subset of) the 4 matrix elements
+        # matrel = ['m11','m22']
 
         # Make a list of condeq nodes:
         condeq_copy = self.copy()
         condeqs = condeq_copy.make_condeqs (other, matrel=matrel, replace=True)
 
         # Create the solver
-        solver = ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
+        cc = []
+        solver = self._ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
                                                          solvable=pg.nodelist())
         cc.append(solver)
         JEN_bookmarks.create(solver, page='solver')
@@ -415,7 +425,7 @@ class Matrix22 (object):
         cc.append(condeq_copy.visualize(matrel=matrel))
 
         # Return the ReqSeq node that bundles solving and visualisation: 
-        reqseq = self._ns.solver_reqseq(*quals)(qother) << Meq.ReqSeq(children=cc)
+        reqseq = self._ns.reqseq_solver(*quals)(qother) << Meq.ReqSeq(children=cc)
         return reqseq
         
     
@@ -464,12 +474,12 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    mat1 = Matrix22(ns, quals=[], simulate=False)
+    mat1 = Matrix22(ns, quals=[], simulate=True)
     mat1.test()
     cc.append(mat1.visualize())
     mat1.display(full=True)
 
-    mat2 = Matrix22(ns, quals=[], simulate=True)
+    mat2 = Matrix22(ns, quals=[], simulate=False)
     mat2.test()
     cc.append(mat2.visualize())
     mat2.display(full=True)
@@ -524,8 +534,9 @@ if __name__ == '__main__':
             m1.display('after binop', full=True)
         
         if 1:
-            mc = m1.copy()
-            reqseq = mc.make_solver('*',m2)
+            reqseq = m1.make_solver('*',m2)
+            m1._dummyParmGroup.display_subtree (reqseq, txt='solver_reqseq',
+                                                show_initrec=False, recurse=3)
         
         if 0:
             mc = m1.copy()

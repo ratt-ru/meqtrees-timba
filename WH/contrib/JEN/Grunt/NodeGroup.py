@@ -1,17 +1,17 @@
-# file: ../Grunt/ParmGroup.py
+# file: ../Grunt/NodeGroup.py
 
 # History:
-# - 25dec2006: creation
+# - 02jan2007: creation (from ParmGroup)
 
 # Description:
 
-# The ParmGroup class encapsulates a named group of MeqParm nodes,
-# or subtrees that generate simulated values for MeqParm nodes.
-# ParmGroups are created in modules that implement bits of a
-# Measurement Equation that contain parameters, e.g. instrumental
-# Jones matrices, or LSM source models. They may be used for
-# solving or visualization. They are also useful for generating
-# user interfaces that offer a choice of solvers, etc.
+# The NodeGroup class encapsulates a named group of nodes,
+# that have some kind of ralation to each other.
+# A specialisation is the ParmGroup object, which contains a
+# group of MeqParm nodes, e.g. for a Jones matrix.
+# The nodes may be plotted together, with the same symbol and color.
+
+# The NodeGog class encapsulates a named group of NodeGroup objects.
 
 #==========================================================================
 
@@ -24,29 +24,27 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
-import random
-import math
 
 #==========================================================================
 
-class ParmGroup (object):
-    """Class that represents a group of MeqParm nodes"""
+class NodeGroup (object):
+    """Class that represents a group of (somehow related) nodes"""
 
-    def __init__(self, ns, label='<pg>', quals=[], descr=None, 
-                 default=0.0, scale=1.0, node_groups=[], tags=[],
-                 simulate=False, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
-                 pg=None, rider=dict()):
+    def __init__(self, ns, label='<ng>', nodelist=[],
+                 color='green', style='diamond', size=8, pen=2,
+                 quals=[], descr=None, tags=[], rider=dict()):
         self._ns = ns                         # node-scope (required)
         self._label = label                   # label of the parameter group 
         self._descr = descr                   # brief description 
-        self._nodelist = []                   # initialise the internal nodelist
 
-        # A ParmGroup carries a rider (dict), which contains user-defined info:
+        self._nodelist = []                   # initialise the internal nodelist
+        if len(nodelist)>0:
+            for node in nodelist:
+                self.append_entry(node)
+
+        # A NodeGroup carries a rider (dict), which contains user-defined info:
         self._rider = dict()
         if isinstance(rider, dict): self._rider = rider
-
-        # Information needed to create MeqParm nodes (see create_entry())
-        self._default = default               # default value
 
         # Node-name qualifiers:
         self._quals = Qualifiers(quals, prepend=label)
@@ -56,60 +54,20 @@ class ParmGroup (object):
         if not isinstance(self._tags,(list,tuple)):
             self._tags = [self._tags]
 
-        self._node_groups = deepcopy(node_groups)
-        if not isinstance(self._node_groups,(list,tuple)):
-            self._node_groups = [self._node_groups]
-        if not 'Parm' in self._node_groups:
-            self._node_groups.append('Parm')
-
-        if simulate:
-            self._tags.append('simul')        # ....??
-            self._quals.append('simul')
-
-        # Information to create a simulation subtree (see create_entry())
-        self._simulate = simulate
-        self._scale = scale                   # the scale of the MeqParm value
-        if not self._scale:                   # if not specified (or zero):
-            self._scale = abs(self._default)  #   use the (non-zero!) default value
-            if self._scale==0.0: self._scale = 1.0
-        self._stddev = stddev                 # relative to scale, but w.r.t. default 
-        self._Tsec = Tsec                     # period of cosinusoidal variation(time) 
-        self._Tstddev = Tstddev               # variation of the period
-
         # Plotting:
         self._dcoll = None
-        self._color = 'green'
-        self._style = 'diamond'
+        self._plot = dict(color=color, style=style, size=size, pen=pen)
 
-        # Optional: If a (list of) ParmGroup objects (pg) is specified:
-        self._make_composite(pg) 
         return None
-
-    #....................................................................
-
-    def _make_composite (self, pg): 
-        """Helper function: If a (list of) ParmGroup objects is
-        specified (pg), make a composite ParmGroup from them."""
-        self._composite = False
-        if pg:
-            if not isinstance(pg, (list,tuple)): pg = [pg]
-            self._composite = []
-            for g in pg:
-                self._composite.append(g.label())
-                self._nodelist.extend(g.nodelist())
-                # self._rider  (especially rider['matrel']...).............??
-        return True
                 
     #-------------------------------------------------------------------
 
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
-        ss += ' '+str(self._label)
-        ss += ' (n='+str(len(self._nodelist))+')'
+        ss += ' '+str(self.label())
+        ss += ' (n='+str(self.len())+')'
         ss += ' quals='+str(self._quals.get())
-        if self._composite:
-            ss += ' (composite of '+str(self._composite)+')'
         return ss
 
     def display(self, txt=None, full=False):
@@ -118,24 +76,13 @@ class ParmGroup (object):
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
         print ' * descr: '+self.descr()
-        print ' * default: '+str(self._default)
-        if self._composite:
-            print ' * composite: '+str(self._composite)
-        else:
-            if self._simulate:
-                print ' * simulation mode: '
-                print '  - sttdev (relative, w.r.t. default) = '+str(self._stddev)
-                print '  - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
-                print '  - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
-            else:
-                print ' * MeqParm definition:'
-                print '  - node tags: '+str(self._tags)
-                print '  - node_groups: '+str(self._node_groups)
-        print ' * Rider ('+str(len(self.rider()))+'):'
+        print ' * plot: '+str(self._plot)
+        print ' * node tags: '+str(self._tags)
+        print ' * rider ('+str(len(self.rider()))+'):'
         for key in self._rider.keys():
             print '  - '+key+': '+str(self._rider[key])
-        print ' * The internal nodelist: '
-        for i in range(len(self._nodelist)):
+        print ' * nodelist: '
+        for i in range(self.len()):
             node = self._nodelist[i]
             if full:
                 self.display_subtree(node, txt=str(i))
@@ -154,7 +101,7 @@ class ParmGroup (object):
     #-------------------------------------------------------------------
 
     def label(self):
-        """Return the label (name) of this ParmGroup""" 
+        """Return the label (name) of this NodeGroup""" 
         return self._label
 
     def quals(self, append=None, prepend=None, exclude=None):
@@ -170,8 +117,12 @@ class ParmGroup (object):
         if key==None: return self._rider
         if self._rider.has_key(key):
             return self._rider[key]
-        print '\n** ParmGroup.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
+        print '\n** NodeGroup.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
         return None
+
+    def len(self):
+        """Return the length of the nodelist"""
+        return len(self._nodelist)
 
     def nodelist(self):
         """Return a copy of the list of (MeqParm or other) nodes"""
@@ -183,62 +134,19 @@ class ParmGroup (object):
 
     def append_entry(self, node):
         """Append the given entry (node) to the internal nodelist."""
-        self._composite = True                    # ......!!
+        # Check whether it is a valid node....?
         self._nodelist.append(node)
         return len(self._nodelist)
 
-
     def create_entry (self, qual=None):
-        """Create an entry, i.e. MeqParm node, or a simulation subtree,
-        and append it to the nodelist"""
-
-        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
-        quals = self._quals.get(append=qual)
-            
-        if self._simulate:
-            node = self._make_simulation_subtree(quals)
-        else:
-            node = self._ns.parm(*quals) << Meq.Parm(self._default,
-                                                     node_groups=self._node_groups,
-                                                     tags=self._tags)
-        # Append the new node to the internal nodelist:
-        self._nodelist.append(node)
-        return node
-
-    #....................................................................
-
-    def _make_simulation_subtree(self, quals=quals):
-        """Helper function to create a subtree that simulates a MeqParm node"""
-
-        # default += ampl*cos(2pi*time/Tsec),
-        # where both ampl and Tsec may vary from node to node.
-        
-        ampl = 0.0
-        if self._stddev:                                # default variation
-            stddev = self._stddev*self._scale           # NB: self._stddev is relative
-            ampl = random.gauss(ampl, stddev)
-        ampl = self._ns.ampl(*quals) << Meq.Constant(ampl)
-        
-        Tsec = self._Tsec                               # variation period (sec)
-        if self._Tstddev:
-            stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
-            Tsec = random.gauss(self._Tsec, stddev) 
-        Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
-        time = self._ns << Meq.Time()
-        pi2 = 2*math.pi
-        costime = self._ns << Meq.Cos(pi2*time/Tsec)
-        variation = self._ns.variation(*quals) << Meq.Multiply(ampl,costime)
-
-        # Finally, add the variation to the default value:
-        default = self._ns.default(*quals) << Meq.Constant(self._default)
-        node = self._ns.parm(*quals) << Meq.Add(default, variation, tags=self._tags)
-        return node
-
+        """Virtual method for creating a new entry. The NodeGroup does not have
+        enough information to do this, but specilisations of this class do."""
+        return None
 
     #-------------------------------------------------------------------
 
     def compare(self, other):
-        """Compare its nodes with the corresponding nodes of another ParmGroup object,
+        """Compare its nodes with the corresponding nodes of another NodeGroup object,
         for instance simulated and the actual values. It is assumed that the two sets
         of nodes have the same order."""
         quals = self.quals()
@@ -276,7 +184,7 @@ class ParmGroup (object):
 
     #----------------------------------------------------------------------
 
-    def visualize (self, bookpage='ParmGroup', folder=None):
+    def visualize (self, bookpage='NodeGroup', folder=None):
         """Visualise all the entries (MeqParms or their simulated subtrees)
         in a single real-vs-imag plot."""
         if not self._dcoll:
@@ -285,9 +193,10 @@ class ParmGroup (object):
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                            scope=dcoll_quals,
                                            tag='',
-                                           color=self._color,
-                                           style=self._style,
-                                           size=8, pen=2,
+                                           color=self._plot['color'],
+                                           style=self._plot['style'],
+                                           size=self._plot['size'],
+                                           pen=self._plot['pen'],
                                            type='realvsimag', errorbars=True)
             self._dcoll = rr['dcoll']
             JEN_bookmarks.create(self._dcoll, self.label(),
@@ -335,14 +244,17 @@ class ParmGroup (object):
                                       show_initrec=show_initrec, recurse=recurse-1)
         return True
 
+
     #======================================================================
 
-    def test(self):
+    def test(self, n=4):
         """Helper function to put in some standard entries for testing"""
-        self.create_entry()
-        self.create_entry(5)
-        self.create_entry(6)
+        for i in range(n):
+            self.append_entry(self._ns.entry(i) << Meq.Constant(i))
         return True
+
+
+
 
 #===============================================================
 # Test routine (with meqbrowser):
@@ -352,28 +264,17 @@ def _define_forest(ns):
 
     cc = []
 
-    pg1 = ParmGroup(ns, 'pg1', simulate=False)
-    pg1.test()
-    cc.append(pg1.visualize())
-    nn1 = pg1.nodelist()
+    ng1 = NodeGroup(ns, 'ng1')
+    ng1.test()
+    cc.append(ng1.visualize())
+    nn1 = ng1.nodelist()
     print 'nn1 =',nn1
 
-    pg2 = ParmGroup(ns, 'pg2', simulate=True)
-    pg2.test()
-    cc.append(pg2.visualize())
-    nn2 = pg2.nodelist()
+    ng2 = NodeGroup(ns, 'ng2', color='red')
+    ng2.test()
+    cc.append(ng2.visualize())
+    nn2 = ng2.nodelist()
     print 'nn2 =',nn2
-
-    condeqs = []
-    for i in range(len(nn1)):
-        print '- i =',i
-        condeqs.append(ns.condeq(i) << Meq.Condeq(nn1[i],nn2[i]))
-    solver = ns.solver << Meq.Solver(children=condeqs, solvable=nn1)
-    JEN_bookmarks.create(solver, page='solver')
-    cc.append(solver)
-        
-
-
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -396,33 +297,35 @@ def _tdl_job_execute (mqs, parent):
 
 if __name__ == '__main__':
     ns = NodeScope()
-    pg1 = ParmGroup(ns, 'pg1', simulate=False)
-    pg1.test()
-    pg1.display()
+    ng1 = NodeGroup(ns, 'ng1')
+    ng1.test()
+    ng1.display()
+
+    if 0:
+        cc = []
+        cc = [ns << 45]
+        ng2 = NodeGroup(ns, 'ng2', nodelist=cc, color='red')
+        # ng2.test(6)
+        ng2.display()
 
     if 1:
-        pg2 = ParmGroup(ns, 'pg1', simulate=True)
-        pg2.test()
-        pg2.display()
+        dcoll = ng1.visualize()
+        ng1.display_subtree (dcoll, txt='dcoll')
 
     if 0:
-        dcoll = pg1.visualize()
-        pg1.display_subtree (dcoll, txt='dcoll')
+        node = ng1.sum()
+        node = ng1.product()
+        ng1.display_subtree (node, txt='test')
 
     if 0:
-        node = pg1.sum()
-        node = pg1.product()
-        pg1.display_subtree (node, txt='test')
-
-    if 0:
-        pg2 = ParmGroup(ns, 'pg2')
-        pg2.append_entry(ss << 1.0)
-        pg2.append_entry(ss << 2.0)
-        nn = pg2.nodelist(trace=True)
-        pg2.display()
+        ng2 = NodeGroup(ns, 'ng2')
+        ng2.append_entry(ss << 1.0)
+        ng2.append_entry(ss << 2.0)
+        nn = ng2.nodelist(trace=True)
+        ng2.display()
         if 1:
-            pg12 = ParmGroup(ns, 'pg12', pg=[pg1,pg2], descr='combination')
-            pg12.display()
+            ng12 = NodeGroup(ns, 'ng12', ng=[ng1,ng2], descr='combination')
+            ng12.display()
 
 #===============================================================
     
