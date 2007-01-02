@@ -39,10 +39,10 @@ def _define_forest(ns):
 
 # read in beam image (only need one to demo the problem)
   BEAMS = range(0,1)
-  infile_name_re_x = 'demo_beam.fits'
-  infile_name_im_x = 'demo_beam.dits'
-  infile_name_re_y = 'demo_beam.fits'
-  infile_name_im_y = 'demo_beam.fits'
+  infile_name_re_x = './demo_beam.fits'
+  infile_name_im_x = './demo_beam.dits'
+  infile_name_re_y = './demo_beam.fits'
+  infile_name_im_y = './demo_beam.fits'
   ns.image_re_x << Meq.FITSImage(filename=infile_name_re_x,cutoff=1.0,mode=2)
   ns.image_im_x << Meq.FITSImage(filename=infile_name_im_x,cutoff=1.0,mode=2)
   ns.image_re_y << Meq.FITSImage(filename=infile_name_re_y,cutoff=1.0,mode=2)
