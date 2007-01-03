@@ -51,9 +51,11 @@ class Matrix22 (object):
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
 
+        # NodeGroup objects:
         self._parmgroup = dict()                     # available ParmGroup objects (solvable)
-        self._simgroup = dict()                      # available ParmGroup objects (simulated)
-        self._composite = dict()                     # see define_composite_parmgroups()
+        self._simparmgroup = dict()                  # available SimulatedParmGroup objects 
+        self._p_composite = dict()                   # see define_composite_parmgroups()
+        self._s_composite = dict()                   # see define_composite_parmgroups()
         self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
         return None
 
@@ -148,13 +150,11 @@ class Matrix22 (object):
                     node = self.matrix()(self.indices()[i])
                     self._dummyParmGroup.display_subtree(node, txt=str(i), recurse=2)
         #...............................................................
-        print ' * Available ParmGroup objects ('+str(len(self.parmgroups()))+'): '
+        print ' * Available NodeGroup objects ('+str(len(self.parmgroups()))+'): '
         for key in self.parmgroups():
-            if not self._parmgroup[key]._composite:
-                print '  - '+str(self._parmgroup[key].oneliner())
-        for key in self.parmgroups():
-            if self._parmgroup[key]._composite:
-                print '  - '+str(self._parmgroup[key].oneliner())
+            print '  - '+str(self._parmgroup[key].oneliner())
+        for key in self._simparmgroup.keys():
+            print '  - '+str(self._simparmgroup[key].oneliner())
         #...............................................................
         print ' * Extracted matrix elements: '
         for key in self._matrel.keys():
@@ -174,11 +174,12 @@ class Matrix22 (object):
     #-------------------------------------------------------------------
 
     def define_parmgroup(self, name, descr=None,
-                         default=0.0, tags=[],
+                         default=0.0, tags=[], 
                          Tsec=1000.0, Tstddev=0.1,
                          scale=1.0, stddev=0.1,
-                         pg=None, rider=None):
-        """Helper function to define a named ParmGroup object"""
+                         matrel='*',
+                         rider=dict()):
+        """Helper function to define a named ParmGroup or SimulatedParmGroup object"""
 
         # ....
         node_groups = ['Parm']
@@ -189,47 +190,69 @@ class Matrix22 (object):
         if not isinstance(ptags,(list,tuple)): ptags = [ptags]
         if not name in ptags: ptags.append(name)
 
-        if not isinstance(rider, dict): rider = dict()
-        rider.setdefault('matrel','*')
+        # OK, define the relevant ParmGroup:
+        if self._simulate:
+            spg = SimulatedParmGroup (self._ns, label=name,
+                                      quals=self.quals(),
+                                      descr=descr, default=default,
+                                      tags=ptags, 
+                                      Tsec=Tsec, Tstddev=Tstddev,
+                                      scale=scale, stddev=stddev,
+                                      rider=rider) 
+            self._simparmgroup[name] = spg
+        else:
+            pg = ParmGroup (self._ns, label=name, matrel=matrel,
+                            quals=self.quals(),
+                            descr=descr, default=default,
+                            tags=ptags, node_groups=node_groups,
+                            rider=rider)
+            self._parmgroup[name] = pg
 
-        # OK, define the ParmGroup:
-        self._parmgroup[name] = ParmGroup (self._ns, label=name,
-                                           quals=self.quals(),
-                                           descr=descr, default=default,
-                                           tags=ptags, node_groups=node_groups,
-                                           simulate=self._simulate,
-                                           Tsec=Tsec, Tstddev=Tstddev,
-                                           scale=scale, stddev=stddev,
-                                           pg=pg, rider=rider)
-
-        # Collect information for define_composite_parmgroups():
+        # Collect information for define_parmgogs():
         for tag in ptags:
             if not tag in [name]:
-                self._composite.setdefault(tag, [])
-                self._composite[tag].append(self._parmgroup[name])
+                if self._simulate:
+                    self._s_composite.setdefault(tag, [])
+                    self._s_composite[tag].append(self._simparmgroup[name])
+                else:
+                    self._p_composite.setdefault(tag, [])
+                    self._p_composite[tag].append(self._parmgroup[name])
 
         # Finished:
-        return self._parmgroup[name]
+        return True
 
     #.....................................................................................
 
-    def define_composite_parmgroups(self, name='Matrix22'):
-        """Helper function to define composite ParmGroups.
-        It uses the information gleaned from the tags in define_ParmGroup()"""
-        print '\n** define_composite_parmgroups(',name,'):'
-        # First collect the primary ParmGroups in pg:
+    def define_parmgogs(self, name='Matrix22'):
+        """Helper function to define ParmGogs, i.e. groups of ParmGroups.
+        It uses the information gleaned from the tags in define_parmgroup()"""
+        print '\n** define_parmgogs(',name,'):'
+
+        # First collect the primary ParmGroups in pg and spg:
         pg = []
         for key in self._parmgroup.keys():
             pg.append(self._parmgroup[key])
+        spg = []
+        for key in self._simparmgroup.keys():
+            spg.append(self._simparmgroup[key])
             
-        # Then make separate composites, as defined by the tags above:
-        for key in self._composite.keys():
-            self.define_parmgroup(key, descr='<descr>', pg=self._composite[key])
+        # Then make separate parmgogs, as defined by the common tags:
+        for key in self._p_composite.keys():
+            self._parmgroup[key] = ParmGog (self._ns, label=key, descr='<descr>', 
+                                              group=self._p_composite[key])
+        for key in self._s_composite.keys():
+            self._simparmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
+                                               group=self._s_composite[key])
 
         # Make the overall parmgroup(s) last, using the pg collected first:
-        # (Otherwise it gets in the way of the automatic group finding process). 
-        self.define_parmgroup(name, descr='all '+name+' parameters', pg=pg)
-        self.define_parmgroup('*', descr='all '+name+' parameters', pg=pg)
+        # (Otherwise it gets in the way of the automatic group finding process).
+        for label in [name,'*']:
+            if len(pg)>0:
+                self._parmgroup[label] = ParmGog (self._ns, label=label, group=pg,
+                                                  descr='all '+name+' parameters')
+            if len(spg)>0:
+                self._simparmgroup[label] = NodeGog (self._ns, label=label, group=spg,
+                                                     descr='all simulated '+name+' parameters')
         return None
 
     #.....................................................................................
@@ -237,31 +260,25 @@ class Matrix22 (object):
     def parmgroups(self, simulated=False):
         """Return the available parmgroup names. If simulated=False (default),
         only return the names of those that are not simulated (i.e. solvable)."""
-        keys = []
-        for key in self._parmgroup.keys():
-            if simulated:
-                keys.append(key)
-            elif not self._parmgroup[key]._simulate:
-                keys.append(key)
-        return keys    
+        return self._parmgroup.keys()
     
     def parmgroup(self, key=None):
         """Return the specified parmgroup (object)""" 
         return self._parmgroup[key]
 
-    def display_parmgroups(self, full=False, composite=False):
+    def display_parmgroups(self, full=False):
         """Display its ParmGroup objects"""
-        print '\n******** .display_parmgroups(full=',full,', composite=',composite,'):'
+        print '\n******** .display_parmgroups(full=',full,'):'
         print '           ',self.oneliner()
         for key in self.parmgroups():
-            if composite or (not self._parmgroup[key]._composite):
-                self._parmgroup[key].display(full=full)
+            self._parmgroup[key].display(full=full)
         print '********\n'
         return True
 
     def merge_parmgroups(self, other):
         """Helper function to merge its parmgroups with those of another Matrix22 object"""
         self._parmgroup.update(other._parmgroup)
+        self._simparmgroup.update(other._simparmgroup)
         return True
 
     def parmlist(self, keys='*'):
@@ -446,7 +463,10 @@ class Matrix22 (object):
                                   default=index/10.0, stddev=0.01,
                                   tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self._parmgroup[key].create_entry(index)
+            if self._simulate:
+                mm[key] = self._simparmgroup[key].create_entry(index)
+            else:
+                mm[key] = self._parmgroup[key].create_entry(index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])
@@ -454,8 +474,8 @@ class Matrix22 (object):
         self.indices(new=indices)
         self.matrix(new=self._ns[name](*quals))
 
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups()
+        # Make some secondary (composite) ParmGroups:
+        self.define_parmgogs()
         return True
 
 
@@ -510,10 +530,10 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=False)
+        m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
         m1.test()
         m1.visualize()
-        # m1.display_parmgroups(full=False, composite=True)
+        # m1.display_parmgroups(full=False)
         m1.display(full=True)
 
     if 0:
@@ -524,7 +544,7 @@ if __name__ == '__main__':
         m1.unop('Cos')
         m1.display('after unop', full=True)
         
-    if 1:
+    if 0:
         m2 = Matrix22(ns, quals=['3c84','yyy'], label='TT', simulate=True)
         m2.test()
         m2.display('m2',full=True)

@@ -4,6 +4,7 @@
 # - 25dec2006: creation
 # - 03jan2007: re-implemented as a specialization of class NodeGroup
 # - 03jan2007: created another specialization class SimulatedParmGroup 
+# - 03jan2007: created ParmGog specialization of class NodeGog 
 
 # Description:
 
@@ -40,7 +41,7 @@ class ParmGroup (NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0,
+                 default=0.0, matrel='*',
                  rider=dict()):
 
         NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
@@ -50,22 +51,30 @@ class ParmGroup (NodeGroup):
 
         # Information needed to create MeqParm nodes (see create_entry())
         self._default = default               # default value
-
         self._node_groups = deepcopy(node_groups)
         if not isinstance(self._node_groups,(list,tuple)):
             self._node_groups = [self._node_groups]
         if not 'Parm' in self._node_groups:
             self._node_groups.append('Parm')
 
+        # When solving for certain parameters, not all Matrix22 elements
+        # are relevant. This is specified by self._matrel
+        self._matrel = deepcopy(matrel)
+        if not self._matrel=='*':
+            if not isinstance(self._matrel,(list,tuple)):
+                self._matrel = [self._matrel]
+
+
         return None
                 
     #-------------------------------------------------------------------
 
-    def oneliner_old(self):
+    def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
         ss += ' '+str(self._label)
         ss += ' (n='+str(len(self._nodelist))+')'
+        ss += ' matrel='+str(self.matrel())
         ss += ' quals='+str(self._quals.get())
         return ss
 
@@ -107,6 +116,12 @@ class ParmGroup (NodeGroup):
 
     #-------------------------------------------------------------------
 
+    def matrel (self):
+        """Return the list of Matrix22 elements that are affected by this ParmGroup""" 
+        return self._matrel
+
+    #-------------------------------------------------------------------
+
     def create_entry (self, qual=None):
         """Create an entry, i.e. MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
@@ -129,6 +144,73 @@ class ParmGroup (NodeGroup):
         self.create_entry()
         self.create_entry(5)
         self.create_entry(6)
+        return True
+
+
+
+
+#==========================================================================
+#==========================================================================
+#==========================================================================
+#==========================================================================
+
+class ParmGog (NodeGog):
+    """Class that represents a group of ParmGroup objects"""
+
+    def __init__(self, ns, label='<pgog>', group=[],
+                 quals=[], descr=None, tags=[], node_groups=[],
+                 color='blue', style='circle', size=8, pen=2,
+                 default=0.0, matrel='*',
+                 rider=dict()):
+
+        NodeGog.__init__(self, ns=ns, label=label, group=group,
+                         descr=descr, rider=rider)
+        
+        return None
+                
+    #-------------------------------------------------------------------
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = str(type(self))
+        ss += ' '+str(self.label())
+        ss += ' (n='+str(len(self._group))+')'
+        ss += ' '+str(self.labels())
+        ss += ' matrel='+str(self.matrel())
+        return ss
+
+
+    #-------------------------------------------------------------------
+
+    def matrel (self):
+        """Return the list of 1-4 Matrix22 elements that are affected by
+        the ParmGroups of this ParmGog.""" 
+        # If any of the groups has matrel=='*' (all), return that.
+        for ng in self._group:
+            if ng.matrel()=='*': return '*'
+        # Otherwise, collect a list:
+        mm = []
+        for ng in self._group:
+            mg = ng.matrel()
+            for m in mg:
+                if not m in mm:
+                    mm.append(m)
+        return mm
+
+
+    #======================================================================
+
+    def test(self):
+        """Helper function to put in some standard entries for testing"""
+
+        pg = ParmGroup(self._ns, 'first', color='red', matrel='m21')
+        pg.test()
+        self.append_entry(pg)
+
+        pg = ParmGroup(self._ns, 'second', color='blue', matrel=['m22','xxx'])
+        pg.test()
+        self.append_entry(pg)
+        
         return True
 
 
@@ -333,10 +415,16 @@ if __name__ == '__main__':
     pg1.test()
     pg1.display()
 
-    if 1:
+    if 0:
         pg2 = SimulatedParmGroup(ns, 'pg2')
         pg2.test()
         pg2.display()
+
+    if 1:
+        pgog = ParmGog(ns, 'pgog')
+        pgog.test()
+        print pgog.matrel()
+        pgog.display()
 
     if 0:
         dcoll = pg1.visualize()
