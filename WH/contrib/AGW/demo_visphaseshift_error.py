@@ -71,8 +71,8 @@ I = 1; Q = .0; U = .0; V = .0;
 # location of 'phased up' beam - put at field centre
 BEAM_LM = [(0.0,0.0)]
 # we'll put the sources on a grid (positions relative to beam centre in radians)
-#LM = [(0.01, 0.0)]
-LM = [(0.0, 0.0)]
+#LM = [(0.01, 0.0)]   # using this LM works
+LM = [(0.0, 0.0)]     # using this LM causes crash
 SOURCES = range(len(LM));       # 0...N-1
 
 ########################################################
