@@ -33,8 +33,10 @@ class NodeGroup (object):
     """Class that represents a group of (somehow related) nodes"""
 
     def __init__(self, ns, label='<ng>', nodelist=[],
+                 quals=[], descr='<descr>',tags=[], 
                  color='green', style='diamond', size=8, pen=2,
-                 quals=[], descr=None, tags=[], rider=dict()):
+                 rider=dict()):
+
         self._ns = ns                         # node-scope (required)
         self._label = label                   # label of the parameter group 
         self._descr = descr                   # brief description 
@@ -176,21 +178,13 @@ class NodeGroup (object):
         return self._ns[name](*quals)
 
 
-    def sum(self):
-        """Return the sum (node) of its nodes (used for solver constraints)"""
+    def bundle(self, oper='Composer'):
+        """Bundle its nodes, using an operation like Compose, Add, Multiply etc"""
         quals = self.quals()
-        name = 'sum'
-        if not self._ns[name](*quals).initialized():
-            self._ns[name](*quals) << Meq.Add(children=self._nodelist)
-        return self._ns[name](*quals)
-
-    def product(self):
-        """Return the product (node) of its nodes (used for solver constraints)"""
-        quals = self.quals()
-        name = 'product'
-        if not self._ns[name](*quals).initialized():
-            self._ns[name](*quals) << Meq.Multiply(children=self._nodelist)
-        return self._ns[name](*quals)
+        if not self._ns[oper](*quals).initialized():
+            cc = self.nodelist()
+            self._ns[oper](*quals) << getattr(Meq,oper)(children=cc)
+        return self._ns[oper](*quals)
 
 
     #----------------------------------------------------------------------
@@ -369,20 +363,13 @@ class NodeGog (object):
             ll.append(ng.label())
         return ll
 
-    def sum(self):
-        """Return the sum (node) of the nodes of its NodeGroups"""
+    def bundle(self, oper='Composer'):
+        """Bundle its bundled NodeGroups, using an operation like
+        Compose, Add, Multiply etc"""
         cc = []
         for ng in self._group:
-            cc.append(ng.sum())
-        return self._ns << Meq.Add(children=cc)
-
-    def product(self):
-        """Return the product (node) of the nodes of its NodeGroups"""
-        cc = []
-        for ng in self._group:
-            cc.append(ng.product())
-        return self._ns << Meq.Multiply(children=cc)
-
+            cc.append(ng.bundle(oper=oper))
+        return self._ns << getattr(Meq,oper)(children=cc)
 
     #----------------------------------------------------------------------
 
@@ -521,8 +508,14 @@ if __name__ == '__main__':
     if 1:
         gog1 = NodeGog(ns, 'gog1')
         gog1.test()
+
+    if 0:
         gog1.visualize()
         gog1.display()
+
+    if 1:
+        node = gog1.bundle()
+        gog1._dummyNodeGroup.display_subtree (node, txt='bundle')
 
 
 
