@@ -104,8 +104,10 @@ class DisplayMainWindow(QMainWindow):
   def start_test_timer(self, time):
     # stuff for tests
     self.seq_num = 0
-    self.gain = 0
+    self._gain = 0
     self._array = zeros((128,), Float32)
+    self._array_imag = zeros((128,), Float32)
+    self._array_complex = zeros((128,), Complex64)
     self.startTimer(time)
 
   def timerEvent(self, e):
@@ -127,19 +129,19 @@ class DisplayMainWindow(QMainWindow):
 
     data_dict['data_type'] = 'another scalar'
     data_dict['channel'] = 1
-    data_dict['value'] = self.gain + 2 * random.random()
+    data_dict['value'] = self._gain + 2 * random.random()
     self.updateEvent(data_dict)
 
     data_dict['channel'] = 3
-    data_dict['value'] = self.gain + 3 * random.random()
+    data_dict['value'] = self._gain + 3 * random.random()
     self.updateEvent(data_dict)
 
     data_dict['channel'] = 5
-    data_dict['value'] = self.gain + 1 * random.random()
+    data_dict['value'] = self._gain + 1 * random.random()
     self.updateEvent(data_dict)
 
     data_dict['channel'] = 11
-    data_dict['value'] = self.gain + 4 * random.random()
+    data_dict['value'] = self._gain + 4 * random.random()
     self.updateEvent(data_dict)
 
 
@@ -162,7 +164,16 @@ class DisplayMainWindow(QMainWindow):
     data_dict['value'] = self._array
     self.updateEvent(data_dict)
 
-    self.gain = self.gain + 2.0
+    data_dict['channel'] = 13
+    for i in range(self._array.shape[0]):
+      self._array[i] = 11 * random.random()
+      self._array_imag[i] = 6 * random.random()
+    self._array_complex.setreal(self._array)
+    self._array_complex.setimag(self._array_imag)
+    data_dict['value'] = self._array_complex
+    self.updateEvent(data_dict)
+
+    self._gain = self._gain + 0.5
     return
 
 def make():

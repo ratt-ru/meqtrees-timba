@@ -66,7 +66,8 @@ class ZoomPopup(QWidget):
     self._plotzoom = QwtPlot(self)
 
     #######Set all the parameters for the plot####/
-    self._crv = self._plotzoom.insertCurve("Zoomed curve")
+    self._crv = self._plotzoom.insertCurve("Zoomed curve real")
+    self._crv_imag = self._plotzoom.insertCurve("Zoomed curve imaginary")
 
     self._plotzoom.enableGridXMin()
 
@@ -99,9 +100,6 @@ class ZoomPopup(QWidget):
     box1 = QHBoxLayout( vbox_left )
     box1.addWidget(self._plotzoom)
 
-    self._x_values = x_values
-    self._y_values = y_values
-    self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
 
 # create context menu
     self._parent = parent
@@ -138,7 +136,8 @@ class ZoomPopup(QWidget):
     #Signal when the mouse is released on the plot
     self.connect(self._plotzoom,SIGNAL('plotMouseReleased(const QMouseEvent&)'),
 	  self.plotMouseReleased)
-    self._plotzoom.replot()
+    self._x_values = x_values
+    self.update_plot(y_values)
     self.show()
 
   def process_menu(self, menuid):
@@ -312,7 +311,21 @@ class ZoomPopup(QWidget):
   def update_plot(self,y_values):
     if not self._do_pause:
       self._y_values = y_values
-      self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
+      if self._y_values.type() == Complex32 or self._y_values.type() == Complex64:
+        real_array = self._y_values.getreal()
+        imag_array = self._y_values.getimag()
+        self._plotzoom.setCurvePen(self._crv,QPen(Qt.yellow))
+        self._plotzoom.setCurvePen(self._crv_imag,QPen(Qt.red))
+        self._plotzoom.setCurveData(self._crv, self._x_values, real_array)
+        self._plotzoom.setCurveData(self._crv_imag, self._x_values, imag_array)
+        self._plotzoom.setAxisTitle(QwtPlot.yLeft, 'Value: real (yellow line)')
+        self._plotzoom.enableAxis(QwtPlot.yRight)
+        self._plotzoom.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (red line)')
+        self._plotzoom.setCurveYAxis(self._crv, QwtPlot.yLeft)
+        self._plotzoom.setCurveYAxis(self._crv_imag, QwtPlot.yRight)
+
+      else:
+        self._plotzoom.setCurveData(self._crv, self._x_values, self._y_values)
       self.get_max()
       self._plotzoom.replot()
 

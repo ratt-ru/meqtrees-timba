@@ -114,7 +114,7 @@ class ChartPlot(QWidget):
     
     #initialize the mainplot zoom variables
     self._d_zoomActive = self._d_zoom = False
-    self._is_spectra = False
+    self._is_vector = False
 	    
     #initialize zoomcount.  Count the number of zoom windows opened
     self._zoomcount = 0
@@ -484,7 +484,7 @@ class ChartPlot(QWidget):
       chart = array(self._chart_data[crv])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
       if not self._data_label is None:
-        self._Zoom[crv].setDataLabel(self._data_label,self._is_spectra)
+        self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
       if self._good_data[crv]:
         self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
       else:
@@ -620,7 +620,7 @@ class ChartPlot(QWidget):
     # otherwise we have an array (assumed to be 1D for the moment), 
     # so we replace the stored chart data in its entirety
     else:
-      self._is_spectra = True
+      self._is_vector = True
       self._chart_data[channel] = []
       if self._ArraySize != new_chart_val.shape[0]:
         self._ArraySize = new_chart_val.shape[0]
@@ -712,11 +712,17 @@ class ChartPlot(QWidget):
           temp_x = self._x2
         elif index >= (self._nbcrv/2)+1 and index <= 3*(self._nbcrv/4):
           temp_x = self._x3
-        elif index >= (3*(_nbcrv/4))+1 and index <= self._nbcrv:
+        elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
           temp_x = self._x4
-	
-        tmp_max = chart.max()
-        tmp_min = chart.min()
+
+        if chart.type() == Complex32 or chart.type() == Complex64:
+          complex_chart = chart.copy()
+          abs_chart = abs(complex_chart)
+          tmp_max = abs_chart.max()
+          tmp_min = abs_chart.min()
+        else:
+          tmp_max = chart.max()
+          tmp_min = chart.min()
         # check if we break any highest or lowest limits
         # this is important for offset reasons.
         if tmp_max > self._highest_value:
@@ -730,7 +736,13 @@ class ChartPlot(QWidget):
         #set the max value of the offset
           self._offset = 1.1 * self._new_value
         temp_off = (channel % (self._nbcrv/4)) * self._offset
-        self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
+        # If we have a complex array, we presently just display
+        # the amplitude.
+        if chart.type() == Complex32 or chart.type() == Complex64:
+          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
+          self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
+        else:
+          self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
 	 
 # need to update any corresponding Zoom window     
 #        self._Zoom[channel].resize_x_axis(len(self._chart_data[channel]))
