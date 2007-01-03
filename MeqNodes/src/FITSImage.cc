@@ -94,8 +94,8 @@ int FITSImage::getResult (Result::Ref &resref,
  //if integrated=0, cells is removed
  old_res_<<= new Result(6,1); 
  } else {
- //create a result a single vellset, is integrated
- old_res_<<= new Result(1,1); 
+ //create a result a single vellset, is NOT integrated
+ old_res_<<= new Result(1,0); 
  }
 
  Result &result=old_res_; 
