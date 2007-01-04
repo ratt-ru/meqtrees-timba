@@ -36,12 +36,13 @@ class DisplayMainWindow(QMainWindow):
   """ This class enables the display of a collection
       of ChartPlot widgets contained within a tabwidget
   """
-  def __init__(self, parent=None, name=None):
+  def __init__(self, parent=None, name=None,num_curves=16):
     QMainWindow.__init__(self, parent, name, Qt.WDestructiveClose)
 
 # ChartPlot strip charts will be displayed via a tab widget
     self._tabwidget = QTabWidget(self)
     self._tab_resized = False
+    self._num_curves = num_curves
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
@@ -50,7 +51,7 @@ class DisplayMainWindow(QMainWindow):
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
     if not self._ChartPlot.has_key(data_type):
-      self._ChartPlot[data_type] = chartplot.ChartPlot(parent=self)
+      self._ChartPlot[data_type] = chartplot.ChartPlot(num_curves=self._num_curves, parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
       self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
       self._tabwidget.showPage(self._ChartPlot[data_type])
