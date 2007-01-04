@@ -18,11 +18,11 @@ class ConnectMeqKernel(QDialog):
         if not name:
             self.setName("ConnectDialog")
 
-        self.setSizeGripEnabled(0)
+        # self.setSizeGripEnabled(0)
 
         LayoutWidget = QWidget(self,"lo_top")
         LayoutWidget.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
-        LayoutWidget.setGeometry(QRect(10,10,472,400))
+        # LayoutWidget.setGeometry(QRect(10,10,472,400))
         lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
 
         lo_title = QHBoxLayout(None,0,6,"lo_title")
@@ -61,6 +61,8 @@ class ConnectMeqKernel(QDialog):
         lo_start.addWidget(lo_start_lbl)
         self.start_pathname = QLineEdit(lo_start_grp,"start_pathname")
         self.start_pathname.setText(self._default_path);
+        self.start_pathname.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
+        self.start_pathname.setMinimumSize(QSize(400,0))
         lo_start.addWidget(self.start_pathname)
 
         lo_start_grp2 = QWidget(self.bg_connect)
@@ -131,6 +133,8 @@ class ConnectMeqKernel(QDialog):
         lo_top.addLayout(lo_mainbtn)
 
         self.languageChange()
+        
+        LayoutWidget.adjustSize();
 
         #LayoutWidget.resize(QSize(489,330).expandedTo(LayoutWidget.minimumSizeHint()))
         #self.resize(QSize(489,330).expandedTo(self.minimumSizeHint()))
