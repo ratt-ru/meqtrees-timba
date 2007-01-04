@@ -607,12 +607,15 @@ class ChartPlot(QWidget):
       if is_scalar:
         scalar_data = new_chart_val
     if is_scalar:
-      if len(self._chart_data[channel]) > self._ArraySize-1:
-        differ = len(self._chart_data[channel]) - (self._ArraySize-1)
-        for i in range(differ):
-          del self._chart_data[channel][0]
+#     if len(self._chart_data[channel]) > self._ArraySize-1:
+#       differ = len(self._chart_data[channel]) - (self._ArraySize-1)
+#       for i in range(differ):
+#         del self._chart_data[channel][0]
       self._chart_data[channel].append(scalar_data)
       self._updated_data[channel] = True
+      if self._ArraySize < len(self._chart_data[channel]):
+        self._ArraySize = len(self._chart_data[channel])
+        self.set_x_axis_sizes()
     
       # take care of position string
       self._position[channel] = q_pos_str
@@ -622,7 +625,7 @@ class ChartPlot(QWidget):
     else:
       self._is_vector = True
       self._chart_data[channel] = []
-      if self._ArraySize != new_chart_val.shape[0]:
+      if self._ArraySize < new_chart_val.shape[0]:
         self._ArraySize = new_chart_val.shape[0]
         self.set_x_axis_sizes()
       self._chart_data[channel] = new_chart_val.copy()
