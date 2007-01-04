@@ -99,6 +99,14 @@ class Jones (Matrix22):
         """Return the list of 2 polarization names (e.g. ['X','Y'])"""
         return self._pols
 
+    def _pols_matrel(self):
+        """Helper function to make a dict of Matrix22 elements for the 2 pols"""
+        matrel = dict()
+        pols = self.pols()
+        matrel[pols[0]] = 'm11'
+        matrel[pols[1]] = 'm22'
+        return matrel
+
     #-------------------------------------------------------------------
 
     def oneliner(self):
@@ -113,19 +121,14 @@ class Jones (Matrix22):
         ss += '  quals='+str(self.quals())
         return ss
 
-    def display(self, txt=None, full=False):
-        """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print ' * (txt='+str(txt)+')'
-        print ' * stations ('+str(len(self.stations()))+'): '+str(self.stations())
-        # print ' * Available indices ('+str(len(self.indices()))+'): '+str(self.indices())
-        print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
-        print ' * Antenna mount: '+str(self._mount)+', diam='+str(self._diam)+'(m)'
-        print '** '+Matrix22.oneliner(self)
-        Matrix22.display(self, txt=txt, full=full)
-        print '**\n'
+
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
+        print '   - polrep: '+str(self._polrep)+', pols='+str(self._pols)
+        print '   - Antenna mount: '+str(self._mount)+', diam='+str(self._diam)+'(m)'
         return True
+
 
     #-------------------------------------------------------------------
 
@@ -155,7 +158,7 @@ class GJones (Jones):
         Jones.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations, polrep=polrep,
                        simulate=simulate)
-        pols = self._pols
+        pols = self.pols()
         quals = self.quals()
         pname = self.label()+'phase'
         gname = self.label()+'gain'
@@ -163,21 +166,23 @@ class GJones (Jones):
         # Define the various primary ParmGroups:
         for pol in pols:
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  matrel=self._pols_matrel()[pol],
                                   tags=[pname,jname], Tsec=200)
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  matrel=self._pols_matrel()[pol],
                                   tags=[gname,jname], default=1.0)
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self._parmgroup[pname+pol].create_entry(s)
-                gain = self._parmgroup[gname+pol].create_entry(s)
+                phase = self.parmgroup(pname+pol).create_entry(s)
+                gain = self.parmgroup(gname+pol).create_entry(s)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self._matrix = self._ns[jname](*quals)
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups(jname)
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
         return None
 
 #--------------------------------------------------------------------------------------------
@@ -201,21 +206,23 @@ class EJones (Jones):
         # Define the various primary ParmGroups:
         for pol in pols:
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  matrel=self._pols_matrel()[pol],
                                   tags=[pname,jname], Tsec=200)
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  matrel=self._pols_matrel()[pol],
                                   tags=[gname,jname], default=1.0)
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self._parmgroup[pname+pol].create_entry(s)
-                gain = self._parmgroup[gname+pol].create_entry(s)
+                phase = self.parmgroup(pname+pol).create_entry(s)
+                gain = self.parmgroup(gname+pol).create_entry(s)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self._matrix = self._ns[jname](*quals)
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups(jname)
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
         return None
 
 
@@ -242,7 +249,7 @@ class FJones (Jones):
         self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
                               tags=[rname,jname])
 
-        RM = self._parmgroup[rname].create_entry()                  # Rotation Measure (rad/m2)
+        RM = self.parmgroup(rname).create_entry()                  # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())
         wvl2 = self._ns << Meq.Sqr(wvl)                       # lambda squared
         farot = self._ns.farot(*quals) << (RM * wvl2)         # Faraday rotation angle
@@ -267,8 +274,8 @@ class FJones (Jones):
             self._ns[jname](*quals)(polrep)(s) << Meq.Identity(fmat)
             
         self._matrix = self._ns[jname](*quals)(polrep)
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups(jname)
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
         return None
 
 
@@ -311,7 +318,7 @@ class DJones (Jones):
                               tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pzd = self._parmgroup[pname].create_entry()
+        pzd = self.parmgroup(pname).create_entry()
         pzd2 = self._ns << pzd/2
         pzd2neg = self._ns << Meq.Negate(pzd2)
         pmat = self._ns[pname](*quals) << Meq.Matrix22(pzd2,0.0,0.0,pzd2neg)
@@ -321,14 +328,14 @@ class DJones (Jones):
 
             # Dipole rotation angles:
             if coupled_dang:
-                dang = self._parmgroup[dname].create_entry(s)
+                dang = self.parmgroup(dname).create_entry(s)
                 cos = self._ns << Meq.Cos(dang)
                 sin = self._ns << Meq.Sin(dang)
                 sinneg = self._ns << Meq.Negate(sin)
                 dmat = self._ns[dname](*quals)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = self._parmgroup[dname+pols[0]].create_entry(s)
-                dang2 = self._parmgroup[dname+pols[1]].create_entry(s)
+                dang1 = self.parmgroup(dname+pols[0]).create_entry(s)
+                dang2 = self.parmgroup(dname+pols[1]).create_entry(s)
                 cos1 = self._ns << Meq.Cos(dang1)
                 cos2 = self._ns << Meq.Cos(dang2)
                 sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
@@ -338,14 +345,14 @@ class DJones (Jones):
 
             # Dipole ellipticities:
             if coupled_dell:
-                dell = self._parmgroup[ename].create_entry(s)
+                dell = self.parmgroup(ename).create_entry(s)
                 cos = self._ns << Meq.Cos(dell)
                 sin = self._ns << Meq.Sin(dell)
                 isin = self._ns << Meq.ToComplex(0.0, sin)
                 emat = self._ns[ename](*quals)(s) << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = self._parmgroup[ename+pols[0]].create_entry(s)
-                dell2 = self._parmgroup[ename+pols[1]].create_entry(s)
+                dell1 = self.parmgroup(ename+pols[0]).create_entry(s)
+                dell2 = self.parmgroup(ename+pols[1]).create_entry(s)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
                 isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
@@ -357,8 +364,8 @@ class DJones (Jones):
             self._ns[jname](*quals)(s) << Meq.MatrixMultiply (dmat, emat, pmat)
 
         self._matrix = self._ns[jname](*quals)
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups(jname)
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
         return None
 
 
@@ -404,14 +411,14 @@ class JJones (Jones):
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in ee:
-                real = self._parmgroup[ename+'real'].create_entry(s)
-                imag = self._parmgroup[ename+'imag'].create_entry(s)
+                real = self.parmgroup(ename+'real').create_entry(s)
+                imag = self.parmgroup(ename+'imag').create_entry(s)
                 mm[ename] = self._ns[ename](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])
         self._matrix = self._ns[jname](*quals)
-        # Make some secondary (derived) ParmGroups:
-        self.define_composite_parmgroups(jname)
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
         return None
 
 

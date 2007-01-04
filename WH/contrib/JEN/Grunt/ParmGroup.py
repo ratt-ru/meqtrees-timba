@@ -4,7 +4,6 @@
 # - 25dec2006: creation
 # - 03jan2007: re-implemented as a specialization of class NodeGroup
 # - 03jan2007: created another specialization class SimulatedParmGroup 
-# - 03jan2007: created ParmGog specialization of class NodeGog 
 
 # Description:
 
@@ -41,7 +40,7 @@ class ParmGroup (NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, matrel='*',
+                 default=0.0, 
                  rider=dict()):
 
         NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
@@ -57,68 +56,15 @@ class ParmGroup (NodeGroup):
         if not 'Parm' in self._node_groups:
             self._node_groups.append('Parm')
 
-        # When solving for certain parameters, not all Matrix22 elements
-        # are relevant. This is specified by self._matrel
-        self._matrel = deepcopy(matrel)
-        if not self._matrel=='*':
-            if not isinstance(self._matrel,(list,tuple)):
-                self._matrel = [self._matrel]
-
-
         return None
                 
     #-------------------------------------------------------------------
 
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = str(type(self))
-        ss += ' '+str(self._label)
-        ss += ' (n='+str(len(self._nodelist))+')'
-        ss += ' matrel='+str(self.matrel())
-        ss += ' quals='+str(self._quals.get())
-        return ss
-
-    def display_old(self, txt=None, full=False):
-        """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print ' * (txt='+str(txt)+')'
-        print ' * descr: '+self.descr()
-        print ' * default: '+str(self._default)
-        if False:
-            print ' * simulation mode: '
-            print '  - sttdev (relative, w.r.t. default) = '+str(self._stddev)
-            print '  - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
-            print '  - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
-        else:
-            print ' * MeqParm definition:'
-            print '  - node tags: '+str(self._tags)
-            print '  - node_groups: '+str(self._node_groups)
-        print ' * Rider ('+str(len(self.rider()))+'):'
-        for key in self._rider.keys():
-            print '  - '+key+': '+str(self._rider[key])
-        print ' * The internal nodelist: '
-        for i in range(len(self._nodelist)):
-            node = self._nodelist[i]
-            if full:
-                self.display_subtree(node, txt=str(i))
-            else:
-                print '  - '+str(node)
-        if not full:
-            print ' * The first node/subtree:'
-            self.display_node (index=0)
-            if True:
-                print ' * The second node/subtree:'
-                self.display_node (index=1)
-        print '**\n'
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        print '   - default: '+str(self._default)
+        print '   - node_groups: '+str(self._node_groups)
         return True
-
-
-    #-------------------------------------------------------------------
-
-    def matrel (self):
-        """Return the list of Matrix22 elements that are affected by this ParmGroup""" 
-        return self._matrel
 
     #-------------------------------------------------------------------
 
@@ -148,70 +94,6 @@ class ParmGroup (NodeGroup):
 
 
 
-
-#==========================================================================
-#==========================================================================
-#==========================================================================
-#==========================================================================
-
-class ParmGog (NodeGog):
-    """Class that represents a group of ParmGroup objects"""
-
-    def __init__(self, ns, label='<pgog>', group=[],
-                 quals=[], descr=None, tags=[], node_groups=[],
-                 color='blue', style='circle', size=8, pen=2,
-                 default=0.0, matrel='*',
-                 rider=dict()):
-
-        NodeGog.__init__(self, ns=ns, label=label, group=group,
-                         descr=descr, rider=rider)
-        
-        return None
-                
-    #-------------------------------------------------------------------
-
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = str(type(self))
-        ss += ' '+str(self.label())
-        ss += ' (n='+str(len(self._group))+')'
-        ss += ' '+str(self.labels())
-        ss += ' matrel='+str(self.matrel())
-        return ss
-
-
-    #-------------------------------------------------------------------
-
-    def matrel (self):
-        """Return the list of 1-4 Matrix22 elements that are affected by
-        the ParmGroups of this ParmGog.""" 
-        # If any of the groups has matrel=='*' (all), return that.
-        for ng in self._group:
-            if ng.matrel()=='*': return '*'
-        # Otherwise, collect a list:
-        mm = []
-        for ng in self._group:
-            mg = ng.matrel()
-            for m in mg:
-                if not m in mm:
-                    mm.append(m)
-        return mm
-
-
-    #======================================================================
-
-    def test(self):
-        """Helper function to put in some standard entries for testing"""
-
-        pg = ParmGroup(self._ns, 'first', color='red', matrel='m21')
-        pg.test()
-        self.append_entry(pg)
-
-        pg = ParmGroup(self._ns, 'second', color='blue', matrel=['m22','xxx'])
-        pg.test()
-        self.append_entry(pg)
-        
-        return True
 
 
 
@@ -258,48 +140,12 @@ class SimulatedParmGroup (NodeGroup):
                 
     #-------------------------------------------------------------------
 
-    def oneliner_old(self):
-        """Return a one-line summary of this object"""
-        ss = str(type(self))
-        ss += ' '+str(self._label)
-        ss += ' (n='+str(len(self._nodelist))+')'
-        ss += ' quals='+str(self._quals.get())
-        return ss
-
-    def display_old(self, txt=None, full=False):
-        """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print ' * (txt='+str(txt)+')'
-        print ' * descr: '+self.descr()
-        print ' * default: '+str(self._default)
-        # if self._simulate:
-        if False:
-            print ' * simulation mode: '
-            print '  - sttdev (relative, w.r.t. default) = '+str(self._stddev)
-            print '  - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
-            print '  - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
-        else:
-            print ' * MeqParm definition:'
-            print '  - node tags: '+str(self._tags)
-            print '  - node_groups: '+str(self._node_groups)
-        print ' * Rider ('+str(len(self.rider()))+'):'
-        for key in self._rider.keys():
-            print '  - '+key+': '+str(self._rider[key])
-        print ' * The internal nodelist: '
-        for i in range(len(self._nodelist)):
-            node = self._nodelist[i]
-            if full:
-                self.display_subtree(node, txt=str(i))
-            else:
-                print '  - '+str(node)
-        if not full:
-            print ' * The first node/subtree:'
-            self.display_node (index=0)
-            if True:
-                print ' * The second node/subtree:'
-                self.display_node (index=1)
-        print '**\n'
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        print '   - default: '+str(self._default)
+        print '   - sttdev (relative, w.r.t. default) = '+str(self._stddev)
+        print '   - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
+        print '   - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
         return True
 
 
@@ -366,7 +212,7 @@ def _define_forest(ns):
 
     cc = []
 
-    pg1 = ParmGroup(ns, 'pg1')
+    pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
     pg1.test()
     cc.append(pg1.visualize())
     nn1 = pg1.nodelist()
@@ -411,7 +257,7 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    pg1 = ParmGroup(ns, 'pg1')
+    pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
     pg1.test()
     pg1.display()
 
@@ -419,12 +265,6 @@ if __name__ == '__main__':
         pg2 = SimulatedParmGroup(ns, 'pg2')
         pg2.test()
         pg2.display()
-
-    if 1:
-        pgog = ParmGog(ns, 'pgog')
-        pgog.test()
-        print pgog.matrel()
-        pgog.display()
 
     if 0:
         dcoll = pg1.visualize()

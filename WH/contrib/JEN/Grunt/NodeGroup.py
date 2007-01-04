@@ -74,11 +74,19 @@ class NodeGroup (object):
         ss += ' quals='+str(self._quals.get())
         return ss
 
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        # NB: This function is called in .display().
+        #     It should be re-implemented in a derived class.
+        return True
+
     def display(self, txt=None, full=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
+        self.display_specific(full=full)
+        print '** Generic (class NodeGroup):'
         print ' * descr: '+self.descr()
         print ' * node tags: '+str(self._tags)
         print ' * rider ('+str(len(self.rider()))+'):'
@@ -300,11 +308,19 @@ class NodeGog (object):
         ss += ' '+str(self.labels())
         return ss
 
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        # NB: This function is called in .display().
+        #     It should be re-implemented in a derived class.
+        return True
+
     def display(self, txt=None, full=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
+        self.display_specific(full=full)
+        print '** Generic (class NodeGog):'
         print ' * descr: '+self.descr()
         print ' * rider ('+str(len(self.rider()))+'):'
         for key in self._rider.keys():
@@ -472,11 +488,20 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    if 0:
+    if 1:
         ng1 = NodeGroup(ns, 'ng1')
         ng1.test()
         ng1.display()
         
+        if 0:
+            dcoll = ng1.visualize()
+            ng1.display_subtree (dcoll, txt='dcoll')
+
+        if 0:
+            node = ng1.sum()
+            node = ng1.product()
+            ng1.display_subtree (node, txt='test')
+
     if 0:
         cc = []
         cc = [ns << 45]
@@ -484,38 +509,30 @@ if __name__ == '__main__':
         # ng2.test(6)
         ng2.display()
 
-    if 0:
-        dcoll = ng1.visualize()
-        ng1.display_subtree (dcoll, txt='dcoll')
-
-    if 0:
-        node = ng1.sum()
-        node = ng1.product()
-        ng1.display_subtree (node, txt='test')
-
-    if 0:
-        ng2 = NodeGroup(ns, 'ng2')
-        ng2.append_entry(ss << 1.0)
-        ng2.append_entry(ss << 2.0)
-        nn = ng2.nodelist(trace=True)
-        ng2.display()
-        if 1:
-            ng12 = NodeGroup(ns, 'ng12', ng=[ng1,ng2], descr='combination')
-            ng12.display()
+        if 0:
+            ng2 = NodeGroup(ns, 'ng2')
+            ng2.append_entry(ss << 1.0)
+            ng2.append_entry(ss << 2.0)
+            nn = ng2.nodelist(trace=True)
+            ng2.display()
+            if 1:
+                ng12 = NodeGroup(ns, 'ng12', ng=[ng1,ng2], descr='combination')
+                ng12.display()
 
     #------------------------------------------------------------
 
     if 1:
         gog1 = NodeGog(ns, 'gog1')
         gog1.test()
-
-    if 0:
-        gog1.visualize()
         gog1.display()
 
-    if 1:
-        node = gog1.bundle()
-        gog1._dummyNodeGroup.display_subtree (node, txt='bundle')
+        if 0:
+            gog1.visualize()
+            gog1.display()
+
+        if 0:
+            node = gog1.bundle()
+            gog1._dummyNodeGroup.display_subtree (node, txt='bundle')
 
 
 
