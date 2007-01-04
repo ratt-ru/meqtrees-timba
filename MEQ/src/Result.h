@@ -183,20 +183,25 @@ public:
   void verifyShape (bool reset=true);
   
   // ------------------------ INTEGRATED property
+// NB: OMS 04/01/2007 this is being phased out; the first step is to make
+// it always False
+ 
   // this is set at construction time
   bool isIntegrated () const
-  { return is_integrated_; }
-  
-  // integrates all VellSets (multiplies values by cell size)
-  // attaches supplied cells if none already attached
-  // if isIntegrated()=true, does nothing
-  void integrate (const Cells *pcells=0,bool reverse=false);
-  
-  // differentiates all VellSets (divides values by cell size)
-  // uses supplied cells if none attached
-  // if isIntegrated()=false, does nothing
-  void differentiate (const Cells *pcells=0)
-  { integrate(pcells,true); }
+  { return false; }
+//   { return is_integrated_; }
+//   
+//   // integrates all VellSets (multiplies values by cell size)
+//   // attaches supplied cells if none already attached
+//   // if isIntegrated()=true, does nothing
+   void integrate (const Cells *pcells=0,bool reverse=false)
+   {}
+//   
+//   // differentiates all VellSets (divides values by cell size)
+//   // uses supplied cells if none attached
+//   // if isIntegrated()=false, does nothing
+//   void differentiate (const Cells *pcells=0)
+//   { integrate(pcells,true); }
 
   // ------------------------ VELLSETS
     //##ModelId=400E5355017B
@@ -269,8 +274,9 @@ protected:
   Record::clear;
   
 private:
-  // sets the integrated property, including underlying record
-  void setIsIntegrated (bool integrated);
+  void setIsIntegrated (bool)
+// 04/01/2007 phased out, so inlined to NOP
+  {}
 
   // verifies vellsets against a cell shape, throws exception on mismatch.
   //  Returns true if any vellsets are variable.
@@ -286,8 +292,9 @@ private:
   DMI::Vec::Ref  * pvellsets_;
     //##ModelId=3F86BFF802B0
   Cells::Ref     * pcells_;
-  
-  bool            is_integrated_;
+
+// 04/01/2007 phased out  
+//  bool            is_integrated_;
   
   Dims            dims_;
 };

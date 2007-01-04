@@ -73,7 +73,7 @@ bool Result::verifyShape (const LoShape &cellshape) const
       hasshapes = true;
     }
   }
-  return is_integrated_ || hasshapes;
+  return isIntegrated() || hasshapes;
 }
 
 void Result::verifyShape (bool reset)
@@ -145,7 +145,8 @@ void Result::validateContent (bool)
   try
   {
     // get integrated flag
-    is_integrated_ = (*this)[FIntegrated].as<bool>(false);
+// 04/01/2007 phased out  
+//    is_integrated_ = (*this)[FIntegrated].as<bool>(false);
     // get vellsets
     Field * fld = Record::findField(FVellSets);
     if( fld )
@@ -257,16 +258,16 @@ int Result::setDims (const Dims &dims)
   return nvs;
 }
 
-
-void Result::setIsIntegrated (bool integrated)
-{
-  Thread::Mutex::Lock lock(mutex());
-  is_integrated_ = integrated;
-  if( integrated )
-    (*this)[FIntegrated] = integrated;
-  else
-    Record::removeField(FIntegrated,true);
-}
+// 04/01/2007 phased out  
+// void Result::setIsIntegrated (bool integrated)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   is_integrated_ = integrated;
+//   if( integrated )
+//     (*this)[FIntegrated] = integrated;
+//   else
+//     Record::removeField(FIntegrated,true);
+// }
 
 VellSet & Result::setNewVellSet (int i,int nspids,int npertsets)
 { 
@@ -304,85 +305,86 @@ DMI::ExceptionList & Result::addToExceptionList (DMI::ExceptionList &list) const
   return list;
 }
 
-void Result::integrate (const Cells *pcells,bool reverse)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( reverse && isIntegrated() )
-    return;
-  if( !reverse && !isIntegrated() )
-    return;
-  if( !hasCells() )
-  {
-    FailWhen(!pcells,"can't integrate Result without cells");
-  }
-  else
-    pcells = &( cells() );
-  // compute cellsize, as scalar or matrix, depending on properties of cells
-  Vells cellsize;
-  // is the cell size regular?
-  bool is_regular = true;
-  double csz = 1;
-  for( int i=0; i<Axis::MaxAxis; i++ )
-    if( pcells->isDefined(i) )
-    {
-      if( pcells->numSegments(i)>1 )
-      {
-        is_regular = false;
-        break;
-      }
-      else
-        csz *= double(pcells->cellSize(i)(0));
-    }
-  // regular cell sizes -- have been accumulated in csz
-  if( is_regular )
-  {
-    if( reverse )
-      csz = 1/csz;
-    cellsize = Vells(csz);
-  }
-  else // irregular sizes -- compute a Vells of cell sizes
-  {
-    cellsize = Vells(1.);
-    Vells::Shape shape0(pcells->rank());
-    for( int i=0; i<pcells->rank(); i++ )
-      shape0[i] = 1;
-    // multiply repeatedly by each cell size
-    for( int iaxis=0; iaxis<pcells->rank(); iaxis++ )
-      if( pcells->isDefined(iaxis) )
-      {
-        // create Vells variable only along this axis, containing cell sizes
-        Vells::Shape shape(shape0);
-        int nc = pcells->ncells(iaxis);
-        shape[iaxis] = nc;
-        Vells sz(double(0),shape,false);
-        memcpy(sz.realStorage(),pcells->cellSize(iaxis).data(),sizeof(double)*nc);
-        // multiply accumulated size
-        cellsize *= sz;
-      }
-    if( reverse )
-      cellsize = 1/cellsize;
-  }
-  // loop over vellsets, applying cellsize
-  for( int ivs=0; ivs<numVellSets(); ivs++ )
-  {
-    VellSet &vs = vellSetWr(ivs);
-    if( !vs.isFail() )
-    {
-      vs.setValue(vs.getValue()*cellsize);
-      for( int iset=0; iset<vs.numPertSets(); iset++ )
-        for( int i=0; i<vs.numSpids(); i++ )
-        {
-          Vells::Ref res(new Vells(vs.getPerturbedValue(i,iset)*cellsize));
-          vs.setPerturbedValue(i,res,iset);
-        }
-    }
-  }
-  // if all succeeds, set flag
-  setIsIntegrated(!reverse);
-  // attach cells as needed
-  if( !hasCells() && !reverse )
-    setCells(pcells);
-}
+// 04/01/2007 phased out  
+// void Result::integrate (const Cells *pcells,bool reverse)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   if( reverse && isIntegrated() )
+//     return;
+//   if( !reverse && !isIntegrated() )
+//     return;
+//   if( !hasCells() )
+//   {
+//     FailWhen(!pcells,"can't integrate Result without cells");
+//   }
+//   else
+//     pcells = &( cells() );
+//   // compute cellsize, as scalar or matrix, depending on properties of cells
+//   Vells cellsize;
+//   // is the cell size regular?
+//   bool is_regular = true;
+//   double csz = 1;
+//   for( int i=0; i<Axis::MaxAxis; i++ )
+//     if( pcells->isDefined(i) )
+//     {
+//       if( pcells->numSegments(i)>1 )
+//       {
+//         is_regular = false;
+//         break;
+//       }
+//       else
+//         csz *= double(pcells->cellSize(i)(0));
+//     }
+//   // regular cell sizes -- have been accumulated in csz
+//   if( is_regular )
+//   {
+//     if( reverse )
+//       csz = 1/csz;
+//     cellsize = Vells(csz);
+//   }
+//   else // irregular sizes -- compute a Vells of cell sizes
+//   {
+//     cellsize = Vells(1.);
+//     Vells::Shape shape0(pcells->rank());
+//     for( int i=0; i<pcells->rank(); i++ )
+//       shape0[i] = 1;
+//     // multiply repeatedly by each cell size
+//     for( int iaxis=0; iaxis<pcells->rank(); iaxis++ )
+//       if( pcells->isDefined(iaxis) )
+//       {
+//         // create Vells variable only along this axis, containing cell sizes
+//         Vells::Shape shape(shape0);
+//         int nc = pcells->ncells(iaxis);
+//         shape[iaxis] = nc;
+//         Vells sz(double(0),shape,false);
+//         memcpy(sz.realStorage(),pcells->cellSize(iaxis).data(),sizeof(double)*nc);
+//         // multiply accumulated size
+//         cellsize *= sz;
+//       }
+//     if( reverse )
+//       cellsize = 1/cellsize;
+//   }
+//   // loop over vellsets, applying cellsize
+//   for( int ivs=0; ivs<numVellSets(); ivs++ )
+//   {
+//     VellSet &vs = vellSetWr(ivs);
+//     if( !vs.isFail() )
+//     {
+//       vs.setValue(vs.getValue()*cellsize);
+//       for( int iset=0; iset<vs.numPertSets(); iset++ )
+//         for( int i=0; i<vs.numSpids(); i++ )
+//         {
+//           Vells::Ref res(new Vells(vs.getPerturbedValue(i,iset)*cellsize));
+//           vs.setPerturbedValue(i,res,iset);
+//         }
+//     }
+//   }
+//   // if all succeeds, set flag
+//   setIsIntegrated(!reverse);
+//   // attach cells as needed
+//   if( !hasCells() && !reverse )
+//     setCells(pcells);
+// }
 
 //##ModelId=3F868870014C
 void Result::show (std::ostream& os) const
