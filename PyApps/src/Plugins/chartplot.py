@@ -759,9 +759,9 @@ class ChartPlot(QWidget):
       # --------------
       # refresh screen
       # --------------
-      if self._refresh_flag: 
-        self._plotter.replot()
-        self.ReplotZoom()
+    if self._refresh_flag: 
+      self._plotter.replot()
+      self.ReplotZoom()
       self._refresh_flag = False
 
 

@@ -115,63 +115,32 @@ class DisplayMainWindow(QMainWindow):
     data_dict = {}
     data_dict['data_type'] = 'scalar'
     data_dict['sequence_number'] = self.seq_num
-    data_dict['channel'] = 1
-    data_dict['value'] = 1.0 + 1 * random.random()
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 3
-    data_dict['value'] = 1.0 + 1 * random.random()
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 9
-    data_dict['value'] = 1.0 + 1 * random.random()
-    self.updateEvent(data_dict)
+    for i in range(16):
+      data_dict['channel'] = i
+      data_dict['value'] = (i+1) * random.random()
+      self.updateEvent(data_dict)
 
     data_dict['data_type'] = 'another scalar'
-    data_dict['channel'] = 1
-    data_dict['value'] = self._gain + 2 * random.random()
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 3
-    data_dict['value'] = self._gain + 3 * random.random()
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 5
-    data_dict['value'] = self._gain + 1 * random.random()
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 11
-    data_dict['value'] = self._gain + 4 * random.random()
-    self.updateEvent(data_dict)
-
+    for i in range(16):
+      data_dict['channel'] = i
+      data_dict['value'] = self._gain + (i+1) * random.random()
+      self.updateEvent(data_dict)
 
     data_dict['data_type'] = 'spectra'
-    data_dict['channel'] = 1
-    for i in range(self._array.shape[0]):
-      self._array[i] = random.random()
-    data_dict['value'] = self._array
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 5
-    for i in range(self._array.shape[0]):
-      self._array[i] = 5 * random.random()
-    data_dict['value'] = self._array
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 11
-    for i in range(self._array.shape[0]):
-      self._array[i] = 11 * random.random()
-    data_dict['value'] = self._array
-    self.updateEvent(data_dict)
-
-    data_dict['channel'] = 13
-    for i in range(self._array.shape[0]):
-      self._array[i] = 11 * random.random()
-      self._array_imag[i] = 6 * random.random()
-    self._array_complex.setreal(self._array)
-    self._array_complex.setimag(self._array_imag)
-    data_dict['value'] = self._array_complex
-    self.updateEvent(data_dict)
+    for j in range(16):
+      data_dict['channel'] = j
+      if j == 13:
+        for i in range(self._array.shape[0]):
+          self._array[i] = 11 * random.random()
+          self._array_imag[i] = 6 * random.random()
+        self._array_complex.setreal(self._array)
+        self._array_complex.setimag(self._array_imag)
+        data_dict['value'] = self._array_complex
+      else:
+        for i in range(self._array.shape[0]):
+          self._array[i] = (j+1) * random.random()
+        data_dict['value'] = self._array
+      self.updateEvent(data_dict)
 
     self._gain = self._gain + 0.5
     return
@@ -179,7 +148,7 @@ class DisplayMainWindow(QMainWindow):
 def make():
     demo = DisplayMainWindow()
     demo.show()
-    demo.start_test_timer(500)
+    demo.start_test_timer(1000)
     return demo
 
 def main(args):
