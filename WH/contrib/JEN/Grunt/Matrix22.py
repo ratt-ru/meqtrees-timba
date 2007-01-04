@@ -180,7 +180,10 @@ class Matrix22 (object):
         print '**\n'
         return True
 
-    #-------------------------------------------------------------------
+
+    #=====================================================================
+    # Management of (Simulated)ParmGroups:
+    #=====================================================================
 
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[], 
@@ -188,7 +191,7 @@ class Matrix22 (object):
                          scale=1.0, stddev=0.1,
                          matrel='*',
                          rider=None):
-        """Helper function to define a named (Simulated)ParmGroup object"""
+        """Helper function to define a named (Simulated)ParmGroup object."""
 
         # ....
         node_groups = ['Parm']
@@ -301,7 +304,7 @@ class Matrix22 (object):
         return dict(matrel=mm)
 
 
-    #=====================================================================================
+    #--------------------------------------------------------------
 
     def parmgroups(self):
         """Return the available ParmGroup names."""
@@ -326,23 +329,12 @@ class Matrix22 (object):
         self._simparmgroup.update(other._simparmgroup)
         return True
 
-    def parmlist_obsolete(self, keys='*'):
-        """Return the list of nodes from the specified parmgroup(s)"""
-        if keys=='*': keys = self._parmgroup.keys()
-        if not isinstance(keys,(list,tuple)): keys = [keys]
-        nodelist = []
-        for key in keys:
-            if self._parmgroup.has_key(key):
-                nodelist.extend(self._parmgroup[key].nodelist())
-            else:
-                print '** parmgroup not recognised:',key
-                return None
-        print '\n** parmlist(',keys,'):'
-        for node in nodelist: print ' -',node
-        print 
-        return nodelist
 
-    #-------------------------------------------------------------------
+
+    #=====================================================================================
+    # Math operations: 
+    #=====================================================================================
+
 
     def binop(self, binop=None, other=None):
         """Do an (item-by-item) binary operation (e.g. Subtract)
@@ -356,7 +348,6 @@ class Matrix22 (object):
         self.merge_parmgroups(other)
         return True
 
-    #....................................................................
 
     def unop(self, unop=None):
         """Do an (item-by-item) unary operation on itself (e.g. Abs)"""
@@ -366,13 +357,10 @@ class Matrix22 (object):
         self._matrix = self._ns[unop](*quals)              # replace
         return True
 
-    #-------------------------------------------------------------------
 
-    def compare(self, other):
-        """Compare with the given Matrix22 object"""
-        return True
-
-    #-------------------------------------------------------------------
+    #=====================================================================
+    # Visualization:
+    #=====================================================================
 
     def visualize (self, matrel='*', bookpage='Matrix22', folder=None):
         """Visualise (a subset of) the 4 complex matrix elements of all 
@@ -404,6 +392,8 @@ class Matrix22 (object):
                                  page=bookpage, folder=folder)
         # Return the dataConcat node:
         return self._dcoll
+
+
 
     #==============================================================================
     # Solving:
@@ -497,8 +487,10 @@ class Matrix22 (object):
         return reqseq
         
     
-    #------------------------------------------------------------------------------
-    #------------------------------------------------------------------------------
+
+    #=====================================================================
+    # Test module:
+    #=====================================================================
 
     def test (self):
         """Helper function to make some test-matrices"""
