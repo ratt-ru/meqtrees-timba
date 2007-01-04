@@ -41,7 +41,7 @@ class ParmGroup (NodeGroup):
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
                  default=0.0, 
-                 rider=dict()):
+                 rider=None):
 
         NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
                            quals=quals, descr=descr, tags=tags, 
@@ -114,7 +114,7 @@ class SimulatedParmGroup (NodeGroup):
                  color='blue', style='circle', size=8, pen=2,
                  default=0.0,
                  scale=1.0, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
-                 rider=dict()):
+                 rider=None):
 
         NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
                            quals=quals, descr=descr, tags=tags, 

@@ -35,7 +35,7 @@ class NodeGroup (object):
     def __init__(self, ns, label='<ng>', nodelist=[],
                  quals=[], descr='<descr>',tags=[], 
                  color='green', style='diamond', size=8, pen=2,
-                 rider=dict()):
+                 rider=None):
 
         self._ns = ns                         # node-scope (required)
         self._label = label                   # label of the parameter group 
@@ -72,6 +72,9 @@ class NodeGroup (object):
         ss += ' '+str(self.label())
         ss += ' (n='+str(self.len())+')'
         ss += ' quals='+str(self._quals.get())
+        if True and len(self._rider)>0:
+            for key in self._rider.keys():
+                ss += ' ('+key+'='+str(self._rider[key])+')'
         return ss
 
     def display_specific(self, full=False):
@@ -279,7 +282,7 @@ class NodeGog (object):
     """Class that represents a group of NodeGroup objects"""
 
     def __init__(self, ns, label='<gog>', group=[],
-                 descr=None, rider=dict()):
+                 descr=None, rider=None):
         self._ns = ns                         # node-scope (required)
         self._label = label                   # label of the parameter group 
         self._descr = descr                   # brief description 
@@ -306,6 +309,9 @@ class NodeGog (object):
         ss += ' '+str(self.label())
         ss += ' (n='+str(len(self._group))+')'
         ss += ' '+str(self.labels())
+        if True and len(self._rider)>0:
+            for key in self._rider.keys():
+                ss += ' ('+key+'='+str(self._rider[key])+')'
         return ss
 
     def display_specific(self, full=False):

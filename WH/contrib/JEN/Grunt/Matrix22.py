@@ -187,8 +187,8 @@ class Matrix22 (object):
                          Tsec=1000.0, Tstddev=0.1,
                          scale=1.0, stddev=0.1,
                          matrel='*',
-                         rider=dict()):
-        """Helper function to define a named ParmGroup or SimulatedParmGroup object"""
+                         rider=None):
+        """Helper function to define a named (Simulated)ParmGroup object"""
 
         # ....
         node_groups = ['Parm']
@@ -216,7 +216,7 @@ class Matrix22 (object):
         else:
             # - matrel specifies the matrix elements that are affected by the
             #   MeqParms in this ParmGroup, and that are to be used in solving.
-            rider['matrel'] = matrel
+            rider['matrel'] = deepcopy(matrel)
             pg = ParmGroup (self._ns, label=name, 
                             quals=self.quals(),
                             descr=descr, default=default,
@@ -236,6 +236,15 @@ class Matrix22 (object):
 
         # Finished:
         return True
+
+    #.....................................................................................
+
+    def create_parmgroup_entry(self, key=None, qual=None):
+        """Create an entry with the specified qual in the specified (key)
+        (Simulated)ParmGroup (object)"""
+        if self._simulate:
+            return self._simparmgroup[key].create_entry(qual)
+        return self._parmgroup[key].create_entry(qual)
 
     #.....................................................................................
 
@@ -284,28 +293,24 @@ class Matrix22 (object):
         # Otherwise, collect a list:
         mm = []
         for pg in group:
-            mg = ng.rider('matrel')
+            mg = pg.rider('matrel')
+            if not isinstance(mg,(list,tuple)): mg = [mg]
             for m in mg:
                 if not m in mm:
                     mm.append(m)
         return dict(matrel=mm)
 
 
+    #=====================================================================================
 
-
-    #.....................................................................................
-
-    def parmgroups(self, simulated=False):
-        """Return the available parmgroup names. If simulated=False (default),
-        only return the names of those that are not simulated (i.e. solvable)."""
+    def parmgroups(self):
+        """Return the available ParmGroup names."""
         return self._parmgroup.keys()
-    
-    def parmgroup(self, key=None):
-        """Return the specified (Simulated)ParmGroup (object)"""
-        if self._simulate:
-            return self._simparmgroup[key]
-        return self._parmgroup[key]
 
+    def parmgroup(self, key=None):
+        """Return the specified ParmGroup (object)"""
+        return self._parmgroup[key]
+    
     def display_parmgroups(self, full=False):
         """Display its ParmGroup objects"""
         print '\n******** .display_parmgroups(full=',full,'):'
@@ -321,7 +326,7 @@ class Matrix22 (object):
         self._simparmgroup.update(other._simparmgroup)
         return True
 
-    def parmlist(self, keys='*'):
+    def parmlist_obsolete(self, keys='*'):
         """Return the list of nodes from the specified parmgroup(s)"""
         if keys=='*': keys = self._parmgroup.keys()
         if not isinstance(keys,(list,tuple)): keys = [keys]
@@ -464,7 +469,13 @@ class Matrix22 (object):
             return False
         pg = other._parmgroup[parmgroup]
         solvable = pg.nodelist()
-        matrel = pg.rider('matrel')           # (subset of) the 4 matrix elements
+
+        # Get the names of the (subset of) matrix elements to be used:
+        # (e.g. for GJones, we only use ['m11','m22'], etc)
+        matrel = self._matrel.keys()          # i.e. ['m11','m12','m21','m22']
+        if True:
+            matrel = pg.rider('matrel')
+            if matrel=='*': matrel = self._matrel.keys()
         # matrel = ['m11','m22']
 
         # Make a list of condeq nodes:
@@ -503,7 +514,7 @@ class Matrix22 (object):
                                   default=index/10.0, stddev=0.01,
                                   tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self.parmgroup(key).create_entry(index)
+            mm[key] = self.create_parmgroup_entry(key, index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])
@@ -567,7 +578,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=False)
+        m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
         m1.test()
         m1.visualize()
         # m1.display_parmgroups(full=False)
@@ -581,8 +592,8 @@ if __name__ == '__main__':
         m1.unop('Cos')
         m1.display('after unop', full=True)
         
-    if 0:
-        m2 = Matrix22(ns, quals=['3c84','yyy'], label='TT', simulate=True)
+    if 1:
+        m2 = Matrix22(ns, quals=['3c84','yyy'], label='TT', simulate=False)
         m2.test()
         m2.display('m2',full=True)
 
@@ -607,10 +618,6 @@ if __name__ == '__main__':
             mc.display('make_condeqs', full=True)
             # m1.display('make_condeqs', full=True)
         
-
-    if 0:
-        m1.parmlist()
-        m1.parmlist('test')
 
     if 0:
         nn = m1.matrix_element(return_nodes=False)
