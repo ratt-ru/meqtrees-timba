@@ -159,13 +159,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     #### add editor window
     
     self._editor = QextScintilla(editor_box);
-    # base font adjustment factor
-    self._editor_fontadjust = self.fontInfo().pointSize() + 1;
-    self.adjust_editor_font();
     lo.addWidget(self._editor);
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self._lexer = QextScintillaLexerPython(self);
     self._editor.setLexer(self._lexer);
+    self._editor_fontadjust = -10;
+    self.adjust_editor_font();
     self._editor.markerDefine(QextScintilla.RightTriangle,self.ErrorMarker);
     self._editor.markerDefine(QextScintilla.RightTriangle,self.CurrentErrorMarker);
     self._editor.setMarkerForegroundColor(QColor("red"),self.ErrorMarker);
@@ -886,9 +885,12 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.import_content();
     
   def adjust_editor_font (self):
-    # sets the editor font size based on our own size
-    fi = self.fontInfo();
-    self._editor.zoomTo(fi.pointSize() - self._editor_fontadjust);
+    self._editor.setFont(self.font());
+    self._lexer.setDefaultFont(self.font());
+    self._lexer.setFont(self.font(),-1);
+    ps = self.fontInfo().pointSize()+self._editor_fontadjust;
+    self._editor.zoomTo(ps);
+    print "font size: ",self._lexer.defaultFont().pointSize(),self._lexer.defaultFont().pixelSize();
     
   def has_focus (self,focus):
     if focus:
