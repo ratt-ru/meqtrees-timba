@@ -231,11 +231,13 @@ class ChartPlot(QWidget):
     self._zoom_pen = {}
     self._main_pen = {}
     self._crv_key = {}
+    self._source_marker = {}
     for i in range (self._nbcrv):
         self._updated_data[i] = False
         self._indexzoom[i] = False
         self._pause[i] = False
         self._Zoom[i] = None
+        self._source_marker[i] = None
         self._good_data[i] = True
         self._mrk[i] = 0
         self._crv_key[i] = 0
@@ -726,6 +728,7 @@ class ChartPlot(QWidget):
         else:
           tmp_max = chart.max()
           tmp_min = chart.min()
+        chart_range = abs(tmp_max - tmp_min)
         # check if we break any highest or lowest limits
         # this is important for offset reasons.
         if tmp_max > self._highest_value:
@@ -744,8 +747,28 @@ class ChartPlot(QWidget):
         if chart.type() == Complex32 or chart.type() == Complex64:
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
           self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
+          ylb = abs_chart[0] + temp_off 
         else:
           self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
+          ylb = chart[0] + temp_off 
+
+        # update marker with info about the plot
+        message = 'Ch ' + str(channel)
+# alias
+        fn = self._plotter.fontInfo().family()
+
+# text marker giving source of point that was clicked
+        if not self._source_marker[channel] is None:
+          self._plotter.removeMarker(self._source_marker[channel]);
+        self._source_marker[channel] = self._plotter.insertMarker()
+        xlb = temp_x[0]
+        self._plotter.setMarkerPos(self._source_marker[channel], xlb, ylb)
+        self._plotter.setMarkerLabelAlign(self._source_marker[channel], Qt.AlignRight | Qt.AlignTop)
+        self._plotter.setMarkerLabel(self._source_marker[channel], message,
+            QFont(fn, 7, QFont.Bold, False),
+            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+
+
 	 
 # need to update any corresponding Zoom window     
 #        self._Zoom[channel].resize_x_axis(len(self._chart_data[channel]))
