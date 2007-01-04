@@ -485,10 +485,10 @@ class ChartPlot(QWidget):
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
       if not self._data_label is None:
         self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
-      if self._good_data[crv]:
-        self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
-      else:
-        self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.red))
+#     if self._good_data[crv]:
+#       self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
+#     else:
+#       self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.red))
       self._pause[crv] = False
       self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
       self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)

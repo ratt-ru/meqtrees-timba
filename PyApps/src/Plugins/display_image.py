@@ -166,6 +166,8 @@ class QwtImageDisplay(QwtPlot):
         'Change Vells': 314,
         'Toggle 3D Display': 315,
         'Toggle Warp Display': 316,
+        'Toggle Pause': 317,
+        'Toggle Comparison': 318,
         }
 
     _start_spectrum_menu_id = 0
@@ -194,6 +196,9 @@ class QwtImageDisplay(QwtPlot):
 	self._flags_array = None
 	self.flag_toggle = None
 	self.flag_blink = False
+        self._zoom_display = False
+        self._do_pause = False
+        self._compare_max = False
 
 # save raw data
         self.plot_key = plot_key
@@ -340,6 +345,9 @@ class QwtImageDisplay(QwtPlot):
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
 #       self.__init__
+
+    def setZoomDisplay(self):
+      self._zoom_display = True
 
     def getPlotParms(self):
         """ Obtain current plot parameters for modification """
@@ -630,9 +638,38 @@ class QwtImageDisplay(QwtPlot):
           self.toggleMetrics()
         self.replot()
         return True
+      
+      if menuid == self.menu_table['Toggle Pause']:
+        self.Pausing()
+        return True
+      if menuid == self.menu_table['Toggle Comparison']:
+        self.do_compare()
+        return True
+
 
 # if we get here ...
       return False
+
+    def Pausing(self):
+      toggle_id = self.menu_table['Toggle Pause']
+      if self._do_pause:
+          self._menu.changeItem(toggle_id, 'Pause')
+          self._do_pause = False
+      else:
+          self._menu.changeItem(toggle_id, 'Resume')
+          self._do_pause = True
+      self.emit(PYSIGNAL("winpaused"),(self._do_pause,))
+
+    def do_compare(self):
+      toggle_id = self.menu_table['Toggle Comparison']
+      if self._compare_max:
+        self._compare_max = False
+        self._menu.changeItem(toggle_id, 'Do Comparison')
+      else:
+        self._compare_max = True
+        self._menu.changeItem(toggle_id, 'Stop Comparison')
+      self.emit(PYSIGNAL("compare"),(self._compare_max,))
+
 
     def toggleMetrics(self):
       """ callback to make Solver Metrics plots visible or invisible """
@@ -2765,6 +2802,12 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle chi-square surfaces display']
           self._menu.setItemVisible(toggle_id, True)
+
+        if self._zoom_display:
+          toggle_id = self.menu_table['Toggle Pause']
+          self._menu.insertItem("Pause", toggle_id)
+          toggle_id = self.menu_table['Toggle Comparison']
+          self._menu.insertItem("Do Comparison", toggle_id)
 
     def set_original_array_rank(self, original_array_rank):
       self.original_data_rank = original_array_rank
