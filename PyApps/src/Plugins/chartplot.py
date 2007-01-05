@@ -793,6 +793,7 @@ class ChartPlot(QWidget):
           self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
           ylb = abs_chart[0] + temp_off 
         else:
+          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.yellow))
           self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
           ylb = chart[0] + temp_off 
 
