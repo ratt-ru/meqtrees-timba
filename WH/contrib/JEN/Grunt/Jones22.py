@@ -452,7 +452,7 @@ def _define_forest(ns):
     jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
     dcolls.append(jones.visualize())
     jones.display(full=True)
-    jones.display_parmgroups(full=False, composite=False)
+    # jones.display_parmgroups(full=False)
 
     jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
     dcolls.append(jones.visualize())

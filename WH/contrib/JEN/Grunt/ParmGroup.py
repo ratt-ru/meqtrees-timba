@@ -112,7 +112,7 @@ class SimulatedParmGroup (NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0,
+                 default=0.0, ctrl=None,
                  scale=1.0, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
                  rider=None):
 
@@ -121,13 +121,34 @@ class SimulatedParmGroup (NodeGroup):
                            color=color, style=style, size=size, pen=pen,
                            rider=rider)
 
-        # Information needed to create MeqParm nodes (see create_entry())
-        self._default = default               # default value
-
-        self._tags.append('simul')        # ....??
+        # Make sure that tags/quals of the created nodes reflect the fact
+        # that this is a simulated parameter.
+        self._tags.append('simul')            # ....??
         self._quals.append('simul')
 
+        # The default value of the MeqParm that is being simulated:
+        self._default = default               # default value
+
         # Information to create a simulation subtree (see create_entry())
+        pp = dict()                           # Simulation control info
+        if isinstance (ctrl, dict):
+            pp = deepcopy(ctrl)
+        pp.setdefault('scale', None)
+        pp.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
+        pp.setdefault('Tsec', 1000.0)         # Time variation (cos) period
+        pp.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
+
+        # Some checks:
+        if pp['scale']==None:
+            pp['scale'] = abs(self._default)  #   use the (non-zero!) default value
+            if pp['scale']==0.0: pp['scale'] = 1.0
+
+        # Store:
+        self._ctrl = pp 
+
+
+        #------------------------------------------------------------------------------
+        # Obsolete
         self._scale = scale                   # the scale of the MeqParm value
         if not self._scale:                   # if not specified (or zero):
             self._scale = abs(self._default)  #   use the (non-zero!) default value
@@ -135,6 +156,7 @@ class SimulatedParmGroup (NodeGroup):
         self._stddev = stddev                 # relative to scale, but w.r.t. default 
         self._Tsec = Tsec                     # period of cosinusoidal variation(time) 
         self._Tstddev = Tstddev               # variation of the period
+        #------------------------------------------------------------------------------
 
         return None
                 
@@ -143,6 +165,8 @@ class SimulatedParmGroup (NodeGroup):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - default: '+str(self._default)
+        for key in self._ctrl.keys():
+            print '   - '+key+' = '+str(self._ctrl[key])
         print '   - sttdev (relative, w.r.t. default) = '+str(self._stddev)
         print '   - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
         print '   - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
@@ -158,6 +182,8 @@ class SimulatedParmGroup (NodeGroup):
 
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
         quals = self._quals.get(append=qual)
+
+        pp = self._ctrl                                 # Convenience
             
         # Expression used:
         #  default += ampl*cos(2pi*time/Tsec),

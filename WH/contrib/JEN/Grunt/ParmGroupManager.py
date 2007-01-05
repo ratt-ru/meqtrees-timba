@@ -1,11 +1,11 @@
-# file: ../Grunt/NodeGroupManager.py
+# file: ../Grunt/ParmGroupManager.py
 
 # History:
 # - 04jan2007: creation (extracted from Matrix22.py) 
 
 # Description:
 
-# The NodeGroupManager class encapsulates a number of NodeGroups
+# The ParmGroupManager class encapsulates a number of ParmGroups
 # e.g. ParmGroups or SimulatedParmGroups.
 # It is used in classes like Matrix22. 
 
@@ -25,8 +25,8 @@ from copy import deepcopy
 
 #======================================================================================
 
-class NodeGroupManager (object):
-    """Class that encapsulates a number of NodeGroups
+class ParmGroupManager (object):
+    """Class that encapsulates a number of ParmGroups
     e.g. ParmGroups or SimulatedParmGroups."""
 
     def __init__(self, ns, quals=[], label='ngm', simulate=False):
@@ -34,13 +34,13 @@ class NodeGroupManager (object):
         self._label = label                          # label of the matrix 
 
         # Node-name qualifiers:
-        self._quals = Qualifiers(quals, prepend=label)
+        self._quals = Qualifiers(quals)
 
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
-        if self._simulate:
-            self._quals.append('simul')
+        # if self._simulate:
+        #     self._quals.append('simul')
 
-        # NodeGroup objects:
+        # ParmGroup objects:
         self._parmgroup = dict()                     # available ParmGroup objects (solvable)
         self._simparmgroup = dict()                  # available SimulatedParmGroup objects 
         self._pgog = dict()                          # used for define_gogs()
@@ -52,7 +52,7 @@ class NodeGroupManager (object):
     #-------------------------------------------------------------------
 
     def label(self):
-        """Return the NodeGroupManager object label""" 
+        """Return the ParmGroupManager object label""" 
         return self._label
 
     def quals(self, append=None, prepend=None, exclude=None):
@@ -70,19 +70,12 @@ class NodeGroupManager (object):
         if self._simulate: ss += ' (simulate)'
         return ss
 
-    def display_specific(self, full=False):
-        """Print the specific part of the summary of this object"""
-        # NB: This function is called in .display().
-        #     It should be re-implemented in a derived class.
-        return True
 
     def display(self, txt=None, full=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
-        self.display_specific(full=full)
-        print '** Generic (class NodeGroupManager):'
         #...............................................................
         ntot = len(self._parmgroup) + len(self._simparmgroup)
         print ' * Available NodeGroup objects ('+str(ntot)+'): '
@@ -95,16 +88,25 @@ class NodeGroupManager (object):
         return True
 
 
-    #=====================================================================
+    #-----------------------------------------------------------------------------
 
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[], 
                          Tsec=1000.0, Tstddev=0.1,
                          scale=1.0, stddev=0.1,
                          matrel='*',
+                         simul=None, simulate_override=None,
                          rider=None):
         """Helper function to define a named (Simulated)ParmGroup object."""
 
+        # There are two modes: In normal mode (simulate=False), a ParmGroup
+        # is initialised, whose create_entry() method creates regular MeqParms.
+        # Otherwise, a SimulatedParmGroup is initialises, whose .create_entry()
+        # method produces subtrees that simulate MeqParm behaviour.
+        simulate = self._simulate                        # overall (see __init__())
+        if isinstance(simulate_override, bool):
+            simulate = simulate_override                 # overrride
+            
         # ....
         node_groups = ['Parm']
         # node_groups.extend(self.quals())               # <---------- !!!
@@ -122,7 +124,8 @@ class NodeGroupManager (object):
             spg = SimulatedParmGroup (self._ns, label=name,
                                       quals=self.quals(),
                                       descr=descr, default=default,
-                                      tags=ptags, 
+                                      tags=ptags,
+                                      ctrl=simul,
                                       Tsec=Tsec, Tstddev=Tstddev,
                                       scale=scale, stddev=stddev,
                                       rider=rider) 
@@ -152,7 +155,7 @@ class NodeGroupManager (object):
         # Finished:
         return True
 
-    #.....................................................................................
+    #-----------------------------------------------------------------------------
 
     def create_parmgroup_entry(self, key=None, qual=None):
         """Create an entry with the specified qual in the specified (key)
@@ -161,27 +164,36 @@ class NodeGroupManager (object):
             return self._simparmgroup[key].create_entry(qual)
         return self._parmgroup[key].create_entry(qual)
 
-    #.....................................................................................
+    #-----------------------------------------------------------------------------
 
-    def define_gogs(self, name='NodeGroupManager'):
+    def define_gogs(self, name='ParmGroupManager', trace=True):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
         It uses the information gleaned from the tags in define_parmgroup()"""
-        print '\n** define_gogs(',name,'):'
+
+        if trace: print '\n** define_gogs(',name,'):'
 
         # First collect the primary ParmGroups in pg and spg:
         pg = []
         for key in self._parmgroup.keys():
+            if trace: print '- pg:',key
             pg.append(self._parmgroup[key])
         spg = []
         for key in self._simparmgroup.keys():
+            if trace: print '- spg:',key
             spg.append(self._simparmgroup[key])
             
         # Then make separate gogs, as defined by the common tags:
         for key in self._pgog.keys():
             rider = self._make_pgog_rider(self._pgog[key])
+            if trace:
+                print '- pgog:',key,rider
+                for g in self._pgog[key]: print '   - ',g.label()
             self._parmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
                                             group=self._pgog[key],rider=rider)
         for key in self._sgog.keys():
+            if trace:
+                print '- sgog:',key
+                for g in self._sgog[key]: print '   - ',g.label()
             self._simparmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
                                                group=self._sgog[key])
 
@@ -190,14 +202,20 @@ class NodeGroupManager (object):
         for label in [name,'*']:
             if len(pg)>0:
                 rider = self._make_pgog_rider(pg)
+                if trace:
+                    print '- pg overall:',label,rider
+                    for g in pg: print '   - ',g.label()
                 self._parmgroup[label] = NodeGog (self._ns, label=label, group=pg, rider=rider,
                                                   descr='all '+name+' parameters')
             if len(spg)>0:
+                if trace:
+                    print '- spg overall:',label
+                    for g in spg: print '   - ',g.label()
                 self._simparmgroup[label] = NodeGog (self._ns, label=label, group=spg,
                                                      descr='all simulated '+name+' parameters')
         return None
 
-    #.....................................................................
+    #-----------------------------------------------------------------------------
 
     def _make_pgog_rider(self, group=[]):
         """Helper function to make a NodeGog rider from the riders of
@@ -236,40 +254,24 @@ class NodeGroupManager (object):
         return True
 
     def merge_parmgroups(self, other):
-        """Helper function to merge its parmgroups with those of another NodeGroupManager object"""
+        """Helper function to merge its parmgroups with those of another ParmGroupManager object"""
         self._parmgroup.update(other._parmgroup)
         self._simparmgroup.update(other._simparmgroup)
         return True
 
 
-
-    
-
-    #=====================================================================
-    # Test module:
-    #=====================================================================
+    #-----------------------------------------------------------------------------
 
     def test (self):
         """Helper function to make some test-matrices"""
         quals = self.quals()
-        name = 'matrix22'
-        keys = self._matrel.keys()
-        index = 0
-        indices = []
-        for key in keys:
-            index += 1
-            indices.append(index)
-            self.define_parmgroup(key, descr='matrix element: '+key,
-                                  default=index/10.0, stddev=0.01,
-                                  tags=['test'])
-            mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self.create_parmgroup_entry(key, index)
-            mm[key] = self._ns << Meq.Polar(1.0,mm[key])
-            mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
-                                                                mm['m21'],mm['m22'])
-        # Store the matrices and the list if indices:
-        self.indices(new=indices)
-        self.matrix(new=self._ns[name](*quals))
+        name = 'PGM'
+        for name in ['first','second','third']:
+            for index in range(4):
+                self.define_parmgroup(name, descr='...'+name,
+                                      default=index/10.0, stddev=0.01,
+                                      tags=['test'])
+            node = self.create_parmgroup_entry(name, index)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()
@@ -289,22 +291,13 @@ class NodeGroupManager (object):
 def _define_forest(ns):
 
     cc = []
-    simulate = True
 
-    mat1 = NodeGroupManager(ns, quals=[], simulate=True)
-    mat1.test()
-    cc.append(mat1.visualize())
-    mat1.display(full=True)
+    pgm = ParmGroupManager(ns, quals=[], simulate=True)
+    pgm.test()
+    # cc.append(pgm.visualize())
+    pgm.display(full=True)
 
-    mat2 = NodeGroupManager(ns, quals=[], simulate=False)
-    mat2.test()
-    cc.append(mat2.visualize())
-    mat2.display(full=True)
-
-    reqseq = mat1.make_solver('*', mat2)
-    cc.append(reqseq)
-
-    ns.result << Meq.ReqSeq(children=cc)
+    ns.result << Meq.Composer(children=cc)
     return True
 
 #---------------------------------------------------------------
@@ -327,14 +320,11 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = NodeGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=True)
-        m1.test()
-        # m1.display_parmgroups(full=False)
-        m1.display(full=True)
+        pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=True)
+        pgm.test()
+        # pgm.display_parmgroups(full=False)
+        pgm.display(full=True)
 
-    if 0:
-        m1.unop('Cos')
-        m1.display('after unop', full=True)
         
 
 
