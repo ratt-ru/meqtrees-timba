@@ -1,11 +1,11 @@
-# file: ../Grunt/Jones.py
+# file: ../Grunt/Jones22.py
 
 # History:
 # - 25dec2006: creation
 
 # Description:
 
-# The Jones class is a base-class for classes that define and
+# The Jones22 class is a base-class for classes that define and
 # encapsulate groups of 2x2 station Jones matrices.
 
 #======================================================================================
@@ -25,7 +25,7 @@ from copy import deepcopy
 
 #======================================================================================
 
-class Jones (Matrix22):
+class Jones22 (Matrix22):
     """Class that represents a set of 2x2 Jones matrices"""
 
     def __init__(self, ns, quals=[], label='<j>',
@@ -142,10 +142,10 @@ class Jones (Matrix22):
 
 
 #=================================================================================================
-# Example of an actual Jones matrix
+# Example of an actual Jones22 matrix
 #=================================================================================================
 
-class GJones (Jones):
+class GJones (Jones22):
     """Class that represents a set of 2x2 GJones matrices,
     which model the (complex) gains due to electronics
     and (optionally) the tropospheric phase (a.k.a. TJones).
@@ -155,7 +155,7 @@ class GJones (Jones):
     def __init__(self, ns, quals=[], label='G',
                  telescope=None, stations=None, polrep='linear',
                  simulate=False):
-        Jones.__init__(self, ns, quals=quals, label=label,
+        Jones22.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self.pols()                        # e.g. ['X','Y']
@@ -188,7 +188,7 @@ class GJones (Jones):
 
 #--------------------------------------------------------------------------------------------
 
-class EJones (Jones):
+class EJones (Jones22):
     """Class that represents a set of 2x2 EJones matrices,
     which model the station beamshapes.
     EJones is an image-plane effect."""
@@ -196,7 +196,7 @@ class EJones (Jones):
     def __init__(self, ns, quals=[], label='E',
                  telescope=None, stations=None, polrep='linear',
                  simulate=False):
-        Jones.__init__(self, ns, quals=quals, label=label,
+        Jones22.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self._pols
@@ -230,7 +230,7 @@ class EJones (Jones):
 
 
 #--------------------------------------------------------------------------------------------
-class FJones (Jones):
+class FJones (Jones22):
     """Class that represents a set of 2x2 FJones matrices,
     for both polarization representations (linear and circular).
     For the moment, the ionospheric Faraday rotation is assumen
@@ -239,7 +239,7 @@ class FJones (Jones):
     def __init__(self, ns, quals=[], label='F',
                  telescope=None, stations=None, polrep='linear',
                  simulate=False):
-        Jones.__init__(self, ns, quals=quals, label=label,
+        Jones22.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations, polrep=polrep,
                        simulate=simulate)
         quals = self.quals()
@@ -284,14 +284,14 @@ class FJones (Jones):
 
 #--------------------------------------------------------------------------------------------
 
-class DJones (Jones):
+class DJones (Jones22):
     """Class that represents a set of 2x2 DJones matrices"""
 
     def __init__(self, ns, quals=[], label='D',
                  telescope=None, stations=None, polrep='linear',
                  coupled_dang=True, coupled_dell=True,
                  simulate=False):
-        Jones.__init__(self, ns, quals=quals, label=label,
+        Jones22.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self._pols
@@ -374,7 +374,7 @@ class DJones (Jones):
 
 #--------------------------------------------------------------------------------------------
 
-class JJones (Jones):
+class JJones (Jones22):
     """Class that represents a set of 2x2 JJones matrices.
     Each of the 4 complex elements of a station Jones matrix
     is assumed to be independent. The parameters are their real
@@ -385,7 +385,7 @@ class JJones (Jones):
                  diagonal=False,
                  telescope=None, stations=None,
                  simulate=False):
-        Jones.__init__(self, ns, quals=quals, label=label,
+        Jones22.__init__(self, ns, quals=quals, label=label,
                        telescope=telescope, stations=stations,
                        simulate=simulate)
         quals = self.quals()
