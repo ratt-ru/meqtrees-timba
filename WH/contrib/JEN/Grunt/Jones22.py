@@ -13,11 +13,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Qualifiers import *
-from ParmGroup import *
 from Matrix22 import *
 
-# from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
@@ -29,52 +26,17 @@ class Jones22 (Matrix22):
     """Class that represents a set of 2x2 Jones matrices"""
 
     def __init__(self, ns, quals=[], label='<j>',
-                 telescope=None, stations=None, polrep=None,
+                 stations=None, polrep=None,
                  simulate=False):
 
-        # Telescope-specific information:
-        self._telescope = telescope                  # e.g. WSRT
-        indices = deepcopy(stations)                 # list of (array) station indices
-        self._polrep = polrep                        # polarization representation (linear, circular)
-        self._mount = None                           # Antenna mount (equatotial, altaz, None, ...)
-        self._diam = None                            # antenna diameter (m)
-
-        if self._telescope=='WSRT':
-            if indices==None: indices = range(1,15)
-            self._polrep = 'linear'
-            self._mount = 'equatorial'
-            self._diam = 25
-        elif self._telescope=='LOFAR':
-            if indices==None: indices = range(1,31)
-            self._polrep = 'linear'
-            self._mount = 'horizontal'
-            self._diam = 60
-        elif self._telescope=='VLA':
-            if indices==None: indices = range(1,28)
-            self._polrep = 'circular'
-            self._mount = 'altaz'
-            self._diam = 25
-        elif self._telescope=='ATCA':
-            if indices==None: indices = range(1,7)
-            self._polrep = 'linear'
-            self._mount = 'altaz'
-            self._diam = 25
-        elif self._telescope=='GMRT':
-            if indices==None: indices = range(1,31)
-            self._polrep = 'linear'
-            self._mount = 'altaz'
-            self._diam = 45
-        elif indices==None:
-            indices = range(1,4)              # for testing convenience....
-
-        self._pols = ['A','B']
-        if self._polrep == 'linear':
-            self._pols = ['X','Y']
-        elif self._polrep == 'circular':
-            self._pols = ['R','L']
+        # List of (array) station indices:
+        indices = deepcopy(stations)
+        if indices==None:
+            indices = range(1,4)                     # for testing convenience....
 
         # Initialise its Matrix22 object:
         Matrix22.__init__(self, ns, quals=quals, label=label,
+                          polrep=polrep, 
                           indices=indices, simulate=simulate)
 
         return None
@@ -87,22 +49,13 @@ class Jones22 (Matrix22):
 
     #-------------------------------------------------------------------
 
-    def telescope(self):
-        """Return the name of the relevant telescope (e.g. WSRT)"""
-        return self._telescope
-
-    def polrep(self):
-        """Return the polarization representation (linear, circular, None)"""
-        return self._polrep
-
-    def pols(self):
-        """Return the list of 2 polarization names (e.g. ['X','Y'])"""
-        return self._pols
-
     def _pols_matrel(self):
-        """Helper function to make a dict of Matrix22 elements for the 2 pols"""
-        matrel = dict()
+        """Convenience function to make a dict with pols as field-names,
+        which gives the relevant Matrix22 elements for the 2 pols.
+        Used e.g. in GJones to indicate that only the diagonal matrix
+        elements should be used to solve for Ggain and Gphase."""
         pols = self.pols()
+        matrel = dict()
         matrel[pols[0]] = 'm11'
         matrel[pols[1]] = 'm22'
         return matrel
@@ -113,10 +66,7 @@ class Jones22 (Matrix22):
         """Return a one-line summary of this object"""
         ss = str(type(self))
         ss += '  '+str(self.label())
-        if self._telescope:
-            ss += '  '+str(self._telescope)
-        else:
-            ss += '  pols='+str(self._pols)
+        ss += '  pols='+str(self._pols)
         ss += '  n='+str(len(self.stations()))
         ss += '  quals='+str(self.quals())
         return ss
@@ -125,8 +75,6 @@ class Jones22 (Matrix22):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
-        print '   - polrep: '+str(self._polrep)+', pols='+str(self._pols)
-        print '   - Antenna mount: '+str(self._mount)+', diam='+str(self._diam)+'(m)'
         return True
 
 
@@ -149,10 +97,10 @@ class GJones (Jones22):
     GJones is the same for linear and circular polarizations."""
 
     def __init__(self, ns, quals=[], label='G',
-                 telescope=None, stations=None, polrep='linear',
+                 stations=None, polrep='linear',
                  simulate=False):
         Jones22.__init__(self, ns, quals=quals, label=label,
-                       telescope=telescope, stations=stations, polrep=polrep,
+                       stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self.pols()                        # e.g. ['X','Y']
         quals = self.quals()
@@ -190,10 +138,10 @@ class EJones (Jones22):
     EJones is an image-plane effect."""
 
     def __init__(self, ns, quals=[], label='E',
-                 telescope=None, stations=None, polrep='linear',
+                 stations=None, polrep='linear',
                  simulate=False):
         Jones22.__init__(self, ns, quals=quals, label=label,
-                       telescope=telescope, stations=stations, polrep=polrep,
+                       stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self._pols
         quals = self.quals()
@@ -233,10 +181,10 @@ class FJones (Jones22):
     to be the same for all stations, and the entire FOV."""
 
     def __init__(self, ns, quals=[], label='F',
-                 telescope=None, stations=None, polrep='linear',
+                 stations=None, polrep='linear',
                  simulate=False):
         Jones22.__init__(self, ns, quals=quals, label=label,
-                       telescope=telescope, stations=stations, polrep=polrep,
+                       stations=stations, polrep=polrep,
                        simulate=simulate)
         quals = self.quals()
         polrep = self.polrep()
@@ -284,11 +232,11 @@ class DJones (Jones22):
     """Class that represents a set of 2x2 DJones matrices"""
 
     def __init__(self, ns, quals=[], label='D',
-                 telescope=None, stations=None, polrep='linear',
+                 stations=None, polrep='linear',
                  coupled_dang=True, coupled_dell=True,
                  simulate=False):
         Jones22.__init__(self, ns, quals=quals, label=label,
-                       telescope=telescope, stations=stations, polrep=polrep,
+                       stations=stations, polrep=polrep,
                        simulate=simulate)
         pols = self._pols
         quals = self.quals()
@@ -379,11 +327,11 @@ class JJones (Jones22):
 
     def __init__(self, ns, quals=[], label='J',
                  diagonal=False,
-                 telescope=None, stations=None,
+                 stations=None, polrep=None,
                  simulate=False):
         Jones22.__init__(self, ns, quals=quals, label=label,
-                       telescope=telescope, stations=stations,
-                       simulate=simulate)
+                         stations=stations, polrep=polrep,
+                         simulate=simulate)
         quals = self.quals()
         jname = self.label()+'Jones'
         enames = ['J11','J12','J21','J22']
@@ -430,31 +378,39 @@ class JJones (Jones22):
 
 def _define_forest(ns):
 
-    dcolls = []
+    cc = []
     simulate = True
 
     jones = GJones(ns, quals=[], simulate=simulate)
-    dcolls.append(jones.visualize())
+    cc.append(jones.visualize())
     # jones.display(full=True)
 
+    if True:
+        j2 = GJones(ns, quals=[], simulate=False)
+        cc.append(j2.visualize())
+        # j2.display(full=True)
+        reqseq = jones.make_solver('*', j2)
+        cc.append(reqseq)
+
+
     jones = JJones(ns, quals=[], simulate=simulate)
-    dcolls.append(jones.visualize())
+    cc.append(jones.visualize())
     # jones.display(full=True)
 
     jones = DJones(ns, quals=[], simulate=simulate)
-    dcolls.append(jones.visualize())
+    cc.append(jones.visualize())
     # jones.display(full=True)
 
     jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
-    dcolls.append(jones.visualize())
+    cc.append(jones.visualize())
     jones.display(full=True)
     # jones.display_parmgroups(full=False)
 
     jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
-    dcolls.append(jones.visualize())
+    cc.append(jones.visualize())
     jones.display(full=True)
 
-    ns.result << Meq.Composer(children=dcolls)
+    ns.result << Meq.Composer(children=cc)
     return True
 
 #---------------------------------------------------------------

@@ -14,7 +14,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from ParmGroupManager import *
-# from ParmGroup import *
 from Qualifiers import *
 
 # from Timba.Contrib.JEN.Grunt import ParmGroup
@@ -31,9 +30,17 @@ class Matrix22 (object):
     It also contains the named ParmGroup objects that encapsulate
     groups of MeqParm nodes (or their simulation subtrees)"""
 
-    def __init__(self, ns, quals=[], label='M', indices=[], simulate=False):
+    def __init__(self, ns, quals=[], label='M', indices=[],
+                 polrep=None, simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
+
+        self._polrep = polrep                        # polarization representation (linear, circular)
+        self._pols = ['A','B']
+        if self._polrep == 'linear':
+            self._pols = ['X','Y']
+        elif self._polrep == 'circular':
+            self._pols = ['R','L']
 
         # Node-name qualifiers:
         self._quals = Qualifiers(quals, prepend=label)
@@ -64,7 +71,7 @@ class Matrix22 (object):
     def copy(self):
         """Return a (limited) copy of the current Matrix22 object.
         For the moment, for limited use only (no self._parmgroups)."""
-        # return deepcopy(self)
+        # return deepcopy(self)..........................does not work...
         c = Matrix22(self._ns, quals=self.quals(),
                      label='copy('+self.label()+')',
                      indices=self.indices(),
@@ -84,12 +91,25 @@ class Matrix22 (object):
 
     #-------------------------------------------------------------------
 
+    def polrep(self):
+        """Return the polarization representation (linear, circular, None)"""
+        return self._polrep
+
+    def pols(self):
+        """Return the list of 2 polarization names (e.g. ['X','Y'])"""
+        return self._pols
+
+    #-------------------------------------------------------------------
+
     def indices(self, new=None):
         """Get/set the list of (matrix) indices"""
         if new:
             self._indices = new
         return self._indices
 
+    def len(self):
+        """Return the 'length' of the object, i.e. the number of matrices"""
+        return len(self._indices)
 
     def matrix(self, new=None):
         """Get/set the 2x2 matrices themselves"""
@@ -146,17 +166,34 @@ class Matrix22 (object):
         if txt: print ' * (txt='+str(txt)+')'
         self.display_specific(full=full)
         print '** Generic (class Matrix22):'
-        print ' * Available indices ('+str(len(self.indices()))+'): '+str(self.indices())
+        print ' * Polrep: '+str(self._polrep)+', pols='+str(self._pols)
+        print ' * Available indices ('+str(self.len())+'): ',
+        if self.len()<30:
+            print str(self.indices())
+        else:
+            print '\n   '+str(self.indices())
         #...............................................................
-        print ' * Available 2x2 matrices ('+str(len(self.indices()))+'): '
+        print ' * Available 2x2 matrices ('+str(self.len())+'): '
         if self._matrix:
-            for s in self.indices():
-                print '  - '+str(s)+': '+str(self.matrix()(s))
-            print ' * The first two matrices:'
-            for i in range(len(self.indices())):
-                if i<2:
-                    node = self.matrix()(self.indices()[i])
-                    self._dummyParmGroup.display_subtree(node, txt=str(i), recurse=2)
+            ii = self.indices()
+            if len(ii)<10:
+                for i in ii: print '  - '+str(i)+': '+str(self.matrix()(i))
+            else:
+                ilast = ii[len(ii)-1]
+                for i in ii[:2]: print '  - '+str(i)+': '+str(self.matrix()(i))
+                print '         ......'
+                print '  - '+str(ilast)+': '+str(self.matrix()(ilast))
+            print ' * The first matrix:'
+            node = self.matrix()(self.indices()[0])
+            self._dummyParmGroup.display_subtree(node, txt=str(0),
+                                                 show_initrec=False,
+                                                 recurse=2)
+            if full:
+                print ' * The second matrix:'
+                node = self.matrix()(self.indices()[1])
+                self._dummyParmGroup.display_subtree(node, txt=str(1),
+                                                     show_initrec=False,
+                                                     recurse=2)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup objects ('+str(ntot)+'): '
@@ -328,10 +365,13 @@ class Matrix22 (object):
         # Get the names of the (subset of) matrix elements to be used:
         # (e.g. for GJones, we only use ['m11','m22'], etc)
         matrel = self._matrel.keys()          # i.e. ['m11','m12','m21','m22']
-        if True:
+        #===================================================
+        if False:
+            # Gives some problems: condeqs with condeq children.....?
             matrel = pg.rider('matrel')
             if matrel=='*': matrel = self._matrel.keys()
         # matrel = ['m11','m22']
+        #===================================================
 
         # Make a list of condeq nodes:
         condeq_copy = self.copy()
@@ -439,7 +479,6 @@ if __name__ == '__main__':
         m1 = Matrix22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
         m1.test()
         m1.visualize()
-        # m1.display_parmgroups(full=False)
         m1.display(full=True)
 
     if 0:
