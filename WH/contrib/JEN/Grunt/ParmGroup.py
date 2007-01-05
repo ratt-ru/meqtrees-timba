@@ -112,9 +112,7 @@ class SimulatedParmGroup (NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, ctrl=None,
-                 scale=1.0, stddev=0.1, Tsec=1000.0, Tstddev=0.1, 
-                 rider=None):
+                 default=0.0, ctrl=None, rider=None):
 
         NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
                            quals=quals, descr=descr, tags=tags, 
@@ -145,19 +143,6 @@ class SimulatedParmGroup (NodeGroup):
 
         # Store:
         self._ctrl = pp 
-
-
-        #------------------------------------------------------------------------------
-        # Obsolete
-        self._scale = scale                   # the scale of the MeqParm value
-        if not self._scale:                   # if not specified (or zero):
-            self._scale = abs(self._default)  #   use the (non-zero!) default value
-            if self._scale==0.0: self._scale = 1.0
-        self._stddev = stddev                 # relative to scale, but w.r.t. default 
-        self._Tsec = Tsec                     # period of cosinusoidal variation(time) 
-        self._Tstddev = Tstddev               # variation of the period
-        #------------------------------------------------------------------------------
-
         return None
                 
     #-------------------------------------------------------------------
@@ -167,9 +152,6 @@ class SimulatedParmGroup (NodeGroup):
         print '   - default: '+str(self._default)
         for key in self._ctrl.keys():
             print '   - '+key+' = '+str(self._ctrl[key])
-        print '   - sttdev (relative, w.r.t. default) = '+str(self._stddev)
-        print '   - scale: '+str(self._scale)+' -> stddev (abs) = '+str(self._scale*self._stddev)
-        print '   - period Tsec = '+str(self._Tsec)+'  Tstddev ='+str(self._Tstddev)
         return True
 
 
@@ -190,15 +172,15 @@ class SimulatedParmGroup (NodeGroup):
         #  where both ampl and Tsec may vary from node to node.
 
         ampl = 0.0
-        if self._stddev:                                # default variation
-            stddev = self._stddev*self._scale           # NB: self._stddev is relative
+        if pp['stddev']:                                # default variation
+            stddev = pp['stddev']*pp['scale']           # NB: pp['stddev is relative
             ampl = random.gauss(ampl, stddev)
         ampl = self._ns.ampl(*quals) << Meq.Constant(ampl)
         
-        Tsec = self._Tsec                               # variation period (sec)
-        if self._Tstddev:
-            stddev = self._Tstddev*self._Tsec           # NB: self._Tstddev is relative
-            Tsec = random.gauss(self._Tsec, stddev) 
+        Tsec = pp['Tsec']                               # variation period (sec)
+        if pp['Tstddev']:
+            stddev = pp['Tstddev']*pp['Tsec']           # NB: pp['Tstddev is relative
+            Tsec = random.gauss(pp['Tsec'], stddev) 
         Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
         time = self._ns << Meq.Time()
         pi2 = 2*math.pi
@@ -283,28 +265,22 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
-    pg1.test()
-    pg1.display()
-
     if 0:
-        pg2 = SimulatedParmGroup(ns, 'pg2')
+        pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
+        pg1.test()
+        pg1.display()
+
+        if 0:
+            dcoll = pg1.visualize()
+            pg1.display_subtree (dcoll, txt='dcoll')
+
+    if 1:
+        ctrl = dict(Tsec=500)
+        pg2 = SimulatedParmGroup(ns, 'pg2', ctrl=ctrl)
         pg2.test()
         pg2.display()
 
-    if 0:
-        dcoll = pg1.visualize()
-        pg1.display_subtree (dcoll, txt='dcoll')
 
-    if 0:
-        pg2 = ParmGroup(ns, 'pg2')
-        pg2.append_entry(ss << 1.0)
-        pg2.append_entry(ss << 2.0)
-        nn = pg2.nodelist(trace=True)
-        pg2.display()
-        if 1:
-            pg12 = ParmGroup(ns, 'pg12', pg=[pg1,pg2], descr='combination')
-            pg12.display()
 
 #===============================================================
     

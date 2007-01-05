@@ -13,7 +13,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from ParmGroup import *
+from ParmGroupManager import *
+# from ParmGroup import *
 from Qualifiers import *
 
 # from Timba.Contrib.JEN.Grunt import ParmGroup
@@ -51,11 +52,10 @@ class Matrix22 (object):
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
 
-        # NodeGroup objects:
-        self._parmgroup = dict()                     # available ParmGroup objects (solvable)
-        self._simparmgroup = dict()                  # available SimulatedParmGroup objects 
-        self._pgog = dict()                          # used for define_gogs()
-        self._sgog = dict()                          # used for define_gogs()
+        # The (solvable and simulated) MeqParms are handled in named groups:
+        self._pgm = ParmGroupManager(ns, label=self.label(),quals=self.quals(),
+                                     simulate=self._simulate)
+
         self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
         return None
 
@@ -158,12 +158,12 @@ class Matrix22 (object):
                     node = self.matrix()(self.indices()[i])
                     self._dummyParmGroup.display_subtree(node, txt=str(i), recurse=2)
         #...............................................................
-        ntot = len(self._parmgroup) + len(self._simparmgroup)
+        ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup objects ('+str(ntot)+'): '
-        for key in self.parmgroups():
-            print '  - '+str(self._parmgroup[key].oneliner())
-        for key in self._simparmgroup.keys():
-            print '  - (sim) '+str(self._simparmgroup[key].oneliner())
+        for key in self._pgm._parmgroup.keys():
+            print '  - '+str(self._pgm._parmgroup[key].oneliner())
+        for key in self._pgm._simparmgroup.keys():
+            print '  - (sim) '+str(self._pgm._simparmgroup[key].oneliner())
         #...............................................................
         print ' * Extracted matrix elements: '
         for key in self._matrel.keys():
@@ -180,154 +180,6 @@ class Matrix22 (object):
         print '**\n'
         return True
 
-
-    #=====================================================================
-    # Management of (Simulated)ParmGroups:
-    #=====================================================================
-
-    def define_parmgroup(self, name, descr=None,
-                         default=0.0, tags=[], 
-                         Tsec=1000.0, Tstddev=0.1,
-                         scale=1.0, stddev=0.1,
-                         matrel='*',
-                         rider=None):
-        """Helper function to define a named (Simulated)ParmGroup object."""
-
-        # ....
-        node_groups = ['Parm']
-        # node_groups.extend(self.quals())               # <---------- !!!
-
-        # Make sure that the group name is in the list of node tags:
-        ptags = deepcopy(tags)
-        if not isinstance(ptags,(list,tuple)): ptags = [ptags]
-        if not name in ptags: ptags.append(name)
-
-        # Specific information is attached to the ParmGroup via its rider.
-        if not isinstance(rider, dict): rider = dict()
-
-        # OK, define the relevant ParmGroup:
-        if self._simulate:
-            spg = SimulatedParmGroup (self._ns, label=name,
-                                      quals=self.quals(),
-                                      descr=descr, default=default,
-                                      tags=ptags, 
-                                      Tsec=Tsec, Tstddev=Tstddev,
-                                      scale=scale, stddev=stddev,
-                                      rider=rider) 
-            self._simparmgroup[name] = spg
-
-        else:
-            # - matrel specifies the matrix elements that are affected by the
-            #   MeqParms in this ParmGroup, and that are to be used in solving.
-            rider['matrel'] = deepcopy(matrel)
-            pg = ParmGroup (self._ns, label=name, 
-                            quals=self.quals(),
-                            descr=descr, default=default,
-                            tags=ptags, node_groups=node_groups,
-                            rider=rider)
-            self._parmgroup[name] = pg
-
-        # Collect information for define_gogs():
-        for tag in ptags:
-            if not tag in [name]:
-                if self._simulate:
-                    self._sgog.setdefault(tag, [])
-                    self._sgog[tag].append(self._simparmgroup[name])
-                else:
-                    self._pgog.setdefault(tag, [])
-                    self._pgog[tag].append(self._parmgroup[name])
-
-        # Finished:
-        return True
-
-    #.....................................................................................
-
-    def create_parmgroup_entry(self, key=None, qual=None):
-        """Create an entry with the specified qual in the specified (key)
-        (Simulated)ParmGroup (object)"""
-        if self._simulate:
-            return self._simparmgroup[key].create_entry(qual)
-        return self._parmgroup[key].create_entry(qual)
-
-    #.....................................................................................
-
-    def define_gogs(self, name='Matrix22'):
-        """Helper function to define NodeGogs, i.e. groups of ParmGroups.
-        It uses the information gleaned from the tags in define_parmgroup()"""
-        print '\n** define_gogs(',name,'):'
-
-        # First collect the primary ParmGroups in pg and spg:
-        pg = []
-        for key in self._parmgroup.keys():
-            pg.append(self._parmgroup[key])
-        spg = []
-        for key in self._simparmgroup.keys():
-            spg.append(self._simparmgroup[key])
-            
-        # Then make separate gogs, as defined by the common tags:
-        for key in self._pgog.keys():
-            rider = self._make_pgog_rider(self._pgog[key])
-            self._parmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
-                                            group=self._pgog[key],rider=rider)
-        for key in self._sgog.keys():
-            self._simparmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
-                                               group=self._sgog[key])
-
-        # Make the overall parmgroup(s) last, using the pg collected first:
-        # (Otherwise it gets in the way of the automatic group finding process).
-        for label in [name,'*']:
-            if len(pg)>0:
-                rider = self._make_pgog_rider(pg)
-                self._parmgroup[label] = NodeGog (self._ns, label=label, group=pg, rider=rider,
-                                                  descr='all '+name+' parameters')
-            if len(spg)>0:
-                self._simparmgroup[label] = NodeGog (self._ns, label=label, group=spg,
-                                                     descr='all simulated '+name+' parameters')
-        return None
-
-    #.....................................................................
-
-    def _make_pgog_rider(self, group=[]):
-        """Helper function to make a NodeGog rider from the riders of
-        the given group (list) of ParmGroups"""
-        # If any of the groups has matrel=='*' (all), return that.
-        for pg in group:
-            if pg.rider('matrel')=='*': return dict(matrel='*')
-        # Otherwise, collect a list:
-        mm = []
-        for pg in group:
-            mg = pg.rider('matrel')
-            if not isinstance(mg,(list,tuple)): mg = [mg]
-            for m in mg:
-                if not m in mm:
-                    mm.append(m)
-        return dict(matrel=mm)
-
-
-    #--------------------------------------------------------------
-
-    def parmgroups(self):
-        """Return the available ParmGroup names."""
-        return self._parmgroup.keys()
-
-    def parmgroup(self, key=None):
-        """Return the specified ParmGroup (object)"""
-        return self._parmgroup[key]
-    
-    def display_parmgroups(self, full=False):
-        """Display its ParmGroup objects"""
-        print '\n******** .display_parmgroups(full=',full,'):'
-        print '           ',self.oneliner()
-        for key in self.parmgroups():
-            self._parmgroup[key].display(full=full)
-        print '********\n'
-        return True
-
-    def merge_parmgroups(self, other):
-        """Helper function to merge its parmgroups with those of another Matrix22 object"""
-        self._parmgroup.update(other._parmgroup)
-        self._simparmgroup.update(other._simparmgroup)
-        return True
 
 
 
@@ -356,6 +208,18 @@ class Matrix22 (object):
             self._ns[unop](*quals)(i) << getattr(Meq,unop)(self._matrix(i))
         self._matrix = self._ns[unop](*quals)              # replace
         return True
+
+    #---------------------------------------------------------------------
+
+    def bundle(self, oper='Composer'):
+        """Bundle its matrices, using an operation like Composer, Add, Multiply etc"""
+        quals = self.quals()
+        if not self._ns.bundle(oper)(*quals).initialized():
+            for i in self._indices:
+                cc.append(self._matrix(i))
+            self._ns.bundle(oper)(*quals) << getattr(Meq,oper)(children=cc)
+        return self._ns.bundle(oper)(*quals)
+
 
 
     #=====================================================================
@@ -454,10 +318,11 @@ class Matrix22 (object):
 
         # Get the list of solvable MeqParm nodes:
         # ONLY from the other Matrix22 object, NOT from this one.....(?)
-        if not other._parmgroup.has_key(parmgroup):
-            print '** parmgroup (',parmgroup,') not recognised in:',other._parmgroup.keys()
+        # keys = other.pgm().solvable_groups()
+        if not other._pgm._parmgroup.has_key(parmgroup):
+            print '** parmgroup (',parmgroup,') not recognised in:',other._pgm._parmgroup.keys()
             return False
-        pg = other._parmgroup[parmgroup]
+        pg = other._pgm._parmgroup[parmgroup]
         solvable = pg.nodelist()
 
         # Get the names of the (subset of) matrix elements to be used:
@@ -502,11 +367,12 @@ class Matrix22 (object):
         for key in keys:
             index += 1
             indices.append(index)
-            self.define_parmgroup(key, descr='matrix element: '+key,
-                                  default=index/10.0, stddev=0.01,
-                                  tags=['test'])
+            self._pgm.define_parmgroup(key, descr='matrix element: '+key,
+                                       default=index/10.0,
+                                       # stddev=0.01,
+                                       tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self.create_parmgroup_entry(key, index)
+            mm[key] = self._pgm.create_parmgroup_entry(key, index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])
@@ -515,7 +381,7 @@ class Matrix22 (object):
         self.matrix(new=self._ns[name](*quals))
 
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs()
+        self._pgm.define_gogs()
         return True
 
 

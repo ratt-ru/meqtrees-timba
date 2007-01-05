@@ -130,10 +130,6 @@ class Jones22 (Matrix22):
         return True
 
 
-    #-------------------------------------------------------------------
-
-
-
 
 
 
@@ -166,24 +162,24 @@ class GJones (Jones22):
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+            self._pgm.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
                                   Tsec=200,
                                   matrel=matrel, tags=[pname,jname])
-            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+            self._pgm.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
                                   default=1.0,
                                   matrel=matrel, tags=[gname,jname])
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s)
-                gain = self.create_parmgroup_entry(gname+pol, s)
+                phase = self._pgm.create_parmgroup_entry(pname+pol, s)
+                gain = self._pgm.create_parmgroup_entry(gname+pol, s)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self._matrix = self._ns[jname](*quals)
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self._pgm.define_gogs(jname)
         return None
 
 #--------------------------------------------------------------------------------------------
@@ -207,24 +203,24 @@ class EJones (Jones22):
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+            self._pgm.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
                                   Tsec=200,
                                   matrel=matrel, tags=[pname,jname])
-            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+            self._pgm.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
                                   default=1.0,
                                   matrel=matrel, tags=[gname,jname])
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s)
-                gain = self.create_parmgroup_entry(gname+pol, s)
+                phase = self._pgm.create_parmgroup_entry(pname+pol, s)
+                gain = self._pgm.create_parmgroup_entry(gname+pol, s)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self._matrix = self._ns[jname](*quals)
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self._pgm.define_gogs(jname)
         return None
 
 
@@ -248,10 +244,10 @@ class FJones (Jones22):
         jname = self.label()+'Jones'
 
         # Define the primary ParmGroup:
-        self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
+        self._pgm.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
                               tags=[rname,jname])
 
-        RM = self.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
+        RM = self._pgm.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())
         wvl2 = self._ns << Meq.Sqr(wvl)                       # lambda squared
         farot = self._ns.farot(*quals) << (RM * wvl2)         # Faraday rotation angle
@@ -277,7 +273,7 @@ class FJones (Jones22):
             
         self._matrix = self._ns[jname](*quals)(polrep)
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self._pgm.define_gogs(jname)
         return None
 
 
@@ -303,24 +299,24 @@ class DJones (Jones22):
 
         # Define the various primary ParmGroups:
         if coupled_dang:
-            self.define_parmgroup(dname, descr='dipole angle error',
+            self._pgm.define_parmgroup(dname, descr='dipole angle error',
                                   tags=[dname,jname])
         else:
             for pol in pols:
-                self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
+                self._pgm.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
                                       tags=[dname,jname])
         if coupled_dell:
-            self.define_parmgroup(ename, descr='dipole ellipticity',
+            self._pgm.define_parmgroup(ename, descr='dipole ellipticity',
                                   tags=[ename,jname])
         else:
             for pol in pols:
-                self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
+                self._pgm.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
                                       tags=[ename,jname])
-        self.define_parmgroup(pname, descr='XY/RL phase-zero difference',
+        self._pgm.define_parmgroup(pname, descr='XY/RL phase-zero difference',
                               tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pzd = self.create_parmgroup_entry(pname)
+        pzd = self._pgm.create_parmgroup_entry(pname)
         pzd2 = self._ns << pzd/2
         pzd2neg = self._ns << Meq.Negate(pzd2)
         pmat = self._ns[pname](*quals) << Meq.Matrix22(pzd2,0.0,0.0,pzd2neg)
@@ -330,14 +326,14 @@ class DJones (Jones22):
 
             # Dipole rotation angles:
             if coupled_dang:
-                dang = self.create_parmgroup_entry(dname, s)
+                dang = self._pgm.create_parmgroup_entry(dname, s)
                 cos = self._ns << Meq.Cos(dang)
                 sin = self._ns << Meq.Sin(dang)
                 sinneg = self._ns << Meq.Negate(sin)
                 dmat = self._ns[dname](*quals)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = self.create_parmgroup_entry(dname+pols[0], s)
-                dang2 = self.create_parmgroup_entry(dname+pols[1], s)
+                dang1 = self._pgm.create_parmgroup_entry(dname+pols[0], s)
+                dang2 = self._pgm.create_parmgroup_entry(dname+pols[1], s)
                 cos1 = self._ns << Meq.Cos(dang1)
                 cos2 = self._ns << Meq.Cos(dang2)
                 sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
@@ -347,14 +343,14 @@ class DJones (Jones22):
 
             # Dipole ellipticities:
             if coupled_dell:
-                dell = self.create_parmgroup_entry(ename, s)
+                dell = self._pgm.create_parmgroup_entry(ename, s)
                 cos = self._ns << Meq.Cos(dell)
                 sin = self._ns << Meq.Sin(dell)
                 isin = self._ns << Meq.ToComplex(0.0, sin)
                 emat = self._ns[ename](*quals)(s) << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = self.create_parmgroup_entry(ename+pols[0], s)
-                dell2 = self.create_parmgroup_entry(ename+pols[1], s)
+                dell1 = self._pgm.create_parmgroup_entry(ename+pols[0], s)
+                dell2 = self._pgm.create_parmgroup_entry(ename+pols[1], s)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
                 isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
@@ -367,7 +363,7 @@ class DJones (Jones22):
 
         self._matrix = self._ns[jname](*quals)
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self._pgm.define_gogs(jname)
         return None
 
 
@@ -398,14 +394,14 @@ class JJones (Jones22):
             for rim in ['real','imag']:
                 default = 0.0
                 if rim=='real': default = 1.0
-                self.define_parmgroup(ename+rim, default=default, Tsec=200,
+                self._pgm.define_parmgroup(ename+rim, default=default, Tsec=200,
                                       descr=rim+' part of matrix element '+ename,
                                       tags=[jname,'Jdiag'])
         if not diagonal:
             for ename in ['J12','J21']:
                 ee.append(ename)
                 for rim in ['real','imag']:
-                    self.define_parmgroup(ename+rim, Tsec=200,
+                    self._pgm.define_parmgroup(ename+rim, Tsec=200,
                                           descr=rim+' part of matrix element '+ename,
                                           tags=[jname,'Joffdiag'])
 
@@ -413,14 +409,14 @@ class JJones (Jones22):
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in ee:
-                real = self.create_parmgroup_entry(ename+'real', s)
-                imag = self.create_parmgroup_entry(ename+'imag', s)
+                real = self._pgm.create_parmgroup_entry(ename+'real', s)
+                imag = self._pgm.create_parmgroup_entry(ename+'imag', s)
                 mm[ename] = self._ns[ename](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])
         self._matrix = self._ns[jname](*quals)
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self._pgm.define_gogs(jname)
         return None
 
 

@@ -77,14 +77,56 @@ class ParmGroupManager (object):
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
         #...............................................................
-        ntot = len(self._parmgroup) + len(self._simparmgroup)
-        print ' * Available NodeGroup objects ('+str(ntot)+'): '
+        print ' * Available NodeGroup objects: '
         for key in self.parmgroups():
-            print '  - '+str(self._parmgroup[key].oneliner())
+            pg = self._parmgroup[key]
+            if not isinstance(pg, NodeGog):
+                print '  - '+str(pg.oneliner())
         for key in self._simparmgroup.keys():
-            print '  - (sim) '+str(self._simparmgroup[key].oneliner())
+            spg = self._simparmgroup[key]
+            if not isinstance(spg, NodeGog):
+                print '  - (sim) '+str(spg.oneliner())
+
+        print ' * Available NodeGog (Groups of NodeGroups) objects: '
+        for key in self.parmgroups():
+            pg = self._parmgroup[key]
+            if isinstance(pg, NodeGog):
+                print '  - '+str(pg.oneliner())
+        for key in self._simparmgroup.keys():
+            spg = self._simparmgroup[key]
+            if isinstance(spg, NodeGog):
+                print '  - (sim) '+str(spg.oneliner())
         #...............................................................
         print '**\n'
+        return True
+
+
+    def display_NodeGroups(self, full=False):
+        """Display all its NodeGroup and NodeGog objects"""
+        print '\n******** .display_NodeGroups(full=',full,'):'
+        print '           ',self.oneliner()
+        for key in self._parmgroup.keys():
+            self._parmgroup[key].display(full=full)
+        for key in self._simparmgroup.keys():
+            self._simparmgroup[key].display(full=full)
+        print '********\n'
+        return True
+
+
+    #--------------------------------------------------------------
+
+    def solvable_groups(self):
+        """Return the available parmproup names."""
+        return self._parmgroup.keys()
+
+    def parmgroup(self, key=None):
+        """Return the specified ParmGroup (object)"""
+        return self._parmgroup[key]
+    
+    def merge_parmgroups(self, other):
+        """Helper function to merge its parmgroups with those of another ParmGroupManager object"""
+        self._parmgroup.update(other._parmgroup)
+        # self._simparmgroup.update(other._simparmgroup)
         return True
 
 
@@ -121,13 +163,16 @@ class ParmGroupManager (object):
 
         # OK, define the relevant ParmGroup:
         if self._simulate:
+            if not isinstance(simul, dict):              # Temporary.................
+                simul = dict(Tsec=Tsec, Tstddev=Tstddev,
+                             stddev=stddev, scale=scale)
             spg = SimulatedParmGroup (self._ns, label=name,
                                       quals=self.quals(),
                                       descr=descr, default=default,
                                       tags=ptags,
                                       ctrl=simul,
-                                      Tsec=Tsec, Tstddev=Tstddev,
-                                      scale=scale, stddev=stddev,
+                                      # Tsec=Tsec, Tstddev=Tstddev,
+                                      # scale=scale, stddev=stddev,
                                       rider=rider) 
             self._simparmgroup[name] = spg
 
@@ -166,7 +211,7 @@ class ParmGroupManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def define_gogs(self, name='ParmGroupManager', trace=True):
+    def define_gogs(self, name='ParmGroupManager', trace=False):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
         It uses the information gleaned from the tags in define_parmgroup()"""
 
@@ -234,32 +279,7 @@ class ParmGroupManager (object):
         return dict(matrel=mm)
 
 
-    #--------------------------------------------------------------
-
-    def parmgroups(self):
-        """Return the available ParmGroup names."""
-        return self._parmgroup.keys()
-
-    def parmgroup(self, key=None):
-        """Return the specified ParmGroup (object)"""
-        return self._parmgroup[key]
-    
-    def display_parmgroups(self, full=False):
-        """Display its ParmGroup objects"""
-        print '\n******** .display_parmgroups(full=',full,'):'
-        print '           ',self.oneliner()
-        for key in self.parmgroups():
-            self._parmgroup[key].display(full=full)
-        print '********\n'
-        return True
-
-    def merge_parmgroups(self, other):
-        """Helper function to merge its parmgroups with those of another ParmGroupManager object"""
-        self._parmgroup.update(other._parmgroup)
-        self._simparmgroup.update(other._simparmgroup)
-        return True
-
-
+    #-----------------------------------------------------------------------------
     #-----------------------------------------------------------------------------
 
     def test (self):
@@ -267,11 +287,12 @@ class ParmGroupManager (object):
         quals = self.quals()
         name = 'PGM'
         for name in ['first','second','third']:
+            self.define_parmgroup(name, descr='...'+name,
+                                  default=10.0,
+                                  simul=dict(stddev=0.01),
+                                  tags=['test'])
             for index in range(4):
-                self.define_parmgroup(name, descr='...'+name,
-                                      default=index/10.0, stddev=0.01,
-                                      tags=['test'])
-            node = self.create_parmgroup_entry(name, index)
+                node = self.create_parmgroup_entry(name, index)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()
@@ -322,7 +343,7 @@ if __name__ == '__main__':
     if 1:
         pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=True)
         pgm.test()
-        # pgm.display_parmgroups(full=False)
+        pgm.display_NodeGroups(full=False)
         pgm.display(full=True)
 
         

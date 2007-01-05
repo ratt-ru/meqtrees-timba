@@ -60,7 +60,7 @@ class NodeGroup (object):
 
         # Plotting:
         self._dcoll = None
-        self._plot = dict(color=color, style=style, size=size, pen=pen)
+        self._plotinfo = dict(color=color, style=style, size=size, pen=pen)
 
         return None
                 
@@ -105,7 +105,7 @@ class NodeGroup (object):
         if not full:
             print ' * The first node/subtree:'
             self.display_node (index=0)
-            if True:
+            if False:
                 print ' * The second node/subtree:'
                 self.display_node (index=1)
         #...............................................................
@@ -113,7 +113,7 @@ class NodeGroup (object):
         if self._dcoll:
             self.display_subtree(self._dcoll, txt=':',
                                  show_initrec=False, recurse=1)
-        print ' * plot: '+str(self._plot)
+        print ' * plot: '+str(self._plotinfo)
         print '**\n'
         return True
 
@@ -140,9 +140,9 @@ class NodeGroup (object):
         print '\n** NodeGroup.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
         return None
 
-    def plot(self):
+    def plotinfo(self):
         """Return its dict with plot instructions"""
-        return self._plot
+        return self._plotinfo
 
     def len(self):
         """Return the length of the nodelist"""
@@ -188,6 +188,30 @@ class NodeGroup (object):
             self._ns[name](*quals) << Meq.Add(children=absdiff)
         return self._ns[name](*quals)
 
+    #----------------------------------------------------------------------
+
+    def binop(self, binop=None, other=None, replace=False):
+        """Do an (item-by-item) binary operation (e.g. Subtract)
+        between its own nodes and those another NodeGroup object."""
+        cc = []
+        for i in range(len(self._nodelist)):
+            cc.append(self._ns << getattr(Meq,binop)(self._nodelist(i),
+                                                     other._nodelist(i)))
+        if replace:
+            self._nodelist = cc
+        return cc
+
+
+    def unop(self, unop=None, replace=False):
+        """Do an (item-by-item) unary operation (e.g. Abs) on its nodes"""
+        cc = []
+        for i in range(len(self._nodelist)):
+            cc.append(self._ns << getattr(Meq,unop)(self._nodelist[i]))
+        if replace:
+            self._nodelist = cc
+        return cc
+
+    #----------------------------------------------------------------------
 
     def bundle(self, oper='Composer'):
         """Bundle its nodes, using an operation like Compose, Add, Multiply etc"""
@@ -198,7 +222,7 @@ class NodeGroup (object):
         return self._ns[oper](*quals)
 
 
-    #----------------------------------------------------------------------
+    #-----------------------------------------------------------------------
 
     def visualize (self, bookpage='NodeGroup', folder=None):
         """Visualise all the entries (MeqParms or their simulated subtrees)
@@ -209,10 +233,10 @@ class NodeGroup (object):
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                            scope=dcoll_quals,
                                            tag='',
-                                           color=self._plot['color'],
-                                           style=self._plot['style'],
-                                           size=self._plot['size'],
-                                           pen=self._plot['pen'],
+                                           color=self._plotinfo['color'],
+                                           style=self._plotinfo['style'],
+                                           size=self._plotinfo['size'],
+                                           pen=self._plotinfo['pen'],
                                            type='realvsimag', errorbars=True)
             self._dcoll = rr['dcoll']
             JEN_bookmarks.create(self._dcoll, self.label(),
@@ -225,15 +249,19 @@ class NodeGroup (object):
     # The following functions are just for convenience.....
     #===================================================================
 
-    def display_node (self, index=0):
+    def display_node (self, index=0, recurse=1000):
         """Helper function to dispay the specified node(s)/subtree(s)"""
         if index=='*': index = range(len(self._nodelist))
         if not isinstance(index,(list,tuple)): index=[index]
         for i in index:
             if i<len(self._nodelist):
                 node = self._nodelist[i]
-                self.display_subtree(node, txt=str(i))
+                self.display_subtree(node, txt=str(i),
+                                     show_initrec=True, 
+                                     recurse=recurse)
         return True
+
+    #...................................................................
 
     def display_subtree (self, node, txt=None, level=1,
                          show_initrec=True, recurse=1000):
@@ -406,10 +434,10 @@ class NodeGog (object):
                 rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                                # scope=dcoll_quals,
                                                tag=ng.label(),
-                                               color=ng._plot['color'],
-                                               style=ng._plot['style'],
-                                               size=ng._plot['size'],
-                                               pen=ng._plot['pen'],
+                                               color=ng._plotinfo['color'],
+                                               style=ng._plotinfo['style'],
+                                               size=ng._plotinfo['size'],
+                                               pen=ng._plotinfo['pen'],
                                                type='realvsimag', errorbars=True)
                 dcolls.append(rr)
             # Make a combined plot of all the matrix elements:
