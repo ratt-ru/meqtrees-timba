@@ -41,6 +41,7 @@ class ChartPlot(QWidget):
         'Print ': 202,
         'Fixed Scale ': 203,
         'Offset Value ': 204,
+        'Change Vells': 205,
         }
 
 
@@ -104,6 +105,7 @@ class ChartPlot(QWidget):
 
     #Initialization of the size of the arrays to put the curve in
     self._ArraySize = 50
+    self._data_index = 0
     self.set_x_axis_sizes()
 
     # Initialize all the arrays containing the curve data 
@@ -151,6 +153,10 @@ class ChartPlot(QWidget):
     toggle_id = self.menu_table['Offset Value ']
     self._menu.insertItem("Offset Value", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
+
+    self._vells_menu = None
+    self._vells_menu_id = 0
+    self._vells_keys = {}
 
     ########### Connections for Signals ############
     self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
@@ -248,8 +254,8 @@ class ChartPlot(QWidget):
 
     	self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
-
-        self._chart_data[i] = []
+        
+        self._chart_data[i] = {}
 
     # set flags for active curves
     if self._plotter_has_curve:
@@ -413,7 +419,7 @@ class ChartPlot(QWidget):
           #removes 1 from the number of zoom opened
           self._zoomcount = self._zoomcount - 1
         elif not self._pause[curve_no]:  #replot the zoom
-          chart = array(self._chart_data[curve_no])
+          chart = array(self._chart_data[curve_no][self._data_index])
           self._Zoom[curve_no].update_plot(chart)
           self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotzoom.replot()
@@ -483,7 +489,7 @@ class ChartPlot(QWidget):
 
       #open a zoom of the selected curve
       PlotArraySize = self._x1.nelements()
-      chart = array(self._chart_data[crv])
+      chart = array(self._chart_data[crv][self._data_index])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
       if not self._data_label is None:
         self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
@@ -506,7 +512,7 @@ class ChartPlot(QWidget):
     """ Update the display offset.
     """
     if not parameters is None:
-      if parameters.has_key("default_offset"):
+      if parameters.haskey("default_offset"):
         self._offset = parameters.get("default_offset")
         if self._offset < 0.0:
           self._auto_offset = True
@@ -587,51 +593,89 @@ class ChartPlot(QWidget):
     # if necessary, first remove old data from front of queue
     # add new data to end of queue
 
-# first, do we have a scalar?
-    is_scalar = False
-    scalar_data = 0.0
+    # do we have an incoming dictionary?
+    has_keys = True
+    add_vells_menu = False
     try:
-      shape = new_chart_val.shape
-#     _dprint(3,'data_array shape is ', shape)
+      data_keys = new_chart_val.keys()
+      add_vells_menu = True
     except:
-      is_scalar = True
-      scalar_data = new_chart_val
-    if not is_scalar and len(shape) == 1:
-      if shape[0] == 1:
+      has_keys = False
+      data_keys = []
+      data_keys.append(0)
+
+    for keys in data_keys:
+      if not self._chart_data[channel].has_key(keys):
+        self._chart_data[channel][keys] = []
+        if len(data_keys) > 1:
+          if self._vells_menu is None:
+            self._vells_menu = QPopupMenu(self._menu)
+            QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.update_vells_selector);
+            toggle_id = self.menu_table['Change Vells']
+            self._menu.insertItem('Change Selected Vells ',self._vells_menu,toggle_id)
+          menu_label = str(keys)
+          if not self._vells_keys.has_key(menu_label):
+            self._vells_menu.insertItem(menu_label, self._vells_menu_id)
+            self._vells_menu_id = self._vells_menu_id + 1
+            self._vells_keys[menu_label] = 1
+
+      if has_keys:
+        incoming_data = new_chart_val[keys]
+      else:
+        incoming_data = new_chart_val
+# first, do we have a scalar?
+      is_scalar = False
+      scalar_data = 0.0
+      try:
+        shape = incoming_data.shape
+#     _dprint(3,'data_array shape is ', shape)
+      except:
         is_scalar = True
-        scalar_data = new_chart_val[0]
-    if not is_scalar:
-      test_scalar = True
-      for i in range(len(shape)):
-        if shape[i] > 1:
-          test_scalar = False
-      is_scalar = test_scalar
+        scalar_data = incoming_data
+      if not is_scalar and len(shape) == 1:
+        if shape[0] == 1:
+          is_scalar = True
+          scalar_data = incoming_data[0]
+      if not is_scalar:
+        test_scalar = True
+        for i in range(len(shape)):
+          if shape[i] > 1:
+            test_scalar = False
+        is_scalar = test_scalar
+        if is_scalar:
+          scalar_data = incoming_data
       if is_scalar:
-        scalar_data = new_chart_val
-    if is_scalar:
 #     if len(self._chart_data[channel]) > self._ArraySize-1:
 #       differ = len(self._chart_data[channel]) - (self._ArraySize-1)
 #       for i in range(differ):
 #         del self._chart_data[channel][0]
-      self._chart_data[channel].append(scalar_data)
-      self._updated_data[channel] = True
-      if self._ArraySize < len(self._chart_data[channel]):
-        self._ArraySize = len(self._chart_data[channel])
-        self.set_x_axis_sizes()
+        self._chart_data[channel][keys].append(scalar_data)
+        self._updated_data[channel] = True
+        if self._ArraySize < len(self._chart_data[channel][keys]):
+          self._ArraySize = len(self._chart_data[channel][keys])
+          self.set_x_axis_sizes()
     
-      # take care of position string
-      self._position[channel] = q_pos_str
+        # take care of position string
+        self._position[channel] = q_pos_str
+  
+      # otherwise we have an array (assumed to be 1D for the moment), 
+      # so we replace the stored chart data in its entirety
+      else:
+        self._is_vector = True
+#       self._chart_data[channel][keys] = []
+        if self._ArraySize < incoming_data.shape[0]:
+          self._ArraySize = incoming_data.shape[0]
+          self.set_x_axis_sizes()
+        self._chart_data[channel][keys] = incoming_data.copy()
+        self._updated_data[channel] = True
 
-    # otherwise we have an array (assumed to be 1D for the moment), 
-    # so we replace the stored chart data in its entirety
-    else:
-      self._is_vector = True
-      self._chart_data[channel] = []
-      if self._ArraySize < new_chart_val.shape[0]:
-        self._ArraySize = new_chart_val.shape[0]
-        self.set_x_axis_sizes()
-      self._chart_data[channel] = new_chart_val.copy()
-      self._updated_data[channel] = True
+  def update_vells_selector(self, menuid):
+    self._data_index = int(menuid)
+    self._auto_offset = True
+    self._offset = -10000
+    self._highest_value = -10000
+    self._lowest_value = 10000
+
 
   def set_data_flag(self, channel, data_flag):
     if data_flag != self._good_data[channel]:
@@ -708,7 +752,7 @@ class ChartPlot(QWidget):
     # -----------
     for channel in range(self._nbcrv):
       if self._updated_data[channel]:
-        chart = array(self._chart_data[channel])
+        chart = array(self._chart_data[channel][self._data_index])
         index = channel+1
         #Set the values and size with the curves
         if index >= 1 and index <= self._nbcrv/4:

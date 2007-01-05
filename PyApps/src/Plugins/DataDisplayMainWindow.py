@@ -143,6 +143,19 @@ class DisplayMainWindow(QMainWindow):
         data_dict['value'] = self._array
       self.updateEvent(data_dict)
 
+    data_dict['data_type'] = 'tensor demo'
+    for i in range(16):
+      data_dict['channel'] = i
+      data_dict['value'] = {}
+      for j in range(4):
+        gain = 1.0
+        if j == 1 or j == 2:
+          gain = 0.1
+        for k in range(self._array.shape[0]):
+          self._array[k] = gain * random.random()
+        data_dict['value'][j] = self._array.copy()
+      self.updateEvent(data_dict)
+
     self._gain = self._gain + 0.5
     return
 
