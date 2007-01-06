@@ -277,15 +277,22 @@ class NodeGroup (object):
             hide = ['name','class','defined_at','children','stepchildren','step_children']
             for field in hide:
                 if initrec.has_key(field): initrec.__delitem__(field)
+                if initrec.has_key('value'):
+                    value = initrec.value
+                    # if isinstance(value,(list,tuple)):
+                    #     initrec.value = value.flat
                 if initrec.has_key('default_funklet'):
                     coeff = initrec.default_funklet.coeff
                     initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
             if len(initrec)>0: s += ' '+str(initrec)
         print s
         if recurse>0:
-            for child in node.children:
-                self.display_subtree (child[1], txt=txt, level=level+1,
-                                      show_initrec=show_initrec, recurse=recurse-1)
+            # print dir(node)
+            # print node.__doc__
+            if node.initialized():
+                for child in node.children:
+                    self.display_subtree (child[1], txt=txt, level=level+1,
+                                          show_initrec=show_initrec, recurse=recurse-1)
         return True
 
 

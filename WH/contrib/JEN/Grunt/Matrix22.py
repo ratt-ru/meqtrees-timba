@@ -30,7 +30,8 @@ class Matrix22 (object):
     It also contains the named ParmGroup objects that encapsulate
     groups of MeqParm nodes (or their simulation subtrees)"""
 
-    def __init__(self, ns, quals=[], label='M', indices=[],
+    def __init__(self, ns, quals=[], label='M',
+                 matrix=None, indices=[],
                  polrep=None, simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
@@ -50,14 +51,20 @@ class Matrix22 (object):
             self._quals.append('simul')
 
         self._matrix = None                          # the actual matrices (contract!)
-        self._indices = indices                      # list of matrix 'indices' (e.g. stations)
+        self._indices = []                           # list of matrix 'indices' (e.g. stations)
+        self._list_indices = []                      # version where each item is a list
+        self.matrix(new=matrix)                      # initialise, if matrix specified
+        self.indices(new=indices)                    # initialize, if indices specified
 
         # Matrix22 matrix elements (contract!)
         self._matrel = dict(m11=None, m12=None, m21=None, m22=None)
-        self._dcoll = None                           # visualization
         self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
+
+        # Visualization:
+        self._dcoll = None
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
+        self._boolmark = dict()                      # JEN_SolverChain legacy.....
 
         # The (solvable and simulated) MeqParms are handled in named groups:
         self._pgm = ParmGroupManager(ns, label=self.label(),quals=self.quals(),
@@ -105,7 +112,19 @@ class Matrix22 (object):
         """Get/set the list of (matrix) indices"""
         if new:
             self._indices = new
+            ii = []
+            for i in self._indices:
+                if not isinstance(i,(list,tuple)): i = [i]
+                ii.append(i)
+            self._list_indices = ii
         return self._indices
+
+    def list_indices(self):
+        """Get the list of (matrix) indices, but in which each index is a list.
+        See self.indices() above.
+        This is to create uniformity between scalar indices (i.e. for stations) and
+        list/tuple indices (i.e. for ifrs). This allows node indexing by (*i)...."""
+        return self._list_indices
 
     def len(self):
         """Return the 'length' of the object, i.e. the number of matrices"""
@@ -172,28 +191,29 @@ class Matrix22 (object):
             print str(self.indices())
         else:
             print '\n   '+str(self.indices())
+        print ' * Available list_indices ('+str(self.len())+'): ',
+        if self.len()<30:
+            print str(self.list_indices())
+        else:
+            print '\n   '+str(self.list_indices())
         #...............................................................
         print ' * Available 2x2 matrices ('+str(self.len())+'): '
         if self._matrix:
-            ii = self.indices()
+            ii = self.list_indices()
             if len(ii)<10:
-                for i in ii: print '  - '+str(i)+': '+str(self.matrix()(i))
-            else:
-                ilast = ii[len(ii)-1]
-                for i in ii[:2]: print '  - '+str(i)+': '+str(self.matrix()(i))
+                for i in ii:
+                    print '  - '+str(i)+': '+str(self.matrix()(*i))
+            else:                                             # too many matrices
+                for i in ii[:2]:                              # show the first two
+                    print '  - '+str(i)+': '+str(self.matrix()(*i))
                 print '         ......'
-                print '  - '+str(ilast)+': '+str(self.matrix()(ilast))
+                ilast = ii[len(ii)-1]                         # and the last one
+                print '  - '+str(i)+': '+str(self.matrix()(*i))
             print ' * The first matrix:'
-            node = self.matrix()(self.indices()[0])
+            node = self.matrix()(*self.list_indices()[0])
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
                                                  recurse=2)
-            if full:
-                print ' * The second matrix:'
-                node = self.matrix()(self.indices()[1])
-                self._dummyParmGroup.display_subtree(node, txt=str(1),
-                                                     show_initrec=False,
-                                                     recurse=2)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup objects ('+str(ntot)+'): '
@@ -252,8 +272,9 @@ class Matrix22 (object):
         """Bundle its matrices, using an operation like Composer, Add, Multiply etc"""
         quals = self.quals()
         if not self._ns.bundle(oper)(*quals).initialized():
-            for i in self._indices:
-                cc.append(self._matrix(i))
+            cc = []
+            for i in self.list_indices():
+                cc.append(self._matrix(*i))
             self._ns.bundle(oper)(*quals) << getattr(Meq,oper)(children=cc)
         return self._ns.bundle(oper)(*quals)
 
@@ -263,7 +284,7 @@ class Matrix22 (object):
     # Visualization:
     #=====================================================================
 
-    def visualize (self, matrel='*', bookpage='Matrix22', folder=None):
+    def visualize (self, scope=None, matrel='*', bookpage='Matrix22', folder=None):
         """Visualise (a subset of) the 4 complex matrix elements of all 
         Matrix22 matrices in a single real-vs-imag plot. Different
         matrix elements (m11,m12,m21,m22) have different styles
@@ -294,6 +315,19 @@ class Matrix22 (object):
         # Return the dataConcat node:
         return self._dcoll
 
+    #............................................................................
+
+    def append_to_bookpage(self, node, page):
+        """Append the given node to the specified bookpage"""
+        self._bookmark.setdefault(page, [])
+        self._bookmark[page].append(node)
+        return True
+
+    def make_actual_bookmarks(self):
+        """Make the actual bookmarks from the accumulated info"""
+        for key in self._bookmark.keys():
+            JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
+        return True
 
 
     #==============================================================================
