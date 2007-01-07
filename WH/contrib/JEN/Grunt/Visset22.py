@@ -1,11 +1,11 @@
-# file: ../Grunt/Vis22.py
+# file: ../Grunt/Visset22.py
 
 # History:
 # - 05jan2007: creation (from JEN_SolverChain.py)
 
 # Description:
 
-# The Vis22 class encapsulates a set of 2x2 cohaerency matrices,
+# The Visset22 class encapsulates a set of 2x2 cohaerency matrices,
 # i.e. visbilities. 
 
 #======================================================================================
@@ -22,7 +22,7 @@ from copy import deepcopy
 
 # For testing only:
 import Meow
-import Jones22
+import Joneset22
 
 
 
@@ -32,7 +32,7 @@ import Jones22
 
 #======================================================================================
 
-class Vis22 (Matrixet22):
+class Visset22 (Matrixet22):
     """Class that represents a set of 2x2 Cohaerency  matrices"""
 
     def __init__(self, ns, quals=[], label='<v>',
@@ -46,9 +46,9 @@ class Vis22 (Matrixet22):
 
         # Initialise its Matrixet22 object:
         Matrixet22.__init__(self, ns, quals=quals, label=label,
-                          polrep=polrep, 
-                          indices=self._array.ifrs(),
-                          simulate=simulate)
+                            polrep=polrep, 
+                            indices=self._array.ifrs(),
+                            simulate=simulate)
         if cohset:
             self._matrixet = cohset
         else:
@@ -163,13 +163,13 @@ class Vis22 (Matrixet22):
 
     #...........................................................................
 
-    def corrupt (self, jones=None, rms=0.0, qual=None, visu=False):
+    def corrupt (self, joneset=None, rms=0.0, qual=None, visu=False):
         """Corrupt the internal cohset with the given Jones matrices"""
         quals = self.quals(append=qual)
         name = 'corrupt'
         for ifr in self.ifrs():
-            j1 = jones(ifr[0])
-            j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
+            j1 = joneset(ifr[0])
+            j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = self._ns[name](*quals)              
         if rms>0.0:
@@ -180,13 +180,13 @@ class Vis22 (Matrixet22):
 
     #...........................................................................
 
-    def correct (self, jones=None, qual=None, visu=False):
+    def correct (self, joneset=None, qual=None, visu=False):
         """Correct the internal cohset with the given Jones matrices"""
         quals = self.quals(append=qual)
         name = 'correct'
         for ifr in self.ifrs():
-            j1i = jones(ifr[0])('inv') ** Meq.MatrixInvert22(jones(ifr[0]))
-            j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
+            j1i = joneset(ifr[0])('inv') ** Meq.MatrixInvert22(joneset(ifr[0]))
+            j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
         self._matrixet = self._ns[name](*quals)              
@@ -220,8 +220,8 @@ def _define_forest(ns):
         source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
         allsky.add(source)
         cohset = allsky.visibilities(array, observation)
-    vis = Vis22(ns, label='test', quals='yyc', array=array, cohset=cohset)
-    jones = Jones22.GJones(ns, stations=array.stations(), simulate=True)
+    vis = Visset22(ns, label='test', quals='yyc', array=array, cohset=cohset)
+    jones = Joneset22.GJoneset(ns, stations=array.stations(), simulate=True)
     cc.append(vis.corrupt(jones.matrixet(), visu=True))
     # cc.append(vis.addNoise(visu=True))
     # cc.append(vis.visualize('corrupted'))
@@ -265,7 +265,7 @@ if __name__ == '__main__':
         source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
         allsky.add(source)
         cohset = allsky.visibilities(array, observation)
-        vis = Vis22(ns, label='test', array=array, cohset=cohset)
+        vis = Visset22(ns, label='test', array=array, cohset=cohset)
         vis.display()
 
 
