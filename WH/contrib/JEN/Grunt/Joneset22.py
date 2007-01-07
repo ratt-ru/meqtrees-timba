@@ -23,9 +23,10 @@ from copy import deepcopy
 #======================================================================================
 
 class Joneset22 (Matrixet22):
-    """Class that represents a set of 2x2 Jones matrices"""
+    """Base class that represents a set of 2x2 Jones matrices.
+    Derived from the class Matrixet22."""
 
-    def __init__(self, ns, quals=[], label='<j>',
+    def __init__(self, ns, quals=[], label='<j>', descr='<descr>',
                  stations=None, polrep=None,
                  simulate=False):
 
@@ -35,7 +36,7 @@ class Joneset22 (Matrixet22):
             indices = range(1,4)                     # for testing convenience....
 
         # Initialise its Matrixet22 object:
-        Matrixet22.__init__(self, ns, quals=quals, label=label,
+        Matrixet22.__init__(self, ns, quals=quals, label=label, descr=descr,
                           polrep=polrep, 
                           indices=indices, simulate=simulate)
 

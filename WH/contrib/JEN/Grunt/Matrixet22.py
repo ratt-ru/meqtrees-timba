@@ -83,12 +83,16 @@ class Matrixet22 (object):
         """Return a (limited) copy of the current Matrixet22 object.
         For the moment, for limited use only (no self._parmgroups)."""
         # return deepcopy(self)..........................does not work...
+        self.display('copy(), before')
         new = Matrixet22(self._ns, quals=self.quals(),
                          label='copy('+self.label()+')',
+                         descr=self.descr(),
+                         matrixet=self.matrixet(),
                          indices=self.indices(),
                          simulate=self._simulate)
         # Not complete!!
-        new.matrixet(new=self.matrixet())
+        self.display('copy(), after')
+        new.display('copy()')
         return new
 
     #-------------------------------------------------------------------
@@ -151,28 +155,31 @@ class Matrixet22 (object):
         """Return the list of the (4) matrix element names"""
         return self._matrel.keys()
 
+
     def matrix_element(self, key='m11', return_nodes=False):
         """Return the specified matrix element(s)"""
         if not self._matrel.has_key(key):
-            return False                                # invalid key.....
-        if not self._matrel[key]:                       # do only once
-            quals = self.quals()
-            name = self.label()+'_'+key[1:]
+            return False                                # in ['m11','m12','m21','m22']
+
+        quals = self.quals()
+        name = self.label()+'_'+key[1:]                 # i.e. '12' rather than 'm12'
+        print '\n**',key,name,quals
+        if not self._ns[name](*quals).initialized():
             for i in self.list_indices():
-                index = self._matrel_index[key]         # index in tensor node 
+                index = self._matrel_index[key]         # index in tensor node
                 node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
                                                                   index=index)
-            self._matrel[key] = self._ns[name](*quals)
+                print '-+',i,index,self._matrixet(*i),'->',node
+        self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
 
         # Return a list of nodes, if required:
         if return_nodes:
             nodes = []
             for i in self.list_indices():
-                nodes.append(self._matrel[key](*i))
+                nodes.append(self._ns[name](*quals)(*i))
             return nodes
-        
-        # Otherwise, return the 'contract':
-        return self._matrel[key] 
+        # Otherwise, return the set of nodes:
+        return self._ns[name](*quals) 
 
     #-------------------------------------------------------------------
 
@@ -198,7 +205,8 @@ class Matrixet22 (object):
         if txt: print ' * (txt='+str(txt)+')'
         self.display_specific(full=full)
         print '** Generic (class Matrixet22):'
-        print ' * Polrep: '+str(self._polrep)+', pols='+str(self._pols)
+        print ' * descr: '+str(self.descr())
+        print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
         print ' * Available indices ('+str(self.len())+'): ',
         if self.len()<30:
             print str(self.indices())
@@ -229,7 +237,7 @@ class Matrixet22 (object):
                                                  recurse=2)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
-        print ' * Available NodeGroup objects ('+str(ntot)+'): '
+        print ' * Available NodeGroup/NodeGog objects ('+str(ntot)+'): '
         for key in self._pgm._parmgroup.keys():
             print '  - '+str(self._pgm._parmgroup[key].oneliner())
         for key in self._pgm._simparmgroup.keys():
@@ -370,8 +378,8 @@ class Matrixet22 (object):
         if replace or (len(index)==4):
             condeqs = []
             for i in self.list_indices():
-                c = self._ns.condeq(*quals)(qother)(i) << Meq.Condeq(self._matrixet(*i),
-                                                                     other._matrixet(*i))
+                c = self._ns.condeq(*quals)(qother)(*i) << Meq.Condeq(self._matrixet(*i),
+                                                                      other._matrixet(*i))
                 condeqs.append(c)
             if replace: self._matrixet = self._ns.condeq(*quals)(qother)   # replace 
 
@@ -387,7 +395,7 @@ class Matrixet22 (object):
                 node2 = other._matrixet(*i)
                 node1 = self._ns[name1].qadd(node1) << Meq.Selector(node1, index=index)
                 node2 = self._ns[name2].qadd(node2) << Meq.Selector(node2, index=index)
-                c = self._ns[name](*quals)(qother)(i) << Meq.Condeq(node1, node2)
+                c = self._ns[name](*quals)(qother)(*i) << Meq.Condeq(node1, node2)
                 condeqs.append(c)
         # Return a list of condeq nodes:
         return condeqs
@@ -461,7 +469,7 @@ class Matrixet22 (object):
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             mm[key] = self._pgm.create_parmgroup_entry(key, index)
             mm[key] = self._ns << Meq.Polar(1.0,mm[key])
-            mat = self._ns[name](*quals)(index) << Meq.matrix22(mm['m11'],mm['m12'],
+            mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])
         # Store the matrices and the list if indices:
         self.indices(new=indices)
@@ -497,8 +505,9 @@ def _define_forest(ns):
     cc.append(mat2.visualize())
     mat2.display(full=True)
 
-    reqseq = mat1.make_solver('*', mat2)
-    cc.append(reqseq)
+    if True:
+        reqseq = mat1.make_solver('*', mat2)
+        cc.append(reqseq)
 
     ns.result << Meq.ReqSeq(children=cc)
     return True
