@@ -310,7 +310,7 @@ class Matrixet22 (object):
         Matrixet22 matrices in a single real-vs-imag plot. Different
         matrix elements (m11,m12,m21,m22) have different styles
         and colors, which are the same for all Matrixet22 matrices."""
-        dcoll_quals = self._quals.concat(append=qual)
+        dcoll_quals = self._quals.concat(prepend=qual)
         dcolls = []
         keys = deepcopy(matrel)
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
@@ -405,7 +405,8 @@ class Matrixet22 (object):
     def make_solver (self, other=None, parmgroup='*', qual=None, compare=None):
         """Make a solver that solves for the specified parmgroup, by comparing its
         matrices with the corresponding matrices of another Matrixet22 object."""
-        quals = self.quals(append=qual)
+
+        quals = self.quals(append=qual, prepend=parmgroup)
         qother = other._quals.concat()        # -> one string, with _ between quals
 
         # Get the list of solvable MeqParm nodes:
@@ -441,7 +442,7 @@ class Matrixet22 (object):
         JEN_bookmarks.create(solver, page='solver')
 
         # Visualize the condeqs and the solvable MeqParms:
-        cc.append(condeq_copy.visualize('solver', matrel=matrel))
+        cc.append(condeq_copy.visualize('condeq', matrel=matrel))
 
         # Return the ReqSeq node that bundles solving and visualisation: 
         reqseq = self._ns.reqseq_solver(*quals)(qother) << Meq.ReqSeq(children=cc)

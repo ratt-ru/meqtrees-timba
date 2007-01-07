@@ -160,15 +160,18 @@ class Visset22 (Matrixet22):
     #...........................................................................
 
     def corrupt (self, joneset=None, rms=0.0, qual=None, visu=False):
-        """Corrupt the internal cohset with the given Jones matrices"""
+        """Corrupt the internal matrices with the matrices of the given Joneset22 object.
+        Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm).
+        If rms>0, add Gaussian noise to the corrupted visibilities."""
         quals = self.quals(append=qual)
         name = 'corrupt22'
+        jmat = joneset.matrixet() 
         for ifr in self.ifrs():
-            j1 = joneset(ifr[0])
-            j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
+            j1 = jmat(ifr[0])
+            j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = self._ns[name](*quals)              
-        self._pgm.merge(joneset._pgm)
+        self._pgm.merge(joneset._pgm)             # gransfer any parmgroups
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
             self.addNoise(rms)
@@ -178,12 +181,13 @@ class Visset22 (Matrixet22):
     #...........................................................................
 
     def correct (self, joneset=None, qual=None, visu=False):
-        """Correct the internal cohset with the given Jones matrices"""
+        """Correct the internal matrices with the matrices of the given Joneset22 object."""
         quals = self.quals(append=qual)
         name = 'correct22'
+        jmat = joneset.matrixet()
         for ifr in self.ifrs():
-            j1i = joneset(ifr[0])('inv') ** Meq.MatrixInvert22(joneset(ifr[0]))
-            j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
+            j1i = jmat(ifr[0])('inv') ** Meq.MatrixInvert22(jmat(ifr[0]))
+            j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
         self._matrixet = self._ns[name](*quals)              
@@ -227,11 +231,11 @@ def _define_forest(ns):
         jones = G
         jones = D
         jones = Joneset22.Joneseq22([G,D])
-        cc.append(vis.corrupt(jones.matrixet(), visu=True))
+        cc.append(vis.corrupt(jones, visu=True))
         cc.append(vis.addNoise(rms=0.05, visu=True))
         vis.display('after corruption')
         if False:
-            cc.append(vis.correct(jones.matrixet(), visu=True))
+            cc.append(vis.correct(jones, visu=True))
 
     if True:
         pred = Visset22(ns, label='nominal', quals='xxc', array=array, cohset=cohset)
@@ -241,11 +245,12 @@ def _define_forest(ns):
         jones = G
         jones = D
         jones = Joneset22.Joneseq22([G,D])
-        cc.append(pred.corrupt(jones.matrixet(), visu=True))
+        cc.append(pred.corrupt(jones, visu=True))
         vis.display('after corruption')
-        cc.append(vis.make_solver(pred))
-        if False:
-            cc.append(vis.correct(jones.matrixet(), visu=True))
+        cc.append(vis.make_solver(pred, parmgroup='*'))
+        # cc.append(vis.make_solver(pred, parmgroup='Ggain'))
+        if True:
+            cc.append(vis.correct(jones, visu=True))
   
     # vis.display('final')
     cc.append(vis.bundle())
@@ -292,18 +297,18 @@ if __name__ == '__main__':
         vis = Visset22(ns, label='test', array=array, cohset=cohset)
         vis.display()
 
-    if 0:
+    if 1:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
-        vis.corrupt(G.matrixet(), visu=True)
-        vis.addNoise(rms=0.05, visu=True)
-        vis.correct(G.matrixet(), visu=True)
+        vis.corrupt(G, visu=True)
+        # vis.addNoise(rms=0.05, visu=True)
+        vis.correct(G, visu=True)
         vis.display('after corruption')
 
-    if 1:
+    if 0:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
         D = Joneset22.DJones (ns, stations=array.stations(), simulate=True)
         jones = Joneset22.Joneseq22([G,D])
-        vis.corrupt(jones.matrixet(), visu=True)
+        vis.corrupt(jones, visu=True)
         vis.display('after corruption')
 
 
