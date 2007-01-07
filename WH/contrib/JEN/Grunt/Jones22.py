@@ -13,7 +13,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Matrix22 import *
+from Matrixet22 import *
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -22,7 +22,7 @@ from copy import deepcopy
 
 #======================================================================================
 
-class Jones22 (Matrix22):
+class Jones22 (Matrixet22):
     """Class that represents a set of 2x2 Jones matrices"""
 
     def __init__(self, ns, quals=[], label='<j>',
@@ -34,8 +34,8 @@ class Jones22 (Matrix22):
         if indices==None:
             indices = range(1,4)                     # for testing convenience....
 
-        # Initialise its Matrix22 object:
-        Matrix22.__init__(self, ns, quals=quals, label=label,
+        # Initialise its Matrixet22 object:
+        Matrixet22.__init__(self, ns, quals=quals, label=label,
                           polrep=polrep, 
                           indices=indices, simulate=simulate)
 
@@ -45,13 +45,13 @@ class Jones22 (Matrix22):
 
     def stations(self):
         """Return a list of (array) stations"""
-        return self.indices()                        # kept in Matrix22
+        return self.indices()                        # kept in Matrixet22
 
     #-------------------------------------------------------------------
 
     def _pols_matrel(self):
         """Convenience function to make a dict with pols as field-names,
-        which gives the relevant Matrix22 elements for the 2 pols.
+        which gives the relevant Matrixet22 elements for the 2 pols.
         Used e.g. in GJones to indicate that only the diagonal matrix
         elements should be used to solve for Ggain and Gphase."""
         pols = self.pols()
@@ -86,7 +86,7 @@ class Jones22 (Matrix22):
 
 
 #=================================================================================================
-# Example of an actual Jones22 matrix
+# Example of an actual Jones22 matrixet
 #=================================================================================================
 
 class GJones (Jones22):
@@ -125,7 +125,7 @@ class GJones (Jones22):
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
-        self._matrix = self._ns[jname](*quals)
+        self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
         self._pgm.define_gogs(jname)
         return None
@@ -166,7 +166,7 @@ class EJones (Jones22):
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
-        self._matrix = self._ns[jname](*quals)
+        self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
         self._pgm.define_gogs(jname)
         return None
@@ -219,7 +219,7 @@ class FJones (Jones22):
         for s in self.stations():
             self._ns[jname](*quals)(polrep)(s) << Meq.Identity(fmat)
             
-        self._matrix = self._ns[jname](*quals)(polrep)
+        self.matrixet(new=self._ns[jname](*quals)(polrep))
         # Make some secondary (composite) ParmGroups:
         self._pgm.define_gogs(jname)
         return None
@@ -309,7 +309,7 @@ class DJones (Jones22):
             # Make the station Jones matrix by multiplying the sub-matrices:
             self._ns[jname](*quals)(s) << Meq.MatrixMultiply (dmat, emat, pmat)
 
-        self._matrix = self._ns[jname](*quals)
+        self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
         self._pgm.define_gogs(jname)
         return None
@@ -362,7 +362,7 @@ class JJones (Jones22):
                 mm[ename] = self._ns[ename](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])
-        self._matrix = self._ns[jname](*quals)
+        self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
         self._pgm.define_gogs(jname)
         return None

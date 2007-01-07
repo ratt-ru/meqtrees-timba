@@ -13,22 +13,26 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
-
-from Matrix22 import *
+from Matrixet22 import *
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
 
+# For testing only:
+import Meow
+import Jones22
+
+
+
 # Global counter used to generate unique node-names
-unique = -1
+# unique = -1
 
 
 #======================================================================================
 
-class Vis22 (Matrix22):
+class Vis22 (Matrixet22):
     """Class that represents a set of 2x2 Cohaerency  matrices"""
 
     def __init__(self, ns, quals=[], label='<v>',
@@ -40,24 +44,24 @@ class Vis22 (Matrix22):
         self._array = array                          # Meow IfrArray object
         self._observation = observation              # Meow Observation object
 
-        # Initialise its Matrix22 object:
-        Matrix22.__init__(self, ns, quals=quals, label=label,
+        # Initialise its Matrixet22 object:
+        Matrixet22.__init__(self, ns, quals=quals, label=label,
                           polrep=polrep, 
                           indices=self._array.ifrs(),
                           simulate=simulate)
         if cohset:
-            self._matrix = cohset
+            self._matrixet = cohset
         else:
             quals = self.quals()
             node = self._ns << Meq.Matrix22(complex(1.0),complex(0.0),
                                             complex(0.0),complex(1.0))
             print node
             name = 'init'
-            self._matrix = self._ns[name](*quals)
+            self._matrixet = self._ns[name](*quals)
             for ifr in self.ifrs():
-                self._matrix(*ifr) << Meq.Identity(node)
-                print '-', ifr, self._matrix(*ifr)
-            # self.matrix(new=self._ns[name](*quals))
+                self._matrixet(*ifr) << Meq.Identity(node)
+                print '-', ifr, self._matrixet(*ifr)
+            # self.matrixet(new=self._ns[name](*quals))
 
         # List of children to be added to a (solver) reqseq eventually:
         self._reqseq_children = []
@@ -111,98 +115,82 @@ class Vis22 (Matrix22):
         self._reqseq_children.append(0)               # placeholder 
         cohset = self.cohset()
         for ifr in self.ifrs():
-            self._reqseq_children[n] = self._matrix(*ifr)   # fill in the placeholder
+            self._reqseq_children[n] = self._matrixet(*ifr)   # fill in the placeholder
             self._ns.reqseq_SolverChain(*ifr) << Meq.ReqSeq(children=self._reqseq_children,
                                                             result_index=n,
                                                             cache_num_active_parents=1)
         if True: self.display('insert_reqseq')
-        self._matrix = self._ns.reqseq_SolverChain
+        self._matrixet = self._ns.reqseq_SolverChain
         self.make_actual_bookmarks()
         self._clear()                                 # ....??
         return True
 
 
     #--------------------------------------------------------------------------
-    # Operations on the internal self._matrix:
+    # Operations on the internal self._matrixet:
     #--------------------------------------------------------------------------
 
     def make_sinks (self, output_col='RESIDUALS', vdm='vdm'):
         """Make sinks for the cohset, and a named VisDataMux"""
         for p,q in self.ifrs():
-            self._ns.sink(p,q) << Meq.Sink(self._matrix(p,q),
+            self._ns.sink(p,q) << Meq.Sink(self._matrixet(p,q),
                                            station_1_index=p-1,
                                            station_2_index=q-1,
                                            output_col=output_col)
         self._ns[vdm] << Meq.VisDataMux(*[self._ns.sink(*ifr) for ifr in self.ifrs()]);
-        self._matrix = self._ns.sink           
+        self._matrixet = self._ns.sink           
         return True
 
     #...........................................................................
 
-    def addnoise (self, rms=0.1):
+    def addNoise (self, rms=0.1, qual=None, visu=True):
         """Add gaussian noise with given rms to the internal cohset"""
-        quals = self.quals()
+        quals = self.quals(append=qual)
+        name = 'addNoise'
+        matrels = self.matrels()
         for ifr in self.ifrs():
-            rnoise = self._ns.rnoise(*quals)(*ifr) << Meq.GaussNoise(stddev=rms)
-            inoise = self._ns.inoise(*quals)(*ifr) << Meq.GaussNoise(stddev=rms)
-            noise = self._ns.noise(*quals)(*ifr) << Meq.ToComplex(rnoise,inoise)
-            self._ns.addnoise(*quals)(*ifr) << Meq.Add(self._matrix(*ifr),noise)
-        self._matrix = self._ns.addnoise(*quals)           
-        self._visualize('addnoise')
+            mm = range(4)
+            for i in range(4):
+                m = matrels[i]
+                rnoise = self._ns.rnoise(*quals)(*ifr)(m) << Meq.GaussNoise(stddev=rms)
+                inoise = self._ns.inoise(*quals)(*ifr)(m) << Meq.GaussNoise(stddev=rms)
+                mm[i] = self._ns.noise(*quals)(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
+            noise = self._ns.noise(*quals)(*ifr) << Meq.Matrix22(*mm)
+            self._ns[name](*quals)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
+        self._matrixet = self._ns[name](*quals)           
+        if visu: return self.visualize(name)
         return True
 
     #...........................................................................
 
-    def peel (self, subtract=None):
-        """Subtract (peel) a cohset (e.g. a source) from the internal cohset"""
-        quals = self.quals()
-        for ifr in self.ifrs():
-            self._ns.peeled(*quals)(*ifr) << Meq.Subtract(self._matrix(*ifr),
-                                                          subtract(*ifr))
-        self._matrix = self._ns.peeled(*quals)           
-        self._visualize('peel')
-        return True
-
-    #...........................................................................
-
-    def unpeel (self, scope=None, add=None):
-        """Add (unpeel/restore) a cohset (e.g. a source) to the internal cohset"""
-        quals = self.quals(*quals)
-        for ifr in self.ifrs():
-            unpeel = self._ns << Meq.Stripper(add(*ifr))
-            self._ns.unpeeled(*quals)(*ifr) << Meq.Add(self._matrix(*ifr), unpeel)
-        self._matrix = self._ns.unpeeled(*quals)              
-        self._visualize('unpeel')
-        return True
-
-    #...........................................................................
-
-    def corrupt (self, jones=None, rms=0.0, scope=None):
+    def corrupt (self, jones=None, rms=0.0, qual=None, visu=False):
         """Corrupt the internal cohset with the given Jones matrices"""
-        quals = self.quals(*quals)
+        quals = self.quals(append=qual)
+        name = 'corrupt'
         for ifr in self.ifrs():
             j1 = jones(ifr[0])
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
-            self._ns.corrupted(*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrix(*ifr),j2c)
-        self._matrix = self._ns.corrupted(*quals)              
-        self._visualize('corrupt')
+            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = self._ns[name](*quals)              
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
-            self.addnoise(rms)
+            self.addNoise(rms)
+        if visu: return self.visualize('corrupt')
         return True
 
     #...........................................................................
 
-    def correct (self, jones=None, scope=None):
+    def correct (self, jones=None, qual=None, visu=False):
         """Correct the internal cohset with the given Jones matrices"""
-        quals = self.quals(*quals)
+        quals = self.quals(append=qual)
+        name = 'correct'
         for ifr in self.ifrs():
             j1i = jones(ifr[0])('inv') ** Meq.MatrixInvert22(jones(ifr[0]))
             j2c = jones(ifr[1])('conj') ** Meq.ConjTranspose(jones(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
-            self._ns.corrected(*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrix(*ifr),j2ci)
-        self._matrix = self._ns.corrected(*quals)              
-        self._visualize('correct')
+            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
+        self._matrixet = self._ns[name](*quals)              
+        if visu: return self.visualize(name)
         return True
 
 
@@ -221,16 +209,22 @@ def _define_forest(ns):
     num_stations = 3
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
-    observation = Meow.Observation(ns)
-    allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
-    l = 1.0
-    m = 1.0
-    src = '3c84'
-    src_dir = Meow.LMDirection(ns, src, l, m)
-    source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
-    allsky.add(source)
-    cohset = allsky.visibilities(array, observation)
-    vis = Vis22(ns, label='test', array=array, cohset=cohset)
+    cohset = None
+    if False:
+        observation = Meow.Observation(ns)
+        allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
+        l = 1.0
+        m = 1.0
+        src = '3c84'
+        src_dir = Meow.LMDirection(ns, src, l, m)
+        source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
+        allsky.add(source)
+        cohset = allsky.visibilities(array, observation)
+    vis = Vis22(ns, label='test', quals='yyc', array=array, cohset=cohset)
+    jones = Jones22.GJones(ns, stations=array.stations(), simulate=True)
+    cc.append(vis.corrupt(jones.matrixet(), visu=True))
+    # cc.append(vis.addNoise(visu=True))
+    # cc.append(vis.visualize('corrupted'))
     # vis.display()
     cc.append(vis.bundle())
 
