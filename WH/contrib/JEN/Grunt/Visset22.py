@@ -168,6 +168,7 @@ class Visset22 (Matrixet22):
             j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = self._ns[name](*quals)              
+        self._pgm.merge(joneset._pgm)
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
             self.addNoise(rms)
@@ -241,6 +242,7 @@ def _define_forest(ns):
         jones = D
         jones = Joneset22.Joneseq22([G,D])
         cc.append(pred.corrupt(jones.matrixet(), visu=True))
+        vis.display('after corruption')
         cc.append(vis.make_solver(pred))
         if False:
             cc.append(vis.correct(jones.matrixet(), visu=True))
