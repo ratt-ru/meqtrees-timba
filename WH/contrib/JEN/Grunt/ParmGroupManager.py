@@ -122,11 +122,23 @@ class ParmGroupManager (object):
     def parmgroup(self, key=None):
         """Return the specified ParmGroup (object)"""
         return self._parmgroup[key]
+
+    #-----------------------------------------------------------------------------
     
-    def merge_parmgroups(self, other):
+    def merge(self, other):
         """Helper function to merge its parmgroups with those of another ParmGroupManager object"""
+        all = []
+        if self._parmgroup.has_key('*'):
+            print 'self[*]:',self._parmgroup['*']
+            all.extend(self._parmgroup['*'].group())
+        if other._parmgroup.has_key('*'):
+            print 'other[*]:',other._parmgroup['*']
+            all.extend(other._parmgroup['*'].group())
         self._parmgroup.update(other._parmgroup)
-        # self._simparmgroup.update(other._simparmgroup)
+        self._simparmgroup.update(other._simparmgroup)
+        rider = self._make_pgog_rider(all)
+        self._parmgroup['*'] = NodeGog(self._ns, '*', group=all,
+                                       rider=rider)    
         return True
 
 

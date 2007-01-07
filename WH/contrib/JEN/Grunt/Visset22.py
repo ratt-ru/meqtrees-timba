@@ -53,15 +53,11 @@ class Visset22 (Matrixet22):
             self._matrixet = cohset
         else:
             quals = self.quals()
-            node = self._ns << Meq.Matrix22(complex(1.0),complex(0.0),
-                                            complex(0.0),complex(1.0))
-            print node
-            name = 'init'
-            self._matrixet = self._ns[name](*quals)
+            node = self._ns.unity(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
+                                                          complex(0.0),complex(1.0))
+            self._matrixet = self._ns.initial(*quals)
             for ifr in self.ifrs():
                 self._matrixet(*ifr) << Meq.Identity(node)
-                print '-', ifr, self._matrixet(*ifr)
-            # self.matrixet(new=self._ns[name](*quals))
 
         # List of children to be added to a (solver) reqseq eventually:
         self._reqseq_children = []
@@ -146,7 +142,7 @@ class Visset22 (Matrixet22):
     def addNoise (self, rms=0.1, qual=None, visu=True):
         """Add gaussian noise with given rms to the internal cohset"""
         quals = self.quals(append=qual)
-        name = 'addNoise'
+        name = 'addNoise22'
         matrels = self.matrels()
         for ifr in self.ifrs():
             mm = range(4)
@@ -166,7 +162,7 @@ class Visset22 (Matrixet22):
     def corrupt (self, joneset=None, rms=0.0, qual=None, visu=False):
         """Corrupt the internal cohset with the given Jones matrices"""
         quals = self.quals(append=qual)
-        name = 'corrupt'
+        name = 'corrupt22'
         for ifr in self.ifrs():
             j1 = joneset(ifr[0])
             j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
@@ -175,7 +171,7 @@ class Visset22 (Matrixet22):
         if rms>0.0:
             # Optional: add gaussian noise (AFTER corruption, of course):
             self.addNoise(rms)
-        if visu: return self.visualize('corrupt')
+        if visu: return self.visualize(name)
         return True
 
     #...........................................................................
@@ -183,7 +179,7 @@ class Visset22 (Matrixet22):
     def correct (self, joneset=None, qual=None, visu=False):
         """Correct the internal cohset with the given Jones matrices"""
         quals = self.quals(append=qual)
-        name = 'correct'
+        name = 'correct22'
         for ifr in self.ifrs():
             j1i = joneset(ifr[0])('inv') ** Meq.MatrixInvert22(joneset(ifr[0]))
             j2c = joneset(ifr[1])('conj') ** Meq.ConjTranspose(joneset(ifr[1])) 
@@ -209,6 +205,7 @@ def _define_forest(ns):
     num_stations = 3
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
+
     cohset = None
     if False:
         observation = Meow.Observation(ns)
@@ -221,11 +218,34 @@ def _define_forest(ns):
         allsky.add(source)
         cohset = allsky.visibilities(array, observation)
     vis = Visset22(ns, label='test', quals='yyc', array=array, cohset=cohset)
-    jones = Joneset22.GJoneset(ns, stations=array.stations(), simulate=True)
-    cc.append(vis.corrupt(jones.matrixet(), visu=True))
-    # cc.append(vis.addNoise(visu=True))
-    # cc.append(vis.visualize('corrupted'))
-    # vis.display()
+    vis.display('initial')
+
+    if True:
+        G = Joneset22.GJones(ns, stations=array.stations(), simulate=True)
+        D = Joneset22.DJones(ns, stations=array.stations(), simulate=True)
+        jones = G
+        jones = D
+        jones = Joneset22.Joneseq22([G,D])
+        cc.append(vis.corrupt(jones.matrixet(), visu=True))
+        cc.append(vis.addNoise(rms=0.05, visu=True))
+        vis.display('after corruption')
+        if False:
+            cc.append(vis.correct(jones.matrixet(), visu=True))
+
+    if True:
+        pred = Visset22(ns, label='nominal', quals='xxc', array=array, cohset=cohset)
+        pred.display('initial')
+        G = Joneset22.GJones(ns, stations=array.stations(), simulate=False)
+        D = Joneset22.DJones(ns, stations=array.stations(), simulate=False)
+        jones = G
+        jones = D
+        jones = Joneset22.Joneseq22([G,D])
+        cc.append(pred.corrupt(jones.matrixet(), visu=True))
+        cc.append(vis.make_solver(pred))
+        if False:
+            cc.append(vis.correct(jones.matrixet(), visu=True))
+  
+    # vis.display('final')
     cc.append(vis.bundle())
 
     ns.result << Meq.ReqSeq(children=cc)
@@ -257,16 +277,32 @@ if __name__ == '__main__':
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
-        allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
-        l = 1.0
-        m = 1.0
-        src = '3c84'
-        src_dir = Meow.LMDirection(ns, src, l, m)
-        source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
-        allsky.add(source)
-        cohset = allsky.visibilities(array, observation)
+        cohset = None
+        if False:
+            allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
+            l = 1.0
+            m = 1.0
+            src = '3c84'
+            src_dir = Meow.LMDirection(ns, src, l, m)
+            source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
+            allsky.add(source)
+            cohset = allsky.visibilities(array, observation)
         vis = Visset22(ns, label='test', array=array, cohset=cohset)
         vis.display()
+
+    if 0:
+        G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
+        vis.corrupt(G.matrixet(), visu=True)
+        vis.addNoise(rms=0.05, visu=True)
+        vis.correct(G.matrixet(), visu=True)
+        vis.display('after corruption')
+
+    if 1:
+        G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
+        D = Joneset22.DJones (ns, stations=array.stations(), simulate=True)
+        jones = Joneset22.Joneseq22([G,D])
+        vis.corrupt(jones.matrixet(), visu=True)
+        vis.display('after corruption')
 
 
 #=======================================================================

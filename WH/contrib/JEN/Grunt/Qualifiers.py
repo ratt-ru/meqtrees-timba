@@ -93,8 +93,8 @@ class Qualifiers (object):
         if not qual==None:
             if not isinstance(qual,(list,tuple)): qual = [qual]
             for item in qual:
-                # if not item in quals: quals.append(item)
-                quals.append(item)
+                if not item in quals: quals.append(item)    # avoid duplication
+                # quals.append(item)                          # allow duplication
         if trace: print s1,'->',quals,self._quals
         return quals
 
@@ -112,8 +112,8 @@ class Qualifiers (object):
             ss = deepcopy(qual)
             ss.reverse()
             for item in ss:
-                # if not item in quals: quals.insert(0,item)
-                quals.insert(0,item)
+                if not item in quals: quals.insert(0,item)   # avoid duplication
+                # quals.insert(0,item)                         # allow duplication
         if trace: print s1,'->',quals,self._quals
         return quals
 

@@ -324,8 +324,8 @@ class NodeGog (object):
 
         self._group = []                      # initialise the internal group
         if len(group)>0:
-            for node in group:
-                self.append_entry(node)
+            for g in group:
+                self.append_entry(g)
 
         # A NodeGog carries a rider (dict), which contains user-defined info:
         self._rider = dict()
@@ -412,6 +412,10 @@ class NodeGog (object):
         for ng in self._group:
             nodelist.extend(ng.nodelist())  
         return nodelist
+
+    def group (self):
+        """Return the internal group (list of NodeGroup objects)"""
+        return self._group
 
     def labels(self):
         """Return a list of the labels (name) of its NodeGroups""" 

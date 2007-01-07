@@ -80,6 +80,42 @@ class Joneset22 (Matrixet22):
 
 
 
+#=================================================================================================
+# Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
+#=================================================================================================
+
+def Joneseq22 (jones=None, qual=None):
+    """Return a Jones22 object that contains an (item-by-item) matrix multiplication
+    of the matrices of the list (jones) of two or more Joneset22 objects."""
+
+    # First create a new Jonset22 object with suitable label etc:
+    ns = jones[0]._ns
+    quals = jones[0].quals()
+    label = jones[0].label()
+    descr = jones[0].label()+': '+jones[0].descr()
+    for j in jones[1:]:
+        label += j.label()
+        descr += '\n '+j.label()+': '+j.descr()
+        quals.extend(j.quals())
+    jnew = Joneset22 (ns, quals=quals, label=label,
+                      stations=jones[0].stations()) 
+
+    # Then create the new Jones matrices by matrix-multiplication:
+    name = 'Joneseq'
+    for i in jnew.list_indices():
+        cc = []
+        for j in jones:
+            cc.append(j._matrixet(*i))
+        ns[name](*quals)(*i) << Meq.MatrixMultiply(*cc)
+    jnew.matrixet(new=ns[name](*quals))
+    
+    # Merge the parmgroups of the various Jones matrices:
+    for j in jones:
+        jnew._pgm.merge(j._pgm)
+
+    # Return the new Joneset22 object:
+    return jnew
+
 
 
 
@@ -87,10 +123,10 @@ class Joneset22 (Matrixet22):
 
 
 #=================================================================================================
-# Example of an actual Joneset22 matrixet
+# Example(s) of an actual Joneset22 object
 #=================================================================================================
 
-class GJoneset (Joneset22):
+class GJones (Joneset22):
     """Class that represents a set of 2x2 GJones matrices,
     which model the (complex) gains due to electronics
     and (optionally) the tropospheric phase (a.k.a. TJones).
@@ -107,7 +143,7 @@ class GJoneset (Joneset22):
         quals = self.quals()
         pname = self.label()+'phase'
         gname = self.label()+'gain'
-        jname = self.label()+'Joneset'
+        jname = self.label()+'Jones'
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
@@ -133,7 +169,7 @@ class GJoneset (Joneset22):
 
 #--------------------------------------------------------------------------------------------
 
-class EJoneset (Joneset22):
+class EJones (Joneset22):
     """Class that represents a set of 2x2 EJones matrices,
     which model the station beamshapes.
     EJones is an image-plane effect."""
@@ -148,7 +184,7 @@ class EJoneset (Joneset22):
         quals = self.quals()
         pname = self.label()+'phase'
         gname = self.label()+'gain'
-        jname = self.label()+'Joneset'
+        jname = self.label()+'Jones'
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
@@ -175,7 +211,7 @@ class EJoneset (Joneset22):
 
 
 #--------------------------------------------------------------------------------------------
-class FJoneset (Joneset22):
+class FJones (Joneset22):
     """Class that represents a set of 2x2 FJones matrices,
     for both polarization representations (linear and circular).
     For the moment, the ionospheric Faraday rotation is assumen
@@ -190,7 +226,7 @@ class FJoneset (Joneset22):
         quals = self.quals()
         polrep = self.polrep()
         rname = self.label()+'rm'       
-        jname = self.label()+'Joneset'
+        jname = self.label()+'Jones'
 
         # Define the primary ParmGroup:
         self._pgm.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
@@ -229,7 +265,7 @@ class FJoneset (Joneset22):
 
 #--------------------------------------------------------------------------------------------
 
-class DJoneset (Joneset22):
+class DJones (Joneset22):
     """Class that represents a set of 2x2 DJones matrices"""
 
     def __init__(self, ns, quals=[], label='D',
@@ -244,31 +280,33 @@ class DJoneset (Joneset22):
         dname = self.label()+'dang'
         ename = self.label()+'dell'
         pname = self.label()+'pzd'
-        jname = self.label()+'Joneset'
+        jname = self.label()+'Jones'
 
         # Define the various primary ParmGroups:
         if coupled_dang:
             self._pgm.define_parmgroup(dname, descr='dipole angle error',
-                                  tags=[dname,jname])
+                                       tags=[dname,jname])
         else:
             for pol in pols:
                 self._pgm.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
-                                      tags=[dname,jname])
+                                           tags=[dname,jname])
         if coupled_dell:
             self._pgm.define_parmgroup(ename, descr='dipole ellipticity',
-                                  tags=[ename,jname])
+                                       tags=[ename,jname])
         else:
             for pol in pols:
                 self._pgm.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
-                                      tags=[ename,jname])
+                                           tags=[ename,jname])
         self._pgm.define_parmgroup(pname, descr='XY/RL phase-zero difference',
-                              tags=[pname,jname])
+                                   tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
         pzd = self._pgm.create_parmgroup_entry(pname)
         pzd2 = self._ns << pzd/2
-        pzd2neg = self._ns << Meq.Negate(pzd2)
-        pmat = self._ns[pname](*quals) << Meq.Matrix22(pzd2,0.0,0.0,pzd2neg)
+        m11 = self._ns << Meq.Polar(1.0, pzd2)
+        m22 = self._ns << Meq.Polar(1.0, self._ns << Meq.Negate(pzd2))
+        pmat = self._ns[pname](*quals) << Meq.Matrix22(m11,0.0,0.0,m22)
+
 
         # Make the Jones matrices per station:
         for s in self.stations():
@@ -319,7 +357,7 @@ class DJoneset (Joneset22):
 
 #--------------------------------------------------------------------------------------------
 
-class JJoneset (Joneset22):
+class JJones (Joneset22):
     """Class that represents a set of 2x2 JJones matrices.
     Each of the 4 complex elements of a station Jones matrix
     is assumed to be independent. The parameters are their real
@@ -334,7 +372,7 @@ class JJoneset (Joneset22):
                            stations=stations, polrep=polrep,
                            simulate=simulate)
         quals = self.quals()
-        jname = self.label()+'Joneset'
+        jname = self.label()+'Jones'
         enames = ['J11','J12','J21','J22']
         ee = []
         # Define the various primary ParmGroups:
@@ -382,34 +420,33 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    joneset = GJoneset(ns, quals=[], simulate=simulate)
-    cc.append(joneset.visualize())
-    # joneset.display(full=True)
-
+    jones = GJones(ns, quals=[], simulate=simulate)
+    cc.append(jones.visualize())
+    # jones.display(full=True)
     if True:
-        j2 = GJoneset(ns, quals=[], simulate=False)
+        j2 = GJones(ns, quals=[], simulate=False)
         cc.append(j2.visualize())
         # j2.display(full=True)
-        reqseq = joneset.make_solver('*', j2)
+        reqseq = jones.make_solver(j2)
         cc.append(reqseq)
 
 
-    joneset = JJoneset(ns, quals=[], simulate=simulate)
-    cc.append(joneset.visualize())
-    # joneset.display(full=True)
+    jones = JJones(ns, quals=[], simulate=simulate)
+    cc.append(jones.visualize())
+    # jones.display(full=True)
 
-    joneset = DJoneset(ns, quals=[], simulate=simulate)
-    cc.append(joneset.visualize())
-    # joneset.display(full=True)
+    jones = DJones(ns, quals=[], simulate=simulate)
+    cc.append(jones.visualize())
+    # jones.display(full=True)
 
-    joneset = FJoneset(ns, quals=['L'], simulate=simulate, polrep='linear')
-    cc.append(joneset.visualize())
-    joneset.display(full=True)
-    # joneset.display_parmgroups(full=False)
+    jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
+    cc.append(jones.visualize())
+    jones.display(full=True)
+    # jones.display_parmgroups(full=False)
 
-    joneset = FJoneset(ns, quals=['C'], simulate=simulate, polrep='circular')
-    cc.append(joneset.visualize())
-    joneset.display(full=True)
+    jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
+    cc.append(jones.visualize())
+    jones.display(full=True)
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -433,36 +470,37 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
+    jj = []
+
+    if 0:
+        G = GJones(ns, quals=['3c84','xxx'], simulate=False)
+        jj.append(G)
+        G.visualize()
+        G.display(full=True)
+        # G.display_NodeGroups()
+
     if 1:
-        Gjoneset = GJoneset(ns, quals=['3c84','xxx'], simulate=False)
-        Gjoneset.visualize()
-        Gjoneset.display(full=True)
-        # Gjoneset.display_parmgroups()
+        D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=True)
+        # D = DJones(ns, coupled_dang=False, coupled_dell=False)
+        jj.append(D)
+        D.display(full=True)
+        D._pgm.display_NodeGroups()
+
 
     if 0:
-        # Djoneset = DJoneset(ns, coupled_dang=True, coupled_dell=True)
-        Djoneset = DJoneset(ns, coupled_dang=False, coupled_dell=False)
-        Djoneset.display(full=True)
+        # F = FJones(ns, polrep='linear')
+        F = FJones(ns, polrep='circular')
+        jj.append(F)
+        F.display(full=True)
 
     if 0:
-        # Fjoneset = FJoneset(ns, polrep='linear')
-        Fjoneset = FJoneset(ns, polrep='circular')
-        Fjoneset.display(full=True)
+        J = JJones(ns, quals=['xxx'], diagonal=False)
+        jj.append(J)
+        J.display(full=True)
 
     if 0:
-        Jjoneset = JJoneset(ns, diagonal=False)
-        Jjoneset.display(full=True)
-        if 1:
-            Gjoneset = GJoneset(ns, quals=['3c84','xxx'], simulate=True)
-            Gjoneset.display(full=True)
-            Gjoneset.multiply(Jjoneset)
-            Gjoneset.display(full=True)
-
-    if 0:
-        Djoneset = DJoneset(ns)
-        Djoneset.display()
-        Gjoneset.multiply(Djoneset)
-        Gjoneset.display()
+        jseq = Joneseq22 (jj)
+        jseq.display(full=True)
 
 #===============================================================
     

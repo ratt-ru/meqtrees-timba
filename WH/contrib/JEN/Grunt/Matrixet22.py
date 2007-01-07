@@ -81,9 +81,9 @@ class Matrixet22 (object):
 
     def copy(self):
         """Return a (limited) copy of the current Matrixet22 object.
-        For the moment, for limited use only (no self._parmgroups)."""
+        For the moment, for limited use only."""
         # return deepcopy(self)..........................does not work...
-        self.display('copy(), before')
+        # self.display('copy(), before')
         new = Matrixet22(self._ns, quals=self.quals(),
                          label='copy('+self.label()+')',
                          descr=self.descr(),
@@ -91,8 +91,9 @@ class Matrixet22 (object):
                          indices=self.indices(),
                          simulate=self._simulate)
         # Not complete!!
-        self.display('copy(), after')
-        new.display('copy()')
+        new._pgm.merge(self._pgm)                           # ...........!!?
+        # self.display('copy(), after')
+        # new.display('copy()')
         return new
 
     #-------------------------------------------------------------------
@@ -156,20 +157,20 @@ class Matrixet22 (object):
         return self._matrel.keys()
 
 
-    def matrix_element(self, key='m11', return_nodes=False):
+    def matrix_element(self, key='m11', qual=None, return_nodes=False, trace=False):
         """Return the specified matrix element(s)"""
         if not self._matrel.has_key(key):
             return False                                # in ['m11','m12','m21','m22']
 
-        quals = self.quals()
+        quals = self.quals(append=qual)
         name = self.label()+'_'+key[1:]                 # i.e. '12' rather than 'm12'
-        print '\n**',key,name,quals
+        if trace: print '\n**',key,name,quals
         if not self._ns[name](*quals).initialized():
             for i in self.list_indices():
                 index = self._matrel_index[key]         # index in tensor node
                 node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
                                                                   index=index)
-                print '-+',i,index,self._matrixet(*i),'->',node
+                if trace: print '-+',i,index,self._matrixet(*i),'->',node
         self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
 
         # Return a list of nodes, if required:
@@ -265,7 +266,6 @@ class Matrixet22 (object):
     # Math operations: 
     #=====================================================================================
 
-
     def binop(self, binop=None, other=None, qual=None):
         """Do an (item-by-item) binary operation (e.g. Subtract)
         between itself and another Matrixet22 object."""
@@ -274,8 +274,8 @@ class Matrixet22 (object):
         for i in self.list_indices():
             self._ns[binop](*quals)(qother)(*i) << getattr(Meq,binop)(self._matrixet(*i),
                                                                      other._matrixet(*i))
-        self._matrixet = self._ns[binop](*quals)(qother)     # replace
-        self.merge_parmgroups(other)
+        self.matrixet(new=self._ns[binop](*quals)(qother))     # replace
+        self._pgm.merge(other._pgm)           # ...........!!?
         return True
 
 
@@ -284,7 +284,7 @@ class Matrixet22 (object):
         quals = self.quals(append=qual)
         for i in self.list_indices():
             self._ns[unop](*quals)(*i) << getattr(Meq,unop)(self._matrixet(*i))
-        self._matrixet = self._ns[unop](*quals)              # replace
+        self.matrixet(new=self._ns[unop](*quals))              # replace
         return True
 
     #---------------------------------------------------------------------
@@ -316,7 +316,7 @@ class Matrixet22 (object):
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
         if not isinstance(keys,(list,tuple)): keys = [keys]
         for key in keys:  
-            cc = self.matrix_element(key, return_nodes=True) 
+            cc = self.matrix_element(key, qual=qual, return_nodes=True) 
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                            scope=dcoll_quals,
                                            tag=key,
@@ -355,10 +355,10 @@ class Matrixet22 (object):
     # Solving:
     #==============================================================================
 
-    def make_condeqs (self, other=None, matrel='*', replace=False):
+    def make_condeqs (self, other=None, matrel='*', qual=None, replace=False):
         """Make a list of condeq nodes by comparing its matrices (or -elements)
         with the corresponding matrices of another Matrixet22 object."""
-        quals = self.quals()
+        quals = self.quals(append=qual)
         qother = other._quals.concat()        # -> one string, with _ between quals
 
         # It is possible to use only a subset of the matrix elements:
@@ -402,10 +402,10 @@ class Matrixet22 (object):
 
     #----------------------------------------------------------------------------------
 
-    def make_solver (self, parmgroup='*', other=None, compare=None):
+    def make_solver (self, other=None, parmgroup='*', qual=None, compare=None):
         """Make a solver that solves for the specified parmgroup, by comparing its
         matrices with the corresponding matrices of another Matrixet22 object."""
-        quals = self.quals()
+        quals = self.quals(append=qual)
         qother = other._quals.concat()        # -> one string, with _ between quals
 
         # Get the list of solvable MeqParm nodes:
@@ -430,7 +430,8 @@ class Matrixet22 (object):
 
         # Make a list of condeq nodes:
         condeq_copy = self.copy()
-        condeqs = condeq_copy.make_condeqs (other, matrel=matrel, replace=True)
+        condeqs = condeq_copy.make_condeqs (other, matrel=matrel,
+                                            qual=qual, replace=True)
 
         # Create the solver
         cc = []
@@ -440,7 +441,7 @@ class Matrixet22 (object):
         JEN_bookmarks.create(solver, page='solver')
 
         # Visualize the condeqs and the solvable MeqParms:
-        cc.append(condeq_copy.visualize(matrel=matrel))
+        cc.append(condeq_copy.visualize('solver', matrel=matrel))
 
         # Return the ReqSeq node that bundles solving and visualisation: 
         reqseq = self._ns.reqseq_solver(*quals)(qother) << Meq.ReqSeq(children=cc)
@@ -506,7 +507,7 @@ def _define_forest(ns):
     mat2.display(full=True)
 
     if True:
-        reqseq = mat1.make_solver('*', mat2)
+        reqseq = mat1.make_solver(mat2)
         cc.append(reqseq)
 
     ns.result << Meq.ReqSeq(children=cc)
@@ -555,7 +556,7 @@ if __name__ == '__main__':
             m1.display('after binop', full=True)
         
         if 1:
-            reqseq = m1.make_solver('*',m2)
+            reqseq = m1.make_solver(m2)
             m1._dummyParmGroup.display_subtree (reqseq, txt='solver_reqseq',
                                                 show_initrec=False, recurse=3)
         
