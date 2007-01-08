@@ -36,12 +36,6 @@
 #=======================================================================
 # Import of Python / TDL modules:
 
-import math
-import random
-
-from string import split, strip
-from numarray import *
-
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
 from Timba.Meq import meqds
@@ -55,10 +49,7 @@ def _define_forest(ns):
 
   BEAM_LM = [(0,0)]
   l_beam,m_beam = BEAM_LM[0]
-  ns.l_beam  << Meq.Parm(l_beam,node_groups='Parm')
-  ns.m_beam  << Meq.Parm(m_beam,node_groups='Parm')
-  ns.lm_beam << Meq.Composer(ns.l_beam,ns.m_beam);
-
+  ns.lm_beam << Meq.Composer(l_beam,m_beam);
 
 # read in beam images
  # fit all 180 beams
