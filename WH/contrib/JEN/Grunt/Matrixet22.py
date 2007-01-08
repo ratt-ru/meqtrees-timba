@@ -74,7 +74,12 @@ class Matrixet22 (object):
             self._pgm = ParmGroupManager(ns, label=self.label(),quals=self.quals(),
                                          simulate=self._simulate)
 
-        self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
+        # Service: It is possible to accumulate lists of things (nodes, usually),
+        # that are carried along by the object until needed downstream.
+        self._accumulist = dict()
+
+        # Kludge: used for its printing functions...
+        self._dummyParmGroup = ParmGroup('dummy')
         return None
 
     #-------------------------------------------------------------------
@@ -152,38 +157,6 @@ class Matrixet22 (object):
 
     #-------------------------------------------------------------------
 
-    def matrels (self):
-        """Return the list of the (4) matrix element names"""
-        return self._matrel.keys()
-
-
-    def matrix_element(self, key='m11', qual=None, return_nodes=False, trace=False):
-        """Return the specified matrix element(s)"""
-        if not self._matrel.has_key(key):
-            return False                                # in ['m11','m12','m21','m22']
-
-        quals = self.quals(append=qual)
-        name = self.label()+'_'+key[1:]                 # i.e. '12' rather than 'm12'
-        if trace: print '\n**',key,name,quals
-        if not self._ns[name](*quals).initialized():
-            for i in self.list_indices():
-                index = self._matrel_index[key]         # index in tensor node
-                node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
-                                                                  index=index)
-                if trace: print '-+',i,index,self._matrixet(*i),'->',node
-        self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
-
-        # Return a list of nodes, if required:
-        if return_nodes:
-            nodes = []
-            for i in self.list_indices():
-                nodes.append(self._ns[name](*quals)(*i))
-            return nodes
-        # Otherwise, return the set of nodes:
-        return self._ns[name](*quals) 
-
-    #-------------------------------------------------------------------
-
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
@@ -256,10 +229,63 @@ class Matrixet22 (object):
         print '   - matrel_color: '+str(self._matrel_color)
         print '   - matrel_style: '+str(self._matrel_style)
         #...............................................................
+        print ' * Accumulist entries: '
+        for key in self._accumulist.keys():
+            print '  - '+str(key)+' ('+str(len(self._accumulist[key]))+'):'
+        #...............................................................
         print '**\n'
         return True
 
 
+    #=====================================================================================
+
+    def accumulist (self, node=None, key='_default_', flat=True):
+        """Interact with the internal service for accumulating named (key) lists of
+        things (nodes, usually), for retrieval later downstream.
+        If flat=True, flatten make a flat list by extending the list with a new node
+        rather than appending it."""
+        self._accumulist.setdefault(key, [])           # Make sure that the list exists
+        if node:
+            if not flat:                                                                  
+                self._accumulist[key].append(node)
+            elif isinstance(node, (list,tuple)):
+                self._accumulist[key].extend(node)
+            else:
+                self._accumulist[key].append(node)
+        # Always return the specified (key) list:
+        return self._accumulist[key]
+
+    #=====================================================================================
+
+    def matrels (self):
+        """Return the list of the (4) matrix element names"""
+        return self._matrel.keys()
+
+
+    def matrix_element(self, key='m11', qual=None, return_nodes=False, trace=False):
+        """Return the specified matrix element(s)"""
+        if not self._matrel.has_key(key):
+            return False                                # in ['m11','m12','m21','m22']
+
+        quals = self.quals(append=qual)
+        name = self.label()+'_'+key[1:]                 # i.e. '12' rather than 'm12'
+        if trace: print '\n**',key,name,quals
+        if not self._ns[name](*quals).initialized():
+            for i in self.list_indices():
+                index = self._matrel_index[key]         # index in tensor node
+                node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
+                                                                  index=index)
+                if trace: print '-+',i,index,self._matrixet(*i),'->',node
+        self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
+
+        # Return a list of nodes, if required:
+        if return_nodes:
+            nodes = []
+            for i in self.list_indices():
+                nodes.append(self._ns[name](*quals)(*i))
+            return nodes
+        # Otherwise, return the set of nodes:
+        return self._ns[name](*quals) 
 
 
     #=====================================================================================
@@ -539,6 +565,11 @@ if __name__ == '__main__':
         m1.visualize()
         m1.display(full=True)
 
+    if 1:
+        m1.accumulist('aa')
+        m1.accumulist('bb', key='extra')
+        m1.display(full=True)
+
     if 0:
         mc = m1.copy()
         mc.display('copy', full=True)
@@ -547,7 +578,7 @@ if __name__ == '__main__':
         m1.unop('Cos')
         m1.display('after unop', full=True)
         
-    if 1:
+    if 0:
         m2 = Matrixet22(ns, quals=['3c84','yyy'], label='TT', simulate=False)
         m2.test()
         m2.display('m2',full=True)
