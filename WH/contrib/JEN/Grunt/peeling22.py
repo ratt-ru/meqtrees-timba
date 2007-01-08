@@ -228,7 +228,7 @@ def _define_forest (ns):
       
       # Subtract (peel) the current peeling source:
       # sc.peel (subtract=corrupt)
-      vis.binop('Subtract', corrupt, qual='peel', visu=True)
+      vis.binop('Subtract', corrupt, qual='peel_'+src, visu=True)
 
     # -----------------------------------------------------------------------
     if insert_solver and repeel:
@@ -247,7 +247,7 @@ def _define_forest (ns):
         
         # Add the (slightly wrong) current peeling source:
         # sc.unpeel (scope=scope, add=corrupt)
-        vis.binop('Add', corrupt, qual='unpeel')
+        vis.binop('Add', corrupt, qual='unpeel_'+src)
         
         vis.make_solver(predict)
         # sc.make_solver(scope=scope, measured=None, predicted=predict,
@@ -256,7 +256,7 @@ def _define_forest (ns):
 
         # Subtract the current peeling source:
         # sc.peel (subtract=corrupt)
-        vis.binop('Subtract', corrupt, qual='repeel', visu=True)
+        vis.binop('Subtract', corrupt, qual='repeel_'+src, visu=True)
 
     # Continue peeling (and re-peeling) the next peel_group:
     isrc1 += peel_group

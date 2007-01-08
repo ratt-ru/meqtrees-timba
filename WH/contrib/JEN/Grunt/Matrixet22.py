@@ -511,7 +511,7 @@ class Matrixet22 (object):
         # Make a list of condeq nodes:
         condeq_copy = self.copy()
         condeqs = condeq_copy.make_condeqs (other, matrel=matrel,
-                                            qual=qual, replace=True)
+                                            qual=qother, replace=True)
 
         # Create the solver
         solver = self._ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
@@ -529,7 +529,7 @@ class Matrixet22 (object):
         # Visualize the solvable MeqParms:
         
         # Visualize the condeqs:
-        dcoll = condeq_copy.visualize('condeq', matrel=matrel)
+        dcoll = condeq_copy.visualize('condeq_'+qother, matrel=matrel)
         JEN_bookmarks.create(dcoll, page=bookpage)
         cc.append(dcoll)
 
