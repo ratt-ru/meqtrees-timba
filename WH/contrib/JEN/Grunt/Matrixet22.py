@@ -13,8 +13,9 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from ParmGroupManager import *
-from Qualifiers import *
+from Timba.Contrib.JEN.Grunt import Qualifiers
+from Timba.Contrib.JEN.Grunt import ParmGroup
+from Timba.Contrib.JEN.Grunt import ParmGroupManager
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -44,7 +45,7 @@ class Matrixet22 (object):
             self._pols = ['R','L']
 
         # Node-name qualifiers:
-        self._quals = Qualifiers(quals, prepend=label)
+        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
 
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
         if self._simulate:
@@ -71,15 +72,16 @@ class Matrixet22 (object):
         # e.g. when interfacing with visibilities produced by the Meow system. 
         self._pgm = pgm
         if not self._pgm:
-            self._pgm = ParmGroupManager(ns, label=self.label(),quals=self.quals(),
-                                         simulate=self._simulate)
+            self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self.label(),
+                                                          quals=self.quals(),
+                                                          simulate=self._simulate)
 
         # Service: It is possible to accumulate lists of things (nodes, usually),
         # that are carried along by the object until needed downstream.
         self._accumulist = dict()
 
         # Kludge: used for its printing functions...
-        self._dummyParmGroup = ParmGroup('dummy')
+        self._dummyParmGroup = ParmGroup.ParmGroup('dummy')
         return None
 
     #-------------------------------------------------------------------
@@ -101,7 +103,10 @@ class Matrixet22 (object):
         # new.display('copy()')
         return new
 
-    #-------------------------------------------------------------------
+
+    #=====================================================================================
+    # Access to basic attributes:
+    #=====================================================================================
 
     def label(self):
         """Return the object label""" 
@@ -155,7 +160,10 @@ class Matrixet22 (object):
             self._matrixet = new
         return self._matrixet
 
-    #-------------------------------------------------------------------
+
+    #=====================================================================================
+    # Display of the contents of this object:
+    #=====================================================================================
 
     def oneliner(self):
         """Return a one-line summary of this object"""
@@ -231,30 +239,61 @@ class Matrixet22 (object):
         #...............................................................
         print ' * Accumulist entries: '
         for key in self._accumulist.keys():
-            print '  - '+str(key)+' ('+str(len(self._accumulist[key]))+'):'
+            vv = self._accumulist[key]
+            print '  - '+str(key)+' ('+str(len(vv))+'):'
+            if full:
+                for v in vv: print '    - '+str(type(v))+' '+str(v)
         #...............................................................
         print '**\n'
         return True
 
 
     #=====================================================================================
+    # Accumulist service:
+    #=====================================================================================
 
-    def accumulist (self, node=None, key='_default_', flat=True):
+    def accumulist (self, item=None, key=None, flat=False, clear=False):
         """Interact with the internal service for accumulating named (key) lists of
-        things (nodes, usually), for retrieval later downstream.
-        If flat=True, flatten make a flat list by extending the list with a new node
-        rather than appending it."""
+        items (nodes, usually), for retrieval later downstream.
+        If flat=True, flatten make a flat list by extending the list with a new item
+        rather than appending it.
+        An extra list with key=* contains all items of all lists"""
+        if key==None: key = '_default_'
+        if not isinstance(key, str):
+            print '\n** .accumulist(): key is wrong type:',type(key),'\n'
+            return False      
         self._accumulist.setdefault(key, [])           # Make sure that the list exists
-        if node:
+        self._accumulist.setdefault('*', [])           # The list of ALL entries
+        if item:
             if not flat:                                                                  
-                self._accumulist[key].append(node)
-            elif isinstance(node, (list,tuple)):
-                self._accumulist[key].extend(node)
+                self._accumulist[key].append(item)
+                self._accumulist['*'].append(item)
+            elif isinstance(item, (list,tuple)):
+                self._accumulist[key].extend(item)
+                self._accumulist['*'].extend(item)
             else:
-                self._accumulist[key].append(node)
-        # Always return the specified (key) list:
-        return self._accumulist[key]
+                self._accumulist[key].append(item)
+                self._accumulist['*'].append(item)
+        # Always return the current value of the specified (key) list:
+        keylist = self._accumulist[key]           
+        if clear:
+            # Optional: clear the entry (NB: What happens to '*' list??)
+            self._accumulist[key] = []
+            # self._accumulist['*'] = []
+        # Enhancement: If flat=True, flatten the keylist....?
+        return keylist
 
+
+    def merge_accumulist (self, other):
+        """Merge the accumulist of another Matrix22 object with its own."""
+        olist = other._accumulist
+        for key in olist.keys():
+            if not key=='*':
+                self.accumulist(olist[key], key=key, flat=True)
+        return True
+
+    #=====================================================================================
+    # Matrix elements within the 2x2 matrices:
     #=====================================================================================
 
     def matrels (self):
@@ -331,11 +370,17 @@ class Matrixet22 (object):
     # Visualization:
     #=====================================================================
 
-    def visualize (self, qual=None, matrel='*', bookpage='Matrixet22', folder=None):
+    def visualize (self, qual=None, matrel='*', accu=True,
+                   bookpage='Matrixet22', folder=None):
+
         """Visualise (a subset of) the 4 complex matrix elements of all 
         Matrixet22 matrices in a single real-vs-imag plot. Different
         matrix elements (m11,m12,m21,m22) have different styles
-        and colors, which are the same for all Matrixet22 matrices."""
+        and colors, which are the same for all Matrixet22 matrices.
+        A bookmark item is made for the resulting dataCollect node.
+        The resulting dataCollect node is returned, but if accu=True (default)
+        it is also stored in self.accumulist(key=None) for later retrieval."""
+
         dcoll_quals = self._quals.concat(prepend=qual)
         dcolls = []
         keys = deepcopy(matrel)
@@ -359,9 +404,13 @@ class Matrixet22 (object):
         self._dcoll = rr['dcoll']
         JEN_bookmarks.create(self._dcoll, self.label(),
                              page=bookpage, folder=folder)
+        # Keep for later retrieval:
+        if accu: self.accumulist(self._dcoll)
         # Return the dataConcat node:
         return self._dcoll
 
+    #............................................................................
+    # Obsolete? To JEN_bookmarks?
     #............................................................................
 
     def append_to_bookpage(self, node, page):
@@ -435,6 +484,9 @@ class Matrixet22 (object):
         quals = self.quals(append=qual, prepend=parmgroup)
         qother = other._quals.concat()        # -> one string, with _ between quals
 
+        # Accumulate nodes to be executed sequentially later:
+        self.merge_accumulist(other)
+
         # Get the list of solvable MeqParm nodes:
         # ONLY from the other Matrixet22 object, NOT from this one.....(?)
         # keys = other.pgm().solvable_groups()
@@ -461,17 +513,30 @@ class Matrixet22 (object):
                                             qual=qual, replace=True)
 
         # Create the solver
-        cc = []
         solver = self._ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
                                                          solvable=pg.nodelist())
+
+        # Bundle (cc) the solver and its related visualization dcolls
+        # for attachment to a reqseq (below). Also make bookmarks to
+        # display the same nodes on the same bookpage in the browser.
+        
+        cc = []
         cc.append(solver)
-        JEN_bookmarks.create(solver, page='solver')
+        bookpage = 'solver'+parmgroup
+        JEN_bookmarks.create(solver, page=bookpage)
 
-        # Visualize the condeqs and the solvable MeqParms:
-        cc.append(condeq_copy.visualize('condeq', matrel=matrel))
+        # Visualize the solvable MeqParms:
+        
+        # Visualize the condeqs:
+        dcoll = condeq_copy.visualize('condeq', matrel=matrel)
+        JEN_bookmarks.create(dcoll, page=bookpage)
+        cc.append(dcoll)
 
-        # Return the ReqSeq node that bundles solving and visualisation: 
+        # Bundle solving and visualisation nodes: 
         reqseq = self._ns.reqseq_solver(*quals)(qother) << Meq.ReqSeq(children=cc)
+        self.accumulist(reqseq)
+
+        # Return the solver reqseq (usually not used):
         return reqseq
         
     
@@ -533,9 +598,14 @@ def _define_forest(ns):
     cc.append(mat2.visualize())
     mat2.display(full=True)
 
-    if True:
+    if False:
         reqseq = mat1.make_solver(mat2)
         cc.append(reqseq)
+
+    aa = mat1.accumulist()
+    print 'aa=',aa
+    node = ns.accu << Meq.Composer(children=aa)
+    cc.append(node)
 
     ns.result << Meq.ReqSeq(children=cc)
     return True
@@ -565,10 +635,16 @@ if __name__ == '__main__':
         m1.visualize()
         m1.display(full=True)
 
-    if 1:
+    if 0:
         m1.accumulist('aa')
+        m1.accumulist('2')
+        m1.accumulist(range(3), flat=True)
         m1.accumulist('bb', key='extra')
         m1.display(full=True)
+        print '1st time:',m1.accumulist()
+        print '1st time*:',m1.accumulist(key='*')
+        print '2nd time:',m1.accumulist(clear=True)
+        print '3rd time:',m1.accumulist()
 
     if 0:
         mc = m1.copy()

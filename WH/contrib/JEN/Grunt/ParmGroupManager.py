@@ -14,10 +14,10 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from ParmGroup import *
-from Qualifiers import *
+from Timba.Contrib.JEN.Grunt import NodeGroup 
+from Timba.Contrib.JEN.Grunt import ParmGroup 
+from Timba.Contrib.JEN.Grunt import Qualifiers
 
-# from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
@@ -34,7 +34,7 @@ class ParmGroupManager (object):
         self._label = label                          # label of the matrix 
 
         # Node-name qualifiers:
-        self._quals = Qualifiers(quals)
+        self._quals = Qualifiers.Qualifiers(quals)
 
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
         # if self._simulate:
@@ -45,7 +45,7 @@ class ParmGroupManager (object):
         self._simparmgroup = dict()                  # available SimulatedParmGroup objects 
         self._pgog = dict()                          # used for define_gogs()
         self._sgog = dict()                          # used for define_gogs()
-        self._dummyParmGroup = ParmGroup('dummy')    # used for its printing functions...
+        self._dummyParmGroup = ParmGroup.ParmGroup('dummy')    # used for its printing functions...
         return None
 
 
@@ -78,23 +78,23 @@ class ParmGroupManager (object):
         if txt: print ' * (txt='+str(txt)+')'
         #...............................................................
         print ' * Available NodeGroup objects: '
-        for key in self.parmgroups():
+        for key in self._parmgroup.keys():
             pg = self._parmgroup[key]
-            if not isinstance(pg, NodeGog):
+            if not isinstance(pg, NodeGroup.NodeGog):
                 print '  - '+str(pg.oneliner())
         for key in self._simparmgroup.keys():
             spg = self._simparmgroup[key]
-            if not isinstance(spg, NodeGog):
+            if not isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
 
         print ' * Available NodeGog (Groups of NodeGroups) objects: '
-        for key in self.parmgroups():
+        for key in self._parmgroup.keys():
             pg = self._parmgroup[key]
-            if isinstance(pg, NodeGog):
+            if isinstance(pg, NodeGroup.NodeGog):
                 print '  - '+str(pg.oneliner())
         for key in self._simparmgroup.keys():
             spg = self._simparmgroup[key]
-            if isinstance(spg, NodeGog):
+            if isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
         #...............................................................
         print '**\n'
@@ -126,7 +126,8 @@ class ParmGroupManager (object):
     #-----------------------------------------------------------------------------
     
     def merge(self, other):
-        """Helper function to merge its parmgroups with those of another ParmGroupManager object"""
+        """Helper function to merge its relevant NodeGroups/Gogs with those of another
+        ParmGroupManager object"""
         all = []
         if self._parmgroup.has_key('*'):
             print 'self[*]:',self._parmgroup['*']
@@ -178,25 +179,25 @@ class ParmGroupManager (object):
             if not isinstance(simul, dict):              # Temporary.................
                 simul = dict(Tsec=Tsec, Tstddev=Tstddev,
                              stddev=stddev, scale=scale)
-            spg = SimulatedParmGroup (self._ns, label=name,
-                                      quals=self.quals(),
-                                      descr=descr, default=default,
-                                      tags=ptags,
-                                      ctrl=simul,
-                                      # Tsec=Tsec, Tstddev=Tstddev,
-                                      # scale=scale, stddev=stddev,
-                                      rider=rider) 
+            spg = ParmGroup.SimulatedParmGroup (self._ns, label=name,
+                                                quals=self.quals(),
+                                                descr=descr, default=default,
+                                                tags=ptags,
+                                                ctrl=simul,
+                                                # Tsec=Tsec, Tstddev=Tstddev,
+                                                # scale=scale, stddev=stddev,
+                                                rider=rider) 
             self._simparmgroup[name] = spg
 
         else:
             # - matrel specifies the matrix elements that are affected by the
             #   MeqParms in this ParmGroup, and that are to be used in solving.
             rider['matrel'] = deepcopy(matrel)
-            pg = ParmGroup (self._ns, label=name, 
-                            quals=self.quals(),
-                            descr=descr, default=default,
-                            tags=ptags, node_groups=node_groups,
-                            rider=rider)
+            pg = ParmGroup.ParmGroup (self._ns, label=name, 
+                                      quals=self.quals(),
+                                      descr=descr, default=default,
+                                      tags=ptags, node_groups=node_groups,
+                                      rider=rider)
             self._parmgroup[name] = pg
 
         # Collect information for define_gogs():
@@ -245,14 +246,14 @@ class ParmGroupManager (object):
             if trace:
                 print '- pgog:',key,rider
                 for g in self._pgog[key]: print '   - ',g.label()
-            self._parmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
-                                            group=self._pgog[key],rider=rider)
+            self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
+                                                      group=self._pgog[key],rider=rider)
         for key in self._sgog.keys():
             if trace:
                 print '- sgog:',key
                 for g in self._sgog[key]: print '   - ',g.label()
-            self._simparmgroup[key] = NodeGog (self._ns, label=key, descr='<descr>', 
-                                               group=self._sgog[key])
+            self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
+                                                         group=self._sgog[key])
 
         # Make the overall parmgroup(s) last, using the pg collected first:
         # (Otherwise it gets in the way of the automatic group finding process).
@@ -262,14 +263,14 @@ class ParmGroupManager (object):
                 if trace:
                     print '- pg overall:',label,rider
                     for g in pg: print '   - ',g.label()
-                self._parmgroup[label] = NodeGog (self._ns, label=label, group=pg, rider=rider,
-                                                  descr='all '+name+' parameters')
+                self._parmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=pg, rider=rider,
+                                                            descr='all '+name+' parameters')
             if len(spg)>0:
                 if trace:
                     print '- spg overall:',label
                     for g in spg: print '   - ',g.label()
-                self._simparmgroup[label] = NodeGog (self._ns, label=label, group=spg,
-                                                     descr='all simulated '+name+' parameters')
+                self._simparmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=spg,
+                                                               descr='all simulated '+name+' parameters')
         return None
 
     #-----------------------------------------------------------------------------

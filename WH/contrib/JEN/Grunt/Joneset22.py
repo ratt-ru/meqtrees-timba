@@ -13,7 +13,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Matrixet22 import *
+from Timba.Contrib.JEN.Grunt import Matrixet22
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -22,7 +22,7 @@ from copy import deepcopy
 
 #======================================================================================
 
-class Joneset22 (Matrixet22):
+class Joneset22 (Matrixet22.Matrixet22):
     """Base class that represents a set of 2x2 Jones matrices.
     Derived from the class Matrixet22."""
 
@@ -36,9 +36,9 @@ class Joneset22 (Matrixet22):
             indices = range(1,4)                     # for testing convenience....
 
         # Initialise its Matrixet22 object:
-        Matrixet22.__init__(self, ns, quals=quals, label=label, descr=descr,
-                          polrep=polrep, 
-                          indices=indices, simulate=simulate)
+        Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label, descr=descr,
+                                       polrep=polrep, 
+                                       indices=indices, simulate=simulate)
 
         return None
 

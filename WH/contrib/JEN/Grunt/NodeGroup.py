@@ -18,7 +18,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Qualifiers import *
+from Timba.Contrib.JEN.Grunt import Qualifiers
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -51,7 +51,7 @@ class NodeGroup (object):
         if isinstance(rider, dict): self._rider = rider
 
         # Node-name qualifiers:
-        self._quals = Qualifiers(quals, prepend=label)
+        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
 
         # Node tags (for searching the nodescope)
         self._tags = deepcopy(tags)

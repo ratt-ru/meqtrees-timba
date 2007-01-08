@@ -20,8 +20,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Qualifiers import *
-from NodeGroup import *
+from Timba.Contrib.JEN.Grunt import NodeGroup 
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -34,7 +33,7 @@ import math
 
 #==========================================================================
 
-class ParmGroup (NodeGroup):
+class ParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of (somehow related) MeqParm nodes"""
 
     def __init__(self, ns, label='<pg>', nodelist=[],
@@ -43,10 +42,10 @@ class ParmGroup (NodeGroup):
                  default=0.0, 
                  rider=None):
 
-        NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
-                           quals=quals, descr=descr, tags=tags, 
-                           color=color, style=style, size=size, pen=pen,
-                           rider=rider)
+        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
+                                     quals=quals, descr=descr, tags=tags, 
+                                     color=color, style=style, size=size, pen=pen,
+                                     rider=rider)
 
         # Information needed to create MeqParm nodes (see create_entry())
         self._default = default               # default value
@@ -105,7 +104,7 @@ class ParmGroup (NodeGroup):
 #==========================================================================
 
 
-class SimulatedParmGroup (NodeGroup):
+class SimulatedParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of nodes (subtrees) that simulate
     a group of MeqParm nodes (often used in conjunction with class ParmGroup)"""
 
@@ -114,10 +113,10 @@ class SimulatedParmGroup (NodeGroup):
                  color='blue', style='circle', size=8, pen=2,
                  default=0.0, ctrl=None, rider=None):
 
-        NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
-                           quals=quals, descr=descr, tags=tags, 
-                           color=color, style=style, size=size, pen=pen,
-                           rider=rider)
+        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
+                                     quals=quals, descr=descr, tags=tags, 
+                                     color=color, style=style, size=size, pen=pen,
+                                     rider=rider)
 
         # Make sure that tags/quals of the created nodes reflect the fact
         # that this is a simulated parameter.

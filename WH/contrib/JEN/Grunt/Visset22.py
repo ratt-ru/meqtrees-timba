@@ -13,7 +13,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Matrixet22 import *
+from Timba.Contrib.JEN.Grunt import Matrixet22
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -22,7 +22,7 @@ from copy import deepcopy
 
 # For testing only:
 import Meow
-import Joneset22
+from Timba.Contrib.JEN.Grunt import Joneset22
 
 
 
@@ -32,7 +32,7 @@ import Joneset22
 
 #======================================================================================
 
-class Visset22 (Matrixet22):
+class Visset22 (Matrixet22.Matrixet22):
     """Class that represents a set of 2x2 Cohaerency  matrices"""
 
     def __init__(self, ns, quals=[], label='<v>',
@@ -45,10 +45,10 @@ class Visset22 (Matrixet22):
         self._observation = observation              # Meow Observation object
 
         # Initialise its Matrixet22 object:
-        Matrixet22.__init__(self, ns, quals=quals, label=label,
-                            polrep=polrep, 
-                            indices=self._array.ifrs(),
-                            simulate=simulate)
+        Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
+                                       polrep=polrep, 
+                                       indices=self._array.ifrs(),
+                                       simulate=simulate)
         if cohset:
             self._matrixet = cohset
         else:
@@ -58,9 +58,6 @@ class Visset22 (Matrixet22):
             self._matrixet = self._ns.initial(*quals)
             for ifr in self.ifrs():
                 self._matrixet(*ifr) << Meq.Identity(node)
-
-        # List of children to be added to a (solver) reqseq eventually:
-        self._reqseq_children = []
 
         return None
 
@@ -94,35 +91,23 @@ class Visset22 (Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def reqseq_children (self, node=None):
-        """Return the accumulated list of reqseq children.
-        If node(list) is given, append it."""
-        if node:
-            if isinstance(node, (list,tuple)):
-                self._reqseq_children.extend(node)
-            else:
-                self._reqseq_children.append(node)
-        return self._reqseq_children
+    def insert_accumulist_reqseq (self, key=None, qual=None):
+        """Insert a series of reqseq node(s) with the children accumulated
+        in self._accumulist (see Matrixet22). The reqseqs will get the current
+        matrix nodes as their last child, to which their result is transmitted."""
 
-
-    def insert_reqseq (self):
-        """Insert a series reqseq node(s) with the children accumulated with
-        reqseq_children(). The reqseqs will use the current matrix nodes as
-        the last ones, and transmit their results."""
-
-        self.visualize_matrix (tag='reqseq', page='e2e', errorbars=True)
-        n = len(self._reqseq_children)
-        self._reqseq_children.append('placeholder')  
-        cohset = self.cohset()
-        for ifr in self.ifrs():
-            self._reqseq_children[n] = self._matrixet(*ifr)   # fill in the placeholder
-            self._ns.reqseq_SolverChain(*ifr) << Meq.ReqSeq(children=self._reqseq_children,
-                                                            result_index=n,
-                                                            cache_num_active_parents=1)
-        if True: self.display('insert_reqseq')
-        self._matrixet = self._ns.reqseq_SolverChain
-        self.make_actual_bookmarks()
-        self._clear()                                 # ....??
+        cc = self.accumulist(key=key, clear=False)
+        n = len(cc)
+        if n>0:
+            quals = self.quals(append=qual)
+            cc.append('placeholder')
+            name = 'reqseq'
+            if isinstance(key, str): name += '_'+str(key)
+            for ifr in self.ifrs():
+                cc[n] = self._matrixet(*ifr)         # fill in the placeholder
+                self._ns[name](*quals)(*ifr) << Meq.ReqSeq(children=cc, result_index=n,
+                                                           cache_num_active_parents=1)
+            self._matrixet = self._ns[name](*quals)
         return True
 
 
@@ -159,14 +144,13 @@ class Visset22 (Matrixet22):
             self._ns[name](*quals)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
         self._matrixet = self._ns[name](*quals)           
         if visu: return self.visualize(name)
-        return True
+        return None
 
     #...........................................................................
 
-    def corrupt (self, joneset=None, rms=0.0, qual=None, visu=False):
+    def corrupt (self, joneset=None, qual=None, visu=False):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
-        Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm).
-        If rms>0, add Gaussian noise to the corrupted visibilities."""
+        Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""
         quals = self.quals(append=qual)
         name = 'corrupt22'
         jmat = joneset.matrixet() 
@@ -175,12 +159,10 @@ class Visset22 (Matrixet22):
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = self._ns[name](*quals)              
-        self._pgm.merge(joneset._pgm)             # gransfer any parmgroups
-        if rms>0.0:
-            # Optional: add gaussian noise (AFTER corruption, of course):
-            self.addNoise(rms)
+        # Transfer any parmgroups (used by the solver downstream)
+        self._pgm.merge(joneset._pgm)
         if visu: return self.visualize(name)
-        return True
+        return None
 
     #...........................................................................
 
@@ -195,8 +177,10 @@ class Visset22 (Matrixet22):
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
         self._matrixet = self._ns[name](*quals)              
+        # Transfer any accumulist entries (e.g. visualisation dcolls etc)
+        # self.merge_accumulist(joneset)
         if visu: return self.visualize(name)
-        return True
+        return None
 
 
 
@@ -235,11 +219,11 @@ def _define_forest(ns):
         jones = G
         jones = D
         jones = Joneset22.Joneseq22([G,D])
-        cc.append(vis.corrupt(jones, visu=True))
-        cc.append(vis.addNoise(rms=0.05, visu=True))
+        vis.corrupt(jones, visu=False)
+        vis.addNoise(rms=0.05, visu=True)
         vis.display('after corruption')
         if False:
-            cc.append(vis.correct(jones, visu=True))
+            vis.correct(jones, visu=True)
 
     if True:
         pred = Visset22(ns, label='nominal', quals='xxc', array=array, cohset=cohset)
@@ -249,12 +233,15 @@ def _define_forest(ns):
         jones = G
         jones = D
         jones = Joneset22.Joneseq22([G,D])
-        cc.append(pred.corrupt(jones, visu=True))
+        pred.corrupt(jones, visu=True)
         vis.display('after corruption')
-        cc.append(vis.make_solver(pred, parmgroup='*'))
-        # cc.append(vis.make_solver(pred, parmgroup='Ggain'))
+        vis.make_solver(pred, parmgroup='*')
+        # vis.make_solver(pred, parmgroup='Ggain')
         if True:
-            cc.append(vis.correct(jones, visu=True))
+            vis.correct(jones, visu=True)
+
+    if True:
+        vis.insert_accumulist_reqseq()
   
     # vis.display('final')
     cc.append(vis.bundle())
@@ -307,6 +294,11 @@ if __name__ == '__main__':
         # vis.addNoise(rms=0.05, visu=True)
         vis.correct(G, visu=True)
         vis.display('after corruption')
+
+    if 1:
+        vis.insert_accumulist_reqseq()
+        vis.display(full=True)
+        
 
     if 0:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
