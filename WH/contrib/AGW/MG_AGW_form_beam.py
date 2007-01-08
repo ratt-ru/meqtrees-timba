@@ -23,7 +23,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_form_beam.py'
+# script_name = 'MG_AGW_form_beam.py'
 
 # Short description:
 # We read in a group of focal plane array beams, corrresponding

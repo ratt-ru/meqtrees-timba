@@ -21,7 +21,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_project6.py'
+# script_name = 'MG_AGW_project6.py'
 
 # Short description:
 # Tests MeqTrees computation of source phases

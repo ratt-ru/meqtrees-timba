@@ -23,7 +23,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_solve_all.py'
+# script_name = 'MG_AGW_solve_all.py'
 
 # Short description:
 #  The script should just read in a 2-D array of points from a

@@ -24,7 +24,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_AGW_FITSReader.py'
+# script_name = 'MG_AGW_FITSReader.py'
 
 # Short description:
 #  The script should just read in a 2-D array of points from a
