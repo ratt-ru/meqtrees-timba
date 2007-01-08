@@ -331,7 +331,7 @@ class Matrixet22 (object):
     # Math operations: 
     #=====================================================================================
 
-    def binop(self, binop=None, other=None, qual=None):
+    def binop(self, binop=None, other=None, qual=None, visu=False):
         """Do an (item-by-item) binary operation (e.g. Subtract)
         between itself and another Matrixet22 object."""
         quals = self.quals(append=qual)
@@ -340,7 +340,8 @@ class Matrixet22 (object):
             self._ns[binop](*quals)(qother)(*i) << getattr(Meq,binop)(self._matrixet(*i),
                                                                      other._matrixet(*i))
         self.matrixet(new=self._ns[binop](*quals)(qother))     # replace
-        self._pgm.merge(other._pgm)           # ...........!!?
+        # self._pgm.merge(other._pgm)           # ...........!!?
+        if visu: self.visualize(qual=qual)
         return True
 
 
@@ -477,7 +478,7 @@ class Matrixet22 (object):
 
     #----------------------------------------------------------------------------------
 
-    def make_solver (self, other=None, parmgroup='*', qual=None, compare=None):
+    def make_solver (self, other=None, parmgroup='*', qual=None):
         """Make a solver that solves for the specified parmgroup, by comparing its
         matrices with the corresponding matrices of another Matrixet22 object."""
 

@@ -5,11 +5,11 @@ from Timba.TDL import *
 from Timba.Meq import meq
 import math
 
-from Timba.Contrib.JEN.util import JEN_SolverChain
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN.Grunt import Joneset22
+from Timba.Contrib.JEN.Grunt import Visset22
 
 import Meow
+
 
 # Run-time menu:
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[30,48,96,20,10,5,2,1]);
@@ -93,7 +93,7 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
 
   # Make a solver-chain object:
-  sc = JEN_SolverChain.SolverChain(ns, array=array)
+  # sc = JEN_SolverChain.SolverChain(ns, array=array)
 
   #-------------------------------------------------------------------------- 
   # The input 'data' is a Patch with all (uncorrupted) sources:
@@ -106,7 +106,9 @@ def _define_forest (ns):
   # fainter ones. The latter is to reduce the contamination.
   predicted = []
   corrupted = []
+  jones = []
   for isrc in range(len(LM)):
+    jones.append('placeholder')
     predicted.append(Meow.Patch(ns,'predicted_S'+str(isrc),
                                 observation.phase_centre));
 
@@ -134,14 +136,19 @@ def _define_forest (ns):
     for p in ANTENNAS:
       # v = 0.5*(1+isrc)
       v = 1.0
-      phase = ns.Ephase(src)(p) << Meq.Parm(v/10, node_groups=node_groups,
-                                            tags=[src,'Ephase','EJones']);
-      gain = ns.Egain(src)(p) << Meq.Parm(1+v, node_groups=node_groups,
-                                          tags=[src,'Egain','EJones']);
-      cxparm = ns.E(src)(p) << Meq.Polar(gain,phase);
-      sc.cxparm(cxparm, scope=src)
-      sc.cxparm(cxparm, scope='repeel_'+src)
-    corrupted.append(Meow.CorruptComponent(ns,source,'E',station_jones=ns.E(src)));
+      # phase = ns.Ephase(src)(p) << Meq.Parm(v/10, node_groups=node_groups,
+      #                                       tags=[src,'Ephase','EJones']);
+      # gain = ns.Egain(src)(p) << Meq.Parm(1+v, node_groups=node_groups,
+      #                                     tags=[src,'Egain','EJones']);
+      # cxparm = ns.E(src)(p) << Meq.Polar(gain,phase);
+      # sc.cxparm(cxparm, scope=src)
+      # sc.cxparm(cxparm, scope='repeel_'+src)
+
+    jones[isrc] = Joneset22.GJones(ns, quals=src, stations=ANTENNAS)
+    jones[isrc].display(full=True)
+    # corrupted.append(Meow.CorruptComponent(ns,source,'E',station_jones=ns.E(src)));
+    corrupted.append(Meow.CorruptComponent(ns, source, 'G',
+                                           station_jones=jones[isrc].matrixet()));
 
     # Add the corrupted source to the relevant prediction patches,
     # i.e. the patch that contains the source itself, and also the patches
@@ -159,8 +166,34 @@ def _define_forest (ns):
     U *= flux_factor      
     V *= flux_factor      
 
+  # return True
+
+  # Convert the corrupted and predicted cohsets into Visset22 objects:
+  for isrc in range(len(LM)):
+    # Create source nr isrc:
+    src = 'S'+str(isrc);                          # source label
+    corrupted[isrc] = Visset22.Visset22 (ns, quals=src, label='corrupted', polrep='linear',
+                                         cohset=corrupted[isrc].visibilities(array,observation),
+                                         array=array)
+    corrupted[isrc]._pgm.merge(jones[isrc]._pgm)
+    predicted[isrc] = Visset22.Visset22 (ns, quals=src, label='predicted', polrep='linear',
+                                         cohset=predicted[isrc].visibilities(array,observation),
+                                         array=array)
+    predicted[isrc]._pgm.merge(jones[isrc]._pgm)
+    predicted[isrc].display(full=True)
+
+  # return True
+
   # The input 'measured' uv-data (cohset) is the sum of the uncorrupted sources: 
-  sc.cohset(allsky.visibilities(array,observation))
+  # sc.cohset(allsky.visibilities(array,observation))
+  vis = Visset22.Visset22 (ns, quals=[], label='data',
+                           polrep='linear',
+                           simulate=True,
+                           cohset=allsky.visibilities(array,observation),
+                           array=array)
+  vis.display(full=True)
+
+  # return True
 
 
   #--------------------------------------------------------------------------
@@ -181,18 +214,21 @@ def _define_forest (ns):
       scope = src
       print '--',scope
       
-      predict = predicted[isrc].visibilities(array, observation)
-      corrupt = corrupted[isrc].visibilities(array, observation)
+      # predict = predicted[isrc].visibilities(array, observation)
+      # corrupt = corrupted[isrc].visibilities(array, observation)
+      predict = predicted[isrc]
+      corrupt = corrupted[isrc]
 
       # Optional: insert a solver for the parameters related to this source:
       if insert_solver:
-        sc.make_solver(scope=scope, measured=None, predicted=predict,
-                       parm_tags=src, parm_group=src,
-                       num_iter=num_iter_peel)
+        vis.make_solver(predict)
+        # sc.make_solver(scope=scope, measured=None, predicted=predict,
+        #                parm_tags=src, parm_group=src,
+        #                num_iter=num_iter_peel)
       
       # Subtract (peel) the current peeling source:
-      sc.peel (subtract=corrupt)
-
+      # sc.peel (subtract=corrupt)
+      vis.binop('Subtract', corrupt, qual='peel', visu=True)
 
     # -----------------------------------------------------------------------
     if insert_solver and repeel:
@@ -204,18 +240,23 @@ def _define_forest (ns):
         scope = 'repeel_'+src
         print '  --',scope
         
-        predict = predicted[isrc].visibilities(array, observation)
-        corrupt = corrupted[isrc].visibilities(array, observation)
+        # predict = predicted[isrc].visibilities(array, observation)
+        # corrupt = corrupted[isrc].visibilities(array, observation)
+        predict = predicted[isrc]
+        corrupt = corrupted[isrc]
         
         # Add the (slightly wrong) current peeling source:
-        sc.unpeel (scope=scope, add=corrupt)
-
-        sc.make_solver(scope=scope, measured=None, predicted=predict,
-                       parm_tags=src, parm_group=src,
-                       num_iter=num_iter_repeel)
+        # sc.unpeel (scope=scope, add=corrupt)
+        vis.binop('Add', corrupt, qual='unpeel')
+        
+        vis.make_solver(predict)
+        # sc.make_solver(scope=scope, measured=None, predicted=predict,
+        #                parm_tags=src, parm_group=src,
+        #                num_iter=num_iter_repeel)
 
         # Subtract the current peeling source:
-        sc.peel (subtract=corrupt)
+        # sc.peel (subtract=corrupt)
+        vis.binop('Subtract', corrupt, qual='repeel', visu=True)
 
     # Continue peeling (and re-peeling) the next peel_group:
     isrc1 += peel_group
@@ -224,10 +265,13 @@ def _define_forest (ns):
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
   if insert_solver:
-    sc.insert_reqseq()
+    # sc.insert_reqseq()
+    vis.insert_accumulist_reqseq()
 
   # Attach the current cohset to the sinks
-  sc.make_sinks(output_col='RESIDUALS', vdm='vdm')
+  # sc.make_sinks(output_col='RESIDUALS', vdm='vdm')
+  vis.make_sinks(output_col='RESIDUALS', vdm='vdm')
+  vis.display(full=True)
 
   # Finished: 
   return True

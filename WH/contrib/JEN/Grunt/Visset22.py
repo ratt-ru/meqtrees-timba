@@ -36,13 +36,14 @@ class Visset22 (Matrixet22.Matrixet22):
     """Class that represents a set of 2x2 Cohaerency  matrices"""
 
     def __init__(self, ns, quals=[], label='<v>',
-                 cohset=None, array=None, observation=None,
+                 cohset=None, array=None,
+                 # observation=None,
                  polrep=None,
                  simulate=False):
 
         # Interface with Meow system (array, cohset, observation):
         self._array = array                          # Meow IfrArray object
-        self._observation = observation              # Meow Observation object
+        # self._observation = observation              # Meow Observation object
 
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,

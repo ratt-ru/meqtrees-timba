@@ -138,8 +138,8 @@ class ParmGroupManager (object):
         self._parmgroup.update(other._parmgroup)
         self._simparmgroup.update(other._simparmgroup)
         rider = self._make_pgog_rider(all)
-        self._parmgroup['*'] = NodeGog(self._ns, '*', group=all,
-                                       rider=rider)    
+        self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all,
+                                                 rider=rider)    
         return True
 
 
