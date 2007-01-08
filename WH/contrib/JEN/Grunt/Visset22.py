@@ -94,21 +94,25 @@ class Visset22 (Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def append (self, node, quals=None):
-        """Append a node to the internal list of reqseq children"""
-        if isinstance(node, (list,tuple)):
-            self._reqseq_children.extend(node)
-        else:
-            self._reqseq_children.append(node)
-        return True
+    def reqseq_children (self, node=None):
+        """Return the accumulated list of reqseq children.
+        If node(list) is given, append it."""
+        if node:
+            if isinstance(node, (list,tuple)):
+                self._reqseq_children.extend(node)
+            else:
+                self._reqseq_children.append(node)
+        return self._reqseq_children
+
 
     def insert_reqseq (self):
-        """Make the reqseq node(s) and insert it in the cohset (...).
-        The reqseq that executes the solvers in order of creation,
-        and then passes on the final residuals (in new cohset)."""
+        """Insert a series reqseq node(s) with the children accumulated with
+        reqseq_children(). The reqseqs will use the current matrix nodes as
+        the last ones, and transmit their results."""
+
         self.visualize_matrix (tag='reqseq', page='e2e', errorbars=True)
         n = len(self._reqseq_children)
-        self._reqseq_children.append(0)               # placeholder 
+        self._reqseq_children.append('placeholder')  
         cohset = self.cohset()
         for ifr in self.ifrs():
             self._reqseq_children[n] = self._matrixet(*ifr)   # fill in the placeholder
