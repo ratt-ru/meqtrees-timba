@@ -361,6 +361,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
 #MeqNorm                         1459       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
 #MeqParAngle                     1695       ; from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
+#MeqParAngleL                    1712       ; from /home/sarod/Timba/MeqNodes/src/ParAngleL.h:52
 #MeqParm                         1454       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
 #MeqPaster                       1519       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Paster.h:31
 #MeqPatchComposer                1569       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:34
