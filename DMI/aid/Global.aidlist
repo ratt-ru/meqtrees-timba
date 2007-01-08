@@ -22,6 +22,7 @@ Auto                             1213       ; from /home/oms/LOFAR/Timba/AppAgen
 Axes                             1346       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Axis                             1318       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Az                               1710       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:53
+AzEl                             1711       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 B                                1019       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Balanced                         1668       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Bandwidth                        1176       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
