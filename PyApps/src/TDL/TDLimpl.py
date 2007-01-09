@@ -193,7 +193,7 @@ class _NodeDef (object):
       tags = kw.get('tags',None);
       if tags is not None:
         if isinstance(tags,str):
-          kw['tags'] = (tags,);
+          kw['tags'] = tags.split(" ");
         elif not isinstance(tags,(list,tuple)):
           raise TypeError,"'tags' must be a string, or a list or tuple of strings";
       # create init-record 
@@ -739,7 +739,7 @@ class _NodeRepository (dict):
     tag_conds = [];
     if tags:
       if isinstance(tags,str):
-        tags = [ tags ];
+        tags = tags.split(" ");
       for tag in tags:
         if not isinstance(tag,str):
           raise TypeError,"find: 'tags' argument must be a string, or a list of strings, or None";

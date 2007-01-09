@@ -3,7 +3,7 @@ from Timba.utils import *
 import ConfigParser
 
 import traceback
-# import inspect
+import inspect
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
@@ -112,10 +112,14 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     
     
 class _TDLListOptionItem (_TDLOptionItem):
-  def __init__ (self,namespace,symbol,value,default=None):
+  def __init__ (self,namespace,symbol,value,default=None,more=None):
+    if more not in (None,int,float,str):
+      raise ValueError,"'more' argument to list options must be 'None', 'int', 'float' or 'str'"
+    self._more = more;
     if isinstance(value,(list,tuple)):
       self.option_list = value;
-      self.option_list_str = self.option_list_desc = map(lambda x:self.item_str(x),value);
+      self.option_list_str = map(lambda x:self.item_str(x),value);
+      self.option_list_desc = list(map(lambda x:self.item_str(x),value));
     elif isinstance(value,dict):
       self.option_list = list(value.iterkeys());
       self.option_list_str = map(lambda x:self.item_str(x),value.iterkeys());
@@ -123,6 +127,11 @@ class _TDLListOptionItem (_TDLOptionItem):
     else:
       raise TypeError,"TDLListOptionItem: list or dict of options expected";
     self.inline = False;
+    # if 'more' is specified, add a placeholder in the list for the custom value
+    if more is not None:
+      self.option_list.append(None);
+      self.option_list_str.append('');
+      self.option_list_desc.append('');
     # verify default arg
     if default is None:
       default = 0;
@@ -130,11 +139,21 @@ class _TDLListOptionItem (_TDLOptionItem):
       raise TypeError,"'default': list index expected";
     elif default < 0 or default >= len(value):
       raise ValueError,"'default': index out of range";
-    # try to read from config
+    # try to read value from config file
     try:
       def1 = config.get(config_section,symbol);
+      # look up value in list
       _dprint(1,"read",symbol,"=",def1,"from config");
-      default = self.option_list_str.index(def1);
+      try:
+        default = self.option_list_str.index(def1);
+      except:
+        if more is None:
+          _dprint(1,def1,"is an illegal value for",symbol);
+          default = 0;
+        # add configured symbol to list of values
+        else:
+          self.set_custom_value(more(def1));
+          default = len(self.option_list) - 1;
     except:
       _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
@@ -142,7 +161,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       default = 0;
     self.selected = default;
     _TDLOptionItem.__init__(self,namespace,symbol,self.option_list[default]);
-    
+
   def num_options (self):
     return len(self.option_list);
     
@@ -160,6 +179,12 @@ class _TDLListOptionItem (_TDLOptionItem):
     self._set(self.get_option(value));
     set_config(self.symbol,self.get_option_str(value));
     
+  def set_custom_value (self,value):
+    if self._more is None:
+      raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
+    self.option_list[-1] = value;
+    self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
+    
   def add_to_menu (self,menu):
     """adds entry for option to menu object (usually of class QPopupMenu).
     """
@@ -176,7 +201,10 @@ class _TDLListOptionItem (_TDLOptionItem):
       qag.setUsesDropDown(True);
     # create QActions within group
     for ival in range(self.num_options()):
+      is_custom = self._more is not None and ival == self.num_options()-1;
       name = self.get_option_desc(ival);
+      if is_custom:
+        name += '...';
       if self.inline:
         name = groupname + ": " + name;
       qa = QAction(name,0,qag);
@@ -185,7 +213,10 @@ class _TDLListOptionItem (_TDLOptionItem):
         qa.setToolTip(self.doc);
       if ival == self.selected:
         qa.setOn(True);
-      qa._togglefunc = curry(self._set_menu_option,qag,ival);
+      if is_custom:
+        qa._togglefunc = curry(self._set_custom_menu_option,qag,qa,ival);
+      else:
+        qa._togglefunc = curry(self._set_menu_option,qag,ival);
       QObject.connect(qa,SIGNAL("toggled(bool)"),qa._togglefunc);
     # add to menu
     qag.addTo(menu);
@@ -195,7 +226,28 @@ class _TDLListOptionItem (_TDLOptionItem):
     else:
       qag.setMenuText(groupname + ": " + self.get_option_desc(self.selected));
       menu._ends_with_separator = False;
-      
+
+  def _set_custom_menu_option (self,qag,qa,ivalue,toggled):
+    if not toggled:
+      return;
+    ok = False;
+    # show input dialog, if the "Other" option was selected
+    if self._more is int:
+      value,ok = QInputDialog.getInteger(qag._groupname,qag._groupname,self.option_list[-1] or 0);
+    elif self._more is float:
+      value,ok = QInputDialog.getDouble(qag._groupname,qag._groupname,self.option_list[-1] or 0);
+    elif self._more is str:
+      value,ok = QInputDialog.getText(qag._groupname,qag._groupname,QLineEdit.Normal,self.option_list[-1] or '');
+    if ok:
+      self.set_custom_value(value);
+    self.set(ivalue);
+    txt = self.get_option_desc(ivalue);
+    if self.inline:
+      qa.setMenuText(qag._groupname+": "+txt+'...');
+    else:
+      qa.setMenuText(txt+'...');
+      qag.setMenuText(qag._groupname+": "+txt);
+  
   def _set_menu_option (self,qag,ivalue,toggled):
     if not toggled:
       return;
@@ -229,7 +281,7 @@ class _TDLSubmenu (object):
       _dprint(3,"adding",item,"to submenu");
       item.add_to_menu(submenu);
 
-def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=None):
+def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=None,more=None):
   # if namespace is not specified, set it to 
   # the globals() of the caller of our caller
   if namespace is None:
@@ -241,7 +293,7 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
     item = _TDLBoolOptionItem(namespace,symbol,value);
   # list of options
   elif isinstance(value,(list,tuple,dict)):
-    item = _TDLListOptionItem(namespace,symbol,value,default=default);
+    item = _TDLListOptionItem(namespace,symbol,value,default=default,more=more);
     setattr(item,'inline',inline);
   else:
     raise TypeError,"Illegal type for TDL option: "+type(value).__name__;
@@ -249,15 +301,15 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
   item.set_doc(doc);
   return item;
 
-def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
+def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
   """this creates an option object and adds it to the compile-time list""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc);
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   compile_options.append(opt);
   return opt;
 
-def TDLRuntimeOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
+def TDLRuntimeOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
   """this creates an option object and adds it to the runtime list""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc);
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   runtime_options.append(opt);
   return opt;
   
@@ -270,7 +322,7 @@ def TDLRuntimeMenu (title,*items):
 def TDLMenu (title,*items):
   return _TDLSubmenu(title,*items);
 
-def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None):
+def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
   """this creates and returns an option object. Should be used
   with TDLCompileMenu/TDLRuntimeMenu.""";
-  return _make_option_item(namespace,symbol,name,value,default,inline,doc);
+  return _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
