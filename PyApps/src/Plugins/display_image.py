@@ -522,20 +522,28 @@ class QwtImageDisplay(QwtPlot):
         if self.ampl_phase:
           self._menu.changeItem(menuid, 'Show Data as Amplitude and Phase')
           self.ampl_phase = False
-          if self.is_vector:
-            self._x_title = 'Array/Channel Number '
+          if self._vells_plot and not self.is_vector:
+            title_addition = ': (real followed by imaginary)'
+            self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
           else:
-            self._x_title = 'Array/Channel Number (real followed by imaginary)'
+            if self.is_vector:
+              self._x_title = 'Array/Channel Number '
+            else:
+              self._x_title = 'Array/Channel Number (real followed by imaginary)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
           self._menu.changeItem(menuid, 'Show Data as Real and Imaginary')
           self.ampl_phase = True
-          if self.is_vector:
-            self._x_title = 'Array/Channel Number '
+          if self._vells_plot and not self.is_vector:
+            title_addition = ': (amplitude followed by phase)'
+            self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
           else:
-            self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+            if self.is_vector:
+              self._x_title = 'Array/Channel Number '
+            else:
+              self._x_title = 'Array/Channel Number (amplitude followed by phase)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-        _dprint(3, 'calling display_image')
+
         if self.is_vector:
           # make sure we unzoom as axes will probably change drastically
           self.reset_zoom()
