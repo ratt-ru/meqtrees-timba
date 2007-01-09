@@ -55,22 +55,19 @@ class Qualifiers (object):
 
     #------------------------------------------------------------------------
 
-    def merge(self, other):
-        """Merge its quals with those of the other Qualifiers object.
-        Return the result, without modifying the internal quals."""
-        quals = self.get()
-        if isinstance(other,(list,tuple)):
-            oq = other
-        elif isinstance(other,type(self)):
-            oq = other.get()
-        for item in oq:
-            if not item in quals:
-                quals.append(item)
-        return quals
+    def concat (self, append=None, prepend=None, exclude=None, merge=None, trace=False):
+        """Concatenate the qualifiers into a single string, separated by underscores"""
+        quals = self.get (append=append, prepend=prepend, exclude=exclude, merge=merge)
+        if len(quals)==0: return ''
+        for i in range(len(quals)):
+            if i==0: s = str(quals[i])
+            if i>0: s += '_'+str(quals[i])
+        if trace: print '.concat() ->',s
+        return s
 
     #------------------------------------------------------------------------
 
-    def get(self, append=None, prepend=None, exclude=None, trace=False):
+    def get(self, append=None, prepend=None, exclude=None, merge=None, trace=False):
         """Return the current list of qualifiers.
         Optionally, append/prepend/exclude the specified qualifiers."""
         if trace: s1 = '.get(append='+str(append)+' prepend='+str(prepend)+' exclude='+str(exclude)+'):' 
@@ -78,6 +75,7 @@ class Qualifiers (object):
         if append: quals = self.append (append, quals, trace=False)
         if prepend: quals = self.prepend (prepend, quals, trace=False)
         if exclude: quals = self.exclude (exclude, quals, trace=False)
+        if merge: quals = self.merge (merge, quals, trace=False)
         if trace: print s1,'->',quals
         return quals
 
@@ -133,18 +131,36 @@ class Qualifiers (object):
         if trace: print s1,'->',quals,self._quals
         return quals
 
+    #...................................................................
+    
+    def merge (self, qual=None, quals=None, trace=False):
+        """Merge the given qual (item or list) with quals (item or list).
+        If quals not given, use the internal self._quals.
+        Return the result."""
+        if trace: s1 = '** .merge('+str(qual)+','+str(quals)+')('+str(self._quals)+')' 
+        if quals==None: quals = self._quals
+        if not isinstance(quals,(list,tuple)): quals = [quals]
+        if not qual==None:
+            if not isinstance(qual,(list,tuple)): qual = [qual]
+            for item in qual:
+                if not item in quals: quals.append(item)    # avoid duplication
+        if trace: print s1,'->',quals,self._quals
+        return quals
 
     #------------------------------------------------------------------------
 
-    def concat (self, append=None, prepend=None, exclude=None, trace=False):
-        """Concatenate the qualifiers into a single string, separated by underscores"""
-        quals = self.get (append=append, prepend=prepend, exclude=exclude)
-        if len(quals)==0: return ''
-        for i in range(len(quals)):
-            if i==0: s = str(quals[i])
-            if i>0: s += '_'+str(quals[i])
-        if trace: print '.concat() ->',s
-        return s
+    def merge_old(self, other):
+        """Merge its quals with those of the other Qualifiers object.
+        Return the result, without modifying the internal quals."""
+        quals = self.get()
+        if isinstance(other,(list,tuple)):
+            oq = other
+        elif isinstance(other,type(self)):
+            oq = other.get()
+        for item in oq:
+            if not item in quals:
+                quals.append(item)
+        return quals
         
 
 #===============================================================

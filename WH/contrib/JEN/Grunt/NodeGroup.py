@@ -124,9 +124,10 @@ class NodeGroup (object):
         """Return the label (name) of this NodeGroup""" 
         return self._label
 
-    def quals(self, append=None, prepend=None, exclude=None):
+    def quals(self, append=None, prepend=None, exclude=None, merge=None):
         """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend, exclude=exclude)
+        return self._quals.get(append=append, prepend=prepend,
+                               exclude=exclude, merge=merge)
 
     def descr(self):
         """Return the group description""" 

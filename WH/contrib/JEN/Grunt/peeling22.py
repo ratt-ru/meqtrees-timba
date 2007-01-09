@@ -17,25 +17,25 @@ Meow.Utils.include_imaging_options();
 TDLRuntimeMenu("Solver options",*Meow.Utils.solver_options());
   
 # Compile-time menu:
+TDLCompileOption('num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10], more=int);
 TDLCompileMenu("Source distribution",
-               TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20]),
+               TDLOption('grid_spacing',"grid_spacing (arcmin)",[1,2,3,4,5,10,20], more=int),
                TDLOption('source_pattern',"source pattern",
-                         ['ps1','ps2','ps3','ps4','ps5','ps9','cps']),
+                         ['ps1','ps2','ps3','ps4','ps5','ps9','cps'], more=str),
                );
 TDLCompileMenu("Source parameters",
                TDLCompileOption('flux_factor',"Successive flux mult factor",
-                                [1.0,0.5,0.4,0.3,0.2,0.1,2.0,5.0,10.0]),
+                                [1.0,0.5,0.4,0.3,0.2,0.1,2.0,5.0,10.0], more=float),
                TDLOption('polarization',"source polarization",
-                         ['unpol','Q','U','V','QU','QUV','UV','QV']),
+                         ['unpol','Q','U','V','QU','QUV','UV','QV'], more=str),
                );
-TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4]);
-TDLCompileOption('repeel',"re-peel a second time",[True,False]);
-TDLCompileOption('peel_group',"nr of sources per peel-group",['all',2,3,4,5,10]);
-TDLCompileOption('num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10]);
+TDLCompileOption('predict_window',"nr of sources in predict-window",[1,2,3,4], more=int);
+TDLCompileOption('peel_group',"nr of sources per peel-group",['all',2,3,4,5,10], more=int);
 TDLCompileOption('insert_solver',"Insert solver(s)",[True, False]);
-TDLCompileOption('num_iter_peel',"max nr of peeling iterations",[3,1,2,4,5,10,20,None]);
-TDLCompileOption('num_iter_repeel',"max nr of re-peeling iterations",[3,1,2,4,5,10,20,None]);
-TDLCompileOption('cache_policy',"Node result caching policy",[100,0]);
+TDLCompileOption('repeel',"re-peel a second time",[True,False]);
+TDLCompileOption('num_iter_peel',"max nr of peeling iterations",[3,1,2,4,5,10,20,None], more=int);
+TDLCompileOption('num_iter_repeel',"max nr of re-peeling iterations",[3,1,2,4,5,10,20,None], more=int);
+TDLCompileOption('cache_policy',"Node result caching policy",[100,0], more=int);
 
 # Alternative: see tdl_job below
 # Settings.forest_state.cache_policy = 100
@@ -192,6 +192,7 @@ def _define_forest (ns):
                            cohset=allsky.visibilities(array,observation),
                            array=array)
   vis.display(full=True)
+  vis.addNoise(rms=0.1, visu=True)
 
   # return True
 
@@ -214,21 +215,17 @@ def _define_forest (ns):
       scope = src
       print '--',scope
       
-      # predict = predicted[isrc].visibilities(array, observation)
-      # corrupt = corrupted[isrc].visibilities(array, observation)
       predict = predicted[isrc]
       corrupt = corrupted[isrc]
 
       # Optional: insert a solver for the parameters related to this source:
       if insert_solver:
-        vis.make_solver(predict)
-        # sc.make_solver(scope=scope, measured=None, predicted=predict,
-        #                parm_tags=src, parm_group=src,
-        #                num_iter=num_iter_peel)
+        vis.make_solver(predict, qual=['peel',src],
+                        # parm_tags=src, parm_group=src,
+                        num_iter=num_iter_peel)
       
       # Subtract (peel) the current peeling source:
-      # sc.peel (subtract=corrupt)
-      vis.binop('Subtract', corrupt, qual='peel_'+src, visu=True)
+      vis.binop('Subtract', corrupt, qual=['peel',src], visu=True)
 
     # -----------------------------------------------------------------------
     if insert_solver and repeel:
@@ -240,23 +237,18 @@ def _define_forest (ns):
         scope = 'repeel_'+src
         print '  --',scope
         
-        # predict = predicted[isrc].visibilities(array, observation)
-        # corrupt = corrupted[isrc].visibilities(array, observation)
         predict = predicted[isrc]
         corrupt = corrupted[isrc]
         
         # Add the (slightly wrong) current peeling source:
-        # sc.unpeel (scope=scope, add=corrupt)
-        vis.binop('Add', corrupt, qual='unpeel_'+src)
+        vis.binop('Add', corrupt, qual=['unpeel',src])
         
-        vis.make_solver(predict)
-        # sc.make_solver(scope=scope, measured=None, predicted=predict,
-        #                parm_tags=src, parm_group=src,
-        #                num_iter=num_iter_repeel)
+        vis.make_solver(predict, qual=['repeel',src],
+                        # parm_tags=src, parm_group=src,
+                        num_iter=num_iter_repeel)
 
         # Subtract the current peeling source:
-        # sc.peel (subtract=corrupt)
-        vis.binop('Subtract', corrupt, qual='repeel_'+src, visu=True)
+        vis.binop('Subtract', corrupt, qual=['repeel',src], visu=True)
 
     # Continue peeling (and re-peeling) the next peel_group:
     isrc1 += peel_group
@@ -265,11 +257,9 @@ def _define_forest (ns):
   # Insert reqseq that first executes the solvers in order of creation,
   # and then passes on the final residuals (in cohset):
   if insert_solver:
-    # sc.insert_reqseq()
     vis.insert_accumulist_reqseq()
 
   # Attach the current cohset to the sinks
-  # sc.make_sinks(output_col='RESIDUALS', vdm='vdm')
   vis.make_sinks(output_col='RESIDUALS', vdm='vdm')
   vis.display(full=True)
 

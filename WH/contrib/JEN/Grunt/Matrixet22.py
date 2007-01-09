@@ -116,9 +116,10 @@ class Matrixet22 (object):
         """Return the object description""" 
         return self._descr
 
-    def quals(self, append=None, prepend=None, exclude=None):
+    def quals(self, append=None, prepend=None, exclude=None, merge=None):
         """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend, exclude=exclude)
+        return self._quals.get(append=append, prepend=prepend,
+                               exclude=exclude, merge=merge)
 
     #-------------------------------------------------------------------
 
@@ -334,12 +335,11 @@ class Matrixet22 (object):
     def binop(self, binop=None, other=None, qual=None, visu=False):
         """Do an (item-by-item) binary operation (e.g. Subtract)
         between itself and another Matrixet22 object."""
-        quals = self.quals(append=qual)
-        qother = other._quals.concat()        # -> one string, with _ between quals
+        quals = self.quals(append=qual, merge=other.quals())
         for i in self.list_indices():
-            self._ns[binop](*quals)(qother)(*i) << getattr(Meq,binop)(self._matrixet(*i),
-                                                                     other._matrixet(*i))
-        self.matrixet(new=self._ns[binop](*quals)(qother))     # replace
+            self._ns[binop](*quals)(*i) << getattr(Meq,binop)(self._matrixet(*i),
+                                                              other._matrixet(*i))
+        self.matrixet(new=self._ns[binop](*quals))            # replace
         # self._pgm.merge(other._pgm)           # ...........!!?
         if visu: self.visualize(qual=qual)
         return True
@@ -382,7 +382,16 @@ class Matrixet22 (object):
         The resulting dataCollect node is returned, but if accu=True (default)
         it is also stored in self.accumulist(key=None) for later retrieval."""
 
-        dcoll_quals = self._quals.concat(prepend=qual)
+        #---------------------------------------------------------------
+        # temporary...
+        dcoll_quals = self._quals.concat()
+        if qual:
+            if not isinstance(qual,(list,tuple)): qual = [qual]
+            qual.reverse()
+            for q in qual:
+                dcoll_quals = q+'_'+dcoll_quals                 # prepend
+        #---------------------------------------------------------------
+
         dcolls = []
         keys = deepcopy(matrel)
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
@@ -434,8 +443,7 @@ class Matrixet22 (object):
     def make_condeqs (self, other=None, matrel='*', qual=None, replace=False):
         """Make a list of condeq nodes by comparing its matrices (or -elements)
         with the corresponding matrices of another Matrixet22 object."""
-        quals = self.quals(append=qual)
-        qother = other._quals.concat()        # -> one string, with _ between quals
+        quals = self.quals(append=qual, merge=other.quals())
 
         # It is possible to use only a subset of the matrix elements:
         keys = self._matrel.keys()            # i.e. ['m11','m12','m21','m22']
@@ -454,10 +462,10 @@ class Matrixet22 (object):
         if replace or (len(index)==4):
             condeqs = []
             for i in self.list_indices():
-                c = self._ns.condeq(*quals)(qother)(*i) << Meq.Condeq(self._matrixet(*i),
-                                                                      other._matrixet(*i))
+                c = self._ns.condeq(*quals)(*i) << Meq.Condeq(self._matrixet(*i),
+                                                              other._matrixet(*i))
                 condeqs.append(c)
-            if replace: self._matrixet = self._ns.condeq(*quals)(qother)   # replace 
+            if replace: self._matrixet = self._ns.condeq(*quals)   
 
         # If a subset of the matrix elements is required, generate a new set of condeqs,
         # which contain the relevant selections.
@@ -471,19 +479,18 @@ class Matrixet22 (object):
                 node2 = other._matrixet(*i)
                 node1 = self._ns[name1].qadd(node1) << Meq.Selector(node1, index=index)
                 node2 = self._ns[name2].qadd(node2) << Meq.Selector(node2, index=index)
-                c = self._ns[name](*quals)(qother)(*i) << Meq.Condeq(node1, node2)
+                c = self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
                 condeqs.append(c)
         # Return a list of condeq nodes:
         return condeqs
 
     #----------------------------------------------------------------------------------
 
-    def make_solver (self, other=None, parmgroup='*', qual=None):
+    def make_solver (self, other=None, parmgroup='*', qual=None, num_iter=3):
         """Make a solver that solves for the specified parmgroup, by comparing its
         matrices with the corresponding matrices of another Matrixet22 object."""
 
-        quals = self.quals(append=qual, prepend=parmgroup)
-        qother = other._quals.concat()        # -> one string, with _ between quals
+        quals = self.quals(append=qual, prepend=parmgroup, merge=other.quals())
 
         # Accumulate nodes to be executed sequentially later:
         self.merge_accumulist(other)
@@ -511,11 +518,26 @@ class Matrixet22 (object):
         # Make a list of condeq nodes:
         condeq_copy = self.copy()
         condeqs = condeq_copy.make_condeqs (other, matrel=matrel,
-                                            qual=qother, replace=True)
+                                            qual=qual, replace=True)
 
-        # Create the solver
-        solver = self._ns.solver(*quals)(qother) << Meq.Solver(children=condeqs,
-                                                         solvable=pg.nodelist())
+
+        # Create the solver:
+
+        # The solver writes (the stddev of) its condeq resunts as ascii
+        # into a debug-file (SBY), for later visualisation.
+        # - all lines start with the number of entries (one per condeq)
+        # - the first line has the condeq names (solver children)
+        # - the rest of the lines have one ascii number per condeq
+        # - Q: the solver writes a line at each iteration...? 
+        # NB: the extension can be chosen at will, for identification
+        debug_file = 'debug_'+str(qual)+'.ext'
+
+        solver = self._ns.solver(*quals) << Meq.Solver(children=condeqs,
+                                                       solvable=pg.nodelist(),
+                                                       # debug_file=debug_file,
+                                                       # parm_group=hiid(parm_group),
+                                                       # child_poll_order=cpo,
+                                                       num_iter=num_iter)
 
         # Bundle (cc) the solver and its related visualization dcolls
         # for attachment to a reqseq (below). Also make bookmarks to
@@ -529,12 +551,18 @@ class Matrixet22 (object):
         # Visualize the solvable MeqParms:
         
         # Visualize the condeqs:
-        dcoll = condeq_copy.visualize('condeq_'+qother, matrel=matrel)
+        condequal = 'condeq'
+        if isinstance(qual,(list,tuple)):
+            condequal = qual
+            condequal.insert(0,'condeq')
+        elif isinstance(qual,str):
+            condequal = ['condeq',qual]
+        dcoll = condeq_copy.visualize(condequal, matrel=matrel)
         JEN_bookmarks.create(dcoll, page=bookpage)
         cc.append(dcoll)
 
         # Bundle solving and visualisation nodes: 
-        reqseq = self._ns.reqseq_solver(*quals)(qother) << Meq.ReqSeq(children=cc)
+        reqseq = self._ns.reqseq_solver(*quals) << Meq.ReqSeq(children=cc)
         self.accumulist(reqseq)
 
         # Return the solver reqseq (usually not used):

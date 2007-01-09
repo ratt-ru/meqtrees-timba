@@ -220,7 +220,7 @@ def _define_forest(ns):
         jones = G
         jones = D
         jones = Joneset22.Joneseq22([G,D])
-        vis.corrupt(jones, visu=False)
+        vis.corrupt(jones, visu=True)
         vis.addNoise(rms=0.05, visu=True)
         vis.display('after corruption')
         if False:
