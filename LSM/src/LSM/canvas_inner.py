@@ -37,7 +37,7 @@ from LSM import *
 import transform
 from SDialog import *
 from PatchDialog import *
-from PatchGLDialog import *
+#from PatchGLDialog import *
 
 from common_utils import *
 
