@@ -519,7 +519,10 @@ def dmi_coerce (obj,dmitype):
   
 # import C module
 try:
-  import Timba.octopython 
+  # when running from inside the kernel, we may already have Timba.octopython
+  # as a symbol, but for some reason it's not always in the modules dict
+  if not hasattr(Timba,'octopython'):
+    import Timba.octopython 
   lazy_objref = Timba.octopython.lazy_objref;
 except ImportError:
   print '=========================================================================';

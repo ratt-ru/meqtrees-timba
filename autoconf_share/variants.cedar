@@ -11,10 +11,11 @@ gnu3f.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
 # gnu3 build with -fPIC 
 gnu3.compiler.conf: CXX=ccache\ g++-3.4 --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-ldflags="-rpath /lib64"--with-threads --with-sse --with-ldflags="--enable-new-dtags"
-#gnu3.compiler.aipspp.var: --with-aipspp=/aips++/amd64/linux_gnu
 gnu3.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
 sse.var: --with-sse
+
+python.var:  --with-python-version=2.4 --with-python=/usr/include/+pkg+vers --with-python-libdir=/usr/lib 
 
 optimize.var:	--with-optimize='-O4'
 debugopt.var:	--with-debug='-ggdb -O4'
