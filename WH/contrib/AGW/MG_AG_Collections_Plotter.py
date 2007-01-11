@@ -82,7 +82,7 @@ def _tdl_job_1_show_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 20
+      tile_size        = 10
     ),
     python_init = 'Meow.ReadVisHeader'
   );
