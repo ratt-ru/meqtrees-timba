@@ -678,11 +678,14 @@ class ChartPlot(QWidget):
 
   def update_vells_selector(self, menuid):
     self._data_index = int(menuid)
+    self._do_fixed_scale = False
     self._auto_offset = True
     self._offset = -10000
     self._highest_value = -10000
     self._lowest_value = 10000
-
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+    self.refresh_event()
 
   def set_data_flag(self, channel, data_flag):
     if data_flag != self._good_data[channel]:
@@ -758,7 +761,7 @@ class ChartPlot(QWidget):
     # update data
     # -----------
     for channel in range(self._nbcrv):
-      if self._updated_data[channel]:
+      if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
         chart = array(self._chart_data[channel][self._data_index])
         index = channel+1
         #Set the values and size with the curves
