@@ -59,6 +59,7 @@ class ChartPlot(QWidget):
     self._cursorInfo = "Cursor Pos: Press middle mouse button in plot region"
 
     self._auto_offset = True
+    self._ref_chan= 0
     self._offset = -10000
     self._highest_value = -10000
     self._lowest_value = 10000
@@ -490,7 +491,7 @@ class ChartPlot(QWidget):
       #open a zoom of the selected curve
       PlotArraySize = self._x1.nelements()
       chart = array(self._chart_data[crv][self._data_index])
-      self._Zoom[crv] = zoomwin.ZoomPopup(crv, self._x1, chart, pen, self)
+      self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, pen, self)
       if not self._data_label is None:
         self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
 #     if self._good_data[crv]:
@@ -576,14 +577,14 @@ class ChartPlot(QWidget):
     self._zoomcount = self._zoomcount - 1
 
   def zoomPaused(self, crvtemp):
-    self._pause[crvtemp] = not self._pause[crvtemp]
+    self._pause[crvtemp-self._ref_chan] = not self._pause[crvtemp-self._ref_chan]
 
 
   def myindex(self, crvtemp):
     """ Sets the indexzoom flag of the curve that just closed to False
     """
-    self._indexzoom[crvtemp] = False
-    self._Zoom[crvtemp].exec_close()
+    self._indexzoom[crvtemp-self._ref_chan] = False
+    self._Zoom[crvtemp-self._ref_chan].exec_close()
 
   def updateEvent(self, channel_no, new_chart_val, q_pos_str):
     """ Update the curve data for the given channel
@@ -606,8 +607,8 @@ class ChartPlot(QWidget):
 
     if channel_no >=  self._nbcrv:
       factor = int (channel_no / self._nbcrv)
-      ref_chan = factor * self._nbcrv
-      channel = channel_no - ref_chan
+      self._ref_chan = factor * self._nbcrv
+      channel = channel_no - self._ref_chan
     else:
       channel = channel_no
     for keys in data_keys:
@@ -804,7 +805,7 @@ class ChartPlot(QWidget):
           ylb = chart[0] + temp_off 
 
         # update marker with info about the plot
-        message = 'Ch ' + str(channel)
+        message = 'Ch ' + str(channel + self._ref_chan)
 # alias
         fn = self._plotter.fontInfo().family()
 
