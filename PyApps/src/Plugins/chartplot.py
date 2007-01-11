@@ -701,11 +701,16 @@ class ChartPlot(QWidget):
       # so we replace the stored chart data in its entirety
       else:
         self._is_vector = True
+        num_elements = 1
+        for i in range(len(incoming_data.shape)):
+          num_elements = num_elements * incoming_data.shape[i]
+
 #       self._chart_data[channel][keys] = []
-        if self._ArraySize < incoming_data.shape[0]:
-          self._ArraySize = incoming_data.shape[0]
+        if self._ArraySize < num_elements:
+          self._ArraySize = num_elements
           self.set_x_axis_sizes()
-        self._chart_data[channel][keys] = incoming_data.copy()
+        flattened_array = reshape(incoming_data.copy(),(num_elements,))
+        self._chart_data[channel][keys] = flattened_array
         self._updated_data[channel] = True
 
   def update_vells_selector(self, menuid):
