@@ -1,0 +1,190 @@
+#!/usr/bin/python
+
+#
+# Copyright (C) 2007
+# ASTRON (Netherlands Foundation for Research in Astronomy)
+# and The MeqTree Foundation
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
+from math import sin
+from math import cos
+from math import pow
+from math import sqrt
+
+# modules that are imported
+from Timba.dmi import *
+from Timba import utils
+from Timba.Meq import meqds
+from Timba.Meq.meqds import mqs
+from Timba.GUI.pixmaps import pixmaps
+from Timba.GUI import widgets
+from Timba.GUI.browsers import *
+from Timba import Grid
+
+from qt import *
+from numarray import *
+from Timba.Plugins.DataDisplayMainWindow import *
+
+from VellsData import *
+from ResultsRange import *
+from BufferSizeDialog import *
+from plot_printer import *
+
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='collections_plotter');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+class CollectionsPlotter(GriddedPlugin):
+  """ a class to visualize data, VellSets or visu data, that is 
+      contained within a node's cache_result record. Objects of 
+      this class are launched from the meqbrowser GUI """
+
+  _icon = pixmaps.bars3d
+  viewer_name = "Collections Plotter";
+  def is_viewable (data):
+    return len(data) > 0;
+  is_viewable = staticmethod(is_viewable);
+
+  def __init__(self,gw,dataitem,cellspec={},**opts):
+    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    """ Instantiate plotter object that is used to display plots
+    """
+    self._rec = None;
+    self._plot_type = None
+    self._wtop = None;
+    self._vells_data = None
+    self.layout_created = False
+    self.layout_parent = None
+    self.layout = None
+    self.dataitem = dataitem
+    self._visu_plotter = None
+    self.counter = 0
+
+# back to 'real' work
+    if dataitem and dataitem.data is not None:
+      self.set_data(dataitem);
+
+  def wtop (self):
+    """ function needed by Oleg for reasons known only to him! """
+    return self._wtop;
+
+  def create_layout_stuff(self):
+    """ create grid layouts into which plotter widgets are inserted """
+    if self.layout_parent is None or not self.layout_created:
+      self.layout_parent = QWidget(self.wparent())
+      self.layout = QGridLayout(self.layout_parent)
+      self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+      self.layout_created = True
+    self._wtop = self.layout_parent;       
+    self.create_2D_plotter()
+
+  def create_2D_plotter(self):
+    if self._visu_plotter is None:
+      self._visu_plotter = DisplayMainWindow(parent=self.layout_parent,name=" ", num_curves=self._max_per_display)
+      self.layout.addWidget(self._visu_plotter, 0, 1)
+      self._visu_plotter.show()
+  # create_2D_plotter
+
+  def set_data (self,dataitem,default_open=None,**opts):
+    """ this callback receives data from the meqbrowser, when the
+        user has requested a plot. It decides whether the data is
+        from a VellSet or visu data record, and  after any
+        necessary preprocssing forwards the data to one of
+        the functions which does the actual plotting """
+
+    _dprint(3, '** in result_plotter:set_data callback')
+    self._rec = dataitem.data;
+    _dprint(3, 'set_data: initial self._rec ', self._rec)
+# if we are single stepping through requests, Oleg may reset the
+# cache, so check for a non-data record situation
+    if self._rec is None:
+      return
+    if isinstance(self._rec, bool):
+      return
+
+
+    self.label = '';  # extra label, filled in if possible
+# there's a problem here somewhere ...
+    if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+      # try to put request ID in label
+      rq_id_found = False
+      data_failure = False
+      try:
+        if self._rec.cache.has_key("request_id"):
+          self.label = "rq " + str(self._rec.cache.request_id);
+          rq_id_found = True
+        if self._rec.cache.has_key("result"):
+          self._rec = self._rec.cache.result; # look for cache.result record
+          if not rq_id_found and self._rec.has_key("request_id"):
+            self.label = "rq " + str(self._rec.request_id);
+        else:
+          data_failure = True
+        _dprint(3, 'we have req id ', self.label)
+      except:
+        data_failure = True
+      if data_failure:
+        _dprint(3, ' we have a data failure')
+# cached_result not found, display an empty viewer with a "no result
+# in this node record" message (the user can then use the Display with
+# menu to switch to a different viewer)
+        Message = "No cache result record was found for this node, so no plot can be made."
+        cache_message = QLabel(Message,self.wparent())
+        cache_message.setTextFormat(Qt.RichText)
+        self._wtop = cache_message
+        self.set_widgets(cache_message)
+        return
+# are we dealing with Vellsets?
+    self.counter = self.counter + 1
+    self._max_per_display = 64
+    if self._rec.has_key("dims"):
+      _dprint(3, '*** dims field exists ', self._rec.dims)
+      self.dims = list(self._rec.dims)
+    if self._rec.has_key("vellsets"):
+      self._number_of_planes = len(self._rec["vellsets"])
+      self.dims_per_group = self._number_of_planes / self.dims[0]
+      if self._visu_plotter is None:
+        self.create_layout_stuff()
+      data_dict = {}
+      display_index = 'data '
+      for i in range(self._number_of_planes):
+        channel = int(i / self.dims_per_group)
+        data_dict['channel'] = channel
+        data_dict['sequence_number'] = self.counter
+        screen_num = channel / self._max_per_display
+        data_dict['data_type'] = display_index + str(screen_num)
+        index = i - channel * self.dims_per_group
+        if index == 0:
+          data_dict['value'] = {}
+        data_dict['value'][index] = self._rec.vellsets[i].value
+
+#       if index == 3 and data_dict['channel'] < self._max_per_display:
+        if index == 3:
+          self._visu_plotter.updateEvent(data_dict)
+          data_dict = {}
+
+
+# enable & highlight the cell
+    self.enable();
+    self.flash_refresh();
+    _dprint(3, 'exiting process_data')
+
+Grid.Services.registerViewer(dmi_type('MeqResult',record),CollectionsPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass('MeqComposer'),CollectionsPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass(),CollectionsPlotter,priority=22)
+
