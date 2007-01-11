@@ -585,7 +585,7 @@ class ChartPlot(QWidget):
     self._indexzoom[crvtemp] = False
     self._Zoom[crvtemp].exec_close()
 
-  def updateEvent(self, channel, new_chart_val, q_pos_str):
+  def updateEvent(self, channel_no, new_chart_val, q_pos_str):
     """ Update the curve data for the given channel
     """
     # in updateEvent, channel goes from 0 to _nbcrv - 1
@@ -604,6 +604,12 @@ class ChartPlot(QWidget):
       data_keys = []
       data_keys.append(0)
 
+    if channel_no >=  self._nbcrv:
+      factor = int (channel_no / self._nbcrv)
+      ref_chan = factor * self._nbcrv
+      channel = channel_no - ref_chan
+    else:
+      channel = channel_no
     for keys in data_keys:
       if not self._chart_data[channel].has_key(keys):
         self._chart_data[channel][keys] = []
