@@ -105,7 +105,8 @@ class ChartPlot(QWidget):
       self._nbcrv = 16
 
     #Initialization of the size of the arrays to put the curve in
-    self._ArraySize = 50
+    self._ArraySize = 5
+    self._x_displacement = self._ArraySize
     self._data_index = 0
     self.set_x_axis_sizes()
 
@@ -184,7 +185,8 @@ class ChartPlot(QWidget):
     self._x4 = zeros((self._ArraySize,), Float32)
 
     # layout parameter for x_axis offsets 
-    self._x_displacement = 50
+    if self._ArraySize > 1.75 * self._x_displacement:
+      self._x_displacement = self._ArraySize 
     for i in range(self._ArraySize):
       self._x1[i] = float(i)
       self._x2[i] = self._ArraySize + self._x_displacement +i
@@ -756,24 +758,10 @@ class ChartPlot(QWidget):
         call replots
         set refresh flag False
     """
-
-    # -----------
-    # update data
-    # -----------
+    # first determine offsets
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
         chart = array(self._chart_data[channel][self._data_index])
-        index = channel+1
-        #Set the values and size with the curves
-        if index >= 1 and index <= self._nbcrv/4:
-          temp_x = self._x1
-        elif index >= (self._nbcrv/4)+1 and index <= self._nbcrv/2:
-          temp_x = self._x2
-        elif index >= (self._nbcrv/2)+1 and index <= 3*(self._nbcrv/4):
-          temp_x = self._x3
-        elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
-          temp_x = self._x4
-
         if chart.type() == Complex32 or chart.type() == Complex64:
           complex_chart = chart.copy()
           abs_chart = abs(complex_chart)
@@ -795,10 +783,30 @@ class ChartPlot(QWidget):
         if self._auto_offset and self._offset < self._new_value:
         #set the max value of the offset
           self._offset = 1.1 * self._new_value
+
+    # -----------
+    # now update data
+    # -----------
+    for channel in range(self._nbcrv):
+      if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
+        chart = array(self._chart_data[channel][self._data_index])
+        index = channel+1
+        #Set the values and size with the curves
+        if index >= 1 and index <= self._nbcrv/4:
+          temp_x = self._x1
+        elif index >= (self._nbcrv/4)+1 and index <= self._nbcrv/2:
+          temp_x = self._x2
+        elif index >= (self._nbcrv/2)+1 and index <= 3*(self._nbcrv/4):
+          temp_x = self._x3
+        elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
+          temp_x = self._x4
+
         temp_off = (channel % (self._nbcrv/4)) * self._offset
         # If we have a complex array, we presently just display
         # the amplitude.
         if chart.type() == Complex32 or chart.type() == Complex64:
+          complex_chart = chart.copy()
+          abs_chart = abs(complex_chart)
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
           self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
           ylb = abs_chart[0] + temp_off 
@@ -822,8 +830,6 @@ class ChartPlot(QWidget):
         self._plotter.setMarkerLabel(self._source_marker[channel], message,
             QFont(fn, 7, QFont.Bold, False),
             Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-
-
 	 
 # need to update any corresponding Zoom window     
 #        self._Zoom[channel].resize_x_axis(len(self._chart_data[channel]))
