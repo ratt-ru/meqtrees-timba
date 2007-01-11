@@ -36,12 +36,13 @@ import random
 class ChartPlot(QWidget):
 
   menu_table = {
-        'Zoom ': 200,
-        'Close ': 201,
-        'Print ': 202,
-        'Fixed Scale ': 203,
-        'Offset Value ': 204,
+        'Zoom': 200,
+        'Close': 201,
+        'Print': 202,
+        'Fixed Scale': 203,
+        'Offset Value': 204,
         'Change Vells': 205,
+        'Show Channels': 206,
         }
 
 
@@ -65,6 +66,8 @@ class ChartPlot(QWidget):
     self._lowest_value = 10000
     self._do_fixed_scale = False
     self._data_label = None
+    self.info_marker = None
+    self.show_channel_labels = True
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
@@ -142,19 +145,21 @@ class ChartPlot(QWidget):
     # create context menu
     self._mainwin = parent and parent.topLevelWidget()
     self._menu = QPopupMenu(self._mainwin)
-    toggle_id = self.menu_table['Close ']
+    toggle_id = self.menu_table['Close']
     self._menu.insertItem("Close Window", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
-    toggle_id = self.menu_table['Zoom ']
+    toggle_id = self.menu_table['Zoom']
     self._menu.insertItem("Zoom", toggle_id)
-    toggle_id = self.menu_table['Print ']
+    toggle_id = self.menu_table['Print']
     self._menu.insertItem("Print", toggle_id)
-    toggle_id = self.menu_table['Fixed Scale ']
+    toggle_id = self.menu_table['Fixed Scale']
     self._menu.insertItem("Fixed Scale", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
-    toggle_id = self.menu_table['Offset Value ']
+    toggle_id = self.menu_table['Offset Value']
     self._menu.insertItem("Offset Value", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
+    toggle_id = self.menu_table['Show Channels']
+    self._menu.insertItem("Hide Channel Markers", toggle_id)
 
     self._vells_menu = None
     self._vells_menu_id = 0
@@ -171,6 +176,8 @@ class ChartPlot(QWidget):
     self.connect(self._plotter, SIGNAL("plotMouseReleased(const QMouseEvent &)"),
         self.plotMouseReleased)
 
+    self.connect(self._plotter, SIGNAL('plotMouseMoved(const QMouseEvent&)'),
+                     self.plotMouseMoved)
     # redisplay
     self.connect(self._display_refresh, SIGNAL("timeout()"), self.refresh_event)
 
@@ -196,20 +203,23 @@ class ChartPlot(QWidget):
   def process_menu(self, menuid):
     if menuid < 0:
       return
-    if menuid == self.menu_table['Zoom ']:
+    if menuid == self.menu_table['Zoom']:
       self.zoom()
       return True
-    if menuid == self.menu_table['Close ']:
+    if menuid == self.menu_table['Close']:
       self.quit()
       return True
-    if menuid == self.menu_table['Print ']:
+    if menuid == self.menu_table['Print']:
       self.do_print()
       return True
-    if menuid == self.menu_table['Fixed Scale ']:
+    if menuid == self.menu_table['Fixed Scale']:
       self.change_scale_type()
       return True
-    if menuid == self.menu_table['Offset Value ']:
+    if menuid == self.menu_table['Offset Value']:
       self.change_offset_value()
+      return True
+    if menuid == self.menu_table['Show Channels']:
+      self.change_channel_display(menuid)
       return True
 
   def setDataLabel(self, data_label):
@@ -298,7 +308,7 @@ class ChartPlot(QWidget):
     else:
       self._d_zoom = not self._d_zoom
       #Set right text on context menu label
-    toggle_id = self.menu_table['Zoom ']
+    toggle_id = self.menu_table['Zoom']
     if self._d_zoom:
       self._menu.changeItem(toggle_id, 'Unzoom')
     else:
@@ -352,6 +362,26 @@ class ChartPlot(QWidget):
     
     lbl += ", " + self._position[closest_curve]
 #    self._ControlFrame._lblInfo.setText(lbl)
+
+  def plotMouseMoved(self, e):
+    return
+#   e.accept()
+#   closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
+#   display_channel = closest_curve - 1 + self._ref_chan
+#   if not self.info_marker is None:
+#     self._plotter.removeMarker(self.info_marker)
+#   self.info_marker = self._plotter.insertMarker()
+#   ylb = self._plotter.axisScale(QwtPlot.yLeft).hBound()
+#   xlb = self._plotter.axisScale(QwtPlot.xBottom).hBound()
+#   self._plotter.setMarkerPos(self.info_marker, xlb, ylb)
+#   self._plotter.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
+#   fn = self._plotter.fontInfo().family()
+#   self._plotter.setMarkerLabel( self.info_marker, 'chan ' + str(display_channel),
+#       QFont(fn, 8, QFont.Bold, False),
+#       Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
+
+
+#   print 'display_chan ', display_channel
 
   def plotMousePressed(self, e):
     """ Gets position of the mouse on the chart plot
@@ -704,7 +734,7 @@ class ChartPlot(QWidget):
 
   def change_scale_type(self):
     # click means change to fixed scale
-    toggle_id = self.menu_table['Fixed Scale ']
+    toggle_id = self.menu_table['Fixed Scale']
     if self._do_fixed_scale:
       self._do_fixed_scale = False
       self._menu.changeItem(toggle_id,'Fixed Scale')
@@ -730,6 +760,23 @@ class ChartPlot(QWidget):
     self.connect(OffSetParam, PYSIGNAL("offset_value"), self.set_offset_value)
     self.connect(OffSetParam, PYSIGNAL("cancel_offset"), self.cancel_offset_request)
 
+  def change_channel_display(self, toggle_id):
+    if self.show_channel_labels:
+      self.show_channel_labels = False
+      self._menu.changeItem(toggle_id, 'Show Channel Markers')
+    else:
+      self.show_channel_labels = True
+      self._menu.changeItem(toggle_id, 'Hide Channel Markers')
+    self._do_fixed_scale = False
+    self._auto_offset = True
+    self._offset = -10000
+    self._highest_value = -10000
+    self._lowest_value = 10000
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+    self.refresh_event()
+
+
   def set_scale_values(self, max_value, min_value):
     if self._do_fixed_scale:
       self._plotter.setAxisScale(QwtPlot.yLeft, min_value, max_value)
@@ -738,7 +785,7 @@ class ChartPlot(QWidget):
   def cancel_scale_request(self):
     if self._do_fixed_scale: 
       self._do_fixed_scale = False
-      toggle_id = self.menu_table['Fixed Scale ']
+      toggle_id = self.menu_table['Fixed Scale']
       self._menu.changeItem(toggle_id,'Fixed Scale')
       self._plotter.setAxisAutoScale(QwtPlot.yLeft)
 
@@ -816,18 +863,17 @@ class ChartPlot(QWidget):
           ylb = chart[0] + temp_off 
 
         # update marker with info about the plot
-        message = 'Ch ' + str(channel + self._ref_chan)
-# alias
-        fn = self._plotter.fontInfo().family()
-
-# text marker giving source of point that was clicked
         if not self._source_marker[channel] is None:
           self._plotter.removeMarker(self._source_marker[channel]);
-        self._source_marker[channel] = self._plotter.insertMarker()
-        xlb = temp_x[0]
-        self._plotter.setMarkerPos(self._source_marker[channel], xlb, ylb)
-        self._plotter.setMarkerLabelAlign(self._source_marker[channel], Qt.AlignRight | Qt.AlignTop)
-        self._plotter.setMarkerLabel(self._source_marker[channel], message,
+        if self.show_channel_labels:
+          message = 'Ch ' + str(channel + self._ref_chan)
+# text marker giving source of point that was clicked
+          self._source_marker[channel] = self._plotter.insertMarker()
+          xlb = temp_x[0]
+          self._plotter.setMarkerPos(self._source_marker[channel], xlb, ylb)
+          self._plotter.setMarkerLabelAlign(self._source_marker[channel], Qt.AlignRight | Qt.AlignTop)
+          fn = self._plotter.fontInfo().family()
+          self._plotter.setMarkerLabel(self._source_marker[channel], message,
             QFont(fn, 7, QFont.Bold, False),
             Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 	 
