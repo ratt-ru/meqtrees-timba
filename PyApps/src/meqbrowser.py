@@ -33,6 +33,7 @@ importPlugin('array_browser');
 importPlugin('array_plotter');
 importPlugin('histogram_plotter');
 importPlugin('result_plotter');
+importPlugin('collections_plotter');
 importPlugin('history_plotter');
 importPlugin('parm_plotter');
 importPlugin('parmfiddler');
