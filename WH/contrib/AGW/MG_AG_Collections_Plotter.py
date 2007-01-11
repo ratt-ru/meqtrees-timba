@@ -68,8 +68,14 @@ def _define_forest (ns):
     predict = ns.predict(p,q) << \
       Meq.MatrixMultiply(ns.K(p),ns.B,ns.Kt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
-    ns.collector(p,q) << Meq.Mean(predict,reduction_axes=["time", "freq"]);
-#   ns.collector(p,q) << Meq.Mean(predict,reduction_axes="time");
+
+# use the following collector to get a single visibility averaged
+# over a time-frequency cell
+#   ns.collector(p,q) << Meq.Mean(predict,reduction_axes=["time", "freq"]);
+
+# use the following collector to show spectra coming in averaged over 
+# a time block
+    ns.collector(p,q) << Meq.Mean(predict,reduction_axes="time");
     
   ns.collector << Meq.Composer(dims=[len(IFRS),2,2],*[ns.collector(p,q) for p,q in IFRS]);
   # define VisDataMux
@@ -82,7 +88,7 @@ def _tdl_job_1_show_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 10
+      tile_size        = 5
     ),
     python_init = 'Meow.ReadVisHeader'
   );
