@@ -60,6 +60,9 @@ class Visset22 (Matrixet22.Matrixet22):
             for ifr in self.ifrs():
                 self._matrixet(*ifr) << Meq.Identity(node)
 
+        # Some specific Visset22 attributes:
+        self._MS_corr_index = [0,1,2,3]                # see make_spigots/make_sinks
+
         return None
 
     #-------------------------------------------------------------------
@@ -76,7 +79,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
-        # print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
+        print '   - MS_corr_index: '+str(self._MS_corr_index)
         return True
 
     #--------------------------------------------------------------------------
@@ -91,6 +94,9 @@ class Visset22 (Matrixet22.Matrixet22):
 
 
     #--------------------------------------------------------------------------
+    # Operations on the internal self._matrixet:
+    #--------------------------------------------------------------------------
+
 
     def insert_accumulist_reqseq (self, key=None, qual=None):
         """Insert a series of reqseq node(s) with the children accumulated
@@ -111,23 +117,62 @@ class Visset22 (Matrixet22.Matrixet22):
             self._matrixet = self._ns[name](*quals)
         return True
 
-
-    #--------------------------------------------------------------------------
-    # Operations on the internal self._matrixet:
     #--------------------------------------------------------------------------
 
-    def make_sinks (self, output_col='RESIDUALS', vdm='vdm'):
-        """Make sinks for the cohset, and a named VisDataMux"""
+    def make_spigots (self, input_col='DATA', MS_corr_index=[0,1,2,3], flag_bit=4):
+        """Make MeqSpigot nodes per ifr, for reading visibility data from the
+        specified column of the Measurement Set (or other data source).
+        The input_col can be 'DATA','CORRECTED_DATA','MODEL_DATA','RESIDUALS'
+        For XX/YY only, use:
+          - If only XX/YY available: MS_corr_index = [0,-1,-1,1]
+          - If all 4 corr available: MS_corr_index = [0,-1,-1,3]
+          - etc
+        For missing corrs, the spigot still returns a 2x2 tensor node, but with
+        empty results {}. These are interpreted as zeroes, e.g. in matrix
+        multiplication. After that, the results ar no longer empty, so that cannot
+        be used for detecting missing corrs! Empty results are ignored by condeqs etc
+        See also the wiki-pages...
+        """
+
+        self._MS_corr_index = MS_corr_index    # Keep. See also .make_sinks()
+
+        for p,q in self.ifrs():
+            self._ns.spigot(p,q) << Meq.Spigot(station_1_index=p-1,
+                                               station_2_index=q-1,
+                                               # corr_index=self._MS_corr_index,
+                                               # flag_bit=flag_bit,
+                                               input_column=input_col)
+        self._matrixet = self._ns.spigot           
+        return True
+
+    #--------------------------------------------------------------------------
+
+    def make_sinks (self, output_col='RESIDUALS',
+                    # start=None, pre=None, post=None,
+                    vdm='vdm'):
+        """Make MeqSink nodes per ifr for writing visibilities back to the MS.
+        These are the children of a single VisDataMux node, which issues the
+        series of requests that traverse the data. The keyword vdm (default='vdm')
+        supplies the name of the VisDataMux node, which is needed for executing the tree."""
+
         for p,q in self.ifrs():
             self._ns.sink(p,q) << Meq.Sink(self._matrixet(p,q),
                                            station_1_index=p-1,
                                            station_2_index=q-1,
+                                           # corr_index=self._MS_corr_index,
                                            output_col=output_col)
+        self._matrixet = self._ns.sink
+        
+        # The single VisDataMux node is the actual interface node.
+        # See also TDL_Cohset.py for use of start/pre/post.
         self._ns[vdm] << Meq.VisDataMux(*[self._ns.sink(*ifr) for ifr in self.ifrs()]);
-        self._matrixet = self._ns.sink           
-        return True
 
-    #...........................................................................
+        # Return the actual name of the VisDataMux (needed for tree execution)
+        return vdm
+
+
+    #--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
 
     def addNoise (self, rms=0.1, qual=None, visu=True):
         """Add gaussian noise with given rms to the internal cohset"""

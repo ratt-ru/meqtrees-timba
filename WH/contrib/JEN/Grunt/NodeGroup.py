@@ -60,6 +60,7 @@ class NodeGroup (object):
 
         # Plotting:
         self._dcoll = None
+        self._coll = None
         self._plotinfo = dict(color=color, style=style, size=size, pen=pen)
 
         return None
@@ -226,8 +227,7 @@ class NodeGroup (object):
     #-----------------------------------------------------------------------
 
     def visualize (self, bookpage='NodeGroup', folder=None):
-        """Visualise all the entries (MeqParms or their simulated subtrees)
-        in a single real-vs-imag plot."""
+        """Visualise all the NodeGroup entries in a single real-vs-imag plot."""
         if not self._dcoll:
             dcoll_quals = self._quals.concat()
             cc = self.nodelist() 
@@ -243,6 +243,24 @@ class NodeGroup (object):
             JEN_bookmarks.create(self._dcoll, self.label(),
                                  page=bookpage, folder=folder)
         return self._dcoll
+
+
+    #-----------------------------------------------------------------------
+
+    def collector (self, bookpage='NodeGroup', folder=None):
+        """Visualise all the NodeGroup entries in a single plot"""
+        if not self._coll:
+            coll_quals = self._quals.concat()
+            cc = self.nodelist()
+            name = 'collector'
+            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
+                                                              children=cc)
+            self._coll = coll
+            JEN_bookmarks.create(self._coll, self.label(),
+                                 viewer='Collections Plotter',
+                                 udi='/node/collector',
+                                 page=bookpage, folder=folder)
+        return self._coll
 
 
 
@@ -302,7 +320,8 @@ class NodeGroup (object):
     def test(self, n=4, offset=0):
         """Helper function to put in some standard entries for testing"""
         for i in range(n):
-            self.append_entry(self._ns << (i+offset))
+            # self.append_entry(self._ns << Meq.Constant(i+offset))
+            self.append_entry(self._ns << Meq.Constant(i+offset, dims=[1]))
         return True
 
 
@@ -500,6 +519,7 @@ def _define_forest(ns):
     ng1 = NodeGroup(ns, 'ng1')
     ng1.test()
     cc.append(ng1.visualize())
+    cc.append(ng1.collector())
     nn1 = ng1.nodelist()
     print 'nn1 =',nn1
 
@@ -519,10 +539,11 @@ def _define_forest(ns):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
-    request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    for t0 in range(10):
+        domain = meq.domain(1.0e8,1.1e8,t0+1,t0+10)                # (f1,f2,t1,t2)
+        cells = meq.cells(domain, num_freq=10, num_time=11)
+        request = meq.request(cells, rqtype='ev')
+        result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
 

@@ -1,7 +1,8 @@
 # file: ../Grunt/Matrixet22.py
 
 # History:
-# - 29dec2006: creation (extracted from Jones.py) 
+# - 29dec2006: creation (extracted from Jones.py)
+# - 12jan2007: added .collector() visualization 
 
 # Description:
 
@@ -161,6 +162,12 @@ class Matrixet22 (object):
             self._matrixet = new
         return self._matrixet
 
+    def nodelist(self):
+        """Get/set a list of matrix nodes"""
+        cc = []
+        for i in self.list_indices():
+            cc.append(self._matrixet(*i))
+        return cc
 
     #=====================================================================================
     # Display of the contents of this object:
@@ -371,6 +378,18 @@ class Matrixet22 (object):
     # Visualization:
     #=====================================================================
 
+    def _dcoll_quals(self, qual=None):
+        """Helper function"""
+        dcoll_quals = self._quals.concat()
+        if qual:
+            if not isinstance(qual,(list,tuple)): qual = [qual]
+            qual.reverse()
+            for q in qual:
+                dcoll_quals = q+'_'+dcoll_quals                 # prepend
+        return dcoll_quals
+
+    #.......................................................................
+
     def visualize (self, qual=None, matrel='*', accu=True,
                    bookpage='Matrixet22', folder=None):
 
@@ -382,15 +401,7 @@ class Matrixet22 (object):
         The resulting dataCollect node is returned, but if accu=True (default)
         it is also stored in self.accumulist(key=None) for later retrieval."""
 
-        #---------------------------------------------------------------
-        # temporary...
-        dcoll_quals = self._quals.concat()
-        if qual:
-            if not isinstance(qual,(list,tuple)): qual = [qual]
-            qual.reverse()
-            for q in qual:
-                dcoll_quals = q+'_'+dcoll_quals                 # prepend
-        #---------------------------------------------------------------
+        dcoll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
         dcolls = []
         keys = deepcopy(matrel)
@@ -414,10 +425,69 @@ class Matrixet22 (object):
         self._dcoll = rr['dcoll']
         JEN_bookmarks.create(self._dcoll, self.label(),
                              page=bookpage, folder=folder)
-        # Keep for later retrieval:
+        # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
         if accu: self.accumulist(self._dcoll)
         # Return the dataConcat node:
         return self._dcoll
+
+    #--------------------------------------------------------------------------
+
+    def collector (self, qual=None, accu=True,
+                   bookpage='Matrixet22', folder=None):
+
+        """Visualise (a subset of) the complex matrix elements of all 
+        Matrixet22 matrices in a single collector plot.
+        A bookmark item is made for the resulting collector node.
+        If accu=True (default) it is also stored in self.accumulist(key=None)
+        for later retrieval."""
+
+        coll_quals = self._dcoll_quals(qual=qual)             # temporary...
+
+        name = 'collector'
+        coll = self._ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
+                                                          children=self.nodelist())
+        JEN_bookmarks.create(coll, self.label(),
+                             viewer='Collections Plotter',
+                             udi='/node/collector',
+                             page=bookpage, folder=folder)
+        # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
+        if accu: self.accumulist(coll)
+        # Return the collector node:
+        return coll
+
+
+    #--------------------------------------------------------------------------
+
+    def collector_separate (self, qual=None, matrel='*', accu=True,
+                   bookpage='Matrixet22', folder=None):
+
+        """Visualise (a subset of) the complex matrix elements of all 
+        Matrixet22 matrices in a separate collector plot per element.
+        A bookmark item is made for the resulting collector nodes.
+        If accu=True (default) they are also stored in self.accumulist(key=None)
+        for later retrieval. A list of collector nodes is returned."""
+
+        coll_quals = self._dcoll_quals(qual=qual)             # temporary...
+
+        colls = []
+        keys = deepcopy(matrel)
+        if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
+        if not isinstance(keys,(list,tuple)): keys = [keys]
+        for key in keys:  
+            cc = self.matrix_element(key, qual=qual, return_nodes=True) 
+            name = 'collector_'+key
+            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)], children=cc)
+            JEN_bookmarks.create(coll, self.label()+key,
+                                 viewer='Collections Plotter',
+                                 udi='/node/collector',
+                                 page=bookpage, folder=folder)
+            # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
+            if accu: self.accumulist(coll)
+            colls.append(coll)
+        # Return the list of collector nodes:
+        return colls
+
+
 
     #............................................................................
     # Obsolete? To JEN_bookmarks?
@@ -557,8 +627,8 @@ class Matrixet22 (object):
             condequal.insert(0,'condeq')
         elif isinstance(qual,str):
             condequal = ['condeq',qual]
-        dcoll = condeq_copy.visualize(condequal, matrel=matrel)
-        JEN_bookmarks.create(dcoll, page=bookpage)
+        dcoll = condeq_copy.visualize(condequal, matrel=matrel, bookpage=bookpage)
+        # JEN_bookmarks.create(dcoll, page=bookpage)
         cc.append(dcoll)
 
         # Bundle solving and visualisation nodes: 
@@ -581,7 +651,9 @@ class Matrixet22 (object):
         keys = self._matrel.keys()
         index = 0
         indices = []
-        for key in keys:
+        # Make 4 matrices in which all but one of the elements is zero (real).
+        # The one non-zero element is a different one in each matrix.
+        for key in keys:                           # keys=['m11','m12','m21','m22']
             index += 1
             indices.append(index)
             self._pgm.define_parmgroup(key, descr='matrix element: '+key,
@@ -589,8 +661,10 @@ class Matrixet22 (object):
                                        # stddev=0.01,
                                        tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
-            mm[key] = self._pgm.create_parmgroup_entry(key, index)
-            mm[key] = self._ns << Meq.Polar(1.0,mm[key])
+            # The one non-zero element is complex, with amplitude=1.0,
+            # and phase equal to index/10 radians (plus variation if simulate=True):
+            phase = self._pgm.create_parmgroup_entry(key, index)
+            mm[key] = self._ns << Meq.Polar(1.0, phase)
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])
         # Store the matrices and the list if indices:
@@ -619,19 +693,21 @@ def _define_forest(ns):
 
     mat1 = Matrixet22(ns, quals=[], simulate=True)
     mat1.test()
-    cc.append(mat1.visualize())
+    mat1.visualize()
+    mat1.collector()
     mat1.display(full=True)
 
     mat2 = Matrixet22(ns, quals=[], simulate=False)
     mat2.test()
-    cc.append(mat2.visualize())
+    mat2.visualize()
     mat2.display(full=True)
 
     if False:
         reqseq = mat1.make_solver(mat2)
-        cc.append(reqseq)
+        # cc.append(reqseq)
 
     aa = mat1.accumulist()
+    aa.extend(mat2.accumulist())
     print 'aa=',aa
     node = ns.accu << Meq.Composer(children=aa)
     cc.append(node)
