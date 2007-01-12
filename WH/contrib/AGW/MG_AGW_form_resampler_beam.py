@@ -40,16 +40,27 @@
 from Timba.TDL import * 
 from Timba.Meq import meqds
 from Timba.Meq import meq
+from Meow import Bookmarks,Utils
 
+Settings.forest_state = record(bookmarks=[
+  record(name='E Jones',page=Bookmarks.PlotPage(
+      ["E"],
+  )),
+])
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
+
 
 ########################################################
 def _define_forest(ns):  
 
-  BEAM_LM = [(0,0)]
+  BEAM_LM = [(0.0,0.0)]
   l_beam,m_beam = BEAM_LM[0]
-  ns.lm_beam << Meq.Composer(l_beam,m_beam);
+  ns.l_beam_c << Meq.Constant(l_beam) # we want to change this in each request
+                                      # and have this value changed in the
+                                      # Compounder at around line 102
+  ns.m_beam_c << Meq.Constant(m_beam)
+  ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
 # read in beam images
  # fit all 180 beams
@@ -105,6 +116,8 @@ def _define_forest(ns):
 
   ns.E << Meq.Matrix22(ns.voltage_sum_x_1, ns.voltage_sum_y_2,ns.voltage_sum_y_1, ns.voltage_sum_x_2)
 
+# write out a fits file
+  ns.fits <<Meq.FITSWriter(ns.E, filename= '!test.fits')
 ########################################################################
 def _test_forest(mqs,parent):
 
@@ -117,13 +130,21 @@ def _test_forest(mqs,parent):
 
   lm_range = [-0.04,0.04];
   lm_num = 50;
+  l = 0
+  node_name = 'l_beam_c' 
 # define request
-  request = make_request(dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
+  for i in range(3):
+    request = make_request(counter=i, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='E',request=request),wait=True);
+    mqs.meq('Node.Execute',record(name='fits',request=request),wait=True);
+    if i < 2:
+      l = l + 0.008
+      change_rec = record(value = l)
+      Utils.set_node_state(mqs,node_name,change_rec)
+      mqs.clearcache('fits',recursive=True)
 
 #####################################################################
-def make_request(Ndim=4,dom_range=[0.,1.],nr_cells=5):
+def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
 
     """make multidimensional request, dom_range should have length 2 or be a list of
     ranges with length Ndim, nr_cells should be scalar or list of scalars with length Ndim"""
@@ -163,7 +184,8 @@ def make_request(Ndim=4,dom_range=[0.,1.],nr_cells=5):
             cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
 
     cells.domain=dom;
-    request = meq.request(cells);
+    rqid = meq.requestid(domain_id=counter)
+    request = meq.request(cells,rqtype='ev',rqid=rqid);
     return request;
 
 if __name__=='__main__':
