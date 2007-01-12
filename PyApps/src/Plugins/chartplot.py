@@ -871,7 +871,8 @@ class ChartPlot(QWidget):
         if not self._source_marker[channel] is None:
           self._plotter.removeMarker(self._source_marker[channel]);
         if self.show_channel_labels:
-          message = 'Ch ' + str(channel + self._ref_chan)
+#         message = 'Ch ' + str(channel + self._ref_chan)
+          message =  str(channel + self._ref_chan)
 # text marker giving source of point that was clicked
           self._source_marker[channel] = self._plotter.insertMarker()
           xlb = temp_x[0]
