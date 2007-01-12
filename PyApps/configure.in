@@ -52,6 +52,7 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 # lofar_AIPSPP(1)
+lofar_PACKAGE(OCTOPUSSY,2)
 lofar_PACKAGE(OCTOPython,2)   # 2=do not link in library
 lofar_PACKAGE(MEQ)
 dnl

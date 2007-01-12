@@ -890,7 +890,6 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._lexer.setFont(self.font(),-1);
     ps = self.fontInfo().pointSize()+self._editor_fontadjust;
     self._editor.zoomTo(ps);
-    print "font size: ",self._lexer.defaultFont().pointSize(),self._lexer.defaultFont().pixelSize();
     
   def has_focus (self,focus):
     if focus:
