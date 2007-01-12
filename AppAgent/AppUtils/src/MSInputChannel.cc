@@ -54,6 +54,30 @@
 
 using namespace casa;
 
+// temp kludge for gcc 4.1, as TableParse.h does not have these declarations,
+// only friend statements
+namespace casa
+{
+  TaQLResult tableCommand (const String& command);
+
+  TaQLResult tableCommand (const String& command,
+                                 const Table& tempTable);
+  TaQLResult tableCommand (const String& command,
+                                 const std::vector<const Table*>& tempTables);
+  TaQLResult tableCommand (const String& command,
+                                 Vector<String>& columnNames);
+  TaQLResult tableCommand (const String& command,
+                                 Vector<String>& columnNames,
+                                 String& commandType);
+  TaQLResult tableCommand (const String& command,
+                                 const std::vector<const Table*>& tempTables,
+                                 Vector<String>& columnNames);
+  TaQLResult tableCommand (const String& command,
+                                 const std::vector<const Table*>& tempTables,
+                                 Vector<String>& columnNames,
+                                 String& commandType);
+};
+
 namespace AppAgent
 {
 using namespace LOFAR;
