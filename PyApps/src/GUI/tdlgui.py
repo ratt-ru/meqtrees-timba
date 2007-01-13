@@ -163,7 +163,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self._lexer = QextScintillaLexerPython(self);
     self._editor.setLexer(self._lexer);
-    self._editor_fontadjust = -10;
+    self._editor_fontadjust = -6;
     self.adjust_editor_font();
     self._editor.markerDefine(QextScintilla.RightTriangle,self.ErrorMarker);
     self._editor.markerDefine(QextScintilla.RightTriangle,self.CurrentErrorMarker);

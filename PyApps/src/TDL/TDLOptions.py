@@ -306,12 +306,20 @@ def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,names
   opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   compile_options.append(opt);
   return opt;
+  
+def TDLCompileOptions (*opts):
+  global compile_options;
+  compile_options += opts;
 
 def TDLRuntimeOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
   """this creates an option object and adds it to the runtime list""";
   opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   runtime_options.append(opt);
   return opt;
+  
+def TDLRuntimeOptions (*opts):
+  global runtime_options;
+  runtime_options += opts;
   
 def TDLCompileMenu (title,*items):
   compile_options.append(_TDLSubmenu(title,*items));

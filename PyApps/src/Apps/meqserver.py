@@ -121,6 +121,12 @@ class meqserver (app_proxy):
   
   def getnodestate (self,node,wait=True):
     return self.meq('Node.Get.State',self.makenodespec(node),wait=wait);
+
+  def setnodestate (self,node,fields_record,wait=False,sync=True):
+    spec = self.makenodespec(node);
+    spec.sync = sync;
+    spec.state = fields_record;
+    return self.meq('Node.Set.State',spec,wait=wait);
   
   def getnodeindex (self,name):
     retval = self.meq('Get.NodeIndex',self.makenodespec(name),wait=True);
