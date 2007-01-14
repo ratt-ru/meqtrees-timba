@@ -1,4 +1,4 @@
-# ../contrib/JEN/Grunt/peeling22.py
+# ../contrib/JEN/Grunt/SourceGroup.py
 
 # standard preamble
 from Timba.TDL import *

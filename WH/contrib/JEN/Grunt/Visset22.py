@@ -52,13 +52,6 @@ class Visset22 (Matrixet22.Matrixet22):
                                        simulate=simulate)
         if cohset:
             self._matrixet = cohset
-        else:
-            quals = self.quals()
-            node = self._ns.unity(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                          complex(0.0),complex(1.0))
-            self._matrixet = self._ns.initial(*quals)
-            for ifr in self.ifrs():
-                self._matrixet(*ifr) << Meq.Identity(node)
 
         # Some specific Visset22 attributes:
         self._MS_corr_index = [0,1,2,3]                # see make_spigots/make_sinks
@@ -97,29 +90,11 @@ class Visset22 (Matrixet22.Matrixet22):
     # Operations on the internal self._matrixet:
     #--------------------------------------------------------------------------
 
-
-    def insert_accumulist_reqseq (self, key=None, qual=None):
-        """Insert a series of reqseq node(s) with the children accumulated
-        in self._accumulist (see Matrixet22). The reqseqs will get the current
-        matrix nodes as their last child, to which their result is transmitted."""
-
-        cc = self.accumulist(key=key, clear=False)
-        n = len(cc)
-        if n>0:
-            quals = self.quals(append=qual)
-            cc.append('placeholder')
-            name = 'reqseq'
-            if isinstance(key, str): name += '_'+str(key)
-            for ifr in self.ifrs():
-                cc[n] = self._matrixet(*ifr)         # fill in the placeholder
-                self._ns[name](*quals)(*ifr) << Meq.ReqSeq(children=cc, result_index=n,
-                                                           cache_num_active_parents=1)
-            self._matrixet = self._ns[name](*quals)
-        return True
-
     #--------------------------------------------------------------------------
 
-    def make_spigots (self, input_col='DATA', MS_corr_index=[0,1,2,3], flag_bit=4):
+    def make_spigots (self, input_col='DATA',
+                      MS_corr_index=[0,1,2,3], flag_bit=4,
+                      visu=True):
         """Make MeqSpigot nodes per ifr, for reading visibility data from the
         specified column of the Measurement Set (or other data source).
         The input_col can be 'DATA','CORRECTED_DATA','MODEL_DATA','RESIDUALS'
@@ -142,7 +117,32 @@ class Visset22 (Matrixet22.Matrixet22):
                                                # corr_index=self._MS_corr_index,
                                                # flag_bit=flag_bit,
                                                input_column=input_col)
-        self._matrixet = self._ns.spigot           
+        self._matrixet = self._ns.spigot
+
+        if visu: self.visualize('make_spigots')
+        return True
+
+    #--------------------------------------------------------------------------
+
+    def placeholders(self):
+        """Create placeholder nodes expected by ReadVisHeader.py"""
+        # nodes for phase center
+        self._ns.radec0 = Meq.Composer(self._ns.ra<<0, self._ns.dec<<0)
+        
+        # nodes for array reference position
+        self._ns.xyz0 = Meq.Composer(self._ns.x0<<0,
+                                     self._ns.y0<<0,
+                                     self._ns.z0<<0)
+        
+        # now define per-station stuff: XYZs and UVWs 
+        for p in ANTENNAS:
+            self._ns.xyz(p) << Meq.Composer(self._ns.x(p)<<0,
+                                            self._ns.y(p)<<0,
+                                            self._ns.z(p)<<0)
+            self._ns.uvw(p) << Meq.UVW(radec=self._ns.radec0,
+                                       xyz_0=self.ns.xyz0,
+                                       xyz=self._ns.xyz(p))
+
         return True
 
     #--------------------------------------------------------------------------
@@ -155,6 +155,10 @@ class Visset22 (Matrixet22.Matrixet22):
         series of requests that traverse the data. The keyword vdm (default='vdm')
         supplies the name of the VisDataMux node, which is needed for executing the tree."""
 
+        # First empty the accumulist:
+        self.insert_accumulist_reqseq()
+
+        # Make the sinks:
         for p,q in self.ifrs():
             self._ns.sink(p,q) << Meq.Sink(self._matrixet(p,q),
                                            station_1_index=p-1,
@@ -162,6 +166,7 @@ class Visset22 (Matrixet22.Matrixet22):
                                            # corr_index=self._MS_corr_index,
                                            output_col=output_col)
         self._matrixet = self._ns.sink
+
         
         # The single VisDataMux node is the actual interface node.
         # See also TDL_Cohset.py for use of start/pre/post.
@@ -172,7 +177,39 @@ class Visset22 (Matrixet22.Matrixet22):
 
 
     #--------------------------------------------------------------------------
+
+    def insert_accumulist_reqseq (self, key=None, qual=None):
+        """Insert a series of reqseq node(s) with the children accumulated
+        in self._accumulist (see Matrixet22). The reqseqs will get the current
+        matrix nodes as their last child, to which their result is transmitted."""
+
+        cc = self.accumulist(key=key, clear=False)
+        n = len(cc)
+        if n>0:
+            quals = self.quals(append=qual)
+            cc.append('placeholder')
+            name = 'reqseq'
+            if isinstance(key, str): name += '_'+str(key)
+            for ifr in self.ifrs():
+                cc[n] = self._matrixet(*ifr)         # fill in the placeholder
+                self._ns[name](*quals)(*ifr) << Meq.ReqSeq(children=cc, result_index=n,
+                                                           cache_num_active_parents=1)
+            self._matrixet = self._ns[name](*quals)
+        return True
+
     #--------------------------------------------------------------------------
+
+    def fill_with_unit_matrices (self):
+        """Fill with 2x2 complex unit matrices"""
+        quals = self.quals()
+        node = self._ns.unity(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
+                                                      complex(0.0),complex(1.0))
+        self._matrixet = self._ns.initial(*quals)
+        for ifr in self.ifrs():
+            self._matrixet(*ifr) << Meq.Identity(node)
+        return True
+
+    #---------------------------------------------------------------------------
 
     def addNoise (self, rms=0.1, qual=None, visu=True):
         """Add gaussian noise with given rms to the internal cohset"""
@@ -332,6 +369,8 @@ if __name__ == '__main__':
             allsky.add(source)
             cohset = allsky.visibilities(array, observation)
         vis = Visset22(ns, label='test', array=array, cohset=cohset)
+        if not cohset:
+            vis.fill_with_unit_matrices()
         vis.display()
 
     if 1:
