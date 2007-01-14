@@ -31,8 +31,8 @@ class GJones (Joneset22.GJones):
         
         # Just use the generic GJones in Grunt/Joneset22.py
         Joneset22.GJones.__init__(self, ns, quals=quals, label=label,
-                                  stations=stations, polrep='linear',
-                                  simulate=simulate)
+                                  telescope='WSRT', polrep='linear',
+                                  stations=stations, simulate=simulate)
         return None
 
 
@@ -45,13 +45,13 @@ class JJones (Joneset22.JJones):
     and imaginary parts (i.e. 8 real parameters per station)."""
 
     def __init__(self, ns, quals=[], label='J',
-                 diagonal=False, stations=None, 
-                 simulate=False):
+                 diagonal=False,
+                 stations=None, simulate=False):
 
         # Just use the generic JJones in Grunt/Joneset22.py
         Joneset22.JJones.__init__(self, ns, quals=quals, label=label,
-                                  stations=stations, polrep='linear',
-                                  simulate=simulate)
+                                  polrep='linear', telescope='WSRT', 
+                                  stations=stations, simulate=simulate)
         return None
 
 
@@ -66,8 +66,8 @@ class FJones (Joneset22.FJones):
         
         # Just use the generic FJones in Grunt/Joneset22.py
         Joneset22.FJones.__init__(self, ns, quals=quals, label=label,
-                                  stations=stations, polrep='linear',
-                                  simulate=simulate)
+                                  telescope='WSRT', polrep='linear',
+                                  stations=stations, simulate=simulate)
         return None
 
 
@@ -92,13 +92,12 @@ class DJones (Joneset22.Joneset22):
     - A non-zero PZD converts StokesU into StokesV."""
 
     def __init__(self, ns, quals=[], label='D',
-                 stations=None, 
                  coupled_dang=True, coupled_dell=True,
-                 simulate=False):
+                 stations=None, simulate=False):
         
         Joneset22.Joneset22.__init__(self, ns, quals=quals, label=label,
-                                     stations=stations, polrep='linear',
-                                     simulate=simulate)
+                                     telescope='WSRT', polrep='linear',
+                                     stations=stations, simulate=simulate)
         pols = self._pols
         quals = self.quals()
         dname = self.label()+'dang'
@@ -217,8 +216,8 @@ class EJones_21cm (Joneset22.Joneset22):
                  stations=None, simulate=False):
         
         Joneset22.Joneset22.__init__(self, ns, quals=quals, label=label,
-                                     stations=stations, polrep='linear',
-                                     simulate=simulate)
+                                     polrep='linear', telescope='WSRT', band='21cm',
+                                     stations=stations, simulate=simulate)
         pols = self._pols
         quals = self.quals()
         pname = self.label()+'phase'
@@ -271,12 +270,7 @@ def _define_forest(ns):
         reqseq = jones.make_solver(j2)
         cc.append(reqseq)
 
-
     jones = JJones(ns, quals=[], simulate=simulate)
-    cc.append(jones.visualize())
-    # jones.display(full=True)
-
-    jones = DJones(ns, quals=[], simulate=simulate)
     cc.append(jones.visualize())
     # jones.display(full=True)
 
@@ -285,9 +279,15 @@ def _define_forest(ns):
     jones.display(full=True)
     # jones.display_parmgroups(full=False)
 
-    jones = Joneset22.FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
+    jones = DJones(ns, quals=[], simulate=simulate)
     cc.append(jones.visualize())
-    jones.display(full=True)
+    # jones.display(full=True)
+
+    if False:
+        jones = EJones(ns, quals=[], simulate=simulate)
+        cc.append(jones.visualize())
+        # jones.display(full=True)
+
 
     ns.result << Meq.Composer(children=cc)
     return True
