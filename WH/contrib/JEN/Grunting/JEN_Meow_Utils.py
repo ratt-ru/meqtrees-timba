@@ -20,20 +20,27 @@ msname = '';
 
 
 
-def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
+def include_ms_options (has_input=True, has_output=True, tile_sizes=[1,5,10,20,30,60]):
   """Instantiates MS input/output options""";
   ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
   if not ms_list:
     ms_list = [ "no MSs found" ];
   TDLRuntimeOption('msname',"MS",ms_list);
   if has_input:
-    TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+    input_menu = ["DATA","MODEL_DATA","CORRECTED_DATA"]
+    # JEN_15jan2007: Allow specification of the default output col:
+    if isinstance(has_input, str):
+      input_menu.insert(0,has_input)
+    TDLRuntimeOption('input_column', "Input MS column", input_menu, default=0);
   if has_output:
     # JEN_14jan2007: The default (DATA) is dangerous. I prefer CORRECTED_DATA.
-    TDLRuntimeOption('output_column',"Output MS column",["CORRECTED_DATA","MODEL_DATA",None],default=0);
-    # TDLRuntimeOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=0);
+    output_menu = ["CORRECTED_DATA","MODEL_DATA","DATA", None]
+    # JEN_15jan2007: Allow specification of the default output col:
+    if isinstance(has_output, str):
+      output_menu.insert(0,has_output)
+    TDLRuntimeOption('output_column', "Output MS column", output_menu, default=0);
   if tile_sizes:
-    TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
+    TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes, more=int);
 
 imaging_npix = 256;
 imaging_cellsize = '1arcsec';
@@ -189,14 +196,16 @@ def create_outputrec (inhibit_output=False):
     return record(boio=rec);
     
 
-# JEN_14jan2007: Added inhibit_output option, for safety (e.g. Grunting/inspectMS.py)
+# JEN_14jan2007: Added override_output_column option, for safety
+# (e.g. Grunting/inspectMS.py)
 
-def create_io_request (tiling=None, inhibit_output=False):
+def create_io_request (tiling=None, override_output_column=False):
   req = meq.request();
   req.input  = create_inputrec(tiling);
-  if not inhibit_output:                         # JEN_14jan2007 (see above)
-    if output_column is not None:
-      req.output = create_outputrec();
+  if not isinstance(override_output_column, bool):      # JEN_14jan2007 (see above)
+    output_column = override_output_column         
+  if output_column is not None:
+    req.output = create_outputrec();
   return req;
   
 

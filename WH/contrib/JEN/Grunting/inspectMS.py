@@ -1,5 +1,16 @@
 # file: ../contrib/JEN/Grunt/inspectMS.py
 
+# Description:
+# Inspect the data in a Measurement Set in various ways.
+# The data is NOT written back.
+
+# History:
+# - 14jan2007: creation
+
+# Copyright: The MeqTree Foundation
+
+#========================================================================
+# Preamble:
 #========================================================================
 
 from Timba.TDL import *
@@ -14,6 +25,8 @@ from Timba.Contrib.JEN.Grunt import Visset22
 
 
 #========================================================================
+# meqbrowser user menu-items:
+#========================================================================
 
 # Run-time menu:
 JEN_Meow_Utils.include_ms_options(has_input=True,tile_sizes=[30,48,96,20,10,5,2,1]);
@@ -21,13 +34,14 @@ JEN_Meow_Utils.include_imaging_options();
   
 # Compile-time menu:
 TDLCompileOption('num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10], more=int);
-TDLCompileOption('display_object',"Display the Visset22 object", [True,False]);
+TDLCompileOption('display_Visset22',"Display the Visset22 object", [True,False]);
 TDLCompileOption('cache_policy',"Node result caching policy",[100,0], more=int);
 
 
 
 
 #========================================================================
+# Tree definition:
 #========================================================================
 
 def _define_forest (ns):
@@ -43,7 +57,14 @@ def _define_forest (ns):
     if False:
         # AGW still has to repair a 'dims' bug
         vis.collector_separate()
-    if display_object:
+
+
+    # Insert array configuration visualisation here.....?
+    # Keep the relevant functions in this script?
+
+
+    # Finished:
+    if display_Visset22:
         vis.display(full=True)
     vis.make_sinks(vdm='vdm')
     return True
@@ -53,11 +74,12 @@ def _define_forest (ns):
 
 
 #========================================================================
+# Routines for the TDL execute menu:
 #========================================================================
 
 def _tdl_job_1_inspect_MS (mqs,parent):
     mqs.meq('Set.Forest.State', record(state=record(cache_policy=cache_policy)))
-    req = JEN_Meow_Utils.create_io_request(inhibit_output=True);
+    req = JEN_Meow_Utils.create_io_request(override_output_column=None);
     mqs.execute('vdm',req,wait=False);
     return True
                                      
@@ -69,13 +91,12 @@ def _tdl_job_2_make_image (mqs,parent):
 
 
 #========================================================================
+# Test routine (without the meqbrowser):
 #========================================================================
 
-
 if __name__ == '__main__':
-  ns = NodeScope();
-  _define_forest(ns);
-  # resolves nodes
-  ns.Resolve();  
-  
-  print len(ns.AllNodes()),'nodes defined';
+    ns = NodeScope();
+    _define_forest(ns);
+    # resolves nodes
+    ns.Resolve();  
+    print len(ns.AllNodes()),'nodes defined';
