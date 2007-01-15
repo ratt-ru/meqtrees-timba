@@ -443,9 +443,12 @@ class Matrixet22 (object):
 
         coll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
+        cc = self.nodelist()
+        for i in range(len(cc)):
+            cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
         name = 'collector'
         coll = self._ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
-                                                          children=self.nodelist())
+                                                          children=cc)
         JEN_bookmarks.create(coll, self.label(),
                              viewer='Collections Plotter',
                              udi='/node/collector',
@@ -459,7 +462,7 @@ class Matrixet22 (object):
     #--------------------------------------------------------------------------
 
     def collector_separate (self, qual=None, matrel='*', accu=True,
-                   bookpage='Matrixet22', folder=None):
+                            bookpage='Matrixet22', folder=None):
 
         """Visualise (a subset of) the complex matrix elements of all 
         Matrixet22 matrices in a separate collector plot per element.
@@ -474,7 +477,9 @@ class Matrixet22 (object):
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
         if not isinstance(keys,(list,tuple)): keys = [keys]
         for key in keys:  
-            cc = self.matrix_element(key, qual=qual, return_nodes=True) 
+            cc = self.matrix_element(key, qual=qual, return_nodes=True)
+            for i in range(len(cc)):
+                cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'collector_'+key
             coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)], children=cc)
             JEN_bookmarks.create(coll, self.label()+key,
@@ -661,6 +666,8 @@ class Matrixet22 (object):
                                        # stddev=0.01,
                                        tags=['test'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
+            for elem in keys:
+                mm[elem] = self._ns << Meq.Polar(1.0, 0.0)
             # The one non-zero element is complex, with amplitude=1.0,
             # and phase equal to index/10 radians (plus variation if simulate=True):
             phase = self._pgm.create_parmgroup_entry(key, index)
@@ -723,6 +730,15 @@ def _tdl_job_execute (mqs, parent):
     cells = meq.cells(domain, num_freq=10, num_time=11)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+def _tdl_job_sequence (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    for t0 in range(10):
+        domain = meq.domain(1.0e8,1.1e8,t0+1,t0+10)                  # (f1,f2,t1,t2)
+        cells = meq.cells(domain, num_freq=10, num_time=11)
+        request = meq.request(cells, rqtype='ev')
+        result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
 

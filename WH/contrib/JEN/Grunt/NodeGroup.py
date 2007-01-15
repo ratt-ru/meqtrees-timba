@@ -252,6 +252,8 @@ class NodeGroup (object):
         if not self._coll:
             coll_quals = self._quals.concat()
             cc = self.nodelist()
+            for i in range(len(cc)):
+                cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'collector'
             coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
                                                               children=cc)

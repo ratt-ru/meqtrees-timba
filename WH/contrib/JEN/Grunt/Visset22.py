@@ -37,13 +37,13 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def __init__(self, ns, quals=[], label='<v>',
                  cohset=None, array=None,
-                 # observation=None,
+                 observation=None,
                  polrep=None,
                  simulate=False):
 
         # Interface with Meow system (array, cohset, observation):
         self._array = array                          # Meow IfrArray object
-        # self._observation = observation              # Meow Observation object
+        self._observation = observation              # Meow Observation object
 
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
@@ -119,12 +119,15 @@ class Visset22 (Matrixet22.Matrixet22):
                                                input_column=input_col)
         self._matrixet = self._ns.spigot
 
-        if visu: self.visualize('make_spigots')
+        # self.create_ReadVisHeader_placeholders()    # see below....
+
+        if visu:
+            self.visualize('make_spigots')
         return True
 
     #--------------------------------------------------------------------------
 
-    def placeholders(self):
+    def create_ReadVisHeader_placeholders(self):
         """Create placeholder nodes expected by ReadVisHeader.py"""
         # nodes for phase center
         self._ns.radec0 = Meq.Composer(self._ns.ra<<0, self._ns.dec<<0)
@@ -199,14 +202,15 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def fill_with_unit_matrices (self):
+    def fill_with_identical_matrices (self, name='initial', coh=None):
         """Fill with 2x2 complex unit matrices"""
         quals = self.quals()
-        node = self._ns.unity(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                      complex(0.0),complex(1.0))
-        self._matrixet = self._ns.initial(*quals)
+        if coh==None:
+            coh = self._ns.unit_matrix(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
+                                                               complex(0.0),complex(1.0))
+        self._matrixet = self._ns[name](*quals) 
         for ifr in self.ifrs():
-            self._matrixet(*ifr) << Meq.Identity(node)
+            self._matrixet(*ifr) << Meq.Identity(coh)
         return True
 
     #---------------------------------------------------------------------------
