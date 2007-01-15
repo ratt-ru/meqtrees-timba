@@ -155,9 +155,14 @@ class CollectionsPlotter(GriddedPlugin):
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
       self.dims = list(self._rec.dims)
+    else:
+      self.dims = None
     if self._rec.has_key("vellsets"):
       self._number_of_planes = len(self._rec["vellsets"])
-      self.dims_per_group = self._number_of_planes / self.dims[0]
+      if self.dims is None:
+        self.dims_per_group = 1
+      else:
+        self.dims_per_group = self._number_of_planes / self.dims[0]
       if self._visu_plotter is None:
         self.create_layout_stuff()
       data_dict = {}
@@ -173,11 +178,9 @@ class CollectionsPlotter(GriddedPlugin):
           data_dict['value'] = {}
         data_dict['value'][index] = self._rec.vellsets[i].value
 
-#       if index == 3 and data_dict['channel'] < self._max_per_display:
-        if index == 3:
+        if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
           data_dict = {}
-
 
 # enable & highlight the cell
     self.enable();
