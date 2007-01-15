@@ -72,19 +72,25 @@ _dprintf = _dbg.dprintf;
 # the std_dev given here was computed according to the
 # formula given by Oleg 
 def standard_deviation(incoming_array):
-  incoming_mean = incoming_array.mean()
-  temp_array = incoming_array - incoming_mean
-  abs_array = abs(temp_array)
+# first sanity check of array size
+  num_elements = 1
+  for i in range(len(incoming_array.shape)):
+    num_elements = num_elements * incoming_array.shape[i]
+# if we only have one element, return zero
+  if num_elements <= 1:
+    std_dev = 0.0
+  else:
+    incoming_mean = incoming_array.mean()
+    temp_array = incoming_array - incoming_mean
+    abs_array = abs(temp_array)
 # get the conjugate of temp_array ...
-  temp_array_conj = (abs_array * abs_array) / temp_array
-  temp_array = temp_array * temp_array_conj
-  mean = temp_array.mean()
-  std_dev = sqrt(mean)
+    temp_array_conj = (abs_array * abs_array) / temp_array
+    temp_array = temp_array * temp_array_conj
+    mean = temp_array.mean()
+    std_dev = sqrt(mean)
 # eliminate any imaginary component caused by round-off error
-  std_dev = abs(std_dev)
-
+    std_dev = abs(std_dev)
   return std_dev
-
 
 realvsimag_instructions = \
 '''The <b>visu</b> realvsimag and error plots plot real vs imaginary values for data points within a MeqTree. These plots are constructed from <b>visu</b>

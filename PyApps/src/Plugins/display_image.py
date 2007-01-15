@@ -68,24 +68,31 @@ except:
 # the std_dev given here was computed according to the
 # formula given by Oleg (It should work for real or complex array)
 def standard_deviation(incoming_array,complex_type):
-#  return incoming_array.stddev()
-  if complex_type:
-    incoming_mean = incoming_array.mean()
-    temp_array = incoming_array - incoming_mean
-    abs_array = abs(temp_array)
+# first sanity check of array size
+  num_elements = 1
+  for i in range(len(incoming_array.shape)):
+    num_elements = num_elements * incoming_array.shape[i]
+# if we only have one element, return zero
+  if num_elements <= 1:
+    return 0.0
+  else:
+    if complex_type:
+      incoming_mean = incoming_array.mean()
+      temp_array = incoming_array - incoming_mean
+      abs_array = abs(temp_array)
 # get the conjugate of temp_array ...
 # note: we need to add a test if temp_array has a value 0+0j somewhere,
 # so do the following:
-    temp1 = less_equal(abs_array,0.0)
-    temp_array = temp_array + temp1
-    temp_array_conj = (abs_array * abs_array) / temp_array
-    temp_array = temp_array * temp_array_conj
-    mean = temp_array.mean()
-    std_dev = sqrt(mean)
-    std_dev = abs(std_dev)
-    return std_dev
-  else:
-    return incoming_array.stddev()
+      temp1 = less_equal(abs_array,0.0)
+      temp_array = temp_array + temp1
+      temp_array_conj = (abs_array * abs_array) / temp_array
+      temp_array = temp_array * temp_array_conj
+      mean = temp_array.mean()
+      std_dev = sqrt(mean)
+      std_dev = abs(std_dev)
+      return std_dev
+    else:
+      return incoming_array.stddev()
 
 def linearX(nx, ny):
     return repeat(arange(nx, typecode = Float32)[:, NewAxis], ny, -1)
@@ -2882,7 +2889,7 @@ def make():
 # or
 # uncomment the following three lines
     import pyfits
-    image = pyfits.open('./m51.fits')
+    image = pyfits.open('./m51_32.fits')
 #   image = pyfits.open('./WN30080H.fits')
     demo.array_plot('M51', image[0].data)
 
