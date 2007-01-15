@@ -73,7 +73,7 @@ class ChartPlot(QWidget):
     self._plotter = QwtPlot(self)
     self._plotter_has_curve = False
     self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal (Relative Scale)")
-    self._plotter.setAxisTitle(QwtPlot.xBottom, "Event Sequence(Relative Scale)")
+    self._plotter.setAxisTitle(QwtPlot.xBottom, "Time Event Sequence(Relative Scale)")
     # turn off grid
     self._plotter.enableGridX(False)
     self._plotter.enableGridY(False)
@@ -224,7 +224,7 @@ class ChartPlot(QWidget):
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
-    title = self._data_label + " Event Sequence(Relative Scale)"
+    title = self._data_label + " Time Event Sequence(Relative Scale)"
     self._plotter.setAxisTitle(QwtPlot.xBottom, title)
 
   def destruct_chartplot(self):
@@ -667,6 +667,8 @@ class ChartPlot(QWidget):
       scalar_data = 0.0
       try:
         shape = incoming_data.shape
+# note: if shape is 1 x N : 1 time point with N freq points
+# note: if shape is N x 1 or (N,) : N time points with 1 freq point
 #     _dprint(3,'data_array shape is ', shape)
       except:
         is_scalar = True
@@ -690,10 +692,7 @@ class ChartPlot(QWidget):
 #         del self._chart_data[channel][0]
         self._chart_data[channel][keys].append(scalar_data)
         self._updated_data[channel] = True
-        if self._ArraySize < len(self._chart_data[channel][keys]):
-          self._ArraySize = len(self._chart_data[channel][keys])
-          self.set_x_axis_sizes()
-    
+
         # take care of position string
         self._position[channel] = q_pos_str
   
@@ -701,17 +700,22 @@ class ChartPlot(QWidget):
       # so we replace the stored chart data in its entirety
       else:
         self._is_vector = True
+        if incoming_data.shape[0] == 1:
+          if  self._data_label is None:
+            self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
+          else:
+            self._plotter.setAxisTitle(QwtPlot.xBottom, self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
         num_elements = 1
         for i in range(len(incoming_data.shape)):
           num_elements = num_elements * incoming_data.shape[i]
-
-#       self._chart_data[channel][keys] = []
-        if self._ArraySize < num_elements:
-          self._ArraySize = num_elements
-          self.set_x_axis_sizes()
         flattened_array = reshape(incoming_data.copy(),(num_elements,))
-        self._chart_data[channel][keys] = flattened_array
+        for i in range(len(flattened_array)):
+          self._chart_data[channel][keys].append(flattened_array[i])
         self._updated_data[channel] = True
+
+      if self._ArraySize < len(self._chart_data[channel][keys]):
+        self._ArraySize = len(self._chart_data[channel][keys])
+        self.set_x_axis_sizes()
 
   def update_vells_selector(self, menuid):
     self._data_index = int(menuid)
