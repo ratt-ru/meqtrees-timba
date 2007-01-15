@@ -36,6 +36,26 @@ from Timba.Contrib.JEN.Grunt import ParmGroupManager
 
 #======================================================================================
 
+def include_TDL_options(menuname="PointSource22 definition"):
+    """Instantiates user options for the meqbrouwser"""
+    predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
+    predefined.extend(['3c147','3c286'])
+    predefined.append(None)
+    TDLCompileMenu(menuname,
+                   TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
+                   TDLOption('TDL_predefined',"predefined source",predefined),
+                   TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
+                   TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
+                   TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
+                   TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
+                   TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
+                   TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
+                   TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
+                   );
+    return True
+
+#======================================================================================
+
 class PointSource22 (Meow.PointSource):
     """A Meow.PointSource with some extra features"""
 
@@ -164,7 +184,7 @@ class PointSource22 (Meow.PointSource):
     #--------------------------------------------------------------------------
 
 
-    def Visset22 (self, array, observation):
+    def Visset22 (self, array, observation, visu=False):
         """Create a Visset22 object from the visibilities generated
         by this PointSource"""
         if not self._Visset22:                   # avoid duplication
@@ -185,10 +205,12 @@ class PointSource22 (Meow.PointSource):
             else:
                 # Use this if the source is in the phase centre (no KJones):
                 matrix = self.coherency(observation)
-                self._Visset22.fill_with_identical_matrices ('PointSource22', matrix)
+                self._Visset22.fill_with_identical_matrices ('PS22_visibility', matrix)
 
             # ParmGroupManager... (get all MeqParms from self.ns...?)
             # NB: Not if self._simulate==True (i.e. hide the MeqParms)
+
+            if visu: self._Visset22.visualize('PointSource22')
         return self._Visset22
 
 
@@ -200,6 +222,8 @@ class PointSource22 (Meow.PointSource):
 # Test routine (with meqbrowser):
 #===============================================================
 
+# include_TDL_options()
+
 def _define_forest(ns):
 
     cc = []
@@ -208,9 +232,17 @@ def _define_forest(ns):
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
     observation = Meow.Observation(ns)
-    src = '3c84'
-    direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
+    direction = Meow.LMDirection(ns, TDL_source_name, l=1.0, m=1.0)
+    ps = PointSource22 (ns, name=TDL_source_name, predefined=TDL_predefined,
+                        I=TDL_StokesI, Q=TDL_StokesQ,
+                        U=TDL_StokesU, V=TDL_StokesV,
+                        spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
+                        direction=direction)
+    ps.display()
 
+    vis = ps.Visset22(array, observation)
+    vis.display()
+    cc.append(vis.bundle())
 
     ns.result << Meq.ReqSeq(children=cc)
     return True
@@ -241,10 +273,9 @@ if __name__ == '__main__':
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
         src = 'unpol'
+        src = 'QUV'
         direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
-        ps = PointSource22 (ns,
-                            # name=src,
-                            direction=direction, predefined=src)
+        ps = PointSource22 (ns,predefined=src, direction=direction)
         ps.display()
 
     if 1:

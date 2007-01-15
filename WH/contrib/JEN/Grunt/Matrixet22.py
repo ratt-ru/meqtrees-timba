@@ -224,7 +224,7 @@ class Matrixet22 (object):
             node = self.matrixet()(*self.list_indices()[0])
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
-                                                 recurse=2)
+                                                 recurse=3)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup/NodeGog objects ('+str(ntot)+'): '
