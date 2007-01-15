@@ -69,18 +69,19 @@ def _define_forest (ns):
       Meq.MatrixMultiply(ns.K(p),ns.B,ns.Kt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
-# use the following collector to get a single visibility averaged
+# use the following node to get a single visibility averaged
 # over a time-frequency cell / tile
 #   ns.collector(p,q) << Meq.Mean(predict,reduction_axes=["time", "freq"]);
 
-# use the following collector to show spectra coming in averaged over 
+# use the following node to show spectra coming in averaged over 
 # a time block; each spectrum is appended to the streaming display
+# of the Collections Plotter bookmark
 #   ns.collector(p,q) << Meq.Mean(predict,reduction_axes="time");
 
-# use the following collector to show spectra averaged over frequency
-# for each each integration in a time block (tile) 
-# this equates to plotting standard 'continuum' visibilities
-# as a function of time. 
+# use the following node to show spectra averaged over frequency
+# for each integration in a time block (tile) 
+# this equates to getting the Collections Plotter bookmark
+# to plot standard 'continuum' visibilities as a function of time. 
     ns.collector(p,q) << Meq.Mean(predict,reduction_axes="freq");
     
   ns.collector << Meq.Composer(dims=[len(IFRS),2,2],*[ns.collector(p,q) for p,q in IFRS]);
