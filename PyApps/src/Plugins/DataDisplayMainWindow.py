@@ -63,6 +63,7 @@ class DisplayMainWindow(QMainWindow):
       self.connect(self._ChartPlot[data_type], PYSIGNAL("quit_event"), self.quit_event)
       self._ChartPlot[data_type].show()
     q_info = "Sequence Number " + str( data_dict['sequence_number'])
+#   self._ChartPlot[data_type].setSource(data_dict['source'])
     self._ChartPlot[data_type].updateEvent(data_dict['channel'], data_dict['value'], q_info)
 
   def resizeEvent(self, event):
