@@ -76,6 +76,9 @@ int FITSWriter::getResult (Result::Ref &resref,
 	long int *naxes;
 	double **cells;
 
+#ifdef DEBUG
+	cout<<"Dims ="<<chres.dims()<<" Rank="<<chres.tensorRank()<<endl;
+#endif
 
 	Vells::Shape shape=chres.vellSet(0).shape();
 	if (chres.hasCells()) {
@@ -129,12 +132,55 @@ int FITSWriter::getResult (Result::Ref &resref,
 	}
 
 	int flag=0;
-	if (invs.isReal()) {
-	 double *data=const_cast<double *>(invs.realStorage());
-   flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes, 0);
+	if (invs.isReal()) { /* assert that all vells are either real or complex */
+   /* allocate memory for data array */
+   double **data;
+   int nvs=chres.numVellSets();
+   if ((data=(double**)calloc((size_t)nvs,sizeof(double*)))==0) {
+		 fprintf(stderr,"no free memory\n");
+		 exit(1);
+   }
+   for (int ci=0; ci<nvs; ci++) {
+	  const Vells &invells=chres.vellSet(ci).getValue();
+    if ((data[ci]=(double*)calloc((size_t)invells.nelements(),sizeof(double)))==0) {
+		 fprintf(stderr,"no free memory\n");
+		 exit(1);
+    }
+	  memcpy(data[ci],const_cast<double *>(invells.realStorage()),sizeof(double)*(size_t)invells.nelements());
+   }
+   flag=write_fits_file(filename_.c_str(), data,  nvs, cells, naxis, naxes, 0);
+   for (int ci=0; ci<nvs; ci++) {
+    free(data[ci]);
+   }
+   free(data);
 	} else { //complex data
-	 double *data=const_cast<double*>(reinterpret_cast<const double *>(invs.complexStorage()));
-   flag=write_fits_file(filename_.c_str(), data,  cells, naxis, naxes, 1);
+   double **data;
+   int nvs=chres.numVellSets();
+   if ((data=(double**)calloc((size_t)nvs*2,sizeof(double*)))==0) {
+		 fprintf(stderr,"no free memory\n");
+		 exit(1);
+   }
+   for (int ci=0; ci<nvs; ci++) {
+	  const Vells &invells=chres.vellSet(ci).getValue();
+	  const Vells &invsr=Meq::VellsMath::real(invells);
+    if ((data[2*ci]=(double*)calloc((size_t)invsr.nelements(),sizeof(double)))==0) {
+		 fprintf(stderr,"no free memory\n");
+		 exit(1);
+    }
+	  memcpy(data[2*ci],(invsr.realStorage()),sizeof(double)*(size_t)invsr.nelements());
+	  const Vells &invsi=Meq::VellsMath::imag(invells);
+    if ((data[2*ci+1]=(double*)calloc((size_t)invsi.nelements(),sizeof(double)))==0) {
+		 fprintf(stderr,"no free memory\n");
+		 exit(1);
+    }
+	  memcpy(data[2*ci+1],(invsi.realStorage()),sizeof(double)*(size_t)invsi.nelements());
+   }
+   flag=write_fits_file(filename_.c_str(), data,  nvs, cells, naxis, naxes, 1);
+   for (int ci=0; ci<nvs; ci++) {
+    free(data[2*ci]);
+    free(data[2*ci+1]);
+   }
+   free(data);
 	}
 
 

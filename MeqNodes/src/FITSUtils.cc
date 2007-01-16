@@ -1155,7 +1155,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 }
 
 
-int write_fits_file(const char *filename,  double *arr,  double **cells,
+int write_fits_file(const char *filename,  double **arr,  int nvells, double **cells,
 			long int naxis, long int *naxes, int is_complex) {
 
 				/* what do we do about axes with zero length: we do not consider them
@@ -1174,10 +1174,14 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 long int totaxs, *real_naxes;
 			 double *colarr;
 			 int has_cells;
+       double refpix, *refval, *refdel;
+       char *keyname, *keycomm;
+       int keycommlen=128;
+       int keynamelen=20;
 
  
 #ifdef DEBUG
-			 printf("axis =%ld\n",naxis);
+			 printf("axis =%ld vells=%d\n",naxis,nvells);
 #endif
 			 maxrow=0;
        nelements=1;
@@ -1198,11 +1202,29 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 					fprintf(stderr,"no free memory\n");
 					exit(1);
 			 }
-
+			 if ((refval=(double*)calloc((size_t)totaxs,sizeof(double)))==0) {
+					fprintf(stderr,"no free memory\n");
+					exit(1);
+			 }
+			 if ((refdel=(double*)calloc((size_t)totaxs,sizeof(double)))==0) {
+					fprintf(stderr,"no free memory\n");
+					exit(1);
+			 }
 			 jj=0;
 			 for (ii=0; ii<naxis; ii++) {
 			  if (naxes[ii] && jj<totaxs) {
-					real_naxes[jj++]=naxes[ii];
+					real_naxes[jj]=naxes[ii];
+          if (cells) {
+           refval[jj]=cells[ii][0];
+           if (real_naxes[jj] >1) {
+            refdel[jj++]=cells[ii][1]-cells[ii][0];
+           } else {
+            refdel[jj++]=1;
+           }
+          } else {
+           refval[jj]=0;
+           refdel[jj++]=1;
+          }
 				}
 			 }
 
@@ -1212,46 +1234,76 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 					printf("%ld: %ld ",ii,real_naxes[ii]);
 			 }
 			 printf("\n");
-			 for (ii=0;ii<nelements;ii++) {
-					printf("%ld: %lf ",ii,arr[ii]);
-			 }
-			 printf("\n");
 #endif
-			 if (is_complex) {
-					/*extend each real axis by twice the length to store complex
-					numbers */
-			  for (ii=0; ii<totaxs; ii++) {
-					real_naxes[ii]*=2;
-			  }
-#ifdef DEBUG
-			 printf("data is complex. extending...\n");
-			 for (ii=0; ii<totaxs; ii++) {
-					printf("%ld: %ld ",ii,real_naxes[ii]);
-			 }
-			 printf("\n");
-#endif
-			   /* increase number of elements too */
-			   nelements*=2;
-			 }
-
 
 			 status=0;
 			 
 			 fits_create_file(&outfptr,filename,&status);
 
-			 fits_create_img(outfptr,DOUBLE_IMG,totaxs,real_naxes,&status);
+			 if (cells) { /* has cells */
+        has_cells=1;
+       }
 
-			 fits_write_img(outfptr,TDOUBLE,fpixel,nelements,arr,&status);
-
-
-			 /* write key to indicate complex or not */
-			 fits_update_key(outfptr, TINT, "CPLEX", &is_complex,"Complex data 1: yes 0: no", &status);
+       /* reference pixel value */
+       refpix=0;
+  		 /* allocate memory for keywords and comments */
+			 if ((keyname=(char*)calloc((size_t)keynamelen,sizeof(char)))==0) {
+					fprintf(stderr,"no free memory\n");
+					exit(1);
+			 }
+  		 if ((keycomm=(char*)calloc((size_t)keycommlen,sizeof(char)))==0) {
+					fprintf(stderr,"no free memory\n");
+					exit(1);
+			 }
+   
+       /* write all vellsets */
+       if (!is_complex) {
+        for (ii=0; ii<nvells; ii++) {
+			   fits_create_img(outfptr,DOUBLE_IMG,totaxs,real_naxes,&status);
+			   fits_write_img(outfptr,TDOUBLE,fpixel,nelements,arr[ii],&status);
+			   /* write key to indicate complex or not */
+			   fits_update_key(outfptr, TINT, "CPLEX", &is_complex,"Complex data 1: yes 0: no", &status);
+         if (cells) { /* has cells */
+			     /* write a keyword to indicate the presence of cells */
+			     fits_update_key(outfptr, TINT, "CELLS", &has_cells,"Has Cells 1: yes 0: no", &status);
+         }
+         for (jj=0; jj<totaxs; jj++) {
+          snprintf(keyname,keynamelen,"CTYPE%ld",jj+1);
+          snprintf(keycomm,keycommlen,"Ax %ld of %ld",jj+1,ii);
+          fits_update_key(outfptr, TSTRING, keyname,keycomm,0,&status);
+          snprintf(keyname,keynamelen,"CRPIX%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refpix,0,&status);
+          snprintf(keyname,keynamelen,"CRVAL%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refval[jj],0,&status);
+          snprintf(keyname,keynamelen,"CDELT%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refdel[jj],0,&status);
+         }
+        }
+       } else { /* complex data */
+        for (ii=0; ii<nvells*2; ii++) {
+			   fits_create_img(outfptr,DOUBLE_IMG,totaxs,real_naxes,&status);
+			   fits_write_img(outfptr,TDOUBLE,fpixel,nelements,arr[ii],&status);
+			   /* write key to indicate complex or not */
+			   fits_update_key(outfptr, TINT, "CPLEX", &is_complex,"Complex data 1: yes 0: no", &status);
+         if (cells) { /* has cells */
+			     /* write a keyword to indicate the presence of cells */
+			     fits_update_key(outfptr, TINT, "CELLS", &has_cells,"Has Cells 1: yes 0: no", &status);
+         }
+         for (jj=0; jj<totaxs; jj++) {
+          snprintf(keyname,keynamelen,"CTYPE%ld",jj+1);
+          snprintf(keycomm,keycommlen,"Ax %ld of %ld",jj+1,ii);
+          fits_update_key(outfptr, TSTRING, keyname,keycomm,0,&status);
+          snprintf(keyname,keynamelen,"CRPIX%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refpix,0,&status);
+          snprintf(keyname,keynamelen,"CRVAL%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refval[jj],0,&status);
+          snprintf(keyname,keynamelen,"CDELT%ld",jj+1);
+          fits_update_key(outfptr, TDOUBLE, keyname,&refdel[jj],0,&status);
+         }
+        }
+       }
 
 			 if (cells) { /* has cells */
-			 /* write a keyword to indicate the presence of cells */
-       has_cells=1;
-			 fits_update_key(outfptr, TINT, "CELLS", &has_cells,"Has Cells 1: yes 0: no", &status);
-
 			 /* the table to store the cells: one column for one axis */
 			 /* the number of rows will be the max axis length */
 			 /* define the name, datatype, and physical units for all the columns */
@@ -1358,7 +1410,10 @@ int write_fits_file(const char *filename,  double *arr,  double **cells,
 			 fits_report_error(stderr,status);
 			 
 			 free(real_naxes);
-
+       free(refval);
+       free(refdel);
+       free(keyname);
+       free(keycomm);
 			return 0;
 }
 
