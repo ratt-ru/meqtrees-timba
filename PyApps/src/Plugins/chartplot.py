@@ -63,6 +63,7 @@ class ChartPlot(QWidget):
     self._auto_offset = True
     self._ref_chan= 0
     self._offset = -10000
+    self._source = None
     self._highest_value = -10000
     self._lowest_value = 10000
     self._do_fixed_scale = False
@@ -72,7 +73,6 @@ class ChartPlot(QWidget):
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
-    self._plotter_has_curve = False
     self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal (Relative Scale)")
     self._plotter.setAxisTitle(QwtPlot.xBottom, "Time Event Sequence(Relative Scale)")
     # turn off grid
@@ -185,8 +185,11 @@ class ChartPlot(QWidget):
     self.connect(self._display_refresh, SIGNAL("timeout()"), self.refresh_event)
 
     # construct plot / array storage structures etc
-    self.createplot()
+    self.createplot(True)
     
+  def setSource(self, source_string):
+    self._source = source_string
+
   def set_x_axis_sizes(self):
 
     self._x1 = zeros((self._ArraySize,), Float32)
@@ -235,6 +238,7 @@ class ChartPlot(QWidget):
         self._plotter.removeMarker(self._source_marker[channel]);
     # remove current curves
     self._plotter.removeCurves()
+    self._plotter.replot()
     self._ArraySize = 5
     self._x_displacement = self._ArraySize
     self.set_x_axis_sizes()
@@ -252,45 +256,58 @@ class ChartPlot(QWidget):
     QWidget.setMouseTracking(False) 
 
 			
-  def createplot(self):
+  def createplot(self,first_time=False):
     """ Sets all the desired parameters for the chart plot
     """
-    self._chart_data = {}
-    self._updated_data = {}
-    self._indexzoom = {}
-    self._indexzoom = {}
-    self._pause = {}
-    self._Zoom = {}
-    self._good_data = {}
-    self._mrk = {}
-    self._position = {}
-    self._zoom_title = {}
-    self._zoom_pen = {}
-    self._main_pen = {}
-    self._crv_key = {}
-    self._source_marker = {}
-    for i in range (self._nbcrv):
-        self._updated_data[i] = False
-        self._indexzoom[i] = False
-        self._pause[i] = False
-        self._Zoom[i] = None
-        self._source_marker[i] = None
-        self._good_data[i] = True
-        self._mrk[i] = 0
-        self._crv_key[i] = 0
-        self._position[i] = ""
-        self._zoom_title[i] = "Data for Chart " + str(i)
-        self._zoom_pen[i] = Qt.yellow
-        self._main_pen[i] = Qt.yellow
-
-    	self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
-    	self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
-        
-        self._chart_data[i] = {}
-
-    # set flags for active curves
-    if self._plotter_has_curve:
-      self._plotter.removeCurves()
+    if first_time:
+      self._chart_data = {}
+      self._updated_data = {}
+      self._pause = {}
+      self._good_data = {}
+      self._mrk = {}
+      self._position = {}
+      self._Zoom = {}
+      self._zoom_title = {}
+      self._zoom_pen = {}
+      self._main_pen = {}
+      self._indexzoom = {}
+      self._crv_key = {}
+      self._source_marker = {}
+      for i in range (self._nbcrv):
+          self._updated_data[i] = False
+          self._indexzoom[i] = False
+          self._pause[i] = False
+          self._Zoom[i] = None
+          self._source_marker[i] = None
+          self._good_data[i] = True
+          self._mrk[i] = 0
+          self._position[i] = ""
+          self._zoom_title[i] = "Data for Chart " + str(i)
+          self._zoom_pen[i] = Qt.yellow
+          self._main_pen[i] = Qt.yellow
+    	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
+    	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
+          self._chart_data[i] = {}
+    else:
+      self._updated_data = {}
+      self._pause = {}
+      self._good_data = {}
+      self._mrk = {}
+      self._position = {}
+      self._main_pen = {}
+      self._crv_key = {}
+      self._source_marker = {}
+      for i in range (self._nbcrv):
+          self._updated_data[i] = False
+          self._pause[i] = False
+          self._source_marker[i] = None
+          self._good_data[i] = True
+          self._mrk[i] = 0
+          self._position[i] = ""
+          self._main_pen[i] = Qt.yellow
+    	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
+    	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
+          self._chart_data[i] = {}
 
   def do_print(self):
     # taken from PyQwt Bode demo
@@ -542,6 +559,9 @@ class ChartPlot(QWidget):
       PlotArraySize = self._x1.nelements()
       chart = array(self._chart_data[crv][self._data_index])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, pen, self)
+      if not self._source is None:
+        self._Zoom[crv].setCaption(self._source)
+        
       if not self._data_label is None:
         self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
 #     if self._good_data[crv]:
