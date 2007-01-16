@@ -36,8 +36,10 @@ def help ():
     return ss
 
 
+
 def include_TDL_options(menuname='WSRT Jones (corruption)'):
-    """Definition of variables that the user may set in the browser TDL options menu"""
+    """Definition of variables that the user may set in the browser TDL options menu.
+    These values are picked up by the function .Joneseq22() in this module."""
     joneseq = ['G','GD','D','GDF','J','E','B']
     TDLCompileMenu(menuname,
                    TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
@@ -48,21 +50,15 @@ def include_TDL_options(menuname='WSRT Jones (corruption)'):
     return True
 
 
-# Alternative (desirable):
-#     jones = WSRT_Jones.Joneseq22(ns, stations, simulate=False, **TDLC)
 
-def Joneseq22(ns, stations,
-              TDL_joneseq=[],
-              TDL_D_coupled_dang=True,
-              TDL_D_coupled_dell=True,
-              TDL_J_diagonal=False,
-              simulate=False):
+def Joneseq22(ns, stations, simulate=False):
     """Return a Jonest22 object that contains a set of Jones matrices for
     the given stations. The Jones matrices are the matrix product of a
     sequence of WSRT Jones matrices that are defined in this module.
-    The sequnece is defined by the letters (e.g. 'GD') of the given
-    joneseq string.
-    If simulate==True, the Jones matrices do not contain MeqParms,
+    - The 'TDL_' arguments in this function are user-defined in the meqbrowser,
+    via the TDLOptions defined in the function .include_TDL_options() in this module.
+    - The sequence is defined by the letters (e.g. 'GD') of the string TDL_joneseq.
+    - If simulate==True, the Jones matrices do not contain MeqParms,
     but subtrees that simulate MeqParm values that change with time etc."""
 
     # First make a sequence (list) of Joneset22 objects:

@@ -54,6 +54,7 @@ def include_TDL_options(menuname="PointSource22 definition"):
                    );
     return True
 
+
 #======================================================================================
 
 class PointSource22 (Meow.PointSource):
@@ -64,7 +65,25 @@ class PointSource22 (Meow.PointSource):
                  Iorder=0, Qorder=0, Uorder=0, Vorder=0,
                  spi=0.0, freq0=None, RM=None,
                  parm_options=record(node_groups='Parm'),
-                 predefined=None, simulate=False):
+                 predefined=None,
+                 simulate=False, **pp):
+
+        if False:
+            # This is the beginning of a 'closed circuit', in which the
+            # (locally global) variables are used that are defined in the
+            # .include_TDL_options() function above. That is nice in
+            # principle, but it means that only one instance of this class
+            # can be defined per TDL module. That is a bit limiting....
+            # So, for the moment, we do it the old way.
+            if not isinstance(pp, dict): pp = dict()
+            pp.setdefault('predefined', TDL_predefined)
+            pp.setdefault('I', TDL_StokesI)
+            pp.setdefault('Q', TDL_StokesQ)
+            pp.setdefault('U', TDL_StokesU)
+            pp.setdefault('V', TDL_StokesV)
+            pp.setdefault('spi', TDL_spi)
+            pp.setdefault('freq0', TDL_freq0)
+            pp.setdefault('RM', TDL_RM)
 
         # Some non-Meow attributes
         self._name = name
@@ -134,9 +153,11 @@ class PointSource22 (Meow.PointSource):
             elif True:
                 raise ValueError,'predefined not recognised: '+str(predefined)
 
-        # Initialise its Meow counterpart:
+        # Used for .oneliner() and .display():
         self._IQUV = [I,Q,U,V]
         self._spi = spi
+
+        # Initialise its Meow counterpart:
         Meow.PointSource.__init__(self, ns=ns, name=self._name,
                                   I=I, Q=Q, U=U, V=V,
                                   Iorder=Iorder, Qorder=Qorder,
@@ -146,7 +167,7 @@ class PointSource22 (Meow.PointSource):
                                   parm_options=parm_options)
 
         # Create a Grunt ParmGroupManager object:
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=name,
+        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name,
                                                       # quals=self.quals(),
                                                       simulate=self._simulate)
         # Some placeholders:
@@ -182,7 +203,6 @@ class PointSource22 (Meow.PointSource):
 
 
     #--------------------------------------------------------------------------
-
 
     def Visset22 (self, array, observation, visu=False):
         """Create a Visset22 object from the visibilities generated

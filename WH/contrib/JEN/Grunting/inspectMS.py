@@ -53,6 +53,7 @@ def _define_forest (ns):
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
     vis = Visset22.Visset22(ns, label='inspectMS', array=array)
+
     vis.make_spigots(visu=True)
 
     if False:

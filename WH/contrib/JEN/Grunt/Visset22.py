@@ -96,9 +96,12 @@ class Visset22 (Matrixet22.Matrixet22):
                       MS_corr_index=[0,1,2,3], flag_bit=4,
                       visu=True):
         """Make MeqSpigot nodes per ifr, for reading visibility data from the
-        specified column of the Measurement Set (or other data source).
-        The input_col can be 'DATA','CORRECTED_DATA','MODEL_DATA','RESIDUALS'
-        For XX/YY only, use:
+        specified 'tile' columns of the VisTile interface.
+        Note that tile columns are NOT the same as MS columns! If relevant,
+        the latter are specified in the request.
+        - The (tile) input_col can be 'DATA','PREDICT','RESIDUALS' (and 'FLAGS'?)
+        However, only the 'DATA' column can be populated at this time...(!)
+        - Sometimes, not all 4 corrs are available. For XX/YY only, use:
           - If only XX/YY available: MS_corr_index = [0,-1,-1,1]
           - If all 4 corr available: MS_corr_index = [0,-1,-1,3]
           - etc
@@ -151,14 +154,18 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def make_sinks (self, output_col='RESIDUALS',
+    def make_sinks (self, output_col='DATA',
                     # start=None, pre=None, post=None,
                     vdm='vdm'):
-        """Make MeqSink nodes per ifr for writing visibilities back to the MS.
+        """Make MeqSink nodes per ifr for writing visibilities back to the
+        specified 'tile' column of the VisTile interface, which conveys it
+        to a Measurement Set (MS) or other data-source.
+        Note that tile columns are NOT the same as MS columns! If relevant,
+        the latter are specified in the request.
         These are the children of a single VisDataMux node, which issues the
         series of requests that traverse the data.
-        - Alternatives for the output_col are 'RESIDUALS','PREDICT','DATA'.
-        This refers to columns in the interface, NOT the MS columns......
+        - Alternatives for the (tile) output_col are 'RESIDUALS','PREDICT','DATA'.
+        However, only the 'DATA' column can be populated at this time...(!)
         - The keyword vdm (default='vdm') supplies the name of the VisDataMux node,
         which is needed for executing the tree. It has three optional children:
           - child 'start' gets a request before the spigots are filled
