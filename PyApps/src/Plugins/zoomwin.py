@@ -45,7 +45,7 @@ class ZoomPopup(QWidget):
     fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QWidget.__init__(self, parent, name, fl)
-
+    self.setCaption('Channel ' + str(CurveNumber))
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
     self._curve_number = CurveNumber
