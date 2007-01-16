@@ -839,7 +839,9 @@ class ChartPlot(QWidget):
         if self._auto_offset and self._offset < self._new_value:
         #set the max value of the offset
           self._offset = 1.1 * self._new_value
-
+    if self._offset < 0.005:
+      self._offset = 0.005
+    
     # -----------
     # now update data
     # -----------
