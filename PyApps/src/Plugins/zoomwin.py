@@ -42,10 +42,9 @@ class ZoomPopup(QWidget):
         creates the main zoom plot
         connects the qt signals
     """
-    QWidget.__init__(self, parent, name, Qt.WType_TopLevel)
-
-# the following init does not work 
-#   QWidget.__init__(self, parent, name, Qt.WStyle_StaysOnTop)
+    fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+    fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+    QWidget.__init__(self, parent, name, fl)
 
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
