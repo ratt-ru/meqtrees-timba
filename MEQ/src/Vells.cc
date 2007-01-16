@@ -747,7 +747,7 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_real_lut[VELLS_LUT_SIZE] =
 // imag()
 // Use standard template for complex numbers, and zero for doubles
 Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_imag_lut[VELLS_LUT_SIZE] = 
-    ExpandMethodList2_FixOut(zero,real,double);
+    ExpandMethodList2_FixOut(zero,imag,double);
 
 // norm()
 // Use standard template for complex numbers, and sqr for doubles
