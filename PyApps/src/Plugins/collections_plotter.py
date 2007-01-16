@@ -75,6 +75,7 @@ class CollectionsPlotter(GriddedPlugin):
     self.dataitem = dataitem
     self._visu_plotter = None
     self.counter = 0
+    self.prev_label = "===="
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
@@ -108,7 +109,7 @@ class CollectionsPlotter(GriddedPlugin):
         necessary preprocssing forwards the data to one of
         the functions which does the actual plotting """
 
-    _dprint(3, '** in result_plotter:set_data callback')
+    _dprint(3, '** in collections_plotter:set_data callback')
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
@@ -133,6 +134,7 @@ class CollectionsPlotter(GriddedPlugin):
           self._rec = self._rec.cache.result; # look for cache.result record
           if not rq_id_found and self._rec.has_key("request_id"):
             self.label = "rq " + str(self._rec.request_id);
+            rq_id_found = True
         else:
           data_failure = True
         _dprint(3, 'we have req id ', self.label)
@@ -149,6 +151,11 @@ class CollectionsPlotter(GriddedPlugin):
         self._wtop = cache_message
         self.set_widgets(cache_message)
         return
+      if self.label.find(self.prev_label) >= 0:
+# we have already plotted this stuff, so return
+        return
+      else:
+        self.prev_label = self.label
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
@@ -187,7 +194,6 @@ class CollectionsPlotter(GriddedPlugin):
     self.flash_refresh();
     _dprint(3, 'exiting process_data')
 
-Grid.Services.registerViewer(dmi_type('MeqResult',record),CollectionsPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqComposer'),CollectionsPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass(),CollectionsPlotter,priority=22)
 
