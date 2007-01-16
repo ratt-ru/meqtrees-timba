@@ -2254,7 +2254,7 @@ class QwtImageDisplay(QwtPlot):
         if plot_array.shape[i] > 1:
           actual_array_rank = actual_array_rank + 1
       _dprint(3, 'actual array rank ', actual_array_rank)
-      if actual_array_rank == 1:
+      if actual_array_rank <= 1:
         self.is_vector = True;
       
 # if we've doing a solver plot and we want to just display
