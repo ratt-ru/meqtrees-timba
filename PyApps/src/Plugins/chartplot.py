@@ -43,6 +43,7 @@ class ChartPlot(QWidget):
         'Offset Value': 204,
         'Change Vells': 205,
         'Show Channels': 206,
+        'Clear Plot': 207,
         }
 
 
@@ -152,6 +153,8 @@ class ChartPlot(QWidget):
     self._menu.insertItem("Zoom", toggle_id)
     toggle_id = self.menu_table['Print']
     self._menu.insertItem("Print", toggle_id)
+    toggle_id = self.menu_table['Clear Plot']
+    self._menu.insertItem("Clear Plot", toggle_id)
     toggle_id = self.menu_table['Fixed Scale']
     self._menu.insertItem("Fixed Scale", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
@@ -221,6 +224,21 @@ class ChartPlot(QWidget):
     if menuid == self.menu_table['Show Channels']:
       self.change_channel_display(menuid)
       return True
+    if menuid == self.menu_table['Clear Plot']:
+      self.clear_plot()
+      return True
+
+  def clear_plot(self):
+    # first remove any markers
+    for channel in range(self._nbcrv):
+      if not self._source_marker[channel] is None:
+        self._plotter.removeMarker(self._source_marker[channel]);
+    # remove current curves
+    self._plotter.removeCurves()
+    self._ArraySize = 5
+    self._x_displacement = self._ArraySize
+    self.set_x_axis_sizes()
+    self.createplot()
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
