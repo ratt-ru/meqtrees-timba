@@ -202,6 +202,7 @@ def create_outputrec (inhibit_output=False):
 def create_io_request (tiling=None, override_output_column=False):
   req = meq.request();
   req.input  = create_inputrec(tiling);
+  global output_column                                  # JEN_17jan2007 (see above)
   if not isinstance(override_output_column, bool):      # JEN_14jan2007 (see above)
     output_column = override_output_column         
   if output_column is not None:

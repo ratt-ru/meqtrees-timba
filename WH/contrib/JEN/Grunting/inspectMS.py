@@ -48,29 +48,23 @@ TDLCompileOption('TDL_cache_policy',"Node result caching policy",[100,0], more=i
 #========================================================================
 
 def _define_forest (ns):
-    """Inspect the contents of the MS"""
+    """Define the MeqTree forest."""
 
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
-    vis = Visset22.Visset22(ns, label='inspectMS', array=array)
 
-    vis.make_spigots(visu=True)
+    data = Visset22.Visset22(ns, label='inspectMS', array=array)
+    data.make_spigots(visu=True)
 
-    if False:
-        # A single collector for all 4 corrs
-        vis.collector()
-    if True:
-        # 4 separate collectors for the 4 corrs
-        vis.collector_separate()
-
+    data.show_timetracks(separate=True)
 
     # Insert array configuration visualisation here.....?
     # Keep the relevant functions in this script?
 
 
     # Finished:
-    if TDL_display_Visset22: vis.display(full=True)
-    vis.make_sinks(vdm='vdm')
+    if TDL_display_Visset22: data.display(full=True)
+    data.make_sinks(vdm='vdm')
     return True
 
 

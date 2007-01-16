@@ -2,7 +2,7 @@
 
 # History:
 # - 29dec2006: creation (extracted from Jones.py)
-# - 12jan2007: added .collector() visualization 
+# - 12jan2007: added .show_timetracks() visualization 
 
 # Description:
 
@@ -388,6 +388,22 @@ class Matrixet22 (object):
                 dcoll_quals = q+'_'+dcoll_quals                 # prepend
         return dcoll_quals
 
+
+    #.......................................................................
+
+    def show_rvsi (self, qual=None, matrel='*', accu=True,
+                   bookpage='Matrixet22', folder=None):
+        """More descriptive function name than .visualize()...."""
+        return self.visualize (qual=qual, matrel=matrel, accu=accu,
+                               bookpage=bookpage, folder=folder)
+
+    #.......................................................................
+
+    def show_spectra (self, qual=None, matrel='*', accu=True,
+                      bookpage='Matrixet22', folder=None):
+        """Not implemented yet...."""
+        return False
+
     #.......................................................................
 
     def visualize (self, qual=None, matrel='*', accu=True,
@@ -432,21 +448,28 @@ class Matrixet22 (object):
 
     #--------------------------------------------------------------------------
 
-    def collector (self, qual=None, accu=True,
-                   bookpage='Matrixet22', folder=None):
+    def show_timetracks (self, qual=None, accu=True, separate=False,
+                         bookpage='timetracks22', folder=None):
 
-        """Visualise (a subset of) the complex matrix elements of all 
-        Matrixet22 matrices in a single collector plot.
-        A bookmark item is made for the resulting collector node.
-        If accu=True (default) it is also stored in self.accumulist(key=None)
-        for later retrieval."""
+        """Make time-track plots of the complex matrix elements of all matrices.
+        - A bookmark item is made for the resulting node, which is also returned.
+        - If accu=True (default) it is also stored in self.accumulist(key=None)
+        for later retrieval.
+        - If separate=True (default=False), make separate plots for the 4 elements.
+        """
+
+        #............................................................................
+        if separate:
+            return self.show_timetracks_separate (qual=qual, matrel='*', accu=accu,
+                                                  bookpage=bookpage, folder=folder)
+        #............................................................................
 
         coll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
         cc = self.nodelist()
         for i in range(len(cc)):
             cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
-        name = 'collector'
+        name = 'timetracks'
         coll = self._ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
                                                           children=cc)
         JEN_bookmarks.create(coll, self.label(),
@@ -454,20 +477,21 @@ class Matrixet22 (object):
                              page=bookpage, folder=folder)
         # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
         if accu: self.accumulist(coll)
-        # Return the collector node:
+        # Return the timetracks node:
         return coll
 
 
     #--------------------------------------------------------------------------
 
-    def collector_separate (self, qual=None, matrel='*', accu=True,
-                            bookpage='Matrixet22', folder=None):
+    def show_timetracks_separate (self, qual=None, matrel='*', accu=True,
+                                  bookpage='timetracks22', folder=None):
 
-        """Visualise (a subset of) the complex matrix elements of all 
-        Matrixet22 matrices in a separate collector plot per element.
-        A bookmark item is made for the resulting collector nodes.
-        If accu=True (default) they are also stored in self.accumulist(key=None)
-        for later retrieval. A list of collector nodes is returned."""
+        """Make separate time-track plots for each of the 4 matrix elements
+        of the complex matrix elements of all matrices.
+        - A bookmark item is made for the resulting timetracks nodes.
+        - If accu=True (default) they are also stored in self.accumulist(key=None)
+        for later retrieval.
+        - A list of timetracks nodes is returned."""
 
         coll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
@@ -479,7 +503,7 @@ class Matrixet22 (object):
             cc = self.matrix_element(key, qual=qual, return_nodes=True)
             for i in range(len(cc)):
                 cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
-            name = 'collector_'+key
+            name = 'timetracks_'+key
             coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)], children=cc)
             JEN_bookmarks.create(coll, self.label()+key,
                                  viewer='Collections Plotter',
@@ -487,7 +511,7 @@ class Matrixet22 (object):
             # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
             if accu: self.accumulist(coll)
             colls.append(coll)
-        # Return the list of collector nodes:
+        # Return the list of timetracks nodes:
         return colls
 
 
@@ -699,7 +723,7 @@ def _define_forest(ns):
     mat1 = Matrixet22(ns, quals=[], simulate=True)
     mat1.test()
     mat1.visualize()
-    mat1.collector()
+    mat1.show_timetracks()
     mat1.display(full=True)
 
     mat2 = Matrixet22(ns, quals=[], simulate=False)

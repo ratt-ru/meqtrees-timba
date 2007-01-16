@@ -1,14 +1,15 @@
-# file: ../contrib/JEN/Grunt/WSRT_simul_cps.py
+# file: ../contrib/JEN/Grunt/WSRT_solve_cps.py
 
 # Description:
 
-# Simulation of WSRT data for testing purposes. A user-defined central
-# point source (cps) may be corrupted with a user-defined sequence of
+# Assume a WSRT observation of a field with a dominant point source in
+# the centre of the field (i.e. a calibrator observation).
+# Solve for a (subset of) the parameters in a user-defined sequence of
 # WSRT Jones matrices (from module Grunting/WSRT_Jones.py).
-# Optionally, gaussian noise may be added to the corrupted uv-data.
+# The source model is a user-defined point-source.
 
 # History:
-# - 14jan2007: creation
+# - 17jan2007: creation
 
 # Copyright: The MeqTree Foundation
 
@@ -32,14 +33,14 @@ from Timba.Contrib.JEN.Grunt import PointSource22
 #========================================================================
 
 # Run-time menu:
-JEN_Meow_Utils.include_ms_options(has_input=False, has_output='MODEL_DATA',
+JEN_Meow_Utils.include_ms_options(has_input=True, has_output='CORRECTED_DATA',
                                   tile_sizes=[30,48,96,20,10,5,2,1]);
 JEN_Meow_Utils.include_imaging_options();
 
 
 # Compile-time menu:
 # PointSource22.include_TDL_options('Central Point Source (cps)')    # ....!? 
-menuname = 'Central Point Source (cps)'
+menuname = 'Central Point Source (cps) model'
 predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
 # predefined.extend(['3c147','3c286'])
 predefined.append(None)
@@ -55,9 +56,8 @@ TDLCompileMenu(menuname,
                TDLOption('TDL_RM','Intrinsic Rotation Measure (rad/m2)',[None, 0.0, 1.0], more=float),
                );
 
-WSRT_Jones.include_TDL_options('WSRT Jones (corruption)')
+WSRT_Jones.include_TDL_options('WSRT Jones (solvable)')
 
-TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',[0.0, 0.0001, 0.001, 0.01,0.1,1.0], more=float);
 TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);
 TDLCompileMenu('Print extra information',
                TDLCompileOption('TDL_display_PointSource22','Display PointSource22 object', [False, True]),
@@ -79,7 +79,7 @@ def _define_forest (ns):
     observation = Meow.Observation(ns)
     direction = Meow.LMDirection(ns, TDL_source_name, l=0.0, m=0.0)
 
-    # Make a user-defined point source, derived from the Meow.PointSource class,
+    # Make a user-defined point source model, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
     ps = PointSource22.PointSource22 (ns, name=TDL_source_name,
                                       predefined=TDL_predefined,
@@ -89,23 +89,33 @@ def _define_forest (ns):
                                       direction=direction)
     if TDL_display_PointSource22: ps.display(full=True)
 
-    # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, visu=True)
+    # Create a Visset22 object with predicted uv-data:
+    pred = ps.Visset22(array, observation, visu=True)
 
-    # Corrupt the data with a sequence of Jones matrices:
+    # Corrupt the predicted data with a sequence of Jones matrices,
+    # which contain the solvable parameters.
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
-    jones = WSRT_Jones.Joneseq22(ns, stations=array.stations(),
-                                 simulate=True)
-    vis.corrupt(jones, visu=True)
+    jones = WSRT_Jones.Joneseq22(ns, stations=array.stations())
+    pred.corrupt(jones, visu=True)
 
-    # Add gaussian noise, if required:
-    vis.addGaussianNoise(stddev=TDL_stddev_noise, visu=True)
+    # The measured uv-data are read from the Measurement Set via spigots:
+    data = Visset22.Visset22(ns, label='WSRT_simul_cps', array=array)
+    data.make_spigots(visu=True)
+
+    # Create a solver for a user-defined subset of parameters (parmgroup):
+    # NB: The solver gets its requests from a ReqSeq that is
+    #     inserted into the main-stream by data.make_sinks() below.  
+    data.make_solver(pred, parmgroup='*')
+
+    # Correct the data for the estimated instrumental errors
+    if True:
+        data.correct(jones, visu=True)
 
     # Finished:
-    vis.show_timetracks(separate=True)                 
-    if TDL_display_Visset22: vis.display(full=True)
-    vis.make_sinks(vdm='vdm')        
+    data.show_timetracks(separate=True)                 
+    if TDL_display_Visset22: data.display(full=True)
+    data.make_sinks(vdm='vdm')        
     return True
 
 
@@ -116,10 +126,9 @@ def _define_forest (ns):
 # Routines for the TDL execute menu:
 #========================================================================
 
-def _tdl_job_1_WSRT_simul_cps (mqs,parent):
+def _tdl_job_1_WSRT_solve_cps (mqs,parent):
     mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
-    # req = JEN_Meow_Utils.create_io_request(override_output_column='MODEL_DATA');
-    req = JEN_Meow_Utils.create_io_request();
+    req = JEN_Meow_Utils.create_io_request(override_output_column='CORRECTED_DATA');
     mqs.execute('vdm',req,wait=False);
     return True
                                      
