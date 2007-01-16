@@ -70,7 +70,7 @@ int simple_read_fits_file(const char *filename,  double **myarr,  double ***cell
 				long int *naxis, long int **naxes, int *is_complex);
 
 //for the FITSWriter
-int write_fits_file(const char *filename,  double *myarr,  double **cells,
+int write_fits_file(const char *filename,  double **myarr,  int nvells, double **cells,
 				long int naxis, long int *naxes, int is_complex);
 
 
