@@ -75,6 +75,7 @@ class CollectionsPlotter(GriddedPlugin):
     self.dataitem = dataitem
     self._visu_plotter = None
     self.counter = 0
+    self._node_name = None
     self.prev_label = "===="
 
 # back to 'real' work
@@ -156,6 +157,8 @@ class CollectionsPlotter(GriddedPlugin):
         return
       else:
         self.prev_label = self.label
+    if self._rec.has_key("name"):
+      self._node_name = self._rec.name
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
@@ -176,6 +179,10 @@ class CollectionsPlotter(GriddedPlugin):
       display_index = 'data '
       for i in range(self._number_of_planes):
         channel = int(i / self.dims_per_group)
+        if self._node_name is None:
+          data_dict['source'] = "Channel " + str(channel)
+        else:
+          data_dict['source'] = None
         data_dict['channel'] = channel
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
