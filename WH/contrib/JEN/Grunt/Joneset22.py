@@ -296,7 +296,7 @@ class FJones (Joneset22):
 
         # Define the primary ParmGroup:
         self._pgm.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
-                              tags=[rname,jname])
+                                   tags=[rname,jname])
 
         RM = self._pgm.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())

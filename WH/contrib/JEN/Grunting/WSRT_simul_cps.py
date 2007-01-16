@@ -90,7 +90,7 @@ def _define_forest (ns):
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, visu=True)
+    vis = ps.Visset22(array, observation, name='simul', visu=True)
 
     # Corrupt the data with a sequence of Jones matrices:
     #   (Note that the user-defined TDLOption parameters are

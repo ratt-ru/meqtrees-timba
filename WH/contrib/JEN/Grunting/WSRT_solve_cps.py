@@ -57,6 +57,8 @@ TDLCompileMenu(menuname,
                );
 
 WSRT_Jones.include_TDL_options('WSRT Jones (solvable)')
+pg = WSRT_Jones.parmgogs()
+TDLCompileOption('TDL_parmgog','parms to be solved for',pg, more=str);
 
 TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);
 TDLCompileMenu('Print extra information',
@@ -90,7 +92,7 @@ def _define_forest (ns):
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object with predicted uv-data:
-    pred = ps.Visset22(array, observation, visu=True)
+    pred = ps.Visset22(array, observation, name='pred', visu=True)
 
     # Corrupt the predicted data with a sequence of Jones matrices,
     # which contain the solvable parameters.
@@ -100,20 +102,21 @@ def _define_forest (ns):
     pred.corrupt(jones, visu=True)
 
     # The measured uv-data are read from the Measurement Set via spigots:
-    data = Visset22.Visset22(ns, label='WSRT_simul_cps', array=array)
+    data = Visset22.Visset22(ns, label='data', array=array)
     data.make_spigots(visu=True)
 
     # Create a solver for a user-defined subset of parameters (parmgroup):
     # NB: The solver gets its requests from a ReqSeq that is
-    #     inserted into the main-stream by data.make_sinks() below.  
-    data.make_solver(pred, parmgroup='*')
+    #     inserted into the main-stream by data.make_sinks() below.
+    print '\n*** TDL_parmgog: ',TDL_parmgog,'\n'
+    data.make_solver(pred, parmgroup=TDL_parmgog)
 
     # Correct the data for the estimated instrumental errors
     if True:
         data.correct(jones, visu=True)
+        data.show_timetracks('corrected', separate=True)                 
 
     # Finished:
-    data.show_timetracks(separate=True)                 
     if TDL_display_Visset22: data.display(full=True)
     data.make_sinks(vdm='vdm')        
     return True

@@ -587,19 +587,31 @@ class Matrixet22 (object):
         """Make a solver that solves for the specified parmgroup, by comparing its
         matrices with the corresponding matrices of another Matrixet22 object."""
 
-        quals = self.quals(append=qual, prepend=parmgroup, merge=other.quals())
+        quals = self.quals(append=qual, merge=other.quals())
 
         # Accumulate nodes to be executed sequentially later:
         self.merge_accumulist(other)
 
-        # Get the list of solvable MeqParm nodes:
+
+        # Get the list of MeqParm nodes to be solved for:
         # ONLY from the other Matrixet22 object, NOT from this one.....(?)
-        # keys = other.pgm().solvable_groups()
-        if not other._pgm._parmgroup.has_key(parmgroup):
-            print '** parmgroup (',parmgroup,') not recognised in:',other._pgm._parmgroup.keys()
-            return False
-        pg = other._pgm._parmgroup[parmgroup]
-        solvable = pg.nodelist()
+        if not isinstance(parmgroup,(list,tuple)):
+            parmgroup = [parmgroup]
+        # pgs = other.pgm().solvable_groups()
+        pgs = other._pgm._parmgroup.keys()
+        solvable = []                           # list of MeqParm nodes
+        pg_concat = ''
+        for pg in parmgroup:
+            if pg in pgs:
+                pg_concat += '_'+str(pg)
+                print '-- pg =',pg,pg_concat
+                nn = other._pgm._parmgroup[pg].nodelist()
+                solvable.extend(nn)
+                print '** include parmgroup:',pg,': len(solvable) ->',len(solvable)
+            else:
+                print '** parmgroup ',pg,' not recognised in:',pgs
+                raise ValueError, '** parmgroup '+str(pg)+' not recognised in:'+str(pgs)
+
 
         # Get the names of the (subset of) matrix elements to be used:
         # (e.g. for GJones, we only use ['m11','m22'], etc)
@@ -629,12 +641,13 @@ class Matrixet22 (object):
         # NB: the extension can be chosen at will, for identification
         debug_file = 'debug_'+str(qual)+'.ext'
 
-        solver = self._ns.solver(*quals) << Meq.Solver(children=condeqs,
-                                                       solvable=pg.nodelist(),
-                                                       # debug_file=debug_file,
-                                                       # parm_group=hiid(parm_group),
-                                                       # child_poll_order=cpo,
-                                                       num_iter=num_iter)
+        name = 'solver'+pg_concat
+        solver = self._ns[name](*quals) << Meq.Solver(children=condeqs,
+                                                      solvable=solvable,
+                                                      # debug_file=debug_file,
+                                                      # parm_group=hiid(parm_group),
+                                                      # child_poll_order=cpo,
+                                                      num_iter=num_iter)
 
         # Bundle (cc) the solver and its related visualization dcolls
         # for attachment to a reqseq (below). Also make bookmarks to
@@ -642,24 +655,25 @@ class Matrixet22 (object):
         
         cc = []
         cc.append(solver)
-        bookpage = 'solver'+parmgroup
+        bookpage = 'solver'+pg_concat
         JEN_bookmarks.create(solver, page=bookpage)
 
         # Visualize the solvable MeqParms:
         
         # Visualize the condeqs:
-        condequal = 'condeq'
+        condequal = 'condeq'+pg_concat
         if isinstance(qual,(list,tuple)):
             condequal = qual
-            condequal.insert(0,'condeq')
+            condequal.insert(0,'condeq'+pg_concat)
         elif isinstance(qual,str):
-            condequal = ['condeq',qual]
+            condequal = [condequal,qual]
         dcoll = condeq_copy.visualize(condequal, matrel=matrel, bookpage=bookpage)
         # JEN_bookmarks.create(dcoll, page=bookpage)
         cc.append(dcoll)
 
-        # Bundle solving and visualisation nodes: 
-        reqseq = self._ns.reqseq_solver(*quals) << Meq.ReqSeq(children=cc)
+        # Bundle solving and visualisation nodes:
+        name = 'reqseq_solver'+pg_concat
+        reqseq = self._ns[name](*quals) << Meq.ReqSeq(children=cc)
         self.accumulist(reqseq)
 
         # Return the solver reqseq (usually not used):

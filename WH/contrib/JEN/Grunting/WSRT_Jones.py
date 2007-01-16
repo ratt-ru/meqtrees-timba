@@ -98,6 +98,23 @@ def Joneseq22(ns, stations, simulate=False):
 
 
 #=================================================================================================
+
+def parmgogs():
+    """Collect groups of parmgroups (parmgogs) to be selected for solving"""
+    pg = ['*']
+    pg.extend(['GJones','Gphase','Ggain']) 
+    pg.extend(['DJones','Ddang','Ddell','Dpzd'])
+    pg.extend(['FJones','Frm'])
+    pg.extend(['JJones','Jdiag','Joffdiag'])
+    pg.append(['GJones','DJones'])
+    pg.append(['GJones','DJones','FJones'])
+    pg.append(['DJones','FJones'])
+    # pg.extend(['BJones'])
+    # pg.extend(['EJones'])
+    return pg
+
+
+#=================================================================================================
 # Definition of WSRT Jones matrices:
 #=================================================================================================
 
