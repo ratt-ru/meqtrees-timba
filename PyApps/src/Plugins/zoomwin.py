@@ -39,10 +39,13 @@ class ZoomPopup(QWidget):
 
   def __init__(self, CurveNumber, x_values, y_values , pen, parent=None, name=None):
     """ Initialises all the variables.  
-        creates bottom frame and the main zoom plot
-        Do all the connections
+        creates the main zoom plot
+        connects the qt signals
     """
     QWidget.__init__(self, parent, name, Qt.WType_TopLevel)
+
+# the following init does not work 
+#   QWidget.__init__(self, parent, name, Qt.WStyle_StaysOnTop)
 
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
