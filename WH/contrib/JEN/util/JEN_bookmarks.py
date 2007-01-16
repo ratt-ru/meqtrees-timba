@@ -59,6 +59,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
             save=True, trace=False):
     """Create a forest_state bookmark for the given node(s).
     - viewer = 'Result Plotter'   (default)
+    - viewer = 'Collections Plotter'
     - viewer = 'History Plotter'
     - viewer = 'ParmFiddler'
     - viewer = 'Record Browser'

@@ -451,7 +451,6 @@ class Matrixet22 (object):
                                                           children=cc)
         JEN_bookmarks.create(coll, self.label(),
                              viewer='Collections Plotter',
-                             udi='/node/collector',
                              page=bookpage, folder=folder)
         # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
         if accu: self.accumulist(coll)
@@ -484,7 +483,6 @@ class Matrixet22 (object):
             coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)], children=cc)
             JEN_bookmarks.create(coll, self.label()+key,
                                  viewer='Collections Plotter',
-                                 udi='/node/collector',
                                  page=bookpage, folder=folder)
             # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
             if accu: self.accumulist(coll)
@@ -719,7 +717,8 @@ def _define_forest(ns):
     node = ns.accu << Meq.Composer(children=aa)
     cc.append(node)
 
-    ns.result << Meq.ReqSeq(children=cc)
+    # ns.result << Meq.ReqSeq(children=cc)
+    ns.result << Meq.Composer(children=cc)
     return True
 
 #---------------------------------------------------------------
@@ -741,6 +740,19 @@ def _tdl_job_sequence (mqs, parent):
         result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
+
+
+if False:
+    # This one comes from ../JEN/demo/JEN_leaves.py
+    def _tdl_job_sequence (mqs, parent):
+        """Execute the forest with the SAME domain a number of times"""
+        domain = meq.domain(1,10,-100,100)                            # (f1,f2,t1,t2)
+        cells = meq.cells(domain, num_freq=19, num_time=19)
+        for domain_id in range(10):
+            rqid = meq.requestid(domain_id=domain_id)
+            request = meq.request(cells, rqtype='ev', rqid=rqid)
+            result = mqs.meq('Node.Execute',record(name='result', request=request))
+        return result
 
 
 #===============================================================

@@ -29,13 +29,16 @@ from Timba.Contrib.JEN.Grunt import Visset22
 #========================================================================
 
 # Run-time menu:
-JEN_Meow_Utils.include_ms_options(has_input=True,tile_sizes=[30,48,96,20,10,5,2,1]);
+JEN_Meow_Utils.include_ms_options(has_input=True, has_output=False,
+                                  tile_sizes=[30,48,96,20,10,5,2,1]);
 JEN_Meow_Utils.include_imaging_options();
   
 # Compile-time menu:
-TDLCompileOption('num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10], more=int);
-TDLCompileOption('display_Visset22',"Display the Visset22 object", [True,False]);
-TDLCompileOption('cache_policy',"Node result caching policy",[100,0], more=int);
+TDLCompileOption('TDL_num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10], more=int);
+TDLCompileMenu('Print extra information',
+               TDLCompileOption('TDL_display_Visset22',"Display the Visset22 object", [True,False]),
+               );
+TDLCompileOption('TDL_cache_policy',"Node result caching policy",[100,0], more=int);
 
 
 
@@ -47,15 +50,16 @@ TDLCompileOption('cache_policy',"Node result caching policy",[100,0], more=int);
 def _define_forest (ns):
     """Inspect the contents of the MS"""
 
-    array = Meow.IfrArray(ns, range(1,num_stations+1))
+    array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
     vis = Visset22.Visset22(ns, label='inspectMS', array=array)
     vis.make_spigots(visu=True)
-    if True:
-        # Does not start by itself....?
-        vis.collector()
+
     if False:
-        # AGW still has to repair a 'dims' bug
+        # A single collector for all 4 corrs
+        vis.collector()
+    if True:
+        # 4 separate collectors for the 4 corrs
         vis.collector_separate()
 
 
@@ -64,8 +68,7 @@ def _define_forest (ns):
 
 
     # Finished:
-    if display_Visset22:
-        vis.display(full=True)
+    if TDL_display_Visset22: vis.display(full=True)
     vis.make_sinks(vdm='vdm')
     return True
 
@@ -78,7 +81,7 @@ def _define_forest (ns):
 #========================================================================
 
 def _tdl_job_1_inspect_MS (mqs,parent):
-    mqs.meq('Set.Forest.State', record(state=record(cache_policy=cache_policy)))
+    mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
     req = JEN_Meow_Utils.create_io_request(override_output_column=None);
     mqs.execute('vdm',req,wait=False);
     return True

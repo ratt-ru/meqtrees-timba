@@ -260,7 +260,6 @@ class NodeGroup (object):
             self._coll = coll
             JEN_bookmarks.create(self._coll, self.label(),
                                  viewer='Collections Plotter',
-                                 udi='/node/collector',
                                  page=bookpage, folder=folder)
         return self._coll
 
@@ -541,8 +540,17 @@ def _define_forest(ns):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
+    domain = meq.domain(1.0e8,1.1e8,1,10)                          # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=11)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+def _tdl_job_sequence (mqs, parent):
+    """Execute the forest, starting at the named node"""
     for t0 in range(10):
         domain = meq.domain(1.0e8,1.1e8,t0+1,t0+10)                # (f1,f2,t1,t2)
+        # print '- t0 =',t0,': domain =',domain
         cells = meq.cells(domain, num_freq=10, num_time=11)
         request = meq.request(cells, rqtype='ev')
         result = mqs.meq('Node.Execute',record(name='result', request=request))

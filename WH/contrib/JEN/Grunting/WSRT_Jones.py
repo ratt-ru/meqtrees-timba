@@ -5,9 +5,20 @@
 
 # Description:
 
-# WSRT-specific set of Jones matrices, implemented as Joneset22 objects.
+# Definition of a set of WSRT-specific Jones matrices, implemented as Joneset22 objects.
+# In addition there are a number of functions that streamline the use of Jones matrices
+# from scripts that define WSRT data-reduction trees (e.g. Grunting/WSRT_cps_simul.py).
+# Ideally, there should be a (large) choice of modules like this one, defining Jones
+# matrices for other telescopes (VLA, LOFAR), and even alternative ones for the WSRT.
+
+# The various XJones() functions in this module produce Joneset22 objects. They contain
+# a set of 2x2 Jones matrices (subtrees), a separate one for each of the specifies stations. 
+
+# Copyright: The MeqTree Foundation
 
 
+#======================================================================================
+# Preamble:
 #======================================================================================
 
 from Timba.TDL import *
@@ -16,8 +27,82 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.Grunt import Joneset22
 
 
+#=================================================================================================
+# Functions to streamline the use of WSRT Jones matrices: 
+#=================================================================================================
+
+def help ():
+    ss = 'help on WSRT Jones matrices'
+    return ss
+
+
+def include_TDL_options(menuname='WSRT Jones (corruption)'):
+    """Definition of variables that the user may set in the browser TDL options menu"""
+    joneseq = ['G','GD','D','GDF','J','E','B']
+    TDLCompileMenu(menuname,
+                   TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
+                   TDLOption('TDL_D_coupled_dang',"DJones: coupled (dangX=dangY)", [True, False]),
+                   TDLOption('TDL_D_coupled_dell',"DJones: coupled (dellX=-dellY)", [True, False]),
+                   TDLOption('TDL_J_diagonal',"JJones: diagonal matrix", [False, True]),
+                   )
+    return True
+
+
+# Alternative (desirable):
+#     jones = WSRT_Jones.Joneseq22(ns, stations, simulate=False, **TDLC)
+
+def Joneseq22(ns, stations,
+              TDL_joneseq=[],
+              TDL_D_coupled_dang=True,
+              TDL_D_coupled_dell=True,
+              TDL_J_diagonal=False,
+              simulate=False):
+    """Return a Jonest22 object that contains a set of Jones matrices for
+    the given stations. The Jones matrices are the matrix product of a
+    sequence of WSRT Jones matrices that are defined in this module.
+    The sequnece is defined by the letters (e.g. 'GD') of the given
+    joneseq string.
+    If simulate==True, the Jones matrices do not contain MeqParms,
+    but subtrees that simulate MeqParm values that change with time etc."""
+
+    # First make a sequence (list) of Joneset22 objects:
+    jseq = []
+    for c in TDL_joneseq:
+        if c=='G':
+            jseq.append(GJones(ns, stations=stations,
+                               simulate=simulate))
+        elif c=='D':
+            jseq.append(DJones(ns, stations=stations,
+                               coupled_dell=TDL_D_coupled_dell,
+                               coupled_dang=TDL_D_coupled_dang,
+                               simulate=simulate))
+        elif c=='F':
+            jseq.append(FJones(ns, stations=stations,
+                               simulate=simulate))
+        elif c=='J':
+            jseq.append(JJones(ns, stations=stations,
+                               diagonal=TDL_J_diagonal,
+                               simulate=simulate))
+        elif c=='E':
+            jseq.append(EJones(ns, stations=stations,
+                               simulate=simulate))
+        elif c=='B':
+            jseq.append(BJones(ns, stations=stations,
+                               simulate=simulate))
+        else:
+            raise ValueError,'WSRT jones matrix not recognised: '+str(c)
+
+    # Then matrix-multiply them into a single Joneset22 object:
+    # NB: Its ParmGroupManager contains all information (parmgroups)
+    #     from those of the contributing Joneset22 objects.
+    jones = Joneset22.Joneseq22(jseq)
+    return jones
+
+
+
 
 #=================================================================================================
+# Definition of WSRT Jones matrices:
 #=================================================================================================
 
 class GJones (Joneset22.GJones):

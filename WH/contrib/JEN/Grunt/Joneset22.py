@@ -15,6 +15,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Matrixet22
+# from Timba.Contrib.JEN.Grunt import Qualifiers
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -116,19 +117,31 @@ def Joneseq22 (joneslist=None, qual=None):
     """Return a Jones22 object that contains an (item-by-item) matrix multiplication
     of the matrices of the list (joneslist) of two or more Joneset22 objects."""
 
+    if len(joneslist)==0:
+        raise ValueError, 'joneslist should have at least one item'
+    
+    elif len(joneslist)==1:
+        jnew = joneslist[0]
+        return jnew
+    
     # First create a new Jonset22 object with label/quals/descr that are
     # suitable combinations of those of the contributing Joneset22 objects: 
     ns = joneslist[0]._ns
-    quals = joneslist[0].quals()
     label = joneslist[0].label()
+    quals = joneslist[0].quals()
+    quals.remove(label)
     descr = joneslist[0].label()+': '+joneslist[0].descr()
     stations = joneslist[0].stations()
     for jones in joneslist[1:]:
         label += jones.label()
         descr += '\n '+jones.label()+': '+jones.descr()
-        quals.extend(jones.quals())
+        qq = jones.quals()
+        qq.remove(jones.label())
+        for q in qq:
+            if not q in quals: quals.append(q)
+    quals.insert(0,label)
     jnew = Joneset22 (ns, quals=quals, label=label, stations=stations) 
-
+        
     # Then create the new Jones matrices by matrix-multiplication:
     name = 'Joneseq'
     for i in jnew.list_indices():

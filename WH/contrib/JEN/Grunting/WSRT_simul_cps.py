@@ -38,7 +38,7 @@ JEN_Meow_Utils.include_imaging_options();
 
 
 # Compile-time menu:
-# PointSource22.include_TDL_options('Central Point Source (cps)')   #............??
+# PointSource22.include_TDL_options('Central Point Source (cps)') 
 menuname = 'Central Point Source (cps)'
 predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
 predefined.extend(['3c147','3c286'])
@@ -55,16 +55,22 @@ TDLCompileMenu(menuname,
                TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
                );
 
+# WSRT_Jones.include_TDL_options('WSRT Jones (corruption)')   
 joneseq = ['G','GD','D','GDF','J','E','B']
 TDLCompileMenu('WSRT_Jones (corruption)',
-               TDLOption('TDL_joneseq', 'sequence of Jones matrices', joneseq, more=str),
-               TDLOption('TDL_D_coupled_dang',"D: coupled (dangX=dangY)", [True, False]),
-               TDLOption('TDL_D_coupled_dell',"D: coupled (dellX=-dellY)", [True, False]),
-               TDLOption('TDL_J_diagonal',"J: diagonal matrix", [False, True]),
+               TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
+               TDLOption('TDL_D_coupled_dang',"DJones: coupled (dangX=dangY)", [True, False]),
+               TDLOption('TDL_D_coupled_dell',"DJones: coupled (dellX=-dellY)", [True, False]),
+               TDLOption('TDL_J_diagonal',"JJones: diagonal matrix", [False, True]),
                );
 
-TDLCompileOption('TDL_num_stations',"Number of stations",[5,27,14,3,4,5,6,7,8,9,10], more=int);
-TDLCompileOption('TDL_display_Visset22',"Display the Visset22 object", [True,False]);
+TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',[0.0,0.01,0.1,1.0], more=float);
+
+TDLCompileOption('TDL_num_stations',"Number of stations",[5,14], more=int);
+TDLCompileMenu('Print extra information',
+               TDLCompileOption('TDL_display_PointSource22',"Display the PointSource22 object", [True,False]),
+               TDLCompileOption('TDL_display_Visset22',"Display the Visset22 object", [True,False]),
+               );
 TDLCompileOption('TDL_cache_policy',"Node result caching policy",[100,0], more=int);
 
 
@@ -86,44 +92,27 @@ def _define_forest (ns):
                                       U=TDL_StokesU, V=TDL_StokesV,
                                       spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
                                       direction=direction)
-    ps.display()
+    if TDL_display_PointSource22: ps.display()
+
+    # Create a Visset22 object, and initialise it with the source coherencies:
     vis = ps.Visset22(array, observation, visu=True)
 
-    # Corrupt (WSRT_Jones, noise)
-    jseq = []
-    for c in TDL_joneseq:
-        if c=='G':
-            jseq.append(WSRT_Jones.GJones(ns, stations=array.stations(),
-                                          simulate=True))
-        elif c=='D':
-            jseq.append(WSRT_Jones.DJones(ns, stations=array.stations(),
-                                          coupled_dell=TDL_D_coupled_dell,
-                                          coupled_dang=TDL_D_coupled_dang,
-                                          simulate=True))
-        elif c=='F':
-            jseq.append(WSRT_Jones.FJones(ns, stations=array.stations(),
-                                          simulate=True))
-        elif c=='J':
-            jseq.append(WSRT_Jones.JJones(ns, stations=array.stations(),
-                                          diagonal=TDL_J_diagonal,
-                                          simulate=True))
-        elif c=='E':
-            jseq.append(WSRT_Jones.EJones(ns, stations=array.stations(),
-                                          simulate=True))
-        elif c=='B':
-            jseq.append(WSRT_Jones.BJones(ns, stations=array.stations(),
-                                          simulate=True))
-        else:
-            raise ValueError,'WSRT jones matrix not recognised: '+str(c)
+    # Corrupt the data with a sequence of Jones matrices:
+    jones = WSRT_Jones.Joneseq22(ns, stations=array.stations(),
+                                 TDL_joneseq=TDL_joneseq,
+                                 TDL_D_coupled_dell=TDL_D_coupled_dell,
+                                 TDL_D_coupled_dang=TDL_D_coupled_dang,
+                                 TDL_J_diagonal=TDL_J_diagonal,
+                                 simulate=True)
+    vis.corrupt(jones, visu=True)
 
-    if len(jseq)>0:
-        jones = Joneset22.Joneseq22(jseq)
-        vis.corrupt(jones, visu=True)
+    # Add gaussian noise, if required:
+    vis.addGaussianNoise(stddev=TDL_stddev_noise, visu=True)
 
     # Finished:
-    if TDL_display_Visset22:
-        vis.display(full=True)
-    vis.make_sinks(vdm='vdm')
+    vis.collector()                 
+    if TDL_display_Visset22: vis.display(full=True)
+    vis.make_sinks(output_col='PREDICT', vdm='vdm')
     return True
 
 

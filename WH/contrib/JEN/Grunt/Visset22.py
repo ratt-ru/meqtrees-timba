@@ -111,13 +111,14 @@ class Visset22 (Matrixet22.Matrixet22):
 
         self._MS_corr_index = MS_corr_index    # Keep. See also .make_sinks()
 
+        name = 'spigot'
         for p,q in self.ifrs():
-            self._ns.spigot(p,q) << Meq.Spigot(station_1_index=p-1,
+            self._ns[name](p,q) << Meq.Spigot(station_1_index=p-1,
                                                station_2_index=q-1,
                                                # corr_index=self._MS_corr_index,
                                                # flag_bit=flag_bit,
                                                input_column=input_col)
-        self._matrixet = self._ns.spigot
+        self._matrixet = self._ns[name]
 
         # self.create_ReadVisHeader_placeholders()    # see below....
 
@@ -155,25 +156,39 @@ class Visset22 (Matrixet22.Matrixet22):
                     vdm='vdm'):
         """Make MeqSink nodes per ifr for writing visibilities back to the MS.
         These are the children of a single VisDataMux node, which issues the
-        series of requests that traverse the data. The keyword vdm (default='vdm')
-        supplies the name of the VisDataMux node, which is needed for executing the tree."""
+        series of requests that traverse the data.
+        - Alternatives for the output_col are 'RESIDUALS','PREDICT','DATA'.
+        This refers to columns in the interface, NOT the MS columns......
+        - The keyword vdm (default='vdm') supplies the name of the VisDataMux node,
+        which is needed for executing the tree. It has three optional children:
+          - child 'start' gets a request before the spigots are filled
+          - child 'pre' gets a request before the MeqSinks
+            (may be used to attach a MeqSolver, or its MeqReqSeq)
+          - child 'post' gets a request after the MeqSinks have returned a result 
+            (may be used to attach all MeqDataCollect nodes)
+        """
 
-        # First empty the accumulist:
+        # First attach any nodes collected in the 'accumulist' to a ReqSeq,
+        # which is then inserted in the matrixet main stream (i.e. all ifrs).
+        # The collected nodes are usually solver nodes or dataCollect nodes.
+        # The ReqSeq will execute them in that order before executing the current
+        # main-stream matrix node. The result of the latter is the only one
+        # that is transmitted by the ReqSeq. The accumulist is cleared.
         self.insert_accumulist_reqseq()
 
         # Make the sinks:
+        name = 'sink'
         for p,q in self.ifrs():
-            self._ns.sink(p,q) << Meq.Sink(self._matrixet(p,q),
-                                           station_1_index=p-1,
-                                           station_2_index=q-1,
-                                           # corr_index=self._MS_corr_index,
-                                           output_col=output_col)
-        self._matrixet = self._ns.sink
+            self._ns[name](p,q) << Meq.Sink(self._matrixet(p,q),
+                                            station_1_index=p-1,
+                                            station_2_index=q-1,
+                                            # corr_index=self._MS_corr_index,
+                                            output_col=output_col)
+        self._matrixet = self._ns[name]
 
         
         # The single VisDataMux node is the actual interface node.
-        # See also TDL_Cohset.py for use of start/pre/post.
-        self._ns[vdm] << Meq.VisDataMux(*[self._ns.sink(*ifr) for ifr in self.ifrs()]);
+        self._ns[vdm] << Meq.VisDataMux(*[self._matrixet(*ifr) for ifr in self.ifrs()]);
 
         # Return the actual name of the VisDataMux (needed for tree execution)
         return vdm
@@ -215,22 +230,24 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #---------------------------------------------------------------------------
 
-    def addNoise (self, rms=0.1, qual=None, visu=True):
-        """Add gaussian noise with given rms to the internal cohset"""
-        quals = self.quals(append=qual)
-        name = 'addNoise22'
-        matrels = self.matrels()
-        for ifr in self.ifrs():
-            mm = range(4)
-            for i in range(4):
-                m = matrels[i]
-                rnoise = self._ns.rnoise(*quals)(*ifr)(m) << Meq.GaussNoise(stddev=rms)
-                inoise = self._ns.inoise(*quals)(*ifr)(m) << Meq.GaussNoise(stddev=rms)
-                mm[i] = self._ns.noise(*quals)(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
-            noise = self._ns.noise(*quals)(*ifr) << Meq.Matrix22(*mm)
-            self._ns[name](*quals)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
-        self._matrixet = self._ns[name](*quals)           
-        if visu: return self.visualize(name)
+    def addGaussianNoise (self, stddev=0.1, qual=None, visu=True):
+        """Add gaussian noise with given stddev to the internal cohset"""
+        if stddev>0.0:
+            quals = self.quals(append=qual)
+            name = 'addGaussianNoise22'
+            kwqual = dict(stddev=stddev)
+            matrels = self.matrels()
+            for ifr in self.ifrs():
+                mm = range(4)
+                for i in range(4):
+                    m = matrels[i]
+                    rnoise = self._ns.rnoise(*quals)(**kwqual)(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
+                    inoise = self._ns.inoise(*quals)(**kwqual)(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
+                    mm[i] = self._ns.noise(*quals)(**kwqual)(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
+                noise = self._ns.noise(*quals)(**kwqual)(*ifr) << Meq.Matrix22(*mm)
+                self._ns[name](*quals)(**kwqual)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
+            self._matrixet = self._ns[name](*quals)(**kwqual)           
+            if visu: return self.visualize(name)
         return None
 
     #...........................................................................
@@ -239,6 +256,9 @@ class Visset22 (Matrixet22.Matrixet22):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
         Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""
         quals = self.quals(append=qual)
+        qq = joneset.quals()
+        for q in qq:
+            if not q in quals: quals.append(q)
         name = 'corrupt22'
         jmat = joneset.matrixet() 
         for ifr in self.ifrs():
@@ -256,6 +276,9 @@ class Visset22 (Matrixet22.Matrixet22):
     def correct (self, joneset=None, qual=None, visu=False):
         """Correct the internal matrices with the matrices of the given Joneset22 object."""
         quals = self.quals(append=qual)
+        qq = joneset.quals()
+        for q in qq:
+            if not q in quals: quals.append(q)
         name = 'correct22'
         jmat = joneset.matrixet()
         for ifr in self.ifrs():
@@ -307,7 +330,7 @@ def _define_forest(ns):
         jones = D
         jones = Joneset22.Joneseq22([G,D])
         vis.corrupt(jones, visu=True)
-        vis.addNoise(rms=0.05, visu=True)
+        vis.addGaussianNoise(stddev=0.05, visu=True)
         vis.display('after corruption')
         if False:
             vis.correct(jones, visu=True)
@@ -380,7 +403,7 @@ if __name__ == '__main__':
     if 1:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
         vis.corrupt(G, visu=True)
-        # vis.addNoise(rms=0.05, visu=True)
+        # vis.addGaussianNoise(stddev=0.05, visu=True)
         vis.correct(G, visu=True)
         vis.display('after corruption')
 

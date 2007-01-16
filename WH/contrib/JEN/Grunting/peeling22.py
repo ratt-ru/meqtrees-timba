@@ -195,7 +195,7 @@ def _define_forest (ns):
   vis.display(full=True)
 
   if rmsNoise>0.0:
-    vis.addNoise(rms=0.1, visu=True)
+    vis.addGaussianNoise(stddev=0.1, visu=True)
 
   # return True
 
