@@ -724,6 +724,7 @@ def _define_forest(ns):
     mat1.test()
     mat1.visualize()
     mat1.show_timetracks()
+    mat1.show_timetracks(separate=True)
     mat1.display(full=True)
 
     mat2 = Matrixet22(ns, quals=[], simulate=False)
