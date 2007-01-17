@@ -76,6 +76,8 @@ class CollectionsPlotter(GriddedPlugin):
     self._visu_plotter = None
     self.counter = 0
     self._node_name = None
+    self._prev_rq_id = -1
+    self._plot_label = ''
     self.prev_label = "===="
 
 # back to 'real' work
@@ -154,6 +156,14 @@ class CollectionsPlotter(GriddedPlugin):
         self.set_widgets(cache_message)
         return
       _dprint(3, 'collections: request id ', self.label)
+      end_str = len(self.label)
+      self._rq_id_end = int(self.label[end_str-1:end_str])
+      if self._rq_id_end == self._prev_rq_id:
+        new_plot = False
+      else:
+        new_plot = True
+        self._prev_rq_id = self._rq_id_end
+      
       if self.label.find(self.prev_label) >= 0:
 # we have already plotted this stuff, so return
         return
@@ -162,10 +172,15 @@ class CollectionsPlotter(GriddedPlugin):
     if self._rec.has_key("name"):
       self._node_name = self._rec["name"]
     try:
-      self._node_name = self._rec.get("name", "default")
+      self._node_name = self._rec.get("name", "Collector")
     except:
       pass
     _dprint(3, 'node name is ', self._node_name)
+
+    if self._rec.has_key("plot_label"):
+      self._plot_label = self._rec["plot_label"]
+    _dprint(3, 'node name is ', self._node_name)
+#   self._plot_label = 'VLA BL '
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
@@ -182,6 +197,8 @@ class CollectionsPlotter(GriddedPlugin):
         self.dims_per_group = self._number_of_planes / self.dims[0]
       if self._visu_plotter is None:
         self.create_layout_stuff()
+      if new_plot: 
+        self._visu_plotter.setNewPlot()
       data_dict = {}
       display_index = 'data '
       for i in range(self._number_of_planes):
@@ -191,16 +208,17 @@ class CollectionsPlotter(GriddedPlugin):
         else:
           data_dict['source'] = self._node_name
         data_dict['channel'] = channel
+        data_dict['plot_label'] = self._plot_label
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
         data_dict['data_type'] = display_index + str(screen_num)
         index = i - channel * self.dims_per_group
         if index == 0:
           data_dict['value'] = {}
-        if channel == 100:
-          data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
-        else:
-          data_dict['value'][index] = self._rec.vellsets[i].value
+#       if channel == 100:
+#         data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
+#       else:
+        data_dict['value'][index] = self._rec.vellsets[i].value
 
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
