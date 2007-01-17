@@ -70,6 +70,7 @@ class ChartPlot(QWidget):
     self._data_label = None
     self.info_marker = None
     self.show_channel_labels = True
+    self._plot_label = ''
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
@@ -83,7 +84,7 @@ class ChartPlot(QWidget):
 #   self._plotter.enableAxis(QwtPlot.xBottom, False)
     
     #Set the background color
-    self._plotter.setCanvasBackground(Qt.black)
+    self._plotter.setCanvasBackground(Qt.white)
     
     #Legend
     self._plotter.enableLegend(False)
@@ -249,6 +250,9 @@ class ChartPlot(QWidget):
     title = self._data_label + " Time Event Sequence(Relative Scale)"
     self._plotter.setAxisTitle(QwtPlot.xBottom, title)
 
+  def setPlotLabel(self, plot_label):
+    self._plot_label = plot_label
+
   def destruct_chartplot(self):
     """	turn off global mouse tracking
     """
@@ -284,7 +288,7 @@ class ChartPlot(QWidget):
           self._position[i] = ""
           self._zoom_title[i] = "Data for Chart " + str(i)
           self._zoom_pen[i] = Qt.yellow
-          self._main_pen[i] = Qt.yellow
+          self._main_pen[i] = Qt.black
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
@@ -304,7 +308,7 @@ class ChartPlot(QWidget):
           self._good_data[i] = True
           self._mrk[i] = 0
           self._position[i] = ""
-          self._main_pen[i] = Qt.yellow
+          self._main_pen[i] = Qt.black
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
@@ -907,7 +911,7 @@ class ChartPlot(QWidget):
           self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
           ylb = abs_chart[0] + temp_off 
         else:
-          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.yellow))
+          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
           self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
           ylb = chart[0] + temp_off 
 
@@ -915,8 +919,7 @@ class ChartPlot(QWidget):
         if not self._source_marker[channel] is None:
           self._plotter.removeMarker(self._source_marker[channel]);
         if self.show_channel_labels:
-#         message = 'Ch ' + str(channel + self._ref_chan)
-          message =  str(channel + self._ref_chan)
+          message =  self._plot_label + str(channel + self._ref_chan)
 # text marker giving source of point that was clicked
           self._source_marker[channel] = self._plotter.insertMarker()
           xlb = temp_x[0]
