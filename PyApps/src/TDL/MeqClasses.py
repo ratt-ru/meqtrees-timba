@@ -42,8 +42,8 @@ class _MeqGen (TDLimpl.ClassGen):
           if _dbg.verbose>0:
             traceback.print_exc();
           return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
-      if not kw.has_key('node_groups'):
-        kw['node_groups']='Parm';
+    if not kw.has_key('node_groups'):
+      kw['node_groups']='Parm';
     return _NodeDef('Meq','Parm',**kw);
 
 
