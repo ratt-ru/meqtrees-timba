@@ -113,6 +113,7 @@ class CollectionsPlotter(GriddedPlugin):
     _dprint(3, '** in collections_plotter:set_data callback')
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
+    _dprint(3, 'incoming record has keys ', self._rec.keys())
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if self._rec is None:
@@ -152,13 +153,19 @@ class CollectionsPlotter(GriddedPlugin):
         self._wtop = cache_message
         self.set_widgets(cache_message)
         return
+      _dprint(3, 'collections: request id ', self.label)
       if self.label.find(self.prev_label) >= 0:
 # we have already plotted this stuff, so return
         return
       else:
         self.prev_label = self.label
     if self._rec.has_key("name"):
-      self._node_name = self._rec.name
+      self._node_name = self._rec["name"]
+    try:
+      self._node_name = self._rec.get("name", "default")
+    except:
+      pass
+    _dprint(3, 'node name is ', self._node_name)
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
@@ -182,7 +189,7 @@ class CollectionsPlotter(GriddedPlugin):
         if self._node_name is None:
           data_dict['source'] = "Channel " + str(channel)
         else:
-          data_dict['source'] = None
+          data_dict['source'] = self._node_name
         data_dict['channel'] = channel
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
@@ -190,7 +197,10 @@ class CollectionsPlotter(GriddedPlugin):
         index = i - channel * self.dims_per_group
         if index == 0:
           data_dict['value'] = {}
-        data_dict['value'][index] = self._rec.vellsets[i].value
+        if channel == 100:
+          data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
+        else:
+          data_dict['value'][index] = self._rec.vellsets[i].value
 
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
