@@ -21,7 +21,7 @@ Settings.forest_state.bookmarks = []
 
 #new_table='new.mep'
 new_table=None
-old_table='/home/mevius/Timba/PyApps/test/103.mep'
+old_table='example_table.mep'
 parmname = 'GAmp:X:8';
 global t;
 
