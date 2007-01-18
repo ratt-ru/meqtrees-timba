@@ -28,6 +28,12 @@ TDLCompileOption('e_tiling',"E phase solution subtiling",[None,1,2,5],more=int);
  
 
 def _define_forest(ns):
+  # enable standard MS options from Meow
+  Utils.include_ms_options(
+    tile_sizes=None,
+    channels=[[15,40,1]]
+  );
+
   # create array model
   stations = range(1,num_stations+1);
   array = Meow.IfrArray(ns,stations);
@@ -70,72 +76,38 @@ def _define_forest(ns):
 
   # create overall solve-correct tree
   global _vdm;
-  _vdm = Meow.CaliTrees.make_solve_correct_tree(ns,predict,corrections=[Gjones]);
+  _vdm = Meow.CaliTrees.define_solve_correct_tree(ns,predict,corrections=[Gjones]);
                                            
-  # now extract lists of solvable parameters
-  global solve_set;
-  solve_set = {};
-  solve_set['flux'] = predict.search(tags="flux solvable",return_names=True) + \
-                      predict.search(tags="spectrum solvable",return_names=True);
-  solve_set['e_ampl'] = predict.search(tags="E ampl",return_names=True);
-  solve_set['e_phase'] = predict.search(tags="E phase",return_names=True);
-  solve_set['g_ampl'] = predict.search(tags="G ampl",return_names=True);
-  solve_set['g_phase'] = predict.search(tags="G phase",return_names=True);
-  print solve_set;
+  # now define some runtime solve jobs
+  Meow.CaliTrees.define_solve_job("Calibrate source fluxes","flux",
+                                  predict.search(tags="(flux|spectrum) solvable"));
+                                  
+  GPs = predict.search(tags="G phase");
+  Meow.CaliTrees.define_solve_job("Calibrate G phases","g_phase",GPs);
+  GAs = predict.search(tags="G ampl");
+  Meow.CaliTrees.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
+
+  if include_E_jones:
+    EPs = predict.search(tags="E phase");
+    Meow.CaliTrees.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
+    EAs = predict.search(tags="E ampl");
+    Meow.CaliTrees.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
+
+  # standard imaging options from Meow
+  TDLRuntimeMenu("Make image",*Utils.imaging_options(npix=512,arcmin=72));
+
+  # and finally a helper function to clear solutions
+  def job_clear_out_all_previous_solutions (mqs,parent,**kw):
+    from qt import QMessageBox
+    if QMessageBox.warning(parent,"Clearing solutions","This will clear out <b>all</b> previously obtained calibrations. Are you sure?",
+          QMessageBox.Yes,QMessageBox.No|QMessageBox.Default|QMessageBox.Escape) == QMessageBox.Yes:
+      try:    os.system("rm -fr "+Utils.get_source_table());
+      except: pass;
+      try:    os.system("rm -fr "+Utils.get_mep_table());
+      except: pass;
+  TDLJob(job_clear_out_all_previous_solutions,"Clear out all solutions");
 
 
-# standard MS options from Meow
-Utils.include_ms_options(
-  tile_sizes=None,
-  channels=[[15,40,1]]
-);
-
-TDLRuntimeMenu("Calibration options",
-  TDLOption('tiling_flux',"Tile size when solving for source fluxes",[1,15,30,60,300,1500],more=int),
-  TDLOption('tiling_g_phase',"Tile size when solving for phases",[1,15,30,60,300],more=int),
-  TDLOption('tiling_g_ampl',"Tile size when solving for amplitudes",[1,15,30,60,300],more=int)
-);
-
-# standard parameter options from Meow
-TDLRuntimeMenu("Parameter options",*Utils.parameter_options());
-# solver runtime options from  Meow
-TDLRuntimeMenu("Solver options",*Utils.solver_options());
-# standard imaging options from Meow
-TDLRuntimeMenu("Imager options",*Utils.imaging_options(npix=256,arcmin=5));
-
-
-def _tdl_job_1_solve_for_source_fluxes (mqs,parent,**kw):
-  # put together list of enabled solvables
-  Utils.run_solve_job(mqs,solve_set['flux'],tiling=tiling_flux);
-
-def _tdl_job_2_solve_for_G_phases (mqs,parent,**kw):
-  # put together list of enabled solvables
-  Utils.run_solve_job(mqs,solve_set['g_phase'],tiling=tiling_g_phase);
-
-def _tdl_job_3_solve_for_G_amplitudes (mqs,parent,**kw):
-  # put together list of enabled solvables
-  Utils.run_solve_job(mqs,solve_set['g_ampl'],tiling=tiling_g_ampl);
-
-if include_E_jones:
-  def _tdl_job_4_solve_for_GE_phases (mqs,parent,**kw):
-    # put together list of enabled solvables
-    Utils.run_solve_job(mqs,solve_set['g_phase']+solve_set['e_phase'],
-            tiling=tiling_g_phase);
-
-  def _tdl_job_5_solve_for_GE_amplitudes (mqs,parent,**kw):
-    # put together list of enabled solvables
-    Utils.run_solve_job(mqs,solve_set['g_ampl']+solve_set['e_ampl'],
-             tiling=tiling_g_ampl);
-  
-def _tdl_job_8_clear_out_all_previous_solutions (mqs,parent,**kw):
-  try:    os.system("rm -fr "+Utils.get_source_table());
-  except: pass;
-  try:    os.system("rm -fr "+Utils.get_mep_table());
-  except: pass;
-
-def _tdl_job_9_make_dirty_image (mqs,parent,**kw):
-  Utils.make_dirty_image();
-  
 
 Settings.forest_state = record(bookmarks=[
   record(name='Fluxes and coherencies',page=[
