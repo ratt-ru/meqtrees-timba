@@ -1,0 +1,28 @@
+1. Start with Michiel's MS
+
+2. Flux solution (polc order 3/3), 5-6 iterations: fluxes 1.6, 5.3, chisq ~ .54
+
+3. G phase solution.
+  balanced_equations=True: ~30 iterations, chisq ~ 0.04-0.05
+  balanced_equations=False: ??
+
+4. flux solution, 6 iters, fluxes 1.835, 6.025, chisq ~ .0257
+
+5. G phase solution, balanced=false, ~20 iters, chisq ~ 0.012
+
+6. flagreport('3C343.MS'): 0.330720532
+   flag_clip('3C343.MS','CORRECTED_DATA',[0.6,0.6,0.6,0.6])
+   flagreport('3C343.MS'): 0.729640537
+   
+   This flags some obvious RFI
+
+7. G phase solution again, chisq ~0.012
+
+8. G ampl solutions, tilesize 12. ~5-10 iters. chisq ~0.009
+
+9. GE phase solutions, tilesize 15. Runtime ~10 mins.
+
+10. GE ampl solutions, tilesize 12. Runtime ~6 mins.
+   This eliminates off-axis source completely!
+   
+11. Solve for fluxes
