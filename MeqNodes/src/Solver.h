@@ -35,7 +35,7 @@
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
 #pragma aid Begin End Deriv Balanced Equations Ready String 
-#pragma aid Debug File
+#pragma aid Debug File Interrupt Solution
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -457,10 +457,14 @@ private:
   // exceptions raised by workers are accumulated here
   DMI::ExceptionList wt_exceptions_; 
 
-
+  // set to True to interrupt solving, reset at start of each solution
+  bool interrupt_;
+  
   //for writing debug output
   std::string debug_filename_;
   bool write_debug_;
+  
+  
   
 };
 

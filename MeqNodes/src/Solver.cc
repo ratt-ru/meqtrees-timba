@@ -77,6 +77,8 @@ const HIID
     FLastUpdate      = AidLast|AidUpdate,
     FConvergenceQuota = AidConvergence|AidQuota,
     
+    FInterruptSolution = AidInterrupt|AidSolution,
+    
     FMTSolve         = AidMT|AidSolve,
     
     // Solver result rider
@@ -156,6 +158,7 @@ Solver::Solver()
   enableMultiThreadedPolling();
   mt_solve_ = true;
 
+  interrupt_ = false;
   write_debug_= false;
 }
 
@@ -802,6 +805,7 @@ int Solver::getResult (Result::Ref &resref,
   AtomicID rqtype = RequestType::EVAL_SINGLE;
   if( std::max(eval_mode_,request.evalMode()) > 1 )
     rqtype = RequestType::EVAL_DOUBLE;
+  interrupt_ = false; // clear interrupt flag
   // The result has no planes, all solver information is in extra fields
   resref <<= new Result(0);
   // solver result has to be kept by countedref, since we may be publishing
@@ -917,7 +921,7 @@ int Solver::getResult (Result::Ref &resref,
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());
   bool converged = false;
-  for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged; cur_iter_++ ) 
+  for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged && !interrupt_; cur_iter_++ ) 
   {
     // generate a Solver.Iter event after the 0th iteration
     if( cur_iter_ && debug_lvl_ >= 0 )
@@ -1006,7 +1010,7 @@ int Solver::getResult (Result::Ref &resref,
     cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
     converged = num_conv_ >= need_conv_;
     // fill in updates in request object
-    fillRider(reqref,do_save_funklets_&&(converged || (cur_iter_ == max_num_iter_-1)),converged);
+    fillRider(reqref,do_save_funklets_&&(converged || interrupt_ || (cur_iter_ >= max_num_iter_-2)),converged);
     //fillRider(reqref,do_save_funklets_,converged);
     // fill in metrics and debug info
     DMI::Vec * pmetvec;
@@ -1062,37 +1066,39 @@ int Solver::getResult (Result::Ref &resref,
     return 0;
   ///////////////////////////////////////
   //SBY: loop over child results to save them
-  if (write_debug_) {
-  int rescode;
-  Result::Ref child_res;
-  // wait for child results until all have been polled (await will return -1 when this is the case)
-  int numc=children().numChildren();
-  logfile_<<numc;
-  for(int ich=0; ich<numc; ich++) {
-   children().getChild(ich).execute(child_res,reqref);
-  for( int ivs = 0; ivs < child_res->numVellSets(); ivs++ )
+  if (write_debug_) 
   {
-        const VellSet &vs = child_res->vellSet(ivs);
-        // ignore failed or null vellsets
-        if( vs.isFail() || vs.isNull() ) {
-          logfile_<<" -1";
-          continue;
-        }
-        //SBY: write vs to file
-        const Vells &invl=vs.getValue();
-        const Vells &ivl=Meq::VellsMath::mean(Meq::VellsMath::sqr(Meq::VellsMath::abs(invl)));
-        double *indata=const_cast<double*>(ivl.realStorage());
-        blitz::Array<double,2> A(indata,blitz::shape(ivl.extent(0),ivl.extent(1)),blitz::neverDeleteData);
-        //reshape to a column vector
-        logfile_<<" "<<A(0,0);
+    int rescode;
+    Result::Ref child_res;
+    // wait for child results until all have been polled (await will return -1 when this is the case)
+    int numc=children().numChildren();
+    logfile_<<numc;
+    for(int ich=0; ich<numc; ich++) 
+    {
+      children().getChild(ich).execute(child_res,reqref);
+      for( int ivs = 0; ivs < child_res->numVellSets(); ivs++ )
+      {
+            const VellSet &vs = child_res->vellSet(ivs);
+            // ignore failed or null vellsets
+            if( vs.isFail() || vs.isNull() ) {
+              logfile_<<" -1";
+              continue;
+            }
+            //SBY: write vs to file
+            const Vells &invl=vs.getValue();
+            const Vells &ivl=Meq::VellsMath::mean(Meq::VellsMath::sqr(Meq::VellsMath::abs(invl)));
+            double *indata=const_cast<double*>(ivl.realStorage());
+            blitz::Array<double,2> A(indata,blitz::shape(ivl.extent(0),ivl.extent(1)),blitz::neverDeleteData);
+            //reshape to a column vector
+            logfile_<<" "<<A(0,0);
 
-  }
-  }
-   logfile_<<std::endl;
+      }
+    }
+    logfile_<<std::endl;
   }
   //////////////////////////////////////
   // send up one final update if needed
-  if( do_last_update_ && (cur_iter_ == max_num_iter_ || converged))
+  if( do_last_update_ && (cur_iter_ == max_num_iter_ || interrupt_ || converged))
   {
     // reqref will have already been populated with updates by solve() above.
     // However, we want to clear out the cells to avoid re-evaluation, so
@@ -1397,6 +1403,8 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   newst[FBalancedEquations].get(settings_.is_balanced,initializing);
   newst[FColinFactor].get(settings_.colin_factor,initializing);
   newst[FLMFactor].get(settings_.lm_factor,initializing);
+
+  newst[FInterruptSolution].get(interrupt_);
   
   newst[FMTSolve].get(mt_solve_,initializing);
   if( mt_solve_ && worker_threads_.empty() )

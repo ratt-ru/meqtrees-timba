@@ -353,6 +353,8 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
         AtomicID::registerId(-48,"String")+
         AtomicID::registerId(-1482,"Debug")+
         AtomicID::registerId(-1224,"File")+
+        AtomicID::registerId(-1273,"Interrupt")+
+        AtomicID::registerId(-1525,"Solution")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+

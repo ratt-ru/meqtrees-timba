@@ -238,6 +238,11 @@ const int AidInput_int = -1036;
 const DMI::AtomicID AidIntegrate(-1150);          // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 const int AidIntegrate_int = -1150;
 #endif
+#ifndef _defined_id_AidInterrupt
+#define _defined_id_AidInterrupt 1
+const DMI::AtomicID AidInterrupt(-1273);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
+const int AidInterrupt_int = -1273;
+#endif
 #ifndef _defined_id_AidIterations
 #define _defined_id_AidIterations 1
 const DMI::AtomicID AidIterations(-1588);         // from /home/brentjens/LOFAR/Timba/MeqNodes/src/Solver.h:34
@@ -912,6 +917,11 @@ const int AidSize_int = -1255;
 #define _defined_id_AidSkeleton 1
 const DMI::AtomicID AidSkeleton(-1389);           // from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:31
 const int AidSkeleton_int = -1389;
+#endif
+#ifndef _defined_id_AidSolution
+#define _defined_id_AidSolution 1
+const DMI::AtomicID AidSolution(-1525);           // from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:33
+const int AidSolution_int = -1525;
 #endif
 #ifndef _defined_id_AidSolutions
 #define _defined_id_AidSolutions 1
