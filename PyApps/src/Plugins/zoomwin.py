@@ -46,6 +46,7 @@ class ZoomPopup(QWidget):
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QWidget.__init__(self, parent, name, fl)
     self.setCaption('Channel ' + str(CurveNumber))
+    self.setCaption('Hi hi')
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
     self._curve_number = CurveNumber
@@ -55,12 +56,13 @@ class ZoomPopup(QWidget):
     self._compare_max = False
     self._do_linear_scale = True  # linear Y axis scale by default
     self._do_fixed_scale = False  # auto scaling by default
+    self._array_label = "Channel "
  
     #Create the plot for selected curve to zoom
     self._plotzoom = QwtImageDisplay(parent=self)
     self._plotzoom. setZoomDisplay()
 
-    self._zoom_plot_label = "Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
+    self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
 #   self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
 #   self._plotzoom.setAxisTitle(QwtPlot.yLeft, "Signal")
 #   self._plotzoom.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
@@ -226,12 +228,13 @@ class ZoomPopup(QWidget):
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
       self._plotzoom.print_(printer, filter)
 
-  def setDataLabel(self, data_label, is_array=False):
+  def setDataLabel(self, data_label, array_label, is_array=False):
     self._data_label = data_label
+    self._array_label = array_label
     if is_array:
-      self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) 
+      self._zoom_plot_label = self._data_label + ": " + self._array_label + str(self._curve_number) 
     else:
-      self._zoom_plot_label = self._data_label + ": Channel " + str(self._curve_number) + " Sequence (oldest to most recent)"
+      self._zoom_plot_label = self._data_label + ": " + self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
     self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
 
   def plotMouseMoved(self, e):
