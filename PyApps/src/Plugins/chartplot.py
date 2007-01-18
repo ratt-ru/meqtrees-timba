@@ -44,6 +44,7 @@ class ChartPlot(QWidget):
         'Change Vells': 205,
         'Show Channels': 206,
         'Clear Plot': 207,
+        'Append': 208,
         }
 
 
@@ -70,6 +71,7 @@ class ChartPlot(QWidget):
     self._data_label = None
     self.info_marker = None
     self.show_channel_labels = True
+    self._append_data = True
     self._plot_label = 'Ch '
 
     #Create the plot widget
@@ -164,6 +166,8 @@ class ChartPlot(QWidget):
     self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Show Channels']
     self._menu.insertItem("Hide Channel Markers", toggle_id)
+    toggle_id = self.menu_table['Append']
+    self._menu.insertItem("Replace Vector Data", toggle_id)
 
     self._vells_menu = None
     self._vells_menu_id = 0
@@ -229,6 +233,15 @@ class ChartPlot(QWidget):
       self.change_channel_display(menuid)
       return True
     if menuid == self.menu_table['Clear Plot']:
+      self.clear_plot()
+      return True
+    if menuid == self.menu_table['Append']:
+      if self._append_data:
+        self._append_data = False
+        self._menu.changeItem(menuid,'Append Vector Data')
+      else:
+        self._append_data = True
+        self._menu.changeItem(menuid,'Replace Vector Data')
       self.clear_plot()
       return True
 
@@ -747,8 +760,11 @@ class ChartPlot(QWidget):
         for i in range(len(incoming_data.shape)):
           num_elements = num_elements * incoming_data.shape[i]
         flattened_array = reshape(incoming_data.copy(),(num_elements,))
-        for i in range(len(flattened_array)):
-          self._chart_data[channel][keys].append(flattened_array[i])
+        if self._append_data: 
+          for i in range(len(flattened_array)):
+            self._chart_data[channel][keys].append(flattened_array[i])
+        else:
+          self._chart_data[channel][keys] = flattened_array
         self._updated_data[channel] = True
 
       if self._ArraySize < len(self._chart_data[channel][keys]):
