@@ -22,6 +22,7 @@
 # standard preamble
 from Timba.TDL import *
 from Timba.Meq import meq
+from Meow import Bookmarks,Utils
 import math
 
 # define antenna list
@@ -95,7 +96,7 @@ def _tdl_job_1_show_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 10
+      tile_size        = 4
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -105,6 +106,10 @@ def _tdl_job_1_show_MS (mqs,parent):
     )
   );
   # execute    
+  change_rec = record(plot_label = 'BL')
+  Utils.set_node_state(mqs,'collector',change_rec)
+  change_rec = record(tab_label = 'VLA')
+  Utils.set_node_state(mqs,'collector',change_rec)
   mqs.execute('vdm',req,wait=False);
 
 
