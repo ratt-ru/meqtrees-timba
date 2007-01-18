@@ -552,6 +552,14 @@ const DMI::BObj * DMI::Container::Hook::get_address_bo (ContentInfo &info,
       else
         ThrowExc(ConvError,ConvErrorMessage(target.obj_tid.toString(),"an object"));
     }
+    // check again, if target is an undefined ref, return 0
+    if( !static_cast<const ObjRef *>(targ)->valid() )
+    {
+      if( must_exist ) 
+        ThrowUninitialized;
+      info.size = 0;
+      return 0;
+    }
     const DMI::BObj *ptr = static_cast<const ObjRef *>(targ)->deref_p();
     if( (*can_convert)(ptr) )
     {

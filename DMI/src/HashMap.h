@@ -9,11 +9,13 @@
 #include <ext/hash_map>
 #include <string>
     
-#if __GNUC_MINOR__ == 0
-  #define DMI_hash_namespace std
-#else
-  #define DMI_hash_namespace __gnu_cxx
-#endif
+//// we don't support 3.0 anyway, and everything later than that
+//// uses __gnu_cxx
+// #if __GNUC_MINOR__ == 0
+//   #define DMI_hash_namespace std
+// #else
+#define DMI_hash_namespace __gnu_cxx
+// #endif
         
 namespace DMI
 {
