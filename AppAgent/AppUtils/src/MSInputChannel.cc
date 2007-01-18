@@ -310,7 +310,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
       segment_size = 1;  // new subsegment already has this timeslot
       // if tilesegs_>0, then check if we need to start a new tile at
       // this segment
-      if( num_subsegment >= tilesegs_ )
+      if( tilesegs_ && num_subsegment >= tilesegs_ )
       {
         // go to the next tile
         tile_sizes_[++current_tile] = 0;
@@ -375,8 +375,9 @@ int MSInputChannel::init (const DMI::Record &params)
   // get # of timeslots or # of segments per tile 
   tilesize_ = params[FTileSize].as<int>(0);
   tilesegs_ = params[FTileSegments].as<int>(0);
-  FailWhen( tilesegs_>1 && tilesize_,"Can't specify a "+FTileSize.toString()+
-        " with "+FTileSegments.toString()+">1");
+//// 15/01/2007: I no longer see the logic of this restriction, so I'm removing it
+//  FailWhen( tilesegs_>1 && tilesize_,"Can't specify a "+FTileSize.toString()+
+//        " with "+FTileSegments.toString()+">1");
   if( !tilesize_ && !tilesegs_ )
     tilesize_ = 1;
   // clear flags?
