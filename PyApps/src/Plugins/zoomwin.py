@@ -231,13 +231,13 @@ class ZoomPopup(QWidget):
   def setDataLabel(self, data_label, array_label, is_array=False):
     self._data_label = data_label
     if array_label is None:
-      self._array_label = ''
+      self._array_label = 'Ch ' + str(self._curve_number)
     else:
       self._array_label = array_label
     if is_array:
-      self._zoom_plot_label = self._data_label + ": " + self._array_label + str(self._curve_number) 
+      self._zoom_plot_label = self._data_label + ": " + self._array_label  
     else:
-      self._zoom_plot_label = self._data_label + ": " + self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
+      self._zoom_plot_label = self._data_label + ": " + self._array_label + " Sequence (oldest to most recent)"
     self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
 
   def plotMouseMoved(self, e):
