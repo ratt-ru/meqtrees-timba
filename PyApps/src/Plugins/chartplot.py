@@ -72,7 +72,7 @@ class ChartPlot(QWidget):
     self.info_marker = None
     self.show_channel_labels = True
     self._append_data = True
-    self._plot_label = 'Ch '
+    self._plot_label = None
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
@@ -580,7 +580,11 @@ class ChartPlot(QWidget):
         self._Zoom[crv].setCaption(self._source)
         
       if not self._data_label is None:
-        self._Zoom[crv].setDataLabel(self._data_label, self._plot_label, self._is_vector)
+        if not self._plot_label is None:
+          plot_label = self._plot_label[crv+self._ref_chan]
+        else:
+          plot_label = None
+        self._Zoom[crv].setDataLabel(self._data_label, plot_label, self._is_vector)
       self._pause[crv] = False
       self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
       self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
@@ -931,7 +935,10 @@ class ChartPlot(QWidget):
         if not self._source_marker[channel] is None:
           self._plotter.removeMarker(self._source_marker[channel]);
         if self.show_channel_labels:
-          message =  self._plot_label + str(channel + self._ref_chan)
+          if not self._plot_label is None:
+            message = self._plot_label[channel + self._ref_chan]
+          else:
+            message =  str(channel + self._ref_chan)
 # text marker giving source of point that was clicked
           self._source_marker[channel] = self._plotter.insertMarker()
           xlb = temp_x[0]

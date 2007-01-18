@@ -77,7 +77,7 @@ class CollectionsPlotter(GriddedPlugin):
     self.counter = 0
     self._node_name = None
     self._prev_rq_id = -1
-    self._plot_label = ''
+    self._plot_label = None
     self._tab_label = 'data'
     self.prev_label = "===="
 
@@ -101,7 +101,7 @@ class CollectionsPlotter(GriddedPlugin):
 
   def create_2D_plotter(self):
     if self._visu_plotter is None:
-      self._visu_plotter = DisplayMainWindow(parent=self.layout_parent,name=" ", num_curves=self._max_per_display)
+      self._visu_plotter = DisplayMainWindow(parent=self.layout_parent,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
       self.layout.addWidget(self._visu_plotter, 0, 1)
       self._visu_plotter.show()
   # create_2D_plotter
@@ -210,7 +210,6 @@ class CollectionsPlotter(GriddedPlugin):
         else:
           data_dict['source'] = self._node_name
         data_dict['channel'] = channel
-        data_dict['plot_label'] = self._plot_label + ' '
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
         data_dict['data_type'] = self._tab_label + ' ' + str(screen_num)

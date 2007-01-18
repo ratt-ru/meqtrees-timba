@@ -230,7 +230,10 @@ class ZoomPopup(QWidget):
 
   def setDataLabel(self, data_label, array_label, is_array=False):
     self._data_label = data_label
-    self._array_label = array_label
+    if array_label is None:
+      self._array_label = ''
+    else:
+      self._array_label = array_label
     if is_array:
       self._zoom_plot_label = self._data_label + ": " + self._array_label + str(self._curve_number) 
     else:

@@ -36,13 +36,14 @@ class DisplayMainWindow(QMainWindow):
   """ This class enables the display of a collection
       of ChartPlot widgets contained within a tabwidget
   """
-  def __init__(self, parent=None, name=None,num_curves=16):
+  def __init__(self, parent=None, name=None,num_curves=16,plot_label=None):
     QMainWindow.__init__(self, parent, name, Qt.WDestructiveClose)
 
 # ChartPlot strip charts will be displayed via a tab widget
     self._tabwidget = QTabWidget(self)
     self._tab_resized = False
     self._num_curves = num_curves
+    self._plot_label = plot_label
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
@@ -61,11 +62,11 @@ class DisplayMainWindow(QMainWindow):
       dcm_sn_descriptor = dcm_sn_descriptor + self._click_on
       QWhatsThis.add(self._ChartPlot[data_type], dcm_sn_descriptor)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("quit_event"), self.quit_event)
+      if not self._plot_label is None:
+        self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
     q_info = "Sequence Number " + str( data_dict['sequence_number'])
     self._ChartPlot[data_type].setSource(data_dict['source'])
-    if len(data_dict['plot_label']) > 0:
-      self._ChartPlot[data_type].setPlotLabel(data_dict['plot_label'])
     self._ChartPlot[data_type].updateEvent(data_dict['channel'], data_dict['value'], q_info)
 
   def resizeEvent(self, event):
