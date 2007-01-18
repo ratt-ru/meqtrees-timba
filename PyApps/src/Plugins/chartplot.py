@@ -70,7 +70,7 @@ class ChartPlot(QWidget):
     self._data_label = None
     self.info_marker = None
     self.show_channel_labels = True
-    self._plot_label = ''
+    self._plot_label = 'Ch '
 
     #Create the plot widget
     self._plotter = QwtPlot(self)
@@ -440,8 +440,8 @@ class ChartPlot(QWidget):
       # update cursor pos display
       self._e_pos_x = e.pos().x()
       self._e_pos_y = e.pos().y()
-      if e.button() == Qt.MidButton: 
-        self.infoDisplay()
+#     if e.button() == Qt.MidButton: 
+#       self.infoDisplay()
       if self._d_zoom and not self._d_zoomActive:
         self._plotter.setOutlineStyle(Qwt.Rect) 
       else:
@@ -567,11 +567,7 @@ class ChartPlot(QWidget):
         self._Zoom[crv].setCaption(self._source)
         
       if not self._data_label is None:
-        self._Zoom[crv].setDataLabel(self._data_label,self._is_vector)
-#     if self._good_data[crv]:
-#       self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
-#     else:
-#       self._Zoom[crv]._plotzoom.setCurvePen(1,QPen(Qt.red))
+        self._Zoom[crv].setDataLabel(self._data_label, self._plot_label, self._is_vector)
       self._pause[crv] = False
       self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
       self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)

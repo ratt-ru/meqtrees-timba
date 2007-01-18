@@ -78,6 +78,7 @@ class CollectionsPlotter(GriddedPlugin):
     self._node_name = None
     self._prev_rq_id = -1
     self._plot_label = ''
+    self._tab_label = 'data'
     self.prev_label = "===="
 
 # back to 'real' work
@@ -123,7 +124,20 @@ class CollectionsPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
+    try:
+      self._node_name = self._rec.name
+    except:
+      pass
+    _dprint(3, 'node name is ', self._node_name)
 
+    try:
+      self._plot_label = self._rec.plot_label
+    except:
+      pass
+    try:
+      self._tab_label = self._rec.tab_label
+    except:
+      pass
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
@@ -169,18 +183,7 @@ class CollectionsPlotter(GriddedPlugin):
         return
       else:
         self.prev_label = self.label
-    if self._rec.has_key("name"):
-      self._node_name = self._rec["name"]
-    try:
-      self._node_name = self._rec.get("name", "Collector")
-    except:
-      pass
-    _dprint(3, 'node name is ', self._node_name)
 
-    if self._rec.has_key("plot_label"):
-      self._plot_label = self._rec["plot_label"]
-    _dprint(3, 'node name is ', self._node_name)
-#   self._plot_label = 'VLA BL '
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
@@ -200,7 +203,6 @@ class CollectionsPlotter(GriddedPlugin):
       if new_plot: 
         self._visu_plotter.setNewPlot()
       data_dict = {}
-      display_index = 'data '
       for i in range(self._number_of_planes):
         channel = int(i / self.dims_per_group)
         if self._node_name is None:
@@ -208,10 +210,10 @@ class CollectionsPlotter(GriddedPlugin):
         else:
           data_dict['source'] = self._node_name
         data_dict['channel'] = channel
-        data_dict['plot_label'] = self._plot_label
+        data_dict['plot_label'] = self._plot_label + ' '
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
-        data_dict['data_type'] = display_index + str(screen_num)
+        data_dict['data_type'] = self._tab_label + ' ' + str(screen_num)
         index = i - channel * self.dims_per_group
         if index == 0:
           data_dict['value'] = {}
