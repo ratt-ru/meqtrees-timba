@@ -1,16 +1,60 @@
 from Timba.TDL import *
 
+
+_wsrt_list = [str(i) for i in range(1,10)] + ['A','B','C','D','E'];
+
+
 class IfrArray (object):
-  def __init__(self,ns,station_list,uvw_table=None,mirror_uvw=False):
+  def __init__(self,ns,station_list,station_index=None,uvw_table=None,mirror_uvw=False):
+    """Creates an IfrArray object, representing an interferometer array.
+    'station_list' is a list of station IDs, not necessarily numeric.
+    'station_index' is an optional list of numeric station indices. If not given,
+      [0,...,N-1] will be used. If the array represents a subset of an MS,
+      then correct indices indicating the subset should be given.
+    'uvw_table' is a path to a MEP table containing station UVWs. If not given,
+      UVWs will be computed explicitly with a Meq.UVW node.
+    'mirror_uvw' can be True to use the VLA UVW deifnition (sign flip)
+    """;
     self.ns = ns;
+    # make list of station pairs: (0,p0),(1,p1),... etc.
+    if station_index:
+      if len(station_list) != len(station_index):
+        raise ValueError,"'station_list' and 'station_index' must have the same length";
+      self._station_index = zip(station_index,station_list);
+    else:
+      self._station_index = list(enumerate(station_list));
+    # now make some other lists
     self._stations = station_list;
-    self._ifrs = [ (s1,s2) for s1 in station_list for s2 in station_list if s1<s2 ];
+    self._ifr_index = [ (px,qx) for px in self._station_index 
+                                for qx in self._station_index if px[0]<qx[0] ];
+    self._ifrs = [ (px[1],qx[1]) for px,qx in self._ifr_index ];
+    print self._ifr_index;
     self._uvw_table = uvw_table;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
+    
+  def WSRT (ns,stations=14,uvw_table=None,mirror_uvw=False):
+    """Creates and returns an IfrArray for WSRT, i.e., with proper labels.
+    The 'stations' argument can be either a number of stations (then only
+    the first N antennas will be used), or a list of station indices.
+    If not given, then the full WSRT array is used.
+    """;
+    if isinstance(stations,int):
+      stations = _wsrt_list[:stations];
+      index = None;
+    elif isinstance(stations,(list,tuple)):
+      index = stations;
+      stations = [ _wsrt_list[i] for i in stations ];
+    else:
+      raise TypeError,"WSRT 'stations' argument must be a list of stations, or a number";
+    return IfrArray(ns,stations,station_index=index,uvw_table=uvw_table,mirror_uvw=mirror_uvw);
+  WSRT = staticmethod(WSRT);
 
   def stations (self):
     return self._stations;
+    
+  def station_index (self):
+    return self._station_index;
     
   def num_stations (self):
     return len(self._stations);
@@ -18,8 +62,37 @@ class IfrArray (object):
   def ifrs (self):
     return self._ifrs;
     
+  def ifr_index (self):
+    return self._ifr_index;
+    
   def num_ifrs (self):
     return len(self._ifrs);
+    
+  def spigots (self,node=None,**kw):
+    """Creates (if necessary) and returns spigots, as an unqualified node.
+    Extra keyword arguments will be passed to Spigot node."""
+    if node is None:
+      node = self.ns.spigot;
+    (ip0,p0),(iq0,q0) = self.ifr_index()[0];
+    if not node(p0,q0).initialized():
+      for (ip,p),(iq,q) in self.ifr_index():
+        node(p,q) << Meq.Spigot(station_1_index=ip,station_2_index=iq,**kw);
+    return node;
+    
+  def sinks (self,children,node=None,**kw):
+    """Creates (if necessary) and returns sinks, as an unqualified node.
+    The 'children' argument should be a list of child nodes, which
+    will be qualified with an interferometer pair.
+    Extra keyword arguments will be passed to Sink node."""
+    if node is None:
+      node = self.ns.sink;
+    (ip0,p0),(iq0,q0) = self.ifr_index()[0];
+    if not node(p0,q0).initialized():
+      for (ip,p),(iq,q) in self.ifr_index():
+        node(p,q) << Meq.Sink(children=children(p,q),
+                               station_1_index=ip,station_2_index=iq,
+                               **kw);
+    return node;
     
   def xyz0 (self):
     """Returns array reference position node""";

@@ -35,8 +35,7 @@ def _define_forest(ns):
   );
 
   # create array model
-  stations = range(1,num_stations+1);
-  array = Meow.IfrArray(ns,stations);
+  array = Meow.IfrArray.WSRT(ns,num_stations);
   observation = Meow.Observation(ns);
   # setup Meow global context
   Meow.Context.set(array=array,observation=observation);
