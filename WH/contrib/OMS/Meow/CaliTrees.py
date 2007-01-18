@@ -79,6 +79,7 @@ def define_solve_correct_tree (ns,predict,
   # create output inspector, if needed
   if inspect_output:
     inspector = ns.inspect_output << Meq.Composer(
+      dims=(len(array.ifrs()),2,2),
       *[ ns.inspect_output(p,q) << Meq.Mean(output_nodes(p,q),reduction_axes="freq")
           for p,q in array.ifrs()
        ]
