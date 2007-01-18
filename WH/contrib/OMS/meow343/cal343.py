@@ -128,7 +128,8 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/E:3C343:2",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/E:3C343:10",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ])
+  ]),
+  record(name="Output inspector",viewer="Collections Plotter",udi="/node/inspect_output")
 ]);
 
 

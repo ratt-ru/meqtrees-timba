@@ -89,8 +89,8 @@ def _define_forest(ns):
 
   if include_E_jones:
     EPs = predict.search(tags="E phase");
-    EAs = predict.search(tags="E ampl");
     Meow.CaliTrees.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
+    EAs = predict.search(tags="E ampl");
     Meow.CaliTrees.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
 
   # standard imaging options from Meow
@@ -128,7 +128,8 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/E:3C343:2",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/E:3C343:10",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ])
+  ]),
+  record(name="Output inspector",viewer="Result Plotter",udi="/node/inspect_output")
 ]);
 
 
