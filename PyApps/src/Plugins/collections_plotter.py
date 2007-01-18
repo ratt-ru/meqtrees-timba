@@ -219,8 +219,12 @@ class CollectionsPlotter(GriddedPlugin):
 #       if channel == 100:
 #         data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
 #       else:
-        data_dict['value'][index] = self._rec.vellsets[i].value
 
+# uncomment the following two lines to test for flags field
+#       if  self._rec.vellsets[i].has_key("flags"):
+#         print 'vellset record having flags is ', i
+
+        data_dict['value'][index] = self._rec.vellsets[i].value
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
           data_dict = {}
