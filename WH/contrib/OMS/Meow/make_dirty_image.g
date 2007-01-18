@@ -7,7 +7,7 @@ msname := "F"
 mode := "mfs";
 weighting := "briggs";
 stokes := "I";
-select := "";
+select := '';
 npix := 256;
 cell := '1arcsec';
 image_viewer := 'kvis';
@@ -54,7 +54,11 @@ for( a in argv )
   else if( a =~ s/chanstep=// )
     chanstep := as_integer(a);
 }
-print "MS name is ",msname; 
+if( select != '' )
+  select := spaste('( ',select,' ) && ANTENNA1 != ANTENNA2');
+else
+  select := 'ANTENNA1 != ANTENNA2';
+print "Selection string: ",select;
 
 # setup the imager
 myimager:=imager(msname)
@@ -67,7 +71,6 @@ myimager.setdata(mode='channel',
              msselect=select,
              async=F);
 
-print select;
 myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
   stokes=stokes,mode=mode,
   fieldid=fieldid,spwid=spwid,

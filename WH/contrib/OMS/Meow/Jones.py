@@ -1,81 +1,100 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Parameterization import *
+from Meow import Parameterization
+import Context
 
 
-class Jones (Parameterization):
-  """A Jones object represents a set of Jones terms for a set of antennas.
-  'name' should be a unique Jones name (e.g. 'E', 'G', etc.).
-  'array' is an IfrArray object.
-  """;
-  def __init__(self,ns,name,array,
-               parm_options=record(node_groups='Parm'),
-               quals=[],kwquals={}):
-               
-    Parameterization.__init__(self,ns,name,parm_options=parm_options,
-                              quals=quals,kwquals=kwquals);
-    self._array = array;
-    
-  def jones (self):
-    """virtual method returning an under-qualified Jones node, which
-    must be qualified by station to get the actual Jones node.
-    """;
-    raise TypeError,"this Jones subclass does not implement a jones() method";
-               
-  def corrupt (self,vis,vis0):
-    jones = self.jones();
-    # multiply input visibilities by our jones list
-    for (sta1,sta2) in self._array.ifr_list():
-      j1 = jones(sta1);
-      j2c = jones(sta2)('conj') ** Meq.ConjTranspose(jones(sta2));
-      # create multiplication node
-      vis(sta1,sta2) << Meq.MatrixMultiply(j1,vis0(sta1,sta2),j2c);
-    return vis;
+def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None):
+  """Creates an amplitude-phase gain matrix of the form:
+        ( ax*e^{i*px}       0      )
+        (     0       ay*e^{i*p_y} )
+  'jones' should be a node stub.
+  'series' can be a list of qualifiers to make a series of matrices.
+  The x/y amplitudes and phases are created as Meq.Parms (with initial 
+  values 1 and 0, respectively) by qualifying 'jones' with 
+  'xa','xp','ya','yp'. These Parm nodes will be tagged with the given set
+  of 'tags', plus 'ampl' and 'phase'.
+  """
+  # create matrix per-station, or just a single matrix
+  if series:
+    for p in series:
+      xa = Parameterization.resolve_parameter("ampl",jones(p,'xa'),ampl,tags=tags);
+      xp = Parameterization.resolve_parameter("phase",jones(p,'xp'),phase,tags=tags);
+      ya = Parameterization.resolve_parameter("ampl",jones(p,'ya'),ampl,tags=tags);
+      yp = Parameterization.resolve_parameter("phase",jones(p,'yp'),phase,tags=tags);
+      jones(p) << Meq.Matrix22(
+        jones(p,"x") << Meq.Polar(xa,xp),
+        0,0,
+        jones(p,"y") << Meq.Polar(ya,yp)
+      );
+  else:
+    xa = Parameterization.resolve_parameter("ampl",jones('xa'),ampl,tags=tags);
+    xp = Parameterization.resolve_parameter("phase",jones('xp'),phase,tags=tags);
+    ya = Parameterization.resolve_parameter("ampl",jones('ya'),ampl,tags=tags);
+    yp = Parameterization.resolve_parameter("phase",jones('yp'),phase,tags=tags);
+    jones << Meq.Matrix22(
+      jones("x") << Meq.Polar(xa,xp),
+      0,0,
+      jones("y") << Meq.Polar(ya,yp)
+    );
+  return jones;
+
+
+def define_rotation_matrix (angle):
+  """Returns node definition for a rotation matrix, given an 'angle' node
+  or value. Since this is a node _definition_, it must be bound to a node
+  name with '<<', e.g.:
+    ns.pa << Meq.ParAngle(...);
+    ns.P << Jones.define_rotation_matrix(ns.pa);
+  """
+  cos = angle("cos") << Meq.Cos(angle);
+  sin = angle("sin") << Meq.Sin(angle);
+  return Meq.Matrix22(cos,-sin,sin,cos);
   
-  def correct (self,vis,vis0):
-    jones = self.jones();
-    # multiply input visibilities by our jones list
-    for (sta1,sta2) in self._array.ifr_list():
-      # collect list of per-source station-qualified Jones terms
-      J1i = jones(sta1)('inv') ** Meq.MatrixInvert22(jones(sta1));
-      J2c = jones(sta2)('conj') ** Meq.ConjTranspose(jones(sta2));
-      J2ci = J2c('inv') ** Meq.MatrixInvert22(J2c);
-      # create multiplication node
-      vis(sta1,sta2) << Meq.MatrixMultiply(J1i,vis0(sta1,sta2),J2ci);
-    return vis;
-    
 
-  
-
-def apply_corruption (vis,vis0,jones,ifr_list):
+def apply_corruption (vis,vis0,jones,ifrs=None):
   """Creates nodes to corrupt with a set of Jones matrices.
-  'ifr_list' should be a list of (sta1,sta2) pairs
-  'vis' is the output node which will be qualified with (sta1,sta2)
-  'vis0' is an input visibility node which will be qualified with (sta1,sta2)
-  'jones' is a set of Jones matrices which will be qualified with (sta)
+  'vis' is the output node which will be qualified with (p,q)
+  'vis0' is an input visibility node which will be qualified with (p,q2)
+  'jones' is either one unqualified Jones matrix, or else a list/tuple of 
+    Jones matrices. In either case each Jones term will be qualified with 
+    the station index (p).
+  'ifrs' should be a list of p,q pairs; by default Meow.Context is used.
   """;
+  if not isinstance(jones,(list,tuple)):
+    jones = (jones,);
   # multiply input visibilities by our jones list
-  for (sta1,sta2) in ifr_list:
+  for p,q in (ifrs or Context.array.ifrs()):
+    terms = [vis0(p,q)];
     # collect list of per-source station-qualified Jones terms
-    J2c = jones(sta2)('conj') ** Meq.ConjTranspose(jones(sta2));
+    for J in jones:
+      J2c = J(q)('conj') ** Meq.ConjTranspose(J(q));
+      terms = [J(p)] + terms + [J2c];
     # create multiplication node
-    vis(sta1,sta2) << Meq.MatrixMultiply(jones(sta1),vis0(sta1,sta2),J2c);
+    vis(p,q) << Meq.MatrixMultiply(*terms);
   return vis;
 
 
-def apply_correction (vis,vis0,jones,ifr_list):
+def apply_correction (vis,vis0,jones,ifrs=None):
   """Creates nodes to apply the inverse of a set of Jones matrices.
-  'ifr_list' should be a list of (sta1,sta2) pairs
   'vis' is the output node which will be qualified with (sta1,sta2)
   'vis0' is an input visibility node which will be qualified with (sta1,sta2)
-  'jones' is a set of Jones matrices which will be qualified with (sta)
+  'jones' is either one unqualified Jones matrix, or else a list/tuple of 
+    Jones matrices. In either case each Jones term will be qualified with 
+    the station index (p).
+  'ifrs' should be a list of p,q pairs; by default Meow.Context is used.
   """;
+  if not isinstance(jones,(list,tuple)):
+    jones = (jones,);
   # multiply input visibilities by our jones list
-  for (sta1,sta2) in ifr_list:
+  for p,q in (ifrs or Context.array.ifrs()):
+    terms = [vis0(p,q)];
     # collect list of per-source station-qualified Jones terms
-    J1i = jones(sta1)('inv') ** Meq.MatrixInvert22(jones(sta1));
-    J2i = jones(sta2)('inv') ** Meq.MatrixInvert22(jones(sta2));
-    J2ci = J2i('conj') ** Meq.ConjTranspose(J2i);
+    for J in jones:
+      J1i = J(p)('inv') ** Meq.MatrixInvert22(J(p));
+      J2i = J(q)('inv') ** Meq.MatrixInvert22(J(q));
+      J2ci = J2i('conj') ** Meq.ConjTranspose(J2i);
+      terms = [J1i] + terms + [J2ci];
     # create multiplication node
-    vis(sta1,sta2) << Meq.MatrixMultiply(J1i,vis0(sta1,sta2),J2ci);
+    vis(p,q) << Meq.MatrixMultiply(*terms);
   return vis;

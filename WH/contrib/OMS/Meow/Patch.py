@@ -1,10 +1,9 @@
 from SkyComponent import *
-
+import Context
 
 class Patch (SkyComponent):
-  def __init__(self,ns,name,direction,
-               parm_options=record(node_groups='Parm')):
-    SkyComponent.__init__(self,ns,name,direction,parm_options=parm_options);
+  def __init__(self,ns,name,direction):
+    SkyComponent.__init__(self,ns,name,direction);
     self._components = [];
     
   def add (self,*comps):
@@ -12,6 +11,10 @@ class Patch (SkyComponent):
     self._components += comps;
     
   def make_visibilities (self,nodes,array,observation):
+    array = array or Context.array;
+    observation = observation or Context.observation;
+    if not array or not observation:
+      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
     radec0 = observation.radec0();
     # no components -- use 0
     if not self._components:

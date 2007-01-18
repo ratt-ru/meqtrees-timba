@@ -7,40 +7,77 @@ import Meow
 
 input_column = output_column = None;
 tile_size = None;
+ms_channels = None;
 msname = '';
 
-def include_ms_options (has_input=True,has_output=True,tile_sizes=[1,5,10,20,30,60]):
+def include_ms_options (
+    has_input=True,
+    has_output=True,
+    tile_sizes=[1,5,10,20,30,60],
+    channels=None,
+  ):
   """Instantiates MS input/output options""";
+  TDLRuntimeOptions(*ms_options(has_input,has_output,tile_sizes,channels));
+
+def ms_options (
+    has_input=True,
+    has_output=True,
+    tile_sizes=[1,5,10,20,30,60],
+    channels=None,
+  ):
+  """Returns list of MS input/output options""";
   ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
   if not ms_list:
     ms_list = [ "no MSs found" ];
-  TDLRuntimeOption('msname',"MS",ms_list);
+  opts = [ TDLOption('msname',"MS",ms_list) ];
   if has_input:
-    TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+    opts.append(TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0));
   if has_output:
-    TDLRuntimeOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=0);
+    opts.append(TDLOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=2));
   if tile_sizes:
-    TDLRuntimeOption('tile_size',"Tile size (timeslots)",tile_sizes);
-
+    opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
+  if channels:
+    opts.append(TDLOption('ms_channels',"Channel selection",channels));
+  return opts;
+  
 imaging_npix = 256;
 imaging_cellsize = '1arcsec';
+imaging_arcmin = None;
 imaging_channels = [32,1,1];
+imaging_channels_specified = False;
 
-def include_imaging_options (npix=None,cellsize=None,channels=None):
+def include_imaging_options (npix=None,arcmin=5,cellsize=None,channels=None):
   """Instantiates imager options""";
-  TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
-  TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]);
-  TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
+  TDLRuntimeOptions(*imaging_options(npix,arcmin,cellsize,channels));
+
+def imaging_options (npix=None,arcmin=5,cellsize=None,channels=None):
+  """Instantiates imager options""";
+  opts = [
+    TDLOption('imaging_mode',"Imaging mode",["mfs","channel"]),
+    TDLOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]),
+    TDLOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]) 
+  ];
   if npix:
     if not isinstance(npix,(list,tuple)):
       npix = [ npix ];
-    TDLRuntimeOption('imaging_npix',"Image size, in pixels",npix);
-  if cellsize:
+    opts.append(TDLOption('imaging_npix',"Image size, in pixels",npix,more=int));
+  if arcmin:
+    if cellsize:
+      raise ValueError,"include_imaging_options: specify cellsize or arcmin, not both";
+    if not isinstance(arcmin,(list,tuple)):
+      arcmin = [ arcmin ];
+    opts.append(TDLOption('imaging_arcmin',"Image size, in arcmin",arcmin,more=float));
+  elif cellsize:
     if not isinstance(cellsize,(list,tuple)):
       cellsize = [ cellsize ];
-    TDLRuntimeOption('imaging_cellsize',"Pixel size",cellsize);
+    opts.append(TDLOption('imaging_cellsize',"Pixel size",cellsize,more=str));
   if channels:
-    TDLRuntimeOption('imaging_channels',"Imaging channels selection",channels);
+    opts.append(TDLOption('imaging_channels',"Imaging channels selection",channels));
+    imaging_channels_specified = True;
+  def job_make_image (mqs,parent,**kw):
+    make_dirty_image();
+  opts.append(TDLJob(job_make_image,"Make image from MS output column"));
+  return opts;  
   
 
 source_table = "sources.mep";
@@ -52,43 +89,59 @@ def get_source_table ():
 def get_mep_table ():
   return msname + "/" + mep_table;
 
-def solver_options ():
-  """Returns list of solver option""";
+_solver_opts = dict(
+  debug_level  = 0,
+  colin_factor = 1e-6,
+  lm_factor    = .001,
+  balanced_equations = False,
+  epsilon      = 1e-4,
+  num_iter     = 10,
+  convergence_quota = 0.8
+);
+
+_solver_opts = {};
+
+def solver_options (optionset='_solver_opts',namespace=None):
+  """Returns list of solver options.
+  Default places options into dict at Meow.Utils._solver_opts. To make another set of options,
+  supply a different optionset.""";
+  optionset += '.';
   return [
-    TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
-    TDLOption('solver_colin_factor',"Collinearity factor",[1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1]),
-    TDLOption('solver_lm_factor',"Initial LM factor",[1,.1,.01,.001]),
-    TDLOption('solver_balanced_equations',"Assume balanced equations",False),
-    TDLOption('solver_epsilon',"Convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
-    TDLOption('solver_num_iter',"Max iterations",[30,50,100,1000]),
-    TDLOption('solver_convergence_quota',"Convergence quota",[.8,.9,1.]) \
+    TDLOption(optionset+'debug_level',"Solver debug level",[0,1,10],namespace=namespace),
+    TDLOption(optionset+'colin_factor',"Collinearity factor",[1e-8,1e-6,1e-3,1e-1],default=1,more=float,namespace=namespace),
+    TDLOption(optionset+'lm_factor',"Initial LM factor",[1,.1,.01,.001],default=2,more=float,namespace=namespace),
+    TDLOption(optionset+'balanced_equations',"Assume balanced equations",False,namespace=namespace),
+    TDLOption(optionset+'epsilon',"Convergence threshold",[.01,.001,.0001,1e-5,1e-6],default=2,more=float,namespace=namespace),
+    TDLOption(optionset+'num_iter',"Max iterations",[30,50,100,1000],default=0,more=int,namespace=namespace),
+    TDLOption(optionset+'convergence_quota',"Subtiling convergence quota",[.8,.9,1.],namespace=namespace) \
   ];
 
 def parameter_options ():
   return [
-    TDLOption('use_previous',"Reuse solution from previous time interval",False,
+    TDLOption('use_previous',"Reuse solution from previous time interval",True,
     doc="""If True, solutions for successive time domains will start with
   the solution for a previous domain. Normally this speeds up convergence; you
   may turn it off to re-test convergence at each domain."""),
-    TDLOption('use_mep',"Reuse solutions from MEP table",False,
+    TDLOption('use_mep',"Reuse solutions from MEP table",True,
     doc="""If True, solutions from the MEP table (presumably, from a previous
   run) will be used as starting points. Turn this off to solve from scratch.""")
  ];
 
-def create_solver_defaults(solvable=[]):
-  solver_defaults = record()
-  solver_defaults.num_iter      = solver_num_iter
-  solver_defaults.epsilon       = solver_epsilon
-  solver_defaults.epsilon_deriv = solver_epsilon
-  solver_defaults.lm_factor     = solver_lm_factor
-  solver_defaults.convergence_quota = solver_convergence_quota
-  solver_defaults.balanced_equations = solver_balanced_equations
-  solver_defaults.debug_level   = solver_debug_level;
-  solver_defaults.save_funklets = True
-  solver_defaults.last_update   = True
-  solver_defaults.solvable      = record(command_by_list=(record(name=solvable,
-                                       state=record(solvable=True)),
-                                       record(state=record(solvable=False))))
+def create_solver_defaults (solvables,options=None):
+  global _solver_opts;
+  opts = dict(_solver_opts);
+  if options:
+    opts.update(options);
+  print options;
+  # copy all options into solver defaults with the same name
+  solver_defaults = record(**options);
+  # additionally, set epsilon_deriv
+  solver_defaults.epsilon_deriv      = opts["epsilon"];
+  solver_defaults.save_funklets    = True
+  solver_defaults.last_update      = True
+  solver_defaults.solvable         = record(command_by_list=(record(name=solvables,
+                                            state=record(solvable=True)),
+                                            record(state=record(solvable=False))))
   return solver_defaults
 
 def set_node_state (mqs,node,fields_record):
@@ -137,6 +190,11 @@ def create_inputrec (tiling=None):
     else:  
       rec.tile_size = tiling;
     rec.selection = ms_selection or record();
+    if ms_channels is not None:
+      rec.selection.channel_start_index = ms_channels[0];
+      rec.selection.channel_end_index = ms_channels[1];
+      if len(ms_channels) > 2:
+        rec.selection.channel_increment = ms_channels[2];
     rec = record(ms=rec);
   rec.python_init = 'Meow.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
@@ -215,10 +273,11 @@ def reset_parameters (mqs,solvables,value=None,use_table=False,reset=False):
       use_previous=use_previous,reset_funklet=reset_funklet));
   return solvables;
 
-def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisDataMux"):
+def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisDataMux",
+                   options=None):
   """common helper method to run a solution with a bunch of solvables""";
   # set solvables list in solver
-  solver_defaults = create_solver_defaults(solvable=solvables)
+  solver_defaults = create_solver_defaults(solvables,options=options)
   set_node_state(mqs,solver_node,solver_defaults)
 
   req = create_io_request(tiling);
@@ -226,7 +285,7 @@ def run_solve_job (mqs,solvables,tiling=None,solver_node="solver",vdm_node="VisD
   mqs.execute(vdm_node,req,wait=False);
   pass
   
-def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None):
+def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None,**kw):
   """Runs glish script to make an image
   npix is image size, in pixels
   cellsize is pixel size, as an aips++ Measures string (e.g. "0.5arcsec")
@@ -238,13 +297,25 @@ def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None):
   if not msname:
     raise ValueError,"make_dirty_image: MS not set up";
   npix = (npix or imaging_npix);
+  arcmin = (arcmin or imaging_arcmin);
   if arcmin is not None:
-    if cellsize is not None:
-      raise ValueError,"make_dirty_image: can't specify both 'cellsize' and 'arcmin'";
     cellsize = str(float(arcmin*60)/npix)+"arcsec";
   import os
   import os.path
-  (nchan,chanstart,chanstep) = (channels or imaging_channels);
+  # if explicit channels are specified, use them 
+  if channels:
+    nchan,chanstart,chanstep = channels;
+  # else if MS channels were specified use them
+  elif ms_channels and not imaging_channels_specified:
+    nchan = ms_channels[1]-ms_channels[0]+1;
+    chanstart = ms_channels[0]+1;
+    if len(ms_channels) > 2:
+      chanstep = ms_channels[2];
+    else:
+      chanstep = 1;
+  # else use the imaging_channels option
+  else:
+    nchan,chanstart,chanstep = imaging_channels;
   script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
   script_name = os.path.realpath(script_name);  # glish don't like symlinks...
   args = [ 'glish','-l',

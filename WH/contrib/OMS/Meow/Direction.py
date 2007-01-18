@@ -10,19 +10,12 @@ class Direction (Parameterization):
   else MeqParms.
   """;
   def __init__(self,ns,name,ra,dec,
-               constant=False,
-               parm_options=record(node_groups='Parm'),
                quals=[],kwquals={}):
-    Parameterization.__init__(self,ns,name,parm_options=parm_options,
+    Parameterization.__init__(self,ns,name,
                               quals=quals,kwquals=kwquals);
-    self._constant = constant;
     self._jones = [];
-    if constant:
-      self._ra = self._const_node('ra',ra);
-      self._dec = self._const_node('dec',dec);
-    else:
-      self._create_polc('ra',ra);
-      self._create_polc('dec',dec);
+    self._ra = self._parm('ra',ra,tags="direction");
+    self._dec = self._parm('dec',dec,tags="direction");
       
   def add_jones (self,kind,jones,directional=False):
     """Associates a Jones matrix with this direction.
@@ -40,10 +33,7 @@ class Direction (Parameterization):
     """;
     radec = self.ns.radec;
     if not radec.initialized():
-      if self._constant:
-        radec << Meq.Composer(self._ra,self._dec);
-      else:
-        radec << Meq.Composer(self._parm("ra"),self._parm("dec"));
+      radec << Meq.Composer(self._ra,self._dec);
     return radec;
     
   def lmn (self,radec0):
@@ -87,7 +77,6 @@ class Direction (Parameterization):
   def _same_as (self,radec0):
     """Returns True if this direction is same as radec0""";
     return self.radec(radec0) is radec0;
-    
     
   def KJones (self,array,radec0):
     """makes and returns a series of Kjones (phase shift) nodes

@@ -21,6 +21,7 @@ else:
   from PointSource import PointSource
   from SixpackComponent import SixpackComponent
   from SkyComponent import SkyComponent
+  from Parm import Parm
   
   import Bookmarks
   import Utils
@@ -37,5 +38,5 @@ else:
               Patch,
               PointSource,
               SixpackComponent,
-              SkyComponent,
+              SkyComponent
   ];

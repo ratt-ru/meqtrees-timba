@@ -2,40 +2,38 @@ import math
 from Timba.TDL import *
 from Timba.Meq import meq
 from PointSource import *
+import Context
   
 STOKES = ("I","Q","U","V");
 
 class GaussianSource(PointSource):
   def __init__(self,ns,name,direction,
-               I=0.0,Q=0.0,U=0.0,V=0.0,
-               Iorder=0,Qorder=0,Uorder=0,Vorder=0,
-               spi=0.0,freq0=None,
-               size=None,phi=0,symmetric=False,
-               parm_options=record(node_groups='Parm')):
+               I=0.0,Q=None,U=None,V=None,
+               spi=None,freq0=None,
+               RM=None,
+               size=None,phi=0,symmetric=False):
     PointSource.__init__(self,ns,name,direction,I,Q,U,V,
-                Iorder,Qorder,Uorder,Vorder,
-                spi,freq0,
-                parm_options=parm_options);
+                        spi,freq0,RM);
     # create polc(s) for size
     self._symmetric = symmetric;
     if symmetric:
-      self._create_polc('sigma',size);
+      self._add_parm('sigma',size,tags='shape');
     else:
+      # setup orientation
+      # note: the orientation angle, phi, of the major axis
+      # is defined in the direction East through South; i.e.
+      # an angle of zero defines a Gaussian oriented east-west
+      self._add_parm('phi',phi,tags='shape');
       if isinstance(size,(int,float)):
         s1 = s2 = size;
       elif isinstance(size,(tuple,list)):
         if len(size) != 2:
-          raise TypeError,"size: two numeric values expected";
+          raise TypeError,"size: one or two numeric values expected";
         s1,s2 = size;
       else:
-        raise TypeError,"size: two numeric values expected";
-      self._create_polc('sigma1',s1);
-      self._create_polc('sigma2',s2);
-    # setup orientation
-    # note: the orientation angle, phi, of the major axis
-    # is defined in the direction East through South; i.e.
-    # an angle of zero defines a Gaussian oriented east-west
-    self._create_polc('phi',phi);
+        raise TypeError,"size: one or two numeric values expected";
+      self._add_parm('sigma1',s1,tags="shape");
+      self._add_parm('sigma2',s2,tags="shape");
     
   def is_symmetric (self):
     return self._symmetric;
@@ -54,6 +52,11 @@ class GaussianSource(PointSource):
     return self._parm("phi");
     
   def transformation_matrix (self):
+    # for a symmetric case, the transformation matrix is just multiplication 
+    # by sigma
+    if self.is_symmetric():
+      return self._parm("sigma");
+    # else build up full rotation-scaling matrix
     xfm = self.ns.xfmatrix;
     if not xfm.initialized():
       phi = self.phi();
@@ -61,17 +64,17 @@ class GaussianSource(PointSource):
       cos_phi = self.ns.cos_phi << Meq.Cos(phi);
       sin_phi = self.ns.sin_phi << Meq.Sin(phi);
       # get sigma parameters
-      if self.is_symmetric():
-        sigma = self._parm("sigma");
-        (a,b) = (sigma,sigma);
-      else:
-        (a,b) = (self._parm("sigma1"),self._parm("sigma2"));
+      (a,b) = (self._parm("sigma1"),self._parm("sigma2"));
       xfm << Meq.Matrix22(
           a*cos_phi,Meq.Negate(a*sin_phi),
           b*sin_phi,b*cos_phi);
     return xfm;
 
   def make_visibilities (self,nodes,array,observation):
+    array = array or Context.array;
+    observation = observation or Context.observation;
+    if not array or not observation:
+      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
     radec0 = observation.radec0();
     # 1/wl = freq/c
     iwl = self.ns0.inv_wavelength << ((self.ns0.freq<<Meq.Freq) / 2.99792458e+8);
@@ -82,7 +85,7 @@ class GaussianSource(PointSource):
     # baseline UVs
     uv_ifr = array.uv_ifr(radec0);
     # rotation matrix
-    xfm = self.transformation_matrix();\
+    xfm = self.transformation_matrix();
     # flux scale -- coherency multiplied by scale constant above
     fluxscale = self.ns.fluxscale.qadd(radec0()) \
           << self.coherency(observation) * gscale;

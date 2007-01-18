@@ -2,21 +2,21 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Parameterization import *
 from Direction import *
+import Context
 
 class SkyComponent (Parameterization):
   """A SkyComponent represents an abstract sky model element.
   SkyComponents have an name and an associated direction.
   """;
-  def __init__(self,ns,name,direction,
-               parm_options=record(node_groups='Parm')):
-    Parameterization.__init__(self,ns,name,parm_options=parm_options);
+  def __init__(self,ns,name,direction):
+    Parameterization.__init__(self,ns,name);
     if isinstance(direction,Direction):
       self.direction = direction;
     else:
       if not isinstance(direction,(list,tuple)) or len(direction) != 2:
         raise TypeError,"direction: Direction object or (ra,dec) tuple expected";
       ra,dec = direction;
-      self.direction = Direction(ns,name,ra,dec,parm_options=parm_options);
+      self.direction = Direction(ns,name,ra,dec);
     
   def radec (self,radec0=None):
     """Returns ra-dec two-pack for this component's direction""";
@@ -34,13 +34,21 @@ class SkyComponent (Parameterization):
     """;
     raise TypeError,type(self).__name__+".make_visibilities() not defined";
     
-  def visibilities  (self,array,observation,nodes=None):
+  def visibilities  (self,array=None,observation=None,nodes=None):
     """Creates nodes computing visibilities of component.
-    If nodes=None, creates nodes as ns.visibility:'name', with extra
-    qualifiers from observation.radec0(), otherwise uses 'nodes' directly. 
-    Actual nodes are then created as node(name,sta1,sta2) for all array.ifrs().
-    Returns partially qualified visibility node which must be qualified 
-    with an (sta1,sta2) pair.""";
+    'array' is an IfrArray object, or None if the global context is to be used.
+    'observation' is an Observation object, or None if the global context is 
+      to be used.
+    If 'nodes' is None, creates visibility nodes as ns.visibility(name,...,p,q), 
+    where '...' are any extra qualifiers from observation.radec0().
+    Otherwise 'nodes' is supposed to refer to an unqualified node, and 
+    visibility nodes are created as nodes(p,q).
+    Returns the actual unqualified visibility node that was created, i.e. 
+    either 'nodes' itself, or the automatically named nodes""";
+    array = array or Context.array;
+    observation = observation or Context.observation;
+    if not array or not observation:
+      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
     if nodes is None:
       nodes = self.ns.visibility.qadd(observation.radec0());
     if not nodes(*(array.ifrs()[0])).initialized():

@@ -23,12 +23,12 @@ class SixpackComponent (SkyComponent):
   
   def __init__(self,ns,name,direction=None,fluxscale=None):
     # if a direction is not supplied, use the built-in sixpack's direction
-    if direction is not None:
+    if direction is None:
       direction = self.SixpackDirection(ns,name,self);
     SkyComponent.__init__(self,ns,name,direction);
     # setup various options
     if fluxscale:
-      self._fluxscale = self._parm("fluxscale",float(fluxscale));
+      self._fluxscale = self._add_parm("fluxscale",float(fluxscale),tags="flux");
     else:
       self._fluxscale = None;
     self._fft_pad_factor = 1.0;
