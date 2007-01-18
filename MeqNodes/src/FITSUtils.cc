@@ -1277,6 +1277,9 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
           fits_update_key(outfptr, TDOUBLE, keyname,&refval[jj],0,&status);
           snprintf(keyname,keynamelen,"CDELT%ld",jj+1);
           fits_update_key(outfptr, TDOUBLE, keyname,&refdel[jj],0,&status);
+          snprintf(keyname,keynamelen,"CUNIT%ld",jj+1);
+          snprintf(keycomm,keycommlen,"deg");
+          fits_update_key(outfptr, TSTRING, keyname,keycomm,0,&status);
          }
         }
        } else { /* complex data */
@@ -1299,6 +1302,9 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
           fits_update_key(outfptr, TDOUBLE, keyname,&refval[jj],0,&status);
           snprintf(keyname,keynamelen,"CDELT%ld",jj+1);
           fits_update_key(outfptr, TDOUBLE, keyname,&refdel[jj],0,&status);
+          snprintf(keyname,keynamelen,"CUNIT%ld",jj+1);
+          snprintf(keycomm,keycommlen,"deg");
+          fits_update_key(outfptr, TSTRING, keyname,keycomm,0,&status);
          }
         }
        }
