@@ -37,10 +37,11 @@ def help ():
 
 
 
-def include_TDL_options(menuname='WSRT Jones (corruption)'):
+def include_TDL_options(prompt='instr.model'):
     """Definition of variables that the user may set in the browser TDL options menu.
     These values are picked up by the function .Joneseq22() in this module."""
     joneseq = ['G','GD','D','GDF','J','E','B']
+    menuname = 'WSRT_Jones ('+str(prompt)+')'
     TDLCompileMenu(menuname,
                    TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
                    TDLOption('TDL_D_coupled_dang',"DJones: coupled (dangX=dangY)", [True, False]),
@@ -51,7 +52,7 @@ def include_TDL_options(menuname='WSRT Jones (corruption)'):
 
 
 
-def Joneseq22(ns, stations, simulate=False):
+def Joneseq22(ns, stations, simulate=False, **pp):
     """Return a Jonest22 object that contains a set of Jones matrices for
     the given stations. The Jones matrices are the matrix product of a
     sequence of WSRT Jones matrices that are defined in this module.
@@ -61,23 +62,29 @@ def Joneseq22(ns, stations, simulate=False):
     - If simulate==True, the Jones matrices do not contain MeqParms,
     but subtrees that simulate MeqParm values that change with time etc."""
 
+    if not isinstance(pp, dict): pp = dict()
+    pp.setdefault('joneseq',TDL_joneseq)
+    pp.setdefault('D_coupled_dell',TDL_D_coupled_dell)
+    pp.setdefault('D_coupled_dang',TDL_D_coupled_dang)
+    pp.setdefault('J_diagonal',TDL_J_diagonal)
+
     # First make a sequence (list) of Joneset22 objects:
     jseq = []
-    for c in TDL_joneseq:
+    for c in pp['joneseq']:
         if c=='G':
             jseq.append(GJones(ns, stations=stations,
                                simulate=simulate))
         elif c=='D':
             jseq.append(DJones(ns, stations=stations,
-                               coupled_dell=TDL_D_coupled_dell,
-                               coupled_dang=TDL_D_coupled_dang,
+                               coupled_dell=pp['D_coupled_dell'],
+                               coupled_dang=pp['D_coupled_dang'],
                                simulate=simulate))
         elif c=='F':
             jseq.append(FJones(ns, stations=stations,
                                simulate=simulate))
         elif c=='J':
             jseq.append(JJones(ns, stations=stations,
-                               diagonal=TDL_J_diagonal,
+                               diagonal=pp['J_diagonal'],
                                simulate=simulate))
         elif c=='E':
             jseq.append(EJones(ns, stations=stations,
@@ -89,7 +96,7 @@ def Joneseq22(ns, stations, simulate=False):
             raise ValueError,'WSRT jones matrix not recognised: '+str(c)
 
     # Then matrix-multiply them into a single Joneset22 object:
-    # NB: Its ParmGroupManager contains all information (parmgroups)
+    # NB: Its ParmGroupManager will contain all information (parmgroups)
     #     from those of the contributing Joneset22 objects.
     jones = Joneset22.Joneseq22(jseq)
     return jones
@@ -99,24 +106,31 @@ def Joneseq22(ns, stations, simulate=False):
 
 #=================================================================================================
 
-def parmgogs():
-    """Collect groups of parmgroups (parmgogs) to be selected for solving"""
+def parmgroups(full=False):
+    """Return the available groups of MeqParms from this Jones module"""
     pg = ['*']
-    pg.extend(['GJones','Gphase','Ggain']) 
-    pg.extend(['DJones','Ddang','Ddell','Dpzd'])
-    pg.extend(['FJones','Frm'])
-    pg.extend(['JJones','Jdiag','Joffdiag'])
+    pg.extend(GJones_parmgroups(full=full)) 
+    pg.extend(DJones_parmgroups(full=full)) 
+    pg.extend(FJones_parmgroups(full=full)) 
+    pg.extend(JJones_parmgroups(full=full)) 
+    # pg.extend(EJones_parmgroups(full=full)) 
+    # pg.extend(BJones_parmgroups(full=full))
     pg.append(['GJones','DJones'])
     pg.append(['GJones','DJones','FJones'])
     pg.append(['DJones','FJones'])
-    # pg.extend(['BJones'])
-    # pg.extend(['EJones'])
     return pg
 
 
 #=================================================================================================
 # Definition of WSRT Jones matrices:
 #=================================================================================================
+
+def GJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['GJones','Gphase','Ggain'] 
+    if full: pg.extend(['GphaseX','GgainX','GphaseY','GgainY']) 
+    return pg
+
 
 class GJones (Joneset22.GJones):
     """Class that represents a set of 2x2 WSRT GJones matrices,
@@ -136,6 +150,12 @@ class GJones (Joneset22.GJones):
 
 #--------------------------------------------------------------------------------------------
 
+def JJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['JJones','Jdiag','Joffdiag']
+    return pg
+
+
 class JJones (Joneset22.JJones):
     """Class that represents a set of 2x2 WSRT JJones matrices.
     Each of the 4 complex elements of a station Jones matrix
@@ -154,6 +174,14 @@ class JJones (Joneset22.JJones):
 
 
 #--------------------------------------------------------------------------------------------
+
+def FJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['FJones','Frm']
+    return pg
+
+
+
 class FJones (Joneset22.FJones):
     """Class that represents a set of 2x2 WSRT FJones matrices.
     For the moment, the ionospheric Faraday rotation is assumed
@@ -172,10 +200,21 @@ class FJones (Joneset22.FJones):
 
 
 #--------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------
+
+def BJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['BJones'] 
+    return pg
 
 
 #--------------------------------------------------------------------------------------------
+
+
+def DJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['DJones','Ddang','Ddell','Dpzd']
+    return pg
+
 
 class DJones (Joneset22.Joneset22):
     """Class that represents a set of 2x2 WSRT DJones matrices.
@@ -280,6 +319,11 @@ class DJones (Joneset22.Joneset22):
 #--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
+
+def EJones_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = ['EJones'] 
+    return pg
 
 class EJones (Joneset22.Joneset22):
     """Class that represents a set of 2x2 WSRT EJones matrices,

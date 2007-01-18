@@ -55,7 +55,7 @@ TDLCompileMenu(menuname,
                TDLOption('TDL_RM','Intrinsic Rotation Measure (rad/m2)',[None, 0.0, 1.0], more=float),
                );
 
-WSRT_Jones.include_TDL_options('WSRT Jones (corruption)')
+WSRT_Jones.include_TDL_options('corruption')
 
 TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',[0.0, 0.0001, 0.001, 0.01,0.1,1.0], more=float);
 TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);

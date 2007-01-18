@@ -83,13 +83,11 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def ifrs (self, select='all'):
         """Get a selection of self._array.ifrs()"""
-        return self.indices()                        # Meow IfrArray.ifrs()
+        return self.indices()                        # = Meow IfrArray.ifrs()
 
 
     #--------------------------------------------------------------------------
     # Operations on the internal self._matrixet:
-    #--------------------------------------------------------------------------
-
     #--------------------------------------------------------------------------
 
     def make_spigots (self, input_col='DATA',

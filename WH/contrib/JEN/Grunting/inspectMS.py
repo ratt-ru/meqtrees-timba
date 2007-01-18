@@ -61,6 +61,17 @@ def _define_forest (ns):
     # Insert array configuration visualisation here.....?
     # Keep the relevant functions in this script?
 
+    # closure phase
+
+    # autocorrelations
+
+    # select ifrs
+
+    # simulate rain effects (grounf reflectivity)
+
+    # redundancy tables (CS1, WSRT)
+
+    # All kinds of differences (show_timetracks)
 
     # Finished:
     if TDL_display_Visset22: data.display(full=True)

@@ -17,6 +17,7 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.Grunt import Qualifiers
 from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
+from Timba.Contrib.JEN.Grunt import Condexet22          # temporary
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -152,6 +153,20 @@ class Matrixet22 (object):
         list/tuple indices (i.e. for ifrs). This allows node indexing by (*i)...."""
         return self._list_indices
 
+    def plot_labels(self):
+        """Return a list of plot-labels, one per matrix. See show_timetracks()."""
+        ss = []
+        for i in self.list_indices():
+            if len(i)==1:
+                ss.append(str(i[0]))                             # e.g. station nrs (4)
+            elif len(i)==2:
+                ss.append(str(i[0])+'-'+str(i[1]))               # e.g. ifrs (4-7)
+            elif len(i)==3:
+                ss.append(str(i[0])+'-'+str(i[1])+'-'+str(i[2])) # ....?
+            else:
+                ss.append(str(i))                                # the list itself: ([5,6,89,3])
+        return ss
+
     def len(self):
         """Return the 'length' of the object, i.e. the number of matrices"""
         return len(self._indices)
@@ -188,7 +203,7 @@ class Matrixet22 (object):
         #     It should be re-implemented in a derived class.
         return True
 
-    def display(self, txt=None, full=False):
+    def display(self, txt=None, full=False, recurse=3):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -205,10 +220,12 @@ class Matrixet22 (object):
         print ' * Available list_indices ('+str(self.len())+'): ',
         if self.len()<30:
             print str(self.list_indices())
+            print ' * Plot_labels: '+str(self.plot_labels())
         else:
             print '\n   '+str(self.list_indices())
         #...............................................................
-        print ' * Available 2x2 matrices ('+str(self.len())+'): '
+        print ' * Available matrices:'
+        print ' * matrixet: '+str(self._matrixet)+')'
         if self._matrixet:
             ii = self.list_indices()
             if len(ii)<10:
@@ -224,7 +241,7 @@ class Matrixet22 (object):
             node = self.matrixet()(*self.list_indices()[0])
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
-                                                 recurse=3)
+                                                 recurse=recurse)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup/NodeGog objects ('+str(ntot)+'): '
@@ -471,6 +488,7 @@ class Matrixet22 (object):
             cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
         name = 'timetracks'
         coll = self._ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
+                                                          plot_label=plot_labels(),
                                                           children=cc)
         JEN_bookmarks.create(coll, self.label(),
                              viewer='Collections Plotter',
@@ -499,12 +517,15 @@ class Matrixet22 (object):
         keys = deepcopy(matrel)
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
         if not isinstance(keys,(list,tuple)): keys = [keys]
+        plot_labels = self.plot_labels()
         for key in keys:  
             cc = self.matrix_element(key, qual=qual, return_nodes=True)
             for i in range(len(cc)):
                 cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'timetracks_'+key
-            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)], children=cc)
+            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
+                                                              plot_label=plot_labels,
+                                                              children=cc)
             JEN_bookmarks.create(coll, self.label()+key,
                                  viewer='Collections Plotter',
                                  page=bookpage, folder=folder)
@@ -625,9 +646,13 @@ class Matrixet22 (object):
         #===================================================
 
         # Make a list of condeq nodes:
-        condeq_copy = self.copy()
-        condeqs = condeq_copy.make_condeqs (other, matrel=matrel,
-                                            qual=qual, replace=True)
+        if True:
+            cdx = Condexet22.Condexet22(self._ns, lhs=self, rhs=other)
+            condeqs = cdx.make_condeqs (matrel=matrel, qual=qual)
+        else:
+            cdx = self.copy()
+            condeqs = cdx.make_condeqs (other, matrel=matrel,
+                                        qual=qual, replace=True)
 
 
         # Create the solver:
@@ -667,7 +692,7 @@ class Matrixet22 (object):
             condequal.insert(0,'condeq'+pg_concat)
         elif isinstance(qual,str):
             condequal = [condequal,qual]
-        dcoll = condeq_copy.visualize(condequal, matrel=matrel, bookpage=bookpage)
+        dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage)
         # JEN_bookmarks.create(dcoll, page=bookpage)
         cc.append(dcoll)
 
@@ -746,9 +771,8 @@ def _define_forest(ns):
     mat2.visualize()
     mat2.display(full=True)
 
-    if False:
-        reqseq = mat1.make_solver(mat2)
-        # cc.append(reqseq)
+    if True:
+        mat1.make_solver(mat2)
 
     aa = mat1.accumulist()
     aa.extend(mat2.accumulist())

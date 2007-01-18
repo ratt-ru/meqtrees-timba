@@ -36,13 +36,13 @@ from Timba.Contrib.JEN.Grunt import ParmGroupManager
 
 #======================================================================================
 
-def include_TDL_options(menuname="PointSource22 definition"):
+def include_TDL_options(prompt='definition'):
     """Instantiates user options for the meqbrouwser"""
     predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
     predefined.extend(['3c147','3c286'])
     predefined.append(None)
+    menuname = 'PointSource22 ('+prompt+')'
     TDLCompileMenu(menuname,
-                   TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
                    TDLOption('TDL_predefined',"predefined source",predefined),
                    TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
                    TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
@@ -51,6 +51,7 @@ def include_TDL_options(menuname="PointSource22 definition"):
                    TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
                    TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
                    TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
+                   TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
                    );
     return True
 
@@ -60,114 +61,50 @@ def include_TDL_options(menuname="PointSource22 definition"):
 class PointSource22 (Meow.PointSource):
     """A Meow.PointSource with some extra features"""
 
-    def __init__(self, ns, name='<ps>', direction=None,
-                 I=1.0, Q=None, U=None, V=None,
-                 Iorder=0, Qorder=0, Uorder=0, Vorder=0,
-                 spi=0.0, freq0=None, RM=None,
+    def __init__(self, ns, direction=None,
+                 # I=1.0, Q=None, U=None, V=None,
+                 # Iorder=0, Qorder=0, Uorder=0, Vorder=0,
+                 # spi=0.0, freq0=None, RM=None,
                  parm_options=record(node_groups='Parm'),
-                 predefined=None,
                  simulate=False, **pp):
 
-        if False:
-            # This is the beginning of a 'closed circuit', in which the
-            # (locally global) variables are used that are defined in the
-            # .include_TDL_options() function above. That is nice in
-            # principle, but it means that only one instance of this class
-            # can be defined per TDL module. That is a bit limiting....
-            # So, for the moment, we do it the old way.
-            if not isinstance(pp, dict): pp = dict()
-            pp.setdefault('predefined', TDL_predefined)
-            pp.setdefault('I', TDL_StokesI)
-            pp.setdefault('Q', TDL_StokesQ)
-            pp.setdefault('U', TDL_StokesU)
-            pp.setdefault('V', TDL_StokesV)
-            pp.setdefault('spi', TDL_spi)
-            pp.setdefault('freq0', TDL_freq0)
-            pp.setdefault('RM', TDL_RM)
+        # Deal with input parameters:
+        if not isinstance(pp, dict): pp = dict()
+        pp.setdefault('predefined', TDL_predefined)
+        pp.setdefault('I', TDL_StokesI)
+        pp.setdefault('Q', TDL_StokesQ)
+        pp.setdefault('U', TDL_StokesU)
+        pp.setdefault('V', TDL_StokesV)
+        pp.setdefault('Iorder', 0)
+        pp.setdefault('Qorder', 0)
+        pp.setdefault('Uorder', 0)
+        pp.setdefault('Vorder', 0)
+        pp.setdefault('spi', TDL_spi)
+        pp.setdefault('freq0', TDL_freq0)
+        pp.setdefault('RM', TDL_RM)
+        pp.setdefault('name', TDL_source_name)
+        self._pp = pp
 
         # Some non-Meow attributes
-        self._name = name
-        self._predefined = predefined
         self._simulate = simulate
 
-        # A small number of predefined sources is available:
-        if isinstance(predefined, str):
-            self._name = predefined
-            if (predefined=='unpol'):
-                I = 1.0
-            elif (predefined=='unpol2'):
-                I = 2.0
-            elif (predefined=='unpol10'):
-                I = 10.0
-            elif (predefined=='Qonly'):
-                Q = 0.1
-            elif (predefined=='Uonly'):
-                U = -0.1
-            elif (predefined=='Vonly'):
-                V = 0.02                            
-            elif (predefined=='QU'):
-                Q = 0.1
-                U = -0.1
-            elif (predefined=='QUV'):
-                Q = 0.1
-                U = -0.1
-                V = 0.02
-            elif (predefined=='D1'):          # D1.MS 
-                I = 11.0
-                Q = 0.1
-                U = -0.1
-                RA = 1.49488454017
-                Dec = 0.870081695897
-            elif (predefined=='QU2'):
-                I = 2.0
-                Q = 0.4
-                U = -0.3
-            elif (predefined=='RMtest'):
-                RM = 1.0
-                Q = 0.1
-                U = -0.1
-            elif (predefined=='SItest'):
-                spi = -0.7
-
-            # The following are not yet implemented:
-            # (vector SI are not yet supported by Meow)
-            elif True:
-                raise ValueError,'predefined not recognised: '+str(predefined)
-            elif (predefined=='I0polc'):
-                I0 = array([[2,-.3,.1],[.3,-.1,0.03]]),
-            elif predefined=='3c147':
-                I0 = 10**1.766
-                SI = [0.447, -0.184]
-            elif (predefined=='3c48'):
-                I0 = 10**2.345
-                SI = [0.071, -0.138]
-            elif (predefined=='3c286'): 
-                I0 = 10**1.48
-                SI = [0.292, -0.124]
-                # Q = [2.735732, -0.923091, 0.073638]         # <-----
-                # U = [6.118902, -2.05799, 0.163173]          # <-----
-            elif (predefined=='3c295'):
-                I0 = 10**1.485
-                SI = [0.759, -0.255]
-
-            elif True:
-                raise ValueError,'predefined not recognised: '+str(predefined)
+        # Make a predefined source, if required:
+        self.predefine(pp)
 
         # Used for .oneliner() and .display():
-        self._IQUV = [I,Q,U,V]
-        self._spi = spi
+        self._IQUV = [pp['I'],pp['Q'],pp['U'],pp['V']]
 
         # Initialise its Meow counterpart:
-        Meow.PointSource.__init__(self, ns=ns, name=self._name,
-                                  I=I, Q=Q, U=U, V=V,
-                                  Iorder=Iorder, Qorder=Qorder,
-                                  Uorder=Uorder, Vorder=Vorder,
-                                  spi=spi, freq0=freq0, RM=RM,
+        Meow.PointSource.__init__(self, ns=ns, name=pp['name'],
+                                  I=pp['I'], Q=pp['Q'], U=pp['U'], V=pp['V'],
+                                  Iorder=pp['Iorder'], Qorder=pp['Qorder'],
+                                  Uorder=pp['Uorder'], Vorder=pp['Vorder'],
+                                  spi=pp['spi'], freq0=pp['freq0'], RM=pp['RM'],
                                   direction=direction,
                                   parm_options=parm_options)
 
         # Create a Grunt ParmGroupManager object:
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name,
+        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=pp['name'],
                                                       # quals=self.quals(),
                                                       simulate=self._simulate)
         # Some placeholders:
@@ -181,15 +118,15 @@ class PointSource22 (Meow.PointSource):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
-        ss += '  '+str(self._name)
-        ss += '  '+str(self._predefined)
+        ss += '  '+str(self._pp['name'])
+        ss += '  '+str(self._pp['predefined'])
         ss += '  '+str(self._IQUV)
-        if self._spi:
-            ss += '  (spi='+str(self._spi)+')'
-        if self._freq0:
-            ss += '  (f0='+str(self._freq0)+')'
-        if self._rm:
-            ss += '  (RM='+str(self._rm)+')'
+        if self._pp['spi']:
+            ss += '  (spi='+str(self._pp['spi'])+')'
+        if self._pp['freq0']:
+            ss += '  (f0='+str(self._pp['freq0'])+')'
+        if self._pp['RM']:
+            ss += '  (RM='+str(self._pp['RM'])+')'
         return ss
 
 
@@ -198,10 +135,88 @@ class PointSource22 (Meow.PointSource):
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
+        for key in self._pp.keys():
+            print '  - pp['+key+'] = '+str(self._pp[key])
         print '**\n'
         return True
 
+    #--------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
 
+    def predefine(self, pp):
+        """Modify the parameters in pp if a predefined source has been spefiied"""
+        # A small number of predefined sources is available:
+
+        if not isinstance(pp['predefined'], str):
+            return True                        # not required
+
+        self._pp['name'] = pp['predefined']
+
+        if (pp['predefined']=='unpol'):
+            pp['I'] = 1.0
+        elif (pp['predefined']=='unpol2'):
+            pp['I'] = 2.0
+        elif (pp['predefined']=='unpol10'):
+            pp['I'] = 10.0
+        elif (pp['predefined']=='Qonly'):
+            pp['Q'] = 0.1
+        elif (pp['predefined']=='Uonly'):
+            pp['U'] = -0.1
+        elif (pp['predefined']=='Vonly'):
+            pp['V'] = 0.02                            
+        elif (pp['predefined']=='QU'):
+            pp['Q'] = 0.1
+            pp['U'] = -0.1
+        elif (pp['predefined']=='QUV'):
+            pp['Q'] = 0.1
+            pp['U'] = -0.1
+            pp['V'] = 0.02
+        elif (pp['predefined']=='D1'):          # D1.MS 
+            pp['I'] = 11.0
+            pp['Q'] = 0.1
+            pp['U'] = -0.1
+            RA = 1.49488454017
+            Dec = 0.870081695897
+        elif (pp['predefined']=='QU2'):
+            pp['I'] = 2.0
+            pp['Q'] = 0.4
+            pp['U'] = -0.3
+        elif (pp['predefined']=='RMtest'):
+            RM = 1.0
+            pp['Q'] = 0.1
+            pp['U'] = -0.1
+        elif (pp['predefined']=='SItest'):
+            pp['spi'] = -0.7
+            
+            # The following are not yet implemented:
+            # (vector SI are not yet supported by Meow)
+        elif True:
+            raise ValueError,'predefined not recognised: '+str(pp['predefined'])
+
+        elif (pp['predefined']=='I0polc'):
+            I0 = array([[2,-.3,.1],[.3,-.1,0.03]]),
+        elif pp['predefined']=='3c147':
+            I0 = 10**1.766
+            pp['SI'] = [0.447, -0.184]
+        elif (pp['predefined']=='3c48'):
+            I0 = 10**2.345
+            pp['SI'] = [0.071, -0.138]
+        elif (pp['predefined']=='3c286'): 
+            I0 = 10**1.48
+            pp['SI'] = [0.292, -0.124]
+            # pp['Q'] = [2.735732, -0.923091, 0.073638]         # <-----
+            # pp['U'] = [6.118902, -2.05799, 0.163173]          # <-----
+        elif (pp['predefined']=='3c295'):
+            I0 = 10**1.485
+            pp['SI'] = [0.759, -0.255]
+            
+        elif True:
+            raise ValueError,'predefined not recognised: '+str(pp['predefined'])
+
+        return True
+
+
+    #--------------------------------------------------------------------------
     #--------------------------------------------------------------------------
 
     def Visset22 (self, array, observation, name=None, visu=False):
@@ -213,7 +228,7 @@ class PointSource22 (Meow.PointSource):
             # Make the Visset22:
             # NB: Use the ORIGINAL nodescope (self.ns0), not the Qualscope (self.ns)
             #     See Meow.Parametrization.py
-            if not name: name = self._name
+            if not name: name = self._pp['name']
             self._Visset22 = Visset22.Visset22 (self.ns0, quals=[], label=name,
                                                 polrep=polrep, simulate=self._simulate,
                                                 array=array, observation=observation)
@@ -242,7 +257,7 @@ class PointSource22 (Meow.PointSource):
 # Test routine (with meqbrowser):
 #===============================================================
 
-# include_TDL_options()
+# include_TDL_options('test')
 
 def _define_forest(ns):
 
@@ -253,10 +268,12 @@ def _define_forest(ns):
     array = Meow.IfrArray(ns,ANTENNAS)
     observation = Meow.Observation(ns)
     direction = Meow.LMDirection(ns, TDL_source_name, l=1.0, m=1.0)
-    ps = PointSource22 (ns, name=TDL_source_name, predefined=TDL_predefined,
-                        I=TDL_StokesI, Q=TDL_StokesQ,
-                        U=TDL_StokesU, V=TDL_StokesV,
-                        spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
+    ps = PointSource22 (ns,
+                        # name=TDL_source_name,
+                        # predefined=TDL_predefined,
+                        # I=TDL_StokesI, Q=TDL_StokesQ,
+                        # U=TDL_StokesU, V=TDL_StokesV,
+                        # spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
                         direction=direction)
     ps.display()
 
@@ -295,7 +312,7 @@ if __name__ == '__main__':
         src = 'unpol'
         src = 'QUV'
         direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
-        ps = PointSource22 (ns,predefined=src, direction=direction)
+        ps = PointSource22 (ns, predefined=src, direction=direction)
         ps.display()
 
     if 1:
