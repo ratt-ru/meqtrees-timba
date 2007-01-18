@@ -229,7 +229,6 @@ class _TDLListOptionItem (_TDLOptionItem):
     else:
       qag.setUsesDropDown(True);
     # create QActions within group
-    print self.option_list_desc,self.option_list;
     for ival in range(self.num_options()):
       is_custom = self._more is not None and ival == self.num_options()-1;
       name = self.get_option_desc(ival);
