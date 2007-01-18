@@ -26,7 +26,7 @@ def _define_forest(ns):
   ns.inspector << \
       Meq.Composer(
         dims=(len(array.ifrs()),2,2),
-#        plot_label=[ "%s-%s"%(p,q) for p,q in array.ifrs() ],
+        plot_label=[ "%s-%s"%(p,q) for p,q in array.ifrs() ],
         *[ ns.inspector(p,q) << Meq.Mean(spigot(p,q),reduction_axes="freq")
           for p,q in array.ifrs() ]
       );
