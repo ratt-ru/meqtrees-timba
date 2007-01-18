@@ -1215,9 +1215,9 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
 			  if (naxes[ii] && jj<totaxs) {
 					real_naxes[jj]=naxes[ii];
           if (cells) {
-           refval[jj]=cells[ii][0];
+           refval[jj]=(cells[ii][0])*180/M_PI;
            if (real_naxes[jj] >1) {
-            refdel[jj++]=cells[ii][1]-cells[ii][0];
+            refdel[jj++]=(cells[ii][1]-cells[ii][0])*180/M_PI;
            } else {
             refdel[jj++]=1;
            }
