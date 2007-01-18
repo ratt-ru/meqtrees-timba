@@ -4,6 +4,8 @@ from qt import *
 from Timba import dmi
 from Timba.utils import PersistentCurrier
 
+from Timba.Meq import meqds
+
 chisqr = unichr(0x3c7)+'<sup>2</sup>';
 
 class SolverProgressMeter (QHBox):
@@ -18,7 +20,14 @@ class SolverProgressMeter (QHBox):
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._wlabel.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self._wlabel.setIndent(5);
+    self._wstop = QToolButton(self);
+    self._wstop.setTextLabel("Enough!");
+    QToolTip.add(self._wstop,"Press this button to stop the current solution");
+    self._wstop.setUsesTextLabel(True);
+    self._wstop.setAutoRaise(True);
+    QObject.connect(self._wstop,SIGNAL("clicked()"),self.stop_solver);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+    self._solver = None;
     self._app = None;
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
@@ -51,7 +60,10 @@ class SolverProgressMeter (QHBox):
       msg = "<b>%(node)s</b> p:%(num_spids)d t:%(num_tiles)d u:<b>%(num_unknowns)d</b>"%rec;
     else:
       msg = "<b>%(node)s</b> p:%(num_spids)d u:<b>%(num_unknowns)d</b>"%rec;
+    self._solver = rec.node;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
+    self._wstop.setTextLabel("Enough!");
+    self._wstop.setEnabled(True);
     self._show();
     self._ips.pop(rec.node,None);
     
@@ -64,6 +76,7 @@ class SolverProgressMeter (QHBox):
       msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).3g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
+    self._solver = rec.node;
     # start the iteration timer at iteration 1, or at a later iteration
     # if we somehow missed iteration 1
     (time0,iter0) = self._ips.get(rec.node,(None,None));
@@ -76,13 +89,17 @@ class SolverProgressMeter (QHBox):
       if dt and niter:
         msg += " (%.3g sec/iter)" % (dt/niter); 
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
+    self._wstop.setTextLabel("Enough!");
+    self._wstop.setEnabled(True);
     self._show();
     
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
     if rec.converged:
+      self._wstop.setTextLabel("ok");
       color="darkgreen";
     else:
+      self._wstop.setTextLabel("n/c");
       color="red";
     rec.final_iter = "<font color=\"%s\">i<b>%d</b></font>"%(color,rec.iterations);
     if 'chi_0' in rec:  # new-style solver reports chi value
@@ -93,6 +110,8 @@ class SolverProgressMeter (QHBox):
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
 #    if not rec.converged:
 #      msg += " <b><font color=\"red\">N/C</font><b>";
+    self._wstop.setEnabled(False);
+    self._solver = None;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
     self._show(20); # hide sooner when ended
     
@@ -106,3 +125,20 @@ class SolverProgressMeter (QHBox):
     self._wlabel.hide();
     self.hide();
     self._hidetimer.stop();
+    self._solver = None;
+    
+  def enable_stop_button (self):
+    self._wstop.setTextLabel("Enough!");
+    QToolTip.add(self._wstop,"Press this button to stop the current solution");
+    self._wstop.setEnabled(True);
+    
+  def disable_stop_button (self,message):
+    self._wstop.setTextLabel(message);
+    self._wstop.setEnabled(False);
+
+  def stop_solver (self):
+    if not self._solver:
+      return;
+    self.disable_stop_button("stopping...");
+    meqds.mqs().setnodestate(self._solver,dmi.record(interrupt_solution=True),sync=False);
+        

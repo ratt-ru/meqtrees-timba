@@ -768,28 +768,30 @@ class TDLEditor (QFrame,PersistentCurrier):
     joblist.sort(lambda a,b:cmp(str(a),str(b)));
 
     # create list of job actions
+    opts = TDLOptions.get_runtime_options();
     self._jobmenu.clear();
-    if joblist:
+    if joblist or opts:
+      self._tb_jobs.show();
       self._jobmenu.insertTearOffHandle();
-      opts = TDLOptions.get_runtime_options();
       if opts:
+        self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
         self._add_menu_label(self._jobmenu,"Run-time options");
         for opt in opts:
-          opt.add_to_menu(self._jobmenu);
+          opt.add_to_menu(self._jobmenu,executor=self._job_executor);
         # add separator if menu doesn't end with one already
         # if not getattr(self._jobmenu,'_end_with_separator',False):
         #  self._jobmenu.insertSeparator();
-      self._add_menu_label(self._jobmenu,"Predefined jobs");
-      self._tb_jobs.show();
-      for func in joblist:
-        name = re.sub("^_tdl_job_","",func.__name__);
-        name = name.replace('_',' ');
-        qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
-        if func.__doc__:
-          qa.setToolTip(func.__doc__);
-        qa._call = curry(self.execute_tdl_job,name,func,_tdlmod,ns);
-        QObject.connect(qa,SIGNAL("activated()"),qa._call);
-        qa.addTo(self._jobmenu);
+      if joblist:
+        self._add_menu_label(self._jobmenu,"Predefined jobs");
+        for func in joblist:
+          name = re.sub("^_tdl_job_","",func.__name__);
+          name = name.replace('_',' ');
+          qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
+          if func.__doc__:
+            qa.setToolTip(func.__doc__);
+          qa._call = curry(self.execute_tdl_job,_tdlmod,ns,func,name);
+          QObject.connect(qa,SIGNAL("activated()"),qa._call);
+          qa.addTo(self._jobmenu);
     else:
       self._tb_jobs.hide();
 
@@ -799,7 +801,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.show_message(msg,transient=True);
     return True;
     
-  def execute_tdl_job (self,name,func,_tdlmod,ns):
+  def execute_tdl_job (self,_tdlmod,ns,func,name):
     """executes a predefined TDL job given by func""";
     try:
       QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));

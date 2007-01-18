@@ -436,6 +436,15 @@ class _NodeStub (object):
     return self._initrec is not None;
   def initrec (self):
     return self._initrec;
+  def num_children (self):
+    return len(self.children);
+  def num_parents (self):
+    return len(self.parents);
+  def set_options (self,**kw):
+    if not self.initialized():
+      raise NodeDefError,"set_options() on an uninitialized node";
+    for name,value in kw.iteritems():
+      self._initrec[name] = value;
   def _qualify (self,quals,kwquals,merge):
     """Helper method for operator (), qadd() and qmerge() below.
     Creates a node based on this one, with additional qualifiers. If merge=True,

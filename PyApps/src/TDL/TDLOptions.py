@@ -1,5 +1,6 @@
 from Timba.dmi import *
 from Timba.utils import *
+from Timba.GUI.pixmaps import pixmaps
 import ConfigParser
 
 import traceback
@@ -55,8 +56,36 @@ def get_compile_options ():
 def get_runtime_options ():
   return runtime_options;
   
+class _TDLJobItem (object):
+  def __init__ (self,func,name=None,doc=None):
+    self.func = func;
+    self.symbol = func.__name__;
+    self.name = name or func.__name__.replace('_',' ');
+    self.doc = doc;
+    
+  def add_to_menu (self,menu,executor):
+    """adds entry for job to menu object (usually of class QPopupMenu).
+    """
+    # create toggle action for bool options
+    qa = QAction(self.name,0,menu);
+    if self.doc:
+      qa.setToolTip(self.doc);
+    qa.setIconSet(pixmaps.gear.iconset());
+    self._exec = curry(executor,self.func,self.name);
+    QObject.connect(qa,SIGNAL("activated()"),self._exec);
+    qa.addTo(menu);
+    menu._ends_with_separator = False;
+  
 class _TDLOptionItem(object):
   def __init__ (self,namespace,symbol,value):
+    self.full_symbol = symbol;
+    # symbol may have nested namespaces specified with '.'
+    syms = symbol.split('.');
+    symbol = syms[-1];
+    while len(syms) > 1:
+      namespace = namespace.setdefault(syms.pop(0),{});
+      if inspect.ismodule(namespace):
+        namespace = namespace.__dict__;
     self.namespace = namespace;
     self.symbol = symbol;
     self._set(value);
@@ -94,10 +123,10 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     
   def set (self,value):
     value = bool(value);
-    set_config(self.symbol,int(value));
+    set_config(self.full_symbol,int(value));
     self._set(value);
 
-  def add_to_menu (self,menu):
+  def add_to_menu (self,menu,executor=None):
     """adds entry for option to menu object (usually of class QPopupMenu).
     """
     # create toggle action for bool options
@@ -117,9 +146,9 @@ class _TDLListOptionItem (_TDLOptionItem):
       raise ValueError,"'more' argument to list options must be 'None', 'int', 'float' or 'str'"
     self._more = more;
     if isinstance(value,(list,tuple)):
-      self.option_list = value;
+      self.option_list = list(value);
       self.option_list_str = map(lambda x:self.item_str(x),value);
-      self.option_list_desc = list(map(lambda x:self.item_str(x),value));
+      self.option_list_desc = list(self.option_list_str);
     elif isinstance(value,dict):
       self.option_list = list(value.iterkeys());
       self.option_list_str = map(lambda x:self.item_str(x),value.iterkeys());
@@ -177,7 +206,7 @@ class _TDLListOptionItem (_TDLOptionItem):
   def set (self,value):
     self.selected = value = int(value);
     self._set(self.get_option(value));
-    set_config(self.symbol,self.get_option_str(value));
+    set_config(self.full_symbol,self.get_option_str(value));
     
   def set_custom_value (self,value):
     if self._more is None:
@@ -185,7 +214,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     self.option_list[-1] = value;
     self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
     
-  def add_to_menu (self,menu):
+  def add_to_menu (self,menu,executor=None):
     """adds entry for option to menu object (usually of class QPopupMenu).
     """
     # create QActionGroup for list items
@@ -200,6 +229,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     else:
       qag.setUsesDropDown(True);
     # create QActions within group
+    print self.option_list_desc,self.option_list;
     for ival in range(self.num_options()):
       is_custom = self._more is not None and ival == self.num_options()-1;
       name = self.get_option_desc(ival);
@@ -259,7 +289,7 @@ class _TDLSubmenu (object):
   def __init__ (self,title,*items):
     """Creates a submenu from the given list of options.
     Note that an option may be specified as False or None to skip it.""";
-    self._title = title;
+    self.name = self._title = title;
     self._items = filter(lambda x:bool(x),items);
     # check the runtime and compiletime option lists and remove item
     # from them, if found. This allows us to include items with
@@ -271,15 +301,15 @@ class _TDLSubmenu (object):
             del option_list[i];
             break;
     
-  def add_to_menu (self,menu):
+  def add_to_menu (self,menu,executor=None):
     """adds submenu to menu object (usually of class QPopupMenu).
     """
     submenu = QPopupMenu(menu);
     menu.insertItem(self._title,submenu);
     # create entries for sub-items
     for item in self._items:
-      _dprint(3,"adding",item,"to submenu");
-      item.add_to_menu(submenu);
+      _dprint(3,"adding",item,item.name,"to submenu");
+      item.add_to_menu(submenu,executor=executor);
 
 def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=None,more=None):
   # if namespace is not specified, set it to 
@@ -334,3 +364,9 @@ def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=No
   """this creates and returns an option object. Should be used
   with TDLCompileMenu/TDLRuntimeMenu.""";
   return _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
+
+def TDLJob (function,name=None,doc=None):
+  """this creates and returns a TDL job entry.""";
+  job = _TDLJobItem(function,name=name,doc=doc);
+  runtime_options.append(job);
+  return job;
