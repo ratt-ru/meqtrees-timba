@@ -26,7 +26,10 @@ def create_sinks (sinks,children,ifrs,flag_bit=1):
 
 TDLCompileOption('output_type',"Output visibilities",["residual","corrected"]);
 
-def define_solve_correct_tree (ns,predict,array=None,observation=None,corrections=[]):
+def define_solve_correct_tree (ns,predict,
+    array=None,observation=None,
+    corrections=[],
+    inspect_output=True):
   # check that array and observation have been set up
   array = array or Context.array;
   observation = observation or Context.observation;
@@ -42,7 +45,7 @@ def define_solve_correct_tree (ns,predict,array=None,observation=None,correction
   else:
     output_nodes = spigot;
   # create condeqs, residuals and request sequencers
-  for p,q in Context.array.ifrs():
+  for p,q in array.ifrs():
     spig = spigot(p,q);
     pred = predict(p,q);
     ns.ce(p,q) << Meq.Condeq(spig,pred);
@@ -72,12 +75,22 @@ def define_solve_correct_tree (ns,predict,array=None,observation=None,correction
   output_nodes = ns.reqseq;
   if corrections:
     output_nodes = Jones.apply_correction(ns.corrected,output_nodes,corrections,array.ifrs());
+
+  # create output inspector, if needed
+  if inspect_output:
+    inspector = ns.inspect_output << Meq.Composer(
+      *[ ns.inspect_output(p,q) << Meq.Mean(output_nodes(p,q),reduction_axes="freq")
+          for p,q in array.ifrs()
+       ]
+    );
+  else:
+    inspector = None;
     
   # create sinks and visdatamux
   sink = create_sinks(ns.sink,output_nodes,Context.array.ifrs());
   
-  vdm = ns.VisDataMux << Meq.VisDataMux(*[ns.sink(p,q) for p,q in array.ifrs()]);
-  vdm.add_stepchildren(*[ns.spigot(p,q) for p,q in Context.array.ifrs()]);
+  vdm = ns.VisDataMux << Meq.VisDataMux(post=inspector,*[ns.sink(p,q) for p,q in array.ifrs()]);
+  vdm.add_stepchildren(*[ns.spigot(p,q) for p,q in array.ifrs()]);
   
   return vdm;
 
