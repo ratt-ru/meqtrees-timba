@@ -223,6 +223,7 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = None
         self.axis_ymax = None
 	self._menu = None
+        self._vells_menu = None
         self.num_possible_ND_axes = None
         self._plot_type = None
         self.colorbar_requested = False
@@ -841,31 +842,26 @@ class QwtImageDisplay(QwtPlot):
       # skip if no main window
       if not self._mainwin:
         return;
-
-      if not self._menu is None:
-         self.printer.removeFrom(self._menu)
-         self._menu.reparent(QWidget(), 0, QPoint())
-         self._menu = None
-
       self.log_switch_set = False
       if self._menu is None:
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
         self.add_basic_menu_items()
-
-      if self.vells_menu_items > 0:
-        menu_id = self._start_vells_menu_id
-        for i in range(self.vells_menu_items):
-          self._menu.removeItem(menu_id)
-          menu_id = menu_id + 1
     # end initVellsContextMenu()
 
     def setMenuItems(self, menu_data):
       """ add items specific to selection of Vells to context menu """
+      if self._vells_menu is None:
+        self._vells_menu = QPopupMenu(self._menu)
+        QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.update_vells_display);
+        toggle_id = self.menu_table['Change Vells']
+        self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', self._vells_menu, toggle_id)
+
+      # get rid of all menu items in the vells menu
+      self._vells_menu.clear()
+
       self.vells_menu_items = len(menu_data[0])
       outside_perturbations = True
-      vells_menu =  QPopupMenu(self._menu)
-      QObject.connect(vells_menu,SIGNAL("activated(int)"),self.update_vells_display);
       if len(menu_data[1]) > 0:
         perturbations_index = 0
         perturbations = menu_data[1][perturbations_index]
@@ -879,25 +875,23 @@ class QwtImageDisplay(QwtPlot):
           if not perturbations is None:
             if i in perturbations and outside_perturbations:
               outside_perturbations = False
-              submenu = QPopupMenu(self._menu)
+              submenu = QPopupMenu(self._vells_menu)
               QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
             if i in perturbations:
               submenu.insertItem(menu_labels[i], menu_id)
               insertion = True
             if not i in perturbations and not outside_perturbations:
-              vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+              self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
               outside_perturbations = True
               perturbations_index = perturbations_index + 1
               if perturbations_index < len(menu_data[1]):
                 perturbations = menu_data[1][perturbations_index]
             if i in perturbations and i == self.vells_menu_items - 1:
-              vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+              self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
           if not insertion:
-            vells_menu.insertItem(menu_labels[i], menu_id)
+            self._vells_menu.insertItem(menu_labels[i], menu_id)
           menu_id = menu_id + 1
 # add Vells menu to context menu
-      toggle_id = self.menu_table['Change Vells']
-      self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', vells_menu, toggle_id)
 
     def setSpectrumMenuItems(self, menu_labels):
       """ add items specific to selection of Spectra to context menu """
