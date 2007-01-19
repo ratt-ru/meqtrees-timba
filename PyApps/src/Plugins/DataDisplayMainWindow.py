@@ -65,9 +65,7 @@ class DisplayMainWindow(QMainWindow):
       if not self._plot_label is None:
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
-    q_info = "Sequence Number " + str( data_dict['sequence_number'])
-    self._ChartPlot[data_type].setSource(data_dict['source'])
-    self._ChartPlot[data_type].updateEvent(data_dict['channel'], data_dict['value'], q_info)
+    self._ChartPlot[data_type].updateEvent(data_dict)
 
   def resizeEvent(self, event):
     keys = self._ChartPlot.keys()

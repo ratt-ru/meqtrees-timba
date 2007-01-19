@@ -673,7 +673,7 @@ class ChartPlot(QWidget):
     self._indexzoom[crvtemp-self._ref_chan] = False
     self._Zoom[crvtemp-self._ref_chan].exec_close()
 
-  def updateEvent(self, channel_no, new_chart_val, q_pos_str):
+  def updateEvent(self, data_dict):
     """ Update the curve data for the given channel
     """
     # in updateEvent, channel goes from 0 to _nbcrv - 1
@@ -682,6 +682,10 @@ class ChartPlot(QWidget):
     # add new data to end of queue
 
     # do we have an incoming dictionary?
+    q_pos_str = "Sequence Number " + str( data_dict['sequence_number'])
+    self._source = data_dict['source']
+    channel_no = data_dict['channel']
+    new_chart_val = data_dict['value']
     has_keys = True
     add_vells_menu = False
     try:
