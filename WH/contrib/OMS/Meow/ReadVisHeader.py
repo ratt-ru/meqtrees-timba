@@ -29,7 +29,7 @@ def process_vis_header (hdr):
                 set_state(label+sn,value=pos[j,iant]);
         except: pass;
         # also set nodes for the old naming convention
-        sn = ":" + str(ant);
+        sn = ":" + str(iant+1);
         try:
             for (j,label) in enumerate(coords):
                 print '[ReadVisHeader] ',label+sn, 'value = ',pos[j,iant]
