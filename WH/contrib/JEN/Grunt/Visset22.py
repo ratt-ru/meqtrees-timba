@@ -350,8 +350,6 @@ def _define_forest(ns):
         jones = Joneset22.Joneseq22([G,D])
         pred.corrupt(jones, visu=True)
         vis.display('after corruption')
-        vis.make_solver(pred, parmgroup='*')
-        # vis.make_solver(pred, parmgroup='Ggain')
         if True:
             vis.correct(jones, visu=True)
 

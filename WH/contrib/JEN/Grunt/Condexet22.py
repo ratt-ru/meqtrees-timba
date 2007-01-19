@@ -102,7 +102,8 @@ class Condexet22 (Matrixet22.Matrixet22):
         # These are used for visualisation later (if replace=True)
         name = 'condeq'
         i1 = self.list_indices()[0]
-        if not self._ns[name](*quals)(*i1).initialized():           # avoid duplucation
+        # if not self._ns[name](*quals)(*i1).initialized():           # avoid duplucation
+        if True:
             for i in self.list_indices():
                 node1 = self._lhs._matrixet(*i)
                 node2 = self._rhs._matrixet(*i)

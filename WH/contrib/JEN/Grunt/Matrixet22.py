@@ -2,7 +2,8 @@
 
 # History:
 # - 29dec2006: creation (extracted from Jones.py)
-# - 12jan2007: added .show_timetracks() visualization 
+# - 12jan2007: added .show_timetracks() visualization
+# - 19jan2007: removed make_condeqs() and make_solver()
 
 # Description:
 
@@ -17,7 +18,6 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.Grunt import Qualifiers
 from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
-from Timba.Contrib.JEN.Grunt import Condexet22          # temporary
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -67,7 +67,7 @@ class Matrixet22 (object):
         self._dcoll = None
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
-        self._boolmark = dict()                      # JEN_SolverChain legacy.....
+        self._bookmark = dict()                      # JEN_SolverChain legacy.....
 
         # The (solvable and simulated) MeqParms are handled in named groups,
         # by a ParmGroupManager object. The latter may be supplied externally,
@@ -488,7 +488,7 @@ class Matrixet22 (object):
             cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
         name = 'timetracks'
         coll = self._ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
-                                                          plot_label=plot_labels(),
+                                                          plot_label=self.plot_labels(),
                                                           children=cc)
         JEN_bookmarks.create(coll, self.label(),
                              viewer='Collections Plotter',
@@ -553,161 +553,10 @@ class Matrixet22 (object):
             JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
         return True
 
-
-    #==============================================================================
-    # Solving:
-    #==============================================================================
-
-    def make_condeqs (self, other=None, matrel='*', qual=None, replace=False):
-        """Make a list of condeq nodes by comparing its matrices (or -elements)
-        with the corresponding matrices of another Matrixet22 object."""
-        quals = self.quals(append=qual, merge=other.quals())
-
-        # It is possible to use only a subset of the matrix elements:
-        keys = self._matrel.keys()            # i.e. ['m11','m12','m21','m22']
-        mel = deepcopy(matrel)
-        if mel=='*': mel = keys
-        if not isinstance(mel,(list,tuple)): mel = [mel]
-        index = []
-        postfix = ''
-        for i in range(len(keys)):
-            if keys[i] in mel:
-                index.append(i)
-                postfix += '_'+str(i)
-
-        # First make condeq nodes for all 4 matrix elements:
-        # These are used for visualisation later (if replace=True)
-        if replace or (len(index)==4):
-            condeqs = []
-            for i in self.list_indices():
-                c = self._ns.condeq(*quals)(*i) << Meq.Condeq(self._matrixet(*i),
-                                                              other._matrixet(*i))
-                condeqs.append(c)
-            if replace: self._matrixet = self._ns.condeq(*quals)   
-
-        # If a subset of the matrix elements is required, generate a new set of condeqs,
-        # which contain the relevant selections.
-        if len(index)<4:
-            condeqs = []
-            name = 'condeq'+postfix
-            name1 = 'lhs'+postfix
-            name2 = 'rhs'+postfix
-            for i in self.list_indices():
-                node1 = self._matrixet(*i)
-                node2 = other._matrixet(*i)
-                node1 = self._ns[name1].qadd(node1) << Meq.Selector(node1, index=index)
-                node2 = self._ns[name2].qadd(node2) << Meq.Selector(node2, index=index)
-                c = self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
-                condeqs.append(c)
-        # Return a list of condeq nodes:
-        return condeqs
-
-    #----------------------------------------------------------------------------------
-
-    def make_solver (self, other=None, parmgroup='*', qual=None, num_iter=3):
-        """Make a solver that solves for the specified parmgroup, by comparing its
-        matrices with the corresponding matrices of another Matrixet22 object."""
-
-        quals = self.quals(append=qual, merge=other.quals())
-
-        # Accumulate nodes to be executed sequentially later:
-        self.merge_accumulist(other)
-
-
-        # Get the list of MeqParm nodes to be solved for:
-        # ONLY from the other Matrixet22 object, NOT from this one.....(?)
-        if not isinstance(parmgroup,(list,tuple)):
-            parmgroup = [parmgroup]
-        # pgs = other.pgm().solvable_groups()
-        pgs = other._pgm._parmgroup.keys()
-        solvable = []                           # list of MeqParm nodes
-        pg_concat = ''
-        for pg in parmgroup:
-            if pg in pgs:
-                pg_concat += '_'+str(pg)
-                print '-- pg =',pg,pg_concat
-                nn = other._pgm._parmgroup[pg].nodelist()
-                solvable.extend(nn)
-                print '** include parmgroup:',pg,': len(solvable) ->',len(solvable)
-            else:
-                print '** parmgroup ',pg,' not recognised in:',pgs
-                raise ValueError, '** parmgroup '+str(pg)+' not recognised in:'+str(pgs)
-
-
-        # Get the names of the (subset of) matrix elements to be used:
-        # (e.g. for GJones, we only use ['m11','m22'], etc)
-        matrel = self._matrel.keys()          # i.e. ['m11','m12','m21','m22']
-        #===================================================
-        if False:
-            # Gives some problems: condeqs with condeq children.....?
-            matrel = pg.rider('matrel')
-            if matrel=='*': matrel = self._matrel.keys()
-        # matrel = ['m11','m22']
-        #===================================================
-
-        # Make a list of condeq nodes:
-        if True:
-            cdx = Condexet22.Condexet22(self._ns, lhs=self, rhs=other)
-            condeqs = cdx.make_condeqs (matrel=matrel, qual=qual)
-        else:
-            cdx = self.copy()
-            condeqs = cdx.make_condeqs (other, matrel=matrel,
-                                        qual=qual, replace=True)
-
-
-        # Create the solver:
-
-        # The solver writes (the stddev of) its condeq resunts as ascii
-        # into a debug-file (SBY), for later visualisation.
-        # - all lines start with the number of entries (one per condeq)
-        # - the first line has the condeq names (solver children)
-        # - the rest of the lines have one ascii number per condeq
-        # - Q: the solver writes a line at each iteration...? 
-        # NB: the extension can be chosen at will, for identification
-        debug_file = 'debug_'+str(qual)+'.ext'
-
-        name = 'solver'+pg_concat
-        solver = self._ns[name](*quals) << Meq.Solver(children=condeqs,
-                                                      solvable=solvable,
-                                                      # debug_file=debug_file,
-                                                      # parm_group=hiid(parm_group),
-                                                      # child_poll_order=cpo,
-                                                      num_iter=num_iter)
-
-        # Bundle (cc) the solver and its related visualization dcolls
-        # for attachment to a reqseq (below). Also make bookmarks to
-        # display the same nodes on the same bookpage in the browser.
-        
-        cc = []
-        cc.append(solver)
-        bookpage = 'solver'+pg_concat
-        JEN_bookmarks.create(solver, page=bookpage)
-
-        # Visualize the solvable MeqParms:
-        
-        # Visualize the condeqs:
-        condequal = 'condeq'+pg_concat
-        if isinstance(qual,(list,tuple)):
-            condequal = qual
-            condequal.insert(0,'condeq'+pg_concat)
-        elif isinstance(qual,str):
-            condequal = [condequal,qual]
-        dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage)
-        # JEN_bookmarks.create(dcoll, page=bookpage)
-        cc.append(dcoll)
-
-        # Bundle solving and visualisation nodes:
-        name = 'reqseq_solver'+pg_concat
-        reqseq = self._ns[name](*quals) << Meq.ReqSeq(children=cc)
-        self.accumulist(reqseq)
-
-        # Return the solver reqseq (usually not used):
-        return reqseq
-        
-    
+ 
 
     #=====================================================================
-    # Test module:
+    # Fill the object with some test data:
     #=====================================================================
 
     def test (self):
@@ -770,9 +619,6 @@ def _define_forest(ns):
     mat2.test()
     mat2.visualize()
     mat2.display(full=True)
-
-    if True:
-        mat1.make_solver(mat2)
 
     aa = mat1.accumulist()
     aa.extend(mat2.accumulist())
@@ -857,25 +703,7 @@ if __name__ == '__main__':
 
         if 0:
             m1.binop('Subtract',m2)
-            m1.display('after binop', full=True)
-        
-        if 1:
-            reqseq = m1.make_solver(m2)
-            m1._dummyParmGroup.display_subtree (reqseq, txt='solver_reqseq',
-                                                show_initrec=False, recurse=3)
-        
-        if 0:
-            mc = m1.copy()
-            matrel = '*'
-            matrel = ['m11','m22']
-            cc = mc.make_condeqs(m2, matrel=matrel, replace=True)
-            print ' -> nr of condeqs:',len(cc)
-            for i in range(4):
-                mc._dummyParmGroup.display_subtree (cc[i], txt='condeq'+str(i), recurse=2)
-            mc.visualize(matrel=matrel)
-            mc.display('make_condeqs', full=True)
-            # m1.display('make_condeqs', full=True)
-        
+            m1.display('after binop', full=True)        
 
     if 0:
         nn = m1.matrix_element(return_nodes=False)

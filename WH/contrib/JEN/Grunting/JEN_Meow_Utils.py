@@ -86,9 +86,10 @@ def solver_options ():
     TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
     TDLOption('solver_colin_factor',"Collinearity factor",[1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1]),
     TDLOption('solver_lm_factor',"Initial LM factor",[1,.1,.01,.001]),
-    TDLOption('solver_balanced_equations',"Assume balanced equations",False),
+    TDLOption('solver_balanced_equations',"Assume balanced equations", False),
     TDLOption('solver_epsilon',"Convergence threshold",[.01,.001,.0001,1e-5,1e-6]),
-    TDLOption('solver_num_iter',"Max iterations",[30,50,100,1000]),
+    # JEN: 19jan2007: Extend the menu with fewer than 30, and allow more
+    TDLOption('solver_num_iter',"Max iterations",[5,1,2,3,5,10,30,50,100,1000], more=int),
     TDLOption('solver_convergence_quota',"Convergence quota",[.8,.9,1.]) \
   ];
 

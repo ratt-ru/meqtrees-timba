@@ -26,6 +26,7 @@ from Timba.Contrib.JEN.Grunting import WSRT_Jones
 
 from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.Grunt import PointSource22
+from Timba.Contrib.JEN.Grunt import solving22
 
 
 #========================================================================
@@ -39,28 +40,13 @@ JEN_Meow_Utils.include_imaging_options();
 
 
 # Compile-time menu:
-PointSource22.include_TDL_options('cps model')    # ....!? 
-
-if False:
-    menuname = 'Central Point Source (cps) model'
-    predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
-    # predefined.extend(['3c147','3c286'])
-    predefined.append(None)
-    TDLCompileMenu(menuname,
-                   TDLOption('TDL_predefined','predefined source',predefined),
-                   TDLOption('TDL_StokesI','Stokes I (Jy)',[1.0, 2.0, 10.0], more=float),
-                   TDLOption('TDL_StokesQ','Stokes Q (Jy)',[None, 0.0, 0.1], more=float),
-                   TDLOption('TDL_StokesU','Stokes U (Jy)',[None, 0.0, -0.1], more=float),
-                   TDLOption('TDL_StokesV','Stokes V (Jy)',[None, 0.0, 0.02], more=float),
-                   TDLOption('TDL_spi','Spectral Index (I=I0*(f/f0)**(-spi)',[0.0, 1.0], more=float),
-                   TDLOption('TDL_freq0','Reference freq (MHz) for Spectral Index',[None, 1.0], more=float),
-                   TDLOption('TDL_RM','Intrinsic Rotation Measure (rad/m2)',[None, 0.0, 1.0], more=float),
-                   TDLOption('TDL_source_name','source name (overridden by predefined)', ['PS22'], more=str),
-                   );
+PointSource22.include_TDL_options('cps model')  
 
 WSRT_Jones.include_TDL_options('instrum. model')
 pg = WSRT_Jones.parmgroups()
 TDLCompileOption('TDL_parmgog','parmgroups to be solved for',pg, more=str);
+
+solving22.include_TDL_options()
 
 TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);
 TDLCompileMenu('Print extra information',
@@ -86,13 +72,7 @@ def _define_forest (ns):
 
     # Make a user-defined point source model, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
-    ps = PointSource22.PointSource22 (ns,
-                                      # name=TDL_source_name,
-                                      # predefined=TDL_predefined,
-                                      # I=TDL_StokesI, Q=TDL_StokesQ,
-                                      # U=TDL_StokesU, V=TDL_StokesV,
-                                      # spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
-                                      direction=direction)
+    ps = PointSource22.PointSource22 (ns, direction=direction)
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object with predicted uv-data:
@@ -110,10 +90,11 @@ def _define_forest (ns):
     data.make_spigots(visu=True)
 
     # Create a solver for a user-defined subset of parameters (parmgroup):
-    # NB: The solver gets its requests from a ReqSeq that is
+    # NB: The solver gets its requests from a ReqSeq that is automatically
     #     inserted into the main-stream by data.make_sinks() below.
     print '\n*** TDL_parmgog: ',TDL_parmgog,'\n'
-    data.make_solver(pred, parmgroup=TDL_parmgog, num_iter=10)
+    solving22.make_solver(lhs=data, rhs=pred, parmgroup=TDL_parmgog)
+    # data.make_solver(pred, parmgroup=TDL_parmgog, num_iter=10)
 
     # Correct the data for the estimated instrumental errors
     if True:

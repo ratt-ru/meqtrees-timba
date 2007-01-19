@@ -347,8 +347,6 @@ def _define_forest(ns):
         j2 = GJones(ns, quals=[], simulate=False)
         cc.append(j2.visualize())
         # j2.display(full=True)
-        reqseq = jones.make_solver(j2)
-        cc.append(reqseq)
 
 
     jones = JJones(ns, quals=[], simulate=simulate)
