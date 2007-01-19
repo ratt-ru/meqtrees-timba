@@ -21,13 +21,19 @@ def process_vis_header (hdr):
     nant = pos.shape[1];
     coords = ('x','y','z');
     for iant in range(nant):
-        sn = str(iant+1);
-        # since some antennas may be missing from the tree,
-        # ignore errors
+        sn = ':num'+str(iant);
+        # since some antennas may be missing from the tree, ignore errors
         try:
             for (j,label) in enumerate(coords):
-                print '[ReadVisHeader] ',label+':'+sn, 'value = ',pos[j,iant]
-                set_state(label+':'+sn,value=pos[j,iant]);
+                print '[ReadVisHeader] ',label+sn, 'value = ',pos[j,iant]
+                set_state(label+sn,value=pos[j,iant]);
+        except: pass;
+        # also set nodes for the old naming convention
+        sn = ":" + str(ant);
+        try:
+            for (j,label) in enumerate(coords):
+                print '[ReadVisHeader] ',label+sn, 'value = ',pos[j,iant]
+                set_state(label+sn,value=pos[j,iant]);
         except: pass;
     # array reference position
     try:

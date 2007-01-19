@@ -1,7 +1,7 @@
 from Timba.TDL import *
 
 
-_wsrt_list = [str(i) for i in range(1,10)] + ['A','B','C','D','E'];
+_wsrt_list = [str(i) for i in range(10)] + ['A','B','C','D','E','F'];
 
 
 class IfrArray (object):
@@ -28,7 +28,6 @@ class IfrArray (object):
     self._ifr_index = [ (px,qx) for px in self._station_index 
                                 for qx in self._station_index if px[0]<qx[0] ];
     self._ifrs = [ (px[1],qx[1]) for px,qx in self._ifr_index ];
-    print self._ifr_index;
     self._uvw_table = uvw_table;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
@@ -103,12 +102,17 @@ class IfrArray (object):
     """Returns unqualified station position nodes""";
     xyz0 = self.ns.xyz0;
     if not xyz0.initialized():
-      for station in self.stations():
+      for (ip,p) in self.station_index():
+        # since the Meow.ReadVisHeader script knows nothing about
+        # our station labels, the x/y/z nodes themselves are
+        # indexed with station _numbers_ instead.
+        # to avoid confusion, we call them "x:num0", etc.
+        num = 'num'+str(ip);
         # create XYZ nodes
-        xyz = self.ns.xyz(station) << Meq.Composer(
-          self.ns.x(station) << Meq.Constant(0.0),
-          self.ns.y(station) << Meq.Constant(0.0),
-          self.ns.z(station) << Meq.Constant(0.0)
+        xyz = self.ns.xyz(p) << Meq.Composer(
+          self.ns.x(num) << Meq.Constant(0.0),
+          self.ns.y(num) << Meq.Constant(0.0),
+          self.ns.z(num) << Meq.Constant(0.0)
         );
         if not xyz0.initialized():
           xyz0 << Meq.Selector(xyz); # xyz0 == xyz first station essentially

@@ -9,6 +9,7 @@ def set (array=None,observation=None):
     if val is not None:
       globals()[arg] = val;
 
+vdm = None;
 
 
   
