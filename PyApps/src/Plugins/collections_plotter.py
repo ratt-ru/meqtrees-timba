@@ -65,6 +65,14 @@ class CollectionsPlotter(GriddedPlugin):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     """ Instantiate plotter object that is used to display plots
     """
+    print 'in Collecions Plotter init'
+    self.set_init_parameters()
+# back to 'real' work
+    self.dataitem = dataitem
+    if dataitem and dataitem.data is not None:
+      self.set_data(dataitem);
+
+  def set_init_parameters(self):
     self._rec = None;
     self._plot_type = None
     self._wtop = None;
@@ -72,7 +80,6 @@ class CollectionsPlotter(GriddedPlugin):
     self.layout_created = False
     self.layout_parent = None
     self.layout = None
-    self.dataitem = dataitem
     self._visu_plotter = None
     self.counter = 0
     self._node_name = None
@@ -80,10 +87,6 @@ class CollectionsPlotter(GriddedPlugin):
     self._plot_label = None
     self._tab_label = 'data'
     self.prev_label = "===="
-
-# back to 'real' work
-    if dataitem and dataitem.data is not None:
-      self.set_data(dataitem);
 
   def wtop (self):
     """ function needed by Oleg for reasons known only to him! """
@@ -98,6 +101,8 @@ class CollectionsPlotter(GriddedPlugin):
       self.layout_created = True
     self._wtop = self.layout_parent;       
     self.create_2D_plotter()
+
+
 
   def create_2D_plotter(self):
     if self._visu_plotter is None:
@@ -168,6 +173,7 @@ class CollectionsPlotter(GriddedPlugin):
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
+        self.set_init_parameters()
         return
       _dprint(3, 'collections: request id ', self.label)
       end_str = len(self.label)
@@ -216,15 +222,13 @@ class CollectionsPlotter(GriddedPlugin):
         index = i - channel * self.dims_per_group
         if index == 0:
           data_dict['value'] = {}
+          data_dict['flags'] = {}
 #       if channel == 100:
 #         data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
 #       else:
-
-# uncomment the following two lines to test for flags field
-#       if  self._rec.vellsets[i].has_key("flags"):
-#         print 'vellset record having flags is ', i
-
         data_dict['value'][index] = self._rec.vellsets[i].value
+        if  self._rec.vellsets[i].has_key("flags"):
+          data_dict['flags'][index] = self._rec.vellsets[i].flags
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
           data_dict = {}
