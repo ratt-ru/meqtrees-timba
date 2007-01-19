@@ -170,7 +170,6 @@ class ZoomPopup(QWidget):
     self.close()
 
   def Pausing(self):
-    print 'in zoomwin Pausing'
     self.emit(PYSIGNAL("winpaused"),(self._curve_number,))
 
   def change_scale_type(self):
