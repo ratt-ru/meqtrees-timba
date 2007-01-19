@@ -9,7 +9,7 @@ import Meow
 from Meow import Jones
 from Meow import Bookmarks
 from Meow import Utils
-import Meow.CaliTrees
+import Meow.StdTrees
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
@@ -20,6 +20,7 @@ import models343
 TDLCompileOption('source_model',"Source model",
   [ getattr(models343,func) for func in dir(models343) if callable(getattr(models343,func)) and func.startswith('m343_')],
  );
+TDLCompileOption('make_residuals',"Subtract model sources in output",True);
   
 TDLCompileOption('g_tiling',"G phase solution subtiling",[None,1,2,5],more=int);
 TDLCompileOption('include_E_jones',"Include E Jones (differential gains)",False);
@@ -73,26 +74,43 @@ def _define_forest(ns):
   # create simulated visibilities for the sky
   predict = allsky.visibilities();
 
-  # create overall solve-correct tree
-  global _vdm;
-  _vdm = Meow.CaliTrees.define_solve_correct_tree(ns,predict,corrections=[Gjones]);
+  # create solve tree.
+  solve_tree = Meow.StdTrees.SolveTree(ns,predict,residuals=make_residuals);
+  solve_output = solve_tree.outputs(array.spigots());
+  
+  # output of solve tree is either input data, or residuals.
+  # apply correction for G
+  corrected = Jones.apply_correction(ns.corrected,solve_output,[Gjones],array.ifrs());
+
+  # create some visualizers
+  visualizers = [
+    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected),
+    Meow.StdTrees.jones_inspector(ns.inspect('G'),Gjones)
+  ];
+  if include_E_jones:
+    visualizers.append( Meow.StdTrees.jones_inspector(ns.inspect('E'),Ejones) );
+    
+  # finally, make the sinks and vdm. Inspectors will be executed
+  # after all sinks
+  Meow.Context.vdm = Meow.StdTrees.make_sinks(ns,corrected,post=visualizers);
                                            
   # now define some runtime solve jobs
-  Meow.CaliTrees.define_solve_job("Calibrate source fluxes","flux",
-                                  predict.search(tags="(flux|spectrum) solvable"));
+  solve_tree.define_solve_job("Calibrate source fluxes","flux",
+                              predict.search(tags="(flux|spectrum) solvable"));
                                   
   GPs = predict.search(tags="G phase");
-  Meow.CaliTrees.define_solve_job("Calibrate G phases","g_phase",GPs);
+  solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);
+  
   GAs = predict.search(tags="G ampl");
-  Meow.CaliTrees.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
-
+  solve_tree.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
+  
   if include_E_jones:
     EPs = predict.search(tags="E phase");
-    Meow.CaliTrees.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
+    solve_tree.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
     EAs = predict.search(tags="E ampl");
-    Meow.CaliTrees.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
+    solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
 
-  # standard imaging options from Meow
+  # insert standard imaging options from Meow
   TDLRuntimeMenu("Make image",*Utils.imaging_options(npix=512,arcmin=72));
 
   # and finally a helper function to clear solutions
@@ -105,35 +123,31 @@ def _define_forest(ns):
       try:    os.system("rm -fr "+Utils.get_mep_table());
       except: pass;
   TDLJob(job_clear_out_all_previous_solutions,"Clear out all solutions");
-
-
-
-Settings.forest_state = record(bookmarks=[
-  record(name='Fluxes and coherencies',page=[
-    record(viewer="Result Plotter",udi="/node/I:3C343",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/I:3C343.1",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/coherency:3C343",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/coherency:3C343.1",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(2,1)),
-  ]), \
-  record(name='G solutions',page=[
-    record(viewer="Result Plotter",udi="/node/G:1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/G:2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/G:10",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ]),
-  record(name='E solutions',page=[
-    record(viewer="Result Plotter",udi="/node/E:3C343:1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/E:3C343:2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/E:3C343:10",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ]),
-  record(name="Output inspector",viewer="Collections Plotter",udi="/node/inspect_output")
-]);
+  
+  # add some useful bookmarks as we go along
+  bk = Bookmarks.Page("Fluxes and coherencies");
+  bk.add(source_list[0].stokes("I"));
+  bk.add(source_list[1].stokes("I"));
+  bk.add(source_list[0].stokes("Q"));
+  bk.add(source_list[1].stokes("Q"));
+  bk.add(source_list[0].coherency());
+  bk.add(solve_tree.solver());
+  
+  bk = Bookmarks.Page("G Jones",3,3);
+  for p in array.stations():
+    bk.add(Gjones(p));
+  
+  if include_E_jones:
+    bk = Bookmarks.Page("E Jones",3,3);
+    for p in array.stations():
+      bk.add(Ejones(p));
+  
+  
+  
+  
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
-Settings.orphans_are_roots = True
 
 if __name__ == '__main__':
 
