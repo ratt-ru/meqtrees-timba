@@ -121,6 +121,13 @@ class Visset22 (Matrixet22.Matrixet22):
                                                input_column=input_col)
         self._matrixet = self._ns[name]
 
+        if True:
+            name = 'dummy'
+            for p,q in self.ifrs():
+                self._ns[name](p,q) << Meq.Identity(self._matrixet(p,q))
+            self._matrixet = self._ns[name]
+
+
         # self.create_ReadVisHeader_placeholders()    # see below....
 
         if visu:

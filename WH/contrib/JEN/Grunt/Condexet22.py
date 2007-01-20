@@ -92,9 +92,11 @@ class Condexet22 (Matrixet22.Matrixet22):
         if not isinstance(mel,(list,tuple)): mel = [mel]
         index = []
         postfix = ''
+        # self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
         for i in range(len(keys)):
             if keys[i] in mel:
-                index.append(i)
+                # index.append(i)
+                index.append(self._matrel_index[keys[i]])
                 postfix += '_'+str(i)
 
         
