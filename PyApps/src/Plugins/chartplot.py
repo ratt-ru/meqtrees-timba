@@ -45,6 +45,12 @@ class ChartPlot(QWidget):
         'Show Channels': 206,
         'Clear Plot': 207,
         'Append': 208,
+        'Complex Data': 209,
+        'Amplitude': 210,
+        'Phase': 211,
+        'Real': 212,
+        'Imaginary': 213,
+
         }
 
 
@@ -65,7 +71,7 @@ class ChartPlot(QWidget):
     self._ref_chan= 0
     self._offset = -10000
     self._source = None
-    self._highest_value = -10000
+    self._max_range = -10000
     self._lowest_value = 10000
     self._do_fixed_scale = False
     self._data_label = None
@@ -144,6 +150,10 @@ class ChartPlot(QWidget):
     self._display_refresh = QTimer(self)
     self._display_refresh.start(self._display_interval_ms)
     self._refresh_flag = True
+    self._amplitude = True
+    self._phase = False
+    self._real = False
+    self._imaginary = False
 
 
     # create context menu
@@ -169,12 +179,28 @@ class ChartPlot(QWidget):
     toggle_id = self.menu_table['Append']
     self._menu.insertItem("Replace Vector Data", toggle_id)
 
+    self._complex_submenu = QPopupMenu(self._menu)
+    toggle_id = self.menu_table['Amplitude']
+    self._complex_submenu.insertItem("Amplitude",toggle_id)
+    self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
+    toggle_id = self.menu_table['Phase']
+    self._complex_submenu.insertItem("Phase (radians)",toggle_id)
+    toggle_id = self.menu_table['Real']
+    self._complex_submenu.insertItem("Real",toggle_id)
+    toggle_id = self.menu_table['Imaginary']
+    self._complex_submenu.insertItem("Imaginary",toggle_id)
+
+    toggle_id = self.menu_table['Complex Data']
+    self._menu.insertItem("Complex Data Selection  ", self._complex_submenu, toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
+
     self._vells_menu = None
     self._vells_menu_id = 0
     self._vells_keys = {}
 
     ########### Connections for Signals ############
     self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
+    self.connect(self._complex_submenu,SIGNAL("activated(int)"),self.process_complex_selector);
 
     #get position where the mouse was pressed
     self.connect(self._plotter, SIGNAL("plotMousePressed(const QMouseEvent &)"),
@@ -244,6 +270,54 @@ class ChartPlot(QWidget):
         self._menu.changeItem(menuid,'Replace Vector Data')
       self.clear_plot()
       return True
+    if menuid == self.menu_table['Complex Data']:
+      print 'in complex data callback'
+      return True
+
+
+  def process_complex_selector(self, menuid):
+    if menuid < 0:
+      return
+    self._amplitude = False
+    self._phase = False
+    self._real = False
+    self._imaginary = False
+
+    toggle_id = self.menu_table['Amplitude']
+    self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
+    toggle_id = self.menu_table['Phase']
+    self._complex_submenu.setItemChecked(toggle_id, self._phase)
+    toggle_id = self.menu_table['Real']
+    self._complex_submenu.setItemChecked(toggle_id, self._real)
+    toggle_id = self.menu_table['Imaginary']
+    self._complex_submenu.setItemChecked(toggle_id, self._imaginary)
+
+    if menuid == self.menu_table['Amplitude']:
+      self._amplitude = True
+      toggle_id = self.menu_table['Amplitude']
+      self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
+    if menuid == self.menu_table['Phase']:
+      self._phase = True
+      toggle_id = self.menu_table['Phase']
+      self._complex_submenu.setItemChecked(toggle_id, self._phase)
+    if menuid == self.menu_table['Real']:
+      self._real = True
+      toggle_id = self.menu_table['Real']
+      self._complex_submenu.setItemChecked(toggle_id, self._real)
+    if menuid == self.menu_table['Imaginary']:
+      self._imaginary = True
+      toggle_id = self.menu_table['Imaginary']
+      self._complex_submenu.setItemChecked(toggle_id, self._imaginary)
+
+    self._do_fixed_scale = False
+    self._auto_offset = True
+    self._offset = -10000
+    self._max_range = -10000
+    self._lowest_value = 10000
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+    self.refresh_event()
+    return True
 
   def clear_plot(self):
     # first remove any markers
@@ -605,7 +679,7 @@ class ChartPlot(QWidget):
         if self._offset < 0.0:
           self._auto_offset = True
           self._offset = -10000
-          self._highest_value = -10000
+          self._max_range = -10000
           self._lowest_value = 10000
         else:
           self._auto_offset = False
@@ -702,6 +776,7 @@ class ChartPlot(QWidget):
       channel = channel_no - self._ref_chan
     else:
       channel = channel_no
+    first_vells = True
     for keys in data_keys:
       if not self._chart_data[channel].has_key(keys):
         self._chart_data[channel][keys] = []
@@ -710,10 +785,13 @@ class ChartPlot(QWidget):
             self._vells_menu = QPopupMenu(self._menu)
             QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.update_vells_selector);
             toggle_id = self.menu_table['Change Vells']
-            self._menu.insertItem('Change Selected Vells ',self._vells_menu,toggle_id)
+            self._menu.insertItem("Change Selected Vells  ",self._vells_menu,toggle_id)
           menu_label = str(keys)
           if not self._vells_keys.has_key(menu_label):
             self._vells_menu.insertItem(menu_label, self._vells_menu_id)
+            if first_vells:
+              self._vells_menu.setItemChecked(self._vells_menu_id, True)
+              first_vells = False
             self._vells_menu_id = self._vells_menu_id + 1
             self._vells_keys[menu_label] = 1
 
@@ -780,11 +858,14 @@ class ChartPlot(QWidget):
         self.set_x_axis_sizes()
 
   def update_vells_selector(self, menuid):
+    for i in range(self._vells_menu_id):
+      self._vells_menu.setItemChecked(i, False)
+    self._vells_menu.setItemChecked(menuid, True)
     self._data_index = int(menuid)
     self._do_fixed_scale = False
     self._auto_offset = True
     self._offset = -10000
-    self._highest_value = -10000
+    self._max_range = -10000
     self._lowest_value = 10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -841,7 +922,7 @@ class ChartPlot(QWidget):
     self._do_fixed_scale = False
     self._auto_offset = True
     self._offset = -10000
-    self._highest_value = -10000
+    self._max_range = -10000
     self._lowest_value = 10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -865,7 +946,7 @@ class ChartPlot(QWidget):
     if self._offset < 0.0:
       self._auto_offset = True
       self._offset = -10000
-      self._highest_value = -10000
+      self._max_range = -10000
       self._lowest_value = 10000
     else: 
       self._auto_offset = False
@@ -881,26 +962,34 @@ class ChartPlot(QWidget):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
         chart = array(self._chart_data[channel][self._data_index])
         if chart.type() == Complex32 or chart.type() == Complex64:
+          toggle_id = self.menu_table['Complex Data']
+          self._menu.setItemVisible(toggle_id, True)
           complex_chart = chart.copy()
-          abs_chart = abs(complex_chart)
-          tmp_max = abs_chart.max()
-          tmp_min = abs_chart.min()
+          if self._amplitude:
+            cplx_chart = abs(complex_chart)
+          elif self._real:
+            cplx_chart = complex_chart.getreal()
+          elif self._imaginary:
+            cplx_chart = complex_chart.getimag()
+          else:
+            real_chart = complex_chart.getreal()
+            imag_chart = complex_chart.getimag()
+            cplx_chart = arctan2(imag_chart,real_chart)
+          tmp_max = cplx_chart.max()
+          tmp_min = cplx_chart.min()
         else:
+          toggle_id = self.menu_table['Complex Data']
+          self._menu.setItemVisible(toggle_id, False)
           tmp_max = chart.max()
           tmp_min = chart.min()
         chart_range = abs(tmp_max - tmp_min)
         # check if we break any highest or lowest limits
         # this is important for offset reasons.
-        if tmp_max > self._highest_value:
-          self._highest_value = tmp_max
-        if tmp_min < self._lowest_value:
-          self._lowest_value = tmp_min
-        #Get the maximal value of the chart coming in
-        self._new_value = self._highest_value - self._lowest_value
-        #If the max value of the chart is higher than the set one
-        if self._auto_offset and self._offset < self._new_value:
-        #set the max value of the offset
-          self._offset = 1.1 * self._new_value
+        if chart_range > self._max_range:
+          self._max_range = chart_range
+
+    #set the max value of the offset
+    self._offset = 1.1 * self._max_range
     if self._offset < 0.005:
       self._offset = 0.005
     
