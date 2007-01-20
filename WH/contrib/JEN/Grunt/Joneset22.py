@@ -178,6 +178,7 @@ class GJones (Joneset22):
 
     def __init__(self, ns, quals=[], label='G',
                  polrep=None, telescope=None, band=None,
+                 override=None,
                  stations=None, simulate=False):
         
         Joneset22.__init__(self, ns, quals=quals, label=label,
@@ -192,24 +193,30 @@ class GJones (Joneset22):
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            self._pgm.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  Tsec=200,
-                                  matrel=matrel, tags=[pname,jname])
-            self._pgm.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  simul=dict(Tsec=200),
+                                  override=override,
+                                  ctrl=dict(),
+                                  rider=dict(matrel=matrel),
+                                  tags=[pname,jname])
+            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
                                   default=1.0,
-                                  matrel=matrel, tags=[gname,jname])
+                                  override=override,
+                                  ctrl=dict(),
+                                  rider=dict(matrel=matrel),
+                                  tags=[gname,jname])
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self._pgm.create_parmgroup_entry(pname+pol, s)
-                gain = self._pgm.create_parmgroup_entry(gname+pol, s)
+                phase = self.create_parmgroup_entry(pname+pol, s)
+                gain = self.create_parmgroup_entry(gname+pol, s)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
-        self._pgm.define_gogs(jname)
+        self.define_gogs(jname)
         return None
 
 
@@ -230,6 +237,7 @@ class JJones (Joneset22):
     def __init__(self, ns, quals=[], label='J',
                  diagonal=False,
                  polrep=None, telescope=None, band=None,
+                 override=None,
                  stations=None, simulate=False):
 
         Joneset22.__init__(self, ns, quals=quals, label=label,
@@ -246,29 +254,33 @@ class JJones (Joneset22):
             for rim in ['real','imag']:
                 default = 0.0
                 if rim=='real': default = 1.0
-                self._pgm.define_parmgroup(ename+rim, default=default, Tsec=200,
+                self.define_parmgroup(ename+rim, default=default, Tsec=200,
                                       descr=rim+' part of matrix element '+ename,
+                                      override=override,
+                                      ctrl=dict(),
                                       tags=[jname,'Jdiag'])
         if not diagonal:
             for ename in ['J12','J21']:
                 ee.append(ename)
                 for rim in ['real','imag']:
-                    self._pgm.define_parmgroup(ename+rim, Tsec=200,
+                    self.define_parmgroup(ename+rim, Tsec=200,
                                           descr=rim+' part of matrix element '+ename,
+                                          override=override,
+                                          ctrl=dict(),
                                           tags=[jname,'Joffdiag'])
 
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in ee:
-                real = self._pgm.create_parmgroup_entry(ename+'real', s)
-                imag = self._pgm.create_parmgroup_entry(ename+'imag', s)
+                real = self.create_parmgroup_entry(ename+'real', s)
+                imag = self.create_parmgroup_entry(ename+'imag', s)
                 mm[ename] = self._ns[ename](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])
         self.matrixet(new=self._ns[jname](*quals))
         # Make some secondary (composite) ParmGroups:
-        self._pgm.define_gogs(jname)
+        self.define_gogs(jname)
         return None
 
 
@@ -283,6 +295,7 @@ class FJones (Joneset22):
 
     def __init__(self, ns, quals=[], label='F',
                  polrep='linear', telescope=None, band=None,
+                 override=None,
                  stations=None, simulate=False):
         
         Joneset22.__init__(self, ns, quals=quals, label=label,
@@ -295,10 +308,12 @@ class FJones (Joneset22):
         jname = self.label()+'Jones'
 
         # Define the primary ParmGroup:
-        self._pgm.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
-                                   tags=[rname,jname])
+        self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
+                              override=override,
+                              ctrl=dict(),
+                              tags=[rname,jname])
 
-        RM = self._pgm.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
+        RM = self.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())
         wvl2 = self._ns << Meq.Sqr(wvl)                       # lambda squared
         farot = self._ns.farot(*quals) << (RM * wvl2)         # Faraday rotation angle
@@ -324,7 +339,7 @@ class FJones (Joneset22):
             
         self.matrixet(new=self._ns[jname](*quals)(polrep))
         # Make some secondary (composite) ParmGroups:
-        self._pgm.define_gogs(jname)
+        self.define_gogs(jname)
         return None
 
 
@@ -386,7 +401,7 @@ if __name__ == '__main__':
 
     jj = []
 
-    if 0:
+    if 1:
         G = GJones(ns, quals=['3c84','xxx'], simulate=False)
         jj.append(G)
         G.visualize()

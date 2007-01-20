@@ -39,8 +39,7 @@ class ParmGroup (NodeGroup.NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, 
-                 rider=None):
+                 default=0.0, ctrl=None, override=None, rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
                                      quals=quals, descr=descr, tags=tags, 
@@ -111,7 +110,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
     def __init__(self, ns, label='<pg>', nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, ctrl=None, rider=None):
+                 default=0.0, ctrl=None, override=None, rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
                                      quals=quals, descr=descr, tags=tags, 

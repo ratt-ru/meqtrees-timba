@@ -272,6 +272,36 @@ class Matrixet22 (object):
         print '**\n'
         return True
 
+    #=====================================================================================
+    # Interface functions with its ParmGroupManager:
+    #=====================================================================================
+
+    def define_parmgroup(self, name, descr=None,
+                         default=0.0, tags=[], 
+                         simul=None, simulate_override=None,
+                         ctrl=None, override=None,
+                         rider=None):
+        """Interface function to define a parmgroup. Most aguments are passed straight to
+        the ParmGroupManager, but this is the place to do some Matrixet22-specific things"""
+
+        if not isinstance(rider, dict): rider = dict()
+        rider.setdefault('matrel','*')
+
+        pg = self._pgm.define_parmgroup(name=name, descr=descr,
+                                        default=default, tags=tags, 
+                                        simul=simul,
+                                        simulate_override=simulate_override,
+                                        ctrl=ctrl, override=override,
+                                        rider=rider)
+        return pg
+
+    def create_parmgroup_entry(self, key=None, qual=None):
+        """Create an entry (qual, e.g. station nr) in a previously defined parmgroup (key)"""
+        return self._pgm.create_parmgroup_entry(key=key, qual=qual)
+
+    def define_gogs(self, name='mx22_pgm'):
+        """Define groups of parmgroups, using their tags"""
+        return self._pgm.define_gogs(name=name)
 
     #=====================================================================================
     # Accumulist service:

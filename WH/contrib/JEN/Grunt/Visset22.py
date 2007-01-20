@@ -124,7 +124,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # self.create_ReadVisHeader_placeholders()    # see below....
 
         if visu:
-            self.visualize('make_spigots')
+            self.visualize('spigots')
         return True
 
     #--------------------------------------------------------------------------
@@ -400,7 +400,7 @@ if __name__ == '__main__':
             cohset = allsky.visibilities(array, observation)
         vis = Visset22(ns, label='test', array=array, cohset=cohset)
         if not cohset:
-            vis.fill_with_unit_matrices()
+            vis.fill_with_identical_matrices()
         vis.display()
 
     if 1:

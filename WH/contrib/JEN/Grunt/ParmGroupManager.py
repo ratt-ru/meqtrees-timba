@@ -22,6 +22,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
+import re
 
 #======================================================================================
 
@@ -55,9 +56,9 @@ class ParmGroupManager (object):
         """Return the ParmGroupManager object label""" 
         return self._label
 
-    def quals(self, append=None, prepend=None, exclude=None):
+    def quals(self, append=None, prepend=None, exclude=None, merge=None):
         """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend, exclude=exclude)
+        return self._quals.get(append=append, prepend=prepend, exclude=exclude, merge=merge)
 
 
     #-------------------------------------------------------------------
@@ -115,6 +116,65 @@ class ParmGroupManager (object):
 
     #--------------------------------------------------------------
 
+    def solvable(self, parmgroup='*', severe=True, trace=False):
+        """Return the list of MeqParms in the specified parmgroup(s)"""
+        if trace: print
+        pgs = deepcopy(parmgroup)
+        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
+        keys = self._parmgroup.keys()
+        parmlist = []
+        for key in pgs:
+            if key in keys:
+                parmlist.extend(self._parmgroup[key].nodelist())
+                if trace: print '  - include parmgroup:',key,': len(solvable) ->',len(parmlist)
+            elif severe:
+                if trace: print '** .solvable(): parmgroup ',key,' not recognised in:',pgs
+                raise ValueError, '** parmgroup '+str(key)+' not recognised in:'+str(pgs)
+        if trace: print '** pgm.solvable(',parmgroup,') ->',len(parmlist)
+        return parmlist
+    
+
+    def solver_label(self, parmgroup='*', severe=True, remove='Jones', trace=False):
+        """Return a more or less descriptive label for a solver node,
+        constructed from the specified parmgroup(s)"""
+        if trace: print
+        pgs = deepcopy(parmgroup)
+        if pgs=='*': pgs = self._parmgroup['*'].labels()
+        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
+        keys = self._parmgroup.keys()
+        label = ''
+        for key in pgs:
+            if key in keys:
+                # if len(label)>0 : label += '_'
+                label += '_'
+                s1 = key
+                if remove:
+                    s1 = self.substitute (s1, sub=remove, with='')
+                label += str(s1)
+                if trace: print '  - include parmgroup:',key,': s ->',label
+            elif severe:
+                if trace: print '** .solver_label(): parmgroup ',key,' not recognised in:',pgs
+                raise ValueError, '** parmgroup '+str(key)+' not recognised in:'+str(pgs)
+        if trace: print '** pgm.label(',parmgroup,') ->',label
+        return label
+
+
+    def substitute (self, ss=None, sub=None, with=''):
+        """Helper function to sub the given substring"""
+        if True:
+            # Temporary, until I master the use of string variables (sub,with)..........!!
+            matchstr = re.compile(r'Jones')
+            return matchstr.sub(r'', ss)
+        if sub==None: return ss
+        sb = deepcopy(sub)
+        if not isinstance(sub, (list,tuple)): sb=[sb]
+        for sb1 in sb:
+            matchstr = re.compile(rsb1)
+            ss = matchstr.sub(rwith, ss)
+        return ss
+
+    #--------------------------------------------------------------
+
     def solvable_groups(self):
         """Return the available parmproup names."""
         return self._parmgroup.keys()
@@ -147,10 +207,8 @@ class ParmGroupManager (object):
 
     def define_parmgroup(self, name, descr=None,
                          default=0.0, tags=[], 
-                         Tsec=1000.0, Tstddev=0.1,
-                         scale=1.0, stddev=0.1,
-                         matrel='*',
                          simul=None, simulate_override=None,
+                         ctrl=None, override=None,
                          rider=None):
         """Helper function to define a named (Simulated)ParmGroup object."""
 
@@ -158,6 +216,7 @@ class ParmGroupManager (object):
         # is initialised, whose create_entry() method creates regular MeqParms.
         # Otherwise, a SimulatedParmGroup is initialises, whose .create_entry()
         # method produces subtrees that simulate MeqParm behaviour.
+
         simulate = self._simulate                        # overall (see __init__())
         if isinstance(simulate_override, bool):
             simulate = simulate_override                 # overrride
@@ -176,27 +235,23 @@ class ParmGroupManager (object):
 
         # OK, define the relevant ParmGroup:
         if self._simulate:
-            if not isinstance(simul, dict):              # Temporary.................
-                simul = dict(Tsec=Tsec, Tstddev=Tstddev,
-                             stddev=stddev, scale=scale)
             spg = ParmGroup.SimulatedParmGroup (self._ns, label=name,
                                                 quals=self.quals(),
                                                 descr=descr, default=default,
                                                 tags=ptags,
                                                 ctrl=simul,
-                                                # Tsec=Tsec, Tstddev=Tstddev,
-                                                # scale=scale, stddev=stddev,
+                                                override=override,
                                                 rider=rider) 
             self._simparmgroup[name] = spg
 
         else:
-            # - matrel specifies the matrix elements that are affected by the
-            #   MeqParms in this ParmGroup, and that are to be used in solving.
-            rider['matrel'] = deepcopy(matrel)
             pg = ParmGroup.ParmGroup (self._ns, label=name, 
                                       quals=self.quals(),
                                       descr=descr, default=default,
-                                      tags=ptags, node_groups=node_groups,
+                                      tags=ptags,
+                                      node_groups=node_groups,
+                                      ctrl=ctrl,
+                                      override=override,
                                       rider=rider)
             self._parmgroup[name] = pg
 
@@ -295,11 +350,10 @@ class ParmGroupManager (object):
     #-----------------------------------------------------------------------------
     #-----------------------------------------------------------------------------
 
-    def test (self):
-        """Helper function to make some test-matrices"""
+    def test (self, names=['first','second','third']):
+        """Helper function to make some test-groups"""
         quals = self.quals()
-        name = 'PGM'
-        for name in ['first','second','third']:
+        for name in names:
             self.define_parmgroup(name, descr='...'+name,
                                   default=10.0,
                                   simul=dict(stddev=0.01),
@@ -353,12 +407,25 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
+    if 0:
+        matchstr = re.compile(r'Jones')
+        print matchstr.sub(r'xxx', 'abcJonesABS')
+
     if 1:
-        pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=True)
-        pgm.test()
+        pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=False)
+        pgm.test(['GJones','Gphase','Ggain'])
         pgm.display_NodeGroups(full=False)
         pgm.display(full=True)
 
+        if 1:
+            pgm.solvable(trace=True)
+            pgm.solvable('Gphase', trace=True)
+            pgm.solvable('xxx', severe=False, trace=True)
+        
+        if 1:
+            pgm.solver_label(trace=True)
+            pgm.solver_label('Gphase', trace=True)
+            pgm.solver_label('xxx', severe=False, trace=True)
         
 
 

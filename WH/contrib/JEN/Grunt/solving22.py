@@ -55,25 +55,13 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     # Accumulate nodes to be executed sequentially later:
     if accu: lhs.merge_accumulist(rhs)
     
-    # Get the list of MeqParm nodes to be solved for:
-    # ONLY from the rhs Matrixet22 object, NOT from the lhs....(?)
-    if not isinstance(parmgroup,(list,tuple)):
-        parmgroup = [parmgroup]
-    # pgs = rhs.pgm().solvable_groups()     # better: move to pgm....?
-    pgs = rhs._pgm._parmgroup.keys()
-    solvable = []                           # list of MeqParm nodes
-    pg_concat = ''
-    for pg in parmgroup:
-        if pg in pgs:
-            pg_concat += '_'+str(pg)
-            print '-- pg =',pg,pg_concat
-            nn = rhs._pgm._parmgroup[pg].nodelist()
-            solvable.extend(nn)
-            print '** include parmgroup:',pg,': len(solvable) ->',len(solvable)
-        else:
-            print '** parmgroup ',pg,' not recognised in:',pgs
-            raise ValueError, '** parmgroup '+str(pg)+' not recognised in:'+str(pgs)
-
+    # Get the list of MeqParm nodes to be solved for.
+    # NB: Use the ParmGroupManger from the rhs (assumed predicted) Matrixet22
+    #     object, NOT from the lhs (assumed measured data) ....(?)
+    pgm = rhs._pgm
+    solver_label = pgm.solver_label(parmgroup)
+    solvable = pgm.solvable(parmgroup)
+    
 
     # Get the names of the (subset of) matrix elements to be used:
     # (e.g. for GJones, we only use ['m11','m22'], etc)
@@ -106,7 +94,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     sopt = JEN_Meow_Utils.create_solver_defaults()        # temporary
     sopt.__delitem__('solvable')
     
-    name = 'solver'+pg_concat
+    name = 'solver'+solver_label
     solver = lhs._ns[name](*quals) << Meq.Solver(children=condeqs, 
                                             solvable=solvable, **sopt)
                                             # debug_file=debug_file,
@@ -120,16 +108,16 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     
     cc = []
     cc.append(solver)
-    bookpage = 'solver'+pg_concat
+    bookpage = 'solver'+solver_label
     JEN_bookmarks.create(solver, page=bookpage)
     
     # Visualize the solvable MeqParms:
     
     # Visualize the condeqs:
-    condequal = 'condeq'+pg_concat
+    condequal = 'condeq'+solver_label
     if isinstance(qual,(list,tuple)):
         condequal = qual
-        condequal.insert(0,'condeq'+pg_concat)
+        condequal.insert(0,'condeq'+solver_label)
     elif isinstance(qual,str):
         condequal = [condequal,qual]
     dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage)
@@ -137,7 +125,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     cc.append(dcoll)
 
     # Bundle solving and visualisation nodes:
-    name = 'reqseq_solver'+pg_concat
+    name = 'reqseq_solver'+solver_label
     reqseq = lhs._ns[name](*quals) << Meq.ReqSeq(children=cc)
     if accu: lhs.accumulist(reqseq)
 
