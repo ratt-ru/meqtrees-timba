@@ -98,7 +98,7 @@ class Condexet22 (Matrixet22.Matrixet22):
                 # index.append(i)
                 index.append(self._matrel_index[keys[i]])
                 postfix += '_'+str(i)
-
+        # index = index[0]
         
         # Allways make condeq nodes for the full 2x2 matrices.
         # These are used for visualisation later (if replace=True)
@@ -124,9 +124,12 @@ class Condexet22 (Matrixet22.Matrixet22):
             for i in self.list_indices():
                 self._condeqs.append(self._matrixet(*i))
 
-        else:
+        elif False:
             # Make separate condeqs for the subset of required matrix elements:
-            self._subset = dict()
+            # Gives some problems: Use a separate selector per selected corr
+            # in Condexet22? Because selector cannot handle index=((0,0),(1,1))
+            # nor index=(0,3) if dims=[2,2]............??
+            # So, use index=(0,0) and index=(1,1) separately ..........................!!
             name = 'condeq'+postfix
             name1 = 'lhs'+postfix
             name2 = 'rhs'+postfix
@@ -141,6 +144,26 @@ class Condexet22 (Matrixet22.Matrixet22):
                     node2 = self._ns << getattr(Meq, unop)(node2)
                 c = self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
                 self._condeqs.append(c)
+
+        else:
+            # Make separate condeqs for the required matrix elements:
+            # (use the Selector for a single matrix element only....)
+            for idx in index:
+                postfix = str(idx)
+                name = 'condeq'+postfix
+                name1 = 'lhs'+postfix
+                name2 = 'rhs'+postfix
+                for i in self.list_indices():
+                    node1 = self._lhs._matrixet(*i)
+                    node2 = self._rhs._matrixet(*i)
+                    node1 = self._ns[name1].qadd(node1) << Meq.Selector(node1, index=idx)
+                    node2 = self._ns[name2].qadd(node2) << Meq.Selector(node2, index=idx)
+                    if unop:
+                        # Optionally, apply a unary operation on both inputs:
+                        node1 = self._ns << getattr(Meq, unop)(node1)
+                        node2 = self._ns << getattr(Meq, unop)(node2)
+                    c = self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
+                    self._condeqs.append(c)
 
         # Return the list of condeq nodes:
         return self._condeqs

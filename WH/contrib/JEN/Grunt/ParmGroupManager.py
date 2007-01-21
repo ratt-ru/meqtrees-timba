@@ -30,16 +30,12 @@ class ParmGroupManager (object):
     """Class that encapsulates a number of ParmGroups
     e.g. ParmGroups or SimulatedParmGroups."""
 
-    def __init__(self, ns, quals=[], label='ngm', simulate=False):
+    def __init__(self, ns, quals=[], label='pgm'):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
 
         # Node-name qualifiers:
         self._quals = Qualifiers.Qualifiers(quals)
-
-        self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
-        # if self._simulate:
-        #     self._quals.append('simul')
 
         # ParmGroup objects:
         self._parmgroup = dict()                     # available ParmGroup objects (solvable)
@@ -68,7 +64,6 @@ class ParmGroupManager (object):
         ss = str(type(self))
         ss += '  '+str(self.label())
         ss += '  quals='+str(self.quals())
-        if self._simulate: ss += ' (simulate)'
         return ss
 
 
@@ -205,10 +200,9 @@ class ParmGroupManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def define_parmgroup(self, name, descr=None,
-                         default=0.0, tags=[], 
-                         simul=None, simulate_override=None,
-                         ctrl=None, override=None,
+    def define_parmgroup(self, name, descr=None, tags=[], 
+                         default=None, override=None,
+                         simul=None, simulate=False,
                          rider=None):
         """Helper function to define a named (Simulated)ParmGroup object."""
 
@@ -217,10 +211,6 @@ class ParmGroupManager (object):
         # Otherwise, a SimulatedParmGroup is initialises, whose .create_entry()
         # method produces subtrees that simulate MeqParm behaviour.
 
-        simulate = self._simulate                        # overall (see __init__())
-        if isinstance(simulate_override, bool):
-            simulate = simulate_override                 # overrride
-            
         # ....
         node_groups = ['Parm']
         # node_groups.extend(self.quals())               # <---------- !!!
@@ -234,12 +224,13 @@ class ParmGroupManager (object):
         if not isinstance(rider, dict): rider = dict()
 
         # OK, define the relevant ParmGroup:
-        if self._simulate:
+        if simulate:
             spg = ParmGroup.SimulatedParmGroup (self._ns, label=name,
                                                 quals=self.quals(),
-                                                descr=descr, default=default,
+                                                descr=descr,
                                                 tags=ptags,
-                                                ctrl=simul,
+                                                simul=simul,
+                                                default=default,
                                                 override=override,
                                                 rider=rider) 
             self._simparmgroup[name] = spg
@@ -247,10 +238,10 @@ class ParmGroupManager (object):
         else:
             pg = ParmGroup.ParmGroup (self._ns, label=name, 
                                       quals=self.quals(),
-                                      descr=descr, default=default,
+                                      descr=descr,
+                                      default=default,
                                       tags=ptags,
                                       node_groups=node_groups,
-                                      ctrl=ctrl,
                                       override=override,
                                       rider=rider)
             self._parmgroup[name] = pg
@@ -258,7 +249,7 @@ class ParmGroupManager (object):
         # Collect information for define_gogs():
         for tag in ptags:
             if not tag in [name]:
-                if self._simulate:
+                if simulate:
                     self._sgog.setdefault(tag, [])
                     self._sgog[tag].append(self._simparmgroup[name])
                 else:
@@ -273,9 +264,10 @@ class ParmGroupManager (object):
     def create_parmgroup_entry(self, key=None, qual=None):
         """Create an entry with the specified qual in the specified (key)
         (Simulated)ParmGroup (object)"""
-        if self._simulate:
+        if self._simparmgroup.has_key(key):
             return self._simparmgroup[key].create_entry(qual)
-        return self._parmgroup[key].create_entry(qual)
+        else:
+            return self._parmgroup[key].create_entry(qual)
 
     #-----------------------------------------------------------------------------
 

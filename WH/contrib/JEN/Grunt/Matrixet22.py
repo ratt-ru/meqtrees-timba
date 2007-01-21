@@ -4,6 +4,7 @@
 # - 29dec2006: creation (extracted from Jones.py)
 # - 12jan2007: added .show_timetracks() visualization
 # - 19jan2007: removed make_condeqs() and make_solver()
+# - 21jan2007: re-implemented .extract_matrel_nodes()
 
 # Description:
 
@@ -59,7 +60,7 @@ class Matrixet22 (object):
         self.matrixet(new=matrixet)                  # initialise, if matrixet specified
         self.indices(new=indices)                    # initialize, if indices specified
 
-        # Matrixet22 matrix elements (contract!)
+        # Access to Matrixet22 matrix elements:
         self._matrel = dict(m11=None, m12=None, m21=None, m22=None)
         self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
 
@@ -67,7 +68,7 @@ class Matrixet22 (object):
         self._dcoll = None
         self._matrel_style = dict(m11='circle', m12='xcross', m21='xcross', m22='circle')
         self._matrel_color = dict(m11='red', m12='magenta', m21='darkCyan', m22='blue')
-        self._bookmark = dict()                      # JEN_SolverChain legacy.....
+        # self._bookmark = dict()                      # JEN_SolverChain legacy.....
 
         # The (solvable and simulated) MeqParms are handled in named groups,
         # by a ParmGroupManager object. The latter may be supplied externally,
@@ -75,8 +76,7 @@ class Matrixet22 (object):
         self._pgm = pgm
         if not self._pgm:
             self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self.label(),
-                                                          quals=self.quals(),
-                                                          simulate=self._simulate)
+                                                          quals=self.quals())
 
         # Service: It is possible to accumulate lists of things (nodes, usually),
         # that are carried along by the object until needed downstream.
@@ -91,6 +91,7 @@ class Matrixet22 (object):
     def copy(self):
         """Return a (limited) copy of the current Matrixet22 object.
         For the moment, for limited use only."""
+        raise ValueError,'.....copy() not really implemented...'
         # return deepcopy(self)..........................does not work...
         # self.display('copy(), before')
         new = Matrixet22(self._ns, quals=self.quals(),
@@ -184,6 +185,18 @@ class Matrixet22 (object):
             cc.append(self._matrixet(*i))
         return cc
 
+    def firstnode(self):
+        """Return the first of the matrixet nodes"""
+        if not self._matrixet: return None
+        node = self.matrixet()(*self.list_indices()[0])
+        return node
+
+    def basename(self):
+        """Return the basename (i.e. nodename without qualifiers) of the matrixet nodes"""
+        if not self._matrixet: return None
+        return self.firstnode().basename
+
+
     #=====================================================================================
     # Display of the contents of this object:
     #=====================================================================================
@@ -238,17 +251,21 @@ class Matrixet22 (object):
                 ilast = ii[len(ii)-1]                         # and the last one
                 print '  - '+str(i)+': '+str(self.matrixet()(*i))
             print ' * The first matrix of the set:'
-            node = self.matrixet()(*self.list_indices()[0])
+            node = self.firstnode()
+            # print dir(node)
+            print '   - node.name = '+str(node.name)+'   (node.basename='+str(node.basename)+')'
+            print '   - node.quals = '+str(node.quals)+'   (node.kwquals='+str(node.kwquals)+')'
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
                                                  recurse=recurse)
         #...............................................................
         ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
         print ' * Available NodeGroup/NodeGog objects ('+str(ntot)+'): '
+        print '  - '+str(self._pgm.oneliner())
         for key in self._pgm._parmgroup.keys():
-            print '  - '+str(self._pgm._parmgroup[key].oneliner())
+            print '    - '+str(self._pgm._parmgroup[key].oneliner())
         for key in self._pgm._simparmgroup.keys():
-            print '  - (sim) '+str(self._pgm._simparmgroup[key].oneliner())
+            print '    - (sim) '+str(self._pgm._simparmgroup[key].oneliner())
         #...............................................................
         print ' * Extracted (sets of) matrix elements: '
         for key in self._matrel.keys():
@@ -276,10 +293,9 @@ class Matrixet22 (object):
     # Interface functions with its ParmGroupManager:
     #=====================================================================================
 
-    def define_parmgroup(self, name, descr=None,
-                         default=0.0, tags=[], 
+    def define_parmgroup(self, name, descr=None, tags=[], 
+                         default=None, override=None,
                          simul=None, simulate_override=None,
-                         ctrl=None, override=None,
                          rider=None):
         """Interface function to define a parmgroup. Most aguments are passed straight to
         the ParmGroupManager, but this is the place to do some Matrixet22-specific things"""
@@ -287,11 +303,11 @@ class Matrixet22 (object):
         if not isinstance(rider, dict): rider = dict()
         rider.setdefault('matrel','*')
 
-        pg = self._pgm.define_parmgroup(name=name, descr=descr,
-                                        default=default, tags=tags, 
-                                        simul=simul,
-                                        simulate_override=simulate_override,
-                                        ctrl=ctrl, override=override,
+        simulate = (self._simulate or simulate_override)
+
+        pg = self._pgm.define_parmgroup(name=name, descr=descr, tags=tags, 
+                                        default=default, override=override, 
+                                        simul=simul, simulate=simulate,
                                         rider=rider)
         return pg
 
@@ -347,39 +363,50 @@ class Matrixet22 (object):
                 self.accumulist(olist[key], key=key, flat=True)
         return True
 
+
     #=====================================================================================
-    # Matrix elements within the 2x2 matrices:
+    # Access to individual matrix elements within the 2x2 matrices:
     #=====================================================================================
 
-    def matrels (self):
-        """Return the list of the (4) matrix element names"""
+    def matrel_keys (self):
+        """Return the list of the (4) matrix element names:
+        i.e. ['m11','m12','m21','m22']"""
         return self._matrel.keys()
 
 
-    def matrix_element(self, key='m11', qual=None, return_nodes=False, trace=False):
-        """Return the specified matrix element(s)"""
-        if not self._matrel.has_key(key):
-            return False                                # in ['m11','m12','m21','m22']
+    def extract_matrix_element(self, key='m11', qual=None, unop=None):
+        """Extract the specified matrix element from the 2x2 matrices,
+        and return a list of nodes. If unop is specified (str), apply
+        an unary operation to the nodes"""
 
+        if not self._matrel.has_key(key):
+            raise ValueError,'key='+key+', not in '+str(self.matrel_keys())
+
+        name = self.basename()+'_'+key
         quals = self.quals(append=qual)
-        name = self.label()+'_'+key[1:]                 # i.e. '12' rather than 'm12'
-        if trace: print '\n**',key,name,quals
-        if not self._ns[name](*quals).initialized():
+        if not self._ns[name](*quals).initialized():        # avoid duplication....!
             for i in self.list_indices():
-                index = self._matrel_index[key]         # index in tensor node
+                index = self._matrel_index[key]             # index in tensor node, e.g. (0,1)
                 node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
                                                                   index=index)
-                if trace: print '-+',i,index,self._matrixet(*i),'->',node
-        self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
+        self._matrel[key] = self._ns[name](*quals)          # keep for inspection etc
 
-        # Return a list of nodes, if required:
-        if return_nodes:
-            nodes = []
-            for i in self.list_indices():
-                nodes.append(self._ns[name](*quals)(*i))
-            return nodes
-        # Otherwise, return the set of nodes:
-        return self._ns[name](*quals) 
+        # Optionally, apply a unary operation (unop) to the node:
+        if unop:
+            quals = self.quals(append=qual, prepend=unop)
+            if not self._ns[name](*quals).initialized():    # avoid duplication....!
+                for i in self.list_indices():
+                    self._ns[name](*quals)(*i) << getattr(Meq, unop)(self._matrel[key](*i))
+            self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
+
+        # Return a list of nodes:
+        nodes = []
+        for i in self.list_indices():
+            nodes.append(self._matrel[key](*i))
+        return nodes
+
+
+    
 
 
     #=====================================================================================
@@ -471,7 +498,7 @@ class Matrixet22 (object):
         if keys=='*': keys = self._matrel.keys()              # i.e. ['m11','m12','m21','m22']
         if not isinstance(keys,(list,tuple)): keys = [keys]
         for key in keys:  
-            cc = self.matrix_element(key, qual=qual, return_nodes=True) 
+            cc = self.extract_matrix_element(key, qual=qual) 
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                            scope=dcoll_quals,
                                            tag=key,
@@ -549,7 +576,7 @@ class Matrixet22 (object):
         if not isinstance(keys,(list,tuple)): keys = [keys]
         plot_labels = self.plot_labels()
         for key in keys:  
-            cc = self.matrix_element(key, qual=qual, return_nodes=True)
+            cc = self.extract_matrix_element(key, qual=qual)
             for i in range(len(cc)):
                 cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'timetracks_'+key
@@ -566,24 +593,6 @@ class Matrixet22 (object):
         return colls
 
 
-
-    #............................................................................
-    # Obsolete? To JEN_bookmarks?
-    #............................................................................
-
-    def append_to_bookpage(self, node, page):
-        """Append the given node to the specified bookpage"""
-        self._bookmark.setdefault(page, [])
-        self._bookmark[page].append(node)
-        return True
-
-    def make_actual_bookmarks(self):
-        """Make the actual bookmarks from the accumulated info"""
-        for key in self._bookmark.keys():
-            JEN_bookmarks.create(self._bookmark[key], 'sc_'+key)
-        return True
-
- 
 
     #=====================================================================
     # Fill the object with some test data:
@@ -736,22 +745,14 @@ if __name__ == '__main__':
             m1.display('after binop', full=True)        
 
     if 0:
-        nn = m1.matrix_element(return_nodes=False)
-        m1.display(full=True)
-        print '\n** matrix_element result:'
-        for s in m1.indices():
-            print '--',s,':',nn(s)
-        print '-- (',6,'):',nn(6)     # !!
-        print
-        nn = m1.matrix_element(return_nodes=True)
-
-    if 0:
-        m1.matrix_element('m11')
-        m1.matrix_element('m12')
-        m1.matrix_element('m21')
-        m1.matrix_element('m22')
+        m1.extract_matrix_element('m11')
+        m1.extract_matrix_element('m12', unop='Abs')
+        m1.extract_matrix_element('m12', unop='Cos')
+        m1.extract_matrix_element('m12', unop='Abs')
+        m1.extract_matrix_element('m21')
+        m1.extract_matrix_element('m22')
         m1.display(full=True)
 
 
 #===============================================================
-    
+

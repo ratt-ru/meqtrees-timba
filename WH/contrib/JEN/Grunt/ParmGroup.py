@@ -36,18 +36,23 @@ import math
 class ParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of (somehow related) MeqParm nodes"""
 
-    def __init__(self, ns, label='<pg>', nodelist=[],
+    def __init__(self, ns, label='<pg>',
+                 nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, ctrl=None, override=None, rider=None):
+                 default=None, override=None, rider=None):
 
-        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
+        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
                                      color=color, style=style, size=size, pen=pen,
+                                     nodelist=nodelist,
                                      rider=rider)
 
         # Information needed to create MeqParm nodes (see create_entry())
-        self._default = default               # default value
+        self._default = deepcopy(default)
+        if not isinstance(self._default, dict): self._default = dict()
+        self._default.setdefault('value',0.0)
+        
         self._node_groups = deepcopy(node_groups)
         if not isinstance(self._node_groups,(list,tuple)):
             self._node_groups = [self._node_groups]
@@ -60,7 +65,7 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
-        print '   - default: '+str(self._default)
+        print '   - default[value]: '+str(self._default['value'])
         print '   - node_groups: '+str(self._node_groups)
         return True
 
@@ -73,7 +78,7 @@ class ParmGroup (NodeGroup.NodeGroup):
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
         quals = self._quals.get(append=qual)
             
-        node = self._ns.parm(*quals) << Meq.Parm(self._default,
+        node = self._ns.parm(*quals) << Meq.Parm(self._default['value'],
                                                  node_groups=self._node_groups,
                                                  tags=self._tags)
         # Append the new node to the internal nodelist:
@@ -107,14 +112,17 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of nodes (subtrees) that simulate
     a group of MeqParm nodes (often used in conjunction with class ParmGroup)"""
 
-    def __init__(self, ns, label='<pg>', nodelist=[],
+    def __init__(self, ns, label='<pg>',
+                 nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
-                 default=0.0, ctrl=None, override=None, rider=None):
+                 simul=None, default=None, override=None,
+                 rider=None):
 
-        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label, nodelist=nodelist,
+        NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
                                      color=color, style=style, size=size, pen=pen,
+                                     nodelist=nodelist,
                                      rider=rider)
 
         # Make sure that tags/quals of the created nodes reflect the fact
@@ -123,12 +131,14 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._quals.append('simul')
 
         # The default value of the MeqParm that is being simulated:
-        self._default = default               # default value
-
+        self._default = deepcopy(default)
+        if not isinstance(self._default, dict): self._default = dict()
+        self._default.setdefault('value',0.0)
+        
         # Information to create a simulation subtree (see create_entry())
         pp = dict()                           # Simulation control info
-        if isinstance (ctrl, dict):
-            pp = deepcopy(ctrl)
+        if isinstance (simul, dict):
+            pp = deepcopy(simul)
         pp.setdefault('scale', None)
         pp.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
         pp.setdefault('Tsec', 1000.0)         # Time variation (cos) period
@@ -136,20 +146,20 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
         # Some checks:
         if pp['scale']==None:
-            pp['scale'] = abs(self._default)  #   use the (non-zero!) default value
+            pp['scale'] = abs(self._default['value'])  #   use the (non-zero!) default value
             if pp['scale']==0.0: pp['scale'] = 1.0
 
         # Store:
-        self._ctrl = pp 
+        self._simul = pp 
         return None
                 
     #-------------------------------------------------------------------
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
-        print '   - default: '+str(self._default)
-        for key in self._ctrl.keys():
-            print '   - '+key+' = '+str(self._ctrl[key])
+        print '   - default: '+str(self._default['value'])
+        for key in self._simul.keys():
+            print '   - '+key+' = '+str(self._simul[key])
         return True
 
 
@@ -163,7 +173,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
         quals = self._quals.get(append=qual)
 
-        pp = self._ctrl                                 # Convenience
+        pp = self._simul                                 # Convenience
             
         # Expression used:
         #  default += ampl*cos(2pi*time/Tsec),
@@ -186,7 +196,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         variation = self._ns.variation(*quals) << Meq.Multiply(ampl,costime)
 
         # Finally, add the variation to the default value:
-        default = self._ns.default(*quals) << Meq.Constant(self._default)
+        default = self._ns.default(*quals) << Meq.Constant(self._default['value'])
         node = self._ns.parm(*quals) << Meq.Add(default, variation, tags=self._tags)
 
         # Append the new node to the internal nodelist:
@@ -263,7 +273,7 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    if 0:
+    if 1:
         pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
         pg1.test()
         pg1.display()
@@ -273,8 +283,9 @@ if __name__ == '__main__':
             pg1.display_subtree (dcoll, txt='dcoll')
 
     if 1:
-        ctrl = dict(Tsec=500)
-        pg2 = SimulatedParmGroup(ns, 'pg2', ctrl=ctrl)
+        simul = dict(Tsec=500)
+        default = dict(value=-1.0)
+        pg2 = SimulatedParmGroup(ns, 'pg2', simul=simul, default=default)
         pg2.test()
         pg2.display()
 

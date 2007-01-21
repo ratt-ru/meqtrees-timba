@@ -68,12 +68,10 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     matrel = lhs._matrel.keys()          # i.e. ['m11','m12','m21','m22']
     #===================================================
     if False:
-        # Gives some problems: Use a separate selector per selected corr
-        # in Condexet22? Because selector cannot handle index=((0,0),(1,1))
-        # nor index=(0,3) if dims=[2,2]............??
         matrel = pg.rider('matrel')
         if matrel=='*': matrel = lhs._matrel.keys()
-    # matrel = ['m11','m22']
+    matrel = ['m11','m22']
+    # matrel = ['m11']
     #===================================================
 
     # Make a list of condeq nodes:

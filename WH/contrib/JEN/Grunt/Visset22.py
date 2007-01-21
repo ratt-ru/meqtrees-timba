@@ -248,7 +248,7 @@ class Visset22 (Matrixet22.Matrixet22):
             quals = self.quals(append=qual)
             name = 'addGaussianNoise22'
             kwqual = dict(stddev=stddev)
-            matrels = self.matrels()
+            matrels = self.matrel_keys()
             for ifr in self.ifrs():
                 mm = range(4)
                 for i in range(4):
