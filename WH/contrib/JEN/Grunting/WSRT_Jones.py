@@ -259,23 +259,31 @@ class DJones (Joneset22.Joneset22):
         # Define the various primary ParmGroups:
         if coupled_dang:
             self.define_parmgroup(dname, descr='dipole angle error',
+                                  default=dict(value=0.0),
+                                  simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[dname,jname])
         else:
             for pol in pols:
                 self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
+                                      default=dict(value=0.0),
+                                      simul=dict(),
                                       override=override,
                                       rider=dict(matrel=matrel),
                                       tags=[dname,jname])
         if coupled_dell:
             self.define_parmgroup(ename, descr='dipole ellipticity',
+                                  default=dict(value=0.0),
+                                  simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[ename,jname])
         else:
             for pol in pols:
                 self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
+                                      default=dict(value=0.0),
+                                      simul=dict(),
                                       override=override,
                                       rider=dict(matrel=matrel),
                                       tags=[ename,jname])
@@ -396,12 +404,14 @@ class EJones_21cm (Joneset22.Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  default=dict(value=0.0),
                                   simul=dict(Tsec=200),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=1.0,
+                                  default=dict(value=1.0),
+                                  simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[gname,jname])

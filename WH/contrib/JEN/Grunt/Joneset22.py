@@ -194,15 +194,15 @@ class GJones (Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  default=dict(value=0.0),
                                   simul=dict(Tsec=200),
                                   override=override,
-                                  ctrl=dict(),
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=1.0,
+                                  default=dict(value=1.0),
+                                  simul=dict(),
                                   override=override,
-                                  ctrl=dict(),
                                   rider=dict(matrel=matrel),
                                   tags=[gname,jname])
         # Make the Jones matrices per station:
@@ -254,19 +254,21 @@ class JJones (Joneset22):
             for rim in ['real','imag']:
                 default = 0.0
                 if rim=='real': default = 1.0
-                self.define_parmgroup(ename+rim, default=default, Tsec=200,
+                self.define_parmgroup(ename+rim,
                                       descr=rim+' part of matrix element '+ename,
+                                      default=dict(value=default),
+                                      simul=dict(Tsec=200),
                                       override=override,
-                                      ctrl=dict(),
                                       tags=[jname,'Jdiag'])
         if not diagonal:
             for ename in ['J12','J21']:
                 ee.append(ename)
                 for rim in ['real','imag']:
-                    self.define_parmgroup(ename+rim, Tsec=200,
+                    self.define_parmgroup(ename+rim,
                                           descr=rim+' part of matrix element '+ename,
+                                          default=dict(value=0.0),
+                                          simul=dict(Tsec=200),
                                           override=override,
-                                          ctrl=dict(),
                                           tags=[jname,'Joffdiag'])
 
         # Make the Jones matrices per station:
@@ -309,8 +311,9 @@ class FJones (Joneset22):
 
         # Define the primary ParmGroup:
         self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
+                              default=dict(value=0.0),
+                              simul=dict(),
                               override=override,
-                              ctrl=dict(),
                               tags=[rname,jname])
 
         RM = self.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)

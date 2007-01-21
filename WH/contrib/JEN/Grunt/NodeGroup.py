@@ -156,6 +156,10 @@ class NodeGroup (object):
         nodelist.extend(self._nodelist)           # Do NOT modify self._nodelist!!
         return nodelist
 
+    def group (self):
+        """Return a list of itself (for consistency with NodeGog.group()"""
+        return [self]
+
     #-------------------------------------------------------------------
 
     def append_entry(self, node):
@@ -352,6 +356,9 @@ class NodeGog (object):
         self._rider = dict()
         if isinstance(rider, dict): self._rider = rider
 
+        # Merge the riders of the constituent groups into its own....
+        self.merge_riders()                   # ................!!
+
         # Plotting:
         self._dcoll = None                           # visualization
         self._dummyNodeGroup = NodeGroup('dummy')    # used for its printing functions...
@@ -409,14 +416,6 @@ class NodeGog (object):
         """Return the group description""" 
         return str(self._descr)
 
-    def rider(self, key=None):
-        """Return (a field of) the rider (dict), with user-defined info""" 
-        if key==None: return self._rider
-        if self._rider.has_key(key):
-            return self._rider[key]
-        print '\n** NodeGog.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
-        return None
-
     #-------------------------------------------------------------------
 
     def append_entry(self, group):
@@ -453,6 +452,48 @@ class NodeGog (object):
             cc.append(ng.bundle(oper=oper))
         return self._ns << getattr(Meq,oper)(children=cc)
 
+
+    #-----------------------------------------------------------------------------
+
+    def rider(self, key=None):
+        """Return (a field of) the rider (dict), with user-defined info""" 
+        if key==None: return self._rider
+        if self._rider.has_key(key):
+            return self._rider[key]
+        print '\n** NodeGog.rider(',key,'): key not recognised in:',self._rider.keys(),'\n' 
+        return None
+
+
+    def merge_riders(self, trace=False):
+        """Merge the riders of the constituent groups into the group rider.
+        This is a bit of a kludge....."""
+        rr = self.rider()
+        for ng in self.group():
+            rg = ng.rider()
+            for key in rg.keys():
+                v = rg[key]
+                if not rr.has_key(key):
+                    rr[key] = v
+                elif isinstance(rr[key],dict):
+                    rr[key][ng.label()] = v
+                elif rr[key]=='*':
+                    pass
+                elif v=='*':
+                    rr[key] = v
+                else:
+                    old = rr[key]
+                    if not isinstance(old,(list,tuple)): old = [old]
+                    if not isinstance(v,(list,tuple)): v = [v] 
+                    for v1 in v:
+                        if not v1 in old: 
+                            old.append(v1)
+                    rr[key] = old
+        self._rider = rr
+        return rr
+
+
+
+    #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
     def visualize (self, bookpage='NodeGog', folder=None):
@@ -566,7 +607,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        ng1 = NodeGroup(ns, 'ng1')
+        ng1 = NodeGroup(ns, 'ng1', rider=dict(matrel='m22'))
         ng1.test()
         ng1.display()
         
@@ -574,10 +615,13 @@ if __name__ == '__main__':
             dcoll = ng1.visualize()
             ng1.display_subtree (dcoll, txt='dcoll')
 
-        if 0:
-            node = ng1.sum()
-            node = ng1.product()
-            ng1.display_subtree (node, txt='test')
+    if 1:
+        ng2 = NodeGroup(ns, 'ng2', rider=dict(matrel=['m11','m21']))
+        ng3 = NodeGroup(ns, 'ng3', rider=dict(matrel='m11'))
+        gog = NodeGog(ns, 'gog', group=[ng1,ng2,ng3])
+        gog.display()
+        gog.merge_riders()
+        gog.display()
 
     if 0:
         cc = []
@@ -592,13 +636,10 @@ if __name__ == '__main__':
             ng2.append_entry(ss << 2.0)
             nn = ng2.nodelist(trace=True)
             ng2.display()
-            if 1:
-                ng12 = NodeGroup(ns, 'ng12', ng=[ng1,ng2], descr='combination')
-                ng12.display()
 
     #------------------------------------------------------------
 
-    if 1:
+    if 0:
         gog1 = NodeGog(ns, 'gog1')
         gog1.test()
         gog1.display()

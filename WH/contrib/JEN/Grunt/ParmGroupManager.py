@@ -30,9 +30,10 @@ class ParmGroupManager (object):
     """Class that encapsulates a number of ParmGroups
     e.g. ParmGroups or SimulatedParmGroups."""
 
-    def __init__(self, ns, quals=[], label='pgm'):
+    def __init__(self, ns, quals=[], label='pgm', simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
+        self._simulate = simulate
 
         # Node-name qualifiers:
         self._quals = Qualifiers.Qualifiers(quals)
@@ -192,9 +193,7 @@ class ParmGroupManager (object):
             all.extend(other._parmgroup['*'].group())
         self._parmgroup.update(other._parmgroup)
         self._simparmgroup.update(other._simparmgroup)
-        rider = self._make_pgog_rider(all)
-        self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all,
-                                                 rider=rider)    
+        self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all)    
         return True
 
 
@@ -222,6 +221,9 @@ class ParmGroupManager (object):
 
         # Specific information is attached to the ParmGroup via its rider.
         if not isinstance(rider, dict): rider = dict()
+
+        # Simuation mode or not:
+        simulate = (simulate or self._simulate)
 
         # OK, define the relevant ParmGroup:
         if simulate:
@@ -275,68 +277,32 @@ class ParmGroupManager (object):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
         It uses the information gleaned from the tags in define_parmgroup()"""
 
-        if trace: print '\n** define_gogs(',name,'):'
-
         # First collect the primary ParmGroups in pg and spg:
         pg = []
         for key in self._parmgroup.keys():
-            if trace: print '- pg:',key
             pg.append(self._parmgroup[key])
         spg = []
         for key in self._simparmgroup.keys():
-            if trace: print '- spg:',key
             spg.append(self._simparmgroup[key])
             
-        # Then make separate gogs, as defined by the common tags:
+        # Then (automatically) make separate gogs, by looking for common tags:
         for key in self._pgog.keys():
-            rider = self._make_pgog_rider(self._pgog[key])
-            if trace:
-                print '- pgog:',key,rider
-                for g in self._pgog[key]: print '   - ',g.label()
             self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
-                                                      group=self._pgog[key],rider=rider)
+                                                      group=self._pgog[key])
         for key in self._sgog.keys():
-            if trace:
-                print '- sgog:',key
-                for g in self._sgog[key]: print '   - ',g.label()
             self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
                                                          group=self._sgog[key])
 
-        # Make the overall parmgroup(s) last, using the pg collected first:
+        # Make the overall parmgroup(s) last, using the pg/spg collected first:
         # (Otherwise it gets in the way of the automatic group finding process).
         for label in [name,'*']:
             if len(pg)>0:
-                rider = self._make_pgog_rider(pg)
-                if trace:
-                    print '- pg overall:',label,rider
-                    for g in pg: print '   - ',g.label()
-                self._parmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=pg, rider=rider,
+                self._parmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=pg,
                                                             descr='all '+name+' parameters')
             if len(spg)>0:
-                if trace:
-                    print '- spg overall:',label
-                    for g in spg: print '   - ',g.label()
                 self._simparmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=spg,
                                                                descr='all simulated '+name+' parameters')
         return None
-
-    #-----------------------------------------------------------------------------
-
-    def _make_pgog_rider(self, group=[]):
-        """Helper function to make a NodeGog rider from the riders of
-        the given group (list) of ParmGroups"""
-        # If any of the groups has matrel=='*' (all), return that.
-        for pg in group:
-            if pg.rider('matrel')=='*': return dict(matrel='*')
-        # Otherwise, collect a list:
-        mm = []
-        for pg in group:
-            mg = pg.rider('matrel')
-            if not isinstance(mg,(list,tuple)): mg = [mg]
-            for m in mg:
-                if not m in mm:
-                    mm.append(m)
-        return dict(matrel=mm)
 
 
     #-----------------------------------------------------------------------------

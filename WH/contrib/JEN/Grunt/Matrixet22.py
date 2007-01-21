@@ -610,10 +610,10 @@ class Matrixet22 (object):
         for key in keys:                           # keys=['m11','m12','m21','m22']
             index += 1
             indices.append(index)
-            self._pgm.define_parmgroup(key, descr='matrix element: '+key,
-                                       default=index/10.0,
-                                       # stddev=0.01,
-                                       tags=['test'])
+            self.define_parmgroup(key, descr='matrix element: '+key,
+                                  default=dict(value=index/10.0),
+                                  # simul=dict(stddev=0.01),
+                                  tags=['testing'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             for elem in keys:
                 mm[elem] = self._ns << Meq.Polar(1.0, 0.0)
@@ -628,7 +628,7 @@ class Matrixet22 (object):
         self.matrixet(new=self._ns[name](*quals))
 
         # Make some secondary (composite) ParmGroups:
-        self._pgm.define_gogs()
+        self._pgm.define_gogs('test')
         return True
 
 

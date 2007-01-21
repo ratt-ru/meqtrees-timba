@@ -53,6 +53,12 @@ class ParmGroup (NodeGroup.NodeGroup):
         if not isinstance(self._default, dict): self._default = dict()
         self._default.setdefault('value',0.0)
         
+        # The information may be overridden:
+        self._override = dict()
+        if isinstance(override, dict):
+            if override.has_key(label):                     # relevant for this ParmGroup
+                self._override = deepcopy(override[label])  # copy ony the relevant part
+        
         self._node_groups = deepcopy(node_groups)
         if not isinstance(self._node_groups,(list,tuple)):
             self._node_groups = [self._node_groups]
@@ -65,11 +71,20 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
-        print '   - default[value]: '+str(self._default['value'])
+        print ' * default ('+str(len(self._default))+'):'
+        for key in self._default.keys():
+            print '   - '+str(key)+' = '+str(self._default[key])
+        print ' * override ('+str(len(self._override))+'):'
+        for key in self._override.keys():
+            print '   - '+str(key)+' = '+str(self._override[key])
         print '   - node_groups: '+str(self._node_groups)
         return True
 
-    #-------------------------------------------------------------------
+
+
+    #======================================================================
+    # Create a new ParmGroup entry (i.e. a MeqParm node)
+    #======================================================================
 
     def create_entry (self, qual=None):
         """Create an entry, i.e. MeqParm node, or a simulation subtree,
@@ -81,11 +96,128 @@ class ParmGroup (NodeGroup.NodeGroup):
         node = self._ns.parm(*quals) << Meq.Parm(self._default['value'],
                                                  node_groups=self._node_groups,
                                                  tags=self._tags)
+
         # Append the new node to the internal nodelist:
         self.append_entry(node)
         return node
 
 
+    def from_TDL_NodeSet():
+
+        #------------------------------------------------------------------------
+        
+        # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
+        #     as starting point for the next snippet solution, unless a suitable funklet
+        #     was found in the MeqParm table. If False, it will use the default funklet first.
+
+        # Future (MXM, 10 jan 2006):
+        # - default is a scalar, default = 1.0
+        #   - NB: If neither init_funklet nor shape (nor table), then the shape
+        #         of the default (default_value, really) still determines the solution...
+        # - new keywords:
+        #   - [polctype_]shape = [1,1,...]    [ntime, nfreq, ..]
+        #     - 1-based,
+        #     - default=None
+        #     - shape overrides the shape of the initialising funklet, e.g. from parmtable
+        #   - init_funklet = None
+        #     - used for non-polc funklets, e.g. = polclog(0)
+        #     - and for initialisation of other coeff than c00, e.g. polc([[],[]]) 
+
+        # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
+        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
+        # This means that separate solutions are made for these tiles, which tile the domain.
+        # Tiled solutions are efficient, because they reduce the node overhead
+        # For the moment, only time-tiling is enabled...
+
+        tiling = record()
+        if rider['subtile_size']:
+            tiling.time = rider['subtile_size']
+
+        # The default value:
+        if default==None:
+            default = rider['c00_default']
+
+        # Use the shape (of coeff array, 1-relative) if specified.
+        # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
+        shape = rider['funklet_shape']                   #............??
+        if shape==None:
+            shape = [0,0]
+            if not rider['tfdeg']==None:
+                shape = deepcopy(rider['tfdeg'])         # just in case.....
+            # print key,'** shape =',shape
+            shape[0] += 1                                # make 1-relative              
+            shape[1] += 1                                # make 1-relative
+
+        # Make the new MeqParm node (if necessary):
+        node = ns[key](**quals)
+        if compounder_children:
+            parm = ns[key](**quals)
+            if not parm.initialized():                   # made only once
+                parm << Meq.Parm(init_funklet=init_funklet,
+                                 tiling=tiling,
+                                 use_previous=rider['use_previous'],
+                                 reset_funklet=rider['reset_funklet'],
+                                 auto_save=rider['auto_save'],
+                                 save_all=rider['save_all'],
+                                 node_groups=self.node_groups(),
+                                 table_name=self.parmtable())
+                self.NodeSet.set_MeqNode(parm, group=parmgroup)
+
+            # The Compounder has more qualifiers than the Parm.
+            # E.g. EJones_X is per station, but the compounder and its
+            # children (l,m) are for a specific source (q=3c84)
+            group = parmgroup                            # e.g. 'EJones'
+            if isinstance(qual2, dict):
+                for qkey in qual2.keys():
+                    s1 = str(qual2[qkey])
+                    quals[qkey] = s1
+                    group += '_'+s1                      # e.g. 'EJones_3c84'
+            node = ns[key](**quals)
+            if not node.initialized():                   # made only once
+                cc = compounder_children
+                if not isinstance(cc, (list, tuple)): cc = [cc]
+                cc.append(parm)
+                node << Meq.Compounder(children=cc, common_axes=common_axes)
+                self.NodeSet.set_MeqNode(node, group=group)
+                self.NodeSet.append_MeqNode_eval(parm.name, append=node)
+
+        elif node.initialized():                           # node already exists
+            # Don't do anything, but return the existing node.
+            pass
+
+        elif init_funklet:
+            node << Meq.Parm(init_funklet=init_funklet,
+                             ### shape=shape,             # DON'T
+                             # perturbation=1e-7,       # scale*1e-7
+                             tiling=tiling,
+                             use_previous=rider['use_previous'],
+                             reset_funklet=rider['reset_funklet'],
+                             auto_save=rider['auto_save'],
+                             save_all=rider['save_all'],
+                             node_groups=self.node_groups(),
+                             table_name=self.parmtable())
+            self.NodeSet.set_MeqNode(node, group=parmgroup)
+            
+        else:
+            node << Meq.Parm(funklet=default,
+                             shape=shape,
+                             tiling=tiling,
+                             save_all=rider['save_all'],
+                             auto_save=rider['auto_save'],
+                             reset_funklet=rider['reset_funklet'],
+                             use_previous=rider['use_previous'],
+                             node_groups=self.node_groups(),
+                             table_name=self.parmtable())
+            self.NodeSet.set_MeqNode(node, group=parmgroup)
+
+        # Return the rootnode (MeqParm of MeqCompounder):
+        return node
+
+
+
+
+    #======================================================================
+    # Function to fill the object with test data:
     #======================================================================
 
     def test(self):
@@ -143,23 +275,34 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         pp.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
         pp.setdefault('Tsec', 1000.0)         # Time variation (cos) period
         pp.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
-
         # Some checks:
         if pp['scale']==None:
             pp['scale'] = abs(self._default['value'])  #   use the (non-zero!) default value
             if pp['scale']==0.0: pp['scale'] = 1.0
-
         # Store:
         self._simul = pp 
+
+        # The information may be overridden:
+        self._override = dict()
+        if isinstance(override, dict):
+            if override.has_key(label):                     # relevant for this ParmGroup
+                self._override = deepcopy(override[label])  # copy ony the relevant part
+        
         return None
                 
     #-------------------------------------------------------------------
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
-        print '   - default: '+str(self._default['value'])
+        print ' * simul ('+str(len(self._simul))+'):'
         for key in self._simul.keys():
             print '   - '+key+' = '+str(self._simul[key])
+        print ' * default ('+str(len(self._default))+'):'
+        for key in self._default.keys():
+            print '   - '+str(key)+' = '+str(self._default[key])
+        print ' * override ('+str(len(self._override))+'):'
+        for key in self._override.keys():
+            print '   - '+str(key)+' = '+str(self._override[key])
         return True
 
 

@@ -68,9 +68,9 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     matrel = lhs._matrel.keys()          # i.e. ['m11','m12','m21','m22']
     #===================================================
     if False:
-        matrel = pg.rider('matrel')
+        matrel = pgm.rider(parmgroup, 'matrel')      # requires a little thought.....
         if matrel=='*': matrel = lhs._matrel.keys()
-    matrel = ['m11','m22']
+    # matrel = ['m11','m22']
     # matrel = ['m11']
     #===================================================
 
@@ -96,15 +96,13 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     
     name = 'solver'+solver_label
     solver = lhs._ns[name](*quals) << Meq.Solver(children=condeqs, 
-                                            solvable=solvable, **sopt)
-                                            # debug_file=debug_file,
-                                            # parm_group=hiid(parm_group),
-                                            # child_poll_order=cpo,
-                                            # num_iter=num_iter)
+                                                 # debug_file=debug_file,
+                                                 # parm_group=hiid(parm_group),
+                                                 # child_poll_order=cpo,
+                                                 solvable=solvable, **sopt)
 
     # Bundle (cc) the solver and its related visualization dcolls
-    # for attachment to a reqseq (below). Also make bookmarks to
-    # display the same nodes on the same bookpage in the browser.
+    # for attachment to a reqseq (below).
     
     cc = []
     cc.append(solver)
@@ -121,7 +119,6 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     elif isinstance(qual,str):
         condequal = [condequal,qual]
     dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage)
-    # JEN_bookmarks.create(dcoll, page=bookpage)
     cc.append(dcoll)
 
     # Bundle solving and visualisation nodes:
