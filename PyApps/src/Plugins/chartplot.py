@@ -79,11 +79,14 @@ class ChartPlot(QWidget):
     self.show_channel_labels = True
     self._append_data = True
     self._plot_label = None
+    self._complex_marker = None
 
     #Create the plot widget
+    self._y_title = "Signal (Relative Scale)"
+    self._x_title = "Time Event Sequence(Relative Scale)"
     self._plotter = QwtPlot(self)
-    self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal (Relative Scale)")
-    self._plotter.setAxisTitle(QwtPlot.xBottom, "Time Event Sequence(Relative Scale)")
+    self._plotter.setAxisTitle(QwtPlot.yLeft, self._y_title)
+    self._plotter.setAxisTitle(QwtPlot.xBottom, self._x_title)
     # turn off grid
     self._plotter.enableGridX(False)
     self._plotter.enableGridY(False)
@@ -150,6 +153,7 @@ class ChartPlot(QWidget):
     self._display_refresh = QTimer(self)
     self._display_refresh.start(self._display_interval_ms)
     self._refresh_flag = True
+    self._complex_type = "Amplitude"
     self._amplitude = True
     self._phase = False
     self._real = False
@@ -296,18 +300,22 @@ class ChartPlot(QWidget):
       self._amplitude = True
       toggle_id = self.menu_table['Amplitude']
       self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
+      self._complex_type = "Amplitude"
     if menuid == self.menu_table['Phase']:
       self._phase = True
       toggle_id = self.menu_table['Phase']
       self._complex_submenu.setItemChecked(toggle_id, self._phase)
+      self._complex_type = "Phase"
     if menuid == self.menu_table['Real']:
       self._real = True
       toggle_id = self.menu_table['Real']
       self._complex_submenu.setItemChecked(toggle_id, self._real)
+      self._complex_type = "Real"
     if menuid == self.menu_table['Imaginary']:
       self._imaginary = True
       toggle_id = self.menu_table['Imaginary']
       self._complex_submenu.setItemChecked(toggle_id, self._imaginary)
+      self._complex_type = "Imaginary"
 
     self._do_fixed_scale = False
     self._auto_offset = True
@@ -334,7 +342,7 @@ class ChartPlot(QWidget):
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
-    title = self._data_label + " Time Event Sequence(Relative Scale)"
+    title = self._data_label + self._x_title
     self._plotter.setAxisTitle(QwtPlot.xBottom, title)
 
   def setPlotLabel(self, plot_label):
@@ -978,6 +986,7 @@ class ChartPlot(QWidget):
           tmp_max = cplx_chart.max()
           tmp_min = cplx_chart.min()
         else:
+          self._amplitude = False
           toggle_id = self.menu_table['Complex Data']
           self._menu.setItemVisible(toggle_id, False)
           tmp_max = chart.max()
@@ -990,12 +999,28 @@ class ChartPlot(QWidget):
 
     #set the max value of the offset
     self._offset = 1.1 * self._max_range
+
     if self._offset < 0.005:
       self._offset = 0.005
     
     # -----------
     # now update data
     # -----------
+
+# add a marker if data is of type complex
+#   if self._amplitude or self._phase or self._real or self._imaginary:
+#     fn = self._plotter.fontInfo().family()
+#     if not self._complex_marker is None:
+#       self._plotter.removeMarker(self._complex_marker)
+#     self._complex_marker = self._plotter.insertMarker()
+#     ylb = self._plotter.axisScale(QwtPlot.yLeft).hBound()
+#     xlb = self._plotter.axisScale(QwtPlot.xBottom).hBound()
+#     self._plotter.setMarkerPos(self._complex_marker, xlb, ylb)
+#     self._plotter.setMarkerLabelAlign(self._complex_marker, Qt.AlignLeft | Qt.AlignBottom)
+#     self._plotter.setMarkerLabel( self._complex_marker, self._complex_type,
+#       QFont(fn, 10, QFont.Bold, False),
+#       Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
+
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
         chart = array(self._chart_data[channel][self._data_index])
@@ -1011,14 +1036,24 @@ class ChartPlot(QWidget):
           temp_x = self._x4
 
         temp_off = (channel % (self._nbcrv/4)) * self._offset
-        # If we have a complex array, we presently just display
-        # the amplitude.
         if chart.type() == Complex32 or chart.type() == Complex64:
           complex_chart = chart.copy()
-          abs_chart = abs(complex_chart)
-          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
-          self._plotter.setCurveData(self._crv_key[channel], temp_x , abs_chart+temp_off)
-          ylb = abs_chart[0] + temp_off 
+          if self._amplitude:
+            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
+            cplx_chart = abs(complex_chart)
+          elif self._real:
+            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.blue))
+            cplx_chart = complex_chart.getreal()
+          elif self._imaginary:
+            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.gray))
+            cplx_chart = complex_chart.getimag()
+          else:
+            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.green))
+            real_chart = complex_chart.getreal()
+            imag_chart = complex_chart.getimag()
+            cplx_chart = arctan2(imag_chart,real_chart)
+          self._plotter.setCurveData(self._crv_key[channel], temp_x , cplx_chart+temp_off)
+          ylb = cplx_chart[0] + temp_off 
         else:
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
           self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
@@ -1046,6 +1081,8 @@ class ChartPlot(QWidget):
 #        self._Zoom[channel].resize_x_axis(len(self._chart_data[channel]))
         # Wait that all the channels are modified before 
         # plotting with the new x array
+
+
         if not self._mainpause:
           self._refresh_flag = True
 	
