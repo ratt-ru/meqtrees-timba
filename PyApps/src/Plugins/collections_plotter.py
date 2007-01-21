@@ -65,7 +65,6 @@ class CollectionsPlotter(GriddedPlugin):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     """ Instantiate plotter object that is used to display plots
     """
-    print 'in Collecions Plotter init'
     self.set_init_parameters()
 # back to 'real' work
     self.dataitem = dataitem
