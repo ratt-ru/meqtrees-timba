@@ -395,11 +395,9 @@ class QwtImageDisplay(QwtPlot):
         if not self._x_auto_scale: 
           self.axis_xmin = plot_parms['x_axis_min']
           self.axis_xmax = plot_parms['x_axis_max']
-#         self.setAxisScale(QwtPlot.xBottom, float(self.axis_xmin), float(self.axis_xmax))
         if not self._y_auto_scale: 
           self.axis_ymin = plot_parms['y_axis_min']
           self.axis_ymax = plot_parms['y_axis_max']
-#         self.setAxisScale(QwtPlot.yLeft, float(self.axis_ymin), float(self.axis_ymax))
         self.axis_ratio = plot_parms['ratio']
         self.aspect_ratio = plot_parms['aspect_ratio']
         self.replot()
@@ -465,7 +463,11 @@ class QwtImageDisplay(QwtPlot):
 # (print signal is handled by printplot function) so ignore
         return True
       if menuid == self.menu_table['Reset zoomer']:
-        self.reset_zoom()
+        if self.is_vector and self.complex_type:
+          replot = True
+        else:
+          replot = False
+        self.reset_zoom(replot)
         return True
       if menuid == self.menu_table['Delete X-Section Display']:
         self.delete_cross_sections()
@@ -554,8 +556,7 @@ class QwtImageDisplay(QwtPlot):
 
         if self.is_vector:
           # make sure we unzoom as axes will probably change drastically
-          self.reset_zoom()
-          self.array_plot(self._window_title, self.complex_image, False)
+          self.reset_zoom(True)
         else:
           self.adjust_color_bar = True
           if self.ampl_phase:
@@ -922,7 +923,7 @@ class QwtImageDisplay(QwtPlot):
     def getSpectrumTags(self):
        return (self._data_labels, self._string_tag) 
     
-    def reset_zoom(self):
+    def reset_zoom(self, replot=False):
       """ resets data display so all data are visible """
       if len(self.zoomStack):
         while len(self.zoomStack):
@@ -943,9 +944,12 @@ class QwtImageDisplay(QwtPlot):
         self.refresh_marker_display()
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.setItemVisible(toggle_id, False)
-        _dprint(3, 'exiting reset_zoom')
-      else:
-        return
+# do a complete replot in the following situation
+# as both axes will have changed even if nothing to unzoom.
+      if replot:
+        self.array_plot(self._window_title, self.complex_image, False)
+      _dprint(3, 'exiting reset_zoom')
+      return
 
     def toggleLegend(self, menuid):
       """ sets legends display for cross section plots to visible/invisible """
@@ -1545,7 +1549,7 @@ class QwtImageDisplay(QwtPlot):
           q_symbol_size = 3
           q_flag_size = 10
           
-        if self.yRightAxisEnabled() and not zoom:
+        if self.yRightAxisEnabled() and not zoom and not self.complex_type:
           self.setAxisAutoScale(QwtPlot.yRight)
         if self.xTopAxisEnabled() and not zoom:
           self.setAxisAutoScale(QwtPlot.xTop)
@@ -2277,8 +2281,8 @@ class QwtImageDisplay(QwtPlot):
         self.complex_image = plot_array
 
 # add possibility to switch between real/imag and ampl/phase
+      toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
       if self.complex_type:
-        toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         if self.ampl_phase is None:
           self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
           self.ampl_phase = False
@@ -2288,6 +2292,8 @@ class QwtImageDisplay(QwtPlot):
           else:
             self._menu.changeItem(toggle_id, 'Show Data as Amplitude and Phase')
         self._menu.setItemVisible(toggle_id, True)
+      else:
+        self._menu.setItemVisible(toggle_id, False)
 
 # test if we have a 2-D array
       if self.is_vector == False and not self.log_switch_set:
@@ -2550,7 +2556,7 @@ class QwtImageDisplay(QwtPlot):
         flattened_array = reshape(plot_array,(num_elements,))
 #       _dprint(3, 'plotting flattened array ', flattened_array)
         if not self._flags_array is None:
-          if complex_type:
+          if self.complex_type:
             x_array =  flattened_array.getreal()
             y_array =  flattened_array.getimag()
             for j in range(num_elements):
@@ -2564,7 +2570,7 @@ class QwtImageDisplay(QwtPlot):
                 self.flags_x_index.append(self.x_index[j])
                 self.flags_r_values.append(flattened_array[j])
 # we have a complex vector
-        if complex_type:
+        if self.complex_type:
           self.enableAxis(QwtPlot.yRight)
           self.enableAxis(QwtPlot.yLeft)
           self.enableAxis(QwtPlot.xBottom)
@@ -2594,11 +2600,25 @@ class QwtImageDisplay(QwtPlot):
             self.x_array = abs_array
             self.y_array = phase_array
 
+          self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
+         
+          axis_diff = abs(self.y_array.max() - self.y_array.min())
+          # the following is not the best test, but ...
+          axis_subt = 0.01 * axis_diff
+          if axis_diff <0.00001:
+            axis_diff = 0.005
+            axis_subt = 0.002
+          self.setAxisScale(QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
+          axis_diff = abs(self.x_array.max() - self.x_array.min())
+          axis_add = 0.01 * axis_diff
+          if axis_diff <0.00001:
+            axis_diff = 0.005
+            axis_add = 0.002
+          self.setAxisScale(QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
           _dprint(3, 'plotting complex array with x values ', self.x_index)
           _dprint(3, 'plotting complex array with real values ', self.x_array)
           _dprint(3, 'plotting complex array with imag values ', self.y_array)
-          self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
-          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
 
 # stuff for flags
           if not self._flags_array is None:
@@ -2817,6 +2837,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.insertItem("Pause", toggle_id)
           toggle_id = self.menu_table['Toggle Comparison']
           self._menu.insertItem("Do Comparison", toggle_id)
+          self._menu.setItemVisible(toggle_id, False)
 
     def set_original_array_rank(self, original_array_rank):
       self.original_data_rank = original_array_rank
