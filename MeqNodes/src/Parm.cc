@@ -765,12 +765,17 @@ namespace Meq {
 		   "shape should be a vector");
 
 	 if(!(shape.size())) return;
-	 if(shape.size()>1)
+	 if(shape.size()>1){
+	   if(shape[0]<=0) shape[0]=1;
+	   if(shape[1]<=0) shape[1]=1;
 	   shape_=LoShape(shape[0],shape[1]);
-	 else
+	 }
+	 else{
+	   if(shape[0]<=0) shape[0]=1;
 	   shape_=LoShape(shape[0],1);
+	 }
 	 force_shape_=!splined_; //if splined, force_shape cannot be applied
-	   
+	 rec[FShape].replace() = shape;  
        }
 
     if(rec->hasField(FConstrain)){
