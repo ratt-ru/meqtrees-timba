@@ -228,6 +228,8 @@ class CollectionsPlotter(GriddedPlugin):
         data_dict['value'][index] = self._rec.vellsets[i].value
         if  self._rec.vellsets[i].has_key("flags"):
           data_dict['flags'][index] = self._rec.vellsets[i].flags
+        else:
+          data_dict['flags'][index] = None
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
           data_dict = {}

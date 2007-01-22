@@ -72,7 +72,6 @@ class ChartPlot(QWidget):
     self._offset = -10000
     self._source = None
     self._max_range = -10000
-    self._lowest_value = 10000
     self._do_fixed_scale = False
     self._data_label = None
     self.info_marker = None
@@ -213,7 +212,6 @@ class ChartPlot(QWidget):
     #Get position of the mouse released to zoom or to create a zoom window by clicking on the signal 
     self.connect(self._plotter, SIGNAL("plotMouseReleased(const QMouseEvent &)"),
         self.plotMouseReleased)
-
     self.connect(self._plotter, SIGNAL('plotMouseMoved(const QMouseEvent&)'),
                      self.plotMouseMoved)
     # redisplay
@@ -226,7 +224,9 @@ class ChartPlot(QWidget):
     self._source = source_string
 
   def set_x_axis_sizes(self):
-
+    """ changes sizes and values of arrays used to store x-axis 
+        values for plot
+    """
     self._x1 = zeros((self._ArraySize,), Float32)
     self._x2 = zeros((self._ArraySize,), Float32)
     self._x3 = zeros((self._ArraySize,), Float32)
@@ -242,6 +242,7 @@ class ChartPlot(QWidget):
       self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
 
   def process_menu(self, menuid):
+    """ callback to handle events from the context menu """
     if menuid < 0:
       return
     if menuid == self.menu_table['Zoom']:
@@ -280,6 +281,9 @@ class ChartPlot(QWidget):
 
 
   def process_complex_selector(self, menuid):
+    """ callback to handle events from the complex data selection
+        sub-context menu 
+    """
     if menuid < 0:
       return
     self._amplitude = False
@@ -321,13 +325,13 @@ class ChartPlot(QWidget):
     self._auto_offset = True
     self._offset = -10000
     self._max_range = -10000
-    self._lowest_value = 10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
     self.refresh_event()
     return True
 
   def clear_plot(self):
+    """ clear the plot of all displayed data """
     # first remove any markers
     for channel in range(self._nbcrv):
       if not self._source_marker[channel] is None:
@@ -349,17 +353,15 @@ class ChartPlot(QWidget):
     self._plot_label = plot_label
 
   def destruct_chartplot(self):
-    """	turn off global mouse tracking
-    """
+    """	turn off global mouse tracking """
     QApplication.setGlobalMouseTracking(False)	
     QWidget.setMouseTracking(False) 
-
 			
   def createplot(self,first_time=False):
-    """ Sets all the desired parameters for the chart plot
-    """
+    """ Sets all the desired parameters for the chart plot """
     if first_time:
       self._chart_data = {}
+      self._flag_data = {}
       self._updated_data = {}
       self._pause = {}
       self._good_data = {}
@@ -387,6 +389,7 @@ class ChartPlot(QWidget):
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
+          self._flag_data[i] = {}
     else:
       self._updated_data = {}
       self._pause = {}
@@ -407,6 +410,7 @@ class ChartPlot(QWidget):
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
+          self._flag_data[i] = {}
 
   def do_print(self):
     # taken from PyQwt Bode demo
@@ -688,7 +692,6 @@ class ChartPlot(QWidget):
           self._auto_offset = True
           self._offset = -10000
           self._max_range = -10000
-          self._lowest_value = 10000
         else:
           self._auto_offset = False
 
@@ -768,6 +771,7 @@ class ChartPlot(QWidget):
     self._source = data_dict['source']
     channel_no = data_dict['channel']
     new_chart_val = data_dict['value']
+    new_chart_flags = data_dict['flags']
     has_keys = True
     add_vells_menu = False
     try:
@@ -788,6 +792,7 @@ class ChartPlot(QWidget):
     for keys in data_keys:
       if not self._chart_data[channel].has_key(keys):
         self._chart_data[channel][keys] = []
+        self._flag_data[channel][keys] = []
         if len(data_keys) > 1:
           if self._vells_menu is None:
             self._vells_menu = QPopupMenu(self._menu)
@@ -805,8 +810,10 @@ class ChartPlot(QWidget):
 
       if has_keys:
         incoming_data = new_chart_val[keys]
+        incoming_flags = new_chart_flags[keys]
       else:
         incoming_data = new_chart_val
+        incoming_flags = new_chart_flags
 # first, do we have a scalar?
       is_scalar = False
       scalar_data = 0.0
@@ -836,6 +843,10 @@ class ChartPlot(QWidget):
 #       for i in range(differ):
 #         del self._chart_data[channel][0]
         self._chart_data[channel][keys].append(scalar_data)
+        if incoming_flags is None:
+          self._chart_data[channel][keys].append(0)
+        else:
+          self._chart_data[channel][keys].append(incoming_flags)
         self._updated_data[channel] = True
 
         # take care of position string
@@ -861,6 +872,16 @@ class ChartPlot(QWidget):
           self._chart_data[channel][keys] = flattened_array
         self._updated_data[channel] = True
 
+        if incoming_flags is None:
+          flattened_array = zeros((num_elements,), Int32)
+        else:
+          flattened_array = reshape(incoming_flags.copy(),(num_elements,))
+        if self._append_data: 
+          for i in range(len(flattened_array)):
+            self._flag_data[channel][keys].append(flattened_array[i])
+        else:
+          self._flag_data[channel][keys] = flattened_array
+
       if self._ArraySize < len(self._chart_data[channel][keys]):
         self._ArraySize = len(self._chart_data[channel][keys])
         self.set_x_axis_sizes()
@@ -874,7 +895,6 @@ class ChartPlot(QWidget):
     self._auto_offset = True
     self._offset = -10000
     self._max_range = -10000
-    self._lowest_value = 10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
     self.refresh_event()
@@ -931,7 +951,6 @@ class ChartPlot(QWidget):
     self._auto_offset = True
     self._offset = -10000
     self._max_range = -10000
-    self._lowest_value = 10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
     self.refresh_event()
@@ -955,7 +974,6 @@ class ChartPlot(QWidget):
       self._auto_offset = True
       self._offset = -10000
       self._max_range = -10000
-      self._lowest_value = 10000
     else: 
       self._auto_offset = False
 
@@ -969,10 +987,16 @@ class ChartPlot(QWidget):
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
         chart = array(self._chart_data[channel][self._data_index])
+        flags = array(self._flag_data[channel][self._data_index])
+        good_data = []
+        for i in range(chart.shape[0]):
+          if flags[i] == 0:
+            good_data.append(chart[i])
+        test_chart = array(good_data)
         if chart.type() == Complex32 or chart.type() == Complex64:
           toggle_id = self.menu_table['Complex Data']
           self._menu.setItemVisible(toggle_id, True)
-          complex_chart = chart.copy()
+          complex_chart = test_chart.copy()
           if self._amplitude:
             cplx_chart = abs(complex_chart)
           elif self._real:
@@ -989,8 +1013,8 @@ class ChartPlot(QWidget):
           self._amplitude = False
           toggle_id = self.menu_table['Complex Data']
           self._menu.setItemVisible(toggle_id, False)
-          tmp_max = chart.max()
-          tmp_min = chart.min()
+          tmp_max = test_chart.max()
+          tmp_min = test_chart.min()
         chart_range = abs(tmp_max - tmp_min)
         # check if we break any highest or lowest limits
         # this is important for offset reasons.
@@ -1006,20 +1030,6 @@ class ChartPlot(QWidget):
     # -----------
     # now update data
     # -----------
-
-# add a marker if data is of type complex
-#   if self._amplitude or self._phase or self._real or self._imaginary:
-#     fn = self._plotter.fontInfo().family()
-#     if not self._complex_marker is None:
-#       self._plotter.removeMarker(self._complex_marker)
-#     self._complex_marker = self._plotter.insertMarker()
-#     ylb = self._plotter.axisScale(QwtPlot.yLeft).hBound()
-#     xlb = self._plotter.axisScale(QwtPlot.xBottom).hBound()
-#     self._plotter.setMarkerPos(self._complex_marker, xlb, ylb)
-#     self._plotter.setMarkerLabelAlign(self._complex_marker, Qt.AlignLeft | Qt.AlignBottom)
-#     self._plotter.setMarkerLabel( self._complex_marker, self._complex_type,
-#       QFont(fn, 10, QFont.Bold, False),
-#       Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
 
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
