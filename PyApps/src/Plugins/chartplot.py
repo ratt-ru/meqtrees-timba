@@ -121,8 +121,8 @@ class ChartPlot(QWidget):
       self._nbcrv = 16
 
     #Initialization of the size of the arrays to put the curve in
-    self._ArraySize = 5
-    self._x_displacement = self._ArraySize
+    self._ArraySize = 6
+    self._x_displacement = self._ArraySize / 6 
     self._data_index = 0
     self.set_x_axis_sizes()
 
@@ -233,8 +233,8 @@ class ChartPlot(QWidget):
     self._x4 = zeros((self._ArraySize,), Float32)
 
     # layout parameter for x_axis offsets 
-    if self._ArraySize > 1.75 * self._x_displacement:
-      self._x_displacement = self._ArraySize 
+    if self._ArraySize > 6 * self._x_displacement:
+      self._x_displacement = self._ArraySize / 6
     for i in range(self._ArraySize):
       self._x1[i] = float(i)
       self._x2[i] = self._ArraySize + self._x_displacement +i
@@ -335,8 +335,8 @@ class ChartPlot(QWidget):
     # remove current curves
     self._plotter.removeCurves()
     self._plotter.replot()
-    self._ArraySize = 5
-    self._x_displacement = self._ArraySize
+    self._ArraySize = 6
+    self._x_displacement = self._ArraySize / 6 
     self.set_x_axis_sizes()
     self.createplot()
 
@@ -1035,7 +1035,10 @@ class ChartPlot(QWidget):
         elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
           temp_x = self._x4
 
-        temp_off = (channel % (self._nbcrv/4)) * self._offset
+        if self._phase:
+          temp_off = (channel % (self._nbcrv/4) + 0.5 ) * self._offset
+        else:
+          temp_off = (channel % (self._nbcrv/4)) * self._offset
         if chart.type() == Complex32 or chart.type() == Complex64:
           complex_chart = chart.copy()
           if self._amplitude:
