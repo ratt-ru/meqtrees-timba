@@ -81,8 +81,8 @@ class ChartPlot(QWidget):
     self._complex_marker = None
 
     #Create the plot widget
-    self._y_title = "Signal (Relative Scale)"
-    self._x_title = "Time Event Sequence(Relative Scale)"
+    self._y_title = "Value (Relative Scale)"
+    self._x_title = "Time Sequence (Relative Scale)"
     self._plotter = QwtPlot(self)
     self._plotter.setAxisTitle(QwtPlot.yLeft, self._y_title)
     self._plotter.setAxisTitle(QwtPlot.xBottom, self._x_title)
@@ -304,21 +304,25 @@ class ChartPlot(QWidget):
       self._amplitude = True
       toggle_id = self.menu_table['Amplitude']
       self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
+      self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
       self._complex_type = "Amplitude"
     if menuid == self.menu_table['Phase']:
       self._phase = True
       toggle_id = self.menu_table['Phase']
       self._complex_submenu.setItemChecked(toggle_id, self._phase)
+      self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
       self._complex_type = "Phase"
     if menuid == self.menu_table['Real']:
       self._real = True
       toggle_id = self.menu_table['Real']
       self._complex_submenu.setItemChecked(toggle_id, self._real)
+      self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
       self._complex_type = "Real"
     if menuid == self.menu_table['Imaginary']:
       self._imaginary = True
       toggle_id = self.menu_table['Imaginary']
       self._complex_submenu.setItemChecked(toggle_id, self._imaginary)
+      self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
       self._complex_type = "Imaginary"
 
     self._do_fixed_scale = False
@@ -346,7 +350,7 @@ class ChartPlot(QWidget):
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
-    title = self._data_label + self._x_title
+    title = self._data_label + " " + self._x_title
     self._plotter.setAxisTitle(QwtPlot.xBottom, title)
 
   def setPlotLabel(self, plot_label):
@@ -998,12 +1002,16 @@ class ChartPlot(QWidget):
           self._menu.setItemVisible(toggle_id, True)
           complex_chart = test_chart.copy()
           if self._amplitude:
+            self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
             cplx_chart = abs(complex_chart)
           elif self._real:
+            self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
             cplx_chart = complex_chart.getreal()
           elif self._imaginary:
+            self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
             cplx_chart = complex_chart.getimag()
           else:
+            self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
             real_chart = complex_chart.getreal()
             imag_chart = complex_chart.getimag()
             cplx_chart = arctan2(imag_chart,real_chart)
