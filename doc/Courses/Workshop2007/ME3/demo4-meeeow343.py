@@ -61,15 +61,14 @@ def _define_forest(ns):
     for src in source_list[1:]:
       Ejones = Jones.gain_ap_matrix(ns.E(src.name),e_ampl_def,e_phase_def,
                                     tags="E",series=array.stations());
-      src = Meow.CorruptComponent(ns,src,label='E',station_jones=Ejones);
-      # add corrupted (or original) source to patch
-      allsky.add(src);
+      # add corrupted source to patch
+      allsky.add(src.corrupt(Ejones));
   else:
     allsky.add(*source_list);
   # apply G to whole sky
   Gjones = Jones.gain_ap_matrix(ns.G,g_ampl_def,g_phase_def,
                                 tags="G",series=array.stations());
-  allsky = Meow.CorruptComponent(ns,allsky,label='G',station_jones=Gjones);
+  allsky = allsky.corrupt(Gjones);
 
   # create simulated visibilities for the sky
   predict = allsky.visibilities();
@@ -84,7 +83,8 @@ def _define_forest(ns):
 
   # create some visualizers
   visualizers = [
-    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected),
+    Meow.StdTrees.vis_inspector(ns.inspect('spigots'),array.spigots(),bookmark=False),
+    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected,bookmark=False),
     Meow.StdTrees.jones_inspector(ns.inspect('G'),Gjones)
   ];
   if include_E_jones:
@@ -142,6 +142,9 @@ def _define_forest(ns):
     for p in array.stations():
       bk.add(Ejones(p));
   
+  pg = Bookmarks.Page("Vis Inspectors",1,2);
+  pg.add(ns.inspect('spigots'),viewer="Collections Plotter");
+  pg.add(ns.inspect('residuals'),viewer="Collections Plotter");
   
   
   

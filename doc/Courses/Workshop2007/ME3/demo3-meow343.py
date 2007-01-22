@@ -23,8 +23,6 @@ TDLCompileOption('source_model',"Source model",
 TDLCompileOption('make_residuals',"Subtract model sources in output",True);
   
 TDLCompileOption('g_tiling',"G phase solution subtiling",[None,1,2,5],more=int);
-TDLCompileOption('include_E_jones',"Include E Jones (differential gains)",False);
-TDLCompileOption('e_tiling',"E phase solution subtiling",[None,1,2,5],more=int);
   
  
 
@@ -46,30 +44,16 @@ def _define_forest(ns):
   
   # create all-sky patch for source model
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
+  allsky.add(*source_list);
   
   # definitions for ampl/phase parameters
   g_ampl_def = Meow.Parm(1,table_name=Utils.get_mep_table());
   g_phase_def = Meow.Parm(0,tiling=g_tiling,table_name=Utils.get_mep_table());
 
-  # differential corrections present? 
-  if include_E_jones:
-    # first source is presumably at phase center, so only G itelf will aplly
-    allsky.add(source_list[0]);
-    # apply E to all other sources
-    e_ampl_def = Meow.Parm(1,freq_deg=1,table_name=Utils.get_mep_table());
-    e_phase_def = Meow.Parm(0,tiling=e_tiling,table_name=Utils.get_mep_table());
-    for src in source_list[1:]:
-      Ejones = Jones.gain_ap_matrix(ns.E(src.name),e_ampl_def,e_phase_def,
-                                    tags="E",series=array.stations());
-      src = Meow.CorruptComponent(ns,src,label='E',station_jones=Ejones);
-      # add corrupted (or original) source to patch
-      allsky.add(src);
-  else:
-    allsky.add(*source_list);
   # apply G to whole sky
   Gjones = Jones.gain_ap_matrix(ns.G,g_ampl_def,g_phase_def,
                                 tags="G",series=array.stations());
-  allsky = Meow.CorruptComponent(ns,allsky,label='G',station_jones=Gjones);
+  allsky = allsky.corrupt(Gjones);
 
   # create simulated visibilities for the sky
   predict = allsky.visibilities();
@@ -84,11 +68,10 @@ def _define_forest(ns):
 
   # create some visualizers
   visualizers = [
-    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected),
+    Meow.StdTrees.vis_inspector(ns.inspect('spigots'),array.spigots(),bookmark=False),
+    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected,bookmark=False),
     Meow.StdTrees.jones_inspector(ns.inspect('G'),Gjones)
   ];
-  if include_E_jones:
-    visualizers.append( Meow.StdTrees.jones_inspector(ns.inspect('E'),Ejones) );
     
   # finally, make the sinks and vdm. Inspectors will be executed
   # after all sinks
@@ -104,12 +87,6 @@ def _define_forest(ns):
   GAs = predict.search(tags="G ampl");
   solve_tree.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
   
-  if include_E_jones:
-    EPs = predict.search(tags="E phase");
-    solve_tree.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
-    EAs = predict.search(tags="E ampl");
-    solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
-
   # insert standard imaging options from Meow
   TDLRuntimeMenu("Make image",*Utils.imaging_options(npix=512,arcmin=72));
 
@@ -137,14 +114,9 @@ def _define_forest(ns):
   for p in array.stations():
     bk.add(Gjones(p));
   
-  if include_E_jones:
-    bk = Bookmarks.Page("E Jones",3,3);
-    for p in array.stations():
-      bk.add(Ejones(p));
-  
-  
-  
-  
+  pg = Bookmarks.Page("Vis Inspectors",1,2);
+  pg.add(ns.inspect('spigots'),viewer="Collections Plotter");
+  pg.add(ns.inspect('residuals'),viewer="Collections Plotter");
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
