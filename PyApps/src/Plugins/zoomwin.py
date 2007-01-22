@@ -37,7 +37,7 @@ from display_image import *
 
 class ZoomPopup(QWidget):
 
-  def __init__(self, CurveNumber, x_values, y_values , pen, parent=None, name=None):
+  def __init__(self, CurveNumber, x_values, y_values , flags, pen, parent=None, name=None):
     """ Initialises all the variables.  
         creates the main zoom plot
         connects the qt signals
@@ -90,7 +90,7 @@ class ZoomPopup(QWidget):
     self.connect(self._plotzoom,PYSIGNAL('do_print'), self.plotPrinter.do_print)
 
     self._x_values = x_values
-    self.update_plot(y_values)
+    self.update_plot(y_values, flags)
     self.show()
 
   def do_compare_max(self, x_values):
@@ -203,7 +203,7 @@ class ZoomPopup(QWidget):
       self._plotzoom.setAxisAutoScale(QwtPlot.yLeft)
       self._do_fixed_scale = False
   
-  def update_plot(self,y_values):
+  def update_plot(self,y_values, flags):
     if not self._do_pause:
       self._y_values = y_values
       self._plotzoom.array_plot (self._zoom_plot_label, self._y_values, flip_axes=True)
