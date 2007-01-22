@@ -40,7 +40,10 @@ class ParmGroup (NodeGroup.NodeGroup):
                  nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
+                 parmtable=None,
                  default=None, override=None, rider=None):
+
+        self._parmtable = parmtable       # name of (AIPS++) table of MeqParm values
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
@@ -52,7 +55,17 @@ class ParmGroup (NodeGroup.NodeGroup):
         self._default = deepcopy(default)
         if not isinstance(self._default, dict): self._default = dict()
         self._default.setdefault('value',0.0)
-        
+        self._default.setdefault('c00_default', 1.0)        # ...... <-
+        self._default.setdefault('unit', None)      
+        self._default.setdefault('funklet_shape', None)
+        self._default.setdefault('tfdeg', None)
+        self._default.setdefault('subtile_size', None)
+        self._default.setdefault('use_previous', True)
+        self._default.setdefault('auto_save', False)
+        self._default.setdefault('save_all', False)
+        self._default.setdefault('reset_funklet', False)
+
+
         # The information may be overridden:
         self._override = dict()
         if isinstance(override, dict):
@@ -71,6 +84,7 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
+        print ' * parmtable = '+str(self.parmtable())
         print ' * default ('+str(len(self._default))+'):'
         for key in self._default.keys():
             print '   - '+str(key)+' = '+str(self._default[key])
@@ -80,6 +94,12 @@ class ParmGroup (NodeGroup.NodeGroup):
         print '   - node_groups: '+str(self._node_groups)
         return True
 
+    #-------------------------------------------------------------------
+
+    def parmtable(self):
+        """Return the name of the (AIPS++) table that contains the
+        MeqParm values. If None, the default values are used."""
+        return self._parmtable
 
 
     #======================================================================
@@ -92,8 +112,35 @@ class ParmGroup (NodeGroup.NodeGroup):
 
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
         quals = self._quals.get(append=qual)
+
+        # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
+        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
+        # This means that separate solutions are made for these tiles, which tile the domain.
+        # Tiled solutions are efficient, because they reduce the node overhead
+        # For the moment, only time-tiling is enabled...
+        tiling = record()
+        if self._default['subtile_size']:
+            tiling.time = self._default['subtile_size']
+
+        # Use the shape (of coeff array, 1-relative) if specified.
+        # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
+        shape = self._default['funklet_shape']           #............??
+        if shape==None:
+            shape = [0,0]
+            if not self._default['tfdeg']==None:
+                shape = deepcopy(self._default['tfdeg']) # just in case.....
+            # print key,'** shape =',shape
+            shape[0] += 1                                # make 1-relative              
+            shape[1] += 1                                # make 1-relative
             
-        node = self._ns.parm(*quals) << Meq.Parm(self._default['value'],
+        node = self._ns.parm(*quals) << Meq.Parm(self._default['value'],        ## funklet=default
+                                                 shape=shape,
+                                                 # tiling=tiling,
+                                                 # save_all=self._default['save_all'],
+                                                 # auto_save=self._default['auto_save'],
+                                                 # reset_funklet=self._default['reset_funklet'],
+                                                 # use_previous=self._default['use_previous'],
+                                                 # table_name=self.parmtable())
                                                  node_groups=self._node_groups,
                                                  tags=self._tags)
 
@@ -259,28 +306,29 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
         # Make sure that tags/quals of the created nodes reflect the fact
         # that this is a simulated parameter.
-        self._tags.append('simul')            # ....??
+        self._tags.append('simul')                     # ....??
         self._quals.append('simul')
 
-        # The default value of the MeqParm that is being simulated:
-        self._default = deepcopy(default)
-        if not isinstance(self._default, dict): self._default = dict()
-        self._default.setdefault('value',0.0)
+        # The default value(s) of the MeqParm that is being simulated:
+        self._default = dict()
+        if not isinstance(default, dict):
+            self._default = deepcopy(default)
+        self._default.setdefault('value', 0.0)
+        self._default.setdefault('unit', None)
         
         # Information to create a simulation subtree (see create_entry())
-        pp = dict()                           # Simulation control info
+        self._simul = dict()                           # Simulation control info
         if isinstance (simul, dict):
-            pp = deepcopy(simul)
-        pp.setdefault('scale', None)
-        pp.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
-        pp.setdefault('Tsec', 1000.0)         # Time variation (cos) period
-        pp.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
-        # Some checks:
-        if pp['scale']==None:
-            pp['scale'] = abs(self._default['value'])  #   use the (non-zero!) default value
-            if pp['scale']==0.0: pp['scale'] = 1.0
-        # Store:
-        self._simul = pp 
+            self._simul = deepcopy(simul)
+        self._simul.setdefault('default_value', self._default['value'])           
+        self._simul.setdefault('unit', self._default['unit'])           
+        self._simul.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
+        self._simul.setdefault('Tsec', 1000.0)         # Time variation (cos) period
+        self._simul.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
+        self._simul.setdefault('scale', None)          # used to calculate absolute stddev
+        if self._simul['scale']==None:
+            self._simul['scale'] = abs(self._default['value'])  #   use the (non-zero!) default value
+            if self._simul['scale']==0.0: self._simul['scale'] = 1.0
 
         # The information may be overridden:
         self._override = dict()
@@ -339,8 +387,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         variation = self._ns.variation(*quals) << Meq.Multiply(ampl,costime)
 
         # Finally, add the variation to the default value:
-        default = self._ns.default(*quals) << Meq.Constant(self._default['value'])
-        node = self._ns.parm(*quals) << Meq.Add(default, variation, tags=self._tags)
+        default = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
+        node = self._ns.simulparm(*quals) << Meq.Add(default, variation, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)
