@@ -595,7 +595,8 @@ class ChartPlot(QWidget):
           self._zoomcount = self._zoomcount - 1
         elif not self._pause[curve_no]:  #replot the zoom
           chart = array(self._chart_data[curve_no][self._data_index])
-          self._Zoom[curve_no].update_plot(chart)
+          flags = array(self._flag_data[curve_no][self._data_index])
+          self._Zoom[curve_no].update_plot(chart,flags)
           self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotzoom.replot()
 
@@ -665,7 +666,8 @@ class ChartPlot(QWidget):
       #open a zoom of the selected curve
       PlotArraySize = self._x1.nelements()
       chart = array(self._chart_data[crv][self._data_index])
-      self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, pen, self)
+      flags = array(self._flag_data[crv][self._data_index])
+      self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, flags, pen, self)
       if not self._source is None:
         self._Zoom[crv].setCaption(self._source)
         
