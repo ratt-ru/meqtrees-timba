@@ -11,19 +11,11 @@ class LMDirection (Direction):
   else MeqParms.
   """;
   def __init__(self,ns,name,l,m,
-               constant=False,
-               parm_options=record(node_groups='Parm'),
                quals=[],kwquals={}):
-    Parameterization.__init__(self,ns,name,parm_options=parm_options,
+    Parameterization.__init__(self,ns,name,
                               quals=quals,kwquals=kwquals);
-    self._constant = constant;
-    self._jones = [];
-    if constant:
-      self._l = self._const_node('l',l);
-      self._m = self._const_node('m',m);
-    else:
-      self._create_polc('l',l);
-      self._create_polc('m',m);
+    self._add_parm('l',l,tags="direction");
+    self._add_parm('m',m,tags="direction");
       
   def add_jones (self,kind,jones,directional=False):
     """Associates a Jones matrix with this direction.
@@ -46,16 +38,7 @@ class LMDirection (Direction):
     
   def _lm (self):
     """Creates L,M nodes as needed, returns them as an (l,m) tuple""";
-    l = self.ns.l;
-    m = self.ns.m;
-    if not l.initialized():
-      if self._constant:
-        l = self._l;
-        m = self._m;
-      else:
-        l = self._parm("l");
-        m = self._parm("m");
-    return (l,m);
+    return (self._parm("l"),self._parm("m"));
     
   def lm (self):
     """Returns LM two-pack for this source.

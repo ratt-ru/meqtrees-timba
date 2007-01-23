@@ -117,13 +117,41 @@ class SolveTree (_BaseTree):
       TDLJob(run_solve_job,"Run solution")
     );
     
+def inspector (outnode,nodes,bookmark=True):
+  """Makes a generic inspector for a list of nodes. 
+  'outnode' is an output node to which the inspector is assigned.
+  'nodes' is a list of nodes.
+  If 'bookmark' is true, a single-page bookmark will automatically be added 
+  for the inspector (use string to give it a non-default name.)
+  """
+  if not nodes:
+    raise ValueError,"too few nodes specified in list";
+  outnode << \
+    Meq.Composer(
+      plot_label=[ node.name for node in nodes ],
+      mt_polling=True,
+      *[ Meq.Mean(node,reduction_axes="freq") for node in nodes ]
+    );
+  if bookmark is True:
+    bookmark = outnode.name;
+  if bookmark:
+    Bookmarks.Page(bookmark).add(outnode,viewer="Collections Plotter");
+  return outnode;
+  
+    
 def vis_inspector (outnode,visnodes,array=None,bookmark=True):
+  """Makes an inspector for visibility nodes. 
+  'outnode' is an output node to which the inspector is assigned.
+  'visnodes' will be qualified with the ifrs pairs from the given array.
+  If 'bookmark' is true, a single-page bookmark will automatically be added 
+  for the inspector (use string to give it a non-default name.)
+  """
   array = array or Context.array;
   if not array:
     raise ValueError,"array not specified in global Meow.Context, or in this function call";
   outnode << \
     Meq.Composer(
-      dims=(len(array.ifrs()),2,2),
+      dims=[0],
       plot_label=[ "%s-%s"%(p,q) for p,q in array.ifrs() ],
       mt_polling=True,
       *[ outnode(p,q) << Meq.Mean(visnodes(p,q),reduction_axes="freq")
@@ -137,12 +165,18 @@ def vis_inspector (outnode,visnodes,array=None,bookmark=True):
     
 
 def jones_inspector (outnode,jones,array=None,bookmark=True):
+  """Makes an inspector for Jones matrices. 
+  'outnode' is an output node to which the inspector is assigned.
+  'jones' will be qualified with the stations pairs from the given array.
+  If 'bookmark' is true, a single-page bookmark will automatically be added 
+  for the inspector (use string to give it a non-default name.)
+  """
   array = array or Context.array;
   if not array:
     raise ValueError,"array not specified in global Meow.Context, or in this function call";
   outnode << \
     Meq.Composer(
-      dims=(len(array.stations()),2,2),
+      dims=[0],
       plot_label=[ str(p) for p in array.stations() ],
       mt_polling=True,
       *[ outnode(p) << Meq.Mean(jones(p),reduction_axes="freq")

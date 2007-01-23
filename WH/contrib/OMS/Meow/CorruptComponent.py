@@ -6,11 +6,24 @@ class CorruptComponent(SkyComponent):
   """A CorruptComponent represents an SkyComponent, plus a set of
   associated Jones matrices that corrupt the SkyComponent's visibilities.
   """;
-  def __init__(self,ns,skycomp,label='corrupt',station_jones=None,jones=None):
+  def __init__(self,ns,skycomp,label=None,station_jones=None,jones=None):
     """Initializes a corrupt component. skycomp is a SkyComponent
     object. 
-    'label' is used to qualify visibilities.
+    'label' is used to qualify visibilities, this needs to be unique
+    (for the given corruption at least). If not supplied, the jones or 
+    station_jones name is used.
     """;
+    if label is None:
+      if jones:
+        label = getattr(jones,'name','corrupt');
+      elif station_jones:
+        # bit of a dirty trick here -- qualify station_jones with 0,
+        # which doesn't even have to be a real station, to get at the
+        # actual node. This allows us to support generic callables
+        # for station_jones
+        label = getattr(station_jones(0),'basename','corrupt');
+      else:
+        label = "corrupt";
     SkyComponent.__init__(self,ns,skycomp.name+':'+label,skycomp.direction);
     self.label    = label;
     self.skycomp  = skycomp;

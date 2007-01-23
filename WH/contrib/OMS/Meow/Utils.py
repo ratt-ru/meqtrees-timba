@@ -95,7 +95,7 @@ _solver_opts = dict(
   lm_factor    = .001,
   balanced_equations = False,
   epsilon      = 1e-4,
-  num_iter     = 10,
+  num_iter     = 30,
   convergence_quota = 0.8
 );
 
@@ -109,10 +109,10 @@ def solver_options (optionset='_solver_opts',namespace=None):
   return [
     TDLOption(optionset+'debug_level',"Solver debug level",[0,1,10],namespace=namespace),
     TDLOption(optionset+'colin_factor',"Collinearity factor",[1e-8,1e-6,1e-3,1e-1],default=1,more=float,namespace=namespace),
-    TDLOption(optionset+'lm_factor',"Initial LM factor",[1,.1,.01,.001],default=2,more=float,namespace=namespace),
+    TDLOption(optionset+'lm_factor',"Initial LM factor",[1,.1,.01,.001],default=3,more=float,namespace=namespace),
     TDLOption(optionset+'balanced_equations',"Assume balanced equations",False,namespace=namespace),
     TDLOption(optionset+'epsilon',"Convergence threshold",[.01,.001,.0001,1e-5,1e-6],default=2,more=float,namespace=namespace),
-    TDLOption(optionset+'num_iter',"Max iterations",[30,50,100,1000],default=0,more=int,namespace=namespace),
+    TDLOption(optionset+'num_iter',"Max iterations",[10,30,50,100,1000],default=1,more=int,namespace=namespace),
     TDLOption(optionset+'convergence_quota',"Subtiling convergence quota",[.8,.9,1.],namespace=namespace) \
   ];
 
@@ -132,9 +132,9 @@ def create_solver_defaults (solvables,options=None):
   opts = dict(_solver_opts);
   if options:
     opts.update(options);
-  print options;
+  print opts;
   # copy all options into solver defaults with the same name
-  solver_defaults = record(**options);
+  solver_defaults = record(**opts);
   # additionally, set epsilon_deriv
   solver_defaults.epsilon_deriv      = opts["epsilon"];
   solver_defaults.save_funklets    = True
