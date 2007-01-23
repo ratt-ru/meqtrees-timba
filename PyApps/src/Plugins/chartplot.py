@@ -820,9 +820,11 @@ class ChartPlot(QWidget):
       else:
         incoming_data = new_chart_val
         incoming_flags = new_chart_flags
+      #print 'incoming flags ', incoming_flags
 # first, do we have a scalar?
       is_scalar = False
       scalar_data = 0.0
+      flag_data = 0
       try:
         shape = incoming_data.shape
 # note: if shape is 1 x N : 1 time point with N freq points
@@ -831,46 +833,41 @@ class ChartPlot(QWidget):
       except:
         is_scalar = True
         scalar_data = incoming_data
+        if not incoming_flags is None:
+          flag_data = incoming_flags
       if not is_scalar and len(shape) == 1:
         if shape[0] == 1:
           is_scalar = True
           scalar_data = incoming_data[0]
-      if not is_scalar:
-        test_scalar = True
-        for i in range(len(shape)):
-          if shape[i] > 1:
-            test_scalar = False
-        is_scalar = test_scalar
-        if is_scalar:
-          scalar_data = incoming_data
+          if not incoming_flags is None:
+            flag_data = incoming_flags[0]
+          
       if is_scalar:
+        #print 'scalar is ', scalar_data
 #     if len(self._chart_data[channel]) > self._ArraySize-1:
 #       differ = len(self._chart_data[channel]) - (self._ArraySize-1)
 #       for i in range(differ):
 #         del self._chart_data[channel][0]
         self._chart_data[channel][keys].append(scalar_data)
-        if incoming_flags is None:
-          self._chart_data[channel][keys].append(0)
-        else:
-          self._chart_data[channel][keys].append(incoming_flags)
+        self._flag_data[channel][keys].append(flag_data)
         self._updated_data[channel] = True
 
         # take care of position string
         self._position[channel] = q_pos_str
   
       # otherwise we have an array (assumed to be 1D for the moment), 
-      # so we replace the stored chart data in its entirety
+      # so we add to the stored chart data in its entirety
       else:
         self._is_vector = True
-        if incoming_data.shape[0] == 1:
-          if  self._data_label is None:
-            self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
-          else:
-            self._plotter.setAxisTitle(QwtPlot.xBottom, self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
         num_elements = 1
         for i in range(len(incoming_data.shape)):
           num_elements = num_elements * incoming_data.shape[i]
         flattened_array = reshape(incoming_data.copy(),(num_elements,))
+        if num_elements > 1 and incoming_data.shape[0] == 1:
+          if  self._data_label is None:
+            self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
+          else:
+            self._plotter.setAxisTitle(QwtPlot.xBottom, self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
         if self._append_data: 
           for i in range(len(flattened_array)):
             self._chart_data[channel][keys].append(flattened_array[i])
@@ -992,44 +989,55 @@ class ChartPlot(QWidget):
     # first determine offsets
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
-        chart = array(self._chart_data[channel][self._data_index])
-        flags = array(self._flag_data[channel][self._data_index])
-        good_data = []
-        for i in range(chart.shape[0]):
-          if flags[i] == 0:
-            good_data.append(chart[i])
-        test_chart = array(good_data)
-        if chart.type() == Complex32 or chart.type() == Complex64:
-          toggle_id = self.menu_table['Complex Data']
-          self._menu.setItemVisible(toggle_id, True)
-          complex_chart = test_chart.copy()
-          if self._amplitude:
-            self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
-            cplx_chart = abs(complex_chart)
-          elif self._real:
-            self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
-            cplx_chart = complex_chart.getreal()
-          elif self._imaginary:
-            self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
-            cplx_chart = complex_chart.getimag()
+        try:
+          chart = array(self._chart_data[channel][self._data_index])
+          #print 'shape chart ', chart.shape, ' ', chart
+        except:
+          self._updated_data[channel] = False
+          pass
+        try:
+          flags = array(self._flag_data[channel][self._data_index])
+          #print 'shape flags ', flags.shape, ' ', flags
+        except:
+          self._updated_data[channel] = False
+          pass
+        if self._updated_data[channel]:
+          good_data = []
+          for i in range(chart.shape[0]):
+            if flags[i] == 0:
+              good_data.append(chart[i])
+          test_chart = array(good_data)
+          if chart.type() == Complex32 or chart.type() == Complex64:
+            toggle_id = self.menu_table['Complex Data']
+            self._menu.setItemVisible(toggle_id, True)
+            complex_chart = test_chart.copy()
+            if self._amplitude:
+              self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
+              cplx_chart = abs(complex_chart)
+            elif self._real:
+              self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
+              cplx_chart = complex_chart.getreal()
+            elif self._imaginary:
+              self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
+              cplx_chart = complex_chart.getimag()
+            else:
+              self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
+              real_chart = complex_chart.getreal()
+              imag_chart = complex_chart.getimag()
+              cplx_chart = arctan2(imag_chart,real_chart)
+            tmp_max = cplx_chart.max()
+            tmp_min = cplx_chart.min()
           else:
-            self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
-            real_chart = complex_chart.getreal()
-            imag_chart = complex_chart.getimag()
-            cplx_chart = arctan2(imag_chart,real_chart)
-          tmp_max = cplx_chart.max()
-          tmp_min = cplx_chart.min()
-        else:
-          self._amplitude = False
-          toggle_id = self.menu_table['Complex Data']
-          self._menu.setItemVisible(toggle_id, False)
-          tmp_max = test_chart.max()
-          tmp_min = test_chart.min()
-        chart_range = abs(tmp_max - tmp_min)
-        # check if we break any highest or lowest limits
-        # this is important for offset reasons.
-        if chart_range > self._max_range:
-          self._max_range = chart_range
+            self._amplitude = False
+            toggle_id = self.menu_table['Complex Data']
+            self._menu.setItemVisible(toggle_id, False)
+            tmp_max = test_chart.max()
+            tmp_min = test_chart.min()
+          chart_range = abs(tmp_max - tmp_min)
+          # check if we break any highest or lowest limits
+          # this is important for offset reasons.
+          if chart_range > self._max_range:
+            self._max_range = chart_range
 
     #set the max value of the offset
     self._offset = 1.1 * self._max_range
