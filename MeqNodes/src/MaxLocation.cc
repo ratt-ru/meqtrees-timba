@@ -58,7 +58,6 @@ void MaxLocation::computeResultCells (Cells::Ref &ref,const std::vector<Result::
   //remember cells
   const Result &chres = *( childres.front() );
   cells_ <<= new Cells(chres.cells());
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::MaxLocation: no time axis in request, can't compute AzEls");
   ref.attach(cells);
 }
 
