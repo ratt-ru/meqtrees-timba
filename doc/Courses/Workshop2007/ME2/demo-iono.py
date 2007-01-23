@@ -12,6 +12,7 @@ Meow.Utils.include_imaging_options();
 
 TDLCompileOption("grid_size","Grid size",[0,1,2,3,4]);
 TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
+TDLCompileOption("noise_stddev","Add noise (Jy)",[0,1e-6,1e-3],more=float);
 
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
@@ -32,6 +33,14 @@ def grid_model (ns,basename,l0,m0,dl,dm,nsrc):
         name = "%s%+d%+d" % (basename,dx,dy);
         model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
   return model;
+  
+def noise_matrix (stddev=0.1):
+  """helper function to create a 2x2 complex gaussian noise matrix""";
+  noise = Meq.GaussNoise(stddev=stddev);
+  return Meq.Matrix22(
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
+  );
 
 def _define_forest (ns):
   array = Meow.IfrArray(ns,ANTENNAS);
@@ -42,7 +51,7 @@ def _define_forest (ns):
   sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,grid_size);
     
   # make Zjones for all positions in source list
-  Zj = iono_model.compute_zeta_jones(ns,sources,array,observation);
+  Zj = iono_model.compute_zeta_jones(ns,sources);
 
   # corrupt all sources with the Zj for their direction
   allsky = Meow.Patch(ns,'sky',observation.phase_centre);
@@ -53,11 +62,13 @@ def _define_forest (ns):
   # get predicted visibilities
   predict = allsky.visibilities();
   
-  # ..and attach them to sinks
+  # ..and attach them to sinks, with a bit of noise thrown in
   for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(predict(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    output = predict(p,q);
+    if noise_stddev:
+      output = ns.noisy_predict(p,q) << output + noise_matrix(noise_stddev); 
+    ns.sink(p,q) << Meq.Sink(output,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
       
-
   # These are the "interesting" stations:
   # 10 is center of array, 9, 18 and 27 are at the end of the arms
   stas = [10,9,18,27 ];
@@ -101,10 +112,6 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   mqs.execute('vdm',req,wait=False);
   
   
-def _tdl_job_2_make_image (mqs,parent):
-  Meow.Utils.make_dirty_image(npix=1024,arcmin=(grid_size+1)*grid_step*2,channels=[32,1,1]);
-
-
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
 # simply by running 'python script.tdl'
 
