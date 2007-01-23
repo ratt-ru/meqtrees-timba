@@ -37,7 +37,9 @@
 //  into a single result.
 //field: dims F
 //  If specified, a vector of tensor dimensions to compose a tensor
-//  result.
+//  result. As a special case, the vector [0] specifies tensor mode:
+//  all children are expected to return tensors of the same dims,
+//  and the output is a tensor of dims [Nchildren,child_dims]
 //defrec end
 
 namespace Meq {    

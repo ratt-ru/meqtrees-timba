@@ -63,12 +63,18 @@ int Composer::getResult (Result::Ref &resref,
   int nres = 0, nfails = 0, nmissing = 0;
   for( uint i=0; i<childres.size(); i++ )
     nres += childres[i]->numVellSets();
-  // check that integrated property matches
+  // in tensor mode, check for matching dims
+  bool tensor_mode = ( dims_.size() == 1 && dims_[0] == 0 );
+  const Result::Dims & dims0 = childres[0]->dims();
+  // check that integrated property matches, and tensor dims match
+  // (in tensor mode)
   bool integrated = childres[0]->isIntegrated();
   for( int i=1; i<numChildren(); i++ )
   {
     FailWhen( childres[i]->isIntegrated() != integrated,
         "'integrated' property of child results is not uniform");
+    FailWhen( tensor_mode && childres[i]->dims() != dims0,
+        "tensor dimensions of child results are not uniform");
   }
   // compose the result
   Result *presult;
@@ -76,7 +82,16 @@ int Composer::getResult (Result::Ref &resref,
     resref <<= presult = new Result(nres,integrated);
   else
   {
-    resref <<= presult = new Result(dims_,integrated);
+    if( tensor_mode )
+    {
+      Result::Dims dims(true,dims0.size()+1);
+      dims[0] = childres.size();
+      for( uint i=1; i<dims.size(); i++ )
+        dims[i] = dims0[i-1];
+      resref <<= presult = new Result(dims,integrated);
+    }
+    else // use standard dims
+      resref <<= presult = new Result(dims_,integrated);
     FailWhen(presult->numVellSets()!=nres,
              "number of child results does not match tensor dimensions");
   }
