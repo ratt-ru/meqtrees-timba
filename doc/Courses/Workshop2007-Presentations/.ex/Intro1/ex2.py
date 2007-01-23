@@ -4,8 +4,8 @@ import math
 import cmath
 
 TDLCompileOption('ser_order',"Max order of series",[3,5,10]);
-TDLCompileOption('a_term',"'a' value",[0,5,10]);
-TDLCompileOption('b_term',"'b' value",[0,5,10]);
+TDLCompileOption('a_term',"'a' value",[0,5,10],more=float);
+TDLCompileOption('b_term',"'b' value",[0,5,10],more=float);
 
 def _define_forest (ns, **kwargs):
   x = ns.x << Meq.Time;
