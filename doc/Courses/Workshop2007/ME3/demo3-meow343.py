@@ -101,22 +101,22 @@ def _define_forest(ns):
       except: pass;
   TDLJob(job_clear_out_all_previous_solutions,"Clear out all solutions");
   
-  # add some useful bookmarks as we go along
-  bk = Bookmarks.Page("Fluxes and coherencies");
-  bk.add(source_list[0].stokes("I"));
-  bk.add(source_list[1].stokes("I"));
-  bk.add(source_list[0].stokes("Q"));
-  bk.add(source_list[1].stokes("Q"));
-  bk.add(source_list[0].coherency());
-  bk.add(solve_tree.solver());
+  # add some useful bookmarks
+  Bookmarks.Page("Fluxes and coherencies") \
+    .add(source_list[0].stokes("I") \
+    .add(source_list[1].stokes("I") \
+    .add(source_list[0].stokes("Q") \
+    .add(source_list[1].stokes("Q") \
+    .add(source_list[0].coherency() \
+    .add(solve_tree.solver());
   
-  bk = Bookmarks.Page("G Jones",3,3);
+  pg = Bookmarks.Page("G Jones",3,3);
   for p in array.stations():
-    bk.add(Gjones(p));
+    pg.add(Gjones(p));
   
-  pg = Bookmarks.Page("Vis Inspectors",1,2);
-  pg.add(ns.inspect('spigots'),viewer="Collections Plotter");
-  pg.add(ns.inspect('residuals'),viewer="Collections Plotter");
+  Bookmarks.Page("Vis Inspectors",1,2) \
+    .add(ns.inspect('spigots'),viewer="Collections Plotter") \
+    .add(ns.inspect('residuals'),viewer="Collections Plotter");
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
