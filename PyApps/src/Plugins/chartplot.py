@@ -148,7 +148,7 @@ class ChartPlot(QWidget):
     self._popup_text.setGeometry(0,0,160,48)
 
     # timer to allow redisplay
-    self._display_interval_ms = 1000
+    self._display_interval_ms = 2000
     self._display_refresh = QTimer(self)
     self._display_refresh.start(self._display_interval_ms)
     self._refresh_flag = True
@@ -331,6 +331,7 @@ class ChartPlot(QWidget):
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
+      self._start_offset_test[channel][self._data_index] = 0
     self.refresh_event()
     return True
 
@@ -366,6 +367,7 @@ class ChartPlot(QWidget):
     if first_time:
       self._chart_data = {}
       self._flag_data = {}
+      self._start_offset_test = {}
       self._updated_data = {}
       self._pause = {}
       self._good_data = {}
@@ -394,6 +396,7 @@ class ChartPlot(QWidget):
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
           self._flag_data[i] = {}
+          self._start_offset_test[i] = {}
     else:
       self._updated_data = {}
       self._pause = {}
@@ -415,6 +418,7 @@ class ChartPlot(QWidget):
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
           self._flag_data[i] = {}
+          self._start_offset_test[i] = {}
 
   def do_print(self):
     # taken from PyQwt Bode demo
@@ -799,6 +803,7 @@ class ChartPlot(QWidget):
       if not self._chart_data[channel].has_key(keys):
         self._chart_data[channel][keys] = []
         self._flag_data[channel][keys] = []
+        self._start_offset_test[channel][keys] = 0
         if len(data_keys) > 1:
           if self._vells_menu is None:
             self._vells_menu = QPopupMenu(self._menu)
@@ -1003,7 +1008,7 @@ class ChartPlot(QWidget):
           pass
         if self._updated_data[channel]:
           good_data = []
-          for i in range(chart.shape[0]):
+          for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
             if flags[i] == 0:
               good_data.append(chart[i])
           test_chart = array(good_data)
@@ -1038,6 +1043,7 @@ class ChartPlot(QWidget):
           # this is important for offset reasons.
           if chart_range > self._max_range:
             self._max_range = chart_range
+          self._start_offset_test[channel][self._data_index] = chart.shape[0]
 
     #set the max value of the offset
     self._offset = 1.1 * self._max_range
