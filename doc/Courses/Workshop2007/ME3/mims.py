@@ -65,12 +65,11 @@ def mim_poly (ns,source_list,tec0=10.):
                 if dx+dy <= mim_polc_degree ];
   for degx,degy in polc_degs:
     if not degx and not degy:
-      val = tec0;
+      mc(degx,degy) << tec0;
     else:
-      val = 0;
-    mc(degx,degy) << Meq.Parm(val,shape=polc_shape,
-                              table_name=get_mep_table(),
-                              tags="mim solvable");
+      mc(degx,degy) << Meq.Parm(0,shape=polc_shape,
+                                table_name=get_mep_table(),
+                                tags="mim solvable");
   # make TEC subtrees
   tecs = ns.tec;
   for src in source_list:

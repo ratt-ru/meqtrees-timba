@@ -49,12 +49,17 @@ myimager.setdata(mode='channel',fieldid=1, spwid=1,
              msselect=select,
              async=F);
 
-print select;
-myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
-  stokes=stokes,mode=mode,
-  fieldid=1,spwid=1,
-  nchan=32,start=1,step=1)
-  
+if( mode == 'mfs' )
+  myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell,
+    stokes=stokes,mode=mode,
+    fieldid=1,spwid=1,
+    nchan=1);
+else
+  myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell,
+    stokes=stokes,mode=mode,
+    fieldid=1,spwid=1,
+    nchan=32,start=1,step=1);
+
 myimager.weight(weighting); 
   
 myimager.setoptions(cache=100000000);

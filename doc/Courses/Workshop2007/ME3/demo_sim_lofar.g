@@ -2,7 +2,7 @@
 # SKA located at the VLA site consisting of 250m dishes.
 
 RA0          := '0h7m0.0';
-DEC0         := '33d00m00s';
+DEC0         := '70d00m00s';
 #DEC0         := '50d00m00s';
 #DEC0         := '70d00m00s';
 Freq         := '100MHz';
