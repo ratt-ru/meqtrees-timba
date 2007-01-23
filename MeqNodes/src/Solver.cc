@@ -1242,7 +1242,7 @@ bool Solver::Subsolver::solve (int step)
   if( converged )
     return true;
   // get debug info -- only valid before a solveLoop() call
-  uint nun,np,ncon,ner,rank_dbg;
+  uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
   double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
   uint * piv;
   solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
@@ -1286,6 +1286,14 @@ bool Solver::Subsolver::solve (int step)
   
   // Put the statistics in a record of the result.
   DMI::Record & mrec = metrics <<= new DMI::Record;
+#ifndef USE_OLD_LSQFIT
+  mrec[FReady]  = solver.isReady();
+  mrec[FReadyString] = solver.readyText();
+// workaround for LSQFit::debugIt() bug: if solution ready immediately
+// after first step, rank is uninitialized
+  if( solver.isReady() && !step )
+    rank = 0;
+#endif
   mrec[FRank]   = int(rank);
   mrec[FFit]    = fit;
 //  mrec[FErrors] = errors;
@@ -1295,10 +1303,6 @@ bool Solver::Subsolver::solve (int step)
   mrec[FNumUnknowns] = nuk;
   mrec[FChi   ] = chi = solver.getChi();
   mrec[FChi0  ] = chi0;
-#ifndef USE_OLD_LSQFIT
-  mrec[FReady]  = solver.isReady();
-  mrec[FReadyString] = solver.readyText();
-#endif
 
 // getCovariance() and getErrors() seem to destroy the matrix.
 // so comment them out for now. The right way is to make a copy of the LSQFit
