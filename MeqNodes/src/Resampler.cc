@@ -815,6 +815,7 @@ template<class T> void
 #endif
 }
 
+
 void
  Interpolator::pchip_int(blitz::Array<double,1> xin, blitz::Array<dcomplex,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<dcomplex,1> yout, int m, blitz::Array<int,1> xindex) {
 
@@ -862,15 +863,27 @@ void
 	del(n-1)=del(n-2);
 	h(n-1)=h(n-2);
 	for (int k=1; k<n-1; k++) {
-		if (del(k-1)==0 || del(k)==0)	{
-				d(k)=make_dcomplex(0);
-		} else {
-		//if del(k) and del(k-1) have same sign and two intervals
-		//have same length, take harmonic mean
-		double w1=2*h(k)+h(k-1);
-		double w2=h(k)+2*h(k-1);
-		d(k)=(w1+w1)/(w1/del(k-1)+w2/del(k));
-		}
+    //calculate real and imag parts separately
+    double delr1=creal(del(k-1));
+    double deli1=cimag(del(k-1));
+    double delr=creal(del(k));
+    double deli=cimag(del(k));
+
+    double dr=0;
+    double di=0;
+		if (!(delr1==0 || delr==0 || ((delr) >0 && delr1<0) 
+									 || (delr <0 && delr1>0) ))	 {
+		 double w1=2*h(k)+h(k-1);
+		 double w2=h(k)+2*h(k-1);
+		 dr=(w1+w1)/(w1/delr1+w2/delr);
+    }
+		if (!(deli1==0 || deli==0 || ((deli) >0 && deli1<0) 
+									 || (deli <0 && deli1>0) ))	 {
+		 double w1=2*h(k)+h(k-1);
+		 double w2=h(k)+2*h(k-1);
+		 di=(w1+w1)/(w1/deli1+w2/deli);
+    }
+	  d(k)=make_dcomplex(dr,di);
 	}
 
 #ifdef DEBUG
@@ -935,6 +948,30 @@ void
 	for (int i=x_u_limit+1; i<m; i++) {
 	  yout(i)=d(n-1)*(xout(i)-xin(n-1))+yin(n-1);
 	}
+#ifdef DEBUG
+ if (abs(yout(0)) > 1e6) {
+  cout<<abs(yout(0))<<endl;
+	cout<<"xin()"<<xin<<endl;
+	cout<<"h()"<<h<<endl;
+	cout<<"d()="<<endl;
+  for (int ci=0; ci<d.size(); ci++) {
+	 cout<<" "<<ci<<": "<<abs(d(ci))<<endl;
+  }
+	cout<<endl<<"del()="<<endl;
+  for (int ci=0; ci<del.size(); ci++) {
+	 cout<<" "<<ci<<": "<<abs(del(ci))<<endl;
+  }
+	cout<<endl<<"yin()="<<endl;
+  for (int ci=0; ci<yin.size(); ci++) {
+	  cout<<" "<<ci<<": "<<abs(yin(ci))<<endl;
+  }
+	cout<<endl<<"yout()="<<endl;
+  for (int ci=0; ci<yout.size(); ci++) {
+	  cout<<" "<<ci<<": "<<abs(yout(ci))<<endl;
+  }
+  cout<<"m="<<m<<",N="<<n<<endl;
+ }
+#endif
 }
 
 //setup routine:
