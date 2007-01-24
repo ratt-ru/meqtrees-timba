@@ -4,7 +4,6 @@ from Timba.GUI.pixmaps import pixmaps
 import ConfigParser
 
 import traceback
-import inspect
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
@@ -83,9 +82,12 @@ class _TDLOptionItem(object):
     syms = symbol.split('.');
     symbol = syms[-1];
     while len(syms) > 1:
-      namespace = namespace.setdefault(syms.pop(0),{});
-      if inspect.ismodule(namespace):
-        namespace = namespace.__dict__;
+      name = syms.pop(0);
+      namespace = namespace.setdefault(name,{});
+      if not isinstance(namespace,dict):
+        namespace = getattr(namespace,'__dict__',None);
+        if namespace is None:
+          raise TypeError,"'"+name+"' does not refer to a valid namespace";
     self.namespace = namespace;
     self.symbol = symbol;
     self._set(value);
@@ -164,7 +166,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     # verify default arg
     if default is None:
       default = 0;
-    elif not isinstance(default,int):
+    if not isinstance(default,int):
       raise TypeError,"'default': list index expected";
     elif default < 0 or default >= len(value):
       raise ValueError,"'default': index out of range";
@@ -174,22 +176,21 @@ class _TDLListOptionItem (_TDLOptionItem):
       # look up value in list
       _dprint(1,"read",symbol,"=",def1,"from config");
       try:
-        default = self.option_list_str.index(def1);
+        self.selected = self.option_list_str.index(def1);
       except:
         if more is None:
           _dprint(1,def1,"is an illegal value for",symbol);
-          default = 0;
+          self.selected = default;
         # add configured symbol to list of values
         else:
           self.set_custom_value(more(def1));
-          default = len(self.option_list) - 1;
+          self.selected = len(self.option_list) - 1;
     except:
       _dprint(1,"error reading",symbol,"from config");
       if _dbg.verbose > 0:
         traceback.print_exc();
-      default = 0;
-    self.selected = default;
-    _TDLOptionItem.__init__(self,namespace,symbol,self.option_list[default]);
+      self.selected = default;
+    _TDLOptionItem.__init__(self,namespace,symbol,self.option_list[self.selected]);
 
   def num_options (self):
     return len(self.option_list);
@@ -315,8 +316,10 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
   # the globals() of the caller of our caller
   if namespace is None:
     namespace = sys._getframe(2).f_globals;
-  elif inspect.ismodule(namespace):
-    namespace = namespace.__dict__;
+  elif not isinstance(namespace,dict):
+    namespace = getattr(namespace,'__dict__',None);
+    if namespace is None:
+      raise TypeError,"invalid namespace specified";
   # boolean option
   if isinstance(value,bool):
     item = _TDLBoolOptionItem(namespace,symbol,value);
