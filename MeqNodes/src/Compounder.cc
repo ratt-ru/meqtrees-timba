@@ -38,6 +38,7 @@ namespace Meq {
 
   const HIID FMode = AidMode;
   const HIID FCommAxes= AidCommon|AidAxes;
+  const HIID FDefCellSize= AidDefault|AidCell|AidSize;
 
   const HIID FResolutionSymdeps    = AidResolution|AidSymdeps;
   const HIID FResolutionId         = AidResolution|AidId;
@@ -98,6 +99,7 @@ namespace Meq {
     seq_symdeps_.resize(1);
     seq_symdeps_.assign(1,AidState);
 
+    def_cell_size_=0.1;
   }
 
   Compounder::~Compounder()
@@ -129,6 +131,8 @@ namespace Meq {
 
     //do not resample
     disableAutoResample();
+    //get default cell size
+    rec[FDefCellSize].get(def_cell_size_,initializing);
 
   }
 
@@ -322,7 +326,7 @@ namespace Meq {
       //create a space grid
       if (grid_[ch].extent(0)==1) {
         //scalar case
-        space[ch](0)=0.1;
+        space[ch](0)=def_cell_size_;
       } else {
        //vector case
        for (int i=1;i<grid_[ch].extent(0);i++) 
@@ -476,6 +480,9 @@ namespace Meq {
 							  vs.setPerturbation(sp_id,childres[0]->vellSet(1).getPerturbation(dd[1],ii),ii);
 						} else {
 							//fali
+#ifdef DEBUG
+            cout<<"Fail. this cannot happen"<<endl;
+#endif
 						}
 			      spmapiter++;
 						sp_id++;

@@ -114,7 +114,8 @@
         Do(Meq::FITSDataMux,arg) separator \
         Do(Meq::PrivateFunction,arg) separator \
         Do(Meq::MaxLocation,arg) separator \
-        Do(Meq::MinLocation,arg)
+        Do(Meq::MinLocation,arg) separator \
+        Do(Meq::RADec,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

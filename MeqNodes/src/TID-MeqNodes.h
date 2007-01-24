@@ -1300,6 +1300,25 @@ namespace Meq { class Product; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqRADec
+#define _defined_id_TpMeqRADec 1
+const DMI::TypeId TpMeqRADec(-1709);              // from /home/sarod/Timba/MeqNodes/src/RADec.h:52
+const int TpMeqRADec_int = -1709;
+namespace Meq { class RADec; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::RADec> : public TypeTraits<Meq::RADec>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqRADec_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::RADec & ContainerReturnType;
+                typedef const Meq::RADec & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqRandomNoise
 #define _defined_id_TpMeqRandomNoise 1
 const DMI::TypeId TpMeqRandomNoise(-1384);        // from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31

@@ -198,6 +198,8 @@ DMI::BObj * __construct_MeqPrivateFunction (int n) { return n>0 ? new Meq::Priva
 DMI::BObj * __construct_MeqMaxLocation (int n) { return n>0 ? new Meq::MaxLocation [n] : new Meq::MaxLocation; }
 #include "MinLocation.h"
 DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocation [n] : new Meq::MinLocation; }
+#include "RADec.h"
+DMI::BObj * __construct_MeqRADec (int n) { return n>0 ? new Meq::RADec [n] : new Meq::RADec; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -589,6 +591,8 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
         AtomicID::registerId(-1664,"MeqCompounder")+
         TypeInfoReg::addToRegistry(-1664,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1664,__construct_MeqCompounder)+
+        AtomicID::registerId(-1221,"Default")+
+        AtomicID::registerId(-1301,"Cell")+
         AtomicID::registerId(-1676,"MeqFITSWriter")+
         TypeInfoReg::addToRegistry(-1676,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1676,__construct_MeqFITSWriter)+
@@ -614,6 +618,11 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
         AtomicID::registerId(-1700,"MeqMinLocation")+
         TypeInfoReg::addToRegistry(-1700,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1700,__construct_MeqMinLocation)+
+        AtomicID::registerId(-1709,"MeqRADec")+
+        TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+
+        AtomicID::registerId(-1710,"Az")+
+        AtomicID::registerId(-1708,"El")+
     0;
     return res;
   }

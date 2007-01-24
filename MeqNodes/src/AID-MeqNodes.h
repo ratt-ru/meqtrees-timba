@@ -33,6 +33,11 @@ const int AidAttrib_int = -1382;
 const DMI::AtomicID AidAxes(-1346);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 const int AidAxes_int = -1346;
 #endif
+#ifndef _defined_id_AidAz
+#define _defined_id_AidAz 1
+const DMI::AtomicID AidAz(-1710);                 // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
+const int AidAz_int = -1710;
+#endif
 #ifndef _defined_id_AidBalanced
 #define _defined_id_AidBalanced 1
 const DMI::AtomicID AidBalanced(-1668);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
@@ -57,6 +62,11 @@ const int AidBit_int = -1293;
 #define _defined_id_AidBrick 1
 const DMI::AtomicID AidBrick(-1685);              // from /home/oms/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 const int AidBrick_int = -1685;
+#endif
+#ifndef _defined_id_AidCell
+#define _defined_id_AidCell 1
+const DMI::AtomicID AidCell(-1301);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
+const int AidCell_int = -1301;
 #endif
 #ifndef _defined_id_AidCells
 #define _defined_id_AidCells 1
@@ -128,6 +138,11 @@ const int AidDebug_int = -1482;
 const DMI::AtomicID AidDec(-1446);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
 const int AidDec_int = -1446;
 #endif
+#ifndef _defined_id_AidDefault
+#define _defined_id_AidDefault 1
+const DMI::AtomicID AidDefault(-1221);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:13
+const int AidDefault_int = -1221;
+#endif
 #ifndef _defined_id_AidDensity
 #define _defined_id_AidDensity 1
 const DMI::AtomicID AidDensity(-1590);            // from /home/sarod/LOFAR/Timba/MeqNodes/src/Resampler.h:32
@@ -147,6 +162,11 @@ const int AidDownsample_int = -1600;
 #define _defined_id_AidEQ 1
 const DMI::AtomicID AidEQ(-1444);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidEQ_int = -1444;
+#endif
+#ifndef _defined_id_AidEl
+#define _defined_id_AidEl 1
+const DMI::AtomicID AidEl(-1708);                 // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
+const int AidEl_int = -1708;
 #endif
 #ifndef _defined_id_AidEnd
 #define _defined_id_AidEnd 1
@@ -642,6 +662,11 @@ const int AidMeqPrivateFunction_int = -1692;
 #define _defined_id_AidMeqProduct 1
 const DMI::AtomicID AidMeqProduct(-1501);         // from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 const int AidMeqProduct_int = -1501;
+#endif
+#ifndef _defined_id_AidMeqRADec
+#define _defined_id_AidMeqRADec 1
+const DMI::AtomicID AidMeqRADec(-1709);           // from /home/sarod/Timba/MeqNodes/src/RADec.h:52
+const int AidMeqRADec_int = -1709;
 #endif
 #ifndef _defined_id_AidMeqRandomNoise
 #define _defined_id_AidMeqRandomNoise 1

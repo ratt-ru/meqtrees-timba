@@ -32,6 +32,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Compounder 
 #pragma aid Mode Common Axes
+#pragma aid Default Cell Size
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -122,6 +123,9 @@ private:
 	map<const std::vector<int>, int *, compare_vec> revmap_;
 	//list to keep track of all allocated memory
 	std::list<int *> maplist_;
+
+  //default cell size for scalar cases
+  double def_cell_size_;
 
 	//map for merging spids
 	//key: spid
