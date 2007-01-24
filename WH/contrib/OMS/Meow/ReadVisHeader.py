@@ -48,10 +48,10 @@ def process_vis_header (hdr):
       set_state('time1',value=t1);
     except: pass;
     # freq range
-    if isinstance(hdr.channel_freq,(list,tuple)):
-      f0,f1 = hdr.channel_freq[0],hdr.channel_freq[-1];
+    if isinstance(hdr.channel_freq,(int,float)):
+      f0=f1 = hdr.channel_freq;
     else:
-      f0 = f1 = hdr.channel_freq;
+      f0,f1 = hdr.channel_freq[0],hdr.channel_freq[-1];
     print '[ReadVisHeader] freq range: ',f0,f1;
     try:
       set_state('freq0',value=f0);
