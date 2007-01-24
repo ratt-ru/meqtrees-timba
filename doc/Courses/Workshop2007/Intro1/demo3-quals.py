@@ -2,7 +2,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 import math
 
-TDLCompileOption('ser_order',"Max order of series",[3,5,10]);
+TDLCompileOption('ser_order',"Max order of series",[3,5,10],more=int);
 
 def _define_forest (ns, **kwargs):
   x = ns.x << Meq.Time;
@@ -41,4 +41,7 @@ def _test_forest (mqs, parent):
 Settings.forest_state.bookmarks = [
   record(name="result of 'f'",viewer='Result Plotter',udi='/node/f')
 ];
-Settings.forest_state.cache_policy = 100;
+if ser_order <= 10:
+  Settings.forest_state.cache_policy = 100;
+else:
+  Settings.forest_state.cache_policy = 1;

@@ -16,6 +16,14 @@ def _define_forest (ns):
     spigot = ns.spigot(p,q) << Meq.Spigot(input_column='DATA',station_1_index=p-1,station_2_index=q-1);
     ns.sink(p,q) << Meq.Sink(spigot,station_1_index=p-1,station_2_index=q-1);
 
+  ns.inspector << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.spigot(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.VisDataMux = Meq.VisDataMux(post=ns.inspector);
+  
+
 
 def _test_forest (mqs,parent):
   # create an I/O request
@@ -38,7 +46,11 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/spigot:1:4",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/spigot:1:7",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/spigot:1:9",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
+  ]),
+  record(name='Inspector',page=[
+    record(udi="/node/inspector",viewer="Collections Plotter",pos=(0,0))
+  ]),
+]);
 
 
 

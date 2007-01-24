@@ -19,6 +19,19 @@ def _define_forest (ns):
     modvis = ns.mod_vis(p,q) << spigot*gain;
     ns.sink(p,q) << Meq.Sink(modvis,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
+  ns.inspector1 << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.spigot(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspector2 << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.mod_vis(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspector1,ns.inspector2);
+  ns.VisDataMux = Meq.VisDataMux(post=ns.inspectors);
+
 
 def _test_forest (mqs,parent):
   # create an I/O request
@@ -46,7 +59,12 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/spigot:9:27",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/mod_vis:1:2",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/mod_vis:9:27",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
+  ]),
+  record(name='Inspector',page=[
+    record(udi="/node/inspector1",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspector2",viewer="Collections Plotter",pos=(1,0))
+  ]),
+]);
 
 
 
