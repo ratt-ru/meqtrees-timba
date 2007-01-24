@@ -32,7 +32,7 @@ def _define_forest(ns):
   # enable standard MS options from Meow
   Utils.include_ms_options(
     tile_sizes=None,
-    channels=[[15,40,1]]
+    channels=[[15,40,1],[15,15,1]]
   );
 
   # create array model
