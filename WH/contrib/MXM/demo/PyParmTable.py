@@ -18,6 +18,7 @@ class ParmTable:
         self._fit=fit;
         self._tablename = name;
         self._keyname = name.replace('/',':');
+        self._newtablename = self._tablename+"_"+ time.strftime("%a_%d_%b_%Y_%H:%M:%S",time.localtime())
         #get parms
         self._start_t=1e90;
         self._start_f=1e90;
@@ -31,7 +32,9 @@ class ParmTable:
             if(fit):
                 self.create_solver_trees(ns);
                 bm = record(name='SolvedParmInspector '+self._keyname,page=
-                            [record(viewer='Result Plotter',udi='/node/SolvedParmInspector:'+self._keyname, publish=True, pos=(0,0))]);
+                            [record(viewer='Collections Plotter',udi='/node/ParmInspector:'+self._keyname, publish=True, pos=(0,0)),
+                             record(viewer='Collections Plotter',udi='/node/SolvedParmInspector:'+self._keyname, publish=True, pos=(1,0)),
+                             record(viewer='Collections Plotter',udi='/node/ResidualInspector:'+self._keyname, publish=True, pos=(0,1))]);
                 Settings.forest_state.bookmarks.append(bm);
             
             else:
@@ -146,14 +149,13 @@ class ParmTable:
         ns.ParmInspector<<Meq.Composer(children = parms);
 
     def create_solver_trees(self,ns):
-        solvers = parms=solved_parms=();
+        solvers = parms=solved_parms=subtracts=();
         for parm in self._parmnames:
             if not ns[parm].initialized():
                 ns[parm]<<Meq.Parm(table_name=self._tablename);
             new_parm_name = parm +":NEW";
-            newtablename = self._tablename+"_"+ time.strftime("%a_%d_%b_%Y_%H:%M:%S",time.localtime())
 
-            new_parm = ns[new_parm_name] << Meq.Parm(table_name = newtablename);
+            new_parm = ns[new_parm_name] << Meq.Parm();
             condeq = ns.condeq(parm,'TI',self._keyname) << Meq.Condeq(ns[parm],new_parm);
             solver = ns.solver(parm,'TI',self._keyname)<< Meq.Solver(condeq,solvable = new_parm,
                                                                      epsilon=1e-4,
@@ -161,14 +163,17 @@ class ParmTable:
                                                                      last_update=True,
                                                                      save_funklets=False);
 
-            solved_parm=ns.tocomplex(parm,'TI',self._keyname)<<Meq.ToComplex(ns[parm],new_parm);
+
+            subtract=ns.subtract(parm,'TI',self._keyname)<<Meq.Subtract(ns[parm],new_parm);
             solvers+=(solver,);
-            solved_parms+=(solved_parm,);
+            subtracts+=(subtract,);
+            solved_parms+=(new_parm,);
             parms+=(ns[parm],);
             
         PI = ns.ParmInspector(self._keyname)<<Meq.Composer(children = parms);
+        RI = ns.ResidualInspector(self._keyname)<<Meq.Composer(children = subtracts);
         SPI = ns.SolvedParmInspector(self._keyname)<<Meq.Composer(children = solved_parms);
-        SI = ns.SolverInspector(self._keyname)<<Meq.ReqSeq(children = solvers + (SPI,));
+        SI = ns.SolverInspector(self._keyname)<<Meq.ReqSeq(children = solvers + (RI,PI,SPI));
 
 
 
@@ -205,9 +210,12 @@ class ParmTable:
         
         
     def fit_all(self,mqs,shape=[1,1],domain=None,save_funklets=False):
+        nparm_state=record(shape=shape);
+        if save_funklets:
+            nparm_state['table_name']=self._newtablename;
         for parm in self._parmnames:
             newparm = parm+":NEW";
-            result = mqs.meq('Node.Set.State',record(name=newparm, state=record(shape=shape)));
+            result = mqs.meq('Node.Set.State',record(name=newparm, state=nparm_state));
             result = mqs.meq('Node.Set.State',record(name="solver:"+parm+":TI:"+self._keyname, state=record(save_funklets=save_funklets)));
         if not domain or len(domain)<6:
             domain = [self._start_t,self._start_f,self._end_t,self._end_f,self._n_t,self._n_f];
@@ -245,11 +253,15 @@ class ParmTable:
                 sname= "solver:"+name+':TI:'+self._keyname;
                 mqs.meq('Node.Set.State',
                         record(name=sname,state=record(control_status=cs)));
-                # and the tocomplex nodes
-                sname = "tocomplex:"+name+":TI:"+self._keyname;
+                # and the subtract nodes
+                sname = "subtract:"+name+":TI:"+self._keyname;
                 mqs.meq('Node.Set.State',
                         record(name=sname,state=record(control_status=cs)));
-            
+                # and the new parms
+                sname = name+":NEW";
+                mqs.meq('Node.Set.State',
+                        record(name=sname,state=record(control_status=cs)));
+                
                       
 
 
@@ -266,8 +278,12 @@ class ParmTable:
                 sname= "solver:"+name+':TI:'+self._keyname;
                 mqs.meq('Node.Set.State',
                         record(name=sname,state=record(control_status=cs)));
-                # and the tocomplex nodes
-                sname = "tocomplex:"+name+":TI:"+self._keyname;
+                # and the subtract nodes
+                sname = "subtract:"+name+":TI:"+self._keyname;
+                mqs.meq('Node.Set.State',
+                        record(name=sname,state=record(control_status=cs)));
+                # and the new parms
+                sname = name+":NEW";
                 mqs.meq('Node.Set.State',
                         record(name=sname,state=record(control_status=cs)));
 
