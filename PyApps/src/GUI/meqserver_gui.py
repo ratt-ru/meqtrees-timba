@@ -312,7 +312,7 @@ class meqserver_gui (app_proxy_gui):
     addpagemark.addTo(bookmarks_menu);
     # self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
     self._qa_autopublish = autopublish = QAction("Auto-publish loaded bookmarks",0,self);
-    autopublish.addTo(bookmarks_menu);
+    # autopublish.addTo(bookmarks_menu);
     QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
     QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
@@ -322,9 +322,11 @@ class meqserver_gui (app_proxy_gui):
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
     autopublish.setToggleAction(True);
-    autopublish.setOn(Config.getbool('autopublish-bookmarks',True));
-    QObject.connect(autopublish,SIGNAL("toggled(bool)"),self.curry(Config.set,'autopublish-bookmarks'));
-    QObject.connect(autopublish,SIGNAL("toggled(bool)"),self._autopublish_bookmarks);
+    # autopublish.setOn(Config.getbool('autopublish-bookmarks',True));
+    autopublish.setOn(True);
+    # QObject.connect(autopublish,SIGNAL("toggled(bool)"),self.curry(Config.set,'autopublish-bookmarks'));
+    # QObject.connect(autopublish,SIGNAL("toggled(bool)"),self._autopublish_bookmarks);
+    self._autopublish_bookmarks(True);
     # bookmark manager
     bookmarks_menu.insertSeparator();
     self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu,gui_parent=self);
