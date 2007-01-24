@@ -49,6 +49,7 @@
 //  mode 3 (simple): only handle 2D results in Time,Freq
 //field: common_axes []
 //  a vector which gives the axes returned by the grid child that is given to the function. Axes names can be characters like 'L','M' etc
+//field:  default_cell_size: when the first child returns just a scalar, it is impossible to create a grid wirh proper cell sizes to send to the second child. So use this value to create the grid.
 //defrec end
 
 namespace Meq {   
