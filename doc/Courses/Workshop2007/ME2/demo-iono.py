@@ -82,7 +82,7 @@ def _define_forest (ns):
     ns.inspect_Z << \
       Meq.Composer(
         plot_label = [ "%s-%s"%(p,src.name) for src in sources for p in stas ],
-        *[ ns.Z(src.name,p) for src in sources for p in stas ]
+        *[ Meq.Mean(Meq.Arg(ns.Z(src.name,p),reduction_axes="freq")) for src in sources for p in stas ]
       )
   );
   

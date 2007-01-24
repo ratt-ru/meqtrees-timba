@@ -224,11 +224,11 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
 # to do a run ...
 # first delete old MS, test images, etc
 print '*** deleting previous stuff ***'
-shell('rm -rf demo-sim.MS mymodel.cl')
+shell('rm -rf demo.MS mymodel.cl')
 print '*** calling mkcomplist ***'
 num_sources := 1
 mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
-simms('demo-sim.MS','mymodel.cl');
+simms('demo.MS','mymodel.cl');
