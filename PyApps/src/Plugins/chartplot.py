@@ -86,6 +86,18 @@ class ChartPlot(QWidget):
     self._plotter = QwtPlot(self)
     self._plotter.setAxisTitle(QwtPlot.yLeft, self._y_title)
     self._plotter.setAxisTitle(QwtPlot.xBottom, self._x_title)
+
+    # set plotter fonts to same size as in display_image.py code
+    font = QFont(QApplication.font());
+    fi = QFontInfo(font);
+    # and scale it down to 70%
+    font.setPointSize(fi.pointSize()*0.7);
+    # apply font to QwtPlot
+    self._plotter.setTitleFont(font);
+    for axis in range(0,4):
+      self._plotter.setAxisFont(axis,font);
+      self._plotter.setAxisTitleFont(axis,font);
+
     # turn off grid
     self._plotter.enableGridX(False)
     self._plotter.enableGridY(False)
@@ -484,7 +496,7 @@ class ChartPlot(QWidget):
     ref_value = yVal - temp_off
 
     # lbl and lbl2 are used to compose text for the status bar and pop up display
-    self.reportCoordinates(ref_point, ref_value, closest_curve-1)
+    message = self.reportCoordinates(ref_point, ref_value, closest_curve-1)
 
 #   lbl2 = QString()
 #   lbl2.setNum(ref_point,'g',3)
@@ -495,12 +507,14 @@ class ChartPlot(QWidget):
 #   curve_num.setNum(closest_curve)
 #   popupmsg = QString()
 #   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
-#   self._popup_text.setText(popupmsg)
+
+# the following works, but we need to 'bounce' text off border if its too
+# close
+#   self._popup_text.setText(message)
 #   if not self._popup_text.isVisible():
 #     self._popup_text.show()
 #   if ((self._popup_text.x() != self.xpos + 30) or (self._popup_text.y() != self.ypos + 30)):
-#     self._popup_text.move(self._e_pos_x + 30 ,self._e_pos_y + 30)
-    # Sets value of the label
+#     self._popup_text.move(self.xpos + 30 ,self.ypos + 30)
 
   def plotMouseMoved(self, e):
     return
@@ -608,6 +622,7 @@ class ChartPlot(QWidget):
       if Qt.LeftButton == e.button():
         if not self.source_marker is None:
           self._plotter.removeMarker(self.source_marker);
+#         self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for no good reason
         if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
@@ -671,6 +686,7 @@ class ChartPlot(QWidget):
       Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
     self._plotter.replot()
+    return message
     # reportCoordinates()
 
   def zoomcrv(self, crv):
