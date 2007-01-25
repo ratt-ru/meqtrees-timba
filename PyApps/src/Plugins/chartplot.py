@@ -51,6 +51,7 @@ class ChartPlot(QWidget):
         'Real': 212,
         'Imaginary': 213,
         'Close Popups': 214,
+        'Show Flags': 215,
         }
 
 
@@ -79,6 +80,7 @@ class ChartPlot(QWidget):
     self._append_data = True
     self._plot_label = None
     self._complex_marker = None
+    self._ignore_flagged_data = True
 
     #Create the plot widget
     self._y_title = "Value (Relative Scale)"
@@ -188,6 +190,8 @@ class ChartPlot(QWidget):
     toggle_id = self.menu_table['Close Popups']
     self._menu.insertItem("Close Popup Windows", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
+    toggle_id = self.menu_table['Show Flags']
+    self._menu.insertItem("Show Flagged Data", toggle_id)
     toggle_id = self.menu_table['Fixed Scale']
     self._menu.insertItem("Fixed Scale", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
@@ -295,10 +299,29 @@ class ChartPlot(QWidget):
         self._menu.changeItem(menuid,'Replace Vector Data')
       self.clear_plot()
       return True
+    if menuid == self.menu_table['Show Flags']:
+      self.change_flag_parms(menuid)
+      return True
     if menuid == self.menu_table['Complex Data']:
       print 'in complex data callback'
       return True
 
+  def change_flag_parms(self, menuid):
+    if self._ignore_flagged_data:
+      self._ignore_flagged_data = False
+      self._menu.changeItem(menuid,'Hide Flagged Data')
+    else:
+      self._ignore_flagged_data = True
+      self._menu.changeItem(menuid,'Show Flagged Data')
+    self._do_fixed_scale = False
+    self._auto_offset = True
+    self._offset = -10000
+    self._max_range = -10000
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+      self._start_offset_test[channel][self._data_index] = 0
+    self.reset_zoom()
+    self.refresh_event()
 
   def process_complex_selector(self, menuid):
     """ callback to handle events from the complex data selection
@@ -1017,6 +1040,7 @@ class ChartPlot(QWidget):
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
+      self._start_offset_test[channel][self._data_index] = 0
     self.refresh_event()
 
 
@@ -1058,7 +1082,6 @@ class ChartPlot(QWidget):
           pass
         try:
           flags = array(self._flag_data[channel][self._data_index])
-          #print 'shape flags ', flags.shape, ' ', flags
         except:
           self._updated_data[channel] = False
           pass
@@ -1145,17 +1168,53 @@ class ChartPlot(QWidget):
             real_chart = complex_chart.getreal()
             imag_chart = complex_chart.getimag()
             cplx_chart = arctan2(imag_chart,real_chart)
-          self._plotter.setCurveData(self._crv_key[channel], temp_x , cplx_chart+temp_off)
-          ylb = cplx_chart[0] + temp_off 
+          # don't display flagged data
+          if self._ignore_flagged_data:
+            x_values = []
+            y_values = []
+            for i in range(0,cplx_chart.shape[0]):
+	      if flags[i] == 0:
+                x_values.append(temp_x[i])
+                y_values.append(cplx_chart[i])
+            if len(x_values) > 0:
+              x_plot_values = array(x_values)
+              y_plot_values = array(y_values)
+            else:
+              y_plot_values = None
+          else:
+            x_plot_values = temp_x
+            y_plot_values = cplx_chart
+
+          if not y_plot_values is None: 
+            self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
+            ylb = y_plot_values[0] + temp_off 
         else:
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
-          self._plotter.setCurveData(self._crv_key[channel], temp_x , chart+temp_off)
-          ylb = chart[0] + temp_off 
+          # don't display flagged data
+          if self._ignore_flagged_data:
+            x_values = []
+            y_values = []
+            for i in range(0,cplx_chart.shape[0]):
+              if flags[i] == 0:
+                x_values.append(temp_x[i])
+                y_values.append(cplx_chart[i])
+            if len(x_values) > 0:
+              x_plot_values = array(x_values)
+              y_plot_values = array(y_values)
+            else:
+              y_plot_values = None
+          else:
+            x_plot_values = temp_x
+            y_plot_values = cplx_chart
+
+          if not y_plot_values is None: 
+            self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
+            ylb = y_plot_values[0] + temp_off 
 
         # update marker with info about the plot
         if not self._source_marker[channel] is None:
           self._plotter.removeMarker(self._source_marker[channel]);
-        if self.show_channel_labels:
+        if not y_plot_values is None and self.show_channel_labels:
           if not self._plot_label is None:
             message = self._plot_label[channel + self._ref_chan]
           else:
