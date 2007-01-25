@@ -199,10 +199,13 @@ class CollectionsPlotter(GriddedPlugin):
       self.dims = None
     if self._rec.has_key("vellsets"):
       self._number_of_planes = len(self._rec["vellsets"])
-      if self.dims is None:
-        self.dims_per_group = 1
-      else:
-        self.dims_per_group = self._number_of_planes / self.dims[0]
+      self.dims_per_group = 1
+      if not self.dims is None:
+        dims_start = 0
+        if len(self.dims) == 3:
+          dims_start = 1
+        for i in range(dims_start,len(self.dims)):
+          self.dims_per_group = self.dims_per_group * self.dims[i]
       if self._visu_plotter is None:
         self.create_layout_stuff()
       if new_plot: 
