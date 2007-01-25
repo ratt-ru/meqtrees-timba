@@ -32,6 +32,7 @@ Beam                             1178       ; from /home/oms/LOFAR/Timba/VisCube
 Begin                            1643       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Bind                             1079       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Bit                              1293       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+Bodytype                         1713       ; from /home/sarod/Timba/MeqNodes/src/CelestialBody.h:31
 BOIO                             1220       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
 bool                             32         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:104
 Bound                            1046       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
@@ -301,6 +302,7 @@ MeqAxis                          1665       ; from /home/oms/LOFAR/Timba/MeqNode
 #MeqAzEl                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
 MeqBeam                          1594       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:31
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
+#MeqCelestialBody                1714       ; from /home/sarod/Timba/MeqNodes/src/CelestialBody.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 #MeqCompiledFunklet              1583       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
@@ -361,7 +363,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
 #MeqNorm                         1459       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
 #MeqParAngle                     1695       ; from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
-#MeqParAngleL                    1712       ; from /home/sarod/Timba/MeqNodes/src/ParAngleL.h:52
+MeqParAngleL                     1712       ; from /home/sarod/Timba/MeqNodes/src/ParAngleL.h:52
 #MeqParm                         1454       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
 #MeqPaster                       1519       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Paster.h:31
 #MeqPatchComposer                1569       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:34
