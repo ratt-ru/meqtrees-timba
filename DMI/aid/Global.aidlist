@@ -302,7 +302,7 @@ MeqAxis                          1665       ; from /home/oms/LOFAR/Timba/MeqNode
 #MeqAzEl                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
 MeqBeam                          1594       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:31
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
-#MeqCelestialBody                1714       ; from /home/sarod/Timba/MeqNodes/src/CelestialBody.h:30
+MeqCelestialBody                 1714       ; from /home/sarod/Timba/MeqNodes/src/CelestialBody.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 #MeqCompiledFunklet              1583       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
@@ -362,6 +362,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
 #MeqNorm                         1459       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
+#MeqObjectRADec                  1716       ; from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
 #MeqParAngle                     1695       ; from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
 MeqParAngleL                     1712       ; from /home/sarod/Timba/MeqNodes/src/ParAngleL.h:52
 #MeqParm                         1454       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
@@ -463,6 +464,7 @@ Normalized                       1334       ; from /home/oms/LOFAR/Timba/MEQ/src
 Notify                           1210       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Num                              1163       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 O                                1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+Obj                              1715       ; from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:31
 Object                           1579       ; from /home/oms/LOFAR/Timba/DMI/src/Exception.h:31
 Observatory                      1554       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:33
 OctopussyMessage                 1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
