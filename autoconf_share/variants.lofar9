@@ -7,6 +7,8 @@ gnu3.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 ### we don't use this, use the per-compiler variables instead
 # aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3 --with-threads
 
+python.var:  --with-python-version=2.4 --with-python=/usr/include/+pkg+vers --with-python-libdir=/usr/lib 
+
 optimize.var:	 --with-optimize='-O4'
 
 debugopt.var:	 --with-optimize='-ggdb -O4'
