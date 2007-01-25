@@ -36,7 +36,7 @@ import random
 class ChartPlot(QWidget):
 
   menu_table = {
-        'Zoom': 200,
+        'Reset zoomer': 200,
         'Close': 201,
         'Print': 202,
         'Fixed Scale': 203,
@@ -50,7 +50,7 @@ class ChartPlot(QWidget):
         'Phase': 211,
         'Real': 212,
         'Imaginary': 213,
-
+        'Close Popups': 214,
         }
 
 
@@ -134,6 +134,7 @@ class ChartPlot(QWidget):
     #initialize the mainplot zoom variables
     self._d_zoomActive = self._d_zoom = False
     self._is_vector = False
+    self.source_marker = None
 	    
     #initialize zoomcount.  Count the number of zoom windows opened
     self._zoomcount = 0
@@ -165,12 +166,16 @@ class ChartPlot(QWidget):
     toggle_id = self.menu_table['Close']
     self._menu.insertItem("Close Window", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
-    toggle_id = self.menu_table['Zoom']
-    self._menu.insertItem("Zoom", toggle_id)
+    toggle_id = self.menu_table['Reset zoomer']
+    self._menu.insertItem("Reset zoomer", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Print']
     self._menu.insertItem("Print", toggle_id)
     toggle_id = self.menu_table['Clear Plot']
     self._menu.insertItem("Clear Plot", toggle_id)
+    toggle_id = self.menu_table['Close Popups']
+    self._menu.insertItem("Close Popup Windows", toggle_id)
+    self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Fixed Scale']
     self._menu.insertItem("Fixed Scale", toggle_id)
     self._menu.setItemVisible(toggle_id, False)
@@ -245,11 +250,14 @@ class ChartPlot(QWidget):
     """ callback to handle events from the context menu """
     if menuid < 0:
       return
-    if menuid == self.menu_table['Zoom']:
-      self.zoom()
+    if menuid == self.menu_table['Reset zoomer']:
+      self.reset_zoom()
       return True
     if menuid == self.menu_table['Close']:
       self.quit()
+      return True
+    if menuid == self.menu_table['Close Popups']:
+      self.closezoomfun()
       return True
     if menuid == self.menu_table['Print']:
       self.do_print()
@@ -332,8 +340,19 @@ class ChartPlot(QWidget):
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
       self._start_offset_test[channel][self._data_index] = 0
+    self.reset_zoom()
     self.refresh_event()
     return True
+
+    
+  def reset_zoom(self):
+    """ resets data display so all data are visible """
+    self._plotter.setAxisAutoScale(QwtPlot.yLeft)
+    self._plotter.setAxisAutoScale(QwtPlot.xBottom)
+    self._plotter.replot()
+    toggle_id = self.menu_table['Reset zoomer']
+    self._menu.setItemVisible(toggle_id, False)
+    return
 
   def clear_plot(self):
     """ clear the plot of all displayed data """
@@ -437,38 +456,15 @@ class ChartPlot(QWidget):
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
       self._plotter.print_(printer, filter)
 
-  def zoom(self):
-    """ if unzoom is clicked
-        disable zooming and put zooming flag back to FALSE
-        else 
-        put zooming flag to opposite of what it was
-        See value of d_zoom
-        set according text on the zoom button
-    """
-    if self._d_zoomActive:
-      self._plotter.setAxisAutoScale(QwtPlot.yLeft)
-      self._plotter.setAxisAutoScale(QwtPlot.xBottom)
-      self._plotter.replot()
-      self._d_zoom = False
-      self._d_zoomActive = False
-    else:
-      self._d_zoom = not self._d_zoom
-      #Set right text on context menu label
-    toggle_id = self.menu_table['Zoom']
-    if self._d_zoom:
-      self._menu.changeItem(toggle_id, 'Unzoom')
-    else:
-      self._menu.changeItem(toggle_id, 'Zoom')
-
   def infoDisplay(self):
     """ Display text under cursor in plot
         Figures out where the cursor is, generates the appropriate text, 
         and puts it on the screen.
     """
-    closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(self._e_pos_x, self._e_pos_y)
+    closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(self.xpos, self.ypos)
 
     #get value of where the mouse was released
-    p2x = self._plotter.invTransform(QwtPlot.xBottom, self._e_pos_x)
+    p2x = self._plotter.invTransform(QwtPlot.xBottom, self.xpos)
 
 # determine 'actual' x-axis position
     ref_point=0
@@ -481,33 +477,30 @@ class ChartPlot(QWidget):
     elif p2x >= 3*(self._ArraySize+self._x_displacement) and p2x < (4*self._ArraySize) + 3*self._x_displacement: 
       ref_point = int(p2x - (3*(self._ArraySize+self._x_displacement)))
 
-    time_offset = ((ref_point) * 0.001 * self._data_interval_ms) + self._display_start_s
-
-    ref_value = 0.0
-    if (closest_curve-1 == 0 or closest_curve-1 == (_nbcrv/4) or  closest_curve-1 == (_nbcrv/2) or closest_curve-1 == (3*(_nbcrv/4))):
-      ref_value = self._spec_grid_offset(ref_point,closest_curve)
+    if self._phase:
+      temp_off = ((closest_curve-1) % (self._nbcrv/4) + 0.5 ) * self._offset
     else:
-      ref_value = self._spec_grid(ref_point,closest_curve)
+      temp_off = ((closest_curve-1) % (self._nbcrv/4)) * self._offset
+    ref_value = yVal - temp_off
 
     # lbl and lbl2 are used to compose text for the status bar and pop up display
-    lbl2 = QString()
-    lbl2.setNum(time_offset,'g',3)
-    lbl = "Time = " + lbl2 + "s, Signal="
-    lbl2.setNum(ref_value,'g',3)
-    lbl += lbl2
-    curve_num = QString()
-    curve_num.setNum(closest_curve)
-    popupmsg = QString()
-    popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
-    self._popup_text.setText(popupmsg)
-    if not self._popup_text.isVisible():
-      self._popup_text.show()
-    if ((self._popup_text.x() != self._e_pos_x + 30) or (self._popup_text.y() != self._e_pos_y + 30)):
-      self._popup_text.move(self._e_pos_x + 30 ,self._e_pos_y + 30)
+    self.reportCoordinates(ref_point, ref_value, closest_curve-1)
+
+#   lbl2 = QString()
+#   lbl2.setNum(ref_point,'g',3)
+#   lbl = "Time = " + lbl2 + "s, Signal="
+#   lbl2.setNum(ref_value,'g',3)
+#   lbl += lbl2
+#   curve_num = QString()
+#   curve_num.setNum(closest_curve)
+#   popupmsg = QString()
+#   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
+#   self._popup_text.setText(popupmsg)
+#   if not self._popup_text.isVisible():
+#     self._popup_text.show()
+#   if ((self._popup_text.x() != self.xpos + 30) or (self._popup_text.y() != self.ypos + 30)):
+#     self._popup_text.move(self._e_pos_x + 30 ,self._e_pos_y + 30)
     # Sets value of the label
-    
-    lbl += ", " + self._position[closest_curve]
-#    self._ControlFrame._lblInfo.setText(lbl)
 
   def plotMouseMoved(self, e):
     return
@@ -528,31 +521,6 @@ class ChartPlot(QWidget):
 
 
 #   print 'display_chan ', display_channel
-
-  def plotMousePressed(self, e):
-    """ Gets position of the mouse on the chart plot
-        puts the mouse where it goes on the plot
-        Depending on the position of the zoom button
-        if d_zoom
-        draws a rectangle
-        if not
-        the mouse pointer appears as a cross
-    """
-    if Qt.RightButton == e.button():
-      e.accept()
-      self._menu.popup(e.globalPos());
-    else:
-      # store position
-      self._p1 = e.pos()
-      # update cursor pos display
-      self._e_pos_x = e.pos().x()
-      self._e_pos_y = e.pos().y()
-#     if e.button() == Qt.MidButton: 
-#       self.infoDisplay()
-      if self._d_zoom and not self._d_zoomActive:
-        self._plotter.setOutlineStyle(Qwt.Rect) 
-      else:
-        self._plotter.setOutlineStyle(Qwt.Cross)
 
 
   def closezoomfun(self):
@@ -604,39 +572,106 @@ class ChartPlot(QWidget):
           self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotzoom.replot()
 
-  def plotMouseReleased(self, e):
-    """ If the zoom button is pressed 
-        get the coordinates of the rectangle to zoom
-        set the axis
-        else
-        if the offset is placed to its max value
-        find to what curve the click corresponds
-        call function to create the zoom in a new window
-    """
+    if self._closezoom:
+      toggle_id = self.menu_table['Close Popups']
+      self._menu.setItemVisible(toggle_id, False)
 
-    # some shortcuts
-    axl= QwtPlot.yLeft
-    axb= QwtPlot.xBottom
-  
-    #Check if we have to zoom in the chartplt
-    if self._d_zoom and not self._d_zoomActive:
-      if e.button() == Qt.LeftButton:
-        self._d_zoomActive = True
-        x1 = min(self._p1.x(), e.pos().x())
-        x2 = max(self._p1.x(), e.pos().x())
-        y1 = min(self._p1.y(), e.pos().y())
-        y2 = max(self._p1.y(), e.pos().y())
-        # Set fixed scales
-        self._plotter.setAxisScale(axl, self._plotter.invTransform(axl,y1), self._plotter.invTransform(axl,y2))
-        self._plotter.setAxisScale(axb, self._plotter.invTransform(axb,x1), self._plotter.invTransform(axb,x2))
-        self._plotter.replot()
-        return
-    # pop up a Zoom window
-    elif e.button() == Qt.LeftButton:
-      #get value of where the mouse was released
-      closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
-      self.zoomcrv(closest_curve-1)
-    self._plotter.setOutlineStyle(Qwt.Triangle)
+  def plotMousePressed(self, e):
+      """ callback to handle MousePressed event """
+      if Qt.MidButton == e.button():
+        xPos = e.pos().x()
+        yPos = e.pos().y()
+# We get information about the qwt plot curve that is
+# closest to the location of this mouse pressed event.
+# We are interested in the nearest curve_number and the index, or
+# sequence number of the nearest point in that curve.
+        curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(xPos, yPos
+)
+      # pop up zoom curve
+      elif Qt.LeftButton == e.button():
+        self.xpos = e.pos().x()
+        self.ypos = e.pos().y()
+#       curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(self.xpos, self.ypos)
+#        self.reportCoordinates(xVal, yVal)
+        self.infoDisplay()
+        self._plotter.enableOutline(1)
+        self._plotter.setOutlinePen(QPen(Qt.black))
+        self._plotter.setOutlineStyle(Qwt.Rect)
+      else:
+        e.accept()
+        self._menu.popup(e.globalPos());
+
+    # onMousePressed()
+
+  def plotMouseReleased(self, e):
+      """ callback to handle MouseReleased event """
+      if Qt.LeftButton == e.button():
+        if not self.source_marker is None:
+          self._plotter.removeMarker(self.source_marker);
+# assume a change of <= 2 screen pixels is just due to clicking
+# left mouse button for no good reason
+        if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
+          self._plotter.setOutlineStyle(Qwt.Cross)
+
+          xmin = min(self.xpos, e.pos().x())
+          xmax = max(self.xpos, e.pos().x())
+          ymin = min(self.ypos, e.pos().y())
+          ymax = max(self.ypos, e.pos().y())
+          xmin = self._plotter.invTransform(QwtPlot.xBottom, xmin)
+          xmax = self._plotter.invTransform(QwtPlot.xBottom, xmax)
+          ymin = self._plotter.invTransform(QwtPlot.yLeft, ymin)
+          ymax = self._plotter.invTransform(QwtPlot.yLeft, ymax)
+#          if xmin == xmax or ymin == ymax:
+#            self._plotter.replot()
+          self._plotter.enableOutline(0)
+          self._plotter.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+          self._plotter.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self.xmin = xmin
+          self.xmax = xmax
+          self.ymin = ymin
+          self.ymax = ymax
+          self.axis_xmin = xmin
+          self.axis_xmax = xmax
+          self.axis_ymin = ymin
+          self.axis_ymax = ymax
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, True)
+          self._plotter.replot()
+        else:
+          self._plotter.replot()
+      elif e.button() == Qt.MidButton:
+        closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
+        # pop up a zoom curve
+        self.zoomcrv(closest_curve-1)
+      self._plotter.setOutlineStyle(Qwt.Triangle)
+
+    # onMouseReleased()
+
+  def reportCoordinates(self, x, y, crv):
+    """Format mouse coordinates as real world plot coordinates.
+    """
+    plot_label = ''
+    if not self._data_label is None:
+      if not self._plot_label is None:
+        plot_label = self._plot_label[crv+self._ref_chan] + ' '
+    temp_str = "nearest x=%-.3g" % x
+    temp_str1 = " y=%-.3g" % y
+    message = plot_label + temp_str + temp_str1 
+    fn = self.fontInfo().family()
+# text marker giving source of point that was clicked
+    if not self.source_marker is None:
+      self._plotter.removeMarker(self.source_marker);
+    self.source_marker = self._plotter.insertMarker()
+    ylb = self._plotter.axisScale(QwtPlot.yLeft).lBound()
+    xlb = self._plotter.axisScale(QwtPlot.xBottom).lBound()
+    self._plotter.setMarkerPos(self.source_marker, xlb, ylb)
+    self._plotter.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+    self._plotter.setMarkerLabel( self.source_marker, message,
+      QFont(fn, 7, QFont.Bold, False),
+      Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+
+    self._plotter.replot()
+    # reportCoordinates()
 
   def zoomcrv(self, crv):
     """ If one tries to open a zoom of a curve that is already opened
@@ -691,6 +726,10 @@ class ChartPlot(QWidget):
       self._Zoom[crv]._plotzoom.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
+
+      # make sure option to close all Popup windows is seen
+      toggle_id = self.menu_table['Close Popups']
+      self._menu.setItemVisible(toggle_id, True)
 
   def set_offset(self,parameters=None):
     """ Update the display offset.
@@ -905,6 +944,7 @@ class ChartPlot(QWidget):
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
+    self.reset_zoom()
     self.refresh_event()
 
   def set_data_flag(self, channel, data_flag):
