@@ -104,9 +104,6 @@ class ChartPlot(QWidget):
     self._plotter.enableGridX(False)
     self._plotter.enableGridY(False)
 
-    # turn off bottom axis?
-#   self._plotter.enableAxis(QwtPlot.xBottom, False)
-    
     #Set the background color
     self._plotter.setCanvasBackground(Qt.white)
     
@@ -160,9 +157,6 @@ class ChartPlot(QWidget):
     self._popup_text.setFrameStyle(QFrame.Box | QFrame.Plain)
     # start the text off hidden at 0,0
     self._popup_text.hide()
-    self._popup_width = 220
-    self._popup_height = 48
-    self._popup_text.setGeometry(0,0,self._popup_width, self._popup_height)
 
     # timer to allow redisplay
     self._display_interval_ms = 2000
@@ -520,9 +514,9 @@ class ChartPlot(QWidget):
       temp_off = ((closest_curve-1) % (self._nbcrv/4)) * self._offset
     ref_value = yVal - temp_off
 
-    # lbl and lbl2 are used to compose text for the status bar and pop up display
     message = self.reportCoordinates(ref_point, ref_value, closest_curve-1)
 
+# lbl and lbl2 are used to compose text for the status bar and pop up display
 #   lbl2 = QString()
 #   lbl2.setNum(ref_point,'g',3)
 #   lbl = "Time = " + lbl2 + "s, Signal="
@@ -534,16 +528,19 @@ class ChartPlot(QWidget):
 #   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
 
     self._popup_text.setText(message)
+    self._popup_text.adjustSize()
     yhb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).hBound())
     ylb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).lBound())
     xhb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).hBound())
     xlb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).lBound())
-    if self.ypos + self._popup_height > ylb:
-      ymove = self.ypos - 1.5 * self._popup_height
+    height = self._popup_text.height()
+    if self.ypos + height > ylb:
+      ymove = self.ypos - 1.5 * height
     else:
-      ymove = self.ypos + 0.5 * self._popup_height
-    if self.xpos + self._popup_width > xhb:
-      xmove = xhb - self._popup_width
+      ymove = self.ypos + 0.5 * height
+    width = self._popup_text.width()
+    if self.xpos + width > xhb:
+      xmove = xhb - width
     else:
       xmove = self.xpos
     self._popup_text.move(xmove, ymove)
@@ -554,24 +551,6 @@ class ChartPlot(QWidget):
     if self._popup_text.isVisible():
       self._popup_text.hide()
     return
-#   e.accept()
-#   closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
-#   display_channel = closest_curve - 1 + self._ref_chan
-#   if not self.info_marker is None:
-#     self._plotter.removeMarker(self.info_marker)
-#   self.info_marker = self._plotter.insertMarker()
-#   ylb = self._plotter.axisScale(QwtPlot.yLeft).hBound()
-#   xlb = self._plotter.axisScale(QwtPlot.xBottom).hBound()
-#   self._plotter.setMarkerPos(self.info_marker, xlb, ylb)
-#   self._plotter.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
-#   fn = self._plotter.fontInfo().family()
-#   self._plotter.setMarkerLabel( self.info_marker, 'chan ' + str(display_channel),
-#       QFont(fn, 8, QFont.Bold, False),
-#       Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
-
-
-#   print 'display_chan ', display_channel
-
 
   def closezoomfun(self):
     """ Set closezoom flag active to close all the zoom windows 
@@ -635,14 +614,11 @@ class ChartPlot(QWidget):
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-        curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(xPos, yPos
-)
+        curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(xPos, yPos)
       # pop up zoom curve
       elif Qt.LeftButton == e.button():
         self.xpos = e.pos().x()
         self.ypos = e.pos().y()
-#       curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(self.xpos, self.ypos)
-#        self.reportCoordinates(xVal, yVal)
         self.infoDisplay()
         self._plotter.enableOutline(1)
         self._plotter.setOutlinePen(QPen(Qt.black))
@@ -656,8 +632,7 @@ class ChartPlot(QWidget):
   def plotMouseReleased(self, e):
       """ callback to handle MouseReleased event """
       if Qt.LeftButton == e.button():
-        if not self.source_marker is None:
-          self._plotter.removeMarker(self.source_marker);
+        if self._popup_text.isVisible():
           self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for no good reason
@@ -672,8 +647,6 @@ class ChartPlot(QWidget):
           xmax = self._plotter.invTransform(QwtPlot.xBottom, xmax)
           ymin = self._plotter.invTransform(QwtPlot.yLeft, ymin)
           ymax = self._plotter.invTransform(QwtPlot.yLeft, ymax)
-#          if xmin == xmax or ymin == ymax:
-#            self._plotter.replot()
           self._plotter.enableOutline(0)
           self._plotter.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self._plotter.setAxisScale(QwtPlot.yLeft, ymin, ymax)
@@ -708,20 +681,6 @@ class ChartPlot(QWidget):
     temp_str = "nearest x=%-.3g" % x
     temp_str1 = " y=%-.3g" % y
     message = plot_label + temp_str + temp_str1 
-    fn = self.fontInfo().family()
-# text marker giving source of point that was clicked
-    if not self.source_marker is None:
-      self._plotter.removeMarker(self.source_marker);
-    self.source_marker = self._plotter.insertMarker()
-    ylb = self._plotter.axisScale(QwtPlot.yLeft).lBound()
-    xlb = self._plotter.axisScale(QwtPlot.xBottom).lBound()
-    self._plotter.setMarkerPos(self.source_marker, xlb, ylb)
-    self._plotter.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
-    self._plotter.setMarkerLabel( self.source_marker, message,
-      QFont(fn, 7, QFont.Bold, False),
-      Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-
-    self._plotter.replot()
     return message
     # reportCoordinates()
 
@@ -769,13 +728,14 @@ class ChartPlot(QWidget):
           plot_label = None
         self._Zoom[crv].setDataLabel(self._data_label, plot_label, self._is_vector)
       self._pause[crv] = False
-      self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
-      self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
-      self._Zoom[crv]._plotzoom.setMarkerPos(self._mrk[crv], 10,20)
-      self._Zoom[crv]._plotzoom.setMarkerLabelAlign(self._mrk[crv], Qt.AlignRight|Qt.AlignTop)
-      self._Zoom[crv]._plotzoom.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
-      self._Zoom[crv]._plotzoom.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
-      self._Zoom[crv]._plotzoom.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
+      # what is all this marker stuff used for?
+#     self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
+#     self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
+#     self._Zoom[crv]._plotzoom.setMarkerPos(self._mrk[crv], 10,20)
+#     self._Zoom[crv]._plotzoom.setMarkerLabelAlign(self._mrk[crv], Qt.AlignRight|Qt.AlignTop)
+#     self._Zoom[crv]._plotzoom.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
+#     self._Zoom[crv]._plotzoom.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
+#     self._Zoom[crv]._plotzoom.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
 
@@ -1149,7 +1109,6 @@ class ChartPlot(QWidget):
 
     for channel in range(self._nbcrv):
       if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
-        chart = array(self._chart_data[channel][self._data_index])
         index = channel+1
         #Set the values and size with the curves
         if index >= 1 and index <= self._nbcrv/4:
@@ -1165,6 +1124,8 @@ class ChartPlot(QWidget):
           temp_off = (channel % (self._nbcrv/4) + 0.5 ) * self._offset
         else:
           temp_off = (channel % (self._nbcrv/4)) * self._offset
+
+        chart = array(self._chart_data[channel][self._data_index])
         if chart.type() == Complex32 or chart.type() == Complex64:
           complex_chart = chart.copy()
           if self._amplitude:
@@ -1207,10 +1168,10 @@ class ChartPlot(QWidget):
           if self._ignore_flagged_data:
             x_values = []
             y_values = []
-            for i in range(0,cplx_chart.shape[0]):
+            for i in range(0,chart.shape[0]):
               if flags[i] == 0:
                 x_values.append(temp_x[i])
-                y_values.append(cplx_chart[i])
+                y_values.append(chart[i])
             if len(x_values) > 0:
               x_plot_values = array(x_values)
               y_plot_values = array(y_values)
@@ -1218,7 +1179,7 @@ class ChartPlot(QWidget):
               y_plot_values = None
           else:
             x_plot_values = temp_x
-            y_plot_values = cplx_chart
+            y_plot_values = chart
 
           if not y_plot_values is None: 
             self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
