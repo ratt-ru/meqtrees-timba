@@ -674,10 +674,10 @@ class ChartPlot(QWidget):
   def reportCoordinates(self, x, y, crv):
     """Format mouse coordinates as real world plot coordinates.
     """
-    plot_label = ''
-    if not self._data_label is None:
-      if not self._plot_label is None:
-        plot_label = self._plot_label[crv+self._ref_chan] + ' '
+    if not self._plot_label is None:
+      plot_label = self._plot_label[crv+self._ref_chan] + ': '
+    else:
+      plot_label = str(crv+self._ref_chan) + ': '
     temp_str = "nearest x=%-.3g" % x
     temp_str1 = " y=%-.3g" % y
     message = plot_label + temp_str + temp_str1 
