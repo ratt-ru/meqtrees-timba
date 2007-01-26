@@ -53,7 +53,31 @@ void ObjectRADec::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FObjName].get(oname_,initializing);
-  std::cout<<oname_<<std::endl;
+  if (!oname_.compare("sun") || !oname_.compare("SUN")) {
+    type_=MDirection::SUN;
+  } else if (!oname_.compare("jupiter") || !oname_.compare("JUPITER")) {
+    type_=MDirection::JUPITER;
+  } else if (!oname_.compare("moon") || !oname_.compare("MOON")) {
+    type_=MDirection::MOON;
+  } else if (!oname_.compare("mercury") || !oname_.compare("MERCURY")) {
+    type_=MDirection::MERCURY;
+  } else if (!oname_.compare("mars") || !oname_.compare("MARS")) {
+    type_=MDirection::MARS;
+  } else if (!oname_.compare("saturn") || !oname_.compare("SATURN")) {
+    type_=MDirection::SATURN;
+  } else if (!oname_.compare("uranus") || !oname_.compare("URANUS")) {
+    type_=MDirection::URANUS;
+  } else if (!oname_.compare("neptune") || !oname_.compare("NEPTUNE")) {
+    type_=MDirection::NEPTUNE;
+  } else if (!oname_.compare("pluto") || !oname_.compare("PLUTO")) {
+    type_=MDirection::PLUTO;
+  } else if (!oname_.compare("itrf") || !oname_.compare("ITRF")) {
+    type_=MDirection::ITRF;
+  } else if (!oname_.compare("topo") || !oname_.compare("TOPO")) {
+    type_=MDirection::TOPO;
+  } else {
+    type_=MDirection::J2000;
+  }
 }
 
 int ObjectRADec::getResult (Result::Ref &resref, 
@@ -62,32 +86,50 @@ int ObjectRADec::getResult (Result::Ref &resref,
 {
   // Get cells.
   const Cells& cells = request.cells();
+  Vells::Shape shape(cells.shape());
+  //collapse all but time axis
+  int ntime=shape[Axis::TIME];
+  for (int ci=0;ci<shape.size();ci++) {
+   shape[ci]=1;
+  }
+  shape[Axis::TIME]=ntime;
+
   // Create result object and attach to the ref that was passed in.
-  resref <<= new Result(1);                // 1 plane
-  VellSet& vs = resref().setNewVellSet(0);  // create new object for plane 0
-  vs.setValue(new Vells(0.));
+  resref <<= new Result(2);                // 1: RA, 2: Dec
+  VellSet& vs0 = resref().setNewVellSet(0);  
+  vs0.setValue(new Vells(0.,shape));
+  VellSet& vs1 = resref().setNewVellSet(1); 
+  vs1.setValue(new Vells(0.,shape));
   resref().setCells(cells);
 
 
    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
-    
-    for (int ci=1; ci<12; ci++) {
-    MVEpoch dat = 51116.1+ci*30; //days
 
+    double *ra=(const_cast<Vells&>(vs0.getValue())).realStorage();
+    double *dec=(const_cast<Vells&>(vs1.getValue())).realStorage();
+    const blitz::Array<double,1> arrtime=cells.center(Axis::TIME);
+
+    Quantum<double> qepoch(arrtime(0)/(3600*24.0), "d");
+    MVEpoch dat(qepoch); //days
     MEpoch mdat(dat, MEpoch::Ref(MEpoch::UTC));
     MeasFrame frame;
     frame.set(mdat);
-    MDirection::Ref sunr(MDirection::VENUS, frame);
+    MDirection::Ref sunr(type_, frame);
     MDirection sn(sunr);
     MDirection::Convert sc0(sn, MDirection::Ref(MDirection::J2000));
-    MDirection::Convert sc1(sn, MDirection::Ref(MDirection::JNAT));
-    MDirection::Convert sc2(sn, MDirection::Ref(MDirection::APP));
-    std::cout << "Sun   J2000:  " << sc0().getValue().getAngle("deg") << std::endl;
-    std::cout << "Sun   JNAT:  " << sc1().getValue().getAngle("deg") << std::endl;
-    std::cout << "Sun   APP:  " << sc2().getValue().getAngle("deg") << std::endl;
+    //MDirection::Ref sunr(MDirection::MOON, frame);
+    for (int ci=1; ci<ntime; ci++) {
+      qepoch.setValue(arrtime(ci)/(3600*24.0));
+      dat=qepoch;
+      mdat.set(dat);
+      frame.set(mdat);
+      MDirection sc(sc0());
+      //std::cout << "OBJ J2000:  " << sc.getValue().getAngle("deg") << std::endl;
+      Vector<Double> radec=sc.getValue().getAngle("rad").getValue();
+      ra[ci]=radec(0);
+      dec[ci]=radec(1);
     }
-
 
   // result depends on domain; is updated if request is new.
   return 0;

@@ -115,7 +115,8 @@
         Do(Meq::PrivateFunction,arg) separator \
         Do(Meq::MaxLocation,arg) separator \
         Do(Meq::MinLocation,arg) separator \
-        Do(Meq::RADec,arg)
+        Do(Meq::RADec,arg) separator \
+        Do(Meq::ObjectRADec,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

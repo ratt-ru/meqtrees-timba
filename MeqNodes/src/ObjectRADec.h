@@ -29,6 +29,12 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ObjectRADec
 #pragma aid Obj Name
+#include <measures/Measures/MBaseline.h>
+#include <measures/Measures/MPosition.h>
+#include <measures/Measures/MEpoch.h>
+#include <measures/Measures/MeasConvert.h>
+#include <measures/Measures/MeasTable.h>
+
 
 namespace Meq {    
 
@@ -36,12 +42,6 @@ namespace Meq {
 class ObjectRADec : public Node
 {
 public:
-  typedef enum {
-    SUN=0x00001,
-    JUPITER=0x0002,
-  } ::BodyType;
-
-
   ObjectRADec();
 
   virtual ~ObjectRADec();
@@ -59,7 +59,7 @@ protected:
 
 private:
   string oname_;
-  BodyType type_;
+  casa::MDirection::Types type_;
 };
 
 

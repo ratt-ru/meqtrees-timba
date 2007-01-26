@@ -1015,6 +1015,25 @@ namespace Meq { class Norm; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqObjectRADec
+#define _defined_id_TpMeqObjectRADec 1
+const DMI::TypeId TpMeqObjectRADec(-1716);        // from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
+const int TpMeqObjectRADec_int = -1716;
+namespace Meq { class ObjectRADec; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ObjectRADec> : public TypeTraits<Meq::ObjectRADec>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqObjectRADec_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ObjectRADec & ContainerReturnType;
+                typedef const Meq::ObjectRADec & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqParAngle
 #define _defined_id_TpMeqParAngle 1
 const DMI::TypeId TpMeqParAngle(-1695);           // from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40

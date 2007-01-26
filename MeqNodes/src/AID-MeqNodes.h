@@ -588,6 +588,11 @@ const int AidMeqNegate_int = -1506;
 const DMI::AtomicID AidMeqNorm(-1459);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
 const int AidMeqNorm_int = -1459;
 #endif
+#ifndef _defined_id_AidMeqObjectRADec
+#define _defined_id_AidMeqObjectRADec 1
+const DMI::AtomicID AidMeqObjectRADec(-1716);     // from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
+const int AidMeqObjectRADec_int = -1716;
+#endif
 #ifndef _defined_id_AidMeqParAngle
 #define _defined_id_AidMeqParAngle 1
 const DMI::AtomicID AidMeqParAngle(-1695);        // from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
@@ -838,10 +843,20 @@ const int AidMulti_int = -1518;
 const DMI::AtomicID AidNE(-1381);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidNE_int = -1381;
 #endif
+#ifndef _defined_id_AidName
+#define _defined_id_AidName 1
+const DMI::AtomicID AidName(-1122);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
+const int AidName_int = -1122;
+#endif
 #ifndef _defined_id_AidNum
 #define _defined_id_AidNum 1
 const DMI::AtomicID AidNum(-1163);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 const int AidNum_int = -1163;
+#endif
+#ifndef _defined_id_AidObj
+#define _defined_id_AidObj 1
+const DMI::AtomicID AidObj(-1715);                // from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:31
+const int AidObj_int = -1715;
 #endif
 #ifndef _defined_id_AidObservatory
 #define _defined_id_AidObservatory 1
