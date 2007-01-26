@@ -47,7 +47,7 @@ class DisplayMainWindow(QMainWindow):
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
-    self._click_on = " If you click on an individual stripchart with the left mouse button, a popup window will appear that gives a more detailed view of the data from that particular object."
+    self._click_on = " If you click on an individual stripchart with the middle mouse button, a popup window will appear that gives a more detailed view of the data from that particular object. Clicking with the left mouse button will give a small popup that gives the actual X and Y values, corrected for offset, of the data point nearest to the location of the mouse."
 
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
