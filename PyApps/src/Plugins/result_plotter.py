@@ -160,7 +160,7 @@ class ResultPlotter(GriddedPlugin):
     self.data_list = []
     self.data_list_labels = []
     self.data_list_length = 0
-    self.max_list_length = 10
+    self.max_list_length = 20
     self._window_controller = None
     self.array_shape = None
     self.actual_rank = None
