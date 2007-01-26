@@ -598,7 +598,7 @@ class ChartPlot(QWidget):
           chart = array(self._chart_data[curve_no][self._data_index])
           flags = array(self._flag_data[curve_no][self._data_index])
           self._Zoom[curve_no].update_plot(chart,flags)
-          self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
+#         self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotzoom.replot()
 
     if self._closezoom:
