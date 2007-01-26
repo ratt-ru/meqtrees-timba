@@ -1,1 +1,1 @@
-../../../Workshop2006/make_image.g
+../../../Workshop2007/make_image.g
