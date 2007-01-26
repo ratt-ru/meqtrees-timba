@@ -299,7 +299,7 @@ class ChartPlot(QWidget):
       self.change_flag_parms(menuid)
       return True
     if menuid == self.menu_table['Complex Data']:
-      print 'in complex data callback'
+#     print 'in complex data callback'
       return True
 
   def change_flag_parms(self, menuid):
@@ -1126,6 +1126,7 @@ class ChartPlot(QWidget):
           temp_off = (channel % (self._nbcrv/4)) * self._offset
 
         chart = array(self._chart_data[channel][self._data_index])
+        flags = array(self._flag_data[channel][self._data_index])
         if chart.type() == Complex32 or chart.type() == Complex64:
           complex_chart = chart.copy()
           if self._amplitude:
