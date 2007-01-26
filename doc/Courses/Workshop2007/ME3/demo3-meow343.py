@@ -103,11 +103,11 @@ def _define_forest(ns):
   
   # add some useful bookmarks
   Bookmarks.Page("Fluxes and coherencies") \
-    .add(source_list[0].stokes("I") \
-    .add(source_list[1].stokes("I") \
-    .add(source_list[0].stokes("Q") \
-    .add(source_list[1].stokes("Q") \
-    .add(source_list[0].coherency() \
+    .add(source_list[0].stokes("I")) \
+    .add(source_list[1].stokes("I")) \
+    .add(source_list[0].stokes("Q")) \
+    .add(source_list[1].stokes("Q")) \
+    .add(source_list[0].coherency()) \
     .add(solve_tree.solver());
   
   pg = Bookmarks.Page("G Jones",3,3);
