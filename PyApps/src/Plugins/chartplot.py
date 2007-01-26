@@ -160,7 +160,9 @@ class ChartPlot(QWidget):
     self._popup_text.setFrameStyle(QFrame.Box | QFrame.Plain)
     # start the text off hidden at 0,0
     self._popup_text.hide()
-    self._popup_text.setGeometry(0,0,160,48)
+    self._popup_width = 220
+    self._popup_height = 48
+    self._popup_text.setGeometry(0,0,self._popup_width, self._popup_height)
 
     # timer to allow redisplay
     self._display_interval_ms = 2000
@@ -531,15 +533,26 @@ class ChartPlot(QWidget):
 #   popupmsg = QString()
 #   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
 
-# the following works, but we need to 'bounce' text off border if its too
-# close
-#   self._popup_text.setText(message)
-#   if not self._popup_text.isVisible():
-#     self._popup_text.show()
-#   if ((self._popup_text.x() != self.xpos + 30) or (self._popup_text.y() != self.ypos + 30)):
-#     self._popup_text.move(self.xpos + 30 ,self.ypos + 30)
-
+    self._popup_text.setText(message)
+    yhb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).hBound())
+    ylb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).lBound())
+    xhb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).hBound())
+    xlb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).lBound())
+    if self.ypos + self._popup_height > ylb:
+      ymove = self.ypos - 1.5 * self._popup_height
+    else:
+      ymove = self.ypos + 0.5 * self._popup_height
+    if self.xpos + self._popup_width > xhb:
+      xmove = xhb - self._popup_width
+    else:
+      xmove = self.xpos
+    self._popup_text.move(xmove, ymove)
+    if not self._popup_text.isVisible():
+      self._popup_text.show()
+    
   def plotMouseMoved(self, e):
+    if self._popup_text.isVisible():
+      self._popup_text.hide()
     return
 #   e.accept()
 #   closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
@@ -645,7 +658,7 @@ class ChartPlot(QWidget):
       if Qt.LeftButton == e.button():
         if not self.source_marker is None:
           self._plotter.removeMarker(self.source_marker);
-#         self._popup_text.hide()
+          self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for no good reason
         if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
