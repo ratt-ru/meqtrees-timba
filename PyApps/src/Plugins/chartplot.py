@@ -940,6 +940,7 @@ class ChartPlot(QWidget):
             self._flag_data[channel][keys].append(flattened_array[i])
         else:
           self._flag_data[channel][keys] = flattened_array
+          self._start_offset_test[channel][keys] = 0
 
       if self._ArraySize < len(self._chart_data[channel][keys]):
         self._ArraySize = len(self._chart_data[channel][keys])
