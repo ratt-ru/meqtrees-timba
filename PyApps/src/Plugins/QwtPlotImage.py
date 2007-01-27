@@ -483,11 +483,18 @@ class QwtPlotImage(QwtPlotMappedItem):
         x2 = min(self.Qimage.width(), int(x2+0.5))
         _dprint(3, 'int x1, x2 ', x1, ' ',x2)
         # copy
+        xdelta = x2-x1
+        ydelta = y2-y1
+        # these tests seem necessary for the dummy 'scalar' displays
+        if xdelta < 0:
+          xdelta = self.Qimage.height()
+        if ydelta < 0:
+          ydelta = self.Qimage.height()
 	image = None
-	if self._display_flags:
-          image = self.flags_Qimage.copy(x1, y1, x2-x1, y2-y1)
-	else:
-          image = self.Qimage.copy(x1, y1, x2-x1, y2-y1)
+        if self._display_flags:
+          image = self.flags_Qimage.copy(x1, y1, xdelta, ydelta)
+        else:
+          image = self.Qimage.copy(x1, y1, xdelta, ydelta)
         # zoom
         image = image.smoothScale(xMap.i2()-xMap.i1()+1, yMap.i1()-yMap.i2()+1)
         # draw
