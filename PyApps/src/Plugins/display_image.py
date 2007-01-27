@@ -1110,6 +1110,10 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemVisible(toggle_id, False)
       self.delete_cross_sections()
 
+# can't flip axes with a scalar!
+      toggle_id = self.menu_table['Toggle axis flip']
+      self._menu.setItemVisible(toggle_id, False)
+
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
       self._vells_plot = True

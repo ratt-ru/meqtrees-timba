@@ -686,23 +686,24 @@ class ResultPlotter(GriddedPlugin):
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
 
-    if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
-      _dprint(3, 'should have passed no-cells self._rec test')
-      if self._vells_data is None:
-        self._vells_data = VellsData()
-      self._vells_data.setInitialSelection(False)
-      self._vells_data.StoreVellsData(self._rec,self.label)
-      Message = ""
-      if self._vells_data.isVellsScalar():
-        _dprint(3, 'we have a scalar vells')
-        Message =  self._vells_data.getScalarString()
-        _dprint(3, 'vells message is ', Message)
-      cache_message = QLabel(Message,self.wparent())
-#     cache_message.setTextFormat(Qt.RichText)
-      self._wtop = cache_message
-      self.set_widgets(cache_message)
-      self.reset_plot_stuff()
-      return process_result
+# uncomment this block of code to get vells displayed directly to
+# widget without plotter
+#   if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
+#     _dprint(3, 'should have passed no-cells self._rec test')
+#     if self._vells_data is None:
+#       self._vells_data = VellsData()
+#     self._vells_data.setInitialSelection(False)
+#     self._vells_data.StoreVellsData(self._rec,self.label)
+#     Message = ""
+#     if self._vells_data.isVellsScalar():
+#       _dprint(3, 'we have a scalar vells')
+#       Message =  self._vells_data.getScalarString()
+#       _dprint(3, 'vells message is ', Message)
+#     cache_message = QLabel(Message,self.wparent())
+#     self._wtop = cache_message
+#     self.set_widgets(cache_message)
+#     self.reset_plot_stuff()
+#     return process_result
 
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
