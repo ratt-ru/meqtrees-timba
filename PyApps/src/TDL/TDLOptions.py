@@ -333,42 +333,58 @@ def _make_option_item (namespace,symbol,name,value,default=None,inline=False,doc
   item.set_doc(doc);
   return item;
 
+def TDLMenu (title,*items):
+  """this creates and returns a submenu object, without adding it to
+  any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
+  return _TDLSubmenu(title,*items);
+
+def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
+  """this creates and returns an option object, without adding it to
+  any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
+  return _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
+
+def TDLJob (function,name=None,doc=None):
+  """this creates and returns a TDL job entry, without adding it to
+  anu menu. Should be used inside a TDLRuntimeMenu.""";
+  return _TDLJobItem(function,name=name,doc=doc);
+
 def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
-  """this creates an option object and adds it to the compile-time list""";
+  """this creates an option object and adds it to the compile-time menu""";
   opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   compile_options.append(opt);
   return opt;
-  
-def TDLCompileOptions (*opts):
-  global compile_options;
-  compile_options += opts;
 
 def TDLRuntimeOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
-  """this creates an option object and adds it to the runtime list""";
+  """this creates an option object and adds it to the runtime menu""";
   opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   runtime_options.append(opt);
   return opt;
+
+def TDLRuntimeJob (function,name=None,doc=None):
+  """this creates a TDL job entry, and adds it to the runtime menu.""";
+  job = _TDLJobItem(function,name=name,doc=doc);
+  runtime_options.append(job);
+  return job;
   
+def TDLCompileOptions (*opts):
+  """this adds a number of entires (created with TDLOption) to the
+  compile-time menu""";
+  global compile_options;
+  compile_options += opts;
+
 def TDLRuntimeOptions (*opts):
+  """this adds a number of entires (created with TDLOption or TDLJob) to the
+  run-time menu""";
   global runtime_options;
   runtime_options += opts;
   
 def TDLCompileMenu (title,*items):
+  """This creates a submenu inside the compile-time menu, and adds a number
+  of entires (created with TDLOption) to it.""";
   compile_options.append(_TDLSubmenu(title,*items));
 
 def TDLRuntimeMenu (title,*items):
+  """This creates a submenu inside the run-time menu, and adds a number
+  of entires (created with TDLOption or TDLJob) to it.""";
   runtime_options.append(_TDLSubmenu(title,*items));
 
-def TDLMenu (title,*items):
-  return _TDLSubmenu(title,*items);
-
-def TDLOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
-  """this creates and returns an option object. Should be used
-  with TDLCompileMenu/TDLRuntimeMenu.""";
-  return _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
-
-def TDLJob (function,name=None,doc=None):
-  """this creates and returns a TDL job entry.""";
-  job = _TDLJobItem(function,name=name,doc=doc);
-  runtime_options.append(job);
-  return job;
