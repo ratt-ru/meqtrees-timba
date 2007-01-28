@@ -17,6 +17,7 @@ L = 1*(DEG/60);
 M = 1*(DEG/60);
 N = math.sqrt(1-L*L-M*M);
 
+from demo5_iono import make_sine_tid
 
 def _define_forest (ns):
   # nodes for phase center
@@ -38,6 +39,8 @@ def _define_forest (ns):
   for p in ANTENNAS:
     ns.K(p) << Meq.VisPhaseShift(lmn=ns.lmn_minus1,uvw=ns.uvw(p));
     ns.Kt(p) << Meq.ConjTranspose(ns.K(p));
+    
+    
   
   # define source brightness, B
   ns.B << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
@@ -48,8 +51,21 @@ def _define_forest (ns):
       Meq.MatrixMultiply(ns.K(p),ns.B,ns.Kt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+  # define a couple of inspector nodes
+  ns.inspect_K << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[Meq.Mean(ns.K(p),reduction_axes="freq") for p in ANTENNAS]
+  );
+  ns.inspect_predict << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspect_K,ns.inspect_predict);
+  
+  # create VDM and attach inspectors
+  ns.vdm = Meq.VisDataMux(post=ns.inspectors);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
@@ -58,7 +74,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 30
+      tile_size        = 32
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -77,13 +93,11 @@ def _tdl_job_2_make_image (mqs,parent):
     'weight='+imaging_weight,
     'stokes='+imaging_stokes]);
 
-
 # some options for the imager -- these will be automatically placed
 # in the "TDL Exec" menu
 TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
 TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs"]);
 TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
-
 
 
 # setup a few bookmarks
@@ -93,12 +107,17 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/K:2",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/K:9",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/K:26",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
+  ]),
+  record(name='Inspectors',page=[
+    record(udi="/node/inspect_K",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,0))
+  ]),
+]);
 
 
 
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
-# simply by running 'python script.tdl'
+# simply by running 'python script.py'
 
 if __name__ == '__main__':
   ns = NodeScope();
