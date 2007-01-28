@@ -3,7 +3,7 @@ from Timba.Meq import meq
 import math
 
 # reuse previous function
-from demo5_iono import make_sine_tid
+from example5_iono import make_sine_tid
 
 positions = [ (0,0),(10000,10000),(None,None) ];
 
