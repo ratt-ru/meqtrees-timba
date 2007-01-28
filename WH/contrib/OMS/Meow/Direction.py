@@ -47,7 +47,7 @@ class Direction (Parameterization):
     else:
       # create coordinate nodes, add in qualifiers of radec0 since
       # we may have different LMN sets for different directions
-      radec0 = dir0.radec0();
+      radec0 = dir0.radec();
       lmn = self.ns.lmn.qadd(radec0);
       if not lmn.initialized():
         lmn << Meq.LMN(radec_0=radec0,radec=self.radec());
@@ -66,7 +66,7 @@ class Direction (Parameterization):
     else:
       # create coordinate nodes, add in qualifiers of radec0 since
       # we may have different LMN sets for different directions
-      radec0 = dir0.radec0();
+      radec0 = dir0.radec();
       lm = self.ns.lm.qadd(radec0);
       if not lm.initialized():
         lm << Meq.Selector(self.lmn(dir0),index=[0,1],multi=True);
@@ -85,7 +85,7 @@ class Direction (Parameterization):
     else:
       # create coordinate nodes, add in qualifiers of radec0 since
       # we may have different LMN sets for different directions
-      radec0 = dir0.radec0();
+      radec0 = dir0.radec();
       n = self.ns.n.qadd(radec0);
       if not n.initialized():
         n << Meq.Selector(self.lmn(dir0),index=[2]);
@@ -104,7 +104,7 @@ class Direction (Parameterization):
     else:
       # create coordinate nodes, add in qualifiers of radec0 since
       # we may have different LMN sets for different directions
-      radec0 = dir0.radec0();
+      radec0 = dir0.radec();
       lmn_1 = self.ns.lmn_minus1.qadd(radec0);
       if not lmn_1.initialized():
         lmn_1 << Meq.Paster(self.lmn(dir0),self.n(dir0)-1,index=2);
