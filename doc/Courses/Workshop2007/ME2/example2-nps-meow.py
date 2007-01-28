@@ -73,7 +73,7 @@ def _define_forest (ns):
   # want to put them onto a single page
   pg = Meow.Bookmarks.Page("Inspectors",2,2);
   for i in [0,1,4,5]:
-    pg.add(ns.inspect_predict(i));
+    pg.add(ns.inspect_predict(i),viewer="Collections Plotter");
     
   # make a few more bookmarks
   pg = Meow.Bookmarks.Page("K Jones",3,3);

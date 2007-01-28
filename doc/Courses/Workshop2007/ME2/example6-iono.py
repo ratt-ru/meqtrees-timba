@@ -4,11 +4,13 @@ from Timba.Meq import meq
 import math
 
 import Meow
+import Meow.StdTrees
 import iono_model
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10,30]);
-Meow.Utils.include_imaging_options();
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32]);
+TDLRuntimeMenu("Imaging options",
+    *Meow.Utils.imaging_options(npix=256,arcmin=15,channels=[[32,1,1]]));
 
 TDLCompileOption("grid_size","Grid size",[1,3,5,7]);
 TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
@@ -69,25 +71,28 @@ def _define_forest (ns):
       ns.noisy_predict(p,q) << predict(p,q) + noise_matrix(noise_stddev); 
     predict = noisy_predict;
       
+  # Make some inspectors.
   # These are the "interesting" stations:
-  # 10 is center of array, 9, 18 and 27 are at the end of the arms
-  stas = [10,9,18,27 ];
+  # 10 is center of array, 9, 18 and 27 are at the end of the arms.
+  # Make composers for them
+  stas = [ 10,9,18,27 ];
   # make a couple of composers, for visualizations
-  ns.visualize = Meq.ReqMux(
+  inspectors = [
     ns.inspect_tecs << \
       Meq.Composer(
-        plot_label = [ "%s-%s"%(p,src.name) for src in sources for p in stas ],
+        plot_label = [ "%s:%s"%(p,src.name) for src in sources for p in stas ],
         *[ ns.tec(src.name,p) for src in sources for p in stas ]
       ),
     ns.inspect_Z << \
       Meq.Composer(
-        plot_label = [ "%s-%s"%(p,src.name) for src in sources for p in stas ],
+        plot_label = [ "%s:%s"%(p,src.name) for src in sources for p in stas ],
         *[ Meq.Mean(Meq.Arg(ns.Z(src.name,p),reduction_axes="freq")) for src in sources for p in stas ]
       )
-  );
+  ];
   
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(post=ns.visualize);
+  # make sinks and vdm. Note that we don't want to make any spigots...
+  # The list of inspectors comes in handy here
+  Meow.StdTrees.make_sinks(ns,predict,spigots=False,post=inspectors);
   
   # and make some more interesting bookmarks
   Meow.Bookmarks.Page("Inspect TECs").add(ns.inspect_tecs,viewer="Collections Plotter");
@@ -109,7 +114,7 @@ def _define_forest (ns):
 def _tdl_job_1_simulate_MS (mqs,parent):
   req = Meow.Utils.create_io_request();
   # execute    
-  mqs.execute('vdm',req,wait=False);
+  mqs.execute('VisDataMux',req,wait=False);
   
   
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
