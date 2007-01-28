@@ -10,7 +10,7 @@ import iono_model
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10,30]);
 Meow.Utils.include_imaging_options();
 
-TDLCompileOption("grid_size","Grid size",[0,1,2,3,4]);
+TDLCompileOption("grid_size","Grid size",[1,3,5,7]);
 TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
 TDLCompileOption("noise_stddev","Add noise (Jy)",[0,1e-6,1e-3],more=float);
 
@@ -48,26 +48,26 @@ def _define_forest (ns):
   Meow.Context.set(array,observation);
     
   # make list of source lists for three crosses
-  sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,grid_size);
+  sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,(grid_size-1)/2);
     
-  # make Zjones for all positions in source list
+  # make Zjones for all positions in source list (and all stations)
+  # this returns Zj which sould be qualified as Zj(srcname,station)
+  # Therefore we can use Zj(srcname) as a per-stations Jones series.
   Zj = iono_model.compute_zeta_jones(ns,sources);
 
   # corrupt all sources with the Zj for their direction
   allsky = Meow.Patch(ns,'sky',observation.phase_centre);
   for src in sources:
-    corrupt_src = Meow.CorruptComponent(ns,src,label='Z',station_jones=Zj(src.direction.name));
-    allsky.add(corrupt_src);
+    allsky.add(src.corrupt(Zj(src.direction.name)));
 
   # get predicted visibilities
   predict = allsky.visibilities();
   
-  # ..and attach them to sinks, with a bit of noise thrown in
-  for p,q in array.ifrs():
-    output = predict(p,q);
-    if noise_stddev:
-      output = ns.noisy_predict(p,q) << output + noise_matrix(noise_stddev); 
-    ns.sink(p,q) << Meq.Sink(output,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+  # throw in a bit of noise
+  if noise_stddev:
+    for p,q in array.ifrs():
+      ns.noisy_predict(p,q) << predict(p,q) + noise_matrix(noise_stddev); 
+    predict = noisy_predict;
       
   # These are the "interesting" stations:
   # 10 is center of array, 9, 18 and 27 are at the end of the arms
@@ -87,7 +87,7 @@ def _define_forest (ns):
   );
   
   # define VisDataMux
-  ns.vdm << Meq.VisDataMux(post=ns.visualize,*[ns.sink(p,q) for p,q in array.ifrs()]);
+  ns.vdm << Meq.VisDataMux(post=ns.visualize);
   
   # and make some more interesting bookmarks
   Meow.Bookmarks.Page("Inspect TECs").add(ns.inspect_tecs,viewer="Collections Plotter");
