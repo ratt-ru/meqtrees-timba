@@ -2559,20 +2559,6 @@ class QwtImageDisplay(QwtPlot):
             self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
 #       _dprint(3, 'plotting flattened array ', flattened_array)
-        if not self._flags_array is None:
-          if self.complex_type:
-            x_array =  flattened_array.getreal()
-            y_array =  flattened_array.getimag()
-            for j in range(num_elements):
-              if self._flags_array[j] > 0:
-                self.flags_x_index.append(self.x_index[j])
-                self.flags_r_values.append(x_array[j])
-                self.flags_i_values.append(y_array[j])
-          else:
-            for j in range(num_elements):
-              if self._flags_array[j] > 0:
-                self.flags_x_index.append(self.x_index[j])
-                self.flags_r_values.append(flattened_array[j])
 # we have a complex vector
         if self.complex_type:
           self.enableAxis(QwtPlot.yRight)
@@ -2603,7 +2589,6 @@ class QwtImageDisplay(QwtPlot):
             phase_array = arctan2(self.y_array,self.x_array)
             self.x_array = abs_array
             self.y_array = phase_array
-
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
           self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
          
@@ -2626,6 +2611,11 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
+            for j in range(num_elements):
+              if self._flags_array[j] != 0:
+                self.flags_x_index.append(self.x_index[j])
+                self.flags_r_values.append(self.x_array[j])
+                self.flags_i_values.append(self.y_array[j])
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -2652,8 +2642,6 @@ class QwtImageDisplay(QwtPlot):
           self.enableAxis(QwtPlot.xBottom)
           self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.enableAxis(QwtPlot.yRight, False)
-          self.x_array = zeros(num_elements, Float32)
-          self.y_array = zeros(num_elements, Float32)
           self.x_array =  flattened_array
           self.xrCrossSection = self.insertCurve('reals')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
@@ -2666,6 +2654,10 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
+            for j in range(num_elements):
+              if self._flags_array[j] != 0:
+                self.flags_x_index.append(self.x_index[j])
+                self.flags_r_values.append(flattened_array[j])
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -2753,6 +2745,14 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemChecked(toggle_id, self.flag_toggle)
 
     # setFlagsData()
+
+    def unsetFlagsData(self):
+      self._flags_array = None
+      self.flags_x_index = []
+      self.flags_r_values = []
+      self.flags_i_values = []
+      self.plotImage.setDisplayFlag(False)
+      self.flag_toggle = None
 
     def add_basic_menu_items(self):
         """ add standard options to context menu """

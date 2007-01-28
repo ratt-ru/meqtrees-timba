@@ -794,6 +794,10 @@ class ResultPlotter(GriddedPlugin):
         flag_plane = self._vells_data.getActivePlane()
         self._visu_plotter.set_flag_toggles(flag_plane, True)
         self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
+      else:
+        flag_plane = self._vells_data.getActivePlane()
+        self._visu_plotter.set_flag_toggles(flag_plane, False)
+        self._visu_plotter.unsetFlagsData()
 
 # test and update the context menu
       menu_data = self._vells_data.getMenuData()
