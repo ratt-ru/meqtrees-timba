@@ -38,6 +38,7 @@ def _define_forest (ns):
   array = Meow.IfrArray(ns,ANTENNAS);
   # create an Observation object
   observation = Meow.Observation(ns);
+  Meow.Context.set(array,observation);
     
   # make list of source lists for three crosses
   all_sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,grid_size);
