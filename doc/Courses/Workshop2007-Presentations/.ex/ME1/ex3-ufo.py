@@ -17,8 +17,8 @@ I = 1; Q = .2; U = .2; V = .2;
 L0 = 0;
 M0 = 0;
 # speed
-DL0 = 0.25*(DEG/60) / 3600;   # 0.25'/hour is max speed
-DM0 = 0.25*(DEG/60) / 3600;
+DL0 = 0.5*(DEG/60) / 3600;   # 0.25'/hour is max speed
+DM0 = 0.5*(DEG/60) / 3600;
 
 
 def _define_forest (ns):
@@ -57,9 +57,27 @@ def _define_forest (ns):
     predict = ns.predict(p,q) << \
       Meq.MatrixMultiply(ns.K(p),ns.B,ns.Kt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
-
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+  
+  # define a couple of inspector nodes
+  ns.inspect_K << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[Meq.Mean(ns.K(p),reduction_axes="freq") for p in ANTENNAS]
+  );
+  ns.inspect_lm << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["l","m" ],
+    *[Meq.Mean(node,reduction_axes="freq") for node in ns.l,ns.m]
+  );
+  ns.inspect_predict << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspect_K,ns.inspect_lm,ns.inspect_predict);
+  
+  # create VDM and attach inspectors
+  ns.vdm = Meq.VisDataMux(post=ns.inspectors);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
@@ -68,7 +86,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 30
+      tile_size        = 32
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -95,7 +113,6 @@ TDLRuntimeOption('imaging_weight',"Imaging weights",["natural","uniform","briggs
 TDLRuntimeOption('imaging_stokes',"Stokes parameters to image",["I","IQUV"]);
 
 
-
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='K Jones',page=[
@@ -103,8 +120,14 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/K:2",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/K:9",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/K:26",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
-
+  ]),
+  record(name='Inspectors',page=[
+    record(udi="/node/inspect_K",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_lm",viewer="Collections Plotter",pos=(0,1)),
+    record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,0)),
+    record(udi="/node/lmn_minus1",viewer="Result Plotter",pos=(1,1)),
+  ]),
+]);
 
 
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency

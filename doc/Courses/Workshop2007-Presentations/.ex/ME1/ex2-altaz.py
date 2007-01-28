@@ -34,13 +34,19 @@ def _define_forest (ns):
   # source l,m,n-1 vector
   ns.lmn_minus1 << Meq.Composer(L,M,N-1);
   
+  # nu - nu_0
+  ns.delta_freq = Meq.Freq() - (ns.freq0<<0);   
+
   # define K-jones and G-jones
   for p in ANTENNAS:
     ns.K(p) << Meq.VisPhaseShift(lmn=ns.lmn_minus1,uvw=ns.uvw(p));
     ns.Kt(p) << Meq.ConjTranspose(ns.K(p));
     
-    ns.G(p) << 1;
-    ns.Gt(p) << 1;
+    a = random.uniform(1e-10,1e-9);
+    gx = ns.gx(p) << 1+a*ns.delta_freq;
+    gy = ns.gy(p) << 1-a*ns.delta_freq;
+    ns.G(p) << Meq.Matrix22(gx,0,0,gy);
+    ns.Gt(p) << Meq.ConjTranspose(ns.G(p));
     
     pa = ns.pa(p) << Meq.ParAngle(radec=ns.radec0,xyz=ns.xyz(p));
     cospa = ns << Meq.Cos(pa);
@@ -57,8 +63,26 @@ def _define_forest (ns):
       Meq.MatrixMultiply(ns.G(p),ns.P(p),ns.K(p),ns.B,ns.Kt(q),ns.Pt(q),ns.Gt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+  # define a couple of inspector nodes
+  ns.inspect_G << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[Meq.Mean(ns.G(p),reduction_axes="freq") for p in ANTENNAS]
+  );
+  ns.inspect_P << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[Meq.Mean(ns.P(p),reduction_axes="freq") for p in ANTENNAS]
+  );
+  ns.inspect_predict << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspect_G,ns.inspect_P,ns.inspect_predict);
+  
+  # create VDM and attach inspectors
+  ns.vdm = Meq.VisDataMux(post=ns.inspectors);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
@@ -67,7 +91,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 30
+      tile_size        = 32
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -109,6 +133,11 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/G:2",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/G:3",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/G:4",viewer="Result Plotter",pos=(1,1)) \
+  ]),
+  record(name='Inspectors',page=[
+    record(udi="/node/inspect_G",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_P",viewer="Collections Plotter",pos=(0,1)),
+    record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,0))
   ]),
 ]);
 
