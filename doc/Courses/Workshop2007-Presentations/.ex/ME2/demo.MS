@@ -1,1 +1,1 @@
-../../../Workshop2006/demo.MS
+../../../Workshop2007/demo.MS

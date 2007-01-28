@@ -1,1 +1,1 @@
-../../../Workshop2006/Day3/clar_model.py
+../../../Workshop2007/ME2/clar_model.py

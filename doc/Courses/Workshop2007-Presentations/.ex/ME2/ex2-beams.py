@@ -47,9 +47,8 @@ def _define_forest (ns):
     # and the projected brightness...
     ns.B(src) << ns.B0 / n;
     # the beam gain
-    ns.E(src) << Meq.Pow(Meq.Cos(math.sqrt(l*l+m*m)*1.5e-6*Meq.Freq()),6);
+    ns.E(src) << Meq.Pow(Meq.Cos(math.sqrt(l*l+m*m)*2e-6*Meq.Freq()),3);
     ns.Et(src) << Meq.ConjTranspose(ns.E(src));
-    
   
   # define K-jones matrices
   for p in ANTENNAS:
@@ -73,8 +72,31 @@ def _define_forest (ns):
                 ns.Gt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+  # define a couple of inspector nodes
+  ns.inspect_predict(0) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,0),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspect_predict(1) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,1),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspect_predict(4) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,4),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspect_predict(5) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,5),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspect_predict(0),ns.inspect_predict(1),ns.inspect_predict(4),ns.inspect_predict(5));
+  
+  # create VDM and attach inspectors
+  ns.vdm = Meq.VisDataMux(post=ns.inspectors);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
@@ -83,7 +105,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 30
+      tile_size        = 32
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -130,7 +152,14 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/E:1",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/E:4",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/E:8",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
+  ]),
+  record(name='Inspectors',page=[
+    record(udi="/node/inspect_predict:0",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_predict:1",viewer="Collections Plotter",pos=(0,1)),
+    record(udi="/node/inspect_predict:4",viewer="Collections Plotter",pos=(1,0)),
+    record(udi="/node/inspect_predict:5",viewer="Collections Plotter",pos=(1,1))
+  ]),
+]);
 
 
 
