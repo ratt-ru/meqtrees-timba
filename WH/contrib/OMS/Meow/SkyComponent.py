@@ -18,12 +18,12 @@ class SkyComponent (Parameterization):
       ra,dec = direction;
       self.direction = Direction(ns,name,ra,dec);
     
-  def radec (self,radec0=None):
+  def radec (self):
     """Returns ra-dec two-pack for this component's direction""";
-    return self.direction.radec(radec0);
+    return self.direction.radec();
     
-  def lmn (self,radec0=None):
-    return self.direction.lmn(radec0);
+  def lmn (self,dir0=None):
+    return self.direction.lmn(dir0);
     
   def make_visibilities (self,nodes,array,observation):
     """Abstract method.
@@ -45,10 +45,8 @@ class SkyComponent (Parameterization):
     visibility nodes are created as nodes(p,q).
     Returns the actual unqualified visibility node that was created, i.e. 
     either 'nodes' itself, or the automatically named nodes""";
-    array = array or Context.array;
-    observation = observation or Context.observation;
-    if not array or not observation:
-      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
+    observation = Context.get_observation(observation);
+    array = Context.get_array(array);
     if nodes is None:
       nodes = self.ns.visibility.qadd(observation.radec0());
     if not nodes(*(array.ifrs()[0])).initialized():

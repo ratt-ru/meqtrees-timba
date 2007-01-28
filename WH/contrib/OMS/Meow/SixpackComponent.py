@@ -2,6 +2,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from SkyComponent import *
 from Direction import Direction
+import Context
 
 class SixpackComponent (SkyComponent):
   """SixpackComponent is an abstract component type that deals with 
@@ -87,9 +88,10 @@ class SixpackComponent (SkyComponent):
     return brick;
     
   def make_visibilities (self,nodes,array,observation):
+    observation = Context.get_observation(observation);
     # create a brick
     brick = self.uvbrick();
-    uvw = array.uvw_ifr(observation.radec0());
+    uvw = array.uvw_ifr(observation.phase_center);
     for ifr in array.ifrs():
       nodes(*ifr) << Meq.UVInterpolWave(brick=brick,uvw=uvw(*ifr),
                         method=self._interpol_method,

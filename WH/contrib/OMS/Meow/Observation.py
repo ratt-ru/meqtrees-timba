@@ -17,7 +17,7 @@ class Observation (object):
     self._circular = circular;
     self._quals = quals;
     self._kwquals = kwquals;
-    self.phase_centre = \
+    self.phase_centre = self.phase_center = \
         Direction(ns,None,0,0,quals=quals,kwquals=kwquals);
     
   def circular (self):

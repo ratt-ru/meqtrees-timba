@@ -71,11 +71,10 @@ class GaussianSource(PointSource):
     return xfm;
 
   def make_visibilities (self,nodes,array,observation):
-    array = array or Context.array;
-    observation = observation or Context.observation;
-    if not array or not observation:
-      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
-    radec0 = observation.radec0();
+    array = Contxt.get_array(array);
+    observation = Context.get_observation(observation);
+    dir0 = observation.phase_centre;
+    radec0 = dir0.radec();
     # 1/wl = freq/c
     iwl = self.ns0.inv_wavelength << ((self.ns0.freq<<Meq.Freq) / 2.99792458e+8);
     # -1/(wl^2): scaling factor applied to exp() argument below
@@ -83,7 +82,7 @@ class GaussianSource(PointSource):
     # scaling factor of gaussian for unit flux
     gscale = self.ns0.gaussiancomponent_scale << Meq.Constant(0.5*math.pi);
     # baseline UVs
-    uv_ifr = array.uv_ifr(radec0);
+    uv_ifr = array.uv_ifr(dir0);
     # rotation matrix
     xfm = self.transformation_matrix();
     # flux scale -- coherency multiplied by scale constant above
@@ -103,4 +102,4 @@ class GaussianSource(PointSource):
       v1s = v1sq(*ifr) << Meq.Selector(uv1s,index=1); 
       gcoh(*ifr) << fluxscale * Meq.Exp((u1s+v1s)*m_iwlsq);
     # phase shift to source position
-    self.direction.make_phase_shift(nodes,gcoh,array,radec0);
+    self.direction.make_phase_shift(nodes,gcoh,array,dir0);

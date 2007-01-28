@@ -11,11 +11,7 @@ class Patch (SkyComponent):
     self._components += comps;
     
   def make_visibilities (self,nodes,array,observation):
-    array = array or Context.array;
-    observation = observation or Context.observation;
-    if not array or not observation:
-      raise ValueError,"array or observation not specified in global Meow.Context, or in this function call";
-    radec0 = observation.radec0();
+    array = Context.get_array(array);
     # no components -- use 0
     if not self._components:
       [ nodes(*ifr) << 0.0 for ifr in array.ifrs() ];

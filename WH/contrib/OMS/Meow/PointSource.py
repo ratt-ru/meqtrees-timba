@@ -114,12 +114,9 @@ class PointSource(SkyComponent):
     return coh;
 
   def make_visibilities (self,nodes,array=None,observation=None):
-    array = array or Context.array;
     observation = observation or Context.observation;
-    if not array or not observation:
-      raise ValueError,"array observation not specified in global Meow.Context, or in this function call";
     # create lambda to return the same coherency at all baselines
     cohnode = lambda p,q: self.coherency(observation);
     # use direction's phase shift method
-    self.direction.make_phase_shift(nodes,cohnode,array,observation.radec0());
+    self.direction.make_phase_shift(nodes,cohnode,array,observation.phase_center);
    
