@@ -60,9 +60,22 @@ def _define_forest (ns):
     predict = ns.predict(p,q) << \
       Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
-
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+    
+  # define a couple of inspector nodes
+  ns.inspect_predict(0) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,0),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspect_predict(5) << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[Meq.Mean(ns.predict(p,q,5),reduction_axes="freq") for p,q in IFRS]
+  );
+  ns.inspectors = Meq.ReqMux(ns.inspect_predict(0),ns.inspect_predict(5));
+  
+  # create VDM and attach inspectors
+  ns.vdm = Meq.VisDataMux(post=ns.inspectors);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
@@ -71,7 +84,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
-      tile_size        = 30
+      tile_size        = 32
     ),
     python_init = 'Meow.ReadVisHeader'
   );
@@ -106,7 +119,12 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/K:9:0",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/K:2:1",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/K:9:1",viewer="Result Plotter",pos=(1,1)) \
-  ])]);
+  ]),
+  record(name='Inspectors',page=[
+    record(udi="/node/inspect_predict:0",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_predict:5",viewer="Collections Plotter",pos=(1,0))
+  ]),
+]);
 
 
 
