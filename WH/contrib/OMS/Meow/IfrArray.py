@@ -1,8 +1,8 @@
 from Timba.TDL import *
 import Context
 
-_wsrt_list = [str(i) for i in range(10)] + ['A','B','C','D','E','F'];
-
+_wsrt_list = [ str(i) for i in range(10)] + ['A','B','C','D','E','F'];
+_vla_list = [ str(i) for i in range(1,28) ];
 
 class IfrArray (object):
   def __init__(self,ns,station_list,station_index=None,uvw_table=None,mirror_uvw=False):
@@ -48,6 +48,23 @@ class IfrArray (object):
       raise TypeError,"WSRT 'stations' argument must be a list of stations, or a number";
     return IfrArray(ns,stations,station_index=index,uvw_table=uvw_table,mirror_uvw=mirror_uvw);
   WSRT = staticmethod(WSRT);
+  
+  def VLA (ns,stations=27,uvw_table=None,mirror_uvw=False):
+    """Creates and returns an IfrArray for VLA, i.e., with proper labels.
+    The 'stations' argument can be either a number of stations (then only
+    the first N antennas will be used), or a list of station indices.
+    If not given, then the full WSRT array is used.
+    """;
+    if isinstance(stations,int):
+      stations = _vla_list[:stations];
+      index = None;
+    elif isinstance(stations,(list,tuple)):
+      index = stations;
+      stations = [ _vla_list[i] for i in stations ];
+    else:
+      raise TypeError,"VLA 'stations' argument must be a list of stations, or a number";
+    return IfrArray(ns,stations,station_index=index,uvw_table=uvw_table,mirror_uvw=mirror_uvw);
+  VLA = staticmethod(VLA);
 
   def stations (self):
     return self._stations;

@@ -71,7 +71,7 @@ class GaussianSource(PointSource):
     return xfm;
 
   def make_visibilities (self,nodes,array,observation):
-    array = Contxt.get_array(array);
+    array = Context.get_array(array);
     observation = Context.get_observation(observation);
     dir0 = observation.phase_centre;
     radec0 = dir0.radec();
