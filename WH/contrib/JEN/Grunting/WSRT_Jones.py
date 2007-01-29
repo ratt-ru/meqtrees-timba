@@ -58,13 +58,15 @@ def include_TDL_options_uvp(prompt='instr.model'):
     """Definition of variables that control the generation of Jones matrices
     for uv-plane effects. The user may set these in the browser TDL options menu.
     These values are picked up by the function .Joneseq22_uvp() in this module."""
-    joneseq = ['G','GD','D','GDF','J','B']
+    joneseq = ['G','GD','GB','D','GDF','J','B']
+    Btfdeg = [[0,5],[0,2],[0,3],[0,4],[0,6],[1,5],[2,5]]
     menuname = 'WSRT_Jones_uvp ('+str(prompt)+')'
     TDLCompileMenu(menuname,
                    TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
                    TDLOption('TDL_D_coupled_dang',"DJones: coupled (dangX=dangY)", [True, False]),
                    TDLOption('TDL_D_coupled_dell',"DJones: coupled (dellX=-dellY)", [True, False]),
                    TDLOption('TDL_J_diagonal',"JJones: diagonal matrix", [False, True]),
+                   TDLOption('TDL_B_tfdeg',"BJones: time-freq polynomial degree", Btfdeg),
                    )
     return True
 
@@ -87,6 +89,7 @@ def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
     pp.setdefault('D_coupled_dell',TDL_D_coupled_dell)
     pp.setdefault('D_coupled_dang',TDL_D_coupled_dang)
     pp.setdefault('J_diagonal',TDL_J_diagonal)
+    pp.setdefault('B_tfdeg',TDL_B_tfdeg)
 
     # First make a sequence (list) of Joneset22 objects:
     jseq = []
@@ -112,6 +115,7 @@ def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
                                simulate=simulate))
         elif c=='B':
             jseq.append(BJones(ns, stations=stations,
+                               tfdeg=pp['B_tfdeg'],
                                override=override,
                                simulate=simulate))
         else:
@@ -224,12 +228,14 @@ class BJones (Joneset22.BJones):
     but in practice it usually absorbs other frequency effects as well"""
 
     def __init__(self, ns, quals=[], label='B',
+                 tfdeg=[0,5],
                  override=None,
                  stations=None, simulate=False):
         
         # Just use the generic BJones in Grunt/Joneset22.py
         Joneset22.BJones.__init__(self, ns, quals=quals, label=label,
                                   telescope='WSRT', polrep='linear',
+                                  tfdeg=tfdeg,
                                   override=override,
                                   stations=stations, simulate=simulate)
         return None
@@ -526,6 +532,12 @@ if __name__ == '__main__':
 
 
     if 1:
+        J = BJones(ns, quals=['xxx'])
+        jj.append(J)
+        J.display(full=True)
+
+
+    if 0:
         D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=True)
         # D = DJones(ns, coupled_dang=False, coupled_dell=False)
         jj.append(D)

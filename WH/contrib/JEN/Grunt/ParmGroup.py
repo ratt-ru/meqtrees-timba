@@ -73,8 +73,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         # The information may be overridden:
         self._override = dict()
         if isinstance(override, dict):
-            if override.has_key(label):                     # relevant for this ParmGroup
-                self._override = deepcopy(override[label])  # copy ony the relevant part
+            for tag in tags:
+                if override.has_key(tag):                     # relevant for this ParmGroup
+                    self._override = deepcopy(override[tag])  # copy ony the relevant part
         self.override_default(self._override)
         
         return None
@@ -339,10 +340,10 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._simul.setdefault('default_value', self._default['c00'])           
         self._simul.setdefault('unit', self._default['unit'])           
         self._simul.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
-        self._simul.setdefault('Tsec', 1000.0)         # Period of time variation (cos)
-        self._simul.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
+        self._simul.setdefault('Psec', 1000.0)         # Period of time variation (cos)
+        self._simul.setdefault('Psec_stddev', 0.1)     # stddev of Psec (relative!)
         self._simul.setdefault('PMHz', -1.0)           # Period (MHz) of freq variation (cos)
-        self._simul.setdefault('Pstddev', 0.1)         # stddev of PMHz (relative!)
+        self._simul.setdefault('PMHz_stddev', 0.1)     # stddev of PMHz (relative!)
         self._simul.setdefault('scale', None)          # used to calculate absolute stddev
         if self._simul['scale']==None:
             self._simul['scale'] = abs(self._simul['default_value'])  #   use the (non-zero!) default value
@@ -351,8 +352,9 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # The information may be overridden:
         self._override = dict()
         if isinstance(override, dict):
-            if override.has_key(label):                     # relevant for this ParmGroup
-                self._override = deepcopy(override[label])  # copy ony the relevant part
+            for tag in tags:
+                if override.has_key(tag):                     # relevant for this ParmGroup
+                    self._override = deepcopy(override[tag])  # copy ony the relevant part
         self.override_simul(self._override)
         
         return None
@@ -403,8 +405,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         pp = self._simul                                 # Convenience
             
         # Expression used:
-        #  default += ampl*cos(2pi*time/Tsec),
-        #  where both ampl and Tsec may vary from node to node.
+        #  default += ampl*cos(2pi*time/Psec),
+        #  where both ampl and Psec may vary from node to node.
 
         # The default value is the one that would be used for a regular
         # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
@@ -412,20 +414,21 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
         # Calculate the time variation:
         time_variation = None
-        if pp['Tsec']>0.0:
+        if pp['Psec']>0.0:
             ampl = 0.0
             if pp['stddev']:                                # variation of the default value
                 stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
                 ampl = random.gauss(ampl, stddev)
             ampl = self._ns.tvar_ampl(*quals) << Meq.Constant(ampl)
-            Tsec = pp['Tsec']                               # variation period (sec)
-            if pp['Tstddev']:
-                stddev = pp['Tstddev']*pp['Tsec']           # NB: Tstddev is relative
-                Tsec = random.gauss(pp['Tsec'], stddev) 
-            Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
+            Psec = pp['Psec']                               # variation period (sec)
+            if pp['Psec_stddev']:
+                stddev = pp['Psec_stddev']*pp['Psec']       # NB: Psec_stddev is relative
+                Psec = random.gauss(pp['Psec'], stddev) 
+            Psec = self._ns.Psec(*quals) << Meq.Constant(Psec)
             time = self._ns << Meq.Time()
+            # time = self._ns << (time - 4e9)                 # ..........?
             pi2 = 2*math.pi
-            costime = self._ns << Meq.Cos(pi2*time/Tsec)
+            costime = self._ns << Meq.Cos(pi2*time/Psec)
             time_variation = self._ns.time_variation(*quals) << Meq.Multiply(ampl,costime)
 
         # Calculate the freq variation:
@@ -437,8 +440,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 ampl = random.gauss(ampl, stddev)
             ampl = self._ns.fvar_ampl(*quals) << Meq.Constant(ampl)
             PMHz = pp['PMHz']                               # variation period (MHz)
-            if pp['Pstddev']:
-                stddev = pp['Pstddev']*pp['PMHz']           # NB: Pstddev is relative
+            if pp['PMHz_stddev']:
+                stddev = pp['PMHz_stddev']*pp['PMHz']       # NB: PMHz_stddev is relative
                 PMHz = random.gauss(pp['PMHz'], stddev) 
             PHz = PMHz*1e6                                  # convert to Hz
             PHz = self._ns.PHz(*quals) << Meq.Constant(PHz)
@@ -537,8 +540,8 @@ if __name__ == '__main__':
             pg1.display_subtree (dcoll, txt='dcoll')
 
     if 1:
-        simul = dict(Tsec=500, PMHz=100)
-        # simul = dict(Tsec=-1, PMHz=-1)           # negative means ignore
+        simul = dict(Psec=500, PMHz=100)
+        # simul = dict(Psec=-1, PMHz=-1)           # negative means ignore
         default = dict(value=-1.0)
         pg2 = SimulatedParmGroup(ns, 'pg2', simul=simul, default=default)
         pg2.test()

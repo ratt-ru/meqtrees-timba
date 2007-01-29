@@ -78,7 +78,7 @@ def _define_forest (ns):
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
     jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
-                                     # override=dict(GphaseX=dict(xxx=6)),
+                                     # override=dict(GJones=dict(Psec=500)),
                                      simulate=True)
     vis.corrupt(jones, visu=True)
 

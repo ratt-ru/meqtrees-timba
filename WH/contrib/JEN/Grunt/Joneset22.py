@@ -173,6 +173,11 @@ class GJones (Joneset22):
     """Class that represents a set of 2x2 GJones matrices,
     which model the (complex) gains due to electronics
     and (optionally) the tropospheric phase (a.k.a. TJones).
+    Gjones matrix elements:
+    - G_11 = Polar(GgainA,GphaseG)
+    - G_12 = 0
+    - G_21 = 0
+    - G_22 = Polar(GgainA,GphaseG)
     GJones is a uv-plane effect, i.e. it is valid for the entire FOV.
     GJones is the same for linear and circular polarizations."""
 
@@ -195,15 +200,15 @@ class GJones (Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  default=dict(c00=0.0, unit='rad', tfdeg=[0,1],
+                                  default=dict(c00=0.0, unit='rad', tfdeg=[0,0],
                                                subtile_size=1),
-                                  simul=dict(Tsec=200),
+                                  simul=dict(Psec=200),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=dict(c00=1.0, unit=None, tfdeg=[0,2]),
-                                  simul=dict(PMHz=100),
+                                  default=dict(c00=1.0, unit=None, tfdeg=[2,0]),
+                                  simul=dict(Psec=50),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[gname,jname])
@@ -227,11 +232,20 @@ class GJones (Joneset22):
 class BJones (Joneset22):
     """Class that represents a set of 2x2 BJones matrices,
     which model the (complex) bandpass due to electronics.
+    Bjones matrix elements:
+    - B_11 = (BrealA,BimagB)
+    - B_12 = 0
+    - B_21 = 0
+    - B_22 = (BrealA,BimagB)
+    NB: The main differences with Gjones are:
+    - the higher-order (~5) freq-polynomial
+    - solving for real/imag rather than gain/phase 
     BJones is a uv-plane effect, i.e. it is valid for the entire FOV.
     BJones is the same for linear and circular polarizations."""
 
     def __init__(self, ns, quals=[], label='B',
                  polrep=None, telescope=None, band=None,
+                 tfdeg=[0,5],
                  override=None,
                  stations=None, simulate=False):
         
@@ -239,35 +253,35 @@ class BJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
 
-        pols = self.pols()                        # e.g. ['X','Y']
+        pols = self.pols()                                # e.g. ['X','Y']
         quals = self.quals()
-        pname = self.label()+'phase'
-        gname = self.label()+'gain'
+        iname = self.label()+'imag'
+        rname = self.label()+'real'
         jname = self.label()+'Jones'
 
         # Define the various primary ParmGroups:
         for pol in pols:
-            matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  default=dict(c00=0.0, unit='rad', tfdeg=[0,1],
+            matrel = self._pols_matrel()[pol]             # i.e. 'm11' or 'm22'
+            self.define_parmgroup(iname+pol, descr=pol+'-IF bandpass imag.part',
+                                  default=dict(c00=0.0, unit=None, tfdeg=tfdeg,
                                                subtile_size=1),
-                                  simul=dict(Tsec=200),
+                                  simul=dict(PMHz=10),
                                   override=override,
                                   rider=dict(matrel=matrel),
-                                  tags=[pname,jname])
-            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=dict(c00=1.0, unit=None, tfdeg=[0,2]),
-                                  simul=dict(),
+                                  tags=[iname,jname])
+            self.define_parmgroup(rname+pol, descr=pol+'-IF bandpass real.part',
+                                  default=dict(c00=1.0, unit=None, tfdeg=tfdeg),
+                                  simul=dict(PMHz=10),
                                   override=override,
                                   rider=dict(matrel=matrel),
-                                  tags=[gname,jname])
+                                  tags=[rname,jname])
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s)
-                gain = self.create_parmgroup_entry(gname+pol, s)
-                mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
+                imag = self.create_parmgroup_entry(iname+pol, s)
+                real = self.create_parmgroup_entry(rname+pol, s)
+                mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self.matrixet(new=self._ns[jname](*quals))
@@ -313,7 +327,7 @@ class JJones (Joneset22):
                 self.define_parmgroup(ename+rim,
                                       descr=rim+' part of matrix element '+ename,
                                       default=dict(c00=default),
-                                      simul=dict(Tsec=200),
+                                      simul=dict(Psec=200),
                                       override=override,
                                       tags=[jname,'Jdiag'])
         if not diagonal:
@@ -323,7 +337,7 @@ class JJones (Joneset22):
                     self.define_parmgroup(ename+rim,
                                           descr=rim+' part of matrix element '+ename,
                                           default=dict(c00=0.0),
-                                          simul=dict(Tsec=200),
+                                          simul=dict(Psec=200),
                                           override=override,
                                           tags=[jname,'Joffdiag'])
 
@@ -344,6 +358,7 @@ class JJones (Joneset22):
 
 
 #--------------------------------------------------------------------------------------------
+
 class FJones (Joneset22):
     """Class that represents a set of 2x2 FJones matrices,
     which model the ionospheric Faraday rotation, 
@@ -464,7 +479,7 @@ if __name__ == '__main__':
 
     jj = []
 
-    if 0:
+    if 1:
         G = GJones(ns, quals=['3c84','xxx'], simulate=False)
         jj.append(G)
         G.visualize()
@@ -487,7 +502,7 @@ if __name__ == '__main__':
         jj.append(J)
         J.display(full=True)
 
-    if 0:
+    if 1:
         jseq = Joneseq22 (jj)
         jseq.display(full=True)
 
