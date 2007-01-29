@@ -2,6 +2,7 @@
 
 # History:
 # - 14jan2007: creation (from Grunt/Joneset22.py)
+# - 29jan2007: split into uv-plane and image-plane effects
 
 # Description:
 
@@ -36,12 +37,29 @@ def help ():
     return ss
 
 
+def parmgroups_uvp(full=False):
+    """Return the available groups of MeqParms from the (uv-plane) Jones matrices
+    in this Jones module"""
+    pg = ['*']
+    pg.extend(GJones_parmgroups(full=full)) 
+    pg.extend(DJones_parmgroups(full=full)) 
+    pg.extend(FJones_parmgroups(full=full)) 
+    pg.extend(JJones_parmgroups(full=full)) 
+    pg.extend(BJones_parmgroups(full=full))
+    pg.append(['GJones','BJones'])
+    pg.append(['GJones','DJones'])
+    pg.append(['GJones','DJones','FJones'])
+    pg.append(['DJones','FJones'])
+    return pg
 
-def include_TDL_options(prompt='instr.model'):
-    """Definition of variables that the user may set in the browser TDL options menu.
-    These values are picked up by the function .Joneseq22() in this module."""
-    joneseq = ['G','GD','D','GDF','J','E','B']
-    menuname = 'WSRT_Jones ('+str(prompt)+')'
+
+
+def include_TDL_options_uvp(prompt='instr.model'):
+    """Definition of variables that control the generation of Jones matrices
+    for uv-plane effects. The user may set these in the browser TDL options menu.
+    These values are picked up by the function .Joneseq22_uvp() in this module."""
+    joneseq = ['G','GD','D','GDF','J','B']
+    menuname = 'WSRT_Jones_uvp ('+str(prompt)+')'
     TDLCompileMenu(menuname,
                    TDLOption('TDL_joneseq', 'Sequence of Jones matrices', joneseq, more=str),
                    TDLOption('TDL_D_coupled_dang',"DJones: coupled (dangX=dangY)", [True, False]),
@@ -51,10 +69,12 @@ def include_TDL_options(prompt='instr.model'):
     return True
 
 
+#------------------------------------------------------------------------------------------
 
-def Joneseq22(ns, stations, simulate=False, override=None, **pp):
+def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
     """Return a Jonest22 object that contains a set of Jones matrices for
-    the given stations. The Jones matrices are the matrix product of a
+    the given stations. This function deals with uv-plane effects only.
+    The Jones matrices are the matrix product of a
     sequence of WSRT Jones matrices that are defined in this module.
     - The 'TDL_' arguments in this function are user-defined in the meqbrowser,
     via the TDLOptions defined in the function .include_TDL_options() in this module.
@@ -90,10 +110,6 @@ def Joneseq22(ns, stations, simulate=False, override=None, **pp):
                                diagonal=pp['J_diagonal'],
                                override=override,
                                simulate=simulate))
-        elif c=='E':
-            jseq.append(EJones(ns, stations=stations,
-                               override=override,
-                               simulate=simulate))
         elif c=='B':
             jseq.append(BJones(ns, stations=stations,
                                override=override,
@@ -108,23 +124,6 @@ def Joneseq22(ns, stations, simulate=False, override=None, **pp):
     return jones
 
 
-
-
-#=================================================================================================
-
-def parmgroups(full=False):
-    """Return the available groups of MeqParms from this Jones module"""
-    pg = ['*']
-    pg.extend(GJones_parmgroups(full=full)) 
-    pg.extend(DJones_parmgroups(full=full)) 
-    pg.extend(FJones_parmgroups(full=full)) 
-    pg.extend(JJones_parmgroups(full=full)) 
-    # pg.extend(EJones_parmgroups(full=full)) 
-    # pg.extend(BJones_parmgroups(full=full))
-    pg.append(['GJones','DJones'])
-    pg.append(['GJones','DJones','FJones'])
-    pg.append(['DJones','FJones'])
-    return pg
 
 
 #=================================================================================================
@@ -219,6 +218,23 @@ def BJones_parmgroups(full=False):
     return pg
 
 
+class BJones (Joneset22.BJones):
+    """Class that represents a set of 2x2 WSRT BJones matrices.
+    In principle, BJones models on the electronic IF bandpass,
+    but in practice it usually absorbs other frequency effects as well"""
+
+    def __init__(self, ns, quals=[], label='B',
+                 override=None,
+                 stations=None, simulate=False):
+        
+        # Just use the generic BJones in Grunt/Joneset22.py
+        Joneset22.BJones.__init__(self, ns, quals=quals, label=label,
+                                  telescope='WSRT', polrep='linear',
+                                  override=override,
+                                  stations=stations, simulate=simulate)
+        return None
+
+
 #--------------------------------------------------------------------------------------------
 
 
@@ -259,7 +275,7 @@ class DJones (Joneset22.Joneset22):
         # Define the various primary ParmGroups:
         if coupled_dang:
             self.define_parmgroup(dname, descr='dipole angle error',
-                                  default=dict(value=0.0),
+                                  default=dict(c00=0.0),
                                   simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
@@ -267,14 +283,14 @@ class DJones (Joneset22.Joneset22):
         else:
             for pol in pols:
                 self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
-                                      default=dict(value=0.0),
+                                      default=dict(c00=0.0),
                                       simul=dict(),
                                       override=override,
                                       rider=dict(matrel=matrel),
                                       tags=[dname,jname])
         if coupled_dell:
             self.define_parmgroup(ename, descr='dipole ellipticity',
-                                  default=dict(value=0.0),
+                                  default=dict(c00=0.0),
                                   simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
@@ -282,7 +298,7 @@ class DJones (Joneset22.Joneset22):
         else:
             for pol in pols:
                 self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
-                                      default=dict(value=0.0),
+                                      default=dict(c00=0.0),
                                       simul=dict(),
                                       override=override,
                                       rider=dict(matrel=matrel),
@@ -404,13 +420,13 @@ class EJones_21cm (Joneset22.Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  default=dict(value=0.0),
+                                  default=dict(c00=0.0),
                                   simul=dict(Tsec=200),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=dict(value=1.0),
+                                  default=dict(c00=1.0),
                                   simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),

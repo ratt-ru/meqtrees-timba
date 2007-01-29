@@ -3,7 +3,7 @@
 # History:
 # - 25dec2006: creation
 # - 03jan2007: re-implemented as a specialization of class NodeGroup
-# - 03jan2007: created another specialization class SimulatedParmGroup 
+# - 03jan2007: created another specialization class SimulatedParmGroup
 
 # Description:
 
@@ -43,43 +43,60 @@ class ParmGroup (NodeGroup.NodeGroup):
                  parmtable=None,
                  default=None, override=None, rider=None):
 
-        self._parmtable = parmtable       # name of (AIPS++) table of MeqParm values
-
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
                                      color=color, style=style, size=size, pen=pen,
                                      nodelist=nodelist,
                                      rider=rider)
 
-        # Information needed to create MeqParm nodes (see create_entry())
-        self._default = deepcopy(default)
-        if not isinstance(self._default, dict): self._default = dict()
-        self._default.setdefault('value',0.0)
-        self._default.setdefault('c00_default', 1.0)        # ...... <-
-        self._default.setdefault('unit', None)      
-        self._default.setdefault('funklet_shape', None)
-        self._default.setdefault('tfdeg', None)
-        self._default.setdefault('subtile_size', None)
-        self._default.setdefault('use_previous', True)
-        self._default.setdefault('auto_save', False)
-        self._default.setdefault('save_all', False)
-        self._default.setdefault('reset_funklet', False)
-
-
-        # The information may be overridden:
-        self._override = dict()
-        if isinstance(override, dict):
-            if override.has_key(label):                     # relevant for this ParmGroup
-                self._override = deepcopy(override[label])  # copy ony the relevant part
-        
+        # Copy (and check) some input arguments:
+        self._parmtable = parmtable       # name of (AIPS++) table of MeqParm values
         self._node_groups = deepcopy(node_groups)
         if not isinstance(self._node_groups,(list,tuple)):
             self._node_groups = [self._node_groups]
         if not 'Parm' in self._node_groups:
             self._node_groups.append('Parm')
 
+        # Information needed to create MeqParm nodes (see create_entry())
+        self._default = deepcopy(default)
+        if not isinstance(self._default, dict): self._default = dict()
+        self._default.setdefault('c00', 1.0)  
+        self._default.setdefault('unit', None)      
+        self._default.setdefault('tfdeg', None)
+        self._default.setdefault('funklet_shape', None)
+        self._default.setdefault('subtile_size', None)
+        self._default.setdefault('use_previous', True)
+        self._default.setdefault('auto_save', False)
+        self._default.setdefault('save_all', False)
+        self._default.setdefault('reset_funklet', False)
+
+        # The information may be overridden:
+        self._override = dict()
+        if isinstance(override, dict):
+            if override.has_key(label):                     # relevant for this ParmGroup
+                self._override = deepcopy(override[label])  # copy ony the relevant part
+        self.override_default(self._override)
+        
         return None
                 
+    #-------------------------------------------------------------------
+
+    def override_default (self, rr=None, trace=True):
+        """Helper function to override the values of named fields in self._default
+        with the values of fields with the same name in rr"""
+        if trace: print '** .override_default():'
+        dd = self._default
+        for key in rr.keys():
+            if dd.has_key(key):
+                was = dd[key]
+                dd[key] = rr[key]
+                print '-',key,':',was,'->',dd[key]
+            else:
+                raise ValueError,'key ('+key+') not recognised in: '+str(dd.keys())
+        self._default = dd
+        return True
+        
+
     #-------------------------------------------------------------------
 
     def display_specific(self, full=False):
@@ -129,18 +146,17 @@ class ParmGroup (NodeGroup.NodeGroup):
             shape = [0,0]
             if not self._default['tfdeg']==None:
                 shape = deepcopy(self._default['tfdeg']) # just in case.....
-            # print key,'** shape =',shape
             shape[0] += 1                                # make 1-relative              
             shape[1] += 1                                # make 1-relative
             
-        node = self._ns.parm(*quals) << Meq.Parm(self._default['value'],        ## funklet=default
+        node = self._ns.parm(*quals) << Meq.Parm(self._default['c00'],        ## funklet=..
                                                  shape=shape,
-                                                 # tiling=tiling,
-                                                 # save_all=self._default['save_all'],
-                                                 # auto_save=self._default['auto_save'],
-                                                 # reset_funklet=self._default['reset_funklet'],
-                                                 # use_previous=self._default['use_previous'],
-                                                 # table_name=self.parmtable())
+                                                 tiling=tiling,
+                                                 save_all=self._default['save_all'],
+                                                 auto_save=self._default['auto_save'],
+                                                 reset_funklet=self._default['reset_funklet'],
+                                                 use_previous=self._default['use_previous'],
+                                                 table_name=self.parmtable(),
                                                  node_groups=self._node_groups,
                                                  tags=self._tags)
 
@@ -148,6 +164,8 @@ class ParmGroup (NodeGroup.NodeGroup):
         self.append_entry(node)
         return node
 
+
+    #==========================================================================================
 
     def from_TDL_NodeSet():
 
@@ -310,24 +328,24 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._quals.append('simul')
 
         # The default value(s) of the MeqParm that is being simulated:
-        self._default = dict()
-        if not isinstance(default, dict):
-            self._default = deepcopy(default)
-        self._default.setdefault('value', 0.0)
+        self._default = deepcopy(default)
+        if not isinstance(self._default, dict): self._default = dict()
+        self._default.setdefault('c00', 0.0)
         self._default.setdefault('unit', None)
         
         # Information to create a simulation subtree (see create_entry())
-        self._simul = dict()                           # Simulation control info
-        if isinstance (simul, dict):
-            self._simul = deepcopy(simul)
-        self._simul.setdefault('default_value', self._default['value'])           
+        self._simul = deepcopy(simul)
+        if not isinstance(self._simul, dict): self._simul = dict()
+        self._simul.setdefault('default_value', self._default['c00'])           
         self._simul.setdefault('unit', self._default['unit'])           
         self._simul.setdefault('stddev', 0.1)          # stddev of default value (relative!) 
-        self._simul.setdefault('Tsec', 1000.0)         # Time variation (cos) period
+        self._simul.setdefault('Tsec', 1000.0)         # Period of time variation (cos)
         self._simul.setdefault('Tstddev', 0.1)         # stddev of Tsec (relative!)
+        self._simul.setdefault('PMHz', -1.0)           # Period (MHz) of freq variation (cos)
+        self._simul.setdefault('Pstddev', 0.1)         # stddev of PMHz (relative!)
         self._simul.setdefault('scale', None)          # used to calculate absolute stddev
         if self._simul['scale']==None:
-            self._simul['scale'] = abs(self._default['value'])  #   use the (non-zero!) default value
+            self._simul['scale'] = abs(self._simul['default_value'])  #   use the (non-zero!) default value
             if self._simul['scale']==0.0: self._simul['scale'] = 1.0
 
         # The information may be overridden:
@@ -335,9 +353,27 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         if isinstance(override, dict):
             if override.has_key(label):                     # relevant for this ParmGroup
                 self._override = deepcopy(override[label])  # copy ony the relevant part
+        self.override_simul(self._override)
         
         return None
                 
+    #-------------------------------------------------------------------
+
+    def override_simul (self, rr=None, trace=True):
+        """Helper function to override the values of named fields in self._simul
+        with the values of fields with the same name in rr"""
+        if trace: print '** .override_simul():'
+        dd = self._simul
+        for key in rr.keys():
+            if dd.has_key(key):
+                was = dd[key]
+                dd[key] = rr[key]
+                print '-',key,':',was,'->',dd[key]
+            else:
+                raise ValueError,'key ('+key+') not recognised in: '+str(dd.keys())
+        self._simul = dd
+        return True
+        
     #-------------------------------------------------------------------
 
     def display_specific(self, full=False):
@@ -370,25 +406,52 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         #  default += ampl*cos(2pi*time/Tsec),
         #  where both ampl and Tsec may vary from node to node.
 
-        ampl = 0.0
-        if pp['stddev']:                                # default variation
-            stddev = pp['stddev']*pp['scale']           # NB: pp['stddev is relative
-            ampl = random.gauss(ampl, stddev)
-        ampl = self._ns.ampl(*quals) << Meq.Constant(ampl)
-        
-        Tsec = pp['Tsec']                               # variation period (sec)
-        if pp['Tstddev']:
-            stddev = pp['Tstddev']*pp['Tsec']           # NB: pp['Tstddev is relative
-            Tsec = random.gauss(pp['Tsec'], stddev) 
-        Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
-        time = self._ns << Meq.Time()
-        pi2 = 2*math.pi
-        costime = self._ns << Meq.Cos(pi2*time/Tsec)
-        variation = self._ns.variation(*quals) << Meq.Multiply(ampl,costime)
-
-        # Finally, add the variation to the default value:
+        # The default value is the one that would be used for a regular
+        # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
         default = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
-        node = self._ns.simulparm(*quals) << Meq.Add(default, variation, tags=self._tags)
+
+        # Calculate the time variation:
+        time_variation = None
+        if pp['Tsec']>0.0:
+            ampl = 0.0
+            if pp['stddev']:                                # variation of the default value
+                stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
+                ampl = random.gauss(ampl, stddev)
+            ampl = self._ns.tvar_ampl(*quals) << Meq.Constant(ampl)
+            Tsec = pp['Tsec']                               # variation period (sec)
+            if pp['Tstddev']:
+                stddev = pp['Tstddev']*pp['Tsec']           # NB: Tstddev is relative
+                Tsec = random.gauss(pp['Tsec'], stddev) 
+            Tsec = self._ns.Tsec(*quals) << Meq.Constant(Tsec)
+            time = self._ns << Meq.Time()
+            pi2 = 2*math.pi
+            costime = self._ns << Meq.Cos(pi2*time/Tsec)
+            time_variation = self._ns.time_variation(*quals) << Meq.Multiply(ampl,costime)
+
+        # Calculate the freq variation:
+        freq_variation = None
+        if pp['PMHz']>0.0:
+            ampl = 0.0
+            if pp['stddev']:                                # variation of the default value
+                stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
+                ampl = random.gauss(ampl, stddev)
+            ampl = self._ns.fvar_ampl(*quals) << Meq.Constant(ampl)
+            PMHz = pp['PMHz']                               # variation period (MHz)
+            if pp['Pstddev']:
+                stddev = pp['Pstddev']*pp['PMHz']           # NB: Pstddev is relative
+                PMHz = random.gauss(pp['PMHz'], stddev) 
+            PHz = PMHz*1e6                                  # convert to Hz
+            PHz = self._ns.PHz(*quals) << Meq.Constant(PHz)
+            freq = self._ns << Meq.Freq()
+            pi2 = 2*math.pi
+            cosfreq = self._ns << Meq.Cos(pi2*freq/PHz)
+            freq_variation = self._ns.freq_variation(*quals) << Meq.Multiply(ampl,cosfreq)
+
+        # Add the time/freq variation to the default value:
+        cc = [default]
+        if freq_variation: cc.append(freq_variation)
+        if time_variation: cc.append(time_variation)
+        node = self._ns.simulparm(*quals) << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)
@@ -400,8 +463,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     def test(self):
         """Helper function to put in some standard entries for testing"""
-        self.create_entry()
         self.create_entry(5)
+        self.create_entry()
         self.create_entry(6)
         return True
 
@@ -464,7 +527,7 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    if 1:
+    if 0:
         pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
         pg1.test()
         pg1.display()
@@ -474,7 +537,8 @@ if __name__ == '__main__':
             pg1.display_subtree (dcoll, txt='dcoll')
 
     if 1:
-        simul = dict(Tsec=500)
+        simul = dict(Tsec=500, PMHz=100)
+        # simul = dict(Tsec=-1, PMHz=-1)           # negative means ignore
         default = dict(value=-1.0)
         pg2 = SimulatedParmGroup(ns, 'pg2', simul=simul, default=default)
         pg2.test()

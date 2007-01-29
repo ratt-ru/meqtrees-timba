@@ -4,8 +4,8 @@
 
 # Assume a WSRT observation of a field with a dominant point source in
 # the centre of the field (i.e. a calibrator observation).
-# Solve for a (subset of) the parameters in a user-defined sequence of
-# WSRT Jones matrices (from module Grunting/WSRT_Jones.py).
+# Solve for a (subset of) the M.E. parameters in a user-defined sequence of
+# uv-plane WSRT Jones matrices (from module Grunting/WSRT_Jones.py).
 # The source model is a user-defined point-source.
 
 # History:
@@ -42,9 +42,9 @@ JEN_Meow_Utils.include_imaging_options();
 # Compile-time menu:
 PointSource22.include_TDL_options('cps model')  
 
-WSRT_Jones.include_TDL_options('instrum. model')
-pg = WSRT_Jones.parmgroups()
-TDLCompileOption('TDL_parmgog','parmgroups to be solved for',pg, more=str);
+WSRT_Jones.include_TDL_options_uvp('instrum. model')
+pg = WSRT_Jones.parmgroups_uvp()
+TDLCompileOption('TDL_parmgog','parmgroups to be solved for', pg, more=str);
 
 solving22.include_TDL_options()
 
@@ -67,8 +67,7 @@ def _define_forest (ns):
 
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
-    source_name = 'xxx'
-    direction = Meow.LMDirection(ns, source_name, l=0.0, m=0.0)
+    direction = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
 
     # Make a user-defined point source model, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
@@ -79,10 +78,10 @@ def _define_forest (ns):
     pred = ps.Visset22(array, observation, name='pred', visu=True)
 
     # Corrupt the predicted data with a sequence of Jones matrices,
-    # which contain the solvable parameters.
+    # which contain the solvable parameters. uv-plane effects only.
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
-    jones = WSRT_Jones.Joneseq22(ns, stations=array.stations())
+    jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations())
     pred.corrupt(jones, visu=True)
 
     # The measured uv-data are read from the Measurement Set via spigots:
@@ -92,7 +91,6 @@ def _define_forest (ns):
     # Create a solver for a user-defined subset of parameters (parmgroup):
     # NB: The solver gets its requests from a ReqSeq that is automatically
     #     inserted into the main-stream by data.make_sinks() below.
-    print '\n*** TDL_parmgog: ',TDL_parmgog,'\n'
     solving22.make_solver(lhs=data, rhs=pred, parmgroup=TDL_parmgog)
     # data.make_solver(pred, parmgroup=TDL_parmgog, num_iter=10)
 

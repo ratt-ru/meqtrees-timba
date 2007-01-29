@@ -2,7 +2,8 @@
 
 # History:
 # - 25dec2006: creation
-# - 14jan2007: keep only generic G/J/FJones 
+# - 14jan2007: keep only generic G/J/FJones
+# - 29jan2007: added BJones
 
 # Description:
 
@@ -15,7 +16,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Matrixet22
-# from Timba.Contrib.JEN.Grunt import Qualifiers
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -190,17 +190,73 @@ class GJones (Joneset22):
         pname = self.label()+'phase'
         gname = self.label()+'gain'
         jname = self.label()+'Jones'
+
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  default=dict(value=0.0),
+                                  default=dict(c00=0.0, unit='rad', tfdeg=[0,1],
+                                               subtile_size=1),
                                   simul=dict(Tsec=200),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=dict(value=1.0),
+                                  default=dict(c00=1.0, unit=None, tfdeg=[0,2]),
+                                  simul=dict(PMHz=100),
+                                  override=override,
+                                  rider=dict(matrel=matrel),
+                                  tags=[gname,jname])
+        # Make the Jones matrices per station:
+        for s in self.stations():
+            mm = dict()
+            for pol in pols:
+                phase = self.create_parmgroup_entry(pname+pol, s)
+                gain = self.create_parmgroup_entry(gname+pol, s)
+                mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
+            self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
+                                                       0.0,mm[pols[1]])
+        self.matrixet(new=self._ns[jname](*quals))
+        # Make some secondary (composite) ParmGroups:
+        self.define_gogs(jname)
+        return None
+
+
+#--------------------------------------------------------------------------------------------
+
+class BJones (Joneset22):
+    """Class that represents a set of 2x2 BJones matrices,
+    which model the (complex) bandpass due to electronics.
+    BJones is a uv-plane effect, i.e. it is valid for the entire FOV.
+    BJones is the same for linear and circular polarizations."""
+
+    def __init__(self, ns, quals=[], label='B',
+                 polrep=None, telescope=None, band=None,
+                 override=None,
+                 stations=None, simulate=False):
+        
+        Joneset22.__init__(self, ns, quals=quals, label=label,
+                           polrep=polrep, telescope=telescope, band=band,
+                           stations=stations, simulate=simulate)
+
+        pols = self.pols()                        # e.g. ['X','Y']
+        quals = self.quals()
+        pname = self.label()+'phase'
+        gname = self.label()+'gain'
+        jname = self.label()+'Jones'
+
+        # Define the various primary ParmGroups:
+        for pol in pols:
+            matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
+            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  default=dict(c00=0.0, unit='rad', tfdeg=[0,1],
+                                               subtile_size=1),
+                                  simul=dict(Tsec=200),
+                                  override=override,
+                                  rider=dict(matrel=matrel),
+                                  tags=[pname,jname])
+            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  default=dict(c00=1.0, unit=None, tfdeg=[0,2]),
                                   simul=dict(),
                                   override=override,
                                   rider=dict(matrel=matrel),
@@ -256,7 +312,7 @@ class JJones (Joneset22):
                 if rim=='real': default = 1.0
                 self.define_parmgroup(ename+rim,
                                       descr=rim+' part of matrix element '+ename,
-                                      default=dict(value=default),
+                                      default=dict(c00=default),
                                       simul=dict(Tsec=200),
                                       override=override,
                                       tags=[jname,'Jdiag'])
@@ -266,7 +322,7 @@ class JJones (Joneset22):
                 for rim in ['real','imag']:
                     self.define_parmgroup(ename+rim,
                                           descr=rim+' part of matrix element '+ename,
-                                          default=dict(value=0.0),
+                                          default=dict(c00=0.0),
                                           simul=dict(Tsec=200),
                                           override=override,
                                           tags=[jname,'Joffdiag'])
@@ -311,7 +367,7 @@ class FJones (Joneset22):
 
         # Define the primary ParmGroup:
         self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
-                              default=dict(value=0.0),
+                              default=dict(c00=0.0),
                               simul=dict(),
                               override=override,
                               tags=[rname,jname])
@@ -367,6 +423,10 @@ def _define_forest(ns):
         # j2.display(full=True)
 
 
+    jones = BJones(ns, quals=[], simulate=simulate)
+    cc.append(jones.visualize())
+    # jones.display(full=True)
+
     jones = JJones(ns, quals=[], simulate=simulate)
     cc.append(jones.visualize())
     # jones.display(full=True)
@@ -404,12 +464,17 @@ if __name__ == '__main__':
 
     jj = []
 
-    if 1:
+    if 0:
         G = GJones(ns, quals=['3c84','xxx'], simulate=False)
         jj.append(G)
         G.visualize()
         G.display(full=True)
         # G.display_NodeGroups()
+
+    if 1:
+        J = BJones(ns, quals=['xxx'])
+        jj.append(J)
+        J.display(full=True)
 
     if 0:
         # F = FJones(ns, polrep='linear')
