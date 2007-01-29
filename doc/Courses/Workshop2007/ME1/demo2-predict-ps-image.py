@@ -39,8 +39,6 @@ def _define_forest (ns):
   for p in ANTENNAS:
     ns.K(p) << Meq.VisPhaseShift(lmn=ns.lmn_minus1,uvw=ns.uvw(p));
     ns.Kt(p) << Meq.ConjTranspose(ns.K(p));
-    
-    
   
   # define source brightness, B
   ns.B << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
