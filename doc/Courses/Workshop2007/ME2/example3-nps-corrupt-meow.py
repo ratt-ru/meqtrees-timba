@@ -83,9 +83,9 @@ def _define_forest (ns):
     pg.add(ns.inspect_predict(i),viewer="Collections Plotter");
     
   # make a few more bookmarks
-  pg = Meow.Bookmarks.Page("K Jones",3,3);
-  for p in array.stations()[1:4]:      # use stations 1 through 4
-    for src in sources:
+  pg = Meow.Bookmarks.Page("K Jones",2,2);
+  for p in array.stations()[1:4]:      # use stations 1 through 3
+    for src in sources[:4]:            # use sources 0 through 3
       pg.add(src.direction.KJones()(p));
       
 

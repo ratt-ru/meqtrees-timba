@@ -101,12 +101,12 @@ def _define_forest (ns):
   # 10 is center of array, 9, 18 and 27 are at the end of the arms
   stas = [10,9,18,27 ];
   for p in stas:
-    pg = Meow.Bookmarks.Page("TECs, station "+str(p),3,3);
-    for src in sources[:9]:
+    pg = Meow.Bookmarks.Page("TECs, station "+str(p),2,2);
+    for src in sources[:4]:
       pg.add(ns.tec(src.name,p));
   for p in stas:
-    pg = Meow.Bookmarks.Page("Z Jones, station "+str(p),3,3);
-    for src in sources[:9]:
+    pg = Meow.Bookmarks.Page("Z Jones, station "+str(p),2,2);
+    for src in sources[:4]:
       pg.add(ns.Z(src.name,p));
   
 

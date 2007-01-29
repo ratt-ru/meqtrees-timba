@@ -77,9 +77,9 @@ def _define_forest (ns):
     for src in sources[0:4]:
       pg.add(ns.inspect_E(src.name),viewer="Collections Plotter");
 
-    pg = Meow.Bookmarks.Page("E Jones",3,3);
+    pg = Meow.Bookmarks.Page("E Jones",2,2);
     for p in array.stations()[1:4]:      # use stations 1 through 4
-      for src in sources[:9]:            # use first 9 sources
+      for src in sources[:4]:            # use first 4 sources
         pg.add(Ej(src.direction.name,p));
   
 

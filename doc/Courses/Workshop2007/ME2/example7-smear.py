@@ -66,7 +66,7 @@ def _define_forest (ns):
   Meow.StdTrees.make_sinks(ns,ns.resampled,spigots=False,post=inspectors);
   
   # make a few more bookmarks
-  pg = Meow.Bookmarks.Page("K Jones",3,3);
+  pg = Meow.Bookmarks.Page("K Jones",2,2);
   for p in array.stations()[1:4]:      # use stations 1 through 4
     for src in sources:
       pg.add(src.direction.KJones()(p));
