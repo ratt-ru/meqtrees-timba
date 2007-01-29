@@ -18,7 +18,7 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id: ObjectRADec.cc 3343 2006-04-03 16:02:29Z smirnov $
+//# $Id$
 
 #include <MeqNodes/ObjectRADec.h>
 #include <MEQ/Request.h>
@@ -89,7 +89,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
   Vells::Shape shape(cells.shape());
   //collapse all but time axis
   int ntime=shape[Axis::TIME];
-  for (int ci=0;ci<shape.size();ci++) {
+  for (unsigned int ci=0;ci<shape.size();ci++) {
    shape[ci]=1;
   }
   shape[Axis::TIME]=ntime;
