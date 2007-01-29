@@ -22,9 +22,6 @@ TDLCompileOption('source_model',"Source model",[
 
 TDLCompileOption('apply_clar_beam',"Apply CLAR beam",False);
 
-# define antenna list
-ANTENNAS = range(1,28);
-
 def _define_forest (ns):
   # create an Array object
   array = Meow.IfrArray.VLA(ns);

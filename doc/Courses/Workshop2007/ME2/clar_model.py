@@ -296,7 +296,7 @@ def EJones (ns,array,observation,sources,name="E"):
       Ej = Ej0(name,st);
       if not Ej.initialized():
         # create AzEl node for source as seen from this station
-        azel = ns.azel(name,st) << Meq.AzEl(radec=src.radec(observation.radec0()),xyz=xyz);
+        azel = ns.azel(name,st) << Meq.AzEl(radec=src.radec(),xyz=xyz);
 
         # do computation of LMN of source wrt field centre in AzEl frame
         lmn_azel = ns.lmn_azel(name,st) << Meq.LMN(radec_0=azel0,radec=azel);

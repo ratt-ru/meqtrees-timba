@@ -13,6 +13,7 @@ TDLCompileOption("noise_stddev","Add noise (Jy)",[0,1e-6,1e-3],more=float);
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32]);
+# note how we set default image size based on grid size/step
 TDLRuntimeMenu("Imaging options",
     *Meow.Utils.imaging_options(npix=512,arcmin=grid_size*grid_step,channels=[[32,1,1]]));
 
@@ -49,7 +50,7 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
     
-  # make list of source lists for three crosses
+  # create source list
   sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,(grid_size-1)/2);
     
   # make Zjones for all positions in source list (and all stations)
