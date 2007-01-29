@@ -7,9 +7,9 @@ import Meow
 import iono_model
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10,30]);
-Meow.Utils.include_imaging_options();
-
+Meow.Utils.include_ms_options(has_input=True,tile_sizes=[8,16,32]);
+TDLRuntimeMenu("Imaging options",
+    *Meow.Utils.imaging_options(npix=512,arcmin=15,channels=[[32,1,1]]));
 
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
@@ -40,7 +40,7 @@ def _define_forest (ns):
   sources = [ point_source(ns,"0",0,0) ];
     
   # make Zjones for source center
-  Zj = iono_model.compute_zeta_jones(ns,sources,array,observation);
+  Zj = iono_model.compute_zeta_jones(ns,sources);
   # this now just needs an antenna qualifier
   Zj = Zj("0");
   
@@ -62,7 +62,7 @@ def _define_forest (ns):
   
 
 
-def _tdl_job_1_simulate_MS (mqs,parent):
+def _tdl_job_1_correct_MS (mqs,parent):
   req = Meow.Utils.create_io_request();
   # execute    
   mqs.execute('vdm',req,wait=False);
