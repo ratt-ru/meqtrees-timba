@@ -7,14 +7,14 @@ import Meow
 import Meow.StdTrees
 import iono_model
 
-# some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32]);
-TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=256,arcmin=15,channels=[[32,1,1]]));
-
 TDLCompileOption("grid_size","Grid size",[1,3,5,7]);
 TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
 TDLCompileOption("noise_stddev","Add noise (Jy)",[0,1e-6,1e-3],more=float);
+
+# some GUI options
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32]);
+TDLRuntimeMenu("Imaging options",
+    *Meow.Utils.imaging_options(npix=512,arcmin=grid_size*grid_step,channels=[[32,1,1]]));
 
 DEG = math.pi/180.;
 ARCMIN = DEG/60;

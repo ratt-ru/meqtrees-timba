@@ -2,15 +2,15 @@
 # SKA located at the VLA site consisting of 250m dishes.
 
 RA0          := '0h7m0.0';
-DEC0         := '33d00m00s';
+DEC0         := '70d00m00s';
 #DEC0         := '50d00m00s';
 #DEC0         := '70d00m00s';
-Freq         := '30MHz';
-DFreq        := '5MHz';
+Freq         := '100MHz';
+DFreq        := '10kHz';
 Diameter     := 250.0;
 holderdir    := './';
 Integration  := '300s';
-msname       := "demo-30-190.MS"
+msname       := "demo-lofar.MS"
 
 mkcomplist:=function(N,ref flux,ref ra,ref dec)
 {

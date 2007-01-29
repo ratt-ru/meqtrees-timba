@@ -6,34 +6,42 @@ from Meow import Context
 H = 300000;           # height of ionospheric layer, in meters
 Lightspeed = 3e+8;
 
-TDLCompileOption("iono_rotate","Rotatate ionosphere with sky",True);
+TDLCompileOption("iono_rotate","Rotate ionosphere with sky",True);
 
 def compute_piercings (ns,source_list):
   """Creates nodes to compute the "piercing points" of each
   source in source_list, for each antenna in array.""";
   stations = Context.array.stations();
   xyz = Context.array.xyz();
-  xyz0 = Context.array.xyz0();
   radec0 = Context.observation.phase_centre.radec();
+  
+  # project our stations into an ionospheric coordinate system xyz1
+  # for now, we just project everything to z=0, and take station 1 as origin
+  for p in stations:
+    # xyz_proj gives positions projected to equatorial plane (z=0)
+    xyzp = ns.xyz_proj(p) << Meq.Paster(xyz(p),0,index=2);
+    # xyz1 gives positions relative to station1
+    xyz1 = ns.xyz1(p) << xyzp - ns.xyz_proj(stations[0]);
+    # and extract the xy1 component
+    ns.xy1(p) << Meq.Selector(xyz1,index=[0,1],multi=True);
+    
   # if ionosphere is "stuck" to the sky, we need to rotate the antenna
-  # coordinates. Otherwise we need to rotate the piercing coordinates.
-  # pa0 refers to the P.A. at the start of the observation (time0) 
-  ns.pa_time0 = Meq.Compounder(
-      Meq.Composer(ns.time0<<0,0),
-      ns.pa_time00 << Meq.ParAngle(xyz=xyz0,radec=radec0),
-      common_axes=[hiid("time"),hiid("freq")]);
+  # coordinates as we go along. Otherwise we need to rotate the piercing 
+  # coordinates. The angle of rotation is given by the P.A. _at the
+  # projected antenna positions_.
   if iono_rotate:
-    ns.pa1 << ns.pa_time0 - (ns.pa << Meq.ParAngle(xyz=xyz0,radec=radec0));
-    ns.P0 << Jones.define_rotation_matrix(ns.pa1);
+    ns.pa0 << - Meq.ParAngle(xyz=ns.xyz_proj(stations[0]),radec=radec0);
+    ns.P0 << Jones.define_rotation_matrix(ns.pa0);
+
     
   for p in stations:
-    xy = ns.xy(p) << Meq.Selector(xyz(p) - xyz(stations[0]),index=[0,1],multi=True);
-    # if ionosphere is stuck to the sky, create P (p/a rotation matrix)
+    # if ionosphere is stuck to the sky, rotate antenna coordinates by P0
     if iono_rotate:
-      ns.xy_r(p) << Meq.MatrixMultiply(ns.P0,xy);
+      ns.xy_r(p) << Meq.MatrixMultiply(ns.P0,ns.xy1(p));
     else:
-      ns.pa1(p) << ns.pa_time0-(ns.pa(p)<<Meq.ParAngle(xyz=xyz(p),radec=radec0));
-      ns.P(p) << Jones.define_rotation_matrix(ns.pa1(p));
+    # else create P (p/a rotation matrix)
+      ns.pa(p) << - Meq.ParAngle(xyz=ns.xyz_proj(p),radec=radec0);
+      ns.P(p) << Jones.define_rotation_matrix(ns.pa(p));
 
   for src in source_list:
     lm = src.direction.lm();
@@ -47,7 +55,7 @@ def compute_piercings (ns,source_list):
       if iono_rotate:
         ns.pxy(src.name,p) << ns.xy_r(p) + ns.dxy(src.name);
       else:
-        ns.pxy(src.name,p) << ns.xy(p) + Meq.MatrixMultiply(ns.P(p),ns.dxy(src.name));
+        ns.pxy(src.name,p) << ns.xy1(p) + Meq.MatrixMultiply(ns.P(p),ns.dxy(src.name));
   return ns.pxy;
   
 def compute_za_cosines (ns,source_list):
