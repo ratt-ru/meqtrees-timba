@@ -5,38 +5,22 @@ import math
 
 import Meow
 import Meow.StdTrees
-import iono_model
 
-TDLCompileOption("grid_size","Grid size",[1,3,5,7]);
-TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
-TDLCompileOption("noise_stddev","Add noise (Jy)",[0,1e-6,1e-3],more=float);
+import iono_model
+import sky_models
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32]);
 # note how we set default image size based on grid size/step
 TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=512,arcmin=grid_size*grid_step,channels=[[32,1,1]]));
+    *Meow.Utils.imaging_options(npix=512,arcmin=sky_models.imagesize(),channels=[[32,1,1]]));
 
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
+TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
+
 
 # define antenna list
 ANTENNAS = range(1,27+1);
 
-def point_source (ns,name,l,m):
-  srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=1);
-  
-def grid_model (ns,basename,l0,m0,dl,dm,nsrc):
-  # Returns grid of sources
-  model = [ point_source(ns,basename+"+0+0",l0,m0) ];
-  for dx in range(-nsrc,nsrc+1):
-    for dy in range(-nsrc,nsrc+1):
-      if dx or dy:
-        name = "%s%+d%+d" % (basename,dx,dy);
-        model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
-  return model;
-  
 def noise_matrix (stddev=0.1):
   """helper function to create a 2x2 complex gaussian noise matrix""";
   noise = Meq.GaussNoise(stddev=stddev);
@@ -51,7 +35,7 @@ def _define_forest (ns):
   Meow.Context.set(array,observation);
     
   # create source list
-  sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,(grid_size-1)/2);
+  sources = sky_models.make_model(ns,"S0");
     
   # make Zjones for all positions in source list (and all stations)
   # this returns Zj which sould be qualified as Zj(srcname,station)

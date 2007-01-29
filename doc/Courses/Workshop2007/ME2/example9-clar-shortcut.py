@@ -6,36 +6,13 @@ import math
 import Meow
 import Meow.StdTrees
 import clar_model
-
-# mode options
-TDLCompileOption("grid_size","Grid size",[1,3,5,7]);
-TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
+import sky_models
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[8,16,32,48,96]);
-# note how we set default image size based on grid size/step
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
 TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=512,arcmin=grid_size*grid_step,channels=[[32,1,1]]));
+    *Meow.Utils.imaging_options(npix=256,arcmin=sky_models.imagesize(),channels=[[32,1,1]]));
 
-
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
-
-def point_source (ns,name,l,m):
-  srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=1);
-  
-def star8_model (ns,basename,l0,m0,dl,dm,nsrc):
-  # Returns sources arranged in an 8-armed star
-  model = [ point_source(ns,basename+"+0+0",l0,m0) ];
-  for n in range(1,nsrc+1):
-    for dx in (-n,0,n):
-      for dy in (-n,0,n):
-        if dx or dy:
-          name = "%s%+d%+d" % (basename,dx,dy);
-          model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
-  return model;
-  
 def _define_forest (ns):
   # create an Array object
   array = Meow.IfrArray.VLA(ns);
@@ -50,7 +27,7 @@ def _define_forest (ns):
   avgsky = Meow.Patch(ns,'avg',observation.phase_centre);
   
   # create a source model
-  source_list = star8_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,(grid_size-1)/2);
+  source_list = sky_models.make_model(ns,"S");
 
   # create CLAR EJones terms
   Ej = clar_model.EJones(ns,array,observation,source_list);

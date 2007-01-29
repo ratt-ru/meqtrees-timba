@@ -6,21 +6,13 @@ import math
 import Meow
 import Meow.StdTrees
 
+import sky_models
+
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
 TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=256,arcmin=10,channels=[[32,1,1]]));
+    *Meow.Utils.imaging_options(npix=256,arcmin=sky_models.imagesize(),channels=[[32,1,1]]));
 
-# useful constant: 1 deg in radians
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
-
-# source flux (same for all sources)
-I = 1; Q = .2; U = .2; V = .2;
-
-# we'll put the sources on a cross (positions in arc min)
-LM = [(-4, 0),(-2, 0),(0,0),(2,0),(4,0),
-      ( 0,-4),( 0,-2),      (0,2),(0,4) ]; 
 
 def _define_forest (ns):
   # create an Array object
@@ -31,17 +23,7 @@ def _define_forest (ns):
   Meow.Context.set(array=array,observation=observation);
 
   # create 10 sources
-  sources = [];
-  for isrc in range(len(LM)):
-    l,m = LM[isrc];
-    l *= ARCMIN;
-    m *= ARCMIN;
-    # generate a name for this direction and source
-    srcname = 'S'+str(isrc);           
-    # create Direction object
-    src_dir = Meow.LMDirection(ns,srcname,l,m);
-    # create point source with this direction
-    sources.append( Meow.PointSource(ns,srcname,src_dir,I=I,Q=Q,U=U,V=V) );
+  sources = sky_models.make_model(ns,"S");
     
   # create a Patch for the entire observed sky
   allsky = Meow.Patch(ns,'all',observation.phase_centre);

@@ -3,29 +3,15 @@ from Timba.TDL import *
 from Timba.Meq import meq
 import math
 
-# standard preamble
-from Timba.TDL import *
-from Timba.Meq import meq
-import math
-
 import Meow
 import Meow.StdTrees
+
+import sky_models
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
 TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=256,arcmin=10,channels=[[32,1,1]]));
-
-# useful constant: 1 deg in radians
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
-
-# source flux (same for all sources)
-I = 1; Q = .2; U = .2; V = .2;
-
-# we'll put the sources on a cross (positions in arc min)
-LM = [(-4, 0),(-2, 0),(0,0),(2,0),(4,0),
-      ( 0,-4),( 0,-2),      (0,2),(0,4) ]; 
+    *Meow.Utils.imaging_options(npix=256,arcmin=sky_models.imagesize(),channels=[[32,1,1]]));
 
 def _define_forest (ns):
   # create an Array object
@@ -36,22 +22,9 @@ def _define_forest (ns):
   Meow.Context.set(array=array,observation=observation);
 
   # create two Patches and two sets of sources
-  # for the entire observed sky -- one will be computed via a resampler, 
-  # the other one directly
-  sources1 = [];
-  sources2 = [];
-  for isrc in range(len(LM)):
-    l,m = LM[isrc];
-    l *= ARCMIN;
-    m *= ARCMIN;
-    # generate a name for this direction and source
-    srcname1 = 'S'+str(isrc);           
-    srcname2 = 'R'+str(isrc);
-    # create Direction objects
-    srcdir1 = Meow.LMDirection(ns,srcname1,l,m);
-    srcdir2 = Meow.LMDirection(ns,srcname2,l,m);
-    sources1.append( Meow.PointSource(ns,srcname1,srcdir1,I=I,Q=Q,U=U,V=V) );
-    sources2.append( Meow.PointSource(ns,srcname2,srcdir2,I=I,Q=Q,U=U,V=V) );
+  # for the entire observed sky -- one will be computed via a resampler, the other one directly
+  sources1 = sky_models.make_model(ns,"R");
+  sources2 = sky_models.make_model(ns,"S");
     
   # create two Patches for the entire observed sky -- one
   allsky1 = Meow.Patch(ns,'all',observation.phase_centre);
