@@ -69,6 +69,8 @@ void ObjectRADec::setStateImpl (DMI::Record::Ref& rec, bool initializing)
     type_=MDirection::URANUS;
   } else if (!oname_.compare("neptune") || !oname_.compare("NEPTUNE")) {
     type_=MDirection::NEPTUNE;
+  } else if (!oname_.compare("venus") || !oname_.compare("VENUS")) {
+    type_=MDirection::VENUS;
   } else if (!oname_.compare("pluto") || !oname_.compare("PLUTO")) {
     type_=MDirection::PLUTO;
   } else if (!oname_.compare("itrf") || !oname_.compare("ITRF")) {
