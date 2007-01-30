@@ -82,15 +82,20 @@ for p in ANTENNAS:
   sample_hour = random.random()
   ant_phase_hour_y.append(sample_hour * seconds_hour)
 
-# we'll put the sources on a grid (positions relative to 
+# we'll put the sources on a 5x5 grid (positions relative to 
 # the phase centre, in radians)
-LM = [(-0.007,-0.007),(-0.007,0),(-0.007,0.007),
-      ( 0,-0.007),( 0,0),( 0,0.007),
-      ( 0.007,-0.007),( 0.007,0),( 0.007,0.007),
-      (-0.0035,-0.0035), (-0.0035,0), (-0.0035,0.0035),
-      (0,-0.0035),(0,0.0035),
-      (0.0035,-0.0035),(0.0035,0),(0.0035,0.0035)];
 
+LM = []
+delta = 0.0035
+l = -3.0 * delta
+#l = 3.0 * delta
+# define request
+for i in range(5):
+  m = -0.0105
+  l = l + delta
+  for j in range(5):
+    m = m + delta
+    LM.append((l,m))
 SOURCES = range(len(LM));       # 0...N-1
 
 ########################################################
