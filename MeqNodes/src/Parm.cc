@@ -60,7 +60,7 @@ namespace Meq {
       auto_save_(false),
       tiled_ (false),
       splined_ (false),
-      _use_previous(true),
+      _use_previous(1),
       converged_(false),
       ignore_convergence_(false),
       reset_funklet_(false),
@@ -146,7 +146,7 @@ namespace Meq {
 	  {
 	    
 	    //use previous funklet, unless user really wants default??
-	    if( _use_previous && converged_ && its_funklet_.valid())
+	    if( (_use_previous>1 ||( _use_previous&& converged_)) && its_funklet_.valid())
 	      {
 		if(its_funklet_->objectType()!=TpMeqComposedPolc)
 		  {
