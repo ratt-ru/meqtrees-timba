@@ -193,7 +193,7 @@ namespace Meq {
     int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
     bool splined_;//true for spline funklet
     int splining_[Axis::MaxAxis]; //vector containing spline_sizes per axis (<= 0 means no splining)
-    bool _use_previous;// if available use previous funklet,  instead of default_funklet
+    int _use_previous;// if available use previous funklet,  instead of default_funklet
 
     bool converged_; // only use previous if previous solution converged..
     bool ignore_convergence_; // also use previous if previous solution did not converge..
