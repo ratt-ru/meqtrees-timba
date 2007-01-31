@@ -282,8 +282,8 @@ def _define_forest(ns):
   # sends requests to the sinks, which then propagate requests through
   # the tree ....
   ns.vdm << Meq.VisDataMux
-  ns.VisDataMux.add_children(*[ns.sink(p,q) for p,q in IFRS]);
-  ns.VisDataMux.add_stepchildren(*[ns.spigot(p,q) for p,q in IFRS])
+  ns.vdm.add_children(*[ns.sink(p,q) for p,q in IFRS]);
+  ns.vdm.add_stepchildren(*[ns.spigot(p,q) for p,q in IFRS])
 
 
 ########################################################################
@@ -297,7 +297,7 @@ def _test_forest(mqs,parent):
   req = meq.request();
   req.input = record(
     ms = record(
-      ms_name          = 'TEST_XNTD_30_960.MS'
+      ms_name          = 'TEST_XNTD_30_960.MS',
       tile_size        = 200,
       selection = record(channel_start_index=0,
                              channel_end_index=0,
