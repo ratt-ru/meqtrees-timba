@@ -90,7 +90,7 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   );
   req.output = record( 
     ms = record( 
-      data_column = 'DATA' 
+      data_column = 'MODEL_DATA' 
     )
   );
   # execute    

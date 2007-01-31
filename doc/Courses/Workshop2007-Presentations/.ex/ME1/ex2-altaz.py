@@ -13,7 +13,7 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 DEG = math.pi/180.;
 
 # source parameters
-I = 1; Q = 0.2; U = V = 0;
+I = 1; Q = 0; U = V = 0;
 L = 1*(DEG/60);
 M = 1*(DEG/60);
 N = math.sqrt(1-L*L-M*M);
@@ -60,7 +60,7 @@ def _define_forest (ns):
   # now define predicted visibilities, attach to sinks
   for p,q in IFRS:
     predict = ns.predict(p,q) << \
-      Meq.MatrixMultiply(ns.G(p),ns.P(p),ns.K(p),ns.B,ns.Kt(q),ns.Pt(q),ns.Gt(q));
+      Meq.MatrixMultiply(ns.P(p),ns.G(p),ns.K(p),ns.B,ns.Kt(q),ns.Gt(q),ns.Pt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define a couple of inspector nodes
@@ -74,12 +74,17 @@ def _define_forest (ns):
     plot_label=["%s"%(p) for p in ANTENNAS],
     *[Meq.Mean(ns.P(p),reduction_axes="freq") for p in ANTENNAS]
   );
+  ns.inspect_pa << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[ns.pa(p) for p in ANTENNAS]
+  );
   ns.inspect_predict << Meq.Composer(
     dims=[0],   # compose in tensor mode
     plot_label=["%s-%s"%(p,q) for p,q in IFRS],
     *[Meq.Mean(ns.predict(p,q),reduction_axes="freq") for p,q in IFRS]
   );
-  ns.inspectors = Meq.ReqMux(ns.inspect_G,ns.inspect_P,ns.inspect_predict);
+  ns.inspectors = Meq.ReqMux(ns.inspect_G,ns.inspect_P,ns.inspect_pa,ns.inspect_predict);
   
   # create VDM and attach inspectors
   ns.vdm = Meq.VisDataMux(post=ns.inspectors);
@@ -137,7 +142,8 @@ Settings.forest_state = record(bookmarks=[
   record(name='Inspectors',page=[
     record(udi="/node/inspect_G",viewer="Collections Plotter",pos=(0,0)),
     record(udi="/node/inspect_P",viewer="Collections Plotter",pos=(0,1)),
-    record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,0))
+    record(udi="/node/inspect_pa",viewer="Collections Plotter",pos=(1,0)),
+    record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,1))
   ]),
 ]);
 
