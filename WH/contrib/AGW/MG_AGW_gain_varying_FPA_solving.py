@@ -253,9 +253,12 @@ def _define_forest(ns):
     spigot = ns.spigot(p,q) << Meq.Spigot( station_1_index=p-1,
                                                  station_2_index=q-1,
                                                  flag_bit=4,
-                                                 input_col='CORRECTED_DATA');
-    # since we test the accuracy of our fit by comparing CORRECTED_DATA 
-    # input visibilities with those predicted here
+                                                 input_col='DATA');
+    # By some unknown means the data_column_name used in forming
+    # the request below will be translated to a spigot input_col 
+    # in general the spigot input_col should be 'DATA'
+
+    # set up condeqs
     ns.ce(p,q) << Meq.Condeq(spigot,predict_ok)
 
   # set up a non-default condeq poll order for efficient parallelization
@@ -299,6 +302,7 @@ def _test_forest(mqs,parent):
     ms = record(
       ms_name          = 'TEST_XNTD_30_960.MS',
       tile_size        = 200,
+      data_column_name = 'CORRECTED_DATA',
       selection = record(channel_start_index=0,
                              channel_end_index=0,
                              channel_increment=1,
