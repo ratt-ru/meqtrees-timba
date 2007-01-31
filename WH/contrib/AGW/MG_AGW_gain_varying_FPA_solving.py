@@ -42,16 +42,11 @@ from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
 
-# bookmarks
-Settings.forest_state = record(bookmarks=[
-  record(name='Flux solutions',page=[
-    record(viewer="Result Plotter",udi="/node/widthl",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/widthm",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/beam_angle",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/offset_l",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/offset_m",pos=(1,1)) 
-  ]), 
-])
+import Meow
+
+from Meow import Bookmarks
+from Meow import Utils
+
 
 # define antenna stuff
 ANTENNAS = range(1,31);
@@ -249,11 +244,11 @@ def _define_forest(ns):
       ns.predict_ok(p,q,src) << \
         Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src));
     predict_ok = ns.predict_ok(p,q) << Meq.Add(*[ns.predict_ok(p,q,src) for src in SOURCES]);
-    # get the spigots
+    # create the spigots
     spigot = ns.spigot(p,q) << Meq.Spigot( station_1_index=p-1,
-                                                 station_2_index=q-1,
-                                                 flag_bit=4,
-                                                 input_col='DATA');
+                                  station_2_index=q-1,
+                                  flag_bit=4,
+                                  input_col='DATA');
     # By some unknown means the data_column_name used in forming
     # the request below will be translated to a spigot input_col 
     # in general the spigot input_col should be 'DATA'
@@ -261,33 +256,51 @@ def _define_forest(ns):
     # set up condeqs
     ns.ce(p,q) << Meq.Condeq(spigot,predict_ok)
 
-  # set up a non-default condeq poll order for efficient parallelization
-  # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
-  cpo = [];
-  for i in range(len(xntd_list)/2):
-    (p,q) = xntd_list[i*2:(i+1)*2];
-    cpo.append(ns.ce(p,q));
-  # create solver node
-  ns.solver << Meq.Solver(children=[ns.ce(p,q) for p,q in IFRS],child_poll_order=cpo);
+    # set up residuals
+    ns.residual(p,q) << spigot - predict_ok
 
-  # create sinks
+  # create solver
+  ns.solver << Meq.Solver(*[ns.ce(p,q) for p,q in IFRS]);
+
+  # create sequencer and sinks
   for p,q in IFRS:
-    ns.sink(p,q) << Meq.Sink(station_1_index=p-1,
-                             station_2_index=q-1,
-                             output_col='PREDICT',
-                             children=[Meq.ReqSeq(ns.solver,
-                                                 ns.predict_ok(p, q),
-                                                 result_index=1)]);
+    ns.sink(p,q) << Meq.Sink(
+      ns.reqseq(p,q) << Meq.ReqSeq(ns.solver,ns.residual(p,q),result_index=1),
+    station_1_index=p-1,station_2_index=q-1, output_col='PREDICT');
+
+  # create visualizers for spigots and residuals
+# ns.inspect_spigots << Meq.Composer(
+#   dims=[30,2,2],
+#   plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+#   *[ns.spigot(p,q) for p,q in IFRS]
+# );
+# ns.inspect_residuals << Meq.Composer(
+#   dims=[30,2,2],
+#   plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+#   *[ns.residual(p,q) for p,q in IFRS]
+# );
+  
 
   # and thats it. Finally we define a VisDataMux node which essentially
   # has the sinks as implicit children. When we send a request
   # to the VisDataMux node in the _test_forest function below, it
   # sends requests to the sinks, which then propagate requests through
   # the tree ....
-  ns.vdm << Meq.VisDataMux
-  ns.vdm.add_children(*[ns.sink(p,q) for p,q in IFRS]);
-  ns.vdm.add_stepchildren(*[ns.spigot(p,q) for p,q in IFRS])
+  # create VisDataMux
+# ns.VisDataMux = Meq.VisDataMux(pre=ns.inspect_spigots,post=ns.inspect_residuals,*[ns.sink(p,q) for p,q in IFRS]);
+  ns.VisDataMux = Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
 
+  #add bookmarks
+  bk = Bookmarks.Page("Beam Parameters",2,3)
+  bk.add(ns.widthl);
+  bk.add(ns.widthm);
+  bk.add(ns.beam_angle);
+  bk.add(ns.offset_l);
+  bk.add(ns.offset_m);
+# bk.add(ns.solver);
+# pg = Bookmarks.Page("Inspectors",1,2);
+# pg.add(ns.inspect_spigots,viewer="Collections Plotter");
+# pg.add(ns.inspect_residuals,viewer="Collections Plotter");
 
 ########################################################################
 
@@ -318,11 +331,11 @@ def _test_forest(mqs,parent):
 
   # create solvables
   solvables = []
-  solvables.append('widthl')
-  solvables.append('widthm')
-  solvables.append('beam_angle')
-  solvables.append('offset_l')
-  solvables.append('offset_m')
+  solvables.append("widthl")
+  solvables.append("widthm")
+  solvables.append("beam_angle")
+  solvables.append("offset_l")
+  solvables.append("offset_m")
 
   for s in solvables:
     publish_node_state(mqs, s)
@@ -333,7 +346,8 @@ def _test_forest(mqs,parent):
   set_AGW_node_state(mqs, 'solver', solver_defaults)
 
   # execute
-  mqs.execute('vdm',req,wait=False);
+  mqs.execute('VisDataMux',req,wait=False);
+
 
 
 if __name__=='__main__':
