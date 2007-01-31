@@ -5,8 +5,9 @@ mkimage:=function(msname)
     include 'imager.g';
     include 'measures.g';
     myimager := imager(msname)
-    cellsize := '3arcsec'
+    cellsize := '4arcsec'
     imsize := 2048
+#   myimager.setimage(stokes='IQUV',fieldid=1, spwid=1, mode='channel', 
     myimager.setimage(stokes='I',fieldid=1, spwid=1, mode='channel', 
         nchan=1,start=1,step=1, cellx=cellsize, celly=cellsize, 
         nx=imsize, ny=imsize)
