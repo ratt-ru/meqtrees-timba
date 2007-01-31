@@ -485,7 +485,13 @@ class ChartPlot(QWidget):
       if (QPrinter.GrayScale == printer.colorMode()):
         filter.setOptions(QwtPlotPrintFilter.PrintAll
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-      self._plotter.print_(printer, filter)
+      try:
+        self._plotter.print_(printer, filter)
+      except:
+        try:
+          self._plotter.printPlot(printer, filter)
+        except:
+          print ' printing unavailable'
 
   def infoDisplay(self):
     """ Display text under cursor in plot
