@@ -17,7 +17,6 @@ L = 1*(DEG/60);
 M = 1*(DEG/60);
 N = math.sqrt(1-L*L-M*M);
 
-from demo5_iono import make_sine_tid
 
 def _define_forest (ns):
   # nodes for phase center
