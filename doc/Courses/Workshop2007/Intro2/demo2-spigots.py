@@ -13,7 +13,8 @@ TDLRuntimeOption('tile_size',"Tile size",[5,10,20,30,100]);
 def _define_forest (ns):
   # loop over all baselines
   for p,q in IFRS:
-    spigot = ns.spigot(p,q) << Meq.Spigot(input_column='DATA',station_1_index=p-1,station_2_index=q-1);
+    spigot = ( ns.spigot(p,q) << Meq.Spigot(input_column='DATA',
+                    station_1_index=p-1,station_2_index=q-1) );
     ns.sink(p,q) << Meq.Sink(spigot,station_1_index=p-1,station_2_index=q-1);
 
   ns.inspector << Meq.Composer(

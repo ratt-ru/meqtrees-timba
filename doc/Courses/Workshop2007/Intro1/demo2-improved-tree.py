@@ -24,7 +24,7 @@ def _define_forest (ns, **kwargs):
   
 
 def _test_forest (mqs, parent):
-  domain = meq.domain(10,100,0,10)                            
+  domain = meq.domain(10,20,0,10)                            
   cells = meq.cells(domain,num_freq=200, num_time=100)
   request = meq.request(cells, rqtype='ev')
   result = mqs.execute('f',request);

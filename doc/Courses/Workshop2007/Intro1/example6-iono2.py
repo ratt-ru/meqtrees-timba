@@ -15,13 +15,13 @@ def _define_forest (ns,**kwargs):
       # start with an l,m pair
       lm = ns.lm(p) << Meq.Composer(Meq.Grid(axis='l'),Meq.Grid(axis='m'));
       # now derive xy using ionosphere height
-      # x = h*sin(a), l=cos(a), so sin(a)=l/sqrt(1-l^2);
+      # x = h*tg(a), l=cos(a), so tg(a)=l/sqrt(1-l^2);
       height = 300000;  # in meters
       ns.xy(p) << height*lm/Meq.Sqrt(1-Meq.Sqr(lm));
     else:
       ns.xy(p) << Meq.Composer(x,y);
     # define tec trees 
-    make_sine_tid(ns,ns.tec(p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10);
+    make_sine_tid(ns,ns.tec(p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10,angle=1);
 
 Settings.forest_state.cache_policy = 100; # cache everything
 Settings.forest_state.bookmarks = [];

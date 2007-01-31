@@ -25,6 +25,7 @@ def _define_forest (ns,**kwargs):
     make_sine_tid(ns,ns.tec(1,p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10);
     make_sine_tid(ns,ns.tec(2,p),ns.xy(p),ampl=.05,size_km=10,speed_kmh=200,angle=math.pi/6);
     ns.tec(p) << ns.tec(1,p) + ns.tec(2,p);
+  ns.difftec << ns.tec(0) - ns.tec(1);
 
 Settings.forest_state.cache_policy = 100; # cache everything
 Settings.forest_state.bookmarks = [];
@@ -44,3 +45,4 @@ def _test_forest (mqs,parent):
   # execute for every subtree
   for p in range(len(positions)):
     result = mqs.execute('tec:'+str(p),request);
+  mqs.execute('difftec',request);
