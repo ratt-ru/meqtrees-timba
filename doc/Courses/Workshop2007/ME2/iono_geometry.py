@@ -74,6 +74,6 @@ def compute_zeta_jones_from_tecs (ns,tecs,source_list):
   zeta = ns.Z;
   for src in source_list:
     for p in Context.array.stations():
-      zeta(src.name,p) << Meq.Polar(1,-25*2*math.pi*Lightspeed*tecs(src.name,p)/Meq.Freq());
+      zeta(src.name,p) << Meq.Polar(1,-25*Lightspeed*tecs(src.name,p)/Meq.Freq());
   return zeta;
 
