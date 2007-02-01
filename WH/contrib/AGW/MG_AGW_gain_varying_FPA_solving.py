@@ -47,13 +47,15 @@ import Meow
 from Meow import Bookmarks
 from Meow import Utils
 
+Utils.include_ms_options(tile_sizes=[30,48,60,96,192,480,960]);
+
+TDLRuntimeMenu("Solver options",*Utils.solver_options());
 
 # define antenna stuff
 ANTENNAS = range(1,31);
 xntd_list = [ str(i) for i in ANTENNAS]
-
 # derive interferometer list
-IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
+IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ]
 
 # default flux
 I = 1; Q = .0; U = .0; V = .0
@@ -73,24 +75,6 @@ for i in range(5):
     LM.append((l,m))
 SOURCES = range(len(LM));       # 0...N-1
 
-def set_AGW_node_state (mqs, node, fields_record):
-  """helper function to set the state of a node specified by name or
-  nodeindex""";
-  rec = record(state=fields_record);
-  if isinstance(node,str):
-      rec.name = node;
-  elif isinstance(node,int):
-      rec.nodeindex = node;
-  else:
-      raise TypeError,'illegal node argument';
-# pass command to kernel
-  mqs.meq('Node.Set.State',rec);
-  pass
-
-def publish_node_state(mqs, nodename):
-  mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
-  pass
-
 def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
     polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0)
     polc.coeff[0,0] = c00
@@ -101,18 +85,6 @@ def create_constant_nodes(ns):
     ns.one << Meq.Constant(1.0)
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
-
-def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
-    solver_defaults=record()
-    solver_defaults.num_iter      = num_iter
-    solver_defaults.epsilon       = epsilon
-    solver_defaults.epsilon_deriv = epsilon
-    solver_defaults.balanced_equations = False
-    solver_defaults.convergence_quota = convergence_quota
-    solver_defaults.save_funklets= True
-    solver_defaults.last_update  = True
-    solver_defaults.solvable     = solvable
-    return solver_defaults
 
 def create_solvable_beam_parms(ns):
 
@@ -200,7 +172,6 @@ def source_EJ_tree(ns):
 
 ########################################################
 def _define_forest(ns):  
-
   # first create constants 
   create_constant_nodes(ns)
 
@@ -269,13 +240,13 @@ def _define_forest(ns):
     station_1_index=p-1,station_2_index=q-1, output_col='PREDICT');
 
   # create visualizers for spigots and residuals
-# ns.inspect_spigots << Meq.Composer(
-#   dims=[30,2,2],
-#   plot_label=["%s-%s"%(p,q) for p,q in IFRS],
-#   *[ns.spigot(p,q) for p,q in IFRS]
-# );
+  ns.inspect_spigots << Meq.Composer(
+    dims=[0],
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[ns.spigot(p,q) for p,q in IFRS]
+  );
 # ns.inspect_residuals << Meq.Composer(
-#   dims=[30,2,2],
+#   dims=[0],
 #   plot_label=["%s-%s"%(p,q) for p,q in IFRS],
 #   *[ns.residual(p,q) for p,q in IFRS]
 # );
@@ -287,8 +258,9 @@ def _define_forest(ns):
   # sends requests to the sinks, which then propagate requests through
   # the tree ....
   # create VisDataMux
-# ns.VisDataMux = Meq.VisDataMux(pre=ns.inspect_spigots,post=ns.inspect_residuals,*[ns.sink(p,q) for p,q in IFRS]);
-  ns.VisDataMux = Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
+# ns.VisDataMux = Meq.VisDataMux(pre=ns.inspect_spigots,post=ns.inspect_residuals,*[ns.sink(p,q) for p,q in array.ifrs()]);
+  ns.VisDataMux = Meq.VisDataMux(pre=ns.inspect_spigots,*[ns.sink(p,q) for p,q in IFRS]);
+# ns.VisDataMux = Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
 
   #add bookmarks
   bk = Bookmarks.Page("Beam Parameters",2,3)
@@ -297,9 +269,9 @@ def _define_forest(ns):
   bk.add(ns.beam_angle);
   bk.add(ns.offset_l);
   bk.add(ns.offset_m);
-# bk.add(ns.solver);
-# pg = Bookmarks.Page("Inspectors",1,2);
-# pg.add(ns.inspect_spigots,viewer="Collections Plotter");
+  bk.add(ns.solver);
+  pg = Bookmarks.Page("Inspectors",1,2);
+  pg.add(ns.inspect_spigots,viewer="Collections Plotter");
 # pg.add(ns.inspect_residuals,viewer="Collections Plotter");
 
 ########################################################################
@@ -309,45 +281,8 @@ def _test_forest(mqs,parent):
   # predict visibilities from source and beam parameters
   # then, by comparing with previously observed data,
   # solve for beam parameters
-
-  req = meq.request();
-  req.input = record(
-    ms = record(
-      ms_name          = 'TEST_XNTD_30_960.MS',
-      tile_size        = 200,
-      data_column_name = 'CORRECTED_DATA',
-      selection = record(channel_start_index=0,
-                             channel_end_index=0,
-                             channel_increment=1,
-                             selection_string='')
-    ),
-    python_init = 'Meow.ReadVisHeader'
-  );
-  req.output = record(
-    ms = record(
-      data_column = 'PREDICT'
-    )
-  );
-
-  # create solvables
-  solvables = []
-  solvables.append("widthl")
-  solvables.append("widthm")
-  solvables.append("beam_angle")
-  solvables.append("offset_l")
-  solvables.append("offset_m")
-
-  for s in solvables:
-    publish_node_state(mqs, s)
-    pass
-
-  publish_node_state(mqs, 'solver')
-  solver_defaults = create_solver_defaults(solvable=solvables)
-  set_AGW_node_state(mqs, 'solver', solver_defaults)
-
-  # execute
-  mqs.execute('VisDataMux',req,wait=False);
-
+  solvables = [ "widthl","widthm","beam_angle","offset_l", "offset_m" ];
+  Utils.run_solve_job(mqs,solvables);
 
 
 if __name__=='__main__':
