@@ -202,6 +202,8 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
 DMI::BObj * __construct_MeqRADec (int n) { return n>0 ? new Meq::RADec [n] : new Meq::RADec; }
 #include "ObjectRADec.h"
 DMI::BObj * __construct_MeqObjectRADec (int n) { return n>0 ? new Meq::ObjectRADec [n] : new Meq::ObjectRADec; }
+#include "CoordTransform.h"
+DMI::BObj * __construct_MeqCoordTransform (int n) { return n>0 ? new Meq::CoordTransform [n] : new Meq::CoordTransform; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -630,6 +632,9 @@ DMI::BObj * __construct_MeqObjectRADec (int n) { return n>0 ? new Meq::ObjectRAD
         DynamicTypeManager::addToRegistry(-1716,__construct_MeqObjectRADec)+
         AtomicID::registerId(-1715,"Obj")+
         AtomicID::registerId(-1122,"Name")+
+        AtomicID::registerId(-1717,"MeqCoordTransform")+
+        TypeInfoReg::addToRegistry(-1717,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1717,__construct_MeqCoordTransform)+
     0;
     return res;
   }

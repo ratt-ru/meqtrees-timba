@@ -393,6 +393,11 @@ const int AidMeqConj_int = -1394;
 const DMI::AtomicID AidMeqConstant(-1438);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h:34
 const int AidMeqConstant_int = -1438;
 #endif
+#ifndef _defined_id_AidMeqCoordTransform
+#define _defined_id_AidMeqCoordTransform 1
+const DMI::AtomicID AidMeqCoordTransform(-1717);  // from /home/mevius/Timba/MeqNodes/src/CoordTransform.h:33
+const int AidMeqCoordTransform_int = -1717;
+#endif
 #ifndef _defined_id_AidMeqCos
 #define _defined_id_AidMeqCos 1
 const DMI::AtomicID AidMeqCos(-1398);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30

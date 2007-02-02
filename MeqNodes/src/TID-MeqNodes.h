@@ -274,6 +274,25 @@ namespace Meq { class Constant; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqCoordTransform
+#define _defined_id_TpMeqCoordTransform 1
+const DMI::TypeId TpMeqCoordTransform(-1717);     // from /home/mevius/Timba/MeqNodes/src/CoordTransform.h:33
+const int TpMeqCoordTransform_int = -1717;
+namespace Meq { class CoordTransform; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::CoordTransform> : public TypeTraits<Meq::CoordTransform>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqCoordTransform_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::CoordTransform & ContainerReturnType;
+                typedef const Meq::CoordTransform & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqCos
 #define _defined_id_TpMeqCos 1
 const DMI::TypeId TpMeqCos(-1398);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30
