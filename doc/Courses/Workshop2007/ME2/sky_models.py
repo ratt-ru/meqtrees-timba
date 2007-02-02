@@ -16,11 +16,12 @@ def point_source (ns,name,l,m):
 
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc):
   """Returns sources arranged in a cross""";
-  model = [];
+  model = [point_source(ns,basename+"+0+0",l0,m0)];
   dy = 0;
   for dx in range(-nsrc,nsrc+1):
-    name = "%s%+d%+d" % (basename,dx,dy);
-    model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
+    if dx:
+      name = "%s%+d%+d" % (basename,dx,dy);
+      model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
   dx = 0;
   for dy in range(-nsrc,nsrc+1):
     if dy:
