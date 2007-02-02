@@ -312,6 +312,7 @@ MeqComposedPolc                  1582       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqCondeq                       1443       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
 #MeqConj                         1394       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
 #MeqConstant                     1438       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h:34
+#MeqCoordTransform               1717       ; from /home/mevius/Timba/MeqNodes/src/CoordTransform.h:33
 meqCopy                          1380       ; from /home/oms/LOFAR/Timba/MeqGen/src/meqCopy.h:17
 #MeqCos                          1398       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30
 #MeqCosh                         1415       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cosh.h:29
