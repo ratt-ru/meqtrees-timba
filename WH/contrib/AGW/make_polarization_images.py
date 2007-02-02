@@ -46,10 +46,8 @@ Settings.forest_state.cache_policy = 100
 ########################################################
 def _define_forest(ns):  
 
-# read in beam images# setup a bookmark for display of results with a 'Collections Plotter'
-Settings.forest_state = record(bookmarks=[
-  record(name='Collector',page=[
-    record(udi="/node/collector",viewer="Collections Plotter",pos=(0,0))])]);
+# read in beam images
+
   home_dir = os.environ['LOFAR_AGW']
 
   # read in beam data - y dipole
