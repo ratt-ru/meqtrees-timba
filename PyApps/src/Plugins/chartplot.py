@@ -1065,44 +1065,53 @@ class ChartPlot(QWidget):
         except:
           self._updated_data[channel] = False
           pass
+        # no actual data?
+        if chart.shape[0] < 1:
+          self._updated_data[channel] = False
+          
         if self._updated_data[channel]:
           good_data = []
           for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
             if flags[i] == 0:
               good_data.append(chart[i])
-          test_chart = array(good_data)
-          if chart.type() == Complex32 or chart.type() == Complex64:
-            toggle_id = self.menu_table['Complex Data']
-            self._menu.setItemVisible(toggle_id, True)
-            complex_chart = test_chart.copy()
-            if self._amplitude:
-              self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
-              cplx_chart = abs(complex_chart)
-            elif self._real:
-              self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
-              cplx_chart = complex_chart.getreal()
-            elif self._imaginary:
-              self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
-              cplx_chart = complex_chart.getimag()
-            else:
-              self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
-              real_chart = complex_chart.getreal()
-              imag_chart = complex_chart.getimag()
-              cplx_chart = arctan2(imag_chart,real_chart)
-            tmp_max = cplx_chart.max()
-            tmp_min = cplx_chart.min()
+          compare_range = True
+          if len(good_data) > 0:
+            test_chart = array(good_data)
           else:
-            self._amplitude = False
-            toggle_id = self.menu_table['Complex Data']
-            self._menu.setItemVisible(toggle_id, False)
-            tmp_max = test_chart.max()
-            tmp_min = test_chart.min()
-          chart_range = abs(tmp_max - tmp_min)
-          # check if we break any highest or lowest limits
-          # this is important for offset reasons.
-          if chart_range > self._max_range:
-            self._max_range = chart_range
-          self._start_offset_test[channel][self._data_index] = chart.shape[0]
+            compare_range = False
+          if compare_range:
+            if chart.type() == Complex32 or chart.type() == Complex64:
+              toggle_id = self.menu_table['Complex Data']
+              self._menu.setItemVisible(toggle_id, True)
+              complex_chart = test_chart.copy()
+              if self._amplitude:
+                self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
+                cplx_chart = abs(complex_chart)
+              elif self._real:
+                self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
+                cplx_chart = complex_chart.getreal()
+              elif self._imaginary:
+                self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
+                cplx_chart = complex_chart.getimag()
+              else:
+                self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
+                real_chart = complex_chart.getreal()
+                imag_chart = complex_chart.getimag()
+                cplx_chart = arctan2(imag_chart,real_chart)
+              tmp_max = cplx_chart.max()
+              tmp_min = cplx_chart.min()
+            else:
+              self._amplitude = False
+              toggle_id = self.menu_table['Complex Data']
+              self._menu.setItemVisible(toggle_id, False)
+              tmp_max = test_chart.max()
+              tmp_min = test_chart.min()
+            chart_range = abs(tmp_max - tmp_min)
+            # check if we break any highest or lowest limits
+            # this is important for offset reasons.
+            if chart_range > self._max_range:
+              self._max_range = chart_range
+            self._start_offset_test[channel][self._data_index] = chart.shape[0]
 
     #set the max value of the offset
     self._offset = 1.1 * self._max_range
