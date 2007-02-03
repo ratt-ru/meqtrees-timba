@@ -37,7 +37,10 @@ from Timba.Meq import meq
 # setup a bookmark for display of results with a 'Results Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='I Q U V',page=[
-    record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))])]);
+    record(udi="/node/I",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/Q",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/U",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/V",viewer="Result Plotter",pos=(1,1))])]);
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
@@ -111,6 +114,14 @@ def _define_forest(ns):
 
   # write out fits file
   ns.fits <<Meq.FITSWriter(ns.IQUV, filename= '!test.fits')
+
+
+
+
+
+
+
+  
 ########################################################################
 def _test_forest(mqs,parent):
 
@@ -127,6 +138,9 @@ def _test_forest(mqs,parent):
   request = make_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
   mqs.meq('Node.Execute',record(name='fits',request=request),wait=True);
+
+
+
 
 #####################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
@@ -172,6 +186,9 @@ def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
     rqid = meq.requestid(domain_id=counter)
     request = meq.request(cells,rqtype='ev',rqid=rqid);
     return request;
+
+
+
 
 if __name__=='__main__':
   ns=NodeScope()
