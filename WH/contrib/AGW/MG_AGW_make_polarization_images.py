@@ -113,15 +113,16 @@ def _define_forest(ns):
   ns.observed << Meq.MatrixMultiply(ns.E, ns.B0, ns.Et)
 
   # extract I,Q,U,V etc
-  ns.IpQ << Meq.Selector(ns.observed,index=0)
-  ns.ImQ << Meq.Selector(ns.observed,index=3)
-  ns.I << Meq.Add(ns.IpQ,ns.ImQ) 
-  ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)
+  ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
+  ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
+  ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
+  ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)                # Q = XX - YY
 
-  ns.UpV << Meq.Selector(ns.observed,index=1)
-  ns.UmV << Meq.Selector(ns.observed,index=2)
-  ns.U << Meq.Add(ns.UpV,ns.UmV) 
-  ns.V << Meq.Subtract(ns.UpV,ns.UmV)
+  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2 
+  ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
+  ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX 
+  ns.V << Meq.Subtract(ns.UpV,ns.UmV)                # V = XY - YX      <----!!
+  
   ns.IQUV << Meq.Matrix22(ns.I, ns.Q,ns.U, ns.V)
 # ns.Ins_pol << ns.IQUV / ns.I
 
