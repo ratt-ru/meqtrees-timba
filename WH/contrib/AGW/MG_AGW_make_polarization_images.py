@@ -40,7 +40,18 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/I",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/Q",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/U",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/V",viewer="Result Plotter",pos=(1,1))])]);
+    record(udi="/node/V",viewer="Result Plotter",pos=(1,1))]),
+  record(name='norm',page=[
+    record(udi="/node/im_x_max",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/im_y_max",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/im_x",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/im_y",viewer="Result Plotter",pos=(1,1))]),
+  record(name='beams',page=[
+    record(udi="/node/beam_xx",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/beam_xy",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/beam_yx",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/beam_yy",viewer="Result Plotter",pos=(1,1))]),
+  ]);
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
@@ -64,7 +75,8 @@ def _define_forest(ns):
   ns.image_im_yy << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
 
   # normalize beam to peak response
-  ns.im_sq_y << ns.image_re_yy * ns.image_re_yy + ns.image_im_yy * ns.image_im_yy + ns.image_re_yx * ns.image_re_yx + ns.image_im_yx * ns.image_im_yx
+  ns.im_sq_y << ns.image_re_yy * ns.image_re_yy + ns.image_im_yy * ns.image_im_yy +\
+                ns.image_re_yx * ns.image_re_yx + ns.image_im_yx * ns.image_im_yx
   ns.im_y << Meq.Sqrt(ns.im_sq_y)
   ns.im_y_max << Meq.Max(ns.im_y)
 
@@ -81,7 +93,8 @@ def _define_forest(ns):
   ns.image_re_xy << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
   ns.image_im_xy << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
 
-  ns.im_sq_x << ns.image_re_xx * ns.image_re_xx + ns.image_im_xx * ns.image_im_xx + ns.image_re_xy * ns.image_re_xy + ns.image_im_xy * ns.image_im_xy
+  ns.im_sq_x << ns.image_re_xx * ns.image_re_xx + ns.image_im_xx * ns.image_im_xx +\
+                ns.image_re_xy * ns.image_re_xy + ns.image_im_xy * ns.image_im_xy
   ns.im_x << Meq.Sqrt(ns.im_sq_x)
   ns.im_x_max << Meq.Max(ns.im_x)
 
