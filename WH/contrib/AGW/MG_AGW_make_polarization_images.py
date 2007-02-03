@@ -46,16 +46,24 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/im_y_max",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/im_x",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/im_y",viewer="Result Plotter",pos=(1,1))]),
-  record(name='beams',page=[
+  record(name='normalized beams',page=[
     record(udi="/node/beam_xx",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/beam_xy",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/beam_yx",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/beam_yy",viewer="Result Plotter",pos=(1,1))]),
+  record(name='raw beams',page=[
+    record(udi="/node/image_re_xx",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/image_im_xx",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/image_re_xy",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/image_im_xy",viewer="Result Plotter",pos=(1,1)),
+    record(udi="/node/image_re_yx",viewer="Result Plotter",pos=(2,0)),
+    record(udi="/node/image_im_yx",viewer="Result Plotter",pos=(2,1)),
+    record(udi="/node/image_re_yy",viewer="Result Plotter",pos=(3,0)),
+    record(udi="/node/image_im_yy",viewer="Result Plotter",pos=(3,1))]),
   ]);
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
-
 
 ########################################################
 def _define_forest(ns):  
@@ -121,20 +129,22 @@ def _define_forest(ns):
   ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2 
   ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
   ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX 
-  ns.V << Meq.Subtract(ns.UpV,ns.UmV)                # V = XY - YX      <----!!
-  
-  ns.IQUV << Meq.Matrix22(ns.I, ns.Q,ns.U, ns.V)
+  ns.iV << Meq.Subtract(ns.UpV,ns.UmV)               # iV = XY - YX  <----!!
+  ns.V << ns.iV / 1j                                 # V = iV / i 
+                                                     # (note: i => j in Python)
+ 
+  # join together into one node in order to make a single request 
+  ns.IQUV << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
 # ns.Ins_pol << ns.IQUV / ns.I
 
-  # write out fits file
-  ns.fits <<Meq.FITSWriter(ns.IQUV, filename= '!test.fits')
-
-
-
-
-
-
-
+  # Note: we are observing with linearly-polarized dipoles. If we 
+  # do a MeqTree simulated observation with these beams and write
+  # the visibilities out to an aips++ MS, then we must be aware of the
+  # aips++ imager assumption that the visibilities are made with
+  # circularly polarized feeds. (If there's an option to specify
+  # that the feeds are linear, I haven't spotted it.) This means 
+  # that an aips++ image sequence made with the imager 'IQUV' option 
+  # actually gives us the images in the sequence I,U,V,Q!! 
   
 ########################################################################
 def _test_forest(mqs,parent):
@@ -151,7 +161,7 @@ def _test_forest(mqs,parent):
 # define request
   request = make_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='fits',request=request),wait=True);
+  mqs.meq('Node.Execute',record(name='IQUV',request=request),wait=True);
 
 
 
