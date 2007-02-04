@@ -41,8 +41,10 @@ def _test_forest (mqs,parent,**kw):
 
 
 Settings.forest_state = record(bookmarks=[
-  record(name="Output inspector",viewer="Collections Plotter",udi="/node/inspector")
+  record(name="Spigot inspector",viewer="Collections Plotter",udi="/node/inspector")
 ]);
+
+
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
