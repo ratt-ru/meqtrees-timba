@@ -83,8 +83,10 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def ifrs (self, select='all'):
         """Get a selection of self._array.ifrs()"""
-        return self.indices()                        # = Meow IfrArray.ifrs()
-
+        ifrs = self._array.ifrs()                    # Meow IfrArray            
+        # ifrs = self.indices()                        # = Meow IfrArray.ifrs()
+        # .... do the selection ....
+        return ifrs
 
     #--------------------------------------------------------------------------
     # Operations on the internal self._matrixet:
@@ -121,7 +123,8 @@ class Visset22 (Matrixet22.Matrixet22):
                                                input_column=input_col)
         self._matrixet = self._ns[name]
 
-        if True:
+        if False:
+            # Optional: insert a dummy node after the spigot for testing
             name = 'dummy'
             for p,q in self.ifrs():
                 self._ns[name](p,q) << Meq.Identity(self._matrixet(p,q))
