@@ -135,16 +135,14 @@ def _define_forest(ns):
  
   # join together into one node in order to make a single request 
   ns.IQUV << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
-# ns.Ins_pol << ns.IQUV / ns.I
+  ns.Ins_pol << ns.IQUV / ns.I
 
-  # Note: we are observing with linearly-polarized dipoles. If we 
-  # do a MeqTree simulated observation with these beams and write
-  # the visibilities out to an aips++ MS, then we must be aware of the
-  # aips++ imager assumption that the visibilities are made with
-  # circularly polarized feeds. (If there's an option to specify
-  # that the feeds are linear, I haven't spotted it.) This means 
-  # that an aips++ image sequence made with the imager 'IQUV' option 
-  # actually gives us the images in the sequence I,U,V,Q!! 
+  # Note: we are observing with linearly-polarized dipoles. If we
+  # want the aips++ imager to generate images in the sequence I,Q,U,V
+  # make sure that the newsimulator setspwindow method uses
+  # stokes='XX XY YX YY' and not stokes='RR RL LR LL'. If you
+  # do the latter you will get the images rolled out in the
+  # order I,U,V,Q! 
   
 ########################################################################
 def _test_forest(mqs,parent):
@@ -161,7 +159,7 @@ def _test_forest(mqs,parent):
 # define request
   request = make_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='IQUV',request=request),wait=True);
+  mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
 
 
 
