@@ -210,7 +210,7 @@ def make_sinks (ns,outputs,array=None,
   # to process these guys
   if isinstance(post,(list,tuple)):
     post = vdm('post') << Meq.ReqMux(*post);
-  elif not is_node(post):
+  elif post and not is_node(post):
     raise TypeError,"'post' argument should be a node or a list of nodes";
 
   # now make the vdm
