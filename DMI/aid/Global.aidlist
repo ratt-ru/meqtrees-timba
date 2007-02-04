@@ -312,7 +312,7 @@ MeqComposedPolc                  1582       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqCondeq                       1443       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
 #MeqConj                         1394       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
 #MeqConstant                     1438       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h:34
-#MeqCoordTransform               1717       ; from /home/mevius/Timba/MeqNodes/src/CoordTransform.h:33
+MeqCoordTransform                1717       ; from /home/mevius/Timba/MeqNodes/src/CoordTransform.h:33
 meqCopy                          1380       ; from /home/oms/LOFAR/Timba/MeqGen/src/meqCopy.h:17
 #MeqCos                          1398       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30
 #MeqCosh                         1415       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cosh.h:29
@@ -363,7 +363,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
 #MeqNorm                         1459       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
-#MeqObjectRADec                  1716       ; from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
+MeqObjectRADec                   1716       ; from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
 #MeqParAngle                     1695       ; from /home/twillis/Timba/MeqNodes/src/ParAngle.h:40
 MeqParAngleL                     1712       ; from /home/sarod/Timba/MeqNodes/src/ParAngleL.h:52
 #MeqParm                         1454       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
@@ -387,7 +387,7 @@ MeqPrivFunction                  1693       ; from /home/mevius/LOFAR/Timba/MeqN
 #MeqProduct                      1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 MeqPyFunctionNode                1707       ; from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
 MeqPyNode                        1705       ; from /home/oms/Timba/MeqServer/src/PyNode.h:10
-#MeqRADec                        1709       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:52
+MeqRADec                         1709       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:52
 #MeqRandomNoise                  1384       ; from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
 #MeqReal                         1404       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
 #MeqReqMux                       1608       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ReqMux.h:31
@@ -395,6 +395,7 @@ MeqPyNode                        1705       ; from /home/oms/Timba/MeqServer/src
 MeqRequest                       1357       ; from /home/oms/LOFAR/Timba/MEQ/src/Request.h:31
 #MeqResampler                    1591       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Resampler.h:31
 MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src/Result.h:34
+#MeqRms                          1718       ; from /home/oms/Timba/MeqNodes/src/Rms.h:29
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqShapeletVisTf                 1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
