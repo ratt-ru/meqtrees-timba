@@ -9,21 +9,25 @@ input_column = output_column = None;
 tile_size = None;
 ms_channels = None;
 msname = '';
+ms_write_flags = False;
+ms_input_flag_bit = 1;
 
 def include_ms_options (
     has_input=True,
     has_output=True,
     tile_sizes=[1,5,10,20,30,60],
     channels=None,
+    flags=False
   ):
   """Instantiates MS input/output options""";
-  TDLRuntimeOptions(*ms_options(has_input,has_output,tile_sizes,channels));
+  TDLRuntimeOptions(*ms_options(has_input,has_output,tile_sizes,channels,flags));
 
 def ms_options (
     has_input=True,
     has_output=True,
     tile_sizes=[1,5,10,20,30,60],
     channels=None,
+    flags=False
   ):
   """Returns list of MS input/output options""";
   ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
@@ -38,6 +42,8 @@ def ms_options (
     opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
   if channels:
     opts.append(TDLOption('ms_channels',"Channel selection",channels));
+  if flags:
+    opts.append(TDLOption('ms_write_flags',"Write flags to output",False));
   return opts;
   
 imaging_npix = 256;
@@ -204,7 +210,7 @@ def create_outputrec ():
   rec = record();
   rec.mt_queue_size = ms_queue_size;
   if ms_output:
-    rec.write_flags    = False;
+    rec.write_flags    = ms_write_flags;
     if output_column:
       rec.data_column = output_column;
     return record(ms=rec);
@@ -216,7 +222,7 @@ def create_outputrec ():
 def create_io_request (tiling=None):
   req = meq.request();
   req.input  = create_inputrec(tiling);
-  if output_column is not None:
+  if ms_write_flags or output_column is not None:
     req.output = create_outputrec();
   return req;
   

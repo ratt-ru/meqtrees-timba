@@ -12,9 +12,9 @@ class Direction (Parameterization):
                quals=[],kwquals={}):
     Parameterization.__init__(self,ns,name,
                               quals=quals,kwquals=kwquals);
+    self._add_parm('ra',ra,tags="direction");
+    self._add_parm('dec',dec,tags="direction");
     self._jones = [];
-    self._ra = self._parm('ra',ra,tags="direction");
-    self._dec = self._parm('dec',dec,tags="direction");
       
   def add_jones (self,kind,jones,directional=False):
     """Associates a Jones matrix with this direction.
@@ -31,7 +31,9 @@ class Direction (Parameterization):
     """;
     radec = self.ns.radec;
     if not radec.initialized():
-      radec << Meq.Composer(self._ra,self._dec);
+      ra = self._parm('ra');
+      dec = self._parm('dec');
+      radec << Meq.Composer(ra,dec);
     return radec;
     
   def lmn (self,dir0=None):
