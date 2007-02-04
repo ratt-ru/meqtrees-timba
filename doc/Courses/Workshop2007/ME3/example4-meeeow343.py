@@ -152,14 +152,11 @@ def _define_forest(ns):
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
 
+
 if __name__ == '__main__':
-
-
     Timba.TDL._dbg.set_verbose(5);
     ns = NodeScope();
     _define_forest(ns);
-
-
     ns.Resolve();
     pass
               
