@@ -75,7 +75,7 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/Ginv:1",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/Ginv:2",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/Ginv:3",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/Ginv:4",viewer="Result Plotter",pos=(1,1)) \
+    record(udi="/node/Ginv:27",viewer="Result Plotter",pos=(1,1)) \
   ]),
 ]);
 
