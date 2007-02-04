@@ -703,6 +703,11 @@ const int AidMeqReqSeq_int = -1425;
 const DMI::AtomicID AidMeqResampler(-1591);       // from /home/sarod/LOFAR/Timba/MeqNodes/src/Resampler.h:31
 const int AidMeqResampler_int = -1591;
 #endif
+#ifndef _defined_id_AidMeqRms
+#define _defined_id_AidMeqRms 1
+const DMI::AtomicID AidMeqRms(-1718);             // from /home/oms/Timba/MeqNodes/src/Rms.h:29
+const int AidMeqRms_int = -1718;
+#endif
 #ifndef _defined_id_AidMeqSelector
 #define _defined_id_AidMeqSelector 1
 const DMI::AtomicID AidMeqSelector(-1447);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30

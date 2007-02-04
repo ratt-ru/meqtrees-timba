@@ -22,7 +22,7 @@
 #ifndef MEQNODES_STDDEV_H
 #define MEQNODES_STDDEV_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,7 +31,7 @@
 namespace Meq {    
 
 
-class StdDev : public Function1
+class StdDev : public ReductionFunction
 {
 public:
   StdDev();

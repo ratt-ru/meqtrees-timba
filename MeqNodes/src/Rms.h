@@ -22,7 +22,7 @@
 #ifndef MEQNODES_RMS_H
 #define MEQNODES_RMS_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,15 +31,15 @@
 namespace Meq {    
 
 
-class Rms : public Function1
+class Rms : public ReductionFunction
 {
 public:
   Rms();
 
   virtual ~Rms();
 
-    virtual TypeId objectType() const
-    { return TpMeqRms; }
+  virtual TypeId objectType() const
+  { return TpMeqRms; }
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,

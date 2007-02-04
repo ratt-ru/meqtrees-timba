@@ -89,6 +89,7 @@
         Do(Meq::GaussNoise,arg) separator \
         Do(Meq::ZeroFlagger,arg) separator \
         Do(Meq::StdDev,arg) separator \
+        Do(Meq::Rms,arg) separator \
         Do(Meq::WSum,arg) separator \
         Do(Meq::WMean,arg) separator \
         Do(Meq::Negate,arg) separator \

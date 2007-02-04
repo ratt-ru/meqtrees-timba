@@ -146,6 +146,8 @@ DMI::BObj * __construct_MeqGaussNoise (int n) { return n>0 ? new Meq::GaussNoise
 DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagger [n] : new Meq::ZeroFlagger; }
 #include "StdDev.h"
 DMI::BObj * __construct_MeqStdDev (int n) { return n>0 ? new Meq::StdDev [n] : new Meq::StdDev; }
+#include "Rms.h"
+DMI::BObj * __construct_MeqRms (int n) { return n>0 ? new Meq::Rms [n] : new Meq::Rms; }
 #include "WSum.h"
 DMI::BObj * __construct_MeqWSum (int n) { return n>0 ? new Meq::WSum [n] : new Meq::WSum; }
 #include "WMean.h"
@@ -518,6 +520,9 @@ DMI::BObj * __construct_MeqCoordTransform (int n) { return n>0 ? new Meq::CoordT
         AtomicID::registerId(-1491,"MeqStdDev")+
         TypeInfoReg::addToRegistry(-1491,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1491,__construct_MeqStdDev)+
+        AtomicID::registerId(-1718,"MeqRms")+
+        TypeInfoReg::addToRegistry(-1718,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1718,__construct_MeqRms)+
         AtomicID::registerId(-1502,"MeqWSum")+
         TypeInfoReg::addToRegistry(-1502,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1502,__construct_MeqWSum)+

@@ -151,34 +151,41 @@ int Sink::getResult (Result::Ref &resref,
           fillTileColumn(static_cast<fcomplex*>(coldata),colshape,cur_range,
                         vells.getConstArray<dcomplex,2>(),icorr);
         }
-        // write flags, if specified by flag mask and present in vells
-        if( flag_mask && vells.hasDataFlags() )
+        // write flags, if specified by flag mask
+        if( flag_mask )
         {
-          Vells realflags;
-          const Vells & dataflags = vells.dataFlags();
-          // if same shape, then write directly
-          if( vells.shape() == dataflags.shape() )
-            realflags = dataflags & flag_mask;
-          // else flags may have a "collapsed" shape, then:
-          // create a flag vells of the same shape as the data, and fill it
-          // with the flag mask, then AND with flags and let Vells math do
-          // the expansion
-          else if( dataflags.isCompatible(vells.shape()) )
-            realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
-          else
-          {
-            cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
-          }
-          Vells::Traits<VellsFlagType,2>::Array fl = 
-              realflags.getConstArray<VellsFlagType,2>();
-          // flip into freq-time order
-          fl.transposeSelf(blitz::secondDim,blitz::firstDim);
           LoMat_int tileflags = ptile->wflags()(icorr,LoRange::all(),cur_range);
-          // if flag bit is set, use a where-expression, else simply copy
-          if( flag_bit )
-            tileflags = where(fl,flag_bit,0);
+          // if vells has flags, work out how to copy them
+          if( vells.hasDataFlags() )
+          {
+            Vells realflags;
+            const Vells & dataflags = vells.dataFlags();
+            // if same shape, then write directly
+            if( vells.shape() == dataflags.shape() )
+              realflags = dataflags & flag_mask;
+            // else flags may have a "collapsed" shape, then:
+            // create a flag vells of the same shape as the data, and fill it
+            // with the flag mask, then AND with flags and let Vells math do
+            // the expansion
+            else if( dataflags.isCompatible(vells.shape()) )
+              realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
+            else
+            {
+              cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
+            }
+            Vells::Traits<VellsFlagType,2>::Array fl = 
+                realflags.getConstArray<VellsFlagType,2>();
+            // flip into freq-time order
+            fl.transposeSelf(blitz::secondDim,blitz::firstDim);
+            // if flag bit is set, use a where-expression, else simply copy
+            if( flag_bit )
+              tileflags = where(fl,flag_bit,0);
+            else
+              tileflags = fl;
+          }
+          // no flags on Vells -- simply clear the tile's flags
           else
-            tileflags = fl;
+            tileflags(LoRange::all(),LoRange::all()) = 0;
         }
       }
     }

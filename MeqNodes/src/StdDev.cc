@@ -28,7 +28,9 @@ using namespace Meq::VellsMath;
 namespace Meq {    
 
 StdDev::StdDev()
-{}
+ : ReductionFunction(1)
+{
+}
 
 StdDev::~StdDev()
 {}
@@ -36,7 +38,19 @@ StdDev::~StdDev()
 Vells StdDev::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
-  return sqrt(mean( sqr(*(values[0]))) - sqr( mean( *(values[0]))));
+  // only one child ever expected -- see constructor 
+  if( hasReductionAxes() )  // reduce along axes 
+  {
+    Vells vmean = apply(VellsMath::mean,*values[0],flagmask_[0]);
+    Vells vmeansq = apply(VellsMath::mean,sqr(*values[0]),flagmask_[0]);
+    return sqrt(vmeansq - sqr(vmean));
+  }
+  else                      // reduce to single value
+  {
+    Vells vmean = mean(*values[0],flagmask_[0]);
+    Vells vmeansq = mean(sqr(*values[0]),flagmask_[0]);
+    return sqrt(vmeansq - sqr(vmean));
+  }
 }
 
 } // namespace Meq

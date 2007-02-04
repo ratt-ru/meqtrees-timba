@@ -1452,6 +1452,25 @@ namespace Meq { class Resampler; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqRms
+#define _defined_id_TpMeqRms 1
+const DMI::TypeId TpMeqRms(-1718);                // from /home/oms/Timba/MeqNodes/src/Rms.h:29
+const int TpMeqRms_int = -1718;
+namespace Meq { class Rms; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Rms> : public TypeTraits<Meq::Rms>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqRms_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Rms & ContainerReturnType;
+                typedef const Meq::Rms & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqSelector
 #define _defined_id_TpMeqSelector 1
 const DMI::TypeId TpMeqSelector(-1447);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30

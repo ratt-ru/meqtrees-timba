@@ -28,6 +28,7 @@ using namespace Meq::VellsMath;
 namespace Meq {    
 
 Rms::Rms()
+ : ReductionFunction(1)
 {}
 
 Rms::~Rms()
@@ -36,7 +37,17 @@ Rms::~Rms()
 Vells Rms::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
-  return sqrt ( mean ( sqr(*(values[0])) ) );
+  // only one child ever expected -- see constructor 
+  if( hasReductionAxes() )  // reduce along axes 
+  {
+    Vells vmeansq = apply(VellsMath::mean,sqr(*values[0]),flagmask_[0]);
+    return sqrt(vmeansq);
+  }
+  else                      // reduce to single value
+  {
+    Vells vmeansq = mean(sqr(*values[0]),flagmask_[0]);
+    return sqrt(vmeansq);
+  }
 }
 
 } // namespace Meq
