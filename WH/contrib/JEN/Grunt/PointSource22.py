@@ -20,15 +20,8 @@ import Meow
 
 from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
-# from Timba.Contrib.JEN.Grunt import Joneset22
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-
-# from copy import deepcopy
-
-
-
+TDL_options_counter = 0
 
 # Global counter used to generate unique node-names
 # unique = -1
@@ -36,23 +29,27 @@ from Timba.Contrib.JEN.Grunt import ParmGroupManager
 
 #======================================================================================
 
-def include_TDL_options(prompt='definition'):
+
+def include_TDL_options_obsolete(prompt='definition'):
     """Instantiates user options for the meqbrouwser"""
-    predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
-    predefined.extend(['3c147','3c286'])
-    predefined.append(None)
-    menuname = 'PointSource22 ('+prompt+')'
-    TDLCompileMenu(menuname,
-                   TDLOption('TDL_predefined',"predefined source",predefined),
-                   TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
-                   TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
-                   TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
-                   TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
-                   TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
-                   TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
-                   TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
-                   TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
-                   );
+    global TDL_options_counter
+    if TDL_options_counter==0:
+        predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
+        predefined.extend(['3c147','3c286'])
+        predefined.append(None)
+        menuname = 'PointSource22 ('+prompt+')'
+        TDLCompileMenu(menuname,
+                       TDLOption('TDL_predefined',"predefined source",predefined),
+                       TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
+                       TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
+                       TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
+                       TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
+                       TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
+                       TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
+                       TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
+                       TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
+                       );
+        TDL_options_counter += 1
     return True
 
 
@@ -62,11 +59,11 @@ class PointSource22 (Meow.PointSource):
     """A Meow.PointSource with some extra features"""
 
     def __init__(self, ns, direction=None,
-                 # I=1.0, Q=None, U=None, V=None,
-                 # Iorder=0, Qorder=0, Uorder=0, Vorder=0,
-                 # spi=0.0, freq0=None, RM=None,
                  parm_options=record(node_groups='Parm'),
                  simulate=False, **pp):
+
+        # include_TDL_options()
+        self.include_TDL_options()
 
         # Deal with input parameters:
         if not isinstance(pp, dict): pp = dict()
@@ -75,10 +72,6 @@ class PointSource22 (Meow.PointSource):
         pp.setdefault('Q', TDL_StokesQ)
         pp.setdefault('U', TDL_StokesU)
         pp.setdefault('V', TDL_StokesV)
-        pp.setdefault('Iorder', 0)
-        pp.setdefault('Qorder', 0)
-        pp.setdefault('Uorder', 0)
-        pp.setdefault('Vorder', 0)
         pp.setdefault('spi', TDL_spi)
         pp.setdefault('freq0', TDL_freq0)
         pp.setdefault('RM', TDL_RM)
@@ -97,11 +90,8 @@ class PointSource22 (Meow.PointSource):
         # Initialise its Meow counterpart:
         Meow.PointSource.__init__(self, ns=ns, name=pp['name'],
                                   I=pp['I'], Q=pp['Q'], U=pp['U'], V=pp['V'],
-                                  Iorder=pp['Iorder'], Qorder=pp['Qorder'],
-                                  Uorder=pp['Uorder'], Vorder=pp['Vorder'],
                                   spi=pp['spi'], freq0=pp['freq0'], RM=pp['RM'],
-                                  direction=direction,
-                                  parm_options=parm_options)
+                                  direction=direction)
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = ParmGroupManager.ParmGroupManager(ns, label=pp['name'],
@@ -112,6 +102,30 @@ class PointSource22 (Meow.PointSource):
 
         # Finished:
         return None
+
+    #-------------------------------------------------------------------
+
+    def include_TDL_options(prompt='definition'):
+        """Instantiates user options for the meqbrouwser"""
+        global TDL_options_counter
+        if TDL_options_counter==0:
+            predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
+            predefined.extend(['3c147','3c286'])
+            predefined.append(None)
+            menuname = 'PointSource22 ('+prompt+')'
+            TDLCompileMenu(menuname,
+                           TDLOption('TDL_predefined',"predefined source",predefined),
+                           TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
+                           TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
+                           TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
+                           TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
+                           TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
+                           TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
+                           TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
+                           TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
+                           );
+            TDL_options_counter += 1
+        return True
 
     #-------------------------------------------------------------------
 
@@ -257,7 +271,8 @@ class PointSource22 (Meow.PointSource):
 # Test routine (with meqbrowser):
 #===============================================================
 
-# include_TDL_options('test')
+include_TDL_options('test')
+include_TDL_options('test')
 
 def _define_forest(ns):
 
@@ -267,14 +282,10 @@ def _define_forest(ns):
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
     observation = Meow.Observation(ns)
-    direction = Meow.LMDirection(ns, TDL_source_name, l=1.0, m=1.0)
-    ps = PointSource22 (ns,
-                        # name=TDL_source_name,
-                        # predefined=TDL_predefined,
-                        # I=TDL_StokesI, Q=TDL_StokesQ,
-                        # U=TDL_StokesU, V=TDL_StokesV,
-                        # spi=TDL_spi, freq0=TDL_freq0, RM=TDL_RM,
-                        direction=direction)
+    Meow.Context.set (array, observation)
+    direction = Meow.LMDirection(ns, 'xxx', l=1.0, m=1.0)
+    # direction = Meow.LMDirection(ns, TDL_source_name, l=1.0, m=1.0)
+    ps = PointSource22 (ns, direction=direction)
     ps.display()
 
     vis = ps.Visset22(array, observation)
@@ -309,6 +320,7 @@ if __name__ == '__main__':
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
+        Meow.Context.set (array, observation)
         src = 'unpol'
         src = 'QUV'
         direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)

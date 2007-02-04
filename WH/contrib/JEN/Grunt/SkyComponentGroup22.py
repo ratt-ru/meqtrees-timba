@@ -26,6 +26,7 @@ import Meow
 
 from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
+from Timba.Contrib.JEN.Grunt import PointSource22
 
 import math
 import random
@@ -37,38 +38,17 @@ import random
 
 #======================================================================================
 
-def include_TDL_options(prompt='definition'):
-    """Instantiates user options for the meqbrouwser"""
-    predefined = ['unpol','Q','U','V','QU','QUV','UV','QV']
-    predefined.extend(['3c147','3c286'])
-    predefined.append(None)
-    menuname = 'SkyComponentGroup22 ('+prompt+')'
-    TDLCompileMenu(menuname,
-                   TDLOption('TDL_predefined',"predefined source",predefined),
-                   TDLOption('TDL_StokesI',"Stokes I (Jy)",[1.0,2.0,10.0], more=float),
-                   TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
-                   TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
-                   TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
-                   TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
-                   TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
-                   TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
-                   TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
-                   );
-    return True
-
-
-#======================================================================================
-
 class SkyComponentGroup22 (object):
     """Virtual base class for specialised groups of SkyComponents"""
 
-    def __init__(self, ns, name='SkyComponentGroup22', observation=None):
+    def __init__(self, ns, name='SkyComponentGroup22'):
 
         self._ns = ns
         self._name = name
-        # self._observation = observation             # .....??
+        self._observation = Meow.Context.get_observation(None)    # ....??
 
         self._skycomp = []
+        self._sc_name = []
         self._ll = []
         self._mm = []
         self._wgt = []
@@ -77,6 +57,8 @@ class SkyComponentGroup22 (object):
         # Some placeholders:
         self._Patch = None
         self._Visset22 = None
+        self._peeling_patch = []
+        self._peeling_group = []
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
@@ -102,9 +84,13 @@ class SkyComponentGroup22 (object):
         if txt: print ' * (txt='+str(txt)+')'
         print '** SkyComponents ('+str(self.len())+'):'
         for k,sc in enumerate(self._skycomp):
-            print '  - '+str(k)+': '+str(sc)
+            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(sc)
         for k in range(self.len()):
-            print '  - '+str(k)+': l='+str(self._ll[k])+' m='+str(self._mm[k])+' wgt='+str(self._wgt[k])
+            s1 = ' l='+str(self._ll[k])+' m='+str(self._mm[k])+' wgt='+str(self._wgt[k])
+            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+s1
+        print '** Peeling patches ('+str(len(self._peeling_patch))+'):'
+        for k,pp in enumerate(self._peeling_patch):
+            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(self._peeling_group[k])
         print '**\n'
         return True
 
@@ -114,22 +100,32 @@ class SkyComponentGroup22 (object):
         """Return the nr of sources in the group"""
         return len(self._skycomp)
 
+    def add (self, skycomp, name=None, l=0.0, m=0.0, wgt=1.0):
+        """Add a SkyComponent object to the group"""
+        self._skycomp.append(skycomp)
+        self._sc_name.append(name)
+        self._ll.append(l)
+        self._mm.append(m)
+        self._wgt.append(wgt)
+        return self.len()
+
     #--------------------------------------------------------------------------
-    
+
     def add_PointSource (self, name=None, l=0.0, m=0.0, wgt=1.0):
         """Add a Meow PointSource object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
         sc_dir = Meow.LMDirection(self._ns, name, l, m)
         skycomp = Meow.PointSource(self._ns, name, sc_dir)
-        return self.add(skycomp, l=l, m=m, wgt=wgt)
+        return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
-    def add (self, skycomp, name=None, l=0.0, m=0.0, wgt=1.0):
-        """Add a SkyComponent object to the group"""
-        self._skycomp.append(skycomp)
-        self._ll.append(l)
-        self._mm.append(m)
-        self._wgt.append(wgt)
-        return self.len()
+
+    def add_PointSource22 (self, name=None, l=0.0, m=0.0, wgt=1.0):
+        """Add a Grunt PointSource22 object to the group"""
+        # NB: Parameters are made for (l,m) with tag 'direction'
+        sc_dir = Meow.LMDirection(self._ns, name, l, m)
+        skycomp = PointSource22.PointSource22(self._ns, name=name, direction=sc_dir)
+        return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
+
 
 
 
@@ -161,6 +157,30 @@ class SkyComponentGroup22 (object):
             self._mm[k] *= mm
         return True
 
+    #--------------------------------------------------------------------------
+
+    def make_peeling_patches (self, window=1, trace=True):
+        """A peeling patch contains the source itself, and also a small number
+        of (next) fainter sources. The idea is to reduce contamination by those
+        fainter sources by including them in the predict when solving for
+        parameters in the direction of the peeling source.""" 
+        if not self._peeling_patch:
+            if trace: print '\n** make_peeling_patches(',window,'):'
+            self._peeling_patch = []
+            self._peeling_patch = []
+            self._peeling_group = []
+            for k in range(self.len()):
+                self._peeling_patch.append(Meow.Patch(self._ns, self._sc_name[k],
+                                                      self._observation.phase_centre))
+                self._peeling_group.append([])
+                if trace: print '- peeling_patch:',k,self._sc_name[k]
+                for i in range(window):
+                    if k+i<self.len():
+                        self._peeling_patch[k].add(self._skycomp[k+i])
+                        self._peeling_group[k].append(self._sc_name[k+i])
+                        if trace: print '  -- include skycomp:',i,self._sc_name[k+i]
+            if trace: print
+        return True
 
     #--------------------------------------------------------------------------
 
@@ -205,13 +225,16 @@ class SkyComponentGroup22 (object):
         return self._Visset22
 
 
+
     #---------------------------------------------------------------------------------
     
     def test (self):
         """Helper routine to add some test sources to the group"""
+        # PointSource22.include_TDL_options('test')
+        # PointSource22.include_TDL_options('test')
         scg.add_PointSource('first', 1,1)
-        scg.add_PointSource('second', 1,0)
-        scg.add_PointSource('third', 0,1)
+        scg.add_PointSource22('second', 1,0)
+        scg.add_PointSource22('third', 0,1)
         return True
 
 
@@ -230,8 +253,9 @@ class PointSourceGroup22 (SkyComponentGroup22):
     """A SkyComponentGroup22 with a pattern of point-sources of the same type, for testing.
     This is a virtual base-class for a range of more specific source patterns."""
 
-    def __init__(self, ns, name='SkyComponentGroup22', direction=None,
-                 simulate=False, **pp):
+    def __init__(self, ns, name='PointSourceGroup22', **pp):
+
+        self.include_TDL_options()
 
         # Initialise its Meow counterpart:
         SkyComponentGroup22.__init__(self, ns=ns, name=name)
@@ -240,11 +264,16 @@ class PointSourceGroup22 (SkyComponentGroup22):
         return None
 
 
-    def include_TDL_options (self):
-        """Re-implementation of the base class function. Include the TDL options
+    def include_TDL_options (self, prompt='definition'):
+        """Instantiates user options for the meqbrouwser.
+        Re-implementation of the base class function. Include the TDL options
         for a PointSource22 object."""
+        menuname = 'PointSourceGroup22 ('+prompt+')'
+        TDLCompileMenu(menuname,
+                       TDLOption('TDL_xxx',"xxx",[1,2,3], more=int),
+                       TDLOption('TDL_yyy',"yyy",[1,2,3], more=int),
+                       )
         return True
-
 
 
 
@@ -304,15 +333,18 @@ if __name__ == '__main__':
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
         Meow.Context.set (array, observation)
-        src = 'unpol' 
-        src = 'QUV'
-        # direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
-        scg = SkyComponentGroup22 (ns, name='test')
+        scg = SkyComponentGroup22 (ns, name='testing')
         scg.test()
+        scg.display('init')
+
+    if 1:
+        scg.make_peeling_patches(2)
+        scg.display('peeling_patches')
+
+    if 0:
         scg.translate(1,1)
         scg.display()
         scg.rotate(1)
-        scg.display()
 
     if 0:
         vis = scg.Visset22(array, observation)
