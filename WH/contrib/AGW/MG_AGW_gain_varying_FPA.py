@@ -45,7 +45,8 @@ from Timba.Meq import meq
 # setup a bookmark for display of results with a 'Collections Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='Collector',page=[
-    record(udi="/node/collector",viewer="Collections Plotter",pos=(0,0))])]);
+    record(udi="/node/collector",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_predicts",viewer="Collections Plotter",pos=(1,0))])]);
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
@@ -96,6 +97,18 @@ for i in range(5):
   for j in range(5):
     m = m + delta
     LM.append((l,m))
+
+
+#for i in range(25):
+#  l = random.uniform(-0.007,0.007)
+#  m = random.uniform(-0.007,0.007)
+# flux = random.randint(1,100)
+# source_parms = (l,m,float(flux))
+#  source_parms = (l,m)
+#  LM.append(source_parms)
+
+#print 'LM ', LM
+
 SOURCES = range(len(LM));       # 0...N-1
 
 ########################################################
@@ -221,7 +234,7 @@ def _define_forest(ns):
   # gains of the individual antennas together for display as
   # a function of time by the Collections Plotter - see the
   # bookmark set up near the beginning of the script
-  ns.collector << Meq.Composer(dims=[30,2,2], tab_label = 'XNTD',
+  ns.collector << Meq.Composer(dims=[0], tab_label = 'XNTD',
                   *[ns.G(p) for p in ANTENNAS]);
 
 
@@ -276,12 +289,18 @@ def _define_forest(ns):
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 #   ns.sink(p,q) << Meq.Sink(predict_ok,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
+  ns.inspect_predicts << Meq.Composer(
+     dims=[0],
+     plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+     *[ns.predict(p,q) for p,q in IFRS]
+  );
+
   # and thats it. Finally we define a VisDataMux node which essentially
   # has the sinks as implicit children. When we send a request
   # to the VisDataMux node in the _test_forest function below, it
   # sends requests to the sinks, which then propagate requests through
   # the tree ....
-  ns.vdm << Meq.VisDataMux(post=ns.collector,*[ns.sink(p,q) for p,q in IFRS]);
+  ns.vdm << Meq.VisDataMux(pre=ns.collector,post=ns.inspect_predicts,*[ns.sink(p,q) for p,q in IFRS]);
 
 
 ########################################################################
