@@ -15,7 +15,7 @@ TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
 def _define_forest(ns):
   # enable standard MS options from Meow
   Utils.include_ms_options(
-    channels=[[15,40,1]],
+    channels=[[15,40,1]],tile_sizes=[100],
     has_output=False,
   );
 
