@@ -1,13 +1,8 @@
 from Timba.TDL import *
-from Timba.Meq import meq
-from numarray import *
-import os
-import random
 
 import Meow
 import Meow.StdTrees
 from Meow import Utils
-
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
@@ -33,7 +28,7 @@ def _define_forest(ns):
   Meow.StdTrees.make_sinks(ns,spigots,post=inspectors);
   
 
-def _test_forest (mqs,parent,**kw):
+def _tdl_job_view_MS (mqs,parent,**kw):
   req = Meow.Utils.create_io_request();
   mqs.execute('VisDataMux',req,wait=False);
 
