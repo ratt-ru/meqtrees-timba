@@ -2,19 +2,18 @@ from Timba.TDL import *
 
 import Meow
 import Meow.StdTrees
-from Meow import Utils
-
-# number of stations
-TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
+import Meow.Utils
 
 def _define_forest(ns):
   # enable standard MS options from Meow
-  Utils.include_ms_options(
+  Meow.Utils.include_ms_options(
     channels=[[15,40,1]],tile_sizes=[100],
-    has_output=False,
+    has_output=False
   );
-
-  array = Meow.IfrArray.WSRT(ns,num_stations);
+  TDLRuntimeMenu("Make image",
+    *Meow.Utils.imaging_options(npix=256,arcmin=72));
+  
+  array = Meow.IfrArray.WSRT(ns);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   
@@ -28,7 +27,7 @@ def _define_forest(ns):
   Meow.StdTrees.make_sinks(ns,spigots,post=inspectors);
   
 
-def _tdl_job_view_MS (mqs,parent,**kw):
+def _tdl_job_inspect_MS (mqs,parent,**kw):
   req = Meow.Utils.create_io_request();
   mqs.execute('VisDataMux',req,wait=False);
 
