@@ -14,7 +14,7 @@ TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
 
 # enable standard MS options from Meow
 Utils.include_ms_options(
-  tile_sizes=[1,10,100],
+  tile_sizes=[100,10,1],
   channels=[[15,40,1]]
 );
 
