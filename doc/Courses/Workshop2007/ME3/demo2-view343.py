@@ -5,9 +5,9 @@ import os
 import random
 
 import Meow
-
-from Meow import Bookmarks
+import Meow.StdTrees
 from Meow import Utils
+
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
@@ -21,28 +21,22 @@ def _define_forest(ns):
 
   array = Meow.IfrArray.WSRT(ns,num_stations);
   observation = Meow.Observation(ns);
+  Meow.Context.set(array,observation);
   
-  spigot = array.spigots();
-  ns.inspector << \
-      Meq.Composer(
-        dims=(len(array.ifrs()),2,2),mt_polling=True,
-        plot_label=[ "%s-%s"%(p,q) for p,q in array.ifrs() ],
-        *[ ns.inspector(p,q) << Meq.Mean(spigot(p,q),reduction_axes="freq")
-          for p,q in array.ifrs() ]
-      );
+  spigots = array.spigots();
+
+  inspectors = [
+    Meow.StdTrees.vis_inspector(ns.inspect_spigots,spigots)
+  ];
   
-  vdm = ns.VisDataMux << Meq.VisDataMux(post=ns.inspector);
-  vdm.add_stepchildren(*[spigot(p,q) for p,q in array.ifrs()]);
+  # make sinks and vdm
+  Meow.StdTrees.make_sinks(ns,spigots,post=inspectors);
   
 
 def _test_forest (mqs,parent,**kw):
   req = Meow.Utils.create_io_request();
   mqs.execute('VisDataMux',req,wait=False);
 
-
-Settings.forest_state = record(bookmarks=[
-  record(name="Spigot inspector",viewer="Collections Plotter",udi="/node/inspector")
-]);
 
 
 
