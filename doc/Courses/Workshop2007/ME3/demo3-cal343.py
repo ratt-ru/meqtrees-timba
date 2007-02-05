@@ -8,6 +8,7 @@ import Meow
 
 from Meow import Bookmarks
 from Meow import Utils
+import Meow.StdTrees
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
@@ -53,34 +54,26 @@ def _define_forest(ns):
   predict = allsky.visibilities();
 
   # create spigots, condeqs, residuals
+  spigots = array.spigots();
   for p,q in array.ifrs():
-    ns.spigot(p,q) << Meq.Spigot(station_1_index=p-1,station_2_index=q-1);
-    ns.ce(p,q) << Meq.Condeq(ns.spigot(p,q),predict(p,q));
-    ns.residual(p,q) << ns.spigot(p,q) - predict(p,q);
+    ns.ce(p,q) << Meq.Condeq(spigots(p,q),predict(p,q));
+    ns.residual(p,q) << spigots(p,q) - predict(p,q);
     
   # create solver
   ns.solver << Meq.Solver(*[ns.ce(p,q) for p,q in array.ifrs()]);
   
-  # create sequencer and sinks
+  # create sequencer
   for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(
-      ns.reqseq(p,q) << Meq.ReqSeq(ns.solver,ns.residual(p,q),result_index=1),
-    station_1_index=p-1,station_2_index=q-1);
+    ns.reqseq(p,q) << Meq.ReqSeq(ns.solver,ns.residual(p,q),result_index=1);
     
   # create visualizers for spigots and residuals
-  ns.inspect_spigots << Meq.Composer(
-    dims=[array.num_ifrs(),2,2],
-    plot_label=["%s-%s"%(p,q) for p,q in array.ifrs()],
-    *[ns.spigot(p,q) for p,q in array.ifrs()]
-  );
-  ns.inspect_residuals << Meq.Composer(
-    dims=[array.num_ifrs(),2,2],
-    plot_label=["%s-%s"%(p,q) for p,q in array.ifrs()],
-    *[ns.reqseq(p,q) for p,q in array.ifrs()]
-  );
+  inspectors = [
+    Meow.StdTrees.vis_inspector(ns.inspect_spigots,spigots,bookmark=False),
+    Meow.StdTrees.vis_inspector(ns.inspect_residuals,ns.reqseq,bookmark=False),
+  ];
     
-  # create VisDataMux
-  ns.VisDataMux = Meq.VisDataMux(pre=ns.inspect_spigots,post=ns.inspect_residuals,*[ns.sink(p,q) for p,q in array.ifrs()]);
+  # make sinks and VisDataMux
+  Meow.StdTrees.make_sinks(ns,ns.reqseq,post=inspectors);
 
   # add bookmarks
   bk = Bookmarks.Page("Fluxes and coherencies",2,3);
