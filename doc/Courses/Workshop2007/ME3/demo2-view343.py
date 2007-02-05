@@ -35,17 +35,10 @@ def _tdl_job_inspect_MS (mqs,parent,**kw):
 
 
 
-Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
-Settings.orphans_are_roots = True
-
 if __name__ == '__main__':
-
-
     Timba.TDL._dbg.set_verbose(5);
     ns = NodeScope();
     _define_forest(ns);
-
-
     ns.Resolve();
     pass
               
