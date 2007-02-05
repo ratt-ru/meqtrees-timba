@@ -253,8 +253,8 @@ class Matrixet22 (object):
             print ' * The first matrix of the set:'
             node = self.firstnode()
             # print dir(node)
-            print '   - node.name = '+str(node.name)+'   (node.basename='+str(node.basename)+')'
-            print '   - node.quals = '+str(node.quals)+'   (node.kwquals='+str(node.kwquals)+')'
+            # print '   - node.name = '+str(node.name)+'   (node.basename='+str(node.basename)+')'
+            # print '   - node.quals = '+str(node.quals)+'   (node.kwquals='+str(node.kwquals)+')'
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
                                                  recurse=recurse)
