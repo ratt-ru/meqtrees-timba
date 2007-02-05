@@ -60,7 +60,7 @@ def _define_forest (ns):
   # now define predicted visibilities, attach to sinks
   for p,q in IFRS:
     predict = ns.predict(p,q) << \
-      Meq.MatrixMultiply(ns.P(p),ns.G(p),ns.K(p),ns.B,ns.Kt(q),ns.Gt(q),ns.Pt(q));
+      Meq.MatrixMultiply(ns.G(p),ns.P(p),ns.K(p),ns.B,ns.Kt(q),ns.Pt(q),ns.Gt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define a couple of inspector nodes
