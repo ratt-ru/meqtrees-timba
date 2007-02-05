@@ -129,7 +129,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     
     mysim.setspwindow(spwname='LBAND', freq=freq,
 		      deltafreq='50.0MHz', freqresolution='50.0MHz', 
-		      nchannels=1, stokes='RR RL LR LL');
+		      nchannels=1, stokes='XX XY YX YY');
     
     note('Simulating scaled VLA');
     posvla := dm.observatory('vla');

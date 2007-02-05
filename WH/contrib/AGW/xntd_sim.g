@@ -130,7 +130,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     
     mysim.setspwindow(spwname='SKA', freq=freq,
 		      deltafreq='50.0MHz', freqresolution='50.0MHz', 
-		      nchannels=1, stokes='RR RL LR LL');
+		      nchannels=1, stokes='XX XY YX YY');
     
     note('Simulating scaled ATCA');
     posatca := dm.observatory('ATCA');
@@ -140,6 +140,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
    xx := [-1398.518311, -2799.947754, -43.786434, -1252.077026, 2197.975342, -2422.707520, 3586.145508, 1012.639587, -2161.428467, -1074.882935, 3769.756104, 360.050232, -2489.192871, -1158.198242, -400.231628, -2931.127686, -975.114929, -2974.646484, 237.993591, -360.298035, 2746.886963, 1342.838989, 2092.018066, -624.790771, 3048.720459, -666.824524, 71.983940, 770.071899, -538.815735, 2862.588867]
 
    yy := [-121.947021, 852.765686, 265.848907, 2375.637451, 2126.479248, 1123.350830, 844.697083, -3248.580566, -2382.272949, -3590.418213, 336.745850, -3556.010498, -1293.422974, 941.583923, 420.135803, 643.004700, -654.646118, -43.957832, 1082.475098, -183.253159, 1995.818237, 2669.032959, -3323.141357, -1419.005981, -791.578369, 822.521667, 3144.392090, -105.612885, -1600.316528, -2682.874512]
+
 
    zz:= [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 # the following number needs to equal the number of elements in each of
@@ -170,8 +171,8 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     scanlength:=5760.0
 
     scan:=1;
-#   while(starttime<14400) {
     while(starttime<2880) {
+#   while(starttime<14400) {
       mysim.observe('test_image', 'SKA',
 		    starttime=spaste(starttime, 's'),
 		    stoptime=spaste(starttime+scanlength,'s'));
@@ -203,7 +204,7 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
 print '*** deleting previous stuff ***'
 shell('rm -rf TEST_XNTD*.MS mymodel.cl')
 print '*** calling mkcomplist ***'
-num_sources := 1
+num_sources := 20
 mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
