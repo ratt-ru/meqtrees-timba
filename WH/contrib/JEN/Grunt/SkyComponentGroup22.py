@@ -101,6 +101,9 @@ class SkyComponentGroup22 (object):
             s1 = ' wgt='+str(self._wgt[k])
             s1 += '   l='+str(self._ll[k])+'   m='+str(self._mm[k])
             print '  - '+str(k)+': '+str(self._sc_name[k])+': '+s1
+        print '** Meow Patch: '+str(self._Patch)
+        if self._Visset22:
+            print '** Grunt Visset22: '+str(self._Visset22.oneliner())
         print '** Peeling support ('+str(len(self._peeling_Patch))+'):'
         for k,pp in enumerate(self._peeling_Patch):
             print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(self._peeling_group[k])
@@ -243,12 +246,15 @@ class SkyComponentGroup22 (object):
 
     def Patch2Visset22 (self, Patch, array, observation=None, name=None, visu=True):
         """Helper function to create a Grunt Visset22 object from the given Meow Patch"""
+
+        if not name: name = self._name
+        if not observation: observation = self._observation
+
         polrep = 'linear'
         if observation.circular():
             polrep = 'circular'
 
         # Make the Visset22:
-        if not name: name = self._name
         vis = Visset22.Visset22 (self._ns, quals=[], label=name,
                                  polrep=polrep,
                                  # simulate=self._simulate,
@@ -431,8 +437,8 @@ if __name__ == '__main__':
             scg.display()
             scg.rotate(1)
 
-        if 0:
-            vis = scg.Visset22(array, observation)
+        if 1:
+            vis = scg.Visset22(array)
             vis.display()
 
         if 0:
@@ -440,7 +446,7 @@ if __name__ == '__main__':
             scg.display('peeling_Patches')
 
         if 1:
-            scg.make_peeling_Visset22(3, array=array, observation=observation)
+            scg.make_peeling_Visset22(3, array=array)
             scg.display('peeling_Visset22')
 
 

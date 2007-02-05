@@ -1,21 +1,13 @@
-# file: ../Grunt/SkyComponentGroup22.py
+# file: ../Grunt/PointSourceGroup22.py
 
 # History:
 # - 04feb2007: creation (from SkyComponentGroup22.py) 
 
 # Description:
 
-# The SkyComponentGroup22 class represents a group of Meow SkyComponents.
-# It is a virtual base class for a series of more specialized classes that
-# represent various groups of SkyComponents (e.g. a grid for testing).
-# It has various options for modifying its source pattern, e.g. rotation
-# translation, magnification, etc.
-# It is not a Meow Patch, but it can generate one. In addition, it can makes
-# a Visset22 with a ParmGroupManager, so we can solve for its source parameters
-# in the Grunt system.
-# It also has support for making subsets of its sources, for peeling. These
-# can also be turned into Meow Patches and/or Grunt Visset22 objects.
- 
+# Various specialised SkyComponentGroup classes that contain groups of
+# point sources in various patterns, for testing.
+  
 
 #======================================================================================
 
@@ -43,9 +35,9 @@ from copy import deepcopy
 #======================================================================================
 
 
-def include_PointSourceGroup_TDL_options (prompt='definition'):
-    """Instantiates meqbrouwser user options for the PointSourceGroup class."""
-    menuname = 'PointSourceGroup22 ('+prompt+')'
+def include_EqualPointSourceGrid_TDL_options (prompt='definition'):
+    """Instantiates meqbrouwser user options for the EqualPointSourceGrid class."""
+    menuname = 'EqualPointSourceGrid22 ('+prompt+')'
     TDLCompileMenu(menuname,
                    TDLOption('TDL_pattern','source pattern',
                              ['grid','cross','star8'], more=str),
@@ -62,10 +54,10 @@ def include_PointSourceGroup_TDL_options (prompt='definition'):
 
 
 
-class PointSourceGroup22 (SkyComponentGroup22.SkyComponentGroup22):
+class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
     """A SkyComponentGroup22 with a pattern of point-sources of the same type, for testing."""
 
-    def __init__(self, ns, name='PointSourceGroup22', **pp):
+    def __init__(self, ns, name='EqualPointSourceGrid22', **pp):
 
         # Initialise its Meow counterpart:
         SkyComponentGroup22.SkyComponentGroup22.__init__(self, ns=ns, name=name)
@@ -160,7 +152,7 @@ class PointSourceGroup22 (SkyComponentGroup22.SkyComponentGroup22):
 # Test routine (with meqbrowser):
 #===============================================================
 
-include_PointSourceGroup_TDL_options('test')
+include_EqualPointSourceGrid_TDL_options('test')
 
 def _define_forest(ns):
 
@@ -172,7 +164,7 @@ def _define_forest(ns):
     observation = Meow.Observation(ns)
     Meow.Context.set (array, observation)
 
-    psg = PointSourceGroup22 (ns, name='test')
+    psg = EqualPointSourceGrid22 (ns, name='test')
     psg.display()
     psg.skycomp(0).display()
 
@@ -220,7 +212,7 @@ if __name__ == '__main__':
         Meow.Context.set (array, observation)
 
     if 1:
-        psg = PointSourceGroup22 (ns, name='testing')
+        psg = EqualPointSourceGrid22 (ns, name='testing')
         psg.display()
 
         if 1:
