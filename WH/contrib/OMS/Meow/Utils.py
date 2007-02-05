@@ -5,12 +5,13 @@ import math
 import random
 import Meow
 
-input_column = output_column = None;
+input_column = output_column = imaging_column = None;
 tile_size = None;
 ms_channels = None;
 msname = '';
 ms_write_flags = False;
 ms_input_flag_bit = 1;
+ms_has_output = False;
 
 def include_ms_options (
     has_input=True,
@@ -37,6 +38,8 @@ def ms_options (
   if has_input:
     opts.append(TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0));
   if has_output:
+    global ms_has_output;
+    ms_has_output = True;
     opts.append(TDLOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=2));
   if tile_sizes:
     opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
@@ -82,7 +85,11 @@ def imaging_options (npix=None,arcmin=5,cellsize=None,channels=None):
     imaging_channels_specified = True;
   def job_make_image (mqs,parent,**kw):
     make_dirty_image();
-  opts.append(TDLJob(job_make_image,"Make image from MS output column"));
+  if ms_has_output:
+    opts.append(TDLJob(job_make_image,"Make image from MS output column"));
+  else:
+    opts.append(TDLOption('imaging_column',"MS column to image",["DATA","MODEL_DATA","CORRECTED_DATA"]));
+    opts.append(TDLJob(job_make_image,"Make image"));
   return opts;  
   
 
@@ -298,7 +305,8 @@ def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None,**kw):
   arcmin is image size, in arcminutes. Either cellsize or arcmin must be 
         specified, but not both.
   """;
-  if not output_column:
+  col = output_column or imaging_column;
+  if not col:
     raise ValueError,"make_dirty_image: output column not set up";
   if not msname:
     raise ValueError,"make_dirty_image: MS not set up";
@@ -326,7 +334,7 @@ def make_dirty_image (npix=None,cellsize=None,arcmin=None,channels=None,**kw):
   script_name = os.path.realpath(script_name);  # glish don't like symlinks...
   args = [ 'glish','-l',
     script_name,
-    output_column,
+    col,
     'ms='+msname,'mode='+imaging_mode,
     'weight='+imaging_weight,'stokes='+imaging_stokes,
     'npix='+str(npix),
