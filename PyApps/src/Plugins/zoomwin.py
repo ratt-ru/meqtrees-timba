@@ -213,9 +213,9 @@ class ZoomPopup(QWidget):
       if abs_flags.max() > 0:
         if len(flags) == len(self._y_values):
           self._plotter.setFlagsData(flags,flip_axes=True)
-          self._plotter.set_flag_toggles_active(True)
+          self._plotter.set_flag_toggles_active(True,False)
       else:
-        self._plotter.set_flag_toggles_active(False)
+        self._plotter.set_flag_toggles_active(False,False)
       self._plotter.array_plot (self._zoom_plot_label, self._y_values, flip_axes=True)
 
 #     self.get_max()

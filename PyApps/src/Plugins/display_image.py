@@ -820,7 +820,7 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemEnabled(toggle_id, flag_setting)
       self._menu.setItemVisible(toggle_id, flag_setting)
 
-    def set_flag_toggles_active(self, flag_setting=False):
+    def set_flag_toggles_active(self, flag_setting=False,image_display=True):
       """ sets menu options for flagging to visible """
 # add flag toggling for vells but make hidden by default
       toggle_flag_label = "toggle flagged data for plane "
@@ -833,10 +833,11 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemEnabled(toggle_id, flag_setting)
       self._menu.setItemVisible(toggle_id, flag_setting)
 
-      toggle_range_label = "Toggle display range to that of flagged image for plane "
-      toggle_id = self.menu_table[toggle_range_label]
-      self._menu.setItemEnabled(toggle_id, flag_setting)
-      self._menu.setItemVisible(toggle_id, flag_setting)
+      if image_display:
+        toggle_range_label = "Toggle display range to that of flagged image for plane "
+        toggle_id = self.menu_table[toggle_range_label]
+        self._menu.setItemEnabled(toggle_id, flag_setting)
+        self._menu.setItemVisible(toggle_id, flag_setting)
 
     def initVellsContextMenu (self):
       """ intitialize context menu for selection of Vells data """
