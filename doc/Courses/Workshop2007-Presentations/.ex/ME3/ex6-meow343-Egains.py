@@ -22,9 +22,17 @@ TDLCompileOption('source_model',"Source model",
  );
 TDLCompileOption('make_residuals',"Subtract model sources in output",True);
   
-TDLCompileOption('g_tiling',"G phase solution subtiling",[None,1,2,5],more=int);
-TDLCompileOption('include_E_jones',"Include E Jones (differential gains)",False);
-TDLCompileOption('e_tiling',"E phase solution subtiling",[None,1,2,5],more=int);
+TDLCompileMenu("G Jones",
+  TDLOption('gp_tiling',"G phase solution subtiling",[None,1,2,5],more=int),
+  TDLOption('gp_freq_deg',"G phase freq degree",[0,1,2],more=int),
+  TDLOption('ga_freq_deg',"G ampl freq degree",[0,1,2],more=int)
+);
+TDLCompileMenu("E Jones",
+  TDLOption('include_E_jones',"Include E Jones (differential gains)",False),
+  TDLOption('ep_tiling',"E phase solution subtiling",[None,1,2,5],more=int),
+  TDLOption('ep_freq_deg',"E phase freq degree",[0,1,2],more=int),
+  TDLOption('ea_freq_deg',"E ampl freq degree",[0,1,2],more=int)
+);
   
  
 
@@ -32,7 +40,7 @@ def _define_forest(ns):
   # enable standard MS options from Meow
   Utils.include_ms_options(
     tile_sizes=None,
-    channels=[[15,40,1]]
+    channels=[[15,40,1],[15,40,2]]
   );
 
   # create array model
@@ -48,16 +56,16 @@ def _define_forest(ns):
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
   
   # definitions for ampl/phase parameters
-  g_ampl_def = Meow.Parm(1,table_name=Utils.get_mep_table());
-  g_phase_def = Meow.Parm(0,tiling=g_tiling,table_name=Utils.get_mep_table());
+  g_ampl_def = Meow.Parm(1,freq_deg=ga_freq_deg,table_name=Utils.get_mep_table());
+  g_phase_def = Meow.Parm(0,freq_deg=gp_freq_deg,tiling=gp_tiling,table_name=Utils.get_mep_table());
 
   # differential corrections present? 
   if include_E_jones:
     # first source is presumably at phase center, so only G itelf will aplly
     allsky.add(source_list[0]);
     # apply E to all other sources
-    e_ampl_def = Meow.Parm(1,freq_deg=1,table_name=Utils.get_mep_table());
-    e_phase_def = Meow.Parm(0,tiling=e_tiling,table_name=Utils.get_mep_table());
+    e_ampl_def = Meow.Parm(1,freq_deg=ea_freq_deg,table_name=Utils.get_mep_table());
+    e_phase_def = Meow.Parm(0,freq_deg=ep_freq_deg,tiling=ep_tiling,table_name=Utils.get_mep_table());
     for src in source_list[1:]:
       Ejones = Jones.gain_ap_matrix(ns.E(src.name),e_ampl_def,e_phase_def,
                                     tags="E",series=array.stations());
@@ -106,8 +114,10 @@ def _define_forest(ns):
   
   if include_E_jones:
     EPs = predict.search(tags="E phase");
+    solve_tree.define_solve_job("Calibrate E phases","e_phase",EPs);
     solve_tree.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
     EAs = predict.search(tags="E ampl");
+    solve_tree.define_solve_job("Calibrate E amplitudes","e_ampl",EAs);
     solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
 
   # insert standard imaging options from Meow
