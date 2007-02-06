@@ -7,16 +7,10 @@ import Meow
 import Meow.StdTrees
 from Meow import Jones
 from Meow import Bookmarks
+
 import iono_geometry
+import sky_models
 
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
-
-# define antenna list
-ANTENNAS = range(1,27+1);
-
-TDLCompileOption("grid_size","Grid size",[0,1,2,3,4]);
-TDLCompileOption("grid_step","Grid step, in arcmin",[.1,.5,1,2,5,10,15,20,30]);
 import mims
 TDLCompileOption("ionospheric_model","Ionospheric model",
             [ mims.mim_poly,
@@ -28,24 +22,6 @@ TDLCompileOption('make_residuals',"Subtract model sources in output",True);
 # define antenna list
 ANTENNAS = range(1,28);
 
-# useful constant: 1 deg in radians
-DEG = math.pi/180.;
-ARCMIN = DEG/60;
-
-def point_source (ns,name,l,m):
-  srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=1);
-  
-def grid_model (ns,basename,l0,m0,dl,dm,nsrc):
-  # Returns grid of sources
-  model = [ point_source(ns,basename+"+0+0",l0,m0) ];
-  for dx in range(-nsrc,nsrc+1):
-    for dy in range(-nsrc,nsrc+1):
-      if dx or dy:
-        name = "%s%+d%+d" % (basename,dx,dy);
-        model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy));
-  return model;
-  
 def _define_forest (ns):
   # enable standard MS options from Meow
   Meow.Utils.include_ms_options(tile_sizes=None);
@@ -56,7 +32,7 @@ def _define_forest (ns):
   Meow.Context.set(array=array,observation=observation);
 
   # create source model
-  sources = grid_model(ns,'S0',0,0,grid_step*ARCMIN,grid_step*ARCMIN,grid_size);
+  sources = sky_models.make_model(ns,"S0");
   # create a Patch for the entire observed sky
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
 

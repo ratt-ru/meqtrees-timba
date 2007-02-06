@@ -47,8 +47,8 @@ def _define_forest(ns):
   allsky.add(*source_list);
   
   # definitions for ampl/phase parameters
-  g_ampl_def = Meow.Parm(1,table_name=Utils.get_mep_table());
-  g_phase_def = Meow.Parm(0,tiling=g_tiling,table_name=Utils.get_mep_table());
+  g_ampl_def = Meow.Parm(1,save_all=True,table_name=Utils.get_mep_table());
+  g_phase_def = Meow.Parm(0,save_all=True,tiling=g_tiling,table_name=Utils.get_mep_table());
 
   # apply G to whole sky
   Gjones = Jones.gain_ap_matrix(ns.G,g_ampl_def,g_phase_def,

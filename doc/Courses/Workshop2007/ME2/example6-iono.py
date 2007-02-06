@@ -54,7 +54,7 @@ def _define_forest (ns):
   if noise_stddev:
     for p,q in array.ifrs():
       ns.noisy_predict(p,q) << predict(p,q) + noise_matrix(noise_stddev); 
-    predict = noisy_predict;
+    predict = ns.noisy_predict;
       
   # Make some inspectors.
   # These are the "interesting" stations:
