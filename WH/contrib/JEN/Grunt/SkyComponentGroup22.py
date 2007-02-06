@@ -55,21 +55,16 @@ class SkyComponentGroup22 (object):
         if not isinstance(self._pp, dict): self._pp = dict()
         # self._pp.setdefault('peeling_group', TDL_peeling_group)
 
-        # Initialise the skycomp list(s):
-        self._nominal = []
-        self._skycomp = []
-        self._sc_name = []
-        self._ll = []
-        self._mm = []
-        self._wgt = []
-        # self._unit = 'arcmin'
+        # Each skycomp and its auxiliary info is in its own dict:
+        self._skycomp = dict()
+        self._order = []
 
         # Some placeholders:
         self._Patch = None
         self._Visset22 = None
-        self._peeling_group = []
-        self._peeling_Patch = []
-        self._peeling_Visset22 = []
+        self._peeling_group = dict()
+        self._peeling_Patch = dict()
+        self._peeling_Visset22 = dict()
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
@@ -97,25 +92,29 @@ class SkyComponentGroup22 (object):
         for key in self._pp.keys():
             print '  - pp['+key+'] = '+str(self._pp[key])
         print '** SkyComponents ('+str(self.len())+'):'
-        for k in range(self.len()):
-            s1 = ' wgt='+str(self._wgt[k])
-            s1 += '   l='+str(self._ll[k])+'   m='+str(self._mm[k])
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+s1
-        for k,sc in enumerate(self._skycomp):
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(sc)
+        for key in self.order():
+            sc = self._skycomp[key]
+            s1 = ' wgt='+str(sc['wgt'])
+            s1 += '   l='+str(sc['l'])+'   m='+str(sc['m'])
+            print '  - '+key+': '+s1
+        for key in self.order():
+            sc = self._skycomp[key]
+            print '  - '+key+': '+str(sc['skycomp'])
         print '** nominal SkyComponents ('+str(self.len())+'):'
-        for k,nsc in enumerate(self._nominal):
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(nsc)
+        for key in self.order():
+            sc = self._skycomp[key]
+            print '  - '+key+': '+str(sc['nominal'])
         print '** Meow Patch: '+str(self._Patch)
         if self._Visset22:
             print '** Grunt Visset22: '+str(self._Visset22.oneliner())
         print '** Peeling support ('+str(len(self._peeling_Patch))+'):'
-        for k,pp in enumerate(self._peeling_Patch):
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(self._peeling_group[k])
-        for k,pp in enumerate(self._peeling_Patch):
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(pp)
-        for k,pv in enumerate(self._peeling_Visset22):
-            print '  - '+str(k)+': '+str(self._sc_name[k])+': '+str(pv.oneliner())
+        if len(self._peeling_group)>0:
+            for key in self.order():
+                print '  - '+key+': '+str(self._peeling_group[key])
+            for key in self.order():
+                print '  - '+key+': '+str(self._peeling_Patch[key])
+            for key in self.order():
+                print '  - '+key+': '+str(self._peeling_Visset22[key].oneliner())
         print '** Optimum image size: '+str(self.imagesize())+' arcmin'
         print '**\n'
         return True
@@ -126,18 +125,34 @@ class SkyComponentGroup22 (object):
         """Return the nr of sources in the group"""
         return len(self._skycomp)
 
-    def skycomp(self, index=0):
-        """Return the specified (index) SkyComponent from the list"""
-        return self._skycomp[index]
+    def order(self, order='descending'):
+        """Return a list of skycomp names in the specified order"""
+        return self._order
+
+    def key(self, key=None):
+        """Get a key into the skycomp dict"""
+        if isinstance(key,int):
+            # Convert an integer key (=index) into a string key:
+            key = self.order()[key]
+        if not isinstance(key,str):
+            return False
+        if key in self._skycomp.keys():
+            return key
+        return False
+
+    def skycomp(self, key=None, nominal=False):
+        """Return the specified (key) SkyComponent"""
+        key = self.key(key)
+        if nominal:
+            return self._skycomp[key]['nominal']
+        return self._skycomp[key]['skycomp']
 
     def add (self, skycomp, name=None, l=0.0, m=0.0, wgt=1.0):
         """Add a SkyComponent object to the group"""
-        self._skycomp.append(skycomp)
-        self._nominal.append(skycomp)
-        self._sc_name.append(name)
-        self._ll.append(l)
-        self._mm.append(m)
-        self._wgt.append(wgt)
+        self._order.append(name)
+        self._skycomp[name] = dict(skycomp=skycomp,
+                                   nominal=skycomp,
+                                   l=l, m=m, wgt=wgt)
         return self.len()
 
     #--------------------------------------------------------------------------
@@ -205,16 +220,19 @@ class SkyComponentGroup22 (object):
     # Corruption:
     #--------------------------------------------------------------------------
 
-    def corrupt (self, jones, label='G', index=None):
-        """Corrupt the specified (index) SkyComponent with the given Jones matrix.
-        If index==None, assume an overall Jones matrix (like EJones)"""
+    def corrupt (self, jones, label='G', key=None):
+        """Corrupt the specified (key) SkyComponent with the given Jones matrix.
+        If key==None, assume an overall Jones matrix (like EJones)"""
 
-        if index==None:
+        if key==None:
             # Note yet implemented....
             return False
         else:
-            self._skycomp[index] = Meow.CorruptComponent(self._ns, self._skycomp[index], label,
-                                                         station_jones=jones.matrixet())
+            key = self.key(key)
+            sc = self._skycomp[key]['skycomp']
+            sc = Meow.CorruptComponent(self._ns, sc, label,
+                                       station_jones=jones.matrixet())
+            self._skycomp[key]['skycomp'] = sc
         return True
 
     #--------------------------------------------------------------------------
@@ -303,10 +321,11 @@ class SkyComponentGroup22 (object):
             if not observation: observation = self._observation
             self._Patch = Meow.Patch(self._ns, self._name,
                                      observation.phase_centre)
-            if nominal:
-                for skycomp in self._nominal: self._Patch.add(skycomp)
-            else:
-                for skycomp in self._skycomp: self._Patch.add(skycomp)
+            for key in self.order():
+                if nominal:
+                    self._Patch.add(self._skycomp[key]['nominal'])
+                else:
+                    self._Patch.add(self._skycomp[key]['skycomp'])
         return self._Patch
 
 
@@ -323,17 +342,18 @@ class SkyComponentGroup22 (object):
         by including them in the predict"""
         
         if not self._peeling_Patch:
-            self._peeling_Patch = []
-            self._peeling_group = []
+            self._peeling_Patch = dict()
+            self._peeling_group = dict()
             for k in range(self.len()):
-                patch = Meow.Patch(self._ns, self._sc_name[k],
-                                   self._observation.phase_centre)
-                self._peeling_Patch.append(patch)
-                self._peeling_group.append([])
+                key = self.key(k)
+                patch = Meow.Patch(self._ns, key, self._observation.phase_centre)
+                self._peeling_Patch[key] = patch
+                self._peeling_group[key] = []
                 for i in range(window):
                     if k+i<self.len():
-                        self._peeling_Patch[k].add(self._skycomp[k+i])
-                        self._peeling_group[k].append(self._sc_name[k+i])
+                        key1 = self.key(k+i)
+                        self._peeling_Patch[key].add(self._skycomp[key1]['skycomp'])
+                        self._peeling_group[key].append(key1)
         return True
 
 
@@ -342,21 +362,25 @@ class SkyComponentGroup22 (object):
         See .make_peeling_Patches()."""
         if not self._peeling_Visset22:                 # avoid duplication
             self.make_peeling_Patches(window=window)
-            self._peeling_Visset22 = []
-            for k in range(self.len()):
-                vis = self.Patch2Visset22 (self._peeling_Patch[k], array=array,
-                                           observation=observation,
-                                           name=self._sc_name[k], visu=False)
-                self._peeling_Visset22.append(vis)
+            self._peeling_Visset22 = dict()
+            for key in self.order():
+                vis = self.Patch2Visset22 (self._peeling_Patch[key],
+                                           array=array, observation=observation,
+                                           name=key, visu=False)
+                self._peeling_Visset22[key] = vis
         return True
 
-    def peeling_Patch (self, index=0):
-        """Return the specified (index) peeling Patch"""
-        return self._peeling_Patch[index]
 
-    def peeling_Visset22 (self, index=0):
-        """Return the specified (index) peeling Visset22"""
-        return self._peeling_Visset22[index]
+    def peeling_Patch (self, key=0):
+        """Return the specified (key) peeling Patch"""
+        key = self.key(key)
+        return self._peeling_Patch[key]
+
+
+    def peeling_Visset22 (self, key=0):
+        """Return the specified (key) peeling Visset22"""
+        key = self.key(key)
+        return self._peeling_Visset22[key]
 
     #---------------------------------------------------------------------------------
     
@@ -411,7 +435,7 @@ def _define_forest(ns):
 
     if True:
         jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS)
-        scg.corrupt(jones, label='G', index=1)
+        scg.corrupt(jones, label='G', key=1)
         scg.display('corrupted')
 
     if True:
@@ -471,12 +495,13 @@ if __name__ == '__main__':
 
         if 1:
             jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS)
-            scg.corrupt(jones, label='G', index=1)
+            scg.corrupt(jones, label='G', key=1)
             scg.display()
 
         if 0:
             vis = scg.Visset22(array)
             vis.display()
+            scg.display('Visset22')
 
         if 0:
             scg.make_peeling_Patches(3)
