@@ -604,8 +604,8 @@ class ChartPlot(QWidget):
           chart = array(self._chart_data[curve_no][self._data_index])
           flags = array(self._flag_data[curve_no][self._data_index])
           self._Zoom[curve_no].update_plot(chart,flags)
-#         self._Zoom[curve_no]._plotzoom.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
-          self._Zoom[curve_no]._plotzoom.replot()
+#         self._Zoom[curve_no]._plotter.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
+          self._Zoom[curve_no]._plotter.replot()
 
     if self._closezoom:
       toggle_id = self.menu_table['Close Popups']
@@ -735,13 +735,13 @@ class ChartPlot(QWidget):
         self._Zoom[crv].setDataLabel(self._data_label, plot_label, self._is_vector)
       self._pause[crv] = False
       # what is all this marker stuff used for?
-#     self._mrk[crv] = self._Zoom[crv]._plotzoom.insertMarker()
-#     self._Zoom[crv]._plotzoom.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
-#     self._Zoom[crv]._plotzoom.setMarkerPos(self._mrk[crv], 10,20)
-#     self._Zoom[crv]._plotzoom.setMarkerLabelAlign(self._mrk[crv], Qt.AlignRight|Qt.AlignTop)
-#     self._Zoom[crv]._plotzoom.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
-#     self._Zoom[crv]._plotzoom.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
-#     self._Zoom[crv]._plotzoom.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
+#     self._mrk[crv] = self._Zoom[crv]._plotter.insertMarker()
+#     self._Zoom[crv]._plotter.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
+#     self._Zoom[crv]._plotter.setMarkerPos(self._mrk[crv], 10,20)
+#     self._Zoom[crv]._plotter.setMarkerLabelAlign(self._mrk[crv], Qt.AlignRight|Qt.AlignTop)
+#     self._Zoom[crv]._plotter.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
+#     self._Zoom[crv]._plotter.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
+#     self._Zoom[crv]._plotter.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
 
@@ -973,11 +973,11 @@ class ChartPlot(QWidget):
       if not data_flag:
         self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
         if self._indexzoom[channel]:
-          self._Zoom[channel]._plotzoom.setCurvePen(1,QPen(Qt.red))
+          self._Zoom[channel]._plotter.setCurvePen(1,QPen(Qt.red))
         else: 
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.yellow))
           if self._indexzoom[channel]:
-            self._Zoom[channel]._plotzoom.setCurvePen(1,QPen(Qt.yellow))
+            self._Zoom[channel]._plotter.setCurvePen(1,QPen(Qt.yellow))
 
   def change_scale_type(self):
     # click means change to fixed scale

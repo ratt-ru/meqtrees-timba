@@ -59,19 +59,19 @@ class ZoomPopup(QWidget):
     self._array_label = "Channel "
  
     #Create the plot for selected curve to zoom
-    self._plotzoom = QwtImageDisplay(parent=self)
-    self._plotzoom. setZoomDisplay()
+    self._plotter = QwtImageDisplay(parent=self)
+    self._plotter. setZoomDisplay()
 
     self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
-#   self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
-#   self._plotzoom.setAxisTitle(QwtPlot.yLeft, "Signal")
-#   self._plotzoom.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
+#   self._plotter.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
+#   self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal")
+#   self._plotter.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
 
-#   self._plotzoom.setGridMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
+#   self._plotter.setGridMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
 
 #   label_char = 'G'
 #   label_prec = 5
-#   self._plotzoom.setAxisLabelFormat(QwtPlot.yLeft, label_char, label_prec)
+#   self._plotter.setAxisLabelFormat(QwtPlot.yLeft, label_char, label_prec)
 
     self._max_crv = -1  # negative value used to indicate that this display
     self._min_crv = -1  # is not being used
@@ -82,14 +82,16 @@ class ZoomPopup(QWidget):
     vbox_left = QVBoxLayout( self )
     vbox_left.setSpacing(10)
     box1 = QHBoxLayout( vbox_left )
-    box1.addWidget(self._plotzoom)
-    self.plotPrinter = plot_printer.plot_printer(self._plotzoom)
+    box1.addWidget(self._plotter)
+    self.plotPrinter = plot_printer.plot_printer(self._plotter)
 
-    self.connect(self._plotzoom,PYSIGNAL('winpaused'), self.Pausing)
-    self.connect(self._plotzoom,PYSIGNAL('compare'), self.do_compare)
-    self.connect(self._plotzoom,PYSIGNAL('do_print'), self.plotPrinter.do_print)
+    self.connect(self._plotter,PYSIGNAL('winpaused'), self.Pausing)
+    self.connect(self._plotter,PYSIGNAL('compare'), self.do_compare)
+    self.connect(self._plotter,PYSIGNAL('do_print'), self.plotPrinter.do_print)
 
     self._x_values = x_values
+    # insert flags ?   
+    self._plotter.initVellsContextMenu()
     self.update_plot(y_values, flags)
     self.show()
 
@@ -97,10 +99,10 @@ class ZoomPopup(QWidget):
     ### instantiate the envelop that will show min/max deviations
     self._max_envelop = self._y_values
     self._min_envelop = self._y_values
-    self._max_crv =self._plotzoom.insertCurve("Zoomed max curve")
-    self._min_crv = self._plotzoom.insertCurve("Zoomed min curve")
-    self._plotzoom.setCurveData(self._max_crv,x_values,self._max_envelop)
-    self._plotzoom.setCurveData(self._min_crv,x_values,self._min_envelop)
+    self._max_crv =self._plotter.insertCurve("Zoomed max curve")
+    self._min_crv = self._plotter.insertCurve("Zoomed min curve")
+    self._plotter.setCurveData(self._max_crv,x_values,self._max_envelop)
+    self._plotter.setCurveData(self._min_crv,x_values,self._min_envelop)
     self._compare_max = True
 
   def do_compare(self):
@@ -111,10 +113,10 @@ class ZoomPopup(QWidget):
     else:
       self._max_envelop = self._y_values
       self._min_envelop = self._y_values
-      self._max_crv = self._plotzoom.insertCurve("Zoomed max curve")
-      self._min_crv = self._plotzoom.insertCurve("Zoomed min curve")
-      self._plotzoom.setCurveData(self._max_crv,self._x_values,self._max_envelop)
-      self._plotzoom.setCurveData(self._min_crv,self._x_values,self._min_envelop)
+      self._max_crv = self._plotter.insertCurve("Zoomed max curve")
+      self._min_crv = self._plotter.insertCurve("Zoomed min curve")
+      self._plotter.setCurveData(self._max_crv,self._x_values,self._max_envelop)
+      self._plotter.setCurveData(self._min_crv,self._x_values,self._min_envelop)
       self._compare_max = True
     self.reset_max()
 
@@ -122,8 +124,8 @@ class ZoomPopup(QWidget):
     if self._compare_max:
       self._max_envelop = 0.0
       self._min_envelop = 0.0
-      self._plotzoom.removeCurve(self._max_crv)
-      self._plotzoom.removeCurve(self._min_crv)
+      self._plotter.removeCurve(self._max_crv)
+      self._plotter.removeCurve(self._min_crv)
       self._compare_max = False
       self._max_crv = -1
       self._min_crv = -1
@@ -178,7 +180,7 @@ class ZoomPopup(QWidget):
     if self._do_fixed_scale:
       self._do_fixed_scale = False
       self._menu.changeItem(toggle_id, 'Fixed Scale')
-      self._plotzoom.setAxisAutoScale(QwtPlot.yLeft)
+      self._plotter.setAxisAutoScale(QwtPlot.yLeft)
       self.emit(PYSIGNAL("image_auto_scale"),(0,))
     else:
       self._do_fixed_scale = True
@@ -193,28 +195,31 @@ class ZoomPopup(QWidget):
   def set_scale_values(self,max_value,min_value):
     if self._do_fixed_scale:
       self.emit(PYSIGNAL("image_scale_values"),(max_value,min_value))
-      self._plotzoom.setAxisScale(QwtPlot.yLeft, min_value, max_value)
-      self._plotzoom.replot()
+      self._plotter.setAxisScale(QwtPlot.yLeft, min_value, max_value)
+      self._plotter.replot()
 
   def cancel_scale_request(self):
     if self._do_fixed_scale:
       toggle_id = self.menu_table['Fixed Scale ']
       self._menu.changeItem(toggle_id, 'Fixed Scale')
-      self._plotzoom.setAxisAutoScale(QwtPlot.yLeft)
+      self._plotter.setAxisAutoScale(QwtPlot.yLeft)
       self._do_fixed_scale = False
   
   def update_plot(self,y_values, flags):
     if not self._do_pause:
+      self._plotter.unsetFlagsData()
       self._y_values = y_values
-      self._plotzoom.array_plot (self._zoom_plot_label, self._y_values, flip_axes=True)
-#     abs_flags = abs(flags)
-#     if abs_flags.max() > 0:
-#       print 'flags have max ', abs_flags.max()
-#       self._plotzoom.setFlagsData(flags,flip_axes=True)
-#     else:
-#       self._plotzoom.unsetFlagsData()
-      self.get_max()
-      self._plotzoom.replot()
+      abs_flags = abs(flags)
+      if abs_flags.max() > 0:
+        if len(flags) == len(self._y_values):
+          self._plotter.setFlagsData(flags,flip_axes=True)
+          self._plotter.set_flag_toggles_active(True)
+      else:
+        self._plotter.set_flag_toggles_active(False)
+      self._plotter.array_plot (self._zoom_plot_label, self._y_values, flip_axes=True)
+
+#     self.get_max()
+      self._plotter.replot()
 
   def Printzoom(self):
     # taken from PyQwt Bode demo
@@ -231,7 +236,13 @@ class ZoomPopup(QWidget):
       if (QPrinter.GrayScale == printer.colorMode()):
         filter.setOptions(QwtPlotPrintFilter.PrintAll
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-      self._plotzoom.print_(printer, filter)
+      try:
+        self._plotter.print_(printer, filter)
+      except:
+        try:
+          self._plotter.printPlot(printer, filter)
+        except:
+          print 'printing is unavailable'
 
   def setDataLabel(self, data_label, array_label, is_array=False):
     self._data_label = data_label
@@ -243,7 +254,7 @@ class ZoomPopup(QWidget):
       self._zoom_plot_label = self._data_label + ": " + self._array_label  
     else:
       self._zoom_plot_label = self._data_label + ": " + self._array_label + " Sequence (oldest to most recent)"
-    self._plotzoom.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
+    self._plotter.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
 
   def plotMouseMoved(self, e):
     """	Gets x and y position of the mouse on the plot according to axis' value
@@ -252,9 +263,9 @@ class ZoomPopup(QWidget):
 # (I) e (QMouseEvent) Mouse event
     lbl = QString("Event=")
     lbl2 = QString("")
-    lbl2.setNum(self._plotzoom.invTransform(QwtPlot.xBottom, e.pos().x() ), 'g', 3)
+    lbl2.setNum(self._plotter.invTransform(QwtPlot.xBottom, e.pos().x() ), 'g', 3)
     lbl += lbl2 + ",  Signal="
-    lbl2.setNum(self._plotzoom.invTransform(QwtPlot.yLeft, e.pos().y() ), 'g', 3)
+    lbl2.setNum(self._plotter.invTransform(QwtPlot.yLeft, e.pos().y() ), 'g', 3)
     lbl += lbl2
 #   self._ControlFrame._lblInfo.setText(lbl)
 
