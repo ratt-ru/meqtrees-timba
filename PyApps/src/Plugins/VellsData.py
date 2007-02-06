@@ -287,7 +287,7 @@ class VellsData:
    # end StoreVellsData
 
    def isVellsScalar(self):
-     """ returns true if no cells structure so data but be scalar """
+     """ returns true if no cells structure so data must be scalar """
      _dprint(3,'returning self.scalar_data value ', self.scalar_data)
      return self.scalar_data
 
