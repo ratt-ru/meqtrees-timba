@@ -70,7 +70,7 @@ class PointSource(SkyComponent):
       sinf = self.ns.sin_farot << Meq.Sin(farot);
       self.ns.Qr << cosf*q - sinf*u;
       self.ns.Ur << sinf*q + cosf*u;
-      return stokes;
+      return self.ns[st+'r'];
       
   def norm_spectrum (self):
     """Returns spectrum normalized to 1 at the reference frequency.
