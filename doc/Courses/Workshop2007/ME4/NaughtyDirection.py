@@ -2,7 +2,7 @@
 import Meow.LMDirection
 
 class NaughtyDirection (Meow.LMDirection):
-  def n (self,radec0=None):
+  def n (self,dir0=None):
     """Returns 'n' coordinate for this direction.
     We're naughty so we always return 1.
     """;

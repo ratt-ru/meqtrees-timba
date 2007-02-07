@@ -4,16 +4,16 @@ from Timba.Meq import meq
 import math
 
 import Meow
-import Meow.Utils
-import Meow.Bookmarks
+import Meow.StdTrees
 
-from NaughtyDirection import NaughtyDirection
+TDLCompileOption('grid_step',"Grid stepping (in arcmin)",[1,2,10,60],more=float);
 
 # some GUI options
-Meow.Utils.include_ms_options(has_input=False,tile_sizes=[5,10]);
-Meow.Utils.include_imaging_options();
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
+TDLRuntimeMenu("Imaging options",
+    *Meow.Utils.imaging_options(npix=256,arcmin=grid_step*5,channels=[[32,1,1]]));
 
-TDLCompileOption('grid_step',"Grid stepping (in arcmin)",[1,2,10,60]);
+from NaughtyDirection import NaughtyDirection
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -43,9 +43,11 @@ def cross_model (ns,basename,l0,m0,dl,dm,nsrc,kind=point_source):
 
 def _define_forest (ns):
   # create an Array object
-  array = Meow.IfrArray(ns,ANTENNAS);
+  array = Meow.IfrArray.VLA(ns);
   # create an Observation object
   observation = Meow.Observation(ns);
+  # set global context
+  Meow.Context.set(array=array,observation=observation);
   
   # create a Patch for the entire observed sky
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
@@ -66,25 +68,19 @@ def _define_forest (ns):
   
   # ...and attach them to resamplers and sinks
   for p,q in array.ifrs():
-    ns.sink(p,q) << Meq.Sink(predict(p,q)-predict1(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
+    ns.diff(p,q) << predict(p,q)-predict1(p,q);
 
-  # define VisDataMux
-  ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in array.ifrs()]);
+  # make sinks and vdm. Note that we don't want to make any spigots...
+  # The list of inspectors comes in handy here
+  Meow.StdTrees.make_sinks(ns,ns.diff,spigots=False);
   
 
 def _tdl_job_1_simulate_MS (mqs,parent):
   req = Meow.Utils.create_io_request();
   # execute    
-  mqs.execute('vdm',req,wait=False);
+  mqs.execute('VisDataMux',req,wait=False);
   
   
-def _tdl_job_2_make_image (mqs,parent):
-  # image "radius" in arcseconds
-  image_radius = grid_step*2.5*60;  
-  # corresponds to this cellsize
-  cellsize = str(image_radius/256)+"arcsec";
-  Meow.Utils.make_dirty_image(npix=512,cellsize=cellsize,channels=[32,1,1]);
-
 
 
 # setup a few bookmarks
