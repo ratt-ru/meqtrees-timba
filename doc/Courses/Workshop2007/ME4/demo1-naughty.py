@@ -11,7 +11,7 @@ TDLCompileOption('grid_step',"Grid stepping (in arcmin)",[1,2,10,60],more=float)
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
 TDLRuntimeMenu("Imaging options",
-    *Meow.Utils.imaging_options(npix=256,arcmin=grid_step*5,channels=[[32,1,1]]));
+    *Meow.Utils.imaging_options(npix=256,arcmin=grid_step*5));
 
 from NaughtyDirection import NaughtyDirection
 
@@ -63,8 +63,8 @@ def _define_forest (ns):
   allsky1.add(*ns_list);
 
   # create set of nodes to compute visibilities...
-  predict = allsky.visibilities(array,observation);
-  predict1 = allsky1.visibilities(array,observation);
+  predict = allsky.visibilities();
+  predict1 = allsky1.visibilities();
   
   # ...and attach them to resamplers and sinks
   for p,q in array.ifrs():
