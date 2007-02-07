@@ -177,7 +177,7 @@ namespace Meq {
 
 	// set request cells to this slice + fill other dimensions
 	for (int axis =0;axis<shape.size();axis++){
-	  if(axis!=n_axis_ && shape[axis]>1)
+	  if(axis!=n_axis_ )
 	    {
 	      trans_cells.setCells(axis,start_cells[axis](idx[axis]),end_cells[axis](idx[axis]),1);
 	      //also set domain
@@ -340,6 +340,11 @@ namespace Meq {
 					    //returns if_reversed + array  of grid sizes
    bool reversed =  false;
    int size = result_array.size();
+   if (size==1) //just return 1;
+     {sizes.resize(size);
+       sizes(0)=1.;
+       return reversed;
+     }
    if(result_array(size-1)<result_array(0)){
      result_array.reverseSelf(0);
      reversed = true;
