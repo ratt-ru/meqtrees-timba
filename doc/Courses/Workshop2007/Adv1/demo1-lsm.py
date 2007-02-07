@@ -10,8 +10,9 @@ import lsm_model
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[1,5,10,30]);
-Meow.Utils.include_imaging_options();
-
+TDLRuntimeMenu("Make image",*Meow.Utils.imaging_options(npix=1024,arcmin=60));
+  
+  
 # GUI option for selecting a source model
 TDLCompileOption('source_model',"Source model",[
     lsm_model.point_and_extended_sources,
@@ -22,7 +23,7 @@ ANTENNAS = range(1,28);
 
 def _define_forest (ns):
   # create an Array object
-  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
+  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=True);
   # create an Observation object
   observation = Meow.Observation(ns);
     
