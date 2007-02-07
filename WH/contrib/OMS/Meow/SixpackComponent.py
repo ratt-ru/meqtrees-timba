@@ -89,10 +89,15 @@ class SixpackComponent (SkyComponent):
     
   def make_visibilities (self,nodes,array,observation):
     observation = Context.get_observation(observation);
-    # create a brick
-    brick = self.uvbrick();
-    uvw = array.uvw_ifr(observation.phase_center);
-    for ifr in array.ifrs():
-      nodes(*ifr) << Meq.UVInterpolWave(brick=brick,uvw=uvw(*ifr),
-                        method=self._interpol_method,
-                        additional_info=self._interpol_debug);
+    array = Context.get_array(array);
+    coherency = self.ns.coherency;
+    if not coherency(array.ifrs()[0]).initialized():
+      # create a brick
+      brick = self.uvbrick();
+      uvw = array.uvw_ifr(observation.phase_center);
+      for ifr in array.ifrs():
+        coherency(*ifr) << Meq.UVInterpolWave(brick=brick,uvw=uvw(*ifr),
+                            method=self._interpol_method,
+                            additional_info=self._interpol_debug);
+    self.direction.make_phase_shift(nodes,coherency,array,observation.phase_center);
+  
