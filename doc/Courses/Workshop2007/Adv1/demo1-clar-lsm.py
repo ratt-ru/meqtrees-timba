@@ -17,8 +17,6 @@ TDLCompileOption('source_model',"Source model",[
     lsm_model.point_and_extended_sources,
   ],default=0);
 
-TDLCompileOption('apply_clar_beam',"Apply CLAR beam",False);
-
 # define antenna list
 ANTENNAS = range(1,28);
 
