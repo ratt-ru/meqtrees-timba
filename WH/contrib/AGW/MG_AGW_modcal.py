@@ -283,17 +283,19 @@ def _define_forest(ns):
   # modcal matrices
   ns.elements << Meq.Sum(ns.unity)
   for p,q in IFRS:
-    ns.a11(p,q) << Meq.Sum(ns.predict_ok(p,q) * ns.predict_ok_conj(p,q))
-    ns.a12(p,q) << Meq.Sum(ns.predict_ok_conj(p,q))
-    ns.a21(p,q) << Meq.Sum(ns.predict_ok(p,q))
-    ns.a22(p,q) << Meq.Composer(dims=(2,2),children=(ns.elements,ns.elements,ns.elements,ns.elements))
-    ns.components(p,q)<< Meq.Matrix22(ns.a11(p,q),ns.a12(p,q), ns.a21(p,q),ns.a22(p,q))
-    ns.invert(p,q) << Meq.MatrixInvert22(ns.components(p,q))
+    for i in range(4):
+      ns.a11(p,q,i) << Meq.Selector(Meq.Sum(ns.predict_ok(p,q) * ns.predict_ok_conj(p,q)), index=i)
+      ns.a12(p,q,i) << Meq.Selector(Meq.Sum(ns.predict_ok_conj(p,q)), index= i)
+      ns.a21(p,q,i) << Meq.Selector(Meq.Sum(ns.predict_ok(p,q)),index=i)
+      ns.components(p,q,i)<< Meq.Matrix22(ns.a11(p,q,i),ns.a12(p,q,i), ns.a21(p,q,i),ns.elements)
+      ns.invert(p,q,i) << Meq.MatrixInvert22(ns.components(p,q,i))
 
-    ns.h1(p,q) << Meq.Sum(ns.predict(p,q) * ns.predict_ok_conj(p,q))
-    ns.h2(p,q) << Meq.Sum(ns.predict(p,q))
-    ns.h_vector(p,q) << Meq.Composer(ns.h1(p,q), ns.h2(p,q))
-    ns.gains(p,q) << Meq.MatrixMultiply(ns.invert(p,q), ns.h_vector(p,q))
+      ns.h1(p,q,i) << Meq.Selector(Meq.Sum(ns.predict(p,q) * ns.predict_ok_conj(p,q)), index=i)
+      ns.h2(p,q,i) << Meq.Selector(Meq.Sum(ns.predict(p,q)), index=i)
+      ns.h_vector(p,q,i) << Meq.Composer(ns.h1(p,q,i), ns.h2(p,q,i))
+      ns.gains(p,q,i) << Meq.MatrixMultiply(ns.invert(p,q,i), ns.h_vector(p,q,i))
+    # we're only interested in the first of the two members of the solution vector
+    ns.gains(p,q) << Meq.Composer(dims=(2,2), children=(Meq.Selector(ns.gains(p,q,0),index=0), Meq.Selector(ns.gains(p,q,1),index=0), Meq.Selector(ns.gains(p,q,2),index=0), Meq.Selector(ns.gains(p,q,3),index=0)))
     ns.sink(p,q) << Meq.Sink(ns.gains(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   ns.inspect_predicts << Meq.Composer(
@@ -334,7 +336,8 @@ def _test_forest(mqs,parent):
     )
   );
   # execute
-  mqs.execute('vdm',req,wait=False);
+# mqs.execute('vdm',req,wait=False);
+  mqs.execute('inspect_predicts',req,wait=False);
 
 
 if __name__=='__main__':
