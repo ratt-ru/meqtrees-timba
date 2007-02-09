@@ -32,8 +32,16 @@ void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     string classname  = rec[FClassName].as<string>(); 
     string modulename = rec[FModuleName].as<string>(""); 
     pynode_obj_ = MeqPython::createPyNode(*this,classname,modulename);
+    if( !pynode_obj_ )
+    {
+      PyErr_Print();
+      Throw("Failed to create PyNode object "+modulename+"."+classname);
+    }
+    // clear errors when fetching these attributes, as they are optional
     pynode_setstate_ = PyObject_GetAttrString(*pynode_obj_,"set_state_impl");
+    PyErr_Clear();
     pynode_getresult_ = PyObject_GetAttrString(*pynode_obj_,"get_result");
+    PyErr_Clear();
   }
   else
   {

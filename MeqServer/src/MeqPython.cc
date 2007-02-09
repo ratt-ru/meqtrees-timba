@@ -199,7 +199,7 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
   PyObjectRef allargs = Py_BuildValue("(O)",*pyarg);
   FailWhen(!allargs,"failed to build args tuple");
   PyObjectRef val = PyObject_CallObject(func,*allargs);
-  if( !val )
+  if( !val && PyErr_Occurred() )
     PyErr_Print();
   return val;
 }
@@ -216,7 +216,8 @@ PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const stri
   PyObjectRef val = PyObject_CallObject(create_pynode,*args);
   if( !val )
   {
-    PyErr_Print();
+    if( PyErr_Occurred() )
+      PyErr_Print();
     Throw("failed to create PyNode of class "+classname+" ("+modulename+")");
   }
   return val;

@@ -70,7 +70,7 @@ def process_vis_footer (footer):
 
 _imported_modules = {};
 
-def _import_script_or_module (script):
+def _import_script_or_module (script,modname=None):
   """imports the specified script or module. 
   If 'script' ends with .py, treats it as a filename and looks through
   various include paths (and the current directory). Otherwise, treats
@@ -95,14 +95,15 @@ def _import_script_or_module (script):
             break;
         else:
           raise ValueError,"script not found anywhere in path: "+script;
-      _dprint(0,"importing script",filename);
       # open the script file
       infile = file(filename,'r');
       # now import the script as a module
-      modname = '__initscript';
+      if modname is None:
+        modname = os.path.basename(filename)[:-len(suffix)];
+      _dprint(0,"importing ",modname," from script",filename);
       try:
         imp.acquire_lock();
-        module = imp.load_module(modname,infile,filename,(suffix,mode,filetype));
+        module = imp.load_source(modname,filename,infile);
       finally:
         imp.release_lock();
         infile.close();
