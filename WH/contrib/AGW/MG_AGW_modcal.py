@@ -86,10 +86,10 @@ for p in ANTENNAS:
 
 # we want a single test source
 LM = []
-LM.append((0.015,0.000,1.0))  # source we want to remove
+LM.append((0.015,0.000,10.0)) # source we want to remove -is in a sidelobe
 LM.append((0.001,0.001,0.05)) # following sources represent 'field rumble'
 LM.append((-0.0005,0.0005,0.09)) 
-test_flux = 5.25
+test_flux = 1.25
 
 #for i in range(25):
 #  l = random.uniform(-0.007,0.007)
@@ -173,6 +173,9 @@ def _define_forest(ns):
   # nodes for array reference position
   ns.xyz0 = Meq.Composer(ns.x0<<0,ns.y0<<0,ns.z0<<0);
 
+  # parallactic angle node
+  ns.ParAngle << Meq.ParAngle(radec=ns.radec0, xyz=ns.xyz0)
+
   # now define per-station stuff: XYZs and UVWs
   for p in ANTENNAS:
     # set up individual positions and uvw
@@ -244,7 +247,16 @@ def _define_forest(ns):
     ns.B0(src) << 0.5 * Meq.Matrix22(flux+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),flux-Q)
     # don't really need to use the following for a point source
     ns.B(src) << ns.B0(src) / n;
-    ns.lm(src) << Meq.Composer(l,m)
+    ns.lm0(src) << Meq.Composer(l,m)
+    ns.RaDec(src) << Meq.LMRaDec(radec_0=ns.radec0, lm=ns.lm0(src))
+
+    # here we pretend we're observing with an AZ_EL mounted dish
+    # so that especially the first source is moving through a
+    # sidelibe as a function of time.
+    ns.lmn(src) << Meq.LMN(ns.radec0, ns.RaDec(src), ns.ParAngle)
+    ns.ls(src) << Meq.Selector(ns.lmn(src),index=0)
+    ns.ms(src) << Meq.Selector(ns.lmn(src),index=1)
+    ns.lm(src) << Meq.Composer(ns.ls(src), ns.ms(src))
 
     # the following operation extracts the value of the actual e-Jones
     # in the direction of the individual sources through use of a
@@ -308,9 +320,9 @@ def _define_forest(ns):
 #   ns.sink(p,q) << Meq.Sink(ns.predict(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   ns.inspect_predicts << Meq.Composer(
-     dims=[0],
-     plot_label=["%s-%s"%(p,q) for p,q in IFRS],
-     *[ns.gains(p,q) for p,q in IFRS]
+    dims=[0],
+    plot_label=["%s-%s"%(p,q) for p,q in IFRS],
+    *[ns.gains(p,q) for p,q in IFRS]
   );
 
   # and thats it. Finally we define a VisDataMux node which essentially
