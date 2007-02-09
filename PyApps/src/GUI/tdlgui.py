@@ -626,7 +626,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       if QMessageBox.question(self,"Revert to saved",
         """Revert to saved version of <p><tt>%s</tt>?"""
         % (self._filename,),
-        "Revert","Cancel",None,0,1):
+        "Revert","Cancel","",0,1):
         return;
     self.load_file(self._filename);
     

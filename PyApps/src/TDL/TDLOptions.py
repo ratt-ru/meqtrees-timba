@@ -265,7 +265,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     if self._more is int:
       value,ok = QInputDialog.getInteger(qag._groupname,qag._groupname,self.option_list[-1] or 0);
     elif self._more is float:
-      value,ok = QInputDialog.getDouble(qag._groupname,qag._groupname,self.option_list[-1] or 0);
+      value,ok = QInputDialog.getDouble(qag._groupname,qag._groupname,self.option_list[-1] or 0,-2147483647,2147483647,6);
     elif self._more is str:
       value,ok = QInputDialog.getText(qag._groupname,qag._groupname,QLineEdit.Normal,self.option_list[-1] or '');
     if ok:
