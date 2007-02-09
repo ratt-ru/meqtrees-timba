@@ -1462,7 +1462,7 @@ class LSM:
    \s*             # skip white space
    (?P<col5>\d+(\.\d+)?)   # RA angle - sec
    \s*             # skip white space
-   (?P<col6>\d+(\.\d+)?)   # eRA angle - sec
+   (?P<col6>[^ ]+) # eRA angle - sec or 'n'
    \s*             # skip white space
    (?P<col7>\d+)   # Dec angle - hr 
    \s*             # skip white space
@@ -1470,16 +1470,19 @@ class LSM:
    \s*             # skip white space
    (?P<col9>\d+(\.\d+)?)   # Dec angle - sec
    \s*             # skip white space
-   (?P<col10>\d+(\.\d+)?)   # eDec angle - sec
+   (?P<col10>[^ ]+)   # eDec angle - sec
    \s*             # skip white space
    (?P<col11>\d+)   # freq
    \s*             # skip white space
    (?P<col12>\d+(\.\d+)?)   # brightness - Flux
    \s*             # skip white space
    (?P<col13>\d*\.\d+)   # brightness - eFlux
-   \s*
-   \S+
-   \s*$""",re.VERBOSE)
+   \s*""",re.VERBOSE)
+## OMS 10/02/2007: removed this, as some NVSS extracts have extra fields 
+## after eFlux. Also, I've seen "n" for eRA/eDec, so I changed the
+## regex above
+#   \S+
+#   \s*$""",re.VERBOSE)
  
   # read each source and insert to LSM
   for eachline in all:
