@@ -416,11 +416,11 @@ class ChartPlot(QWidget):
     """ Sets all the desired parameters for the chart plot """
     if first_time:
       self._chart_data = {}
+      self._good_data = {}
       self._flag_data = {}
       self._start_offset_test = {}
       self._updated_data = {}
       self._pause = {}
-      self._good_data = {}
       self._mrk = {}
       self._position = {}
       self._Zoom = {}
@@ -436,7 +436,6 @@ class ChartPlot(QWidget):
           self._pause[i] = False
           self._Zoom[i] = None
           self._source_marker[i] = None
-          self._good_data[i] = True
           self._mrk[i] = 0
           self._position[i] = ""
           self._zoom_title[i] = "Data for Chart " + str(i)
@@ -445,6 +444,7 @@ class ChartPlot(QWidget):
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
+          self._good_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
     else:
@@ -460,13 +460,13 @@ class ChartPlot(QWidget):
           self._updated_data[i] = False
           self._pause[i] = False
           self._source_marker[i] = None
-          self._good_data[i] = True
           self._mrk[i] = 0
           self._position[i] = ""
           self._main_pen[i] = Qt.black
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
+          self._good_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
 
@@ -966,19 +966,6 @@ class ChartPlot(QWidget):
     self.reset_zoom()
     self.refresh_event()
 
-  def set_data_flag(self, channel, data_flag):
-    if data_flag != self._good_data[channel]:
-      self._good_data[channel] = data_flag
-       # we have bad data if data_flag is False
-      if not data_flag:
-        self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
-        if self._indexzoom[channel]:
-          self._Zoom[channel]._plotter.setCurvePen(1,QPen(Qt.red))
-        else: 
-          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.yellow))
-          if self._indexzoom[channel]:
-            self._Zoom[channel]._plotter.setCurvePen(1,QPen(Qt.yellow))
-
   def change_scale_type(self):
     # click means change to fixed scale
     toggle_id = self.menu_table['Fixed Scale']
@@ -1068,15 +1055,15 @@ class ChartPlot(QWidget):
         # no actual data?
         if chart.shape[0] < 1:
           self._updated_data[channel] = False
-          
         if self._updated_data[channel]:
-          good_data = []
+          if not self._good_data[channel].has_key(self._data_index):
+            self._good_data[channel][self._data_index] = []
           for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
             if flags[i] == 0:
-              good_data.append(chart[i])
+              self._good_data[channel][self._data_index].append(chart[i])
           compare_range = True
-          if len(good_data) > 0:
-            test_chart = array(good_data)
+          if len(self._good_data[channel][self._data_index]) > 0:
+            test_chart = array(self._good_data[channel][self._data_index])
           else:
             compare_range = False
           if compare_range:
