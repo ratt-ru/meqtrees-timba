@@ -206,10 +206,6 @@ def _define_forest(ns):
   # first define beams
   setup_beams(ns)
 
-  # define constant needed later in normalization routine
-  ns.unity << Meq.Constant(1.0)
-
-
 # OK - we have assigned beam data - now observe sources
 
  # first set up nodes for phase center
@@ -333,8 +329,11 @@ def _define_forest(ns):
       ns.predict_ok_conj(p,q) << Meq.Conj(ns.predict_ok(p,q))
     
   # ok - we have our observed and predicted fluxes - set up
-  # modcal matrices
+  # modcal matrices. First define constant needed to get 
+  # total number of points in the tile
+  ns.unity << Meq.Constant(1.0)
   ns.elements << Meq.Sum(ns.unity)
+
   for p,q in IFRS:
     ns.sum_comb(p,q) << Meq.Sum(ns.predict_ok(p,q) * ns.predict_ok_conj(p,q))
     ns.sum_conj(p,q) << Meq.Sum(ns.predict_ok_conj(p,q))
