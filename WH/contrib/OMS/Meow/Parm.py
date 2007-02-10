@@ -2,6 +2,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from numarray import *
 
+import copy
 
 class Parm (object):
   """
@@ -31,7 +32,7 @@ class Parm (object):
     else:
       if not isinstance(tags,(list,tuple)):
         raise TypeError,"'tags' argument should be a string, list or tuple";
-      self.tags = list(tags);
+    self.tags = list(tags);
     # process tiling
     if tiling is not None:
       if isinstance(tiling,int):
@@ -45,6 +46,12 @@ class Parm (object):
             use_previous=True);
     # ...and override with any keywords
     self.options.update(kw);
+    
+  def new (self,value):
+    """Creates a new Meow.Parm based on this one, with a different value""";
+    cp = copy.deepcopy(self);
+    cp.value = value;
+    return cp;
     
   def make (self,tags=[]):
     """Returns a definition for the Parm node, suitable for assigning with <<.
