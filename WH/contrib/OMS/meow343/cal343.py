@@ -17,6 +17,7 @@ import lsm_model
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
 
 import models343
+import wsrt_beam
 # source model -- note how list is formed up on-the-fly from 
 # contents of the models343 module
 TDLCompileOption('source_model',"Source model",
@@ -41,6 +42,8 @@ TDLCompileMenu("LSM options",
   TDLOption('lsm_gui',"Display LSM GUI",False),
   TDLOption('lsm_i_freq_deg',"I freq degree",[0,1],more=int),
   TDLOption('lsm_q_freq_deg',"Q freq degree",[0,1],more=int),
+  TDLOption('lsm_beam_model',"Beam model for LSM sources",
+      [None,wsrt_beam.wsrt_beam,wsrt_beam.wsrt_pol_beam]),
 );
 
   
@@ -94,11 +97,24 @@ def _define_forest(ns):
     lsm_list = lsm_model.LSMToMeowList(ns,lsm,count=lsm_count,I=Idef,Q=Qdef);
     
     pg = Bookmarks.Page("LSM fluxes",3,3);
-        
     for src in lsm_list:
       pg.add(src.stokes("I"));
       pg.add(src.stokes("Q"));
         
+    # corrupt with LSM beams, if a model is specified
+    if lsm_beam_model:
+      Ej = lsm_beam_model(ns,ns.E1,lsm_list);
+      lsm_list = [ src.corrupt(Ej(src.direction.name),per_station=False) for src in lsm_list ];
+      
+      lsm_beam_parms = Ej.search(tags="beam solvable");
+      pg = Bookmarks.Page("LSM beams",3,3);
+      for p in lsm_beam_parms:
+        pg.add(p);
+      for src in lsm_list:
+        pg.add(Ej(src.direction.name));
+    else:
+      lsm_beam_parms = [];
+    
     source_list += lsm_list;
   
   # definitions for ampl/phase parameters
@@ -169,11 +185,11 @@ def _define_forest(ns):
   Meow.Context.vdm = Meow.StdTrees.make_sinks(ns,corrected,post=visualizers);
                                            
   # now define some runtime solve jobs
-  solve_tree.define_solve_job("Calibrate bright source fluxes","flux",
-                              predict.search(tags="bright (flux|spectrum) solvable"));
+  solve_tree.define_solve_job("Calibrate bright sources","flux",
+       predict.search(tags="bright (flux|spectrum) solvable"));
 
-  solve_tree.define_solve_job("Calibrate LSM source fluxes","flux_lsm",
-                              predict.search(tags="lsm (flux|spectrum) solvable"));
+  solve_tree.define_solve_job("Calibrate LSM sources","flux_lsm",
+       predict.search(tags="lsm (flux|spectrum) solvable")+lsm_beam_parms);
                                   
   GPs = predict.search(tags="G phase");
   solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);
