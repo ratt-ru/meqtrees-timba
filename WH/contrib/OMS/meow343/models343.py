@@ -11,25 +11,25 @@ TDLCompileMenu("Source model options",
 def m343_bright_duo (ns,tablename=''):
   return [ 
     Meow.PointSource(ns,name="3C343.1",
-                     I=Meow.Parm(1,freq_deg=_343_1_Iorder,table_name=tablename),
-                     Q=Meow.Parm(0,freq_deg=_343_1_Qorder,table_name=tablename),
+                     I=Meow.Parm(1,freq_deg=_343_1_Iorder,table_name=tablename,tags="bright"),
+                     Q=Meow.Parm(0,freq_deg=_343_1_Qorder,table_name=tablename,tags="bright"),
                      direction=(4.356645791155902,1.092208429052697)),
     Meow.PointSource(ns,name='3C343',
-                     I=Meow.Parm(1,freq_deg=_343_Iorder,table_name=tablename),
-                     Q=Meow.Parm(0,freq_deg=_343_Qorder,table_name=tablename),
+                     I=Meow.Parm(1,freq_deg=_343_Iorder,table_name=tablename,tags="bright"),
+                     Q=Meow.Parm(0,freq_deg=_343_Qorder,table_name=tablename,tags="bright"),
                      direction=(4.3396003966265599,1.0953677174056471)),
   ];
 
 def m343_bright_duo_spi (ns,tablename=''):
   return [ 
     Meow.PointSource(ns,name="3C343.1",
-                     I=Meow.Parm(1,freq_deg=_343_1_Iorder,table_name=tablename),
-                     Q=Meow.Parm(0,freq_deg=_343_1_Qorder,table_name=tablename),
+                     I=Meow.Parm(1,freq_deg=_343_1_Iorder,table_name=tablename,tags="bright"),
+                     Q=Meow.Parm(0,freq_deg=_343_1_Qorder,table_name=tablename,tags="bright"),
                      spi=Meow.Parm(0,table_name=tablename),
                      direction=(4.356645791155902,1.092208429052697)),
     Meow.PointSource(ns,name='3C343',
-                     I=Meow.Parm(1,freq_deg=_343_Iorder,table_name=tablename),
-                     Q=Meow.Parm(0,freq_deg=_343_Qorder,table_name=tablename),
+                     I=Meow.Parm(1,freq_deg=_343_Iorder,table_name=tablename,tags="bright"),
+                     Q=Meow.Parm(0,freq_deg=_343_Qorder,table_name=tablename,tags="bright"),
                      spi=Meow.Parm(0,table_name=tablename),
                      direction=(4.3396003966265599,1.0953677174056471)),
   ];

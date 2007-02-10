@@ -1,5 +1,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
+from Timba.LSM.LSM import LSM
 from numarray import *
 import os
 import random
@@ -10,6 +11,7 @@ from Meow import Jones
 from Meow import Bookmarks
 from Meow import Utils
 import Meow.StdTrees
+import lsm_model
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
@@ -33,8 +35,34 @@ TDLCompileMenu("E Jones",
   TDLOption('ep_freq_deg',"E phase freq degree",[0,1,2],more=int),
   TDLOption('ea_freq_deg',"E ampl freq degree",[0,1,2],more=int)
 );
+TDLCompileOption('include_sawtooth',"Include sawtooth ripple effect",False),
+TDLCompileMenu("LSM options",
+  TDLOption('lsm_count',"Include how many LSM sources",[None,10,20,100],more=int),
+  TDLOption('lsm_gui',"Display LSM GUI",False),
+  TDLOption('lsm_i_freq_deg',"I freq degree",[0,1],more=int),
+  TDLOption('lsm_q_freq_deg',"Q freq degree",[0,1],more=int),
+);
+
   
- 
+from Timba import pynode
+
+class PySawtooth (pynode.PyNode):
+  def __init__ (self,*args):
+    pynode.PyNode.__init__(self,*args);
+
+  def get_result (self,children,request):
+    if len(children):
+      raise TypeError,"this is a leaf node, no children expected!";
+    # make value of same shape as cells
+    nfreq = len(request.cells.grid.freq);
+    shape = meq.shape(freq=nfreq);
+    value = meq.vells(shape);
+    # fill with -1/+1 sawtooth
+    flat = value.getflat();   # 'flat' reference to array data
+    for i in range(len(flat)):
+      flat[i] = (i%2)*2-1;
+    return meq.result(meq.vellset(value),request.cells);
+
 
 def _define_forest(ns):
   # enable standard MS options from Meow
@@ -49,11 +77,29 @@ def _define_forest(ns):
   # setup Meow global context
   Meow.Context.set(array=array,observation=observation);
   
-  # create 343 source model
-  source_list = source_model(ns,Utils.get_source_table());
-  
   # create all-sky patch for source model
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
+  
+  # create 343 source model
+  source_list = source_model(ns,Utils.get_source_table());
+    
+  # add LSM sources
+  if lsm_count is not None:
+    lsm = LSM();
+    lsm.build_from_catalog("3c343-nvss.txt",ns);
+    if lsm_gui:
+      lsm.display()
+    Idef = Meow.Parm(1e-2,freq_deg=lsm_i_freq_deg,tags="lsm",table_name=Meow.Utils.get_source_table());
+    Qdef = Meow.Parm(0,freq_deg=lsm_q_freq_deg,tags="lsm",table_name=Meow.Utils.get_source_table());
+    lsm_list = lsm_model.LSMToMeowList(ns,lsm,count=lsm_count,I=Idef,Q=Qdef);
+    
+    pg = Bookmarks.Page("LSM fluxes",3,3);
+        
+    for src in lsm_list:
+      pg.add(src.stokes("I"));
+      pg.add(src.stokes("Q"));
+        
+    source_list += lsm_list;
   
   # definitions for ampl/phase parameters
   g_ampl_def = Meow.Parm(1,freq_deg=ga_freq_deg,table_name=Utils.get_mep_table());
@@ -63,14 +109,14 @@ def _define_forest(ns):
   if include_E_jones:
     # first source is presumably at phase center, so only G itelf will aplly
     allsky.add(source_list[0]);
-    # apply E to all other sources
+    # apply E to second source
     e_ampl_def = Meow.Parm(1,freq_deg=ea_freq_deg,table_name=Utils.get_mep_table());
     e_phase_def = Meow.Parm(0,freq_deg=ep_freq_deg,tiling=ep_tiling,table_name=Utils.get_mep_table());
-    for src in source_list[1:]:
-      Ejones = Jones.gain_ap_matrix(ns.E(src.name),e_ampl_def,e_phase_def,
-                                    tags="E",series=array.stations());
-      # add corrupted source to patch
-      allsky.add(src.corrupt(Ejones));
+    Ejones = Jones.gain_ap_matrix(ns.E(source_list[1].name),e_ampl_def,e_phase_def,
+                                  tags="E",series=array.stations());
+    # add corrupted source to patch
+    allsky.add(source_list[1].corrupt(Ejones));
+    allsky.add(*source_list[2:]);
   else:
     allsky.add(*source_list);
   # apply G to whole sky
@@ -80,6 +126,20 @@ def _define_forest(ns):
 
   # create simulated visibilities for the sky
   predict = allsky.visibilities();
+  
+  # apply sawtooth to visiblities
+  if include_sawtooth:
+    ns.sawtooth0 << Meq.PyNode(class_name="PySawtooth",module_name=__file__);
+    ns.sta << Meq.Parm(0,table_name=Meow.Utils.get_mep_table());
+    ns.sawtooth << 1 + ns.sawtooth0*ns.sta;
+    
+    for p,q in array.ifrs():
+      ns.predict_st(p,q) << predict(p,q)*ns.sawtooth;
+    predict = ns.predict_st;
+    
+    Bookmarks.Page("Sawtooth solution",1,2) \
+        .add(ns.sawtooth) \
+        .add(ns.solver);
 
   # create solve tree.
   solve_tree = Meow.StdTrees.SolveTree(ns,predict,residuals=make_residuals);
@@ -88,6 +148,12 @@ def _define_forest(ns):
   # output of solve tree is either input data, or residuals.
   # apply correction for G
   corrected = Jones.apply_correction(ns.corrected,solve_output,Gjones);
+  # apply correction for sawtooth
+  if include_sawtooth:
+    ns.inv_sawtooth = 1/ns.sawtooth;
+    for p,q in array.ifrs():
+      ns.corrected_st(p,q) << corrected(p,q)*ns.inv_sawtooth;
+    corrected = ns.corrected_st;
 
   # create some visualizers
   visualizers = [
@@ -103,8 +169,11 @@ def _define_forest(ns):
   Meow.Context.vdm = Meow.StdTrees.make_sinks(ns,corrected,post=visualizers);
                                            
   # now define some runtime solve jobs
-  solve_tree.define_solve_job("Calibrate source fluxes","flux",
-                              predict.search(tags="(flux|spectrum) solvable"));
+  solve_tree.define_solve_job("Calibrate bright source fluxes","flux",
+                              predict.search(tags="bright (flux|spectrum) solvable"));
+
+  solve_tree.define_solve_job("Calibrate LSM source fluxes","flux_lsm",
+                              predict.search(tags="lsm (flux|spectrum) solvable"));
                                   
   GPs = predict.search(tags="G phase");
   solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);
@@ -119,6 +188,9 @@ def _define_forest(ns):
     EAs = predict.search(tags="E ampl");
     solve_tree.define_solve_job("Calibrate E amplitudes","e_ampl",EAs);
     solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
+
+  if include_sawtooth:
+    solve_tree.define_solve_job("Calibrate sawtooth amplitude","st_ampl",[ns.sta]);
 
   # insert standard imaging options from Meow
   TDLRuntimeMenu("Make image",*Utils.imaging_options(npix=512,arcmin=72));
@@ -143,14 +215,6 @@ def _define_forest(ns):
     .add(source_list[0].coherency()) \
     .add(solve_tree.solver());
   
-  pg = Bookmarks.Page("G Jones",3,3);
-  for p in array.stations():
-    pg.add(Gjones(p));
-  
-  if include_E_jones:
-    pg = Bookmarks.Page("E Jones",3,3);
-    for p in array.stations():
-      pg.add(Ejones(p));
   
   Bookmarks.Page("Vis Inspectors",1,2) \
     .add(ns.inspect('spigots'),viewer="Collections Plotter") \

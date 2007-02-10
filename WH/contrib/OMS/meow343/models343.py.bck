@@ -4,18 +4,11 @@ import Meow
 TDLCompileMenu("Source model options",
   TDLOption("_343_1_Iorder","3C343.1 I freq degree",[0,1,2,3],more=int,default=1),
   TDLOption("_343_1_Qorder","3C343.1 Q freq degree",[0,1,2,3],more=int,default=1),
-  TDLOption("_343_1_Uorder","3C343.1 U freq degree",[None,0,1,2,3],more=int,default=1),
-  TDLOption("_343_1_Vorder","3C343.1 V freq degree",[None,0,1,2,3],more=int,default=1),
   TDLOption("_343_Iorder","3C343 I freq degree",[0,1,2,3],more=int,default=3),
   TDLOption("_343_Qorder","3C343 Q freq degree",[0,1,2,3],more=int,default=3)
-  TDLOption("_343_Uorder","3C343 U freq degree",[None,0,1,2,3],more=int,default=0),
-  TDLOption("_343_Vorder","3C343 V freq degree",[None,0,1,2,3],more=int,default=0),
 );
 
 def m343_bright_duo (ns,tablename=''):
-  udef = vdef = udef1 = vdef1 = None;
-  if _343_1_Uorder is not None:
-    udef1 = Meow.Parm(0,freq_deg=_343_1_Uorder,table_name=tablename);
   return [ 
     Meow.PointSource(ns,name="3C343.1",
                      I=Meow.Parm(1,freq_deg=_343_1_Iorder,table_name=tablename),
