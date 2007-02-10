@@ -103,11 +103,8 @@ test_flux = 1.25
 
 SOURCES = range(len(LM));       # 0...N-1
 
-########################################################
-def _define_forest(ns):  
-
-  # define constant needed later in normalization routine
-  ns.unity << Meq.Constant(1.0)
+def setup_beams(ns):
+  # read in beam images and assign to nodes
 
   # first read in beam images from FITS files - one file for each 
   # dipole component, so eight files in total
@@ -135,9 +132,20 @@ def _define_forest(ns):
   # get the maximum of this beam for normalization
   ns.im_y_max << Meq.Max(ns.im_y)
 
-  # form normalized, complex voltage pattern 
-  ns.beam_yx << Meq.ToComplex(ns.image_re_yx, ns.image_im_yx) / ns.im_y_max
-  ns.beam_yy << Meq.ToComplex(ns.image_re_yy, ns.image_im_yy) / ns.im_y_max
+  # normalize each beam separately
+  ns.beam_re_yx_norm = ns.image_re_yx / ns.im_x_max
+  ns.beam_im_yx_norm = ns.image_im_yx / ns.im_x_max
+  ns.beam_re_yy_norm = ns.image_re_yy / ns.im_x_max
+  ns.beam_im_yy_norm = ns.image_im_yy / ns.im_x_max
+
+  # we will need a resampler for the beams in order to extract the
+  # actual E-Jones in the directions of each of the sources. The dep_mask
+  # flag is yet another of those mysterious thingys needed by Sarod ...
+  ns.resampler_re_yx << Meq.Resampler(ns.beam_re_yx_norm, dep_mask=0xff)
+  ns.resampler_im_yx << Meq.Resampler(ns.beam_im_yx_norm, dep_mask=0xff)
+  ns.resampler_re_yy << Meq.Resampler(ns.beam_re_yy_norm, dep_mask=0xff)
+  ns.resampler_im_yy << Meq.Resampler(ns.beam_im_yy_norm, dep_mask=0xff)
+
 
   # do a similar sequence of operations for X dipole
   infile_name_re_xx = home_dir + '/veidt_stuff/xx_real.fits'
@@ -153,19 +161,56 @@ def _define_forest(ns):
   ns.im_x << Meq.Sqrt(ns.im_sq_x)
   ns.im_x_max << Meq.Max(ns.im_x)
 
-  ns.beam_xx << Meq.ToComplex(ns.image_re_xx, ns.image_im_xx) / ns.im_x_max
-  ns.beam_xy << Meq.ToComplex(ns.image_re_xy, ns.image_im_xy) / ns.im_x_max
+  ns.beam_re_xx_norm = ns.image_re_xx / ns.im_x_max
+  ns.beam_im_xx_norm = ns.image_im_xx / ns.im_x_max
+  ns.beam_re_xy_norm = ns.image_re_xy / ns.im_x_max
+  ns.beam_im_xy_norm = ns.image_im_xy / ns.im_x_max
 
-  # We have processed all components of the beam so we can create the 
-  # E Jones for the beam
-  ns.E_beam << Meq.Matrix22(ns.beam_xx, ns.beam_yx,ns.beam_xy, ns.beam_yy)
+  ns.resampler_re_xx << Meq.Resampler(ns.beam_re_xx_norm, dep_mask=0xff)
+  ns.resampler_im_xx << Meq.Resampler(ns.beam_im_xx_norm, dep_mask=0xff)
+  ns.resampler_re_xy << Meq.Resampler(ns.beam_re_xy_norm, dep_mask=0xff)
+  ns.resampler_im_xy << Meq.Resampler(ns.beam_im_xy_norm, dep_mask=0xff)
 
-  # we will need a resampler for the beam in order to extract the
-  # actual E-Jones in the directions of each of the sources. The dep_mask
-  # flag is yet another of those mysterious thingys needed by Sarod ...
-  ns.resampler_E << Meq.Resampler(ns.E_beam, dep_mask=0xff)
 
-# OK - we have E Jones - now observe sources
+def define_E_Jones(ns,src):
+  # the following operation extracts the value of the actual e-Jones
+  # in the direction of the individual sources through use of a
+  # Compounder node: it has as children the position of the 
+  # source and the resampler node mentioned above. The actual
+  # operation is a bit mysterious to me - yet another Sarod thingy 
+
+  ns.E_re_xx(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_re_xx],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_im_xx(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_im_xx],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_re_xy(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_re_xy],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_im_xy(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_im_xy],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+
+  ns.E_re_yx(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_re_yx],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_im_yx(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_im_yx],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_re_yy(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_re_yy],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+  ns.E_im_yy(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_im_yy],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
+
+  ns.beam_xx(src) << Meq.ToComplex(ns.E_re_xx(src), ns.E_im_xx(src)) 
+  ns.beam_xy(src) << Meq.ToComplex(ns.E_re_xy(src), ns.E_im_xy(src)) 
+  ns.beam_yx(src) << Meq.ToComplex(ns.E_re_yx(src), ns.E_im_yx(src)) 
+  ns.beam_yy(src) << Meq.ToComplex(ns.E_re_yy(src), ns.E_im_yy(src)) 
+
+  # E Jones for the source
+  ns.E(src) << Meq.Matrix22(ns.beam_xx(src), ns.beam_yx(src),ns.beam_xy(src), ns.beam_yy(src))
+
+  # and get the complex conjugate
+  ns.Et(src) << Meq.ConjTranspose(ns.E(src)) 
+
+########################################################
+def _define_forest(ns):  
+
+  # first define beams
+  setup_beams(ns)
+
+  # define constant needed later in normalization routine
+  ns.unity << Meq.Constant(1.0)
+
+
+# OK - we have assigned beam data - now observe sources
 
  # first set up nodes for phase center
   ns.radec0 = Meq.Composer(ns.ra<<0,ns.dec<<0);
@@ -258,14 +303,8 @@ def _define_forest(ns):
     ns.ms(src) << Meq.Selector(ns.lmn(src),index=1)
     ns.lm(src) << Meq.Composer(ns.ls(src), ns.ms(src))
 
-    # the following operation extracts the value of the actual e-Jones
-    # in the direction of the individual sources through use of a
-    # Compounder node: it has as children the position of the 
-    # source and the resampler node mentioned above. The actual
-    # operation is a bit mysterious to me - yet another Sarod thingy 
-    ns.E(src)<<Meq.Compounder(children=[ns.lm(src),ns.resampler_E],common_axes=[hiid('l'),hiid('m')],default_cell_size=0.01) 
-    # and get the complex conjugate
-    ns.Et(src) << Meq.ConjTranspose(ns.E(src)) 
+    # now calculate E-Jones for a source
+    define_E_Jones(ns,src)
 
 # define K-jones matrices - just derive the phase shift, and the
 # its complex conjugate for each antenna  / source combination
@@ -314,7 +353,8 @@ def _define_forest(ns):
       ns.h_vector(p,q,i) << Meq.Composer(ns.h1(p,q,i), ns.h2(p,q,i))
       ns.gains(p,q,i) << Meq.MatrixMultiply(ns.invert(p,q,i), ns.h_vector(p,q,i))
     # we're only interested in the first of the two members of the solution vector
-    ns.gains(p,q) << Meq.Composer(dims=(2,2), children=(Meq.Selector(ns.gains(p,q,0),index=0), Meq.Selector(ns.gains(p,q,1),index=0), Meq.Selector(ns.gains(p,q,2),index=0), Meq.Selector(ns.gains(p,q,3),index=0)))
+#   ns.gains(p,q) << Meq.Composer(dims=(2,2), children=(Meq.Selector(ns.gains(p,q,0),index=0), Meq.Selector(ns.gains(p,q,1),index=0), Meq.Selector(ns.gains(p,q,2),index=0), Meq.Selector(ns.gains(p,q,3),index=0)))
+    ns.gains(p,q) << Meq.Composer(dims=(2,2), children=(Meq.Selector(ns.gains(p,q,0),index=0), 0.0, 0.0, Meq.Selector(ns.gains(p,q,3),index=0)))
     ns.diff(p,q) << ns.predict(p,q) - ns.gains(p,q) * ns.predict_ok(p,q)
     ns.sink(p,q) << Meq.Sink(ns.diff(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 #   ns.sink(p,q) << Meq.Sink(ns.predict(p,q),station_1_index=p-1,station_2_index=q-1,output_col='DATA');
