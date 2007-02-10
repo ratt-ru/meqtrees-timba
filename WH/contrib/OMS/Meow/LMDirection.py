@@ -2,8 +2,8 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Direction import Direction
 from Parameterization import Parameterization
-import Jones
 import Context
+import math
 
 class LMDirection (Direction):
   """A LMDirection represents a direction on the sky, specified
@@ -17,59 +17,37 @@ class LMDirection (Direction):
     self._dir0 = Context.get_dir0(dir0);
     self._add_parm('l',l,tags="direction");
     self._add_parm('m',m,tags="direction");
+    if isinstance(l,(int,float)) and isinstance(m,(int,float)):
+      self._add_parm('n',math.sqrt(1-l*l-m*m),tags="direction");
+      self._const_n = True;
+    else:
+      self._const_n = False;
       
   def radec (self):
     """Returns ra-dec two-pack for this direction.""";
     radec = self.ns.radec;
     if not radec.initialized():
-      radec << Meq.LMRaDec(radec_0=self._dir0.radec(),lm=self.lm());
+      radec << Meq.LMRaDec(radec_0=self._dir0.radec(),lm=self.lm(self._dir0));
     return radec;
-    
+ 
   def _lm (self,dir0=None):
-    """Creates L,M nodes as needed, returns them as an (l,m) tuple.
-    dir0 is a direction relative to which lm is computed, at the 
+    """Helper function: creates L,M nodes as needed, returns them as an (l,m) 
+    tuple. dir0 is a direction relative to which lm is computed, at the
     moment it is not used.
     """;
     return (self._parm("l"),self._parm("m"));
-    
-  def lm (self,dir0=None):
-    """Returns LM two-pack for this source.
-    dir0 is a direction relative to which lm is computed, at the 
-    moment it is not used.""";
-    lm = self.ns.lm;
-    if not lm.initialized():
-      lm << Meq.Composer(*self._lm());
-    return lm;
 
-  def n (self,dir0=None):
-    """Returns 'n' coordinate for this source.
-    dir0 is a direction relative to which lm is computed, at the 
-    moment it is not used.""";
-    n = self.ns.n;
-    if not n.initialized():
-      l,m = self._lm();
-      n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m));
-    return n;
-    
   def lmn (self,dir0=None):
     """Returns LMN three-pack for this component.
-    dir0 is a direction relative to which lm is computed, at the 
+    dir0 is a direction relative to which lm is computed, at the
     moment it is not used.""";
     lmn = self.ns.lmn;
     if not lmn.initialized():
       l,m = self._lm();
-      n = self.n();
+      if self._const_n:
+        n = self._parm("n");
+      else:
+        n = self.ns.n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m));
       lmn << Meq.Composer(l,m,n);
     return lmn;
-    
-  def lmn_1 (self,dir0=None):
-    """Returns LMN-1 three-pack for this component.
-    dir0 is a direction relative to which lm is computed, at the 
-    moment it is not used.""";
-    lmn_1 = self.ns.lmn_minus1;
-    if not lmn_1.initialized():
-      l,m = self._lm();
-      n = self.n();
-      lmn_1 << Meq.Composer(l,m,n-1);
-    return lmn_1;
     

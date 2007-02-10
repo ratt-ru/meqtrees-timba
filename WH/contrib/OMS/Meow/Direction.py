@@ -14,17 +14,6 @@ class Direction (Parameterization):
                               quals=quals,kwquals=kwquals);
     self._add_parm('ra',ra,tags="direction");
     self._add_parm('dec',dec,tags="direction");
-    self._jones = [];
-      
-  def add_jones (self,kind,jones,directional=False):
-    """Associates a Jones matrix with this direction.
-    'kind' is a string identifier for this Jones term.
-    'jones' is an under-qualified node which will be qualified with
-    station id.
-    If directional=True, the matrix is direction-dependant, and will
-    be plugged in via a Compounder node. If directional=False, 
-    matrix will be plugged in as-is""";
-    self._jones.append((kind,jones,directional));
     
   def radec (self):
     """Returns ra-dec 2-vector node for this direction.
@@ -39,77 +28,50 @@ class Direction (Parameterization):
   def lmn (self,dir0=None):
     """Returns LMN 3-vector node for this direction, given a reference
     direction dir0, or using the global phase center if not supplied.
-    Qualifiers from dir0 are added in.""";
+    Qualifiers from dir0 are added in.
+    All other lmn-related methods below call on this one to get
+    the basic lmn 3-vector.
+    """;
     dir0 = Context.get_dir0(dir0);
-    if self is dir0:
-      # lmn relative to self is constant
-      lmn = self.ns.lmn;
-      if not lmn.initialized():
+    radec0 = dir0.radec();
+    lmn = self.ns.lmn.qadd(radec0);
+    if not lmn.initialized():
+      if self is dir0:
         lmn << Meq.Composer(0,0,1);
-    else:
-      # create coordinate nodes, add in qualifiers of radec0 since
-      # we may have different LMN sets for different directions
-      radec0 = dir0.radec();
-      lmn = self.ns.lmn.qadd(radec0);
-      if not lmn.initialized():
+      else:
         lmn << Meq.LMN(radec_0=radec0,radec=self.radec());
     return lmn;
     
+  def _lmn_component (self,name,dir0,index):
+    """Helper method for below, returns part of the LMN vector.""";
+    lmn = self.lmn(dir0);
+    comp = self.ns0['name'].qadd(lmn);  # use ns0: all qualifiers are in lmn already
+    # if we used self.ns, we'd have duplicate qualifiers
+    if not comp.initialized():
+      comp << Meq.Selector(lmn,index=index,multi=True);
+    return comp;
+
   def lm (self,dir0=None):
-    """Returns an LM 2-vector node for this component, given a reference
-    direction dir0, or using the global phase center if not supplied.
-    Qualifiers from dir0 are added in.""";
-    dir0 = Context.get_dir0(dir0);
-    if self is dir0:
-      # lm relative to self is constant
-      lm = self.ns.lm;
-      if not lm.initialized():
-        lm << Meq.Composer(0,0);
-    else:
-      # create coordinate nodes, add in qualifiers of radec0 since
-      # we may have different LMN sets for different directions
-      radec0 = dir0.radec();
-      lm = self.ns.lm.qadd(radec0);
-      if not lm.initialized():
-        lm << Meq.Selector(self.lmn(dir0),index=[0,1],multi=True);
-    return lm;
-    
+    """Returns an LM 2-vector node for this direction. All args are as
+    per lmn().""";
+    return self._lmn_component('lm',dir0,[0,1]);
+  def l (self,dir0=None):
+    """Returns an L node for this direction. All args are as per lmn().""";
+    return self._lmn_component('l',dir0,0);
+  def m (self,dir0=None):
+    """Returns an M node for this direction. All args are as per lmn().""";
+    return self._lmn_component('m',dir0,1);
   def n (self,dir0=None):
-    """Returns N node for this direction, given a reference
-    direction dir0, or using the global phase center if not supplied.
-    Qualifiers from dir0 are added in.""";
-    dir0 = Context.get_dir0(dir0);
-    if self is dir0:
-      # n relative to self is constant
-      n = self.ns.n;
-      if not n.initialized():
-        n << 1;
-    else:
-      # create coordinate nodes, add in qualifiers of radec0 since
-      # we may have different LMN sets for different directions
-      radec0 = dir0.radec();
-      n = self.ns.n.qadd(radec0);
-      if not n.initialized():
-        n << Meq.Selector(self.lmn(dir0),index=[2]);
-    return n;
+    """Returns an N node for this direction. All args are as per lmn().""";
+    return self._lmn_component('n',dir0,2);
     
   def lmn_1 (self,dir0=None):
-    """Returns L,M,N-1 3-vector node for this direction, given a reference
-    direction dir0, or using the global phase center if not supplied.
-    Qualifiers from dir0 are added in.""";
-    dir0 = Context.get_dir0(dir0);
-    if self is dir0:
-      # lmn relative to self is constant
-      lmn_1 = self.ns.lmn_minus1;
-      if not lmn_1.initialized():
-        lmn_1 << Meq.Composer(0,0,0);
-    else:
-      # create coordinate nodes, add in qualifiers of radec0 since
-      # we may have different LMN sets for different directions
-      radec0 = dir0.radec();
-      lmn_1 = self.ns.lmn_minus1.qadd(radec0);
-      if not lmn_1.initialized():
-        lmn_1 << Meq.Paster(self.lmn(dir0),self.n(dir0)-1,index=2);
+    """Returns L,M,N-1 3-vector node for this direction.
+     All args are as per lmn().""";
+    lmn = self.lmn(dir0);
+    lmn_1 = self.ns.lmn_minus1.qadd(lmn);  # use ns0: all qualifiers are in lmn already
+    if not lmn_1.initialized():
+      lmn_1 << Meq.Paster(lmn,self.n(dir0)-1,index=2);
     return lmn_1;
     
   def KJones (self,array=None,dir0=None):
