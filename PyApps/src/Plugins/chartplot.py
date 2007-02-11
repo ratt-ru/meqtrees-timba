@@ -219,8 +219,8 @@ class ChartPlot(QWidget):
     self._vells_keys = {}
 
     ########### Connections for Signals ############
-    self.connect(self._menu,SIGNAL("activated(int)"),self.process_menu);
-    self.connect(self._complex_submenu,SIGNAL("activated(int)"),self.process_complex_selector);
+    self.connect(self._menu,SIGNAL("activated(int)"),self.emit_menu_signal);
+    self.connect(self._complex_submenu,SIGNAL("activated(int)"),self.emit_complex_selector);
 
     #get position where the mouse was pressed
     self.connect(self._plotter, SIGNAL("plotMousePressed(const QMouseEvent &)"),
@@ -257,6 +257,13 @@ class ChartPlot(QWidget):
       self._x2[i] = self._ArraySize + self._x_displacement +i
       self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
       self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
+
+  def emit_vells_selector(self,menuid):
+    self.emit(PYSIGNAL("vells_selector"),(menuid,))
+
+  def emit_menu_signal(self, menuid):
+    """ callback to handle events from the context menu """
+    self.emit(PYSIGNAL("menu_command"),(menuid,))
 
   def process_menu(self, menuid):
     """ callback to handle events from the context menu """
@@ -318,6 +325,10 @@ class ChartPlot(QWidget):
       self._start_offset_test[channel][self._data_index] = 0
     self.reset_zoom()
     self.refresh_event()
+
+  def emit_complex_selector(self, menuid):
+    """ callback to handle events from the context menu """
+    self.emit(PYSIGNAL("complex_selector_command"),(menuid,))
 
   def process_complex_selector(self, menuid):
     """ callback to handle events from the complex data selection
@@ -864,7 +875,7 @@ class ChartPlot(QWidget):
         if len(data_keys) > 1:
           if self._vells_menu is None:
             self._vells_menu = QPopupMenu(self._menu)
-            QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.update_vells_selector);
+            QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.emit_vells_selector);
             toggle_id = self.menu_table['Change Vells']
             self._menu.insertItem("Change Selected Vells  ",self._vells_menu,toggle_id)
           menu_label = str(keys)

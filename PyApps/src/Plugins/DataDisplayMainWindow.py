@@ -62,10 +62,37 @@ class DisplayMainWindow(QMainWindow):
       dcm_sn_descriptor = dcm_sn_descriptor + self._click_on
       QWhatsThis.add(self._ChartPlot[data_type], dcm_sn_descriptor)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("quit_event"), self.quit_event)
+      self.connect(self._ChartPlot[data_type], PYSIGNAL("menu_command"), self.process_menu)
+      self.connect(self._ChartPlot[data_type], PYSIGNAL("complex_selector_command"), self.process_complex_selector)
+      self.connect(self._ChartPlot[data_type], PYSIGNAL("vells_selector"), self. update_vells_selector)
       if not self._plot_label is None:
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
     self._ChartPlot[data_type].updateEvent(data_dict)
+
+  def process_menu(self,menuid):
+    try:
+      keys = self._ChartPlot.keys()
+      for i in range(len(keys)):
+        self._ChartPlot[keys[i]].process_menu(menuid)
+    except:
+      pass
+
+  def process_complex_selector(self,menuid):
+    try:
+      keys = self._ChartPlot.keys()
+      for i in range(len(keys)):
+        self._ChartPlot[keys[i]].process_complex_selector(menuid)
+    except:
+      pass
+
+  def  update_vells_selector(self,menuid):
+    try:
+      keys = self._ChartPlot.keys()
+      for i in range(len(keys)):
+        self._ChartPlot[keys[i]]. update_vells_selector(menuid)
+    except:
+      pass
 
   def resizeEvent(self, event):
     keys = self._ChartPlot.keys()
