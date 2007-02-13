@@ -381,6 +381,7 @@ namespace Meq {
     Result &res1=result_<<= new Result(childres[1]->numVellSets(),childres[1]->isIntegrated());
 
 
+   map<const VellSet::SpidType, int *, compare_spid>::iterator spmapiter=spidmap_.begin();
 //// begin looping over child vellsets
     for (int ivs=0; ivs<childres[1]->numVellSets(); ivs++) {
     const Vells vl=childres[1]->vellSet(ivs).getValue();
@@ -404,7 +405,6 @@ namespace Meq {
 				}
 	  }
 
-   map<const VellSet::SpidType, int *, compare_spid>::iterator spmapiter=spidmap_.begin();
 #ifdef DEBUG
 	 cout<<"Spids"<<endl;
     while(spmapiter!=spidmap_.end()) {
@@ -662,6 +662,9 @@ namespace Meq {
 		res1.setVellSet(ivs,ref);
 
 
+
+    }
+//////// end loop over vellsets
     //delete map
 		std::list<int*>::iterator liter=maplist_.begin();
     while(liter!=maplist_.end()) {
@@ -677,8 +680,6 @@ namespace Meq {
       spmapiter++;
     }
 		spidmap_.clear();
-    }
-//////// end loop over vellsets
 
     res1.setCells(incells);
   /// if funklet child has more than 1 vellset and it also has dims, copy them
