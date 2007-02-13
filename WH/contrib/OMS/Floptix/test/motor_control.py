@@ -12,8 +12,9 @@ motor_addresses[7] = 0x0E;
 
 HEXAPOD_MOTORS = range(1,7);
 TILT_MOTOR = 7;
+ALL_MOTORS = range(1,8)
 
-DELAY = 0.003;    # delay between characters, in seconds
+DELAY = 0.005;    # delay between characters, in seconds
 
 port = None;
 
@@ -25,7 +26,7 @@ def init (portname):
 
 def motor_cmd (motor,direction,steps):
   addr = motor_addresses[motor];
-  return "%c%c%c" % (addr,direction,steps);
+  return "1S%02xS%02xS%02x3" % (addr,direction,steps);
 
 
 def send_command (command_string):
