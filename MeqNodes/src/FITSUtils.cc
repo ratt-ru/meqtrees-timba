@@ -811,7 +811,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 pixelc[kk+0]=(double)1; /* l */
 						 pixelc[kk+1]=(double)1; /* m */
 						 pixelc[kk+2]=(double)1.0; /* stokes */
-						 pixelc[kk+3]=(double)ii; /* freq */
+						 pixelc[kk+3]=(double)ii-1.0; /* freq */
 						 kk+=4;
 		 }
 		if (status = wcsp2s(wcs, ncoord, wcs->naxis, pixelc, imgc, phic, thetac,
