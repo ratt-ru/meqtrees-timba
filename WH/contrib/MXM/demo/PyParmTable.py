@@ -118,7 +118,7 @@ class ParmTable:
                 key = 'r'+str(i+1);
                 co=coeff[key];
             else:
-                co=coef[i];
+                co=coeff[i];
             funklet={'ftype':types[i],'coeff':co,
                      'st_t':st_t[i],'end_t':e_t[i],
                      'st_f':st_f[i],'end_f':e_f[i]};
