@@ -189,8 +189,24 @@ class SkyComponentGroup22 (object):
         skycomp = Meow.PointSource(self._ns, name, direction,
                                    I=0.0, Q=None, U=None, V=None,
                                    spi=None, freq0=None, RM=None)
+        self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
+
+    def get_parmgroups(self, skycomp):
+        """Helper function to get parmgroups from the skycomp"""
+        vis = skycomp.visibilities()
+        vis_again = skycomp.visibilities()
+        array = Meow.Context.get_array(None)
+        vis0 = vis(*array.ifrs()[0])
+        print '\n** get_parmgroups():',skycomp.name,vis0
+        rr = dict()
+        for tag in ['flux','direction']:
+            rr[tag] = vis0.search(tags=tag)
+            for node in rr[tag]:
+                print '-',tag,':',node.classname,node.name
+        print
+        return rr
 
     def add_GaussianSource (self, name=None, l=0.0, m=0.0, wgt=1.0):
         """Add a Meow GaussianSource object to the group"""
@@ -202,6 +218,7 @@ class SkyComponentGroup22 (object):
                                       phi=0, symmetric=False,
                                       I=0.0, Q=None, U=None, V=None,
                                       spi=None, freq0=None, RM=None)
+        self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
 
@@ -211,6 +228,7 @@ class SkyComponentGroup22 (object):
         direction = Meow.LMDirection(self._ns, name, l, m)
         skycomp = PointSource22.PointSource22(self._ns, name=name,
                                               direction=direction)
+        self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
 
@@ -230,6 +248,7 @@ class SkyComponentGroup22 (object):
         else:
             key = self.key(key)
             sc = self._skycomp[key]['skycomp']
+            # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
             sc = Meow.CorruptComponent(self._ns, sc, label,
                                        station_jones=jones.matrixet())
             self._skycomp[key]['skycomp'] = sc
@@ -386,8 +405,6 @@ class SkyComponentGroup22 (object):
     
     def test (self):
         """Helper routine to add some test sources to the group"""
-        # PointSource22.include_TDL_options('test')
-        # PointSource22.include_TDL_options('test')
         self.add_PointSource('1st', 1,1)
         self.add_PointSource22('2nd', 1,0)
         self.add_PointSource22('3rd', 0,1)
@@ -395,7 +412,7 @@ class SkyComponentGroup22 (object):
         return True
 
 
-
+#========================================================================================
 
 def include_SkyComponentGroup_TDL_options (prompt='definition'):
     """Instantiates meqbrouwser user options for the SkyComponentGroup class."""

@@ -402,56 +402,60 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
         quals = self._quals.get(append=qual)
 
-        pp = self._simul                                 # Convenience
+        pp = self._simul                                    # Convenience
             
         # Expression used:
-        #  default += ampl*cos(2pi*time/Psec),
-        #  where both ampl and Psec may vary from node to node.
+        #  default + fampl*cos(2pi*time/Psec) + tampl*cos(2pi*freq/PHz),
+        #  where tampl, Psec, fsec, PHz may all vary from node to node.
 
         # The default value is the one that would be used for a regular
         # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
-        default = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
+        default_value = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
+
+
 
         # Calculate the time variation:
         time_variation = None
         if pp['Psec']>0.0:
+            tvar = self._ns.time_variation(*quals)
             ampl = 0.0
             if pp['stddev']:                                # variation of the default value
                 stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
                 ampl = random.gauss(ampl, stddev)
-            ampl = self._ns.tvar_ampl(*quals) << Meq.Constant(ampl)
+            ampl = tvar('ampl') << Meq.Constant(ampl)
             Psec = pp['Psec']                               # variation period (sec)
             if pp['Psec_stddev']:
                 stddev = pp['Psec_stddev']*pp['Psec']       # NB: Psec_stddev is relative
                 Psec = random.gauss(pp['Psec'], stddev) 
-            Psec = self._ns.Psec(*quals) << Meq.Constant(Psec)
+            Psec = tvar('Psec') << Meq.Constant(Psec)
             time = self._ns << Meq.Time()
             # time = self._ns << (time - 4e9)                 # ..........?
             pi2 = 2*math.pi
-            costime = self._ns << Meq.Cos(pi2*time/Psec)
-            time_variation = self._ns.time_variation(*quals) << Meq.Multiply(ampl,costime)
+            costime = tvar('cos') << Meq.Cos(pi2*time/Psec)
+            time_variation = tvar << Meq.Multiply(ampl,costime)
 
         # Calculate the freq variation:
         freq_variation = None
         if pp['PMHz']>0.0:
+            fvar = self._ns.freq_variation(*quals) 
             ampl = 0.0
             if pp['stddev']:                                # variation of the default value
                 stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
                 ampl = random.gauss(ampl, stddev)
-            ampl = self._ns.fvar_ampl(*quals) << Meq.Constant(ampl)
+            ampl = fvar('ampl') << Meq.Constant(ampl)
             PMHz = pp['PMHz']                               # variation period (MHz)
             if pp['PMHz_stddev']:
                 stddev = pp['PMHz_stddev']*pp['PMHz']       # NB: PMHz_stddev is relative
                 PMHz = random.gauss(pp['PMHz'], stddev) 
             PHz = PMHz*1e6                                  # convert to Hz
-            PHz = self._ns.PHz(*quals) << Meq.Constant(PHz)
+            PHz = fvar('PHz') << Meq.Constant(PHz)
             freq = self._ns << Meq.Freq()
             pi2 = 2*math.pi
-            cosfreq = self._ns << Meq.Cos(pi2*freq/PHz)
-            freq_variation = self._ns.freq_variation(*quals) << Meq.Multiply(ampl,cosfreq)
+            cosfreq = fvar('cos') << Meq.Cos(pi2*freq/PHz)
+            freq_variation = fvar << Meq.Multiply(ampl,cosfreq)
 
         # Add the time/freq variation to the default value:
-        cc = [default]
+        cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
         node = self._ns.simulparm(*quals) << Meq.Add(children=cc, tags=self._tags)
@@ -459,6 +463,9 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # Append the new node to the internal nodelist:
         self.append_entry(node)
         return node
+
+
+
 
 
 
