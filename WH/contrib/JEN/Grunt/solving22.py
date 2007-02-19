@@ -48,17 +48,23 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     """Make a solver that solves for the specified parmgroup(s), by comparing the
     matrices of one Matrixet22 object (lhs) with the corresponding matrices of
     another (rhs).
+    If rhs==None, do do a redundancy-solution, i.e. compare redundant spacings.
     If accu==True, attach the solver reqseq to the lhs accumulist."""
-    
-    quals = lhs.quals(append=qual, merge=rhs.quals())
-    
-    # Accumulate nodes to be executed sequentially later:
-    if accu: lhs.merge_accumulist(rhs)
-    
+
+    if rhs:
+        quals = lhs.quals(append=qual, merge=rhs.quals())
+        # Accumulate nodes to be executed sequentially later:
+        if accu: lhs.merge_accumulist(rhs)
+        # NB: Use the ParmGroupManger from the rhs (assumed predicted) Matrixet22
+        #     object, NOT from the lhs (assumed measured data) ....(?)
+        pgm = rhs._pgm
+    else:
+        # Redundancy-solution (rhs==None):
+        quals = lhs.quals(append=qual)
+        # NB: Use the ParmGroupManger from the lhs (measured data) Matrixet22
+        pgm = lhs._pgm
+        
     # Get the list of MeqParm nodes to be solved for.
-    # NB: Use the ParmGroupManger from the rhs (assumed predicted) Matrixet22
-    #     object, NOT from the lhs (assumed measured data) ....(?)
-    pgm = rhs._pgm
     solver_label = pgm.solver_label(parmgroup)
     solvable = pgm.solvable(parmgroup)
     
@@ -74,8 +80,13 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     # matrel = ['m11']
     #===================================================
 
-    # Make a list of condeq nodes:
-    cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs, rhs=rhs)
+    # Make a list of condeq nodes, by comparing either the
+    # corresponding ifrs in the lhs and rhs Vissets,
+    # or redundant spacings in lhs (if rhs==None):
+    if rhs:
+        cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs, rhs=rhs)
+    else:
+        cdx = Condexet22.RedunCondexet22(lhs._ns, lhs=lhs, **pp)
     condeqs = cdx.make_condeqs (matrel=matrel, qual=qual)
 
 

@@ -238,7 +238,7 @@ class Matrixet22 (object):
             print '\n   '+str(self.list_indices())
         #...............................................................
         print ' * Available matrices:'
-        print ' * matrixet: '+str(self._matrixet)+')'
+        print ' * matrixet: ('+str(self._matrixet)+')'
         if self._matrixet:
             ii = self.list_indices()
             if len(ii)<10:
@@ -506,6 +506,7 @@ class Matrixet22 (object):
                                            style=self._matrel_style[key],
                                            size=8, pen=2,
                                            type='realvsimag', errorbars=True)
+            # print 'key:',key,rr
             dcolls.append(rr)
 
         # Make a combined plot of all the matrix elements:

@@ -73,7 +73,7 @@ def _define_forest (ns):
 
    if True:
       # Experiment: Compare Funklet and subTree versions:
-      if False:
+      if True:
          # NB: Does not work, because contains operator '**'
          Q = WSRT_voltage_Xbeam_gaussian (ell=0.1)
       else:

@@ -2705,7 +2705,7 @@ if __name__ == '__main__':
         pp = dict(a=-4)
         func(**pp)
 
-    if 0:
+    if 1:
         # WSRT telescope voltage beams (gaussian):
         Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
                            descr='WSRT X voltage beam (gaussian)', unit='kg')

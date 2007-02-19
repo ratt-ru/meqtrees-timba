@@ -16,16 +16,15 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Matrixet22
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-
 from copy import deepcopy
 
 # For testing only:
-# import Meow
+import Meow
 # from Timba.Contrib.JEN.Grunt import Joneset22
+from Timba.Contrib.JEN.Grunt import Visset22
 
 
+Settings.forest_state.cache_policy = 100
 
 # Global counter used to generate unique node-names
 # unique = -1
@@ -39,10 +38,9 @@ class Condexet22 (Matrixet22.Matrixet22):
     side (lhs) is a Visset22 object with measured data, while the right-hand
     side (rhs) contains predicted visibilities."""
 
-    def __init__(self, ns, quals=[], label=None,
+    def __init__(self, ns, quals=[], label='cdxet',
                  lhs=None, rhs=None, wgt=None):
 
-        if label==None: label = 'cdx'
         self._lhs = lhs
         self._rhs = rhs
         self._wgt = wgt
@@ -108,12 +106,15 @@ class Condexet22 (Matrixet22.Matrixet22):
         # index = index[0]
         
         # Allways make condeq nodes for the full 2x2 matrices.
-        # These are used for visualisation later (if replace=True)
+        # These are used for visualisation later
         name = 'condeq'
         i1 = self.list_indices()[0]
         # if not self._ns[name](*quals)(*i1).initialized():           # avoid duplucation
         if True:
-            for i in self.list_indices():
+            ii = self.list_indices()                                  # selection....?
+            indices = []
+            for i in ii:
+                indices.append(i)
                 node1 = self._lhs._matrixet(*i)
                 node2 = self._rhs._matrixet(*i)
                 if unop:
@@ -122,6 +123,7 @@ class Condexet22 (Matrixet22.Matrixet22):
                     node2 = self._ns << getattr(Meq, unop)(node2)
                 c = self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
             self._matrixet = self._ns[name](*quals)
+            self.indices(new=indices)
 
         # Finished: Return a list of condeq nodes:
         return self.make_condeq_nodes (index, postfix, quals, unop=unop)
@@ -190,64 +192,144 @@ class Condexet22 (Matrixet22.Matrixet22):
 # Version with redundany ()
 #======================================================================================
 
-class redunCondexet22 (Condexet22):
+class RedunCondexet22 (Condexet22):
     """Specialized version of the Condexet22 object, without a right-hand side (rhs)
     Visset22 object (predicted data). The MeqCondeq nodes compare redundant spacings,
     rather than measured and predicted data."""
 
-    def __init__(self, ns, quals=[], label=None,
-                 lhs=None, wgt=None):
+    def __init__(self, ns, quals=[], label='rcdxet', lhs=None, wgt=None, **pp):
 
-        if label==None: label = 'cdr'
-
-        print '** lhs =',lhs
+        # Make sure the pp (extra parameters) is a dict.
+        if not isinstance(pp, dict): pp = dict()
+        pp.setdefault('redun', None)
+        pp.setdefault('WSRT_9A', 36)
 
         # Initialise its Condexet22 object:
         Condexet22.__init__(self, ns, quals=quals, label=label, lhs=lhs)
+
+        # Deal with the redundant spacings:
+        self._redun = pp['redun']
+        self._WSRT_9A = pp['WSRT_9A']            # WSRT separation 9-A (m)
+        self._WSRT_xx = None                     # WSRT RT positions
+        if self._WSRT_9A:
+            self._WSRT_xx = self.get_WSRT_1D_station_pos(self._WSRT_9A)
+            self.make_redun(ifrs=lhs.list_indices())
+
         return None
 
 
     #...........................................................................
 
-    def make_redun_condeqs (self, measured=None, select='all'):
-        """Create a list of (selected) condeq nodes by comparing redundant
-        spacings (WSRT only) in the given cohset (measured)"""
-        cc = []
-        scope = self.scope()
-        if not measured: measured = self.cohset()
-        ifrs = self.ifrs()
-        xx = self.get_WSRT_1D_station_pos()
-        for i in range(len(ifrs)-1):
-            ifr1 = ifrs[i]
-            b1 = xx[ifr1[1]-1] - xx[ifr1[0]-1]        # ifr stations are 1-relative!
-            # print '-',i,ifr1,b1
-            for j in range(i+1,len(ifrs)):
-                ifr2 = ifrs[j]
-                b2 = xx[ifr2[1]-1] - xx[ifr2[0]-1]        # ifr stations are 1-relative!
-                # print '  -',j,ifr2,b2
-                if b2==b1:
-                    condeq = self._ns.condeq(scope)(*ifr1)(*ifr2) << Meq.Condeq(measured(*ifr1),
-                                                                                measured(*ifr2))
-                    cc.append(condeq)
-                    print '     redundant condeq:',condeq,':',b1,b2,ifr1,ifr2
-                    break
-        # Return a list of zero or more condeq nodes:
-        return cc
-
-
     def get_WSRT_1D_station_pos(self, sep9A=None):
         """Helper function to get 1D WSRT station positions (m), depending on
-        separation 9-A. Used for redundant-spacing calibration.""" 
-        if sep9A==None: sep9A = self._WSRT_sep9A
+        separation 9-A (m). Used for redundant-spacing calibration.""" 
         xx = range(14)
         for i in range(10): xx[i] = i*144.0
         xx[10] = xx[9]+sep9A                     # A = 9 + sep9A
         xx[11] = xx[10]+72                       # B = A + 72
         xx[12] = xx[10]+(xx[9]-xx[0])            # C = A + (9-0)
         xx[13] = xx[12]+72                       # D = C + 72
-        # print 'get_1D_WSRT_station_pos(',sep9A,') ->',xx
         return xx
-    
+
+    #---------------------------------------------------------------------------
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = str(type(self))
+        ss += '  '+str(self.label())
+        ss += '  lhs='+str(self._lhs.label())
+        ss += '  quals='+str(self.quals())
+        if self._WSRT_9A:
+            ss += '  WSRT_9A='+str(self._WSRT_9A)+'m'
+        return ss
+
+
+    def display_specific(self, full=False):
+        """Print the specific part of the summary of this object"""
+        print ' * lhs: '+str(self._lhs.oneliner())
+        print ' * wgt: '+str(type(self._wgt))
+        if self._WSRT_9A:
+            print ' * WSRT_xx (m): '+str(self._WSRT_xx)
+            print ' * redun: '+str(self._redun)
+            print ' * redun_label: '+str(self._redun_label)
+        ii = range(len(self._condeqs))
+        print ' * list of condeq nodes ('+str(len(ii))+'):'
+        for i in ii:
+            print '  - '+str(self._condeqs[i])
+        return True
+
+    #---------------------------------------------------------------------------
+
+    def make_redun (self, ifrs=None, select='all'):
+        """Create a list of redundant pairs of ifrs""" 
+        self._redun = []
+        self._redun_label = []
+        xx = self._WSRT_xx
+        for i in range(len(ifrs)-1):
+            ifr1 = ifrs[i]
+            # print 'ifr1=',ifr1
+            b1 = xx[ifr1[1]-1] - xx[ifr1[0]-1]            # ifr stations are 1-relative!
+            # print '-',i,ifr1,b1
+            for j in range(i+1,len(ifrs)):
+                ifr2 = ifrs[j]
+                b2 = xx[ifr2[1]-1] - xx[ifr2[0]-1]        # ifr stations are 1-relative!
+                # print '  -',j,ifr2,b2
+                if b2==b1:
+                    self._redun.append([ifr1,ifr2])
+                    self._redun_label.append(str(int(b1)))
+                    print '     redundant:',b1,b2,ifr1,ifr2
+                    break
+        return True
+
+    #................................................................................
+
+    def make_condeqs (self, matrel='*', qual=None, unop=None):
+        """Re-implementation of Condexet22 function make_condeqs().
+        Make a list of condeq nodes from the the list of redundant ifr pairs"""
+
+        quals = self.quals(prepend=unop, append=qual)
+
+        # It is possible to use only a subset of the matrix elements:
+        keys = self._matrel.keys()            # i.e. ['m11','m12','m21','m22']
+        mel = deepcopy(matrel)
+        if mel=='*': mel = keys
+        if not isinstance(mel,(list,tuple)): mel = [mel]
+        index = []
+        postfix = ''
+        # self._matrel_index = dict(m11=[0,0], m12=[0,1], m21=[1,0], m22=[1,1])
+        for i in range(len(keys)):
+            if keys[i] in mel:
+                # index.append(i)
+                index.append(self._matrel_index[keys[i]])
+                postfix += '_'+str(i)
+        # index = index[0]
+        
+        # Allways make condeq nodes for the full 2x2 matrices.
+        # These are used for visualisation later (if replace=True)
+        name = 'redun_condeq'
+        i1 = self.list_indices()[0]
+        # if not self._ns[name](*quals)(*i1).initialized():          # avoid duplucation
+        if True:
+            indices = []
+            for k,pair in enumerate(self._redun):
+                node1 = self._lhs._matrixet(*pair[0])
+                node2 = self._lhs._matrixet(*pair[1])
+                if unop:
+                    # Optionally, apply a unary operation on both inputs:
+                    node1 = self._ns << getattr(Meq, unop)(node1)
+                    node2 = self._ns << getattr(Meq, unop)(node2)
+                ii = list(pair[0])
+                ii.extend(pair[1])
+                ii.append(self._redun_label[k])
+                indices.append(ii)
+                self._ns[name](*quals)(*ii) << Meq.Condeq(node1, node2)
+            self._matrixet = self._ns[name](*quals)
+            self.indices(new=indices)
+
+        # Finished: Return a list of condeq nodes:
+        return self.make_condeq_nodes (index, postfix, quals, unop=unop)
+
+
 
 
 
@@ -259,12 +341,39 @@ def _define_forest(ns):
 
     cc = []
 
-    m1 = Matrixet22.Matrixet22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
-    m2 = Matrixet22.Matrixet22(ns, quals=['yyy'], label='GG')
-    cdx = Condexet22(ns, lhs=m1, rhs=m2)
-    cdx.display()
+    num_stations = 5
+    ANTENNAS = range(1,num_stations+1)
+    array = Meow.IfrArray(ns,ANTENNAS)
+    # observation = Meow.Observation(ns)
+    data = Visset22.Visset22(ns, label='data', array=array)
+    data.fill_with_identical_matrices(stddev=0.01)
+    cc.append(data.visualize())
+    data.display()
+
+    unop=None
+    unop='Abs'
+    matrel = '*'
+    # matrel = 'm11'
+
+    if True:
+        pred = Visset22.Visset22(ns, label='pred', array=array)
+        pred.fill_with_identical_matrices(stddev=0.1)
+        pred.display()
+        cc.append(pred.visualize())
+        cdx = Condexet22(ns, lhs=data, rhs=pred)
+        cdx.make_condeqs(matrel=matrel, unop=unop)
+        cc.append(cdx.visualize())
+        cdx.display()
+        cc.append(cdx.bundle())
+
+    if False:
+        cdr = RedunCondexet22(ns, lhs=data)
+        cdr.display(recurse=2)
+        cdr.make_condeqs(matrel=matrel, unop=unop)
+        cc.append(cdr.visualize())
+        cdr.display()
+        cc.append(cdr.bundle())
     
-    cc.append(cdx.bundle())
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -289,32 +398,45 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrixet22.Matrixet22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
-        m1.test()
-        m1.display()
-        m2 = Matrixet22.Matrixet22(ns, quals=['yyy'], label='GG')
-        m2.test()
-        m2.display()
-
-    if 0:
-        cdx = Condexet22(ns, lhs=m1, rhs=m2)
-        cdx.display(recurse=2)
-
-        if 0:
-            cdx.make_condeqs()
-            cdx.display(recurse=2)
-
-        if 0:
-            cdx.make_condeqs(unop='Abs')
-            cdx.display(recurse=2)
-
-        if 0:
-            cdx.make_condeqs(matrel=['m12','m22'], unop='Abs')
-            cdx.display(recurse=2)
+        num_stations = 5
+        ANTENNAS = range(1,num_stations+1)
+        array = Meow.IfrArray(ns,ANTENNAS)
+        # observation = Meow.Observation(ns)
+        data = Visset22.Visset22(ns, label='data', array=array)
+        data.fill_with_identical_matrices()
+        data.display()
 
     if 1:
-        cdr = redunCondexet22(ns, lhs=m1)
+        pred = Visset22.Visset22(ns, label='pred', array=array)
+        pred.fill_with_identical_matrices()
+        pred.display()
+
+        if 1:
+            cdx = Condexet22(ns, lhs=data, rhs=pred)
+            cdx.display(recurse=2)
+
+            if 1:
+                cdx.make_condeqs()
+                cdx.visualize()
+                cdx.display(recurse=2)
+
+            if 0:
+                cdx.make_condeqs(unop='Abs')
+                cdx.display(recurse=2)
+
+            if 0:
+                cdx.make_condeqs(matrel=['m12','m22'], unop='Abs')
+                cdx.display(recurse=2)
+
+    if 1:
+        cdr = RedunCondexet22(ns, lhs=data)
         cdr.display(recurse=2)
+
+        if 1:
+            cdr.make_condeqs()
+            cdr.display(recurse=2)
+            cdr.visualize()
+
 
 
 #=======================================================================

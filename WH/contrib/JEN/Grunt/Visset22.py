@@ -73,7 +73,7 @@ class Visset22 (Matrixet22.Matrixet22):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - MS_corr_index: '+str(self._MS_corr_index)
-        return True
+        return True 
 
     #--------------------------------------------------------------------------
 
@@ -85,6 +85,7 @@ class Visset22 (Matrixet22.Matrixet22):
         """Get a selection of self._array.ifrs()"""
         ifrs = self._array.ifrs()                    # Meow IfrArray            
         # ifrs = self.indices()                        # = Meow IfrArray.ifrs()
+        # ifrs = self._list_indices
         # .... do the selection ....
         return ifrs
 
@@ -232,15 +233,18 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def fill_with_identical_matrices (self, name='initial', coh=None):
+    def fill_with_identical_matrices (self, name='initial', stddev=0.0, coh=None):
         """Fill with 2x2 complex unit matrices"""
         quals = self.quals()
         if coh==None:
             coh = self._ns.unit_matrix(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
                                                                complex(0.0),complex(1.0))
+                
         self._matrixet = self._ns[name](*quals) 
         for ifr in self.ifrs():
             self._matrixet(*ifr) << Meq.Identity(coh)
+        if stddev>0:
+            self.addGaussianNoise (stddev=stddev, qual=None, visu=False)
         return True
 
     #---------------------------------------------------------------------------
