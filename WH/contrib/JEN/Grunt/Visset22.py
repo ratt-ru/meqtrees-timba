@@ -292,7 +292,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #...........................................................................
 
-    def correct (self, joneset=None, qual=None, visu=False):
+    def correct (self, joneset=None, qual=None, pgm_merge=False, visu=False):
         """Correct the internal matrices with the matrices of the given Joneset22 object."""
         quals = self.quals(append=qual)
         qq = joneset.quals()
@@ -306,6 +306,10 @@ class Visset22 (Matrixet22.Matrixet22):
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
         self._matrixet = self._ns[name](*quals)              
+        if pgm_merge:
+            # Transfer any parmgroups (used by the solver downstream)
+            # NB: Only True for redundancy-solution (see WSRT_redun.py)
+            self._pgm.merge(joneset._pgm)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
         # self.merge_accumulist(joneset)
         if visu: return self.visualize(name)

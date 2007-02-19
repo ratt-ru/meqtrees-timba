@@ -63,6 +63,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
         quals = lhs.quals(append=qual)
         # NB: Use the ParmGroupManger from the lhs (measured data) Matrixet22
         pgm = lhs._pgm
+    pgm.display('solving22')
         
     # Get the list of MeqParm nodes to be solved for.
     solver_label = pgm.solver_label(parmgroup)
