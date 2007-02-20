@@ -100,6 +100,7 @@ namespace Meq {
     FIgnoreTime = AidIgnore|AidTime,
     FForcePositive = AidForce|AidPositive,
     FCyclic = AidCyclic,
+    FCacheFunklet = AidCache|AidFunklet,
     FConstrain = AidConstrain,
     FConstrainMin = AidConstrain|AidMin,
     FConstrainMax = AidConstrain|AidMax;
@@ -214,6 +215,7 @@ namespace Meq {
     bool constrained_;
     bool force_positive_;
     bool cyclic_;  //for cyclic parameters (like phases) force coefficients to stay within one period per grid ... only valid for polcs and even there..
+    bool cache_funklet_;  // keep funklet of non-solvable parameters in cahce
     double period_;
     LoShape shape_;//shape of  polctype funklets
     Funklet::Ref init_funklet_;//funklet for initialisation 

@@ -71,6 +71,7 @@ namespace Meq {
       constrained_(false),
       force_positive_(false),
       cyclic_(false),
+      cache_funklet_(false),
       period_(2*PI),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
@@ -655,6 +656,12 @@ namespace Meq {
     if( integrated_ )
       result.integrate();
   
+
+    //remove funklet from cache unless cahce_funklet
+    if(!cache_funklet_ && !isSolvable()){
+      its_funklet_.detach();
+      wstate().remove(FFunklet);
+    } 
     return depend;
   }
 
@@ -677,6 +684,7 @@ namespace Meq {
     rec[FIgnoreTime].get(ignore_time_,initializing);
     rec[FForcePositive].get(force_positive_,initializing);
     rec[FCyclic].get(cyclic_,initializing);
+    rec[FCacheFunklet].get(cache_funklet_,initializing);
 
     //default
     solve_domain_[0]=0.;
