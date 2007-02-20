@@ -98,8 +98,8 @@ def _define_forest(ns):
     ns.beam_im_y(k) << ns.image_im_y(k) / ns.normalize(k)
     ns.beam_x(k) << Meq.ToComplex(ns.beam_re_x(k), ns.beam_im_x(k))
     ns.beam_y(k) << Meq.ToComplex(ns.beam_re_y(k), ns.beam_im_y(k))
-    ns.resampler_wt_re_x(k) << Meq.Resampler(ns.image_re_x(k), dep_mask=0xff)
-    ns.resampler_wt_im_x(k) << Meq.Resampler(ns.image_im_x(k), dep_mask=0xff)
+    ns.resampler_wt_re_x(k) << Meq.Resampler(ns.image_re_x(k))
+    ns.resampler_wt_im_x(k) << Meq.Resampler(ns.image_im_x(k))
     ns.beam_re_wt(k)<<Meq.Compounder(children=[ns.lm_beam,ns.resampler_wt_re_x(k)],common_axes=[hiid('l'),hiid('m')]) 
     ns.beam_im_wt(k)<<Meq.Compounder(children=[ns.lm_beam,ns.resampler_wt_im_x(k)],common_axes=[hiid('l'),hiid('m')]) 
 
