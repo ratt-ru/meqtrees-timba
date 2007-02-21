@@ -38,7 +38,7 @@ from Timba.Meq import meq
 # setup a bookmark for display of results with a 'Results Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='I Q U V',page=[
-    record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,2)),
+    record(udi="/node/IQUV",viewer="Result Plotter",pos=(2,0)),
     record(udi="/node/I",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/Q",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/U",viewer="Result Plotter",pos=(1,0)),
