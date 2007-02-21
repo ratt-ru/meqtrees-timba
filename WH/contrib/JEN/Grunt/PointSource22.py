@@ -236,7 +236,7 @@ class PointSource22 (Meow.PointSource):
             else:
                 # Use this if the source is in the phase centre (no KJones):
                 matrix = self.coherency(observation)
-                self._Visset22.fill_with_identical_matrices ('PS22_visibility', matrix)
+                self._Visset22.fill_with_identical_matrices ('PS22_visibility', coh=matrix)
 
             # ParmGroupManager... (get all MeqParms from self.ns...?)
             # NB: Not if self._simulate==True (i.e. hide the MeqParms)
