@@ -168,8 +168,8 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     mysim.setauto(autocorrwt=0.0);
 
 #   starttime:=-16200.0;
-    starttime:=-32400.0
-    scanlength:= 32400.0
+    starttime:=-25200.0
+    scanlength:= 25200.0
 # over-ride for shorter observation
 #   starttime:=-2880.0;
 #   scanlength:=5760.0
