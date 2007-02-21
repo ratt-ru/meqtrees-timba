@@ -16,6 +16,12 @@ import lsm_model
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[14,3],more=int);
 
+TDLCompileMenu("What do we want to do",
+  TDLOption('do_solve',"Calibrate",True),
+  TDLOption('do_subtract',"Subtract sky model",True),
+  TDLOption('do_correct',"Correct",True));
+  
+
 import models343
 import wsrt_beam
 # source model -- note how list is formed up on-the-fly from 
@@ -23,8 +29,7 @@ import wsrt_beam
 TDLCompileOption('source_model',"Source model",
   [ getattr(models343,func) for func in dir(models343) if callable(getattr(models343,func)) and func.startswith('m343_')],
  );
-TDLCompileOption('make_residuals',"Subtract model sources in output",True);
-  
+
 TDLCompileMenu("G Jones",
   TDLOption('gp_tiling',"G phase solution subtiling",[None,1,2,5],more=int),
   TDLOption('gp_freq_deg',"G phase freq degree",[0,1,2],more=int),
@@ -68,9 +73,17 @@ class PySawtooth (pynode.PyNode):
 
 
 def _define_forest(ns):
+  if not ( do_solve or do_subtract or do_correct ):
+    raise ValueError,"Nothing to do, please enable something in the Options|What to do menu";
+
   # enable standard MS options from Meow
+  if do_solve:
+    tile_sizes = None;            # solve jobs will provide their own tiling
+  else:
+    tile_sizes = [100,200,500];   # no solve jobs, provide global tiling
+    
   Utils.include_ms_options(
-    tile_sizes=None,
+    tile_sizes=tile_sizes,
     channels=[[15,40,1],[15,40,2]]
   );
 
@@ -140,6 +153,9 @@ def _define_forest(ns):
                                 tags="G",series=array.stations());
   allsky = allsky.corrupt(Gjones);
 
+  # only a G Jones correction will be applied
+  correct_for_jones = [Gjones];
+
   # create simulated visibilities for the sky
   predict = allsky.visibilities();
   
@@ -157,24 +173,35 @@ def _define_forest(ns):
         .add(ns.sawtooth) \
         .add(ns.solver);
 
-  # create solve tree.
-  solve_tree = Meow.StdTrees.SolveTree(ns,predict,residuals=make_residuals);
-  solve_output = solve_tree.outputs(array.spigots());
+  # select main tree type, and generate pre-correction nodes
+  if do_solve or do_subtract:
+    solve_tree = Meow.StdTrees.SolveTree(ns,predict);
+    if do_subtract:
+      outputs = solve_tree.residuals(array.spigots());
+    else:
+      outputs = array.spigots();
+  # no solve/subtract, so outputs are just spigots
+  else:
+    outputs = array.spigots();
   
-  # output of solve tree is either input data, or residuals.
-  # apply correction for G
-  corrected = Jones.apply_correction(ns.corrected,solve_output,Gjones);
-  # apply correction for sawtooth
-  if include_sawtooth:
-    ns.inv_sawtooth = 1/ns.sawtooth;
-    for p,q in array.ifrs():
-      ns.corrected_st(p,q) << corrected(p,q)*ns.inv_sawtooth;
-    corrected = ns.corrected_st;
+  # now insert corrections
+  if do_correct:
+    outputs = Jones.apply_correction(ns.corrected,outputs,correct_for_jones);
+    # apply correction for sawtooth
+    if include_sawtooth:
+      ns.inv_sawtooth = 1/ns.sawtooth;
+      for p,q in array.ifrs():
+        ns.corrected_st(p,q) << outputs(p,q)*ns.inv_sawtooth;
+      outputs = ns.corrected_st;
+      
+  # finally, make solve/sequencer tree from spigots and outputs
+  if do_solve:
+    outputs = solve_tree.sequencers(array.spigots(),outputs);
 
   # create some visualizers
   visualizers = [
     Meow.StdTrees.vis_inspector(ns.inspect('spigots'),array.spigots(),bookmark=False),
-    Meow.StdTrees.vis_inspector(ns.inspect('residuals'),corrected,bookmark=False),
+    Meow.StdTrees.vis_inspector(ns.inspect('outputs'),outputs,bookmark=False),
     Meow.StdTrees.jones_inspector(ns.inspect('G'),Gjones)
   ];
   if include_E_jones:
@@ -182,31 +209,38 @@ def _define_forest(ns):
     
   # finally, make the sinks and vdm. Visualizers will be executed
   # after ("post") all sinks
-  Meow.Context.vdm = Meow.StdTrees.make_sinks(ns,corrected,post=visualizers);
+  Meow.Context.vdm = Meow.StdTrees.make_sinks(ns,outputs,post=visualizers);
                                            
   # now define some runtime solve jobs
-  solve_tree.define_solve_job("Calibrate bright sources","flux",
-       predict.search(tags="bright (flux|spectrum) solvable"));
+  if do_solve:
+    solve_tree.define_solve_job("Calibrate bright sources","flux",
+         predict.search(tags="bright (flux|spectrum) solvable"));
 
-  solve_tree.define_solve_job("Calibrate LSM sources","flux_lsm",
-       predict.search(tags="lsm (flux|spectrum) solvable")+lsm_beam_parms);
-                                  
-  GPs = predict.search(tags="G phase");
-  solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);
-  
-  GAs = predict.search(tags="G ampl");
-  solve_tree.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
-  
-  if include_E_jones:
-    EPs = predict.search(tags="E phase");
-    solve_tree.define_solve_job("Calibrate E phases","e_phase",EPs);
-    solve_tree.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
-    EAs = predict.search(tags="E ampl");
-    solve_tree.define_solve_job("Calibrate E amplitudes","e_ampl",EAs);
-    solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
+    solve_tree.define_solve_job("Calibrate LSM sources","flux_lsm",
+         predict.search(tags="lsm (flux|spectrum) solvable")+lsm_beam_parms);
 
-  if include_sawtooth:
-    solve_tree.define_solve_job("Calibrate sawtooth amplitude","st_ampl",[ns.sta]);
+    GPs = predict.search(tags="G phase");
+    solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);
+
+    GAs = predict.search(tags="G ampl");
+    solve_tree.define_solve_job("Calibrate G amplitudes","g_ampl",GAs);
+
+    if include_E_jones:
+      EPs = predict.search(tags="E phase");
+      solve_tree.define_solve_job("Calibrate E phases","e_phase",EPs);
+      solve_tree.define_solve_job("Calibrate GE phases","ge_phase",GPs+EPs);
+      EAs = predict.search(tags="E ampl");
+      solve_tree.define_solve_job("Calibrate E amplitudes","e_ampl",EAs);
+      solve_tree.define_solve_job("Calibrate GE amplitudes","ge_ampl",GAs+EAs);
+
+    if include_sawtooth:
+      solve_tree.define_solve_job("Calibrate sawtooth amplitude","st_ampl",[ns.sta]);
+  else:
+    # include job for subtract/correct
+    def job_subtract_correct (mqs,parent,**kw):
+      req = Meow.Utils.create_io_request();
+      mqs.execute('VisDataMux',req,wait=False);
+    TDLRuntimeJob(job_subtract_correct,"Subtract and/or correct");
 
   # insert standard imaging options from Meow
   TDLRuntimeMenu("Make image",*Utils.imaging_options(npix=512,arcmin=72));
@@ -220,24 +254,22 @@ def _define_forest(ns):
       except: pass;
       try:    os.system("rm -fr "+Utils.get_mep_table());
       except: pass;
-  TDLJob(job_clear_out_all_previous_solutions,"Clear out all solutions");
+  TDLRuntimeJob(job_clear_out_all_previous_solutions,"Clear out all solutions");
   
   # add some useful bookmarks
-  Bookmarks.Page("Fluxes and coherencies") \
+  pg = Bookmarks.Page("Fluxes and coherencies") \
     .add(source_list[0].stokes("I")) \
     .add(source_list[1].stokes("I")) \
     .add(source_list[0].stokes("Q")) \
     .add(source_list[1].stokes("Q")) \
-    .add(source_list[0].coherency()) \
-    .add(solve_tree.solver());
+    .add(source_list[0].coherency());
+  if do_solve:
+    pg.add(solve_tree.solver());
   
   
   Bookmarks.Page("Vis Inspectors",1,2) \
-    .add(ns.inspect('spigots'),viewer="Collections Plotter") \
-    .add(ns.inspect('residuals'),viewer="Collections Plotter");
-  
-  
-  
+    .add(ns.inspect('inputs'),viewer="Collections Plotter") \
+    .add(ns.inspect('outputs'),viewer="Collections Plotter");
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
