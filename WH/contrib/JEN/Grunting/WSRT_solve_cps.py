@@ -67,6 +67,7 @@ def _define_forest (ns):
 
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
+    Meow.Context.set(array, observation)
     direction = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
 
     # Make a user-defined point source model, derived from the Meow.PointSource class,
