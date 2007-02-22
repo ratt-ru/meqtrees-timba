@@ -321,8 +321,20 @@ class RedunCondexet22 (Condexet22):
             self.indices(new=indices)
 
         # Finished: Return a list of condeq nodes:
-        return self.make_condeq_nodes (index, postfix, quals, unop=unop)
+        nodes = self.make_condeq_nodes (index, postfix, quals, unop=unop)
 
+        if False:
+            # Make the first visibility equal to a unit-matrix, to block the
+            # 'solution' in which all visibilities are driven to zero
+            pair = self._redun[0]
+            firstcoh = self._lhs._matrixet(*pair[0])
+            unit_matrix = self._ns['unit_matrix'](*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
+                                                                          complex(0.0),complex(1.0))
+            
+            condeq = self._ns['firstcoh=complex(1)'](*quals) << Meq.Condeq(firstcoh, unit_matrix)
+            nodes.append(condeq)
+
+        return nodes
 
 
 

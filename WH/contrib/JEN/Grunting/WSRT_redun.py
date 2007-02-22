@@ -33,6 +33,7 @@ from Timba.Contrib.JEN.Grunt import solving22
 #========================================================================
 
 # Run-time menu:
+
 JEN_Meow_Utils.include_ms_options(has_input=True, has_output='CORRECTED_DATA',
                                   tile_sizes=[30,48,96,20,10,5,2,1]);
 JEN_Meow_Utils.include_imaging_options();
@@ -40,7 +41,11 @@ JEN_Meow_Utils.include_imaging_options();
 
 # Compile-time menu:
 
+TDLCompileOption('TDL_simul_input','Simulated input data',[False,True]);
+PointSource22.include_TDL_options('input cps model')  
+
 WSRT_Jones.include_TDL_options_uvp('instrum. model')
+
 pg = WSRT_Jones.parmgroups_uvp()
 TDLCompileOption('TDL_parmgog','parmgroups to be solved for', pg, more=str);
 
@@ -66,11 +71,21 @@ def _define_forest (ns):
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
     Meow.Context.set(array, observation)
-    # direction = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
 
-    # The measured uv-data are read from the Measurement Set via spigots:
-    data = Visset22.Visset22(ns, label='data', array=array)
-    data.make_spigots(visu='*')
+    if TDL_simul_input:
+        # Make a user-defined point source model, derived from the Meow.PointSource class,
+        # with some extra functionality for predefined sources and solving etc.
+        direction = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
+        ps = PointSource22.PointSource22 (ns, direction=direction)
+        # if TDL_display_PointSource22: ps.display(full=True)
+        # Create a Visset22 object with simulated uv-data:
+        data = ps.Visset22(array, observation, name='pred', visu=True)
+        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(), simulate=True)
+        data.corrupt(jones, visu='*')
+    else:
+        # The measured uv-data are read from the Measurement Set via spigots:
+        data = Visset22.Visset22(ns, label='data', array=array)
+        data.make_spigots(visu='*')
 
     # Correct(!) the measured data with a sequence of Jones matrices,
     # which contain the solvable parameters. uv-plane effects only.
