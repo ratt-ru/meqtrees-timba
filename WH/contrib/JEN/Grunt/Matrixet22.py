@@ -422,7 +422,7 @@ class Matrixet22 (object):
                                                               other._matrixet(*i))
         self.matrixet(new=self._ns[binop](*quals))            # replace
         # self._pgm.merge(other._pgm)           # ...........!!?
-        if visu: self.visualize(qual=qual)
+        if visu: self.visualize(qual=qual, visu=visu)
         return True
 
 
@@ -465,22 +465,55 @@ class Matrixet22 (object):
 
     #.......................................................................
 
-    def show_rvsi (self, qual=None, matrel='*', accu=True,
+    def visualize (self, qual=None, visu='rvsi', accu=True,
+                   matrel='*', separate=False,
                    bookpage='Matrixet22', folder=None):
-        """More descriptive function name than .visualize()...."""
-        return self.visualize (qual=qual, matrel=matrel, accu=accu,
-                               bookpage=bookpage, folder=folder)
+        """Generic visualisation, controlled by visu. The latter may be:
+        - timetracks: show timetracks for all matrices, averaged over freq.
+        - spectra:    show spectra (not implemented yet)
+        - rvsi:       show a real-vs-imag plot, refreshed per timeslot
+        visu==True means visu=='rvsi'
+        visu may also be a list (of strings)
+        """
+
+        # Decode visu:
+        if isinstance(visu, bool):
+            if visu==False: return False
+            visu = ['rvsi']
+        elif isinstance(visu, str):
+            if visu=='*':
+                visu = ['rvsi','spectra','timetracks']
+            else:
+                visu = [visu]
+        elif not isinstance(visu,(list,tuple)):
+            return False
+
+        dcolls = []
+        for visual in visu:
+            if visual=='timetracks':
+                dc = self.show_timetracks (qual=qual, accu=False, separate=separate,
+                                           bookpage=bookpage, folder=folder)
+                dcolls.append(dc)
+            elif visual=='spectra':
+                pass                         # not implemented yet
+            else:
+                dc = self.show_rvsi (qual=qual, matrel=matrel, accu=False,
+                                     bookpage=bookpage, folder=folder)
+                dcolls.append(dc)
+                
+        # Return a single node (bundle them if necessary):
+        if len(dcolls)==0: return False
+        if len(dcolls)==1:
+            if accu: self.accumulist(dcolls[0])
+            return dcolls[0]
+        bundle = self._ns << Meq.Composer(children=dcolls)
+        if accu: self.accumulist(bundle)
+        return bundle
+
 
     #.......................................................................
 
-    def show_spectra (self, qual=None, matrel='*', accu=True,
-                      bookpage='Matrixet22', folder=None):
-        """Not implemented yet...."""
-        return False
-
-    #.......................................................................
-
-    def visualize (self, qual=None, matrel='*', accu=True,
+    def show_rvsi (self, qual=None, matrel='*', accu=True,
                    bookpage='Matrixet22', folder=None):
 
         """Visualise (a subset of) the 4 complex matrix elements of all 
@@ -590,8 +623,11 @@ class Matrixet22 (object):
             # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
             if accu: self.accumulist(coll)
             colls.append(coll)
-        # Return the list of timetracks nodes:
-        return colls
+            
+        # Bundle the list of timetracks nodes:
+        name = 'timetracks'
+        coll = self._ns[name](coll_quals) << Meq.Composer(children=colls)
+        return coll
 
 
 
@@ -620,7 +656,8 @@ class Matrixet22 (object):
                 mm[elem] = self._ns << Meq.Polar(1.0, 0.0)
             # The one non-zero element is complex, with amplitude=1.0,
             # and phase equal to index/10 radians (plus variation if simulate=True):
-            phase = self._pgm.create_parmgroup_entry(key, index)
+            phase = self.create_parmgroup_entry(key, index)
+            # phase = self._pgm.create_parmgroup_entry(key, index)
             mm[key] = self._ns << Meq.Polar(1.0, phase)
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])

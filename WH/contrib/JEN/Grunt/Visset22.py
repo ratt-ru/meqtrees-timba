@@ -135,7 +135,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # self.create_ReadVisHeader_placeholders()    # see below....
 
         if visu:
-            self.visualize('spigots')
+            self.visualize('spigots', visu=visu)
         return True
 
     #--------------------------------------------------------------------------
@@ -163,9 +163,9 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def make_sinks (self, output_col='DATA',
+    def make_sinks (self, output_col='DATA', 
                     # start=None, pre=None, post=None,
-                    vdm='vdm'):
+                    vdm='vdm', visu=False):
         """Make MeqSink nodes per ifr for writing visibilities back to the
         specified 'tile' column of the VisTile interface, which conveys it
         to a Measurement Set (MS) or other data-source.
@@ -190,7 +190,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # The ReqSeq will execute them in that order before executing the current
         # main-stream matrix node. The result of the latter is the only one
         # that is transmitted by the ReqSeq. The accumulist is cleared.
-        self.insert_accumulist_reqseq()
+        self.insert_accumulist_reqseq(visu=visu)
 
         # Make the sinks:
         name = 'sink'
@@ -212,11 +212,15 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def insert_accumulist_reqseq (self, key=None, qual=None):
+    def insert_accumulist_reqseq (self, key=None, qual=None, visu=False):
         """Insert a series of reqseq node(s) with the children accumulated
         in self._accumulist (see Matrixet22). The reqseqs will get the current
         matrix nodes as their last child, to which their result is transmitted."""
 
+        # If visu==True, append the visualisation dcoll to the accumulist,
+        # so that it will get the last request before the main-stream is addressed.
+        if visu: self.visualize('accumulist', visu=visu)
+        
         cc = self.accumulist(key=key, clear=False)
         n = len(cc)
         if n>0:
@@ -233,8 +237,11 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def fill_with_identical_matrices (self, name='initial', stddev=0.0, coh=None):
-        """Fill with 2x2 complex unit matrices"""
+    def fill_with_identical_matrices (self, name='initial', stddev=0.0,
+                                      coh=None, visu=False):
+        """Fill the Visset22 with 2x2 identical matrices. If coh==None, these are
+        complex unit matrices. Otherwise, assume that coh is a 2x2 matrix, and use that.
+        If stddev>0, add gaussian noise with this stddev."""
         quals = self.quals()
         if coh==None:
             coh = self._ns.unit_matrix(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
@@ -245,6 +252,7 @@ class Visset22 (Matrixet22.Matrixet22):
             self._matrixet(*ifr) << Meq.Identity(coh)
         if stddev>0:
             self.addGaussianNoise (stddev=stddev, qual=None, visu=False)
+        if visu: return self.visualize(name, visu=visu)
         return True
 
     #---------------------------------------------------------------------------
@@ -266,7 +274,7 @@ class Visset22 (Matrixet22.Matrixet22):
                 noise = self._ns.noise(*quals)(**kwqual)(*ifr) << Meq.Matrix22(*mm)
                 self._ns[name](*quals)(**kwqual)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
             self._matrixet = self._ns[name](*quals)(**kwqual)           
-            if visu: return self.visualize(name)
+            if visu: return self.visualize(name, visu=visu)
         return None
 
     #...........................................................................
@@ -287,7 +295,7 @@ class Visset22 (Matrixet22.Matrixet22):
         self._matrixet = self._ns[name](*quals)              
         # Transfer any parmgroups (used by the solver downstream)
         self._pgm.merge(joneset._pgm)
-        if visu: return self.visualize(name)
+        if visu: return self.visualize(name, visu=visu)
         return None
 
     #...........................................................................
@@ -312,11 +320,8 @@ class Visset22 (Matrixet22.Matrixet22):
             self._pgm.merge(joneset._pgm)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
         # self.merge_accumulist(joneset)
-        if visu: return self.visualize(name)
+        if visu: return self.visualize(name, visu=visu)
         return None
-
-
-
 
 
 

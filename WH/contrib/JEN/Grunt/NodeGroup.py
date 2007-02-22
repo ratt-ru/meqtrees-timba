@@ -62,6 +62,7 @@ class NodeGroup (object):
         self._dcoll = None
         self._coll = None
         self._plotinfo = dict(color=color, style=style, size=size, pen=pen)
+        self._plot_labels = []
 
         return None
                 
@@ -115,6 +116,7 @@ class NodeGroup (object):
             self.display_subtree(self._dcoll, txt=':',
                                  show_initrec=False, recurse=1)
         print ' * plot: '+str(self._plotinfo)
+        print ' * plot_labels: '+str(self.plot_labels())
         print '**\n'
         return True
 
@@ -146,6 +148,10 @@ class NodeGroup (object):
         """Return its dict with plot instructions"""
         return self._plotinfo
 
+    def plot_labels(self):
+        """Return a list with plot-labels"""
+        return self._plot_labels
+
     def len(self):
         """Return the length of the nodelist"""
         return len(self._nodelist)
@@ -162,10 +168,13 @@ class NodeGroup (object):
 
     #-------------------------------------------------------------------
 
-    def append_entry(self, node):
+    def append_entry(self, node, plot_label=None):
         """Append the given entry (node) to the internal nodelist."""
         # Check whether it is a valid node....?
         self._nodelist.append(node)
+        # Make sure that there is a plot-label:
+        if plot_label==None: plot_label = str(self.len())
+        self._plot_labels.append(str(plot_label))
         return len(self._nodelist)
 
     def create_entry (self, qual=None):
@@ -260,6 +269,7 @@ class NodeGroup (object):
                 cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'collector'
             coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
+                                                              plot_label=self.plot_labels(),
                                                               children=cc)
             self._coll = coll
             JEN_bookmarks.create(self._coll, self.label(),
@@ -451,6 +461,15 @@ class NodeGog (object):
         for ng in self._group:
             cc.append(ng.bundle(oper=oper))
         return self._ns << getattr(Meq,oper)(children=cc)
+
+    def collector (self, bookpage='NodeGroup', folder=None):
+        """Visualize its group of NodeGroups. Return a single node."""
+        cc = []
+        for ng in self._group:
+            cc.append(ng.collector(bookpage=bookpage, folder=folder))
+        if len(cc)==0: return False
+        if len(cc)==1: return cc[0]
+        return self._ns << Meq.Composer(children=cc)
 
 
     #-----------------------------------------------------------------------------

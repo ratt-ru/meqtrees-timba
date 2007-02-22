@@ -70,29 +70,29 @@ def _define_forest (ns):
 
     # The measured uv-data are read from the Measurement Set via spigots:
     data = Visset22.Visset22(ns, label='data', array=array)
-    data.make_spigots(visu=True)
+    data.make_spigots(visu='*')
 
     # Correct(!) the measured data with a sequence of Jones matrices,
     # which contain the solvable parameters. uv-plane effects only.
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
     jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations())
-    # NB: Note the unusual pgm_merge....!
-    data.correct(jones, pgm_merge=True, visu=True)
+    # NB: Note the unusual pgm_merge==True, to make sure that the parmgroup
+    #     manager from the data visset is passed on (this is not the
+    #     case for a normal solve, where the pgm from the predicted
+    #     visset is used (...)
+    # NB: Visu==False because this shows the situation before solving,
+    #     due to caching. So use visu==True on make_sinks() below.
+    data.correct(jones, pgm_merge=True, visu=False)
 
     # Create a solver for a user-defined subset of parameters (parmgroup):
     # NB: The solver gets its requests from a ReqSeq that is automatically
     #     inserted into the main-stream by data.make_sinks() below.
     solving22.make_solver(lhs=data, parmgroup=TDL_parmgog)
 
-    # Correct the data for the estimated instrumental errors
-    if True:
-        # data.correct(jones, visu=True)
-        data.show_timetracks('corrected', separate=True)                 
-
     # Finished:
     if TDL_display_Visset22: data.display(full=True)
-    data.make_sinks(vdm='vdm')        
+    data.make_sinks(vdm='vdm', visu='*')        
     return True
 
 

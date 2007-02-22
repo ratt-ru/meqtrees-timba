@@ -121,7 +121,8 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     bookpage = 'solver'+solver_label
     JEN_bookmarks.create(solver, page=bookpage)
     
-    # Visualize the solvable MeqParms:
+    # Visualize the groups of solvable MeqParms:
+    cc.append(pgm.visualize(parmgroup))
     
     # Visualize the condeqs:
     condequal = 'condeq'+solver_label
@@ -130,7 +131,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
         condequal.insert(0,'condeq'+solver_label)
     elif isinstance(qual,str):
         condequal = [condequal,qual]
-    dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage)
+    dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage, visu='*')
     cc.append(dcoll)
 
     # Bundle solving and visualisation nodes:

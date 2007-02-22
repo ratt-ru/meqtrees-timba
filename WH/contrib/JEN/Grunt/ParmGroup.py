@@ -162,7 +162,7 @@ class ParmGroup (NodeGroup.NodeGroup):
                                                  tags=self._tags)
 
         # Append the new node to the internal nodelist:
-        self.append_entry(node)
+        self.append_entry(node, plot_label=qual)
         return node
 
 

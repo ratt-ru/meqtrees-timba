@@ -56,7 +56,8 @@ def _define_forest (ns):
     data = Visset22.Visset22(ns, label='inspectMS', array=array)
     data.make_spigots(visu=True)
 
-    data.show_timetracks(separate=True)
+    # data.show_timetracks(separate=True)
+    data.visualize(visu='*', separate=True)
 
     # Insert array configuration visualisation here.....?
     # Keep the relevant functions in this script?

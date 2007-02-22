@@ -213,23 +213,10 @@ class RedunCondexet22 (Condexet22):
         self._WSRT_xx = None                     # WSRT RT positions
         if self._WSRT_9A:
             self._WSRT_xx = self.get_WSRT_1D_station_pos(self._WSRT_9A)
-            self.make_redun(ifrs=lhs.list_indices())
+            self.make_redun_pairs(ifrs=lhs.list_indices())
 
         return None
 
-
-    #...........................................................................
-
-    def get_WSRT_1D_station_pos(self, sep9A=None):
-        """Helper function to get 1D WSRT station positions (m), depending on
-        separation 9-A (m). Used for redundant-spacing calibration.""" 
-        xx = range(14)
-        for i in range(10): xx[i] = i*144.0
-        xx[10] = xx[9]+sep9A                     # A = 9 + sep9A
-        xx[11] = xx[10]+72                       # B = A + 72
-        xx[12] = xx[10]+(xx[9]-xx[0])            # C = A + (9-0)
-        xx[13] = xx[12]+72                       # D = C + 72
-        return xx
 
     #---------------------------------------------------------------------------
 
@@ -260,24 +247,31 @@ class RedunCondexet22 (Condexet22):
 
     #---------------------------------------------------------------------------
 
-    def make_redun (self, ifrs=None, select='all'):
+    def get_WSRT_1D_station_pos(self, sep9A=None):
+        """Helper function to get 1D WSRT station positions (m), depending on
+        separation 9-A (m). Used for redundant-spacing calibration.""" 
+        xx = range(14)
+        for i in range(10): xx[i] = i*144.0
+        xx[10] = xx[9]+sep9A                     # A = 9 + sep9A
+        xx[11] = xx[10]+72                       # B = A + 72
+        xx[12] = xx[10]+(xx[9]-xx[0])            # C = A + (9-0)
+        xx[13] = xx[12]+72                       # D = C + 72
+        return xx
+
+    def make_redun_pairs (self, ifrs=None, select='all'):
         """Create a list of redundant pairs of ifrs""" 
         self._redun = []
         self._redun_label = []
         xx = self._WSRT_xx
         for i in range(len(ifrs)-1):
             ifr1 = ifrs[i]
-            # print 'ifr1=',ifr1
             b1 = xx[ifr1[1]-1] - xx[ifr1[0]-1]            # ifr stations are 1-relative!
-            # print '-',i,ifr1,b1
             for j in range(i+1,len(ifrs)):
                 ifr2 = ifrs[j]
                 b2 = xx[ifr2[1]-1] - xx[ifr2[0]-1]        # ifr stations are 1-relative!
-                # print '  -',j,ifr2,b2
                 if b2==b1:
                     self._redun.append([ifr1,ifr2])
                     self._redun_label.append(str(int(b1)))
-                    print '     redundant:',b1,b2,ifr1,ifr2
                     break
         return True
 

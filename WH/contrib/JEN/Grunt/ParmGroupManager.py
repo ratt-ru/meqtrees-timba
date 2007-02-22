@@ -130,6 +130,21 @@ class ParmGroupManager (object):
         return parmlist
     
 
+    def visualize(self, parmgroup='*'):
+        """Visualise the specified parmgroups. Return a single root node."""
+        pgs = deepcopy(parmgroup)
+        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
+        keys = self._parmgroup.keys()
+        cc = []
+        for key in pgs:
+            if key in keys:
+                cc.append(self._parmgroup[key].collector())
+        # Return a single root node for the visualization subtree:
+        if len(cc)==0: return False
+        if len(cc)==1: return cc[0]
+        return self._ns << Meq.Composer(children=cc)
+    
+
     def solver_label(self, parmgroup='*', severe=True, remove='Jones', trace=False):
         """Return a more or less descriptive label for a solver node,
         constructed from the specified parmgroup(s)"""
