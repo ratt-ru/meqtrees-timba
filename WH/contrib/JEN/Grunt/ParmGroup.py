@@ -130,27 +130,26 @@ class ParmGroup (NodeGroup.NodeGroup):
         """Make a constraint condeq, if specified"""
         if not isinstance(self._constraint, dict): return None
         ct = self._constraint
-        cc = self.nodelist()
+        nn = self.nodelist()
+        cc = []
         if ct.has_key('sum'):
             value = ct['sum']
             name = 'sum('+self.label()+')'
-            node = self._ns[name] << Meq.Add(children=cc)
+            node = self._ns[name] << Meq.Add(children=nn)
             name += '='+str(value)
-            return self._ns[name] << Meq.Condeq(node, value)
-        elif ct.has_key('product'):
+            cc.append(self._ns[name] << Meq.Condeq(node, value))
+        if ct.has_key('product'):
             value = ct['product']
             name = 'prod('+self.label()+')'
-            node = self._ns[name] << Meq.Multiply(children=cc)
+            node = self._ns[name] << Meq.Multiply(children=nn)
             name += '='+str(value)
-            return self._ns[name] << Meq.Condeq(node, value)
-        elif ct.has_key('first'):
+            cc.append(self._ns[name] << Meq.Condeq(node, value))
+        if ct.has_key('first'):
             value = ct['first']
             name = 'first('+self.label()+')'
             name += '='+str(value)
-            return self._ns[name] << Meq.Condeq(cc[0], value)
-        else:
-            print '\n** constraint not recognised:',ct
-        return True
+            cc.append(self._ns[name] << Meq.Condeq(nn[0], value))
+        return cc
 
     #======================================================================
     # Create a new ParmGroup entry (i.e. a MeqParm node)

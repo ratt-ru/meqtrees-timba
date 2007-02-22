@@ -476,7 +476,11 @@ class NodeGog (object):
         cc = []
         for ng in self._group:
             condeq = ng.constraint_condeq()
-            if not condeq==None: cc.append(condeq)
+            if condeq:
+                if isinstance(condeq,list):
+                    cc.extend(condeq)
+                else:
+                    cc.append(condeq)
         return cc
 
     #-----------------------------------------------------------------------------

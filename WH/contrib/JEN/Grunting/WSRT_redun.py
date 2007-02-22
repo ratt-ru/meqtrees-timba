@@ -79,8 +79,9 @@ def _define_forest (ns):
         ps = PointSource22.PointSource22 (ns, direction=direction)
         # if TDL_display_PointSource22: ps.display(full=True)
         # Create a Visset22 object with simulated uv-data:
-        data = ps.Visset22(array, observation, name='pred', visu=True)
-        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(), simulate=True)
+        data = ps.Visset22(array, observation, name='data', visu=True)
+        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(), simulate=True,
+                                         override=dict(Gphase=dict(Psec=1000)))
         data.corrupt(jones, visu='*')
     else:
         # The measured uv-data are read from the Measurement Set via spigots:

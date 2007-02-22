@@ -96,8 +96,8 @@ def _define_forest (ns):
 
     # Correct the data for the estimated instrumental errors
     if True:
-        data.correct(jones, visu=True)
-        data.show_timetracks('corrected', separate=True)                 
+        data.correct(jones, visu='*')
+        # data.show_timetracks('corrected', separate=True)                 
 
     # Finished:
     if TDL_display_Visset22: data.display(full=True)
