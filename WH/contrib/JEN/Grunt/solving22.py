@@ -89,6 +89,9 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     else:
         cdx = Condexet22.RedunCondexet22(lhs._ns, lhs=lhs, **pp)
     condeqs = cdx.make_condeqs (matrel=matrel, qual=qual)
+    if not rhs:
+        constr = pgm.constraint_condeqs(parmgroup)
+        if len(constr)>0: condeqs.extend(constr)
 
 
     # Create the solver:

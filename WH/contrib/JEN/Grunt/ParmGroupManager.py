@@ -144,6 +144,22 @@ class ParmGroupManager (object):
         if len(cc)==1: return cc[0]
         return self._ns << Meq.Composer(children=cc)
     
+    def constraint_condeqs(self, parmgroup='*'):
+        """Get a list of constraint-condeqs (nodes) from the specified parmgroups."""
+        pgs = deepcopy(parmgroup)
+        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
+        keys = self._parmgroup.keys()
+        cc = []
+        for key in pgs:
+            if key in keys:
+                condeq = self._parmgroup[key].constraint_condeq()
+                if condeq:
+                    if isinstance(condeq,list):
+                        cc.extend(condeq)
+                    else:
+                        cc.append(condeq)
+        return cc
+    
 
     def solver_label(self, parmgroup='*', severe=True, remove='Jones', trace=False):
         """Return a more or less descriptive label for a solver node,
@@ -215,7 +231,7 @@ class ParmGroupManager (object):
     #-----------------------------------------------------------------------------
 
     def define_parmgroup(self, name, descr=None, tags=[], 
-                         default=None, override=None,
+                         default=None, constraint=None, override=None,
                          simul=None, simulate=False,
                          rider=None):
         """Helper function to define a named (Simulated)ParmGroup object."""
@@ -257,6 +273,7 @@ class ParmGroupManager (object):
                                       quals=self.quals(),
                                       descr=descr,
                                       default=default,
+                                      constraint=constraint,
                                       tags=ptags,
                                       node_groups=node_groups,
                                       override=override,

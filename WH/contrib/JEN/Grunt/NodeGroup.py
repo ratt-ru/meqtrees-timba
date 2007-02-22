@@ -471,6 +471,13 @@ class NodeGog (object):
         if len(cc)==1: return cc[0]
         return self._ns << Meq.Composer(children=cc)
 
+    def constraint_condeq (self):
+        """Make a list of constraint-condeqs from its ParmGroups"""
+        cc = []
+        for ng in self._group:
+            condeq = ng.constraint_condeq()
+            if not condeq==None: cc.append(condeq)
+        return cc
 
     #-----------------------------------------------------------------------------
 

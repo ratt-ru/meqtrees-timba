@@ -41,7 +41,7 @@ class ParmGroup (NodeGroup.NodeGroup):
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
                  parmtable=None,
-                 default=None, override=None, rider=None):
+                 default=None, constraint=None, override=None, rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
@@ -69,6 +69,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         self._default.setdefault('auto_save', False)
         self._default.setdefault('save_all', False)
         self._default.setdefault('reset_funklet', False)
+
+        # Information needed to make constraint-condeqs
+        self._constraint = constraint
 
         # The information may be overridden:
         self._override = dict()
@@ -109,6 +112,7 @@ class ParmGroup (NodeGroup.NodeGroup):
         print ' * override ('+str(len(self._override))+'):'
         for key in self._override.keys():
             print '   - '+str(key)+' = '+str(self._override[key])
+        print ' * constraint = '+str(self._constraint)
         print '   - node_groups: '+str(self._node_groups)
         return True
 
@@ -119,6 +123,34 @@ class ParmGroup (NodeGroup.NodeGroup):
         MeqParm values. If None, the default values are used."""
         return self._parmtable
 
+
+    #-------------------------------------------------------------------
+
+    def constraint_condeq (self):
+        """Make a constraint condeq, if specified"""
+        if not isinstance(self._constraint, dict): return None
+        ct = self._constraint
+        cc = self.nodelist()
+        if ct.has_key('sum'):
+            value = ct['sum']
+            name = 'sum('+self.label()+')'
+            node = self._ns[name] << Meq.Add(children=cc)
+            name += '='+str(value)
+            return self._ns[name] << Meq.Condeq(node, value)
+        elif ct.has_key('product'):
+            value = ct['product']
+            name = 'prod('+self.label()+')'
+            node = self._ns[name] << Meq.Multiply(children=cc)
+            name += '='+str(value)
+            return self._ns[name] << Meq.Condeq(node, value)
+        elif ct.has_key('first'):
+            value = ct['first']
+            name = 'first('+self.label()+')'
+            name += '='+str(value)
+            return self._ns[name] << Meq.Condeq(cc[0], value)
+        else:
+            print '\n** constraint not recognised:',ct
+        return True
 
     #======================================================================
     # Create a new ParmGroup entry (i.e. a MeqParm node)

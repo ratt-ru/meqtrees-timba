@@ -294,7 +294,7 @@ class Matrixet22 (object):
     #=====================================================================================
 
     def define_parmgroup(self, name, descr=None, tags=[], 
-                         default=None, override=None,
+                         default=None, constraint=None, override=None,
                          simul=None, simulate_override=None,
                          rider=None):
         """Interface function to define a parmgroup. Most aguments are passed straight to
@@ -306,7 +306,8 @@ class Matrixet22 (object):
         simulate = (self._simulate or simulate_override)
 
         pg = self._pgm.define_parmgroup(name=name, descr=descr, tags=tags, 
-                                        default=default, override=override, 
+                                        default=default, constraint=constraint,
+                                        override=override, 
                                         simul=simul, simulate=simulate,
                                         rider=rider)
         return pg

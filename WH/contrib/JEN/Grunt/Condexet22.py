@@ -275,7 +275,7 @@ class RedunCondexet22 (Condexet22):
                     break
         return True
 
-    #................................................................................
+    #---------------------------------------------------------------------------
 
     def make_condeqs (self, matrel='*', qual=None, unop=None):
         """Re-implementation of Condexet22 function make_condeqs().
