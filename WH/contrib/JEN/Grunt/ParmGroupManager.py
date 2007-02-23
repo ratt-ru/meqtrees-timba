@@ -130,7 +130,7 @@ class ParmGroupManager (object):
         return parmlist
     
 
-    def visualize(self, parmgroup='*'):
+    def visualize(self, parmgroup='*', bookpage='ParmGroup', folder=None):
         """Visualise the specified parmgroups. Return a single root node."""
         pgs = deepcopy(parmgroup)
         if not isinstance(pgs,(list,tuple)): pgs = [pgs]
@@ -138,7 +138,7 @@ class ParmGroupManager (object):
         cc = []
         for key in pgs:
             if key in keys:
-                cc.append(self._parmgroup[key].collector())
+                cc.append(self._parmgroup[key].collector(bookpage=bookpage, folder=folder))
         # Return a single root node for the visualization subtree:
         if len(cc)==0: return False
         if len(cc)==1: return cc[0]

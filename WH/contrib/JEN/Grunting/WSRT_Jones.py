@@ -180,7 +180,8 @@ class JJones (Joneset22.JJones):
 
         # Just use the generic JJones in Grunt/Joneset22.py
         Joneset22.JJones.__init__(self, ns, quals=quals, label=label,
-                                  polrep='linear', telescope='WSRT', 
+                                  polrep='linear', telescope='WSRT',
+                                  diagonal=diagonal,
                                   override=override,
                                   stations=stations, simulate=simulate)
         return None

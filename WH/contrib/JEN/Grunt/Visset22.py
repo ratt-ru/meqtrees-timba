@@ -190,7 +190,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # The ReqSeq will execute them in that order before executing the current
         # main-stream matrix node. The result of the latter is the only one
         # that is transmitted by the ReqSeq. The accumulist is cleared.
-        self.insert_accumulist_reqseq(visu=visu)
+        self.insert_accumulist_reqseq(visu=visu, name='sinks')
 
         # Make the sinks:
         name = 'sink'
@@ -212,14 +212,14 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #--------------------------------------------------------------------------
 
-    def insert_accumulist_reqseq (self, key=None, qual=None, visu=False):
+    def insert_accumulist_reqseq (self, key=None, qual=None, visu=False, name='accumulist'):
         """Insert a series of reqseq node(s) with the children accumulated
         in self._accumulist (see Matrixet22). The reqseqs will get the current
         matrix nodes as their last child, to which their result is transmitted."""
 
         # If visu==True, append the visualisation dcoll to the accumulist,
         # so that it will get the last request before the main-stream is addressed.
-        if visu: self.visualize('accumulist', visu=visu)
+        if visu: self.visualize(name, visu=visu)
         
         cc = self.accumulist(key=key, clear=False)
         n = len(cc)

@@ -325,10 +325,14 @@ class JJones (Joneset22):
             ee.append(ename)
             for rim in ['real','imag']:
                 default = 0.0
-                if rim=='real': default = 1.0
+                constraint = dict(sum=0.0)
+                if rim=='real':
+                    default = 1.0
+                    constraint = dict(product=1.0)
                 self.define_parmgroup(ename+rim,
                                       descr=rim+' part of matrix element '+ename,
                                       default=dict(c00=default),
+                                      constraint=constraint,
                                       simul=dict(Psec=200),
                                       override=override,
                                       tags=[jname,'Jdiag'])
@@ -339,6 +343,7 @@ class JJones (Joneset22):
                     self.define_parmgroup(ename+rim,
                                           descr=rim+' part of matrix element '+ename,
                                           default=dict(c00=0.0),
+                                          constraint=dict(sum=0.0),
                                           simul=dict(Psec=200),
                                           override=override,
                                           tags=[jname,'Joffdiag'])

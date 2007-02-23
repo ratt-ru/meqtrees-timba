@@ -126,29 +126,30 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def constraint_condeq (self):
+    def constraint_condeq (self, qual=None):
         """Make a constraint condeq, if specified"""
         if not isinstance(self._constraint, dict): return None
+        quals = self._quals.get(append=qual)
         ct = self._constraint
         nn = self.nodelist()
         cc = []
         if ct.has_key('sum'):
             value = ct['sum']
             name = 'sum('+self.label()+')'
-            node = self._ns[name] << Meq.Add(children=nn)
+            node = self._ns[name](*quals) << Meq.Add(children=nn)
             name += '='+str(value)
-            cc.append(self._ns[name] << Meq.Condeq(node, value))
+            cc.append(self._ns[name](*quals) << Meq.Condeq(node, value))
         if ct.has_key('product'):
             value = ct['product']
             name = 'prod('+self.label()+')'
-            node = self._ns[name] << Meq.Multiply(children=nn)
+            node = self._ns[name](*quals) << Meq.Multiply(children=nn)
             name += '='+str(value)
-            cc.append(self._ns[name] << Meq.Condeq(node, value))
+            cc.append(self._ns[name](*quals) << Meq.Condeq(node, value))
         if ct.has_key('first'):
             value = ct['first']
             name = 'first('+self.label()+')'
             name += '='+str(value)
-            cc.append(self._ns[name] << Meq.Condeq(nn[0], value))
+            cc.append(self._ns[name](*quals) << Meq.Condeq(nn[0], value))
         return cc
 
     #======================================================================
