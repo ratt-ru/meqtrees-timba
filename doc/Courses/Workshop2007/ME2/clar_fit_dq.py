@@ -80,7 +80,7 @@ Settings.forest_state = record(bookmarks=[
 ]);
 
 def tpolc (tdeg,c00=0.0):
-  return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
+  return Meq.Parm(create_polc(deg_f=0,deg_t=tdeg,c00=c00),
                   node_groups='Parm',
                   table_name=mep_derived);
   
@@ -168,7 +168,7 @@ def _define_forest(ns):
   # Measurements
   for sta in array.stations():
     # create solver + condeq for station UVWs
-    uvw = array.uvw(radec0);     # computed UVWs 
+    uvw = array.uvw(obs.phase_center);     # computed UVWs 
     fitted_uvws = [ ns.u(sta).qadd(radec0) << tpolc(5),
                     ns.v(sta).qadd(radec0) << tpolc(5),
                     ns.w(sta).qadd(radec0) << tpolc(5)  ];
