@@ -1,4 +1,4 @@
-# glish script that uses newsimulator to simulate a 14 station
+# glish script that uses newsimulator to simulate a 27 station
 # SKA located at the VLA site consisting of 250m dishes.
 
 RA0          := '0h7m0.0';
