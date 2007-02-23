@@ -136,7 +136,7 @@ class IfrArray (object):
           xyz0 << Meq.Selector(xyz); # xyz0 == xyz first station essentially
     return self.ns.xyz(*quals);
     
-  def uvw (self,dir0,*quals):
+  def uvw (self,dir0=None,*quals):
     """returns station UVW node(s) for a given phase centre direction,
     or using the global phase center if None is given.
     If a station is supplied, returns UVW node for that station""";
