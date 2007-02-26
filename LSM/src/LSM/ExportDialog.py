@@ -38,7 +38,7 @@ class ExportDialog(QDialog):
 
         if not name:
             self.setName("ExportDialog")
-        self.export_flag=EXPORT_IMG_EPS
+        self.export_flag=EXPORT_IMG_KARMA
     
         self.main=main_window
 
@@ -75,6 +75,8 @@ class ExportDialog(QDialog):
 
         imlayout = QVBoxLayout(None,0,6,"imlayout")
 
+        self.imKarmaButton = QRadioButton(self.imageBG,"imKarmaButton")
+        imlayout.addWidget(self.imKarmaButton)
         self.imEPSButton = QRadioButton(self.imageBG,"imEPSButton")
         imlayout.addWidget(self.imEPSButton)
         self.imPNGButton = QRadioButton(self.imageBG,"imPNGButton")
@@ -85,7 +87,7 @@ class ExportDialog(QDialog):
         imageBGLayout.addLayout(imlayout)
         FormLayout.addWidget(self.imageBG)
 
-        self.imEPSButton.setChecked(1)
+        self.imKarmaButton.setChecked(1)
         self.imageBG.show()
 ########################################
         self.ptableBG = QButtonGroup(self,"ptableBG")
@@ -178,10 +180,12 @@ class ExportDialog(QDialog):
 
     def changeIMG(self,id):
      if id==0:
-      self.export_flag=EXPORT_IMG_EPS
+      self.export_flag=EXPORT_IMG_KARMA
      elif id==1:
-      self.export_flag=EXPORT_IMG_PNG
+      self.export_flag=EXPORT_IMG_EPS
      elif id==2:
+      self.export_flag=EXPORT_IMG_PNG
+     elif id==3:
       self.export_flag=EXPORT_IMG_BMP
 
     def changePT(self,id):
@@ -208,7 +212,10 @@ class ExportDialog(QDialog):
     def accept(self):
      QDialog.accept(self)
      caption_str="Save File"
-     if self.export_flag==EXPORT_IMG_EPS:
+     if self.export_flag==EXPORT_IMG_KARMA:
+      info_str="Choose Karma Annotation File"
+      ext_str="*.ann"
+     elif self.export_flag==EXPORT_IMG_EPS:
       info_str="Choose EPS File Name"
       ext_str="*.eps"
      elif self.export_flag==EXPORT_IMG_PNG:
@@ -241,7 +248,11 @@ class ExportDialog(QDialog):
      s=QFileDialog.getSaveFileName(".",ext_str,self,caption_str,info_str)
      if s==None:
       return
-     if self.export_flag==EXPORT_IMG_EPS:
+     if self.export_flag==EXPORT_IMG_KARMA:
+      if not s.endsWith(".ann"):
+       s.append(".ann")
+      self.main.lsm.export_karma_annotations(s.ascii())
+     elif self.export_flag==EXPORT_IMG_EPS:
       if not s.endsWith(".eps"):
        s.append(".eps")
       self.main.filePrintEPS(s.ascii())
@@ -286,6 +297,7 @@ class ExportDialog(QDialog):
         self.ptableButton.setText(self.__tr("Export PUnit Table"))
         self.stableButton.setText(self.__tr("Export Source Table"))
         self.imageBG.setTitle(self.__tr("Export Image as:"))
+        self.imKarmaButton.setText(self.__tr("Export Karma Annotations"))
         self.imEPSButton.setText(self.__tr("Export Image as EPS Image"))
         self.imPNGButton.setText(self.__tr("Export Image as PNG Image"))
         self.imBMPButton.setText(self.__tr("Export Image as BMP Image"))
