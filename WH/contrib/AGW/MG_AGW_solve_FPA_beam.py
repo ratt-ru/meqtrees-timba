@@ -25,9 +25,10 @@
 # Short description:
 #  The script should just read in a 2-D array of points from a
 #  FITS file, assign them to a FITSImage, and then solve for
-#  the maximum position.
+#  the maximum positions ans the widths of a corresponding
+#  gaussian.
 
-#  It solves for all the x hand and y hand beams separately
+#  It solves for the x hand and y hand beams separately
 
 # History:
 # - 23 Jan 2007: creation:
@@ -73,13 +74,21 @@ def tpolc (tdeg,c00=0.0):
                   constrain = [-0.04,0.04],
                   table_name=mep_beam_locations);
 
+def wpolc (tdeg,c00=0.0):
+  return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
+                  node_groups='Parm',
+                  constrain = [1.0e-5,0.04],
+                  table_name=mep_beam_locations);
 
 ########################################################
 def _define_forest(ns):  
 
+
+  ns.ln_16 << Meq.Constant(-2.7725887)
   # fits a Gaussian to each beam to locate its maximum 
 
-  width  = ns.width << Meq.Parm(1e-4)
+  ns.width_x << wpolc(tdeg=0,c00=0.01)
+  ns.width_y << wpolc(tdeg=0,c00=0.01)
 
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
@@ -112,10 +121,11 @@ def _define_forest(ns):
   ns.resampler_x << Meq.Resampler(ns.image_x)
   ns.l_x<< tpolc(0)
   ns.m_x<< tpolc(0)
-  ns.gaussian_x << Meq.Exp((-Meq.Sqr(laxis - ns.l_x) -Meq.Sqr(maxis - ns.m_x))/width);
+  ns.lm_x_sq << Meq.Sqr(laxis - ns.l_x) + Meq.Sqr(maxis - ns.m_x) 
+  ns.gaussian_x << Meq.Exp((ns.lm_x_sq * ns.ln_16)/Meq.Sqr(ns.width_x));
 
   ns.condeq_x<<Meq.Condeq(children=(ns.resampler_x, ns.gaussian_x))
-  ns.solver(0)<<Meq.Solver(ns.condeq_x,num_iter=50,epsilon=1e-4,solvable=[ns.l_x,ns.m_x],save_funklets=True,last_update=True)
+  ns.solver(0)<<Meq.Solver(ns.condeq_x,num_iter=50,epsilon=1e-4,solvable=[ns.l_x,ns.m_x,ns.width_x],save_funklets=True,last_update=True)
 
 
   ns.im_sq_y << ns.image_re_yy * ns.image_re_yy + ns.image_im_yy * ns.image_im_yy + ns.image_re_yx * ns.image_re_yx + ns.image_im_yx * ns.image_im_yx
@@ -124,10 +134,11 @@ def _define_forest(ns):
   ns.resampler_y << Meq.Resampler(ns.image_y)
   ns.l_y<< tpolc(0)
   ns.m_y<< tpolc(0)
-  ns.gaussian_y << Meq.Exp((-Meq.Sqr(laxis - ns.l_y) -Meq.Sqr(maxis - ns.m_y))/width);
+  ns.lm_y_sq << Meq.Sqr(laxis - ns.l_y) + Meq.Sqr(maxis - ns.m_y) 
+  ns.gaussian_y << Meq.Exp((ns.lm_y_sq * ns.ln_16)/Meq.Sqr(ns.width_y));
 
   ns.condeq_y<<Meq.Condeq(children=(ns.resampler_y, ns.gaussian_y))
-  ns.solver(1)<<Meq.Solver(ns.condeq_y,num_iter=50,epsilon=1e-4,solvable=[ns.l_y,ns.m_y],save_funklets=True,last_update=True)
+  ns.solver(1)<<Meq.Solver(ns.condeq_y,num_iter=50,epsilon=1e-4,solvable=[ns.l_y,ns.m_y,ns.width_y],save_funklets=True,last_update=True)
   ns.req_mux<<Meq.ReqMux(children=[ns.solver(k) for k in range(0,2)])
 
 ########################################################################
