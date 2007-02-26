@@ -37,25 +37,23 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def __init__(self, ns, quals=[], label='<v>',
                  cohset=None, array=None,
-                 observation=None,
-                 polrep=None,
-                 simulate=False):
+                 # observation=None,
+                 polrep=None):
 
-        # Interface with Meow system (array, cohset, observation):
-        self._array = array                          # Meow IfrArray object
-        self._observation = observation              # Meow Observation object
+        ## self._array = array                          # Meow IfrArray object
+        ## self._observation = observation              # Meow Observation object
 
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
                                        polrep=polrep, 
-                                       indices=self._array.ifrs(),
-                                       simulate=simulate)
+                                       indices=array.ifrs())
         if cohset:
+            # If supplied, fill in the Matriset22 matrices, otherwise leave at None
             self._matrixet = cohset
 
         # Some specific Visset22 attributes:
-        self._MS_corr_index = [0,1,2,3]                # see make_spigots/make_sinks
-
+        self._MS_corr_index = [0,1,2,3]                 # see make_spigots/make_sinks
+        self._stations = array.stations()               # convenience only ...?           
         return None
 
     #-------------------------------------------------------------------
@@ -72,6 +70,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
+        print '   - stations: '+str(self.stations())
         print '   - MS_corr_index: '+str(self._MS_corr_index)
         return True 
 
@@ -79,14 +78,12 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def stations(self):
         """Return a list of (array) stations"""
-        return self._array.stations()                # Meow IfrArray            
+        return self._stations                             
 
     def ifrs (self, select='all'):
-        """Get a selection of self._array.ifrs()"""
-        ifrs = self._array.ifrs()                    # Meow IfrArray            
-        # ifrs = self.indices()                        # = Meow IfrArray.ifrs()
-        # ifrs = self._list_indices
-        # .... do the selection ....
+        """Get (a selection of) ifrs (station-pairs)"""
+        ifrs = self.indices()              
+        # ..... do the selection .....
         return ifrs
 
     #--------------------------------------------------------------------------

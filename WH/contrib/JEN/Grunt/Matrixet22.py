@@ -286,6 +286,19 @@ class Matrixet22 (object):
         print '**\n'
         return True
 
+    #........................................................................
+
+    def show_matrix_subtree (self, index='*', recurse=2, show_initrec=False):
+        """Helper function for closer inspection of the specified matrix(es)"""
+        if index=='*': index = self.list_indices()
+        for ii in index:
+            node = self._matrixet(*ii)
+            self._dummyParmGroup.display_subtree(node, txt=str(ii),
+                                                 show_initrec=show_initrec,
+                                                 recurse=recurse)
+        return True
+        
+
     #=====================================================================================
     # Interface functions with its ParmGroupManager:
     #=====================================================================================
