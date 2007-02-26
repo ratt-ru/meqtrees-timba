@@ -5,6 +5,7 @@
 # - 12jan2007: added .show_timetracks() visualization
 # - 19jan2007: removed make_condeqs() and make_solver()
 # - 21jan2007: re-implemented .extract_matrel_nodes()
+# - 23feb2007: allow key list in .extract_matrel_nodes()
 
 # Description:
 
@@ -237,8 +238,7 @@ class Matrixet22 (object):
         else:
             print '\n   '+str(self.list_indices())
         #...............................................................
-        print ' * Available matrices:'
-        print ' * matrixet: ('+str(self._matrixet)+')'
+        print ' * Available matrices (matrixet='+str(self._matrixet)+'):'
         if self._matrixet:
             ii = self.list_indices()
             if len(ii)<10:
@@ -248,13 +248,10 @@ class Matrixet22 (object):
                 for i in ii[:2]:                              # show the first two
                     print '  - '+str(i)+': '+str(self.matrixet()(*i))
                 print '         ......'
-                ilast = ii[len(ii)-1]                         # and the last one
+                i = ii[len(ii)-1]                             # and the last one
                 print '  - '+str(i)+': '+str(self.matrixet()(*i))
             print ' * The first matrix of the set:'
             node = self.firstnode()
-            # print dir(node)
-            # print '   - node.name = '+str(node.name)+'   (node.basename='+str(node.basename)+')'
-            # print '   - node.quals = '+str(node.quals)+'   (node.kwquals='+str(node.kwquals)+')'
             self._dummyParmGroup.display_subtree(node, txt=str(0),
                                                  show_initrec=False,
                                                  recurse=recurse)
@@ -376,34 +373,45 @@ class Matrixet22 (object):
 
 
     def extract_matrix_element(self, key='m11', qual=None, unop=None):
-        """Extract the specified matrix element from the 2x2 matrices,
-        and return a list of nodes. If unop is specified (str), apply
-        an unary operation to the nodes"""
+        """Extract the specified matrix element(s) from the 2x2 matrices,
+        and return a list of nodes. The key must be one of the strings
+        'm11', 'm12', 'm21' or 'm22', or a list of these. If key='*', all
+        4 elements will be extracted from all matrices.  
+        If unop is specified (str), apply an unary operation to the nodes."""
 
-        if not self._matrel.has_key(key):
-            raise ValueError,'key='+key+', not in '+str(self.matrel_keys())
+        keys = deepcopy(key)                                    # just in case
+        if keys=='*': keys = self.matrel_keys()                 # all elements
+        if keys=='diag': keys = ['m11','m22']                   # diagonal elements
+        if keys=='nondiag': keys = ['m12','m21']                # non-diagonal elements
+        if not isinstance(keys,(list,tuple)): keys = [keys]
 
-        name = self.basename()+'_'+key
-        quals = self.quals(append=qual)
-        if not self._ns[name](*quals).initialized():        # avoid duplication....!
-            for i in self.list_indices():
-                index = self._matrel_index[key]             # index in tensor node, e.g. (0,1)
-                node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
-                                                                  index=index)
-        self._matrel[key] = self._ns[name](*quals)          # keep for inspection etc
-
-        # Optionally, apply a unary operation (unop) to the node:
-        if unop:
-            quals = self.quals(append=qual, prepend=unop)
-            if not self._ns[name](*quals).initialized():    # avoid duplication....!
-                for i in self.list_indices():
-                    self._ns[name](*quals)(*i) << getattr(Meq, unop)(self._matrel[key](*i))
-            self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
-
-        # Return a list of nodes:
         nodes = []
-        for i in self.list_indices():
-            nodes.append(self._matrel[key](*i))
+        for key in keys:
+            if not self._matrel.has_key(key):
+                raise ValueError,'key='+key+', not in '+str(self.matrel_keys())
+
+            name = self.basename()+'_'+key
+            quals = self.quals(append=qual)
+            if not self._ns[name](*quals).initialized():        # avoid duplication....!
+                for i in self.list_indices():
+                    index = self._matrel_index[key]             # index in tensor node, e.g. (0,1)
+                    node = self._ns[name](*quals)(*i) << Meq.Selector(self._matrixet(*i),
+                                                                      index=index)
+                self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
+
+            # Optionally, apply a unary operation (unop) to the extracted node:
+            if unop:
+                quals = self.quals(append=qual, prepend=unop)
+                if not self._ns[name](*quals).initialized():    # avoid duplication....!
+                    for i in self.list_indices():
+                        self._ns[name](*quals)(*i) << getattr(Meq, unop)(self._matrel[key](*i))
+                self._matrel[key] = self._ns[name](*quals)      # keep for inspection etc
+
+            # Append to the list of nodes:
+            for i in self.list_indices():
+                nodes.append(self._matrel[key](*i))
+                
+        # Finished: return the accumulated list of nodes:
         return nodes
 
 
@@ -752,7 +760,7 @@ if __name__ == '__main__':
     if 1:
         m1 = Matrixet22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
         m1.test()
-        m1.visualize()
+        # m1.visualize()
         m1.display(full=True)
 
     if 0:
@@ -792,6 +800,19 @@ if __name__ == '__main__':
         m1.extract_matrix_element('m22')
         m1.display(full=True)
 
+
+    if 1:
+        matrel = 'm11'
+        matrel = '*'
+        matrel = 'diag'
+        matrel = 'nondiag'
+        # matrel = ['m21','m22']
+        unop = None
+        # unop = 'Abs'
+        nodes = m1.extract_matrix_element(matrel, unop=unop)
+        for k,node in enumerate(nodes):
+            print k,':',node 
+        m1.display(full=True)
 
 #===============================================================
 
