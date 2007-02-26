@@ -44,7 +44,8 @@ def include_TDL_options(prompt=None):
 
 #======================================================================================
 
-def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
+def make_solver (lhs=None, rhs=None, parmgroup='*',
+                 qual=None, redun=None, accu=True, **pp):
     """Make a solver that solves for the specified parmgroup(s), by comparing the
     matrices of one Matrixet22 object (lhs) with the corresponding matrices of
     another (rhs).
@@ -84,11 +85,12 @@ def make_solver (lhs=None, rhs=None, parmgroup='*', qual=None, accu=True, **pp):
     # Make a list of condeq nodes, by comparing either the
     # corresponding ifrs in the lhs and rhs Vissets,
     # or redundant spacings in lhs (if rhs==None):
+    cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs)
     if rhs:
-        cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs, rhs=rhs)
+        cdx.make_condeqs (rhs=rhs, unop=None)
     else:
-        cdx = Condexet22.RedunCondexet22(lhs._ns, lhs=lhs, **pp)
-    condeqs = cdx.make_condeqs (matrel=matrel, qual=qual)
+        cdx.make_redun_condeqs (unop=None)
+    condeqs = cdx.get_condeqs(matrel=matrel)
     if not rhs:
         constr = pgm.constraint_condeqs(parmgroup)
         if len(constr)>0: condeqs.extend(constr)

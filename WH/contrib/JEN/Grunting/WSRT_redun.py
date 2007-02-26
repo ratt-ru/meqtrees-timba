@@ -1,8 +1,8 @@
-# file: ../contrib/JEN/Grunt/WSRT_redun.py
+# file: ../contrib/JEN/Grunting/WSRT_redun.py
 
 # Description:
 
-# Solve, by comparing redundant spacings,,for a (subset of) the
+# Solve, by comparing redundant spacings, for a (subset of) the
 # M.E. parameters in a user-defined sequence of uv-plane WSRT
 # Jones matrices (from module Grunting/WSRT_Jones.py).
 # No source model is needed.
@@ -24,6 +24,7 @@ from Timba.Contrib.JEN.Grunting import JEN_Meow_Utils    # ..temporary..
 from Timba.Contrib.JEN.Grunting import WSRT_Jones
 
 from Timba.Contrib.JEN.Grunt import Visset22
+from Timba.Contrib.JEN.Grunt import RedunVisset22
 from Timba.Contrib.JEN.Grunt import PointSource22
 from Timba.Contrib.JEN.Grunt import solving22
 
@@ -93,18 +94,33 @@ def _define_forest (ns):
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
     jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations())
-    # NB: Note the unusual pgm_merge==True, to make sure that the parmgroup
-    #     manager from the data visset is passed on (this is not the
-    #     case for a normal solve, where the pgm from the predicted
-    #     visset is used (...)
-    # NB: Visu==False because this shows the situation before solving,
-    #     due to caching. So use visu==True on make_sinks() below.
-    data.correct(jones, pgm_merge=True, visu=False)
+
+    if True:
+        # Corrupt a RedunVisset22 object:
+        redun = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
+                                                      rhs='all4', select='all')
+        rhs = RedunVisset22.RedunVisset22(ns, label='rhs', array=array,
+                                          redun=redun, polar=False)
+        rhs.corrupt(jones, visu=False)
+    else:
+        # Correct(!) the measured data with a sequence of Jones matrices,
+        # NB: Note the unusual pgm_merge==True, to make sure that the parmgroup
+        #     manager from the data visset is passed on (this is not the
+        #     case for a normal solve, where the pgm from the predicted
+        #     visset is used (...)
+        # NB: Visu==False because this shows the situation before solving,
+        #     due to caching. So use visu==True on make_sinks() below.
+        rhs = None
+        data.correct(jones, pgm_merge=True, visu=False)
 
     # Create a solver for a user-defined subset of parameters (parmgroup):
     # NB: The solver gets its requests from a ReqSeq that is automatically
     #     inserted into the main-stream by data.make_sinks() below.
-    solving22.make_solver(lhs=data, parmgroup=TDL_parmgog)
+    solving22.make_solver(lhs=data, rhs=rhs, parmgroup=TDL_parmgog)
+
+    # Correct the data for the estimated instrumental errors
+    if rhs:
+        data.correct(jones, visu=False)
 
     # Finished:
     if TDL_display_Visset22: data.display(full=True)

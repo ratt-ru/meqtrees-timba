@@ -226,8 +226,10 @@ class PointSource22 (Meow.PointSource):
             #     See Meow.Parametrization.py
             if not name: name = self._pp['name']
             self._Visset22 = Visset22.Visset22 (self.ns0, quals=[], label=name,
-                                                polrep=polrep, simulate=self._simulate,
-                                                array=array, observation=observation)
+                                                polrep=polrep,
+                                                simulate=self._simulate,
+                                                # observation=observation,
+                                                array=array)
             # Make the 2x2 visibility matrices per ifr:
             if False:
                 # Use this if the source has to be shifted (KJones):

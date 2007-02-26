@@ -166,7 +166,9 @@ class ParmGroupManager (object):
         constructed from the specified parmgroup(s)"""
         if trace: print
         pgs = deepcopy(parmgroup)
-        if pgs=='*': pgs = self._parmgroup['*'].labels()
+        if pgs=='*':
+            pgs = self._parmgroup['*'].labels()
+            return '*'                                     #........??
         if not isinstance(pgs,(list,tuple)): pgs = [pgs]
         keys = self._parmgroup.keys()
         label = ''

@@ -1,4 +1,4 @@
-# file: ../contrib/JEN/Grunt/WSRT_solve_cps.py
+# file: ../contrib/JEN/Grunting/WSRT_solve_cps.py
 
 # Description:
 

@@ -7,20 +7,15 @@
 # Description:
 
 # The Condexet22 class encapsulates a set of 2x2 condeq matrices.
-# It is derived from the Matrixet22 class.
-# It is created with at least one other Matrixet class (lhs), which
-# provides the left-hand-side children of the condeqs.
-# - If a right-hand-side (rhs) Matrixet22 is supplied, it provides the
-#   second children of the condeqs. It is assumed that both Matrixets
-#   have the same indices (i.e. ifrs, or stations). It is possible to
-#   select the matrices from which condeqs are made (default is all).
-# - If no rhs is supplied (rhs=None), the matrices of the lhs are
-#   compared with each other. A 'redun' dict specifies which matrices
-#   are expected to be equal ('redundant'), and to what. The latter
-#   can be a constant, or a parametrized expression. So, the Condexet22
-#   has a ParmGroupManager (pgm) attribute.
-# With these two modes, it is possible to feed a mixture of selfcal
-# and redundancy equations to a solver (with appropriate weights).
+# It is derived from the Matrixet22 class, and created with a Matrixet
+# class (lhs), which provides the left-hand-side (lhs) children of the
+# condeqs. Two functions create condeqs:
+# - .make_condeqs(rhs) uses a right-hand-side (rhs) Matrixet22, which
+#   provides the second children of the condeqs. It is assumed that the
+#   rhs matrix indices occur in the lhs also.
+# - .make_redun_condeqs(redun) equates the redundant lhs matrices with
+#   each other. A 'redun' dict specifies which pairs of matrices have equal
+#   ('redundant') baselines. 
 
 #======================================================================================
 
@@ -35,6 +30,7 @@ from copy import deepcopy
 import Meow
 # from Timba.Contrib.JEN.Grunt import Joneset22
 from Timba.Contrib.JEN.Grunt import Visset22
+from Timba.Contrib.JEN.Grunt import RedunVisset22
 
 
 Settings.forest_state.cache_policy = 100
@@ -121,18 +117,19 @@ class Condexet22 (Matrixet22.Matrixet22):
 
         self._rhs = rhs
         quals = self.quals()
-        indices = self.indices()
-        ii = self._lhs.list_indices()                             # selection....?
+        indices = []
+        ii = self._lhs.list_indices()                    # selection....?
         name = self._condeq_name
         for i in ii:
-            indices.append(i)
             node1 = self._lhs._matrixet(*i)
             node2 = self._rhs._matrixet(*i)
-            if unop:
-                # Optionally, apply a unary operation on both inputs:
-                node1 = self._ns << getattr(Meq, unop)(node1)
-                node2 = self._ns << getattr(Meq, unop)(node2)
-            self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
+            if node1.initialized() and node2.initialized():
+                if unop:
+                    # Optionally, apply a unary operation on both inputs:
+                    node1 = self._ns << getattr(Meq, unop)(node1)
+                    node2 = self._ns << getattr(Meq, unop)(node2)
+                indices.append(i)
+                self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
         self._matrixet = self._ns[name](*quals)
         self.indices(new=indices)
         return True
@@ -140,17 +137,20 @@ class Condexet22 (Matrixet22.Matrixet22):
 
     #------------------------------------------------------------------
     
-    def make_redun_condeqs (self, rr, unop=None):
+    def make_redun_condeqs (self, redun, unop=None):
         """Make condeq matrices by equating pairs of matrices that represent
         equal (redundant) baselines in the internal lhs Matrixet22 object.
         The pairs of ifr-indices, and their identifying labels, are specified
-        as lists (in fields named 'pairs' and 'labels') in the given dict rr. 
-        Optionally, apply an unary operation to both sides before equating."""
+        as lists (in fields named 'pairs' and 'labels') in the given dict redun. 
+        Optionally, apply an unary operation to both sides before equating.
+        NB: The redun condeqs are ADDED to condeqs that were already there.
+            This allows the combining of selfcal and redun equations.
+        NB: For an alternative approach, see RedunVisset22.py."""
 
         quals = self.quals()
         name = self._condeq_name
-        indices = self.indices()
-        for k,pair in enumerate(rr['pairs']):
+        indices = self.indices()                 # NB: Allows ADDING of condeqs to earlier!!
+        for k,pair in enumerate(redun['pairs']):
             node1 = self._lhs._matrixet(*pair[0])
             node2 = self._lhs._matrixet(*pair[1])
             if unop:
@@ -158,88 +158,14 @@ class Condexet22 (Matrixet22.Matrixet22):
                 node1 = self._ns << getattr(Meq, unop)(node1)
                 node2 = self._ns << getattr(Meq, unop)(node2)
             # The new matrixet index has 5 parts: 
-            index = list(pair[0])             # the 2 stations of ifr1          
-            index.extend(pair[1])             # the 2 stations of ifr2
-            index.append(rr['labels'][k])     # the label (baseline length)
+            index = list(pair[0])                # the 2 stations of ifr1          
+            index.extend(pair[1])                # the 2 stations of ifr2
+            index.append(redun['labels'][k])     # the label (baseline length)
             indices.append(index)
             self._ns[name](*quals)(*index) << Meq.Condeq(node1, node2)
         self._matrixet = self._ns[name](*quals)
         self.indices(new=indices)
         return True
-
-
-    #------------------------------------------------------------------
-    
-    def make_group_condeqs (self, rr, corrupt=None, unop=None):
-        """Make condeq matrices by equating groups of matrices that represent
-        equal (redundant) baselines in the internal lhs Matrixet22 object
-        to the same node, which can be either a constant or a MeqParm.
-        In the last case, it should be solved for, using the ParmGroupManager.
-        The groups (of ifr-indices) and other info, are specified as named dicts
-        in the given dict rr. Each group dict has fields 'group' (list of ifrs)
-        and 'rhs' (which specifies what the group is equated to. The rhs field
-        may be either 'constant', 'diagonal', or 'allfour'.
-        Optionally, apply an unary operation to both sides before equating."""
-
-        quals = self.quals()
-        name = self._condeq_name
-        indices = self.indices()
-        for key in rr.keys():
-            # Make the (matrix) node that the redundant matrices are equated to:
-            node2 = self.make_group_node2 (rr[key], key=key, quals=quals)
-            # Make condeqs that equate the group members to node2
-            for ifr in rr[key]['group']:
-                node1 = self._lhs._matrixet(*ifr)
-                if unop:
-                    # Optionally, apply a unary operation on both inputs:
-                    node1 = self._ns << getattr(Meq, unop)(node1)
-                    node2 = self._ns << getattr(Meq, unop)(node2)
-                # The new matrixet index has 3 parts: 
-                index = list(ifr)                      # the 2 stations of ifr
-                index.append(key)                      # the key (baseline length)
-                indices.append(index)
-                self._ns[name](*quals)(*index) << Meq.Condeq(node1, node2)
-        self._matrixet = self._ns[name](*quals)
-        self.indices(new=indices)
-        return True
-
-
-    #.............................................................................
-
-    def make_group_node2 (self, rr, key, quals=None):
-        """Helper function for .make_group_condeqs()"""
-
-        rhs = rr['rhs']
-
-        if not isinstance(rhs, str):
-            # Assume that rhs is a node already:
-            return rhs
-        
-        elif rhs=='constant':
-            name = 'unit_matrix'
-            return self._ns[name](*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                          complex(0.0),complex(1.0))
-
-        # The following possibilities all require MeqParms:
-
-        self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                              default=dict(c00=0.0, unit='rad', tfdeg=[0,0],
-                                           subtile_size=1),
-                              constraint=dict(sum=0.0, first=0.0),
-                              simul=dict(Psec=200),
-                              override=override,
-                              rider=dict(matrel=matrel),
-                              tags=[pname,jname])
-
-        elif rhs=='diagonal':
-            name = 'diag_parms'
-            node2 = self._ns[name](*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                           complex(0.0),complex(1.0))
-        else:
-            name = 'full_parms'
-            node2 = self._ns[name](*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                           complex(0.0),complex(1.0))
-        return node2
 
 
 
@@ -280,32 +206,6 @@ def make_WSRT_redun_pairs (ifrs=None, sep9A=36, select='all'):
                 break
     return rr
 
-#-------------------------------------------------------------------------------------
-
-def make_WSRT_redun_groups (ifrs=None, sep9A=36, select='all'):
-    """Create a dict of named groups of redundant WSRT ifrs""" 
-
-    # Make named (key) groups of baselines with the same length: 
-    rr = dict()
-    xx = get_WSRT_1D_station_pos(sep9A=sep9A)
-    for i in range(len(ifrs)):
-        ifr = ifrs[i]
-        b = xx[ifr[1]-1] - xx[ifr[0]-1]               # ifr stations are 1-relative!
-        key = str(int(b))
-        rr.setdefault(key, dict(group=[], rhs='diagonal'))
-        rr[key]['group'].append(ifr)
-
-    # Remove the groups with only a single member:
-    # print dir(rr)
-    for key in rr.keys():
-        print '-',key,':',rr[key],
-        if len(rr[key]['group'])==1:
-            rr.__delitem__(key)
-            print 'removed'
-        else:
-            print
-    return rr
-
 
 
 
@@ -325,10 +225,10 @@ def _define_forest(ns):
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
     # observation = Meow.Observation(ns)
-    data = Visset22.Visset22(ns, label='data', array=array)
-    data.fill_with_identical_matrices(stddev=0.01)
-    cc.append(data.visualize())
-    data.display()
+    lhs = Visset22.Visset22(ns, label='lhs', array=array)
+    lhs.fill_with_identical_matrices(stddev=0.01)
+    cc.append(lhs.visualize())
+    lhs.display()
 
     unop=None
     unop='Abs'
@@ -340,20 +240,13 @@ def _define_forest(ns):
         pred.fill_with_identical_matrices(stddev=0.1)
         pred.display()
         cc.append(pred.visualize())
-        cdx = Condexet22(ns, lhs=data, rhs=pred)
-        cdx.make_condeqs(matrel=matrel, unop=unop)
+        cdx = Condexet22(ns, lhs=lhs)
+        cdx.make_condeqs(rhs=pred, unop=unop)
+        condeqs = cdx.get_condeqs(matrel)
         cc.append(cdx.visualize())
         cdx.display()
         cc.append(cdx.bundle())
 
-    if False:
-        cdr = RedunCondexet22(ns, lhs=data)
-        cdr.display(recurse=2)
-        cdr.make_condeqs(matrel=matrel, unop=unop)
-        cc.append(cdr.visualize())
-        cdr.display()
-        cc.append(cdr.bundle())
-    
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -382,21 +275,11 @@ if __name__ == '__main__':
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         # observation = Meow.Observation(ns)
-        data = Visset22.Visset22(ns, label='data', array=array)
-        data.fill_with_identical_matrices()
-        data.display()
-        cdx = Condexet22(ns, lhs=data)
-        cdx.display(recurse=2)
-
-    if 0:
-        rr = make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36, select='all')
-        cdx.make_redun_condeqs (rr, unop=None)
-        cdx.display(recurse=3)
-
-    if 1:
-        rr = make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36, select='all')
-        cdx.make_group_condeqs (rr, unop=None)
-        cdx.display(recurse=4)
+        lhs = Visset22.Visset22(ns, label='lhs', array=array)
+        lhs.fill_with_identical_matrices()
+        lhs.display()
+        cdx = Condexet22(ns, lhs=lhs)
+        # cdx.display(recurse=2)
 
     if 0:
         pred = Visset22.Visset22(ns, label='pred', array=array)
@@ -406,13 +289,21 @@ if __name__ == '__main__':
         # cdx.visualize()
         cdx.display(recurse=3)
 
-    if 0:
-        matrel = 'm12' 
-        print '\n** get_condeqs(',matrel,'):'
-        nodes = cdx.get_condeqs(matrel=matrel)
-        for k,node in enumerate(nodes):
-            print k,':',node 
-        print
+        if 0:
+            rr = make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36, select='all')
+            cdx.make_redun_condeqs (rr, unop=None)
+            cdx.display(recurse=3)
+
+    if 1:
+        redun = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
+                                                      rhs='all4', select='all')
+        rhs = RedunVisset22.RedunVisset22(ns, label='rhs', array=array,
+                                          redun=redun, polar=False)
+        # rhs.display()
+        cdx.make_condeqs(rhs=rhs, unop=None)
+        # cdx.visualize()
+        cdx.display(recurse=3)
+        cdx.show_matrix_subtree(recurse=2)
 
 #=======================================================================
 # Remarks:

@@ -38,6 +38,7 @@ class Visset22 (Matrixet22.Matrixet22):
     def __init__(self, ns, quals=[], label='<v>',
                  cohset=None, array=None,
                  # observation=None,
+                 simulate=False,
                  polrep=None):
 
         ## self._array = array                          # Meow IfrArray object
@@ -45,7 +46,8 @@ class Visset22 (Matrixet22.Matrixet22):
 
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
-                                       polrep=polrep, 
+                                       polrep=polrep,
+                                       simulate=simulate,
                                        indices=array.ifrs())
         if cohset:
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None

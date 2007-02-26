@@ -145,8 +145,8 @@ class RedunVisset22 (Visset22.Visset22):
         pols = self.pols()                        # e.g. ['X','Y']
         quals = self.quals()
         quals = []
-        mm = dict(m11=complex(1,0), m12=complex(0.0),
-                  m21=complex(0.0), m22=complex(1,0))
+        mm = dict(m11=complex(1.0,0.0), m12=complex(0.0,0.0),
+                  m21=complex(0.0,0.0), m22=complex(1.0,0.0))
         pp = dict(m11=str(pols[0])+str(pols[0]),
                   m12=str(pols[0])+str(pols[1]),
                   m21=str(pols[1])+str(pols[0]),
@@ -158,7 +158,7 @@ class RedunVisset22 (Visset22.Visset22):
             return rhs
         
         elif rhs=='constant':
-            name = 'unit_matrix'
+            name = 'redun_unity'
             return self._ns[name](*quals)(key) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                mm['m21'],mm['m22'])
 
@@ -170,7 +170,7 @@ class RedunVisset22 (Visset22.Visset22):
             mms = ['m11','m22']
         else:
             # All 4 elements are solvable:
-            name = 'redun_full'
+            name = 'redun_all4'
             mms = mm.keys()
 
         if polar:
@@ -307,7 +307,7 @@ if __name__ == '__main__':
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         # observation = Meow.Observation(ns)
-        rr = make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36, select='all')
+        rr = make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36, rhs='all4', select='all')
         rvs = RedunVisset22(ns, label='rvis', redun=rr, polar=False, array=array)
         rvs.display(recurse=4)
 
