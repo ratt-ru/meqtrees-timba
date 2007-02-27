@@ -118,24 +118,28 @@ class RedunVisset22 (Visset22.Visset22):
             # First time: define parmgroups:
             if polar:
                 self.define_parmgroup(aname, descr='redundant baseline amplitude',
-                                      default=dict(c00=1.0, tfdeg=[0,0],
-                                                   subtile_size=1),
+                                      default=dict(c00=1.0,
+                                                   # subtile_size=1,
+                                                   tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[aname,'redun'])
                 self.define_parmgroup(pname, descr='redundant baseline phase',
-                                      default=dict(c00=0.0, unit='rad', tfdeg=[0,0],
-                                                   subtile_size=1),
+                                      default=dict(c00=0.0, unit='rad',
+                                                   # subtile_size=1,
+                                                   tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[pname,'redun'])
             else:
                 self.define_parmgroup(rname, descr='redundant baseline real part',
-                                      default=dict(c00=1.0, tfdeg=[0,0],
-                                                   subtile_size=1),
+                                      default=dict(c00=1.0,
+                                                   # subtile_size=1,
+                                                   tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[rname,'redun'])
                 self.define_parmgroup(iname, descr='redundant baseline imag part',
-                                      default=dict(c00=0.0, tfdeg=[0,0],
-                                                   subtile_size=1),
+                                      default=dict(c00=0.0,
+                                                   # subtile_size=1,
+                                                   tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[iname,'redun'])
             return True

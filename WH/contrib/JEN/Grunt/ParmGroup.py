@@ -83,8 +83,99 @@ class ParmGroup (NodeGroup.NodeGroup):
                 if override.has_key(tag):                     # relevant for this ParmGroup
                     self._override = deepcopy(override[tag])  # copy ony the relevant part
         self.override_default(self._override)
+
+        #------------------------------------------------------
+        # Make the MeqParm initrec (used in create_entry()):
+        #------------------------------------------------------
+
+        # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
+        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
+        # This means that separate solutions are made for these tiles, which tile the domain.
+        # Tiled solutions are efficient, because they reduce the node overhead
+        # For the moment, only time-tiling is enabled...
+        tiling = record()
+        if self._default['subtile_size']:
+            tiling.time = self._default['subtile_size']
+
+        # Use the shape (of coeff array, 1-relative) if specified.
+        # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
+        shape = self._default['funklet_shape']           #............??
+        if shape==None:
+            shape = [0,0]
+            if not self._default['tfdeg']==None:
+                shape = deepcopy(self._default['tfdeg']) # just in case.....
+            shape[0] += 1                                # make 1-relative              
+            shape[1] += 1                                # make 1-relative
+
+        self._initrec = dict(shape=shape,
+                             tiling=tiling,
+                             save_all=self._default['save_all'],
+                             auto_save=self._default['auto_save'],
+                             reset_funklet=self._default['reset_funklet'],
+                             use_previous=self._default['use_previous'],
+                             table_name=self.parmtable(),
+                             node_groups=self._node_groups,
+                             tags=self._tags)
+ 
+        for key in ['constrain','constrain_min','constrain_max']:
+            if self._default[key]: 
+                self._initrec[key] = self._default[key]
+
+        # NB: constrain ONLY works on c00!!
+        for key in ['constrain','constrain_min','constrain_max']:
+            if self._initrec.has_key(key): self._initrec['shape'] = [0,0]
         
         return None
+
+    #-------------------------------------------------------------------
+
+    def table_header (self):
+        """Print an explanatory header of a table of ParmGroup table_entries.
+        This is a re-implementation of the NodeGroup method."""
+        ss = '**              shape  tiling  auto save reset prev table'
+        print ss
+        return ss
+
+    def table_entry (self):
+        """Print a one-line summary to be used as an entry (row) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This is a re-implementation of the NodeGroup method."""
+        ss = ' - '+self.label()+' ('+str(self.len())+'): '
+        ss += ' '+str(self._initrec['shape'])
+        ss += ' '+str(self._initrec['tiling'])
+        ss += ' '+str(self._initrec['auto_save'])
+        ss += ' '+str(self._initrec['save_all'])
+        ss += ' '+str(self._initrec['reset_funklet'])
+        ss += ' '+str(self._initrec['use_previous'])
+        ss += ' '+str(self._initrec['table_name'])
+        for key in ['constrain','constrain_min','constrain_max']:
+            if self._initrec.has_key(key):
+                ss += ' '+str(self._initrec[key])
+        print ss
+        return ss
+
+
+    #======================================================================
+    # Create a new ParmGroup entry (i.e. a MeqParm node)
+    #======================================================================
+
+    def create_entry (self, qual=None):
+        """Create an entry, i.e. MeqParm node, or a simulation subtree,
+        and append it to the nodelist"""
+
+        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
+        quals = self._quals.get(append=qual)
+
+        
+        # Now make the MeqParm
+        node = self._ns.parm(*quals) << Meq.Parm(self._default['c00'],        ## funklet=..
+                                                 **self._initrec)
+
+        # Append the new node to the internal nodelist:
+        self.append_entry(node, plot_label=qual)
+        return node
+
+
                 
     #-------------------------------------------------------------------
 
@@ -104,19 +195,23 @@ class ParmGroup (NodeGroup.NodeGroup):
         return True
         
 
+
     #-------------------------------------------------------------------
 
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print ' * parmtable = '+str(self.parmtable())
+        print ' * node_groups: '+str(self._node_groups)
         print ' * default ('+str(len(self._default))+'):'
         for key in self._default.keys():
             print '   - '+str(key)+' = '+str(self._default[key])
         print ' * override ('+str(len(self._override))+'):'
         for key in self._override.keys():
             print '   - '+str(key)+' = '+str(self._override[key])
-        print ' * constraint = '+str(self._constraint)
-        print '   - node_groups: '+str(self._node_groups)
+        print ' * MeqParm initrec ('+str(len(self._initrec))+'):'
+        for key in self._initrec.keys():
+            print '   - '+str(key)+' = '+str(self._initrec[key])
+        print ' * constraint (condeq) = '+str(self._constraint)
         return True
 
     #-------------------------------------------------------------------
@@ -156,66 +251,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         return cc
 
 
-    #======================================================================
-    # Create a new ParmGroup entry (i.e. a MeqParm node)
-    #======================================================================
 
-    def create_entry (self, qual=None):
-        """Create an entry, i.e. MeqParm node, or a simulation subtree,
-        and append it to the nodelist"""
 
-        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
-        quals = self._quals.get(append=qual)
 
-        # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
-        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
-        # This means that separate solutions are made for these tiles, which tile the domain.
-        # Tiled solutions are efficient, because they reduce the node overhead
-        # For the moment, only time-tiling is enabled...
-        tiling = record()
-        if self._default['subtile_size']:
-            tiling.time = self._default['subtile_size']
-
-        # Use the shape (of coeff array, 1-relative) if specified.
-        # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
-        shape = self._default['funklet_shape']           #............??
-        if shape==None:
-            shape = [0,0]
-            if not self._default['tfdeg']==None:
-                shape = deepcopy(self._default['tfdeg']) # just in case.....
-            shape[0] += 1                                # make 1-relative              
-            shape[1] += 1                                # make 1-relative
-
-        # Make the MeqParm initrec:
-        initrec = dict(shape=shape,
-                       tiling=tiling,
-                       save_all=self._default['save_all'],
-                       auto_save=self._default['auto_save'],
-                       reset_funklet=self._default['reset_funklet'],
-                       use_previous=self._default['use_previous'],
-                       table_name=self.parmtable(),
-                       node_groups=self._node_groups,
-                       tags=self._tags)
- 
-        for key in ['constrain','constrain_min','constrain_max']:
-            if self._default[key]: 
-                initrec[key] = self._default[key]
-
-        # constrain ONLY works on c00!!
-        for key in ['constrain','constrain_min','constrain_max']:
-            if initrec.has_key(key): initrec['shape'] = [0,0]
-        
-        # Now make the MeqParm
-        node = self._ns.parm(*quals) << Meq.Parm(self._default['c00'],        ## funklet=..
-                                                 **initrec)
-
-        # Apply an unary operation to the MeqParm
-        # if unop:
-        #     node = self._ns << getattr(Meq,unop)(node)
-
-        # Append the new node to the internal nodelist:
-        self.append_entry(node, plot_label=qual)
-        return node
 
 
     #==========================================================================================
@@ -430,6 +468,23 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         
     #-------------------------------------------------------------------
 
+    def table_header (self):
+        """Print an explanatory header of a table of ParmGroup table_entries.
+        This is a re-implementation of the NodeGroup method."""
+        ss = '** Table-header for a SimulatedParmGroup:'
+        print ss
+        return ss
+
+    def table_entry (self):
+        """Print a one-line summary to be used as an entry (row) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This is a re-implementation of the NodeGroup method."""
+        ss = ' - '+self.label()+': '
+        print ss
+        return ss
+
+    #-------------------------------------------------------------------
+
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print ' * simul ('+str(len(self._simul))+'):'
@@ -589,7 +644,7 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    if 0:
+    if 1:
         pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
         pg1.test()
         pg1.display()
@@ -598,7 +653,7 @@ if __name__ == '__main__':
             dcoll = pg1.visualize()
             pg1.display_subtree (dcoll, txt='dcoll')
 
-    if 1:
+    if 0:
         simul = dict(Psec=500, PMHz=100)
         # simul = dict(Psec=-1, PMHz=-1)           # negative means ignore
         default = dict(value=-1.0)

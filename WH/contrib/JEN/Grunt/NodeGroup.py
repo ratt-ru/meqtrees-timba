@@ -68,6 +68,22 @@ class NodeGroup (object):
                 
     #-------------------------------------------------------------------
 
+    def table_header (self):
+        """Print an explanatory header of a table of NodeGroup table_entries"""
+        ss = '** Header of a NodeGroup table:'
+        print ss
+        return ss
+
+    def table_entry (self):
+        """Print a one-line summary to be used as an entry (row) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This is a placeholder, to be re-implemented by derived classes."""
+        ss = ' - '+str(self.oneliner())
+        print ss
+        return ss
+
+    #-------------------------------------------------------------------
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
@@ -85,7 +101,7 @@ class NodeGroup (object):
         #     It should be re-implemented in a derived class.
         return True
 
-    def display(self, txt=None, full=False):
+    def display(self, txt=None, full=False, nmax=10):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -97,8 +113,9 @@ class NodeGroup (object):
         print ' * rider ('+str(len(self.rider()))+'):'
         for key in self._rider.keys():
             print '  - '+key+': '+str(self._rider[key])
-        print ' * nodelist: '
-        for i in range(self.len()):
+        n = self.len()
+        print ' * The first '+str(min(n,nmax))+' nodes in current nodelist (len='+str(n)+'): '
+        for i in range(min(nmax,n)):
             node = self._nodelist[i]
             if full:
                 self.display_subtree(node, txt=str(i))
@@ -377,6 +394,23 @@ class NodeGog (object):
                 
     #-------------------------------------------------------------------
 
+    def table_header (self):
+        """Print an explanatory header of a table of NodeGroup table_entries"""
+        ss = '** Table-header for a Group of NodeGroups:'
+        print ss
+        return ss
+
+    def table_entry (self):
+        """Print an entry (one or more rows) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This can be re-implemented by derived classes."""
+        for k,ng in enumerate(self._group):
+            if k==0: ng.table_header()
+            ng.table_entry()
+        return True
+
+    #-------------------------------------------------------------------
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
@@ -447,6 +481,10 @@ class NodeGog (object):
     def group (self):
         """Return the internal group (list of NodeGroup objects)"""
         return self._group
+
+    def len (self):
+        """Return the length of the internal group (list of NodeGroup objects)"""
+        return len(self._group)
 
     def labels(self):
         """Return a list of the labels (name) of its NodeGroups""" 

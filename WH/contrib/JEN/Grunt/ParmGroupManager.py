@@ -60,6 +60,19 @@ class ParmGroupManager (object):
 
     #-------------------------------------------------------------------
 
+    def table_entry (self):
+        """Print an entry (one or more rows) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This can be re-implemented by derived classes."""
+        print '\n** Table-header for a ParmGroupManager:'
+        for key in self._parmgroup.keys():
+            self._parmgroup[key].table_entry()
+        for key in self._simparmgroup.keys():
+            self._simparmgroup[key].table_entry()
+        return True
+
+    #-------------------------------------------------------------------
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
@@ -83,7 +96,7 @@ class ParmGroupManager (object):
             spg = self._simparmgroup[key]
             if not isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
-
+        #...............................................................
         print ' * Available NodeGog (Groups of NodeGroups) objects: '
         for key in self._parmgroup.keys():
             pg = self._parmgroup[key]
@@ -93,6 +106,8 @@ class ParmGroupManager (object):
             spg = self._simparmgroup[key]
             if isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
+        #...............................................................
+        self.table_entry()
         #...............................................................
         print '**\n'
         return True
@@ -409,12 +424,12 @@ if __name__ == '__main__':
         pgm.display_NodeGroups(full=False)
         pgm.display(full=True)
 
-        if 1:
+        if 0:
             pgm.solvable(trace=True)
             pgm.solvable('Gphase', trace=True)
             pgm.solvable('xxx', severe=False, trace=True)
         
-        if 1:
+        if 0:
             pgm.solver_label(trace=True)
             pgm.solver_label('Gphase', trace=True)
             pgm.solver_label('xxx', severe=False, trace=True)

@@ -209,7 +209,7 @@ class GJones (Joneset22):
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
                                   default=dict(c00=1.0,
-                                               tfdeg=[1,0],
+                                               tfdeg=[2,0],
                                                # constrain_min=0.1, constrain_max=10.0,
                                                unit=None),
                                   constraint=dict(product=1.0),

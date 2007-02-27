@@ -118,7 +118,8 @@ class Condexet22 (Matrixet22.Matrixet22):
         self._rhs = rhs
         quals = self.quals()
         indices = []
-        ii = self._lhs.list_indices()                    # selection....?
+        # Use the indices (order) of the rhs.....?
+        ii = self._rhs.list_indices()                    # selection....?
         name = self._condeq_name
         for i in ii:
             node1 = self._lhs._matrixet(*i)
