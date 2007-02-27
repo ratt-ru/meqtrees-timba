@@ -63,6 +63,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         self._default.setdefault('c00', 1.0)  
         self._default.setdefault('unit', None)      
         self._default.setdefault('tfdeg', None)
+        self._default.setdefault('constrain', None)           # [min,max], doubles
+        self._default.setdefault('constrain_min', None)      
+        self._default.setdefault('constrain_max', None)
         self._default.setdefault('funklet_shape', None)
         self._default.setdefault('subtile_size', None)
         self._default.setdefault('use_previous', True)
@@ -152,6 +155,7 @@ class ParmGroup (NodeGroup.NodeGroup):
             cc.append(self._ns[name](*quals) << Meq.Condeq(nn[0], value))
         return cc
 
+
     #======================================================================
     # Create a new ParmGroup entry (i.e. a MeqParm node)
     #======================================================================
@@ -181,17 +185,33 @@ class ParmGroup (NodeGroup.NodeGroup):
                 shape = deepcopy(self._default['tfdeg']) # just in case.....
             shape[0] += 1                                # make 1-relative              
             shape[1] += 1                                # make 1-relative
-            
+
+        # Make the MeqParm initrec:
+        initrec = dict(shape=shape,
+                       tiling=tiling,
+                       save_all=self._default['save_all'],
+                       auto_save=self._default['auto_save'],
+                       reset_funklet=self._default['reset_funklet'],
+                       use_previous=self._default['use_previous'],
+                       table_name=self.parmtable(),
+                       node_groups=self._node_groups,
+                       tags=self._tags)
+ 
+        for key in ['constrain','constrain_min','constrain_max']:
+            if self._default[key]: 
+                initrec[key] = self._default[key]
+
+        # constrain ONLY works on c00!!
+        for key in ['constrain','constrain_min','constrain_max']:
+            if initrec.has_key(key): initrec['shape'] = [0,0]
+        
+        # Now make the MeqParm
         node = self._ns.parm(*quals) << Meq.Parm(self._default['c00'],        ## funklet=..
-                                                 shape=shape,
-                                                 tiling=tiling,
-                                                 save_all=self._default['save_all'],
-                                                 auto_save=self._default['auto_save'],
-                                                 reset_funklet=self._default['reset_funklet'],
-                                                 use_previous=self._default['use_previous'],
-                                                 table_name=self.parmtable(),
-                                                 node_groups=self._node_groups,
-                                                 tags=self._tags)
+                                                 **initrec)
+
+        # Apply an unary operation to the MeqParm
+        # if unop:
+        #     node = self._ns << getattr(Meq,unop)(node)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node, plot_label=qual)

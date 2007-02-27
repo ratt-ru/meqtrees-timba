@@ -208,7 +208,10 @@ class GJones (Joneset22):
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
-                                  default=dict(c00=1.0, unit=None, tfdeg=[2,0]),
+                                  default=dict(c00=1.0,
+                                               tfdeg=[1,0],
+                                               # constrain_min=0.1, constrain_max=10.0,
+                                               unit=None),
                                   constraint=dict(product=1.0),
                                   simul=dict(Psec=500),
                                   override=override,

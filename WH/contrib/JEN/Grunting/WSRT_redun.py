@@ -104,8 +104,8 @@ def _define_forest (ns):
     if TDL_redun_mode=='rhs':
         # Corrupt a (rhs) RedunVisset22 object:
         rr = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
-                                                   rhs='constant', select='all')
-                                                   # rhs='diagonal', select='all')
+                                                   # rhs='constant', select='all')
+                                                   rhs='diagonal', select='all')
         rhs = RedunVisset22.RedunVisset22(ns, label='rhs', array=array,
                                           redun=rr, polar=True)
         rhs.corrupt(jones, visu=False)
