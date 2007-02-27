@@ -84,18 +84,18 @@ class RedunVisset22 (Visset22.Visset22):
         the same baseline as one or more others in the array. The matrices
         in each group are all identical, either a constant unit-matrix or 
         parametrized. The parameters are either ampl/phase (polar=True) or
-        real/imag (polar=False), and can be solved for, using the ParmGroupManager.
-        """
+        real/imag (polar=False), and can be solved for, using the
+        ParmGroupManager. rr is a list of dicts, representing groups."""
 
-        self.make_group_node(rr, polar=polar)        # define parmgroups
+        self.make_group_node(polar=polar)        # define parmgroups
         quals = self.quals()
         name = 'redundant'
         indices = []
-        for key in rr.keys():
+        for gg in rr:
+            print 'gg =',gg
             # Make the (matrix) node that the redundant matrices are equated to:
-            node = self.make_group_node (rr[key], key=key, polar=polar)
-            for ifr in rr[key]['group']:
-                # print key,ifr,node
+            node = self.make_group_node (gg, polar=polar)
+            for ifr in gg['group']:
                 self._ns[name](*quals)(*ifr) << Meq.Identity(node)
                 indices.append(ifr)
         self._matrixet = self._ns[name](*quals)
@@ -106,7 +106,7 @@ class RedunVisset22 (Visset22.Visset22):
 
     #.............................................................................
 
-    def make_group_node (self, rr=None, key=None, polar=False):
+    def make_group_node (self, rr=None, polar=False):
         """Helper function for .make_group_nodes()"""
 
         pname = 'redun_phase'
@@ -114,7 +114,7 @@ class RedunVisset22 (Visset22.Visset22):
         rname = 'redun_real'
         iname = 'redun_imag'
 
-        if key==None:
+        if rr==None:
             # First time: define parmgroups:
             if polar:
                 self.define_parmgroup(aname, descr='redundant baseline amplitude',
@@ -151,6 +151,7 @@ class RedunVisset22 (Visset22.Visset22):
                   m12=str(pols[0])+str(pols[1]),
                   m21=str(pols[1])+str(pols[0]),
                   m22=str(pols[1])+str(pols[1]))
+        key = rr['key']
         rhs = rr['rhs']
         
         if not isinstance(rhs, str):
@@ -212,7 +213,8 @@ def get_WSRT_1D_station_pos(sep9A=36):
 
 #-------------------------------------------------------------------------------------
 
-def make_WSRT_redun_groups (ifrs=None, sep9A=36, rhs='diagonal', select='all'):
+def make_WSRT_redun_groups (ifrs=None, sep9A=36, rhs='diagonal',
+                            reference=True, select='all'):
     """Create a dict of named groups of redundant WSRT ifrs""" 
 
     # Make named (key) groups of baselines with the same length: 
@@ -223,23 +225,46 @@ def make_WSRT_redun_groups (ifrs=None, sep9A=36, rhs='diagonal', select='all'):
         ifr = ifrs[i]
         b = xx[ifr[1]-1] - xx[ifr[0]-1]               # ifr stations are 1-relative!
         key = str(int(b))
-        rr.setdefault(key, dict(group=[], rhs=rhs, size=0))
+        rr.setdefault(key, dict(group=[], rhs=rhs, key=key, basel=int(b)))
         rr[key]['group'].append(ifr)
-        rr[key]['size'] += 1
+
 
     # Remove the groups with only a single member:
+    basel = []
     nmax = 0
     keymax = None
     for key in rr.keys():
-        n = rr[key]['size']
+        n = len(rr[key]['group'])
         if n==1:
             rr.__delitem__(key)
-        elif n>nmax:
-            nmax = n                                  # size of largest group
-            keymax = key                              # name of largest group
+        else:
+            # order.append(key)
+            basel.append(rr[key]['basel'])
+            if n>nmax:
+                nmax = n                                  # size of largest group
+                keymax = key                              # name of largest group
+
     # Use the largest group (e.g. 144m) as a reference:
-    rr[keymax]['rhs'] = 'constant'
-    return rr
+    if reference:
+        rr[keymax]['rhs'] = 'constant'
+
+    # Determine the order of the groups (increasing baseline length):
+    order = []
+    for k1 in range(len(basel)-1):
+        for k2 in range(k1+1,len(basel)):
+            if basel[k2]<basel[k1]:
+                b = basel[k1]
+                basel[k1] = basel[k2]
+                basel[k2] = b
+        order.append(str(basel[k1]))
+    order.append(str(basel[k2]))
+
+    # Return an ordered list of dicts:
+    aa = []
+    for key in order:
+        aa.append(rr[key])
+        print rr[key]
+    return aa
 
 
 
@@ -303,7 +328,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        num_stations = 5
+        num_stations = 14
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         # observation = Meow.Observation(ns)
@@ -314,7 +339,7 @@ if __name__ == '__main__':
     if 0:
         rvs.show_matrix_subtree(recurse=3)
 
-    if 1:
+    if 0:
         jones = Joneset22.JJones(ns, stations=array.stations(), simulate=False)
         rvs.corrupt(jones, visu=False)
         rvs.display('corrupted', recurse=2)
