@@ -7,6 +7,7 @@ import Meow
 
 input_column = output_column = imaging_column = None;
 tile_size = None;
+ddid_index = None;
 ms_channels = None;
 msname = '';
 ms_write_flags = False;
@@ -17,16 +18,18 @@ def include_ms_options (
     has_input=True,
     has_output=True,
     tile_sizes=[1,5,10,20,30,60],
+    ddid=[0,1],
     channels=None,
     flags=False
   ):
   """Instantiates MS input/output options""";
-  TDLRuntimeOptions(*ms_options(has_input,has_output,tile_sizes,channels,flags));
+  TDLRuntimeOptions(*ms_options(has_input,has_output,tile_sizes,ddid,channels,flags));
 
 def ms_options (
     has_input=True,
     has_output=True,
     tile_sizes=[1,5,10,20,30,60],
+    ddid=[0,1],
     channels=None,
     flags=False
   ):
@@ -43,6 +46,8 @@ def ms_options (
     opts.append(TDLOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=2));
   if tile_sizes:
     opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
+  if ddid:
+    opts.append(TDLOption('ddid_index',"data description id",ddid,more=int));
   if channels:
     opts.append(TDLOption('ms_channels',"Channel selection",channels));
   if flags:
@@ -179,6 +184,7 @@ ms_selection = None;
 
 def create_inputrec (tiling=None):
   global tile_size;
+  global ddid_index;
   boioname = "boio."+msname+".predict."+str(tiling or tile_size);
   # if boio dump for this tiling exists, use it to save time
   if not ms_selection and os.access(boioname,os.R_OK):
@@ -208,6 +214,7 @@ def create_inputrec (tiling=None):
       rec.selection.channel_end_index = ms_channels[1];
       if len(ms_channels) > 2:
         rec.selection.channel_increment = ms_channels[2];
+    rec.selection.ddid_index = ddid_index;
     rec = record(ms=rec);
   rec.python_init = 'Meow.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
