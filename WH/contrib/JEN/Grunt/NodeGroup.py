@@ -265,6 +265,7 @@ class NodeGroup (object):
         if not self._coll:
             coll_quals = self._quals.concat()
             cc = self.nodelist()
+            if len(cc)==0: return None
             for i in range(len(cc)):
                 cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'collector'
@@ -466,7 +467,8 @@ class NodeGog (object):
         """Visualize its group of NodeGroups. Return a single node."""
         cc = []
         for ng in self._group:
-            cc.append(ng.collector(bookpage=bookpage, folder=folder))
+            coll = ng.collector(bookpage=bookpage, folder=folder)
+            if not coll==None: cc.append(coll)
         if len(cc)==0: return False
         if len(cc)==1: return cc[0]
         return self._ns << Meq.Composer(children=cc)

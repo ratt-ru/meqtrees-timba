@@ -27,6 +27,7 @@ from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.Grunt import RedunVisset22
 from Timba.Contrib.JEN.Grunt import PointSource22
 from Timba.Contrib.JEN.Grunt import solving22
+from Timba.Contrib.JEN.Grunt import Condexet22
 
 
 #========================================================================
@@ -49,6 +50,8 @@ WSRT_Jones.include_TDL_options_uvp('instrum. model')
 
 pg = WSRT_Jones.parmgroups_uvp()
 TDLCompileOption('TDL_parmgog','parmgroups to be solved for', pg, more=str);
+
+TDLCompileOption('TDL_redun_mode','Redundancy mode',['rhs','lhs']);
 
 solving22.include_TDL_options()
 
@@ -95,14 +98,19 @@ def _define_forest (ns):
     #    short-circuited between the functions in the WSRT_Jones module)
     jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations())
 
-    if True:
-        # Corrupt a RedunVisset22 object:
-        redun = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
-                                                      rhs='all4', select='all')
+    # Make the right-hand side (rhs), if required:
+    rhs = None
+    redun = None
+    if TDL_redun_mode=='rhs':
+        # Corrupt a (rhs) RedunVisset22 object:
+        rr = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
+                                                   rhs='constant', select='all')
+                                                   # rhs='diagonal', select='all')
         rhs = RedunVisset22.RedunVisset22(ns, label='rhs', array=array,
-                                          redun=redun, polar=False)
+                                          redun=rr, polar=True)
         rhs.corrupt(jones, visu=False)
     else:
+        # TDL_redun_mode=='lhs' (use redun dict to make pairs from lhs)
         # Correct(!) the measured data with a sequence of Jones matrices,
         # NB: Note the unusual pgm_merge==True, to make sure that the parmgroup
         #     manager from the data visset is passed on (this is not the
@@ -110,13 +118,15 @@ def _define_forest (ns):
         #     visset is used (...)
         # NB: Visu==False because this shows the situation before solving,
         #     due to caching. So use visu==True on make_sinks() below.
-        rhs = None
         data.correct(jones, pgm_merge=True, visu=False)
+        redun = Condexet22.make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36,
+                                                  select='all')
+        
 
     # Create a solver for a user-defined subset of parameters (parmgroup):
     # NB: The solver gets its requests from a ReqSeq that is automatically
     #     inserted into the main-stream by data.make_sinks() below.
-    solving22.make_solver(lhs=data, rhs=rhs, parmgroup=TDL_parmgog)
+    solving22.make_solver(lhs=data, rhs=rhs, redun=redun, parmgroup=TDL_parmgog)    # .... '*' ...?
 
     # Correct the data for the estimated instrumental errors
     if rhs:

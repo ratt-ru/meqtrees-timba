@@ -44,7 +44,7 @@ def include_TDL_options(prompt=None):
 
 #======================================================================================
 
-def make_solver (lhs=None, rhs=None, parmgroup='*',
+def make_solver (lhs=None, rhs=None, parmgroup='*', 
                  qual=None, redun=None, accu=True, **pp):
     """Make a solver that solves for the specified parmgroup(s), by comparing the
     matrices of one Matrixet22 object (lhs) with the corresponding matrices of
@@ -88,12 +88,14 @@ def make_solver (lhs=None, rhs=None, parmgroup='*',
     cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs)
     if rhs:
         cdx.make_condeqs (rhs=rhs, unop=None)
+        condeqs = cdx.get_condeqs(matrel=matrel)
     else:
-        cdx.make_redun_condeqs (unop=None)
-    condeqs = cdx.get_condeqs(matrel=matrel)
-    if not rhs:
-        constr = pgm.constraint_condeqs(parmgroup)
-        if len(constr)>0: condeqs.extend(constr)
+        # If no rhs, assume that redun (dict) is supplied. (See Condexet22.py)
+        cdx.make_redun_condeqs (redun=redun, unop=None)         
+        condeqs = cdx.get_condeqs(matrel=matrel)
+        if True:
+            constr = pgm.constraint_condeqs(parmgroup)
+            if len(constr)>0: condeqs.extend(constr)
 
 
     # Create the solver:

@@ -290,8 +290,8 @@ if __name__ == '__main__':
         cdx.display(recurse=3)
 
         if 0:
-            rr = make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36, select='all')
-            cdx.make_redun_condeqs (rr, unop=None)
+            redun = make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36, select='all')
+            cdx.make_redun_condeqs (redun, unop=None)
             cdx.display(recurse=3)
 
     if 1:
