@@ -387,7 +387,8 @@ MeqPrivFunction                  1693       ; from /home/mevius/LOFAR/Timba/MeqN
 MeqProduct                       1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 #MeqPyFunctionNode               1707       ; from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
 #MeqPyNode                       1705       ; from /home/oms/Timba/MeqServer/src/PyNode.h:10
-#MeqPyTensorFunctionNode         1719       ; from /home/oms/Timba/MeqServer/src/PyTensorFunctionNode.h:7
+#MeqPyTensorFunction             1720       ; from /home/oms/Timba/MeqServer/src/PyTensorFunction.h:7
+MeqPyTensorFunctionNode          1719       ; from /home/oms/Timba/MeqServer/src/PyTensorFunctionNode.h:7
 MeqRADec                         1709       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:52
 MeqRandomNoise                   1384       ; from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
 MeqReal                          1404       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
