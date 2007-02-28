@@ -81,7 +81,8 @@ def _define_forest(ns):
   # constant for half-intensity determination
   ns.ln_16 << Meq.Constant(-2.7725887)
 
-  # define desired half-intensity width of voltage pattern
+  # define desired half-intensity width of power pattern (HPBW)
+  # as we are fitting total intensity I pattern
   ns.width << Meq.Constant(0.021747)                 
 
   laxis = ns.laxis << Meq.Grid(axis=2);
@@ -257,11 +258,8 @@ def _define_forest(ns):
   ns.I_real << Meq.Selector(ns.IQUV,index=0)
   ns.resampler_I << Meq.Resampler(ns.I_real)
 
-# ns.condeq<<Meq.Condeq(children=(ns.I_real, ns.gaussian))
   ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
   ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables)
-
-
 
 # ns.req_seq<<Meq.ReqMux(ns.solver_parms, ns.solver(0), ns.solver(1), ns.Ins_pol)
   ns.req_seq<<Meq.ReqSeq(ns.solver_parms, ns.solver, ns.Ins_pol)
@@ -289,7 +287,6 @@ def _test_forest(mqs,parent):
   request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
   mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=True);
-# mqs.meq('Node.Execute',record(name='solver_parms',request=request),wait=True);
 
 #####################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
