@@ -21,12 +21,18 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-# determine the observed instrumental polarization pattern for
-# an interferometer observing with GRASP-designed beams - 
-# in this case the design is for s 5 x 6 Vivaldi array
+# script_name = 'MG_AGW_multi_beams.py'
+
+# Short description:
+# We read in a group of focal plane array beams, 
+# and form a combined, weighted beam. The weights
+# are found by getting complex values at specified
+# L,M location in the X (|| poln) beams and then
+# taking the conjugate transpose.
 
 # History:
-# 02-Feb-2007 created
+# - 07 Jan 2007: creation:
+
 #=======================================================================
 # Import of Python / TDL modules:
 
@@ -34,90 +40,132 @@
 from Timba.TDL import * 
 from Timba.Meq import meqds
 from Timba.Meq import meq
+from Meow import Bookmarks,Utils
 
-# setup a bookmark for display of results with a 'Results Plotter'
+import os
+
 Settings.forest_state = record(bookmarks=[
-  record(name='I Q U V',page=[
-    record(udi="/node/I",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/Q",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/U",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/V",viewer="Result Plotter",pos=(1,1)),
-    record(udi="/node/IQUV",viewer="Result Plotter",pos=(2,0))]),
-  record(name='norm',page=[
-    record(udi="/node/im_x_max",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/im_y_max",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/im_x",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/im_y",viewer="Result Plotter",pos=(1,1))]),
-  record(name='normalized beams',page=[
-    record(udi="/node/beam_xx",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/beam_xy",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/beam_yx",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/beam_yy",viewer="Result Plotter",pos=(1,1))]),
-  record(name='raw beams',page=[
-    record(udi="/node/image_re_xx",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/image_im_xx",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/image_re_xy",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/image_im_xy",viewer="Result Plotter",pos=(1,1)),
-    record(udi="/node/image_re_yx",viewer="Result Plotter",pos=(2,0)),
-    record(udi="/node/image_im_yx",viewer="Result Plotter",pos=(2,1)),
-    record(udi="/node/image_re_yy",viewer="Result Plotter",pos=(3,0)),
-    record(udi="/node/image_im_yy",viewer="Result Plotter",pos=(3,1))]),
-  ]);
-
+  record(name='I Q U V',page=Bookmarks.PlotPage(
+      ["IQUV_complex"],
+  )),
+])
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
+
 
 ########################################################
 def _define_forest(ns):  
 
+  BEAM_LM = [(0.0,0.0)]      # location where we phase beams up
+  l_beam,m_beam = BEAM_LM[0]
+  ns.l_beam_c << Meq.Constant(l_beam) 
+  ns.m_beam_c << Meq.Constant(m_beam)
+  ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
+
 # read in beam images
-
+ # fit all 180 beams
+  BEAMS = range(0,30)
   home_dir = os.environ['HOME']
-  beam_number = 5
-
+  # read in beam data
+  for k in BEAMS:
   # read in beam data - y dipole
-  infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number+30) + '_Re_x.fits'
-  infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number+30) +'_Im_x.fits'
-  infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number+30) +'_Re_y.fits'
-  infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number+30) +'_Im_y.fits' 
-  ns.image_re_yx << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
-  ns.image_im_yx << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
-  ns.image_re_yy << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
-  ns.image_im_yy << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
+    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) + '_Re_x.fits'
+    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_x.fits'
+    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Re_y.fits'
+    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_y.fits' 
+    ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
+    ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
+    ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
+    ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
+    # normalize
+    ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
+                  ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
+    ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
+    ns.y_im_max(k) <<Meq.Max(ns.y_im(k))
+    ns.norm_image_re_yy(k) << ns.image_re_yy(k) / ns.y_im_max(k)
+    ns.norm_image_im_yy(k) << ns.image_im_yy(k) / ns.y_im_max(k)
+    ns.norm_image_re_yx(k) << ns.image_re_yx(k) / ns.y_im_max(k)
+    ns.norm_image_im_yx(k) << ns.image_im_yx(k) / ns.y_im_max(k)
 
-  # normalize beam to peak response
-  ns.im_sq_y << ns.image_re_yy * ns.image_re_yy + ns.image_im_yy * ns.image_im_yy +\
-                ns.image_re_yx * ns.image_re_yx + ns.image_im_yx * ns.image_im_yx
-  ns.im_y << Meq.Sqrt(ns.im_sq_y)
-  ns.im_y_max << Meq.Max(ns.im_y)
+    ns.resampler_image_re_yy(k) << Meq.Resampler(ns.norm_image_re_yy(k),dep_mask = 0xff)
+    ns.resampler_image_im_yy(k) << Meq.Resampler(ns.norm_image_im_yy(k),dep_mask = 0xff)
+    ns.beam_wt_re_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_yy(k)],common_axes=[hiid('l'),hiid('m')])
+    ns.beam_wt_im_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
 
-  ns.beam_yx << Meq.ToComplex(ns.image_re_yx, ns.image_im_yx) / ns.im_y_max
-  ns.beam_yy << Meq.ToComplex(ns.image_re_yy, ns.image_im_yy) / ns.im_y_max
+    ns.beam_wt_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
+    ns.beam_weight_y(k) << Meq.ConjTranspose(ns.beam_wt_y(k))
+
+    ns.beam_yx(k) << Meq.ToComplex(ns.norm_image_re_yx(k), ns.norm_image_im_yx(k)) 
+    ns.beam_yy(k) << Meq.ToComplex(ns.norm_image_re_yy(k), ns.norm_image_im_yy(k))
+    ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
+    ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
   # read in beam data - x dipole
-  infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number) +'_Re_x.fits'
-  infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number) +'_Im_x.fits'
-  infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number) +'_Re_y.fits'
-  infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(beam_number) +'_Im_y.fits'
-  ns.image_re_xx << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
-  ns.image_im_xx << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
-  ns.image_re_xy << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
-  ns.image_im_xy << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
+    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) + '_Re_x.fits'
+    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_x.fits'
+    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Re_y.fits'
+    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_y.fits' 
+    ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
+    ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
+    ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
+    ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
 
-  ns.im_sq_x << ns.image_re_xx * ns.image_re_xx + ns.image_im_xx * ns.image_im_xx +\
-                ns.image_re_xy * ns.image_re_xy + ns.image_im_xy * ns.image_im_xy
-  ns.im_x << Meq.Sqrt(ns.im_sq_x)
-  ns.im_x_max << Meq.Max(ns.im_x)
+    # normalize
+    ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
+                  ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
+    ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
+    ns.x_im_max(k) <<Meq.Max(ns.x_im(k))
+    ns.norm_image_re_xx(k) << ns.image_re_xx(k) / ns.x_im_max(k)
+    ns.norm_image_im_xx(k) << ns.image_im_xx(k) / ns.x_im_max(k)
+    ns.norm_image_re_xy(k) << ns.image_re_xy(k) / ns.x_im_max(k)
+    ns.norm_image_im_xy(k) << ns.image_im_xy(k) / ns.x_im_max(k)
 
-  ns.beam_xx << Meq.ToComplex(ns.image_re_xx, ns.image_im_xx) / ns.im_x_max
-  ns.beam_xy << Meq.ToComplex(ns.image_re_xy, ns.image_im_xy) / ns.im_x_max
 
-  # Create E-Jones from beam data
-  # I think the following order is correct!
-  ns.E << Meq.Matrix22(ns.beam_xx, ns.beam_yx,ns.beam_xy, ns.beam_yy)
+    ns.resampler_image_re_xx(k) << Meq.Resampler(ns.norm_image_re_xx(k),dep_mask = 0xff)
+    ns.resampler_image_im_xx(k) << Meq.Resampler(ns.norm_image_im_xx(k),dep_mask = 0xff)
+    ns.beam_wt_re_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_xx(k)],common_axes=[hiid('l'),hiid('m')])
+    ns.beam_wt_im_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
+
+    ns.beam_wt_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
+    ns.beam_weight_x(k) << Meq.ConjTranspose(ns.beam_wt_x(k))
+
+    ns.beam_xy(k) << Meq.ToComplex(ns.norm_image_re_xy(k), ns.norm_image_im_xy(k)) 
+    ns.beam_xx(k) << Meq.ToComplex(ns.norm_image_re_xx(k), ns.norm_image_im_xx(k))
+    ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
+    ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
+
+  ns.voltage_sum_xx << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS])
+  ns.voltage_sum_xy << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS])
+  ns.voltage_sum_yx << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS])
+  ns.voltage_sum_yy << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS])
+
+  # normalize beam to peak response
+  ns.voltage_sum_xx_r << Meq.Real(ns.voltage_sum_xx)
+  ns.voltage_sum_xx_i << Meq.Imag(ns.voltage_sum_xx)
+  ns.voltage_sum_xy_r << Meq.Real(ns.voltage_sum_xy)
+  ns.voltage_sum_xy_i << Meq.Imag(ns.voltage_sum_xy)
+  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i +\
+                  ns.voltage_sum_xy_r * ns.voltage_sum_xy_r + ns.voltage_sum_xy_i * ns.voltage_sum_xy_i
+  ns.im_x <<Meq.Sqrt(ns.im_sq_x)
+  ns.im_x_max <<Meq.Max(ns.im_x)
+  ns.voltage_sum_xx_norm << ns.voltage_sum_xx / ns.im_x_max
+  ns.voltage_sum_xy_norm << ns.voltage_sum_xy / ns.im_x_max
+
+  ns.voltage_sum_yy_r << Meq.Real(ns.voltage_sum_yy)
+  ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy)
+  ns.voltage_sum_yx_r << Meq.Real(ns.voltage_sum_yx)
+  ns.voltage_sum_yx_i << Meq.Imag(ns.voltage_sum_yx)
+  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i +\
+                  ns.voltage_sum_yx_r * ns.voltage_sum_yx_r + ns.voltage_sum_yx_i * ns.voltage_sum_yx_i
+  ns.im_y <<Meq.Sqrt(ns.im_sq_y)
+  ns.im_y_max <<Meq.Max(ns.im_y)
+  ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
+  ns.voltage_sum_yx_norm << ns.voltage_sum_yx / ns.im_y_max
+
+  ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
   ns.Et << Meq.ConjTranspose(ns.E)
 
-  # sky brightness
+ # sky brightness
   ns.B0 << 0.5 * Meq.Matrix22(1.0, 0.0, 0.0, 1.0)
 
   # observe!
@@ -129,14 +177,14 @@ def _define_forest(ns):
   ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
   ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)                # Q = XX - YY
 
-  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2 
+  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2
   ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
-  ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX 
+  ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX
   ns.iV << Meq.Subtract(ns.UpV,ns.UmV)               # iV = XY - YX  <----!!
-  ns.V << ns.iV / 1j                                 # V = iV / i 
+  ns.V << ns.iV / 1j                                 # V = iV / i
                                                      # (note: i => j in Python)
- 
-  # join together into one node in order to make a single request 
+
+  # join together into one node in order to make a single request
   ns.IQUV_complex << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
   ns.IQUV << Meq.Real(ns.IQUV_complex)
   ns.Ins_pol << ns.IQUV / ns.I
@@ -146,8 +194,8 @@ def _define_forest(ns):
   # make sure that the newsimulator setspwindow method uses
   # stokes='XX XY YX YY' and not stokes='RR RL LR LL'. If you
   # do the latter you will get the images rolled out in the
-  # order I,U,V,Q! 
-  
+  # order I,U,V,Q!
+
 ########################################################################
 def _test_forest(mqs,parent):
 
@@ -158,15 +206,12 @@ def _test_forest(mqs,parent):
   f0 = 0.5
   f1 = 1.5
 
-  lm_range = [-0.04,0.04];
+  lm_range = [-0.15,0.15];
   lm_num = 50;
-# define request
-  request = make_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
+  counter = 0
+  request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
   mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
-
-
-
 
 #####################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
@@ -212,9 +257,6 @@ def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
     rqid = meq.requestid(domain_id=counter)
     request = meq.request(cells,rqtype='ev',rqid=rqid);
     return request;
-
-
-
 
 if __name__=='__main__':
   ns=NodeScope()
