@@ -296,7 +296,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   // for now, only Polcs are supported
   //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
-  TableLocker locker(itsTable, FileLocker::Write);
+  //TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
   ArrayColumn<double> valCol (itsTable, ColValues);
   ScalarColumn<double> sfCol (itsTable, ColStartFreq);
@@ -379,6 +379,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
                      << domain.start(Axis::TIME) << ':' << domain.end(Axis::TIME));
         ArrayColumn<double> valCol (sel, ColValues);
         valCol.put (0, toParmMatrix(values));
+	      
       }
     }
     // still unassigned? add to end of table then
@@ -391,6 +392,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   }
   // At this point, rownr corresponds to a valid row. Write the polc to 
   // that row
+
   valCol.put  (rownr, toParmMatrix(values));
   sfCol.put   (rownr, domain.start(Axis::FREQ));
   efCol.put   (rownr, domain.end(Axis::FREQ));
@@ -427,6 +429,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
     lscaleCol.put(rownr,constants);
   }
   return rownr;
+
 }
 
 //##ModelId=3F86886F02CE
@@ -516,7 +519,7 @@ void ParmTable::unlock()
 void ParmTable::lock()
 {
   Thread::Mutex::Lock lock(theirMutex());
-  itsTable.lock();
+  bool locked = itsTable.lock();
 }
 
 void ParmTable::lockTables()

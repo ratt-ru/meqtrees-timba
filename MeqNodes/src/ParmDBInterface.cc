@@ -325,7 +325,7 @@ namespace Meq {
 
     if( !its_funklet_.valid() ) 
       return;
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    //parmtable_ = ParmTable::openTable(parmtable_name_);
 
     if(its_funklet_->objectType()==TpMeqComposedPolc){
       DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();

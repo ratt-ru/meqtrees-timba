@@ -1010,7 +1010,7 @@ int Solver::getResult (Result::Ref &resref,
     cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
     converged = num_conv_ >= need_conv_;
     // fill in updates in request object
-    fillRider(reqref,do_save_funklets_&&(converged || interrupt_ || (cur_iter_ >= max_num_iter_-2)),converged);
+    fillRider(reqref,do_save_funklets_&&(converged || interrupt_ || (cur_iter_ >= max_num_iter_-1)),converged);
     //fillRider(reqref,do_save_funklets_,converged);
     // fill in metrics and debug info
     DMI::Vec * pmetvec;
@@ -1367,9 +1367,7 @@ void Solver::fillRider (Request::Ref &reqref,bool save_funklets,bool converged)
   }
   // make sure the request rider is validated
   reqref().validateRider();
-#ifndef HAVE_PARMDB
-  ParmTable::unlockTables();
-#endif
+
 }
 
 
