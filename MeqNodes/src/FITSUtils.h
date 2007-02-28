@@ -22,9 +22,15 @@
 
 #ifndef MEQNODES_FITSUTILS_H
 #define MEQNODES_FITSUTILS_H
+//for the Mutex
+#include <TimBase/Thread/Mutex.h>
+extern LOFAR::Thread::Mutex cfitsio_mutex;
+
+
     
 //#define DEBUG
 namespace Meq {
+
 #ifdef __cplusplus
 				extern "C" {
 #endif

@@ -21,7 +21,8 @@
 //# $Id$
 
 #include <MeqNodes/FITSUtils.h>
-
+//global mutex
+LOFAR::Thread::Mutex cfitsio_mutex;
 
 //#define DEBUG
 namespace Meq {
@@ -425,6 +426,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		long int increment[4]={1,1,1,1};
 		float *arr;
 		int null_flag=0;
+
+    /* lock mutex */
+    Thread::Mutex::Lock lock(cfitsio_mutex);
 
 		/* stuctures from WCSLIB */
 		struct wcsprm *wcs;
@@ -907,6 +911,10 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 int mynaxis=0;
 			 double *colarr=0;
 			 int has_cells;
+
+       /* lock mutex */
+       Thread::Mutex::Lock lock(cfitsio_mutex);
+
 
 			 status=0;
 			 stat=fits_open_file(&fptr, filename, READONLY, &status);
