@@ -452,6 +452,7 @@ array_class = type(numarray.array(0));
 # shortcuts for array types 
 arr_double = numarray.Float64;
 arr_dcomplex = numarray.Complex64;
+arr_int32 = numarray.Int32;
 
 def is_array (x):
   return isinstance(x,array_class);
@@ -516,6 +517,24 @@ def dmi_coerce (obj,dmitype):
     raise TypeError,str(dmitype)+' is not a subclass of '+str(type(obj));
   obj.__class__ = dmitype;
   return obj;
+
+
+
+
+def refcount_report (obj,indent=0,name="?",bias=3):
+  """Debugging method.
+  Prints a report on the refcount of object obj""";
+  rc = sys.getrefcount(obj)-bias;
+  print " "*indent,"%s (%s): rc %d"%(name,type(obj).__name__,rc);
+  # print contents
+  if isinstance(obj,(list,tuple)):
+    for i,x in enumerate(obj):
+      refcount_report(x,indent=indent+2,name="[%i]"%i,bias=6);
+  elif isinstance(obj,dict):
+    for key,val in obj.iteritems():
+      refcount_report(val,indent=indent+2,name=str(key),bias=5);
+ 
+
   
 # import C module
 try:
