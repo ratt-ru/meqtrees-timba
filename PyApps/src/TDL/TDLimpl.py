@@ -265,6 +265,12 @@ class _NodeDef (object):
     return _Meq.Multiply(self,other);
   def __div__ (self,other):
     return _Meq.Divide(self,other);
+  def __truediv__ (self,other):
+    return _Meq.Divide(self,other);
+  def __mod__ (self,other):
+    return _Meq.FMod(self,other);
+  def __pow__ (self,other):
+    return _Meq.Pow(self,other);
   def __radd__ (self,other):
     return _Meq.Add(other,self);
   def __rsub__ (self,other):
@@ -273,6 +279,12 @@ class _NodeDef (object):
     return _Meq.Multiply(other,self);
   def __rdiv__ (self,other):
     return _Meq.Divide(other,self);
+  def __rtruediv__ (self,other):
+    return _Meq.Divide(other,self);
+  def __rmod__ (self,other):
+    return _Meq.FMod(other,self);
+  def __rpow__ (self,other):
+    return _Meq.Pow(other,self);
   def __neg__ (self):
     return _Meq.Negate(self);
   def __abs__ (self):
@@ -522,6 +534,12 @@ class _NodeStub (object):
     return _Meq.Multiply(self,other);
   def __div__ (self,other):
     return _Meq.Divide(self,other);
+  def __truediv__ (self,other):
+    return _Meq.Divide(self,other);
+  def __mod__ (self,other):
+    return _Meq.FMod(self,other);
+  def __pow__ (self,other):
+    return _Meq.Pow(self,other);
   def __radd__ (self,other):
     return _Meq.Add(other,self);
   def __rsub__ (self,other):
@@ -530,6 +548,12 @@ class _NodeStub (object):
     return _Meq.Multiply(other,self);
   def __rdiv__ (self,other):
     return _Meq.Divide(other,self);
+  def __rtruediv__ (self,other):
+    return _Meq.Divide(other,self);
+  def __rmod__ (self,other):
+    return _Meq.FMod(other,self);
+  def __rpow__ (self,other):
+    return _Meq.Pow(other,self);
   def __neg__ (self):
     return _Meq.Negate(self);
   def __abs__ (self):
