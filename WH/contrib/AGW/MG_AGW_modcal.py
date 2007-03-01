@@ -288,16 +288,18 @@ def _define_forest(ns):
     ns.B0(src) << 0.5 * Meq.Matrix22(flux+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),flux-Q)
     # don't really need to use the following for a point source
     ns.B(src) << ns.B0(src) / n;
-    ns.lm0(src) << Meq.Composer(l,m)
-    ns.RaDec(src) << Meq.LMRaDec(radec_0=ns.radec0, lm=ns.lm0(src))
-
     # here we pretend we're observing with an AZ_EL mounted dish
     # so that especially the first source is moving through a
-    # sidelibe as a function of time.
-    ns.lmn(src) << Meq.LMN(ns.radec0, ns.RaDec(src), ns.ParAngle)
-    ns.ls(src) << Meq.Selector(ns.lmn(src),index=0)
-    ns.ms(src) << Meq.Selector(ns.lmn(src),index=1)
-    ns.lm(src) << Meq.Composer(ns.ls(src), ns.ms(src))
+    # sidelobe as a function of time.
+    if src == 0:
+      ns.lm0(src) << Meq.Composer(l,m)
+      ns.RaDec(src) << Meq.LMRaDec(radec_0=ns.radec0, lm=ns.lm0(src))
+      ns.lmn(src) << Meq.LMN(ns.radec0, ns.RaDec(src), ns.ParAngle)
+      ns.ls(src) << Meq.Selector(ns.lmn(src),index=0)
+      ns.ms(src) << Meq.Selector(ns.lmn(src),index=1)
+      ns.lm(src) << Meq.Composer(ns.ls(src), ns.ms(src))
+    else:
+      ns.lm(src) << Meq.Composer(l,m)
 
     # now calculate E-Jones for a source
     define_E_Jones(ns,src)
