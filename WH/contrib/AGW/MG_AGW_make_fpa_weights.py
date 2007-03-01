@@ -50,7 +50,8 @@ import os
 
 #setup a bookmark for display of results with a 'Collections Plotter'
 Settings.forest_state = record(bookmarks=[
-  record(name='Condeqs',page=[
+  record(name='Results',page=[
+    record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/IQUV_complex",viewer="Result Plotter",pos=(2,0)),
     record(udi="/node/condeq",viewer="Result Plotter",pos=(1,0))])]);
 # to force caching put 100
@@ -73,7 +74,7 @@ def _define_forest(ns):
 
   # define location for phase-up
 # BEAM_LM = [(0.0,0.0)]
-  BEAM_LM = [(0.04,0.04)]
+  BEAM_LM = [(-0.045,0.00)]
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
   ns.m_beam_c << Meq.Constant(m_beam)
