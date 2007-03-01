@@ -116,11 +116,15 @@ class ParmGroup (NodeGroup.NodeGroup):
                              table_name=self.parmtable(),
                              node_groups=self._node_groups,
                              tags=self._tags)
- 
+
+        # Speacial: deal with constrain:
+        if self._default['constrain']:
+            self._default['constrain_min'] = self._default['constrain'][0]
+            self._default['constrain_max'] = self._default['constrain'][1]
+            self._default['constrain'] = None
         for key in ['constrain','constrain_min','constrain_max']:
             if self._default[key]: 
                 self._initrec[key] = self._default[key]
-
         # NB: constrain ONLY works on c00!!
         for key in ['constrain','constrain_min','constrain_max']:
             if self._initrec.has_key(key): self._initrec['shape'] = [0,0]
@@ -129,24 +133,27 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def table_header (self):
-        """Print an explanatory header of a table of ParmGroup table_entries.
-        This is a re-implementation of the NodeGroup method."""
-        ss = '**              shape  tiling  auto save reset prev table'
-        print ss
-        return ss
-
-    def table_entry (self):
+    def table_entry (self, header=False):
         """Print a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
+        if header:
+            ss = '**              auto  save  reset  prev  :  c00 unit constrain  :  shape  tiling  :  parmtable'
+            print ss
         ss = ' - '+self.label()+' ('+str(self.len())+'): '
-        ss += ' '+str(self._initrec['shape'])
-        ss += ' '+str(self._initrec['tiling'])
         ss += ' '+str(self._initrec['auto_save'])
         ss += ' '+str(self._initrec['save_all'])
         ss += ' '+str(self._initrec['reset_funklet'])
         ss += ' '+str(self._initrec['use_previous'])
+        ss += '  :  '
+        ss += ' '+str(self._default['c00'])
+        ss += ' '+str(self._default['unit'])
+        ss += ' '+str(self._default['constrain_min'])
+        ss += ' '+str(self._default['constrain_max'])
+        ss += '  :  '
+        ss += ' '+str(self._initrec['shape'])
+        ss += ' '+str(self._initrec['tiling'])
+        ss += '  :  '
         ss += ' '+str(self._initrec['table_name'])
         for key in ['constrain','constrain_min','constrain_max']:
             if self._initrec.has_key(key):
@@ -468,17 +475,13 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         
     #-------------------------------------------------------------------
 
-    def table_header (self):
-        """Print an explanatory header of a table of ParmGroup table_entries.
-        This is a re-implementation of the NodeGroup method."""
-        ss = '** Table-header for a SimulatedParmGroup:'
-        print ss
-        return ss
-
-    def table_entry (self):
+    def table_entry (self, header=False):
         """Print a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
+        if header:
+            ss = '** Table-header for a SimulatedParmGroup:'
+            print ss
         ss = ' - '+self.label()+': '
         print ss
         return ss

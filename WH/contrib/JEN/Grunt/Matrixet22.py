@@ -211,6 +211,11 @@ class Matrixet22 (object):
         # if self._simulate: ss += ' (simulate)'
         return ss
 
+    def display_ParmGroupManager(self, full=False):
+        """Print a summary of the ParmGroupManager of this object"""
+        self._pgm.display()
+        return True 
+
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         # NB: This function is called in .display().

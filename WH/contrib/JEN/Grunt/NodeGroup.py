@@ -68,16 +68,13 @@ class NodeGroup (object):
                 
     #-------------------------------------------------------------------
 
-    def table_header (self):
-        """Print an explanatory header of a table of NodeGroup table_entries"""
-        ss = '** Header of a NodeGroup table:'
-        print ss
-        return ss
-
-    def table_entry (self):
+    def table_entry (self, header=False):
         """Print a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a placeholder, to be re-implemented by derived classes."""
+        if header:
+            ss = '** Header of a NodeGroup table:'
+            print ss
         ss = ' - '+str(self.oneliner())
         print ss
         return ss
@@ -394,19 +391,13 @@ class NodeGog (object):
                 
     #-------------------------------------------------------------------
 
-    def table_header (self):
-        """Print an explanatory header of a table of NodeGroup table_entries"""
-        ss = '** Table-header for a Group of NodeGroups:'
-        print ss
-        return ss
-
     def table_entry (self):
         """Print an entry (one or more rows) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This can be re-implemented by derived classes."""
+        print '\n** '+str(self.oneliner())
         for k,ng in enumerate(self._group):
-            if k==0: ng.table_header()
-            ng.table_entry()
+            ng.table_entry(header=(k==0))
         return True
 
     #-------------------------------------------------------------------
