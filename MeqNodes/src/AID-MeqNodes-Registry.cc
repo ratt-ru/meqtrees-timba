@@ -28,6 +28,8 @@ DMI::BObj * __construct_MeqSubtract (int n) { return n>0 ? new Meq::Subtract [n]
 DMI::BObj * __construct_MeqMultiply (int n) { return n>0 ? new Meq::Multiply [n] : new Meq::Multiply; }
 #include "Divide.h"
 DMI::BObj * __construct_MeqDivide (int n) { return n>0 ? new Meq::Divide [n] : new Meq::Divide; }
+#include "FMod.h"
+DMI::BObj * __construct_MeqFMod (int n) { return n>0 ? new Meq::FMod [n] : new Meq::FMod; }
 #include "Sin.h"
 DMI::BObj * __construct_MeqSin (int n) { return n>0 ? new Meq::Sin [n] : new Meq::Sin; }
 #include "Cos.h"
@@ -249,6 +251,9 @@ DMI::BObj * __construct_MeqCoordTransform (int n) { return n>0 ? new Meq::CoordT
         AtomicID::registerId(-1385,"MeqDivide")+
         TypeInfoReg::addToRegistry(-1385,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1385,__construct_MeqDivide)+
+        AtomicID::registerId(-1722,"MeqFMod")+
+        TypeInfoReg::addToRegistry(-1722,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1722,__construct_MeqFMod)+
         AtomicID::registerId(-1430,"MeqSin")+
         TypeInfoReg::addToRegistry(-1430,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1430,__construct_MeqSin)+

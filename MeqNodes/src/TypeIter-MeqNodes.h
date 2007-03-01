@@ -30,6 +30,7 @@
         Do(Meq::Subtract,arg) separator \
         Do(Meq::Multiply,arg) separator \
         Do(Meq::Divide,arg) separator \
+        Do(Meq::FMod,arg) separator \
         Do(Meq::Sin,arg) separator \
         Do(Meq::Cos,arg) separator \
         Do(Meq::Exp,arg) separator \

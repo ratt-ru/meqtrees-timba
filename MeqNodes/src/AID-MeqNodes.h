@@ -458,6 +458,11 @@ const int AidMeqFITSSpigot_int = -1689;
 const DMI::AtomicID AidMeqFITSWriter(-1676);      // from /home/sarod/LOFAR/Timba/MeqNodes/src/FITSWriter.h:32
 const int AidMeqFITSWriter_int = -1676;
 #endif
+#ifndef _defined_id_AidMeqFMod
+#define _defined_id_AidMeqFMod 1
+const DMI::AtomicID AidMeqFMod(-1722);            // from /home/oms/Timba/MeqNodes/src/FMod.h:30
+const int AidMeqFMod_int = -1722;
+#endif
 #ifndef _defined_id_AidMeqFabs
 #define _defined_id_AidMeqFabs 1
 const DMI::AtomicID AidMeqFabs(-1429);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Fabs.h:29

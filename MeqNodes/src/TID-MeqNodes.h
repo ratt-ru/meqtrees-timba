@@ -521,6 +521,25 @@ namespace Meq { class FITSWriter; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqFMod
+#define _defined_id_TpMeqFMod 1
+const DMI::TypeId TpMeqFMod(-1722);               // from /home/oms/Timba/MeqNodes/src/FMod.h:30
+const int TpMeqFMod_int = -1722;
+namespace Meq { class FMod; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::FMod> : public TypeTraits<Meq::FMod>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqFMod_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::FMod & ContainerReturnType;
+                typedef const Meq::FMod & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqFabs
 #define _defined_id_TpMeqFabs 1
 const DMI::TypeId TpMeqFabs(-1429);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Fabs.h:29
