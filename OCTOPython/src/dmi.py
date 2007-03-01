@@ -525,11 +525,17 @@ def refcount_report (obj,indent=0,name="?",bias=3):
   """Debugging method.
   Prints a report on the refcount of object obj""";
   rc = sys.getrefcount(obj)-bias;
-  print " "*indent,"%s (%s): rc %d"%(name,type(obj).__name__,rc);
+  if rc < 1:
+    alert = "*******************";
+  else:
+    alert = "";
+  print " "*indent,"%s (%s): rc %d %s"%(name,type(obj).__name__,rc,alert);
   # print contents
-  if isinstance(obj,(list,tuple)):
+  if isinstance(obj,hiid):
+    pass;    # hiid sequencing returns new items, so no point counting refs
+  elif isinstance(obj,(list,tuple)):
     for i,x in enumerate(obj):
-      refcount_report(x,indent=indent+2,name="[%i]"%i,bias=6);
+      refcount_report(x,indent=indent+2,name="[%i]"%i,bias=5);
   elif isinstance(obj,dict):
     for key,val in obj.iteritems():
       refcount_report(val,indent=indent+2,name=str(key),bias=5);

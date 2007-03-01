@@ -37,8 +37,10 @@ class app_proxy (verbosity):
                wp_verbose=0,     # WP verbosity level
                gui=False,        # construct a GUI?
                threads=False,    # run communications in separate thread
+               checkrefs=False,  # check refs on incoming messages (for debugging)?
                debug=True):      # subscribe to debug messages?
     verbosity.__init__(self,verbose,name=str(appid));
+    self._checkrefs = checkrefs;
     self.appid = hiid(appid);
     self.client_id = hiid(client_id);
     self._rcv_prefix = self.appid + "Out";          # messages from app
@@ -258,6 +260,8 @@ class app_proxy (verbosity):
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
+    if self._checkrefs:
+      refcount_report(value,name=str(event));
     self.dprint(5,"which maps to event: ",event);
     # process app updates, messages and error reports
     if isinstance(value,record):

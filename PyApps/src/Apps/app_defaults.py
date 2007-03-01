@@ -13,7 +13,7 @@ args = dmi.record({
   'launch':False,'spawn':True,'opt':False,
   'verbose':0,'wp_verbose':0,
   'threads':True,
-  'gui':False,
+  'gui':False,'checkrefs':False,
   'extra':(),
 });
 
@@ -44,6 +44,9 @@ def parse_argv (argv):
     elif arg == "-launch":
       args.launch = True
       args.spawn = None;
+      
+    elif arg == "-checkrefs":
+      args.checkrefs = True
       
     elif arg == "-wait":
       args.launch = args.spawn = None;

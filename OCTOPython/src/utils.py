@@ -202,5 +202,4 @@ def weakref_proxy (obj):
   else:
     return weakref.proxy(obj);
 
-
   
