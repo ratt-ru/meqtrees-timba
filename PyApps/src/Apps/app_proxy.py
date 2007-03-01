@@ -317,6 +317,9 @@ class app_proxy (verbosity):
     msg = message(msgid,payload=payload,priority=priority);
     # self.relay->[spaste('sending_command_',message)](payload);
     self._pwp.publish(msg);
+    if self._checkrefs:
+      refcount_report(msg,name=str(msgid));
+      refcount_report(payload,name=str(msgid)+" payload");
       
   def set_verbose_events (self,verb=True):
     "enables/disables printing of all incoming events";
