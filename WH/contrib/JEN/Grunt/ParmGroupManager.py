@@ -57,20 +57,6 @@ class ParmGroupManager (object):
         """Return the nodename qualifier(s), with temporary modifications"""
         return self._quals.get(append=append, prepend=prepend, exclude=exclude, merge=merge)
 
-
-    #-------------------------------------------------------------------
-
-    def table_entry (self):
-        """Print an entry (one or more rows) in a table.
-        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
-        This can be re-implemented by derived classes."""
-        print '\n** Table-header for a ParmGroupManager:'
-        for key in self._parmgroup.keys():
-            self._parmgroup[key].table_entry()
-        for key in self._simparmgroup.keys():
-            self._simparmgroup[key].table_entry()
-        return True
-
     #-------------------------------------------------------------------
 
     def oneliner(self):
@@ -107,7 +93,7 @@ class ParmGroupManager (object):
             if isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
         #...............................................................
-        self.table_entry()
+        self.tabulate()
         #...............................................................
         print '**\n'
         return True
@@ -124,81 +110,99 @@ class ParmGroupManager (object):
         print '********\n'
         return True
 
+    #-------------------------------------------------------------------
+
+    def tabulate (self, parmgroup='*', trace=False):
+        """Print an entry (one or more rows) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This can be re-implemented by derived classes."""
+        keys = self.parmgroup2keys(parmgroup, severe=True, trace=trace)
+        print '\n** Tabulated ParmGroupManager (parmgroup=',parmgroup,'):',self.oneliner()
+        for key in keys:
+            if key in self._parmgroup.keys():
+                self._parmgroup[key].tabulate()
+            elif key in self._simparmgroup.keys():
+                self._simparmgroup[key].tabulate()
+        print '**\n'
+        return True
+
+
+    #--------------------------------------------------------------
+
+    def parmgroup2keys(self, parmgroup='*', severe=True, trace=False):
+        """Helper function to convert the specified parmgroup(s) into
+        a list of (existing) keys in self._parmgroup."""
+        if trace: print
+        pgs = deepcopy(parmgroup)                          # do NOT modify parmgroup
+        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
+        avk = self._parmgroup.keys()                       # available keys
+        avk.extend(self._simparmgroup.keys())
+        keys = []
+        for key in pgs:
+            if key in avk:                                 # available
+                keys.append(key)
+                if trace: print '  - include parmgroup:',key,': ->',keys
+            else:                                          # not available
+                print '** parmgroup ',key,' not recognised in:',avk
+                if severe:                                 # be difficult about it
+                    raise ValueError, '** parmgroup '+str(key)+' not recognised in:'+str(avk)
+        return keys
 
     #--------------------------------------------------------------
 
     def solvable(self, parmgroup='*', severe=True, trace=False):
         """Return the list of MeqParms in the specified parmgroup(s)"""
-        if trace: print
-        pgs = deepcopy(parmgroup)
-        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
-        keys = self._parmgroup.keys()
+        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
         parmlist = []
-        for key in pgs:
-            if key in keys:
-                parmlist.extend(self._parmgroup[key].nodelist())
-                if trace: print '  - include parmgroup:',key,': len(solvable) ->',len(parmlist)
-            elif severe:
-                if trace: print '** .solvable(): parmgroup ',key,' not recognised in:',pgs
-                raise ValueError, '** parmgroup '+str(key)+' not recognised in:'+str(pgs)
+        for key in keys:
+            parmlist.extend(self._parmgroup[key].nodelist())
         if trace: print '** pgm.solvable(',parmgroup,') ->',len(parmlist)
         return parmlist
     
 
     def visualize(self, parmgroup='*', bookpage='ParmGroup', folder=None):
         """Visualise the specified parmgroups. Return a single root node."""
-        pgs = deepcopy(parmgroup)
-        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
-        keys = self._parmgroup.keys()
+        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
         cc = []
-        for key in pgs:
-            if key in keys:
-                cc.append(self._parmgroup[key].collector(bookpage=bookpage, folder=folder))
+        for key in keys:
+            cc.append(self._parmgroup[key].collector(bookpage=bookpage, folder=folder))
         # Return a single root node for the visualization subtree:
         if len(cc)==0: return False
         if len(cc)==1: return cc[0]
         return self._ns << Meq.Composer(children=cc)
+
     
     def constraint_condeqs(self, parmgroup='*'):
         """Get a list of constraint-condeqs (nodes) from the specified parmgroups."""
-        pgs = deepcopy(parmgroup)
-        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
-        keys = self._parmgroup.keys()
+        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
         cc = []
         for key in pgs:
-            if key in keys:
-                condeq = self._parmgroup[key].constraint_condeq()
-                if condeq:
-                    if isinstance(condeq,list):
-                        cc.extend(condeq)
-                    else:
-                        cc.append(condeq)
+            condeq = self._parmgroup[key].constraint_condeq()
+            if condeq:
+                if isinstance(condeq,list):
+                    cc.extend(condeq)
+                else:
+                    cc.append(condeq)
         return cc
     
 
     def solver_label(self, parmgroup='*', severe=True, remove='Jones', trace=False):
         """Return a more or less descriptive label for a solver node,
         constructed from the specified parmgroup(s)"""
-        if trace: print
-        pgs = deepcopy(parmgroup)
-        if pgs=='*':
-            pgs = self._parmgroup['*'].labels()
-            return '*'                                     #........??
-        if not isinstance(pgs,(list,tuple)): pgs = [pgs]
-        keys = self._parmgroup.keys()
+        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
+        if parmgroup=='*':
+            keys = self._parmgroup['*'].labels()           # label may become too long...
+            if len(keys)>2:
+                label = '_all'                             # better ?
+                if trace: print '** pgm.label(',parmgroup,') ->',label
+                return label
         label = ''
-        for key in pgs:
-            if key in keys:
-                # if len(label)>0 : label += '_'
-                label += '_'
-                s1 = key
-                if remove:
-                    s1 = self.substitute (s1, sub=remove, with='')
-                label += str(s1)
-                if trace: print '  - include parmgroup:',key,': s ->',label
-            elif severe:
-                if trace: print '** .solver_label(): parmgroup ',key,' not recognised in:',pgs
-                raise ValueError, '** parmgroup '+str(key)+' not recognised in:'+str(pgs)
+        for key in keys:
+            label += '_'
+            s1 = key
+            if remove:
+                s1 = self.substitute (s1, sub=remove, with='')
+            label += str(s1)
         if trace: print '** pgm.label(',parmgroup,') ->',label
         return label
 
@@ -362,8 +366,9 @@ class ParmGroupManager (object):
         quals = self.quals()
         for name in names:
             self.define_parmgroup(name, descr='...'+name,
-                                  default=10.0,
-                                  simul=dict(stddev=0.01),
+                                  default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
+                                               subtile_size=1),
+                                  simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
                                   tags=['test'])
             for index in range(4):
                 node = self.create_parmgroup_entry(name, index)
@@ -423,6 +428,7 @@ if __name__ == '__main__':
         pgm.test(['GJones','Gphase','Ggain'])
         pgm.display_NodeGroups(full=False)
         pgm.display(full=True)
+        # pgm.tabulate(parmgroup='*')
 
         if 0:
             pgm.solvable(trace=True)

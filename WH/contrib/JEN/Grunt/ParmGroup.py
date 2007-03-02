@@ -133,14 +133,16 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def table_entry (self, header=False):
+    def tabulate (self, header=False):
         """Print a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
         if header:
-            ss = '**              auto  save  reset  prev  :  c00 unit constrain  :  shape  tiling  :  parmtable'
+            ss = '                         auto  save  reset  prev  '
+            ss += ':   c00 unit constrain  :   shape  tiling  :  parmtable'
             print ss
-        ss = ' - '+self.label()+' ('+str(self.len())+'): '
+        ss = '   - %12s'%(self.label())
+        ss += ' ('+str(self.len())+'):   '
         ss += ' '+str(self._initrec['auto_save'])
         ss += ' '+str(self._initrec['save_all'])
         ss += ' '+str(self._initrec['reset_funklet'])
@@ -458,6 +460,31 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 
     #-------------------------------------------------------------------
 
+    def tabulate (self, header=False):
+        """Print a one-line summary to be used as an entry (row) in a table.
+        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
+        This is a re-implementation of the NodeGroup method."""
+        if header:
+            ss = '                        default scale stddev   '
+            ss += ':   Psec stddev   :   PMHz stddev'
+            print ss
+        ss = '   - %12s'%(self.label())
+        ss += ' ('+str(self.len())+'):   '
+        ss += ' '+str(self._simul['default_value'])
+        ss += ' '+str(self._simul['unit'])
+        ss += '  '+str(self._simul['scale'])
+        ss += '  '+str(self._simul['stddev'])
+        ss += '  :  '
+        ss += '  '+str(self._simul['Psec'])
+        ss += '  '+str(self._simul['Psec_stddev'])
+        ss += '  :  '
+        ss += '  '+str(self._simul['PMHz'])
+        ss += '  '+str(self._simul['PMHz_stddev'])
+        print ss
+        return ss
+
+    #-------------------------------------------------------------------
+
     def override_simul (self, rr=None, trace=True):
         """Helper function to override the values of named fields in self._simul
         with the values of fields with the same name in rr"""
@@ -473,18 +500,6 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._simul = dd
         return True
         
-    #-------------------------------------------------------------------
-
-    def table_entry (self, header=False):
-        """Print a one-line summary to be used as an entry (row) in a table.
-        To be used to make a summary table of NodeGroups (e.g. ParmGroups).
-        This is a re-implementation of the NodeGroup method."""
-        if header:
-            ss = '** Table-header for a SimulatedParmGroup:'
-            print ss
-        ss = ' - '+self.label()+': '
-        print ss
-        return ss
 
     #-------------------------------------------------------------------
 
