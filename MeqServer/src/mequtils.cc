@@ -114,6 +114,7 @@ void initMeqUtilsModule ()
     Throw("Py_InitModule3(\"mequtils\") failed");
   
   PyObjectRef timbamod = PyImport_ImportModule("Timba");  
+  Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"mequtils",module);
 
   PyModule_AddObject(module,"max_axis",PyInt_FromLong(Meq::Axis::MaxAxis));
