@@ -260,6 +260,8 @@ void initOctoPythonModule ()
   PyModule_AddObject(module, "lazy_objref",(PyObject *)&PyLazyObjRefType); // steals ref
   
   PyObject * timbamod = PyImport_ImportModule("Timba");  // returns new ref
+  // since AddObject steals a ref, increment the counter
+  Py_INCREF(module);
   PyModule_AddObject(timbamod,"octopython",module);
   
   if( !timbamod )

@@ -61,7 +61,7 @@ PyObject * convertHIIDToSeq (const HIID &id)
 PyObject * pyFromHIID (const HIID &id)
 {
   // put hiid-sequence into tuple of args
-  PyObjectRef args = Py_BuildValue("(N)",convertHIIDToSeq(id));  // new ref
+  PyObjectRef args = Py_BuildValue("(N)",convertHIIDToSeq(id));  // new ref, so steal it
   // call hiid constructor
   return PyObject_CallObject(*py_dmisyms.hiid,*args);
 }
@@ -830,9 +830,9 @@ PyObject * pyFromMessage (const Message &msg)
   PyObjectRef py_payload = pyFromObjRef(msg.payload(),EP_CONV_ERROR);
   // create message object
   PyObjectRef args = Py_BuildValue("(NNN)",
-      pyFromHIID(msg.id()),  // new ref
+      pyFromHIID(msg.id()),  // new ref, steal it
       ~py_payload,  // steal our ref since "N" is used
-      PyInt_FromLong(msg.priority()-Message::PRI_NORMAL)); // new ref
+      PyInt_FromLong(msg.priority()-Message::PRI_NORMAL)); // new ref, steal it
   if( !args )
     throwErrorOpt(Runtime,"failed to build args tuple");
   
@@ -916,8 +916,8 @@ PyObject * pyConvError (const string &msg)
 {
   // create message object (new ref returned)
   PyObjectRef args = Py_BuildValue("NO",
-        pyFromString(msg), // new ref passed in
-        PyErr_Occurred() ? PyErr_Occurred() : Py_None); // borrowed ref passed in
+        pyFromString(msg), // new ref passed in, so steal it
+        PyErr_Occurred() ? PyErr_Occurred() : Py_None); // borrowed ref in both cases, so use "O"
   if( !args )
     throwErrorOpt(Runtime,"failed to build args tuple");
   PyErr_Clear();
