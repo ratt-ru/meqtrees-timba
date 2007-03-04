@@ -31,7 +31,8 @@
 # We use these weights as an initial starting guess for the
 # weights to be used to obtain a nice Gaussian beam. These weights
 # are given to the solver, which then proceeds to solve for
-# the optimum weights.
+# the optimum weights. This script finds the 'best' gaussian
+# beam at a single L,M
 
 # History:
 # - 27 Feb 2007: creation:
@@ -52,10 +53,18 @@ import os
 Settings.forest_state = record(bookmarks=[
   record(name='Results',page=[
     record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/Ins_pol",viewer="Result Plotter",pos=(0,1)),
     record(udi="/node/IQUV_complex",viewer="Result Plotter",pos=(2,0)),
     record(udi="/node/condeq",viewer="Result Plotter",pos=(1,0))])]);
 # to force caching put 100
 #Settings.forest_state.cache_policy = 100
+
+mep_beam_weights = 'beam_weights.mep'
+# first, make sure that any previous version of the mep table is
+# obliterated so nothing strange happens in succeeding steps
+try:
+  os.system("rm -fr "+ mep_beam_weights);
+except:   pass
 
 def create_polc(c00=0.0,degree_f=0,degree_t=0):
   """helper function to create a t/f polc with the given c00 coefficient,
@@ -66,15 +75,16 @@ def create_polc(c00=0.0,degree_f=0,degree_t=0):
 
 def tpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
-                  node_groups='Parm')
-#                 constrain = [-5.0,5.0])
+                  node_groups='Parm',
+                  table_name=mep_beam_weights)
 
 ########################################################
 def _define_forest(ns):  
 
   # define location for phase-up
 # BEAM_LM = [(0.0,0.0)]
-  BEAM_LM = [(-0.045,0.00)]
+  offset = 0.01414214
+  BEAM_LM = [(offset,offset)]
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
   ns.m_beam_c << Meq.Constant(m_beam)
@@ -254,15 +264,19 @@ def _define_forest(ns):
   # join together into one node in order to make a single request
   ns.IQUV_complex << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
   ns.IQUV << Meq.Real(ns.IQUV_complex)
-  ns.Ins_pol << ns.IQUV / ns.I
-
   ns.I_real << Meq.Selector(ns.IQUV,index=0)
+  ns.Q_real << Meq.Selector(ns.IQUV,index=1)
+  ns.U_real << Meq.Selector(ns.IQUV,index=2)
+  ns.V_real << Meq.Selector(ns.IQUV,index=3)
+# ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
+  ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
+  ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
+
   ns.resampler_I << Meq.Resampler(ns.I_real)
 
   ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
-  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables)
+  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True)
 
-# ns.req_seq<<Meq.ReqMux(ns.solver_parms, ns.solver(0), ns.solver(1), ns.Ins_pol)
   ns.req_seq<<Meq.ReqSeq(ns.solver_parms, ns.solver, ns.Ins_pol)
 
   # Note: we are observing with linearly-polarized dipoles. If we
