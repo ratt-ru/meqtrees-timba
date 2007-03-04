@@ -70,13 +70,13 @@ def tpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
                   node_groups='Parm',
                   constrain = [-0.15,0.15],
-                  table = mep_beam_parms)
+                  table_name = mep_beam_parms)
 
 def wpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
                   node_groups='Parm',
                   constrain = [1.0e-5,1.0],
-                  table = mep_beam_parms)
+                  table_name = mep_beam_parms)
 
 
 ########################################################
