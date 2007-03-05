@@ -202,7 +202,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     
 def compile_file (mqs,filename,text=None,parent=None,
                   predef_args={},define_args={},postdef_args={}):
-  """imports TDL module and runs forest deifnition.
+  """imports TDL module and runs forest definition.
   Basically a compound of the above two functions.""";
   (tdlmod,text) = import_tdl_module(filename,text=text);
   return run_forest_definition(mqs,filename,tdlmod,text,
