@@ -349,11 +349,14 @@ AC_ARG_WITH(lofar-libdir,
   
   if test "x$enable_shared" != "xno"; then
     ]AC_DISABLE_STATIC
+    AM_CONDITIONAL(BUILD_SHARED_LIBS,test "1" = "1")
     AM_CONDITIONAL(USE_NOINST_LIBS,test "1" = "0")
     AC_MSG_RESULT([--enable-shared=yes, building shared libs])
     [
   else
-    ]AC_DISABLE_SHARED[
+    ]AC_DISABLE_SHARED
+    AM_CONDITIONAL(BUILD_SHARED_LIBS,test "1" = "0")
+    [
     if test "x$lofar_old_libtool" = "xno" -o "x$lofar_old_libtool" = "x"; then
       ]AM_CONDITIONAL(USE_NOINST_LIBS,test "1" = "1")
       AC_MSG_RESULT([building static libs as 'noinst', since --with-old-libtool was not given])
