@@ -93,7 +93,7 @@ class ParmGroupManager (object):
             if isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
         #...............................................................
-        self.tabulate()
+        print self.tabulate()
         #...............................................................
         print '**\n'
         return True
@@ -112,19 +112,21 @@ class ParmGroupManager (object):
 
     #-------------------------------------------------------------------
 
-    def tabulate (self, parmgroup='*', trace=False):
-        """Print an entry (one or more rows) in a table.
+    def tabulate (self, parmgroup='*', ss='', trace=False):
+        """Make an entry (one or more rows) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This can be re-implemented by derived classes."""
         keys = self.parmgroup2keys(parmgroup, severe=True, trace=trace)
-        print '\n** Tabulated ParmGroupManager (parmgroup=',parmgroup,'):',self.oneliner()
+        ss += '\n** Tabulated ParmGroupManager (parmgroup='+str(parmgroup)+'): '
+        ss += str(self.oneliner())
+        ss += '\n'
         for key in keys:
             if key in self._parmgroup.keys():
-                self._parmgroup[key].tabulate()
+                ss = self._parmgroup[key].tabulate(ss)
             elif key in self._simparmgroup.keys():
-                self._simparmgroup[key].tabulate()
-        print '**\n'
-        return True
+                ss = self._simparmgroup[key].tabulate(ss)
+        ss += '\n**\n'
+        return ss
 
 
     #--------------------------------------------------------------
@@ -162,7 +164,7 @@ class ParmGroupManager (object):
 
     def visualize(self, parmgroup='*', bookpage='ParmGroup', folder=None):
         """Visualise the specified parmgroups. Return a single root node."""
-        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
+        keys = self.parmgroup2keys(parmgroup, severe=False)
         cc = []
         for key in keys:
             cc.append(self._parmgroup[key].collector(bookpage=bookpage, folder=folder))
@@ -174,7 +176,7 @@ class ParmGroupManager (object):
     
     def constraint_condeqs(self, parmgroup='*'):
         """Get a list of constraint-condeqs (nodes) from the specified parmgroups."""
-        keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
+        keys = self.parmgroup2keys(parmgroup, severe=True, trace=trace)
         cc = []
         for key in pgs:
             condeq = self._parmgroup[key].constraint_condeq()

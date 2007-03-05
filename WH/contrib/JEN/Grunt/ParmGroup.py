@@ -60,18 +60,26 @@ class ParmGroup (NodeGroup.NodeGroup):
         # Information needed to create MeqParm nodes (see create_entry())
         self._default = deepcopy(default)
         if not isinstance(self._default, dict): self._default = dict()
+
         self._default.setdefault('c00', 1.0)  
         self._default.setdefault('unit', None)      
-        self._default.setdefault('tfdeg', None)
-        self._default.setdefault('constrain', None)           # [min,max], doubles
-        self._default.setdefault('constrain_min', None)      
-        self._default.setdefault('constrain_max', None)
+
         self._default.setdefault('funklet_shape', None)
+        self._default.setdefault('tfdeg', None)
+        # self._default.setdefault('shape', None)               # <---
+
         self._default.setdefault('subtile_size', None)
+        # self._default.setdefault('subtile_time', None)        # <---
+        # self._default.setdefault('subtile_freq', None)        # <---
+
         self._default.setdefault('use_previous', True)
         self._default.setdefault('auto_save', False)
         self._default.setdefault('save_all', False)
         self._default.setdefault('reset_funklet', False)
+
+        self._default.setdefault('constrain', None)           # [min,max], doubles
+        self._default.setdefault('constrain_min', None)      
+        self._default.setdefault('constrain_max', None)
 
         # Information needed to make constraint-condeqs
         self._constraint = constraint
@@ -133,16 +141,16 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def tabulate (self, header=False):
-        """Print a one-line summary to be used as an entry (row) in a table.
+    def tabulate (self, ss='', header=False):
+        """Make a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
         if header:
-            ss = '                         auto  save  reset  prev  '
+            ss += '                       auto  save  reset  prev  '
             ss += ':   c00 unit constrain  :   shape  tiling  :  parmtable'
-            print ss
-        ss = '   - %12s'%(self.label())
-        ss += ' ('+str(self.len())+'):   '
+            ss += '\n'
+        ss += '   - %12s'%(self.label())
+        ss += ' ('+str(self.len())+'): '
         ss += ' '+str(self._initrec['auto_save'])
         ss += ' '+str(self._initrec['save_all'])
         ss += ' '+str(self._initrec['reset_funklet'])
@@ -160,7 +168,7 @@ class ParmGroup (NodeGroup.NodeGroup):
         for key in ['constrain','constrain_min','constrain_max']:
             if self._initrec.has_key(key):
                 ss += ' '+str(self._initrec[key])
-        print ss
+        ss += '\n'
         return ss
 
 
@@ -460,16 +468,16 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 
     #-------------------------------------------------------------------
 
-    def tabulate (self, header=False):
-        """Print a one-line summary to be used as an entry (row) in a table.
+    def tabulate (self, ss='', header=False):
+        """Return a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
         if header:
-            ss = '                        default scale stddev   '
+            ss += '                      default scale stddev   '
             ss += ':   Psec stddev   :   PMHz stddev'
-            print ss
-        ss = '   - %12s'%(self.label())
-        ss += ' ('+str(self.len())+'):   '
+            ss += '\n'
+        ss += '   - %12s'%(self.label())
+        ss += ' ('+str(self.len())+'): '
         ss += ' '+str(self._simul['default_value'])
         ss += ' '+str(self._simul['unit'])
         ss += '  '+str(self._simul['scale'])
@@ -480,7 +488,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         ss += '  :  '
         ss += '  '+str(self._simul['PMHz'])
         ss += '  '+str(self._simul['PMHz_stddev'])
-        print ss
+        ss += '\n'
         return ss
 
     #-------------------------------------------------------------------

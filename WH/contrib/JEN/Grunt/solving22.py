@@ -66,7 +66,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*',
         pgm = lhs._pgm
 
     # pgm.display('solving22')
-    pgm.tabulate(parmgroup)
+    print pgm.tabulate(parmgroup)
         
     # Get the list of MeqParm nodes to be solved for.
     solver_label = pgm.solver_label(parmgroup)

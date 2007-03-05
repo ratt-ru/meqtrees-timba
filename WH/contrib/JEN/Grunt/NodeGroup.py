@@ -68,15 +68,15 @@ class NodeGroup (object):
                 
     #-------------------------------------------------------------------
 
-    def tabulate (self, header=False):
-        """Print a one-line summary to be used as an entry (row) in a table.
+    def tabulate (self, ss='', header=False):
+        """Make a one-line summary to be used as an entry (row) in a table.
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a placeholder, to be re-implemented by derived classes."""
         if header:
-            ss = '   Header of a NodeGroup table:'
-            print ss
-        ss = ' - '+str(self.oneliner())
-        print ss
+            ss += '   Header of a NodeGroup table:'
+            ss += '\n'
+        ss += ' - '+str(self.oneliner())
+        ss += '\n'
         return ss
 
     #-------------------------------------------------------------------
@@ -391,12 +391,13 @@ class NodeGog (object):
                 
     #-------------------------------------------------------------------
 
-    def tabulate (self):
+    def tabulate (self, ss=''):
         """Print a tabulated summary of the NodeGroups."""
-        print ' -- Tabulated NodeGog: '+str(self.oneliner())
+        ss += ' -- Tabulated NodeGog: '+str(self.oneliner())
+        ss += '\n'
         for k,ng in enumerate(self._group):
-            ng.tabulate(header=(k==0))
-        return True
+            ss = ng.tabulate(ss, header=(k==0))
+        return ss
 
     #-------------------------------------------------------------------
 
@@ -669,12 +670,12 @@ if __name__ == '__main__':
         ng1 = NodeGroup(ns, 'ng1', rider=dict(matrel='m22'))
         ng1.test()
         ng1.display()
-        
+        print ng1.tabulate()
         if 0:
             dcoll = ng1.visualize()
             ng1.display_subtree (dcoll, txt='dcoll')
 
-    if 1:
+    if 0:
         ng2 = NodeGroup(ns, 'ng2', rider=dict(matrel=['m11','m21']))
         ng3 = NodeGroup(ns, 'ng3', rider=dict(matrel='m11'))
         gog = NodeGog(ns, 'gog', group=[ng1,ng2,ng3])
@@ -698,10 +699,11 @@ if __name__ == '__main__':
 
     #------------------------------------------------------------
 
-    if 0:
+    if 1:
         gog1 = NodeGog(ns, 'gog1')
         gog1.test()
         gog1.display()
+        print gog1.tabulate()
 
         if 0:
             gog1.visualize()
