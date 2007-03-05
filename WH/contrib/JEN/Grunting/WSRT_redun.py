@@ -84,8 +84,17 @@ def _define_forest (ns):
         # if TDL_display_PointSource22: ps.display(full=True)
         # Create a Visset22 object with simulated uv-data:
         data = ps.Visset22(array, observation, name='data', visu=True)
-        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(), simulate=True,
-                                         override=dict(Gphase=dict(Psec=1000)))
+        # The default controls for the various parameters in WSRT_Jones
+        # may be overridden by specifying a field in the following way:
+        override = dict(example=dict(tfdeg=[2,3], subtile_size=1),
+                        Gphase=dict(Psec=1000),
+                        GJones=dict(),
+                        JJones=dict(),
+                        DJones=dict())
+        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
+                                         simulate=True,
+                                         override=override)
+        print jones._pgm.tabulate()
         data.corrupt(jones, visu='*')
     else:
         # The measured uv-data are read from the Measurement Set via spigots:
@@ -96,7 +105,15 @@ def _define_forest (ns):
     # which contain the solvable parameters. uv-plane effects only.
     #   (Note that the user-defined TDLOption parameters are
     #    short-circuited between the functions in the WSRT_Jones module)
-    jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations())
+    # The default controls for the various parameters in WSRT_Jones
+    # may be overridden by specifying a field in the following way:
+    override = dict(example=dict(tfdeg=[2,3], subtile_size=1),
+                    Gphase=dict(tfdeg=[7,8], subtile_freq=2),
+                    GJones=dict(tfdeg=[2,2]),
+                    JJones=dict(),
+                    DJones=dict())
+    jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
+                                     override=override)
 
     # Make the right-hand side (rhs), if required:
     rhs = None

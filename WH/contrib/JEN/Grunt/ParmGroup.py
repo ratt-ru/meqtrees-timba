@@ -65,12 +65,12 @@ class ParmGroup (NodeGroup.NodeGroup):
         self._default.setdefault('unit', None)      
 
         self._default.setdefault('funklet_shape', None)
-        self._default.setdefault('tfdeg', None)
+        self._default.setdefault('tfdeg', None)               # alternative
         # self._default.setdefault('shape', None)               # <---
 
         self._default.setdefault('subtile_size', None)
-        # self._default.setdefault('subtile_time', None)        # <---
-        # self._default.setdefault('subtile_freq', None)        # <---
+        self._default.setdefault('subtile_time', None)        # <---
+        self._default.setdefault('subtile_freq', None)        # <---
 
         self._default.setdefault('use_previous', True)
         self._default.setdefault('auto_save', False)
@@ -78,8 +78,8 @@ class ParmGroup (NodeGroup.NodeGroup):
         self._default.setdefault('reset_funklet', False)
 
         self._default.setdefault('constrain', None)           # [min,max], doubles
-        self._default.setdefault('constrain_min', None)      
-        self._default.setdefault('constrain_max', None)
+        self._default.setdefault('constrain_min', None)       # alternative      
+        self._default.setdefault('constrain_max', None)       # alternative
 
         # Information needed to make constraint-condeqs
         self._constraint = constraint
@@ -87,10 +87,14 @@ class ParmGroup (NodeGroup.NodeGroup):
         # The information may be overridden:
         self._override = dict()
         if isinstance(override, dict):
-            for tag in tags:
+            # print '** self._default (before)=',self._default,self._tags
+            for tag in self._tags:
+                # print '- tag =',tag
                 if override.has_key(tag):                     # relevant for this ParmGroup
                     self._override = deepcopy(override[tag])  # copy ony the relevant part
-        self.override_default(self._override)
+                    # print '   self._override =',self._override
+                    self.override_default(self._override)
+            # print '** self._default (after)=',self._default,'\n'
 
         #------------------------------------------------------
         # Make the MeqParm initrec (used in create_entry()):
@@ -104,6 +108,10 @@ class ParmGroup (NodeGroup.NodeGroup):
         tiling = record()
         if self._default['subtile_size']:
             tiling.time = self._default['subtile_size']
+        if self._default['subtile_time']:
+            tiling.time = self._default['subtile_time']
+        if self._default['subtile_freq']:
+            tiling.freq = self._default['subtile_freq']
 
         # Use the shape (of coeff array, 1-relative) if specified.
         # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
@@ -196,7 +204,7 @@ class ParmGroup (NodeGroup.NodeGroup):
                 
     #-------------------------------------------------------------------
 
-    def override_default (self, rr=None, trace=True):
+    def override_default (self, rr=None, trace=False):
         """Helper function to override the values of named fields in self._default
         with the values of fields with the same name in rr"""
         if trace: print '** .override_default():'
