@@ -49,12 +49,12 @@ noinst_HEADERS = $(NOINSTHDRS)
 
 DOCHDRS	= $(INSTHDRS) $(NOINSTHDRS)
 
-if OLD_LIBTOOL
-  lib_LTLIBRARIES 	= libtimbase.la
+if USE_NOINST_LIBS
+  noinst_LTLIBRARIES       = libtimbase.la
 else
-  noinst_LTLIBRARIES 	= libtimbase.la
+  lib_LTLIBRARIES    = libtimbase.la
 endif
-
+    
 libtimbase_la_SOURCES 	= \
         AipsppMutex.cc \
         Debug.cc \

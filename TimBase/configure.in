@@ -18,8 +18,6 @@ AC_PROG_CXX
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_DISABLE_SHARED
-AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
 
@@ -52,6 +50,7 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
+AC_PROG_LIBTOOL
 
 dnl
 dnl Check how to get at the mutex 'kind' attribute

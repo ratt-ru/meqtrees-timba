@@ -2,23 +2,9 @@ CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 # lib_LTLIBRARIES = octopython.la liboctopython.la
 
-lib_LTLIBRARIES = octopython.la liboctopython.la
+lib_LTLIBRARIES = liboctopython.la
 
 DOCHDRS = OctoPython.h
-
-octopython_la_SOURCES = \
-  octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc
-
-octopython_la_LDFLAGS = -module
-
-octopython_la_LIBADD =  \
-  ../pkgbldinc/TimBase/.libs/libtimbase.a \
-  ../pkgbldinc/DMI/.libs/libdmi.a
-
-octopython_la_DEPENDENCIES = \
-  ../pkgbldinc/TimBase/.libs/libtimbase.a \
-  ../pkgbldinc/DMI/.libs/libdmi.a
-  
 
 liboctopython_la_SOURCES = \
   octopython.cc ProxyWPObject.cc LazyObjRef.cc ThreadCond.cc DataConv.cc

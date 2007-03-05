@@ -84,10 +84,10 @@ AC_ARG_WITH(lofar-default,
          lfr_use_root_def=1])
 
 AC_ARG_WITH(old-libtool,
-	[  --with-old-libtool            work around bugs in older (pre-1.5.22) libtools, should be auto-detected],
-	[lofar_old_libtool="$withval"],
-	[lofar_old_libtool="no"])
-
+       [  --with-old-libtool            work around bugs in older (pre-1.5.22) libtools, add this if you get link-time errors],
+       [lofar_old_libtool="$withval"],
+       [lofar_old_libtool="no"])
+                        
 AC_ARG_WITH(lofar-libdir,
   [  --with-lofar-libdir=PFX   specific tree for lofar libraries],
   [lofar_root_libdir="$withval"])
@@ -342,15 +342,29 @@ AC_ARG_WITH(lofar-libdir,
   srcdirx=`cd $srcdir && pwd`
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd -I$srcdirx/include"
   LOFAR_DEPEND=
-
-  ]AC_MSG_CHECKING([if older libtool is being used])[
-  if test "$lofar_old_libtool" = no -o "$lofar_old_libtool" = ""; then
-    lofar_old_libtool=no
+ 
+  ]
+    AC_MSG_CHECKING([how to use libtool]);
+  [
+  
+  if test "x$enable_shared" != "xno"; then
+    ]AC_DISABLE_STATIC
+    AM_CONDITIONAL(USE_NOINST_LIBS,test "1" = "0")
+    AC_MSG_RESULT([--enable-shared=yes, building shared libs])
+    [
   else
-    lofar_old_libtool=yes
+    ]AC_DISABLE_SHARED[
+    if test "x$lofar_old_libtool" = "xno" -o "x$lofar_old_libtool" = "x"; then
+      ]AM_CONDITIONAL(USE_NOINST_LIBS,test "1" = "1")
+      AC_MSG_RESULT([building static libs as 'noinst', since --with-old-libtool was not given])
+      [
+    else
+      ]AM_CONDITIONAL(USE_NOINST_LIBS,test "1" = "0")
+      AC_MSG_RESULT([--with-old-libtool, building static libs as 'lib'])
+      [
+    fi
   fi
-  ]AC_MSG_RESULT([$lofar_old_libtool])[
-  ]AM_CONDITIONAL(OLD_LIBTOOL,test "$lofar_old_libtool" = "yes")[
+  ]AC_PROG_LIBTOOL[
 ]
 AC_CHECK_FILE([$lofar_root],
 			[lfr_root=yes],

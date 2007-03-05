@@ -28,11 +28,7 @@ Timestamp.h \
 TypeId.h			\
 TypeInfo.h
 
-if OLD_LIBTOOL
-  lib_LTLIBRARIES = libdmi.la
-else
-  noinst_LTLIBRARIES = libdmi.la
-endif
+lib_LTLIBRARIES = libdmi.la
 
 libdmi_la_SOURCES = $(DOCHDRS)	\
 AID-DMI-Registry.cc		\

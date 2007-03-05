@@ -10,8 +10,11 @@ gnu3f.compiler.conf: CXX=ccache\ g++-3.4 --with-cppflags="-march=k8 -m64 -Wno-de
 gnu3f.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
 # gnu3 build with -fPIC 
-gnu3.compiler.conf: CXX=ccache\ g++-3.4 --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-ldflags="-rpath /lib64"--with-threads --with-sse --with-ldflags="--enable-new-dtags"
+gnu3.compiler.conf: CXX=ccache\ g++-3.4 --enable-shared --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-ldflags="-rpath /lib64"--with-threads --with-sse --with-ldflags="--enable-new-dtags"
 gnu3.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
+
+gnu4.compiler.conf: CXX=ccache\ g++-4.1 --enable-shared --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-ldflags="-rpath /lib64"--with-threads --with-sse --with-ldflags="--enable-new-dtags"
+gnu4.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
 sse.var: --with-sse
 
