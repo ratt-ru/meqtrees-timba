@@ -75,7 +75,7 @@ def create_polc(c00=0.0,degree_f=0,degree_t=0):
 
 def tpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
-                  node_groups='Parm',
+                  node_groups='Parm', save_all=True,
                   table_name=mep_beam_weights)
 
 ########################################################
@@ -83,7 +83,7 @@ def _define_forest(ns):
 
   # define location for phase-up
 # BEAM_LM = [(0.0,0.0)]
-  offset = 0.01414214
+  offset = 1.5 * 0.01414214
   BEAM_LM = [(offset,offset)]
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
@@ -111,8 +111,7 @@ def _define_forest(ns):
   home_dir = os.environ['HOME']
   # read in beam data
   beam_solvables = []
-  parm_solvables = []
-  parm_condeqs = []
+  parm_solvers = []
   for k in BEAMS:
   # read in beam data - y dipole
     infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) + '_Re_x.fits'
@@ -140,17 +139,16 @@ def _define_forest(ns):
     # I want to solve for these parameters
     ns.beam_wt_re_y(k) << tpolc(0)
     ns.beam_wt_im_y(k) << tpolc(0)
-    parm_solvables.append(ns.beam_wt_re_y(k))
-    parm_solvables.append(ns.beam_wt_im_y(k))
     beam_solvables.append(ns.beam_wt_re_y(k))
     beam_solvables.append(ns.beam_wt_im_y(k))
     # we need to assign the weights we've extracted as initial guesses
     # to the Parm - can only be done by solving
     ns.condeq_wt_re_y(k) << Meq.Condeq(children=(ns.sample_wt_re_y(k), ns.beam_wt_re_y(k)))
     ns.condeq_wt_im_y(k) << Meq.Condeq(children=(-1.0 * ns.sample_wt_im_y(k), ns.beam_wt_im_y(k)))
-    parm_condeqs.append(ns.condeq_wt_re_y(k))
-    parm_condeqs.append(ns.condeq_wt_im_y(k))
-
+    ns.solver_wt_re_y(k)<<Meq.Solver(ns.condeq_wt_re_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_y(k),save_funklets=True,last_update=True)
+    ns.solver_wt_im_y(k)<<Meq.Solver(ns.condeq_wt_im_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_y(k),save_funklets=True,last_update=True)
+    parm_solvers.append(ns.solver_wt_re_y(k))
+    parm_solvers.append(ns.solver_wt_im_y(k))
 
     ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
 
@@ -185,14 +183,14 @@ def _define_forest(ns):
     # I want to solve for these parameters
     ns.beam_wt_re_x(k) << tpolc(0)
     ns.beam_wt_im_x(k) << tpolc(0)
-    parm_solvables.append(ns.beam_wt_re_x(k))
-    parm_solvables.append(ns.beam_wt_im_x(k))
     beam_solvables.append(ns.beam_wt_re_x(k))
     beam_solvables.append(ns.beam_wt_im_x(k))
     ns.condeq_wt_re_x(k) << Meq.Condeq(children=(ns.sample_wt_re_x(k), ns.beam_wt_re_x(k)))
     ns.condeq_wt_im_x(k) << Meq.Condeq(children=(-1.0 * ns.sample_wt_im_x(k), ns.beam_wt_im_x(k)))
-    parm_condeqs.append(ns.condeq_wt_re_x(k))
-    parm_condeqs.append(ns.condeq_wt_im_x(k))
+    ns.solver_wt_re_x(k)<<Meq.Solver(ns.condeq_wt_re_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_x(k),save_funklets=True,last_update=True)
+    ns.solver_wt_im_x(k)<<Meq.Solver(ns.condeq_wt_im_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_x(k),save_funklets=True,last_update=True)
+    parm_solvers.append(ns.solver_wt_re_x(k))
+    parm_solvers.append(ns.solver_wt_im_x(k))
 
     ns.beam_weight_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
 
@@ -203,7 +201,7 @@ def _define_forest(ns):
 
   # solver to 'copy' resampled beam locations to parms as
   # first guess
-  ns.solver_parms <<Meq.Solver(children= parm_condeqs,mt_polling=False,num_iter=3,epsilon=1e-4,solvable= parm_solvables)
+  ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
 
   ns.voltage_sum_xx << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS])
   ns.voltage_sum_xy << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS])
@@ -277,7 +275,7 @@ def _define_forest(ns):
   ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
   ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True)
 
-  ns.req_seq<<Meq.ReqSeq(ns.solver_parms, ns.solver, ns.Ins_pol)
+  ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver, ns.Ins_pol)
 
   # Note: we are observing with linearly-polarized dipoles. If we
   # want the aips++ imager to generate images in the sequence I,Q,U,V
