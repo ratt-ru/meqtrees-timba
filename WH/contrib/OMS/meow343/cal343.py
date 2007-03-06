@@ -48,7 +48,8 @@ TDLCompileMenu("LSM options",
   TDLOption('lsm_i_freq_deg',"I freq degree",[0,1],more=int),
   TDLOption('lsm_q_freq_deg',"Q freq degree",[0,1],more=int),
   TDLOption('lsm_beam_model',"Beam model for LSM sources",
-      [None,wsrt_beam.wsrt_beam,wsrt_beam.wsrt_pol_beam]),
+      [None,wsrt_beam.wsrt_beam,wsrt_beam.wsrt_pol_beam,
+      wsrt_beam.wsrt_pol_beam_with_pointing_errors]),
 );
 
   
@@ -116,15 +117,13 @@ def _define_forest(ns):
         
     # corrupt with LSM beams, if a model is specified
     if lsm_beam_model:
-      Ej = lsm_beam_model(ns,ns.E1,lsm_list);
-      lsm_list = [ src.corrupt(Ej(src.direction.name),per_station=False) for src in lsm_list ];
-      
-      lsm_beam_parms = Ej.search(tags="beam solvable");
+      lsm_list = lsm_beam_model(ns,ns.E1,lsm_list);
+      lsm_beam_parms = ns.E1.search(tags="beam solvable");
       pg = Bookmarks.Page("LSM beams",3,3);
       for p in lsm_beam_parms:
         pg.add(p);
       for src in lsm_list:
-        pg.add(Ej(src.direction.name));
+        pg.add(ns.E1(src.direction.name));
     else:
       lsm_beam_parms = [];
     
