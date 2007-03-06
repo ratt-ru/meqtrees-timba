@@ -88,7 +88,7 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
 // set_node_state_field ()
 // Python method to change node state
 // -----------------------------------------------------------------------
-PyObject * set_node_state_field (PyObject *, PyObject *args)
+PyObject * PyNodeAccessor::set_node_state_field (PyObject *, PyObject *args)
 {
   PyObject *node_baton, *value;
   char * field_str;
@@ -98,7 +98,7 @@ PyObject * set_node_state_field (PyObject *, PyObject *args)
   try 
   {
     FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
-    PyNode * pnode = static_cast<PyNode*>(PyCObject_AsVoidPtr(node_baton));
+    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
     FailWhen(!pnode,"set_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"set_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
@@ -115,7 +115,7 @@ PyObject * set_node_state_field (PyObject *, PyObject *args)
 // set_node_active_symdeps ()
 // Python method to change a node's symdeps
 // -----------------------------------------------------------------------
-PyObject * set_node_active_symdeps (PyObject *, PyObject *args)
+PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
 {
   PyObject *node_baton,*symdep_list;
   char * field_str;
@@ -125,7 +125,7 @@ PyObject * set_node_active_symdeps (PyObject *, PyObject *args)
   try 
   {
     FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
-    PyNode * pnode = static_cast<PyNode*>(PyCObject_AsVoidPtr(node_baton));
+    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
     FailWhen(!pnode,"set_node_acrive_symdeps: first argument must be a valid node baton");
     FailWhen(!PySequence_Check(symdep_list),"set_node_active_symdeps: second argument must be a list of symdeps");
     int ndep = PySequence_Length(symdep_list);
@@ -174,11 +174,11 @@ static PyMethodDef MeqMethods[] = {
              "issues a MeqServer command" },
     { "get_node_state_field", get_node_state_field, METH_VARARGS, 
              "returns one field of the node state" },
-    { "set_node_state_field", set_node_state_field, METH_VARARGS, 
+    { "set_node_state_field", PyNodeAccessor::set_node_state_field, METH_VARARGS, 
              "sets one field of the node state" },
     { "get_forest_state_field", get_forest_state_field, METH_VARARGS, 
              "returns one field of the forest state" },
-    { "set_node_active_symdeps", set_node_active_symdeps, METH_VARARGS, 
+    { "set_node_active_symdeps", PyNodeAccessor::set_node_active_symdeps, METH_VARARGS, 
              "sets the current set of a node's symdeps" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
@@ -208,7 +208,7 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 // createPyNode
 // creates a PyNode object associated with the given C++ PyNode
 // -----------------------------------------------------------------------
-PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const string &modulename)
+PyObjectRef createPyNode (Meq::Node &pynode,const string &classname,const string &modulename)
 {
   PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
   PyObjectRef args = Py_BuildValue("(Osss)",*pynode_baton,pynode.name().c_str(),classname.c_str(),modulename.c_str());

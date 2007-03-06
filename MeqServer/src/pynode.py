@@ -83,7 +83,7 @@ class PyVerboseNode (PyNode):
     _dprint(0,"set_state_impl:",staterec);
     _dprint(0,"set_state_impl: initializing=",initializing);
     
-  def get_result (self,children,request):
+  def get_result (self,request,*children):
     _dprint(0,"get_result: request is ",request);
     _dprint(0,"get_result: children are ",children);
     return None;

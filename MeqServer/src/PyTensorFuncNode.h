@@ -1,10 +1,10 @@
-#ifndef MEQSERVER_SRC_PYTENSORFUNCTIONNODE_H
-#define MEQSERVER_SRC_PYTENSORFUNCTIONNODE_H
+#ifndef MEQSERVER_SRC_PYTENSORFUNCNODE_H
+#define MEQSERVER_SRC_PYTENSORFUNCNODE_H
     
 #include <MeqServer/PyNode.h>
 #include <MEQ/TensorFunction.h>
 
-#pragma types #Meq::PyTensorFunction
+#pragma types #Meq::PyTensorFuncNode
 
 namespace Meq {
   
@@ -13,32 +13,37 @@ class PyTensorFuncImpl : public PyNodeImpl
   public:
     PyTensorFuncImpl (Node *node);
       
-    //##ModelId=3F9FF6AA0300
-    int getResult (Result::Ref &resref, 
-                   const std::vector<Result::Ref> &childres,
-                   const Request &req,bool newreq);
-  
-    //##ModelId=3F9FF6AA03D2
+    // these functions implement the python-side calls
+    void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
+    
+    LoShape getResultDims (const vector<const LoShape *> &input_dims);
+
+    void evaluateTensors (std::vector<Vells> & out,   
+         const std::vector<std::vector<const Vells *> > &args );
+    
     void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
     
-  protected:
+  // these data members are public because below (in PyTensorFuncNode)
+  // we want to check  whether they're set or not, and call the Python
+  // implementation or the parent class's implementation as appropriate
     OctoPython::PyObjectRef pynode_compute_result_cells_;
-    OctoPython::PyObjectRef pynode_setstate_;
+    OctoPython::PyObjectRef pynode_get_result_dims_;
     OctoPython::PyObjectRef pynode_evaluate_tensors_;
-    
+
 };
 
   
 //##ModelId=3F98DAE503C9
-class PyTensorFunction : public TensorFunction
+class PyTensorFuncNode : public TensorFunction
 {
   public:
-    PyTensorFunction ();
+    PyTensorFuncNode ();
   
-    virtual ~PyTensorFunction ();
+    virtual ~PyTensorFuncNode ();
     
     virtual TypeId objectType() const
-    { return TpMeqPyTensorFunction; }
+    { return TpMeqPyTensorFuncNode; }
     
     ImportDebugContext(PyNodeImpl);
 

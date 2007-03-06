@@ -93,9 +93,9 @@ class PyDemoNode (pynode.PyNode):
 
   # Finally, we should define a get_result method. (We don't have to, but if
   # we don't, then what's the point of this node?) 
-  # This is called with a list of child results (possibly empty, if we're a 
-  # leaf node), and a request object
-  def get_result (self,children,request):
+  # This is called with a request object, and a list of child results 
+  # (possibly empty, if we're a leaf node)
+  def get_result (self,request,*children):
     _dprint(0,"get_result: request is ",dmi.dmi_typename(request),request);
     for i,ch in enumerate(children):
       _dprint(0,"child",i,":",dmi.dmi_typename(ch),ch);
@@ -136,7 +136,7 @@ class PyRandom (pynode.PyNode):
         raise TypeError,"random.%s: %d arguments expected, distribution_args contains %d"% \
                           (self.distribution_type,narg,len(self.distribution_args));
                           
-  def get_result (self,children,request):
+  def get_result (self,request,*children):
     if len(children):
       raise TypeError,"this is a leaf node, no children expected!";
     # make value of same shape as cells

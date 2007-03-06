@@ -22,7 +22,7 @@
         Do(Meq::Sink,arg) separator \
         Do(Meq::Spigot,arg) separator \
         Do(Meq::PyNode,arg) separator \
-        Do(Meq::PyFunctionNode,arg)
+        Do(Meq::PyTensorFuncNode,arg)
 
 #define DoForAllNumericTypes_MeqServer(Do,arg,separator) \
         

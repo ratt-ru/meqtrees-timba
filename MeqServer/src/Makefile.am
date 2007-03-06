@@ -7,7 +7,8 @@ lib_LTLIBRARIES = libmeqserver.la
 DOCHDRS = \
   MeqServer.h MeqPython.h \
   VisDataMux.h VisHandlerNode.h Sink.h Spigot.h \
-  PyNode.h PyFunctionNode.h MeqUtils.h
+  MeqUtils.h \
+  PyNode.h PyTensorFuncNode.h
 
 libmeqserver_la_SOURCES = \
   AID-MeqServer-Registry.cc \
@@ -15,7 +16,8 @@ libmeqserver_la_SOURCES = \
   VisDataMux.cc \
   VisHandlerNode.cc \
   Sink.cc Spigot.cc \
-  PyNode.cc PyFunctionNode.cc 
+  PyNode.cc PyTensorFuncNode.cc
+  
 
 bin_PROGRAMS   		= meqserver
   

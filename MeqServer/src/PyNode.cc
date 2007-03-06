@@ -6,37 +6,47 @@ namespace Meq {
 
 using namespace OctoPython;
   
-InitDebugContext(PyNode,"MeqPyNode");
+InitDebugContext(PyNodeImpl,"MeqPyNode");
 
 const HIID FClassName = AidClass|AidName; 
 const HIID FModuleName = AidModule|AidName;
 
-
-PyNode::PyNode()
-  : Node()
+LOFAR::Exception getPyException ()
 {
+  PyObject *etype,*evalue,*etb; 
+  PyErr_Fetch(&etype,&evalue,&etb); // we get a new ref
+  // if NULL, then no error has occurred, return empty list
+  if( !etype )
+    return LOFAR::Exception("python error has gone missing");
+  // convert to string 
+  PyObjectRef estr = PyObject_Str(evalue); 
+  // restore & print error indicator (takes away our ref)
+  PyErr_Restore(etype,evalue,etb); 
+  PyErr_Print(); 
+  return LOFAR::Exception(DMI::ExceptionList::Elem(PyString_AsString(*estr))); 
 }
 
-PyNode::~PyNode()
+
+PyNodeImpl::PyNodeImpl (Node *node)
+: pnode_(node)
 {
 }
-
+    
+string PyNodeImpl::sdebug (int detail,const string &prefix,const char *name) const
+{ 
+  return pnode_->sdebug(detail,prefix,name); 
+}
 
 
 //##ModelId=3F9918390169
-void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  Node::setStateImpl(rec,initializing);
   if( initializing )
   {
     string classname  = rec[FClassName].as<string>(); 
     string modulename = rec[FModuleName].as<string>(""); 
-    pynode_obj_ = MeqPython::createPyNode(*this,classname,modulename);
-    if( !pynode_obj_ )
-    {
-      PyErr_Print();
-      Throw("Failed to create PyNode object "+modulename+"."+classname);
-    }
+    pynode_obj_ = MeqPython::createPyNode(*pnode_,classname,modulename);
+    PyFailWhen(!pynode_obj_,"Failed to create PyNode object "+modulename+"."+classname);
     // clear errors when fetching these attributes, as they are optional
     pynode_setstate_ = PyObject_GetAttrString(*pynode_obj_,"set_state_impl");
     PyErr_Clear();
@@ -54,13 +64,9 @@ void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     PyObjectRef staterec = OctoPython::pyFromDMI(rec);
     PyErr_Clear();
     PyObjectRef args = Py_BuildValue("(Oi)",*staterec,int(initializing));
-    FailWhen(!args,"failed to build args tuple");
+    PyFailWhen(!args,"failed to build args tuple");
     PyObjectRef val = PyObject_CallObject(*pynode_setstate_,*args);
-    if( !val )
-    {
-      PyErr_Print();
-      Throw("Python-side set_state() method failed");
-    }
+    PyFailWhen(!val,"Python-side set_state() method failed");
     // now, if the set_state_impl method returned a non-false object,
     // this must be a record of state fields to be merged into 'rec'
     if( PyObject_IsTrue(*val) )
@@ -74,32 +80,26 @@ void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 }
 
 //##ModelId=3F9509770277
-int PyNode::getResult (Result::Ref &resref, 
-                     const std::vector<Result::Ref> &childres,
-                     const Request &request,bool)
+int PyNodeImpl::getResult (Result::Ref &resref, 
+                           const std::vector<Result::Ref> &childres,
+                           const Request &request,bool)
 {
   FailWhen(!pynode_getresult_,"no Python-side get_result() method defined");
-  
-  // form up Python tuple of child results
-  PyObjectRef chres_tuple = PyTuple_New(childres.size());
-  for( uint i=0; i<childres.size(); i++ )
-  {
-    PyObjectRef chres = OctoPython::pyFromDMI(*childres[i]);
-    PyTuple_SET_ITEM(*chres_tuple,i,chres.steal()); // SET_ITEM steals our ref
-  }
+  // form up Python tuple of arguments
+  PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
   PyObjectRef pyreq = OctoPython::pyFromDMI(request);
   PyErr_Clear();
-  // build argument list
-  PyObjectRef args = Py_BuildValue("(OO)",*chres_tuple,*pyreq);
-  FailWhen(!args,"failed to build args tuple");
-  // call get_result() method
-  PyObjectRef retval = PyObject_CallObject(*pynode_getresult_,*args);
-  if( !retval )
+  PyTuple_SET_ITEM(*args_tuple,0,pyreq.steal()); // SET_ITEM steals our ref
+  // add child results
+  for( uint i=0; i<childres.size(); i++ )
   {
-    PyErr_Print();
-    Throw("Python-side get_result() method failed");
+    PyObjectRef chres = OctoPython::pyFromDMI(*childres[i]);
+    PyTuple_SET_ITEM(*args_tuple,i+1,chres.steal()); // SET_ITEM steals our ref
   }
+  // call get_result() method
+  PyObjectRef retval = PyObject_CallObject(*pynode_getresult_,*args_tuple);
+  PyFailWhen(!retval,"Python-side get_result() method failed");
   // else extract return value
   // by default we treat retval as a Result object
   PyObject * pyobj_result = *retval;
@@ -109,11 +109,8 @@ int PyNode::getResult (Result::Ref &resref,
   {
     if( PySequence_Length(*retval) != 2 )
       Throw("Python-side get_result() returned an ill-formed value");
-    if( !PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode) )
-    {
-      PyErr_Print();
-      Throw("Python-side get_result() returned an ill-formed value");
-    }
+    PyFailWhen(!PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode),
+                "Python-side get_result() returned an ill-formed value");
   }
   // None corresponds to empty result
   if( pyobj_result == Py_None )
@@ -129,6 +126,44 @@ int PyNode::getResult (Result::Ref &resref,
   }
   return retcode;
 }
+
+PyObject * PyNodeImpl::convertRequest (const Request &req)
+{
+  // if a new request object shows up, convert it to Python, and cache
+  // for later reuse 
+  if( !prev_request_.valid() ||
+      prev_request_.deref_p() != &( req ) ||
+      prev_request_->id() != req.id() )
+  {
+    prev_request_.attach(req);
+    py_prev_request_  = OctoPython::pyFromDMI(req);
+  }
+  return *py_prev_request_;
+}
+
+PyNode::PyNode()
+  : Node(),impl_(this)
+{
+}
+
+PyNode::~PyNode()
+{
+}
+
+void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  impl_.setStateImpl(rec,initializing);
+}
+
+
+int PyNode::getResult (Result::Ref &resref, 
+                       const std::vector<Result::Ref> &childres,
+                       const Request &request,bool newreq)
+{
+  return impl_.getResult(resref,childres,request,newreq);
+}
+
 
 
 }

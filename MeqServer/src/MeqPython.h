@@ -8,7 +8,6 @@
 namespace Meq
 {
   class MeqServer;
-  class PyNode;
 }
 
 namespace VisCube
@@ -39,19 +38,21 @@ namespace MeqPython
   void processVisTile   (const VisCube::VTile &tile);
   void processVisFooter (const DMI::Record &hdr);
   
-  // creates a PyNode Python-side object with the given node name and 
-  // class, and associates it with the given PyNode
-  PyObjectRef createPyNode (Meq::PyNode &pynode,const string &classname,const string &modulename);
+  // creates a Python-side PyNode object with the given node name and 
+  // class, and associates it with the given Node object
+  PyObjectRef createPyNode (Node &pynode,const string &classname,const string &modulename);
   
   // testing function -- converts object to python object, then discards
   void testConversion   (const BObj &obj);
 
-  // visible here because we use it in a friend declaration (see PyNode.h)
-  extern "C" 
+  // these are wrapped in a class because we use it in a friend 
+  // declaration in MEQ/Node.h
+  class PyNodeAccessor 
   { 
-      PyObject * set_node_state_field (PyObject *, PyObject *args);
-      PyObject * set_node_active_symdeps (PyObject *, PyObject *args);
-  }
+    public:
+      static PyObject * set_node_state_field (PyObject *, PyObject *args);
+      static PyObject * set_node_active_symdeps (PyObject *, PyObject *args);
+  };
 
   
   // -----------------------------------------------------------------------

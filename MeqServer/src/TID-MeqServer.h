@@ -8,25 +8,6 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqServer ();
 
-#ifndef _defined_id_TpMeqPyFunctionNode
-#define _defined_id_TpMeqPyFunctionNode 1
-const DMI::TypeId TpMeqPyFunctionNode(-1707);     // from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
-const int TpMeqPyFunctionNode_int = -1707;
-namespace Meq { class PyFunctionNode; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<Meq::PyFunctionNode> : public TypeTraits<Meq::PyFunctionNode>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpMeqPyFunctionNode_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const Meq::PyFunctionNode & ContainerReturnType;
-                typedef const Meq::PyFunctionNode & ContainerParamType;
-              };
-            };
-#endif
 #ifndef _defined_id_TpMeqPyNode
 #define _defined_id_TpMeqPyNode 1
 const DMI::TypeId TpMeqPyNode(-1705);             // from /home/oms/Timba/MeqServer/src/PyNode.h:10
@@ -43,6 +24,25 @@ namespace Meq { class PyNode; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::PyNode & ContainerReturnType;
                 typedef const Meq::PyNode & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqPyTensorFuncNode
+#define _defined_id_TpMeqPyTensorFuncNode 1
+const DMI::TypeId TpMeqPyTensorFuncNode(-1721);   // from /home/oms/Timba/MeqServer/src/PyTensorFuncNode.h:7
+const int TpMeqPyTensorFuncNode_int = -1721;
+namespace Meq { class PyTensorFuncNode; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::PyTensorFuncNode> : public TypeTraits<Meq::PyTensorFuncNode>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqPyTensorFuncNode_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::PyTensorFuncNode & ContainerReturnType;
+                typedef const Meq::PyTensorFuncNode & ContainerParamType;
               };
             };
 #endif

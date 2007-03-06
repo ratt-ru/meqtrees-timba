@@ -278,15 +278,15 @@ const int AidMeq_int = -1622;
 const DMI::AtomicID AidMeqClient(-1544);          // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 const int AidMeqClient_int = -1544;
 #endif
-#ifndef _defined_id_AidMeqPyFunctionNode
-#define _defined_id_AidMeqPyFunctionNode 1
-const DMI::AtomicID AidMeqPyFunctionNode(-1707);  // from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
-const int AidMeqPyFunctionNode_int = -1707;
-#endif
 #ifndef _defined_id_AidMeqPyNode
 #define _defined_id_AidMeqPyNode 1
 const DMI::AtomicID AidMeqPyNode(-1705);          // from /home/oms/Timba/MeqServer/src/PyNode.h:10
 const int AidMeqPyNode_int = -1705;
+#endif
+#ifndef _defined_id_AidMeqPyTensorFuncNode
+#define _defined_id_AidMeqPyTensorFuncNode 1
+const DMI::AtomicID AidMeqPyTensorFuncNode(-1721);// from /home/oms/Timba/MeqServer/src/PyTensorFuncNode.h:7
+const int AidMeqPyTensorFuncNode_int = -1721;
 #endif
 #ifndef _defined_id_AidMeqServer
 #define _defined_id_AidMeqServer 1
