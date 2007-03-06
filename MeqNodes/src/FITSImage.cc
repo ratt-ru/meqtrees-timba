@@ -146,8 +146,8 @@ int FITSImage::getResult (Result::Ref &resref,
 
  //axis, [left,right], segments
  if (reverse_freq ) {
-  blitz::Array<double,1> f1;
-	f1=blitz::abs(f_space);
+        blitz::Array<double,1> f1(f_space.size());
+        f1 = blitz::abs(f_space);
 	cells.setCells(Axis::FREQ,f_center.reverse(0),f1);
  } else {
 	cells.setCells(Axis::FREQ,f_center,f_space);
