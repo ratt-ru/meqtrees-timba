@@ -11,17 +11,19 @@ import traceback
 
 # testing branch
 if __name__ == '__main__':
-  mqs = meqserver.default_mqs(wait_init=5);
+  mqs = meqserver.default_mqs(wait_init=10);
   #  mqs = meqserver.default_mqs(wait_init=5,spawn=None); # if already running
 
 
   print 'meqserver state:',mqs.state;
 
-  (mod,msg) = Compile.compile_file(mqs,'tdl_test.tdl');
+  (mod,ns,msg) = Compile.compile_file(mqs,'tdl_test.tdl');
 
   mod._test_forest(mqs,None);
 
-  req = mqs.getnodestate('solver').request;
+  state = mqs.getnodestate('solver');
+  print state
+  req = state.request;
 
   res = mqs.execute('x',req,wait=True);
 

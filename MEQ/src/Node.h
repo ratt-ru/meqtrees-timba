@@ -46,7 +46,16 @@
 #pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
 #pragma aid Poll Polling Order MT Propagate Child Fails Message Error Data
 #pragma aid Parent Indices Is Internal Publishing Level Recursive
-    
+
+
+// forward declaration of MeqPython stuff -- only here to enable the
+// friend declaration in Node
+namespace MeqPython
+{
+  class PyNodeAccessor;
+}
+
+      
 namespace Meq 
 { 
 using namespace DMI;
@@ -136,6 +145,7 @@ namespace MTPool
 class Node : public NodeFace
 {
   public:
+    friend class MeqPython::PyNodeAccessor;
     typedef CountedRef<Node> Ref;
   
     //## Control state bitmasks. These are set in the control_status_ field

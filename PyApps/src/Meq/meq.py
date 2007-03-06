@@ -339,21 +339,30 @@ def shape (arg0=None,*args,**kw):
       shp[iaxis] = extent;
     return shp;
   
+def _vells (shape,typecode,value=None):
+  """Creates a Meq::Vells of the given shape.""";
+  if value is None:
+    arr = array(typecode=typecode,shape=shape);
+  else:
+    arr = array(value,typecode=typecode,shape=shape);
+  return dmi_coerce(arr,_vells_type);
   
-def vells (shape,is_complex=False):
+def vells (shape,is_complex=False,value=None):
   """Creates a Meq::Vells of the given shape.""";
   if is_complex:
-    arr = array(typecode=arr_dcomplex,shape=shape);
+    return _vells(shape,arr_dcomplex,value);
   else:
-    arr = array(typecode=arr_double,shape=shape);
-  return dmi_coerce(arr,_vells_type);
+    return _vells(shape,arr_double,value);
    
-def complex_vells (shape):
-  return vells(shape,is_complex=True); 
+def complex_vells (shape,value=None):
+  return _vells(shape,arr_dcomplex,value); 
+
+def flagvells (shape,value=None):
+  return _vells(shape,arr_int32,value); 
   
-def vellset (mainval):
+def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
-  return _vellset_type(value=mainval);
+  return _vellset_type(value=mainval,**kw);
   
 def result (vellset,cells):
   """Creates a Result from the given VellSet and Cells""";
