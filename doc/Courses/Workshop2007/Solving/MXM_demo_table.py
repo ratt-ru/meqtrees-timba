@@ -19,8 +19,8 @@ from PyParmTable import *
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
-old_table='/home/mevius/Timba/WH/contrib/MXM/demo/meps2/calib.mep'
-parmname = '*x*';
+old_table='sources.mep'
+parmname = '*';
 global t;
 
 def _define_forest (ns, **kwargs):

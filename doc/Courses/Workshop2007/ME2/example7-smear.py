@@ -22,7 +22,6 @@ def _define_forest (ns):
   # set global context
   Meow.Context.set(array=array,observation=observation);
 
-  # create 10 sources
   sources = sky_models.make_model(ns,"S");
     
   # create a Patch for the entire observed sky

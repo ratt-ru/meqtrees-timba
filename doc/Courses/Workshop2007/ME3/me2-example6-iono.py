@@ -17,6 +17,7 @@ TDLRuntimeMenu("Imaging options",
 
 TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
 TDLCompileOption("background_jy","Background sources, Jy",[None,1e-3,1e-2,1.]);
+TDLCompileOption("correct_center","Take out center phase",False);
 
 # define antenna list
 ANTENNAS = range(1,27+1);
@@ -40,19 +41,26 @@ def _define_forest (ns):
   
   # add a background star8
   if background_jy:
-    nsrc = (sky_models.grid_size-1)/2
-    dlm = ARCMIN*sky_models.grid_step*2/3.;
+    nsrc = 2;
+    dlm = ARCMIN*sky_models.grid_step/3.;
     sources += sky_models.star8_model(ns,"S1",0,0,dlm,dlm,nsrc,background_jy);
     
   # make Zjones for all positions in source list (and all stations)
   # this returns Zj which sould be qualified as Zj(srcname,station)
   # Therefore we can use Zj(srcname) as a per-stations Jones series.
   Zj = iono_model.compute_zeta_jones(ns,sources);
+  Zj0 = Zj(sources[0].name);
 
   # corrupt all sources with the Zj for their direction
   allsky = Meow.Patch(ns,'sky',observation.phase_centre);
   for src in sources:
-    allsky.add(src.corrupt(Zj(src.direction.name)));
+    if correct_center:
+      Z = ns.Zcorr(src.name);
+      for p in array.stations():
+        Z(p) << Zj(src.name,p)/Zj0(p);
+    else:
+      Z = Zj(src.name);
+    allsky.add(src.corrupt(Z));
 
   # get predicted visibilities
   predict = allsky.visibilities();
