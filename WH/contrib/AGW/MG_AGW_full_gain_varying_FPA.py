@@ -364,7 +364,7 @@ def _define_forest(ns):
     for src in SOURCES:
       # first make a predict that includes the time-variable G Jones 
       ns.predict(p,q,src) << \
-        Meq.MatrixMultiply(ns.E(p,src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(p,src));
+        Meq.MatrixMultiply(ns.E(p,src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(q,src));
       # and make a separate predict that has no G Jones, so it is implicitly
       # unity
       ns.predict_ok(p,q,src) << \
