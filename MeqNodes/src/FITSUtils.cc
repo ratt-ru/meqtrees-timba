@@ -725,10 +725,12 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		l0=m0=0.0;
              } else {
                /* normal grid: average min, max values */
+         /* dont really need ra and dec here */
 	       *ra0=(worldc[0]+worldc[4*(ncoord-1)])*M_PI/360.0;
 	       *dec0=(worldc[1]+worldc[4*(ncoord-1)+1])*M_PI/360.0;
-	        l0=(imgc[0]+imgc[4*(ncoord-1)])*0.5;
-	        m0=(imgc[1]+imgc[4*(ncoord-1)+1])*0.5;
+	       /* l0=(imgc[0]+imgc[4*(ncoord-1)])*0.5;
+	        m0=(imgc[1]+imgc[4*(ncoord-1)+1])*0.5; */
+          l0=m0=0.0;
              }
 
 #ifdef DEBUG
