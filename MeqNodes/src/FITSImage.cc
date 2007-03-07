@@ -200,7 +200,7 @@ int FITSImage::getResult (Result::Ref &resref,
  VellsSlicer<double,3> slout(out,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
  //copy A to the time slice of varr
  if (reverse_freq) {
-  slout=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), lrange, blitz::Range::all(),0);
+  slout=A(blitz::Range(naxis[3]-1,0,-1), lrange, blitz::Range::all(),0);
  } else {
   slout=A(blitz::Range::all(), lrange, blitz::Range::all(),0);
  }
@@ -222,7 +222,7 @@ int FITSImage::getResult (Result::Ref &resref,
   VellsSlicer<double,3> sloutQ(outQ,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
 
  if (reverse_freq) {
-  sloutQ=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), lrange, blitz::Range::all(),1);
+  sloutQ=A(blitz::Range(naxis[3]-1,0,-1), lrange, blitz::Range::all(),1);
  } else {
   sloutQ=A(blitz::Range::all(), lrange, blitz::Range::all(),1);
  }
@@ -241,7 +241,7 @@ int FITSImage::getResult (Result::Ref &resref,
   vsU.setShape(shape);
   VellsSlicer<double,3> sloutU(outU,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
  if (reverse_freq) {
-  sloutU=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), lrange, blitz::Range::all(),2);
+  sloutU=A(blitz::Range(naxis[3]-1,0,-1), lrange, blitz::Range::all(),2);
  } else {
   sloutU=A(blitz::Range::all(), lrange, blitz::Range::all(),2);
  }
@@ -260,7 +260,7 @@ int FITSImage::getResult (Result::Ref &resref,
   vsV.setShape(shape);
   VellsSlicer<double,3> sloutV(outV,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
  if (reverse_freq) {
-  sloutV=A(blitz::Range(blitz::toEnd,blitz::fromStart,-1), lrange, blitz::Range::all(),3);
+  sloutV=A(blitz::Range(naxis[3]-1,0,-1), lrange, blitz::Range::all(),3);
  } else {
   sloutV=A(blitz::Range::all(), lrange, blitz::Range::all(),3);
  }
