@@ -50,7 +50,9 @@ class OptionsDialog(QDialog):
         self.coord_radians=-1
         self.plot_z_type=-1 # 0:brightness, 1,2,3,4,=IQUV
 
-        self.cell_has_changed=0
+        # karma annotations
+        self.karma_font0='hershey12';
+
         self.patch_center=-1# 0: geometric, 1: centroid 
         self.patch_method=-1# 0,1
 
@@ -303,133 +305,45 @@ class OptionsDialog(QDialog):
 
 
         self.tabWidget.insertTab(self.zTab,QString.fromLatin1(""))
-################### Tab 4
-        self.cellTab=QWidget(self.tabWidget,"cellTab")
-        celltabLayout=QVBoxLayout(self.cellTab,11,6,"celltabLayout")
+################### Tab 4 - Karma Annotations
+        self.karmaTab=QWidget(self.tabWidget,"karmaTab")
+        karmaTabLayout=QVBoxLayout(self.karmaTab,11,6,"karmaTabLayout")
 
-        # get range from LSM
-        self.rng=self.parentWidget().lsm.getCellsRange()
-        #print "got ",self.rng
 
-        ################# Box 1
-        self.FrangeBG=QGroupBox(self.cellTab,"FrangeBG")
-        self.FrangeBG.setColumnLayout(0,Qt.Vertical)
-        self.FrangeBG.layout().setSpacing(6)
-        self.FrangeBG.layout().setMargin(11)
-        FLayout= QHBoxLayout(self.FrangeBG.layout())
+        ################# Box 1 - Font
+        self.karmaFontBG=QGroupBox(self.karmaTab,"karmaFontBG")
+        self.karmaFontBG.setColumnLayout(0,Qt.Vertical)
+        self.karmaFontBG.layout().setSpacing(6)
+        self.karmaFontBG.layout().setMargin(11)
+        FLayout= QHBoxLayout(self.karmaFontBG.layout())
         FLayout.setAlignment(Qt.AlignCenter)
 
-        self.textLabel_f0= QLabel(self.FrangeBG,"textLabel_f0")
-        FLayout.addWidget(self.textLabel_f0)
+        self.textLabel_karmaf0= QLabel(self.karmaFontBG,"textLabel_karmaf0")
+        FLayout.addWidget(self.textLabel_karmaf0)
 
-        self.lineEdit_f0= QLineEdit(self.FrangeBG,"lineEdit_f0")
-        if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['f0']
-        else:
-         tmpstr='0'
-        self.lineEdit_f0.setText(tmpstr)
-
-        FLayout.addWidget(self.lineEdit_f0)
-        spacer = QSpacerItem(31,31,QSizePolicy.Expanding,QSizePolicy.Minimum)
-        FLayout.addItem(spacer)
-        self.connect( self.lineEdit_f0, SIGNAL("textChanged(const QString &)"), self.lineEditF0)
-
-        self.textLabel_f1= QLabel(self.FrangeBG,"textLabel_f1")
-        FLayout.addWidget(self.textLabel_f1)
-
-        self.lineEdit_f1= QLineEdit(self.FrangeBG,"lineEdit_f1")
-        if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['f1']
-        else:
-         tmpstr='0'
-        self.lineEdit_f1.setText(tmpstr)
+        self.karmafontButton0= QPushButton(self.karmaFontBG,"fontToolButton")
+        FLayout.addWidget(self.karmafontButton0)
+ 
+        self.connect( self.karmafontButton0, SIGNAL("clicked()"), self.chooseFont_karma0 )
 
 
-        FLayout.addWidget(self.lineEdit_f1)
-        spacer = QSpacerItem(31,31,QSizePolicy.Expanding,QSizePolicy.Minimum)
-        FLayout.addItem(spacer)
-        self.connect( self.lineEdit_f1, SIGNAL("textChanged(const QString &)"), self.lineEditF1)
-
-
-        self.textLabel_fsep= QLabel(self.FrangeBG,"textLabel_fsep")
-        FLayout.addWidget(self.textLabel_fsep)
-
-        self.lineEdit_fsep= QLineEdit(self.FrangeBG,"lineEdit_fsep")
-        if len(self.rng)>0:
-         tmpstr='%d'%self.rng['fstep']
-        else:
-         tmpstr='0'
-        self.lineEdit_fsep.setText(tmpstr)
-
-
-        FLayout.addWidget(self.lineEdit_fsep)
-        self.connect( self.lineEdit_fsep, SIGNAL("textChanged(const QString &)"), self.lineEditFsep)
-
-
-
-        celltabLayout.addWidget(self.FrangeBG)
+        karmaTabLayout.addWidget(self.karmaFontBG)
  
         ################# Box 2
-        self.TrangeBG=QGroupBox(self.cellTab,"TrangeBG")
-        self.TrangeBG.setColumnLayout(0,Qt.Vertical)
-        self.TrangeBG.layout().setSpacing(6)
-        self.TrangeBG.layout().setMargin(11)
-        TLayout= QHBoxLayout(self.TrangeBG.layout())
+        self.karmaColBG=QGroupBox(self.karmaTab,"karmaColBG")
+        self.karmaColBG.setColumnLayout(0,Qt.Vertical)
+        self.karmaColBG.layout().setSpacing(6)
+        self.karmaColBG.layout().setMargin(11)
+        TLayout= QHBoxLayout(self.karmaColBG.layout())
         TLayout.setAlignment(Qt.AlignCenter)
 
-        self.textLabel_t0= QLabel(self.TrangeBG,"textLabel_t0")
-        TLayout.addWidget(self.textLabel_t0)
+        self.textLabel_karmaC0= QLabel(self.karmaColBG,"textLabel_karmaC0")
+        TLayout.addWidget(self.textLabel_karmaC0)
 
-        self.lineEdit_t0= QLineEdit(self.TrangeBG,"lineEdit_t0")
-        if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['t0']
-        else:
-         tmpstr='0'
-        self.lineEdit_t0.setText(tmpstr)
-
-
-        TLayout.addWidget(self.lineEdit_t0)
-        spacer = QSpacerItem(31,31,QSizePolicy.Expanding,QSizePolicy.Minimum)
-        TLayout.addItem(spacer)
-        self.connect( self.lineEdit_t0, SIGNAL("textChanged(const QString &)"), self.lineEditT0)
-
-        self.textLabel_t1= QLabel(self.TrangeBG,"textLabel_t1")
-        TLayout.addWidget(self.textLabel_t1)
-
-        self.lineEdit_t1= QLineEdit(self.TrangeBG,"lineEdit_t1")
-        if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['t1']
-        else:
-         tmpstr='0'
-        self.lineEdit_t1.setText(tmpstr)
-
-
-        TLayout.addWidget(self.lineEdit_t1)
-        spacer = QSpacerItem(31,31,QSizePolicy.Expanding,QSizePolicy.Minimum)
-        TLayout.addItem(spacer)
-        self.connect( self.lineEdit_t1, SIGNAL("textChanged(const QString &)"), self.lineEditT1)
-
-
-        self.textLabel_tsep= QLabel(self.TrangeBG,"textLabel_tsep")
-        TLayout.addWidget(self.textLabel_tsep)
-
-        self.lineEdit_tsep= QLineEdit(self.TrangeBG,"lineEdit_tsep")
-        if len(self.rng)>0:
-         tmpstr='%d'%self.rng['tstep']
-        else:
-         tmpstr='0'
-        self.lineEdit_tsep.setText(tmpstr)
-
-
-        TLayout.addWidget(self.lineEdit_tsep)
-        self.connect( self.lineEdit_tsep, SIGNAL("textChanged(const QString &)"), self.lineEditTsep)
-
-
-
-        celltabLayout.addWidget(self.TrangeBG)
+        karmaTabLayout.addWidget(self.karmaColBG)
  
 
-        self.tabWidget.insertTab(self.cellTab,QString.fromLatin1(""))
+        self.tabWidget.insertTab(self.karmaTab,QString.fromLatin1(""))
 ################### Tab 5
         self.patchTab=QWidget(self.tabWidget,"patchTab")
         patchtabLayout=QVBoxLayout(self.patchTab,11,6,"patchtabLayout")
@@ -588,15 +502,12 @@ class OptionsDialog(QDialog):
         self.scale_lin.setText(self.__tr("Linear"))
         self.scale_log.setText(self.__tr("Log"))
 
-        self.tabWidget.changeTab(self.cellTab,self.__tr("Cells"))
-        self.FrangeBG.setTitle(self.__tr("Frequency"))
-        self.textLabel_f0.setText(self.__tr("Start"))
-        self.textLabel_f1.setText(self.__tr("End"))
-        self.textLabel_fsep.setText(self.__tr("Step"))
-        self.TrangeBG.setTitle(self.__tr("Time"))
-        self.textLabel_t0.setText(self.__tr("Start"))
-        self.textLabel_t1.setText(self.__tr("End"))
-        self.textLabel_tsep.setText(self.__tr("Step"))
+        self.tabWidget.changeTab(self.karmaTab,self.__tr("Karma Ann"))
+        self.karmaFontBG.setTitle(self.__tr("Fonts"))
+        self.textLabel_karmaf0.setText(self.__tr("Names: "))
+        self.karmafontButton0.setText(self.__tr("Choose..."))
+        self.karmaColBG.setTitle(self.__tr("Colors"))
+        self.textLabel_karmaC0.setText(self.__tr("Names: "))
 
 
         self.tabWidget.changeTab(self.patchTab,self.__tr("Patches"))
@@ -697,8 +608,6 @@ class OptionsDialog(QDialog):
       self.turn_legendon=0
 
 
-
-
     def plotBGradioClick(self,id):
      self.plot_z_type=id
      #print "plot BG button %d clicked" %id
@@ -707,102 +616,6 @@ class OptionsDialog(QDialog):
      #print "scale BG button %d clicked" %id
      pass
 
-
-    def lineEditF0(self,newText):
-     #print "Line edit F0 text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       fval=float(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit F0 text: %f" % fval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['f0']
-       else:
-         tmpstr='0'
-       self.lineEdit_f0.setText(tmpstr)
-
-
-
-    def lineEditF1(self,newText):
-     #print "Line edit F1 text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       fval=float(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit F1 text: %f" % fval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['f1']
-       else:
-         tmpstr='0'
-       self.lineEdit_f1.setText(tmpstr)
-
-
-    def lineEditFsep(self,newText):
-     #print "Line edit Fsep text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       intval=int(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit Fsep text: %d" % intval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%d'%self.rng['fstep']
-       else:
-         tmpstr='0'
-       self.lineEdit_fsep.setText(tmpstr)
-
-
-    def lineEditT0(self,newText):
-     #print "Line edit T0 text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       fval=float(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit T0 text: %f" % fval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['t0']
-       else:
-         tmpstr='0'
-       self.lineEdit_t0.setText(tmpstr)
-
-
-    def lineEditT1(self,newText):
-     #print "Line edit T1 text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       fval=float(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit T1 text: %f" % fval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%3.2e'%self.rng['t1']
-       else:
-         tmpstr='0'
-       self.lineEdit_t1.setText(tmpstr)
-
-
-    def lineEditTsep(self,newText):
-     #print "Line edit Tsep text: " + unicode(newText)
-     if newText.length()>0:
-      try:
-       intval=int(newText.ascii())
-       self.cell_has_changed=1
-       #print "Line edit Tsep text: %d" % intval
-      except (TypeError,ValueError):
-       #print "invalid number "+unicode(newText)
-       if len(self.rng)>0:
-         tmpstr='%d'%self.rng['tstep']
-       else:
-         tmpstr='0'
-       self.lineEdit_tsep.setText(tmpstr)
 
     def patchBGradioClick(self,id):
      self.patch_center=id
@@ -814,6 +627,16 @@ class OptionsDialog(QDialog):
     def projBGradioClick(self,id):
      self.proj_id=id
      #print "plot BG button %d clicked" %id
+
+    #select new font
+    def chooseFont_karma0( self ) :
+     newfont, ok = QFontDialog.getFont(self)
+     if ok:
+      namelist=QFontInfo(newfont)
+      print namelist.family()
+      print dir(namelist)
+      #self.karma_font0=namelist[0]+namelist[1];
+      print self.karma_font0
 
 
     def accept(self):
@@ -848,63 +671,6 @@ class OptionsDialog(QDialog):
        self.parentWidget().cview.default_coords='deg'
        self.parentWidget().cview.axes.switchCoords('deg')
 
-     if self.cell_has_changed==1:
-      # create new cell
-      newText=self.lineEdit_f0.text()
-      try:
-        f0=float(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        f0=self.rng['f0']
-       else:
-        f0=1.0e6
-      newText=self.lineEdit_f1.text()
-      try:
-        f1=float(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        f1=self.rng['f1']
-       else:
-        f1=2.0e6
-      newText=self.lineEdit_fsep.text()
-      try:
-        fsep=int(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        fsep=self.rng['fstep']
-       else:
-        fsep=2
-      newText=self.lineEdit_t0.text()
-      try:
-        t0=float(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        t0=self.rng['t0']
-       else:
-        t0=1.0e6
-      newText=self.lineEdit_t1.text()
-      try:
-        t1=float(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        t1=self.rng['t1']
-       else:
-        t1=2.0e6
-      newText=self.lineEdit_tsep.text()
-      try:
-        tsep=int(newText.ascii())
-      except (TypeError,ValueError):
-       if len(self.rng)>0:
-        tsep=self.rng['tstep']
-       else:
-        tsep=2
-      #print "New cell (%f,%f) %d, (%f,%f) %d"% (f0,f1,fsep,t0,t1,tsep)
-      freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
-      cells =meq.cells(domain=freqtime_domain, num_freq=fsep,  num_time=tsep);
-      self.parentWidget().lsm.setCells(cells)
-      # draw a progress dialog
-      self.parentWidget().lsm.updateCells()
-      self.parentWidget().cview.resetFTindices()
 
      if self.plot_z_type!=-1:
       #0,1,2,3,4: App. brightness, I,Q,U,V

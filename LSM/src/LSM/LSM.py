@@ -2267,4 +2267,73 @@ class LSM:
  
   f.close()
  
+
+ ## build from a VizieR text file 
+ ## format:
+ ## 3CR RA1950 (h min sec)   e_RAs DE1950 (d min sec)  e_DEm S178MHz n_S178MHz l_Diam  Diam  x_Diam
+ def build_from_vizier(self,infile_name,ns,f0=None):
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^\s*(?P<col1>[A-Za-z0-9]*(.)?[A-Za-z0-9]+)  # column 1 name: a string or number
+   \s+             # skip white space
+   (?P<col2>(-)?\d+(\.\d+)?)   # RA angle - hours 
+   \s+             # skip white space
+   (?P<col3>(-)?\d+(\.\d+)?)   # RA angle - min 
+   \s*             # skip white space
+   (?P<col4>(-)?\d+(\.\d+)?)   # RA angle - sec 
+   \s*             # skip white space
+   (?P<col5>(-)?\d+(\.\d+)?)   # eRA arcmin
+   \s*             # skip white space
+   (?P<col6>[+|-]?\d+(\.\d+)?)   # Dec angle - degrees
+   \s*             # skip white space
+   (?P<col7>(-)?\d+(\.\d+)?)   # Dec angle - min
+   \s*             # skip white space
+   (?P<col8>(-)?\d+(\.\d+)?)   # Dec angle - sec 
+   \s*             # skip white space
+   (?P<col9>(-)?\d+(\.\d+)?)   # eDec arcmin
+   \s*             # skip white space
+   (?P<col10>(-)?\d+(\.\d+)?)   # Stokes I - Flux (Jy)
+   \s*             # skip white space
+   (?P<col11>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Spectral index
+   \s*.\s*""",re.VERBOSE) # ignore the rest
+
+
+  kk=0
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+     source_RA=float(v.group('col2'))+(float(v.group('col4'))/60.0+float(v.group('col3')))/60.0
+     source_RA*=math.pi/12.0
+     source_Dec=float(v.group('col6'))+(float(v.group('col8'))/60.0+float(v.group('col7')))/60.0
+     source_Dec*=math.pi/180.0
+
+     sI=eval(v.group('col10'))
+
+     SI=eval(v.group('col11'))
+
+     s=Source(v.group('col1'))
+
+     kk=kk+1
+
+     #print sI,sQ,sU,sV
+     if f0==None:
+      freq0=1e6
+     else:
+      freq0=f0
+     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+ 
+     # first compose the sixpack before giving it to the LSM
+     SourceRoot=my_sixpack.sixpack(ns)
+     self.add_source(s,brightness=eval(v.group('col9')),
+       sixpack=my_sixpack,
+       ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+
 #########################################################################
