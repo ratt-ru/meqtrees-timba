@@ -59,8 +59,7 @@ class PyFitsImage (pynode.PyNode):
     value = meq.vells(shape=meq.shape(cells),value=img);
     return meq.result(meq.vellset(value),cells);
 
-class PyPngImage (pynode.PyNode):
-  import PIL.Image
+class PyPILImage (pynode.PyNode):
   def __init__ (self,*args):
     pynode.PyNode.__init__(self,*args);
     # this tells the caching system what our result depends on
@@ -70,7 +69,7 @@ class PyPngImage (pynode.PyNode):
     mystate('file_name','test.png');
     mystate('xaxis',image_xaxis);
     mystate('yaxis',image_yaxis);
-    mystate('rescale',scaling_factor);
+    mystate('rescale',1.);
                           
   def get_result (self,request,*children):
     # read PNG image
@@ -78,10 +77,10 @@ class PyPngImage (pynode.PyNode):
     # apply shrink factor, if needed
     if self.rescale != 1.:
       nx,ny = img.size;
-      img = img.resize((int(round(nx*self.rescale)),int(round(ny*self.rescale))),PIL.Image.ANTIALIAS);
+      img = img.resize((int(round(nx*self.rescale)),int(round(ny*self.rescale)))); # ,PIL.Image.ANTIALIAS);
     # make cells and value, construct array
     nx,ny = img.size;
-    cells = make_cells(nx,ny,self.xaxis,self.yaxis);
+    cells = make_cells(ny,nx,self.xaxis,self.yaxis);
     value = meq.vells(shape=meq.shape(cells),value=img.getdata());
     return meq.result(meq.vellset(value),cells);
 
@@ -230,8 +229,13 @@ def make_lsm (ns,filename,bias=False):
 
 
 def _define_forest (ns,**kwargs):
-  ns.img << Meq.PyNode(class_name="PyFitsImage",module_name=__file__,
-                       file_name="t2.fits");
+  if init_filename.endswith('.fits'):
+    ns.img << Meq.PyNode(class_name="PyFitsImage",module_name=__file__,
+                         file_name=init_filename);
+  else:
+    ns.img << Meq.PyNode(class_name="PyPILImage",module_name=__file__,
+                         file_name=init_filename,
+                         rescale=scaling_factor);
 
   if lsm_file is not None:
     make_lsm(ns,lsm_file,bias=add_bias);
@@ -239,7 +243,7 @@ def _define_forest (ns,**kwargs):
   bk1 = Meow.Bookmarks.Page("Background");
   bk1.add(ns.img);
 
-  ns.background << Meq.Parm(0.,shape=[background_order,background_order],tags="background",table_name="t2.fits.mep");
+  ns.background << Meq.Parm(0.,shape=[background_order,background_order],tags="background"); # table_name="t2.fits.mep");
   
   ns.ce_bg << Meq.Condeq(ns.img,Meq.MergeFlags(ns.background,ns.lsm_mask));
   ns.flat_img << ns.img - ns.background;
@@ -270,10 +274,11 @@ def _test_forest (mqs,parent,**kwargs):
   if init_filename.endswith('.fits'):
     nx,ny = pyfits.open(init_filename)[0].data.shape;
   else:
+    print init_filename;
     nx,ny = PIL.Image.open(init_filename).size;
     nx = int(round(nx*scaling_factor));
     ny = int(round(ny*scaling_factor));
   # run tests on the forest
-  cells = make_cells(nx,ny,'time','freq');
+  cells = make_cells(ny,nx,'time','freq');
   request = meq.request(cells,rqtype='ev');
   mqs.execute('root',request);
