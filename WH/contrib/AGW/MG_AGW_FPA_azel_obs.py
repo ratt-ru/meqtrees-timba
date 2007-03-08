@@ -49,7 +49,7 @@ import os
 
 Settings.forest_state = record(bookmarks=[
   record(name='I Q U V',page=Bookmarks.PlotPage(
-      ["IQUV_complex"],
+      ["IQUV"],
   )),
 ])
 # to force caching put 100
@@ -71,9 +71,9 @@ def _define_forest(ns):
   ns.XYZ <<Meq.Composer(ns.x_pos, ns.y_pos, ns.z_pos)
 
   # now define a field centre RA and DEC (in radians) which the boresight
-  # will track
-  ns.ra0 << Meq.Constant(1.0)
-  ns.dec0 << Meq.Constant(0.576)
+  # will track - we arbitrarily choose Ra = 0, Dec = 0
+  ns.ra0 << Meq.Constant(0.0)
+  ns.dec0 << Meq.Constant(0.0)
 # then create a MeqComposer containing the field centre RA and DEC as children
   ns.RADec0 <<Meq.Composer(ns.ra0, ns.dec0)
  
