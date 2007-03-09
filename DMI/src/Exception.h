@@ -166,7 +166,8 @@ namespace DMI
 // an ExceptionList containing both. If exc0 is already an exception list,
 // the new exception is added on, and the list is rethrown
 #define ThrowMoreExcObj(exc0,exc) { \
-  DMI::ExceptionList *pelist = dynamic_cast<DMI::ExceptionList *>(&(exc0)); \
+  std::exception * pexc0 = &exc0; \
+  DMI::ExceptionList *pelist = dynamic_cast<DMI::ExceptionList *>(pexc0); \
   if( pelist ) \
     throw pelist->add(exc); \
   DMI::ExceptionList elist(exc0); \
