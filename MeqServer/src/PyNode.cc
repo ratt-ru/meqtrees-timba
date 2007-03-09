@@ -52,6 +52,10 @@ void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     PyErr_Clear();
     pynode_getresult_ = PyObject_GetAttrString(*pynode_obj_,"get_result");
     PyErr_Clear();
+    pynode_discoverspids_ = PyObject_GetAttrString(*pynode_obj_,"discover_spids");
+    PyErr_Clear();
+    pynode_processcommand_ = PyObject_GetAttrString(*pynode_obj_,"process_command");
+    PyErr_Clear();
   }
   else
   {
@@ -88,9 +92,7 @@ int PyNodeImpl::getResult (Result::Ref &resref,
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
-  PyObjectRef pyreq = OctoPython::pyFromDMI(request);
-  PyErr_Clear();
-  PyTuple_SET_ITEM(*args_tuple,0,pyreq.steal()); // SET_ITEM steals our ref
+  PyTuple_SET_ITEM(*args_tuple,0,convertRequest(request)); // SET_ITEM steals the new ref
   // add child results
   for( uint i=0; i<childres.size(); i++ )
   {
@@ -127,6 +129,108 @@ int PyNodeImpl::getResult (Result::Ref &resref,
   return retcode;
 }
 
+//##ModelId=3F9509770277
+int PyNodeImpl::discoverSpids (Result::Ref &resref, 
+                           const std::vector<Result::Ref> &childres,
+                           const Request &request)
+{
+  FailWhen(!pynode_getresult_,"no Python-side discover_spids() method defined");
+  // form up Python tuple of arguments
+  PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
+  // convert request
+  PyTuple_SET_ITEM(*args_tuple,0,convertRequest(request)); // SET_ITEM steals the new ref
+  // add child results
+  for( uint i=0; i<childres.size(); i++ )
+  {
+    PyObjectRef chres = OctoPython::pyFromDMI(*childres[i]);
+    PyTuple_SET_ITEM(*args_tuple,i+1,chres.steal()); // SET_ITEM steals our ref
+  }
+  // call get_result() method
+  PyObjectRef retval = PyObject_CallObject(*pynode_discoverspids_,*args_tuple);
+  PyFailWhen(!retval,"Python-side discover_spids() method failed");
+  // else extract return value
+  // by default we treat retval as a Result object
+  PyObject * pyobj_result = *retval;
+  int retcode = 0;
+  // ...but it can also be a tuple of (Result,retcode)...
+  if( PySequence_Check(*retval) && !PyMapping_Check(*retval) )
+  {
+    if( PySequence_Length(*retval) != 2 )
+      Throw("Python-side discover_spids() returned an ill-formed value");
+    PyFailWhen(!PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode),
+                "Python-side discover_spids() returned an ill-formed value");
+  }
+  // None corresponds to empty result
+  if( pyobj_result == Py_None )
+    resref <<= new Result;
+  // ...else convert to result object
+  else
+  {
+    ObjRef objref;
+    OctoPython::pyToDMI(objref,pyobj_result);
+    FailWhen(!objref || objref->objectType() != TpMeqResult,
+        "Python-side discover_spids() did not return a valid Result object");
+    resref = objref;
+  }
+  return retcode;
+}
+
+//##ModelId=3F9509770277
+int PyNodeImpl::processCommand (Result::Ref &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                const RequestId &rqid,
+                                int verbosity)
+{
+  if( !pynode_processcommand_ )
+    return 0;
+  // build argumnent tuple
+  PyObjectRef args_tuple = Py_BuildValue("sNNi",
+    command.toString().c_str(),
+    OctoPython::pyFromRecord(*args),  // new ref, stolen by N
+    OctoPython::pyFromHIID(command),  // new ref, stolen by N
+    verbosity);
+  // call process_command() method
+  PyObjectRef retval = PyObject_CallObject(*pynode_processcommand_,*args_tuple);
+  PyFailWhen(!retval,"Python-side process_command() method failed");
+  // else extract return value -- may be a None, a single int, a single result,
+  // or a tuple of (Result,int)
+  PyObject * pyobj_result = *retval;
+  int retcode = 0;
+  // None returned
+  if( pyobj_result == Py_None )
+  {
+    retcode = 0;
+    pyobj_result = 0;
+  }
+  // single number returned
+  else if( PyNumber_Check(pyobj_result) )
+  {
+    retcode = PyInt_AsLong(pyobj_result);
+    pyobj_result = 0;
+  }
+  // else can be a sequence of (Result,int)
+  else if( PySequence_Check(*retval) && !PyMapping_Check(*retval) )
+  {
+    if( PySequence_Length(*retval) != 2 )
+      Throw("Python-side discover_spids() returned an ill-formed value");
+    PyFailWhen(!PyArg_ParseTuple(*retval,"(Oi)",&pyobj_result,&retcode),
+                "Python-side discover_spids() returned an ill-formed value");
+  }
+  // else treat  as result
+  // now if we have a result, try to convert
+  if( pyobj_result )
+  {
+    ObjRef objref;
+    OctoPython::pyToDMI(objref,pyobj_result);
+    FailWhen(!objref || objref->objectType() != TpMeqResult,
+        "Python-side discover_spids() did not return a valid Result object");
+    resref = objref;
+  }
+  return retcode;
+}
+
+
 PyObject * PyNodeImpl::convertRequest (const Request &req)
 {
   // if a new request object shows up, convert it to Python, and cache
@@ -137,8 +241,10 @@ PyObject * PyNodeImpl::convertRequest (const Request &req)
   {
     prev_request_.attach(req);
     py_prev_request_  = OctoPython::pyFromDMI(req);
+    PyErr_Clear();
   }
-  return *py_prev_request_;
+  // return new ref
+  return py_prev_request_ ? py_prev_request_.new_ref() : 0;
 }
 
 PyNode::PyNode()
@@ -164,6 +270,25 @@ int PyNode::getResult (Result::Ref &resref,
   return impl_.getResult(resref,childres,request,newreq);
 }
 
+int PyNode::discoverSpids (Result::Ref &resref, 
+                       const std::vector<Result::Ref> &childres,
+                       const Request &request)
+{
+  if( impl_.pynode_discoverspids_ )
+    return impl_.discoverSpids(resref,childres,request);
+  else
+    return Node::discoverSpids(resref,childres,request);
+}
+
+int PyNode::processCommand (Result::Ref &resref,
+                            const HIID &command,
+                            DMI::Record::Ref &args,
+                            const RequestId &rqid,
+                            int verbosity)
+{
+  return impl_.processCommand(resref,command,args,rqid,verbosity) |
+         Node::processCommand(resref,command,args,rqid,verbosity);
+}
 
 
 }

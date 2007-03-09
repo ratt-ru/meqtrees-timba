@@ -49,7 +49,17 @@ class PyNodeImpl
     int getResult (Result::Ref &resref, 
                    const std::vector<Result::Ref> &childres,
                    const Request &req,bool newreq);
-  
+    
+    int discoverSpids (Result::Ref &resref, 
+                       const std::vector<Result::Ref> &childres,
+                       const Request &req);
+
+    int processCommand (Result::Ref &resref,
+                        const HIID &command,
+                        DMI::Record::Ref &args,
+                        const RequestId &rqid = RequestId(),
+                        int verbosity=0);
+      
     //##ModelId=3F9FF6AA03D2
     void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
@@ -58,14 +68,17 @@ class PyNodeImpl
     
     string sdebug(int detail = 0, const string &prefix = "", const char *name = 0) const;
 
-  protected:
-    // converts request to python (with caching)
-    PyObject * convertRequest (const Request &req);
-      
     OctoPython::PyObjectRef pynode_obj_;
     OctoPython::PyObjectRef pynode_setstate_;
     OctoPython::PyObjectRef pynode_getresult_;
+    OctoPython::PyObjectRef pynode_discoverspids_;
+    OctoPython::PyObjectRef pynode_processcommand_;
     
+  protected:
+    // converts request to python (with caching), returns 
+    // NEW REFERENCE
+    PyObject * convertRequest (const Request &req);
+      
     // cached request object
     OctoPython::PyObjectRef py_prev_request_;
     Request::Ref prev_request_;
@@ -91,6 +104,16 @@ class PyNode : public Node
                            const std::vector<Result::Ref> &childres,
                            const Request &req,bool newreq);
   
+    virtual int discoverSpids (Result::Ref &resref, 
+                               const std::vector<Result::Ref> &childres,
+                               const Request &req);
+    
+    virtual int processCommand (Result::Ref &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                const RequestId &rqid = RequestId(),
+                                int verbosity=0);
+    
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
     PyNodeImpl impl_;

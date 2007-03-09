@@ -118,7 +118,7 @@ def _import_script_or_module (script,modname=None):
     for comp in components[1:]:
       module = getattr(module,comp);
     # see if module needs to be reloaded (we don't have to do it when
-    # using load_file(), as that does an implicit reload).
+    # using load_source(), as that does an implicit reload).
     if module in _imported_modules:
       reload(module);
   # add to list of modules
