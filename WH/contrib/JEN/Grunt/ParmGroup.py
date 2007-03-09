@@ -213,7 +213,7 @@ class ParmGroup (NodeGroup.NodeGroup):
             if dd.has_key(key):
                 was = dd[key]
                 dd[key] = rr[key]
-                print '-',key,':',was,'->',dd[key]
+                print '-- override:',self.label(),key,':',was,'->',dd[key]
             else:
                 raise ValueError,'key ('+key+') not recognised in: '+str(dd.keys())
         self._default = dd

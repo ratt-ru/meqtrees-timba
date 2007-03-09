@@ -1330,8 +1330,8 @@ if __name__=="__main__":
     if 0:
         igui.test()
 
-    if 0:
-        for i in range(10):
+    if 1:
+        for i in range(30):
             igui.append(i)
 
     if 1:

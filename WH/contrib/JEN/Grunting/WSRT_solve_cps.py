@@ -84,9 +84,9 @@ def _define_forest (ns):
     #    short-circuited between the functions in the WSRT_Jones module)
     # The default controls for the various parameters in WSRT_Jones
     # may be overridden by specifying a field in the following way:
-    override = dict(example=dict(tfdeg=[2,3], subtile_size=1),
-                    Gphase=dict(tfdeg=[7,8], subtile_freq=2),
-                    GJones=dict(tfdeg=[2,2]),
+    override = dict(dummy=dict(tfdeg=[2,3], subtile_time=1, subtile_freq=1),
+                    Gphase=dict(),
+                    GJones=dict(),
                     JJones=dict(),
                     DJones=dict())
     jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),

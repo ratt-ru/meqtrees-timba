@@ -10,7 +10,7 @@
 # represent various groups of SkyComponents (e.g. a grid for testing).
 # It has various options for modifying its source pattern, e.g. rotation
 # translation, magnification, etc.
-# It is not a Meow Patch, but it can generate one. In addition, it can makes
+# It is not a Meow Patch, but it can generate one. In addition, it can make
 # a Visset22 with a ParmGroupManager, so we can solve for its source parameters
 # in the Grunt system.
 # It also has support for making subsets of its sources, for peeling. These
@@ -47,7 +47,6 @@ class SkyComponentGroup22 (object):
 
         self._ns = ns
         self._name = name
-        self._observation = Meow.Context.get_observation(None)    # ....??
 
         # Deal with input arguments (default set by TDL_options):
         # (But they may also be set via **pp)
@@ -113,8 +112,9 @@ class SkyComponentGroup22 (object):
                 print '  - '+key+': '+str(self._peeling_group[key])
             for key in self.order():
                 print '  - '+key+': '+str(self._peeling_Patch[key])
-            for key in self.order():
-                print '  - '+key+': '+str(self._peeling_Visset22[key].oneliner())
+            if len(self._peeling_Visset22)>0:
+                for key in self.order():
+                    print '  - '+key+': '+str(self._peeling_Visset22[key].oneliner())
         print '** Optimum image size: '+str(self.imagesize())+' arcmin'
         print '**\n'
         return True
@@ -130,7 +130,7 @@ class SkyComponentGroup22 (object):
         return self._order
 
     def key(self, key=None):
-        """Get a key into the skycomp dict"""
+        """Helper function to get a key into the skycomp dict"""
         if isinstance(key,int):
             # Convert an integer key (=index) into a string key:
             key = self.order()[key]
@@ -212,7 +212,7 @@ class SkyComponentGroup22 (object):
         """Add a Meow GaussianSource object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
         direction = Meow.LMDirection(self._ns, name, l, m)
-       # NB: Parameters are made with tag 'shape'
+        # NB: Parameters are made with tag 'shape'
         skycomp = Meow.GaussianSource(self._ns, name, direction,
                                       size=(1.0,2.0),              # <------
                                       phi=0, symmetric=False,
@@ -243,7 +243,7 @@ class SkyComponentGroup22 (object):
         If key==None, assume an overall Jones matrix (like EJones)"""
 
         if key==None:
-            # Note yet implemented....
+            # Not yet implemented....
             return False
         else:
             key = self.key(key)
@@ -254,32 +254,51 @@ class SkyComponentGroup22 (object):
             self._skycomp[key]['skycomp'] = sc
         return True
 
+
     #--------------------------------------------------------------------------
-    # Some operations on the source coordinates:
+    # Some operations on the skycomp (source) coordinates:
     #--------------------------------------------------------------------------
+
 
     def rotate(self, angle=0.0):
         """Rotate the group (l,m) around (0,0) by an angle (rad)"""
         sina = math.sin(angle)
         cosa = math.cos(angle)
-        for k in range(self.len()):
-            l = self._ll[k]*cosa - self._mm[k]*sina
-            self._mm[k] = self._ll[k]*sina + self._mm[k]*cosa
-            self._ll[k] = l
+        for key in self.order():
+            sc = self._skycomp[key]
+            lnew = sc['l']*cosa - sc['m']*sina
+            sc['m'] = sc['l']*sina + sc['m']*cosa
+            sc['l'] = lnew
         return True
 
     def translate(self, dl=0.0, dm=0.0):
         """Translate the group (l,m) by the specified (dl,dm)"""
-        for k in range(self.len()):
-            self._ll[k] += dl
-            self._mm[k] += dm
+        for key in self.order():
+            sc = self._skycomp[key]
+            sc['l'] += dl
+            sc['m'] += dm
         return True
+
+    def flux_center(self):
+        """Calculate the coordinates (l,m) of the center-of-flux,
+        i.e. the weighted sum of the skycomp coordinates (l,m)."""
+        lc = 0.0
+        mc = 0.0
+        wtot = 0.0
+        for key in self.order():
+            sc = self._skycomp[key]
+            wgt = 1.0
+            lc += wgt*sc['l']
+            mc += wgt*sc['m']
+            wtot += wgt
+        return [lc/wtot,mc/wtot]
 
     def magnify(self, ml=1.0, mm=1.0):
         """Magnify the group (l,m) w.r.t (0,0) by the specified factors (ml,mm)"""
-        for k in range(self.len()):
-            self._ll[k] *= ml
-            self._mm[k] *= mm
+        for key in self.order():
+            sc = self._skycomp[key]
+            sc['l'] *= ml
+            sc['m'] *= mm
         return True
 
 
@@ -287,31 +306,30 @@ class SkyComponentGroup22 (object):
     # Make visibilities (via the Meow Patch)
     #--------------------------------------------------------------------------
 
-    def visibilities (self, array, observation=None, nominal=False):
+    def visibilities (self, array=None, observation=None, nominal=False):
         """Return 'Meow' visibilities, i.e. as an unqualified node.
         If nominal==True, use the nominal (uncorrupted) skycomps."""
-        if not observation: observation = self._observation
         self.Meow_Patch(observation, nominal=nominal)
-        return self._Patch.visibilities(array, observation)
-
+        return self._Patch.visibilities(array,observation)
 
     def Visset22 (self, array=None, observation=None, name=None,
                   visu=True, nominal=False):
         """Create a Visset22 object from the visibilities of this SkyComponentGroup22.
         If nominal==True, use the nominal (uncorrupted) skycomps."""
-        if not self._Visset22:                                    # avoid duplication
-            self.Meow_Patch(observation, nominal=nominal)         # make sure of self._Patch
+        if not self._Visset22:                               # avoid duplication
+            self.Meow_Patch(observation, nominal=nominal)    # make sure of self._Patch
             self._Visset22 = self.Patch2Visset22 (self._Patch, array=array,
-                                                  observation=observation,
                                                   name=name, visu=visu)
         return self._Visset22
 
 
-    def Patch2Visset22 (self, Patch, array, observation=None, name=None, visu=True):
+    def Patch2Visset22 (self, Patch, array=None, observation=None,
+                        name=None, visu=True):
         """Helper function to create a Grunt Visset22 object from the given Meow Patch"""
 
         if not name: name = self._name
-        if not observation: observation = self._observation
+        observation = self.observation(observation)
+        array = self.array(array)
 
         polrep = 'linear'
         if observation.circular():
@@ -319,15 +337,12 @@ class SkyComponentGroup22 (object):
 
         # Make the Visset22:
         vis = Visset22.Visset22 (self._ns, quals=[], label=name,
-                                 polrep=polrep,
-                                 # simulate=self._simulate,
-                                 array=array, observation=observation)
+                                 polrep=polrep, array=array)
         # Make the 2x2 visibility matrices per ifr:
-        matrixet = Patch.visibilities(array,observation)
+        matrixet = Patch.visibilities(array, observation)
         vis.matrixet(new=matrixet)
 
         # ParmGroupManager... (get all MeqParms from self.ns...?)
-        # NB: Not if self._simulate==True (i.e. hide the MeqParms)
 
         if visu: vis.visualize('SkyComponentGroup22')
         return vis
@@ -337,7 +352,7 @@ class SkyComponentGroup22 (object):
         """Generate a single Meow Patch from the skycomps in this group.
         If nominal==True, use the nominal (uncorrupted) skycomps."""
         if not self._Patch:
-            if not observation: observation = self._observation
+            observation = self.observation(observation)
             self._Patch = Meow.Patch(self._ns, self._name,
                                      observation.phase_centre)
             for key in self.order():
@@ -346,6 +361,18 @@ class SkyComponentGroup22 (object):
                 else:
                     self._Patch.add(self._skycomp[key]['skycomp'])
         return self._Patch
+
+    def array (self, array=None):
+        """Helper function to make sure of an (Meow) IfrArray object"""
+        if not array:
+            array = Meow.Context.get_array(None)
+        return array
+
+    def observation (self, observation=None):
+        """Helper function to make sure of an (Meow) Observation object"""
+        if not observation:
+            observation = Meow.Context.get_observation(None)
+        return observation
 
 
     #--------------------------------------------------------------------------
@@ -365,7 +392,7 @@ class SkyComponentGroup22 (object):
             self._peeling_group = dict()
             for k in range(self.len()):
                 key = self.key(k)
-                patch = Meow.Patch(self._ns, key, self._observation.phase_centre)
+                patch = Meow.Patch(self._ns, key, self.observation().phase_centre)
                 self._peeling_Patch[key] = patch
                 self._peeling_group[key] = []
                 for i in range(window):
@@ -384,7 +411,8 @@ class SkyComponentGroup22 (object):
             self._peeling_Visset22 = dict()
             for key in self.order():
                 vis = self.Patch2Visset22 (self._peeling_Patch[key],
-                                           array=array, observation=observation,
+                                           array=array,
+                                           observation=observation,
                                            name=key, visu=False)
                 self._peeling_Visset22[key] = vis
         return True
@@ -402,13 +430,14 @@ class SkyComponentGroup22 (object):
         return self._peeling_Visset22[key]
 
     #---------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------
     
     def test (self):
         """Helper routine to add some test sources to the group"""
         self.add_PointSource('1st', 1,1)
         self.add_PointSource22('2nd', 1,0)
         self.add_PointSource22('3rd', 0,1)
-        self.add_GaussianSource('4th', 1,1)
+        self.add_GaussianSource('4th', 1,-1)
         return True
 
 
@@ -451,17 +480,17 @@ def _define_forest(ns):
     # scg.skycomp(0).display()
 
     if True:
-        jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS)
+        jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS, simulate=True)
         scg.corrupt(jones, label='G', key=1)
         scg.display('corrupted')
 
     if True:
-        vis = scg.Visset22(array, observation)
+        vis = scg.Visset22()
         vis.display()
         cc.append(vis.bundle())
 
     if False:
-        scg.make_peeling_Visset22(3, array, observation)
+        scg.make_peeling_Visset22(window=3)
         scg.display()
         for k in range(scg.len()):
             vis = scg.peeling_Visset22(k)
@@ -493,7 +522,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        num_stations = 3
+        num_stations = 5
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
@@ -506,13 +535,22 @@ if __name__ == '__main__':
         scg.display('init')
 
         if 0:
-            scg.translate(1,1)
+            scg.rotate(0.01)
+            # scg.translate(1,10)
+            # scg.magnify(2,0.5)
             scg.display()
-            scg.rotate(1)
+
+        if 0:
+            lm = scg.flux_center()
+            print 'lm (before) =',lm 
+            scg.translate(-lm[0],-lm[1])
+            lm = scg.flux_center()
+            print 'lm (after) =',lm 
+            scg.display()
 
         if 1:
-            jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS)
-            scg.corrupt(jones, label='G', key=1)
+            jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS, simulate=True)
+            scg.corrupt(jones, label='G', key=3)
             scg.display()
 
         if 0:
@@ -521,11 +559,11 @@ if __name__ == '__main__':
             scg.display('Visset22')
 
         if 0:
-            scg.make_peeling_Patches(3)
+            scg.make_peeling_Patches(window=3)
             scg.display('peeling_Patches')
 
         if 0:
-            scg.make_peeling_Visset22(3, array=array)
+            scg.make_peeling_Visset22(window=2)
             scg.display('peeling_Visset22')
 
 

@@ -372,6 +372,46 @@ class Matrixet22 (object):
         # Enhancement: If flat=True, flatten the keylist....?
         return keylist
 
+    #--------------------------------------------------------------------------
+
+    def insert_accumulist_reqseq (self, key=None, qual=None, visu=False, name='accumulist'):
+        """Insert a series of reqseq node(s) with the children accumulated
+        in self._accumulist (see Matrixet22). The reqseqs will get the current
+        matrix nodes as their last child, to which their result is transmitted."""
+
+        # If visu==True, append the visualisation dcoll to the accumulist,
+        # so that it will get the last request before the main-stream is addressed.
+        if visu: self.visualize(name, visu=visu)
+        
+        cc = self.accumulist(key=key, clear=False)
+        n = len(cc)
+        if n>0:
+            quals = self.quals(append=qual)
+            cc.append('placeholder')
+            name = 'reqseq'
+            if isinstance(key, str): name += '_'+str(key)
+            for ifr in self.ifrs():
+                cc[n] = self._matrixet(*ifr)         # fill in the placeholder
+                self._ns[name](*quals)(*ifr) << Meq.ReqSeq(children=cc, result_index=n,
+                                                           cache_num_active_parents=1)
+            self._matrixet = self._ns[name](*quals)
+        return True
+
+    #---------------------------------------------------------------------
+
+    def bundle_accumulist(self, qual=None):
+        """Bundle the nodes in self._accumulist with a reqseq"""
+        cc = self.accumulist(clear=False)
+        n = len(cc)
+        if n==0: return None
+        if n==1: return cc[0]
+        quals = self.quals(append=qual)
+        if not self._ns.bundle_accumulist(*quals).initialized():
+            self._ns.bundle_accumulist(*quals) << Meq.ReqSeq(children=cc,
+                                                             result_index=n-1)
+        return self._ns.bundle_accumulist(*quals)
+
+    #---------------------------------------------------------------------------
 
     def merge_accumulist (self, other):
         """Merge the accumulist of another Matrix22 object with its own."""
@@ -472,6 +512,10 @@ class Matrixet22 (object):
             cc = []
             for i in self.list_indices():
                 cc.append(self._matrixet(*i))
+            if oper=='Composer':
+                # Append a reqseq of self._accumulist nodes (if any):
+                accuroot = self.bundle_accumulist(qual=qual)
+                if accuroot: cc.append(accuroot)
             self._ns.bundle(oper)(*quals) << getattr(Meq,oper)(children=cc)
         return self._ns.bundle(oper)(*quals)
 

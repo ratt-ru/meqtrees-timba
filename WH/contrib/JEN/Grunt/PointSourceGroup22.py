@@ -173,8 +173,8 @@ def _define_forest(ns):
         vis.display()
         cc.append(vis.bundle())
 
-    if True:
-        psg.make_peeling_Visset22(3, array, observation)
+    if False:
+        psg.make_peeling_Visset22(window=3)
         psg.display()
         for k in range(psg.len()):
             vis = psg.peeling_Visset22(k)
@@ -216,11 +216,11 @@ if __name__ == '__main__':
         psg.display()
 
         if 1:
-            psg.make_peeling_Patches(3)
+            psg.make_peeling_Patches(window=3)
             psg.display('peeling_Patches')
 
         if 1:
-            psg.make_peeling_Visset22(3, array=array, observation=observation)
+            psg.make_peeling_Visset22(window=3)
             psg.display('peeling_Visset22')
 
 
