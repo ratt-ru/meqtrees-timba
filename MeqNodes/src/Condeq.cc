@@ -101,10 +101,13 @@ int Condeq::getResult (Result::Ref &resref,
   Assert(nrch<=3);
   // Figure out the dimensions of the output result, and see that children
   // match these dimensions. 
+  FailWhen(!child_result[0]->numVellSets(),"no vellsets in child result #0");
   Result::Dims out_dims = child_result[0]->dims();
   for( int i=1; i<nrch; i++ )
-    if( child_result[i].valid() ) // #2 may be missing
+  {
+    if( child_result[i].valid() ) 
     {
+      FailWhen(!child_result[i]->numVellSets(),ssprintf("no vellsets in child result #%d",i));
       if( !child_result[i]->dims().empty() ) // child #i is a tensor
       {
         if( out_dims.empty() )               // previous children were scalar
@@ -115,6 +118,11 @@ int Condeq::getResult (Result::Ref &resref,
         }
       }
     }
+    // child 2 (weights) may be missing and that's OK; if it's 0 or 1, return 
+    // MISSING code
+    else if( i<2 )
+      return RES_MISSING;
+  }
   // Create result object and attach to the ref that was passed in
   Result & result = resref <<= new Result(out_dims);
   int nplanes = result.numVellSets(); // total number of output elements
