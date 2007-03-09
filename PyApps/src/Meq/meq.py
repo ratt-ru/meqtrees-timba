@@ -364,9 +364,14 @@ def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
   return _vellset_type(value=mainval,**kw);
   
-def result (vellset,cells):
+def result (vellset=None,cells=None):
   """Creates a Result from the given VellSet and Cells""";
-  return _result_type(vellsets=[vellset],cells=cells);
+  kw = record();
+  if vellset is not None:
+    kw.vellsets = [ vellset ];
+  if cells is not None:
+    kw.cells = cells;
+  return _result_type(**kw);
   
 
 # # #-- meq.result() -------------------------------------------------------------
