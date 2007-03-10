@@ -42,13 +42,13 @@ def include_EqualPointSourceGrid_TDL_options (prompt='definition'):
                    TDLOption('TDL_pattern','source pattern',
                              ['grid','cross','star8'], more=str),
                    TDLOption('TDL_nsrc2','nsrc2 (-nsrc2:nsrc2)',[1,2,3,4,0], more=int),
-                   TDLOption('TDL_l0','l0 (arcmin)',[0.0], more=float),
-                   TDLOption('TDL_m0','m0 (arcmin)',[0.0], more=float),
-                   TDLOption('TDL_dl','dl (arcmin)',[5.0], more=float),
-                   TDLOption('TDL_dm','dm (arcmin)',[5.0], more=float),
+                   TDLOption('TDL_l0','l0 (arcmin)',[0.0,5,10,20,40,80], more=float),
+                   TDLOption('TDL_m0','m0 (arcmin)',[0.0,5,10,20,40,80], more=float),
+                   TDLOption('TDL_dl','dl (arcmin)',[5.0,10,20,40,80], more=float),
+                   TDLOption('TDL_dm','dm (arcmin)',[5.0,10,20,40,80], more=float),
                    )
     # Also include the source definition options:
-    PointSource22.include_TDL_options(prompt)
+    PointSource22.include_TDL_options(prompt+': sources')
     return True
     
 
@@ -93,7 +93,7 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = SkyComponentGroup22.SkyComponentGroup22.oneliner(self)
-        ss += '  '+str(self._pp['pattern'])
+        ss += '  '+str(self._pp['pattern'])+'_'+str(self._pp['nsrc2'])
         return ss
 
     #----------------------------------------------------------------------
@@ -152,7 +152,7 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
 # Test routine (with meqbrowser):
 #===============================================================
 
-include_EqualPointSourceGrid_TDL_options('test')
+# include_EqualPointSourceGrid_TDL_options('test')
 
 def _define_forest(ns):
 
@@ -164,20 +164,21 @@ def _define_forest(ns):
     observation = Meow.Observation(ns)
     Meow.Context.set (array, observation)
 
-    psg = EqualPointSourceGrid22 (ns, name='test')
-    psg.display()
-    psg.skycomp(0).display()
+    epsg = EqualPointSourceGrid22 (ns, name='test')
+    epsg.display()
+    epsg.skycomp(0).display()
 
     if True:
-        vis = psg.Visset22(array, observation)
+        vis = epsg.Visset22()
+        vis.addGaussianNoise(0.1, visu=True)
         vis.display()
         cc.append(vis.bundle())
 
-    if False:
-        psg.make_peeling_Visset22(window=3)
-        psg.display()
-        for k in range(psg.len()):
-            vis = psg.peeling_Visset22(k)
+    if True:
+        epsg.make_peeling_Visset22(window=3)
+        epsg.display()
+        for k in range(epsg.len()):
+            vis = epsg.peeling_Visset22(k)
             vis.display()
             cc.append(vis.bundle())
 
@@ -212,16 +213,16 @@ if __name__ == '__main__':
         Meow.Context.set (array, observation)
 
     if 1:
-        psg = EqualPointSourceGrid22 (ns, name='testing')
-        psg.display()
+        epsg = EqualPointSourceGrid22 (ns, name='testing')
+        epsg.display()
 
         if 1:
-            psg.make_peeling_Patches(window=3)
-            psg.display('peeling_Patches')
+            epsg.make_peeling_Patches(window=3)
+            epsg.display('peeling_Patches')
 
         if 1:
-            psg.make_peeling_Visset22(window=3)
-            psg.display('peeling_Visset22')
+            epsg.make_peeling_Visset22(window=3)
+            epsg.display('peeling_Visset22')
 
 
 #=======================================================================

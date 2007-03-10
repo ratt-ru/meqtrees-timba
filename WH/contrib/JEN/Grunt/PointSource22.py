@@ -64,6 +64,9 @@ class PointSource22 (Meow.PointSource):
 
         include_TDL_options()
 
+        if direction==None:
+            direction = Meow.LMDirection(ns, self._pp['name'], l=0.0, m=0.0)
+
         # Deal with input parameters:
         self._pp = pp
         if not isinstance(self._pp, dict): self._pp = dict()
@@ -306,8 +309,9 @@ if __name__ == '__main__':
         Meow.Context.set (array, observation)
         src = 'unpol'
         src = 'QUV'
-        direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
-        ps = PointSource22 (ns, predefined=src, direction=direction)
+        # direction = Meow.LMDirection(ns, src, l=1.0, m=1.0)
+        # ps = PointSource22 (ns, predefined=src, direction=direction)
+        ps = PointSource22 (ns, predefined=src)
         ps.display()
 
     if 1:

@@ -79,6 +79,7 @@ class SkyComponentGroup22 (object):
         ss = str(type(self))
         ss += '  '+str(self._name)
         ss += ' (n='+str(self.len())+')'
+        ss += ' c='+str(self.flux_center())
         return ss
 
 
@@ -156,6 +157,20 @@ class SkyComponentGroup22 (object):
         return self.len()
 
     #--------------------------------------------------------------------------
+
+    def array (self, array=None):
+        """Helper function to make sure of an (Meow) IfrArray object"""
+        if not array:
+            array = Meow.Context.get_array(None)
+        return array
+
+    def observation (self, observation=None):
+        """Helper function to make sure of an (Meow) Observation object"""
+        if not observation:
+            observation = Meow.Context.get_observation(None)
+        return observation
+
+    #--------------------------------------------------------------------------
     # Some virtual methods (to be re-implemented)
     #--------------------------------------------------------------------------
 
@@ -193,21 +208,6 @@ class SkyComponentGroup22 (object):
         return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
 
-    def get_parmgroups(self, skycomp):
-        """Helper function to get parmgroups from the skycomp"""
-        vis = skycomp.visibilities()
-        vis_again = skycomp.visibilities()
-        array = Meow.Context.get_array(None)
-        vis0 = vis(*array.ifrs()[0])
-        print '\n** get_parmgroups():',skycomp.name,vis0
-        rr = dict()
-        for tag in ['flux','direction']:
-            rr[tag] = vis0.search(tags=tag)
-            for node in rr[tag]:
-                print '-',tag,':',node.classname,node.name
-        print
-        return rr
-
     def add_GaussianSource (self, name=None, l=0.0, m=0.0, wgt=1.0):
         """Add a Meow GaussianSource object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
@@ -232,33 +232,34 @@ class SkyComponentGroup22 (object):
         return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
 
 
-
-
     #--------------------------------------------------------------------------
-    # Corruption:
+    # Update its ParmGroupManager from the given skycomp:
     #--------------------------------------------------------------------------
 
-    def corrupt (self, jones, label='G', key=None):
-        """Corrupt the specified (key) SkyComponent with the given Jones matrix.
-        If key==None, assume an overall Jones matrix (like EJones)"""
-
-        if key==None:
-            # Not yet implemented....
-            return False
-        else:
-            key = self.key(key)
-            sc = self._skycomp[key]['skycomp']
-            # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
-            sc = Meow.CorruptComponent(self._ns, sc, label,
-                                       station_jones=jones.matrixet())
-            self._skycomp[key]['skycomp'] = sc
-        return True
+    def get_parmgroups(self, skycomp, trace=True):
+        """Helper function to get parmgroups from the skycomp"""
+        # .......(not fully implemented yet)..........
+        vis = skycomp.visibilities()
+        vis_again = skycomp.visibilities()
+        array = Meow.Context.get_array(None)
+        vis0 = vis(*array.ifrs()[0])
+        if trace:
+            print '\n** get_parmgroups(): skycomp:',skycomp.name,' (vis0=',vis0,')'
+        rr = dict()
+        for tag in ['flux','direction','spectrum']:
+            rr[tag] = vis0.search(tags=tag)
+            if trace and len(rr[tag])==0:
+                print '  -- vis0.search(tags=',tag,') -> rr[',tag,']=',rr[tag]
+            for node in rr[tag]:
+                if trace: print '  - tag=',tag,':',node.classname,node.name
+        if trace: print
+        return rr
 
 
     #--------------------------------------------------------------------------
     # Some operations on the skycomp (source) coordinates:
+    # i.e. functions to rearrange the source pattern
     #--------------------------------------------------------------------------
-
 
     def rotate(self, angle=0.0):
         """Rotate the group (l,m) around (0,0) by an angle (rad)"""
@@ -271,6 +272,7 @@ class SkyComponentGroup22 (object):
             sc['l'] = lnew
         return True
 
+
     def translate(self, dl=0.0, dm=0.0):
         """Translate the group (l,m) by the specified (dl,dm)"""
         for key in self.order():
@@ -278,6 +280,26 @@ class SkyComponentGroup22 (object):
             sc['l'] += dl
             sc['m'] += dm
         return True
+
+
+    def magnify(self, ml=1.0, mm=1.0):
+        """Magnify the group (l,m) w.r.t (0,0) by the specified factors (ml,mm)"""
+        for key in self.order():
+            sc = self._skycomp[key]
+            sc['l'] *= ml
+            sc['m'] *= mm
+        return True
+
+
+    def center(self):
+        """Move the flux-center to (l=0,m=0)"""
+        lm = self.flux_center()
+        # print 'lm (before) =',lm 
+        self.translate(dl=-lm[0], dm=-lm[1])
+        lm = self.flux_center()
+        # print 'lm (after) =',lm 
+        return True
+
 
     def flux_center(self):
         """Calculate the coordinates (l,m) of the center-of-flux,
@@ -293,24 +315,32 @@ class SkyComponentGroup22 (object):
             wtot += wgt
         return [lc/wtot,mc/wtot]
 
-    def magnify(self, ml=1.0, mm=1.0):
-        """Magnify the group (l,m) w.r.t (0,0) by the specified factors (ml,mm)"""
-        for key in self.order():
-            sc = self._skycomp[key]
-            sc['l'] *= ml
-            sc['m'] *= mm
+
+    #--------------------------------------------------------------------------
+    # Corruption:
+    #--------------------------------------------------------------------------
+
+    def corrupt (self, jones, label='G', key=None):
+        """Corrupt the specified (key) SkyComponent with the given Jones matrix.
+        If key==None, assume an image-plane (overall) Jones matrix (like EJones)"""
+
+        if key==None:
+            # Image-plane effect: not yet implemented....
+            return False
+        else:
+            key = self.key(key)
+            sc = self._skycomp[key]['skycomp']
+            # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
+            sc = Meow.CorruptComponent(self._ns, sc, label,
+                                       station_jones=jones.matrixet())
+            self._skycomp[key]['skycomp'] = sc
         return True
+
 
 
     #--------------------------------------------------------------------------
     # Make visibilities (via the Meow Patch)
     #--------------------------------------------------------------------------
-
-    def visibilities (self, array=None, observation=None, nominal=False):
-        """Return 'Meow' visibilities, i.e. as an unqualified node.
-        If nominal==True, use the nominal (uncorrupted) skycomps."""
-        self.Meow_Patch(observation, nominal=nominal)
-        return self._Patch.visibilities(array,observation)
 
     def Visset22 (self, array=None, observation=None, name=None,
                   visu=True, nominal=False):
@@ -347,6 +377,12 @@ class SkyComponentGroup22 (object):
         if visu: vis.visualize('SkyComponentGroup22')
         return vis
 
+    def visibilities (self, array=None, observation=None, nominal=False):
+        """Return 'Meow' visibilities, i.e. as an unqualified node.
+        If nominal==True, use the nominal (uncorrupted) skycomps."""
+        self.Meow_Patch(observation, nominal=nominal)
+        return self._Patch.visibilities(array,observation)
+
 
     def Meow_Patch (self, observation=None, nominal=False):
         """Generate a single Meow Patch from the skycomps in this group.
@@ -361,18 +397,6 @@ class SkyComponentGroup22 (object):
                 else:
                     self._Patch.add(self._skycomp[key]['skycomp'])
         return self._Patch
-
-    def array (self, array=None):
-        """Helper function to make sure of an (Meow) IfrArray object"""
-        if not array:
-            array = Meow.Context.get_array(None)
-        return array
-
-    def observation (self, observation=None):
-        """Helper function to make sure of an (Meow) Observation object"""
-        if not observation:
-            observation = Meow.Context.get_observation(None)
-        return observation
 
 
     #--------------------------------------------------------------------------
@@ -534,21 +558,14 @@ if __name__ == '__main__':
         scg.test()
         scg.display('init')
 
-        if 0:
-            scg.rotate(0.01)
+        if 1:
+            # scg.rotate(0.01)
             # scg.translate(1,10)
             # scg.magnify(2,0.5)
+            scg.center()
             scg.display()
 
         if 0:
-            lm = scg.flux_center()
-            print 'lm (before) =',lm 
-            scg.translate(-lm[0],-lm[1])
-            lm = scg.flux_center()
-            print 'lm (after) =',lm 
-            scg.display()
-
-        if 1:
             jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS, simulate=True)
             scg.corrupt(jones, label='G', key=3)
             scg.display()
