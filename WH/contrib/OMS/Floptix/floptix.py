@@ -157,6 +157,8 @@ class PyCameraImage (pynode.PyNode):
     mystate('pert_scale',1e-6);
     # max perturbation
     mystate('max_pert',3);
+    # delay to let the system settle before taking a measurement, in secs
+    mystate('settle_time',.5);
     # name and nodeindex
     mystate('name','');
     mystate('nodeindex',0);
@@ -174,8 +176,8 @@ class PyCameraImage (pynode.PyNode):
     # read image
     img = PIL.Image.open(filename);
     # apply shrink factor, if needed
+    nx,ny = img.size;
     if self.rescale != 1.:
-      nx,ny = img.size;
       nx = int(round(nx*self.rescale));
       ny = int(round(ny*self.rescale));
       img = img.resize((nx,ny)); # ,PIL.Image.ANTIALIAS);
@@ -215,6 +217,7 @@ class PyCameraImage (pynode.PyNode):
                        
   def get_result (self,request,*children):
     # read main image
+    time.sleep(self.settle_time);
     cells,value = self._acquire_image();
     vellset = meq.vellset(value);
     # if solvable, perturb each actuator
@@ -224,6 +227,7 @@ class PyCameraImage (pynode.PyNode):
       vellset.perturbed_value = perturbed_value = [];
       for act in self.actuators:
         motor_control.move(act,1,self.perturbation);  # move motor forward
+        time.sleep(self.settle_time);
         cells,vells = self._acquire_image();
         motor_control.move(act,0,self.perturbation);  # move motor back
         spid_index.append(self._spid(act));

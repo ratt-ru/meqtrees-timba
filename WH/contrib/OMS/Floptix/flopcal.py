@@ -51,7 +51,7 @@ def make_lsm (ns,sources,support=False):
   );
   # make two sets of sources: with a solvable fwhm, and
   # with a static fwhm
-  ns.fwhm('fit') << Meq.Parm(1,tags="lsm fwhm");
+  ns.fwhm('fit') << Meq.Parm(1,constrain_min=0.,constrain_max=100.,tags="lsm fwhm");
   ns.fwhm('ideal') << Meq.Parm(ideal_fwhm);
   for tp in ('fit','ideal'):
     ns.sigma(tp) << ns.fwhm(tp)/2.3548; 
@@ -61,11 +61,18 @@ def make_lsm (ns,sources,support=False):
   xy_nodes = [];
   source_nodes = [];
   # now loop over sources
+  first_source = True;
   for src,x,y in sources:
+    _dprint(0,"source at",x,y);
     ns.flux(src) << Meq.Parm(0,tags="lsm flux")
+    if first_source:
+      first_source = False;
+      tags = "lsm pos0";
+    else: 
+      tags = "lsm pos";
     ns.xy0(src) << Meq.Composer(
-      ns.x0(src) << Meq.Parm(x,tags="lsm pos"),
-      ns.y0(src) << Meq.Parm(y,tags="lsm pos")
+      ns.x0(src) << Meq.Parm(x,constrain_min=x-20,constrain_max=x+20,tags=tags),
+      ns.y0(src) << Meq.Parm(y,constrain_min=y-20,constrain_max=y+20,tags=tags)
     );
     xy_nodes.append(ns.xy0(src));
     # create support
@@ -102,7 +109,6 @@ def _define_forest (ns,**kwargs):
     os.system("pnmtofits %s >%s.fits"%(filename,filename))
   else:
     os.system("pnmscale %f %s | pnmtofits >%s.fits"%(scaling_factor,filename,filename))
-  os.system("sextractor %s.fits"%filename);
   # get image shape
   global image_nx;
   global image_ny;
@@ -141,26 +147,41 @@ def _define_forest (ns,**kwargs):
   bk = Meow.Bookmarks.Page("Optical calibration");
   ns.ce_cal << Meq.Condeq(masked_image,lsm_ideal);
   ns.residual_cal << Meq.Subtract(ns.img,lsm_ideal,cache_policy=100);
+  solvable = masked_image.search(tags="actuators");
+  # also solve for lsm fluxes and positions (but not pos0)
+  solvable += lsm_ideal.search(tags="lsm (flux|pos|supp)");
   ns.solver_cal << Meq.Solver(ns.ce_cal,
          num_iter=20,
 	 epsilon=1e-4,
 	 lm_factor=1e-4,
 	 last_update=True,
-	 solvable=masked_image.search(tags="actuators"));
+	 solvable=solvable);
   bk.add(masked_image);
   bk.add(ns.ce_cal);
   bk.add(ns.residual_cal);
   bk.add(ns.solver_cal);
   ns.reqseq_cal << Meq.ReqSeq(ns.solver_cal,ns.residual_cal);
   
+def _tdl_job_1_run_source_extraction (mqs,parent,**kwargs):
+  # run source finding on current image
+  if static_mode:
+    filename = filename_pattern;
+  else:
+    filename = floptix.acquire_imagename(filename_pattern,directory=directory_name);
+  _dprint(0,"running source finding on",filename);
+  if scaling_factor == 1:
+    os.system("pnmtofits %s >%s.fits"%(filename,filename))
+  else:
+    os.system("pnmscale %f %s | pnmtofits >%s.fits"%(scaling_factor,filename,filename))
+  os.system("sextractor %s.fits"%filename);
 
-def _tdl_job_1_solve_for_LSM (mqs,parent,**kwargs):
+def _tdl_job_2_solve_for_LSM (mqs,parent,**kwargs):
   # run tests on the forest
   cells = floptix.make_cells(image_nx,image_ny,'time','freq');
   request = meq.request(cells,rqtype='ev');
   mqs.execute('reqseq_lsm',request);
 
-def _tdl_job_2_calibrate_optics (mqs,parent,**kwargs):
+def _tdl_job_3_calibrate_optics (mqs,parent,**kwargs):
   # run tests on the forest
   cells = floptix.make_cells(image_nx,image_ny,'time','freq');
   request = meq.request(cells,rqtype='ev');
