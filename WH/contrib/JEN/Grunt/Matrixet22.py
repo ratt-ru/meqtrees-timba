@@ -49,7 +49,8 @@ class Matrixet22 (object):
             self._pols = ['R','L']
 
         # Node-name qualifiers:
-        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
+        # self._quals = Qualifiers.Qualifiers(quals, prepend=label)  # ...confusing...
+        self._quals = Qualifiers.Qualifiers(quals)
 
         self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
         if self._simulate:
@@ -310,7 +311,7 @@ class Matrixet22 (object):
     # Interface functions with its ParmGroupManager:
     #=====================================================================================
 
-    def define_parmgroup(self, name, descr=None, tags=[], 
+    def define_parmgroup(self, key, quals=[], descr=None, tags=[], 
                          default=None, constraint=None, override=None,
                          simul=None, simulate_override=None,
                          rider=None):
@@ -322,16 +323,16 @@ class Matrixet22 (object):
 
         simulate = (self._simulate or simulate_override)
 
-        pg = self._pgm.define_parmgroup(name=name, descr=descr, tags=tags, 
+        pg = self._pgm.define_parmgroup(key=key, quals=quals, descr=descr, tags=tags, 
                                         default=default, constraint=constraint,
                                         override=override, 
                                         simul=simul, simulate=simulate,
                                         rider=rider)
         return pg
 
-    def create_parmgroup_entry(self, key=None, qual=None):
+    def create_parmgroup_entry(self, key=None, qual=None, quals=[]):
         """Create an entry (qual, e.g. station nr) in a previously defined parmgroup (key)"""
-        return self._pgm.create_parmgroup_entry(key=key, qual=qual)
+        return self._pgm.create_parmgroup_entry(key=key, qual=qual, quals=quals)
 
     def define_gogs(self, name='mx22_pgm'):
         """Define groups of parmgroups, using their tags"""

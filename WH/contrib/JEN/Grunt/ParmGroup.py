@@ -440,7 +440,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
         # Make sure that tags/quals of the created nodes reflect the fact
         # that this is a simulated parameter.
-        self._tags.append('simul')                     # ....??
+        if not 'simul' in self._tags:
+            self._tags.append('simul')         
         self._quals.append('simul')
 
         # The default value(s) of the MeqParm that is being simulated:
@@ -501,7 +502,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def override_simul (self, rr=None, trace=True):
+    def override_simul (self, rr=None, trace=False):
         """Helper function to override the values of named fields in self._simul
         with the values of fields with the same name in rr"""
         if trace: print '** .override_simul():'

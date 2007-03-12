@@ -67,7 +67,7 @@ class SkyComponentGroup22 (object):
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
-        # self._pgm = ParmGroupManager.ParmGroupManager(ns, label=name)
+        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name)
 
         # Finished:
         return None
@@ -131,15 +131,16 @@ class SkyComponentGroup22 (object):
         return self._order
 
     def key(self, key=None):
-        """Helper function to get a key into the skycomp dict"""
+        """Helper function to turn the given key (integer or string)
+        into a valid (string) skycomp name, if possible.
+        If not recognised, return False."""
         if isinstance(key,int):
-            # Convert an integer key (=index) into a string key:
-            key = self.order()[key]
-        if not isinstance(key,str):
-            return False
-        if key in self._skycomp.keys():
-            return key
-        return False
+            key = self.order()[key]          # Convert an integer key (=index) into a string key:
+        if isinstance(key,str):
+            if key in self._skycomp.keys():
+                return key                   # OK, existing key (skycomp name)
+        raise ValueError, 'key ('+str(key)+') not recognised in: '+str(self._skycomp.keys())
+        return False                       
 
     def skycomp(self, key=None, nominal=False):
         """Return the specified (key) SkyComponent"""
@@ -256,6 +257,30 @@ class SkyComponentGroup22 (object):
         return rr
 
 
+
+    #--------------------------------------------------------------------------
+    # Corruption by jones matrix:
+    #--------------------------------------------------------------------------
+
+    def corrupt (self, jones, label='G', key=None):
+        """Corrupt the specified (key) SkyComponent with the given Jones matrix.
+        If key==None, assume an image-plane (overall) Jones matrix (like EJones)"""
+
+        if key==None:
+            # Image-plane effect: not yet implemented....
+            return False
+        else:
+            key = self.key(key)
+            sc = self._skycomp[key]['skycomp']
+            # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
+            sc = Meow.CorruptComponent(self._ns, sc, label,
+                                       station_jones=jones.matrixet())
+            self._skycomp[key]['skycomp'] = sc
+            self._pgm.merge(jones._pgm)
+        return True
+
+
+
     #--------------------------------------------------------------------------
     # Some operations on the skycomp (source) coordinates:
     # i.e. functions to rearrange the source pattern
@@ -317,29 +342,7 @@ class SkyComponentGroup22 (object):
 
 
     #--------------------------------------------------------------------------
-    # Corruption:
-    #--------------------------------------------------------------------------
-
-    def corrupt (self, jones, label='G', key=None):
-        """Corrupt the specified (key) SkyComponent with the given Jones matrix.
-        If key==None, assume an image-plane (overall) Jones matrix (like EJones)"""
-
-        if key==None:
-            # Image-plane effect: not yet implemented....
-            return False
-        else:
-            key = self.key(key)
-            sc = self._skycomp[key]['skycomp']
-            # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
-            sc = Meow.CorruptComponent(self._ns, sc, label,
-                                       station_jones=jones.matrixet())
-            self._skycomp[key]['skycomp'] = sc
-        return True
-
-
-
-    #--------------------------------------------------------------------------
-    # Make visibilities (via the Meow Patch)
+    # Make visibilities (via a Meow Patch)
     #--------------------------------------------------------------------------
 
     def Visset22 (self, array=None, observation=None, name=None,
@@ -386,8 +389,9 @@ class SkyComponentGroup22 (object):
 
     def Meow_Patch (self, observation=None, nominal=False):
         """Generate a single Meow Patch from the skycomps in this group.
-        If nominal==True, use the nominal (uncorrupted) skycomps."""
-        if not self._Patch:
+        If nominal==True, use the nominal (uncorrupted) skycomps,
+        otherwise use the regular (possibly corrupted) skycomps."""
+        if not self._Patch:                                # avoid duplication...?
             observation = self.observation(observation)
             self._Patch = Meow.Patch(self._ns, self._name,
                                      observation.phase_centre)
@@ -504,8 +508,9 @@ def _define_forest(ns):
     # scg.skycomp(0).display()
 
     if True:
-        jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS, simulate=True)
-        scg.corrupt(jones, label='G', key=1)
+        for key in scg.order():
+            jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS, simulate=True)
+            scg.corrupt(jones, label=jones.label(), key=key)
         scg.display('corrupted')
 
     if True:
@@ -557,8 +562,9 @@ if __name__ == '__main__':
         scg = SkyComponentGroup22 (ns, name='testing')
         scg.test()
         scg.display('init')
+        # scg.key('xxx')
 
-        if 1:
+        if 0:
             # scg.rotate(0.01)
             # scg.translate(1,10)
             # scg.magnify(2,0.5)
@@ -566,9 +572,22 @@ if __name__ == '__main__':
             scg.display()
 
         if 0:
-            jones = Joneset22.GJones(ns, quals='xxx', stations=ANTENNAS, simulate=True)
+            jones = Joneset22.GJones(ns,
+                                     quals=['xxx',3],
+                                     stations=ANTENNAS, simulate=True)
             scg.corrupt(jones, label='G', key=3)
+            print 'after corrupt'
             scg.display()
+            scg._pgm.display()
+
+        if 1:
+            for key in scg.order()[0:2]:
+                jones = Joneset22.GJones(ns, quals=key,
+                                         stations=ANTENNAS, simulate=False)
+                scg.corrupt(jones, label=jones.label(), key=key)
+            scg.display()
+            scg._pgm.display()
+            # print scg._pgm.tabulate()
 
         if 0:
             vis = scg.Visset22(array)

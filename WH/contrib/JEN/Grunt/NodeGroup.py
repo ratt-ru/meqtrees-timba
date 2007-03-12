@@ -38,8 +38,11 @@ class NodeGroup (object):
                  rider=None):
 
         self._ns = ns                         # node-scope (required)
-        self._label = label                   # label of the parameter group 
+        self._label = str(label)
         self._descr = descr                   # brief description 
+
+        # Node-name qualifiers:
+        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
 
         self._nodelist = []                   # initialise the internal nodelist
         if len(nodelist)>0:
@@ -49,9 +52,6 @@ class NodeGroup (object):
         # A NodeGroup carries a rider (dict), which contains user-defined info:
         self._rider = dict()
         if isinstance(rider, dict): self._rider = rider
-
-        # Node-name qualifiers:
-        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
 
         # Node tags (for searching the nodescope)
         self._tags = deepcopy(tags)
@@ -86,7 +86,8 @@ class NodeGroup (object):
         ss = str(type(self))
         ss += ' '+str(self.label())
         ss += ' (n='+str(self.len())+')'
-        ss += ' quals='+str(self._quals.get())
+        # ss += ' quals='+str(self._quals.get())
+        ss += ' tags='+str(self._tags)
         if True and len(self._rider)>0:
             for key in self._rider.keys():
                 ss += ' ('+key+'='+str(self._rider[key])+')'
@@ -357,10 +358,20 @@ class NodeGroup (object):
 
 
 
-#==========================================================================
-#==========================================================================
-#==========================================================================
-#==========================================================================
+
+
+
+
+
+
+
+
+
+
+
+#===========================================================================================
+#===========================================================================================
+#===========================================================================================
 
 
 class NodeGog (object):
@@ -373,7 +384,7 @@ class NodeGog (object):
         self._descr = descr                   # brief description 
 
         self._group = []                      # initialise the internal group
-        if len(group)>0:
+        if len(group)>0:                      # group supplied externally
             for g in group:
                 self.append_entry(g)
 
@@ -454,9 +465,17 @@ class NodeGog (object):
     #-------------------------------------------------------------------
 
     def append_entry(self, group):
-        """Append the given entry (group) to the internal group."""
-        # Check whether group is a valid NodeGroup....?
-        self._group.append(group)
+        """Append the given entry (group) to the internal group.
+        NB: If group is a list (of NodeGroups), all its elements are appended."""
+        was = self.len()
+        if not isinstance(group,(list,tuple)):
+            group = [group]
+        for g in group:
+            # NB: Check whether group is a valid NodeGroup....?
+            test = (type(g)==NodeGroup)
+            # test = (type(g)==ParmGroup.ParmGroup)
+            self._group.append(g)
+            print '----- append_entry(',self.label(),g.label(),test,'):',was,'->',self.len()
         return len(self._group)
 
     #----------------------------------------------------------------------

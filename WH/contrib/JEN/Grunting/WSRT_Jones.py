@@ -282,6 +282,7 @@ class DJones (Joneset22.Joneset22):
         # Define the various primary ParmGroups:
         if coupled_dang:
             self.define_parmgroup(dname, descr='dipole angle error',
+                                  quals=quals,
                                   default=dict(c00=0.0),
                                   simul=dict(),
                                   override=override,
@@ -290,6 +291,7 @@ class DJones (Joneset22.Joneset22):
         else:
             for pol in pols:
                 self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
+                                      quals=quals,
                                       default=dict(c00=0.0),
                                       simul=dict(),
                                       override=override,
@@ -297,6 +299,7 @@ class DJones (Joneset22.Joneset22):
                                       tags=[dname,jname])
         if coupled_dell:
             self.define_parmgroup(ename, descr='dipole ellipticity',
+                                  quals=quals,
                                   default=dict(c00=0.0),
                                   simul=dict(),
                                   override=override,
@@ -305,12 +308,14 @@ class DJones (Joneset22.Joneset22):
         else:
             for pol in pols:
                 self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
+                                      quals=quals,
                                       default=dict(c00=0.0),
                                       simul=dict(),
                                       override=override,
                                       rider=dict(matrel=matrel),
                                       tags=[ename,jname])
         self.define_parmgroup(pname, descr='XY/RL phase-zero difference',
+                              quals=quals,
                               override=override,
                               rider=dict(matrel=matrel),
                               tags=[pname,jname])
@@ -427,12 +432,14 @@ class EJones_21cm (Joneset22.Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  quals=quals,
                                   default=dict(c00=0.0),
                                   simul=dict(Tsec=200),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  quals=quals,
                                   default=dict(c00=1.0),
                                   simul=dict(),
                                   override=override,

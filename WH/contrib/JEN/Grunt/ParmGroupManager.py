@@ -235,45 +235,66 @@ class ParmGroupManager (object):
 
     #-----------------------------------------------------------------------------
     
-    def merge(self, other):
+    def merge(self, other, trace=True):
         """Helper function to merge its relevant NodeGroups/Gogs with those of another
         ParmGroupManager object"""
+        if trace: print '\n** merge():'
         all = []
         if self._parmgroup.has_key('*'):
-            print 'self[*]:',self._parmgroup['*']
+            if trace: print 'self[*]:',self._parmgroup['*']
             all.extend(self._parmgroup['*'].group())
         if other._parmgroup.has_key('*'):
-            print 'other[*]:',other._parmgroup['*']
+            if trace: print 'other[*]:',other._parmgroup['*']
             all.extend(other._parmgroup['*'].group())
-        self._parmgroup.update(other._parmgroup)
-        self._simparmgroup.update(other._simparmgroup)
+        for key in other._parmgroup.keys():
+            if not self._parmgroup.has_key(key):
+                self._parmgroup[key] = other._parmgroup[key]
+            else:
+                # Assume NodeGog....
+                self._parmgroup[key].append_entry(other._parmgroup[key].group())
+        for key in other._simparmgroup.keys():
+            if not self._simparmgroup.has_key(key):
+                self._simparmgroup[key] = other._simparmgroup[key]
+            else:
+                # Assume NodeGog....
+                self._simparmgroup[key].append_entry(other._simparmgroup[key].group())
         self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all)    
+        if trace: print '**\n'
         return True
 
 
     #-----------------------------------------------------------------------------
 
-    def define_parmgroup(self, name, descr=None, tags=[], 
+    def define_parmgroup(self, key, quals=[], descr=None, tags=[], 
                          default=None, constraint=None, override=None,
                          simul=None, simulate=False,
                          rider=None):
-        """Helper function to define a named (Simulated)ParmGroup object."""
+        """Helper function to define a named (key) (Simulated)ParmGroup object."""
 
         # There are two modes: In normal mode (simulate=False), a ParmGroup
         # is initialised, whose create_entry() method creates regular MeqParms.
         # Otherwise, a SimulatedParmGroup is initialises, whose .create_entry()
         # method produces subtrees that simulate MeqParm behaviour.
 
+        quals = self.quals(append=quals)
+
+        qkey = self.qualify_key (key, quals=quals)
+
         # ....
         node_groups = ['Parm']
         # node_groups.extend(self.quals())               # <---------- !!!
 
-        # Make sure that the group name is in the list of node tags:
+        # Deal with the node tags:
         ptags = deepcopy(tags)
         if not isinstance(ptags,(list,tuple)): ptags = [ptags]
-        if not name in ptags: ptags.append(name)
+        utags = []
+        for tag in ptags:
+            if not tag in utags: utags.append(tag)       # remove doubles
+        if isinstance(quals,(list,tuple)):
+            for qual in quals:
+                if not qual in utags: utags.append(qual) # include qualifiers
 
-        # Specific information is attached to the ParmGroup via its rider.
+        # Specific information may be attached to the ParmGroup via its rider.
         if not isinstance(rider, dict): rider = dict()
 
         # Simuation mode or not:
@@ -281,82 +302,135 @@ class ParmGroupManager (object):
 
         # OK, define the relevant ParmGroup:
         if simulate:
-            spg = ParmGroup.SimulatedParmGroup (self._ns, label=name,
-                                                quals=self.quals(),
+            spg = ParmGroup.SimulatedParmGroup (self._ns, label=qkey,
+                                                quals=quals,
                                                 descr=descr,
-                                                tags=ptags,
+                                                tags=utags,
                                                 simul=simul,
                                                 default=default,
                                                 override=override,
                                                 rider=rider) 
-            self._simparmgroup[name] = spg
+            self._simparmgroup[qkey] = spg
 
         else:
-            pg = ParmGroup.ParmGroup (self._ns, label=name, 
-                                      quals=self.quals(),
+            pg = ParmGroup.ParmGroup (self._ns, label=qkey, 
+                                      quals=quals,
                                       descr=descr,
                                       default=default,
                                       constraint=constraint,
-                                      tags=ptags,
+                                      tags=utags,
                                       node_groups=node_groups,
                                       override=override,
                                       rider=rider)
-            self._parmgroup[name] = pg
+            self._parmgroup[qkey] = pg
 
         # Collect information for define_gogs():
-        for tag in ptags:
-            if not tag in [name]:
+        print '\n** define_parmgroup(',key,qkey,'): utags=',utags
+        ignore = [qkey]
+        for tag in utags:
+            if not tag in ignore: 
                 if simulate:
                     self._sgog.setdefault(tag, [])
-                    self._sgog[tag].append(self._simparmgroup[name])
-                else:
+                    self._sgog[tag].append(self._simparmgroup[qkey])
+                    print '--- len(sgog[',tag,']) ->',len(self._sgog[tag])
+                else: 
                     self._pgog.setdefault(tag, [])
-                    self._pgog[tag].append(self._parmgroup[name])
+                    self._pgog[tag].append(self._parmgroup[qkey])
+                    print '--- len(pgog[',tag,']) ->',len(self._pgog[tag])
 
         # Finished:
         return True
 
     #-----------------------------------------------------------------------------
 
-    def create_parmgroup_entry(self, key=None, qual=None):
-        """Create an entry with the specified qual in the specified (key)
-        (Simulated)ParmGroup (object)"""
-        if self._simparmgroup.has_key(key):
-            return self._simparmgroup[key].create_entry(qual)
-        else:
-            return self._parmgroup[key].create_entry(qual)
+    def qualify_key (self, key, quals=[]):
+        """Helper function to attach qualifiers (if any) to a group key"""
+        qkey = deepcopy(key)
+        if quals:
+            for qual in quals:
+                qkey += '_'+str(qual)
+        return qkey
 
     #-----------------------------------------------------------------------------
 
-    def define_gogs(self, name='ParmGroupManager', trace=False):
+    def create_parmgroup_entry(self, key=None, qual=None, quals=[]):
+        """Create an entry with the specified qual in the specified (key)
+        (Simulated)ParmGroup (object)"""
+        qkey = self.qualify_key (key, quals=quals)
+        if self._simparmgroup.has_key(qkey):
+            return self._simparmgroup[qkey].create_entry(qual)
+        else:
+            return self._parmgroup[qkey].create_entry(qual)
+
+    #-----------------------------------------------------------------------------
+
+    def define_gogs(self, name='ParmGroupManager', trace=True):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
         It uses the information gleaned from the tags in define_parmgroup()"""
 
-        # First collect the primary ParmGroups in pg and spg:
+        if trace: print '\n** define_gogs(',name,'):'
+
+        # First collect the primary groups (i.e. not gogs) in pg and spg (to be used below):
         pg = []
         for key in self._parmgroup.keys():
-            pg.append(self._parmgroup[key])
+            if type(self._parmgroup[key])==ParmGroup.ParmGroup:
+                pg.append(self._parmgroup[key])
         spg = []
         for key in self._simparmgroup.keys():
-            spg.append(self._simparmgroup[key])
+            if type(self._simparmgroup[key])==ParmGroup.SimulatedParmGroup:
+                spg.append(self._simparmgroup[key])
             
-        # Then (automatically) make separate gogs, by looking for common tags:
-        for key in self._pgog.keys():
-            self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
-                                                      group=self._pgog[key])
-        for key in self._sgog.keys():
-            self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, descr='<descr>', 
-                                                         group=self._sgog[key])
 
-        # Make the overall parmgroup(s) last, using the pg/spg collected first:
+        # Then make gogs for the tag-groups collected in .define_parmgroup()
+        # If the gog already exists, append the new entries.
+        for key in self._pgog.keys():
+            if not self._parmgroup.has_key(key):
+                self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key,
+                                                          descr='<descr>', 
+                                                          group=self._pgog[key])
+            elif type(self._parmgroup[key])==NodeGroup.NodeGog:
+                self._parmgroup[key].append_entry(self._pgog[key])
+            else:
+                raise TypeError,'parmgroup['+key+'] is not a ParmGroup' 
+            if trace: print '--- pgog',key,'(',len(self._pgog[key]),') ->',self._parmgroup[key].len()
+
+        for key in self._sgog.keys():
+            if not self._simparmgroup.has_key(key):
+                self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key,
+                                                             descr='<descr>', 
+                                                             group=self._sgog[key])
+            elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
+                self._simparmgroup[key].append_entry(self._sgog[key])
+            else:
+                raise TypeError,'simparmgroup['+key+'] is not a SimulatedParmGroup' 
+            if trace: print '--- sgog',key,'(',len(self._sgog[key]),') ->',self._simparmgroup[key].len()
+
+
+        # Make the overall parmgroup(s) last, using the pg/spg collected before.
         # (Otherwise it gets in the way of the automatic group finding process).
-        for label in [name,'*']:
+        # for key in [name,'*']:
+        for key in ['*']:
             if len(pg)>0:
-                self._parmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=pg,
-                                                            descr='all '+name+' parameters')
+                if not self._parmgroup.has_key(key):
+                    self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, group=pg,
+                                                              descr='all '+name+' parameters')
+                elif type(self._parmgroup[key])==NodeGroup.NodeGog:
+                    self._parmgroup[key].append_entry(pg)
+                else:
+                    raise TypeError,'parmgroup['+key+'] is not a ParmGroup' 
+                if trace: print '---',key,'(',len(pg),') ->',self._parmgroup[key].len()
+
             if len(spg)>0:
-                self._simparmgroup[label] = NodeGroup.NodeGog (self._ns, label=label, group=spg,
-                                                               descr='all simulated '+name+' parameters')
+                if not self._simparmgroup.has_key(key):
+                    self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, group=spg,
+                                                                 descr='all simulated '+name+' parameters')
+                elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
+                    self._simparmgroup[key].append_entry(spg)
+                else:
+                    raise TypeError,'simparmgroup['+key+'] is not a SimulatedParmGroup' 
+                if trace: print '---',key,'(',len(spg),') ->',self._simparmgroup[key].len()
+
+        if trace: print '**\n'
         return None
 
 

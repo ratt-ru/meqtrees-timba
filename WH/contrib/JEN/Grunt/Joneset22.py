@@ -181,6 +181,7 @@ class GJones (Joneset22):
     GJones is a uv-plane effect, i.e. it is valid for the entire FOV.
     GJones is the same for linear and circular polarizations."""
 
+
     def __init__(self, ns, quals=[], label='G',
                  polrep=None, telescope=None, band=None,
                  override=None,
@@ -190,8 +191,9 @@ class GJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
 
+        # Parameter group names:
+        quals = self.quals()               
         pols = self.pols()                        # e.g. ['X','Y']
-        quals = self.quals()
         pname = self.label()+'phase'
         gname = self.label()+'gain'
         jname = self.label()+'Jones'
@@ -200,6 +202,7 @@ class GJones (Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
             self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
+                                  quals=quals,
                                   default=dict(c00=0.0, unit='rad', tfdeg=[0,0],
                                                subtile_size=1),
                                   constraint=dict(sum=0.0, first=0.0),
@@ -208,6 +211,7 @@ class GJones (Joneset22):
                                   rider=dict(matrel=matrel),
                                   tags=[pname,jname])
             self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+                                  quals=quals,
                                   default=dict(c00=1.0,
                                                tfdeg=[2,0],
                                                # constrain_min=0.1, constrain_max=10.0,
@@ -217,12 +221,14 @@ class GJones (Joneset22):
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[gname,jname])
+
         # Make the Jones matrices per station:
+        quals = self.quals()               
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s)
-                gain = self.create_parmgroup_entry(gname+pol, s)
+                phase = self.create_parmgroup_entry(pname+pol, s, quals=quals)
+                gain = self.create_parmgroup_entry(gname+pol, s, quals=quals)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -268,6 +274,7 @@ class BJones (Joneset22):
         for pol in pols:
             matrel = self._pols_matrel()[pol]             # i.e. 'm11' or 'm22'
             self.define_parmgroup(iname+pol, descr=pol+'-IF bandpass imag.part',
+                                  quals=quals,
                                   default=dict(c00=0.0, unit=None, tfdeg=tfdeg,
                                                subtile_size=1),
                                   simul=dict(PMHz=10),
@@ -275,6 +282,7 @@ class BJones (Joneset22):
                                   rider=dict(matrel=matrel),
                                   tags=[iname,jname])
             self.define_parmgroup(rname+pol, descr=pol+'-IF bandpass real.part',
+                                  quals=quals,
                                   default=dict(c00=1.0, unit=None, tfdeg=tfdeg),
                                   simul=dict(PMHz=10),
                                   override=override,
@@ -322,8 +330,9 @@ class JJones (Joneset22):
         quals = self.quals()
         jname = self.label()+'Jones'
         enames = ['J11','J12','J21','J22']
-        ee = []
+
         # Define the various primary ParmGroups:
+        ee = []
         for ename in ['J11','J22']:
             ee.append(ename)
             for rim in ['real','imag']:
@@ -333,6 +342,7 @@ class JJones (Joneset22):
                     default = 1.0
                     constraint = dict(product=1.0)
                 self.define_parmgroup(ename+rim,
+                                      quals=quals,
                                       descr=rim+' part of matrix element '+ename,
                                       default=dict(c00=default),
                                       constraint=constraint,
@@ -344,6 +354,7 @@ class JJones (Joneset22):
                 ee.append(ename)
                 for rim in ['real','imag']:
                     self.define_parmgroup(ename+rim,
+                                          quals=quals,
                                           descr=rim+' part of matrix element '+ename,
                                           default=dict(c00=0.0),
                                           constraint=dict(sum=0.0),
@@ -392,6 +403,7 @@ class FJones (Joneset22):
 
         # Define the primary ParmGroup:
         self.define_parmgroup(rname, descr='Faraday Rotation Measure (rad/m2)',
+                              quals=quals,
                               default=dict(c00=0.0),
                               simul=dict(),
                               override=override,

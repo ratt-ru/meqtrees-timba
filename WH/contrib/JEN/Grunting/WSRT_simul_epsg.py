@@ -40,6 +40,8 @@ JEN_Meow_Utils.include_imaging_options();
 # PointSource22.include_TDL_options('epsg model')  
 PointSourceGroup22.include_EqualPointSourceGrid_TDL_options('epsg')
 
+TDLCompileOption('TDL_corruption_mode','data-corruption mode',
+                 ['per-source','uv-plane'])
 WSRT_Jones.include_TDL_options_uvp('corruption')
 
 TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',
@@ -71,11 +73,24 @@ def _define_forest (ns):
     epsg = PointSourceGroup22.EqualPointSourceGrid22 (ns)
     if TDL_display_EqualPointSourceGrid22: epsg.display(full=True)
 
-    # Create a Visset22 object, with nominal source coherencies:
+    if TDL_corruption_mode=='per-source':
+        # Corrupt the point sources with their own jones matrices
+        # NB: This is different from corrupting them with a single
+        #     overall (interpolatable) image-plane jones matrix
+        #   (Note that the user-defined TDLOption parameters are
+        #    short-circuited between the functions in the WSRT_Jones module)
+        for key in epsg.order():
+            jones = WSRT_Jones.GJones(ns, quals=key, 
+                                      stations=array.stations(),
+                                      simulate=True)
+            epsg.corrupt(jones, label=jones.label(), key=key)
+        # epsg.display('corrupted')
+
+    # Create a Visset22 object from the point sources:
     vis = epsg.Visset22(name='simul', visu=True)
 
-    if False:
-        # Corrupt the data with a sequence of Jones matrices:
+    if TDL_corruption_mode=='uv-plane':
+        # Corrupt the data with a sequence of (uv-plane) Jones matrices:
         #   (Note that the user-defined TDLOption parameters are
         #    short-circuited between the functions in the WSRT_Jones module)
         jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
