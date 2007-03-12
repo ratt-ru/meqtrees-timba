@@ -83,8 +83,8 @@ class NodeGroup (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = str(type(self))
-        ss += ' '+str(self.label())
+        ss = '<NodeGroup>'
+        ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
         # ss += ' quals='+str(self._quals.get())
         ss += ' tags='+str(self._tags)
@@ -404,7 +404,7 @@ class NodeGog (object):
 
     def tabulate (self, ss=''):
         """Print a tabulated summary of the NodeGroups."""
-        ss += ' -- Tabulated NodeGog: '+str(self.oneliner())
+        ss += ' -- Tabulated: '+str(self.oneliner())
         ss += '\n'
         for k,ng in enumerate(self._group):
             ss = ng.tabulate(ss, header=(k==0))
@@ -414,11 +414,17 @@ class NodeGog (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = str(type(self))
-        ss += ' '+str(self.label())
-        ss += ' (n='+str(len(self._group))+')'
-        ss += ' '+str(self.labels())
-        if True and len(self._rider)>0:
+        ss = '<NodeGog>'
+        ss += ' %10s'%(self.label())
+        n = self.len()
+        ss += ' (n='+str(n)+')'
+        gg = self.labels()
+        nmax = 5
+        if n>nmax:
+            gg = gg[0:nmax]
+            gg.extend(['...',self.labels()[n-1]])
+        ss += ' '+str(gg)
+        if False and len(self._rider)>0:
             for key in self._rider.keys():
                 ss += ' ('+key+'='+str(self._rider[key])+')'
         return ss

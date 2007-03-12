@@ -154,10 +154,10 @@ class ParmGroup (NodeGroup.NodeGroup):
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
         if header:
-            ss += '                       auto  save  reset  prev  '
+            ss += '                           auto  save  reset  prev  '
             ss += ':   c00 unit constrain  :   shape  tiling  :  parmtable'
             ss += '\n'
-        ss += '   - %12s'%(self.label())
+        ss += '   - %16s'%(self.label())
         ss += ' ('+str(self.len())+'): '
         ss += ' '+str(self._initrec['auto_save'])
         ss += ' '+str(self._initrec['save_all'])
@@ -220,6 +220,19 @@ class ParmGroup (NodeGroup.NodeGroup):
         return True
         
 
+
+    #-------------------------------------------------------------------
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = '<ParmGroup>'
+        ss += ' %16s'%(self.label())
+        ss += ' (n='+str(self.len())+')'
+        ss += ' tags='+str(self._tags)
+        if True and len(self._rider)>0:
+            for key in self._rider.keys():
+                ss += ' ('+key+'='+str(self._rider[key])+')'
+        return ss
 
     #-------------------------------------------------------------------
 
@@ -482,10 +495,10 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This is a re-implementation of the NodeGroup method."""
         if header:
-            ss += '                      default scale stddev   '
+            ss += '                          default scale stddev   '
             ss += ':   Psec stddev   :   PMHz stddev'
             ss += '\n'
-        ss += '   - %12s'%(self.label())
+        ss += '   - %16s'%(self.label())
         ss += ' ('+str(self.len())+'): '
         ss += ' '+str(self._simul['default_value'])
         ss += ' '+str(self._simul['unit'])
@@ -517,6 +530,18 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._simul = dd
         return True
         
+    #-------------------------------------------------------------------
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = '<SimulatedParmGroup>'
+        ss += ' %14s'%(self.label())
+        ss += ' (n='+str(self.len())+')'
+        ss += ' tags='+str(self._tags)
+        if True and len(self._rider)>0:
+            for key in self._rider.keys():
+                ss += ' ('+key+'='+str(self._rider[key])+')'
+        return ss
 
     #-------------------------------------------------------------------
 

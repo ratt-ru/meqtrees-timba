@@ -292,8 +292,8 @@ class BJones (Joneset22):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                imag = self.create_parmgroup_entry(iname+pol, s)
-                real = self.create_parmgroup_entry(rname+pol, s)
+                imag = self.create_parmgroup_entry(iname+pol, s, quals=quals)
+                real = self.create_parmgroup_entry(rname+pol, s, quals=quals)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -366,8 +366,8 @@ class JJones (Joneset22):
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in ee:
-                real = self.create_parmgroup_entry(ename+'real', s)
-                imag = self.create_parmgroup_entry(ename+'imag', s)
+                real = self.create_parmgroup_entry(ename+'real', s, quals=quals)
+                imag = self.create_parmgroup_entry(ename+'imag', s, quals=quals)
                 mm[ename] = self._ns[ename](*quals)(s) << Meq.ToComplex(real,imag)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                        mm[enames[2]],mm[enames[3]])
@@ -409,7 +409,7 @@ class FJones (Joneset22):
                               override=override,
                               tags=[rname,jname])
 
-        RM = self.create_parmgroup_entry(rname)               # Rotation Measure (rad/m2)
+        RM = self.create_parmgroup_entry(rname, quals=quals)  # Rotation Measure (rad/m2)
         wvl = self._ns << Meq.Divide(3e8, self._ns << Meq.Freq())
         wvl2 = self._ns << Meq.Sqr(wvl)                       # lambda squared
         farot = self._ns.farot(*quals) << (RM * wvl2)         # Faraday rotation angle

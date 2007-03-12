@@ -321,7 +321,7 @@ class DJones (Joneset22.Joneset22):
                               tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pzd = self.create_parmgroup_entry(pname)
+        pzd = self.create_parmgroup_entry(pname, quals=quals)
         pzd2 = self._ns << pzd/2
         m11 = self._ns << Meq.Polar(1.0, pzd2)
         m22 = self._ns << Meq.Polar(1.0, self._ns << Meq.Negate(pzd2))
@@ -333,14 +333,14 @@ class DJones (Joneset22.Joneset22):
 
             # Dipole rotation angles:
             if coupled_dang:
-                dang = self.create_parmgroup_entry(dname, s)
+                dang = self.create_parmgroup_entry(dname, s, quals=quals)
                 cos = self._ns << Meq.Cos(dang)
                 sin = self._ns << Meq.Sin(dang)
                 sinneg = self._ns << Meq.Negate(sin)
                 dmat = self._ns[dname](*quals)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = self.create_parmgroup_entry(dname+pols[0], s)
-                dang2 = self.create_parmgroup_entry(dname+pols[1], s)
+                dang1 = self.create_parmgroup_entry(dname+pols[0], s, quals=quals)
+                dang2 = self.create_parmgroup_entry(dname+pols[1], s, quals=quals)
                 cos1 = self._ns << Meq.Cos(dang1)
                 cos2 = self._ns << Meq.Cos(dang2)
                 sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
@@ -350,14 +350,14 @@ class DJones (Joneset22.Joneset22):
 
             # Dipole ellipticities:
             if coupled_dell:
-                dell = self.create_parmgroup_entry(ename, s)
+                dell = self.create_parmgroup_entry(ename, s, quals=quals)
                 cos = self._ns << Meq.Cos(dell)
                 sin = self._ns << Meq.Sin(dell)
                 isin = self._ns << Meq.ToComplex(0.0, sin)
                 emat = self._ns[ename](*quals)(s) << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = self.create_parmgroup_entry(ename+pols[0], s)
-                dell2 = self.create_parmgroup_entry(ename+pols[1], s)
+                dell1 = self.create_parmgroup_entry(ename+pols[0], s, quals=quals)
+                dell2 = self.create_parmgroup_entry(ename+pols[1], s, quals=quals)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
                 isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
@@ -449,8 +449,8 @@ class EJones_21cm (Joneset22.Joneset22):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s)
-                gain = self.create_parmgroup_entry(gname+pol, s)
+                phase = self.create_parmgroup_entry(pname+pol, s, quals=quals)
+                gain = self.create_parmgroup_entry(gname+pol, s, quals=quals)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])

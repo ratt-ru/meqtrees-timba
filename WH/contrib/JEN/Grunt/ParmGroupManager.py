@@ -61,7 +61,8 @@ class ParmGroupManager (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = str(type(self))
+        # ss = str(type(self))
+        ss = '<class ParmGroupManager>'
         ss += '  '+str(self.label())
         ss += '  quals='+str(self.quals())
         return ss
@@ -117,7 +118,7 @@ class ParmGroupManager (object):
         To be used to make a summary table of NodeGroups (e.g. ParmGroups).
         This can be re-implemented by derived classes."""
         keys = self.parmgroup2keys(parmgroup, severe=True, trace=trace)
-        ss += '\n** Tabulated ParmGroupManager (parmgroup='+str(parmgroup)+'): '
+        ss += '\n** Tabulated (parmgroup='+str(parmgroup)+'): '
         ss += str(self.oneliner())
         ss += '\n'
         for key in keys:

@@ -572,16 +572,26 @@ if __name__ == '__main__':
             scg.display()
 
         if 0:
-            jones = Joneset22.GJones(ns,
-                                     quals=['xxx',3],
-                                     stations=ANTENNAS, simulate=True)
+            jones = Joneset22.JJones(ns,
+                                     quals=['xxx'],
+                                     stations=ANTENNAS, simulate=False)
             scg.corrupt(jones, label='G', key=3)
-            print 'after corrupt'
             scg.display()
             scg._pgm.display()
 
         if 1:
-            for key in scg.order()[0:2]:
+            from Timba.Contrib.JEN.Grunting import WSRT_Jones
+            jones = WSRT_Jones.EJones_21cm(ns,
+                                      quals=['xxx'],
+                                      stations=ANTENNAS, simulate=False)
+            scg.corrupt(jones, label='G', key=3)
+            scg.display()
+            scg._pgm.display()
+
+
+        if 0:
+            # for key in scg.order()[0:2]:         # the first 2 only (testing)
+            for key in scg.order():
                 jones = Joneset22.GJones(ns, quals=key,
                                          stations=ANTENNAS, simulate=False)
                 scg.corrupt(jones, label=jones.label(), key=key)
