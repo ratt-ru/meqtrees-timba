@@ -129,7 +129,7 @@ def _define_forest (ns,**kwargs):
   # make branch to solve for LSM sources
   bk = Meow.Bookmarks.Page("LSM fit");
   ns.ce_lsm << Meq.Condeq(masked_image,lsm_fit);
-  ns.residual_lsm << ns.img - lsm_fit;
+  ns.residual_lsm << Meq.Subtract(ns.img,lsm_fit,cache_policy=100);
   ns.solver_lsm << Meq.Solver(ns.ce_lsm,num_iter=20,epsilon=1e-4,last_update=True,solvable=lsm_fit.search(tags="lsm"));
   bk.add(masked_image);
   bk.add(ns.ce_lsm);
@@ -140,8 +140,13 @@ def _define_forest (ns,**kwargs):
   # make branch to solve for LSM sources
   bk = Meow.Bookmarks.Page("Optical calibration");
   ns.ce_cal << Meq.Condeq(masked_image,lsm_ideal);
-  ns.residual_cal << ns.img - lsm_ideal;
-  ns.solver_cal << Meq.Solver(ns.ce_cal,num_iter=20,epsilon=1e-4,last_update=True,solvable=masked_image.search(tags="actuators"));
+  ns.residual_cal << Meq.Subtract(ns.img,lsm_ideal,cache_policy=100);
+  ns.solver_cal << Meq.Solver(ns.ce_cal,
+         num_iter=20,
+	 epsilon=1e-4,
+	 lm_factor=1e-4,
+	 last_update=True,
+	 solvable=masked_image.search(tags="actuators"));
   bk.add(masked_image);
   bk.add(ns.ce_cal);
   bk.add(ns.residual_cal);

@@ -17,7 +17,7 @@ _dbg = utils.verbosity(0,name='floptix');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-def acquire_imagename (file_rex,directory='.',timeout=5,sleep_time=.1):
+def acquire_imagename (file_rex,directory='.',timeout=5,sleep_time=1/7.5):
   """Returns filename for the latest image from the camera.
   Deletes previous images.
   'directory':  which directory to look in
@@ -32,7 +32,7 @@ def acquire_imagename (file_rex,directory='.',timeout=5,sleep_time=.1):
   nfiles = len(filelist);
   for f in filelist:
     if file_rex.match(f):
-      unlink(os.path.join(directory,f));
+      os.unlink(os.path.join(directory,f));
       nfiles -= 1;
   _dprint(0,"deleted",len(filelist)-nfiles,"of",len(filelist),"files");
   # now wait for a new file to show up
@@ -40,17 +40,22 @@ def acquire_imagename (file_rex,directory='.',timeout=5,sleep_time=.1):
   while True:
     if time.time() > timeout:
       raise RuntimeError,"timeout acquiring image";
-    time.sleep(sleep_time);
     # rescan directory, continue if no new files
     filelist = os.listdir(directory);
     if len(filelist) == nfiles:
+      time.sleep(sleep_time);
       continue;
     # now look for another image file
     for f in filelist:
       if file_rex.match(f):
         # acquire this image
-        _dprint(0,"acquired image",filename);
-        return os.path.join(directory,f)
+        _dprint(0,"acquired image",f);
+	# wait for another to show up, to make sure this one is complete
+	while len(os.listdir(directory)) == len(filelist):
+	  if time.time() > timeout:
+	    raise RuntimeError,"timeout acquiring image";
+	  time.sleep(sleep_time);
+	return os.path.join(directory,f)
     # no image found, try again
   # we should never get here
   pass;
@@ -142,8 +147,16 @@ class PyCameraImage (pynode.PyNode):
     for act in self.actuators:
       self._positions[act] = 0;
     mystate('solvable',False);
+    if self.solvable:
+      self.set_symdeps('domain','resolution','iteration');
+    else:
+      self.set_symdeps('domain','resolution');
     # perturbation step
     mystate('perturbation',1);
+    # perturbation rescaling
+    mystate('pert_scale',1e-6);
+    # max perturbation
+    mystate('max_pert',3);
     # name and nodeindex
     mystate('name','');
     mystate('nodeindex',0);
@@ -159,7 +172,7 @@ class PyCameraImage (pynode.PyNode):
       filename = acquire_imagename(self._file_re,directory=self.directory_name,
                       timeout=self.timeout,sleep_time=self.sleep_time);
     # read image
-    img = PIL.Image.open(self.file_name);
+    img = PIL.Image.open(filename);
     # apply shrink factor, if needed
     if self.rescale != 1.:
       nx,ny = img.size;
@@ -185,11 +198,13 @@ class PyCameraImage (pynode.PyNode):
       
   def process_command (self,command,args,rqid,verbosity):
     _dprint(0,"received command",command,args);
-    if command == "Update.Parm":
-      incr_update = args.incr_update;
-      _dprint(0,"incremental update is",command,args);
+    if command == "Update_Parm":
+      updates = [ round(u/self.pert_scale) for u in args.incr_update ];
+      _dprint(0,"incremental updates are",updates);
+      updates = [ max(min(u,self.max_pert),-self.max_pert) for u in updates ];
+      _dprint(0,"applying values",updates);
       for ia,act in enumerate(self.actuators):
-        upd = round(incr_update[ia]);
+        upd = updates[ia];
         self._positions[act] += upd;
         if upd > 0:
           motor_control.move(act,1,upd);    
@@ -212,7 +227,7 @@ class PyCameraImage (pynode.PyNode):
         cells,vells = self._acquire_image();
         motor_control.move(act,0,self.perturbation);  # move motor back
         spid_index.append(self._spid(act));
-        perturbations.append(1.);
+        perturbations.append(self.perturbation*self.pert_scale);
         perturbed_value.append(vells);
     return meq.result(vellset,cells);
 
