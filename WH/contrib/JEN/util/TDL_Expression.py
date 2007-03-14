@@ -656,13 +656,13 @@ class Expression:
             default = 150e6                # 150 MHz
             testinc = 1e6                  # 1 MHz
         elif key[0]=='l':
-            rr['node'] = 'MeqL'            # .....!?
+            rr['node'] = 'MeqGridL'            # .....!?
             rr['xn'] = 'x2'                # .....!?
             rr['unit'] = 'rad'
             default = 0.0                  # phase centre
             testinc = 0.01                 # 0.57 deg
         elif key[0]=='m':
-            rr['node'] = 'MeqM'            # .....!?
+            rr['node'] = 'MeqGridM'            # .....!?
             rr['xn'] = 'x3'                # .....!?
             rr['unit'] = 'rad'
             default = 0.0                  # phase centre
@@ -1076,11 +1076,11 @@ class Expression:
             parm = self.__parm[key]
             s1 = ' {'+key+'}:  '
             if isinstance(parm, Expression):
-                rr['parms'].append(s1+'(Expr: '+parm.label()+'): '+parm.expression())
+                rr['parms'].append(s1+'(Expr: '+str(parm.label())+'): '+str(parm.expression()))
             elif isinstance(parm, Funklet):
-                rr['parms'].append(s1+'(Funklet: '+parm._type+') '+parm._function)
+                rr['parms'].append(s1+'(Funklet: '+str(parm._type)+') '+str(parm._function))
             elif parm.has_key('nodename'):
-                rr['parms'].append(s1+'MeqNode: '+parm['classname']+' '+parm['nodename'])
+                rr['parms'].append(s1+'MeqNode: '+str(parm['classname'])+' '+str(parm['nodename']))
         return rr
 
     #-----------------------------------------------------------------------
@@ -1610,21 +1610,23 @@ class Expression:
 
     def var2node (self, ns, trace=False):
         """Convert the variable(s) in self.__expression to node(s).
-        E.g. [t] is converted into a MeqTree node, etc"""
+        E.g. [t] is converted into a MeqTime node, etc"""
         for key in self.__var.keys():
             rr = self.__var[key]                        # var definition record
             pkey = rr['node']                           # var key, e.g. 't'
             name = 'Expr_'+self.label(strip=True)+'_'+pkey
-            node = self._unique_node (ns, name, qual=None, trace=trace)
+            node = self._unique_node (ns, name, qual=[], trace=trace)
             if not node.initialized():
                 if pkey=='MeqTime':
                     node << Meq.Time()
                 elif pkey=='MeqFreq':
                     node << Meq.Freq()
-                elif pkey=='MeqL':
-                    node = TDL_Leaf.MeqL(ns)
-                elif pkey=='MeqM':
-                    node = TDL_Leaf.MeqM(ns)
+                elif pkey=='MeqGridL':
+                    node << Meq.Grid(axis='l')
+                    # node = TDL_Leaf.MeqL(ns)
+                elif pkey=='MeqGridM':
+                    node << Meq.Grid(axis='m')
+                    # node = TDL_Leaf.MeqM(ns)
                 else:
                     print '\n** var2node(): not recognised:',pkey,'\n'
                     return False                        # problem, escape
@@ -1645,7 +1647,7 @@ class Expression:
         for key in self.__parm.keys():
             parm = self.__parm[key]
             name = 'Expr_'+self.label(strip=True)+'_'+key
-            node = self._unique_node (ns, name, qual=None, trace=trace)
+            node = self._unique_node (ns, name, qual=[], trace=trace)
             funklet = None
             if key in self.__parmtype['Expression']:
                 funklet = parm.Funklet()
@@ -1685,7 +1687,7 @@ class Expression:
         for key in self.__parm.keys():
             parm = self.__parm[key]
             name = 'Expr_'+self.label(strip=True)+'_'+key
-            node = self._unique_node (ns, name, qual=None, trace=trace)
+            node = self._unique_node (ns, name, qual=[], trace=trace)
             if key in self.__parmtype['Expression']:     # recursive
                 parm.leaf2node(ns, level=level+1, trace=trace)
             elif key in self.__parmtype['Funklet']:
@@ -1959,7 +1961,7 @@ class Expression:
 
     #--------------------------------------------------------------------------
 
-    def MeqParm (self, ns, name=None, qual=None, trace=False):
+    def MeqParm (self, ns, name=None, qual=[], trace=False):
         """Make a MeqParm node by converting the (expanded) expression into
         a Funklet, and using that as init_funklet."""
         if not self.__MeqParm:                          # avoid duplication
@@ -1988,7 +1990,7 @@ class Expression:
 
     #---------------------------------------------------------------------------
 
-    def MeqNode (self, ns, name=None, qual=None, expand=True, trace=False):
+    def MeqNode (self, ns, name=None, qual=[], expand=True, trace=False):
         """Make a single node/subtree from the Expression. In most cases,
         this will be a MeqParm, with the expression Funklet as init_funklet.
         But if the expression has at least one parameter that is a node,
@@ -2020,7 +2022,7 @@ class Expression:
 
     #---------------------------------------------------------------------------
 
-    def MeqFunctional (self, ns, name=None, qual=None, expand=True, trace=False):
+    def MeqFunctional (self, ns, name=None, qual=[], expand=True, trace=False):
         """Make a MeqFunctional node from the Expression, by replacing all its
         parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc).
         If expand==True (default), the Functional is made from the expanded
@@ -2037,7 +2039,7 @@ class Expression:
 
     #..........................................................................
         
-    def make_MeqFunctional (self, ns, name=None, qual=None, trace=False):
+    def make_MeqFunctional (self, ns, name=None, qual=[], trace=False):
         """Helper function that does the work for .MeqFunctional()"""
         if trace: print '\n** MeqFunctional(',name,qual,'):'
 
@@ -2075,14 +2077,14 @@ class Expression:
 
     #--------------------------------------------------------------------------
 
-    def MeqCompounder (self, ns, name=None, qual=None, 
+    def MeqCompounder (self, ns, name=None, qual=[], 
                        extra_axes=None, common_axes=None, trace=False):
         """Make a MeqCompunder node from the Expression. The extra_axes argument
         should be a MeqComposer that bundles the extra (coordinate) children,
         described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
 
         # Make a MeqParm node from the Expression:
-        parm = self.MeqParm (ns, name=name, qual=None, trace=trace)
+        parm = self.MeqParm (ns, name=name, qual=[], trace=trace)
 
         # Check whether there are extra axes defined for all variables
         # in the expression other than [t] and [f]:
@@ -2149,6 +2151,7 @@ class Expression:
         # Combine any specified qualifiers (qual) with any internal ones:
         quals = deepcopy(self.__quals)
         qualin = deepcopy(qual)
+        if qualin==None: qualin = []
         if not isinstance(qualin, (list,tuple)): qualin = [qualin]
         for q in qualin:
             if not q in quals: quals.append(q)
@@ -2191,9 +2194,10 @@ def classwise (node, klasses=dict(), done=[], level=0, trace=False):
        print (level*'.')+klass+' '+node.name+' '+str(len(klasses[klass]))
 
    # Recursive:
-   for i in range(len(node.stepchildren)):
-      stepchild = node.stepchildren[i][1]
-      classwise (stepchild, klasses=klasses, done=done, level=level+1, trace=trace)
+   if True:
+       for i in range(len(node.stepchildren)):
+           stepchild = node.stepchildren[i][1]
+           classwise (stepchild, klasses=klasses, done=done, level=level+1, trace=trace)
    for i in range(len(node.children)):
       child = node.children[i][1]
       classwise (child, klasses=klasses, done=done, level=level+1, trace=trace)
@@ -2482,7 +2486,7 @@ if __name__ == '__main__':
         node << 0.9
         node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
 
-    if 1:
+    if 0:
         e0 = Expression('3*[t]')
         # e0.display()
         e0.evalarr(range(5), trace=True)
@@ -2561,11 +2565,13 @@ if __name__ == '__main__':
     #---------------------------------------------------------
  
     if 0:
-        e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)', label='e1')
+        e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)+[l]+[m]', label='e1')
         e1.parm('A', -5, constant=True, stddev=0.1)
+        # e1.parm('B', (ns.B << Meq.Add(ns.aa<<4, ns.bb<<7)))      # node variable
+        e1.parm('B', (ns.B('ext')(8) << Meq.Parm(34)))                   # node variable
         # e1.parm('B', 10, help='help for B')
         # e1.parm('C', f0, help='help for C')
-        # e1.quals([5,6])
+        e1.quals([5,6])
         e1.display('initial', full=True)
 
         if 0:
@@ -2593,7 +2599,7 @@ if __name__ == '__main__':
             e2.expand()
             e2.display('after expand()')
 
-        if 1:
+        if 0:
             node = e1.subTree (ns, trace=True)
             TDL_display.subtree(node, 'subTree', full=True, recurse=10)
             
@@ -2603,7 +2609,7 @@ if __name__ == '__main__':
             # e2 = Funklet2Expression(f1, 'A', trace=True)
             # e2.plot()
 
-        if 0:
+        if 1:
             node = e1.MeqFunctional (ns, expand=True, trace=True)
             e1.display('MeqFunctional', full=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
@@ -2688,17 +2694,21 @@ if __name__ == '__main__':
         pp = dict(a=-4)
         func(**pp)
 
-    if 0:
+
+    if 1:
         # WSRT telescope voltage beams (gaussian) with external MeqParms:
         Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
                            descr='WSRT X voltage beam (gaussian)', unit='kg')
         Xbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+
         Lterm = Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
         Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
         Xbeam.parm ('Lterm', default=Lterm)
+
         Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
         # Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Xbeam.parm ('M0', default=(ns.M0 << Meq.Constant(12.9)))
+        Mterm.parm ('M0', default=(ns.external << Meq.Constant(12.9)))
+
         Xbeam.parm ('Mterm', default=Mterm)
         Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
         Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
