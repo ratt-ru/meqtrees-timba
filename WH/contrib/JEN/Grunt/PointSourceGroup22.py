@@ -46,6 +46,7 @@ def include_EqualPointSourceGrid_TDL_options (prompt='definition'):
                    TDLOption('TDL_m0','m0 (arcmin)',[0.0,5,10,20,40,80], more=float),
                    TDLOption('TDL_dl','dl (arcmin)',[5.0,10,20,40,80], more=float),
                    TDLOption('TDL_dm','dm (arcmin)',[5.0,10,20,40,80], more=float),
+                   TDLOption('TDL_fluxfactor','flux-attenn. factor',[1.0, 0.7, 0.5], more=float),
                    )
     # Also include the source definition options:
     PointSource22.include_TDL_options(prompt+': sources')
@@ -72,6 +73,7 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
         self._pp.setdefault('m0', TDL_m0)
         self._pp.setdefault('dl', TDL_dl)
         self._pp.setdefault('dm', TDL_dm)
+        self._pp.setdefault('fluxfactor', TDL_fluxfactor)
         print 'self_pp=',self._pp
 
         # Call the specified function:
@@ -83,7 +85,8 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
                           m0=self._pp['m0'],
                           dl=self._pp['dl']*ARCMIN,
                           dm=self._pp['dm']*ARCMIN,
-                          nsrc2=self._pp['nsrc2'])
+                          nsrc2=self._pp['nsrc2'],
+                          fluxfactor=self._pp['fluxfactor'])
 
         # Finished:
         return None
@@ -107,8 +110,13 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
 
     #----------------------------------------------------------------------
 
-    def make_sources (self, pattern, basename,l0,m0,dl,dm,nsrc2):
+    def make_sources (self, pattern, basename,l0,m0,dl,dm,nsrc2,
+                      fluxfactor=1.0):
         """Returns sources arranged in the specified pattern"""
+
+        # The sources flux is multiplied by fluxfactor for each source.
+        # This is to generate some flux-variation (if fluxfactor != 1.0)
+        flux = 1.0
         
         if pattern=='grid':
             # Returns sources arranged in a grid
@@ -116,8 +124,10 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
             for dx in range(-nsrc2,nsrc2+1):
                 for dy in range(-nsrc2,nsrc2+1):
                     if dx or dy:
+                        flux *= fluxfactor
                         name = "%s%+d%+d" % (basename,dx,dy)
-                        self.add_PointSource22(name=name,l=l0+dl*dx,m=m0+dm*dy)
+                        self.add_PointSource22(name=name,l=l0+dl*dx,
+                                               m=m0+dm*dy, flux=flux)
                         
         elif pattern=='cross':
             # Returns sources arranged in a cross
@@ -125,14 +135,18 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
             dy = 0;
             for dx in range(-nsrc2,nsrc2+1):
                 if dx:
+                    flux *= fluxfactor
                     name = "%s%+d%+d" % (basename,dx,dy);
-                    self.add_PointSource22(name=name,l=l0+dl*dx,m=m0+dm*dy)
+                    self.add_PointSource22(name=name,l=l0+dl*dx,
+                                           m=m0+dm*dy, flux=flux)
             dx = 0;
             for dy in range(-nsrc2,nsrc2+1):
                 if dy:
+                    flux *= fluxfactor
                     name = "%s%+d%+d" % (basename,dx,dy);
-                    self.add_PointSource22(name=name,l=l0+dl*dx,m=m0+dm*dy)
-  
+                    self.add_PointSource22(name=name,l=l0+dl*dx,
+                                           m=m0+dm*dy, flux=flux)
+
         elif pattern=='star8':
             # Returns sources arranged in an 8-armed star
             self.add_PointSource22(name=basename+"+0+0",l=l0,m=m0)
@@ -140,8 +154,12 @@ class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
                 for dx in (-n,0,n):
                     for dy in (-n,0,n):
                         if dx or dy:
+                            flux *= fluxfactor
                             name = "%s%+d%+d" % (basename,dx,dy)
-                            self.add_PointSource22(name=name,l=l0+dl*dx,m=m0+dm*dy)
+                            self.add_PointSource22(name=name,l=l0+dl*dx,
+                                                   m=m0+dm*dy, flux=flux)
+
+        # Finished:
         return True
 
 
@@ -205,6 +223,8 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
+    include_EqualPointSourceGrid_TDL_options('test')
+
     if 1:
         num_stations = 3
         ANTENNAS = range(1,num_stations+1)
@@ -213,14 +233,14 @@ if __name__ == '__main__':
         Meow.Context.set (array, observation)
 
     if 1:
-        epsg = EqualPointSourceGrid22 (ns, name='testing')
+        epsg = EqualPointSourceGrid22 (ns, name='testing', fluxfactor=0.5)
         epsg.display()
 
         if 1:
-            epsg.make_peeling_Patches(window=3)
+            epsg.make_peeling_Patches(window=5)
             epsg.display('peeling_Patches')
 
-        if 1:
+        if 0:
             epsg.make_peeling_Visset22(window=3)
             epsg.display('peeling_Visset22')
 

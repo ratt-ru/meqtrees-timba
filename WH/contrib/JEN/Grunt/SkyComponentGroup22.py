@@ -57,6 +57,7 @@ class SkyComponentGroup22 (object):
         # Each skycomp and its auxiliary info is in its own dict:
         self._skycomp = dict()
         self._order = []
+        self._lm = dict()
 
         # Some placeholders:
         self._Patch = None
@@ -94,8 +95,9 @@ class SkyComponentGroup22 (object):
         print '** SkyComponents ('+str(self.len())+'):'
         for key in self.order():
             sc = self._skycomp[key]
-            s1 = ' wgt='+str(sc['wgt'])
+            s1 = ' flux='+str(sc['flux'])
             s1 += '   l='+str(sc['l'])+'   m='+str(sc['m'])
+            s1 += '   lm='+str(sc['lm'])
             print '  - '+key+': '+s1
         for key in self.order():
             sc = self._skycomp[key]
@@ -107,7 +109,7 @@ class SkyComponentGroup22 (object):
         print '** Meow Patch: '+str(self._Patch)
         if self._Visset22:
             print '** Grunt Visset22: '+str(self._Visset22.oneliner())
-        print '** Peeling support ('+str(len(self._peeling_Patch))+'):'
+        print '** Peeling support ('+str(len(self._peeling_Patch))+' peeling Patches):'
         if len(self._peeling_group)>0:
             for key in self.order():
                 print '  - '+key+': '+str(self._peeling_group[key])
@@ -126,8 +128,8 @@ class SkyComponentGroup22 (object):
         """Return the nr of sources in the group"""
         return len(self._skycomp)
 
-    def order(self, order='descending'):
-        """Return a list of skycomp names in the specified order"""
+    def order(self):
+        """Return a list of skycomp keys in descending order of flux"""
         return self._order
 
     def key(self, key=None):
@@ -149,12 +151,21 @@ class SkyComponentGroup22 (object):
             return self._skycomp[key]['nominal']
         return self._skycomp[key]['skycomp']
 
-    def add (self, skycomp, name=None, l=0.0, m=0.0, wgt=1.0):
+
+    def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0):
         """Add a SkyComponent object to the group"""
-        self._order.append(name)
-        self._skycomp[name] = dict(skycomp=skycomp,
-                                   nominal=skycomp,
-                                   l=l, m=m, wgt=wgt)
+        self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp, lm=None,
+                                   l=l, m=m, flux=flux)
+        # Update self._order (descending order of flux):
+        inserted = False
+        for k,key in enumerate(self.order()):
+            sc = self._skycomp[key]
+            if flux>sc['flux']:
+                self._order.insert(k,name)
+                inserted = True
+                break
+        if not inserted:
+            self._order.append(name)
         return self.len()
 
     #--------------------------------------------------------------------------
@@ -194,7 +205,7 @@ class SkyComponentGroup22 (object):
     # Functions for adding SkyComponents to the list:
     #--------------------------------------------------------------------------
 
-    def add_PointSource (self, name=None, l=0.0, m=0.0, wgt=1.0):
+    def add_PointSource (self, name=None, l=0.0, m=0.0, flux=1.0):
         """Add a Meow PointSource object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
         direction = Meow.LMDirection(self._ns, name, l, m)
@@ -206,10 +217,10 @@ class SkyComponentGroup22 (object):
                                    I=0.0, Q=None, U=None, V=None,
                                    spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
 
 
-    def add_GaussianSource (self, name=None, l=0.0, m=0.0, wgt=1.0):
+    def add_GaussianSource (self, name=None, l=0.0, m=0.0, flux=1.0):
         """Add a Meow GaussianSource object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
         direction = Meow.LMDirection(self._ns, name, l, m)
@@ -220,17 +231,17 @@ class SkyComponentGroup22 (object):
                                       I=0.0, Q=None, U=None, V=None,
                                       spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
 
 
-    def add_PointSource22 (self, name=None, l=0.0, m=0.0, wgt=1.0):
+    def add_PointSource22 (self, name=None, l=0.0, m=0.0, flux=1.0):
         """Add a Grunt PointSource22 object to the group"""
         # NB: Parameters are made for (l,m) with tag 'direction'
         direction = Meow.LMDirection(self._ns, name, l, m)
         skycomp = PointSource22.PointSource22(self._ns, name=name,
                                               direction=direction)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, wgt=wgt)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
 
 
     #--------------------------------------------------------------------------
@@ -267,9 +278,26 @@ class SkyComponentGroup22 (object):
         If key==None, assume an image-plane (overall) Jones matrix (like EJones)"""
 
         if key==None:
-            # Image-plane effect: not yet implemented....
-            return False
+            # Apply the given jones matrix to all skycomps:
+            common_axes = [hiid('l'),hiid('m')] 
+            matrixet = jones.matrixet()
+            name = jones.label()
+            print '\n**',common_axes
+            for key in self.order():
+                lm = self.lm_node(key)
+                print '-',key,name,str(lm)
+                for s in jones.stations():
+                    self._ns[name](key)(s) << Meq.Compounder(children=[lm,matrixet(s)],
+                                                             common_axes=common_axes)
+                    print '---',s,':',self._ns[name](key)(s)
+                sc = self._skycomp[key]['skycomp']
+                sc = Meow.CorruptComponent(self._ns, sc, label,
+                                           station_jones=self._ns[name](key))
+                self._skycomp[key]['skycomp'] = sc
+            self._pgm.merge(jones._pgm)
+
         else:
+            # Apply the given jones matrix to the specified (key) skycomp:
             key = self.key(key)
             sc = self._skycomp[key]['skycomp']
             # Alternative: sc = sc.corrupt(station_jones=jones.matrixet())
@@ -279,6 +307,20 @@ class SkyComponentGroup22 (object):
             self._pgm.merge(jones._pgm)
         return True
 
+
+    def lm_node (self, key=None):
+        """Return a node with the (l,m) coordinates of the specified (key)
+        SkyComponent (source). Make one if it does not exist yet."""
+        key = self.key(key)
+        sc = self._skycomp[key]
+        if sc['lm']==None:
+            sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
+        return sc['lm']
+    
+        
+    # lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+    # lm = ns['lm'](q=pp['punit']) << Meq.Selector(lmn, index=[0,1], multi=True)
+    # cax = [hiid('l'),hiid('m')]                           # <---- necessary?
 
 
     #--------------------------------------------------------------------------
@@ -334,10 +376,10 @@ class SkyComponentGroup22 (object):
         wtot = 0.0
         for key in self.order():
             sc = self._skycomp[key]
-            wgt = 1.0
-            lc += wgt*sc['l']
-            mc += wgt*sc['m']
-            wtot += wgt
+            flux = 1.0
+            lc += flux*sc['l']
+            mc += flux*sc['m']
+            wtot += flux
         return [lc/wtot,mc/wtot]
 
 
@@ -462,9 +504,9 @@ class SkyComponentGroup22 (object):
     
     def test (self):
         """Helper routine to add some test sources to the group"""
-        self.add_PointSource('1st', 1,1)
-        self.add_PointSource22('2nd', 1,0)
-        self.add_PointSource22('3rd', 0,1)
+        self.add_PointSource('1st', 1,1, flux=2.5)
+        self.add_PointSource22('2nd', 1,0, flux=5)
+        self.add_PointSource22('3rd', 0,1, flux=2.5)
         self.add_GaussianSource('4th', 1,-1)
         return True
 
@@ -565,6 +607,11 @@ if __name__ == '__main__':
         # scg.key('xxx')
 
         if 0:
+            for key in scg.order()[0:2]:
+                scg.lm_node(key)
+            scg.display('lm_node')
+
+        if 0:
             # scg.rotate(0.01)
             # scg.translate(1,10)
             # scg.magnify(2,0.5)
@@ -581,10 +628,10 @@ if __name__ == '__main__':
 
         if 1:
             from Timba.Contrib.JEN.Grunting import WSRT_Jones
-            jones = WSRT_Jones.EJones_21cm(ns,
+            jones = WSRT_Jones.GJones(ns,
                                       quals=['xxx'],
                                       stations=ANTENNAS, simulate=False)
-            scg.corrupt(jones, label='G', key=3)
+            scg.corrupt(jones, label='E')
             scg.display()
             scg._pgm.display()
 

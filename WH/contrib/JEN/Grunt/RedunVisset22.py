@@ -109,6 +109,7 @@ class RedunVisset22 (Visset22.Visset22):
     def make_group_node (self, rr=None, polar=False):
         """Helper function for .make_group_nodes()"""
 
+        quals = []
         pname = 'redun_phase'
         aname = 'redun_ampl'
         rname = 'redun_real'
@@ -118,12 +119,14 @@ class RedunVisset22 (Visset22.Visset22):
             # First time: define parmgroups:
             if polar:
                 self.define_parmgroup(aname, descr='redundant baseline amplitude',
+                                      quals=quals,
                                       default=dict(c00=1.0,
                                                    # subtile_size=1,
                                                    tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[aname,'redun'])
                 self.define_parmgroup(pname, descr='redundant baseline phase',
+                                      quals=quals,
                                       default=dict(c00=0.0, unit='rad',
                                                    # subtile_size=1,
                                                    tfdeg=[2,0]),
@@ -131,12 +134,14 @@ class RedunVisset22 (Visset22.Visset22):
                                       tags=[pname,'redun'])
             else:
                 self.define_parmgroup(rname, descr='redundant baseline real part',
+                                      quals=quals,
                                       default=dict(c00=1.0,
                                                    # subtile_size=1,
                                                    tfdeg=[2,0]),
                                       rider=dict(matrel='*'),
                                       tags=[rname,'redun'])
                 self.define_parmgroup(iname, descr='redundant baseline imag part',
+                                      quals=quals,
                                       default=dict(c00=0.0,
                                                    # subtile_size=1,
                                                    tfdeg=[2,0]),
@@ -181,14 +186,14 @@ class RedunVisset22 (Visset22.Visset22):
         if polar:
             # Solve for ampl/phase per matrix element:
             for m in mms:
-                phase = self.create_parmgroup_entry(pname, (pp[m],key))
-                ampl = self.create_parmgroup_entry(aname, (pp[m],key))
+                phase = self.create_parmgroup_entry(pname, (pp[m],key), quals=quals)
+                ampl = self.create_parmgroup_entry(aname, (pp[m],key), quals=quals)
                 mm[m] = self._ns << Meq.Polar(ampl,phase)
         else:
             # Solve for real/imag per matrix element:
             for m in mms:
-                real = self.create_parmgroup_entry(rname, (pp[m],key))
-                imag = self.create_parmgroup_entry(iname, (pp[m],key))
+                real = self.create_parmgroup_entry(rname, (pp[m],key), quals=quals)
+                imag = self.create_parmgroup_entry(iname, (pp[m],key), quals=quals)
                 mm[m] = self._ns << Meq.ToComplex(real,imag)
         node = self._ns[name](*quals)(key) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                            mm['m21'],mm['m22'])

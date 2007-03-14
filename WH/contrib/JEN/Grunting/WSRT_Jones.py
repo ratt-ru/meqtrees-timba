@@ -385,34 +385,9 @@ def EJones_parmgroups(full=False):
     pg = ['EJones'] 
     return pg
 
+
 class EJones (Joneset22.Joneset22):
     """Class that represents a set of 2x2 WSRT EJones matrices,
-    which model the WSRT telescope beamshapes (for the specified freq band).
-    EJones is an image-plane effect."""
-
-    def __init__(self, ns, quals=[], label='E',
-                 stations=None, band='21cm',
-                 override=None,
-                 simulate=False):
-
-        # There are different EJones matrices for different freq bands:
-        if band=='90cm':
-            pass                                 # not yet implemented
-
-        elif band=='LFFE':
-            pass                                 # not yet implemented
-        
-        else:                                    # default
-            EJones_21cm.__init__(self, ns, quals=quals, label=label,
-                                 override=override,
-                                 stations=stations, simulate=simulate)
-        return None
-
-
-#--------------------------------------------------------------------------------------------
-
-class EJones_21cm (Joneset22.Joneset22):
-    """Class that represents a set of 2x2 WSRT 21cm EJones matrices,
     which model the WSRT telescope beamshapes with the 21cm MFFE receivers.
     EJones is an image-plane effect."""
 
@@ -428,6 +403,7 @@ class EJones_21cm (Joneset22.Joneset22):
         pname = self.label()+'phase'
         gname = self.label()+'gain'
         jname = self.label()+'Jones'
+
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
@@ -445,6 +421,7 @@ class EJones_21cm (Joneset22.Joneset22):
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=[gname,jname])
+
         # Make the Jones matrices per station:
         for s in self.stations():
             mm = dict()
@@ -452,9 +429,17 @@ class EJones_21cm (Joneset22.Joneset22):
                 phase = self.create_parmgroup_entry(pname+pol, s, quals=quals)
                 gain = self.create_parmgroup_entry(gname+pol, s, quals=quals)
                 mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
+                if False:
+                    Xbeam = Expression('[l]**2+[m]**2', label='Xbeam')
+                    # Xbeam.display(full=True)
+                    # Xbeam.expanded().display(full=True)
+                    node = Xbeam.MeqParm (ns, trace=True)
+                    Xbeam.display('MeqParm', full=True)
+                    TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
         self.matrixet(new=self._ns[jname](*quals))
+
         # Make some secondary (composite) ParmGroups:
         self.define_gogs(jname)
         return None
@@ -533,13 +518,18 @@ if __name__ == '__main__':
         G.display(full=True)
         # G.display_NodeGroups()
 
+    if 1:
+        J = EJones(ns, simulate=False)
+        jj.append(J)
+        J.display(full=True)
+
     if 0:
         J = JJones(ns, quals=['xxx'], diagonal=False)
         jj.append(J)
         J.display(full=True)
 
 
-    if 1:
+    if 0:
         J = BJones(ns, quals=['xxx'])
         jj.append(J)
         J.display(full=True)

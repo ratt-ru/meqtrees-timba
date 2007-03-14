@@ -262,14 +262,6 @@ class Matrixet22 (object):
                                                  show_initrec=False,
                                                  recurse=recurse)
         #...............................................................
-        ntot = len(self._pgm._parmgroup) + len(self._pgm._simparmgroup)
-        print ' * Available NodeGroup/NodeGog objects ('+str(ntot)+'): '
-        print '  - '+str(self._pgm.oneliner())
-        for key in self._pgm._parmgroup.keys():
-            print '    - '+str(self._pgm._parmgroup[key].oneliner())
-        for key in self._pgm._simparmgroup.keys():
-            print '    - (sim) '+str(self._pgm._simparmgroup[key].oneliner())
-        #...............................................................
         print ' * Extracted (sets of) matrix elements: '
         for key in self._matrel.keys():
             print '  - '+str(key)+': '+str(self._matrel[key])
@@ -288,6 +280,8 @@ class Matrixet22 (object):
             print '  - '+str(key)+' ('+str(len(vv))+'):'
             if full:
                 for v in vv: print '    - '+str(type(v))+' '+str(v)
+        #...............................................................
+        self._pgm.display(full=full)
         #...............................................................
         print '**\n'
         return True
@@ -722,6 +716,7 @@ class Matrixet22 (object):
             index += 1
             indices.append(index)
             self.define_parmgroup(key, descr='matrix element: '+key,
+                                  quals=quals,
                                   default=dict(value=index/10.0),
                                   # simul=dict(stddev=0.01),
                                   tags=['testing'])
@@ -730,8 +725,7 @@ class Matrixet22 (object):
                 mm[elem] = self._ns << Meq.Polar(1.0, 0.0)
             # The one non-zero element is complex, with amplitude=1.0,
             # and phase equal to index/10 radians (plus variation if simulate=True):
-            phase = self.create_parmgroup_entry(key, index)
-            # phase = self._pgm.create_parmgroup_entry(key, index)
+            phase = self.create_parmgroup_entry(key, index, quals=quals)
             mm[key] = self._ns << Meq.Polar(1.0, phase)
             mat = self._ns[name](*quals)(index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                                 mm['m21'],mm['m22'])

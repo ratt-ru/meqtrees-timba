@@ -1335,16 +1335,17 @@ if __name__=="__main__":
             igui.append(i)
 
     if 1:
-        igui.launch()
+        igui.show()
+        igui.QApp().connect(igui.QApp(), SIGNAL("lastWindowClosed()"),
+                            igui.QApp(), SLOT("quit()"))
+        # igui.QApp().exec_loop()
 
     if 0:
+        igui.launch()
+
+    if 1:
         for i in range(5):
             igui.append(i)
 
 
-    if 0:
-        igui.show()
-        igui.QApp().connect(igui.QApp(), SIGNAL("lastWindowClosed()"),
-                            igui.QApp(), SLOT("quit()"))
-        igui.QApp().exec_loop()
 

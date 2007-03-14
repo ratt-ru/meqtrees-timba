@@ -68,7 +68,7 @@ class ParmGroupManager (object):
         return ss
 
 
-    def display(self, txt=None, full=False):
+    def display(self, txt=None, full=True):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -94,7 +94,8 @@ class ParmGroupManager (object):
             if isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
         #...............................................................
-        print self.tabulate()
+        if full:
+            print self.tabulate()
         #...............................................................
         print '**\n'
         return True
@@ -240,26 +241,33 @@ class ParmGroupManager (object):
         """Helper function to merge its relevant NodeGroups/Gogs with those of another
         ParmGroupManager object"""
         if trace: print '\n** merge():'
-        all = []
-        if self._parmgroup.has_key('*'):
-            if trace: print 'self[*]:',self._parmgroup['*']
-            all.extend(self._parmgroup['*'].group())
-        if other._parmgroup.has_key('*'):
-            if trace: print 'other[*]:',other._parmgroup['*']
-            all.extend(other._parmgroup['*'].group())
+
+        if False:
+            # Obsolete?
+            all = []
+            if self._parmgroup.has_key('*'):
+                if trace: print 'self[*]:',self._parmgroup['*']
+                all.extend(self._parmgroup['*'].group())
+            if other._parmgroup.has_key('*'):
+                if trace: print 'other[*]:',other._parmgroup['*']
+                all.extend(other._parmgroup['*'].group())
+            if len(all)>0:
+                self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all)    
+
         for key in other._parmgroup.keys():
             if not self._parmgroup.has_key(key):
                 self._parmgroup[key] = other._parmgroup[key]
             else:
                 # Assume NodeGog....
                 self._parmgroup[key].append_entry(other._parmgroup[key].group())
+
         for key in other._simparmgroup.keys():
             if not self._simparmgroup.has_key(key):
                 self._simparmgroup[key] = other._simparmgroup[key]
             else:
                 # Assume NodeGog....
                 self._simparmgroup[key].append_entry(other._simparmgroup[key].group())
-        self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all)    
+
         if trace: print '**\n'
         return True
 
@@ -278,7 +286,6 @@ class ParmGroupManager (object):
         # method produces subtrees that simulate MeqParm behaviour.
 
         quals = self.quals(append=quals)
-
         qkey = self.qualify_key (key, quals=quals)
 
         # ....
@@ -443,12 +450,13 @@ class ParmGroupManager (object):
         quals = self.quals()
         for name in names:
             self.define_parmgroup(name, descr='...'+name,
+                                  quals=quals,
                                   default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
                                                subtile_size=1),
                                   simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
                                   tags=['test'])
             for index in range(4):
-                node = self.create_parmgroup_entry(name, index)
+                node = self.create_parmgroup_entry(name, index, quals=quals)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()

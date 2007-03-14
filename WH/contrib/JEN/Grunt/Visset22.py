@@ -2,11 +2,12 @@
 
 # History:
 # - 05jan2007: creation (from JEN_SolverChain.py)
+# - 14mar2007: added MSSE support (sigma) to .corrupt()
 
 # Description:
 
 # The Visset22 class encapsulates a set of 2x2 cohaerency matrices,
-# i.e. visbilities. 
+# i.e. visbilities. It is derived from the Matrixet22 class.
 
 #======================================================================================
 
@@ -275,20 +276,34 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #...........................................................................
 
-    def correct (self, joneset=None, qual=None, pgm_merge=False, visu=False):
-        """Correct the internal matrices with the matrices of the given Joneset22 object."""
+    def correct (self, joneset=None, qual=None, sigma=0.0, pgm_merge=False, visu=False):
+        """Correct the internal matrices with the matrices of the given Joneset22 object.
+        If sigma>0, add a unit matrix multiplied by sigma**2 before inversion (MMSE)."""
+
+        # Merge the node qualifiers of joneset with the local ones
         quals = self.quals(append=qual)
         qq = joneset.quals()
         for q in qq:
             if not q in quals: quals.append(q)
+
+        if sigma>0:
+            # NB: sigma could be a node...
+            sigma2 = self._ns.sigma2_MSSE(*quals) << (sigma*sigma)
+            MSSE = self._ns << Meq.Matrix22(sigma2,0.0,0.0,sigma2)
+            
         name = 'correct22'
         jmat = joneset.matrixet()
         for ifr in self.ifrs():
-            j1i = jmat(ifr[0])('inv') ** Meq.MatrixInvert22(jmat(ifr[0]))
+            if sigma>0:
+                j1i = jmat(ifr[0])('MSSE') ** Meq.MatrixMultiply(jmat(ifr[0]),MSSE)
+                j1i = jmat(ifr[0])('inv_MSSE') ** Meq.MatrixInvert22(j1i)
+            else:
+                j1i = jmat(ifr[0])('inv') ** Meq.MatrixInvert22(jmat(ifr[0]))
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
             self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
         self._matrixet = self._ns[name](*quals)              
+
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
@@ -403,12 +418,13 @@ if __name__ == '__main__':
 
     if 1:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
-        vis.corrupt(G, visu=True)
+        # vis.corrupt(G, visu=True)
         # vis.addGaussianNoise(stddev=0.05, visu=True)
-        vis.correct(G, visu=True)
-        vis.display('after corruption')
+        # vis.correct(G, visu=True)
+        vis.correct(G, sigma=0.1, visu=True)
+        vis.display('after correction', recurse=4)
 
-    if 1:
+    if 0:
         vis.insert_accumulist_reqseq()
         vis.display(full=True)
         

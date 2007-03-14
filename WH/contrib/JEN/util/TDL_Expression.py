@@ -14,6 +14,7 @@
 #    - 07 jun 2006: implement .MeqParms()
 #    - 05 jul 2006: implemented .Funklet(plot=True)
 #    - 07 aug 2006: overhauled .subTree()
+#    - 14 mar 2007: changed **quals into *quals
 #
 # Remarks:
 #
@@ -66,7 +67,7 @@
   name is generates, which will also be unique. It is also possible, with a separate
   method, to specify overall qualifiers that will be used for for all nodes that are
   subsequently generated for that object:
-     .quals(*args, **kwargs)
+     .quals(*args)
   Any extra qualifiers specified in a method call will be added to these overall
   qualifiers. The overall qualifiers can be removed with .quals().
 
@@ -175,7 +176,7 @@ class Expression:
 
     def _reset (self, nominal=True, recurse=True, stddev=None):
         """Reset the object to its original state."""
-        self.__quals = dict()
+        self.__quals = []
         self.__plotrec = None
         self.__expanded = False
         self.__MeqNode = None
@@ -2109,20 +2110,21 @@ class Expression:
     # Node-names:
     #================================================================================
 
-    def quals(self, *args, **kwargs):
+    def quals(self, quals=[]):
         """Get/set the overall MeqNode node-name qualifier(s)"""
+
+        if quals==None: quals = []
+        if not isinstance(quals,(list,tuple)): quals = [quals]
 
         # Reset the object (if nominal, reset parm defaults to nominal, else stddev):
         nominal = True
-        if len(kwargs)>0: nominal=False
-        # if len(args)>0: nominal=False
+        if len(quals)>0: nominal=False
         self._reset (nominal=nominal)              # BEFORE modifying self.__quals
 
         # Modify self.__quals (always!):
-        for key in kwargs.keys():
-            self.__quals[key] = kwargs[key]        # 
+        for qual in quals:
+            self.__quals.append(qual)        # 
         # Always return the current self.__quals
-        # print '\n** .quals():   args =',args,'  kwargs =',kwargs,'  ->',self.__quals
         return self.__quals
 
     #..........................................................................
@@ -2130,53 +2132,35 @@ class Expression:
     def qualtag(self):
         """Get a string summary of the qualifiers, e.g. to tag (expanded) parm names"""
         qtag = ''                                  # default: none
-        for key in self.__quals.keys():
-            qtag += str(self.__quals[key]) 
+        for qual in self.__quals:
+            qtag += str(qual) 
         return qtag
 
 
     #--------------------------------------------------------------------------
 
-    def _unique_node (self, ns, name, qual=None, trace=False):
+    def _unique_node (self, ns, name, qual=[], trace=False):
         """Helper function to generate a unique node-name.
         It first tries one with the internal and the specified qualifiers.
         If that exists already, it add a unique qualifier (uniqual)."""
 
-        trace = False
+        # trace = False
         
         # Combine any specified qualifiers (qual) with any internal ones:
         quals = deepcopy(self.__quals)
         qualin = deepcopy(qual)
-        if isinstance(qual, dict):
-            for key in qual.keys():
-                quals[key] = qualin[key]
-            qualin = None
-        if len(quals)==0: quals = None
-        
+        if not isinstance(qualin, (list,tuple)): qualin = [qualin]
+        for q in qualin:
+            if not q in quals: quals.append(q)
+            
         # First try without uniqual:
-        if isinstance(quals, dict):
-            if qualin:
-                node = ns[name](**quals)(qualin)
-            else:
-                node = ns[name](**quals)
-        elif qualin:
-            node = ns[name](qualin)
-        else:
-            node = ns[name]
+        node = ns[name](*quals)
 
         # If the node exists already, make a unique one:
         if node.initialized():
             # Add an extra qualifier to make the nodename unique:
             uniqual = _counter (name, increment=-1)
-            if isinstance(quals, dict):
-                if qualin:
-                    node = ns[name](**quals)(qualin)(uniqual)
-                else:
-                    node = ns[name](**quals)(uniqual)
-            elif qualin:
-                node = ns[name](qualin)(uniqual)
-            else:
-                node = ns[name](uniqual)
+            node = ns[name](*quals)(uniqual)
                 
         if trace: print '\n** ._unique_node(',name,qual,') ->',node
         return node
@@ -2491,15 +2475,14 @@ if __name__ == '__main__':
     if 0:
         e0 = Expression()
         e0.quals()
-        e0.quals(4,6,'7')
-        e0.quals(a=1, b=2)
+        e0.quals([4,6,'7'])
         e0._unique_node(ns, 'xxx', trace=True)
-        e0._unique_node(ns, 'xxx', qual=dict(c=5), trace=True)
+        e0._unique_node(ns, 'xxx', qual=5, trace=True)
         node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
         node << 0.9
         node = e0._unique_node(ns, 'xxx', qual=5, trace=True)
 
-    if 0:
+    if 1:
         e0 = Expression('3*[t]')
         # e0.display()
         e0.evalarr(range(5), trace=True)
@@ -2553,7 +2536,7 @@ if __name__ == '__main__':
  
     #---------------------------------------------------------
 
-    if 1:
+    if 0:
         expr = '{A}*{B}*[f]'
         expr = '{A}*{B}/[f]'
         expr = '{A}/[f]'
@@ -2582,7 +2565,7 @@ if __name__ == '__main__':
         e1.parm('A', -5, constant=True, stddev=0.1)
         # e1.parm('B', 10, help='help for B')
         # e1.parm('C', f0, help='help for C')
-        # e1.quals(a=5,b=6)
+        # e1.quals([5,6])
         e1.display('initial', full=True)
 
         if 0:
@@ -2591,8 +2574,8 @@ if __name__ == '__main__':
             e1.expanded().display('.expanded()', full=True)
 
         if 0:
-            e1.display(e1.quals(a=-1,b=17))
-            e1.display(e1.quals(a=5,b=6))
+            e1.display(e1.quals([1,17]))
+            e1.display(e1.quals([5,6]))
             e1.display(e1.quals())
 
         if 0:
@@ -2705,7 +2688,37 @@ if __name__ == '__main__':
         pp = dict(a=-4)
         func(**pp)
 
-    if 1:
+    if 0:
+        # WSRT telescope voltage beams (gaussian) with external MeqParms:
+        Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
+                           descr='WSRT X voltage beam (gaussian)', unit='kg')
+        Xbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+        Lterm = Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
+        Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
+        Xbeam.parm ('Lterm', default=Lterm)
+        Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
+        # Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
+        Xbeam.parm ('M0', default=(ns.M0 << Meq.Constant(12.9)))
+        Xbeam.parm ('Mterm', default=Mterm)
+        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
+        Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
+                                                 descr='observing wavelength'), unit='m')
+        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
+        # Xbeam.display(full=True)
+        # Xbeam.display(full=False)
+        # Xbeam.expanded().display(full=True)
+        Xbeam.expanded().display(full=False)
+        # Xbeam.plot()
+
+        if 1:
+            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+            
+
+        
+
+
+    if 0:
         # WSRT telescope voltage beams (gaussian):
         Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
                            descr='WSRT X voltage beam (gaussian)', unit='kg')
@@ -2787,10 +2800,10 @@ if __name__ == '__main__':
         attuv.parm('_u', ucoord, unit='wvl', help='u-coordinate')
         attuv.parm('_v', vcoord, unit='wvl', help='v-coordinate')
 
-        qqual = dict(q='3c56')
-        major = ns.major_axis(**qqual) << Meq.Parm(0.1)
-        minor = ns.minor_axis(**qqual) << Meq.Parm(0.01)
-        pa = ns.posangle(**qqual) << Meq.Parm(-0.1)
+        qqual = ['3c56']
+        major = ns.major_axis(*qqual) << Meq.Parm(0.1)
+        minor = ns.minor_axis(*qqual) << Meq.Parm(0.01)
+        pa = ns.posangle(*qqual) << Meq.Parm(-0.1)
         cospa = Expression('cos({_posangle})', label='cospa')
         sinpa = Expression('sin({_posangle})', label='sinpa')
 
