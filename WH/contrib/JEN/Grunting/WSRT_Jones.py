@@ -26,6 +26,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Joneset22
+from Timba.Contrib.JEN.util import TDL_Expression
 
 
 #=================================================================================================
@@ -404,6 +405,41 @@ class EJones (Joneset22.Joneset22):
         gname = self.label()+'gain'
         jname = self.label()+'Jones'
 
+        # WSRT telescope X voltage beam (gaussian):
+        Xbeam = Expression('{Xpeak}*exp(-{XLterm}-{Mterm})', label='gaussXbeam',
+                           descr='WSRT X voltage beam (gaussian)', unit='kg')
+        XLterm = Expression('(([l]-{XL0})*{_D}*(1+{_Xell})/{lambda})**2', label='XLterm')
+        Xbeam.parm ('XLterm', default=XLterm)
+        XMterm = Expression('(([m]-{XM0})*{_D}*(1-{_Xell})/{lambda})**2', label='XMterm')
+        Xbeam.parm ('XMterm', default=XMterm)
+        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
+        
+        obswvl = Expression('3e8/[f]', label='lambda', descr='observing wavelength'), unit='m')
+        Xbeam.parm ('lambda', default=obswvl)
+
+        # WSRT telescope Y voltage beam (gaussian):
+        Ybeam = Expression('{Ypeak}*exp(-{YLterm}-{Mterm})', label='gaussYbeam',
+                           descr='WSRT Y voltage beam (gaussian)', unit='kg')
+        YLterm = Expression('(([l]-{YL0})*{_D}*(1-{_Yell})/{lambda})**2', label='YLterm')
+        Ybeam.parm ('YLterm', default=YLterm)
+        YMterm = Expression('(([m]-{YM0})*{_D}*(1+{_Yell})/{lambda})**2', label='YMterm')
+        Ybeam.parm ('YMterm', default=YMterm)
+        Ybeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
+        Ybeam.parm ('lambda', default=obswvl)
+
+
+        # Replace with external parameters:
+        Xbeam.parm ('Xpeak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+        XLterm.parm ('XL0', default=0.0, unit='rad', help='pointing error in L-direction')
+        XMterm.parm ('XM0', default=0.0, unit='rad', help='pointing error in M-direction')
+        Xbeam.parm ('_Xell', default=0.1, help='Voltage beam elongation factor (1+ell)')
+
+        Ybeam.parm ('Ypeak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
+        YLterm.parm ('YL0', default=0.0, unit='rad', help='pointing error in L-direction')
+        YMterm.parm ('YM0', default=0.0, unit='rad', help='pointing error in M-direction')
+        Ybeam.parm ('_Yell', default=0.1, help='Voltage beam elongation factor (1+ell)')
+
+
         # Define the various primary ParmGroups:
         for pol in pols:
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
@@ -424,20 +460,13 @@ class EJones (Joneset22.Joneset22):
 
         # Make the Jones matrices per station:
         for s in self.stations():
-            mm = dict()
-            for pol in pols:
-                phase = self.create_parmgroup_entry(pname+pol, s, quals=quals)
-                gain = self.create_parmgroup_entry(gname+pol, s, quals=quals)
-                mm[pol] = self._ns[jname+pol](*quals)(s) << Meq.Polar(gain,phase)
-                if False:
-                    Xbeam = Expression('[l]**2+[m]**2', label='Xbeam')
-                    # Xbeam.display(full=True)
-                    # Xbeam.expanded().display(full=True)
-                    node = Xbeam.MeqParm (ns, trace=True)
-                    Xbeam.display('MeqParm', full=True)
-                    TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
-            self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
-                                                       0.0,mm[pols[1]])
+
+            # XMterm.parm ('M0', default=...)
+            Xbeam.quals(s)
+            Xnode = Xbeam.MeqFunctional(self._ns)
+            Ybeam.quals(s)
+            Ynode = Ybeam.MeqFunctional(self._ns)
+            self._ns[jname](*quals)(s) << Meq.Matrix22(Xnode, 0.0, 0.0, Ynode)
         self.matrixet(new=self._ns[jname](*quals))
 
         # Make some secondary (composite) ParmGroups:

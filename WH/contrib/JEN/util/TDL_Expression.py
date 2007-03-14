@@ -116,7 +116,8 @@ class Expression:
         may be supplied via keyword arguments pp. More detailed
         information may be supplied via the function .parm()."""
 
-        self.__label = _unique_label(label)
+        # self.__label = _unique_label(label)
+        self.__label = str(label)
         self.__ident = int(100000*random.random()) # unique identifier
         self.__descr = descr
         self.__unit = unit                         # unit of the result
@@ -2146,7 +2147,7 @@ class Expression:
         It first tries one with the internal and the specified qualifiers.
         If that exists already, it add a unique qualifier (uniqual)."""
 
-        # trace = False
+        trace = False
         
         # Combine any specified qualifiers (qual) with any internal ones:
         quals = deepcopy(self.__quals)
@@ -2707,7 +2708,7 @@ if __name__ == '__main__':
 
         Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
         # Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Mterm.parm ('M0', default=(ns.external << Meq.Constant(12.9)))
+        Mterm.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
 
         Xbeam.parm ('Mterm', default=Mterm)
         Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
@@ -2721,6 +2722,13 @@ if __name__ == '__main__':
         # Xbeam.plot()
 
         if 1:
+            Xbeam.quals(6)
+            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
+            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
+
+            Mterm.parm ('M0', default=(ns.M0_new_external << Meq.Constant(76.8)))
+            Xbeam.parm ('_D', default=34.0, unit='m', help='WSRT telescope diameter', origin='test')
+            Xbeam.quals(7)
             node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
             
