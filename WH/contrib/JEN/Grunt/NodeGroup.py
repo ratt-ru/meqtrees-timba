@@ -470,7 +470,7 @@ class NodeGog (object):
 
     #-------------------------------------------------------------------
 
-    def append_entry(self, group):
+    def append_entry(self, group, trace=False):
         """Append the given entry (group) to the internal group.
         NB: If group is a list (of NodeGroups), all its elements are appended."""
         was = self.len()
@@ -481,7 +481,8 @@ class NodeGog (object):
             test = (type(g)==NodeGroup)
             # test = (type(g)==ParmGroup.ParmGroup)
             self._group.append(g)
-            print '----- append_entry(',self.label(),g.label(),test,'):',was,'->',self.len()
+            if trace:
+                print '----- append_entry(',self.label(),g.label(),test,'):',was,'->',self.len()
         return len(self._group)
 
     #----------------------------------------------------------------------

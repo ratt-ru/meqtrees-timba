@@ -15,6 +15,7 @@
 #    - 05 jul 2006: implemented .Funklet(plot=True)
 #    - 07 aug 2006: overhauled .subTree()
 #    - 14 mar 2007: changed **quals into *quals
+#    - 15 mar 2007: added ParmGroupManager support
 #
 # Remarks:
 #
@@ -309,7 +310,8 @@ class Expression:
         ss = self.format_expr(header=False)
         for term in ss['terms']:
             print indent,'  ',term
-        
+
+        print
         print indent,'- Its variables (',len(self.__var),'): '
         for key in self.__var.keys():
             if full:
@@ -321,6 +323,7 @@ class Expression:
                     vv[vkey] = self.__var[key][vkey]
                 print indent,'  -',key,':',vv
 
+        print
         print indent,'- Its parameters (',len(self.__parm),'):'
         for key in self.__parm_order:
             p = self.__parm[key]
@@ -348,6 +351,7 @@ class Expression:
                         vv[vkey] = p[vkey]
                     print indent,'  -',key,':',vv
 
+        print
         print indent,'- Parameter types:'
         for key in self.__parmtype.keys():    
             print indent,'  -',key,'(',str(len(self.__parmtype[key])),'): ',self.__parmtype[key]
@@ -550,7 +554,7 @@ class Expression:
                 elif isinstance(p1, dict):
                     if key[0]=='_' and key1==key and p1.has_key('scope'):
                         self.__parm[key1]['scope'] = scope
-                        print '-',level,self.label(),key, key1,': imprint scope:',scope
+                        print '-',level,self.label(),key, key1,': imprint(?) scope:',scope
 
         # Finishing touches:
         self.__expanded = False                       # Enforce a new expansion 
@@ -650,20 +654,20 @@ class Expression:
             default = 1e9                  # 'current' MJD (s)
             testinc = 10.0                 # 10 s
         elif key[0]=='f':                  # freq, fGHz, fMHz
-            rr['node'] = 'MeqFreq'
+            rr['node'] = 'MeqFreq'  
             rr['xn'] = 'x1'
             rr['axis'] = 'freq'            # used in MeqKernel
             rr['unit'] = 'Hz'
             default = 150e6                # 150 MHz
             testinc = 1e6                  # 1 MHz
         elif key[0]=='l':
-            rr['node'] = 'MeqGridL'            # .....!?
+            rr['node'] = 'MeqGridL'        # .....!?
             rr['xn'] = 'x2'                # .....!?
             rr['unit'] = 'rad'
             default = 0.0                  # phase centre
             testinc = 0.01                 # 0.57 deg
         elif key[0]=='m':
-            rr['node'] = 'MeqGridM'            # .....!?
+            rr['node'] = 'MeqGridM'        # .....!?
             rr['xn'] = 'x3'                # .....!?
             rr['unit'] = 'rad'
             default = 0.0                  # phase centre
@@ -896,6 +900,8 @@ class Expression:
         if trace: print '   -> self.__expanded =',self.__expanded,'(',self.oneliner(),')'
         return self.__expanded 
         
+
+
 
     #============================================================================
     # Fit the Expression (e.g. a polc) to a set of given points.
@@ -1196,6 +1202,8 @@ class Expression:
         diff.parm('other', other.expanded(unique=True))
         if _plot: diff.plot(_title=diff.descr(), _legend=_legend, **pp)
         return True
+
+
 
     #============================================================================
     # Evaluating the (expanded) expression:
@@ -2708,20 +2716,24 @@ if __name__ == '__main__':
 
         Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
         # Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Mterm.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
+        # Mterm.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
 
         Xbeam.parm ('Mterm', default=Mterm)
         Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
         Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
                                                  descr='observing wavelength'), unit='m')
         Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
+
+        Xbeam.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
+        # Xbeam.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
+
         # Xbeam.display(full=True)
         # Xbeam.display(full=False)
         # Xbeam.expanded().display(full=True)
         Xbeam.expanded().display(full=False)
         # Xbeam.plot()
 
-        if 1:
+        if 0:
             Xbeam.quals(6)
             node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)

@@ -401,72 +401,84 @@ class EJones (Joneset22.Joneset22):
                                      stations=stations, simulate=simulate)
         pols = self._pols
         quals = self.quals()
-        pname = self.label()+'phase'
-        gname = self.label()+'gain'
         jname = self.label()+'Jones'
 
-        # WSRT telescope X voltage beam (gaussian):
-        Xbeam = Expression('{Xpeak}*exp(-{XLterm}-{Mterm})', label='gaussXbeam',
-                           descr='WSRT X voltage beam (gaussian)', unit='kg')
-        XLterm = Expression('(([l]-{XL0})*{_D}*(1+{_Xell})/{lambda})**2', label='XLterm')
-        Xbeam.parm ('XLterm', default=XLterm)
-        XMterm = Expression('(([m]-{XM0})*{_D}*(1-{_Xell})/{lambda})**2', label='XMterm')
-        Xbeam.parm ('XMterm', default=XMterm)
-        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
-        
-        obswvl = Expression('3e8/[f]', label='lambda', descr='observing wavelength'), unit='m')
-        Xbeam.parm ('lambda', default=obswvl)
+        # Make Expression objects for the X and Y voltage beams:
+        beam = dict()
+        beamparms = dict()
+        obswvl = TDL_Expression.Expression('3e8/[f]', label='lambda',
+                                           descr='observing wavelength', unit='m')
+        for pol in pols:
+            beam[pol] = TDL_Expression.Expression('{peak'+pol+'}*exp(-{Lterm}-{Mterm})', label='beam'+pol,
+                                   descr='WSRT '+pol+' voltage beam (gaussian)')
+            Lterm = TDL_Expression.Expression('(([l]-{L0'+pol+'})*{_D}*(1+{_ell'+pol+'})/{lambda})**2',
+                                              label='Lterm')
+            Mterm = TDL_Expression.Expression('(([m]-{M0'+pol+'})*{_D}*(1-{_ell'+pol+'})/{lambda})**2',
+                                              label='Mterm')
+            beam[pol].parm ('Lterm', default=Lterm)
+            beam[pol].parm ('Mterm', default=Mterm)
+            beam[pol].parm ('_D', default=25.0, constant=True, unit='m', help='WSRT telescope diameter')
+            beam[pol].parm ('lambda', default=obswvl)
 
-        # WSRT telescope Y voltage beam (gaussian):
-        Ybeam = Expression('{Ypeak}*exp(-{YLterm}-{Mterm})', label='gaussYbeam',
-                           descr='WSRT Y voltage beam (gaussian)', unit='kg')
-        YLterm = Expression('(([l]-{YL0})*{_D}*(1-{_Yell})/{lambda})**2', label='YLterm')
-        Ybeam.parm ('YLterm', default=YLterm)
-        YMterm = Expression('(([m]-{YM0})*{_D}*(1+{_Yell})/{lambda})**2', label='YMterm')
-        Ybeam.parm ('YMterm', default=YMterm)
-        Ybeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter')
-        Ybeam.parm ('lambda', default=obswvl)
-
-
-        # Replace with external parameters:
-        Xbeam.parm ('Xpeak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-        XLterm.parm ('XL0', default=0.0, unit='rad', help='pointing error in L-direction')
-        XMterm.parm ('XM0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Xbeam.parm ('_Xell', default=0.1, help='Voltage beam elongation factor (1+ell)')
-
-        Ybeam.parm ('Ypeak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-        YLterm.parm ('YL0', default=0.0, unit='rad', help='pointing error in L-direction')
-        YMterm.parm ('YM0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Ybeam.parm ('_Yell', default=0.1, help='Voltage beam elongation factor (1+ell)')
+            beamparms[pol] = ['peak'+pol,'L0'+pol,'M0'+pol,'_ell'+pol]   # used below
+            if True:
+                beam[pol].parm ('peak'+pol, default=1.0, help='peak value of '+pol+' voltage beam')
+                beam[pol].parm ('L0'+pol, default=0.0, unit='rad', help='pointing error in L-direction')
+                beam[pol].parm ('M0'+pol, default=0.0, unit='rad', help='pointing error in M-direction')
+                beam[pol].parm ('_ell'+pol, default=0.1, help='Voltage beam elongation factor (1+ell)')
+            # beam[pol].expanded().display(full=True)
 
 
         # Define the various primary ParmGroups:
-        for pol in pols:
-            matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            self.define_parmgroup(pname+pol, descr=pol+'-dipole phases',
-                                  quals=quals,
-                                  default=dict(c00=0.0),
-                                  simul=dict(Tsec=200),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=[pname,jname])
-            self.define_parmgroup(gname+pol, descr=pol+'-dipole gains',
+        if False:
+        # for pol in pols:
+            matrel = self._pols_matrel()[pol]                   # i.e. 'm11' or 'm22'
+            self.define_parmgroup('peak'+pol, descr='peak value of '+pol+' voltage beam',
                                   quals=quals,
                                   default=dict(c00=1.0),
-                                  simul=dict(),
+                                  simul=dict(Tsec=2000),
                                   override=override,
                                   rider=dict(matrel=matrel),
-                                  tags=[gname,jname])
+                                  tags=['peak', jname])
+            self.define_parmgroup('L0'+pol, descr='pointing error in L-direction',
+                                  quals=quals,
+                                  default=dict(c00=0.0),
+                                  simul=dict(Tsec=2000),
+                                  override=override,
+                                  rider=dict(matrel=matrel),
+                                  tags=['L0', 'pointing', jname])
+            self.define_parmgroup('M0'+pol, descr='pointing error in M-direction',
+                                  quals=quals,
+                                  default=dict(c00=0.0),
+                                  simul=dict(Tsec=2000),
+                                  override=override,
+                                  rider=dict(matrel=matrel),
+                                  tags=['M0', 'pointing', jname])
+            self.define_parmgroup('_ell'+pol, descr='Voltage beam elongation factor (1+ell)',
+                                  quals=quals,
+                                  default=dict(c00=0.1),
+                                  simul=dict(Tsec=2000),
+                                  override=override,
+                                  rider=dict(matrel=matrel),
+                                  tags=['_ell', jname])
 
         # Make the Jones matrices per station:
+        print '\n*** stations:',self.stations()
         for s in self.stations():
-
-            # XMterm.parm ('M0', default=...)
-            Xbeam.quals(s)
-            Xnode = Xbeam.MeqFunctional(self._ns)
-            Ybeam.quals(s)
-            Ynode = Ybeam.MeqFunctional(self._ns)
-            self._ns[jname](*quals)(s) << Meq.Matrix22(Xnode, 0.0, 0.0, Ynode)
+            print '\n***',s
+            mm = dict()
+            for pol in pols:
+                print '\n***',s,pol
+                beam[pol].quals(s)
+                if False:
+                    # Provide external parameters for station s:
+                    for pname in beamparms[pol]:
+                        node = self.create_parmgroup_entry(pname, s, quals=quals)
+                        print '-',pname,node
+                        beam[pol].parm(pname, node)
+                mm[pol] = beam[pol].MeqFunctional(self._ns)
+            self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
+                                                       0.0,mm[pols[1]])
         self.matrixet(new=self._ns[jname](*quals))
 
         # Make some secondary (composite) ParmGroups:
@@ -549,8 +561,8 @@ if __name__ == '__main__':
 
     if 1:
         J = EJones(ns, simulate=False)
-        jj.append(J)
         J.display(full=True)
+        # jj.append(J)
 
     if 0:
         J = JJones(ns, quals=['xxx'], diagonal=False)

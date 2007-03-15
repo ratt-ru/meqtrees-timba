@@ -549,11 +549,20 @@ def _define_forest(ns):
     scg.display()
     # scg.skycomp(0).display()
 
-    if True:
+    if False:
         for key in scg.order():
             jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS, simulate=True)
             scg.corrupt(jones, label=jones.label(), key=key)
         scg.display('corrupted')
+    elif True:
+        from Timba.Contrib.JEN.Grunting import WSRT_Jones
+        jones = WSRT_Jones.EJones(ns,
+                                  # quals=['xxx'],
+                                  stations=ANTENNAS, simulate=False)
+        scg.corrupt(jones, label='E')
+        scg.display()
+        # scg._pgm.display()
+
 
     if True:
         vis = scg.Visset22()
@@ -628,8 +637,8 @@ if __name__ == '__main__':
 
         if 1:
             from Timba.Contrib.JEN.Grunting import WSRT_Jones
-            jones = WSRT_Jones.GJones(ns,
-                                      quals=['xxx'],
+            jones = WSRT_Jones.EJones(ns,
+                                      # quals=['xxx'],
                                       stations=ANTENNAS, simulate=False)
             scg.corrupt(jones, label='E')
             scg.display()

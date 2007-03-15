@@ -277,7 +277,7 @@ class ParmGroupManager (object):
     def define_parmgroup(self, key, quals=[], descr=None, tags=[], 
                          default=None, constraint=None, override=None,
                          simul=None, simulate=False,
-                         rider=None):
+                         rider=None, trace=False):
         """Helper function to define a named (key) (Simulated)ParmGroup object."""
 
         # There are two modes: In normal mode (simulate=False), a ParmGroup
@@ -333,18 +333,18 @@ class ParmGroupManager (object):
             self._parmgroup[qkey] = pg
 
         # Collect information for define_gogs():
-        print '\n** define_parmgroup(',key,qkey,'): utags=',utags
+        if trace: print '\n** define_parmgroup(',key,qkey,'): utags=',utags
         ignore = [qkey]
         for tag in utags:
             if not tag in ignore: 
                 if simulate:
                     self._sgog.setdefault(tag, [])
                     self._sgog[tag].append(self._simparmgroup[qkey])
-                    print '--- len(sgog[',tag,']) ->',len(self._sgog[tag])
+                    if trace: print '--- len(sgog[',tag,']) ->',len(self._sgog[tag])
                 else: 
                     self._pgog.setdefault(tag, [])
                     self._pgog[tag].append(self._parmgroup[qkey])
-                    print '--- len(pgog[',tag,']) ->',len(self._pgog[tag])
+                    if trace: print '--- len(pgog[',tag,']) ->',len(self._pgog[tag])
 
         # Finished:
         return True
@@ -372,7 +372,7 @@ class ParmGroupManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def define_gogs(self, name='ParmGroupManager', trace=True):
+    def define_gogs(self, name='ParmGroupManager', trace=False):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
         It uses the information gleaned from the tags in define_parmgroup()"""
 
