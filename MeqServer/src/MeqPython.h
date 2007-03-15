@@ -42,6 +42,10 @@ namespace MeqPython
   // class, and associates it with the given Node object
   PyObjectRef createPyNode (Node &pynode,const string &classname,const string &modulename);
   
+  // marks all modules imported by MeqPython for a reload next time they are
+  // imported. SHould be called before defining a new forest.
+  void forceModuleReload ();
+  
   // testing function -- converts object to python object, then discards
   void testConversion   (const BObj &obj);
 

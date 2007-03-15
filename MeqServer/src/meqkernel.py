@@ -69,15 +69,31 @@ def process_vis_footer (footer):
     handler(footer);
 
 _imported_modules = {};
+_imported_scripts = {};
+_import_counter = 0;
 
-def _import_script_or_module (script,modname=None):
-  """imports the specified script or module. 
+def force_module_reload ():
+  """Increments the import counter, which will force the
+  _import_script_or_module function below to reload its modules.
+  Normally this should be called before starting to build a forest,
+  so that any changes in Python code (for PyNodes, etc.) are reloaded.
+  """;
+  global _import_counter;
+  _dprint(0,"forcing future reload of Python modules");
+  _import_counter += 1;
+
+def _import_script_or_module (script,modname=None,force_reload=False):
+  """Imports the specified script or module. 
   If 'script' ends with .py, treats it as a filename and looks through
   various include paths (and the current directory). Otherwise, treats
   it as a module name.
+  If module is already imported, it will only be reloaded if force_reload
+  is True, or force_module_reload() has been called since it was imported.
   Return value is imported module object.
   """
   global _imported_modules;
+  global _imported_scripts;
+  global _import_counter;
   # replace ".pyo" with ".py"
   if script.endswith(".pyo"):
     script = script[0:-1];
@@ -99,14 +115,29 @@ def _import_script_or_module (script,modname=None):
       infile = file(filename,'r');
       # now import the script as a module
       if modname is None:
-        modname = os.path.basename(filename)[:-len(suffix)];
+        modname = filename.replace("/","_").replace(".","_");
       _dprint(0,"importing ",modname," from script",filename);
-      try:
-        imp.acquire_lock();
-        module = imp.load_source(modname,filename,infile);
-      finally:
-        imp.release_lock();
-        infile.close();
+      # check if script is already imported  
+      module = None;
+      if force_reload:
+        _dprint(0,"force_reload=True,",modname,"will be reloaded");
+      elif filename in _imported_scripts:
+        module,count = _imported_scripts[filename];
+        if count == _import_counter:
+          _dprint(0,modname,"already imported, will not be reloaded");
+        else:
+          _dprint(0,modname,"already imported but is stale, will be reloaded");
+          module = None;
+      else:
+        _dprint(0,modname,"hasn't been imported yet");
+      if module is None:
+        try:
+          imp.acquire_lock();
+          module = imp.load_source(modname,filename,infile);
+          _imported_scripts[filename] = (module,_import_counter);
+        finally:
+          imp.release_lock();
+          infile.close();
       break;
   # else (no known suffix found) treat as module name
   else:
@@ -120,9 +151,15 @@ def _import_script_or_module (script,modname=None):
     # see if module needs to be reloaded (we don't have to do it when
     # using load_source(), as that does an implicit reload).
     if module in _imported_modules:
-      reload(module);
-  # add to list of modules
-  _imported_modules[module] = True;
+      if not force_reload and _imported_modules[module] == _import_counter:
+        _dprint(0,"module already imported, reusing");
+      else:
+        _dprint(0,"module already imported but stale (or force_reload=True), reloading");
+        reload(module);
+    else:
+      _dprint(0,"this is the first time it has been imported");
+  # add to dict of imported modules
+  _imported_modules[module] = _import_counter;
   return module;
 
 _initmod = None;
@@ -143,7 +180,7 @@ def process_init (rec):
   try:
     global _initmod;
     # import specified file or module
-    _initmod = _import_script_or_module(script);
+    _initmod = _import_script_or_module(script,force_reload=True);
   except: # catch-all for any errors during import
     (exctype,excvalue,tb) = sys.exc_info();
     _dprint(0,'exception',sys.exc_info(),'importing init-module',script);

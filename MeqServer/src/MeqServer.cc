@@ -571,6 +571,7 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   setState(AidUpdating);
   cdebug(1)<<"clearing forest: deleting all nodes"<<endl;
   forest.clear();
+  MeqPython::forceModuleReload();
 // ****
 // **** added this to relinquish parm tables --- really ought to go away
 #ifndef HAVE_PARMDB

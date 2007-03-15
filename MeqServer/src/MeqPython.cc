@@ -22,7 +22,8 @@ static PyObject
       *process_init_record,
       *process_vis_header,
       *process_vis_tile,
-      *process_vis_footer;
+      *process_vis_footer,
+      *force_module_reload;
   
 extern "C" 
 {
@@ -300,6 +301,19 @@ void processVisFooter (const DMI::Record &rec)
   }
 }
 
+// -----------------------------------------------------------------------
+// forceModuleReload
+// forces all modules imported by meqkernel.py to be reloaded
+// next time they are accessed
+// -----------------------------------------------------------------------
+void forceModuleReload ()
+{
+  cdebug(1)<<"calling force_module_reload()"<<endl;
+  PyObjectRef res = PyObject_CallObject(force_module_reload,NULL);
+  if( PyErr_Occurred() )
+    PyErr_Print();
+}
+
 
 // -----------------------------------------------------------------------
 // initMeqPython
@@ -336,8 +350,17 @@ void initMeqPython (MeqServer *mq)
     Throw("Python meqserver: import of Timba.meqkernel module failed");
   }
   
-  create_pynode       = PyObject_GetAttrString(kernelmod,"create_pynode");
-  
+  create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
+  if( PyErr_Occurred() )
+    PyErr_Print();
+  if( !create_pynode )
+    Throw("Timba.meqkernel.create_pynode not found");
+  force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
+  if( PyErr_Occurred() )
+    PyErr_Print();
+  if( !force_module_reload )
+    Throw("Timba.meqkernel.force_module_reload not found");
+      
   // get optional handlers
   process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
   PyErr_Clear();
