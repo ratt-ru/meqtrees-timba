@@ -21,6 +21,7 @@ _dbg = utils.verbosity(0,name='fit_image');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+TDLCompileOption('static_filename',"Static filename (enables static mode for testing)",[None,'test.pgm'],more=str);
 TDLCompileOption('filename_pattern',"Image filename pattern",["test.pgm-.*","test.pgm"],more=str);
 TDLCompileOption('directory_name',"Directory name",["."],more=str);
 TDLCompileOption('scaling_factor',"Rescale image",[.25,.5,1],more=float);
@@ -31,7 +32,6 @@ TDLCompileOption('ideal_fwhm',"Ideal FWHM",[3],more=float);
 TDLCompileOption('initial_fit_fwhm',"Initial fitted FWHM",[5],more=float);
 TDLCompileOption('initial_fit_flux',"Initial fitted flux",[500],more=float);
 TDLCompileOption('masking_radius',"Radius of box around sources",[20],more=int);
-TDLCompileOption('static_mode',"Static mode for testing",False);
 
 def read_lsm (filename):
   """Reads catalog file produced by sextractor, returns a list
@@ -105,27 +105,28 @@ def make_lsm (ns,sources,support=False):
 
 def _define_forest (ns,**kwargs):
   # run source finding on current image
-  if static_mode:
-    filename = filename_pattern;
+  if static_filename is not None:
+    fname = filename_pattern = static_filename;
+    directory_name = ".";
   else:
-    filename = floptix.acquire_imagename(filename_pattern,directory=directory_name);
-  _dprint(0,"running source finding on",filename);
+    fname = floptix.acquire_imagename(filename_pattern,directory=directory_name);
+  _dprint(0,"running source finding on",fname);
   if scaling_factor == 1:
-    os.system("pnmtofits %s >%s.fits"%(filename,filename))
+    os.system("pnmtofits %s >%s.fits"%(fname,fname))
   else:
-    os.system("pnmscale %f %s | pnmtofits >%s.fits"%(scaling_factor,filename,filename))
+    os.system("pnmscale %f %s | pnmtofits >%s.fits"%(scaling_factor,fname,fname))
   # get image shape
   global image_nx;
   global image_ny;
-  image_nx,image_ny = pyfits.open("%s.fits"%filename)[0].data.shape;
-  os.system("rm -f %s.fits"%filename);
+  image_nx,image_ny = pyfits.open("%s.fits"%fname)[0].data.shape;
+  os.system("rm -f %s.fits"%fname);
   _dprint(0,"scaled image size is",image_nx,image_ny);
 
   # now make the tree
   ns.img << Meq.PyNode(class_name="floptix.PyCameraImage",
                        directory_name=directory_name,
                        file_name=filename_pattern,
-                       static_mode=static_mode,
+                       static_mode=(static_filename is not None),
                        rescale=scaling_factor,
                        node_groups=['Parm'],
                        tags="actuators"
@@ -197,8 +198,9 @@ def _define_forest (ns,**kwargs):
   
 def _tdl_job_1_run_source_extraction (mqs,parent,**kwargs):
   # run source finding on current image
-  if static_mode:
-    filename = filename_pattern;
+  if static_filename is not None:
+    filename = static_filename;
+    directory_name = '.';
   else:
     filename = floptix.acquire_imagename(filename_pattern,directory=directory_name);
   _dprint(0,"running source finding on",filename);
