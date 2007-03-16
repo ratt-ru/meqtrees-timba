@@ -126,6 +126,15 @@ class SkyComponentGroup22 (object):
         print '**\n'
         return True
 
+    #-------------------------------------------------------------------
+
+    def ParmGroupManager (self, merge=None):
+        """Return its ParmGroupManager object.
+        If merge is another object (with a pgm), merge the latter with it"""
+        if merge:
+            self._pgm.merge(merge._pgm)
+        return self._pgm
+
     #--------------------------------------------------------------------------
 
     def len(self):
@@ -298,8 +307,6 @@ class SkyComponentGroup22 (object):
                 sc = Meow.CorruptComponent(self._ns, sc, label,
                                            station_jones=self._ns[name](key))
                 self._skycomp[key]['skycomp'] = sc
-            # jones.display('in corrupt')
-            self._pgm.merge(jones._pgm)
 
         else:
             # Apply the given jones matrix to the specified (key) skycomp:
@@ -309,7 +316,8 @@ class SkyComponentGroup22 (object):
             sc = Meow.CorruptComponent(self._ns, sc, label,
                                        station_jones=jones.matrixet())
             self._skycomp[key]['skycomp'] = sc
-            self._pgm.merge(jones._pgm)
+
+        self.ParmGroupManager(merge=jones.ParmGroupManager())
         return True
 
 
