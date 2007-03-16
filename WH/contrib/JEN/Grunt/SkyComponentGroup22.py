@@ -68,7 +68,9 @@ class SkyComponentGroup22 (object):
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name)
+        parent = str(type(self))+'  '+str(self._name)
+        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name,
+                                                      parent=parent)
 
         # Finished:
         return None
@@ -80,7 +82,7 @@ class SkyComponentGroup22 (object):
         ss = str(type(self))
         ss += '  '+str(self._name)
         ss += ' (n='+str(self.len())+')'
-        ss += ' c='+str(self.flux_center())
+        ss += ' lm0='+str(self.flux_center())
         return ss
 
 
@@ -109,6 +111,8 @@ class SkyComponentGroup22 (object):
         print '** Meow Patch: '+str(self._Patch)
         if self._Visset22:
             print '** Grunt Visset22: '+str(self._Visset22.oneliner())
+        if self._pgm:
+            print '** pgm: '+self._pgm.oneliner()
         print '** Peeling support ('+str(len(self._peeling_Patch))+' peeling Patches):'
         if len(self._peeling_group)>0:
             for key in self.order():
@@ -248,7 +252,7 @@ class SkyComponentGroup22 (object):
     # Update its ParmGroupManager from the given skycomp:
     #--------------------------------------------------------------------------
 
-    def get_parmgroups(self, skycomp, trace=True):
+    def get_parmgroups(self, skycomp, trace=False):
         """Helper function to get parmgroups from the skycomp"""
         # .......(not fully implemented yet)..........
         vis = skycomp.visibilities()
@@ -278,7 +282,7 @@ class SkyComponentGroup22 (object):
         If key==None, assume an image-plane (overall) Jones matrix (like EJones)"""
 
         if key==None:
-            # Apply the given jones matrix to all skycomps:
+            # Apply the given (interpolatable) jones matrix to all skycomps:
             common_axes = [hiid('l'),hiid('m')] 
             matrixet = jones.matrixet()
             name = jones.label()
@@ -294,6 +298,7 @@ class SkyComponentGroup22 (object):
                 sc = Meow.CorruptComponent(self._ns, sc, label,
                                            station_jones=self._ns[name](key))
                 self._skycomp[key]['skycomp'] = sc
+            # jones.display('in corrupt')
             self._pgm.merge(jones._pgm)
 
         else:
@@ -380,6 +385,7 @@ class SkyComponentGroup22 (object):
             lc += flux*sc['l']
             mc += flux*sc['m']
             wtot += flux
+        if wtot<=0.0: return [0.0,0.0]
         return [lc/wtot,mc/wtot]
 
 
@@ -395,6 +401,7 @@ class SkyComponentGroup22 (object):
             self.Meow_Patch(observation, nominal=nominal)    # make sure of self._Patch
             self._Visset22 = self.Patch2Visset22 (self._Patch, array=array,
                                                   name=name, visu=visu)
+            self._Visset22.ParmGroupManager(merge=self._pgm)
         return self._Visset22
 
 
@@ -421,6 +428,8 @@ class SkyComponentGroup22 (object):
 
         if visu: vis.visualize('SkyComponentGroup22')
         return vis
+
+
 
     def visibilities (self, array=None, observation=None, nominal=False):
         """Return 'Meow' visibilities, i.e. as an unqualified node.
@@ -554,14 +563,16 @@ def _define_forest(ns):
             jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS, simulate=True)
             scg.corrupt(jones, label=jones.label(), key=key)
         scg.display('corrupted')
+        scg._pgm.display()
+
     elif True:
         from Timba.Contrib.JEN.Grunting import WSRT_Jones
         jones = WSRT_Jones.EJones(ns,
                                   # quals=['xxx'],
                                   stations=ANTENNAS, simulate=False)
         scg.corrupt(jones, label='E')
-        scg.display()
-        # scg._pgm.display()
+        scg.display('corrupted')
+        scg._pgm.display()
 
 
     if True:
@@ -658,7 +669,7 @@ if __name__ == '__main__':
         if 0:
             vis = scg.Visset22(array)
             vis.display()
-            scg.display('Visset22')
+            # scg.display('Visset22')
 
         if 0:
             scg.make_peeling_Patches(window=3)

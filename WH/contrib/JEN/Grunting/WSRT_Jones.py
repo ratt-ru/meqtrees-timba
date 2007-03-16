@@ -421,7 +421,7 @@ class EJones (Joneset22.Joneset22):
             beam[pol].parm ('lambda', default=obswvl)
 
             beamparms[pol] = ['peak'+pol,'L0'+pol,'M0'+pol,'_ell'+pol]   # used below
-            if True:
+            if False:
                 beam[pol].parm ('peak'+pol, default=1.0, help='peak value of '+pol+' voltage beam')
                 beam[pol].parm ('L0'+pol, default=0.0, unit='rad', help='pointing error in L-direction')
                 beam[pol].parm ('M0'+pol, default=0.0, unit='rad', help='pointing error in M-direction')
@@ -430,8 +430,8 @@ class EJones (Joneset22.Joneset22):
 
 
         # Define the various primary ParmGroups:
-        if False:
-        # for pol in pols:
+        # if False:
+        for pol in pols:
             matrel = self._pols_matrel()[pol]                   # i.e. 'm11' or 'm22'
             self.define_parmgroup('peak'+pol, descr='peak value of '+pol+' voltage beam',
                                   quals=quals,
@@ -460,21 +460,17 @@ class EJones (Joneset22.Joneset22):
                                   simul=dict(Tsec=2000),
                                   override=override,
                                   rider=dict(matrel=matrel),
-                                  tags=['_ell', jname])
+                                  tags=['_ell', 'ellipticity', jname])
 
         # Make the Jones matrices per station:
-        print '\n*** stations:',self.stations()
         for s in self.stations():
-            print '\n***',s
             mm = dict()
             for pol in pols:
-                print '\n***',s,pol
                 beam[pol].quals(s)
-                if False:
+                if True:
                     # Provide external parameters for station s:
                     for pname in beamparms[pol]:
                         node = self.create_parmgroup_entry(pname, s, quals=quals)
-                        print '-',pname,node
                         beam[pol].parm(pname, node)
                 mm[pol] = beam[pol].MeqFunctional(self._ns)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,

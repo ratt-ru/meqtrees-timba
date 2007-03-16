@@ -30,9 +30,13 @@ class ParmGroupManager (object):
     """Class that encapsulates a number of ParmGroups
     e.g. ParmGroups or SimulatedParmGroups."""
 
-    def __init__(self, ns, quals=[], label='pgm', simulate=False):
+    def __init__(self, ns, quals=[], label='pgm',
+                 parent='<parent object>', simulate=False):
         self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
+        self._parent = str(parent)                   # its parent object (string)
+
+        # If True, make subtrees that simulat MeqParms
         self._simulate = simulate
 
         # Node-name qualifiers:
@@ -59,11 +63,37 @@ class ParmGroupManager (object):
 
     #-------------------------------------------------------------------
 
+    def NodeGroup_keys (self):
+        """Return a list of NodeGroup keys"""
+        keys = []
+        for key in self._parmgroup.keys():
+            if not isinstance(self._parmgroup[key], NodeGroup.NodeGog):
+                keys.append(key)
+        for key in self._simparmgroup.keys():
+            if not isinstance(self._simparmgroup[key], NodeGroup.NodeGog):
+                keys.append(key)
+        return keys
+
+    def NodeGog_keys (self):
+        """Return a list of NodeGog keys"""
+        keys = []
+        for key in self._parmgroup.keys():
+            if isinstance(self._parmgroup[key], NodeGroup.NodeGog):
+                keys.append(key)
+        for key in self._simparmgroup.keys():
+            if isinstance(self._simparmgroup[key], NodeGroup.NodeGog):
+                keys.append(key)
+        return keys
+
+    #-------------------------------------------------------------------
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         # ss = str(type(self))
         ss = '<class ParmGroupManager>'
         ss += '  '+str(self.label())
+        ss += ' (n='+str(len(self.NodeGroup_keys()))
+        ss += '+'+str(len(self.NodeGog_keys()))+')'
         ss += '  quals='+str(self.quals())
         return ss
 
@@ -73,8 +103,9 @@ class ParmGroupManager (object):
         print ' '
         print '** '+self.oneliner()
         if txt: print ' * (txt='+str(txt)+')'
+        print ' * parent: '+self._parent
         #...............................................................
-        print ' * Available NodeGroup objects: '
+        print ' * Available NodeGroup objects ('+str(len(self.NodeGroup_keys()))+'):'
         for key in self._parmgroup.keys():
             pg = self._parmgroup[key]
             if not isinstance(pg, NodeGroup.NodeGog):
@@ -84,7 +115,7 @@ class ParmGroupManager (object):
             if not isinstance(spg, NodeGroup.NodeGog):
                 print '  - (sim) '+str(spg.oneliner())
         #...............................................................
-        print ' * Available NodeGog (Groups of NodeGroups) objects: '
+        print ' * Available NodeGog (Groups of NodeGroups) objects ('+str(len(self.NodeGog_keys()))+'): '
         for key in self._parmgroup.keys():
             pg = self._parmgroup[key]
             if isinstance(pg, NodeGroup.NodeGog):

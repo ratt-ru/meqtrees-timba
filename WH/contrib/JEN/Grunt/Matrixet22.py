@@ -77,7 +77,9 @@ class Matrixet22 (object):
         # e.g. when interfacing with visibilities produced by the Meow system. 
         self._pgm = pgm
         if not self._pgm:
+            parent = str(type(self))+'  '+str(self.label())
             self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self.label(),
+                                                          parent=parent,
                                                           quals=self.quals())
 
         # Service: It is possible to accumulate lists of things (nodes, usually),
@@ -135,6 +137,15 @@ class Matrixet22 (object):
     def pols(self):
         """Return the list of 2 polarization names (e.g. ['X','Y'])"""
         return self._pols
+
+    #-------------------------------------------------------------------
+
+    def ParmGroupManager (self, merge=None):
+        """Return its ParmGroupManager object.
+        If merge is another object (with a pgm), merge the latter with it"""
+        if merge:
+            self._pgm.merge(merge._pgm)
+        return self._pgm
 
     #-------------------------------------------------------------------
 

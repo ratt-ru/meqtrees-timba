@@ -38,6 +38,10 @@ class Joneset22 (Matrixet22.Matrixet22):
         if indices==None:
             indices = range(1,4)                     # for testing convenience....
 
+        # Some specific information about the target instrument:
+        self._telescope = telescope
+        self._band = band
+
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label, descr=descr,
                                        polrep=polrep, 
