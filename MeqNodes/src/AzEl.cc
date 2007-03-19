@@ -41,12 +41,12 @@ const HIID FObservatory = AidObservatory;
 
 const HIID child_labels[] = { AidRADec,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
-const int num_children = sizeof(child_labels)/sizeof(child_labels[0])-3;
 
 const HIID FDomain = AidDomain;
 
+//The node should assume that only the first child (RADec) is mandatory
 AzEl::AzEl()
-: TensorFunction(2,child_labels)
+: TensorFunction(2,child_labels,1)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
