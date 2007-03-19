@@ -62,8 +62,8 @@ def _define_forest (ns):
 # then create a MeqComposer containing ra dec children
   ns.RADec <<Meq.Composer(ns.ra0, ns.dec0)
 
-# station positions for 'pseudo' VLA telescope for aips++ MVDirection 
-# object (units are metres) 
+# ITRF station positions for one of the VLA telescopes - converted
+# to an aips++ MVDirection object in the AzEl node (units are metres) 
   X_pos = -1597262.96
   Y_pos = -5043205.54
   Z_pos = 3554901.34
