@@ -495,33 +495,28 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    jones = GJones(ns, quals=[], simulate=simulate)
-    cc.append(jones.visualize())
-    # jones.display(full=True)
-    if True:
-        j2 = GJones(ns, quals=[], simulate=False)
-        cc.append(j2.visualize())
-        # j2.display(full=True)
-        reqseq = jones.make_solver(j2)
-        cc.append(reqseq)
-
-    jones = JJones(ns, quals=[], simulate=simulate)
-    cc.append(jones.visualize())
-    # jones.display(full=True)
-
-    jones = FJones(ns, quals=['L'], simulate=simulate)
-    cc.append(jones.visualize())
-    jones.display(full=True)
-    # jones.display_parmgroups(full=False)
-
-    jones = DJones(ns, quals=[], simulate=simulate)
-    cc.append(jones.visualize())
-    # jones.display(full=True)
-
     if False:
-        jones = EJones(ns, quals=[], simulate=simulate)
+        jones = GJones(ns, quals=[], simulate=simulate)
         cc.append(jones.visualize())
         # jones.display(full=True)
+        
+        jones = JJones(ns, quals=[], simulate=simulate)
+        cc.append(jones.visualize())
+        # jones.display(full=True)
+        
+        jones = FJones(ns, quals=['L'], simulate=simulate)
+        cc.append(jones.visualize())
+        jones.display(full=True)
+        
+        jones = DJones(ns, quals=[], simulate=simulate)
+        cc.append(jones.visualize())
+        # jones.display(full=True)
+
+    if True:
+        jones = EJones(ns, quals=[], simulate=simulate)
+        # jones.display(full=True)
+        cc.append(jones.visualize(visu='straight'))
+        # cc.append(jones.bundle())
 
 
     ns.result << Meq.Composer(children=cc)
@@ -536,6 +531,24 @@ def _tdl_job_execute (mqs, parent):
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
+       
+
+#---------------------------------------------------------------
+
+def _tdl_job_4D (mqs, parent):
+    """Execute the forest, using a 4D request"""
+    dlm = 0.2
+    domain = meq.gen_domain(freq=[1.0e8,2.0e8], time=[0,10],
+                            l=[-dlm,dlm], m=[-dlm,dlm]);
+    cells = meq.gen_cells(domain,num_freq=20, num_time=1, num_l=50, num_m=50);
+    request = meq.request(cells, rqtype='ev')
+    if False:
+        print '\n- domain =\n',domain
+        print '\n- cells =\n',cells
+        print '\n- request =\n',request
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+
        
 
 
@@ -556,7 +569,9 @@ if __name__ == '__main__':
         # G.display_NodeGroups()
 
     if 1:
-        J = EJones(ns, simulate=False)
+        J = EJones(ns,
+                   # quals=['xxx'],
+                   simulate=False)
         J.display(full=True)
         # jj.append(J)
 

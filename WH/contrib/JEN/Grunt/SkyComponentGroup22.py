@@ -132,7 +132,7 @@ class SkyComponentGroup22 (object):
         """Return its ParmGroupManager object.
         If merge is another object (with a pgm), merge the latter with it"""
         if merge:
-            self._pgm.merge(merge._pgm)
+            self._pgm.merge(merge.ParmGroupManager())
         return self._pgm
 
     #--------------------------------------------------------------------------
@@ -317,7 +317,7 @@ class SkyComponentGroup22 (object):
                                        station_jones=jones.matrixet())
             self._skycomp[key]['skycomp'] = sc
 
-        self.ParmGroupManager(merge=jones.ParmGroupManager())
+        self.ParmGroupManager(merge=jones)
         return True
 
 
@@ -409,7 +409,7 @@ class SkyComponentGroup22 (object):
             self.Meow_Patch(observation, nominal=nominal)    # make sure of self._Patch
             self._Visset22 = self.Patch2Visset22 (self._Patch, array=array,
                                                   name=name, visu=visu)
-            self._Visset22.ParmGroupManager(merge=self._pgm)
+            self._Visset22.ParmGroupManager(merge=self)
         return self._Visset22
 
 

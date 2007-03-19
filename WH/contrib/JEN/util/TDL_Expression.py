@@ -469,6 +469,7 @@ class Expression:
         if key==None:
             return self.__parm
 
+        #------------------------------------------------------------------
         # The scope argument is only relevant for global parms, e.g. {_xx}:
         was = scope
         if not key[0]=='_': 
@@ -477,6 +478,10 @@ class Expression:
         elif isinstance(scope, bool):
             scope = self.label(strip=True)
             print 'change scope(',origin,'):',key,':',was,'->',scope
+        #------------------------------------------------------------------
+
+        # For testing:
+        watchkey = 'A'
 
         # Modify existing parms only:
         if key in self.__parm_order:
@@ -520,16 +525,25 @@ class Expression:
                     if not isinstance(rr, dict) or rr.has_key('node'):
                         # The parm (key) was NOT numeric: create a new one
                         # (otherwise, the existing parm gets updated below)
-                        self.__parm[key] = self._create_numeric_parm(default, key=key, scope=scope)
+                        self.__parm[key] = self._create_numeric_parm(default, key=key,
+                                                                     constant=constant,
+                                                                     scope=scope)
 
+                # Testing (watch a specific key):
+                if key==watchkey:
+                    print '\n** watchkey(',watchkey,'): \n',self.__parm[key],'\n'
+                        
             # Then update the various parm types, as required:
             if isinstance(self.__parm[key], dict):
                 self.__parm[key]['scope'] = scope
                 self._update_definition_record (self.__parm[key], default=default,
+                                                constant=constant,
                                                 ident=ident, unit=unit,
                                                 testinc=testinc, ntest=ntest,
                                                 scale=scale, stddev=stddev,
                                                 key=key, trace=False)
+                if key==watchkey:
+                    print '\n** watchkey(',watchkey,'): after update\n',self.__parm[key],'\n'
 
         # Optional: update parameters in its Expression parameters recursively:
         recurse_result = None
@@ -567,7 +581,8 @@ class Expression:
 
     #----------------------------------------------------------------------------
 
-    def _create_numeric_parm (self, default=-1, index=[0], key=None, trace=False):
+    def _create_numeric_parm (self, default=-1, index=[0], key=None,
+                              constant=False, trace=False):
         # A numeric parm has a default value, which is used for MeqParm.
         # It also has other information:
         # - testval: value to be used for testing.
@@ -581,7 +596,7 @@ class Expression:
         ident = int(1000000*random.random())               # unique parm identifier
         rr = dict(default=default, nominal=default, index=index,
                   ident=ident, group=None, unit=None, scope=None,
-                  constant=False, scale=1.0, stddev=0.0,
+                  constant=constant, scale=1.0, stddev=0.0,
                   ntest=None, testinc=None, testval=None, testvec=None,
                   help=None)
         # If default specified (and non-zero), modify the scale:
@@ -592,6 +607,7 @@ class Expression:
     #------------------------------------------------------------------------------
 
     def _update_definition_record (self, rr, default=None,
+                                   constant=None,
                                    unit=None, ident=None, group=None,
                                    testinc=None, ntest=None,
                                    scale=None, stddev=None,
@@ -607,6 +623,7 @@ class Expression:
         if not default==None:
             rr['default'] = default                        # new default specified
             rr['nominal'] = default                        # new default specified
+            if constant: rr['constant'] = constant         # if True, make MeqConstant rather than MeqParm
             # print '---- default =',default
             if not default==0: rr['scale'] = abs(default)
             update_testval = True
@@ -2575,7 +2592,9 @@ if __name__ == '__main__':
  
     if 0:
         e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)+[l]+[m]', label='e1')
+        print 'before A'
         e1.parm('A', -5, constant=True, stddev=0.1)
+        print 'after A'
         # e1.parm('B', (ns.B << Meq.Add(ns.aa<<4, ns.bb<<7)))      # node variable
         e1.parm('B', (ns.B('ext')(8) << Meq.Parm(34)))                   # node variable
         # e1.parm('B', 10, help='help for B')
@@ -2719,7 +2738,7 @@ if __name__ == '__main__':
         # Mterm.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
 
         Xbeam.parm ('Mterm', default=Mterm)
-        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
+        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', constant=True, origin='test')
         Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
                                                  descr='observing wavelength'), unit='m')
         Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
@@ -2733,17 +2752,11 @@ if __name__ == '__main__':
         Xbeam.expanded().display(full=False)
         # Xbeam.plot()
 
-        if 0:
+        if 1:
             Xbeam.quals(6)
             node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
             TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
 
-            Mterm.parm ('M0', default=(ns.M0_new_external << Meq.Constant(76.8)))
-            Xbeam.parm ('_D', default=34.0, unit='m', help='WSRT telescope diameter', origin='test')
-            Xbeam.quals(7)
-            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-            
 
         
 

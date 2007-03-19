@@ -144,7 +144,7 @@ class Matrixet22 (object):
         """Return its ParmGroupManager object.
         If merge is another object (with a pgm), merge the latter with it"""
         if merge:
-            self._pgm.merge(merge._pgm)
+            self._pgm.merge(merge.ParmGroupManager())
         return self._pgm
 
     #-------------------------------------------------------------------
@@ -573,6 +573,9 @@ class Matrixet22 (object):
                 dc = self.show_timetracks (qual=qual, accu=False, separate=separate,
                                            bookpage=bookpage, folder=folder)
                 dcolls.append(dc)
+            elif visual=='straight':
+                return self.show_straight (qual=qual, accu=False, relative=True,
+                                           bookpage=bookpage, folder=folder)
             elif visual=='spectra':
                 pass                         # not implemented yet
             else:
@@ -632,6 +635,31 @@ class Matrixet22 (object):
         if accu: self.accumulist(self._dcoll)
         # Return the dataConcat node:
         return self._dcoll
+
+
+    #--------------------------------------------------------------------------
+
+    def show_straight (self, qual=None, accu=True, relative=True,
+                       bookpage='straight22', folder=None):
+
+        """Make separate plots of all matrices (assumed interpolatable...).
+        - A bookmark item is made for the resulting node, which is also returned.
+        - If accu=True (default) it is also stored in self.accumulist(key=None)
+        for later retrieval.
+        """
+        cc = self.nodelist()
+        if relative:
+            mean = self._ns.mean(self.label()) << Meq.WMean(*cc)
+            for i,c in enumerate(cc):
+                cc[i] = self._ns.wrt_mean.qmerge(mean,cc[i]) << Meq.Subtract(cc[i],mean)
+            cc.insert(0,mean)
+
+        JEN_bookmarks.create(cc, self.label(),
+                             page=bookpage, folder=folder)
+        if relative:
+            return self._ns.show_straight(self.label()) << Meq.Composer(*cc)
+        return True
+
 
     #--------------------------------------------------------------------------
 
