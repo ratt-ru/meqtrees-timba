@@ -83,6 +83,7 @@ protected:
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args );
 
+  // Used to test if we are initializing with an observatory name
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
 private:
