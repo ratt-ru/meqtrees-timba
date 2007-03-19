@@ -77,6 +77,11 @@ def _define_forest (ns):
 # we should now be able to create an AzEl node with X,Y,Z station positions
   ns.AzEl << Meq.AzEl(radec=ns.RADec, xyz=ns.XYZ)
 
+# we should now be able to create an AzEl node with an Observatory name
+# ns.AzEl1 << Meq.AzEl(radec=ns.RADec, observatory='VLA')
+
+# ns.reqseq <<Meq.reqSeq(ns.AzEl,ns.AzEl1)
+
 def _test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
@@ -104,6 +109,7 @@ def _test_forest (mqs,parent):
   request = meq.request(cells,rqtype='e1')
 
 # execute request
+# a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=True);
   a = mqs.meq('Node.Execute',record(name='AzEl',request=request),wait=True);
 
 # The following is the testing branch, executed when the script is run directly
