@@ -41,7 +41,7 @@ const HIID FObservatory = AidObservatory;
 
 const HIID child_labels[] = { AidRADec,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
-const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
+const int num_children = sizeof(child_labels)/sizeof(child_labels[0])-3;
 
 const HIID FDomain = AidDomain;
 
@@ -54,6 +54,21 @@ AzEl::AzEl()
 
 AzEl::~AzEl()
 {}
+
+// Obtain an observatory - if a name is supplied
+// use a 'global observatory position' to calculate AzEl.
+// Otherwise AzEl will be calculated for individual
+// station positions.
+void AzEl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  TensorFunction::setStateImpl(rec,initializing);
+
+  if(rec->hasField(FObservatory))
+      {
+        rec[FObservatory].get(obs_name_,initializing);
+      }
+}
+
 
 void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
 {
@@ -72,9 +87,12 @@ LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
   // child 0 (RaDec0): expected 2-vector
   const LoShape &dim0 = *input_dims[0];
   FailWhen(dim0.size()!=1 || dim0[0]!=2,"child '"+child_labels[0].toString()+"': 2-vector expected");
-  // children 1 (XYZ): expecting 3-vector, if any
-  const LoShape &dim1 = *input_dims[1];
-  FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
+  if( obs_name_.empty() )
+    {
+      // children 1 (XYZ): expecting 3-vector, if any
+      const LoShape &dim1 = *input_dims[1];
+      FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
+    }
   // result is a 3-vector
   return LoShape(2);
 }
@@ -84,28 +102,41 @@ LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
 void AzEl::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
+  // create a frame for an Observatory, or a telescope station
+  MeasFrame Frame; // create default frame 
+
   // thanks to checks in getResultDims(), we can expect all 
   // vectors to have the right sizes
   // Get RA and DEC, and station positions
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
-  const Vells& vx   = *(args[1][0]);
-  const Vells& vy   = *(args[1][1]);
-  const Vells& vz   = *(args[1][2]);
+  if( obs_name_.empty() )
+    {
+      const Vells& vx   = *(args[1][0]);
+      const Vells& vy   = *(args[1][1]);
+      const Vells& vz   = *(args[1][2]);
   
-  // NB: for the time being we only support scalars
-  Assert( vra.isScalar() && vdec.isScalar() &&
+      // NB: for the time being we only support scalars
+      Assert( vra.isScalar() && vdec.isScalar() &&
           vx.isScalar() && vy.isScalar() && vz.isScalar() );
 
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  // create a frame for an Observatory, or a telescope station
-  MeasFrame Frame; // create default frame 
-  
-  double x = vx.getScalar<double>();
-  double y = vy.getScalar<double>();
-  double z = vz.getScalar<double>();
-  MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
-  Frame.set(stnpos); // tie this frame to station position
+      Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+      double x = vx.getScalar<double>();
+      double y = vy.getScalar<double>();
+      double z = vz.getScalar<double>();
+      MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
+      Frame.set(stnpos); // tie this frame to station position
+  }
+  else
+  {
+      // NB: for the time being we only support scalars
+      Assert( vra.isScalar() && vdec.isScalar() );
+      Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+      // create frame for an observatory
+      MPosition Obs;
+      MeasTable::Observatory(Obs,obs_name_);
+      Frame.set(Obs);  // tie this frame to a known observatory
+  }
 
   const Cells& cells = resultCells();
   // Get RA and DEC of location to be transformed to AzEl (default is J2000).

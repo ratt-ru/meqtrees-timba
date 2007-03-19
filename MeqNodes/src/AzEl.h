@@ -82,6 +82,11 @@ protected:
   // Evaluates AzEl for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args );
+
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
+private:
+  string obs_name_;
   
 };
 
