@@ -41,7 +41,7 @@ JEN_Meow_Utils.include_imaging_options();
 PointSourceGroup22.include_EqualPointSourceGrid_TDL_options('epsg')
 
 TDLCompileOption('TDL_corruption_mode','data-corruption mode',
-                 ['per-source','uv-plane'])
+                 ['Jones_per_source','Jones_interpolated','uv_plane',None])
 WSRT_Jones.include_TDL_options_uvp('corruption')
 
 TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',
@@ -73,7 +73,9 @@ def _define_forest (ns):
     epsg = PointSourceGroup22.EqualPointSourceGrid22 (ns)
     if TDL_display_EqualPointSourceGrid22: epsg.display(full=True)
 
-    if TDL_corruption_mode=='per-source':
+    vroot = None
+
+    if TDL_corruption_mode=='Jones_per_source':
         # Corrupt the point sources with their own jones matrices
         # NB: This is different from corrupting them with a single
         #     overall (interpolatable) image-plane jones matrix
@@ -86,10 +88,26 @@ def _define_forest (ns):
             epsg.corrupt(jones, label=jones.label(), key=key)
         # epsg.display('corrupted')
 
-    # Create a Visset22 object from the point sources:
-    vis = epsg.Visset22(name='simul', visu=True)
+    elif TDL_corruption_mode=='Jones_interpolated':
+        # Corrupt the point sources with a single overall (interpolatable)
+        # image-plane jones matrix (EJones)
+        #   (Note that the user-defined TDLOption parameters are
+        #    short-circuited between the functions in the WSRT_Jones module)
+        jones = WSRT_Jones.EJones(ns, stations=array.stations(),
+                                  simulate=True)
+        vroot = jones.visualize(visu='straight')
+        epsg.corrupt(jones, label=jones.label())
+        # epsg.display('corrupted')
 
-    if TDL_corruption_mode=='uv-plane':
+
+    # Create a Visset22 object from the point sources,
+    # (which may or may not be corrupted):
+    vis = epsg.Visset22(name='simul', visu=True)
+    if vroot:
+        # Attach the root of the visualization subtree (if any):
+        vis.accumulist(vroot)
+
+    if TDL_corruption_mode=='uv_plane':
         # Corrupt the data with a sequence of (uv-plane) Jones matrices:
         #   (Note that the user-defined TDLOption parameters are
         #    short-circuited between the functions in the WSRT_Jones module)

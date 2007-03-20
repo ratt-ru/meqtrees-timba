@@ -87,7 +87,7 @@
 
 import numarray                               # see numarray.rank()
 from numarray import *
-import numarray.linear_algebra                # redefines numarray.rank....
+# import numarray.linear_algebra                # redefines numarray.rank....
 import random
 # import pylab
 from copy import deepcopy
@@ -996,6 +996,7 @@ class Expression:
         for i in range(nvv):
             for j in range(nuk):
                 aa[i,j] = coeff[unks[j]][i]
+        # NB:  numarray.linear_algebra not supported on birch......
         bb = numarray.linear_algebra.linear_least_squares(aa,vv)
         if trace: print bb
         solvec = bb[0]                                     # solution vector

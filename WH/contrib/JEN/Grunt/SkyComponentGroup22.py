@@ -1,7 +1,8 @@
 # file: ../Grunt/SkyComponentGroup22.py
 
 # History:
-# - 04feb2007: creation (from PointSource22.py) 
+# - 04feb2007: creation (from PointSource22.py)
+# - 20mar2007: lm_nodes(): Use MeqParm rather than MeqConstant...
 
 # Description:
 
@@ -327,15 +328,15 @@ class SkyComponentGroup22 (object):
         key = self.key(key)
         sc = self._skycomp[key]
         if sc['lm']==None:
-            sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
+            # NB: If L and M are MeqConstants, the compounder does not
+            #     make a 4D request (only passes on the 2D (f,t) one)
+            L = self._ns.Lcoord(key) << Meq.Parm(sc['l'])
+            M = self._ns.Mcoord(key) << Meq.Parm(sc['m'])
+            sc['lm'] = self._ns.lm(key) << Meq.Composer(L,M)
+            # sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
         return sc['lm']
     
         
-    # lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
-    # lm = ns['lm'](q=pp['punit']) << Meq.Selector(lmn, index=[0,1], multi=True)
-    # cax = [hiid('l'),hiid('m')]                           # <---- necessary?
-
-
     #--------------------------------------------------------------------------
     # Some operations on the skycomp (source) coordinates:
     # i.e. functions to rearrange the source pattern

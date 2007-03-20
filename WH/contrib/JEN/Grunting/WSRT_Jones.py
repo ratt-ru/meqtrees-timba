@@ -421,16 +421,10 @@ class EJones (Joneset22.Joneset22):
             beam[pol].parm ('lambda', default=obswvl)
 
             beamparms[pol] = ['peak'+pol,'L0'+pol,'M0'+pol,'_ell'+pol]   # used below
-            if False:
-                beam[pol].parm ('peak'+pol, default=1.0, help='peak value of '+pol+' voltage beam')
-                beam[pol].parm ('L0'+pol, default=0.0, unit='rad', help='pointing error in L-direction')
-                beam[pol].parm ('M0'+pol, default=0.0, unit='rad', help='pointing error in M-direction')
-                beam[pol].parm ('_ell'+pol, default=0.1, help='Voltage beam elongation factor (1+ell)')
             # beam[pol].expanded().display(full=True)
 
 
         # Define the various primary ParmGroups:
-        # if False:
         for pol in pols:
             matrel = self._pols_matrel()[pol]                   # i.e. 'm11' or 'm22'
             self.define_parmgroup('peak'+pol, descr='peak value of '+pol+' voltage beam',
@@ -443,14 +437,14 @@ class EJones (Joneset22.Joneset22):
             self.define_parmgroup('L0'+pol, descr='pointing error in L-direction',
                                   quals=quals,
                                   default=dict(c00=0.0),
-                                  simul=dict(Tsec=2000),
+                                  simul=dict(scale=0.01, Tsec=2000),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=['L0', 'pointing', jname])
             self.define_parmgroup('M0'+pol, descr='pointing error in M-direction',
                                   quals=quals,
                                   default=dict(c00=0.0),
-                                  simul=dict(Tsec=2000),
+                                  simul=dict(scale=0.01, Tsec=2000),
                                   override=override,
                                   rider=dict(matrel=matrel),
                                   tags=['M0', 'pointing', jname])
@@ -467,11 +461,10 @@ class EJones (Joneset22.Joneset22):
             mm = dict()
             for pol in pols:
                 beam[pol].quals(s)
-                if True:
-                    # Provide external parameters for station s:
-                    for pname in beamparms[pol]:
-                        node = self.create_parmgroup_entry(pname, s, quals=quals)
-                        beam[pol].parm(pname, node)
+                # Provide external parameters for the Functional of station s:
+                for pname in beamparms[pol]:
+                    node = self.create_parmgroup_entry(pname, s, quals=quals)
+                    beam[pol].parm(pname, node)
                 mm[pol] = beam[pol].MeqFunctional(self._ns)
             self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -537,8 +530,11 @@ def _tdl_job_execute (mqs, parent):
 
 def _tdl_job_4D (mqs, parent):
     """Execute the forest, using a 4D request"""
-    dlm = 0.2
-    domain = meq.gen_domain(freq=[1.0e8,2.0e8], time=[0,10],
+    dlm = 0.01
+    # dlm = 0.2
+    domain = meq.gen_domain(time=[0,10],
+                            freq=[1.0e9,2.0e9],
+                            # freq=[1.0e8,2.0e8],
                             l=[-dlm,dlm], m=[-dlm,dlm]);
     cells = meq.gen_cells(domain,num_freq=20, num_time=1, num_l=50, num_m=50);
     request = meq.request(cells, rqtype='ev')
