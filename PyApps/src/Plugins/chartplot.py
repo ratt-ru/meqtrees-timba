@@ -70,7 +70,7 @@ class ChartPlot(QWidget):
 
     self._auto_offset = True
     self._ref_chan= 0
-    self._offset = -10000
+    self._offset = 0
     self._source = None
     self._max_range = -10000
     self._do_fixed_scale = False
@@ -318,7 +318,7 @@ class ChartPlot(QWidget):
       self._menu.changeItem(menuid,'Show Flagged Data')
     self._do_fixed_scale = False
     self._auto_offset = True
-    self._offset = -10000
+    self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -377,7 +377,7 @@ class ChartPlot(QWidget):
 
     self._do_fixed_scale = False
     self._auto_offset = True
-    self._offset = -10000
+    self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -768,10 +768,37 @@ class ChartPlot(QWidget):
         self._offset = parameters.get("default_offset")
         if self._offset < 0.0:
           self._auto_offset = True
-          self._offset = -10000
+          self._offset = 0
           self._max_range = -10000
         else:
           self._auto_offset = False
+
+  def set_offset_scale(self,new_scale):
+    """ Update the display offset.
+    """
+    self._offset = new_scale
+    if self._offset < 0.0:
+      self._auto_offset = True
+      self._offset = 0
+      self._max_range = -10000
+    else:
+      self._auto_offset = False
+
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+      self._start_offset_test[channel][self._data_index] = 0
+    self.reset_zoom()
+
+  def set_auto_scaling(self):
+    """ Update the display offset.
+    """
+    self._auto_offset = True
+    self._offset = 0
+    self._max_range = -10000
+    for channel in range(self._nbcrv):
+      self._updated_data[channel] = True
+      self._start_offset_test[channel][self._data_index] = 0
+    self.reset_zoom()
 
   def ChartControlData(self):
     """ Resize array if no zoom windows are open.
@@ -970,7 +997,7 @@ class ChartPlot(QWidget):
     self._data_index = int(menuid)
     self._do_fixed_scale = False
     self._auto_offset = True
-    self._offset = -10000
+    self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -1014,7 +1041,7 @@ class ChartPlot(QWidget):
       self._menu.changeItem(toggle_id, 'Hide Channel Markers')
     self._do_fixed_scale = False
     self._auto_offset = True
-    self._offset = -10000
+    self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -1038,10 +1065,11 @@ class ChartPlot(QWidget):
     self._offset = offset_value
     if self._offset < 0.0:
       self._auto_offset = True
-      self._offset = -10000
+      self._offset = 0
       self._max_range = -10000
     else: 
       self._auto_offset = False
+
 
   def refresh_event(self):
     """ redisplay plot and zoom
@@ -1050,73 +1078,76 @@ class ChartPlot(QWidget):
         set refresh flag False
     """
     # first determine offsets
-    for channel in range(self._nbcrv):
-      if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
-        try:
-          chart = array(self._chart_data[channel][self._data_index])
-          #print 'shape chart ', chart.shape, ' ', chart
-        except:
-          self._updated_data[channel] = False
-          pass
-        try:
-          flags = array(self._flag_data[channel][self._data_index])
-        except:
-          self._updated_data[channel] = False
-          pass
-        # no actual data?
-        if chart.shape[0] < 1:
-          self._updated_data[channel] = False
-        if self._updated_data[channel]:
-          if not self._good_data[channel].has_key(self._data_index):
-            self._good_data[channel][self._data_index] = []
-          for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
-            if flags[i] == 0:
-              self._good_data[channel][self._data_index].append(chart[i])
-          compare_range = True
-          if len(self._good_data[channel][self._data_index]) > 0:
-            test_chart = array(self._good_data[channel][self._data_index])
-          else:
-            compare_range = False
-          if compare_range:
-            if chart.type() == Complex32 or chart.type() == Complex64:
-              toggle_id = self.menu_table['Complex Data']
-              self._menu.setItemVisible(toggle_id, True)
-              complex_chart = test_chart.copy()
-              if self._amplitude:
-                self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
-                cplx_chart = abs(complex_chart)
-              elif self._real:
-                self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
-                cplx_chart = complex_chart.getreal()
-              elif self._imaginary:
-                self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
-                cplx_chart = complex_chart.getimag()
-              else:
-                self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
-                real_chart = complex_chart.getreal()
-                imag_chart = complex_chart.getimag()
-                cplx_chart = arctan2(imag_chart,real_chart)
-              tmp_max = cplx_chart.max()
-              tmp_min = cplx_chart.min()
+    if self._auto_offset:
+      for channel in range(self._nbcrv):
+        if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
+          try:
+            chart = array(self._chart_data[channel][self._data_index])
+            #print 'shape chart ', chart.shape, ' ', chart
+          except:
+            self._updated_data[channel] = False
+            pass
+          try:
+            flags = array(self._flag_data[channel][self._data_index])
+          except:
+            self._updated_data[channel] = False
+            pass
+          # no actual data?
+          if chart.shape[0] < 1:
+            self._updated_data[channel] = False
+          if self._updated_data[channel]:
+            if not self._good_data[channel].has_key(self._data_index):
+              self._good_data[channel][self._data_index] = []
+            for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
+              if flags[i] == 0:
+                self._good_data[channel][self._data_index].append(chart[i])
+            compare_range = True
+            if len(self._good_data[channel][self._data_index]) > 0:
+              test_chart = array(self._good_data[channel][self._data_index])
             else:
-              self._amplitude = False
-              toggle_id = self.menu_table['Complex Data']
-              self._menu.setItemVisible(toggle_id, False)
-              tmp_max = test_chart.max()
-              tmp_min = test_chart.min()
-            chart_range = abs(tmp_max - tmp_min)
-            # check if we break any highest or lowest limits
-            # this is important for offset reasons.
-            if chart_range > self._max_range:
-              self._max_range = chart_range
-            self._start_offset_test[channel][self._data_index] = chart.shape[0]
+              compare_range = False
+            if compare_range:
+              if chart.type() == Complex32 or chart.type() == Complex64:
+                toggle_id = self.menu_table['Complex Data']
+                self._menu.setItemVisible(toggle_id, True)
+                complex_chart = test_chart.copy()
+                if self._amplitude:
+                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
+                  cplx_chart = abs(complex_chart)
+                elif self._real:
+                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
+                  cplx_chart = complex_chart.getreal()
+                elif self._imaginary:
+                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
+                  cplx_chart = complex_chart.getimag()
+                else:
+                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
+                  real_chart = complex_chart.getreal()
+                  imag_chart = complex_chart.getimag()
+                  cplx_chart = arctan2(imag_chart,real_chart)
+                tmp_max = cplx_chart.max()
+                tmp_min = cplx_chart.min()
+              else:
+                self._amplitude = False
+                toggle_id = self.menu_table['Complex Data']
+                self._menu.setItemVisible(toggle_id, False)
+                tmp_max = test_chart.max()
+                tmp_min = test_chart.min()
+              chart_range = abs(tmp_max - tmp_min)
+              # check if we break any highest or lowest limits
+              # this is important for offset reasons.
+              if chart_range > self._max_range:
+                self._max_range = chart_range
+              self._start_offset_test[channel][self._data_index] = chart.shape[0]
 
-    #set the max value of the offset
-    self._offset = 1.1 * self._max_range
+      #set the max value of the offset
+      if 1.1 * self._max_range > self._offset:
+        self._offset = 1.1 * self._max_range
 
-    if self._offset < 0.005:
-      self._offset = 0.005
-    
+        if self._offset < 0.005:
+          self._offset = 0.005
+        self.emit(PYSIGNAL("auto_offset_value"),(self._offset,))
+
     # -----------
     # now update data
     # -----------
