@@ -30,6 +30,10 @@
 
 import sys
 from qt import *
+try:
+  from Qwt4 import *
+except:
+  from qwt import *
 from Timba.GUI.pixmaps import pixmaps
 from BufferSizeDialog import *
 
@@ -49,7 +53,7 @@ When you click in the area of the widget with the right mouse button a context m
 '''
 
 class ResultsRange(QWidget):
-    def __init__(self, parent=None, name=""):
+    def __init__(self, parent=None, name="",horizontal=True):
       QWidget.__init__(self, parent, name)
 
       self.menu_table = {
@@ -64,8 +68,10 @@ class ResultsRange(QWidget):
       'Print to Postscript file': 309,
       'Align Camera': 310,
       'Toggle VTK Scale': 311,
+      'Reset Auto Scaling': 312,
       }
 
+      self.horizontal = horizontal
       self.allow_emit = False
       self.allow_summary = False
       self.summary_request = True
@@ -76,6 +82,8 @@ class ResultsRange(QWidget):
       self.minVal = 1
       self.label_info = QLabel('', self)
       self.label_info1 = QLabel('          ', self)
+      self.label_info2 = QLabel('  ', self)
+      self.label_info3 = QLabel('  ', self)
       self.string_info =  ' '
       self.offset_index = -1
       self.spinbox = QSpinBox(self)
@@ -83,24 +91,42 @@ class ResultsRange(QWidget):
       self.spinbox.setMaxValue(self.maxVal)
       self.spinbox.setWrapping(True)
 
-      self.slider = QSlider(Qt.Horizontal, self, "slider")
-      self.slider.setTickmarks(QSlider.Below)
-      self.slider.setTickInterval(self.minVal)
-      self.slider.setRange(self.minVal, self.maxVal)
+      if self.horizontal:
+        self.slider = QSlider(Qt.Horizontal, self, "slider")
+        self.slider.setTickmarks(QSlider.Below)
+        self.slider.setTickInterval(self.minVal)
+        self.slider.setRange(self.minVal, self.maxVal)
+        self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
+      else:
+        self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right,
+                          QwtSlider.BgSlot)
+        self.slider.setRange(self.minVal, self.maxVal)
+        self.slider.setStep(self.minVal)
+        self.connect(self.slider, SIGNAL("valueChanged(double)"), self.update_slider)
 
-
-      self.setValue()
-
-      self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
       self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
 
-      self.layout = QHBoxLayout(self)
-      spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
-      self.layout.addItem(spacer)
-      self.layout.addWidget(self.label_info)
-      self.layout.addWidget(self.spinbox)
-      self.layout.addWidget(self.label_info1)
-      self.layout.addWidget(self.slider)
+      if self.horizontal:
+        self.layout = QHBoxLayout(self)
+        spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
+        self.layout.addItem(spacer)
+        self.layout.addWidget(self.label_info)
+        self.layout.addWidget(self.spinbox)
+        self.layout.addWidget(self.label_info1)
+        self.layout.addWidget(self.slider)
+        self.setValue()
+      else:
+        self.layout1 = QHBoxLayout(self)
+        self.layout1.addWidget(self.label_info2)
+        self.layout = QVBoxLayout(self.layout1)
+#       self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.slider)
+        self.layout.addWidget(self.label_info)
+        self.layout.addWidget(self.spinbox)
+        spacer = QSpacerItem(9,22,QSizePolicy.Minimum,QSizePolicy.Expanding)
+        self.layout.addItem(spacer)
+        self.layout1.addWidget(self.label_info3)
+        self.setValue(0,reset_auto=True)
 
 # add on-line help
       QWhatsThis.add(self, results_range_help)
@@ -131,12 +157,16 @@ class ResultsRange(QWidget):
           self.maxVal = max_value
           self.slider.setRange(self.minVal, self.maxVal)
           self.spinbox.setMaxValue(self.maxVal)
+      self.spinbox.setValue(max_value)
+      self.slider.setValue(max_value)
 
-    def setValue(self, value= 0):
+
+
+    def setValue(self, value= 0, reset_auto=False):
       """ set current values shown in spinbox and slider """
       self.slider.setValue(value)
       self.spinbox.setValue(value)
-      self.initContextmenu()
+      self.initContextmenu(reset_auto)
 
     def setRange(self, range_value, update_value = True):
       """ define range of values shown with slider """
@@ -148,7 +178,7 @@ class ResultsRange(QWidget):
 
     def update_slider(self, slider_value):
       """ update spinbox value as function of slider value """
-      self.spinbox.setValue(slider_value)
+      self.spinbox.setValue(int(slider_value))
 
     def update_spinbox(self, spin_value):
       """ update displayed contents of spinbox """
@@ -232,10 +262,21 @@ class ResultsRange(QWidget):
 
     def setTickInterval(self, tick_interval):
       """ override default tick interval for slider """
-      self.slider.setTickInterval(tick_interval)
+      if self.horizontal:
+        self.slider.setTickInterval(tick_interval)
+      else:
+        self.slider.setStep(tick_interval)
+
+    def handleAutoScaling(self):
+      """ emit signal to request 2D display """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("set_auto_scaling"),(True,))
+        self.setValue(self.maxVal,reset_auto=True)
 
     def handle_menu_request(self, menuid):
       """ handle requested menu option """
+      if menuid == self.menu_table['Reset Auto Scaling']:
+        self.handleAutoScaling()
       if menuid == self.menu_table['Adjust results buffer size']:
         self.handleBufferSize(menuid)
       elif menuid == self.menu_table['Display summary plot']:
@@ -265,14 +306,25 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Toggle VTK Scale']
       self.menu.changeItem(toggle_id, 'Apply Scaling to VTK Display')
 
-    def initContextmenu(self):
+    def initContextmenu(self, reset_auto = False):
       """Initialize the result buffer context menu """
       if self.menu is None:
         self.menu = QPopupMenu(self)
         QObject.connect(self.menu,SIGNAL("activated(int)"),self.handle_menu_request);
 
+        toggle_id = self.menu_table['Reset Auto Scaling']
+        self.menu.insertItem("Reset Auto Scaling", toggle_id)
+        if reset_auto:
+         self.menu.setItemVisible(toggle_id, True)
+        else:
+         self.menu.setItemVisible(toggle_id, False)
+
         toggle_id = self.menu_table['Adjust results buffer size']
         self.menu.insertItem("Adjust results buffer size", toggle_id)
+        if reset_auto:
+         self.menu.setItemVisible(toggle_id, False)
+        else:
+         self.menu.setItemVisible(toggle_id, True)
 
 # option for summary plot
         toggle_id = self.menu_table['Display summary plot']
@@ -400,6 +452,10 @@ class ResultsRange(QWidget):
         return
       self.maxVal = result_value
       self.slider.setRange(self.minVal, self.maxVal)
+      if self.horizontal:
+        self.slider.setTickInterval((self.maxVal - self.minVal) / 10)
+      else:
+        self.slider.setStep((self.maxVal - self.minVal) / 10)
       self.spinbox.setMaxValue(self.maxVal)
       self.emit(PYSIGNAL("adjust_results_buffer_size"),(result_value,))
 
@@ -437,7 +493,8 @@ class ResultsRange(QWidget):
 
 # the following tests the ResultsRange class
 def make():
-    demo = ResultsRange()
+    demo = ResultsRange(horizontal=False)
+#   demo = ResultsRange()
     demo.setRange(5)
     demo.show()
     demo.init3DContextmenu()
