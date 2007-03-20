@@ -81,6 +81,7 @@ class CollectionsPlotter(GriddedPlugin):
     self.layout = None
     self._visu_plotter = None
     self.counter = 0
+    self.max_range = 0
     self._node_name = None
     self._prev_rq_id = -1
     self._plot_label = None
@@ -95,7 +96,7 @@ class CollectionsPlotter(GriddedPlugin):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
       self.layout_parent = QWidget(self.wparent())
-      self.layout = QGridLayout(self.layout_parent)
+      self.layout = QHBoxLayout(self.layout_parent)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
     self._wtop = self.layout_parent;       
@@ -106,9 +107,37 @@ class CollectionsPlotter(GriddedPlugin):
   def create_2D_plotter(self):
     if self._visu_plotter is None:
       self._visu_plotter = DisplayMainWindow(parent=self.layout_parent,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
-      self.layout.addWidget(self._visu_plotter, 0, 1)
+      self.layout.addWidget(self._visu_plotter, 0, 0)
+#     self._label_info = QLabel('      ', self.layout_parent)
+#     self.layout.addWidget(self._label_info, 0, 1)
+      self._results_range = ResultsRange(parent=self.layout_parent, name="", horizontal=False)
+      self.layout.addWidget(self._results_range, 0, 1)
       self._visu_plotter.show()
+      self._results_range.set_offset_index(0)
+      QObject.connect(self._visu_plotter, PYSIGNAL("auto_offset_value"), self.set_range_selector)
+      QObject.connect(self._results_range, PYSIGNAL("result_index"), self._visu_plotter.set_range_selector)
+      QObject.connect(self._results_range, PYSIGNAL("set_auto_scaling"), self._visu_plotter.set_auto_scaling)
   # create_2D_plotter
+
+  
+  def set_range_selector(self, max_range):
+    """ set or update maximum range for slider controller """
+    if max_range > self.max_range:
+      self.max_range = max_range
+      if max_range <= 1: 
+        self._results_range.hide()
+      else:
+        self._results_range.set_emit(False)
+        self._results_range.setMaxValue(max_range,False)
+        self._results_range.setMinValue(0)
+        self._results_range.setTickInterval( max_range / 10 )
+        self._results_range.setRange(max_range, False)
+#   self._results_range.setValue(self.scale_factor)
+        self._results_range.setLabel('  offset  ')
+        self._results_range.hideNDControllerOption()
+        self._results_range.reset_scale_toggle()
+        self._results_range.set_emit(True)
+        self._results_range.show()
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
