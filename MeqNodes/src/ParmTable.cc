@@ -192,7 +192,7 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 	  double scale[]  = { tsCol(i),fsCol(i)};
 	  // for now, only Polcs are supported
       
-	  if (ftypeCol.isNull() || (ftypeCol(i)=="MeqPolc"||ftypeCol(i)=="Polc")){
+	  if (ftypeCol.isNull() || (ftypeCol(i)=="MeqPolc"||ftypeCol(i)=="Polc")||(ftypeCol(i)=="meqpolc"||ftypeCol(i)=="polc")){
 	    funkref<<= new Polc(fromParmMatrix(valCol(i)),
 			       axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
 	  }
