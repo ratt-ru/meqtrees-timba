@@ -44,6 +44,7 @@ class DisplayMainWindow(QMainWindow):
     self._tab_resized = False
     self._num_curves = num_curves
     self._plot_label = plot_label
+    self._result_range = None
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
@@ -65,10 +66,32 @@ class DisplayMainWindow(QMainWindow):
       self.connect(self._ChartPlot[data_type], PYSIGNAL("menu_command"), self.process_menu)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("complex_selector_command"), self.process_complex_selector)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("vells_selector"), self. update_vells_selector)
+      self.connect(self._ChartPlot[data_type], PYSIGNAL("auto_offset_value"), self.report_auto_value)
       if not self._plot_label is None:
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
     self._ChartPlot[data_type].updateEvent(data_dict)
+
+  def report_auto_value(self, auto_offset_value):
+    self.emit(PYSIGNAL("auto_offset_value"),(auto_offset_value,))
+
+  def set_range_selector(self, new_range):
+    """ set or update maximum range for slider controller """
+    try:
+      keys = self._ChartPlot.keys()
+      for i in range(len(keys)):
+        self._ChartPlot[keys[i]].set_offset_scale(new_range)
+    except:
+      pass
+
+  def set_auto_scaling(self):
+    """ set or update maximum range for slider controller """
+    try:
+      keys = self._ChartPlot.keys()
+      for i in range(len(keys)):
+        self._ChartPlot[keys[i]].set_auto_scaling()
+    except:
+      pass
 
   def process_menu(self,menuid):
     try:
