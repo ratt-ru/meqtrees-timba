@@ -900,9 +900,9 @@ namespace Meq {
 	  FailWhen(!tiled_ && (values.size() != int(its_funklet_->getSpids().size())),
 		   "size of "+FIncrUpdate.toString()+" field does not match size of funklets");
 	  //check for nans
-	  for(uint ival=0;ival<values.size();ival++)
+	  for(int ival=0;ival<values.size();ival++)
 	    if(isnan(values(ival)))
-	       values[ival] = 0.;
+	      values(ival) = 0.;
 
 	  if(constrained_)
 	    {
