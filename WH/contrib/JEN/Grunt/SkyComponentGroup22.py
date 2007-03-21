@@ -2,7 +2,6 @@
 
 # History:
 # - 04feb2007: creation (from PointSource22.py)
-# - 20mar2007: lm_nodes(): Use MeqParm rather than MeqConstant...
 
 # Description:
 
@@ -29,6 +28,9 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
 from Timba.Contrib.JEN.Grunt import PointSource22
+
+from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 import math
 import random
@@ -66,6 +68,7 @@ class SkyComponentGroup22 (object):
         self._peeling_group = dict()
         self._peeling_Patch = dict()
         self._peeling_Visset22 = dict()
+        self._dcoll_config = None
 
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
@@ -110,6 +113,7 @@ class SkyComponentGroup22 (object):
             sc = self._skycomp[key]
             print '  - '+key+': '+str(sc['nominal'])
         print '** Meow Patch: '+str(self._Patch)
+        print '** decoll_config: '+str(self._dcoll_config)
         if self._Visset22:
             print '** Grunt Visset22: '+str(self._Visset22.oneliner())
         if self._pgm:
@@ -168,7 +172,8 @@ class SkyComponentGroup22 (object):
 
     def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0):
         """Add a SkyComponent object to the group"""
-        self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp, lm=None,
+        self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp,
+                                   lm=None, lmcx=None,
                                    l=l, m=m, flux=flux)
         # Update self._order (descending order of flux):
         inserted = False
@@ -328,14 +333,88 @@ class SkyComponentGroup22 (object):
         key = self.key(key)
         sc = self._skycomp[key]
         if sc['lm']==None:
-            # NB: If L and M are MeqConstants, the compounder does not
-            #     make a 4D request (only passes on the 2D (f,t) one)
-            L = self._ns.Lcoord(key) << Meq.Parm(sc['l'])
-            M = self._ns.Mcoord(key) << Meq.Parm(sc['m'])
-            sc['lm'] = self._ns.lm(key) << Meq.Composer(L,M)
-            # sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
+            sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
         return sc['lm']
     
+
+    #--------------------------------------------------------------------------
+    # Make a 2D plot of the (l,m) configuration
+    # This misuses the real-vs-imag plot, by making complex numbers from the (l,m)
+    #--------------------------------------------------------------------------
+        
+    def lm_complex (self):
+        """Return a list of nodes with the (l,m) coordinates of the
+        SkyComponent (source) as complex numbers (for rvsi display)."""
+        cc = []
+        for key in self.order():
+            sc = self._skycomp[key]
+            if sc['lmcx']==None:
+                sc['lmcx'] = self._ns.lmcx(key) << Meq.ToComplex(sc['l'],sc['m'])
+            cc.append(sc['lmcx'])
+        return cc
+
+
+    def lm_complex_margin (self):
+        """Return a list of nodes with the (l,m) coordinates of the
+        corners of a margin around the source config"""
+        ll = self.lrange()
+        mm = self.mrange()
+        dl = (ll[1]-ll[0])*0.1
+        dm = (mm[1]-mm[0])*0.1
+        blc = self._ns.lm_blc << Meq.ToComplex(ll[0]-dl,mm[0]-dm)
+        trc = self._ns.lm_trc << Meq.ToComplex(ll[1]+dl,mm[1]+dm)
+        return [blc,trc]
+
+
+    #.......................................................................
+
+    def show_config (self, qual=None, 
+                     bookpage='SkyComponentGroup22', folder=None):
+
+        """Make a 2D plot of the (l,m) configuration. This misuses the
+        real-vs-imag (rvsi) plot, by making complex numbers from the (l,m)
+        A bookmark item is made for the resulting dataCollect node.
+        The resulting dataCollect node is returned"""
+
+        if not self._dcoll_config:              # avoid duplication
+            dcolls = []
+            
+            # Get the (l,m) coordinates as a list of complex numbers (nodes) 
+            cc = self.lm_complex()
+            rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
+                                           scope='scope',
+                                           tag='tag',
+                                           color='magenta',
+                                           style='circle',
+                                           size=24, pen=10,
+                                           type='realvsimag', errorbars=True)
+            dcolls.append(rr)
+
+            cc = self.lm_complex_margin()
+            rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
+                                           scope='scope',
+                                           tag='margin',
+                                           color='white',
+                                           style='cross',
+                                           size=1, pen=1,
+                                           type='realvsimag', errorbars=True)
+            dcolls.append(rr)
+
+            # Make a combined plot of all the matrix elements:
+            # NB: nodename -> dconc_scope_tag
+            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls,
+                                          scope='scope',
+                                          tag=' ', bookpage=None)
+            self._dcoll_config = rr['dcoll']
+
+            JEN_bookmarks.create(self._dcoll_config,
+                                 self._name,
+                                 page=bookpage, folder=folder)
+
+        # Return the dataConcat node:
+        return self._dcoll_config
+
+
         
     #--------------------------------------------------------------------------
     # Some operations on the skycomp (source) coordinates:
@@ -397,6 +476,27 @@ class SkyComponentGroup22 (object):
         if wtot<=0.0: return [0.0,0.0]
         return [lc/wtot,mc/wtot]
 
+    def lrange(self):
+        """Calculate (lmin,lmax) of the skycomp coordinates (l,m)."""
+        lmin = 1e10
+        lmax = -1e10
+        for key in self.order():
+            sc = self._skycomp[key]
+            lmin = min(lmin,sc['l'])
+            lmax = max(lmax,sc['l'])
+        return [lmin,lmax]
+
+
+    def mrange(self):
+        """Calculate (mmin,mmax) of the skycomp coordinates (l,m)."""
+        mmin = 1e10
+        mmax = -1e10
+        for key in self.order():
+            sc = self._skycomp[key]
+            mmin = min(mmin,sc['m'])
+            mmax = max(mmax,sc['m'])
+        return [mmin,mmax]
+
 
     #--------------------------------------------------------------------------
     # Make visibilities (via a Meow Patch)
@@ -412,6 +512,7 @@ class SkyComponentGroup22 (object):
                                                   name=name, visu=visu)
             self._Visset22.ParmGroupManager(merge=self)
         return self._Visset22
+
 
 
     def Patch2Visset22 (self, Patch, array=None, observation=None,
@@ -522,10 +623,10 @@ class SkyComponentGroup22 (object):
     
     def test (self):
         """Helper routine to add some test sources to the group"""
-        self.add_PointSource('1st', 1,1, flux=2.5)
-        self.add_PointSource22('2nd', 1,0, flux=5)
-        self.add_PointSource22('3rd', 0,1, flux=2.5)
-        self.add_GaussianSource('4th', 1,-1)
+        self.add_PointSource('1st', 0.1,0.1, flux=2.5)
+        self.add_PointSource22('2nd', 0.1,0, flux=5)
+        self.add_PointSource22('3rd', 0,0.1, flux=2.5)
+        self.add_GaussianSource('4th', 0.1,-0.1)
         return True
 
 
@@ -566,6 +667,10 @@ def _define_forest(ns):
     scg.test()
     scg.display()
     # scg.skycomp(0).display()
+
+    if True:
+        dcoll = scg.show_config()
+        cc.append(dcoll)
 
     if False:
         for key in scg.order():
@@ -636,6 +741,16 @@ if __name__ == '__main__':
         # scg.key('xxx')
 
         if 0:
+            ll = scg.lrange()
+            print 'lrange =',ll
+            mm = scg.mrange()
+            print 'mrange =',mm
+
+        if 1:
+            scg.show_config()
+            scg.display('show_config')
+
+        if 0:
             for key in scg.order()[0:2]:
                 scg.lm_node(key)
             scg.display('lm_node')
@@ -655,7 +770,7 @@ if __name__ == '__main__':
             scg.display()
             scg._pgm.display()
 
-        if 1:
+        if 0:
             from Timba.Contrib.JEN.Grunting import WSRT_Jones
             jones = WSRT_Jones.EJones(ns,
                                       # quals=['xxx'],

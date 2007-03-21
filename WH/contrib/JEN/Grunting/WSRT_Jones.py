@@ -538,10 +538,6 @@ def _tdl_job_4D (mqs, parent):
                             l=[-dlm,dlm], m=[-dlm,dlm]);
     cells = meq.gen_cells(domain,num_freq=20, num_time=1, num_l=50, num_m=50);
     request = meq.request(cells, rqtype='ev')
-    if False:
-        print '\n- domain =\n',domain
-        print '\n- cells =\n',cells
-        print '\n- request =\n',request
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
 

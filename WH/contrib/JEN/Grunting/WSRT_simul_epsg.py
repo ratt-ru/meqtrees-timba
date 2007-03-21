@@ -106,6 +106,8 @@ def _define_forest (ns):
     if vroot:
         # Attach the root of the visualization subtree (if any):
         vis.accumulist(vroot)
+        # Make a root-node named 'vroot' for separate execution
+        ns.vroot << Meq.Identity(vroot)
 
     if TDL_corruption_mode=='uv_plane':
         # Corrupt the data with a sequence of (uv-plane) Jones matrices:
@@ -140,6 +142,21 @@ def _tdl_job_1_WSRT_simul_epsg (mqs,parent):
     mqs.execute('vdm',req,wait=False);
     return True
                                      
+
+def _tdl_job_4D_vroot (mqs, parent):
+    """Execute the node named 'vroot', using a 4D request"""
+    dlm = 0.01
+    # dlm = 0.2
+    domain = meq.gen_domain(time=[0,10],
+                            freq=[1.0e9,2.0e9],
+                            # freq=[1.0e8,2.0e8],
+                            l=[-dlm,dlm], m=[-dlm,dlm]);
+    cells = meq.gen_cells(domain,num_freq=20, num_time=1, num_l=50, num_m=50);
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='vroot', request=request))
+    return result
+
+
   
 def _tdl_job_2_make_image (mqs,parent):
     JEN_Meow_Utils.make_dirty_image(npix=256,cellsize='1arcsec',channels=[32,1,1]);
