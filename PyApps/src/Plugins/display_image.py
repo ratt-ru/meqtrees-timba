@@ -2590,28 +2590,50 @@ class QwtImageDisplay(QwtPlot):
             phase_array = arctan2(self.y_array,self.x_array)
             self.x_array = abs_array
             self.y_array = phase_array
+          if not self._flags_array is None:
+            self.flags_r_values = []
+            self.flags_i_values = []
+            for j in range(num_elements):
+              if self._flags_array[j] == 0:
+                self.flags_r_values.append(self.x_array[j])
+                self.flags_i_values.append(self.y_array[j])
+            flags_x_array = array(self.flags_r_values)
+            flags_y_array = array(self.flags_i_values)
+            axis_diff = abs(flags_y_array.max() - flags_y_array.min())
+          else:
+            axis_diff = abs(self.y_array.max() - self.y_array.min())
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
           self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
-         
-          axis_diff = abs(self.y_array.max() - self.y_array.min())
           # the following is not the best test, but ...
           axis_subt = 0.01 * axis_diff
           if axis_diff <0.00001:
             axis_diff = 0.005
             axis_subt = 0.002
-          self.setAxisScale(QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
-          axis_diff = abs(self.x_array.max() - self.x_array.min())
+          if not self._flags_array is None:
+            self.setAxisScale(QwtPlot.yRight, flags_y_array.min() - axis_subt, flags_y_array.max() + axis_diff)
+          else:
+            self.setAxisScale(QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
+          if not self._flags_array is None:
+            axis_diff = abs(flags_x_array.max() - flags_x_array.min())
+          else:
+            axis_diff = abs(self.x_array.max() - self.x_array.min())
           axis_add = 0.01 * axis_diff
           if axis_diff <0.00001:
             axis_diff = 0.005
             axis_add = 0.002
-          self.setAxisScale(QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
+          if not self._flags_array is None:
+            self.setAxisScale(QwtPlot.yLeft, flags_x_array.min() - axis_diff, flags_x_array.max() + axis_add)
+          else:
+            self.setAxisScale(QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
           _dprint(3, 'plotting complex array with x values ', self.x_index)
           _dprint(3, 'plotting complex array with real values ', self.x_array)
           _dprint(3, 'plotting complex array with imag values ', self.y_array)
 
 # stuff for flags
           if not self._flags_array is None:
+            self.flags_x_index = []
+            self.flags_r_values = []
+            self.flags_i_values = []
             for j in range(num_elements):
               if self._flags_array[j] != 0:
                 self.flags_x_index.append(self.x_index[j])
@@ -2655,10 +2677,18 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
+            self.flags_x_index = []
+            self.flags_r_values = []
+            temp_data = []
             for j in range(num_elements):
               if self._flags_array[j] != 0:
                 self.flags_x_index.append(self.x_index[j])
                 self.flags_r_values.append(flattened_array[j])
+              else:
+                temp_data.append(flattened_array[j])
+            temp_data_array = array(temp_data)
+            axis_diff = abs(temp_data_array.max() - temp_data_array.min())
+
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -2668,6 +2698,10 @@ class QwtImageDisplay(QwtPlot):
                      QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
             self.curve(self.real_flag_vector).setEnabled(True)
+            axis_add = abs(0.01 * axis_diff)
+            if axis_diff <0.00001:
+              axis_add = 0.002
+            self.setAxisScale(QwtPlot.yLeft, temp_data_array.min() - axis_add, temp_data_array.max() + axis_add)
 
 # do the replot
         self.replot()
@@ -2904,19 +2938,19 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-#   demo.start_test_timer(5000, True, "hippo")
+    demo.start_test_timer(5000, True, "hippo")
 
 # or
 # uncomment the following three lines
-    try:
-      import pyfits
-      image = pyfits.open('./m51_32.fits')
+#    try:
+#      import pyfits
+#      image = pyfits.open('./m51_32.fits')
 #   image = pyfits.open('./WN30080H.fits')
-      demo.array_plot('M51', image[0].data)
-    except:
-      print 'Exception while importing pyfits module:'
-      traceback.print_exc();
-      return
+#      demo.array_plot('M51', image[0].data)
+#    except:
+#      print 'Exception while importing pyfits module:'
+#      traceback.print_exc();
+#      return
 
     return demo
 
