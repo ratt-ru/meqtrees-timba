@@ -261,7 +261,7 @@ def _test_forest(mqs,parent):
       request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
       counter = counter + 1
 # execute request
-      mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
+      mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=False);
 
 #####################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
