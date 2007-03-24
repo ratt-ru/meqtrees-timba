@@ -255,6 +255,22 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #...........................................................................
 
+    def shift_phase_centre (self, lm=None, qual=None, visu=False):
+        """Shift the phase-centre of the uv-data to the specified position (l,m).
+        Remember the new position, so that cumulative shifts are possible."""
+        quals = self.quals(append=qual)
+        name = 'shift22'
+        for ifr in self.ifrs():
+            j1 = jmat(ifr[0])
+            j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
+            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = self._ns[name](*quals)              
+        if visu: return self.visualize(name, visu=visu)
+        return None
+
+
+    #...........................................................................
+
     def corrupt (self, joneset=None, qual=None, visu=False):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
         Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""

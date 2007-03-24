@@ -274,22 +274,40 @@ def dcoll (ns, node=[], **pp):
    # Make sure that the input is a list:
    if not isinstance(node, (list, tuple)): node = [node]
    
-   # Make the visualisation chains per node:
+   # Make the visualisation chains per node: (temporary, see below)
    for i in range(len(node)):
-      stripped = ns << Meq.Stripper (node[i])
+      stripped = ns.stripped(i)(uniqual) << Meq.Stripper (node[i])
       dcoll['stripped'].append (stripped)
       if pp.type == 'realvsimag':
-         mean = ns << Meq.Mean(stripped)
+         mean = ns.mean(i)(uniqual) << Meq.Mean(stripped)
          dcoll['mean'].append(mean)
          if pp.errorbars:
             if True:
                # Place-holder until Meq.StdDev is repaired:
-               ms = ns << Meq.Mean(ns << Meq.Sqr(ns << Meq.Abs(stripped)))
-               m2 = ns << Meq.Sqr(ns << Meq.Abs(mean))
-               stddev = ns << Meq.Sqrt(ms-m2)
+               ms = ns.meansqrabs(i)(uniqual) << Meq.Mean(ns.sqr(i)(uniqual) << Meq.Sqr(ns.abs(i)(uniqual) << Meq.Abs(stripped)))
+               m2 = ns.sqrabs(i)(uniqual) << Meq.Sqr(ns.sqrabsmean(i)(uniqual) << Meq.Abs(mean))
+               stddev = ns.stddev(i)(uniqual) << Meq.Sqrt(ms-m2)
             else:
-               stddev = ns << Meq.StdDev(stripped)
+               stddev = ns.stddev(i)(uniqual) << Meq.StdDev(stripped)
             dcoll['stddev'].append (stddev)
+
+   if False:
+      # Make the visualisation chains per node:  (use when QualScope problem solved)
+      for i in range(len(node)):
+         stripped = ns << Meq.Stripper (node[i])
+         dcoll['stripped'].append (stripped)
+         if pp.type == 'realvsimag':
+            mean = ns << Meq.Mean(stripped)
+            dcoll['mean'].append(mean)
+            if pp.errorbars:
+               if True:
+                  # Place-holder until Meq.StdDev is repaired:
+                  ms = ns << Meq.Mean(ns << Meq.Sqr(ns << Meq.Abs(stripped)))
+                  m2 = ns << Meq.Sqr(ns << Meq.Abs(mean))
+                  stddev = ns << Meq.Sqrt(ms-m2)
+               else:
+                  stddev = ns << Meq.StdDev(stripped)
+               dcoll['stddev'].append (stddev)
             
 
    # Make dataCollection node(s):

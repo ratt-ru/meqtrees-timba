@@ -46,9 +46,9 @@ from copy import deepcopy
 class SkyComponentGroup22 (object):
     """Virtual base class for specialised groups of SkyComponents"""
 
-    def __init__(self, ns, name='SkyComponentGroup22', **pp):
+    def __init__(self, ns, name='scg22', quals=[], kwquals={}, **pp):
 
-        self._ns = ns
+        self._ns = Meow.Parameterization(ns, name, quals=quals, kwquals=kwquals).ns
         self._name = name
 
         # Deal with input arguments (default set by TDL_options):
@@ -101,9 +101,15 @@ class SkyComponentGroup22 (object):
         print '** SkyComponents ('+str(self.len())+'):'
         for key in self.order():
             sc = self._skycomp[key]
-            s1 = ' flux='+str(sc['flux'])
+            s1 = str(sc['type'])
+            s1 += '   flux='+str(sc['flux'])
             s1 += '   l='+str(sc['l'])+'   m='+str(sc['m'])
             s1 += '   lm='+str(sc['lm'])
+            s1 += '   corruption = '+str(sc['corruption'])
+            print '  - '+key+': '+s1
+        for key in self.order():
+            sc = self._skycomp[key]
+            s1 = 'plot='+str(sc['plot'])
             print '  - '+key+': '+s1
         for key in self.order():
             sc = self._skycomp[key]
@@ -170,10 +176,13 @@ class SkyComponentGroup22 (object):
         return self._skycomp[key]['skycomp']
 
 
-    def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0):
+    def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0,
+             type=None, color='magenta', style='circle'):
         """Add a SkyComponent object to the group"""
+        plot = dict(color=color, style=style, size=10, pen=2)
         self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp,
-                                   lm=None, lmcx=None,
+                                   lm=None, lmcx=None, plot=plot,
+                                   type=type, corruption=None,
                                    l=l, m=m, flux=flux)
         # Update self._order (descending order of flux):
         inserted = False
@@ -186,6 +195,9 @@ class SkyComponentGroup22 (object):
         if not inserted:
             self._order.append(name)
         return self.len()
+
+
+
 
     #--------------------------------------------------------------------------
 
@@ -236,7 +248,9 @@ class SkyComponentGroup22 (object):
                                    I=0.0, Q=None, U=None, V=None,
                                    spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux,
+                        type='Meow.PointSource',
+                        color='red', style='xcross')
 
 
     def add_GaussianSource (self, name=None, l=0.0, m=0.0, flux=1.0):
@@ -250,7 +264,9 @@ class SkyComponentGroup22 (object):
                                       I=0.0, Q=None, U=None, V=None,
                                       spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux,
+                        type='Meow.GaussianSource',
+                        color='cyan', style='ellipse')
 
 
     def add_PointSource22 (self, name=None, l=0.0, m=0.0, flux=1.0):
@@ -260,7 +276,20 @@ class SkyComponentGroup22 (object):
         skycomp = PointSource22.PointSource22(self._ns, name=name,
                                               direction=direction)
         self.get_parmgroups(skycomp)
-        return self.add(skycomp, name=name, l=l, m=m, flux=flux)
+        return self.add(skycomp, name=name, l=l, m=m, flux=flux,
+                        type='Grunt.PointSource22',
+                        color='blue', style='rectangle')
+
+
+# symbol                                 one of
+#                         'circle' 'none' 'rectangle' 'square' 'ellipse'
+#                         'none 'xcross' 'cross' 'triangle' 'diamond'
+#
+# color                                  one of
+#                     'blue' 'black' 'cyan' 'gray' 'green' 'none'
+#                     'magenta' 'red' 'white' 'yellow' 'darkBlue' 'darkCyan'
+#                     'darkGray' 'darkGreen' 'darkMagenta' 'darkRed' 'darkYellow'
+#                     'lightGray'
 
 
     #--------------------------------------------------------------------------
@@ -313,6 +342,7 @@ class SkyComponentGroup22 (object):
                 sc = Meow.CorruptComponent(self._ns, sc, label,
                                            station_jones=self._ns[name](key))
                 self._skycomp[key]['skycomp'] = sc
+                self._skycomp[key]['corruption'] = jones.label()
 
         else:
             # Apply the given jones matrix to the specified (key) skycomp:
@@ -322,6 +352,7 @@ class SkyComponentGroup22 (object):
             sc = Meow.CorruptComponent(self._ns, sc, label,
                                        station_jones=jones.matrixet())
             self._skycomp[key]['skycomp'] = sc
+            self._skycomp[key]['corruption'] = jones.label()
 
         self.ParmGroupManager(merge=jones)
         return True
@@ -369,7 +400,7 @@ class SkyComponentGroup22 (object):
     #.......................................................................
 
     def show_config (self, qual=None, 
-                     bookpage='SkyComponentGroup22', folder=None):
+                     bookpage='scg_config', folder=None):
 
         """Make a 2D plot of the (l,m) configuration. This misuses the
         real-vs-imag (rvsi) plot, by making complex numbers from the (l,m)
@@ -377,25 +408,23 @@ class SkyComponentGroup22 (object):
         The resulting dataCollect node is returned"""
 
         if not self._dcoll_config:              # avoid duplication
+            self.lm_complex()                   # make sc['lmcx'] nodes
             dcolls = []
-            
-            # Get the (l,m) coordinates as a list of complex numbers (nodes) 
-            cc = self.lm_complex()
-            rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                           scope='scope',
-                                           tag='tag',
-                                           color='magenta',
-                                           style='circle',
-                                           size=24, pen=10,
-                                           type='realvsimag', errorbars=True)
-            dcolls.append(rr)
+            for key in self.order():
+                sc = self._skycomp[key]
+                plot = sc['plot']
+                rr = MG_JEN_dataCollect.dcoll (self._ns, sc['lmcx'], 
+                                               scope='config', tag=key,
+                                               color=plot['color'], style=plot['style'],
+                                               size=plot['size'], pen=plot['pen'],
+                                               type='realvsimag', errorbars=True)
+                dcolls.append(rr)
 
+            # Create a margin around the group, for clarity:
             cc = self.lm_complex_margin()
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                           scope='scope',
-                                           tag='margin',
-                                           color='white',
-                                           style='cross',
+                                           scope='config', tag='margin',
+                                           color='white', style='cross',
                                            size=1, pen=1,
                                            type='realvsimag', errorbars=True)
             dcolls.append(rr)
@@ -403,12 +432,12 @@ class SkyComponentGroup22 (object):
             # Make a combined plot of all the matrix elements:
             # NB: nodename -> dconc_scope_tag
             rr = MG_JEN_dataCollect.dconc(self._ns, dcolls,
-                                          scope='scope',
-                                          tag=' ', bookpage=None)
+                                          scope='config', tag=self._name,
+                                          bookpage=None)
             self._dcoll_config = rr['dcoll']
 
             JEN_bookmarks.create(self._dcoll_config,
-                                 self._name,
+                                 'config_'+self._name,
                                  page=bookpage, folder=folder)
 
         # Return the dataConcat node:
@@ -517,7 +546,8 @@ class SkyComponentGroup22 (object):
 
     def Patch2Visset22 (self, Patch, array=None, observation=None,
                         name=None, visu=True):
-        """Helper function to create a Grunt Visset22 object from the given Meow Patch"""
+        """Helper function to create a Grunt Visset22 object
+        from the given Meow Patch"""
 
         if not name: name = self._name
         observation = self.observation(observation)
@@ -536,7 +566,8 @@ class SkyComponentGroup22 (object):
 
         # ParmGroupManager... (get all MeqParms from self.ns...?)
 
-        if visu: vis.visualize('SkyComponentGroup22')
+        if visu:
+            vis.visualize('SkyComponentGroup22', visu=visu)
         return vis
 
 
@@ -621,12 +652,12 @@ class SkyComponentGroup22 (object):
     #---------------------------------------------------------------------------------
     #---------------------------------------------------------------------------------
     
-    def test (self):
+    def test (self, scale=0.01):
         """Helper routine to add some test sources to the group"""
-        self.add_PointSource('1st', 0.1,0.1, flux=2.5)
-        self.add_PointSource22('2nd', 0.1,0, flux=5)
-        self.add_PointSource22('3rd', 0,0.1, flux=2.5)
-        self.add_GaussianSource('4th', 0.1,-0.1)
+        self.add_PointSource('1st', scale,scale, flux=2.5)
+        self.add_PointSource22('2nd', scale,0, flux=5)
+        self.add_PointSource22('3rd', 0,scale, flux=2.5)
+        self.add_GaussianSource('4th', scale,-scale)
         return True
 
 
@@ -674,9 +705,10 @@ def _define_forest(ns):
 
     if False:
         for key in scg.order():
-            jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS, simulate=True)
+            jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS,
+                                     simulate=True)
             scg.corrupt(jones, label=jones.label(), key=key)
-        scg.display('corrupted')
+        scg.display('corruption')
         scg._pgm.display()
 
     elif True:
@@ -685,7 +717,7 @@ def _define_forest(ns):
                                   # quals=['xxx'],
                                   stations=ANTENNAS, simulate=False)
         scg.corrupt(jones, label='E')
-        scg.display('corrupted')
+        scg.display('corruption')
         scg._pgm.display()
 
 
@@ -746,7 +778,7 @@ if __name__ == '__main__':
             mm = scg.mrange()
             print 'mrange =',mm
 
-        if 1:
+        if 0:
             scg.show_config()
             scg.display('show_config')
 
@@ -780,7 +812,7 @@ if __name__ == '__main__':
             scg._pgm.display()
 
 
-        if 0:
+        if 1:
             # for key in scg.order()[0:2]:         # the first 2 only (testing)
             for key in scg.order():
                 jones = Joneset22.GJones(ns, quals=key,
