@@ -17,6 +17,7 @@ else:
   from IfrArray import IfrArray
   from Observation import Observation
   from Parameterization import Parameterization
+  from QualScope import QualScope
   from Patch import Patch
   from PointSource import PointSource
   from SixpackComponent import SixpackComponent
@@ -35,6 +36,7 @@ else:
               IfrArray,
               Observation,
               Parameterization,
+              QualScope,
               Patch,
               PointSource,
               SixpackComponent,
