@@ -364,7 +364,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         image_for_display[nx/2:,:] = where(self._flags_array,0,self._image_for_display[nx/2:,:])
       else:
         image_for_display = where(self._flags_array,0,self._image_for_display)
-# display flag image pixels in black 
+
       self.flags_Qimage = toQImage(image_for_display).mirror(0, 1)
 
 # set color scale a la HippoDraw Scale
@@ -375,7 +375,7 @@ class QwtPlotImage(QwtPlotMappedItem):
       if self.display_type == "grayscale":
         self.toGrayScale(self.flags_Qimage)
 
-# set zero to black
+# set zero to black to display flag image pixels in black 
       self.flags_Qimage.setColor(0, qRgb(0, 0, 0))
 
     def setBrentjensImage(self, image):
