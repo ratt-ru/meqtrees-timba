@@ -48,10 +48,11 @@ class FloatSpinBox(QSpinBox):
     QSpinBox.__init__(self,int(minValue*pow(10,decimals)), int(maxValue*pow(10,decimals)), \
 	      int(round(step * pow(10,decimals))), parent, name )
     self.dec = decimals
+    self.step = step
     self.dVal = QDoubleValidator(float(minValue), float(maxValue), self.dec, self, "dVal")
     self.setValidator(self.dVal);	
     self.setValue( 0 );
-    self.setWrapping(True)
+#   self.setWrapping(True)
 
 
   def mapValueToText (self, value):
@@ -74,6 +75,17 @@ class FloatSpinBox(QSpinBox):
   def setFloatValue(self, value):
     QRangeControl.setValue(self,int(value* pow(10,self.dec)))
 
+  def setDecimals(self,decimals):
+    minvalue = self.minValue()
+    maxvalue = self.maxValue()
+    self.dec = decimals
+    self.setRange(minvalue, maxvalue)
+    QSpinBox.setLineStep(self, int(round(self.step * pow(10,self.dec))))
+    self.setRange(minvalue,maxvalue)
+
+  def setLineStep(self, step):
+    self.step = step
+    QSpinBox.setLineStep(self, int(round(step * pow(10,self.dec))))
 
   def setRange(self, minValue, maxValue):
     QRangeControl.setRange(self, int( minValue *  pow( 10, self.dec ) ),  \
@@ -82,8 +94,7 @@ class FloatSpinBox(QSpinBox):
 
   def valueChange(self):
     QSpinBox.valueChange(self)
-#   self.emit(SIGNAL("valueChanged(value())"),self.value())
-    self.emit(SIGNAL("valueChanged(float)"),(self.value(),))
+    self.emit(PYSIGNAL("valueChanged"),(self.value(),))
 
   def sizeHint(self):
     fm = QFontMetrics(self.fontMetrics())
@@ -119,8 +130,12 @@ class FloatSpinBox(QSpinBox):
 def main(args):
     app = QApplication(args)
 #   demo = FloatSpinBox(parent=None)
-    demo = FloatSpinBox(5.0,20.2,2,0.1,parent=None)
+#   demo = FloatSpinBox(5.0,20.2,2,0.1,parent=None)
+    demo = FloatSpinBox(parent=None)
     demo.show()
+    demo.setDecimals(2)
+    demo. setLineStep(0.05)
+    demo. setRange(1.0,7.0)
     app.setMainWidget(demo)
     app.exec_loop()
 
