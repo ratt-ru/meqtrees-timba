@@ -124,20 +124,17 @@ class CollectionsPlotter(GriddedPlugin):
     """ set or update maximum range for slider controller """
     if max_range > self.max_range:
       self.max_range = max_range
-      if max_range <= 1: 
-        self._results_range.hide()
-      else:
-        self._results_range.set_emit(False)
-        self._results_range.setMaxValue(max_range,False)
-        self._results_range.setMinValue(0)
-        self._results_range.setTickInterval( max_range / 10 )
-        self._results_range.setRange(max_range, False)
+      self._results_range.set_emit(False)
+      self._results_range.setMaxValue(max_range,False)
+      self._results_range.setMinValue(0)
+      self._results_range.setTickInterval( max_range / 10 )
+      self._results_range.setRange(max_range, False)
 #   self._results_range.setValue(self.scale_factor)
-        self._results_range.setLabel('  offset  ')
-        self._results_range.hideNDControllerOption()
-        self._results_range.reset_scale_toggle()
-        self._results_range.set_emit(True)
-        self._results_range.show()
+      self._results_range.setLabel('  offset  ')
+      self._results_range.hideNDControllerOption()
+      self._results_range.reset_scale_toggle()
+      self._results_range.set_emit(True)
+      self._results_range.show()
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
