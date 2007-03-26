@@ -20,15 +20,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Acknowledgement: This code is directly taken from the example
+# Acknowledgement: This code is adapted taken from the example
 # posted by Joerg Ott to the Trolltech QT Interest mailing list on
 # 26 August 1998
 #
 # This is a python translation of the ACSIS 'floatspinbox' C++ code 
-#
-# Acknowledgement: This code is adapted from the example
-# posted by Joerg Ott to the Trolltech QT Interest mailing list on
-# 26 August 1998
 #
 
 
