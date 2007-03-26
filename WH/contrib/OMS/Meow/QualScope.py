@@ -28,11 +28,15 @@
 # There is a function to derive a new QualScope object from an existing one with
 # its own qualifiers, plus any new ones. The latter can be specified in various
 # ways:
-#   ns2 = ns1.derive(append=[list] or {dict})          appends quals/kwquals
-#   ns2 = ns1.derive(prepend=[list])                   prepends quals
-#   ns2 = ns1.derive(exclude=[list] or {dict})         excludes quals/kwquals
+#   ns2 = ns1._derive(append=[list] or {dict})          appends quals/kwquals
+#   ns2 = ns1._derive(prepend=[list])                   prepends quals
+#   ns2 = ns1._derive(exclude=[list] or {dict})         excludes quals/kwquals
 #
-
+# It is also possible to create a new QualScope object by merging its
+# qualifiers with those of another one:
+#   ns2 = ns1._merge(other=ns3)
+#   ns2 = ns1.copy()                                   produces a copy of ns1        
+#   
 
 #======================================================================================
 
@@ -54,39 +58,104 @@ class QualScope (object):
     if quals==None:
       self.quals = []
     elif not isinstance(quals,(list,tuple)):
-      self.quals = [quals]
+      self.quals = [deepcopy(quals)]
     else:
-      self.quals = quals
+      self.quals = deepcopy(quals)
       
     # Store its keyword qualifiers:
     if not isinstance(kwquals,dict):
       self.kwquals = dict()
     else:  
-      self.kwquals = kwquals
+      self.kwquals = deepcopy(kwquals)
       
     return None
     
+  #----------------------------------------------------------------
 
   def __getattr__ (self, name=None):
     """This is the function that is called when a node(stub) is created
-    with:   node = ns1.name << 1."""
-    ns = self.ns[name](*self.quals,**self.kwquals)
-    # print '** __getattr__(',name,') ->',str(ns)
-    return ns
+    with:   node = ns1.name << ...."""
+    nodestub = self.ns[name](*self.quals, **self.kwquals)
+    # print '** __getattr__(',name,') ->',str(nodestub)
+    return nodestub
 
   def __getitem__ (self, name=None):
     """This is the function that is called when a node(stub) is created
-    with:   node = ns1[name] << 1."""
-    ns = self.ns[name](*self.quals,**self.kwquals)
-    # print '** __getitem__(',name,') ->',str(ns)
-    return ns
+    with:   node = ns1[name] << ...."""
+    nodestub = self.ns[name](*self.quals, **self.kwquals)
+    # print '** __getitem__(',name,') ->',str(nodestub)
+    return nodestub
+
+
+
+
+  #================================================================
+  # Some useful extra functions (prepended with _)
+  #================================================================
+
+  def _unique (self, name, quals=[], kwquals=None):
+    """Return a unique (i.e. a non-initialized) nodestub.
+    If the resulting nodestub with the specified name and quals/kwquals
+    has already been initialized, generate a unique one."""
+
+    # First generate a nodestub in a robust manner:
+    if quals==None: quals = []
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    if isinstance(kwquals,dict):
+      nodestub = self.__getitem__(name)(*quals)(**kwquals)
+    else:
+      nodestub = self.__getitem__(name)(*quals)  
+
+    # Then test whether such a node has already been initialized:
+    if nodestub.initialized():
+      # Recursively try slightly different names, until unique.
+      uniqual = _counter (name, increment=1)
+      # There are various ways to attach this unique qualifier:
+      if True:
+        # The preferred method?
+        qq = deepcopy(quals)
+        qq.append('('+str(uniqual)+')')
+        nodestub = self._unique(name, quals=qq, kwquals=kwquals)
+
+      elif False:
+        # NB: This will interfere with a name-search of the nodescope!
+        nodestub = self._unique(name+'('+str(uniqual)+')',
+                                quals=quals, kwquals=kwquals)
+      else:
+        # A bit cumbersome?:
+        kwq = deepcopy(kwquals)
+        if not isinstance(kwq, dict): kwq = dict()
+        kwq['_unique'] = uniqual
+        nodestub = self._unique(name, quals=quals, kwquals=kwq)
+
+    print '\n** unique(',name,quals,kwquals,'):',str(nodestub)
+    return nodestub
 
   #----------------------------------------------------------------
 
-  def merge (self, other):
-    """Derive a new QualScope object by merging its qualifiers
-    with the qualifiers of another QualScope (other).
-    Double qualifiers are avoided."""
+  def _copy (self):
+    """Make a (fully independent) copy of itself"""
+    return Meow.QualScope(self.ns, quals=self.quals, kwquals=self.kwquals)
+
+  #----------------------------------------------------------------
+
+  def _merge (self, other=None):
+    """Make a new QualScope object by merging its qualifiers with
+    the qualifiers of another QualScope (other).
+    - Double qualifiers are avoided....(?).
+    - If 'other' is a Subscope, .....?
+    - If 'other' is a NodeScope, return a copy of itself."""
+
+    # NB: We still need a solution for when 'other' is a Subscope....    <-----!!
+
+    if isinstance(other, NodeScope):
+      # If other is a NodeScope, just return a copy of itself
+      print '\n** merge(): other is not a QualScope, but:',type(other)
+      return Meow.QualScope(self.ns, quals=self.quals, kwquals=self.kwquals)
+
+    if not isinstance(other, QualScope): 
+      # If other is anything else....
+      raise ValueError, 'merge(): other is not a QualScope, but: '+str(type(other))
 
     # Do NOT modify its own qualifiers (use copies):
     quals = deepcopy(self.quals)
@@ -107,7 +176,7 @@ class QualScope (object):
 
   #----------------------------------------------------------------
 
-  def derive (self, append=None, prepend=None, exclude=None):
+  def _derive (self, append=None, prepend=None, exclude=None):
     """Derive another QualScope object with more/less qualifiers"""
 
     # Do NOT modify its own qualifiers (use copies):
@@ -150,6 +219,23 @@ class QualScope (object):
     return qs
 
 
+
+#=======================================================================
+# Counter service (use to automatically generate unique node names)
+#=======================================================================
+
+_counters = {}
+
+def _counter (key, increment=0, reset=False, trace=False):
+  global _counters
+  _counters.setdefault(key, 0)
+  if reset: _counters[key] = 0
+  _counters[key] += increment
+  if trace:
+    print '** QualScope: _counters(',key,') =',_counters[key]
+  return _counters[key]
+
+
 #=======================================================================
 # Test program:
 #=======================================================================
@@ -161,7 +247,7 @@ if __name__ == '__main__':
   ns1 = QualScope(ns, None)
   ns1 = QualScope(ns, 5)
   ns1 = QualScope(ns, ['q1','q2'], dict(g=56))
-  print '** ns1 =',ns1
+  print '\n** ns1 =',ns1
 
   node = ns1.xxx(7)
 
@@ -171,18 +257,54 @@ if __name__ == '__main__':
 
   # node = ns1 << 1
 
-  ns2 = ns1.derive()
-  ns2 = ns1.derive(append=55)
-  ns2 = ns1.derive(prepend=55)
-  ns2 = ns1.derive(append=dict(y=55))
+  if 1:
+    node = ns1.xxx << 1
+    node = ns1._unique('xxx') << 3
+    node = ns1._unique('xxx')
+    node = ns1._unique('xxx', 79)
+    node = ns1._unique('xxx', None)
+    node = ns1._unique('xxx', [79])
+    node = ns1._unique('xxx', [79], dict(op='op'))
 
-  ns2 = ns1.derive(exclude='q1')
-  ns2 = ns1.derive(exclude=dict(g=None))
 
-  ns3 = QualScope(ns, ['q1','q3'], dict(g=56, h=-7))
-  ns4 = ns3.merge(ns1)
-  node = ns4.node('extra') << 1
-  print str(node)
+  if 0:
+    ns2 = ns1._derive()
+    ns2 = ns1._derive(append=55)
+    ns2 = ns1._derive(prepend=55)
+    ns2 = ns1._derive(append=dict(y=55))
+    
+    ns2 = ns1._derive(exclude='q1')
+    ns2 = ns1._derive(exclude=dict(g=None))
+
+  if 0:
+    ns3 = QualScope(ns, ['q1','q3'], dict(g=56, h=-7))
+    ns4 = ns3._merge(ns1)
+    node = ns4.node('extra') << 1
+    print str(node)
+
+    if 0:
+      nsub = ns.Subscope('sub')
+      print '\n** Subscope:',type(nsub)
+      ns7 = QualScope(nsub, ['q1','q3'], dict(g=56, h=-7))
+      node = ns7.node('subsub') << 1
+      print str(node)
+
+      ns5 = ns3._merge(nsub)           # This does not yet work...
+      node = ns5.node('uuu') << 1
+      print str(node)
+
+    ns5 = ns3._merge(ns)
+    node = ns5.node('ggg') << 1
+    print str(node)
+
+  if 0:
+    ns6 = ns3._merge()
+    node = ns6.node('hhh') << 1
+    print str(node)
+
+  if 0:
+    isn = is_node(node)             # function defined in Timba.TDL           
+    print 'is_node() ->',isn,type(node)
 
   ns.Resolve();  
   print len(ns.AllNodes()),'nodes defined';
