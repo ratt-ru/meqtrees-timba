@@ -79,6 +79,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ValueAxis =  None
         self.ComplexColorMap = None
 	self._flags_array = None
+        self._image_for_display = None
 	self._display_flags = False
         self.Qimage = None
         self.r_cmax = None
@@ -300,6 +301,7 @@ class QwtPlotImage(QwtPlotMappedItem):
           limits = [self.r_cmin,self.r_cmax]
           image_for_display = bytescale(image,limits)
 # turn image into a QImage, and return result	
+      self._image_for_display = image_for_display
       return toQImage(image_for_display).mirror(0, 1)
 
     def toGrayScale(self, Qimage):
@@ -342,7 +344,6 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setImage(self, image):
 # convert to QImage
       self.Qimage = self.to_QImage(image)
-
 # set color scale a la HippoDraw Scale
       if self.display_type == "hippo":
         self.toHippo(self.Qimage)
@@ -352,23 +353,29 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.toGrayScale(self.Qimage)
 
 # compute flagged image if required
-      self.flags_Qimage = None
       if not self._flags_array is None:
         self.setFlagQimage()
 
     def setFlagQimage(self):
-      self.flags_Qimage =  self.Qimage.copy()
-      n_rows = self._flags_array.shape[0]
-      n_cols = self._flags_array.shape[1]
-      for j in range(0, n_rows ) :
-        for i in range(0, n_cols) :
-# display is mirrored in vertical direction	    
-          mirror_col = n_cols-1-i
-	  if self._flags_array[j][i] > 0:
- 	    self.flags_Qimage.setPixel(j,mirror_col,0)
-            if self.complex:
- 	      self.flags_Qimage.setPixel(j+n_rows,mirror_col,0)
+      (nx,ny) = self._image_for_display.shape
+      image_for_display = array(shape=(nx,ny),type=self._image_for_display.type())
+      if self.complex:
+        image_for_display[:nx/2,:] = where(self._flags_array,0,self._image_for_display[:nx/2,:])
+        image_for_display[nx/2:,:] = where(self._flags_array,0,self._image_for_display[nx/2:,:])
+      else:
+        image_for_display = where(self._flags_array,0,self._image_for_display)
 # display flag image pixels in black 
+      self.flags_Qimage = toQImage(image_for_display).mirror(0, 1)
+
+# set color scale a la HippoDraw Scale
+      if self.display_type == "hippo":
+        self.toHippo(self.flags_Qimage)
+
+# set color scale to Grayscale
+      if self.display_type == "grayscale":
+        self.toGrayScale(self.flags_Qimage)
+
+# set zero to black
       self.flags_Qimage.setColor(0, qRgb(0, 0, 0))
 
     def setBrentjensImage(self, image):
