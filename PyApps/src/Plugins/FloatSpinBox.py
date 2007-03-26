@@ -43,7 +43,7 @@ def QMAX( x, y ):
   return x
 
 class FloatSpinBox(QSpinBox):
-
+  """ constructs a spinbox that displays floating point values """
   def __init__( self, minValue=0.0,maxValue=1.0,decimals=1,step=0.1,parent=None,name=None ):
     QSpinBox.__init__(self,int(minValue*pow(10,decimals)), int(maxValue*pow(10,decimals)), \
 	      int(round(step * pow(10,decimals))), parent, name )
@@ -52,7 +52,6 @@ class FloatSpinBox(QSpinBox):
     self.dVal = QDoubleValidator(float(minValue), float(maxValue), self.dec, self, "dVal")
     self.setValidator(self.dVal);	
     self.setValue( 0 );
-#   self.setWrapping(True)
 
 
   def mapValueToText (self, value):
@@ -73,9 +72,11 @@ class FloatSpinBox(QSpinBox):
     return float(QRangeControl.maxValue(self))/pow(10,self.dec)
 
   def setFloatValue(self, value):
+    """ set currently displayed value """
     QRangeControl.setValue(self,int(value* pow(10,self.dec)))
 
   def setDecimals(self,decimals):
+    """ set number of elements displayed after the decimal point """
     minvalue = self.minValue()
     maxvalue = self.maxValue()
     self.dec = decimals
@@ -84,19 +85,23 @@ class FloatSpinBox(QSpinBox):
     self.setRange(minvalue,maxvalue)
 
   def setLineStep(self, step):
+    """ set increment in values displayed in spinbox """
     self.step = step
     QSpinBox.setLineStep(self, int(round(step * pow(10,self.dec))))
 
   def setRange(self, minValue, maxValue):
+    """ set range between minimum and maximum values displayed """
     QRangeControl.setRange(self, int( minValue *  pow( 10, self.dec ) ),  \
 			   int( maxValue *  pow( 10, self.dec ) ) )
     self.dVal.setRange( float(minValue), float(maxValue), 2 )
 
   def valueChange(self):
+    """ emit a PYSIGNAL when spinbox changes value """
     QSpinBox.valueChange(self)
     self.emit(PYSIGNAL("valueChanged"),(self.value(),))
 
   def sizeHint(self):
+    """ sizehint, presumably incorporated into widget properly! """
     fm = QFontMetrics(self.fontMetrics())
     h = int(fm.height())
     if ( h < 12 ):      # ensure enough space for the button pixmaps
@@ -136,6 +141,7 @@ def main(args):
     demo.setDecimals(2)
     demo. setLineStep(0.05)
     demo. setRange(1.0,7.0)
+    demo.setWrapping(True)
     app.setMainWidget(demo)
     app.exec_loop()
 
