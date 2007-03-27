@@ -427,7 +427,6 @@ class ChartPlot(QWidget):
     """ Sets all the desired parameters for the chart plot """
     if first_time:
       self._chart_data = {}
-      self._good_data = {}
       self._flag_data = {}
       self._start_offset_test = {}
       self._updated_data = {}
@@ -455,13 +454,11 @@ class ChartPlot(QWidget):
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
-          self._good_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
     else:
       self._updated_data = {}
       self._pause = {}
-      self._good_data = {}
       self._mrk = {}
       self._position = {}
       self._main_pen = {}
@@ -477,7 +474,6 @@ class ChartPlot(QWidget):
     	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
     	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
           self._chart_data[i] = {}
-          self._good_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
 
@@ -1096,8 +1092,6 @@ class ChartPlot(QWidget):
           if chart.shape[0] < 1:
             self._updated_data[channel] = False
           if self._updated_data[channel]:
-            if not self._good_data[channel].has_key(self._data_index):
-              self._good_data[channel][self._data_index] = []
             test_chart = compress(flags==0,chart)
             if test_chart.shape[0] > 0:
               if chart.type() == Complex32 or chart.type() == Complex64:
