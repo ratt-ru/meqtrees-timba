@@ -102,14 +102,16 @@ class SkyComponentGroup22 (object):
         for key in self.order():
             sc = self._skycomp[key]
             s1 = str(sc['type'])
-            s1 += '   flux='+str(sc['flux'])
-            s1 += '   l='+str(sc['l'])+'   m='+str(sc['m'])
-            s1 += '   lm='+str(sc['lm'])
-            s1 += '   corruption = '+str(sc['corruption'])
+            s1 += '  flux='+str(sc['flux'])
+            s1 += '  l='+str(sc['l'])+'  m='+str(sc['m'])
+            s1 += '  lm='+str(sc['lm'])
+            if sc['polarized']: s1 += '  polarized'
+            if sc['spectral']: s1 += '  spectral'
             print '  - '+key+': '+s1
         for key in self.order():
             sc = self._skycomp[key]
-            s1 = 'plot='+str(sc['plot'])
+            s1 = 'corruption = '+str(sc['corruption'])
+            s1 += '  plot='+str(sc['plot'])
             print '  - '+key+': '+s1
         for key in self.order():
             sc = self._skycomp[key]
@@ -168,37 +170,6 @@ class SkyComponentGroup22 (object):
         raise ValueError, 'key ('+str(key)+') not recognised in: '+str(self._skycomp.keys())
         return False                       
 
-    def skycomp(self, key=None, nominal=False):
-        """Return the specified (key) SkyComponent"""
-        key = self.key(key)
-        if nominal:
-            return self._skycomp[key]['nominal']
-        return self._skycomp[key]['skycomp']
-
-
-    def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0,
-             type=None, color='magenta', style='circle'):
-        """Add a SkyComponent object to the group"""
-        plot = dict(color=color, style=style, size=10, pen=2)
-        self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp,
-                                   lm=None, lmcx=None, plot=plot,
-                                   type=type, corruption=None,
-                                   l=l, m=m, flux=flux)
-        # Update self._order (descending order of flux):
-        inserted = False
-        for k,key in enumerate(self.order()):
-            sc = self._skycomp[key]
-            if flux>sc['flux']:
-                self._order.insert(k,name)
-                inserted = True
-                break
-        if not inserted:
-            self._order.append(name)
-        return self.len()
-
-
-
-
     #--------------------------------------------------------------------------
 
     def array (self, array=None):
@@ -233,6 +204,84 @@ class SkyComponentGroup22 (object):
 
 
     #--------------------------------------------------------------------------
+    # Definition of sky-components:
+    #--------------------------------------------------------------------------
+
+    def skycomp(self, key=None, nominal=False):
+        """Return the specified (key) SkyComponent"""
+        key = self.key(key)
+        if nominal:
+            return self._skycomp[key]['nominal']
+        return self._skycomp[key]['skycomp']
+
+
+    def add (self, skycomp, name=None, l=0.0, m=0.0, flux=1.0,
+             polarized=True, spectral=False, skycomptype=None):
+        """Add a SkyComponent object to the group"""
+        plot = dict(color='black', style='triangle', size=10, pen=2)
+        if skycomptype=='Meow.PointSource':
+            plot['color'] = 'black'
+            plot['style'] = 'cross'
+            if polarized: plot['style'] = 'xcross'
+        elif skycomptype=='Meow.GaussianSource':
+            plot['color'] = 'black'
+            plot['style'] = 'circle'
+            if polarized: plot['style'] = 'ellipse'
+        elif skycomptype=='Grunt.PointSource22':
+            plot['color'] = 'blue'
+            plot['style'] = 'cross'
+            if polarized: plot['style'] = 'xcross'
+        else:                                      # type not recognized...
+            plot['color'] = 'yellow'
+        self._skycomp[name] = dict(skycomp=skycomp, nominal=skycomp,
+                                   lm=None, lmcx=None, plot=plot,
+                                   type=skycomptype,
+                                   polarized=polarized,
+                                   spectral=spectral,
+                                   corruption=None,
+                                   l=l, m=m, flux=flux)
+
+        # Update self._order (descending order of flux):
+        inserted = False
+        fluxmax = flux
+        for k,key in enumerate(self.order()):
+            sc = self._skycomp[key]
+            fluxmax = max(fluxmax, sc['flux'])
+            if flux>sc['flux']:
+                self._order.insert(k,name)
+                inserted = True
+                break
+        if not inserted:
+            self._order.append(name)
+
+        # Adjust the plot-sizes according to flux:
+        for key in self.order():
+            sc = self._skycomp[key]
+            sc['plot']['size'] = max(1,int(30*sc['flux']/fluxmax))
+
+        # Finished:
+        return self.len()
+
+
+# symbol                                 one of
+#                         'circle' 'none' 'rectangle' 'square' 'ellipse'
+#                         'none 'xcross' 'cross' 'triangle' 'diamond'
+#
+# color                                  one of
+#                     'blue' 'black' 'cyan' 'gray' 'green' 'none'
+#                     'magenta' 'red' 'white' 'yellow' 'darkBlue' 'darkCyan'
+#                     'darkGray' 'darkGreen' 'darkMagenta' 'darkRed' 'darkYellow'
+#                     'lightGray'
+
+# System:
+#  Source-shape by symbol and color (black/blue)
+#  polarization by roration 
+#  flux by size
+#  corruption by color (red, magenta)
+
+
+
+    #--------------------------------------------------------------------------
     # Functions for adding SkyComponents to the list:
     #--------------------------------------------------------------------------
 
@@ -249,8 +298,7 @@ class SkyComponentGroup22 (object):
                                    spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, flux=flux,
-                        type='Meow.PointSource',
-                        color='red', style='xcross')
+                        skycomptype='Meow.PointSource')
 
 
     def add_GaussianSource (self, name=None, l=0.0, m=0.0, flux=1.0):
@@ -265,8 +313,7 @@ class SkyComponentGroup22 (object):
                                       spi=None, freq0=None, RM=None)
         self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, flux=flux,
-                        type='Meow.GaussianSource',
-                        color='cyan', style='ellipse')
+                        skycomptype='Meow.GaussianSource')
 
 
     def add_PointSource22 (self, name=None, l=0.0, m=0.0, flux=1.0):
@@ -277,20 +324,8 @@ class SkyComponentGroup22 (object):
                                               direction=direction)
         self.get_parmgroups(skycomp)
         return self.add(skycomp, name=name, l=l, m=m, flux=flux,
-                        type='Grunt.PointSource22',
-                        color='blue', style='rectangle')
-
-
-# symbol                                 one of
-#                         'circle' 'none' 'rectangle' 'square' 'ellipse'
-#                         'none 'xcross' 'cross' 'triangle' 'diamond'
-#
-# color                                  one of
-#                     'blue' 'black' 'cyan' 'gray' 'green' 'none'
-#                     'magenta' 'red' 'white' 'yellow' 'darkBlue' 'darkCyan'
-#                     'darkGray' 'darkGreen' 'darkMagenta' 'darkRed' 'darkYellow'
-#                     'lightGray'
-
+                        skycomptype='Grunt.PointSource22')
+                        
 
     #--------------------------------------------------------------------------
     # Update its ParmGroupManager from the given skycomp:
@@ -342,6 +377,7 @@ class SkyComponentGroup22 (object):
                 sc = Meow.CorruptComponent(self._ns, sc, label,
                                            station_jones=self._ns[name](key))
                 self._skycomp[key]['skycomp'] = sc
+                self._skycomp[key]['plot']['color'] = 'magenta'
                 self._skycomp[key]['corruption'] = jones.label()
 
         else:
@@ -352,6 +388,7 @@ class SkyComponentGroup22 (object):
             sc = Meow.CorruptComponent(self._ns, sc, label,
                                        station_jones=jones.matrixet())
             self._skycomp[key]['skycomp'] = sc
+            self._skycomp[key]['plot']['color'] = 'red'
             self._skycomp[key]['corruption'] = jones.label()
 
         self.ParmGroupManager(merge=jones)
@@ -699,10 +736,6 @@ def _define_forest(ns):
     scg.display()
     # scg.skycomp(0).display()
 
-    if True:
-        dcoll = scg.show_config()
-        cc.append(dcoll)
-
     if False:
         for key in scg.order():
             jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS,
@@ -720,6 +753,9 @@ def _define_forest(ns):
         scg.display('corruption')
         scg._pgm.display()
 
+    if True:
+        dcoll = scg.show_config()
+        cc.append(dcoll)
 
     if True:
         vis = scg.Visset22()
@@ -812,7 +848,7 @@ if __name__ == '__main__':
             scg._pgm.display()
 
 
-        if 1:
+        if 0:
             # for key in scg.order()[0:2]:         # the first 2 only (testing)
             for key in scg.order():
                 jones = Joneset22.GJones(ns, quals=key,

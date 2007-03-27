@@ -3,6 +3,7 @@
 # History:
 # - 05jan2007: creation (from JEN_SolverChain.py)
 # - 14mar2007: added MSSE support (sigma) to .corrupt()
+# - 26mar2007: adapted for QualScope
 
 # Description:
 
@@ -68,7 +69,7 @@ class Visset22 (Matrixet22.Matrixet22):
         ss += '  pols='+str(self._pols)
         ss += '  ns='+str(len(self.stations()))
         ss += '  nifr='+str(len(self.ifrs()))
-        ss += '  quals='+str(self.quals())
+        # ss += '  quals='+str(self.quals())
         return ss
 
 
@@ -119,10 +120,10 @@ class Visset22 (Matrixet22.Matrixet22):
         name = 'spigot'
         for p,q in self.ifrs():
             self._ns[name](p,q) << Meq.Spigot(station_1_index=p-1,
-                                               station_2_index=q-1,
-                                               # corr_index=self._MS_corr_index,
-                                               # flag_bit=flag_bit,
-                                               input_column=input_col)
+                                              station_2_index=q-1,
+                                              # corr_index=self._MS_corr_index,
+                                              # flag_bit=flag_bit,
+                                              input_column=input_col)
         self._matrixet = self._ns[name]
 
         if False:
@@ -218,12 +219,11 @@ class Visset22 (Matrixet22.Matrixet22):
         """Fill the Visset22 with 2x2 identical matrices. If coh==None, these are
         complex unit matrices. Otherwise, assume that coh is a 2x2 matrix, and use that.
         If stddev>0, add gaussian noise with this stddev."""
-        quals = self.quals()
         if coh==None:
-            coh = self._ns.unit_matrix(*quals) << Meq.Matrix22(complex(1.0),complex(0.0),
-                                                               complex(0.0),complex(1.0))
+            coh = self._ns.unit_matrix << Meq.Matrix22(complex(1.0),complex(0.0),
+                                                       complex(0.0),complex(1.0))
                 
-        self._matrixet = self._ns[name](*quals) 
+        self._matrixet = self._ns[name]
         for ifr in self.ifrs():
             self._matrixet(*ifr) << Meq.Identity(coh)
         if stddev>0:
@@ -236,20 +236,20 @@ class Visset22 (Matrixet22.Matrixet22):
     def addGaussianNoise (self, stddev=0.1, qual=None, visu=True):
         """Add gaussian noise with given stddev to the internal cohset"""
         if stddev>0.0:
-            quals = self.quals(append=qual)
+            ns = self._ns._derive(append=qual)
+            ns = self._ns._derive(append=dict(stddev=stddev))
             name = 'addGaussianNoise22'
-            kwqual = dict(stddev=stddev)
             matrels = self.matrel_keys()
             for ifr in self.ifrs():
                 mm = range(4)
                 for i in range(4):
                     m = matrels[i]
-                    rnoise = self._ns.rnoise(*quals)(**kwqual)(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
-                    inoise = self._ns.inoise(*quals)(**kwqual)(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
-                    mm[i] = self._ns.noise(*quals)(**kwqual)(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
-                noise = self._ns.noise(*quals)(**kwqual)(*ifr) << Meq.Matrix22(*mm)
-                self._ns[name](*quals)(**kwqual)(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
-            self._matrixet = self._ns[name](*quals)(**kwqual)           
+                    rnoise = ns.rnoise(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
+                    inoise = ns.inoise(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
+                    mm[i] = ns.noise(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
+                noise = ns.noise(*ifr) << Meq.Matrix22(*mm)
+                ns[name](*ifr) << Meq.Add(self._matrixet(*ifr),noise)
+            self._matrixet = ns[name]           
             if visu: return self.visualize(name, visu=visu)
         return None
 
@@ -258,13 +258,13 @@ class Visset22 (Matrixet22.Matrixet22):
     def shift_phase_centre (self, lm=None, qual=None, visu=False):
         """Shift the phase-centre of the uv-data to the specified position (l,m).
         Remember the new position, so that cumulative shifts are possible."""
-        quals = self.quals(append=qual)
+        ns = self._ns._derive(append=qual)
         name = 'shift22'
         for ifr in self.ifrs():
             j1 = jmat(ifr[0])
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
-            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
-        self._matrixet = self._ns[name](*quals)              
+            ns[name](*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = ns[name]              
         if visu: return self.visualize(name, visu=visu)
         return None
 
@@ -274,17 +274,15 @@ class Visset22 (Matrixet22.Matrixet22):
     def corrupt (self, joneset=None, qual=None, visu=False):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
         Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""
-        quals = self.quals(append=qual)
-        qq = joneset.quals()
-        for q in qq:
-            if not q in quals: quals.append(q)
+        ns = self._ns._derive(append=qual)
+        ns = self._ns._merge(append=joneset._ns)
         name = 'corrupt22'
         jmat = joneset.matrixet() 
         for ifr in self.ifrs():
             j1 = jmat(ifr[0])
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
-            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
-        self._matrixet = self._ns[name](*quals)              
+            ns[name](*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = ns[name]              
         # Transfer any parmgroups (used by the solver downstream)
         self.ParmGroupManager(merge=joneset)
         if visu: return self.visualize(name, visu=visu)
@@ -297,16 +295,13 @@ class Visset22 (Matrixet22.Matrixet22):
         If sigma is specified (number or node), add a unit matrix multiplied by the
         estimated noise (sigma**2) before inversion (MMSE)."""
 
-        # Merge the node qualifiers of joneset with the local ones
-        quals = self.quals(append=qual)
-        qq = joneset.quals()
-        for q in qq:
-            if not q in quals: quals.append(q)
+        ns = self._ns._derive(append=qual)
+        ns = self._ns._merge(joneset._ns)
 
         # Robust correction (MSSE):
         if sigma:
-            sigma2 = self._ns.sigma2_MSSE(*quals) << (sigma*sigma)
-            MSSE = self._ns << Meq.Matrix22(sigma2,0.0,0.0,sigma2)
+            sigma2 = ns.sigma2_MSSE << (sigma*sigma)
+            MSSE = ns.MSSE << Meq.Matrix22(sigma2,0.0,0.0,sigma2)
             
         name = 'correct22'
         jmat = joneset.matrixet()
@@ -318,8 +313,8 @@ class Visset22 (Matrixet22.Matrixet22):
                 j1i = jmat(ifr[0])('inv') ** Meq.MatrixInvert22(jmat(ifr[0]))
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
-            self._ns[name](*quals)(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
-        self._matrixet = self._ns[name](*quals)              
+            ns[name](*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
+        self._matrixet = ns[name]              
 
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
@@ -330,6 +325,32 @@ class Visset22 (Matrixet22.Matrixet22):
         if visu: return self.visualize(name, visu=visu)
         return None
 
+
+    #--------------------------------------------------------------------------
+
+    def insert_accumulist_reqseq (self, key=None, qual=None, visu=False, name='accumulist'):
+        """Insert a series of reqseq node(s) with the children accumulated
+        in self._accumulist (see Matrixet22). The reqseqs will get the current
+        matrix nodes as their last child, to which their result is transmitted."""
+
+        # If visu==True, append the visualisation dcoll to the accumulist,
+        # so that it will get the last request before the main-stream is addressed.
+        if visu: self.visualize(name, visu=visu)
+        
+        cc = self.accumulist(key=key, clear=False)
+        n = len(cc)
+        print '---',key,n,cc
+        if n>0:
+            ns = self._ns._derive(append=qual)
+            cc.append('placeholder')
+            name = 'reqseq'
+            if isinstance(key, str): name += '_'+str(key)
+            for ifr in self.ifrs():
+                cc[n] = self._matrixet(*ifr)         # fill in the placeholder
+                ns[name](*ifr) << Meq.ReqSeq(children=cc, result_index=n,
+                                             cache_num_active_parents=1)
+            self._matrixet = ns[name]
+        return True
 
 
 #===============================================================
@@ -355,7 +376,8 @@ def _define_forest(ns):
         source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
         allsky.add(source)
         cohset = allsky.visibilities(array, observation)
-    vis = Visset22(ns, label='test', quals='yyc', array=array, cohset=cohset)
+    vis = Visset22(ns, label='test', quals='yyc',
+                   array=array, cohset=cohset)
     vis.display('initial')
 
     if True:
@@ -428,12 +450,14 @@ if __name__ == '__main__':
             source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
             allsky.add(source)
             cohset = allsky.visibilities(array, observation)
-        vis = Visset22(ns, label='test', array=array, cohset=cohset)
+        vis = Visset22(ns, label='test', quals='yut',
+                       simulate=True,
+                       array=array, cohset=cohset)
         if not cohset:
             vis.fill_with_identical_matrices()
         vis.display()
 
-    if 1:
+    if 0:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
         # vis.corrupt(G, visu=True)
         # vis.addGaussianNoise(stddev=0.05, visu=True)

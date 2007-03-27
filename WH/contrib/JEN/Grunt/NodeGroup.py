@@ -2,6 +2,7 @@
 
 # History:
 # - 02jan2007: creation (from ParmGroup)
+# - 26mar2007: adapted to QualScope.py
 
 # Description:
 
@@ -18,7 +19,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grunt import Qualifiers
+# from Timba.Contrib.JEN.Grunt import Qualifiers
+import Meow
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -32,17 +34,18 @@ from copy import deepcopy
 class NodeGroup (object):
     """Class that represents a group of (somehow related) nodes"""
 
-    def __init__(self, ns, label='<ng>', nodelist=[],
-                 quals=[], descr='<descr>',tags=[], 
+    def __init__(self, ns, label='<ng>', quals=[], 
+                 descr='<descr>', tags=[], 
+                 nodelist=[],
                  color='green', style='diamond', size=8, pen=2,
                  rider=None):
 
-        self._ns = ns                         # node-scope (required)
         self._label = str(label)
         self._descr = descr                   # brief description 
 
         # Node-name qualifiers:
-        self._quals = Qualifiers.Qualifiers(quals, prepend=label)
+        self._ns = Meow.QualScope(ns, quals=quals)
+        self._ns = self._ns._derive(append=self._label)
 
         self._nodelist = []                   # initialise the internal nodelist
         if len(nodelist)>0:
@@ -86,7 +89,6 @@ class NodeGroup (object):
         ss = '<NodeGroup>'
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
-        # ss += ' quals='+str(self._quals.get())
         ss += ' tags='+str(self._tags)
         if True and len(self._rider)>0:
             for key in self._rider.keys():
@@ -141,11 +143,6 @@ class NodeGroup (object):
     def label(self):
         """Return the label (name) of this NodeGroup""" 
         return self._label
-
-    def quals(self, append=None, prepend=None, exclude=None, merge=None):
-        """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend,
-                               exclude=exclude, merge=merge)
 
     def descr(self):
         """Return the group description""" 
@@ -203,20 +200,20 @@ class NodeGroup (object):
         """Compare its nodes with the corresponding nodes of another NodeGroup object,
         for instance simulated and the actual values. It is assumed that the two sets
         of nodes have the same order."""
-        quals = self.quals()
+        ns = self._ns._merge(other._ns)
         name = 'absdiff'
-        if not self._ns[name](*quals).initialized():
+        if not ns[name].initialized():
             nn1 = self.nodelist()
             nn2 = other.nodelist()
             diff = []
             absdiff = []
             for i in range(len(nn1)):
-                node = self._ns << Meq.Subtract(nn1[i],nn2[i])
+                node = ns.compare_subtract(i) << Meq.Subtract(nn1[i],nn2[i])
                 diff.append(node)
-                node = self._ns << Meq.Abs(node)
+                node = ns.compare_abs(i) << Meq.Abs(node)
                 absdiff.append(node)
-            self._ns[name](*quals) << Meq.Add(children=absdiff)
-        return self._ns[name](*quals)
+            ns[name] << Meq.Add(children=absdiff)
+        return ns[name]
 
     #----------------------------------------------------------------------
 
@@ -243,13 +240,13 @@ class NodeGroup (object):
 
     #----------------------------------------------------------------------
 
-    def bundle(self, oper='Composer'):
+    def bundle(self, oper='Composer', qual=None):
         """Bundle its nodes, using an operation like Compose, Add, Multiply etc"""
-        quals = self.quals()
-        if not self._ns[oper](*quals).initialized():
+        ns = self._ns._derive(append=qual)
+        if not ns[oper].initialized():
             cc = self.nodelist()
-            self._ns[oper](*quals) << getattr(Meq,oper)(children=cc)
-        return self._ns[oper](*quals)
+            ns[oper] << getattr(Meq,oper)(children=cc)
+        return ns[oper]
 
 
     #-----------------------------------------------------------------------
@@ -257,7 +254,7 @@ class NodeGroup (object):
     def visualize (self, bookpage='NodeGroup', folder=None):
         """Visualise all the NodeGroup entries in a single real-vs-imag plot."""
         if not self._dcoll:
-            dcoll_quals = self._quals.concat()
+            dcoll_quals = self._ns._qualstring()
             cc = self.nodelist() 
             rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
                                            scope=dcoll_quals,
@@ -348,11 +345,13 @@ class NodeGroup (object):
 
     #======================================================================
 
-    def test(self, n=4, offset=0):
+    def test(self, n=4, offset=0, qual=None):
         """Helper function to put in some standard entries for testing"""
+        ns = self._ns._derive(append=qual)
+        name = 'test'
+        # name = self.label()
         for i in range(n):
-            # self.append_entry(self._ns << Meq.Constant(i+offset))
-            self.append_entry(self._ns << Meq.Constant(i+offset, dims=[1]))
+            self.append_entry(ns[name](i) << Meq.Constant(i+offset, dims=[1]))
         return True
 
 
@@ -377,11 +376,16 @@ class NodeGroup (object):
 class NodeGog (object):
     """Class that represents a group of NodeGroup objects"""
 
-    def __init__(self, ns, label='<gog>', group=[],
+    def __init__(self, ns, label='<gog>', quals=[],
+                 group=[],
                  descr=None, rider=None):
-        self._ns = ns                         # node-scope (required)
+
         self._label = label                   # label of the parameter group 
         self._descr = descr                   # brief description 
+
+        # Node-name qualifiers:
+        self._ns = Meow.QualScope(ns, quals=quals)
+        self._ns = self._ns._derive(append=self._label)
 
         self._group = []                      # initialise the internal group
         if len(group)>0:                      # group supplied externally
@@ -617,11 +621,13 @@ class NodeGog (object):
         """Helper function to put in some standard entries for testing"""
 
         ng = NodeGroup(self._ns, 'first', color='red')
-        ng.test(4)
+        ng.test(5, offset=0.1)
+        ng.display()
         self.append_entry(ng)
 
         ng = NodeGroup(self._ns, 'second', color='blue')
         ng.test(7, offset=0.2)
+        ng.display()
         self.append_entry(ng)
         
         return True
@@ -696,7 +702,7 @@ if __name__ == '__main__':
         ng1 = NodeGroup(ns, 'ng1', rider=dict(matrel='m22'))
         ng1.test()
         ng1.display()
-        print ng1.tabulate()
+        # print ng1.tabulate()
         if 0:
             dcoll = ng1.visualize()
             ng1.display_subtree (dcoll, txt='dcoll')
@@ -729,7 +735,7 @@ if __name__ == '__main__':
         gog1 = NodeGog(ns, 'gog1')
         gog1.test()
         gog1.display()
-        print gog1.tabulate()
+        # print gog1.tabulate()
 
         if 0:
             gog1.visualize()

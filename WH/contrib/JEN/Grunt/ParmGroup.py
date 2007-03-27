@@ -4,6 +4,7 @@
 # - 25dec2006: creation
 # - 03jan2007: re-implemented as a specialization of class NodeGroup
 # - 03jan2007: created another specialization class SimulatedParmGroup
+# - 26mar2007: adapted to QualScope.py
 
 # Description:
 
