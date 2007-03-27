@@ -2591,14 +2591,8 @@ class QwtImageDisplay(QwtPlot):
             self.x_array = abs_array
             self.y_array = phase_array
           if not self._flags_array is None:
-            self.flags_r_values = []
-            self.flags_i_values = []
-            for j in range(num_elements):
-              if self._flags_array[j] == 0:
-                self.flags_r_values.append(self.x_array[j])
-                self.flags_i_values.append(self.y_array[j])
-            flags_x_array = array(self.flags_r_values)
-            flags_y_array = array(self.flags_i_values)
+            flags_x_array = compress(self._flags_array==0,self.x_array)
+            flags_y_array = compress(self._flags_array==0,self.y_array)
             axis_diff = abs(flags_y_array.max() - flags_y_array.min())
           else:
             axis_diff = abs(self.y_array.max() - self.y_array.min())
@@ -2631,14 +2625,9 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
-            self.flags_x_index = []
-            self.flags_r_values = []
-            self.flags_i_values = []
-            for j in range(num_elements):
-              if self._flags_array[j] != 0:
-                self.flags_x_index.append(self.x_index[j])
-                self.flags_r_values.append(self.x_array[j])
-                self.flags_i_values.append(self.y_array[j])
+            self.flags_x_index = compress(self._flags_array!=0,self.x_index)
+            self.flags_r_values = compress(self._flags_array!=0,self.x_array)
+            self.flags_i_values = compress(self._flags_array!=0,self.y_array)
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -2677,16 +2666,9 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
-            self.flags_x_index = []
-            self.flags_r_values = []
-            temp_data = []
-            for j in range(num_elements):
-              if self._flags_array[j] != 0:
-                self.flags_x_index.append(self.x_index[j])
-                self.flags_r_values.append(flattened_array[j])
-              else:
-                temp_data.append(flattened_array[j])
-            temp_data_array = array(temp_data)
+            self.flags_x_index = compress(self._flags_array!= 0, self.x_index)
+            self.flags_r_values = compress(self._flags_array!= 0, self.x_array)
+            temp_data_array = compress(self._flags_array==0, self.x_array)
             axis_diff = abs(temp_data_array.max() - temp_data_array.min())
 
             self.real_flag_vector = self.insertCurve('real_flags')
