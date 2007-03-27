@@ -36,6 +36,7 @@ except:
   from qwt import *
 from Timba.GUI.pixmaps import pixmaps
 from BufferSizeDialog import *
+from FloatSpinBox import *
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
 # tutorial code examples.
@@ -79,14 +80,14 @@ class ResultsRange(QWidget):
       self.toggle_scale_display = False
       self.menu = None
       self.maxVal = 10
-      self.minVal = 1
+      self.minVal = 0
       self.label_info = QLabel('', self)
-      self.label_info1 = QLabel('          ', self)
-      self.label_info2 = QLabel('  ', self)
-      self.label_info3 = QLabel('  ', self)
       self.string_info =  ' '
       self.offset_index = -1
-      self.spinbox = QSpinBox(self)
+      if self.horizontal:
+        self.spinbox = QSpinBox(self)
+      else:
+        self.spinbox = FloatSpinBox(parent=self,step=0.1)
       self.spinbox.setMinValue(self.minVal)
       self.spinbox.setMaxValue(self.maxVal)
       self.spinbox.setWrapping(True)
@@ -97,16 +98,18 @@ class ResultsRange(QWidget):
         self.slider.setTickInterval(self.minVal)
         self.slider.setRange(self.minVal, self.maxVal)
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
+        self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
       else:
         self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right,
                           QwtSlider.BgSlot)
         self.slider.setRange(self.minVal, self.maxVal)
         self.slider.setStep(self.minVal)
         self.connect(self.slider, SIGNAL("valueChanged(double)"), self.update_slider)
+        self.connect(self.spinbox, PYSIGNAL("valueChanged"), self.update_spinbox)
 
-      self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
 
       if self.horizontal:
+        self.label_info1 = QLabel('          ', self)
         self.layout = QHBoxLayout(self)
         spacer = QSpacerItem(22,9,QSizePolicy.Expanding,QSizePolicy.Minimum)
         self.layout.addItem(spacer)
@@ -116,10 +119,11 @@ class ResultsRange(QWidget):
         self.layout.addWidget(self.slider)
         self.setValue()
       else:
+        self.label_info2 = QLabel('  ', self)
+        self.label_info3 = QLabel('  ', self)
         self.layout1 = QHBoxLayout(self)
         self.layout1.addWidget(self.label_info2)
         self.layout = QVBoxLayout(self.layout1)
-#       self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.slider)
         self.layout.addWidget(self.label_info)
         self.layout.addWidget(self.spinbox)
@@ -134,15 +138,35 @@ class ResultsRange(QWidget):
     def setLabel(self, string_value= ''):
       """ set current displayed label """
       self.label_info.setText(string_value + self.string_info) 
+      print 'self.label_info ', self.label_info
 
     def setStringInfo(self, string_value= ''):
       """ assign a default leading string """
       self.string_info = string_value
 
+    def set_decimals(self,step):
+      if step < 0.1:
+        self.spinbox.setDecimals(2)
+      if step < 0.01:
+        self.spinbox.setDecimals(3)
+      if step < 0.001:
+        self.spinbox.setDecimals(4)
+      if step < 0.0001:
+        self.spinbox.setDecimals(5)
+      if step < 0.0001:
+        self.spinbox.setDecimals(5)
+
+
     def setMinValue(self, min_value=0):
       """ reset allowed minimum value for spinbox and slider """
       self.minVal = min_value
-      self.spinbox.setMinValue(self.minVal)
+      if self.horizontal:
+        self.spinbox.setMinValue(self.minVal)
+      else:
+        step = (self.maxval-self.minVal)/20.0
+        self.set_decimals(step)
+        self.spinbox.setLineStep(step)
+        self.spinbox.setRange(self.minVal,self.maxVal)
       self.slider.setRange(self.minVal, self.maxVal)
 
     def setMaxValue(self, max_value= 0, allow_shrink=True):
@@ -151,34 +175,59 @@ class ResultsRange(QWidget):
         if allow_shrink:
           self.maxVal = max_value
           self.slider.setRange(self.minVal, self.maxVal)
-          self.spinbox.setMaxValue(self.maxVal)
+          if self.horizontal:
+            self.spinbox.setMaxValue(self.maxVal)
+          else:
+            self.spinbox.setLineStep((self.maxVal-self.minVal)/20.0)
+            self.spinbox.setRange(self.minVal, self.maxVal)
       else:
         if max_value > self.maxVal:
           self.maxVal = max_value
           self.slider.setRange(self.minVal, self.maxVal)
-          self.spinbox.setMaxValue(self.maxVal)
-      self.spinbox.setValue(max_value)
+          if self.horizontal:
+            self.spinbox.setMaxValue(self.maxVal)
+          else:
+            step = (self.maxval-self.minVal)/20.0
+            self.set_decimals(step)
+            self.spinbox.setLineStep(step)
+            self.spinbox.setRange(self.minVal, self.maxVal)
       self.slider.setValue(max_value)
+      if self.horizontal:
+        self.spinbox.setValue(max_value)
+      else:
+        self.spinbox.setFloatValue(max_value)
 
 
 
     def setValue(self, value= 0, reset_auto=False):
       """ set current values shown in spinbox and slider """
       self.slider.setValue(value)
-      self.spinbox.setValue(value)
+      if self.horizontal:
+        self.spinbox.setValue(value)
+      else:
+        self.spinbox.setFloatValue(value)
       self.initContextmenu(reset_auto)
 
     def setRange(self, range_value, update_value = True):
       """ define range of values shown with slider """
       if range_value <= self.maxVal:
         self.slider.setRange(self.minVal, range_value)
-        self.spinbox.setMaxValue(range_value)
+        if self.horizontal:
+          self.spinbox.setMaxValue(range_value)
+        else:
+          step = (range_value-self.minVal)/20.0
+          self.set_decimals(step)
+          self.spinbox.setLineStep(step)
+          self.spinbox.setRange(self.minVal,range_value)
         if update_value:
           self.setValue(range_value)
 
     def update_slider(self, slider_value):
       """ update spinbox value as function of slider value """
-      self.spinbox.setValue(int(slider_value))
+      if self.horizontal:
+        self.spinbox.setValue(int(slider_value))
+      else:
+        self.spinbox.setFloatValue(slider_value)
 
     def update_spinbox(self, spin_value):
       """ update displayed contents of spinbox """
@@ -495,7 +544,8 @@ class ResultsRange(QWidget):
 def make():
     demo = ResultsRange(horizontal=False)
 #   demo = ResultsRange()
-    demo.setRange(5)
+    demo.setRange(0.005)
+#   demo.setRange(0.5)
     demo.show()
     demo.init3DContextmenu()
     return demo
