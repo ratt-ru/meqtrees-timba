@@ -93,7 +93,26 @@ class QualScope (object):
   # Some useful extra functions (prepended with _)
   #================================================================
 
-  def _unique (self, name, quals=[], kwquals=None):
+
+  def _qualstring(self):
+    """Return a single qualifying string, make of its qualifiers"""
+    ss = ''
+    for qual in self.quals:
+      ss += ':'+str(qual)
+    for key in self.kwquals:
+      ss += ':'+str(key)+'='+str(self.kwquals[key])
+    ss += ':'
+    return ss
+  
+  
+  #---------------------------------------------------------------------
+
+  # NB: Perhaps not very useful, since we will usually use it as an
+  #     unqualified node to make qualified nodes. Thus, the unqualified
+  #     node never gets initialised, so it can be used again, after which
+  #     its qualified nodes may still be non-unique.....
+
+  def _unique (self, name, quals=None, kwquals=None, mode='quals', level=0):
     """Return a unique (i.e. a non-initialized) nodestub.
     If the resulting nodestub with the specified name and quals/kwquals
     has already been initialized, generate a unique one."""
@@ -106,29 +125,36 @@ class QualScope (object):
     else:
       nodestub = self.__getitem__(name)(*quals)  
 
+
     # Then test whether such a node has already been initialized:
     if nodestub.initialized():
       # Recursively try slightly different names, until unique.
       uniqual = _counter (name, increment=1)
       # There are various ways to attach this unique qualifier:
-      if True:
+      if mode=='quals':
         # The preferred method?
         qq = deepcopy(quals)
-        qq.append('('+str(uniqual)+')')
-        nodestub = self._unique(name, quals=qq, kwquals=kwquals)
+        qq.insert(0,'('+str(uniqual)+')')
+        nodestub = self._unique(name, quals=qq, kwquals=kwquals,
+                                mode=mode, level=level+1)
 
-      elif False:
-        # NB: This will interfere with a name-search of the nodescope!
+      elif mode=='name':
+        # NB: This may interfere with a name-search of the nodescope!
         nodestub = self._unique(name+'('+str(uniqual)+')',
+                                mode=mode, level=level+1,
                                 quals=quals, kwquals=kwquals)
       else:
         # A bit cumbersome?:
         kwq = deepcopy(kwquals)
         if not isinstance(kwq, dict): kwq = dict()
         kwq['_unique'] = uniqual
-        nodestub = self._unique(name, quals=quals, kwquals=kwq)
-
-    print '\n** unique(',name,quals,kwquals,'):',str(nodestub)
+        nodestub = self._unique(name, quals=quals, kwquals=kwq,
+                                mode=mode, level=level+1)
+    # Finished:
+    if False:
+      prefix = level*'..'
+      print '**',prefix,'unique(',name,quals,kwquals,'):',str(nodestub),nodestub.initialized()
+      if level==0: print
     return nodestub
 
   #----------------------------------------------------------------
@@ -247,7 +273,7 @@ if __name__ == '__main__':
   ns1 = QualScope(ns, None)
   ns1 = QualScope(ns, 5)
   ns1 = QualScope(ns, ['q1','q2'], dict(g=56))
-  print '\n** ns1 =',ns1
+  print '\n** ns1 =',ns1,ns1._qualstring()
 
   node = ns1.xxx(7)
 
@@ -257,7 +283,7 @@ if __name__ == '__main__':
 
   # node = ns1 << 1
 
-  if 1:
+  if 0:
     node = ns1.xxx << 1
     node = ns1._unique('xxx') << 3
     node = ns1._unique('xxx')
