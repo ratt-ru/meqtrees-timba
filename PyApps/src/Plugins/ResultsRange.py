@@ -163,7 +163,7 @@ class ResultsRange(QWidget):
       if self.horizontal:
         self.spinbox.setMinValue(self.minVal)
       else:
-        step = (self.maxval-self.minVal)/20.0
+        step = (self.maxVal-self.minVal)/20.0
         self.set_decimals(step)
         self.spinbox.setLineStep(step)
         self.spinbox.setRange(self.minVal,self.maxVal)
@@ -187,7 +187,7 @@ class ResultsRange(QWidget):
           if self.horizontal:
             self.spinbox.setMaxValue(self.maxVal)
           else:
-            step = (self.maxval-self.minVal)/20.0
+            step = (self.maxVal-self.minVal)/20.0
             self.set_decimals(step)
             self.spinbox.setLineStep(step)
             self.spinbox.setRange(self.minVal, self.maxVal)
