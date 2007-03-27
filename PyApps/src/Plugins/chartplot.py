@@ -1144,8 +1144,8 @@ class ChartPlot(QWidget):
       if 1.1 * self._max_range > self._offset:
         self._offset = 1.1 * self._max_range
 
-        if self._offset < 0.005:
-          self._offset = 0.005
+        if self._offset < 0.001:
+          self._offset = 0.001
         self.emit(PYSIGNAL("auto_offset_value"),(self._offset,))
 
     # -----------
