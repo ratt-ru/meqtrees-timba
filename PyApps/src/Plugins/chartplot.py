@@ -1098,15 +1098,8 @@ class ChartPlot(QWidget):
           if self._updated_data[channel]:
             if not self._good_data[channel].has_key(self._data_index):
               self._good_data[channel][self._data_index] = []
-            for i in range(self._start_offset_test[channel][self._data_index],chart.shape[0]):
-              if flags[i] == 0:
-                self._good_data[channel][self._data_index].append(chart[i])
-            compare_range = True
-            if len(self._good_data[channel][self._data_index]) > 0:
-              test_chart = array(self._good_data[channel][self._data_index])
-            else:
-              compare_range = False
-            if compare_range:
+            test_chart = compress(flags==0,chart)
+            if test_chart.shape[0] > 0:
               if chart.type() == Complex32 or chart.type() == Complex64:
                 toggle_id = self.menu_table['Complex Data']
                 self._menu.setItemVisible(toggle_id, True)
@@ -1190,16 +1183,9 @@ class ChartPlot(QWidget):
             cplx_chart = arctan2(imag_chart,real_chart)
           # don't display flagged data
           if self._ignore_flagged_data:
-            x_values = []
-            y_values = []
-            for i in range(0,cplx_chart.shape[0]):
-	      if flags[i] == 0:
-                x_values.append(temp_x[i])
-                y_values.append(cplx_chart[i])
-            if len(x_values) > 0:
-              x_plot_values = array(x_values)
-              y_plot_values = array(y_values)
-            else:
+            x_plot_values = compress(flags==0,temp_x)
+            y_plot_values = compress(flags==0,cplx_chart)
+            if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
             x_plot_values = temp_x
@@ -1212,16 +1198,9 @@ class ChartPlot(QWidget):
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
           # don't display flagged data
           if self._ignore_flagged_data:
-            x_values = []
-            y_values = []
-            for i in range(0,chart.shape[0]):
-              if flags[i] == 0:
-                x_values.append(temp_x[i])
-                y_values.append(chart[i])
-            if len(x_values) > 0:
-              x_plot_values = array(x_values)
-              y_plot_values = array(y_values)
-            else:
+            x_plot_values = compress(flags==0,temp_x)
+            y_plot_values = compress(flags==0,chart)
+            if y.plot_values.shape[0] == 0:
               y_plot_values = None
           else:
             x_plot_values = temp_x
