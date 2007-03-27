@@ -138,7 +138,6 @@ class ResultsRange(QWidget):
     def setLabel(self, string_value= ''):
       """ set current displayed label """
       self.label_info.setText(string_value + self.string_info) 
-      print 'self.label_info ', self.label_info
 
     def setStringInfo(self, string_value= ''):
       """ assign a default leading string """
