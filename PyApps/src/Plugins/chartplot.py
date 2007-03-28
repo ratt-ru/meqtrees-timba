@@ -1194,7 +1194,7 @@ class ChartPlot(QWidget):
           if self._ignore_flagged_data:
             x_plot_values = compress(flags==0,temp_x)
             y_plot_values = compress(flags==0,chart)
-            if y.plot_values.shape[0] == 0:
+            if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
             x_plot_values = temp_x
