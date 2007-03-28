@@ -90,6 +90,7 @@ class NodeGroup (object):
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
         ss += ' tags='+str(self._tags)
+        ss += ' quals='+str(self._ns._qualstring())
         if True and len(self._rider)>0:
             for key in self._rider.keys():
                 ss += ' ('+key+'='+str(self._rider[key])+')'
@@ -189,7 +190,7 @@ class NodeGroup (object):
         self._plot_labels.append(str(plot_label))
         return len(self._nodelist)
 
-    def create_entry (self, qual=None):
+    def create_entry (self, quals=None):
         """Virtual method for creating a new entry. The NodeGroup does not have
         enough information to do this, but specilisations of this class do."""
         return None
@@ -217,46 +218,54 @@ class NodeGroup (object):
 
     #----------------------------------------------------------------------
 
-    def binop(self, binop=None, other=None, replace=False):
+    def binop(self, binop=None, other=None, quals=None, replace=False):
         """Do an (item-by-item) binary operation (e.g. Subtract)
         between its own nodes and those another NodeGroup object."""
+        ns = self._ns._derive(append=binop)
+        ns = ns._merge(other._ns)
+        ns = ns._derive(append=quals)
         cc = []
         for i in range(len(self._nodelist)):
-            cc.append(self._ns << getattr(Meq,binop)(self._nodelist(i),
-                                                     other._nodelist(i)))
+            cc.append(ns.NodeGroup_binop(i) << getattr(Meq,binop)(self._nodelist[i],
+                                                        other._nodelist[i]))
         if replace:
             self._nodelist = cc
         return cc
 
 
-    def unop(self, unop=None, replace=False):
+    def unop(self, unop=None, quals=None, replace=False):
         """Do an (item-by-item) unary operation (e.g. Abs) on its nodes"""
+        ns = self._ns._derive(prepend=unop)
+        ns = ns._derive(append=quals)
         cc = []
         for i in range(len(self._nodelist)):
-            cc.append(self._ns << getattr(Meq,unop)(self._nodelist[i]))
+            cc.append(ns.NodeGroup_unop(i) << getattr(Meq,unop)(self._nodelist[i]))
+
         if replace:
             self._nodelist = cc
         return cc
 
     #----------------------------------------------------------------------
 
-    def bundle(self, oper='Composer', qual=None):
+    def bundle(self, oper='Composer', quals=None):
         """Bundle its nodes, using an operation like Compose, Add, Multiply etc"""
-        ns = self._ns._derive(append=qual)
-        if not ns[oper].initialized():
+        ns = self._ns._derive(append=quals, prepend=oper)
+        node = ns.NodeGroup_bundle
+        if not node.initialized():
             cc = self.nodelist()
-            ns[oper] << getattr(Meq,oper)(children=cc)
-        return ns[oper]
+            node << getattr(Meq,oper)(children=cc)
+        return node
 
 
     #-----------------------------------------------------------------------
 
-    def visualize (self, bookpage='NodeGroup', folder=None):
+    def visualize (self, quals=None, bookpage='NodeGroup', folder=None):
         """Visualise all the NodeGroup entries in a single real-vs-imag plot."""
         if not self._dcoll:
+            ns = self._ns._derive(append=quals)
             dcoll_quals = self._ns._qualstring()
             cc = self.nodelist() 
-            rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
+            rr = MG_JEN_dataCollect.dcoll (ns, cc, 
                                            scope=dcoll_quals,
                                            tag='',
                                            color=self._plotinfo['color'],
@@ -272,18 +281,17 @@ class NodeGroup (object):
 
     #-----------------------------------------------------------------------
 
-    def collector (self, bookpage='NodeGroup', folder=None):
+    def collector (self, quals=None, bookpage='NodeGroup', folder=None):
         """Visualise all the NodeGroup entries in a single plot"""
         if not self._coll:
-            coll_quals = self._quals.concat()
+            ns = self._ns._derive(append=quals)
             cc = self.nodelist()
             if len(cc)==0: return None
+            coll = ns.NodeGroup_coll
             for i in range(len(cc)):
-                cc[i] = self._ns << Meq.Mean (cc[i], reduction_axes="freq")
-            name = 'collector'
-            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
-                                                              plot_label=self.plot_labels(),
-                                                              children=cc)
+                cc[i] = coll('freqmean')(i) << Meq.Mean (cc[i], reduction_axes="freq")
+            coll << Meq.Composer(dims=[len(cc)], plot_label=self.plot_labels(),
+                                 children=cc)
             self._coll = coll
             JEN_bookmarks.create(self._coll, self.label(),
                                  viewer='Collections Plotter',
@@ -340,14 +348,15 @@ class NodeGroup (object):
                 for child in node.children:
                     self.display_subtree (child[1], txt=txt, level=level+1,
                                           show_initrec=show_initrec, recurse=recurse-1)
+        if level==1: print
         return True
 
 
     #======================================================================
 
-    def test(self, n=4, offset=0, qual=None):
+    def test(self, n=4, offset=0, quals=None):
         """Helper function to put in some standard entries for testing"""
-        ns = self._ns._derive(append=qual)
+        ns = self._ns._derive(append=quals)
         name = 'test'
         # name = self.label()
         for i in range(n):
@@ -513,15 +522,18 @@ class NodeGog (object):
             ll.append(ng.label())
         return ll
 
-    def bundle(self, oper='Composer'):
+    #----------------------------------------------------------------------------
+
+    def bundle(self, oper='Composer', quals=None):
         """Bundle its bundled NodeGroups, using an operation like
         Compose, Add, Multiply etc"""
+        ns = self._ns._derive(append=quals)
         cc = []
         for ng in self._group:
             cc.append(ng.bundle(oper=oper))
-        return self._ns << getattr(Meq,oper)(children=cc)
+        return ns.NodeGog_bundle(oper) << getattr(Meq,oper)(children=cc)
 
-    def collector (self, bookpage='NodeGroup', folder=None):
+    def collector (self, quals=None, bookpage='NodeGog', folder=None):
         """Visualize its group of NodeGroups. Return a single node."""
         cc = []
         for ng in self._group:
@@ -529,7 +541,8 @@ class NodeGog (object):
             if not coll==None: cc.append(coll)
         if len(cc)==0: return False
         if len(cc)==1: return cc[0]
-        return self._ns << Meq.Composer(children=cc)
+        ns = self._ns._derive(append=quals)
+        return ns.NodeGog_coll << Meq.Composer(children=cc)
 
     def constraint_condeq (self):
         """Make a list of constraint-condeqs from its ParmGroups"""
@@ -586,17 +599,18 @@ class NodeGog (object):
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    def visualize (self, bookpage='NodeGog', folder=None):
+    def visualize (self, quals=None, bookpage='NodeGog', folder=None):
         """Visualise all the nodes of the various NodeGroups in
         a single (realvsimag) plot, each with its own plot-style"""
         if not self._dcoll:
-            # dcoll_quals = self._quals.concat()
+            ns = self._ns._derive(append=quals)
+            dcoll_quals = ns._qualstring()
             dcolls = []
             for ng in self._group:
                 cc = ng.nodelist()
-                rr = MG_JEN_dataCollect.dcoll (self._ns, cc, 
-                                               # scope=dcoll_quals,
-                                               tag=ng.label(),
+                rr = MG_JEN_dataCollect.dcoll (ns, cc, 
+                                               scope=dcoll_quals,
+                                               tag='',
                                                color=ng._plotinfo['color'],
                                                style=ng._plotinfo['style'],
                                                size=ng._plotinfo['size'],
@@ -605,9 +619,9 @@ class NodeGog (object):
                 dcolls.append(rr)
             # Make a combined plot of all the matrix elements:
             # NB: nodename -> dconc_scope_tag
-            rr = MG_JEN_dataCollect.dconc(self._ns, dcolls,
-                                          # scope=dcoll_quals,
-                                          tag=self.label(), bookpage=None)
+            rr = MG_JEN_dataCollect.dconc(ns, dcolls,
+                                          scope=dcoll_quals,
+                                          tag='', bookpage=None)
             # Return the dataConcat node:
             self._dcoll = rr['dcoll']
             JEN_bookmarks.create(self._dcoll, self.label(),
@@ -716,6 +730,30 @@ if __name__ == '__main__':
         gog.display()
 
     if 0:
+        ng1.unop('Cos', replace=True)
+        ng1.unop('Sin', replace=True)
+        ng1.display()
+
+    if 0:
+        node = ng1.bundle()
+        ng1.display_subtree (node, txt='bundle')
+
+    if 0:
+        node = ng1.collector()
+        ng1.display_subtree (node, txt='coll')
+
+    if 0:
+        node = ng1.visualize()
+        ng1.display_subtree (node, txt='visu')
+
+    if 0:
+        ng2 = NodeGroup(ns, 'ng2')
+        ng2.test()
+        ng2.binop('Divide', ng1, quals=['xxx','yy'], replace=True)
+        ng2.display()
+        
+
+    if 0:
         cc = []
         cc = [ns << 45]
         ng2 = NodeGroup(ns, 'ng2', nodelist=cc, color='red')
@@ -741,7 +779,7 @@ if __name__ == '__main__':
             gog1.visualize()
             gog1.display()
 
-        if 0:
+        if 1:
             node = gog1.bundle()
             gog1._dummyNodeGroup.display_subtree (node, txt='bundle')
 
