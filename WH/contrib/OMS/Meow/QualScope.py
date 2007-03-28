@@ -96,6 +96,9 @@ class QualScope (object):
 
   def _qualstring(self):
     """Return a single qualifying string, make of its qualifiers"""
+
+    # This is a temporary thing, needed to deal with some JEN legacy modules
+    
     ss = ''
     for qual in self.quals:
       ss += ':'+str(qual)
@@ -107,15 +110,16 @@ class QualScope (object):
   
   #---------------------------------------------------------------------
 
-  # NB: Perhaps not very useful, since we will usually use it as an
-  #     unqualified node to make qualified nodes. Thus, the unqualified
-  #     node never gets initialised, so it can be used again, after which
-  #     its qualified nodes may still be non-unique.....
 
   def _unique (self, name, quals=None, kwquals=None, mode='quals', level=0):
     """Return a unique (i.e. a non-initialized) nodestub.
     If the resulting nodestub with the specified name and quals/kwquals
     has already been initialized, generate a unique one."""
+
+    # NB: Perhaps not very useful, since we will usually use it as an
+    #     unqualified node to make qualified nodes. Thus, the unqualified
+    #     node never gets initialised, so it can be used again, after which
+    #     its qualified nodes may still be non-unique.....
 
     # First generate a nodestub in a robust manner:
     if quals==None: quals = []
