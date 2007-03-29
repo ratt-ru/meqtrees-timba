@@ -37,9 +37,9 @@ import math
 class ParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of (somehow related) MeqParm nodes"""
 
-    def __init__(self, ns, label='<pg>',
+    def __init__(self, ns, label='<pg>', quals=[], 
                  nodelist=[],
-                 quals=[], descr=None, tags=[], node_groups=[],
+                 descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
                  parmtable=None,
                  default=None, constraint=None, override=None, rider=None):
@@ -189,13 +189,14 @@ class ParmGroup (NodeGroup.NodeGroup):
         """Create an entry, i.e. MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
 
-        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
-        quals = self._quals.get(append=qual)
-
+        if qual:
+            node = self._ns.parm(qual)
+        else:
+            node = self._ns.parm
         
-        # Now make the MeqParm
-        node = self._ns.parm(*quals) << Meq.Parm(self._default['c00'],        ## funklet=..
-                                                 **self._initrec)
+        # Now initialize the node with a MeqParm
+        node << Meq.Parm(self._default['c00'],        ## funklet=..
+                         **self._initrec)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node, plot_label=qual)
@@ -263,10 +264,10 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def constraint_condeq (self, qual=None):
+    def constraint_condeq (self, quals=None):
         """Make a constraint condeq, if specified"""
         if not isinstance(self._constraint, dict): return None
-        quals = self._quals.get(append=qual)
+        quals = self._quals.get(append=quals)
         ct = self._constraint
         nn = self.nodelist()
         cc = []
@@ -562,13 +563,13 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def create_entry (self, qual=None):
+    def create_entry (self, quals=None):
         """Create an entry, i.e. a simulation subtree, that simulates
         a MeqParm node that varies with time and/or frequency, and append
         it to the nodelist"""
 
         # If in a qualifier (qual) is specified, append it to the temporary quals list: 
-        quals = self._quals.get(append=qual)
+        quals = self._quals.get(append=quals)
 
         pp = self._simul                                    # Convenience
             
@@ -579,7 +580,6 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # The default value is the one that would be used for a regular
         # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
         default_value = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
-
 
 
         # Calculate the time variation:
