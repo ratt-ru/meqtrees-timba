@@ -24,7 +24,8 @@
 #include "MeqVocabulary.h"
 #include <DMI/DynamicTypeManager.h>
 #include <DMI/List.h>
-    
+#include <DMI/Timestamp.h>
+
 // pull in registry
 static int dum = aidRegistry_Meq();
 
@@ -41,6 +42,9 @@ const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
 const HIID FProfilingEnabled = AidProfiling|AidEnabled;
 const HIID FCwd = AidCwd;
+const HIID FLogFileName = AidLog|AidFile|AidName;
+const HIID FLogAppend = AidLog|AidAppend;
+
 
 //##ModelId=3F60697A00ED
 Forest::Forest ()
@@ -64,8 +68,11 @@ Forest::Forest ()
   stop_flag_ = false;
   // default cache policy
   cache_policy_ = Node::CACHE_SMART;
+  log_policy_ = Node::LOG_NOTHING;
+  log_append_ = false;
+  log_filename_ = "meqlog.mql";
   profiling_enabled_ = true;
-  
+
   // init the state record
   initDefaultState();
 }
@@ -76,6 +83,7 @@ void Forest::clear ()
   nodes.resize(1);
   name_map.clear();
   num_valid_nodes = 0;
+  logger_.close();
   Axis::resetDefaultMap();
 }
 
@@ -96,7 +104,7 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
     if( !nodename.empty() && name_map.find(nodename) != name_map.end() )
       Throw("node '"+nodename+"' already exists");
     // attempt to create node
-    FailWhen(classname.empty(),"missing or invalid 'class' field in init record"); 
+    FailWhen(classname.empty(),"missing or invalid 'class' field in init record");
     DMI::BObj * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,classname+" is not a known node class");
     pnode = dynamic_cast<Meq::Node*>(pbp);
@@ -122,11 +130,11 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   }
   catch( std::exception &exc )
   {
-    ThrowMore(exc,"failed to init node '"+nodename +"' of class "+classname); 
+    ThrowMore(exc,"failed to init node '"+nodename +"' of class "+classname);
   }
   catch(...)
   {
-    Throw("failed to init node '"+nodename +"' of class "+classname); 
+    Throw("failed to init node '"+nodename +"' of class "+classname);
   }
   // resize repository as needed, and put node into it
   if( node_index >= int(nodes.capacity()) )
@@ -178,7 +186,7 @@ Node & Forest::get (int node_index)
 //##ModelId=3F5F5B9D016A
 bool Forest::valid (int node_index) const
 {
-  return node_index>0 && node_index<int(nodes.size()) 
+  return node_index>0 && node_index<int(nodes.size())
          && nodes[node_index].valid();
 }
 
@@ -311,20 +319,20 @@ void Forest::initDefaultState ()
 }
 
 DMI::Record::Ref Forest::state () const
-{ 
+{
   Thread::Mutex::Lock lock(forestMutex());
   // update axis map
   staterec_()[FAxisMap] = Axis::getAxisRecords();
   staterec_()[FAxisList] = Axis::getAxisIds();
-  return staterec_.copy(); 
+  return staterec_.copy();
 }
-    
+
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   // always ignore cwd field
 //  if( rec->hasField(FCwd) )
 //    rec().removeField(FCwd);
-  
+
   // axis map may be specified as list of ids or list of records
   if( rec->hasField(FAxisMap) )
   {
@@ -337,6 +345,9 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
     rec[FAxisMap] = Axis::getAxisRecords();
   }
   rec[FCachePolicy].get(cache_policy_);
+  rec[FLogPolicy].get(log_policy_);
+  rec[FLogFileName].get(log_filename_);
+  rec[FLogAppend].get(log_append_);
   rec[FProfilingEnabled].get(profiling_enabled_);
   rec[FBreakpoint].get(breakpoints);
   rec[FBreakpointSingleShot].get(breakpoints_ss);
@@ -351,7 +362,7 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
 //     for( ; iter != rec.end(); iter++ )
 //       map[iter.id()] = iter.ref().as<DMI::Container>()[HIID()].as<int>();
 //     // check that all known symdeps are present
-//     for( SymdepMap::const_iterator iter = known_symdeps.begin(); 
+//     for( SymdepMap::const_iterator iter = known_symdeps.begin();
 //          iter != known_symdeps.end(); iter++ )
 //     {
 //       FailWhen(map.find(iter->first) == map.end(),FSymDeps.toString()+" does not "
@@ -359,7 +370,7 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
 //     }
 //     // copy
 //     symdep_map = map;
-//     for( SymdepMap::iterator iter = known_symdeps.begin(); 
+//     for( SymdepMap::iterator iter = known_symdeps.begin();
 //          iter != known_symdeps.end(); iter++ )
 //       iter->second = map[iter->first];
 //     // reset state fields
@@ -393,13 +404,13 @@ void Forest::setState (DMI::Record::Ref &rec,bool complete)
   // success, merge or overwrite current state
   if( complete )
     staterec_ = rec;
-  else  
+  else
     wstate().merge(rec,true);
 }
 
 void Forest::raiseStopFlag ()
 {
-  stop_flag_ = true; 
+  stop_flag_ = true;
 }
 
 // This clears the stopped_at_breakpoint flag and signals on the
@@ -452,6 +463,34 @@ void Forest::processBreakpoint (Node &node,int bpmask,bool global)
   waitOnStopFlag();
 }
 
+void Forest::flushLog ()
+{
+  Thread::Mutex::Lock lock(log_mutex_);
+  if( logger_.isOpen() )
+    logger_.flush();
+}
 
+void Forest::closeLog ()
+{
+  Thread::Mutex::Lock lock(log_mutex_);
+  if( logger_.isOpen() )
+    logger_.close();
+}
+
+void Forest::logNodeResult (const Node &node,const Request &req,const Result &res)
+{
+  // create log entry
+  DMI::Record entry;
+  entry[FName]      = node.name();
+  entry[FRequestId] = req.id();
+  entry[AidTimestamp] = Timestamp::now().seconds();
+  entry[FRequest]   = req;
+  entry[FResult]    = res;
+  Thread::Mutex::Lock lock(log_mutex_);
+  // open logger as necessary
+  if( !logger_.isOpen() )
+    logger_.open(log_filename_,log_append_ ? BOIO::APPEND : BOIO::WRITE);
+  logger_ << entry;
+}
 
 } // namespace Meq

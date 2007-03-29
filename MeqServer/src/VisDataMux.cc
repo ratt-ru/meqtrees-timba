@@ -67,7 +67,7 @@ const HIID FVisChannelClosed = AidVis|AidChannel|AidClosed;
 
 const HIID FCurrentRequest = AidCurrent|AidRequest;
 
-    
+
 //##ModelId=3F9FF71B006A
 Meq::VisDataMux::VisDataMux ()
   : Node(-4,child_labels,0)  // 3 labeled children, more possible, 0 mandatory
@@ -75,14 +75,14 @@ Meq::VisDataMux::VisDataMux ()
   time_extent_.resize(2,0);
   tile_time_.resize(2,0);
   tile_ts_.resize(2,0);
-  
+
   force_regular_grid = false;
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
   child_indices_.resize(VisVocabulary::ifrNumber(30,30)+1);
-  
+
   setActiveSymDeps(FDataset);
-  
+
   enableMultiThreadedPolling();
 }
 
@@ -124,7 +124,7 @@ void Meq::VisDataMux::initInput (const DMI::Record &rec)
     wstate()[FInput] = rec;
   }
 }
-    
+
 // inits input channel from record
 void Meq::VisDataMux::initOutput (const DMI::Record &rec)
 {
@@ -152,7 +152,7 @@ void Meq::VisDataMux::initOutput (const DMI::Record &rec)
   if( prec )
   {
     output_channel_ <<= new MTQueueChannel(newchannel);
-    // output_channel_.xfer(newchannel);  
+    // output_channel_.xfer(newchannel);
     output_channel_().init(*prec);
     wstate()[FOutput] = rec;
   }
@@ -162,7 +162,7 @@ void Meq::VisDataMux::clearOutput ()
 {
   output_channel_.detach();
   wstate()[FOutput].replace() = false;
-}  
+}
 
 void Meq::VisDataMux::postStatus ()
 {
@@ -203,7 +203,7 @@ void Meq::VisDataMux::checkChildren ()
     // add sink to list of handlers for this data id
     handlers_[did].insert(psink);
     // add index of child to list of children for this data id
-    child_indices_[did].insert(ichild); 
+    child_indices_[did].insert(ichild);
   }
   // all stepchildren are expected to be spigots
   for( int ichild=0; ichild<stepchildren().numChildren(); ichild++ )
@@ -232,7 +232,7 @@ void Meq::VisDataMux::checkChildren ()
         errors.add(MakeNodeException(string("error ")+(doing_what))); \
         result_flag |= Node::RES_FAIL; \
       } \
-      
+
 // second form does the same, plus tags on another error message
 #define CatchExceptionsMore(doing_what) \
       catch( std::exception &exc ) \
@@ -272,11 +272,11 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   // forest().resetForNewDataSet();
   handlers_.resize(maxdid);
   child_indices_.resize(maxdid);
-  
+
   // get time extent
   if( !header[VisVocabulary::FTimeExtent].get_vector(time_extent_) )
     time_extent_.assign(2,0);
-  // get frequencies 
+  // get frequencies
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
       !header[VisVocabulary::FChannelWidth].get(channel_widths) )
   {
@@ -285,7 +285,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
 //  // BUG BUG BUG! This assumes a regualr frequency spacing
 //  minfreq = min(channel_freqs) - channels_widths(0)/2;
 //  maxfreq = max(channel_freqs) + channels_widths(0)/2;
-  
+
   //make sure all output columns are present in output tile format
   VisCube::VTile::Format::Ref out_format_;
   out_format_ <<= header[FTileFormat].as_p<VisCube::VTile::Format>();
@@ -406,7 +406,7 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
   // post footer to output
   if( output_channel_.valid() )
     output_channel_().postEvent(VisData::VisEventHIID(VisData::FOOTER,HIID()),ObjRef(footer));
-  
+
   if( !errors.empty() )
     throw errors;
   return result_flag;
@@ -468,11 +468,11 @@ int Meq::VisDataMux::endSnippet ()
   if( children().isChildValid(1) )
   {
     Result::Ref res;
-    try 
-    { 
+    try
+    {
       timers().getresult.stop();
       timers().children.start();
-      int retcode = children().getChild(1).execute(res,*current_req_); 
+      int retcode = children().getChild(1).execute(res,*current_req_);
       timers().children.stop();
       timers().getresult.start();
       result_flag |= retcode;
@@ -487,7 +487,7 @@ int Meq::VisDataMux::endSnippet ()
     CatchExceptionsMore("pre-processing tile "+rqid_.toString('.'));
   }
   int nerr0 = errors.size();
-  // ok, now we want to asyncronously poll all sinks that have a tile 
+  // ok, now we want to asyncronously poll all sinks that have a tile
   // assigned. First, disable all children
   for( int i=0; i<numChildren(); i++ )
     children().disableChild(i);
@@ -547,14 +547,14 @@ int Meq::VisDataMux::endSnippet ()
   if( !forest().abortFlag() && children().isChildValid(2) )
   {
     Result::Ref res;
-    try 
+    try
     {
       timers().getresult.stop();
       timers().children.start();
-      int retcode = children().getChild(2).execute(res,*current_req_); 
+      int retcode = children().getChild(2).execute(res,*current_req_);
       timers().children.stop();
       timers().getresult.start();
-      result_flag |= retcode; 
+      result_flag |= retcode;
       if( retcode&RES_FAIL )
       {
         res->addToExceptionList(errors);
@@ -570,9 +570,9 @@ int Meq::VisDataMux::endSnippet ()
     throw errors;
   return result_flag;
 }
-  
+
 void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile)
-{    
+{
   // find first valid row, error if none
   int i0,i1;
   for( i0=0; tile.time(i0) == 0; i0++ )
@@ -626,7 +626,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
     clearOutput();
   // any non-fatal fails during processing are accumulated here
   // (fatal errors are thrown immediately)
-  VellSet::Ref fail_list(DMI::ANONWR); 
+  VellSet::Ref fail_list(DMI::ANONWR);
   int stream_state = VisData::FOOTER; // no stream event yet
   time_extent_.assign(2,0);
   bool had_data = false;
@@ -641,7 +641,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
   postEvent(FVisChannelOpen,ref);
   // a start event MUST be matched by an end event
   // (otherwise progress meters, etc. in the browser get confused).
-  // Therefore, we now catch any exceptions and post the end event 
+  // Therefore, we now catch any exceptions and post the end event
   // as part of cleanup.
   try
   {
@@ -653,7 +653,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
     {
       HIID evid;
       ObjRef evdata;
-      // wait for a valid input event 
+      // wait for a valid input event
       int state = input_channel_().getEvent(evid,evdata);
       // break out once stream is closed
       if( state == AppEvent::CLOSED )
@@ -683,7 +683,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
         // deliver tile to Python
         try  { MeqPython::processVisTile(*tileref); }
         catch( std::exception &exc ) { errors.add(exc); }
-        // deliver the tile 
+        // deliver the tile
         try { deliverTile(tileref); }
         catch( std::exception &exc ) { errors.add(exc); }
       }
@@ -778,18 +778,20 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
   }
   catch( ... )  // catch-all and cleanup for any errors not caught above
   {
-    // post end event 
+    // post end event
     postEvent(FVisChannelClosed,endref);
     // abort channels
     input_channel_().abort();
     if( output_channel_.valid() )
       output_channel_().abort();
     timers().getresult.stop();
+    forest().closeLog();
     throw; // rethrow
   }
   // post end event
   postEvent(FVisChannelClosed,endref);
   timers().getresult.stop();
+  forest().closeLog();
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {

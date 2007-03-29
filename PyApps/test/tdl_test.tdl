@@ -14,6 +14,7 @@ except ImportError:
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
+Settings.forest_state.log_policy = 0;
 Settings.forest_state.a = None;
 
 # Make sure our solver root node is not cleaned up
@@ -30,7 +31,7 @@ def _define_forest (ns,**kwargs):
       num_iter=15,debug_level=10,solvable="x",epsilon=1e-5,last_update=True,save_funklets=True,
       children = Meq.Condeq(
         Meq.Parm([0,1]),
-        5 + (ns.x << Meq.Parm(0,node_groups='Parm',table_name='test2345',shape=[2,3])),
+        5 + (ns.x << Meq.Parm(0,node_groups='Parm',table_name='test2345',shape=[2,3],log_policy=100)),
         a=None
       ),
     );

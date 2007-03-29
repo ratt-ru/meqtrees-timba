@@ -18,7 +18,7 @@
 
 #include <linux/unistd.h>
 
-// TEST_PYTHON_CONVERSION: if defined, will test objects for 
+// TEST_PYTHON_CONVERSION: if defined, will test objects for
 // convertability to Python (see below)
 // only useful for debugging really
 #if LOFAR_DEBUG
@@ -26,15 +26,15 @@
 #else
   #undef TEST_PYTHON_CONVERSION
 #endif
-    
+
 using Debug::ssprintf;
 using namespace AppAgent;
-    
-namespace Meq 
+
+namespace Meq
 {
-  
-static int dum =  aidRegistry_MeqServer() + 
-                  aidRegistry_Meq() + 
+
+static int dum =  aidRegistry_MeqServer() +
+                  aidRegistry_Meq() +
                   aidRegistry_MeqNodes();
 
 const HIID MeqCommandPrefix = AidCommand;
@@ -43,7 +43,7 @@ const HIID MeqResultPrefix  = AidResult;
 
 
 const HIID DataProcessingError = AidData|AidProcessing|AidError;
-  
+
 InitDebugContext(MeqServer,"MeqServer");
 
 // this flag can be set in the input record of all commands dealing with
@@ -51,10 +51,10 @@ InitDebugContext(MeqServer,"MeqServer");
 // (The exception is Node.Get.State, which returns the node state anyway)
 const HIID FGetState = AidGet|AidState;
 // this flag can be set in the input record of most commands to request
-// a forest status update in the reply 
+// a forest status update in the reply
 // Set to 1 to get basic status in field forest_status
 // Set to 2 to also get the full forest state record in field forest_state
-// (The exception is Node.Get.State, which returns the node state as the 
+// (The exception is Node.Get.State, which returns the node state as the
 // top-level record, Node.Create, where the input record is the node state,
 // and Set.Forest.State, which returns the full status anyway)
 const HIID FGetForestStatus = AidGet|AidForest|AidStatus;
@@ -66,7 +66,7 @@ const HIID FForestChanged = AidForest|AidChanged;
 // also be supplied back to it to cause a no-op
 const HIID FForestSerial = AidForest|AidSerial;
 
-// this field is set to True in the output record of a command when 
+// this field is set to True in the output record of a command when
 // publishing is disabled for all nodes.
 const HIID FDisabledAllPublishing = AidDisabled|AidAll|AidPublishing;
 
@@ -78,26 +78,26 @@ const int AppState_Idle    = -( AidIdle.id() );
 const int AppState_Stream  = -( AidStream.id() );
 const int AppState_Execute = -( AidExecute.id() );
 const int AppState_Debug   = -( AidDebug.id() );
-  
+
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
     : forest_serial(1)
 {
   if( mqs_ )
     Throw1("A singleton MeqServer has already been created");
-  
+
   state_ = AidIdle;
-  
+
   // default control channel is null
   control_channel_.attach(new AppAgent::EventChannel,DMI::SHARED|DMI::WRITE);
-  
+
   mqs_ = this;
-  
+
   async_commands["Halt"] = &MeqServer::halt;
-  
+
   async_commands["Get.Forest.State"] = &MeqServer::getForestState;
   async_commands["Set.Forest.State"] = &MeqServer::setForestState;
-  
+
   sync_commands["Create.Node"] = &MeqServer::createNode;
   sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch;
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
@@ -112,11 +112,11 @@ MeqServer::MeqServer()
   sync_commands["Load.Forest"] = &MeqServer::loadForest;
   sync_commands["Clear.Forest"] = &MeqServer::clearForest;
 
-  // per-node commands  
+  // per-node commands
   async_commands["Node.Get.State"] = &MeqServer::nodeGetState;
   sync_commands["Node.Execute"] = &MeqServer::nodeExecute;
-  // commands with a 0 pointer are automatically mapped to 
-  // Node::processCommand() with the Node prefix truncated. 
+  // commands with a 0 pointer are automatically mapped to
+  // Node::processCommand() with the Node prefix truncated.
   // A null map entry is used to mark sync-only commands.
 //  async_commands["Node.Set.State"] = 0; // &MeqServer::nodeSetState;
   sync_commands["Node.Clear.Cache"] = 0; // &MeqServer::nodeClearCache;
@@ -125,7 +125,7 @@ MeqServer::MeqServer()
 //  async_commands["Node.Clear.Breakpoint"] = 0; // &MeqServer::nodeClearBreakpoint;
   async_commands["Set.Forest.Breakpoint"] = &MeqServer::setForestBreakpoint;
   async_commands["Clear.Forest.Breakpoint"] = &MeqServer::clearForestBreakpoint;
-  
+
   async_commands["Execute.Abort"] = &MeqServer::executeAbort;
   async_commands["Debug.Set.Level"] = &MeqServer::debugSetLevel;
   async_commands["Debug.Interrupt"] = &MeqServer::debugInterrupt;
@@ -133,7 +133,7 @@ MeqServer::MeqServer()
   async_commands["Debug.Next.Node"] = &MeqServer::debugNextNode;
   async_commands["Debug.Until.Node"] = &MeqServer::debugUntilNode;
   async_commands["Debug.Continue"] = &MeqServer::debugContinue;
-  
+
   debug_next_node = 0;
   running_ = executing_ = clear_stop_flag_ = false;
   forest_breakpoint_ = 0;
@@ -176,8 +176,8 @@ Node & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
   if( nodeindex>0 )
   {
     Node &node = forest.get(nodeindex);
-    FailWhen( name.length() && node.name() != name,"node specified by index is "+ 
-        node.name()+", which does not match specified name "+name); 
+    FailWhen( name.length() && node.name() != name,"node specified by index is "+
+        node.name()+", which does not match specified name "+name);
     return node;
   }
   FailWhen( !name.length(),"either nodeindex or name must be specified");
@@ -191,6 +191,7 @@ void MeqServer::halt (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(1)<<"halting MeqServer"<<endl;
   running_ = false;
   out()[AidMessage] = "halting the meqserver";
+  forest.closeLog();
 }
 
 void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -221,7 +222,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   // form a response message
   const string & name = node.name();
   string classname = node.className();
-  
+
   out[AidNodeIndex] = nodeindex;
   out[AidName] = name;
   out[AidClass] = classname;
@@ -354,10 +355,10 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
   int serial = in[FForestSerial].as<int>(0);
   if( !serial || serial != forest_serial )
   {
-    int content = 
-      ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) | 
-      ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
-      ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
+    int content =
+      ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) |
+      ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) |
+      ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) |
       ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
       ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 ) |
       ( in[FProfilingStats].as<bool>(false) ? Forest::NL_PROFILING_STATS : 0 );
@@ -382,7 +383,7 @@ void MeqServer::executeAbort (DMI::Record::Ref &out,DMI::Record::Ref &in)
   }
   fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
 }
-    
+
 //##ModelId=400E5B6C015E
 void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
@@ -421,7 +422,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
     cdebug(3)<<"    result is "<<resref.sdebug(DebugLevel-1,"    ")<<endl;
     if( DebugLevel>3 && resref.valid() )
     {
-      for( int i=0; i<resref->numVellSets(); i++ ) 
+      for( int i=0; i<resref->numVellSets(); i++ )
       {
         const VellSet &vs = resref->vellSet(i);
         if( vs.isFail() ) {
@@ -454,6 +455,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
     if( getstate )
       out[FNodeState] <<= node.syncState();
     fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
+    forest.closeLog();
   }
   catch( ... )
   {
@@ -473,7 +475,7 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
   BOIO boio(filename,BOIO::WRITE);
   int nsaved = 0;
-  
+
   // write header record
   DMI::Record header;
   header["Forest.Header.Version"] = 1;
@@ -603,7 +605,7 @@ void MeqServer::setForestBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
   forest_breakpoint_ |= bpmask;
   out[AidMessage] = ssprintf("set global breakpoint %X; new bp mask is %X",
                              bpmask,forest_breakpoint_);
-  
+
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -694,7 +696,7 @@ void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
 }
 
-int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *) 
+int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *)
 {
   Thread::Mutex::Lock lock(control_mutex_);
   cdebug(4)<<"received event "<<evid.id()<<endl;
@@ -815,7 +817,7 @@ void MeqServer::publishState ()
   fillAppState(rec());
   postEvent("App.Notify.State",rec);
 }
-      
+
 AtomicID MeqServer::setState (AtomicID state,bool quiet)
 {
   AtomicID oldstate = state_;
@@ -870,7 +872,7 @@ DMI::Record::Ref MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate,
     // qe.proc!=0: call specified command handler
     if( qe.proc )
       (this->*(qe.proc))(out,qe.args);\
-    // else this is a Node.* command. Call helper function and set the 
+    // else this is a Node.* command. Call helper function and set the
     // has_reply flag if it returns true (which usually means an error)
     else
       has_reply |= execNodeCommand(out,qe);
@@ -900,8 +902,8 @@ DMI::Record::Ref MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate,
   }
   // if we need to clear the stop flag at end of command (i.e. when releasing
   // from breakpoint), lock the condition variable to keep the execution threads
-  // stopped until we have posted the command result. Otherwise the exec 
-  // thread may reache the next breakpoint and post an event BEFORE we have 
+  // stopped until we have posted the command result. Otherwise the exec
+  // thread may reache the next breakpoint and post an event BEFORE we have
   // posted our reply below, which confuses the browser no end.
   Thread::Mutex::Lock lock;
   if( clear_stop_flag_ )
@@ -924,7 +926,7 @@ DMI::Record::Ref MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate,
   }
   else if( savestate ) // no reply, so simply reset state if needed
     setState(oldstate);
-  
+
   return out;
 }
 
@@ -1003,7 +1005,7 @@ DMI::Record::Ref MeqServer::executeCommand (const HIID &cmdid,DMI::Record::Ref &
     if( sz && post_results )
       postMessage(ssprintf("queueing %s command (%d)",cmdid.toString('.').c_str(),sz));
     lock.release();
-    // return empty result 
+    // return empty result
     result <<= new DMI::Record;
   }
   return result;
@@ -1021,7 +1023,7 @@ void MeqServer::run ()
   // start node exec thread
   exec_thread_ = Thread::create(startExecutionThread,this);
 
-  setState(AidIdle);  
+  setState(AidIdle);
   while( running_ )
   {
     // get an event from the control channel
@@ -1039,15 +1041,15 @@ void MeqServer::run ()
     // regular commands go to the generic interface
     if( cmdid.matches(MeqCommandMask) )
     {
-      // strip off the Meq command mask -- the -1 is there because 
+      // strip off the Meq command mask -- the -1 is there because
       // we know a wildcard is the last thing in the mask.
       cmdid = cmdid.subId(MeqCommandMask.length()-1);
       // all MeqCommands are expected to have a DMI::Record payload
       if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
         postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
       else
-      { 
-        DMI::Record::Ref cmdrec = cmd_data; 
+      {
+        DMI::Record::Ref cmdrec = cmd_data;
         executeCommand(cmdid,cmdrec,true); // true=post results to output
       }
     }
@@ -1074,7 +1076,7 @@ void MeqServer::run ()
   exec_cond_.signal();
   lock.release();
   exec_thread_.join();
-  
+
   // clear the forest
   forest.clear();
   // close any parm tables

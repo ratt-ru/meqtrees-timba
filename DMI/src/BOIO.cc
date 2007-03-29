@@ -5,8 +5,8 @@
 #include "DynamicTypeManager.h"
 
 namespace DMI
-{    
-    
+{
+
 //##ModelId=3DB949AE024E
 BOIO::BOIO ()
     : fp(0),fmode(CLOSED)
@@ -63,7 +63,31 @@ int BOIO::close ()
   return 1;
 }
 
-// Reads object attaches to ref. Returns its TypeId, or 
+long BOIO::ftell ()
+{
+  FailWhen(!fp,"boio file not open");
+  return ::ftell(fp);
+}
+
+void BOIO::fseek (long offset)
+{
+  FailWhen(!fp,"boio file not open");
+  ::fseek(fp,offset,SEEK_SET);
+}
+
+void BOIO::rewind ()
+{
+  FailWhen(!fp,"boio file not open");
+  ::rewind(fp);
+}
+
+void BOIO::flush ()
+{
+  if( fp )
+    ::fflush(fp);
+}
+
+// Reads object attaches to ref. Returns its TypeId, or
 // 0 for no more objects
 //##ModelId=3DB949AE025C
 TypeId BOIO::readAny (ObjRef &ref)
@@ -77,10 +101,10 @@ TypeId BOIO::readAny (ObjRef &ref)
   size_t sizes[header.nblocks];
   if( fread(&sizes,sizeof(sizes),1,fp) != 1 )
   {
-    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno));
     Throw("error reading file "+fname+": unexpected EOF");
   }
-  // allocate and read in blocks  
+  // allocate and read in blocks
   BlockSet set;
   for( int i=0; i<header.nblocks; i++ )
   {
@@ -88,7 +112,7 @@ TypeId BOIO::readAny (ObjRef &ref)
     set.pushNew() <<= block;
     if( fread(block->data(),sizes[i],1,fp) != 1 )
     {
-      FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+      FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno));
       Throw("error reading file "+fname+": unexpected EOF");
     }
   }
@@ -113,7 +137,7 @@ TypeId BOIO::nextType ()
     return 0;
   else if( fread(&header,sizeof(header),1,fp) != 1 )
   {
-    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno));
     // check for EOF again
     if( feof(fp) )
       return 0;

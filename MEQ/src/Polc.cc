@@ -51,7 +51,7 @@ Polc::Polc(double pert,double weight,DbId id)
   : Funklet(pert,weight,id)
 {
     (*this)[FClass]=objectType().toString();
- 
+
 }
 
 //##ModelId=3F86886F0366
@@ -110,10 +110,10 @@ Polc::Polc (const Polc &other,int flags,int depth)
   : Funklet(other,flags,depth)
 {
   (*this)[FClass]=objectType().toString();
-    
+
 }
 
-void Polc::validateContent (bool recursive)    
+void Polc::validateContent (bool recursive)
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields; setup shortcuts
@@ -132,18 +132,18 @@ void Polc::validateContent (bool recursive)
 	if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
 	{
 	  //convert to double
-	  
+
 	}
 	FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
-	
+
 	// check for sanity
 	FailWhen((*pcoeff_)->rank()>MaxPolcRank,"Meq::Polc: coeff can have max. rank of 2");
-	
+
       }
       else
 	pcoeff_ = 0;
     }
-      
+
   }
   catch( std::exception &err )
   {
@@ -180,7 +180,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     {
       int iaxis = getAxis(i);
       FailWhen(!cells.isDefined(iaxis),
-            "Meq::Polc: axis " + Axis::axisId(iaxis).toString() + 
+            "Meq::Polc: axis " + Axis::axisId(iaxis).toString() +
             " is not defined in Cells");
       if(cells.domain().start(i)<domain().start(i) ||cells.domain().end(i)>domain().end(i) )
 	{
@@ -193,7 +193,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
 	  int lastk=k;
 	  //reduce grid, such that it fits on domain of this funklet
 	  if(lastk<firstk) return;
-	  
+
 
 	  grid[i].resize(lastk-firstk+1);
 	  if(firstk==0 && lastk==(tempgrid.size()-1))
@@ -216,7 +216,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
 
       //faster to multiply could be done init of course...
       double one_over_scale=(getScale(i) ? 1./getScale(i) : 1.);
-      
+
 
 
 
@@ -250,7 +250,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   {
     // determine which grid points to actually use
     LoVec_double gridn(cshape[0] > 1 ? grid[0] : grid[1]);
-    // Get number of steps and coefficients in x and y 
+    // Get number of steps and coefficients in x and y
     int ndx = gridn.size();
     int ncx = coeff_size;
     // Evaluate the expression (as double).
@@ -260,9 +260,9 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     {
       // Create a vells for each perturbed value.
       // Keep a pointer to its storage
-      for( uint i=0; i<spidIndex.size(); i++) 
+      for( uint i=0; i<spidIndex.size(); i++)
         if( spidIndex[i] >= 0 )
-          pertValPtr[ipert][i] = 
+          pertValPtr[ipert][i] =
               vs.setPerturbedValue(spidIndex[i],new Vells(double(0),res_shape,true),ipert)
                     .realStorage();
         else
@@ -274,20 +274,20 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     {
       double valx = gridn(i);
       double total = coeffData[ncx-1];
-      for (int j=ncx-2; j>=0; j--) 
+      for (int j=ncx-2; j>=0; j--)
       {
         total *= valx;
         total += coeffData[j];
       }
-      if( makePerturbed ) 
+      if( makePerturbed )
       {
         double powx = 1;
-        for (int j=0; j<ncx; j++) 
+        for (int j=0; j<ncx; j++)
         {
           double d = perts[j] * powx;
-          for( int ipert=0; ipert<makePerturbed; ipert++,d=-d ) 
+          for( int ipert=0; ipert<makePerturbed; ipert++,d=-d )
           {
-            if (pertValPtr[ipert][j]) 
+            if (pertValPtr[ipert][j])
             {
               *(pertValPtr[ipert][j]) = total + d;
               pertValPtr[ipert][j]++;
@@ -301,7 +301,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     return;
   }
   // OK, at this stage, we're stuck evaluating a truly 2D polynomial
-  // Get number of steps and coefficients in x and y 
+  // Get number of steps and coefficients in x and y
   int ndx = grid[0].size();
   int ndy = grid[1].size();
   int ncx = cshape[0];
@@ -313,9 +313,9 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   {
     // Create a vells for each perturbed value.
     // Keep a pointer to its storage
-    for( uint i=0; i<spidIndex.size(); i++) 
+    for( uint i=0; i<spidIndex.size(); i++)
       if( spidIndex[i] >= 0 )
-        pertValPtr[ipert][i] = 
+        pertValPtr[ipert][i] =
             vs.setPerturbedValue(spidIndex[i],new Vells(double(0),res_shape,true),ipert)
                   .realStorage();
       else
@@ -325,7 +325,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   double* value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
   // Iterate over all cells in the domain.
   // The Y index iterates faster, hence the outer loop is over j over X values
-  for (int j=0; j<ndx; j++) 
+  for (int j=0; j<ndx; j++)
   {
     double valx = grid[0](j);
     for (int i=0; i<ndy; i++)  // inner loop: i over Y values
@@ -334,10 +334,10 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       const double* coeff = coeffData;
       double total = 0;
       double powx = 1;
-      for (int ix=0; ix<ncx; ix++) 
+      for (int ix=0; ix<ncx; ix++)
       {
         double tmp = coeff[ncy-1];
-        for (int iy=ncy-2; iy>=0; iy--) 
+        for (int iy=ncy-2; iy>=0; iy--)
         {
           tmp *= valy;
           tmp += coeff[iy];
@@ -346,7 +346,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
         powx *= valx;
         coeff += ncy;
       }
-      if( makePerturbed ) 
+      if( makePerturbed )
       {
         double powersy[10];
         double powy = 1;
@@ -375,7 +375,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     } // endfor(i) over cells
   } // endfor(j) over cells
 
- 
+
 }
 
 //##ModelId=3F86886F03BE
@@ -383,9 +383,9 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex,bo
 {
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
-  for( uint i=0; i<spidIndex.size(); i++ ) 
+  for( uint i=0; i<spidIndex.size(); i++ )
   {
-    if( spidIndex[i] >= 0 ) 
+    if( spidIndex[i] >= 0 )
       {
 	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 	coeff[i] += values[spidIndex[i]];
@@ -399,11 +399,11 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex,bo
 void Polc::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive)
 {
   Thread::Mutex::Lock lock(mutex());
-  if(! isConstant()) {do_update (values,spidIndex); return;}//only contraint if constant 
+  if(! isConstant()) {do_update (values,spidIndex); return;}//only contraint if constant
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
-  for( uint i=0; i<spidIndex.size(); i++ ) 
+  for( uint i=0; i<spidIndex.size(); i++ )
   {
-    if( spidIndex[i] >= 0 ) 
+    if( spidIndex[i] >= 0 )
       {
 	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 	coeff[i] += values[spidIndex[i]];
@@ -419,9 +419,9 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex,co
 {
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
-  for( uint i=0; i<spidIndex.size(); i++ ) 
+  for( uint i=0; i<spidIndex.size(); i++ )
   {
-    if( spidIndex[i] >= 0 ) 
+    if( spidIndex[i] >= 0 )
       {
 	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 	coeff[i] += values[spidIndex[i]];
@@ -450,18 +450,18 @@ void Polc::changeSolveDomain(const Domain & solveDomain){
 	newoffsets[axisi] /= solveDomain.start(axisi)-solveDomain.end(axisi);
 	newscales[axisi] = valDomain.end(axisi) - valDomain.start(axisi);
 	newscales[axisi] /= solveDomain.end(axisi) - solveDomain.start(axisi);
-      
+
       }
-     transformCoeff(newoffsets,newscales);      
-      
+     transformCoeff(newoffsets,newscales);
+
     }
-  
+
 }
 
 
   void Polc::changeSolveDomain(const std::vector<double> & solveDomain){
     Thread::Mutex::Lock lock(mutex());
- 
+
     if(solveDomain.size()<2) return; //incorrect format
     if(!hasDomain()) return; //nothing to change
     else{
@@ -474,12 +474,12 @@ void Polc::changeSolveDomain(const Domain & solveDomain){
 	newoffsets[axisi] /= solveDomain[0]-solveDomain[1];
 	newscales[axisi] = valDomain.end(axisi) - valDomain.start(axisi);
 	newscales[axisi] /= solveDomain[1] - solveDomain[0];
-      
+
       }
-     transformCoeff(newoffsets,newscales);      
-     
+     transformCoeff(newoffsets,newscales);
+
     }
-  
+
 }
 
 
@@ -497,7 +497,7 @@ int Polc::makeSolvable (int spidIndex){
   if((*this)[FCoeffMask].get_vector(mask)){
     //check shapes
     uint size=mask.size();
-    if(size == getNumParms())
+    if(int(size) == getNumParms())
       return Funklet::makeSolvable(spidIndex,mask);
   }
   //if user did not specify a mask, set the default to everything but the lower right triangle
@@ -514,7 +514,7 @@ int Polc::makeSolvable (int spidIndex){
 	  mask[xi*NY+yi]=false;
 	}
 	else mask[xi*NY+yi]=true;
-	
+
       }
   }
   (*this)[FCoeffMask].replace()=mask;
@@ -529,7 +529,7 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
   const LoShape shape =  getCoeffShape ();
   int NX=1;
   int NY=1;
-  uint coeff_rank = coeff().rank(); 
+  uint coeff_rank = coeff().rank();
   for(uint i=0;i<coeff_rank&&i<2;i++){
     if(i==0) NX=std::max(NX,shape[i]);
     if(i==1) NY=std::max(NY,shape[i]);
@@ -567,7 +567,7 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
 
   if(realchange) //all coefficients 0, no updat needed
     return;
-  
+
   for(int xi=0;xi<NX;xi++)
     for(int yi=0;yi<NY;yi++)
       {
@@ -579,19 +579,19 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
 
 	      C[rx][ry] += noverm(xi,rx)*noverm(yi,ry) *pow(diffOffset[0],xi-rx)*pow(diffOffset[1],yi-ry) * Cxy *(pow(diffScale[0],xi)*pow(diffScale[1],yi));
 	    }
-	
+
       }
-  
+
 
   for(int xi=0;xi<NX;xi++)
     for(int yi=0;yi<NY;yi++)
       {
-	cdebug(2)<<"transforming coeff["<<xi<<","<<yi<<"] from "<<coeff[xi*NY+yi]; 
+	cdebug(2)<<"transforming coeff["<<xi<<","<<yi<<"] from "<<coeff[xi*NY+yi];
 
 	coeff[xi*NY+yi]=C[xi][yi];
-	cdebug(2)<<" to "<<coeff[xi*NY+yi]<<endl; 
-      }    
-  
+	cdebug(2)<<" to "<<coeff[xi*NY+yi]<<endl;
+      }
+
 
 }
 
@@ -617,19 +617,19 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
   Funklet::setCoeff(coeff);
 
 }
-  
+
 
 
   void Polc::setCoeff (const DMI::NumArray & coeff){
   if (rank()<coeff.rank())
     setRank(coeff.rank());
   Funklet::setCoeff(coeff);
-      
+
   }
 
 
 void Polc::setCoeffShape(const LoShape & shape){
- 
+
   if(coeff().shape()==shape) return;
 
   //  if(coeff().shape().size()< shape.size()){
@@ -640,7 +640,7 @@ void Polc::setCoeffShape(const LoShape & shape){
   DMI::NumArray coeffnew(Tpdouble,shape);
   double * dataptr = static_cast<double*>(coeffWr().getDataPtr());
   double * newdataptr = static_cast<double*>(coeffnew.getDataPtr());
-  
+
   int N=coeff().size();
   int Nnew=coeffnew.size();
   const int rank=coeff().rank();
@@ -651,10 +651,10 @@ void Polc::setCoeffShape(const LoShape & shape){
   for(int n=0;n<N;n++){
     int element=0;
     for(int j=0;j<ranknew&&j<rank;j++)
-      {//calculate position 
+      {//calculate position
 	element*=shape[j];
 	element+=i[j];
-	if(i[j]>0 && (j>shape.size()||i[j]>=shape[j]))
+	if(i[j]>0 && (j>int(shape.size())||i[j]>=shape[j]))
 	  element=Nnew;
 	//dont fill this one
 	//we can go faster in case we are outside the scope of the new array
@@ -671,7 +671,7 @@ void Polc::setCoeffShape(const LoShape & shape){
       }
     if(element<Nnew)
       newdataptr[element]=dataptr[n];
-    
+
 
   }
 

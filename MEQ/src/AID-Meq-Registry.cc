@@ -274,6 +274,7 @@ DMI::BObj * __construct_MeqSpline (int n) { return n>0 ? new Meq::Spline [n] : n
         AtomicID::registerId(-1509,"Publishing")+
         AtomicID::registerId(-1047,"Level")+
         AtomicID::registerId(-1478,"Recursive")+
+        AtomicID::registerId(-1724,"Log")+
         AtomicID::registerId(-1657,"Missing")+
         AtomicID::registerId(-1656,"CollectPropagate")+
         AtomicID::registerId(-1655,"AbandonPropagate")+
@@ -285,6 +286,9 @@ DMI::BObj * __construct_MeqSpline (int n) { return n>0 ? new Meq::Spline [n] : n
         AtomicID::registerId(-1482,"Debug")+
         AtomicID::registerId(-1537,"Enabled")+
         AtomicID::registerId(-1553,"Cwd")+
+        AtomicID::registerId(-1723,"Append")+
+        AtomicID::registerId(-1224,"File")+
+        AtomicID::registerId(-1054,"Timestamp")+
         AtomicID::registerId(-1704,"MeqSpline")+
         TypeInfoReg::addToRegistry(-1704,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1704,__construct_MeqSpline)+

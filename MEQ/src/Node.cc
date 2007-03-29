@@ -66,7 +66,7 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     check_min_children_ = nmandatory;
   }
   // if labels are supplied, then nchildren must be set
-  if( labels )   // copy labels and populate reverse map 
+  if( labels )   // copy labels and populate reverse map
   {
     Assert(nchildren>0);
     child_labels_.resize(nchildren);
@@ -77,12 +77,13 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     }
   }
   // else child_labels_ stays empty to indicate no labels
-  
+
   // other init
   internal_init_index_ = -1;
   breakpoints_ = breakpoints_ss_ = 0;
   publishing_level_ = 0;
   cache_policy_ = 0;
+  log_policy_ = 0;
   cache_.is_valid = false;
   cache_.rescode = 0;
   has_state_dep_ = false;
@@ -131,8 +132,8 @@ int Node::childLabelToNumber (const HIID &label) const
 }
 
 void Node::postEvent (const HIID &type,const ObjRef &data)
-{ 
-  forest().postEvent(type,data); 
+{
+  forest().postEvent(type,data);
 }
 
 void Node::postMessage (const string &msg,const ObjRef &data,AtomicID type)
@@ -184,7 +185,7 @@ const DMI::Record & Node::Cache::record ()
     else
       rec.add(FFail,result);
   }
-  rec[FRequestId] = rqid;    
+  rec[FRequestId] = rqid;
   rec[FResultCode] = rescode;
   return rec;
 }
@@ -285,25 +286,28 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   const Request * preq = rec[FRequest].as_po<Request>();
   if( preq )
     current_request_ <<= preq;
-  
+
   // apply any changes to control status
   if( cs0 != control_status_ )
   {
     rec[FControlStatus] = control_status_;
-    forest_->newControlStatus(*this,cs0,control_status_); 
+    forest_->newControlStatus(*this,cs0,control_status_);
   }
-  
+
   // get/set description
   if( !rec[FNodeDescription].get(description_) && initializing )
   {
     description_ = name() + ':' + objectType().toString();
-    rec[FNodeDescription] = description_; 
+    rec[FNodeDescription] = description_;
   }
-  
+
   // set the caching policy
   rec[FCachePolicy].get(cache_policy_,initializing);
   rec[FCacheNumActiveParents].get(pcparents_->nact,initializing);
-  
+
+  // set the logging policy
+  rec[FLogPolicy].get(log_policy_,initializing);
+
   // active symdeps
   SymdepMap::DepSet active_symdeps;
   if( initializing )
@@ -311,13 +315,13 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   if( rec[FActiveSymDeps].get_vector(active_symdeps,initializing) )
   {
     cdebug(2)<<"active_symdeps set via state\n";
-    setActiveSymDeps(active_symdeps); 
+    setActiveSymDeps(active_symdeps);
   }
-  
+
   // now set the dependency mask if specified; this will override
   // possible modifications made above
   rec[FDependMask].get(depend_mask_,initializing);
-  
+
   // set node groups, but always implicitly insert "All" at start
   std::vector<HIID> ngr;
   if( rec[FNodeGroups].get_vector(ngr) )
@@ -340,7 +344,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
   // set children nursery state
   children().setState(rec,initializing);
-  
+
   // enable multithreading
   if( MTPool::Brigade::numBrigades() )
   {
@@ -350,7 +354,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
       children().enableMultiThreaded(mtpoll);
       stepchildren().enableMultiThreaded(mtpoll);
     }
-  } 
+  }
 }
 
 //##ModelId=3F5F445A00AC
@@ -365,7 +369,7 @@ void Node::setState (DMI::Record::Ref &rec)
   // This may leave the node with an inconsistency between the state record
   // and internal state. To recover from this, we can call setStateImpl() with
   // the current state record to reset the node state.
-  // If the exception occurs before any change of state, then no cleanup is 
+  // If the exception occurs before any change of state, then no cleanup is
   // needed. Implementations may throw a FailWithoutCleanup exception to
   // indicate this.
   try
@@ -402,14 +406,14 @@ void Node::setState (DMI::Record::Ref &rec)
 //   FailWhen(iter==child_map_.end(),"unknown child "+id.toString());
 //   return getChild(iter->second);
 // }
-// 
+//
 // //##ModelId=3F98D9D20201
 // inline int Node::getChildNumber (const HIID &id)
 // {
 //   ChildrenMap::const_iterator iter = child_map_.find(id);
 //   return iter == child_map_.end() ? -1 : iter->second;
 // }
-// 
+//
 
 void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
 {
@@ -420,7 +424,7 @@ void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
 }
 
 void Node::getSyncState (DMI::Record::Ref &ref)
-{ 
+{
   Thread::Mutex::Lock lock(stateMutex());
   DMI::Record & st = wstate();
   if( current_request_.valid() )
@@ -443,10 +447,10 @@ void Node::getSyncState (DMI::Record::Ref &ref)
       control_status_ &= ~CS_CACHED;
   }
   st[FRequestId]       = current_reqid_;
-  st[FControlStatus]   = control_status_; 
+  st[FControlStatus]   = control_status_;
   st[FBreakpointSingleShot] = breakpoints_ss_;
   st[FBreakpoint] = breakpoints_;
-  ref = staterec_; 
+  ref = staterec_;
 }
 
 //##ModelId=3F9919B10014
@@ -504,7 +508,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   if( has_state_dep_ )
     cache_.rescode |= symdeps().getMask(FState);
   // Check that cached result is applicable:
-  // (1) An empty reqid never matches, hence it can be used to 
+  // (1) An empty reqid never matches, hence it can be used to
   //     always force a recalculation.
   // (2) Ignore PARM_UPDATE requests if we have no dependency on
   //     iteration
@@ -521,7 +525,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   if( rqid.empty() || cache_.rqid.empty() )
     match = false;
   // (2) ignore PU requests if no dependency on iteration
-  else if( req.requestType() == RequestType::PARM_UPDATE && 
+  else if( req.requestType() == RequestType::PARM_UPDATE &&
            !(cache_.rescode&symdeps().getMask(FIteration)) )
   {
     ref <<= new Result;
@@ -538,8 +542,8 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
       match = true;
     }
     // (3b) last special case: E0 requests match E1/E2 cache, but derivatives are stripped off
-    else if( diffmask == RequestType::DEPMASK_TYPE && 
-             req.evalMode() == 0 && 
+    else if( diffmask == RequestType::DEPMASK_TYPE &&
+             req.evalMode() == 0 &&
              RequestType::evalMode(cache_.rqid) > 0 )
     {
       ref = cache_.result;
@@ -567,7 +571,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     // if we're returning a cached result for a new request, clear the parent stats
     if( new_request_ )
     {
-      int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ; 
+      int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ;
       pcparents_->nhint = pcparents_->nhold = 0;
     }
     return true;
@@ -577,19 +581,22 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   if( new_request_ )
     pcs_new_->miss++;
 //  fprintf(flog,"%s: cache missed\n",name().c_str());
-  // no match -- clear cache and return 
+  // no match -- clear cache and return
   clearCache(false);
-  return false; 
+  return false;
 }
 
 // stores result in cache as per current policy, returns retcode
 //##ModelId=400E531C0200
 int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
 {
-  // Thread::Mutex::Lock lock(cache_.mutex);
+  // log result to forest, if necessary
+  if( logPolicy() >= LOG_RESULTS ||
+      ( logPolicy() == LOG_DEFAULT && forest().logPolicy() >= LOG_RESULTS ) )
+    forest().logNodeResult(*this,req,*ref);
   has_state_dep_ = false;
   // clear the parent stats
-  int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ; 
+  int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ;
   pcparents_->nhint = pcparents_->nhold = 0;
   *pcrescode_ = retcode&((1<<RQIDM_NBITS)-1);
   // clear cached child results
@@ -610,7 +617,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     do_cache = longcache = true;           // fails always cached
   }
   else if( actual_cache_policy_ <= CACHE_NEVER )         // never cache
-  { 
+  {
     do_cache = longcache = false;
   }
   else if( actual_cache_policy_ <= CACHE_MINIMAL )  // hold for parents only
@@ -618,7 +625,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     do_cache  = npar > 1;     // only cache when >1 parent
     longcache = false;
   }
-  else if( actual_cache_policy_ < CACHE_ALWAYS )  // some form of smart caching 
+  else if( actual_cache_policy_ < CACHE_ALWAYS )  // some form of smart caching
   {
     // cache if result is not invalidated by next request
     longcache = !(diffmask&retcode);
@@ -646,7 +653,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     }
     // update the rest
     // note that we retain the state dependency bit if it is already set -- this
-    // is because any state-updated child of ours updates this bit UP the tree, 
+    // is because any state-updated child of ours updates this bit UP the tree,
     // so this may have already been set for us.
     // OMS: 04/12 no no this plays hell with Jan's reqseqs. Reverting
 //    cache_.set(ref,req,retcode&~RES_UPDATED|(cache_.rescode&forest().getStateDependMask()));
@@ -659,7 +666,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     if( publishing_level_ )
     {
       syncState();
-      postEvent(EvNodeResult,ObjRef(*staterec_));  
+      postEvent(EvNodeResult,ObjRef(*staterec_));
     }
   }
   else // clear cache
@@ -672,7 +679,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
       DMI::Record &st = stateref.as<DMI::Record>();  // causes COW
       cache_.set(ref,req,retcode&~RES_UPDATED);
       st.replace(FCache,cache_.record());
-      postEvent(EvNodeResult,stateref);  
+      postEvent(EvNodeResult,stateref);
     }
     // now quietly clear cache
     clearCache(false);
@@ -699,7 +706,7 @@ void Node::holdChildCaches (bool hold,int diffmask)
   // we need their return codes now
   children().finishPoll();
   stepchildren().finishPoll();
-  
+
   for( int i=0; i<children().numChildren(); i++ )
     if( children().isChildEnabled(i) )
     {
@@ -783,7 +790,7 @@ int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_
         if( !ref.valid() )
           ref.attach(chres);
         // else have a result
-        else 
+        else
         {
           if( !presult )
             presult = ref.dewr_p(); // COW the result
@@ -808,7 +815,7 @@ int Node::pollChildren (Result::Ref &resref,
   int retcode = children().syncPoll(resref,childres,req);
   // if aborted, return without polling stepchildren
   if( retcode&RES_ABORT ||
-      ( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate ) || 
+      ( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate ) ||
       ( retcode&RES_MISSING && children().failPolicy() == AidAbandonPropagate ) )
   {
     timers().children.stop();
@@ -843,13 +850,13 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
   }
   executing_ = true;
 #endif
-  // since we use the same execCond() mutex for the cache, hold lock until we 
+  // since we use the same execCond() mutex for the cache, hold lock until we
   // have checked cache below
-  
+
   // now set a lock on the state mutex
   Thread::Mutex::Lock state_lock(stateMutex());
   pstate_lock_ = &state_lock;
-  
+
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(internal_init_index_<0,"execute() called before resolve()");
   int retcode = 0;
@@ -868,7 +875,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
     setExecState(CS_ES_REQUEST);
     // do we have a new request? Empty request id treated as always new
     new_request_ = !current_request_.valid() ||
-                   req.id().empty() || 
+                   req.id().empty() ||
                    req.id() != current_reqid_;
     // update stats
     pcs_total_->req++;
@@ -919,7 +926,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return exitExecute(ret);
     }
-    // clear the retcode if the request has cells, children code + getResult() 
+    // clear the retcode if the request has cells, children code + getResult()
     // will be considered the real result
     Cells::Ref rescells;
     if( req.hasCells() )
@@ -970,7 +977,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
       // if no children cells were found, attach request cells
       if( !rescells.valid() && req.hasCells() )
         rescells.attach(req.cells());
-      
+
       setExecState(CS_ES_EVALUATING);
       // EVAL/SINGLE/DOUBLE: normal getResult() mode
       if( req.evalMode() >= 0 )
@@ -1119,7 +1126,7 @@ void Node::clearBreakpoint (int bpmask,bool oneshot)
   if( oneshot )
   {
     breakpoints_ss_ &= ~bpmask;
-    setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS); 
+    setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS);
   }
   else
   {
@@ -1129,21 +1136,21 @@ void Node::clearBreakpoint (int bpmask,bool oneshot)
 }
 
 void Node::setControlStatus (int newst,bool sync)
-{ 
+{
   if( sync )
     wstate()[FControlStatus] = newst;
   if( control_status_ != newst )
   {
     int oldst = control_status_;
     control_status_ = newst;
-    forest_->newControlStatus(*this,oldst,newst); 
+    forest_->newControlStatus(*this,oldst,newst);
   }
 }
 
 void Node::setExecState (int es,int newst,bool sync)
 {
   parent_status_published_ = false;
-  // update exec state in new control status 
+  // update exec state in new control status
   newst = (newst&~CS_MASK_EXECSTATE) | es;
   if( !forest().abortFlag() )
   {
@@ -1217,9 +1224,9 @@ std::string Node::getStrExecState (int state)
   switch( state )
   {
     case CS_ES_IDLE:        return "IDLE";
-    case CS_ES_REQUEST:     return "REQUEST";         
-    case CS_ES_COMMAND:     return "COMMAND";         
-    case CS_ES_POLLING:     return "POLLING";         
+    case CS_ES_REQUEST:     return "REQUEST";
+    case CS_ES_COMMAND:     return "COMMAND";
+    case CS_ES_POLLING:     return "POLLING";
     case CS_ES_EVALUATING:  return "EVALUATING";
     default:                return "(unknown exec state)";
   }
@@ -1235,14 +1242,14 @@ void Node::enableMultiThreadedPolling (bool enable)
 
 // these are called from the nurseries' idle loops
 void Node::lockStateMutex ()
-{ 
-  pstate_lock_->lock(stateMutex()); 
-} 
+{
+  pstate_lock_->lock(stateMutex());
+}
 
 void Node::unlockStateMutex ()
-{ 
-  pstate_lock_->release(); 
-} 
+{
+  pstate_lock_->release();
+}
 
 void Node::Node_lockStateMutex (void *args)
 {
@@ -1288,7 +1295,7 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   using Debug::append;
   using Debug::appendf;
   using Debug::ssprintf;
-  
+
   string out;
   if( detail >= 0 ) // basic detail
   {

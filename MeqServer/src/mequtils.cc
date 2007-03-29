@@ -1,6 +1,7 @@
 #include <OCTOPython/OctoPython.h>
 #include <MEQ/Axis.h>
-    
+#include <DMI/BOIO.h>
+
 namespace MeqUtils
 {
 using namespace OctoPython;
@@ -22,7 +23,7 @@ static PyObject * get_axis_number (PyObject *, PyObject *args)
     HIID id;
     if( PyString_Check(axis_id) )
       id = HIID(PyString_AsString(axis_id));
-    else 
+    else
     {
       PyObjectRef objstr(PyObject_Str(axis_id));
       id = HIID(PyString_AsString(*objstr));
@@ -85,11 +86,61 @@ static PyObject * set_axis_list (PyObject *, PyObject *args)
     Meq::Axis::setAxisMap(axis_map);
   }
   catchStandardErrors(NULL);
-  
+
   returnNone;
 }
 
-  
+static void deleteBoioObject (void *ptr)
+{
+  BOIO *pboio = static_cast<BOIO*>(ptr);
+  if( pboio )
+    delete pboio;
+}
+
+static PyObject * open_boio (PyObject *, PyObject *args)
+{
+  char * filename;
+  if( !PyArg_ParseTuple(args,"s",&filename) )
+    return NULL;
+
+  try
+  {
+    // create BOIO object
+    BOIO *pboio = new BOIO(filename);
+    // return as a PyCObject
+    return PyCObject_FromVoidPtr(pboio,deleteBoioObject);
+  }
+  catchStandardErrors(NULL);
+
+  returnNone;
+}
+
+static PyObject * read_boio (PyObject *, PyObject *args)
+{
+  PyObject * pyboio;
+  // ref count of object is not increased, so do not attach ref
+  if( !PyArg_ParseTuple(args,"O",&pyboio) )
+    return NULL;
+
+  try
+  {
+    // extract pointer to BOIO object
+    FailWhen(!PyCObject_Check(pyboio),"argument is not a valid boio object");
+    BOIO *pboio = static_cast<BOIO*>(PyCObject_AsVoidPtr(pyboio));
+    FailWhen(!pboio,"argument is not a valid boio object");
+    // read next entry
+    ObjRef entry;
+    if( !pboio->readAny(entry) )
+      returnNone;
+    return pyFromDMI(*entry);
+  }
+  catchStandardErrors(NULL);
+
+  returnNone;
+}
+
+
+
 // -----------------------------------------------------------------------
 // Module initialization
 // -----------------------------------------------------------------------
@@ -100,38 +151,42 @@ static PyMethodDef MeqUtilMethods[] = {
           "returns axis ID for given axis number" },
     { "set_axis_list",set_axis_list,METH_VARARGS,
           "changes the axis list" },
+    { "open_boio",open_boio,METH_VARARGS,
+          "opens a BOIO file for reading" },
+    { "read_boio",read_boio,METH_VARARGS,
+          "reads one entry from BOIO file, returns None at end of file" },
     { NULL, NULL, 0, NULL} };       /* Sentinel */
 
-        
+
 void initMeqUtilsModule ()
 {
   Debug::Context::initialize();
-  
+
   // init the module
   PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
         "various utilities for python-side meqkernel support");
   if( !module )
     Throw("Py_InitModule3(\"mequtils\") failed");
-  
-  PyObjectRef timbamod = PyImport_ImportModule("Timba");  
+
+  PyObjectRef timbamod = PyImport_ImportModule("Timba");
   Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"mequtils",module);
 
   PyModule_AddObject(module,"max_axis",PyInt_FromLong(Meq::Axis::MaxAxis));
-  
+
   // drop out on error
   if( PyErr_Occurred() )
     Throw("can't initialize module mequtils");
 }
-  
 
-extern "C" 
-{    
-    
+
+extern "C"
+{
+
 PyMODINIT_FUNC initmequtils ()
 {
   Debug::Context::initialize();
-  
+
   try
   {
     initMeqUtilsModule();

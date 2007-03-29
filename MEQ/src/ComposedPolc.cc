@@ -6,7 +6,7 @@
 #include <MEQ/ComposedPolc.h>
 #include <MEQ/MeqVocabulary.h>
 
-namespace Meq {    
+namespace Meq {
   static DMI::Container::Register reg(TpMeqComposedPolc,true);
 
 
@@ -14,12 +14,12 @@ namespace Meq {
   {
     //   cdebug(3)<<"creating composed polc"<<endl;
     (*this)[FClass]=objectType().toString();
-   
+
     initFunklets(funklets);
   }
 
 
-  ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) : 
+  ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) :
     Polc(other,flags,depth),nr_funklets_(other.nr_funklets_)
   {
     (*this)[FClass]=objectType().toString();
@@ -27,21 +27,21 @@ namespace Meq {
       axisHasShape_[i]=other.axisHasShape_[i];
   }
 
-  ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) : 
+  ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) :
     Polc(other,flags,depth),nr_funklets_(0)
   {
     (*this)[FClass]=objectType().toString();
-    
+
   }
-  
+
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
     Polc(pert,weight,id),nr_funklets_(0)
    {
     (*this)[FClass]=objectType().toString();
-      
+
    }
 
-void ComposedPolc::validateContent (bool recursive)    
+void ComposedPolc::validateContent (bool recursive)
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields; setup shortcuts
@@ -60,13 +60,13 @@ void ComposedPolc::validateContent (bool recursive)
 	if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
 	{
 	  //convert to double
-	  
+
 	}
 	FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
-	
+
 	// check for sanity
 	FailWhen((*pcoeff_)->rank()>MaxPolcRank,"Meq::Polc: coeff can have max. rank of 2");
-	
+
       }
       else
 	pcoeff_ = 0;
@@ -74,7 +74,7 @@ void ComposedPolc::validateContent (bool recursive)
     //init_funklets
     Field * fld = Record::findField(FFunkletList);
     FailWhen(!fld,"no funklet list in record of composedpolc");
-    
+
     DMI::List * funklistp =   fld->ref().ref_cast<DMI::List>() ;
     int nr_funklets = nr_funklets_ = funklistp->size();
     vector<Funklet::Ref>  funklets;
@@ -88,8 +88,8 @@ void ComposedPolc::validateContent (bool recursive)
       funklets.push_back(funkref);
      }
     initFunklets(funklets);
-   
-      
+
+
   }
   catch( std::exception &err )
   {
@@ -101,7 +101,7 @@ void ComposedPolc::validateContent (bool recursive)
   }
 }
 
-  
+
   void ComposedPolc::initFunklets(vector<Funklet::Ref> & funklets)
   {
     Thread::Mutex::Lock lock(mutex());
@@ -118,10 +118,10 @@ void ComposedPolc::validateContent (bool recursive)
     for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
       {
 	FailWhen(!(*funkIt).valid(),"this is not a valid funkIt");
-	//check on shape 
+	//check on shape
 	const LoShape fshape= (*funkIt)->getCoeffShape ();
 	  const int rank=(*funkIt)->rank();
-	  for(uint axisi= 0; axisi<rank;axisi++){
+	  for(uint axisi= 0; axisi<uint(rank);axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape.size()>axisi && fshape[axisi]>1 )
@@ -133,15 +133,15 @@ void ComposedPolc::validateContent (bool recursive)
 	      { axisHasShape_[axisi]=1; continue;}
 	}
 	newdom=newdom.envelope((*funkIt)->domain());
-	
+
 	//add to DMI List to show up in tree
 
 	funklist().addBack(*funkIt);
-	
-	
+
+
       }
     setDomain(newdom);
-    (*this)[FFunkletList].replace() = funklist; 
+    (*this)[FFunkletList].replace() = funklist;
   }
 
 
@@ -151,7 +151,7 @@ void ComposedPolc::validateContent (bool recursive)
                             int makePerturbed) const
   {
 
-    
+
     //get funklets from list
 
 
@@ -164,11 +164,11 @@ void ComposedPolc::validateContent (bool recursive)
 
 
     int nr_funklets = funklistp->size();
-    int nr_parms = getNumParms(); 
-    int nr_spids = getNrSpids(); 
+    int nr_parms = getNumParms();
+    int nr_spids = getNrSpids();
 
     const int nr_axis=cells.rank();
-    
+
     LoVec_double startgrid[nr_axis],endgrid[nr_axis],sizegrid[nr_axis],centergrid[nr_axis];
     for(int i=0;i<nr_axis;i++){
       startgrid[i].resize(cells.ncells(i));
@@ -181,7 +181,7 @@ void ComposedPolc::validateContent (bool recursive)
       endgrid[i]=cells.cellEnd(i);
 
     }
-    
+
 
     //init vells with 0
     Vells::Shape res_shape;
@@ -193,11 +193,11 @@ void ComposedPolc::validateContent (bool recursive)
 	res_shape[iaxis]=cells.ncells(iaxis);
       else
     	res_shape[iaxis]=1;
-	
+
     cdebug(3)<<"evalauating cells with res_Shape : "<<res_shape<<endl;
     double *value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
 
-    double *pertValPtr[makePerturbed][nr_spids]; 
+    double *pertValPtr[makePerturbed][nr_spids];
    // Create a vells for each perturbed value.
     // Keep a pointer to its storage
     if(makePerturbed)
@@ -205,11 +205,11 @@ void ComposedPolc::validateContent (bool recursive)
 	for(int ipert=0;ipert<makePerturbed;ipert++)
 	  for(int ispid=0;ispid<nr_spids;ispid++)
 	      {
-		pertValPtr[ipert][ispid] = 
+		pertValPtr[ipert][ispid] =
 		vs.setPerturbedValue(ispid,new Vells(double(0),res_shape,true),ipert)
 		.realStorage();
 
-	      }	
+	      }
       }
 
 
@@ -224,7 +224,7 @@ void ComposedPolc::validateContent (bool recursive)
 
       //get cells for this domain
       int isConstant=1;
-  
+
       //if funklet is constant, we dont have to do all the work, just fill the fitting vells
       double constpart=0;
       double constpert[2];
@@ -245,7 +245,7 @@ void ComposedPolc::validateContent (bool recursive)
 	int maxk=std::min(res_shape[axisi],startgrid[axisi].size());
 	int k=0;
 	while(k<maxk  && centergrid[axisi](k)<polcdom.start(axisi)) k++;
-	
+
 	starti[axisi] = k;
 	k=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);
 	while(k>0 && (centergrid[axisi](k)>polcdom.end(axisi))) k--;
@@ -256,16 +256,16 @@ void ComposedPolc::validateContent (bool recursive)
       //      if(endi[0]<starti[0]) continue;/
       //     if(nr_axis>1 && (endi[1]<starti[1])) continue;
 
-	
+
 
       VellSet partvs;
       if(!isConstant)
 	{
-	  partfunk.evaluate(partvs,cells,makePerturbed);  
+	  partfunk.evaluate(partvs,cells,makePerturbed);
 	  if(partvs.isNull ()) continue;
 	}
       int maxnx=1;
-      int maxny=1;  
+      int maxny=1;
       if(!isConstant && partvs.hasShape()){
 	maxnx =  partvs.shape()[0];
 	maxny =  partvs.shape()[1];
@@ -305,9 +305,9 @@ void ComposedPolc::validateContent (bool recursive)
 // 		    perts[ipert][ispid].resize(partvs.getPerturbedValue(ispid,ipert).shape());
 // 		    perts[ipert][ispid]=partvs.getPerturbedValue(ispid,ipert).getConstArray<double,2>();
 		    perts[ipert][ispid] = partvs.getPerturbedValue(ispid,ipert).getStorage<double>();
-		  }		  
+		  }
 		}
-	      
+
 	    }//ipert loop
 
 	  }//makeperturbed
@@ -315,7 +315,7 @@ void ComposedPolc::validateContent (bool recursive)
 
 	}//not constant
 
-  
+
       //now fill result in array..
       int nx(0),ny(0);
       for(int valx = starti[0];valx<=endi[0];valx++){
@@ -331,14 +331,14 @@ void ComposedPolc::validateContent (bool recursive)
 
 	      value[idx] = parts[ny+nx*maxny] ;
 	    }
-	  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
+	  ny=std::min(ny+1,maxny-1);//put check on y shape b4
 	}
-	nx=std::min(nx+1,maxnx-1);//put check on x shape b4 
+	nx=std::min(nx+1,maxnx-1);//put check on x shape b4
       }
 
 
       //fill perturbed values
-      
+
       if( makePerturbed )
 	{
 	  for( int ipert=0; ipert<makePerturbed; ipert++ )
@@ -358,11 +358,11 @@ void ComposedPolc::validateContent (bool recursive)
 			  pertValPtr[ipert][ispid][idx] = (perts[ipert][ispid])[ny+nx*maxny] ;
 			}
 		    }
-		  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
+		  ny=std::min(ny+1,maxny-1);//put check on y shape b4
 		}
-		nx=std::min(nx+1,maxnx-1);//put check on x shape b4 
+		nx=std::min(nx+1,maxnx-1);//put check on x shape b4
 	      }
-	      
+
 
 
 	    }//loop over perturbations
@@ -399,14 +399,14 @@ void ComposedPolc::validateContent (bool recursive)
      for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
 
-	
+
 	Funklet::Ref partfunk = funklist.get(funknr);
 	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
-  
-    
-	for( int i=0; i<nr_spids; i++ ) 
+
+
+	for( int i=0; i<nr_spids; i++ )
 	  {
-	    if( spidIndex[i] >= 0 ) 
+	    if( spidIndex[i] >= 0 )
 	      {
 		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
@@ -414,14 +414,14 @@ void ComposedPolc::validateContent (bool recursive)
 		  coeff[i]=std::fabs(coeff[i]);
 	      }
 	  }
-	
+
 	funklist.replace(funknr,partfunk);
 	ifunk++;
 
-	
+
       }//loop over funklets
 
-   
+
   }
 
 
@@ -441,14 +441,14 @@ void ComposedPolc::validateContent (bool recursive)
      for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
 
-	
+
 	Funklet::Ref partfunk = funklist.get(funknr);
 	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
-  
-    
-	for( int i=0; i<nr_spids; i++ ) 
+
+
+	for( int i=0; i<nr_spids; i++ )
 	  {
-	    if( spidIndex[i] >= 0 ) 
+	    if( spidIndex[i] >= 0 )
 	      {
 		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
@@ -464,14 +464,14 @@ void ComposedPolc::validateContent (bool recursive)
 
 	      }
 	  }
-	
+
 	funklist.replace(funknr,partfunk);
 	ifunk++;
 
-	
+
       }//loop over funklets
 
-   
+
   }
 
   void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive)
@@ -490,36 +490,36 @@ void ComposedPolc::validateContent (bool recursive)
      for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
 
-	
+
 	Funklet::Ref partfunk = funklist.get(funknr);
 	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
-  
-    
-	for( int i=0; i<nr_spids; i++ ) 
+
+
+	for( int i=0; i<nr_spids; i++ )
 	  {
-	    if( spidIndex[i] >= 0 ) 
+	    if( spidIndex[i] >= 0 )
 	      {
 		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
 
 
-		if(i<constraints_max.size())
+		if(i<int(constraints_max.size()))
 		  coeff[i] = std::min(coeff[i],constraints_max[i]);
-		if(i<constraints_min.size())
+		if(i<int(constraints_min.size()))
 		  coeff[i] = std::max(coeff[i],constraints_min[i]);
 		if(force_positive && partfunk->isConstant())
 		  coeff[i]=std::fabs(coeff[i]);
 
 	      }
 	  }
-	
+
 	funklist.replace(funknr,partfunk);
 	ifunk++;
 
-	
+
       }//loop over funklets
 
-   
+
   }
 
 
@@ -532,18 +532,18 @@ void ComposedPolc::validateContent (bool recursive)
       return;
     }
     DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
-    
+
     int nrfunk=funklist.size();
     for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
-      
-	
+
+
 	Funklet::Ref partfunk = funklist.get(funknr);
-      
+
 	partfunk().changeSolveDomain(solveDomain);
 
 	funklist.replace(funknr,partfunk);
-		
+
       }//loop over funklets
   };
 
@@ -560,18 +560,18 @@ void ComposedPolc::validateContent (bool recursive)
       return;
     }
     DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
-    
+
     int nrfunk=funklist.size();
     for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
-      
-	
+
+
 	Funklet::Ref partfunk = funklist.get(funknr);
-      
+
 	partfunk().changeSolveDomain(solveDomain);
 
 	funklist.replace(funknr,partfunk);
-		
+
       }//loop over funklets
   };
 
@@ -586,27 +586,27 @@ void ComposedPolc::validateContent (bool recursive)
       return;
     }
     DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
-    
+
     int nrfunk=funklist.size();
     for(int funknr=0 ; funknr<nrfunk ; funknr++)
       {
-      
-	
+
+
 	Funklet::Ref partfunk = funklist.get(funknr);
-      
+
 	partfunk().setCoeffShape(shape);
 
 	funklist.replace(funknr,partfunk);
-		
+
       }//loop over funklets
     //also set shape of own coeff, for spid recovery
     Funklet::Ref partfunk = funklist.get(0);
-    
+
     setCoeff(partfunk->coeff());
   };
 
 }//namespace Meq
 
-      
-   
-     
+
+
+

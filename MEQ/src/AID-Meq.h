@@ -28,6 +28,11 @@ const int AidAdd_int = -1088;
 const DMI::AtomicID AidAll(-1286);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 const int AidAll_int = -1286;
 #endif
+#ifndef _defined_id_AidAppend
+#define _defined_id_AidAppend 1
+const DMI::AtomicID AidAppend(-1723);             // from /home/oms/Timba/MEQ/src/Forest.h:35
+const int AidAppend_int = -1723;
+#endif
 #ifndef _defined_id_AidAuto
 #define _defined_id_AidAuto 1
 const DMI::AtomicID AidAuto(-1213);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
@@ -288,6 +293,11 @@ const int AidFail_int = -1248;
 const DMI::AtomicID AidFails(-1605);              // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 const int AidFails_int = -1605;
 #endif
+#ifndef _defined_id_AidFile
+#define _defined_id_AidFile 1
+const DMI::AtomicID AidFile(-1224);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+const int AidFile_int = -1224;
+#endif
 #ifndef _defined_id_AidFit
 #define _defined_id_AidFit 1
 const DMI::AtomicID AidFit(-1281);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
@@ -467,6 +477,11 @@ const int AidLink_int = -1375;
 #define _defined_id_AidList 1
 const DMI::AtomicID AidList(-1040);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 const int AidList_int = -1040;
+#endif
+#ifndef _defined_id_AidLog
+#define _defined_id_AidLog 1
+const DMI::AtomicID AidLog(-1724);                // from /home/oms/Timba/MEQ/src/Node.h:48
+const int AidLog_int = -1724;
 #endif
 #ifndef _defined_id_AidM
 #define _defined_id_AidM 1
@@ -1007,6 +1022,11 @@ const int AidTiling_int = -1562;
 #define _defined_id_AidTime 1
 const DMI::AtomicID AidTime(-1126);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 const int AidTime_int = -1126;
+#endif
+#ifndef _defined_id_AidTimestamp
+#define _defined_id_AidTimestamp 1
+const DMI::AtomicID AidTimestamp(-1054);          // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
+const int AidTimestamp_int = -1054;
 #endif
 #ifndef _defined_id_AidTotal
 #define _defined_id_AidTotal 1
