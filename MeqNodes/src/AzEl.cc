@@ -110,6 +110,8 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
   // Get RA and DEC, and station positions
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+
   if( obs_name_.empty() )
     {
       const Vells& vx   = *(args[1][0]);
@@ -120,7 +122,6 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
       Assert( vra.isScalar() && vdec.isScalar() &&
           vx.isScalar() && vy.isScalar() && vz.isScalar() );
 
-      Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
       double x = vx.getScalar<double>();
       double y = vy.getScalar<double>();
       double z = vz.getScalar<double>();
@@ -131,7 +132,6 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
   {
       // NB: for the time being we only support scalars
       Assert( vra.isScalar() && vdec.isScalar() );
-      Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
       // create frame for an observatory
       MPosition Obs;
       MeasTable::Observatory(Obs,obs_name_);
