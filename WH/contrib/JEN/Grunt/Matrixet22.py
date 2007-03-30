@@ -148,6 +148,10 @@ class Matrixet22 (object):
             self._pgm.merge(merge.ParmGroupManager())
         return self._pgm
 
+    def pgm (self):
+        """Return its ParmGroupManager object."""
+        return self._pgm
+
     #-------------------------------------------------------------------
 
     def indices(self, new=None):
@@ -317,10 +321,11 @@ class Matrixet22 (object):
     # Interface functions with its ParmGroupManager:
     #=====================================================================================
 
-    def define_parmgroup(self, key, quals=[], descr=None, tags=[], 
-                         default=None, constraint=None, override=None,
-                         simul=None, simulate_override=None,
-                         rider=None):
+    def define_parmgroup_obsolete(self, key, quals=[],
+                                  descr=None, tags=[], 
+                                  default=None, constraint=None, override=None,
+                                  simul=None, simulate_override=None,
+                                  rider=None):
         """Interface function to define a parmgroup. Most aguments are passed straight to
         the ParmGroupManager, but this is the place to do some Matrixet22-specific things"""
 
@@ -329,20 +334,21 @@ class Matrixet22 (object):
 
         simulate = (self._simulate or simulate_override)
 
-        pg = self._pgm.define_parmgroup(key=key, quals=quals, descr=descr, tags=tags, 
-                                        default=default, constraint=constraint,
-                                        override=override, 
-                                        simul=simul, simulate=simulate,
-                                        rider=rider)
-        return pg
+        qkey = self._pgm.define_parmgroup(self._ns, key=key, quals=quals,
+                                          descr=descr, tags=tags, 
+                                          default=default, constraint=constraint,
+                                          override=override, 
+                                          simul=simul, simulate=simulate,
+                                          rider=rider)
+        return qkey
 
-    def create_parmgroup_entry(self, key=None, qual=None, quals=[]):
-        """Create an entry (qual, e.g. station nr) in a previously defined parmgroup (key)"""
-        return self._pgm.create_parmgroup_entry(key=key, qual=qual, quals=quals)
+    # def create_parmgroup_entry(self, key=None, qual=None):
+    #     """Create an entry (qual, e.g. station nr) in a previously defined parmgroup (key)"""
+    #     return self._pgm.create_parmgroup_entry(key=key, qual=qual)
 
-    def define_gogs(self, name='mx22_pgm'):
-        """Define groups of parmgroups, using their tags"""
-        return self._pgm.define_gogs(name=name)
+    # def define_gogs(self, name='mx22_pgm'):
+    #     """Define groups of parmgroups, using their tags"""
+    #     return self._pgm.define_gogs(name=name)
 
     #=====================================================================================
     # Accumulist service:
@@ -741,16 +747,20 @@ class Matrixet22 (object):
         for key in keys:                           # keys=['m11','m12','m21','m22']
             index += 1
             indices.append(index)
-            self.define_parmgroup(key, descr='matrix element: '+key,
-                                  default=dict(value=index/10.0),
-                                  # simul=dict(stddev=0.01),
-                                  tags=['testing'])
+            qkey = self.pgm().define_parmgroup(self._ns, key,
+                                               # quals='xxx',
+                                               descr='matrix element: '+key,
+                                               default=dict(value=index/10.0),
+                                               # simul=dict(stddev=0.01),
+                                               simulate=True,
+                                               rider=dict(matrel='*'),
+                                               tags=['testing'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             for elem in keys:
                 mm[elem] = ns.polar(elem)(key) << Meq.Polar(1.0, 0.0)
             # The one non-zero element is complex, with amplitude=1.0,
             # and phase equal to index/10 radians (plus variation if simulate=True):
-            phase = self.create_parmgroup_entry(key, index)
+            phase = self.pgm().create_parmgroup_entry(qkey, index)
             mm[key] = ns.polar(key) << Meq.Polar(1.0, phase)
             mat = ns[name](index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                   mm['m21'],mm['m22'])
@@ -759,7 +769,7 @@ class Matrixet22 (object):
         self.matrixet(new=ns[name])
 
         # Make some secondary (composite) ParmGroups:
-        self._pgm.define_gogs('test')
+        self.pgm().define_gogs('test')
         return True
 
 

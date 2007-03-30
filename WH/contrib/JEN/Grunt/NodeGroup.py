@@ -45,7 +45,6 @@ class NodeGroup (object):
 
         # Node-name qualifiers:
         self._ns = Meow.QualScope(ns, quals=quals)
-        self._ns = self._ns._derive(append=self._label)
 
         self._nodelist = []                   # initialise the internal nodelist
         if len(nodelist)>0:
@@ -89,11 +88,9 @@ class NodeGroup (object):
         ss = '<NodeGroup>'
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
-        ss += ' tags='+str(self._tags)
-        ss += ' quals='+str(self._ns._qualstring())
-        if True and len(self._rider)>0:
-            for key in self._rider.keys():
-                ss += ' ('+key+'='+str(self._rider[key])+')'
+        ss += '  quals='+str(self._ns._qualstring())
+        ss += '  tags='+str(self._tags)
+        # if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
 
     def display_specific(self, full=False):
@@ -204,6 +201,7 @@ class NodeGroup (object):
         of nodes have the same order."""
         ns = self._ns._merge(other._ns)
         ns = ns._derive(append=quals)
+        # ns = ns._derive(append=self.label())
         nn1 = self.nodelist()
         nn2 = other.nodelist()
         self.match(other, 'compare()')
@@ -234,6 +232,7 @@ class NodeGroup (object):
         If replace==True, replace the group nodes with the results."""
         ns = self._ns._merge(other._ns)
         ns = ns._derive(append=quals)
+        # ns = ns._derive(append=self.label())
         self.match(other, 'binop()')
         unode = ns['ng_'+str(binop)]
         cc = []
@@ -248,6 +247,7 @@ class NodeGroup (object):
     def unop(self, unop=None, quals=None, replace=False):
         """Do an (item-by-item) unary operation (e.g. Abs) on its nodes"""
         ns = self._ns._derive(append=quals)
+        # ns = ns._derive(append=self.label())
         unode = ns['ng_'+str(unop)]
         cc = []
         for i in range(len(self._nodelist)):
@@ -261,6 +261,7 @@ class NodeGroup (object):
     def bundle(self, oper='Composer', quals=None):
         """Bundle its nodes, using an operation like Compose, Add, Multiply etc"""
         ns = self._ns._derive(append=quals, prepend=oper)
+        ns = ns._derive(append=self.label())
         node = ns['ng_bundle_'+str(self.len())]
         if not node.initialized():
             node << getattr(Meq,oper)(children=self.nodelist())
@@ -273,6 +274,7 @@ class NodeGroup (object):
         """Visualise all the NodeGroup entries in a single real-vs-imag plot."""
         if not self._dcoll:
             ns = self._ns._derive(append=quals)
+            ns = ns._derive(append=self.label())
             cc = self.nodelist() 
             rr = MG_JEN_dataCollect.dcoll (ns, cc, 
                                            scope='', tag='',
@@ -293,6 +295,7 @@ class NodeGroup (object):
         """Visualise all the NodeGroup entries in a single plot"""
         if not self._coll:
             ns = self._ns._derive(append=quals)
+            ns = ns._derive(append=self.label())
             cc = self.nodelist()
             if len(cc)==0: return None
             coll = ns.ng_coll
@@ -402,7 +405,7 @@ class NodeGog (object):
 
         # Node-name qualifiers:
         self._ns = Meow.QualScope(ns, quals=quals)
-        self._ns = self._ns._derive(append=self._label)
+        # self._ns = self._ns._derive(append=self._label)
 
         self._group = []                      # initialise the internal group
         if len(group)>0:                      # group supplied externally
@@ -438,16 +441,15 @@ class NodeGog (object):
         ss = '<NodeGog>'
         ss += ' %10s'%(self.label())
         n = self.len()
-        ss += ' (n='+str(n)+')'
+        ss += ' (n='+str(n)+'):'
         gg = self.labels()
         nmax = 5
         if n>nmax:
             gg = gg[0:nmax]
             gg.extend(['...',self.labels()[n-1]])
-        ss += ' '+str(gg)
-        if False and len(self._rider)>0:
-            for key in self._rider.keys():
-                ss += ' ('+key+'='+str(self._rider[key])+')'
+        ss += '   '+str(gg)
+        # ss += ' quals='+str(self._ns._qualstring())
+        # if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
 
     def display_specific(self, full=False):
@@ -536,6 +538,7 @@ class NodeGog (object):
         """Bundle its bundled NodeGroups, using an operation like
         Compose, Add, Multiply etc"""
         ns = self._ns._derive(append=quals, prepend=oper)
+        ns = ns._derive(append=self.label())
         cc = []
         for ng in self._group:
             cc.append(ng.bundle(oper=oper))
@@ -552,7 +555,8 @@ class NodeGog (object):
             if not coll==None: cc.append(coll)
         if len(cc)==0: return False
         if len(cc)==1: return cc[0]
-        ns = self._ns._derive(append=quals)
+        ns = self._ns._derive(append=quals) 
+        ns = ns._derive(append=self.label())
         coll = ns.gog_coll
         if not coll.initialized():
             coll << Meq.Composer(children=cc)
@@ -620,6 +624,7 @@ class NodeGog (object):
         a single (realvsimag) plot, each with its own plot-style"""
         if not self._dcoll:
             ns = self._ns._derive(append=quals)
+            ns = ns._derive(append=self.label())
             dcolls = []
             for ng in self._group:
                 cc = ng.nodelist()

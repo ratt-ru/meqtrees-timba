@@ -42,7 +42,8 @@ class ParmGroup (NodeGroup.NodeGroup):
                  descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
                  parmtable=None,
-                 default=None, constraint=None, override=None, rider=None):
+                 default=None, constraint=None, override=None,
+                 rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
                                      quals=quals, descr=descr, tags=tags, 
@@ -88,14 +89,12 @@ class ParmGroup (NodeGroup.NodeGroup):
         # The information may be overridden:
         self._override = dict()
         if isinstance(override, dict):
-            # print '** self._default (before)=',self._default,self._tags
             for tag in self._tags:
-                # print '- tag =',tag
                 if override.has_key(tag):                     # relevant for this ParmGroup
                     self._override = deepcopy(override[tag])  # copy ony the relevant part
-                    # print '   self._override =',self._override
                     self.override_default(self._override)
-            # print '** self._default (after)=',self._default,'\n'
+
+
 
         #------------------------------------------------------
         # Make the MeqParm initrec (used in create_entry()):
@@ -134,7 +133,7 @@ class ParmGroup (NodeGroup.NodeGroup):
                              node_groups=self._node_groups,
                              tags=self._tags)
 
-        # Speacial: deal with constrain:
+        # Special: deal with constrain:
         if self._default['constrain']:
             self._default['constrain_min'] = self._default['constrain'][0]
             self._default['constrain_max'] = self._default['constrain'][1]
@@ -145,7 +144,8 @@ class ParmGroup (NodeGroup.NodeGroup):
         # NB: constrain ONLY works on c00!!
         for key in ['constrain','constrain_min','constrain_max']:
             if self._initrec.has_key(key): self._initrec['shape'] = [0,0]
-        
+
+        # Finished:
         return None
 
     #-------------------------------------------------------------------
@@ -230,10 +230,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         ss = '<ParmGroup>'
         ss += ' %16s'%(self.label())
         ss += ' (n='+str(self.len())+')'
-        ss += ' tags='+str(self._tags)
-        if True and len(self._rider)>0:
-            for key in self._rider.keys():
-                ss += ' ('+key+'='+str(self._rider[key])+')'
+        ss += '  quals='+str(self._ns._qualstring())
+        ss += '  tags='+str(self._tags)
+        if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
 
     #-------------------------------------------------------------------
@@ -267,27 +266,27 @@ class ParmGroup (NodeGroup.NodeGroup):
     def constraint_condeq (self, quals=None):
         """Make a constraint condeq, if specified"""
         if not isinstance(self._constraint, dict): return None
-        quals = self._quals.get(append=quals)
+        ns = self._ns._derive(append=quals)
         ct = self._constraint
         nn = self.nodelist()
         cc = []
         if ct.has_key('sum'):
             value = ct['sum']
             name = 'sum('+self.label()+')'
-            node = self._ns[name](*quals) << Meq.Add(children=nn)
+            node = ns[name] << Meq.Add(children=nn)
             name += '='+str(value)
-            cc.append(self._ns[name](*quals) << Meq.Condeq(node, value))
+            cc.append(ns[name] << Meq.Condeq(node, value))
         if ct.has_key('product'):
             value = ct['product']
             name = 'prod('+self.label()+')'
-            node = self._ns[name](*quals) << Meq.Multiply(children=nn)
+            node = ns[name] << Meq.Multiply(children=nn)
             name += '='+str(value)
-            cc.append(self._ns[name](*quals) << Meq.Condeq(node, value))
+            cc.append(ns[name] << Meq.Condeq(node, value))
         if ct.has_key('first'):
             value = ct['first']
             name = 'first('+self.label()+')'
             name += '='+str(value)
-            cc.append(self._ns[name](*quals) << Meq.Condeq(nn[0], value))
+            cc.append(ns[name] << Meq.Condeq(nn[0], value))
         return cc
 
 
@@ -457,7 +456,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # that this is a simulated parameter.
         if not 'simul' in self._tags:
             self._tags.append('simul')         
-        self._quals.append('simul')
+        self._ns = self._ns._derive(prepend='simul')
+
 
         # The default value(s) of the MeqParm that is being simulated:
         self._default = deepcopy(default)
@@ -539,10 +539,9 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         ss = '<SimulatedParmGroup>'
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
-        ss += ' tags='+str(self._tags)
-        if True and len(self._rider)>0:
-            for key in self._rider.keys():
-                ss += ' ('+key+'='+str(self._rider[key])+')'
+        ss += '  quals='+str(self._ns._qualstring())
+        ss += '  tags='+str(self._tags)
+        # if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
 
     #-------------------------------------------------------------------
@@ -563,13 +562,12 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def create_entry (self, quals=None):
+    def create_entry (self, qual=None):
         """Create an entry, i.e. a simulation subtree, that simulates
         a MeqParm node that varies with time and/or frequency, and append
         it to the nodelist"""
 
-        # If in a qualifier (qual) is specified, append it to the temporary quals list: 
-        quals = self._quals.get(append=quals)
+        ns = self._ns._derive(append=qual)
 
         pp = self._simul                                    # Convenience
             
@@ -579,13 +577,13 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
         # The default value is the one that would be used for a regular
         # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
-        default_value = self._ns.default_value(*quals) << Meq.Constant(pp['default_value'])
+        default_value = ns.default_value << Meq.Constant(pp['default_value'])
 
 
         # Calculate the time variation:
         time_variation = None
         if pp['Psec']>0.0:
-            tvar = self._ns.time_variation(*quals)
+            tvar = ns.time_variation
             ampl = 0.0
             if pp['stddev']:                                # variation of the default value
                 stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
@@ -596,8 +594,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 stddev = pp['Psec_stddev']*pp['Psec']       # NB: Psec_stddev is relative
                 Psec = random.gauss(pp['Psec'], stddev) 
             Psec = tvar('Psec') << Meq.Constant(Psec)
-            time = self._ns << Meq.Time()
-            # time = self._ns << (time - 4e9)                 # ..........?
+            time = ns.time << Meq.Time()
+            # time = ns << (time - 4e9)                 # ..........?
             pi2 = 2*math.pi
             costime = tvar('cos') << Meq.Cos(pi2*time/Psec)
             time_variation = tvar << Meq.Multiply(ampl,costime)
@@ -605,7 +603,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # Calculate the freq variation:
         freq_variation = None
         if pp['PMHz']>0.0:
-            fvar = self._ns.freq_variation(*quals) 
+            fvar = ns.freq_variation 
             ampl = 0.0
             if pp['stddev']:                                # variation of the default value
                 stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
@@ -617,7 +615,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 PMHz = random.gauss(pp['PMHz'], stddev) 
             PHz = PMHz*1e6                                  # convert to Hz
             PHz = fvar('PHz') << Meq.Constant(PHz)
-            freq = self._ns << Meq.Freq()
+            freq = ns.freq << Meq.Freq()
             pi2 = 2*math.pi
             cosfreq = fvar('cos') << Meq.Cos(pi2*freq/PHz)
             freq_variation = fvar << Meq.Multiply(ampl,cosfreq)
@@ -626,7 +624,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
-        node = self._ns.simulparm(*quals) << Meq.Add(children=cc, tags=self._tags)
+        node = ns.simulparm << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)
@@ -705,7 +703,7 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    if 1:
+    if 0:
         pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
         pg1.test()
         pg1.display()
@@ -714,7 +712,7 @@ if __name__ == '__main__':
             dcoll = pg1.visualize()
             pg1.display_subtree (dcoll, txt='dcoll')
 
-    if 0:
+    if 1:
         simul = dict(Psec=500, PMHz=100)
         # simul = dict(Psec=-1, PMHz=-1)           # negative means ignore
         default = dict(value=-1.0)

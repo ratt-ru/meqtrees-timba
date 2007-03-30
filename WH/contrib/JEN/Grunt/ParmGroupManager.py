@@ -14,6 +14,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
+import Meow
+
 from Timba.Contrib.JEN.Grunt import NodeGroup 
 from Timba.Contrib.JEN.Grunt import ParmGroup 
 from Timba.Contrib.JEN.Grunt import Qualifiers
@@ -32,15 +34,16 @@ class ParmGroupManager (object):
 
     def __init__(self, ns, quals=[], label='pgm',
                  parent='<parent object>', simulate=False):
-        self._ns = ns                                # node-scope (required)
+        # self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
         self._parent = str(parent)                   # its parent object (string)
 
-        # If True, make subtrees that simulat MeqParms
+        # If True, make subtrees that simulate MeqParms
         self._simulate = simulate
 
         # Node-name qualifiers:
-        self._quals = Qualifiers.Qualifiers(quals)
+        self._ns = Meow.QualScope(ns, quals=quals)
+        # self._ns = self._ns._derive(append=self._label)
 
         # ParmGroup objects:
         self._parmgroup = dict()                     # available ParmGroup objects (solvable)
@@ -56,10 +59,6 @@ class ParmGroupManager (object):
     def label(self):
         """Return the ParmGroupManager object label""" 
         return self._label
-
-    def quals(self, append=None, prepend=None, exclude=None, merge=None):
-        """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend, exclude=exclude, merge=merge)
 
     #-------------------------------------------------------------------
 
@@ -94,7 +93,7 @@ class ParmGroupManager (object):
         ss += '  '+str(self.label())
         ss += ' (n='+str(len(self.NodeGroup_keys()))
         ss += '+'+str(len(self.NodeGog_keys()))+')'
-        ss += '  quals='+str(self.quals())
+        ss += ' quals='+str(self._ns._qualstring())
         return ss
 
 
@@ -305,44 +304,65 @@ class ParmGroupManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def define_parmgroup(self, key, quals=[], descr=None, tags=[], 
+    def define_parmgroup(self, ns, key, quals=[], descr=None, tags=[], 
                          default=None, constraint=None, override=None,
                          simul=None, simulate=False,
                          rider=None, trace=False):
-        """Helper function to define a named (key) (Simulated)ParmGroup object."""
+        """Helper function to define a named (key+quals) (Simulated)ParmGroup
+        object. There are two modes:
+        - In normal mode (simulate=False), a ParmGroup object is created,
+          whose create_parmgroup_entry() method creates regular MeqParms.
+        - Otherwise (simulate=True), a SimulatedParmGroup object is created,
+          whose .create_parmgroup_entry() method produces subtrees that
+          simulate MeqParm behaviour. Both classes are derived from NodeGroup.
+        NB: simulate = (simulate or self._simulate).....
+        """
 
-        # There are two modes: In normal mode (simulate=False), a ParmGroup
-        # is initialised, whose create_entry() method creates regular MeqParms.
-        # Otherwise, a SimulatedParmGroup is initialises, whose .create_entry()
-        # method produces subtrees that simulate MeqParm behaviour.
+        # The parmgroup key is qkey, i.e. the specified key plus any qualifiers,
+        # (e.g. source name). For instance, qkey could be: 'Gphase_3c84'
+        # The string qkey is returned by this function, to be used in the calling
+        # function when creating a parm node by calling .create_parmgroup_entry(qkey)
+        qkey = deepcopy(key)
+        if quals:
+            if not isinstance(quals,(list,tuple)): quals=[quals]
+            for qual in quals:
+                qkey += '_'+str(qual)
 
-        quals = self.quals(append=quals)
-        qkey = self.qualify_key (key, quals=quals)
-
-        # ....
-        node_groups = ['Parm']
-        # node_groups.extend(self.quals())               # <---------- !!!
-
-        # Deal with the node tags:
-        ptags = deepcopy(tags)
+        # Since the MeqParms are all to be called 'parm' (see below),
+        # the parmgroup name is the first nodename qualifier.
+        # Thus, it will also be included in the node tags (see below).
+        uquals = deepcopy(quals)
+        if not isinstance(uquals,(list,tuple)): uquals=[uquals]
+        if not key in uquals:
+            uquals.insert(0,key)                         # prepend key
+        
+        # Tags are used for two differenr mechanisms for selecting subsets of parms
+        # that are to be solved for simultaneously:
+        # - They are attached to the MeqParms, to allow selection with the nodescope
+        #   .search() mechanism. This is used by the Meow parms.
+        # - They are also used to create groups of (Simulated)ParmGroups (gogs), which
+        #   offer some more services than the Meow parms.
+        ptags = deepcopy(tags)                           # start from given tags
         if not isinstance(ptags,(list,tuple)): ptags = [ptags]
         utags = []
         for tag in ptags:
-            if not tag in utags: utags.append(tag)       # remove doubles
-        if isinstance(quals,(list,tuple)):
-            for qual in quals:
-                if not qual in utags: utags.append(qual) # include qualifiers
+            if not tag in utags:
+                utags.append(tag)                        # remove doubles
+        for qual in uquals:
+            if not qual in utags:
+                utags.append(qual)                       # include qualifiers
+
 
         # Specific information may be attached to the ParmGroup via its rider.
-        if not isinstance(rider, dict): rider = dict()
+        # if not isinstance(rider, dict): rider = dict()
 
         # Simuation mode or not:
         simulate = (simulate or self._simulate)
 
         # OK, define the relevant ParmGroup:
         if simulate:
-            spg = ParmGroup.SimulatedParmGroup (self._ns, label=qkey,
-                                                quals=quals,
+            spg = ParmGroup.SimulatedParmGroup (ns, label=qkey,
+                                                quals=uquals,
                                                 descr=descr,
                                                 tags=utags,
                                                 simul=simul,
@@ -352,8 +372,9 @@ class ParmGroupManager (object):
             self._simparmgroup[qkey] = spg
 
         else:
-            pg = ParmGroup.ParmGroup (self._ns, label=qkey, 
-                                      quals=quals,
+            node_groups = ['Parm']
+            pg = ParmGroup.ParmGroup (ns, label=qkey, 
+                                      quals=uquals,
                                       descr=descr,
                                       default=default,
                                       constraint=constraint,
@@ -363,7 +384,9 @@ class ParmGroupManager (object):
                                       rider=rider)
             self._parmgroup[qkey] = pg
 
+
         # Collect information for define_gogs():
+        trace = True
         if trace: print '\n** define_parmgroup(',key,qkey,'): utags=',utags
         ignore = [qkey]
         for tag in utags:
@@ -378,24 +401,15 @@ class ParmGroupManager (object):
                     if trace: print '--- len(pgog[',tag,']) ->',len(self._pgog[tag])
 
         # Finished:
-        return True
-
-    #-----------------------------------------------------------------------------
-
-    def qualify_key (self, key, quals=[]):
-        """Helper function to attach qualifiers (if any) to a group key"""
-        qkey = deepcopy(key)
-        if quals:
-            for qual in quals:
-                qkey += '_'+str(qual)
         return qkey
 
+
     #-----------------------------------------------------------------------------
 
-    def create_parmgroup_entry(self, key=None, qual=None, quals=[]):
-        """Create an entry with the specified qual in the specified (key)
-        (Simulated)ParmGroup (object)"""
-        qkey = self.qualify_key (key, quals=quals)
+    def create_parmgroup_entry(self, qkey=None, qual=None):
+        """Create an entry with the specified qual in the specified (qkey)
+        (Simulated)ParmGroup (object). Note that qkey is the string that is
+        returned in the define_petmgroup() function."""
         if self._simparmgroup.has_key(qkey):
             return self._simparmgroup[qkey].create_entry(qual)
         else:
@@ -423,25 +437,29 @@ class ParmGroupManager (object):
         # Then make gogs for the tag-groups collected in .define_parmgroup()
         # If the gog already exists, append the new entries.
         for key in self._pgog.keys():
-            if not self._parmgroup.has_key(key):
+            if len(self._pgog[key])<=0:
+                pass
+            elif not self._parmgroup.has_key(key):
                 self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key,
                                                           descr='<descr>', 
                                                           group=self._pgog[key])
             elif type(self._parmgroup[key])==NodeGroup.NodeGog:
                 self._parmgroup[key].append_entry(self._pgog[key])
             else:
-                raise TypeError,'parmgroup['+key+'] is not a ParmGroup' 
+                raise TypeError,'parmgroup['+key+'] is not a NodeGog: '+str(type(self._parmgroup[key])) 
             if trace: print '--- pgog',key,'(',len(self._pgog[key]),') ->',self._parmgroup[key].len()
 
         for key in self._sgog.keys():
-            if not self._simparmgroup.has_key(key):
+            if len(self._sgog[key])<=0:
+                pass
+            elif not self._simparmgroup.has_key(key):
                 self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key,
                                                              descr='<descr>', 
                                                              group=self._sgog[key])
             elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
                 self._simparmgroup[key].append_entry(self._sgog[key])
             else:
-                raise TypeError,'simparmgroup['+key+'] is not a SimulatedParmGroup' 
+                raise TypeError,'simparmgroup['+key+'] is not a NodeGog: '+str(type(self._simparmgroup[key]))  
             if trace: print '--- sgog',key,'(',len(self._sgog[key]),') ->',self._simparmgroup[key].len()
 
 
@@ -456,7 +474,7 @@ class ParmGroupManager (object):
                 elif type(self._parmgroup[key])==NodeGroup.NodeGog:
                     self._parmgroup[key].append_entry(pg)
                 else:
-                    raise TypeError,'parmgroup['+key+'] is not a ParmGroup' 
+                    raise TypeError,'parmgroup['+key+'] is not a NodeGog' 
                 if trace: print '---',key,'(',len(pg),') ->',self._parmgroup[key].len()
 
             if len(spg)>0:
@@ -466,7 +484,7 @@ class ParmGroupManager (object):
                 elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
                     self._simparmgroup[key].append_entry(spg)
                 else:
-                    raise TypeError,'simparmgroup['+key+'] is not a SimulatedParmGroup' 
+                    raise TypeError,'simparmgroup['+key+'] is not a NodeGog' 
                 if trace: print '---',key,'(',len(spg),') ->',self._simparmgroup[key].len()
 
         if trace: print '**\n'
@@ -478,16 +496,15 @@ class ParmGroupManager (object):
 
     def test (self, names=['first','second','third']):
         """Helper function to make some test-groups"""
-        quals = self.quals()
         for name in names:
-            self.define_parmgroup(name, descr='...'+name,
-                                  quals=quals,
-                                  default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
-                                               subtile_size=1),
-                                  simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
-                                  tags=['test'])
+            qkey = self.define_parmgroup(self._ns, name, descr='...'+name,
+                                         # quals='xxx',
+                                         default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
+                                                      subtile_size=1),
+                                         simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
+                                         tags=['test'])
             for index in range(4):
-                node = self.create_parmgroup_entry(name, index, quals=quals)
+                node = self.create_parmgroup_entry(qkey, index)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()
