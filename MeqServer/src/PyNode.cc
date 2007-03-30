@@ -5,25 +5,26 @@
 namespace Meq {
 
 using namespace OctoPython;
-  
+
 InitDebugContext(PyNodeImpl,"MeqPyNode");
 
-const HIID FClassName = AidClass|AidName; 
+const HIID FClassName = AidClass|AidName;
 const HIID FModuleName = AidModule|AidName;
 
 LOFAR::Exception getPyException ()
 {
-  PyObject *etype,*evalue,*etb; 
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  PyObject *etype,*evalue,*etb;
   PyErr_Fetch(&etype,&evalue,&etb); // we get a new ref
   // if NULL, then no error has occurred, return empty list
   if( !etype )
     return LOFAR::Exception("python error has gone missing");
-  // convert to string 
-  PyObjectRef estr = PyObject_Str(evalue); 
+  // convert to string
+  PyObjectRef estr = PyObject_Str(evalue);
   // restore & print error indicator (takes away our ref)
-  PyErr_Restore(etype,evalue,etb); 
-  PyErr_Print(); 
-  return LOFAR::Exception(DMI::ExceptionList::Elem(PyString_AsString(*estr))); 
+  PyErr_Restore(etype,evalue,etb);
+  PyErr_Print();
+  return LOFAR::Exception(DMI::ExceptionList::Elem(PyString_AsString(*estr)));
 }
 
 
@@ -31,20 +32,21 @@ PyNodeImpl::PyNodeImpl (Node *node)
 : pnode_(node)
 {
 }
-    
+
 string PyNodeImpl::sdebug (int detail,const string &prefix,const char *name) const
-{ 
-  return pnode_->sdebug(detail,prefix,name); 
+{
+  return pnode_->sdebug(detail,prefix,name);
 }
 
 
 //##ModelId=3F9918390169
 void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   if( initializing )
   {
-    string classname  = rec[FClassName].as<string>(); 
-    string modulename = rec[FModuleName].as<string>(""); 
+    string classname  = rec[FClassName].as<string>();
+    string modulename = rec[FModuleName].as<string>("");
     pynode_obj_ = MeqPython::createPyNode(*pnode_,classname,modulename);
     PyFailWhen(!pynode_obj_,"Failed to create PyNode object "+modulename+"."+classname);
     // clear errors when fetching these attributes, as they are optional
@@ -84,11 +86,12 @@ void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 }
 
 //##ModelId=3F9509770277
-int PyNodeImpl::getResult (Result::Ref &resref, 
+int PyNodeImpl::getResult (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request,bool)
 {
   FailWhen(!pynode_getresult_,"no Python-side get_result() method defined");
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
@@ -130,11 +133,12 @@ int PyNodeImpl::getResult (Result::Ref &resref,
 }
 
 //##ModelId=3F9509770277
-int PyNodeImpl::discoverSpids (Result::Ref &resref, 
+int PyNodeImpl::discoverSpids (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request)
 {
   FailWhen(!pynode_getresult_,"no Python-side discover_spids() method defined");
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
@@ -184,6 +188,7 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
 {
   if( !pynode_processcommand_ )
     return 0;
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   // build argumnent tuple
   PyObjectRef args_tuple = Py_BuildValue("sNNi",
     command.toString().c_str(),
@@ -234,7 +239,7 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
 PyObject * PyNodeImpl::convertRequest (const Request &req)
 {
   // if a new request object shows up, convert it to Python, and cache
-  // for later reuse 
+  // for later reuse
   if( !prev_request_.valid() ||
       prev_request_.deref_p() != &( req ) ||
       prev_request_->id() != req.id() )
@@ -263,14 +268,14 @@ void PyNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 }
 
 
-int PyNode::getResult (Result::Ref &resref, 
+int PyNode::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request,bool newreq)
 {
   return impl_.getResult(resref,childres,request,newreq);
 }
 
-int PyNode::discoverSpids (Result::Ref &resref, 
+int PyNode::discoverSpids (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request)
 {

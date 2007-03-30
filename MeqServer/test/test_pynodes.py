@@ -170,8 +170,8 @@ def _define_forest (ns,**kwargs):
     ns.ran3 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
                           distribution_type='gammavariate',distribution_args=(6.,1.)));
 
-  ns.rfi <<  Meq.PyFunctionNode(class_name="PyRFI",module_name=__file__);
-  ns.pynode << Meq.PyNode(ns.rfi,Meq.Sin(ns.b),class_name="PyDemoNode",module_name=__file__);
+  # ns.rfi <<  Meq.PyFunctionNode(class_name="PyRFI",module_name=__file__);
+  ns.pynode << Meq.PyNode(Meq.Sin(ns.b),class_name="PyDemoNode",module_name=__file__);
   
 
 def _test_forest (mqs,parent,**kwargs):

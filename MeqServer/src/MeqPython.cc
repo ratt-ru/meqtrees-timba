@@ -1,32 +1,34 @@
 #include "MeqPython.h"
-#include <MeqServer/MeqServer.h>    
-#include <MeqServer/MeqUtils.h>    
+#include <MeqServer/MeqServer.h>
+#include <MeqServer/MeqUtils.h>
 #include <MeqServer/PyNode.h>
 
 #include <stdio.h>
 #include <list>
 #include <DMI/DynamicTypeManager.h>
-        
+
 InitDebugContext(MeqPython,"MeqPy");
 
 namespace MeqPython
 {
-  
+
 using namespace OctoPython;
 
 static bool meq_initialized = false;
 static MeqServer *pmqs = 0;
 
-static PyObject 
+static PyObject
       *create_pynode,
       *process_init_record,
       *process_vis_header,
       *process_vis_tile,
       *process_vis_footer,
       *force_module_reload;
-  
-extern "C" 
+
+extern "C"
 {
+
+Thread::Mutex python_mutex;
 
 // -----------------------------------------------------------------------
 // mqexec ()
@@ -42,7 +44,7 @@ static PyObject * mqexec (PyObject *, PyObject *args)
   if( !pmqs )
     returnError(NULL,OctoPython,"meqserver not initialized");
   // catch all exceptions below
-  try 
+  try
   {
     cdebug(3)<<"mqexec: command string is "<<command<<endl;
     HIID cmd(command);
@@ -71,7 +73,7 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
   if( !PyArg_ParseTuple(args, "Os",&node_baton,&field_str) )
     return NULL;
   // catch all exceptions below
-  try 
+  try
   {
     FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
     Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
@@ -96,7 +98,7 @@ PyObject * PyNodeAccessor::set_node_state_field (PyObject *, PyObject *args)
   if( !PyArg_ParseTuple(args, "OsO",&node_baton,&field_str,&value) )
     return NULL;
   // catch all exceptions below
-  try 
+  try
   {
     FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
     Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
@@ -123,7 +125,7 @@ PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
   if( !PyArg_ParseTuple(args, "OO",&node_baton,&symdep_list) )
     return NULL;
   // catch all exceptions below
-  try 
+  try
   {
     FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
     Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
@@ -156,7 +158,7 @@ static PyObject * get_forest_state_field (PyObject *, PyObject *args)
   if( !pmqs )
     returnError(NULL,OctoPython,"meqserver not initialized");
   // catch all exceptions below
-  try 
+  try
   {
     HIID field(field_str);
     cdebug(3)<<"get_forest_state_field: field "<<field<<endl;
@@ -171,15 +173,15 @@ static PyObject * get_forest_state_field (PyObject *, PyObject *args)
 // Module initialization
 // -----------------------------------------------------------------------
 static PyMethodDef MeqMethods[] = {
-    { "mqexec", mqexec, METH_VARARGS, 
+    { "mqexec", mqexec, METH_VARARGS,
              "issues a MeqServer command" },
-    { "get_node_state_field", get_node_state_field, METH_VARARGS, 
+    { "get_node_state_field", get_node_state_field, METH_VARARGS,
              "returns one field of the node state" },
-    { "set_node_state_field", PyNodeAccessor::set_node_state_field, METH_VARARGS, 
+    { "set_node_state_field", PyNodeAccessor::set_node_state_field, METH_VARARGS,
              "sets one field of the node state" },
-    { "get_forest_state_field", get_forest_state_field, METH_VARARGS, 
+    { "get_forest_state_field", get_forest_state_field, METH_VARARGS,
              "returns one field of the forest state" },
-    { "set_node_active_symdeps", PyNodeAccessor::set_node_active_symdeps, METH_VARARGS, 
+    { "set_node_active_symdeps", PyNodeAccessor::set_node_active_symdeps, METH_VARARGS,
              "sets the current set of a node's symdeps" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
@@ -194,6 +196,7 @@ static PyMethodDef MeqMethods[] = {
 // -----------------------------------------------------------------------
 static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 {
+  Thread::Mutex::Lock lock(python_mutex);
   PyObjectRef pyarg = pyFromDMI(arg);
   FailWhen(!pyarg,"failed to convert argument to python");
   PyErr_Clear();
@@ -211,6 +214,7 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 // -----------------------------------------------------------------------
 PyObjectRef createPyNode (Meq::Node &pynode,const string &classname,const string &modulename)
 {
+  Thread::Mutex::Lock lock(python_mutex);
   PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
   PyObjectRef args = Py_BuildValue("(Osss)",*pynode_baton,pynode.name().c_str(),classname.c_str(),modulename.c_str());
   FailWhen(!args,"failed to build args tuple");
@@ -308,6 +312,7 @@ void processVisFooter (const DMI::Record &rec)
 // -----------------------------------------------------------------------
 void forceModuleReload ()
 {
+  Thread::Mutex::Lock lock(python_mutex);
   cdebug(1)<<"calling force_module_reload()"<<endl;
   PyObjectRef res = PyObject_CallObject(force_module_reload,NULL);
   if( PyErr_Occurred() )
@@ -326,13 +331,13 @@ void initMeqPython (MeqServer *mq)
   meq_initialized = true;
   // init Python
   Py_Initialize();
-  
-  // import the octopython and mequtils modules -- we don't want Python to pull 
-  // in the shared lib, but would rather use our (linked in) version. Doing 
+
+  // import the octopython and mequtils modules -- we don't want Python to pull
+  // in the shared lib, but would rather use our (linked in) version. Doing
   // anything else causes problems with C++ RTTI symbols.
   OctoPython::initOctoPythonModule();
   MeqUtils::initMeqUtilsModule();
-  
+
   // register ourselves as a module
   PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
             "interface to the MeqServer object");
@@ -341,7 +346,7 @@ void initMeqPython (MeqServer *mq)
     PyErr_Print();
     Throw("Python meqserver: meqserver_interface module init failed");
   }
-  
+
   // import the octopython module to init everything
   PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
   if( !kernelmod )
@@ -349,7 +354,7 @@ void initMeqPython (MeqServer *mq)
     PyErr_Print();
     Throw("Python meqserver: import of Timba.meqkernel module failed");
   }
-  
+
   create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
   if( PyErr_Occurred() )
     PyErr_Print();
@@ -360,7 +365,7 @@ void initMeqPython (MeqServer *mq)
     PyErr_Print();
   if( !force_module_reload )
     Throw("Timba.meqkernel.force_module_reload not found");
-      
+
   // get optional handlers
   process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
   PyErr_Clear();
@@ -373,7 +378,7 @@ void initMeqPython (MeqServer *mq)
   PyErr_Clear();
   cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
       <<process_vis_tile<<" "<<process_vis_footer<<endl;
-  
+
   // set verbosity level
   PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
   PyErr_Clear();
@@ -383,7 +388,7 @@ void initMeqPython (MeqServer *mq)
     if( PyErr_Occurred() )
       PyErr_Print();
   }
-  
+
   // drop out on error
   if( PyErr_Occurred() )
   {

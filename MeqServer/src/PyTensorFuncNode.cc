@@ -4,7 +4,7 @@
 namespace Meq {
 
 using namespace OctoPython;
-  
+
 PyTensorFuncImpl::PyTensorFuncImpl(Node *pnode)
  : PyNodeImpl(pnode)
 {
@@ -14,6 +14,7 @@ void PyTensorFuncImpl::computeResultCells (Cells::Ref &ref,const std::vector<Res
 {
   Assert(pynode_compute_result_cells_);
   // form up Python tuple of arguments
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
   PyObjectRef pyreq = OctoPython::pyFromDMI(request);
@@ -39,6 +40,7 @@ void PyTensorFuncImpl::computeResultCells (Cells::Ref &ref,const std::vector<Res
 LoShape PyTensorFuncImpl::getResultDims (const vector<const LoShape *> &input_dims)
 {
   Assert(pynode_get_result_dims_);
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   // form up Python tuple of dims
   PyObjectRef dims_tuple = PyTuple_New(input_dims.size());
   for( uint i=0; i<input_dims.size(); i++ )
@@ -53,7 +55,7 @@ LoShape PyTensorFuncImpl::getResultDims (const vector<const LoShape *> &input_di
   PyObjectRef retval = PyObject_CallObject(*pynode_get_result_dims_,*dims_tuple);
   PyFailWhen(!retval,"Python-side get_result_dims() method failed");
   // convert result to a LoShape
-  FailWhen(!PySequence_Check(*retval),  
+  FailWhen(!PySequence_Check(*retval),
       "Python-side get_result_dims() method must return a sequence of numbers");
   int ndims = PySequence_Length(*retval);
   LoShape resdims(ndims);
@@ -66,11 +68,12 @@ LoShape PyTensorFuncImpl::getResultDims (const vector<const LoShape *> &input_di
   return resdims;
 }
 
-void PyTensorFuncImpl::evaluateTensors (std::vector<Vells> & out,   
+void PyTensorFuncImpl::evaluateTensors (std::vector<Vells> & out,
               const std::vector<std::vector<const Vells *> > &args )
 {
   Assert(pynode_evaluate_tensors_);
-  // form up Python tuple of argument tuples
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
+// form up Python tuple of argument tuples
   PyObjectRef args_tuple = PyTuple_New(args.size());
   for( uint i=0; i<args.size(); i++ )
   {
@@ -87,7 +90,7 @@ void PyTensorFuncImpl::evaluateTensors (std::vector<Vells> & out,
   PyObjectRef retval = PyObject_CallObject(*pynode_evaluate_tensors_,*args_tuple);
   PyFailWhen(!retval,"Python-side evaluate_tensors() method failed");
   // convert result to a vector of vells
-  FailWhen(!PySequence_Check(*retval),  
+  FailWhen(!PySequence_Check(*retval),
       "Python-side evaluate_tensors() method must return a sequence of numbers");
   uint nout = PySequence_Length(*retval);
   FailWhen(nout!=out.size(),
@@ -102,9 +105,10 @@ void PyTensorFuncImpl::evaluateTensors (std::vector<Vells> & out,
     out[i] = objref.as<Vells>();
   }
 }
-    
+
 void PyTensorFuncImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
   PyNodeImpl::setStateImpl(rec,initializing);
   if( initializing )
   {
@@ -113,7 +117,7 @@ void PyTensorFuncImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     pynode_compute_result_cells_ =
         PyObject_GetAttrString(*pynode_obj_,"compute_result_cells");
     PyErr_Clear();
-    pynode_get_result_dims_ = 
+    pynode_get_result_dims_ =
         PyObject_GetAttrString(*pynode_obj_,"get_result_dims");
     PyErr_Clear();
   }
@@ -146,7 +150,7 @@ LoShape PyTensorFuncNode::getResultDims (const vector<const LoShape *> &input_di
     return TensorFunction::getResultDims(input_dims);
 }
 
-void PyTensorFuncNode::evaluateTensors (std::vector<Vells> & out,   
+void PyTensorFuncNode::evaluateTensors (std::vector<Vells> & out,
               const std::vector<std::vector<const Vells *> > &args )
 {
   impl_.evaluateTensors(out,args);
