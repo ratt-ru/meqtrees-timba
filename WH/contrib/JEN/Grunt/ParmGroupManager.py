@@ -1,7 +1,8 @@
 # file: ../Grunt/ParmGroupManager.py
 
 # History:
-# - 04jan2007: creation (extracted from Matrix22.py) 
+# - 04jan2007: creation (extracted from Matrix22.py)
+# - 30mar2007: adapted to QualScope etc
 
 # Description:
 
@@ -33,17 +34,13 @@ class ParmGroupManager (object):
     e.g. ParmGroups or SimulatedParmGroups."""
 
     def __init__(self, ns, quals=[], label='pgm',
-                 parent='<parent object>', simulate=False):
+                 parent='<parent object>'):
         # self._ns = ns                                # node-scope (required)
         self._label = label                          # label of the matrix 
         self._parent = str(parent)                   # its parent object (string)
 
-        # If True, make subtrees that simulate MeqParms
-        self._simulate = simulate
-
         # Node-name qualifiers:
         self._ns = Meow.QualScope(ns, quals=quals)
-        # self._ns = self._ns._derive(append=self._label)
 
         # ParmGroup objects:
         self._parmgroup = dict()                     # available ParmGroup objects (solvable)
@@ -112,7 +109,7 @@ class ParmGroupManager (object):
         for key in self._simparmgroup.keys():
             spg = self._simparmgroup[key]
             if not isinstance(spg, NodeGroup.NodeGog):
-                print '  - (sim) '+str(spg.oneliner())
+                print '  - '+str(spg.oneliner())
         #...............................................................
         print ' * Available NodeGog (Groups of NodeGroups) objects ('+str(len(self.NodeGog_keys()))+'): '
         for key in self._parmgroup.keys():
@@ -189,7 +186,8 @@ class ParmGroupManager (object):
         keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
         parmlist = []
         for key in keys:
-            parmlist.extend(self._parmgroup[key].nodelist())
+            if self._parmgroup.has_key(key):
+                parmlist.extend(self._parmgroup[key].nodelist())
         if trace: print '** pgm.solvable(',parmgroup,') ->',len(parmlist)
         return parmlist
     
@@ -224,7 +222,7 @@ class ParmGroupManager (object):
         """Return a more or less descriptive label for a solver node,
         constructed from the specified parmgroup(s)"""
         keys = self.parmgroup2keys(parmgroup, severe=severe, trace=trace)
-        if parmgroup=='*':
+        if parmgroup=='*' and self._parmgroup.has_key(parmgroup):
             keys = self._parmgroup['*'].labels()           # label may become too long...
             if len(keys)>2:
                 label = '_all'                             # better ?
@@ -303,11 +301,13 @@ class ParmGroupManager (object):
 
 
     #-----------------------------------------------------------------------------
+    # Definition of (groups of) parmgroups: 
+    #-----------------------------------------------------------------------------
 
-    def define_parmgroup(self, ns, key, quals=[], descr=None, tags=[], 
-                         default=None, constraint=None, override=None,
-                         simul=None, simulate=False,
-                         rider=None, trace=False):
+    def define(self, ns, key, quals=[], descr=None, tags=[], 
+               default=None, constraint=None, override=None,
+               simul=None, simulate=False,
+               rider=None, trace=False):
         """Helper function to define a named (key+quals) (Simulated)ParmGroup
         object. There are two modes:
         - In normal mode (simulate=False), a ParmGroup object is created,
@@ -356,23 +356,20 @@ class ParmGroupManager (object):
         # Specific information may be attached to the ParmGroup via its rider.
         # if not isinstance(rider, dict): rider = dict()
 
-        # Simuation mode or not:
-        simulate = (simulate or self._simulate)
-
         # OK, define the relevant ParmGroup:
         if simulate:
-            spg = ParmGroup.SimulatedParmGroup (ns, label=qkey,
-                                                quals=uquals,
-                                                descr=descr,
-                                                tags=utags,
-                                                simul=simul,
-                                                default=default,
+            pg = ParmGroup.SimulatedParmGroup (ns, label=qkey,
+                                               quals=uquals,
+                                               descr=descr,
+                                               tags=utags,
+                                               simul=simul,
+                                               default=default,
                                                 override=override,
-                                                rider=rider) 
-            self._simparmgroup[qkey] = spg
+                                               rider=rider) 
+            self._simparmgroup[qkey] = pg
 
         else:
-            node_groups = ['Parm']
+            node_groups = ['Parm']                      # used by MeqParm node....
             pg = ParmGroup.ParmGroup (ns, label=qkey, 
                                       quals=uquals,
                                       descr=descr,
@@ -386,40 +383,29 @@ class ParmGroupManager (object):
 
 
         # Collect information for define_gogs():
-        trace = True
-        if trace: print '\n** define_parmgroup(',key,qkey,'): utags=',utags
+        # trace = True
+        if trace: print '\n** define(',key,qkey,'): utags=',utags
         ignore = [qkey]
         for tag in utags:
             if not tag in ignore: 
                 if simulate:
                     self._sgog.setdefault(tag, [])
-                    self._sgog[tag].append(self._simparmgroup[qkey])
+                    self._sgog[tag].append(pg)
                     if trace: print '--- len(sgog[',tag,']) ->',len(self._sgog[tag])
                 else: 
                     self._pgog.setdefault(tag, [])
-                    self._pgog[tag].append(self._parmgroup[qkey])
+                    self._pgog[tag].append(pg)
                     if trace: print '--- len(pgog[',tag,']) ->',len(self._pgog[tag])
 
-        # Finished:
-        return qkey
+        # Return the newly defined object:
+        return pg
 
-
-    #-----------------------------------------------------------------------------
-
-    def create_parmgroup_entry(self, qkey=None, qual=None):
-        """Create an entry with the specified qual in the specified (qkey)
-        (Simulated)ParmGroup (object). Note that qkey is the string that is
-        returned in the define_petmgroup() function."""
-        if self._simparmgroup.has_key(qkey):
-            return self._simparmgroup[qkey].create_entry(qual)
-        else:
-            return self._parmgroup[qkey].create_entry(qual)
 
     #-----------------------------------------------------------------------------
 
     def define_gogs(self, name='ParmGroupManager', trace=False):
         """Helper function to define NodeGogs, i.e. groups of ParmGroups.
-        It uses the information gleaned from the tags in define_parmgroup()"""
+        It uses the information gleaned from the tags in define()"""
 
         if trace: print '\n** define_gogs(',name,'):'
 
@@ -434,7 +420,7 @@ class ParmGroupManager (object):
                 spg.append(self._simparmgroup[key])
             
 
-        # Then make gogs for the tag-groups collected in .define_parmgroup()
+        # Then make gogs for the tag-groups collected in .define()
         # If the gog already exists, append the new entries.
         for key in self._pgog.keys():
             if len(self._pgog[key])<=0:
@@ -494,17 +480,19 @@ class ParmGroupManager (object):
     #-----------------------------------------------------------------------------
     #-----------------------------------------------------------------------------
 
-    def test (self, names=['first','second','third']):
+    def test (self, names=['first','second','third'], simulate=True):
         """Helper function to make some test-groups"""
         for name in names:
-            qkey = self.define_parmgroup(self._ns, name, descr='...'+name,
-                                         # quals='xxx',
-                                         default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
-                                                      subtile_size=1),
-                                         simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
-                                         tags=['test'])
+            pg = self.define(self._ns, name,
+                             # quals='xxx',
+                             descr='...'+name,
+                             default=dict(c00=10.0, unit='rad', tfdeg=[0,0],
+                                          subtile_size=1),
+                             simul=dict(Psec=3, stddev=0.01, PMHz=9.9),
+                             simulate=simulate,
+                             tags=['test'])
             for index in range(4):
-                node = self.create_parmgroup_entry(qkey, index)
+                node = pg.create_entry(index)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()
@@ -525,7 +513,7 @@ def _define_forest(ns):
 
     cc = []
 
-    pgm = ParmGroupManager(ns, quals=[], simulate=True)
+    pgm = ParmGroupManager(ns, quals=[])
     pgm.test()
     # cc.append(pgm.visualize())
     pgm.display(full=True)
@@ -557,18 +545,18 @@ if __name__ == '__main__':
         print matchstr.sub(r'xxx', 'abcJonesABS')
 
     if 1:
-        pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH', simulate=False)
-        pgm.test(['GJones','Gphase','Ggain'])
+        pgm = ParmGroupManager(ns, quals=['3c84','xxx'], label='HH')
+        pgm.test(['GJones','Gphase','Ggain'], simulate=True)
         pgm.display_NodeGroups(full=False)
         pgm.display(full=True)
         # pgm.tabulate(parmgroup='*')
 
-        if 0:
+        if 1:
             pgm.solvable(trace=True)
             pgm.solvable('Gphase', trace=True)
             pgm.solvable('xxx', severe=False, trace=True)
         
-        if 0:
+        if 1:
             pgm.solver_label(trace=True)
             pgm.solver_label('Gphase', trace=True)
             pgm.solver_label('xxx', severe=False, trace=True)

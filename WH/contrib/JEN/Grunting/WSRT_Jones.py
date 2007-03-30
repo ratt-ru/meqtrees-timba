@@ -3,6 +3,7 @@
 # History:
 # - 14jan2007: creation (from Grunt/Joneset22.py)
 # - 29jan2007: split into uv-plane and image-plane effects
+# - 30jan2007: adapted to QualScope etc:
 
 # Description:
 
@@ -273,7 +274,6 @@ class DJones (Joneset22.Joneset22):
                                      telescope='WSRT', polrep='linear',
                                      stations=stations, simulate=simulate)
         pols = self._pols
-        quals = self.quals()
         dname = self.label()+'dang'
         ename = self.label()+'dell'
         pname = self.label()+'pzd'
@@ -281,52 +281,55 @@ class DJones (Joneset22.Joneset22):
         matrel = ['m12','m21']
 
         # Define the various primary ParmGroups:
+        pg = dict()
         if coupled_dang:
-            self.define_parmgroup(dname, descr='dipole angle error',
-                                  quals=quals,
-                                  default=dict(c00=0.0),
-                                  simul=dict(),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=[dname,jname])
+            pg[dname] = self.pgm().define(ns, dname, quals=quals,
+                                          descr='dipole angle error',
+                                          default=dict(c00=0.0),
+                                          simul=dict(),
+                                          override=override,
+                                          rider=dict(matrel=matrel),
+                                          tags=[dname,jname])
         else:
+            pg[dname] = dict()
             for pol in pols:
-                self.define_parmgroup(dname+pol, descr=pol+'-dipole angle error',
-                                      quals=quals,
-                                      default=dict(c00=0.0),
-                                      simul=dict(),
-                                      override=override,
-                                      rider=dict(matrel=matrel),
-                                      tags=[dname,jname])
+                pg[dname][pol] = self.pgm().define(ns, dname+pol,  quals=quals,
+                                                   descr=pol+'-dipole angle error',
+                                                   default=dict(c00=0.0),
+                                                   simul=dict(),
+                                                   override=override,
+                                                   rider=dict(matrel=matrel),
+                                                   tags=[dname,jname])
         if coupled_dell:
-            self.define_parmgroup(ename, descr='dipole ellipticity',
-                                  quals=quals,
-                                  default=dict(c00=0.0),
-                                  simul=dict(),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=[ename,jname])
+            pg[ename] = self.pgm().define(ns, ename,  quals=quals,
+                                          descr='dipole ellipticity',
+                                          default=dict(c00=0.0),
+                                          simul=dict(),
+                                          override=override,
+                                          rider=dict(matrel=matrel),
+                                          tags=[ename,jname])
         else:
+            pg[ename] = dict()
             for pol in pols:
-                self.define_parmgroup(ename+pol, descr=pol+'-dipole ellipticity',
-                                      quals=quals,
-                                      default=dict(c00=0.0),
-                                      simul=dict(),
+                pg[ename][pol] = self.pgm().define(ns, ename+pol, quals=quals,
+                                                   descr=pol+'-dipole ellipticity',
+                                                   default=dict(c00=0.0),
+                                                   simul=dict(),
+                                                   override=override,
+                                                   rider=dict(matrel=matrel),
+                                                   tags=[ename,jname])
+        pg[pname] = self.pgm().define(ns, pname, quals=quals,
+                                      descr='XY/RL phase-zero difference',
                                       override=override,
                                       rider=dict(matrel=matrel),
-                                      tags=[ename,jname])
-        self.define_parmgroup(pname, descr='XY/RL phase-zero difference',
-                              quals=quals,
-                              override=override,
-                              rider=dict(matrel=matrel),
-                              tags=[pname,jname])
+                                      tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pzd = self.create_parmgroup_entry(pname, quals=quals)
+        pzd = pg[pname].create_entry()
         pzd2 = self._ns << pzd/2
         m11 = self._ns << Meq.Polar(1.0, pzd2)
         m22 = self._ns << Meq.Polar(1.0, self._ns << Meq.Negate(pzd2))
-        pmat = self._ns[pname](*quals) << Meq.Matrix22(m11,0.0,0.0,m22)
+        pmat = self._ns[pname] << Meq.Matrix22(m11,0.0,0.0,m22)
 
 
         # Make the Jones matrices per station:
@@ -334,44 +337,44 @@ class DJones (Joneset22.Joneset22):
 
             # Dipole rotation angles:
             if coupled_dang:
-                dang = self.create_parmgroup_entry(dname, s, quals=quals)
+                dang = pg[dname].create_entry(s)
                 cos = self._ns << Meq.Cos(dang)
                 sin = self._ns << Meq.Sin(dang)
                 sinneg = self._ns << Meq.Negate(sin)
-                dmat = self._ns[dname](*quals)(s) << Meq.Matrix22(cos,sin,sinneg,cos)
+                dmat = self._ns[dname](s) << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = self.create_parmgroup_entry(dname+pols[0], s, quals=quals)
-                dang2 = self.create_parmgroup_entry(dname+pols[1], s, quals=quals)
+                dang1 = pg[dname][pols[0]].create_entry(s)
+                dang2 = pg[dname][pols[1]].create_entry(s)
                 cos1 = self._ns << Meq.Cos(dang1)
                 cos2 = self._ns << Meq.Cos(dang2)
                 sin1 = self._ns << Meq.Negate(self._ns << Meq.Sin(dang1))
                 sin2 = self._ns << Meq.Sin(dang2)
-                dmat = self._ns[dname](*quals)(s) << Meq.Matrix22(cos1,sin1,sin2,cos2)
+                dmat = self._ns[dname](s) << Meq.Matrix22(cos1,sin1,sin2,cos2)
 
 
             # Dipole ellipticities:
             if coupled_dell:
-                dell = self.create_parmgroup_entry(ename, s, quals=quals)
+                dell = pg[ename].create_entry(s)
                 cos = self._ns << Meq.Cos(dell)
                 sin = self._ns << Meq.Sin(dell)
                 isin = self._ns << Meq.ToComplex(0.0, sin)
-                emat = self._ns[ename](*quals)(s) << Meq.Matrix22(cos,isin,isin,cos)
+                emat = self._ns[ename](s) << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = self.create_parmgroup_entry(ename+pols[0], s, quals=quals)
-                dell2 = self.create_parmgroup_entry(ename+pols[1], s, quals=quals)
+                dell1 = pg[ename][pols[0]].create_entry(s)
+                dell2 = pg[ename][pols[1]].create_entry(s)
                 cos1 = self._ns << Meq.Cos(dell1)
                 cos2 = self._ns << Meq.Cos(dell2)
                 isin1 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell1))
                 isin2 = self._ns << Meq.ToComplex(0.0, self._ns << Meq.Sin(dell2))
                 isin2 = self._ns << Meq.Conj(isin2)
-                emat = self._ns[ename](*quals)(s) << Meq.Matrix22(cos1,isin1,isin2,cos2)
+                emat = self._ns[ename](s) << Meq.Matrix22(cos1,isin1,isin2,cos2)
 
             # Make the station Jones matrix by multiplying the sub-matrices:
-            self._ns[jname](*quals)(s) << Meq.MatrixMultiply (dmat, emat, pmat)
+            self._ns[jname](s) << Meq.MatrixMultiply (dmat, emat, pmat)
 
-        self.matrixet(new=self._ns[jname](*quals))
+        self.matrixet(new=self._ns[jname])
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self.pgm().define_gogs(jname)
         return None
 
 
@@ -400,7 +403,6 @@ class EJones (Joneset22.Joneset22):
                                      polrep='linear', telescope='WSRT', band='21cm',
                                      stations=stations, simulate=simulate)
         pols = self._pols
-        quals = self.quals()
         jname = self.label()+'Jones'
 
         # Make Expression objects for the X and Y voltage beams:
@@ -419,59 +421,60 @@ class EJones (Joneset22.Joneset22):
             beam[pol].parm ('Mterm', default=Mterm)
             beam[pol].parm ('_D', default=25.0, constant=True, unit='m', help='WSRT telescope diameter')
             beam[pol].parm ('lambda', default=obswvl)
-
-            beamparms[pol] = ['peak'+pol,'L0'+pol,'M0'+pol,'_ell'+pol]   # used below
             # beam[pol].expanded().display(full=True)
 
 
         # Define the various primary ParmGroups:
+        beamparms = ['peak','L0','M0','_ell']                         # used below
+        pg = dict(peak=dict(), L0=dict(), M0=dict(), _ell=dict())
         for pol in pols:
-            matrel = self._pols_matrel()[pol]                   # i.e. 'm11' or 'm22'
-            self.define_parmgroup('peak'+pol, descr='peak value of '+pol+' voltage beam',
-                                  quals=quals,
-                                  default=dict(c00=1.0),
-                                  simul=dict(Tsec=2000),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=['peak', jname])
-            self.define_parmgroup('L0'+pol, descr='pointing error in L-direction',
-                                  quals=quals,
-                                  default=dict(c00=0.0),
-                                  simul=dict(scale=0.01, Tsec=2000),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=['L0', 'pointing', jname])
-            self.define_parmgroup('M0'+pol, descr='pointing error in M-direction',
-                                  quals=quals,
-                                  default=dict(c00=0.0),
-                                  simul=dict(scale=0.01, Tsec=2000),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=['M0', 'pointing', jname])
-            self.define_parmgroup('_ell'+pol, descr='Voltage beam elongation factor (1+ell)',
-                                  quals=quals,
-                                  default=dict(c00=0.1),
-                                  simul=dict(Tsec=2000),
-                                  override=override,
-                                  rider=dict(matrel=matrel),
-                                  tags=['_ell', 'ellipticity', jname])
+            matrel = self._pols_matrel()[pol]                         # i.e. 'm11' or 'm22'
+            pg['peak'][pol] = self.pgm().define(ns, 'peak'+pol, quals=quals,
+                                                descr='peak value of '+pol+' voltage beam',
+                                                default=dict(c00=1.0),
+                                                simul=dict(Tsec=2000),
+                                                override=override,
+                                                rider=dict(matrel=matrel),
+                                                tags=['peak', jname])
+            pg['L0'][pol] = self.pgm().define(ns, 'L0'+pol, quals=quals,
+                                              descr='pointing error in L-direction',
+                                              default=dict(c00=0.0),
+                                              simul=dict(scale=0.01, Tsec=2000),
+                                              override=override,
+                                              rider=dict(matrel=matrel),
+                                              tags=['L0', 'pointing', jname])
+            pg['M0'][pol] = self.pgm().define(ns, 'M0'+pol, quals=quals,
+                                              descr='pointing error in M-direction',
+                                              default=dict(c00=0.0),
+                                              simul=dict(scale=0.01, Tsec=2000),
+                                              override=override,
+                                              rider=dict(matrel=matrel),
+                                              tags=['M0', 'pointing', jname])
+            pg['_ell'][pol] = self.pgm().define(ns, '_ell'+pol, quals=quals,
+                                                descr='Voltage beam elongation factor (1+ell)',
+                                                default=dict(c00=0.1),
+                                                simul=dict(Tsec=2000),
+                                                override=override,
+                                                rider=dict(matrel=matrel),
+                                                tags=['_ell', 'ellipticity', jname])
 
         # Make the Jones matrices per station:
+        unode = self._ns[jname]
         for s in self.stations():
             mm = dict()
             for pol in pols:
                 beam[pol].quals(s)
                 # Provide external parameters for the Functional of station s:
-                for pname in beamparms[pol]:
-                    node = self.create_parmgroup_entry(pname, s, quals=quals)
-                    beam[pol].parm(pname, node)
+                for pname in beamparms:
+                    node = pg[pname][pol].create_entry(s)      # create a parm (pname,pol) node
+                    beam[pol].parm(pname, node)                # replace it in the (pol) Expression
                 mm[pol] = beam[pol].MeqFunctional(self._ns)
-            self._ns[jname](*quals)(s) << Meq.Matrix22(mm[pols[0]],0.0,
-                                                       0.0,mm[pols[1]])
-        self.matrixet(new=self._ns[jname](*quals))
+            unode(s) << Meq.Matrix22(mm[pols[0]],0.0,
+                                     0.0,mm[pols[1]])
+        self.matrixet(new=unode)
 
         # Make some secondary (composite) ParmGroups:
-        self.define_gogs(jname)
+        self.pgm().define_gogs(jname)
         return None
 
 
@@ -560,13 +563,6 @@ if __name__ == '__main__':
         G.display(full=True)
         # G.display_NodeGroups()
 
-    if 1:
-        J = EJones(ns,
-                   # quals=['xxx'],
-                   simulate=False)
-        J.display(full=True)
-        # jj.append(J)
-
     if 0:
         J = JJones(ns, quals=['xxx'], diagonal=False)
         jj.append(J)
@@ -578,24 +574,30 @@ if __name__ == '__main__':
         jj.append(J)
         J.display(full=True)
 
-
     if 0:
+        F = FJones(ns)
+        jj.append(F)
+        F.display(full=True)
+
+
+    if 1:
         D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=True)
         # D = DJones(ns, coupled_dang=False, coupled_dell=False)
         jj.append(D)
         D.display(full=True)
         # D._pgm.display_NodeGroups()
 
-
-    if 0:
-        # F = FJones(ns, polrep='linear')
-        F = FJones(ns, polrep='circular')
-        jj.append(F)
-        F.display(full=True)
-
     if 0:
         jseq = Joneset22.Joneseq22 (jj)
         jseq.display(full=True)
+
+    #-----------------------------------------------------------
+
+    if 0:
+        E = EJones(ns,
+                   # quals=['xxx'],
+                   simulate=False)
+        E.display(full=True)
 
 #===============================================================
     

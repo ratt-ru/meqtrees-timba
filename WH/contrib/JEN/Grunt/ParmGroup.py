@@ -190,9 +190,9 @@ class ParmGroup (NodeGroup.NodeGroup):
         and append it to the nodelist"""
 
         if qual:
-            node = self._ns.parm(qual)
+            node = self._ns.pg_parm(qual)
         else:
-            node = self._ns.parm
+            node = self._ns.pg_parm
         
         # Now initialize the node with a MeqParm
         node << Meq.Parm(self._default['c00'],        ## funklet=..
@@ -540,7 +540,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
         ss += '  quals='+str(self._ns._qualstring())
-        ss += '  tags='+str(self._tags)
+        # ss += '  tags='+str(self._tags)
         # if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
 
@@ -624,7 +624,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
-        node = ns.simulparm << Meq.Add(children=cc, tags=self._tags)
+        node = ns.simul_parm << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)

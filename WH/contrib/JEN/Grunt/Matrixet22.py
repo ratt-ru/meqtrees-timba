@@ -39,7 +39,7 @@ class Matrixet22 (object):
 
     def __init__(self, ns, quals=[], label='M', descr='<descr>',
                  matrixet=None, indices=[], pgm=False,
-                 polrep=None, simulate=False):
+                 polrep=None):
         
         self._label = label                          # label of the matrixet 
         self._descr = descr                          # decription of the matrixet 
@@ -54,10 +54,6 @@ class Matrixet22 (object):
         # Make a nodescope that carries the given node-name qualifiers:
         # NB: kwquals are forbidden, because they ruin the qualification scheme...
         self._ns = Meow.QualScope(ns, quals=quals)    
-
-        self._simulate = simulate                    # if True, use simulation subtrees (i.s.o. MeqParms)
-        if self._simulate:
-            self._ns = self._ns._derive(append='simul')
 
         self._matrixet = None                        # the actual matrices (contract!)
         self._indices = []                           # list of matrixet 'indices' (e.g. stations)
@@ -103,8 +99,7 @@ class Matrixet22 (object):
                          label='copy('+self.label()+')',
                          descr=self.descr(),
                          matrixet=self.matrixet(),
-                         indices=self.indices(),
-                         simulate=self._simulate)
+                         indices=self.indices())
         # Not complete!!
         new._pgm.merge(self._pgm)                           # ...........!!?
         # self.display('copy(), after')
@@ -124,10 +119,11 @@ class Matrixet22 (object):
         """Return the object description""" 
         return self._descr
 
-    def quals(self, append=None, prepend=None, exclude=None, merge=None):
-        """Return the nodename qualifier(s), with temporary modifications"""
-        return self._quals.get(append=append, prepend=prepend,
-                               exclude=exclude, merge=merge)
+    def ns(self, new=None):
+        """Return/replace the object NodeScope/QualScope"""
+        if new:
+            self._ns = new
+        return self._ns
 
     #-------------------------------------------------------------------
 
@@ -225,7 +221,6 @@ class Matrixet22 (object):
         ss += '  '+str(self.label())
         ss += '  n='+str(len(self.indices()))
         # ss += '  quals='+str(self.quals())
-        # if self._simulate: ss += ' (simulate)'
         return ss
 
     def display_ParmGroupManager(self, full=False):
@@ -317,38 +312,6 @@ class Matrixet22 (object):
         return True
         
 
-    #=====================================================================================
-    # Interface functions with its ParmGroupManager:
-    #=====================================================================================
-
-    def define_parmgroup_obsolete(self, key, quals=[],
-                                  descr=None, tags=[], 
-                                  default=None, constraint=None, override=None,
-                                  simul=None, simulate_override=None,
-                                  rider=None):
-        """Interface function to define a parmgroup. Most aguments are passed straight to
-        the ParmGroupManager, but this is the place to do some Matrixet22-specific things"""
-
-        if not isinstance(rider, dict): rider = dict()
-        rider.setdefault('matrel','*')
-
-        simulate = (self._simulate or simulate_override)
-
-        qkey = self._pgm.define_parmgroup(self._ns, key=key, quals=quals,
-                                          descr=descr, tags=tags, 
-                                          default=default, constraint=constraint,
-                                          override=override, 
-                                          simul=simul, simulate=simulate,
-                                          rider=rider)
-        return qkey
-
-    # def create_parmgroup_entry(self, key=None, qual=None):
-    #     """Create an entry (qual, e.g. station nr) in a previously defined parmgroup (key)"""
-    #     return self._pgm.create_parmgroup_entry(key=key, qual=qual)
-
-    # def define_gogs(self, name='mx22_pgm'):
-    #     """Define groups of parmgroups, using their tags"""
-    #     return self._pgm.define_gogs(name=name)
 
     #=====================================================================================
     # Accumulist service:
@@ -519,18 +482,6 @@ class Matrixet22 (object):
     # Visualization:
     #=====================================================================
 
-    def _dcoll_quals(self, qual=None):
-        """Helper function"""
-        dcoll_quals = self._quals.concat()
-        if qual:
-            if not isinstance(qual,(list,tuple)): qual = [qual]
-            qual.reverse()
-            for q in qual:
-                dcoll_quals = q+'_'+dcoll_quals                 # prepend
-        return dcoll_quals
-
-
-    #.......................................................................
 
     def visualize (self, qual=None, visu='rvsi', accu=True,
                    matrel='*', separate=False,
@@ -596,7 +547,6 @@ class Matrixet22 (object):
         it is also stored in self.accumulist(key=None) for later retrieval."""
 
         ns = self._ns._derive(append=qual)
-        dcoll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
         dcolls = []
         keys = deepcopy(matrel)
@@ -605,7 +555,7 @@ class Matrixet22 (object):
         for key in keys:  
             cc = self.extract_matrix_element(key, qual=qual) 
             rr = MG_JEN_dataCollect.dcoll (ns, cc, 
-                                           scope=dcoll_quals,
+                                           scope=ns._qualstring(),
                                            tag=key,
                                            color=self._matrel_color[key],
                                            style=self._matrel_style[key],
@@ -616,7 +566,8 @@ class Matrixet22 (object):
 
         # Make a combined plot of all the matrix elements:
         # NB: nodename -> dconc_scope_tag
-        rr = MG_JEN_dataCollect.dconc(ns, dcolls, scope=dcoll_quals,
+        rr = MG_JEN_dataCollect.dconc(ns, dcolls,
+                                      scope=ns._qualstring(),
                                       tag=' ', bookpage=None)
         self._dcoll = rr['dcoll']
         JEN_bookmarks.create(self._dcoll, self.label(),
@@ -671,15 +622,14 @@ class Matrixet22 (object):
         #............................................................................
 
         ns = self._ns._derive(append=qual)
-        coll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
         cc = self.nodelist()
         for i in range(len(cc)):
             cc[i] = ns << Meq.Mean (cc[i], reduction_axes="freq")
         name = 'timetracks'
-        coll = ns[name](coll_quals) << Meq.Composer(dims=[self.len(),2,2],
-                                                    plot_label=self.plot_labels(),
-                                                    children=cc)
+        coll = ns[name] << Meq.Composer(dims=[self.len(),2,2],
+                                        plot_label=self.plot_labels(),
+                                        children=cc)
         JEN_bookmarks.create(coll, self.label(),
                              viewer='Collections Plotter',
                              page=bookpage, folder=folder)
@@ -702,7 +652,6 @@ class Matrixet22 (object):
         - A list of timetracks nodes is returned."""
 
         ns = self._ns._derive(append=qual)
-        coll_quals = self._dcoll_quals(qual=qual)             # temporary...
 
         colls = []
         keys = deepcopy(matrel)
@@ -712,11 +661,11 @@ class Matrixet22 (object):
         for key in keys:  
             cc = self.extract_matrix_element(key, qual=qual)
             for i in range(len(cc)):
-                cc[i] = ns.mean(coll_quals) << Meq.Mean (cc[i], reduction_axes="freq")
+                cc[i] = ns.mean << Meq.Mean (cc[i], reduction_axes="freq")
             name = 'timetracks_'+key
-            coll = self._ns[name](coll_quals) << Meq.Composer(dims=[len(cc)],
-                                                              plot_label=plot_labels,
-                                                              children=cc)
+            coll = self._ns[name] << Meq.Composer(dims=[len(cc)],
+                                                  plot_label=plot_labels,
+                                                  children=cc)
             JEN_bookmarks.create(coll, self.label()+key,
                                  viewer='Collections Plotter',
                                  page=bookpage, folder=folder)
@@ -726,7 +675,7 @@ class Matrixet22 (object):
             
         # Bundle the list of timetracks nodes:
         name = 'timetracks'
-        coll = ns[name](coll_quals) << Meq.Composer(children=colls)
+        coll = ns[name] << Meq.Composer(children=colls)
         return coll
 
 
@@ -735,7 +684,7 @@ class Matrixet22 (object):
     # Fill the object with some test data:
     #=====================================================================
 
-    def test (self, qual=None):
+    def test (self, qual=None, simulate=False):
         """Helper function to make some test-matrices"""
         ns = self._ns._derive(append=qual)
         name = 'matrix22'
@@ -752,7 +701,7 @@ class Matrixet22 (object):
                                                descr='matrix element: '+key,
                                                default=dict(value=index/10.0),
                                                # simul=dict(stddev=0.01),
-                                               simulate=True,
+                                               simulate=simulate,
                                                rider=dict(matrel='*'),
                                                tags=['testing'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
@@ -786,16 +735,15 @@ class Matrixet22 (object):
 def _define_forest(ns):
 
     cc = []
-    simulate = True
 
-    mat1 = Matrixet22(ns, quals=[], simulate=True)
-    mat1.test()
+    mat1 = Matrixet22(ns, quals=[])
+    mat1.test(simulate=False)
     mat1.visualize()
     mat1.show_timetracks()
     mat1.show_timetracks(separate=True)
     mat1.display(full=True)
 
-    mat2 = Matrixet22(ns, quals=[], simulate=False)
+    mat2 = Matrixet22(ns, quals=[])
     mat2.test()
     mat2.visualize()
     mat2.display(full=True)
@@ -852,8 +800,8 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrixet22(ns, quals=['3c84'], label='HH', simulate=True)
-        m1.test()
+        m1 = Matrixet22(ns, quals=['3c84'], label='HH')
+        m1.test(simulate=True)
         # m1.visualize()
         m1.display(full=True)
 
@@ -877,8 +825,8 @@ if __name__ == '__main__':
         m1.display('after unop', full=True)
         
     if 0:
-        m2 = Matrixet22(ns, quals=['yyy'], label='TT', simulate=False)
-        m2.test()
+        m2 = Matrixet22(ns, quals=['yyy'], label='TT')
+        m2.test(simulate=False)
         m2.display('m2',full=True)
         if 1:
             m1.binop('Subtract',m2)
