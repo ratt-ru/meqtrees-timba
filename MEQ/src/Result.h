@@ -182,6 +182,10 @@ public:
   // the vells have shapes, result cells will be deleted if reset=true.
   void verifyShape (bool reset=true);
   
+  // returns the overall shape of the vellsets (i.e. merges shapes of
+  // all vellsets)
+  LoShape getVellSetShape () const;
+  
   // ------------------------ INTEGRATED property
 // NB: OMS 04/01/2007 this is being phased out; the first step is to make
 // it always False

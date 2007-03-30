@@ -76,6 +76,7 @@ bool Result::verifyShape (const LoShape &cellshape) const
   return isIntegrated() || hasshapes;
 }
 
+
 void Result::verifyShape (bool reset)
 {
   Thread::Mutex::Lock lock(mutex());
@@ -99,6 +100,15 @@ void Result::verifyShape (bool reset)
               "vellset has a shape but result cells are not set");
     }
   }
+}
+
+LoShape Result::getVellSetShape () const
+{
+  LoShape shape;
+  for( int i=0; i<numVellSets(); i++ )
+    if( !Axis::mergeShape(shape,vellSet(i).shape()) )
+      Throw("vellsets in Result contain incompatible shapes");
+  return shape;
 }
 
 //##ModelId=3F86887000D4

@@ -118,7 +118,7 @@ using namespace DebugMeq;
 
 
 // dataflag type
-typedef int  VellsFlagType;  
+typedef int VellsFlagType;  
 const VellsFlagType VellsFullFlagMask = 0xFFFFFFFF;
 const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
 

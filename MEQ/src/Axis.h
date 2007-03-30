@@ -130,7 +130,7 @@ namespace Axis
   // an exception. It's ok to re-specify the same mapping though, and it's
   // also ok to change the axis records, provided the axis ids remain
   // the same.
-  
+    
   // are we using a default mapping?
   inline bool isDefaultMap ()
   { _init(); return _default_mapping; }
@@ -186,6 +186,23 @@ namespace Axis
       shape.resize(iaxis+1,1);
     shape[iaxis] = np;
     return shape;
+  }
+  
+  // "merges" one axis shape into the other. Returns true on success,
+  // or false on failure (i.e. incompatible shapes)
+  inline bool mergeShape (Shape &shp,const Shape &other)
+  {
+    if( shp.size() < other.size() )
+      shp.resize(other.size(),1);
+    for( uint i=0; i<other.size(); i++ )
+      if( other[i] != 1 )
+      {
+        if( shp[i] == 1 )
+          shp[i] = other[i];
+        else if( shp[i] != other[i] ) 
+          return false;
+      }
+    return true;
   }
   
   // creates a "matrix" shape of nx x ny points along axes ix,iy

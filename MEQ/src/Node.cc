@@ -744,34 +744,87 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
 {
   if( auto_resample_ == RESAMPLE_NONE )
     return;
-//  rescells <<= pcells = &( childres[0]->cells() );
-  bool need_resampling = false;
+  // if only one child: returns its cells, if any
+  if( childres.size() == 1 )
+  {
+    if( childres[0].valid() && childres[0]->hasCells() )
+      rescells <<= &( childres[0]->cells() );
+    return;
+  }
+  // this will hold the "cumulative" shape of the children,
+  // i.e., a superset of all their vellset shapes
+  LoShape resshape;
+  // now loop over all children to verify that their cells are mutually
+  // consistent 
   for( uint ich=0; ich<childres.size(); ich++ )
-    if( childres[ich].valid() )
+  {
+    if( !childres[ich].valid() )
+      continue;
+    const Result &chres = *childres[ich];
+    if( !chres.hasCells() )
+      continue;
+    const Cells &cc = childres[ich]->cells();
+    if( !rescells.valid() ) // first cells? Init result cells with it
     {
-      const Result &chres = *childres[ich];
-      if( chres.hasCells() )
+      rescells <<= &cc;
+      resshape = chres.getVellSetShape();
+    }
+    // otherwise, check this "next cells" for compatibility with accumulated
+    // cells (unless it happens to be the same object)
+    else if( rescells.deref_p() != &( cc ) )
+    {
+      LoShape shape1 = chres.getVellSetShape();
+      // check every axis
+      for( uint iaxis = 0; iaxis<std::max(resshape.size(),shape1.size()); iaxis++ )
       {
-        const Cells &cc = childres[ich]->cells();
-        if( !rescells.valid() ) // first cells? Init pcells with it
-          rescells <<= &cc;
+        int np1 = cc.ncells(iaxis);
+        // axis not defined in next cells? skip it
+        if( !np1 )
+          continue;
+        // axis not defined in accumulated cells? merge it in
+        int np = rescells->ncells(iaxis);
+        if( !np )
+        {
+          rescells().setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
+          rescells().recomputeDomain();
+          continue;
+        }
+        // else check axes for compatibility, but only if there's a real
+        // shape in the cumulative result. Otherwise the axis is degenerate
+        // and we can use the axis from this child's cells
+        // 1. degenerate axis in cumulative result
+        if( iaxis >= resshape.size() || resshape[iaxis] == 1 )
+        {
+          // 1.1. non-degenerate axis in next result, merge cells 
+          if( iaxis < shape1.size() && shape1[iaxis] > 1 )
+          {
+            rescells().setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
+            rescells().recomputeDomain();
+          }
+          // 1.2. degenerate axis in next result, do nothing
+          continue;
+        }
+        // 2. non-degenerate axis in cumulative result
         else
         {
-          // try to merge the cells
-          Cells::superset(rescells,*rescells,cc);
-          if( !rescells.valid() )
+          // 2.1. degenerate axis in next result, ignore it
+          if( iaxis >= shape1.size() || shape1[iaxis] == 1 )
+            continue;
+          // 2.2. both axes non-degenerate, compare cells
+          if( np != np1 || 
+              rescells->domain().start(iaxis) != cc.domain().start(iaxis) ||
+              rescells->domain().end(iaxis) != cc.domain().end(iaxis) )
           {
-            // fail if auto-resampling is disabled
-            if( auto_resample_ == RESAMPLE_FAIL )
-            {
-              NodeThrow1("domains or resolutions of child results do not match and auto-resampling is disabled");
-            }
-            else
-              rescells <<= &cc;
+            Throw(ssprintf("cells of child result %d, axis %s do not match those of previous children",
+                  ich,Axis::axisId(iaxis).toString().c_str()));
           }
         }
       }
+      // merge this result's shape into the cumulative shape
+      if( !Axis::mergeShape(resshape,shape1) )
+        Throw(ssprintf("shape of child result %d does not match that of previous children",ich));
     }
+  }
 }
 
 int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_results,

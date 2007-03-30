@@ -143,16 +143,12 @@ int Function::getResult (Result::Ref &resref,
     integr = integrated_;
   // Create result and attach to the ref that was passed in
   Result & result = resref <<= new Result(out_dims,integr);
-  // Find a shape from any child (they all must be the same anyway, 
-  // thanks to auto-resampling). If no children, use the request cells shape.
+  // Find cumulative shape from all children
+  // If no children, use the request cells shape.
   LoShape res_shape;
   // look for cells in child results
   for( int i=0; i<nrch; i++ )
-    if( childres[i]->hasCells() )
-    {
-      res_shape = childres[i]->cells().shape();
-      break;
-    }
+    Axis::mergeShape(res_shape,childres[i]->getVellSetShape());
   // if not found, use request cells
   if( res_shape.empty() && request.hasCells() )
     res_shape = request.cells().shape();
