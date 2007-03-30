@@ -100,11 +100,18 @@ class QualScope (object):
     # This is a temporary thing, needed to deal with some JEN legacy modules
     
     ss = ''
+    first = True
     for qual in self.quals:
-      ss += ':'+str(qual)
+      if not first: ss += ':'
+      first = False
+      ss += str(qual)
+      
     for key in self.kwquals:
-      ss += ':'+str(key)+'='+str(self.kwquals[key])
-    ss += ':'
+      if not first: ss += ':'
+      first = False
+      ss += str(key)+'='+str(self.kwquals[key])
+
+    if first: return ''
     return ss
   
   
