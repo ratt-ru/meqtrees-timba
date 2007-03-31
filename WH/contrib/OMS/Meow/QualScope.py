@@ -67,6 +67,18 @@ class QualScope (object):
       self.kwquals = dict()
     else:  
       self.kwquals = deepcopy(kwquals)
+
+    # Cumulative qualifiers (including those of the ns):
+    self.cumuquals = []
+    if isinstance(ns.cumuquals,(list,tuple)):
+      self.cumuquals.extend(ns.cumuquals)
+    self.cumuquals.extend(self.quals)
+
+    self.cumukwquals = dict()
+    if isinstance(ns.cumukwquals,dict):
+      self.cumukwquals.update(ns.cumukwquals)
+    self.cumukwquals.update(self.kwquals)
+    # print '** cumu:',self.cumuquals,self.cumukwquals
       
     return None
     
@@ -95,21 +107,21 @@ class QualScope (object):
 
 
   def _qualstring(self):
-    """Return a single qualifying string, make of its qualifiers"""
+    """Return a single qualifying string, make of its qualifiers."""
 
     # This is a temporary thing, needed to deal with some JEN legacy modules
     
     ss = ''
     first = True
-    for qual in self.quals:
+    for qual in self.cumuquals:
       if not first: ss += ':'
       first = False
       ss += str(qual)
       
-    for key in self.kwquals:
+    for key in self.cumukwquals.keys():
       if not first: ss += ':'
       first = False
-      ss += str(key)+'='+str(self.kwquals[key])
+      ss += str(key)+'='+str(self.cumukwquals[key])
 
     if first: return ''
     return ss
@@ -199,11 +211,11 @@ class QualScope (object):
     kwquals = deepcopy(self.kwquals)
 
     # Modify the copied qualifiers, as specified:
-    for key in other.kwquals.keys():
-      if (not kwquals.has_key(key)):
-        kwquals[key] = other.kwquals[key]
-    for item in other.quals:
-      if (not item in quals):
+    for key in other.cumukwquals.keys():
+      if (not self.cumukwquals.has_key(key)):
+        kwquals[key] = other.cumukwquals[key]
+    for item in other.cumuquals:
+      if (not item in self.cumuquals):
         quals.append(item)
 
     # Make the new QualScope:
@@ -229,14 +241,16 @@ class QualScope (object):
         append = [append]
       if isinstance(append, (list,tuple)):
         for item in append:
-          quals.append(item)
+          if not item in self.cumuquals:         # avoid doubles
+            quals.append(item)
 
     if prepend:
       if not isinstance(prepend, dict):
         if not isinstance(prepend, (list,tuple)):
           prepend = [prepend]
         for item in prepend:
-          quals.insert(0,item)
+          if not item in self.cumuquals:         # avoid doubles
+            quals.insert(0,item)
 
     if exclude:
       if isinstance(exclude, dict):
@@ -286,6 +300,12 @@ if __name__ == '__main__':
   ns1 = QualScope(ns, ['q1','q2'], dict(g=56))
   print '\n** ns1 =',ns1,ns1._qualstring()
 
+  if 0:
+    ns2 = QualScope(ns1,range(2),dict(c=8))
+    print ns2._qualstring()
+    ns3 = QualScope(ns2,'xx',dict(y=6))
+    print ns3._qualstring()
+
   node = ns1.xxx(7)
 
   node = ns1.xxx << 1
@@ -304,7 +324,7 @@ if __name__ == '__main__':
     node = ns1._unique('xxx', [79], dict(op='op'))
 
 
-  if 0:
+  if 1:
     ns2 = ns1._derive()
     ns2 = ns1._derive(append=55)
     ns2 = ns1._derive(prepend=55)
@@ -312,6 +332,12 @@ if __name__ == '__main__':
     
     ns2 = ns1._derive(exclude='q1')
     ns2 = ns1._derive(exclude=dict(g=None))
+
+    if 1:
+      ns3 = QualScope(ns2, ['q1','q3'], dict(g=56, h=-7))
+      ns4 = ns3._merge(ns1)
+      node = ns4.node('extra') << 1
+      print str(node)
 
   if 0:
     ns3 = QualScope(ns, ['q1','q3'], dict(g=56, h=-7))
@@ -330,9 +356,9 @@ if __name__ == '__main__':
       node = ns5.node('uuu') << 1
       print str(node)
 
-    ns5 = ns3._merge(ns)
-    node = ns5.node('ggg') << 1
-    print str(node)
+      ns5 = ns3._merge(ns)
+      node = ns5.node('ggg') << 1
+      print str(node)
 
   if 0:
     ns6 = ns3._merge()
