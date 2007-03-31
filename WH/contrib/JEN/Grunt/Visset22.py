@@ -40,7 +40,6 @@ class Visset22 (Matrixet22.Matrixet22):
     def __init__(self, ns, quals=[], label='<v>',
                  cohset=None, array=None,
                  # observation=None,
-                 simulate=False,
                  polrep=None):
 
         ## self._array = array                          # Meow IfrArray object
@@ -49,7 +48,6 @@ class Visset22 (Matrixet22.Matrixet22):
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
                                        polrep=polrep,
-                                       simulate=simulate,
                                        indices=array.ifrs())
         if cohset:
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None
@@ -67,9 +65,9 @@ class Visset22 (Matrixet22.Matrixet22):
         ss = str(type(self))
         ss += '  '+str(self.label())
         ss += '  pols='+str(self._pols)
-        ss += '  ns='+str(len(self.stations()))
+        ss += '  nstat='+str(len(self.stations()))
         ss += '  nifr='+str(len(self.ifrs()))
-        # ss += '  quals='+str(self.quals())
+        ss += '  quals='+str(self._ns._qualstring())
         return ss
 
 
@@ -117,21 +115,21 @@ class Visset22 (Matrixet22.Matrixet22):
 
         self._MS_corr_index = MS_corr_index    # Keep. See also .make_sinks()
 
-        name = 'spigot'
+        unode = self._ns['spigot']
         for p,q in self.ifrs():
-            self._ns[name](p,q) << Meq.Spigot(station_1_index=p-1,
-                                              station_2_index=q-1,
-                                              # corr_index=self._MS_corr_index,
-                                              # flag_bit=flag_bit,
-                                              input_column=input_col)
-        self._matrixet = self._ns[name]
+            unode(p,q) << Meq.Spigot(station_1_index=p-1,
+                                     station_2_index=q-1,
+                                     # corr_index=self._MS_corr_index,
+                                     # flag_bit=flag_bit,
+                                     input_column=input_col)
+        self._matrixet = unode
 
         if False:
             # Optional: insert a dummy node after the spigot for testing
-            name = 'dummy'
+            unode = self._ns['dummy']
             for p,q in self.ifrs():
-                self._ns[name](p,q) << Meq.Identity(self._matrixet(p,q))
-            self._matrixet = self._ns[name]
+                unode(p,q) << Meq.Identity(self._matrixet(p,q))
+            self._matrixet = unode
 
 
         # self.create_ReadVisHeader_placeholders()    # see below....
@@ -195,14 +193,14 @@ class Visset22 (Matrixet22.Matrixet22):
         self.insert_accumulist_reqseq(visu=visu, name='sinks')
 
         # Make the sinks:
-        name = 'sink'
+        unode = self._ns['sink']
         for p,q in self.ifrs():
-            self._ns[name](p,q) << Meq.Sink(self._matrixet(p,q),
-                                            station_1_index=p-1,
-                                            station_2_index=q-1,
-                                            # corr_index=self._MS_corr_index,
-                                            output_col=output_col)
-        self._matrixet = self._ns[name]
+            unode(p,q) << Meq.Sink(self._matrixet(p,q),
+                                   station_1_index=p-1,
+                                   station_2_index=q-1,
+                                   # corr_index=self._MS_corr_index,
+                                   output_col=output_col)
+        self._matrixet = unode
 
         
         # The single VisDataMux node is the actual interface node.
@@ -239,17 +237,19 @@ class Visset22 (Matrixet22.Matrixet22):
             ns = self._ns._derive(append=qual)
             ns = self._ns._derive(append=dict(stddev=stddev))
             name = 'addGaussianNoise22'
+            unode = ns[name]
             matrels = self.matrel_keys()
             for ifr in self.ifrs():
+                noise = ns.noise(*ifr)
                 mm = range(4)
                 for i in range(4):
                     m = matrels[i]
-                    rnoise = ns.rnoise(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
-                    inoise = ns.inoise(*ifr)(m) << Meq.GaussNoise(stddev=stddev)
-                    mm[i] = ns.noise(*ifr)(m) << Meq.ToComplex(rnoise,inoise)
-                noise = ns.noise(*ifr) << Meq.Matrix22(*mm)
-                ns[name](*ifr) << Meq.Add(self._matrixet(*ifr),noise)
-            self._matrixet = ns[name]           
+                    rnoise = noise(m)('real') << Meq.GaussNoise(stddev=stddev)
+                    inoise = noise(m)('imag') << Meq.GaussNoise(stddev=stddev)
+                    mm[i] = noise(m) << Meq.ToComplex(rnoise,inoise)
+                noise << Meq.Matrix22(*mm)
+                unode(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
+            self._matrixet = unode           
             if visu: return self.visualize(name, visu=visu)
         return None
 
@@ -450,12 +450,16 @@ if __name__ == '__main__':
             source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
             allsky.add(source)
             cohset = allsky.visibilities(array, observation)
-        vis = Visset22(ns, label='test', quals='yut',
-                       simulate=True,
+        vis = Visset22(ns, label='test',
+                       # quals='yut',
                        array=array, cohset=cohset)
         if not cohset:
             vis.fill_with_identical_matrices()
         vis.display()
+
+    if 1:
+        vis.addGaussianNoise()
+        vis.display(recurse=5)
 
     if 0:
         G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)

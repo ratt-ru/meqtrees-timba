@@ -464,7 +464,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         # that this is a simulated parameter.
         if not 'simul' in self._tags:
             self._tags.append('simul')         
-        self._ns = self._ns._derive(prepend='simul')
+        # self._ns = self._ns._derive(prepend='simul')
 
 
         # The default value(s) of the MeqParm that is being simulated:
@@ -577,7 +577,9 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         a MeqParm node that varies with time and/or frequency, and append
         it to the nodelist"""
 
-        ns = self._ns._derive(append=qual)
+        # print '\n** create_entry(',qual,'):',self.oneliner(),'\n'
+
+        ns = self._ns._derive(append=qual, prepend=self._basename)
 
         pp = self._simul                                    # Convenience
             
@@ -605,7 +607,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                 Psec = random.gauss(pp['Psec'], stddev) 
             Psec = tvar('Psec') << Meq.Constant(Psec)
             time = ns.time << Meq.Time()
-            # time = ns << (time - 4e9)                 # ..........?
+            # time = ns << (time - 4e9)                     # ..........?
             pi2 = 2*math.pi
             costime = tvar('cos') << Meq.Cos(pi2*time/Psec)
             time_variation = tvar << Meq.Multiply(ampl,costime)
@@ -634,8 +636,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
-        name = str(self._basename)
-        node = ns[name] << Meq.Add(children=cc, tags=self._tags)
+        ns = self._ns._derive(append=qual)
+        node = ns[self._basename] << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)

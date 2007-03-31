@@ -567,11 +567,11 @@ if __name__ == '__main__':
 
     if 1:
         G = GJones(ns,
-                   quals=['3c84','xxx'],
+                   # quals=['3c84','xxx'],
                    simulate=True)
         jj.append(G)
         G.visualize()
-        G.display(full=True)
+        G.display(full=True, recurse=10)
         # G.display_NodeGroups()
 
     if 0:

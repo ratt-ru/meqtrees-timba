@@ -223,7 +223,7 @@ class GJones (Joneset22):
                                                            unit=None),
                                               constraint=dict(product=1.0),
                                               simulate=simulate,
-                                              simul=dict(Psec=500),
+                                              simul=dict(Psec=500, PMHz=1000),
                                               override=override,
                                               rider=dict(matrel=matrel),
                                               tags=[gname,jname])

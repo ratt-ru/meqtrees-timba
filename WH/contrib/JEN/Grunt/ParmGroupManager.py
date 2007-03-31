@@ -47,7 +47,7 @@ class ParmGroupManager (object):
         self._simparmgroup = dict()                  # available SimulatedParmGroup objects 
         self._pgog = dict()                          # used for define_gogs()
         self._sgog = dict()                          # used for define_gogs()
-        self._dummyParmGroup = ParmGroup.ParmGroup('dummy')    # used for its printing functions...
+        self._dummyParmGroup = ParmGroup.ParmGroup(ns,'dummy')    # used for its printing functions...
         return None
 
 

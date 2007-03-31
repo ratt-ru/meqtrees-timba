@@ -84,7 +84,7 @@ class Matrixet22 (object):
         self._accumulist = dict()
 
         # Kludge: used for its printing functions...
-        self._dummyParmGroup = ParmGroup.ParmGroup('dummy')
+        self._dummyParmGroup = ParmGroup.ParmGroup(ns,'dummy')
         return None
 
     #-------------------------------------------------------------------
