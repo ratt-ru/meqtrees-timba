@@ -37,7 +37,8 @@ import math
 class ParmGroup (NodeGroup.NodeGroup):
     """Class that represents a group of (somehow related) MeqParm nodes"""
 
-    def __init__(self, ns, label='<pg>', quals=[], 
+    def __init__(self, ns, label='<pg>', quals=[],
+                 basename=None,
                  nodelist=[],
                  descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
@@ -46,6 +47,7 @@ class ParmGroup (NodeGroup.NodeGroup):
                  rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
+                                     basename=basename,
                                      quals=quals, descr=descr, tags=tags, 
                                      color=color, style=style, size=size, pen=pen,
                                      nodelist=nodelist,
@@ -189,10 +191,11 @@ class ParmGroup (NodeGroup.NodeGroup):
         """Create an entry, i.e. MeqParm node, or a simulation subtree,
         and append it to the nodelist"""
 
+        name = self._basename
         if qual:
-            node = self._ns.pg_parm(qual)
+            node = self._ns[name](qual)
         else:
-            node = self._ns.pg_parm
+            node = self._ns[name]
         
         # Now initialize the node with a MeqParm
         node << Meq.Parm(self._default['c00'],        ## funklet=..
@@ -230,7 +233,10 @@ class ParmGroup (NodeGroup.NodeGroup):
         ss = '<ParmGroup>'
         ss += ' %16s'%(self.label())
         ss += ' (n='+str(self.len())+')'
-        ss += '  quals='+str(self._ns._qualstring())
+        if not self._basename==self._label:
+            ss += ' ('+str(self._basename)+')'
+        qstr = str(self._ns._qualstring())
+        if qstr: ss += '  quals='+qstr
         ss += '  tags='+str(self._tags)
         if self._rider: ss += ' rider:'+str(self._rider.keys())
         return ss
@@ -440,6 +446,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
     a group of MeqParm nodes (often used in conjunction with class ParmGroup)"""
 
     def __init__(self, ns, label='<pg>',
+                 basename=None,
                  nodelist=[],
                  quals=[], descr=None, tags=[], node_groups=[],
                  color='blue', style='circle', size=8, pen=2,
@@ -447,6 +454,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
                  rider=None):
 
         NodeGroup.NodeGroup.__init__(self, ns=ns, label=label,
+                                     basename=basename,
                                      quals=quals, descr=descr, tags=tags, 
                                      color=color, style=style, size=size, pen=pen,
                                      nodelist=nodelist,
@@ -539,6 +547,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         ss = '<SimulatedParmGroup>'
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
+        if not self._basename==self._label:
+            ss += ' ('+str(self._basename)+')'
         ss += '  quals='+str(self._ns._qualstring())
         # ss += '  tags='+str(self._tags)
         # if self._rider: ss += ' rider:'+str(self._rider.keys())
@@ -624,7 +634,8 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
-        node = ns.simul_parm << Meq.Add(children=cc, tags=self._tags)
+        name = str(self._basename)
+        node = ns[name] << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
         self.append_entry(node)

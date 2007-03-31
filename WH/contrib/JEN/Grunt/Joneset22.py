@@ -16,6 +16,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
+import Meow
+
 from Timba.Contrib.JEN.Grunt import Matrixet22
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
@@ -47,15 +49,17 @@ class Joneset22 (Matrixet22.Matrixet22):
         # If simulate, replace MeqParms with subtrees that simulate their behaviour:
         self._simulate = simulate
         if self._simulate:
-            self.ns(new=self.ns()._derive(prepend='simul'))                # new QualScope
+            self.ns(new=self.ns()._derive(prepend='simul'))    # new QualScope
 
         # Some telescope-specific information:
-        self._telescope = telescope                  # e.g. WSRT or VLA
-        self._band = band                            # e.g. 21cm or LFFE
+        self._telescope = telescope                            # e.g. WSRT or VLA
+        self._band = band                                      # e.g. 21cm or LFFE
+
+        # Update the nodescope(s), if necessary:
         if self._telescope:
-            self.ns(new=self.ns()._derive(prepend=str(self._telescope)))   # new QualScope
             if self._band:
-                self.ns(new=self._ns._derive(prepend=str(self._band)))     # new QualScope
+                self.ns(new=self.ns()._derive(prepend=str(self._band)))         
+            self.ns(new=self.ns()._derive(prepend=str(self._telescope)))         
 
         # Finished:
         return None
@@ -201,7 +205,7 @@ class GJones (Joneset22):
         for pol in pols:
             pg[pol] = dict()
             matrel = self._pols_matrel()[pol]     # i.e. 'm11' or 'm22'
-            pg[pol][pname] = self.pgm().define(ns, pname+pol, quals=quals,
+            pg[pol][pname] = self.pgm().define(self._ns, pname+pol,
                                                descr=pol+'-dipole phases',
                                                default=dict(c00=0.0, unit='rad', tfdeg=[0,0],
                                                             subtile_size=1),
@@ -211,7 +215,7 @@ class GJones (Joneset22):
                                                override=override,
                                                rider=dict(matrel=matrel),
                                                tags=[pname,jname])
-            pg[pol][gname]= self.pgm().define(ns, gname+pol, quals=quals,
+            pg[pol][gname]= self.pgm().define(self._ns, gname+pol,
                                               descr=pol+'-dipole gains',
                                               default=dict(c00=1.0,
                                                            tfdeg=[2,0],
@@ -275,7 +279,7 @@ class BJones (Joneset22):
         for pol in pols:
             pg[pol] = dict()
             matrel = self._pols_matrel()[pol]             # i.e. 'm11' or 'm22'
-            pg[pol][iname] = self.pgm().define(ns, iname+pol, quals=quals, 
+            pg[pol][iname] = self.pgm().define(self._ns, iname+pol,
                                                descr=pol+'-IF bandpass imag.part',
                                                default=dict(c00=0.0, unit=None, tfdeg=tfdeg,
                                                             subtile_size=1),
@@ -283,7 +287,7 @@ class BJones (Joneset22):
                                                override=override,
                                                rider=dict(matrel=matrel),
                                                tags=[iname,jname])
-            pg[pol][rname] = self.pgm().define(ns, rname+pol, quals=quals, 
+            pg[pol][rname] = self.pgm().define(self._ns, rname+pol,
                                                descr=pol+'-IF bandpass real.part',
                                                default=dict(c00=1.0, unit=None, tfdeg=tfdeg),
                                                simul=dict(PMHz=10),
@@ -343,7 +347,7 @@ class JJones (Joneset22):
                 if rim=='real':
                     default = 1.0
                     constraint = dict(product=1.0)
-                pg[ename][rim] = self.pgm().define(ns, ename+rim, quals=quals,
+                pg[ename][rim] = self.pgm().define(self._ns, ename+rim,
                                                    descr=rim+' part of matrix element '+ename,
                                                    default=dict(c00=default),
                                                    constraint=constraint,
@@ -354,7 +358,7 @@ class JJones (Joneset22):
             for ename in ['J12','J21']:
                 pg[ename] = dict()
                 for rim in ['real','imag']:
-                    pg[ename][rim] = self.pgm().define(ns, ename+rim, quals=quals,
+                    pg[ename][rim] = self.pgm().define(self._ns, ename+rim, 
                                                        descr=rim+' part of matrix element '+ename,
                                                        default=dict(c00=0.0),
                                                        constraint=dict(sum=0.0),
@@ -402,7 +406,7 @@ class FJones (Joneset22):
 
         # Define the primary ParmGroup:
         pg = dict()
-        pg[rname] = self.pgm().define(ns, rname, quals=quals, 
+        pg[rname] = self.pgm().define(self._ns, rname,  
                                       descr='Faraday Rotation Measure (rad/m2)',
                                       default=dict(c00=0.0),
                                       simul=dict(),

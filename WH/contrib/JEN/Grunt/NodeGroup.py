@@ -34,7 +34,8 @@ from copy import deepcopy
 class NodeGroup (object):
     """Class that represents a group of (somehow related) nodes"""
 
-    def __init__(self, ns, label='<ng>', quals=[], 
+    def __init__(self, ns, label='<ng>', quals=[],
+                 basename=None,
                  descr='<descr>', tags=[], 
                  nodelist=[],
                  color='green', style='diamond', size=8, pen=2,
@@ -43,6 +44,11 @@ class NodeGroup (object):
         self._label = str(label)
         self._descr = descr                   # brief description 
 
+        # The basename of the nodes created by create_entry():
+        self._basename = basename
+        if not isinstance(self._basename,str):
+            self._basename = self._label
+        
         # Node-name qualifiers:
         self._ns = Meow.QualScope(ns, quals=quals)
 
@@ -88,6 +94,8 @@ class NodeGroup (object):
         ss = '<NodeGroup>'
         ss += ' %14s'%(self.label())
         ss += ' (n='+str(self.len())+')'
+        if not self._basename==self._label:
+            ss += ' ('+str(self._basename)+')'
         ss += '  quals='+str(self._ns._qualstring())
         ss += '  tags='+str(self._tags)
         # if self._rider: ss += ' rider:'+str(self._rider.keys())
@@ -188,9 +196,9 @@ class NodeGroup (object):
         self._plot_labels.append(str(plot_label))
         return len(self._nodelist)
 
-    def create_entry (self, quals=None):
+    def create_entry (self, qual=None):
         """Virtual method for creating a new entry. The NodeGroup does not have
-        enough information to do this, but specilisations of this class do."""
+        enough information to do this, but specialisations of this class do."""
         return None
 
     #-------------------------------------------------------------------

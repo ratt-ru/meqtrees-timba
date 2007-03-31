@@ -318,25 +318,20 @@ class ParmGroupManager (object):
         NB: simulate = (simulate or self._simulate).....
         """
 
-        # The parmgroup key is qkey, i.e. the specified key plus any qualifiers,
-        # (e.g. source name). For instance, qkey could be: 'Gphase_3c84'
-        # The string qkey is returned by this function, to be used in the calling
-        # function when creating a parm node by calling .create_parmgroup_entry(qkey)
-        qkey = deepcopy(key)
-        if quals:
-            if not isinstance(quals,(list,tuple)): quals=[quals]
-            for qual in quals:
-                qkey += '_'+str(qual)
-
-        # Since the MeqParms are all to be called 'parm' (see below),
-        # the parmgroup name is the first nodename qualifier.
-        # Thus, it will also be included in the node tags (see below).
+        # Make a safe copy of the extra qualifiers (quals):
         uquals = deepcopy(quals)
         if not isinstance(uquals,(list,tuple)): uquals=[uquals]
-        if not key in uquals:
-            uquals.insert(0,key)                         # prepend key
+
+        # The parmgroup key (name) is qkey, i.e. the specified key plus any qualifiers,
+        # (e.g. source name), both from the nodescope and specified via quals.
+        # For instance, qkey could be: 'Gphase_3c84'
+        qkey = deepcopy(key)
+        for qual in ns.quals:
+            qkey += '_'+str(qual)
+        for qual in uquals:
+            qkey += '_'+str(qual)
         
-        # Tags are used for two differenr mechanisms for selecting subsets of parms
+        # Tags are used for two different mechanisms for selecting subsets of parms
         # that are to be solved for simultaneously:
         # - They are attached to the MeqParms, to allow selection with the nodescope
         #   .search() mechanism. This is used by the Meow parms.
@@ -360,11 +355,12 @@ class ParmGroupManager (object):
         if simulate:
             pg = ParmGroup.SimulatedParmGroup (ns, label=qkey,
                                                quals=uquals,
+                                               basename=key,
                                                descr=descr,
                                                tags=utags,
                                                simul=simul,
                                                default=default,
-                                                override=override,
+                                               override=override,
                                                rider=rider) 
             self._simparmgroup[qkey] = pg
 
@@ -372,6 +368,7 @@ class ParmGroupManager (object):
             node_groups = ['Parm']                      # used by MeqParm node....
             pg = ParmGroup.ParmGroup (ns, label=qkey, 
                                       quals=uquals,
+                                      basename=key,
                                       descr=descr,
                                       default=default,
                                       constraint=constraint,
