@@ -52,6 +52,7 @@ class QualScope (object):
   qualifiers.""";
 
   def __init__ (self, ns, quals=[], kwquals={}):
+
     self.ns = ns
 
     # Store its list qualifiers:
@@ -179,6 +180,7 @@ class QualScope (object):
       print '**',prefix,'unique(',name,quals,kwquals,'):',str(nodestub),nodestub.initialized()
       if level==0: print
     return nodestub
+
 
   #----------------------------------------------------------------
 
