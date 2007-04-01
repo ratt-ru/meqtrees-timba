@@ -429,7 +429,7 @@ class NodeGog (object):
 
         # Plotting:
         self._dcoll = None                           # visualization
-        self._dummyNodeGroup = NodeGroup('dummy')    # used for its printing functions...
+        self._dummyNodeGroup = NodeGroup(ns,'dummy')    # used for its printing functions...
         return None
                 
     #-------------------------------------------------------------------

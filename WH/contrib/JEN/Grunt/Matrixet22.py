@@ -21,6 +21,7 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.Grunt import Qualifiers
 from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
+from Timba.Contrib.JEN.Grunt import ObjectHistory
 
 import Meow
 
@@ -83,6 +84,9 @@ class Matrixet22 (object):
         # that are carried along by the object until needed downstream.
         self._accumulist = dict()
 
+        # Attach an object to collect the object history:
+        self._hist = ObjectHistory.ObjectHistory(self.label(), parent=self.oneliner())
+
         # Kludge: used for its printing functions...
         self._dummyParmGroup = ParmGroup.ParmGroup(ns,'dummy')
         return None
@@ -118,6 +122,11 @@ class Matrixet22 (object):
     def descr(self):
         """Return the object description""" 
         return self._descr
+
+    def hist(self, full=False):
+        """Print/return the object description""" 
+        self._hist.display(full=full)
+        return self._hist
 
     def ns(self, new=None):
         """Return/replace the object NodeScope/QualScope"""

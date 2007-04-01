@@ -45,6 +45,10 @@ class Visset22 (Matrixet22.Matrixet22):
         ## self._array = array                          # Meow IfrArray object
         ## self._observation = observation              # Meow Observation object
 
+        # Some specific Visset22 attributes:
+        self._MS_corr_index = [0,1,2,3]                 # see make_spigots/make_sinks
+        self._stations = array.stations()               # convenience only ...?           
+
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
                                        polrep=polrep,
@@ -53,9 +57,6 @@ class Visset22 (Matrixet22.Matrixet22):
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None
             self._matrixet = cohset
 
-        # Some specific Visset22 attributes:
-        self._MS_corr_index = [0,1,2,3]                 # see make_spigots/make_sinks
-        self._stations = array.stations()               # convenience only ...?           
         return None
 
     #-------------------------------------------------------------------
@@ -235,12 +236,11 @@ class Visset22 (Matrixet22.Matrixet22):
         """Add gaussian noise with given stddev to the internal cohset"""
         if stddev>0.0:
             ns = self._ns._derive(append=qual)
-            ns = self._ns._derive(append=dict(stddev=stddev))
             name = 'addGaussianNoise22'
             unode = ns[name]
             matrels = self.matrel_keys()
             for ifr in self.ifrs():
-                noise = ns.noise(*ifr)
+                noise = ns['stddev='+str(stddev)](*ifr)
                 mm = range(4)
                 for i in range(4):
                     m = matrels[i]
@@ -260,11 +260,12 @@ class Visset22 (Matrixet22.Matrixet22):
         Remember the new position, so that cumulative shifts are possible."""
         ns = self._ns._derive(append=qual)
         name = 'shift22'
+        unode = ns[name]
         for ifr in self.ifrs():
             j1 = jmat(ifr[0])
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
-            ns[name](*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
-        self._matrixet = ns[name]              
+            unode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = unode              
         if visu: return self.visualize(name, visu=visu)
         return None
 
@@ -275,14 +276,15 @@ class Visset22 (Matrixet22.Matrixet22):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
         Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""
         ns = self._ns._derive(append=qual)
-        ns = self._ns._merge(append=joneset._ns)
+        ns = ns._merge(joneset.ns())
         name = 'corrupt22'
+        unode = ns[name]
         jmat = joneset.matrixet() 
         for ifr in self.ifrs():
             j1 = jmat(ifr[0])
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
-            ns[name](*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
-        self._matrixet = ns[name]              
+            unode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
+        self._matrixet = unode              
         # Transfer any parmgroups (used by the solver downstream)
         self.ParmGroupManager(merge=joneset)
         if visu: return self.visualize(name, visu=visu)
@@ -290,13 +292,14 @@ class Visset22 (Matrixet22.Matrixet22):
 
     #...........................................................................
 
-    def correct (self, joneset=None, qual=None, sigma=None, pgm_merge=False, visu=False):
+    def correct (self, joneset=None, qual=None,
+                 sigma=None, pgm_merge=False, visu=False):
         """Correct the internal matrices with the matrices of the given Joneset22 object.
         If sigma is specified (number or node), add a unit matrix multiplied by the
         estimated noise (sigma**2) before inversion (MMSE)."""
 
         ns = self._ns._derive(append=qual)
-        ns = self._ns._merge(joneset._ns)
+        ns = ns._merge(joneset.ns())
 
         # Robust correction (MSSE):
         if sigma:
@@ -304,6 +307,7 @@ class Visset22 (Matrixet22.Matrixet22):
             MSSE = ns.MSSE << Meq.Matrix22(sigma2,0.0,0.0,sigma2)
             
         name = 'correct22'
+        unode = ns[name]
         jmat = joneset.matrixet()
         for ifr in self.ifrs():
             if sigma:
@@ -313,8 +317,8 @@ class Visset22 (Matrixet22.Matrixet22):
                 j1i = jmat(ifr[0])('inv') ** Meq.MatrixInvert22(jmat(ifr[0]))
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             j2ci = j2c('inv') ** Meq.MatrixInvert22(j2c)
-            ns[name](*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
-        self._matrixet = ns[name]              
+            unode(*ifr) << Meq.MatrixMultiply(j1i,self._matrixet(*ifr),j2ci)
+        self._matrixet = unode              
 
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
@@ -339,17 +343,17 @@ class Visset22 (Matrixet22.Matrixet22):
         
         cc = self.accumulist(key=key, clear=False)
         n = len(cc)
-        print '---',key,n,cc
         if n>0:
             ns = self._ns._derive(append=qual)
             cc.append('placeholder')
             name = 'reqseq'
+            unode = ns[name]
             if isinstance(key, str): name += '_'+str(key)
             for ifr in self.ifrs():
                 cc[n] = self._matrixet(*ifr)         # fill in the placeholder
-                ns[name](*ifr) << Meq.ReqSeq(children=cc, result_index=n,
-                                             cache_num_active_parents=1)
-            self._matrixet = ns[name]
+                unode(*ifr) << Meq.ReqSeq(children=cc, result_index=n,
+                                          cache_num_active_parents=1)
+            self._matrixet = unode
         return True
 
 
@@ -451,25 +455,28 @@ if __name__ == '__main__':
             allsky.add(source)
             cohset = allsky.visibilities(array, observation)
         vis = Visset22(ns, label='test',
-                       # quals='yut',
+                       quals='yut',
                        array=array, cohset=cohset)
         if not cohset:
             vis.fill_with_identical_matrices()
         vis.display()
 
-    if 1:
+    if 0:
         vis.addGaussianNoise()
         vis.display(recurse=5)
 
-    if 0:
-        G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
+    if 1:
+        G = Joneset22.GJones (ns, stations=array.stations(),
+                              # telescope='WSRT', band='90cm',
+                              simulate=True)
         # vis.corrupt(G, visu=True)
         # vis.addGaussianNoise(stddev=0.05, visu=True)
-        # vis.correct(G, visu=True)
+        # vis.correct(G, visu=True) 
         sigma = 0.1
-        sigma = ns.SIGMA << 0.1
-        vis.correct(G, sigma=sigma, visu=True)
+        # sigma = ns.SIGMA << 0.1
+        vis.correct(G, qual='ccc', sigma=sigma, visu=True)
         vis.display('after correction', recurse=5)
+        vis.hist(full=True)
 
     if 0:
         vis.insert_accumulist_reqseq()

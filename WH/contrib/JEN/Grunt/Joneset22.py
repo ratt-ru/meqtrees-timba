@@ -41,21 +41,21 @@ class Joneset22 (Matrixet22.Matrixet22):
         if indices==None:
             indices = range(1,4)                     # for testing convenience....
 
-        # Initialise its Matrixet22 object:
-        Matrixet22.Matrixet22.__init__(self, ns, quals=quals,
-                                       label=label, descr=descr,
-                                       polrep=polrep, indices=indices)
-
-        # If simulate, replace MeqParms with subtrees that simulate their behaviour:
+        # If simulate, use subtrees that simulate MeqParm behaviour:
         self._simulate = simulate
-        if self._simulate:
-            self.ns(new=self.ns()._derive(prepend='simul'))    # new QualScope
 
         # Some telescope-specific information:
         self._telescope = telescope                            # e.g. WSRT or VLA
         self._band = band                                      # e.g. 21cm or LFFE
 
-        # Update the nodescope(s), if necessary:
+        # Initialise its Matrixet22 object:
+        Matrixet22.Matrixet22.__init__(self, ns, quals=quals,
+                                       label=label, descr=descr,
+                                       polrep=polrep, indices=indices)
+
+        # Qualify the nodescope, if necessary (QualScope):
+        if self._simulate:
+            self.ns(new=self.ns()._derive(prepend='simul')) 
         if self._telescope:
             if self._band:
                 self.ns(new=self.ns()._derive(prepend=str(self._band)))         

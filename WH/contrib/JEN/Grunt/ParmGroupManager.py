@@ -35,7 +35,7 @@ class ParmGroupManager (object):
 
     def __init__(self, ns, quals=[], label='pgm',
                  parent='<parent object>'):
-        # self._ns = ns                                # node-scope (required)
+
         self._label = label                          # label of the matrix 
         self._parent = str(parent)                   # its parent object (string)
 
@@ -270,17 +270,8 @@ class ParmGroupManager (object):
         ParmGroupManager object"""
         if trace: print '\n** merge():'
 
-        if False:
-            # Obsolete?
-            all = []
-            if self._parmgroup.has_key('*'):
-                if trace: print 'self[*]:',self._parmgroup['*']
-                all.extend(self._parmgroup['*'].group())
-            if other._parmgroup.has_key('*'):
-                if trace: print 'other[*]:',other._parmgroup['*']
-                all.extend(other._parmgroup['*'].group())
-            if len(all)>0:
-                self._parmgroup['*'] = NodeGroup.NodeGog(self._ns, '*', group=all)    
+        if not other==type(ParmGroupManager):
+            raise ValueError,'** pgm.merge(): other='+str(type(other))
 
         for key in other._parmgroup.keys():
             if not self._parmgroup.has_key(key):
