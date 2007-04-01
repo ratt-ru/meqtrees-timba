@@ -33,7 +33,7 @@ class ParmGroupManager (object):
     """Class that encapsulates a number of ParmGroups
     e.g. ParmGroups or SimulatedParmGroups."""
 
-    def __init__(self, ns, quals=[], label='pgm',
+    def __init__(self, ns,  quals=[], label='pgm',
                  parent='<parent object>'):
 
         self._label = label                          # label of the matrix 

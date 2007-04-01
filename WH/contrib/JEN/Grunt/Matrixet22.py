@@ -123,9 +123,11 @@ class Matrixet22 (object):
         """Return the object description""" 
         return self._descr
 
-    def hist(self, full=False):
-        """Print/return the object description""" 
-        self._hist.display(full=full)
+    def history(self, append=None, subappend=None, subsubappend=None):
+        """Return its ObjectHistory object. Optionally, append an item.""" 
+        if append: self._hist.append(append)
+        if subappend: self._hist.subappend(subappend)
+        if subsubappend: self._hist.subsubappend(subsubappend)
         return self._hist
 
     def ns(self, new=None):
@@ -147,10 +149,9 @@ class Matrixet22 (object):
     #-------------------------------------------------------------------
 
     def ParmGroupManager (self, merge=None):
-        """Return its ParmGroupManager object.
-        If merge is another object (with a pgm), merge the latter with it"""
-        if merge:
-            self._pgm.merge(merge.ParmGroupManager())
+        """Return its ParmGroupManager object. If merge is another
+        ParmGroupManager (e.g. from another object, merge it first."""
+        if merge: self._pgm.merge(merge)
         return self._pgm
 
     def pgm (self):

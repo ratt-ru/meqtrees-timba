@@ -391,7 +391,7 @@ class SkyComponentGroup22 (object):
             self._skycomp[key]['plot']['color'] = 'red'
             self._skycomp[key]['corruption'] = jones.label()
 
-        self.ParmGroupManager(merge=jones)
+        self.ParmGroupManager(merge=jones.ParmGroupManager())
         return True
 
 

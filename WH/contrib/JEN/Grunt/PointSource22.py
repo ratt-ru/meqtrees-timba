@@ -103,9 +103,8 @@ class PointSource22 (Meow.PointSource):
         # NB: Parameters have been made for Q,U,V with tag 'flux pol'
         # NB: Parameters have been made for si with tag 'spectrum'
         # NB: Parameters have been made for RM with tag 'pol'
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._pp['name'],
+        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._pp['name'])
                                                       # quals=self.quals(),
-                                                      simulate=self._simulate)
         # Some placeholders:
         self._Visset22 = None
 
@@ -230,7 +229,6 @@ class PointSource22 (Meow.PointSource):
             if not name: name = self._pp['name']
             self._Visset22 = Visset22.Visset22 (self.ns0, quals=[], label=name,
                                                 polrep=polrep,
-                                                simulate=self._simulate,
                                                 # observation=observation,
                                                 array=array)
             # Make the 2x2 visibility matrices per ifr:

@@ -39,9 +39,35 @@ class ObjectHistory (object):
 
     def clear(self):
         """Clear the object"""
-        self._list = []
+        self._items = []
+        self._prefix = []
         return True
 
+    def len(self):
+        """Return the length of the internal list of items"""
+        return len(self._items)
+
+    def label(self):
+        """Return its label"""
+        return self._label
+
+    def parent(self):
+        """Return the name/oneliner of its parent"""
+        return self._parent
+
+    def append(self, item, prefix='*'):
+        """Append an item (line) to the internal list"""
+        self._items.append(item)
+        self._prefix.append('  '+str(prefix))
+        return True
+
+    def subappend(self, item):
+        return self.append(item, prefix='   -')
+
+    def subsubappend(self, item):
+        return self.append(item, prefix='     .')
+
+    #-------------------------------------------------------------
 
     def oneliner(self):
         """Return a one-line summary of this object"""
@@ -55,42 +81,44 @@ class ObjectHistory (object):
     def display(self, full=False, level=0):
         """Print the contents of this object"""
         if level==0: print
-        prefix = (level*'  ')
-        print prefix+'** History of the object: '+self.parent()
-        prefix += ' - '
-        for item in self._list:
+        prefix = (level*'   ')
+        print prefix+'---- History of object: '+self.parent()
+        for k,item in enumerate(self._items):
+            prefix1 = prefix + '|' + self._prefix[k]+' '
+
             if isinstance(item,str):
-                print prefix+str(item)
+                print prefix1+str(item)
+
+            elif isinstance(item,(list,tuple)):
+                print prefix1+str(item)
+
+            elif isinstance(item,dict):
+                if full:
+                    for key in item.keys():
+                        print prefix1+str(key)+' = '+str(item[key])
+                else:
+                    print prefix1+str(item)
+
             elif isinstance(item, ObjectHistory):
                 if full:
                     item.display(full=full, level=level+1)
                 else:
-                    print prefix+item.oneliner()
+                    print prefix1+item.oneliner()
             else:
-                print prefix+'(?)'+str(item)
+                print prefix1+'(?)'+str(item)
+
+        print prefix+'----'
         if level==0: print
         return True 
 
-    def len(self):
-        """Return the length of the internal list"""
-        return len(self._list)
-
-    def label(self):
-        """Return its label"""
-        return self._label
-
-    def parent(self):
-        """Return the name/oneliner of its parent"""
-        return self._parent
-
-    def append(self, item):
-        """Append an item (line) to the internal list"""
-        self._list.append(item)
-        return True
+    #-----------------------------------------------------------------
 
     def test(self):
         self.append('first')
-        self.append('second')
+        self.subappend(range(3))
+        self.subsubappend(range(2))
+        self.append('second','(!)')
+        self.subappend(dict(a=1,b=2,c=3))
         self.append('third')
         return True
 
@@ -107,9 +135,14 @@ if __name__ == '__main__':
     if 1:
         hist2 = ObjectHistory('hist2')
         hist2.test()
+        if 1:
+            hist3 = ObjectHistory('hist3')
+            hist3.test()
+            hist2.append(hist3)
         hist.append(hist2)
 
     hist.display(full=True)
+    hist.display(full=False)
 
 
 #=======================================================================

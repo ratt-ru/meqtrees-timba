@@ -62,6 +62,7 @@ class Joneset22 (Matrixet22.Matrixet22):
             self.ns(new=self.ns()._derive(prepend=str(self._telescope)))         
 
         # Finished:
+        self.history(self.ns()._qualstring())
         return None
 
     #-------------------------------------------------------------------
@@ -144,7 +145,8 @@ def Joneseq22 (joneslist=None, quals=None):
         ns = ns._merge(jones.ns())
     ns = ns._derive(prepend=label, append=quals)
     jnew = Joneset22 (ns, label=label, stations=stations) 
-        
+
+            
     # Then create the new Jones matrices by matrix-multiplication:
     unode = jnew.ns().Joneseq
     for i in jnew.list_indices():
@@ -156,7 +158,8 @@ def Joneseq22 (joneslist=None, quals=None):
     
     # Merge the parmgroups of the various Jones matrices:
     for jones in joneslist:
-        jnew.ParmGroupManager(merge=jones)
+        jnew.ParmGroupManager(merge=jones.ParmGroupManager())
+        jnew.history(subappend=jones.history())
 
     # Return the new Joneset22 object:
     return jnew
