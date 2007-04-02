@@ -2,6 +2,7 @@
 
 # History:
 # - 04feb2007: creation (from PointSource22.py)
+# - 02apr2007: adaptation to QualScope etc
 
 # Description:
 
@@ -48,7 +49,7 @@ class SkyComponentGroup22 (object):
 
     def __init__(self, ns, name='scg22', quals=[], kwquals={}, **pp):
 
-        self._ns = Meow.Parameterization(ns, name, quals=quals, kwquals=kwquals).ns
+        self._ns = Meow.QualScope(ns, quals=quals)
         self._name = name
 
         # Deal with input arguments (default set by TDL_options):
@@ -61,6 +62,7 @@ class SkyComponentGroup22 (object):
         self._skycomp = dict()
         self._order = []
         self._lm = dict()
+        self._dir = dict()
 
         # Some placeholders:
         self._Patch = None
@@ -73,8 +75,11 @@ class SkyComponentGroup22 (object):
         # Create a Grunt ParmGroupManager object:
         self._pgm = None
         parent = str(type(self))+'  '+str(self._name)
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._name,
+        self._pgm = ParmGroupManager.ParmGroupManager(self._ns, label=self._name,
                                                       parent=parent)
+
+        # Attach an object to collect the object history:
+        # self._hist = ObjectHistory.ObjectHistory(self.label(), parent=self.oneliner())
 
         # Finished:
         return None
@@ -142,10 +147,10 @@ class SkyComponentGroup22 (object):
     #-------------------------------------------------------------------
 
     def ParmGroupManager (self, merge=None):
-        """Return its ParmGroupManager object.
-        If merge is another object (with a pgm), merge the latter with it"""
+        """Return its ParmGroupManager object. If merge is another
+        ParmGroupManager object, merge with its ParmGroup objects"""
         if merge:
-            self._pgm.merge(merge.ParmGroupManager())
+            self._pgm.merge(merge)
         return self._pgm
 
     #--------------------------------------------------------------------------
@@ -576,7 +581,7 @@ class SkyComponentGroup22 (object):
             self.Meow_Patch(observation, nominal=nominal)    # make sure of self._Patch
             self._Visset22 = self.Patch2Visset22 (self._Patch, array=array,
                                                   name=name, visu=visu)
-            self._Visset22.ParmGroupManager(merge=self)
+            self._Visset22.ParmGroupManager(merge=self.ParmGroupManager())
         return self._Visset22
 
 
@@ -736,15 +741,15 @@ def _define_forest(ns):
     scg.display()
     # scg.skycomp(0).display()
 
-    if False:
+    if True:
         for key in scg.order():
             jones = Joneset22.GJones(ns, quals=key, stations=ANTENNAS,
-                                     simulate=True)
+                                     simulate=False)
             scg.corrupt(jones, label=jones.label(), key=key)
         scg.display('corruption')
         scg._pgm.display()
 
-    elif True:
+    elif False:
         from Timba.Contrib.JEN.Grunting import WSRT_Jones
         jones = WSRT_Jones.EJones(ns,
                                   # quals=['xxx'],

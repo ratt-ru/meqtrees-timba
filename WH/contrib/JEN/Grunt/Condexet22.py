@@ -116,22 +116,23 @@ class Condexet22 (Matrixet22.Matrixet22):
         Optionally, apply an unary operation to both sides before equating."""
 
         self._rhs = rhs
-        quals = self.quals()
+        ns = self._ns._merge(self._rhs.ns())
         indices = []
         # Use the indices (order) of the rhs.....?
         ii = self._rhs.list_indices()                    # selection....?
         name = self._condeq_name
+        qnode = ns[name]
         for i in ii:
             node1 = self._lhs._matrixet(*i)
             node2 = self._rhs._matrixet(*i)
             if node1.initialized() and node2.initialized():
                 if unop:
                     # Optionally, apply a unary operation on both inputs:
-                    node1 = self._ns << getattr(Meq, unop)(node1)
-                    node2 = self._ns << getattr(Meq, unop)(node2)
+                    node1 = ns.unop(unop)('lhs')(*i) << getattr(Meq, unop)(node1)
+                    node2 = ns.unop(unop)('rhs')(*i) << getattr(Meq, unop)(node2)
                 indices.append(i)
-                self._ns[name](*quals)(*i) << Meq.Condeq(node1, node2)
-        self._matrixet = self._ns[name](*quals)
+                qnode(*i) << Meq.Condeq(node1, node2)
+        self._matrixet = qnode
         self.indices(new=indices)
         return True
 
@@ -148,23 +149,24 @@ class Condexet22 (Matrixet22.Matrixet22):
             This allows the combining of selfcal and redun equations.
         NB: For an alternative approach, see RedunVisset22.py."""
 
-        quals = self.quals()
+        ns = self._ns._derive('redun')
         name = self._condeq_name
+        qnode = ns[name]
         indices = self.indices()                 # NB: Allows ADDING of condeqs to earlier!!
         for k,pair in enumerate(redun['pairs']):
             node1 = self._lhs._matrixet(*pair[0])
             node2 = self._lhs._matrixet(*pair[1])
             if unop:
                 # Optionally, apply a unary operation on both inputs:
-                node1 = self._ns << getattr(Meq, unop)(node1)
-                node2 = self._ns << getattr(Meq, unop)(node2)
+                node1 = ns.unop(unop)('lhs')(k) << getattr(Meq, unop)(node1)
+                node2 = ns.unop(unop)('rhs')(k) << getattr(Meq, unop)(node2)
             # The new matrixet index has 5 parts: 
             index = list(pair[0])                # the 2 stations of ifr1          
             index.extend(pair[1])                # the 2 stations of ifr2
             index.append(redun['labels'][k])     # the label (baseline length)
             indices.append(index)
-            self._ns[name](*quals)(*index) << Meq.Condeq(node1, node2)
-        self._matrixet = self._ns[name](*quals)
+            qnode(*index) << Meq.Condeq(node1, node2)
+        self._matrixet = qnode
         self.indices(new=indices)
         return True
 
@@ -287,11 +289,12 @@ if __name__ == '__main__':
         pred.fill_with_identical_matrices()
         pred.display()
         cdx.make_condeqs(rhs=pred, unop='Abs')
-        # cdx.visualize()
+        cdx.visualize()
         cdx.display(recurse=3)
 
         if 0:
             redun = make_WSRT_redun_pairs (ifrs=array.ifrs(), sep9A=36, select='all')
+            print 'redun=',redun
             cdx.make_redun_condeqs (redun, unop=None)
             cdx.display(recurse=3)
 

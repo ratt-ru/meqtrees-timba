@@ -277,6 +277,10 @@ class DJones (Joneset22.Joneset22):
         Joneset22.Joneset22.__init__(self, ns, quals=quals, label=label,
                                      telescope='WSRT', polrep='linear',
                                      stations=stations, simulate=simulate)
+        
+        self.history(override)
+        self.history('coupled_dang='+str(coupled_dang)+' coupled_dell='+str(coupled_dell))
+        
         pols = self._pols
         dname = self.label()+'dang'
         ename = self.label()+'dell'
@@ -498,9 +502,9 @@ class EJones (Joneset22.Joneset22):
 def _define_forest(ns):
 
     cc = []
-    simulate = True
+    simulate = False
 
-    if False:
+    if True:
         jones = GJones(ns, quals=[], simulate=simulate)
         cc.append(jones.visualize())
         # jones.display(full=True)
@@ -513,11 +517,12 @@ def _define_forest(ns):
         cc.append(jones.visualize())
         jones.display(full=True)
         
+    if False:
         jones = DJones(ns, quals=[], simulate=simulate)
         cc.append(jones.visualize())
         # jones.display(full=True)
 
-    if True:
+    if False:
         jones = EJones(ns, quals=[], simulate=simulate)
         # jones.display(full=True)
         cc.append(jones.visualize(visu='straight'))
@@ -565,7 +570,7 @@ if __name__ == '__main__':
 
     jj = []
 
-    if 1:
+    if 0:
         G = GJones(ns,
                    # quals=['3c84','xxx'],
                    simulate=True)
@@ -591,12 +596,13 @@ if __name__ == '__main__':
         F.display(full=True)
 
 
-    if 0:
+    if 1:
         # D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=False)
         D = DJones(ns, coupled_dang=False, coupled_dell=False)
         jj.append(D)
         D.display(full=True, recurse=10)
         # D._pgm.display_NodeGroups()
+        D.history().display(full=True)
 
     if 0:
         jseq = Joneset22.Joneseq22 (jj)

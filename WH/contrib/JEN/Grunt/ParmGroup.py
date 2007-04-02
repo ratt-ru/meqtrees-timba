@@ -205,6 +205,8 @@ class ParmGroup (NodeGroup.NodeGroup):
 
         # Append the new node to the internal nodelist:
         self.append_member(node, plot_label=str(quals))
+
+        print '**',self.label(),'.create_member(',quals,'):',str(node)
         return node
 
 
