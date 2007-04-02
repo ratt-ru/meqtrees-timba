@@ -1,7 +1,8 @@
 # file: ../Grunt/solving22.py
 
 # History:
-# 19jan2007: creation
+#   19jan2007: creation
+#   01apr2007: adaptation to QualScope etc
 
 # Description:
 
@@ -13,14 +14,10 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Contrib.JEN.Grunt import Qualifiers
-# from Timba.Contrib.JEN.Grunt import ParmGroup
-# from Timba.Contrib.JEN.Grunt import ParmGroupManager
 from Timba.Contrib.JEN.Grunt import Condexet22
 from Timba.Contrib.JEN.Grunt import Matrixet22
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 import Meow
 from Timba.Contrib.JEN.Grunting import JEN_Meow_Utils    # ..temporary..
@@ -45,25 +42,27 @@ def include_TDL_options(prompt=None):
 #======================================================================================
 
 def make_solver (lhs=None, rhs=None, parmgroup='*', 
-                 qual=None, redun=None, accu=True, **pp):
+                 quals=None, redun=None, accu=True, **pp):
     """Make a solver that solves for the specified parmgroup(s), by comparing the
     matrices of one Matrixet22 object (lhs) with the corresponding matrices of
     another (rhs).
     If rhs==None, do do a redundancy-solution, i.e. compare redundant spacings.
     If accu==True, attach the solver reqseq to the lhs accumulist."""
 
+    ns = lhs.ns()._derive(append=quals)
     if rhs:
-        quals = lhs.quals(append=qual, merge=rhs.quals())
+        ns = ns._merge(rhs.ns())
+        # quals = lhs.quals(append=qual, merge=rhs.quals())
         # Accumulate nodes to be executed sequentially later:
         if accu: lhs.merge_accumulist(rhs)
         # NB: Use the ParmGroupManger from the rhs (assumed predicted) Matrixet22
         #     object, NOT from the lhs (assumed measured data) ....(?)
-        pgm = rhs._pgm
+        pgm = rhs.ParmGroupManager()
     else:
         # Redundancy-solution (rhs==None):
-        quals = lhs.quals(append=qual)
+        # quals = lhs.quals(append=quals)
         # NB: Use the ParmGroupManger from the lhs (measured data) Matrixet22
-        pgm = lhs._pgm
+        pgm = lhs.ParmGroupManager()
 
     # pgm.display('solving22')
     print pgm.tabulate(parmgroup)
@@ -87,7 +86,7 @@ def make_solver (lhs=None, rhs=None, parmgroup='*',
     # Make a list of condeq nodes, by comparing either the
     # corresponding ifrs in the lhs and rhs Vissets,
     # or redundant spacings in lhs (if rhs==None):
-    cdx = Condexet22.Condexet22(lhs._ns, lhs=lhs)
+    cdx = Condexet22.Condexet22(lhs=lhs, quals=quals)
     if rhs:
         cdx.make_condeqs (rhs=rhs, unop=None)
         condeqs = cdx.get_condeqs(matrel=matrel)
@@ -116,11 +115,11 @@ def make_solver (lhs=None, rhs=None, parmgroup='*',
     sopt.__delitem__('solvable')
     
     name = 'solver'+solver_label
-    solver = lhs._ns[name](*quals) << Meq.Solver(children=condeqs, 
-                                                 # debug_file=debug_file,
-                                                 # parm_group=hiid(parm_group),
-                                                 # child_poll_order=cpo,
-                                                 solvable=solvable, **sopt)
+    solver = ns[name] << Meq.Solver(children=condeqs, 
+                                    # debug_file=debug_file,
+                                    # parm_group=hiid(parm_group),
+                                    # child_poll_order=cpo,
+                                    solvable=solvable, **sopt)
 
     # Bundle (cc) the solver and its related visualization dcolls
     # for attachment to a reqseq (below).
@@ -134,18 +133,18 @@ def make_solver (lhs=None, rhs=None, parmgroup='*',
     cc.append(pgm.visualize(parmgroup))
     
     # Visualize the condeqs:
-    condequal = 'condeq'+solver_label
-    if isinstance(qual,(list,tuple)):
-        condequal = qual
-        condequal.insert(0,'condeq'+solver_label)
-    elif isinstance(qual,str):
-        condequal = [condequal,qual]
+    condequal = 'condeq'+solver_label+ns._qualstring()
+    # if isinstance(qual,(list,tuple)):
+    #     condequal = qual
+    #     condequal.insert(0,'condeq'+solver_label)
+    # elif isinstance(qual,str):
+    #     condequal = [condequal,qual]
     dcoll = cdx.visualize(condequal, matrel=matrel, bookpage=bookpage, visu='*')
     cc.append(dcoll)
 
     # Bundle solving and visualisation nodes:
     name = 'reqseq_solver'+solver_label
-    reqseq = lhs._ns[name](*quals) << Meq.ReqSeq(children=cc)
+    reqseq = ns[name] << Meq.ReqSeq(children=cc)
     if accu: lhs.accumulist(reqseq)
 
     # Return the solver reqseq (usually not used if accu==True):
@@ -213,12 +212,12 @@ if __name__ == '__main__':
         pp = include_TDL_options()
 
     if 1:
-        m1 = Matrixet22.Matrixet22(ns, quals=['3c84','xxx'], label='HH', simulate=True)
+        m1 = Matrixet22.Matrixet22(ns, quals=['3c84','xxx'], label='HH')
         m1.test()
         m1.visualize()
         m1.display(full=True)
 
-        m2 = Matrixet22.Matrixet22(ns, quals=['3c84','yyy'], label='TT', simulate=False)
+        m2 = Matrixet22.Matrixet22(ns, quals=['3c84','yyy'], label='TT')
         m2.test()
         m2.display('m2',full=True)
 

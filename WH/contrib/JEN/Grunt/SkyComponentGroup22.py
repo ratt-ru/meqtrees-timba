@@ -436,7 +436,7 @@ class SkyComponentGroup22 (object):
 
     #.......................................................................
 
-    def show_config (self, qual=None, 
+    def show_config (self, quals=None, 
                      bookpage='scg_config', folder=None):
 
         """Make a 2D plot of the (l,m) configuration. This misuses the

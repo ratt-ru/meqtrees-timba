@@ -330,7 +330,7 @@ class DJones (Joneset22.Joneset22):
 
         # Make the (overall) 2x2 PZD jones matrix:
         pmat = self._ns[pname]
-        pzd = pg[pname].create_entry()
+        pzd = pg[pname].create_member()
         pzd2 = pmat('pzd2') << pzd/2
         m11 = pmat('m11') << Meq.Polar(1.0, pzd2)
         m22 = pmat('m22') << Meq.Polar(1.0, pmat('npzd2') << Meq.Negate(pzd2))
@@ -343,14 +343,14 @@ class DJones (Joneset22.Joneset22):
             # Dipole rotation angles:
             dmat = self._ns[dname](s)
             if coupled_dang:
-                dang = pg[dname].create_entry(s)
+                dang = pg[dname].create_member(s)
                 cos = dmat('cos') << Meq.Cos(dang)
                 sin = dmat('sin') << Meq.Sin(dang)
                 sinneg = dmat('nsin') << Meq.Negate(sin)
                 dmat << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = pg[dname][pols[0]].create_entry(s)
-                dang2 = pg[dname][pols[1]].create_entry(s)
+                dang1 = pg[dname][pols[0]].create_member(s)
+                dang2 = pg[dname][pols[1]].create_member(s)
                 cos1 = dmat('cos1') << Meq.Cos(dang1)
                 cos2 = dmat('cos2') << Meq.Cos(dang2)
                 sin1 = dmat('nsin1') << Meq.Negate(dmat('sin1') << Meq.Sin(dang1))
@@ -361,14 +361,14 @@ class DJones (Joneset22.Joneset22):
             # Dipole ellipticities:
             emat = self._ns[ename](s)
             if coupled_dell:
-                dell = pg[ename].create_entry(s)
+                dell = pg[ename].create_member(s)
                 cos = emat('cos') << Meq.Cos(dell)
                 sin = emat('sin') << Meq.Sin(dell)
                 isin = emat('isin') << Meq.ToComplex(0.0, sin)
                 emat << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = pg[ename][pols[0]].create_entry(s)
-                dell2 = pg[ename][pols[1]].create_entry(s)
+                dell1 = pg[ename][pols[0]].create_member(s)
+                dell2 = pg[ename][pols[1]].create_member(s)
                 cos1 = emat('cos1') << Meq.Cos(dell1)
                 cos2 = emat('cos2') << Meq.Cos(dell2)
                 isin1 = emat('isin1') << Meq.ToComplex(0.0, emat('sin1') << Meq.Sin(dell1))
@@ -475,7 +475,7 @@ class EJones (Joneset22.Joneset22):
                 beam[pol].quals(s)
                 # Provide external parameters for the Functional of station s:
                 for pname in beamparms:
-                    node = pg[pname][pol].create_entry(s)      # create a parm (pname,pol) node
+                    node = pg[pname][pol].create_member(s)     # create a parm (pname,pol) node
                     beam[pol].parm(pname, node)                # replace it in the (pol) Expression
                 mm[pol] = beam[pol].MeqFunctional(self._ns)
             unode(s) << Meq.Matrix22(mm[pols[0]],0.0,

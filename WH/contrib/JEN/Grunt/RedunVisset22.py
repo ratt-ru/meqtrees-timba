@@ -61,7 +61,7 @@ class RedunVisset22 (Visset22.Visset22):
         ss += '  '+str(self.label())
         ss += '  pols='+str(self._pols)
         ss += '  n='+str(len(self.stations()))
-        ss += '  quals='+str(self.quals())
+        ss += '  quals='+str(self.ns()._qualstring())
         ss += '  polar='+str(self._polar)
         return ss
 
@@ -79,7 +79,7 @@ class RedunVisset22 (Visset22.Visset22):
 
     #------------------------------------------------------------------
     
-    def make_group_nodes (self, rr, polar=False):
+    def make_group_nodes (self, rr, polar=False, quals=None):
         """Make matrices for all redundant baselines, i.e. ifrs that have
         the same baseline as one or more others in the array. The matrices
         in each group are all identical, either a constant unit-matrix or 
@@ -87,73 +87,80 @@ class RedunVisset22 (Visset22.Visset22):
         real/imag (polar=False), and can be solved for, using the
         ParmGroupManager. rr is a list of dicts, representing groups."""
 
-        self.make_group_node(polar=polar)        # define parmgroups
-        quals = self.quals()
+        # First define ParmGroup objects:
+        pg = self.init_group_node(polar=polar)
+        
         name = 'redundant'
+        qnode = self._ns[name]
         indices = []
         for gg in rr:
-            print 'gg =',gg
             # Make the (matrix) node that the redundant matrices are equated to:
-            node = self.make_group_node (gg, polar=polar)
+            node = self.make_group_node (gg, polar=polar, pg=pg)
             for ifr in gg['group']:
-                self._ns[name](*quals)(*ifr) << Meq.Identity(node)
+                qnode(*ifr) << Meq.Identity(node)
                 indices.append(ifr)
-        self._matrixet = self._ns[name](*quals)
+        self._matrixet = qnode
         self.indices(new=indices)
-        self.define_gogs('redun')
+        self.pgm().define_gogs('redun')
         return True
 
 
     #.............................................................................
 
-    def make_group_node (self, rr=None, polar=False):
+    def init_group_node (self, polar=False):
         """Helper function for .make_group_nodes()"""
 
-        quals = []
         pname = 'redun_phase'
         aname = 'redun_ampl'
         rname = 'redun_real'
         iname = 'redun_imag'
 
-        if rr==None:
-            # First time: define parmgroups:
-            if polar:
-                self.define_parmgroup(aname, descr='redundant baseline amplitude',
-                                      quals=quals,
-                                      default=dict(c00=1.0,
-                                                   # subtile_size=1,
-                                                   tfdeg=[2,0]),
-                                      rider=dict(matrel='*'),
-                                      tags=[aname,'redun'])
-                self.define_parmgroup(pname, descr='redundant baseline phase',
-                                      quals=quals,
-                                      default=dict(c00=0.0, unit='rad',
-                                                   # subtile_size=1,
-                                                   tfdeg=[2,0]),
-                                      rider=dict(matrel='*'),
-                                      tags=[pname,'redun'])
-            else:
-                self.define_parmgroup(rname, descr='redundant baseline real part',
-                                      quals=quals,
-                                      default=dict(c00=1.0,
-                                                   # subtile_size=1,
-                                                   tfdeg=[2,0]),
-                                      rider=dict(matrel='*'),
-                                      tags=[rname,'redun'])
-                self.define_parmgroup(iname, descr='redundant baseline imag part',
-                                      quals=quals,
-                                      default=dict(c00=0.0,
-                                                   # subtile_size=1,
-                                                   tfdeg=[2,0]),
-                                      rider=dict(matrel='*'),
-                                      tags=[iname,'redun'])
-            return True
+        # efine ParmGroup objectss:
+        pg = dict()
+        if polar:
+            pg[aname] = self.pgm().define(self._ns, aname,
+                                          descr='redundant baseline amplitude',
+                                          default=dict(c00=1.0,
+                                                       # subtile_size=1,
+                                                       tfdeg=[2,0]),
+                                          rider=dict(matrel='*'),
+                                          tags=[aname,'redun'])
+            pg[pname] = self.pgm().define(self._ns, pname,
+                                          descr='redundant baseline phase',
+                                          default=dict(c00=0.0, unit='rad',
+                                                       # subtile_size=1,
+                                                       tfdeg=[2,0]),
+                                          rider=dict(matrel='*'),
+                                          tags=[pname,'redun'])
+        else:
+            pg[rname] = self.pgm().define(self._ns, rname,
+                                          descr='redundant baseline real part',
+                                          default=dict(c00=1.0,
+                                                       # subtile_size=1,
+                                                       tfdeg=[2,0]),
+                                          rider=dict(matrel='*'),
+                                          tags=[rname,'redun'])
+            pg[iname] = self.pgm().define(self._ns, iname,
+                                          descr='redundant baseline imag part',
+                                          default=dict(c00=0.0,
+                                                       # subtile_size=1,
+                                                       tfdeg=[2,0]),
+                                          rider=dict(matrel='*'),
+                                          tags=[iname,'redun'])
+        # Finished: Return the dict with ParmGroup objects:
+        return pg
 
-        #------------------------------------------------------------------------
+    #.............................................................................
 
+    def make_group_node (self, rr=None, polar=False, pg=None):
+        """Helper function for .make_group_nodes()"""
+
+        # Prepare:
+        pname = 'redun_phase'
+        aname = 'redun_ampl'
+        rname = 'redun_real'
+        iname = 'redun_imag'
         pols = self.pols()                        # e.g. ['X','Y']
-        quals = self.quals()
-        quals = []
         mm = dict(m11=complex(1.0,0.0), m12=complex(0.0,0.0),
                   m21=complex(0.0,0.0), m22=complex(1.0,0.0))
         pp = dict(m11=str(pols[0])+str(pols[0]),
@@ -162,42 +169,44 @@ class RedunVisset22 (Visset22.Visset22):
                   m22=str(pols[1])+str(pols[1]))
         key = rr['key']
         rhs = rr['rhs']
-        
+
+        # Deal with the various (but always return a Matrix22 node):
         if not isinstance(rhs, str):
             # Assume that rhs is a node already:
             return rhs
-        
         elif rhs=='constant':
             name = 'redun_unity'
-            return self._ns[name](*quals)(key) << Meq.Matrix22(mm['m11'],mm['m12'],
-                                                               mm['m21'],mm['m22'])
-
-        # The following possibilities all require MeqParms:
-
-        if rhs=='diagonal':
+            return self._ns[name](key) << Meq.Matrix22(mm['m11'],mm['m12'],
+                                                       mm['m21'],mm['m22'])
+        elif rhs=='diagonal':
             # The off-diagonal elements are zero:
             name = 'redun_diag'
+            name = 'redun'
             mms = ['m11','m22']
         else:
             # All 4 elements are solvable:
             name = 'redun_all4'
+            name = 'redun'
             mms = mm.keys()
 
+        # Make a parametrized Matrix22:
+        qnode = self._ns[name](key)
         if polar:
             # Solve for ampl/phase per matrix element:
             for m in mms:
-                phase = self.create_parmgroup_entry(pname, (pp[m],key), quals=quals)
-                ampl = self.create_parmgroup_entry(aname, (pp[m],key), quals=quals)
-                mm[m] = self._ns << Meq.Polar(ampl,phase)
+                phase = pg[pname].create_member((key,pp[m]))
+                ampl = pg[aname].create_member((key,pp[m]))
+                mm[m] = qnode(pp[m]) << Meq.Polar(ampl,phase)
         else:
             # Solve for real/imag per matrix element:
             for m in mms:
-                real = self.create_parmgroup_entry(rname, (pp[m],key), quals=quals)
-                imag = self.create_parmgroup_entry(iname, (pp[m],key), quals=quals)
-                mm[m] = self._ns << Meq.ToComplex(real,imag)
-        node = self._ns[name](*quals)(key) << Meq.Matrix22(mm['m11'],mm['m12'],
-                                                           mm['m21'],mm['m22'])
-        return node
+                real = pg[rname].create_member((key,pp[m]))
+                imag = pg[iname].create_member((key,pp[m]))
+                mm[m] = qnode(pp[m]) << Meq.ToComplex(real,imag)
+        qnode << Meq.Matrix22(mm['m11'],mm['m12'],
+                              mm['m21'],mm['m22'])
+        # Finished:
+        return qnode
 
 
 
@@ -300,7 +309,7 @@ def _define_forest(ns):
     rvs.display('initial', recurse=4)
     # rvs.show_matrix_subtree(recurse=3)
 
-    rvs.visualize (qual=None, visu='rvsi', accu=True,
+    rvs.visualize (quals=None, visu='rvsi', accu=True,
                    matrel='*', separate=False,
                    bookpage='Matrixet22', folder=None)
 

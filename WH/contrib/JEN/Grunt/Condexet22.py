@@ -3,6 +3,7 @@
 # History:
 # - 18jan2007: creation
 # - 23feb2007: second iteration
+# - 02apr2007: adapted to QualScope etc
 
 # Description:
 
@@ -47,8 +48,8 @@ class Condexet22 (Matrixet22.Matrixet22):
     side (lhs) is a Visset22 object with measured data, while the right-hand
     side (rhs) contains predicted visibilities."""
 
-    def __init__(self, ns, quals=[], label='cdxet',
-                 lhs=None, wgt=None, select='*'):
+    def __init__(self, lhs, quals=[], label='cdxet',
+                 wgt=None, select='*'):
 
         self._lhs = lhs
         self._wgt = wgt
@@ -61,8 +62,7 @@ class Condexet22 (Matrixet22.Matrixet22):
         self._condeq_name = 'condeq'
 
         # Initialise its Matrixet22 object:
-        quals = lhs.quals(prepend=quals)
-        Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label)
+        Matrixet22.Matrixet22.__init__(self, lhs.ns(), quals=quals, label=label)
 
         return None
 
@@ -74,7 +74,7 @@ class Condexet22 (Matrixet22.Matrixet22):
         ss += '  '+str(self.label())
         ss += '  lhs='+str(self._lhs.label())
         if self._rhs: ss += '  rhs='+str(self._rhs.label())
-        ss += '  quals='+str(self.quals())
+        ss += '  quals='+str(self.ns()._qualstring())
         return ss
 
 
@@ -279,8 +279,8 @@ if __name__ == '__main__':
         lhs = Visset22.Visset22(ns, label='lhs', array=array)
         lhs.fill_with_identical_matrices()
         lhs.display()
-        cdx = Condexet22(ns, lhs=lhs)
-        # cdx.display(recurse=2)
+        cdx = Condexet22(lhs=lhs)
+        cdx.display(recurse=2)
 
     if 0:
         pred = Visset22.Visset22(ns, label='pred', array=array)
@@ -295,7 +295,7 @@ if __name__ == '__main__':
             cdx.make_redun_condeqs (redun, unop=None)
             cdx.display(recurse=3)
 
-    if 1:
+    if 0:
         redun = RedunVisset22.make_WSRT_redun_groups (ifrs=array.ifrs(), sep9A=36,
                                                       rhs='all4', select='all')
         rhs = RedunVisset22.RedunVisset22(ns, label='rhs', array=array,

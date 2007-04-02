@@ -61,7 +61,7 @@ class ParmGroup (NodeGroup.NodeGroup):
         if not 'Parm' in self._node_groups:
             self._node_groups.append('Parm')
 
-        # Information needed to create MeqParm nodes (see create_entry())
+        # Information needed to create MeqParm nodes (see create_member())
         self._default = deepcopy(default)
         if not isinstance(self._default, dict): self._default = dict()
 
@@ -99,7 +99,7 @@ class ParmGroup (NodeGroup.NodeGroup):
 
 
         #------------------------------------------------------
-        # Make the MeqParm initrec (used in create_entry()):
+        # Make the MeqParm initrec (used in create_member()):
         #------------------------------------------------------
 
         # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
@@ -187,22 +187,24 @@ class ParmGroup (NodeGroup.NodeGroup):
     # Create a new ParmGroup entry (i.e. a MeqParm node)
     #======================================================================
 
-    def create_entry (self, qual=None):
-        """Create an entry, i.e. MeqParm node, or a simulation subtree,
-        and append it to the nodelist"""
+    def create_member (self, quals=None):
+        """Create a member of the ParmGroup, i.e. MeqParm node, or a
+        simulation subtree, and append it to the nodelist"""
 
         name = self._basename
-        if qual:
-            node = self._ns[name](qual)
-        else:
+        if not quals:
             node = self._ns[name]
+        elif isinstance(quals, (list,tuple)):
+            node = self._ns[name](*quals)
+        else:
+            node = self._ns[name](quals)
         
         # Now initialize the node with a MeqParm
         node << Meq.Parm(self._default['c00'],        ## funklet=..
                          **self._initrec)
 
         # Append the new node to the internal nodelist:
-        self.append_entry(node, plot_label=qual)
+        self.append_member(node, plot_label=str(quals))
         return node
 
 
@@ -423,9 +425,9 @@ class ParmGroup (NodeGroup.NodeGroup):
 
     def test(self):
         """Helper function to put in some standard entries for testing"""
-        self.create_entry()
-        self.create_entry(5)
-        self.create_entry(6)
+        self.create_member()
+        self.create_member(5)
+        self.create_member(6)
         return True
 
 
@@ -473,7 +475,7 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         self._default.setdefault('c00', 0.0)
         self._default.setdefault('unit', None)
         
-        # Information to create a simulation subtree (see create_entry())
+        # Information to create a simulation subtree (see create_member())
         self._simul = deepcopy(simul)
         if not isinstance(self._simul, dict): self._simul = dict()
         self._simul.setdefault('default_value', self._default['c00'])           
@@ -572,14 +574,14 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     #-------------------------------------------------------------------
 
-    def create_entry (self, qual=None):
+    def create_member (self, quals=None):
         """Create an entry, i.e. a simulation subtree, that simulates
         a MeqParm node that varies with time and/or frequency, and append
         it to the nodelist"""
 
-        # print '\n** create_entry(',qual,'):',self.oneliner(),'\n'
+        # print '\n** create_member(',quals,'):',self.oneliner(),'\n'
 
-        ns = self._ns._derive(append=qual, prepend=self._basename)
+        ns = self._ns._derive(append=quals, prepend=self._basename)
 
         pp = self._simul                                    # Convenience
             
@@ -636,11 +638,11 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
         cc = [default_value]
         if freq_variation: cc.append(freq_variation)
         if time_variation: cc.append(time_variation)
-        ns = self._ns._derive(append=qual)
+        ns = self._ns._derive(append=quals)
         node = ns[self._basename] << Meq.Add(children=cc, tags=self._tags)
 
         # Append the new node to the internal nodelist:
-        self.append_entry(node)
+        self.append_member(node)
         return node
 
 
@@ -652,9 +654,9 @@ class SimulatedParmGroup (NodeGroup.NodeGroup):
 
     def test(self):
         """Helper function to put in some standard entries for testing"""
-        self.create_entry(5)
-        self.create_entry()
-        self.create_entry(6)
+        self.create_member(5)
+        self.create_member()
+        self.create_member(6)
         return True
 
 

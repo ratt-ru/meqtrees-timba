@@ -19,7 +19,7 @@ import Meow
 
 from Timba.Contrib.JEN.Grunt import NodeGroup 
 from Timba.Contrib.JEN.Grunt import ParmGroup 
-from Timba.Contrib.JEN.Grunt import Qualifiers
+# from Timba.Contrib.JEN.Grunt import Qualifiers
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -270,22 +270,22 @@ class ParmGroupManager (object):
         ParmGroupManager object"""
         if trace: print '\n** merge():'
 
-        if not other==type(ParmGroupManager):
-            raise ValueError,'** pgm.merge(): other='+str(type(other))
+        # if not other==type(ParmGroupManager):
+        #     raise ValueError,'** pgm.merge(): other='+str(type(other))
 
         for key in other._parmgroup.keys():
             if not self._parmgroup.has_key(key):
                 self._parmgroup[key] = other._parmgroup[key]
             else:
                 # Assume NodeGog....
-                self._parmgroup[key].append_entry(other._parmgroup[key].group())
+                self._parmgroup[key].append_member(other._parmgroup[key].group())
 
         for key in other._simparmgroup.keys():
             if not self._simparmgroup.has_key(key):
                 self._simparmgroup[key] = other._simparmgroup[key]
             else:
                 # Assume NodeGog....
-                self._simparmgroup[key].append_entry(other._simparmgroup[key].group())
+                self._simparmgroup[key].append_member(other._simparmgroup[key].group())
 
         if trace: print '**\n'
         return True
@@ -302,12 +302,10 @@ class ParmGroupManager (object):
         """Helper function to define a named (key+quals) (Simulated)ParmGroup
         object. There are two modes:
         - In normal mode (simulate=False), a ParmGroup object is created,
-          whose create_parmgroup_entry() method creates regular MeqParms.
+          whose create_member() method creates regular MeqParms.
         - Otherwise (simulate=True), a SimulatedParmGroup object is created,
-          whose .create_parmgroup_entry() method produces subtrees that
-          simulate MeqParm behaviour. Both classes are derived from NodeGroup.
-        NB: simulate = (simulate or self._simulate).....
-        """
+          whose .create_member() method produces subtrees that simulate
+          MeqParm behaviour. Both classes are derived from NodeGroup."""
 
         # Make a safe copy of the extra qualifiers (quals):
         uquals = deepcopy(quals)
@@ -418,7 +416,7 @@ class ParmGroupManager (object):
                                                           descr='<descr>', 
                                                           group=self._pgog[key])
             elif type(self._parmgroup[key])==NodeGroup.NodeGog:
-                self._parmgroup[key].append_entry(self._pgog[key])
+                self._parmgroup[key].append_member(self._pgog[key])
             else:
                 raise TypeError,'parmgroup['+key+'] is not a NodeGog: '+str(type(self._parmgroup[key])) 
             if trace: print '--- pgog',key,'(',len(self._pgog[key]),') ->',self._parmgroup[key].len()
@@ -431,7 +429,7 @@ class ParmGroupManager (object):
                                                              descr='<descr>', 
                                                              group=self._sgog[key])
             elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
-                self._simparmgroup[key].append_entry(self._sgog[key])
+                self._simparmgroup[key].append_member(self._sgog[key])
             else:
                 raise TypeError,'simparmgroup['+key+'] is not a NodeGog: '+str(type(self._simparmgroup[key]))  
             if trace: print '--- sgog',key,'(',len(self._sgog[key]),') ->',self._simparmgroup[key].len()
@@ -446,7 +444,7 @@ class ParmGroupManager (object):
                     self._parmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, group=pg,
                                                               descr='all '+name+' parameters')
                 elif type(self._parmgroup[key])==NodeGroup.NodeGog:
-                    self._parmgroup[key].append_entry(pg)
+                    self._parmgroup[key].append_member(pg)
                 else:
                     raise TypeError,'parmgroup['+key+'] is not a NodeGog' 
                 if trace: print '---',key,'(',len(pg),') ->',self._parmgroup[key].len()
@@ -456,7 +454,7 @@ class ParmGroupManager (object):
                     self._simparmgroup[key] = NodeGroup.NodeGog (self._ns, label=key, group=spg,
                                                                  descr='all simulated '+name+' parameters')
                 elif type(self._simparmgroup[key])==NodeGroup.NodeGog:
-                    self._simparmgroup[key].append_entry(spg)
+                    self._simparmgroup[key].append_member(spg)
                 else:
                     raise TypeError,'simparmgroup['+key+'] is not a NodeGog' 
                 if trace: print '---',key,'(',len(spg),') ->',self._simparmgroup[key].len()
@@ -480,7 +478,7 @@ class ParmGroupManager (object):
                              simulate=simulate,
                              tags=['test'])
             for index in range(4):
-                node = pg.create_entry(index)
+                node = pg.create_member(index)
 
         # Make some secondary (composite) ParmGroups:
         self.define_gogs()

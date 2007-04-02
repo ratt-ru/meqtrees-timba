@@ -44,7 +44,7 @@ class NodeGroup (object):
         self._label = str(label)
         self._descr = descr                   # brief description 
 
-        # The basename of the nodes created by create_entry():
+        # The basename of the nodes created by create_member():
         self._basename = basename
         if not isinstance(self._basename,str):
             self._basename = self._label
@@ -55,7 +55,7 @@ class NodeGroup (object):
         self._nodelist = []                   # initialise the internal nodelist
         if len(nodelist)>0:
             for node in nodelist:
-                self.append_entry(node)
+                self.append_member(node)
 
         # A NodeGroup carries a rider (dict), which contains user-defined info:
         self._rider = dict()
@@ -186,7 +186,7 @@ class NodeGroup (object):
 
     #-------------------------------------------------------------------
 
-    def append_entry(self, node, plot_label=None):
+    def append_member(self, node, plot_label=None):
         """Append the given entry (node) to the internal nodelist."""
         # Check whether it is a valid node....?
         self._nodelist.append(node)
@@ -196,7 +196,7 @@ class NodeGroup (object):
         self._plot_labels.append(str(plot_label))
         return len(self._nodelist)
 
-    def create_entry (self, qual=None):
+    def create_member (self, quals=None):
         """Virtual method for creating a new entry. The NodeGroup does not have
         enough information to do this, but specialisations of this class do."""
         return None
@@ -221,6 +221,7 @@ class NodeGroup (object):
                 absdiff.append(node('absdiff')(i) << Meq.Abs(diff))
             node << Meq.Add(children=absdiff)
         return node
+
 
     def match(self, other, origin):
         """Helper function to check whether the other group is a match (length etc)"""
@@ -379,7 +380,7 @@ class NodeGroup (object):
         name = 'test'
         # name = self.label()
         for i in range(n):
-            self.append_entry(ns[name](i) << Meq.Constant(i+offset, dims=[1]))
+            self.append_member(ns[name](i) << Meq.Constant(i+offset, dims=[1]))
         return True
 
 
@@ -418,7 +419,7 @@ class NodeGog (object):
         self._group = []                      # initialise the internal group
         if len(group)>0:                      # group supplied externally
             for g in group:
-                self.append_entry(g)
+                self.append_member(g)
 
         # A NodeGog carries a rider (dict), which contains user-defined info:
         self._rider = dict()
@@ -501,7 +502,7 @@ class NodeGog (object):
 
     #-------------------------------------------------------------------
 
-    def append_entry(self, group, trace=False):
+    def append_member(self, group, trace=False):
         """Append the given entry (group) to the internal group.
         NB: If group is a list (of NodeGroups), all its elements are appended."""
         was = self.len()
@@ -513,7 +514,7 @@ class NodeGog (object):
             # test = (type(g)==ParmGroup.ParmGroup)
             self._group.append(g)
             if trace:
-                print '----- append_entry(',self.label(),g.label(),test,'):',was,'->',self.len()
+                print '----- append_member(',self.label(),g.label(),test,'):',was,'->',self.len()
         return len(self._group)
 
     #----------------------------------------------------------------------
@@ -663,12 +664,12 @@ class NodeGog (object):
         ng = NodeGroup(self._ns, 'first', color='red')
         ng.test(5, offset=0.1)
         ng.display()
-        self.append_entry(ng)
+        self.append_member(ng)
 
         ng = NodeGroup(self._ns, 'second', color='blue')
         ng.test(7, offset=0.2)
         ng.display()
-        self.append_entry(ng)
+        self.append_member(ng)
         
         return True
 
@@ -792,8 +793,8 @@ if __name__ == '__main__':
 
         if 0:
             ng2 = NodeGroup(ns, 'ng2')
-            ng2.append_entry(ss << 1.0)
-            ng2.append_entry(ss << 2.0)
+            ng2.append_member(ss << 1.0)
+            ng2.append_member(ss << 2.0)
             nn = ng2.nodelist(trace=True)
             ng2.display()
 

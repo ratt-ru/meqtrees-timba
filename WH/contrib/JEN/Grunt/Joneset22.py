@@ -39,7 +39,7 @@ class Joneset22 (Matrixet22.Matrixet22):
         # List of (array) station indices:
         indices = deepcopy(stations)
         if indices==None:
-            indices = range(1,4)                     # for testing convenience....
+            indices = range(1,4)                               # for testing convenience....
 
         # If simulate, use subtrees that simulate MeqParm behaviour:
         self._simulate = simulate
@@ -62,7 +62,6 @@ class Joneset22 (Matrixet22.Matrixet22):
             self.ns(new=self.ns()._derive(prepend=str(self._telescope)))         
 
         # Finished:
-        self.history(self.ns()._qualstring())
         return None
 
     #-------------------------------------------------------------------
@@ -148,13 +147,14 @@ def Joneseq22 (joneslist=None, quals=None):
 
             
     # Then create the new Jones matrices by matrix-multiplication:
-    unode = jnew.ns().Joneseq
+    jnew.history('.Joneseq22(): Matrix multiplication of '+str(len(joneslist))+' Jones matrices')
+    qnode = jnew.ns().Joneseq
     for i in jnew.list_indices():
         cc = []
         for jones in joneslist:
             cc.append(jones._matrixet(*i))
-        unode(*i) << Meq.MatrixMultiply(*cc)
-    jnew.matrixet(new=unode)
+        qnode(*i) << Meq.MatrixMultiply(*cc)
+    jnew.matrixet(new=qnode)
     
     # Merge the parmgroups of the various Jones matrices:
     for jones in joneslist:
@@ -197,6 +197,8 @@ class GJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
 
+        self.history(override)
+
         # Parameter group names:
         pols = self.pols()                        # e.g. ['X','Y']
         pname = self.label()+'phase'
@@ -235,8 +237,8 @@ class GJones (Joneset22):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                phase = pg[pol][pname].create_entry(s)
-                gain = pg[pol][gname].create_entry(s)
+                phase = pg[pol][pname].create_member(s)
+                gain = pg[pol][gname].create_member(s)
                 mm[pol] = self._ns[jname+pol](s) << Meq.Polar(gain,phase)
             self._ns[jname](s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                0.0,mm[pols[1]])
@@ -272,6 +274,8 @@ class BJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
 
+        self.history(override)
+
         pols = self.pols()                                # e.g. ['X','Y']
         iname = self.label()+'imag'
         rname = self.label()+'real'
@@ -302,8 +306,8 @@ class BJones (Joneset22):
         for s in self.stations():
             mm = dict()
             for pol in pols:
-                real = pg[pol][rname].create_entry(s)
-                imag = pg[pol][iname].create_entry(s)
+                real = pg[pol][rname].create_member(s)
+                imag = pg[pol][iname].create_member(s)
                 mm[pol] = self._ns[jname+pol](s) << Meq.ToComplex(real,imag)
             self._ns[jname](s) << Meq.Matrix22(mm[pols[0]],0.0,
                                                        0.0,mm[pols[1]])
@@ -337,6 +341,8 @@ class JJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
         
+        self.history(override)
+
         jname = self.label()+'Jones'
         enames = ['J11','J12','J21','J22']
 
@@ -373,8 +379,8 @@ class JJones (Joneset22):
         for s in self.stations():
             mm = dict(J12=0.0, J21=0.0)
             for ename in pg.keys():
-                real = pg[ename]['real'].create_entry(s)
-                imag = pg[ename]['imag'].create_entry(s)
+                real = pg[ename]['real'].create_member(s)
+                imag = pg[ename]['imag'].create_member(s)
                 mm[ename] = self._ns[ename](s) << Meq.ToComplex(real,imag)
             self._ns[jname](s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                                mm[enames[2]],mm[enames[3]])
@@ -403,6 +409,8 @@ class FJones (Joneset22):
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations, simulate=simulate)
         
+        self.history(override)
+
         polrep = self.polrep()
         rname = self.label()+'rm'       
         jname = self.label()+'Jones'
@@ -416,7 +424,7 @@ class FJones (Joneset22):
                                       override=override,
                                       tags=[rname,jname])
 
-        RM = pg[rname].create_entry()                         # Rotation Measure (rad/m2)
+        RM = pg[rname].create_member()                        # Rotation Measure (rad/m2)
         wvl = self._ns.wvl << Meq.Divide(3e8, self._ns.freq << Meq.Freq())
         wvl2 = self._ns.wvl2 << Meq.Sqr(wvl)                  # lambda squared
         farot = self._ns.farot << (RM * wvl2)                 # Faraday rotation angle
@@ -509,34 +517,39 @@ if __name__ == '__main__':
     jj = []
 
     if 1:
-        G = GJones(ns,
+        jones = GJones(ns,
                    quals='3c84',
                    # quals=['3c84','xxx'],
                    simulate=True)
-        jj.append(G)
-        G.visualize()
-        G.display(full=True)
-        # G.display_NodeGroups()
+        jj.append(jones)
+        jones.visualize()
+        jones.display(full=True)
+        # jones.display_NodeGroups()
 
     if 1:
-        J = BJones(ns, quals=['3c84'])
-        jj.append(J)
-        J.display(full=True)
+        jones = BJones(ns, quals=['3c84'])
+        jj.append(jones)
+        jones.display(full=True)
 
     if 1:
-        # F = FJones(ns, polrep='linear')
-        F = FJones(ns, polrep='circular', quals='3c89')
-        jj.append(F)
-        F.display(full=True, recurse=10)
+        # jones = FJones(ns, polrep='linear')
+        jones = FJones(ns, polrep='circular', quals='3c89')
+        jj.append(jones)
+        jones.display(full=True, recurse=10)
 
     if 1:
-        J = JJones(ns, quals=['3c84'], diagonal=False)
-        jj.append(J)
-        J.display(full=True)
+        jones = JJones(ns, quals=['3c84'], diagonal=False)
+        jj.append(jones)
+        jones.display(full=True)
+
+    if 1:
+        jones.history().display(full=True)
 
     if 1:
         jseq = Joneseq22 (jj, quals='mmm')
         jseq.display(full=True)
+        jseq.history().display(full=True)
+
 
 #===============================================================
     

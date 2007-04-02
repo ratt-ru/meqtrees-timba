@@ -14,6 +14,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
+import Meow
+
 from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
@@ -41,6 +43,7 @@ class ObjectHistory (object):
         """Clear the object"""
         self._items = []
         self._prefix = []
+        self._scope = []
         return True
 
     def len(self):
@@ -55,17 +58,21 @@ class ObjectHistory (object):
         """Return the name/oneliner of its parent"""
         return self._parent
 
-    def append(self, item, prefix='*'):
+    def append(self, item, prefix='*', ns=None):
         """Append an item (line) to the internal list"""
         self._items.append(item)
         self._prefix.append('  '+str(prefix))
+        scope = ''
+        if isinstance(ns, Meow.QualScope):
+            scope = ns._qualstring()
+        self._scope.append(scope)
         return True
 
-    def subappend(self, item):
-        return self.append(item, prefix='   -')
+    def subappend(self, item, ns=None):
+        return self.append(item, prefix='   -', ns=ns)
 
-    def subsubappend(self, item):
-        return self.append(item, prefix='     .')
+    def subsubappend(self, item, ns=None):
+        return self.append(item, prefix='     .', ns=ns)
 
     #-------------------------------------------------------------
 
@@ -85,9 +92,10 @@ class ObjectHistory (object):
         print prefix+'---- History of object: '+self.parent()
         for k,item in enumerate(self._items):
             prefix1 = prefix + '|' + self._prefix[k]+' '
+            postfix = '    (scope='+str(self._scope[k])+')'
 
             if isinstance(item,str):
-                print prefix1+str(item)
+                print prefix1+str(item)+postfix
 
             elif isinstance(item,(list,tuple)):
                 print prefix1+str(item)
@@ -105,10 +113,10 @@ class ObjectHistory (object):
                 else:
                     print prefix1+item.oneliner()
             else:
-                print prefix1+'(?)'+str(item)
+                print prefix1+'(?)'+str(item)+postfix
 
-        print prefix+'----'
-        if level==0: print
+        # print prefix+'----'
+        if level==0: print '\n\n'
         return True 
 
     #-----------------------------------------------------------------
