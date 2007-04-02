@@ -320,6 +320,7 @@ namespace Meq {
   void Parm::save()
   {
 
+    parmtable_ = ParmTable::openTable(parmtable_name_);
     if( !parmtable_ )
       return;
 
@@ -356,6 +357,7 @@ namespace Meq {
 
 
   Funklet * Parm::getFunkletFromDB(Funklet::Ref &funkletref,const Domain &domain){
+    parmtable_ = ParmTable::openTable(parmtable_name_);
     if( !parmtable_ )
       return 0;
 

@@ -296,7 +296,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   // for now, only Polcs are supported
   //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
-  //TableLocker locker(itsTable, FileLocker::Write);
+  TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
   ArrayColumn<double> valCol (itsTable, ColValues);
   ScalarColumn<double> sfCol (itsTable, ColStartFreq);
