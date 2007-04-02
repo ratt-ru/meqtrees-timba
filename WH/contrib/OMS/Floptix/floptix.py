@@ -3,12 +3,12 @@ from Timba.Meq import meq
 from Timba import pynode
 from Timba import utils
 
-import PIL.Image
 import re
 import os
 import os.path
 import time
 import motor_control
+import pgm
 
 image_xaxis = "time";
 image_yaxis = "freq";
@@ -90,7 +90,7 @@ class PyFitsImage (pynode.PyNode):
     return meq.result(meq.vellset(value),cells);
 
 
-class PyPILImage (pynode.PyNode):
+class PyPgmImage (pynode.PyNode):
   def __init__ (self,*args):
     pynode.PyNode.__init__(self,*args);
     # this tells the caching system what our result depends on
@@ -103,18 +103,13 @@ class PyPILImage (pynode.PyNode):
     mystate('rescale',1.);
                           
   def get_result (self,request,*children):
-    # read PNG image
-    img = PIL.Image.open(self.file_name);
-    # transpose, since it seems to come out wrong
-    img = img.transpose(PIL.Image.ROTATE_90);
-    # apply shrink factor, if needed
-    if self.rescale != 1.:
-      nx,ny = img.size;
-      img = img.resize((int(round(nx*self.rescale)),int(round(ny*self.rescale)))); # ,PIL.Image.ANTIALIAS);
+    # read PGM image
+    img = pgm.Image(file(self.file_name).read()).pixels;
+    img.byteswap();
     # make cells and value, construct array
-    nx,ny = img.size;
+    nx,ny = img.shape;
     cells = make_cells(nx,ny,self.xaxis,self.yaxis);
-    value = meq.vells(shape=meq.shape(cells),value=img.getdata());
+    value = meq.vells(shape=meq.shape(cells),value=img.flat);
     return meq.result(meq.vellset(value),cells);
 
     
@@ -174,17 +169,18 @@ class PyCameraImage (pynode.PyNode):
       filename = acquire_imagename(self._file_re,directory=self.directory_name,
                       timeout=self.timeout,sleep_time=self.sleep_time);
     # read image
-    img = PIL.Image.open(filename);
-    # apply shrink factor, if needed
-    nx,ny = img.size;
-    if self.rescale != 1.:
+    img = pgm.Image(file(filename).read()).pixels;
+    img.byteswap();
+#    img.transpose();
+    nx,ny = img.shape;
+    if self.rescale != 1:
       nx = int(round(nx*self.rescale));
       ny = int(round(ny*self.rescale));
       img = img.resize((nx,ny)); # ,PIL.Image.ANTIALIAS);
     # note that getdata() returns elements in the wrong sequence, so we
     # have to swap the x and y axes around
     cells = make_cells(ny,nx,self.xaxis,self.yaxis);
-    vells = meq.vells(shape=meq.shape(cells),value=img.getdata());
+    vells = meq.vells(shape=meq.shape(cells),value=img.flat);
     return cells,vells;
 
   def discover_spids (self,request,*children):
@@ -216,24 +212,31 @@ class PyCameraImage (pynode.PyNode):
     return 0;
                        
   def get_result (self,request,*children):
-    # read main image
-    time.sleep(self.settle_time);
-    cells,value = self._acquire_image();
-    vellset = meq.vellset(value);
-    # if solvable, perturb each actuator
-    if self.solvable:
-      vellset.spid_index = spid_index = [];
-      vellset.perturbations = perturbations = [];
-      vellset.perturbed_value = perturbed_value = [];
-      for act in self.actuators:
-        motor_control.move(act,1,self.perturbation);  # move motor forward
-        time.sleep(self.settle_time);
-        cells,vells = self._acquire_image();
-        motor_control.move(act,0,self.perturbation);  # move motor back
-        spid_index.append(self._spid(act));
-        perturbations.append(self.perturbation*self.pert_scale);
-        perturbed_value.append(vells);
-    return meq.result(vellset,cells);
+    try:
+      # read main image
+      time.sleep(self.settle_time);
+      cells,value = self._acquire_image();
+      vellset = meq.vellset(value);
+      # if solvable, perturb each actuator
+      if self.solvable:
+        vellset.spid_index = spid_index = [];
+        vellset.perturbations = perturbations = [];
+        vellset.perturbed_value = perturbed_value = [];
+        for act in self.actuators:
+          motor_control.move(act,1,self.perturbation);  # move motor forward
+          time.sleep(self.settle_time);
+          cells,vells = self._acquire_image();
+          motor_control.move(act,0,self.perturbation);  # move motor back
+          spid_index.append(self._spid(act));
+          perturbations.append(float(self.perturbation*self.pert_scale));
+          perturbed_value.append(vells);
+      return meq.result(vellset,cells);
+    except:
+      traceback.print_exc();
+      raise;
+      
+      
+     
 
 
 class PyMakeLsmMask (pynode.PyNode):

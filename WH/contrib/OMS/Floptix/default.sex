@@ -14,9 +14,9 @@ PARAMETERS_NAME  default.param  # name of the file containing catalog contents
  
 DETECT_TYPE      CCD            # "CCD" or "PHOTO"
 FLAG_IMAGE       flag.fits      # filename for an input FLAG-image
-DETECT_MINAREA   10              # minimum number of pixels above threshold
-DETECT_THRESH    6            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  6            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_MINAREA   5              # minimum number of pixels above threshold
+DETECT_THRESH    7            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+ANALYSIS_THRESH  7            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
  
 FILTER           Y              # apply filter for detection ("Y" or "N")?
 FILTER_NAME      gauss_3.0_5x5.conv  # default.conv   # name of the file containing the filter
@@ -46,13 +46,13 @@ PIXEL_SCALE      1.0            # size of pixel in arcsec (0=use FITS WCS info)
  
 #------------------------- Star/Galaxy Separation ----------------------------
  
-SEEING_FWHM      1.2            # stellar FWHM in arcsec
+SEEING_FWHM      2            # stellar FWHM in arcsec
 STARNNW_NAME     default.nnw    # Neural-Network_Weight table filename
  
 #------------------------------ Background -----------------------------------
  
 BACK_SIZE        128             # Background mesh: <size> or <width>,<height>
-BACK_FILTERSIZE  10              # Background filter: <size> or <width>,<height>
+BACK_FILTERSIZE  5               # Background filter: <size> or <width>,<height>
  
 BACKPHOTO_TYPE   GLOBAL         # can be "GLOBAL" or "LOCAL"
  
