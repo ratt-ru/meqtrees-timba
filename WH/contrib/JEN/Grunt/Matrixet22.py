@@ -406,6 +406,8 @@ class Matrixet22 (object):
         4 elements will be extracted from all matrices.  
         If unop is specified (str), apply an unary operation to the nodes."""
 
+        ns = self._ns._derive(append=quals)
+
         keys = deepcopy(key)                                    # just in case
         if keys=='*': keys = self.matrel_keys()                 # all elements
         if keys=='diag': keys = ['m11','m22']                   # diagonal elements
@@ -417,7 +419,6 @@ class Matrixet22 (object):
             if not self._matrel.has_key(key):
                 raise ValueError,'key='+key+', not in '+str(self.matrel_keys())
 
-            ns = self._ns._derive(append=quals)
             name = self.basename()+'_'+key
             qnode = ns[name]
             if not qnode.initialized():                         # avoid duplication....!
@@ -428,8 +429,7 @@ class Matrixet22 (object):
 
             # Optionally, apply a unary operation (unop) to the extracted node:
             if unop:
-                ns = self._ns._derive(append=quals, prepend=unop)
-                qnode = ns[name]
+                qnode = ns[name](unop)
                 if not qnode.initialized():                     # avoid duplication....!
                     for i in self.list_indices():
                         qnode(*i) << getattr(Meq, unop)(self._matrel[key](*i))

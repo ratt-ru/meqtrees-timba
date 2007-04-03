@@ -66,8 +66,6 @@ def _define_forest (ns):
     observation = Meow.Observation(ns)
     Meow.Context.set(array, observation)
     center = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
-    shifted = Meow.LMDirection(ns, 'shifted', l=0.001, m=0.001)
-    anti_shifted = Meow.LMDirection(ns, 'anti_shifted', l=-0.001, m=-0.001)
 
     # Make a user-defined point source, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
@@ -76,11 +74,23 @@ def _define_forest (ns):
 
     # Create a Visset22 object, with nominal source coherencies:
     vis = ps.Visset22(array, observation, name='simul',
-                      phase_centre=anti_shifted,
+                      # phase_centre=anti_shifted,
                       visu=True)
 
     if True:
-        vis.shift_phase_centre(shifted, 'sshifted', visu=True)
+        # An experiment in shifting the phase-centre:
+        dl = 0.000001
+        dm = dl
+        single = Meow.LMDirection(ns, 'single', l=dl, m=dm)
+        again = Meow.LMDirection(ns, 'again', l=dl, m=dm)
+        double = Meow.LMDirection(ns, 'double', l=2*dl, m=2*dm)
+        triple = Meow.LMDirection(ns, 'triple', l=3*dl, m=3*dm)
+        anti = Meow.LMDirection(ns, 'anti', l=-dl, m=-dm)
+        vis.shift_phase_centre(single, visu=True)
+        # vis.shift_phase_centre(again, visu=True)
+        vis.shift_phase_centre(double, visu=True)
+        vis.shift_phase_centre(triple, visu=True)
+        # vis.restore_phase_centre(visu=True)
 
 
     if False:

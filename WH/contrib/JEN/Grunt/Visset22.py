@@ -284,14 +284,15 @@ class Visset22 (Matrixet22.Matrixet22):
         (defined by the internal Direction object self._dir0) to the position
         defined by the given LMDirection object (lmdir).
         Replace self._dir0 with lmdir, so that cumulative shifts are possible."""
-        ns = self._ns._derive(append=quals)
+        ns = self._ns._derive(append=quals, prepend=lmdir.name)
         self.history('.shift_phase_centre()', ns=ns)
         qnode = ns.shifted
-        self._dir0.make_phase_shift(qnode, vis0=self._matrixet,
-                                    array=self._array, dir0=lmdir) 
+        lmdir.make_phase_shift(qnode, vis0=self._matrixet,
+                               array=self._array, dir0=self._dir0) 
         self._matrixet = qnode
-        self._dir0 = lmdir
-        if visu: return self.visualize('shift22', visu=visu)
+        self._dir0 = lmdir       # LMDirection of new uv-data phase centre
+        self.display(lmdir.name, full=True)
+        if visu: return self.visualize(lmdir.name, visu=visu)
         return None
 
 
