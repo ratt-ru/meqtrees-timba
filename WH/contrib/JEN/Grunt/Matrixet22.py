@@ -284,7 +284,7 @@ class Matrixet22 (object):
             print ' * The first matrix of the set:'
             node = self.firstnode()
             self._dummyParmGroup.display_subtree(node, txt=str(0),
-                                                 show_initrec=False,
+                                                 show_initrec=True,
                                                  recurse=recurse)
         #...............................................................
         print ' * Extracted (sets of) matrix elements: '

@@ -65,31 +65,42 @@ def _define_forest (ns):
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
     Meow.Context.set(array, observation)
-    direction = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
+    center = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
+    shifted = Meow.LMDirection(ns, 'shifted', l=0.001, m=0.001)
+    anti_shifted = Meow.LMDirection(ns, 'anti_shifted', l=-0.001, m=-0.001)
 
     # Make a user-defined point source, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
-    ps = PointSource22.PointSource22 (ns, direction=direction)
+    ps = PointSource22.PointSource22 (ns, direction=center)
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, name='simul', visu=True)
+    vis = ps.Visset22(array, observation, name='simul',
+                      phase_centre=anti_shifted,
+                      visu=True)
 
-    # Corrupt the data with a sequence of Jones matrices:
-    #   (Note that the user-defined TDLOption parameters are
-    #    short-circuited between the functions in the WSRT_Jones module)
-    jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
-                                     override=dict(GJones=dict(Psec=500)),
-                                     simulate=True)
-    vis.corrupt(jones, visu=False)
+    if True:
+        vis.shift_phase_centre(shifted, 'sshifted', visu=True)
+
+
+    if False:
+        # Corrupt the data with a sequence of Jones matrices:
+        #   (Note that the user-defined TDLOption parameters are
+        #    short-circuited between the functions in the WSRT_Jones module)
+        jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
+                                         override=dict(GJones=dict(Psec=500)),
+                                         simulate=True)
+        vis.corrupt(jones, visu=False)
 
     # Add gaussian noise, if required:
-    vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
+    if False:
+        vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
     # Finished:
     vis.show_timetracks(separate=True)                 
     if TDL_display_Visset22: vis.display(full=True)
-    vis.make_sinks(vdm='vdm')        
+    vis.make_sinks(vdm='vdm')
+    vis.history().display(full=True)
     return True
 
 

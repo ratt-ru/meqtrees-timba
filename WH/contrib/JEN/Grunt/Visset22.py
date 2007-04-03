@@ -42,8 +42,13 @@ class Visset22 (Matrixet22.Matrixet22):
                  # observation=None,
                  polrep=None):
 
-        ## self._array = array                          # Meow IfrArray object
+        # self._array = array                             # Meow IfrArray object
+        self._array = Meow.Context.get_array(array)
         ## self._observation = observation              # Meow Observation object
+
+        # The direction of the uv-data phase-centre (Meow.Direction object):
+        # This is changed whenever the phase centre is shifted (see below).
+        self._dir0 = Meow.Context.get_dir0(None)
 
         # Some specific Visset22 attributes:
         self._MS_corr_index = [0,1,2,3]                 # see make_spigots/make_sinks
@@ -76,6 +81,13 @@ class Visset22 (Matrixet22.Matrixet22):
         """Print the specific part of the summary of this object"""
         print '   - stations: '+str(self.stations())
         print '   - MS_corr_index: '+str(self._MS_corr_index)
+        print '   - phase centre: '+str(self._dir0)
+        self._pgm.display_subtree(self._dir0.radec(), txt='dir0.radec',
+                                  skip_line_after=False, show_initrec=True)
+        self._pgm.display_subtree(self._dir0.lmn(), txt='dir0.lmn',
+                                  skip_line_after=False, show_initrec=True)
+        
+
         return True 
 
     #--------------------------------------------------------------------------
@@ -144,7 +156,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def create_ReadVisHeader_placeholders(self):
         """Create placeholder nodes expected by ReadVisHeader.py"""
-        # nodes for phase center
+        # nodes for phase centre
         self._ns.radec0 = Meq.Composer(self._ns.ra<<0, self._ns.dec<<0)
         
         # nodes for array reference position
@@ -260,23 +272,26 @@ class Visset22 (Matrixet22.Matrixet22):
     #...........................................................................
 
     def restore_phase_centre (self, quals='restore', visu=False):
-        """Restore the phase-centre to the original position (l,m)=[0,0]"""
-        return self.shift_phase_centre (lm=[0.0,0.0], quals=quals, visu=visu)
+        """Restore the phase-centre to the original position (l,m)=(0,0),
+        given by the Direction object in the Meow.Context."""
+        self.history('.restore_phase_centre()')
+        dir0 = Meow.Context.get_dir0(None)
+        return self.shift_phase_centre (lmdir=dir0, quals=quals, visu=visu)
 
 
-    def shift_phase_centre (self, lm, quals=None, visu=False):
-        """Shift the phase-centre of the uv-data to the specified position (l,m).
-        The new position is remembered, so that cumulative shifts are possible."""
+    def shift_phase_centre (self, lmdir, quals=None, visu=False):
+        """Shift the phase-centre of the uv-data from its current position
+        (defined by the internal Direction object self._dir0) to the position
+        defined by the given LMDirection object (lmdir).
+        Replace self._dir0 with lmdir, so that cumulative shifts are possible."""
         ns = self._ns._derive(append=quals)
         self.history('.shift_phase_centre()', ns=ns)
-        name = 'shift22'
-        qnode = ns[name]
-        for ifr in self.ifrs():
-            j1 = jmat(ifr[0])
-            j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
-            qnode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
-        self._matrixet = qnode              
-        if visu: return self.visualize(name, visu=visu)
+        qnode = ns.shifted
+        self._dir0.make_phase_shift(qnode, vis0=self._matrixet,
+                                    array=self._array, dir0=lmdir) 
+        self._matrixet = qnode
+        self._dir0 = lmdir
+        if visu: return self.visualize('shift22', visu=visu)
         return None
 
 
@@ -460,6 +475,7 @@ if __name__ == '__main__':
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
         observation = Meow.Observation(ns)
+        Meow.Context.set(array, observation)
         cohset = None
         if False:
             allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
@@ -477,11 +493,17 @@ if __name__ == '__main__':
             vis.fill_with_identical_matrices()
         vis.display()
 
-    if 1:
+    if 0:
         vis.addGaussianNoise()
         vis.display(recurse=5)
 
     if 1:
+        lmdir = Meow.LMDirection(ns, 'shiftest', l=0.01, m=-0.02)
+        print '** lmdir =',str(lmdir)
+        vis.shift_phase_centre (lmdir, quals=None, visu=False)
+        vis.display('after shift', full=True)
+
+    if 0:
         G = Joneset22.GJones (ns, stations=array.stations(),
                               # telescope='WSRT', band='90cm',
                               simulate=True)

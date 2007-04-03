@@ -62,7 +62,7 @@ class SkyComponentGroup22 (object):
         self._skycomp = dict()
         self._order = []
         self._lm = dict()
-        self._dir = dict()
+        self._lmdir = dict()
 
         # Some placeholders:
         self._Patch = None
@@ -103,6 +103,7 @@ class SkyComponentGroup22 (object):
         print '** Input arguments ('+str(len(self._pp))+'):'
         for key in self._pp.keys():
             print '  - pp['+key+'] = '+str(self._pp[key])
+        #................................................................
         print '** SkyComponents ('+str(self.len())+'):'
         for key in self.order():
             sc = self._skycomp[key]
@@ -125,6 +126,15 @@ class SkyComponentGroup22 (object):
         for key in self.order():
             sc = self._skycomp[key]
             print '  - '+key+': '+str(sc['nominal'])
+        if full:
+            print '** Their LMDirection values:'
+            for key in self.order():
+                sc = self._skycomp[key]
+                if is_node(sc['lm']):
+                    self._pgm.display_subtree(sc['lm'], txt=key,
+                                              skip_line_after=False,
+                                              show_initrec=True)
+        #................................................................
         print '** Meow Patch: '+str(self._Patch)
         print '** decoll_config: '+str(self._dcoll_config)
         if self._Visset22:
@@ -158,6 +168,10 @@ class SkyComponentGroup22 (object):
     def len(self):
         """Return the nr of sources in the group"""
         return len(self._skycomp)
+
+    def label(self):
+        """Return the name/label of the object"""
+        return self._name
 
     def order(self):
         """Return a list of skycomp keys in descending order of flux"""
@@ -406,9 +420,18 @@ class SkyComponentGroup22 (object):
         key = self.key(key)
         sc = self._skycomp[key]
         if sc['lm']==None:
-            sc['lm'] = self._ns.lm(key) << Meq.Composer(sc['l'],sc['m'])
+            sc['lmdir'] = Meow.LMDirection(self._ns, self._name, quals=[key],
+                                           l=sc['l'], m=sc['m'])
+            sc['lm'] = sc['lmdir'].lm()
         return sc['lm']
     
+
+    def lmdir (self, key=None):
+        """Return the LMDirection object of the specified (key)
+        SkyComponent (source). Make one if it does not exist yet."""
+        self.lm_node(key)
+        key = self.key(key)
+        return self._skycomp[key]['lmdir']
 
     #--------------------------------------------------------------------------
     # Make a 2D plot of the (l,m) configuration
@@ -823,10 +846,11 @@ if __name__ == '__main__':
             scg.show_config()
             scg.display('show_config')
 
-        if 0:
-            for key in scg.order()[0:2]:
+        if 1:
+            for key in scg.order()[0:3]:
                 scg.lm_node(key)
-            scg.display('lm_node')
+                print str(scg.lmdir(key))
+            scg.display('lm_node', full=True)
 
         if 0:
             # scg.rotate(0.01)

@@ -333,7 +333,7 @@ class DJones (Joneset22.Joneset22):
                                       tags=[pname,jname])
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pmat = self._ns[pname]
+        pmat = self._ns.pmat 
         pzd = pg[pname].create_member()
         pzd2 = pmat('pzd2') << pzd/2
         m11 = pmat('m11') << Meq.Polar(1.0, pzd2)
@@ -345,7 +345,7 @@ class DJones (Joneset22.Joneset22):
         for s in self.stations():
 
             # Dipole rotation angles:
-            dmat = self._ns[dname](s)
+            dmat = self._ns.dmat(s)
             if coupled_dang:
                 dang = pg[dname].create_member(s)
                 cos = dmat('cos') << Meq.Cos(dang)
@@ -363,7 +363,7 @@ class DJones (Joneset22.Joneset22):
 
 
             # Dipole ellipticities:
-            emat = self._ns[ename](s)
+            emat = self._ns.emat(s)
             if coupled_dell:
                 dell = pg[ename].create_member(s)
                 cos = emat('cos') << Meq.Cos(dell)
@@ -504,7 +504,7 @@ def _define_forest(ns):
     cc = []
     simulate = False
 
-    if True:
+    if False:
         jones = GJones(ns, quals=[], simulate=simulate)
         cc.append(jones.visualize())
         # jones.display(full=True)
@@ -515,12 +515,12 @@ def _define_forest(ns):
         
         jones = FJones(ns, quals=['L'], simulate=simulate)
         cc.append(jones.visualize())
-        jones.display(full=True)
+        # jones.display(full=True)
         
-    if False:
+    if True:
         jones = DJones(ns, quals=[], simulate=simulate)
         cc.append(jones.visualize())
-        # jones.display(full=True)
+        jones.display(full=True, recurse=10)
 
     if False:
         jones = EJones(ns, quals=[], simulate=simulate)

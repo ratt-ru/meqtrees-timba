@@ -339,8 +339,12 @@ class NodeGroup (object):
     #...................................................................
 
     def display_subtree (self, node, txt=None, level=1,
+                         skip_line_before=False,
+                         skip_line_after=True,
                          show_initrec=True, recurse=1000):
         """Helper function to display a subtree recursively"""
+        if level==1:
+            if skip_line_before: print
         prefix = '  '
         if txt: prefix += ' ('+str(txt)+')'
         prefix += level*'..'
@@ -368,7 +372,8 @@ class NodeGroup (object):
                 for child in node.children:
                     self.display_subtree (child[1], txt=txt, level=level+1,
                                           show_initrec=show_initrec, recurse=recurse-1)
-        if level==1: print
+        if level==1:
+            if skip_line_after: print
         return True
 
 

@@ -127,6 +127,20 @@ class ParmGroupManager (object):
         print '**\n'
         return True
 
+    #-------------------------------------------------------------------------------
+
+    def display_subtree (self, node, txt=None,
+                         recurse=5,
+                         skip_line_after=True,
+                         show_initrec=False):
+        """Service function to display the given node and its subtree.
+        It does not affect the object in any way.""" 
+        return self._dummyParmGroup.display_subtree(node, txt=txt,
+                                                    recurse=recurse,
+                                                    skip_line_after=skip_line_after,
+                                                    show_initrec=show_initrec)
+
+    #-------------------------------------------------------------------------------
 
     def display_NodeGroups(self, full=False):
         """Display all its NodeGroup and NodeGog objects"""
@@ -164,10 +178,12 @@ class ParmGroupManager (object):
         """Helper function to convert the specified parmgroup(s) into
         a list of (existing) keys in self._parmgroup."""
         if trace: print
+        avk = self._parmgroup.keys()                       # available keys
+        avk.extend(self._simparmgroup.keys())              # both types of groups...
+        if parmgroup=='*':
+            return avk
         pgs = deepcopy(parmgroup)                          # do NOT modify parmgroup
         if not isinstance(pgs,(list,tuple)): pgs = [pgs]
-        avk = self._parmgroup.keys()                       # available keys
-        avk.extend(self._simparmgroup.keys())
         keys = []
         for key in pgs:
             if key in avk:                                 # available
