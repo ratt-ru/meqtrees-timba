@@ -145,7 +145,7 @@ def _define_forest (ns,**kwargs):
   sbk = Meow.Bookmarks.Page("Solvers");
   
   # make background, if specified, and make a branch to solve for it
-  if background_order is not None:
+  if background_order is not None:window
     backgr = ns.lsm('background') << Meq.Parm(0,shape=[background_order+1,background_order+1],table_name='lsm.mep',tags="background");
     lsm_fit = ns.lsm('fit1') << lsm_fit + backgr;
     lsm_ideal = ns.lsm('ideal1') << lsm_ideal + backgr;

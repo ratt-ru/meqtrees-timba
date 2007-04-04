@@ -10,6 +10,9 @@ import time
 import motor_control
 import pgm
 
+import numarray
+Array = numarray
+
 image_xaxis = "time";
 image_yaxis = "freq";
 
@@ -66,6 +69,13 @@ def make_cells (nx,ny,xaxis,yaxis):
   """;
   # make value of same shape as cells
   dom = meq.gen_domain(**{xaxis:[0,nx] , yaxis:[0,ny]});
+  return meq.gen_cells(dom,**{'num_'+xaxis : nx , 'num_'+yaxis : ny});
+
+def make_symmetric_cells (nx,ny,xaxis,yaxis):
+  """helper function to make an nx by ny cells with the given axes.
+  """;
+  # make value of same shape as cells
+  dom = meq.gen_domain(**{xaxis:[-nx/2.,nx/2.] , yaxis:[-ny/2.,ny/2.]});
   return meq.gen_cells(dom,**{'num_'+xaxis : nx , 'num_'+yaxis : ny});
 
 class PyFitsImage (pynode.PyNode):
@@ -235,10 +245,204 @@ class PyCameraImage (pynode.PyNode):
       traceback.print_exc();
       raise;
       
+
+class PyCroppedCameraImages (PyCameraImage):
+  """This node acquires camera images, but cuts out boxes around the sources. The source
+  coordinates are expected to be given by a set of 2-vector child results."""
+  def update_state (self,mystate):
+    # size of boxes to be cropped
+    mystate('radius',10);
+    return PyCameraImage.update_state(self,mystate);
+    
+  def _acquire_image (self):
+    """acquires latest image from camera. Returns a tuple of cells and vells""";
+    if self.static_mode:
+      filename = self.file_name;
+    else:
+      filename = acquire_imagename(self._file_re,directory=self.directory_name,
+                      timeout=self.timeout,sleep_time=self.sleep_time);
+    # read image
+    img = pgm.Image(file(filename).read()).pixels;
+    img.byteswap();
+    nx,ny = img.shape;
+    if self.rescale != 1:
+      nx = int(round(nx*self.rescale));
+      ny = int(round(ny*self.rescale));
+      img = img.resize((nx,ny)); 
+    boxsize = self.radius*2+1;
+    cells = make_symmetric_cells(boxsize,boxsize,self.xaxis,self.yaxis);
+    shape = meq.shape(cells);
+    vells_list = [];
+    # now cut out boxes and paste them into the vells
+    # note that the x axis (0) is time and y (1) is frequency, we want to stack
+    # source images along the first axis
+    px0 = 0;  # current x offset at which cropped image will be pasted in
+    for sx,sy in self._sources:
+      vells = meq.vells(shape=shape);
+      flags = None;
+      xc = round(sx);
+      yc = round(sy);
+      x0 = xc - self.radius;
+      x1 = xc + self.radius + 1;
+      y0 = yc - self.radius;
+      y1 = yc + self.radius + 1;
+      # cropped image [x0:x1,y0:y1] will be pasted at [px0:px1,py0:py1] in output vells
+      px0 = 0;
+      px1 = boxsize;
+      py0 = 0;
+      py1 = boxsize;
+      # handle boxes that overlap image edges
+      if x0 < 0:
+        px1 = -x0;      # adjust start of pasting region
+        flags = flags or meq.flagvells(shape=shape);
+        flags[0:px0,:] = 1 # set flags to mask values "beyond" the edge
+        x0 = 0;
+      if y0 < 0:
+        py0 = -y0;         # adjust start of pasting region
+        flags = flags or meq.flagvells(shape=shape);
+        flags[:,0:py0] = 1 # set flags to mask values "beyond" the edge
+        y0 = 0;
+      if x1 > nx:
+        px1 -= (x1-nx);
+        flags = flags or meq.flagvells(shape=shape);
+        flags[px1:boxsize,:] = 1;
+        x1 = nx;
+      if y1 > ny:
+        py1 -= (y1-ny);
+        flags = flags or meq.flagvells(shape=shape);
+        flags[:,py1:boxsize] = 1;
+        y1 = ny;
+      # now paste in image
+      vells[px0:px1,py0:py1] = img[x0:x1,y0:y1];
+      vells_list.append((vells,flags));
+    return cells,vells_list;
+
+  def get_result (self,request,*children):
+    try:
+      # get x/y values from children
+      self._sources = [];
+      for res in children:
+        self._sources.append((float(res.vellsets[0].value),float(res.vellsets[1].value)));
+      # read main image
+      time.sleep(self.settle_time);
+      cells,vells_list = self._acquire_image();
+      # put each cropped image into a vellset
+      result = meq.result(cells=cells);
+      result.vellsets = [];
+      for vells,flags in vells_list:
+        vellset = meq.vellset(vells);
+        if flags is not None:
+          vellset.flags = flags;
+        result.vellsets.append(vellset);
+      # if solvable, perturb each actuator and acquire perturbed image
+      if self.solvable:
+        # setup list of spids in each vellset
+        spid_index = [];
+        perturbations = [];
+        for vellset in result.vellsets:
+          vellset.spid_index = spid_index;
+          vellset.perturbations = perturbations;
+          vellset.perturbed_value = [];
+        # now loop over actuators
+        for act in self.actuators:
+          motor_control.move(act,1,self.perturbation);  # move motor forward
+          time.sleep(self.settle_time);
+          cells,vells_list = self._acquire_image();
+          motor_control.move(act,0,self.perturbation);  # move motor back
+          spid_index.append(self._spid(act));
+          perturbations.append(float(self.perturbation*self.pert_scale));
+          for (vells,flags),vellset in zip(vells_list,result.vellsets):
+            vellset.perturbed_value.append(vells);
+      return result;
+    except:
+      traceback.print_exc();
+      raise;
       
-     
 
-
+class PyMoments (pynode.PyNode):
+  def update_state (self,mystate):
+    mystate("origin_0",(0,0));
+    self.origin = self.origin_0;
+    mystate("radius",20);
+    mystate("order",2);
+    mystate("image_threshold",.25);
+  def compute_moments (self,img,recenter=False):
+    # extract box around origin
+    xc,yc = self.origin;
+    xc,yc = int(round(xc)),int(round(yc));
+    x0 = max(xc-self.radius,0);
+    x1 = min(xc+self.radius+1,img.shape[0]);
+    y0 = max(yc-self.radius,0);
+    y1 = min(yc+self.radius+1,img.shape[1]);
+    img = img[x0:x1,y0:y1];
+    nx,ny = img.shape;
+    nel = nx*ny;
+    # renormalize image
+    # threshold it 
+    thr = img.min()*(1-self.image_threshold) + img.max()*self.image_threshold;
+    img = Array.where(img>thr,img,0);
+    img = img/float(img.sum());
+    # if recentering, recompute coordinate arrays
+    if recenter:
+      self._images = [];
+      self.set_state('$cropped_image',self._images);
+      self._xi = Array.fromfunction(lambda i,j:i,(nx,ny));
+      self._yi = Array.fromfunction(lambda i,j:j,(nx,ny));
+      self._xisum = self._xi.sum();
+      self._yisum = self._yi.sum();
+      self.set_state('$xi',self._xi);
+      self.set_state('$yi',self._yi);
+    # get center of gravity
+    gx = (img*self._xi).sum();
+    gy = (img*self._yi).sum();
+    # recenter if necessary
+    if recenter:
+      self.origin = x0+gx,y0+gy;
+      self.set_state('origin',self.origin);
+    moments = list(self.origin);
+    # recompute coordinates w.r.t. center
+    x = self._xi - gx;
+    y = self._yi - gy;
+    # compute central moments of higher order
+    for order in range(2,self.order+1):
+      img1 = img*(x**order+y**order);
+      moments.append(img1.sum());
+      self._images += [img,img1];
+    self.set_state('$cropped_image',self._images);
+    print moments;
+    return moments;
+    
+  def get_result (self,request,*children):
+    try:
+      if len(children) != 1:
+        raise TypeError,"only one child expected";
+      vs0 = children[0].vellsets[0];
+      spid_index = vs0.get('spid_index',None);
+      perturbations = vs0.get('perturbations',None);
+      perturbed_value = vs0.get('perturbed_value',[]);
+      # compute centers and moments for main image
+      moments = self.compute_moments(vs0.value,recenter=True);
+      # returns a list; with #0 and #1 being x/y coordinates, and the rest being central moments
+      result = meq.result();
+      result.vellsets = [];
+      for mom in moments:
+        vs = meq.vellset(meq.sca_vells(mom));
+        if spid_index: 
+          vs.spid_index = spid_index;
+        if perturbations:
+          vs.perturbations = perturbations;
+          vs.perturbed_value = [];
+        result.vellsets.append(vs);
+      # now fill in moments for each perturbed value...
+      for pval in perturbed_value:
+        moments = self.compute_moments(pval);
+        for i,mom in enumerate(moments):
+          result.vellsets[i].perturbed_value.append(meq.sca_vells(mom));
+      return result;
+    except:
+      traceback.print_exc();
+      raise;
+      
 class PyMakeLsmMask (pynode.PyNode):
   def __init__ (self,*args):
     pynode.PyNode.__init__(self,*args);
