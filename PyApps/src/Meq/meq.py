@@ -357,6 +357,12 @@ def vells (shape,is_complex=False,value=None):
 def complex_vells (shape,value=None):
   return _vells(shape,arr_dcomplex,value); 
 
+def sca_vells (value):
+  if isinstance(value,complex):
+    return _vells((1,),arr_dcomplex,value);
+  else:
+    return _vells((1,),arr_double,value);
+
 def flagvells (shape,value=None):
   return _vells(shape,arr_int32,value); 
   
