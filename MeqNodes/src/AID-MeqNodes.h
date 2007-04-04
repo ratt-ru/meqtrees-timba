@@ -958,6 +958,11 @@ const int AidResult_int = -1242;
 const DMI::AtomicID AidSS(-1631);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:36
 const int AidSS_int = -1631;
 #endif
+#ifndef _defined_id_AidSeed
+#define _defined_id_AidSeed 1
+const DMI::AtomicID AidSeed(-1725);               // from /home/twillis/Timba/MeqNodes/src/GaussNoise.h:34
+const int AidSeed_int = -1725;
+#endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
 const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10

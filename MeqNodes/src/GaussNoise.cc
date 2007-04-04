@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/GaussNoise.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -30,6 +31,7 @@
 namespace Meq {    
 
 const HIID FStdDev = AidStdDev;
+const HIID FSeed = AidSeed;
 
 
 //##ModelId=400E535502AC
@@ -54,6 +56,12 @@ void GaussNoise::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   {
     // if one was supplied, reinitialize generator
     generator_ = RndGen::Normal<double>(0,stddev_);
+  }
+  int seed;
+  if( rec[FSeed].get(seed,initializing) )
+  {
+    // if one was supplied, reinitialize generator
+    generator_.seed((unsigned int) seed);
   }
 }
 

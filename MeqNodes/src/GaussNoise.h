@@ -32,6 +32,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::GaussNoise
 #pragma aid StdDev
+#pragma aid Seed
 
 namespace Meq {    
 
