@@ -60,7 +60,7 @@ void GaussNoise::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   int seed;
   if( rec[FSeed].get(seed,initializing) )
   {
-    // if one was supplied, reinitialize generator
+    // if seed was supplied, reseed generator
     generator_.seed((unsigned int) seed);
   }
 }
