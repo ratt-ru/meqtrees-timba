@@ -31,7 +31,11 @@ class LMApproxDirection (LMDirection):
         l0,m0 = dir0._lm()
         l = self.ns.dl << Meq.Subtract(l, l0)
         m = self.ns.dm << Meq.Subtract(m, m0)
-        n = self.ns.n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m));
+        n = self.ns.n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m))
+        # NB: This gives an improvement of a factor of ~2 in the
+        #     WSRT_simul_cps experiment where the phase-centre
+        #     is shifted by << 1 degree and back again......
+        self._dir0 = dir0                       
       elif self._const_n:
         n = self._parm("n");
       else:
@@ -41,7 +45,7 @@ class LMApproxDirection (LMDirection):
     
   #----------------------------------------------------------------------------
 
-  def mirror(self, axes='lm'):
+  def mirror(self, name=None, axes='lm'):
     """Make a new object for its mirror direction (w.r.t. l=0, m=0).
     The argument axes can be 'lm', 'l' and 'm'. NB: Move to LMDirection..."""
     if not axes in ['l','m','lm']:
@@ -52,7 +56,8 @@ class LMApproxDirection (LMDirection):
       l = self.ns.mirror_l << Meq.Negate(l)
     if axes in ['m','lm']:
       m = self.ns.mirror_m << Meq.Negate(m)
-    name = 'mirror_'+axes+'_'+self.name
+    if not isinstance(name, str):
+      name = 'mir_'+axes
     new = LMApproxDirection(self.ns, name, l=l, m=m, dir0=self._dir0)  
     return new
 
