@@ -12,6 +12,7 @@ else:
   from CorruptComponent import CorruptComponent
   from Direction import Direction
   from LMDirection import LMDirection
+  from LMApproxDirection import LMApproxDirection
   from FITSImageComponent import FITSImageComponent
   from GaussianSource import GaussianSource
   from IfrArray import IfrArray
@@ -31,6 +32,7 @@ else:
               CorruptComponent,
               Direction,
               LMDirection,
+              LMApproxDirection,
               FITSImageComponent,
               GaussianSource,
               IfrArray,
