@@ -58,7 +58,7 @@ def include_EqualPointSourceGrid_TDL_options (prompt='definition'):
 class EqualPointSourceGrid22 (SkyComponentGroup22.SkyComponentGroup22):
     """A SkyComponentGroup22 with a pattern of point-sources of the same type, for testing."""
 
-    def __init__(self, ns, name='EqualPointSourceGrid22', **pp):
+    def __init__(self, ns, name='epsg22', **pp):
 
         # Initialise its Meow counterpart:
         SkyComponentGroup22.SkyComponentGroup22.__init__(self, ns=ns, name=name)

@@ -46,10 +46,6 @@ class Visset22 (Matrixet22.Matrixet22):
         self._array = Meow.Context.get_array(array)
         ## self._observation = observation              # Meow Observation object
 
-        # The direction of the uv-data phase-centre (Meow.Direction object):
-        # This is changed whenever the phase centre is shifted (see below).
-        self._dir0 = Meow.Context.get_dir0(None)
-
         # Some specific Visset22 attributes:
         self._MS_corr_index = [0,1,2,3]                 # see make_spigots/make_sinks
         self._stations = array.stations()               # convenience only ...?           
@@ -61,6 +57,16 @@ class Visset22 (Matrixet22.Matrixet22):
         if cohset:
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None
             self._matrixet = cohset
+
+        # The direction of the uv-data phase-centre (Meow.(LM(Approx))Direction object):
+        # This is changed whenever the phase centre is shifted (see below).
+        self._dir0 = Meow.Context.get_dir0(None)
+        if not self._dir0:
+            self._dir0 = Meow.LMApproxDirection(ns, self.label()+'_dir0', l=0.0, m=0.0)
+        self._dir00 = self._dir0                        # see .restore_phase_centre()
+        if not isinstance(self._dir00, Meow.LMApproxDirection):
+            self._dir00 = Meow.LMApproxDirection(ns, self.label()+'_dir00', l=0.0, m=0.0)
+        self._last_dir0 = None                          # see .restore_phase_centre()
 
         return None
 
@@ -81,11 +87,16 @@ class Visset22 (Matrixet22.Matrixet22):
         """Print the specific part of the summary of this object"""
         print '   - stations: '+str(self.stations())
         print '   - MS_corr_index: '+str(self._MS_corr_index)
-        print '   - phase centre: '+str(self._dir0)
-        self._pgm.display_subtree(self._dir0.radec(), txt='dir0.radec',
-                                  skip_line_after=False, show_initrec=True)
-        self._pgm.display_subtree(self._dir0.lmn(), txt='dir0.lmn',
-                                  skip_line_after=False, show_initrec=True)
+        print '   - Current phase centre (dir0): '+str(self._dir0)
+        if full:
+            # self._pgm.display_subtree(self._dir0.radec(), txt='dir0.radec',
+            #                           skip_line_after=False, show_initrec=True)
+            self._pgm.display_subtree(self._dir0.lmn(), txt='dir0.lmn',
+                                      skip_line_after=False, show_initrec=True)
+            print '   - Last phase centre: '+str(self._last_dir0)
+            if self._last_dir0:
+                self._pgm.display_subtree(self._last_dir0.lmn(), txt='last_dir0.lmn',
+                                          skip_line_after=False, show_initrec=True)
         
 
         return True 
@@ -266,16 +277,23 @@ class Visset22 (Matrixet22.Matrixet22):
                 noise << Meq.Matrix22(*mm)
                 qnode(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
             self._matrixet = qnode           
-            if visu: return self.visualize(name, visu=visu)
+            if visu: return self.visualize(name, quals=quals, visu=visu)
         return None
 
     #...........................................................................
 
-    def restore_phase_centre (self, quals='restore', visu=False):
-        """Restore the phase-centre to the original position (l,m)=(0,0),
-        given by the Direction object in the Meow.Context."""
-        self.history('.restore_phase_centre()')
-        dir0 = Meow.Context.get_dir0(None)
+    def restore_phase_centre (self, quals='restore', last=True, visu=False):
+        """Restore the uv-data phase-centre to an earlier position (Direction).
+        - if last==True, shift back to the direction before the last shift_phase_centre().
+        - otherwise, shift back to the original (observation) phase-centre.
+        If the phase-centre has not yet been shifted, do nothing."""
+        self.history('.restore_phase_centre(last='+str(last)+')')
+        if not self._last_dir0:
+            return False           # The phase centre has not been shifted yet: do nothing.
+        elif last:
+            dir0 = self._last_dir0 # Back to the direction before the last .shift_phase_centre()
+        else:
+            dir0 = self._dir00     # Back to the original (observation) phase centre
         return self.shift_phase_centre (lmdir=dir0, quals=quals, visu=visu)
 
 
@@ -290,9 +308,37 @@ class Visset22 (Matrixet22.Matrixet22):
         lmdir.make_phase_shift(qnode, vis0=self._matrixet,
                                array=self._array, dir0=self._dir0) 
         self._matrixet = qnode
-        self._dir0 = lmdir       # LMDirection of new uv-data phase centre
-        self.display(lmdir.name, full=True)
-        if visu: return self.visualize(lmdir.name, visu=visu)
+        self._last_dir0 = self._dir0       # Keep for use by restore_phase_centre()
+        self._dir0 = lmdir                 # The new uv-data phase centre
+        self.display('vis.shift_phase_centre() to: '+lmdir.name, full=True)
+        if visu: return self.visualize('shift_pc', quals=quals, visu=visu, ns=ns)
+        return None
+
+
+    #...........................................................................
+
+
+    def subtract_mean (self, quals=None, lmdir=None, restore=False, visu=False):
+        """Subtract the mean over (the domain) from the uv-data.
+        This is a dirty way to get rid of flux at the current phase
+        centre (like UVLIN in AIPS). If a phase centre (lmdir) is
+        specified (as an LMDirection) the phase-centre of the uv-data
+        will be shifted there and back."""
+        lmname = None
+        if lmdir:
+            self.shift_phase_centre (lmdir, quals=quals, visu=False)
+            lmname = lmdir.name
+        ns = self._ns._derive(append=quals, prepend=lmname)
+        self.history('.subtract_mean()', ns=ns)
+        name = 'subtract_mean'
+        qnode = ns[name]
+        for ifr in self.ifrs():
+            mean = qnode(*ifr)('mean') << Meq.Mean(self._matrixet(*ifr))
+            qnode(*ifr) << Meq.Subtract(self._matrixet(*ifr),mean)
+        self._matrixet = qnode              
+        if visu: return self.visualize(name, quals, visu=visu, ns=ns)
+        if lmdir and restore:
+            self.restore_phase_centre (last=True, quals=quals, visu=False)
         return None
 
 
@@ -315,7 +361,7 @@ class Visset22 (Matrixet22.Matrixet22):
         self._matrixet = qnode              
         # Transfer any parmgroups (used by the solver downstream)
         self.ParmGroupManager(merge=joneset.ParmGroupManager())
-        if visu: return self.visualize(name, visu=visu)
+        if visu: return self.visualize(name, quals=quals, visu=visu)
         return None
 
     #...........................................................................
@@ -356,7 +402,7 @@ class Visset22 (Matrixet22.Matrixet22):
             self.ParmGroupManager(merge=joneset.ParmGroupManager())
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
         # self.merge_accumulist(joneset)
-        if visu: return self.visualize(name, visu=visu)
+        if visu: return self.visualize(name, quals=quals, visu=visu)
         return None
 
 
@@ -372,7 +418,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
         # If visu==True, append the visualisation dcoll to the accumulist,
         # so that it will get the last request before the main-stream is addressed.
-        if visu: self.visualize(name, visu=visu)
+        if visu: self.visualize(name, quals=quals, visu=visu)
         
         cc = self.accumulist(key=key, clear=False)
         n = len(cc)

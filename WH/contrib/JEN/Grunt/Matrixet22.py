@@ -399,14 +399,15 @@ class Matrixet22 (object):
         return self._matrel.keys()
 
 
-    def extract_matrix_element(self, key='m11', quals=None, unop=None):
+    def extract_matrix_element(self, key='m11', quals=None, unop=None, ns=None):
         """Extract the specified matrix element(s) from the 2x2 matrices,
         and return a list of nodes. The key must be one of the strings
         'm11', 'm12', 'm21' or 'm22', or a list of these. If key='*', all
         4 elements will be extracted from all matrices.  
         If unop is specified (str), apply an unary operation to the nodes."""
 
-        ns = self._ns._derive(append=quals)
+        if ns==None: ns = self._ns
+        ns = ns._derive(append=quals)
 
         keys = deepcopy(key)                                    # just in case
         if keys=='*': keys = self.matrel_keys()                 # all elements
@@ -462,7 +463,7 @@ class Matrixet22 (object):
         self.matrixet(new=qnode)                                     # replace
         # Transfer any parmgroups from other:
         # self.ParmGroupManager(merge=other.ParmGroupManager())
-        if visu: self.visualize(quals=quals, visu=visu)
+        if visu: self.visualize(['binop',binop], quals=quals, visu=visu)
         return True
 
 
@@ -478,8 +479,15 @@ class Matrixet22 (object):
 
     #---------------------------------------------------------------------
 
-    def bundle(self, oper='Composer', quals=None):
-        """Bundle its matrices, using an operation like Composer, Add, Multiply etc"""
+     def mean(self, quals=None):
+        """Calculate the mean of all 2x2 matrices"""
+        return self.bundle('Add', qual=quals, normalise=True)
+
+    #---------------------------------------------------------------------
+
+    def bundle(self, oper='Composer', quals=None, normalise=False):
+        """Bundle its matrices, using an operation like Composer, Add, Multiply etc.
+        If normalise, divide by the number of matrices."""
         ns = self._ns._derive(append=quals)
         self.history('.bundle('+str(oper)+')', ns=ns)
         qnode = ns.bundle(oper)
@@ -492,6 +500,8 @@ class Matrixet22 (object):
                 accuroot = self.bundle_accumulist(quals=quals)
                 if accuroot: cc.append(accuroot)
             qnode << getattr(Meq,oper)(children=cc)
+        if normalise:
+            qnode = ns.mean << Meq.Divide(qnode,len(cc))
         return qnode
 
 
@@ -501,7 +511,8 @@ class Matrixet22 (object):
     #=====================================================================
 
 
-    def visualize (self, quals=None, visu='rvsi', accu=True,
+    def visualize (self, origin=None, quals=None, ns=None,
+                   visu='rvsi', accu=True,
                    matrel='*', separate=False,
                    bookpage='Matrixet22', folder=None):
         """Generic visualisation, controlled by visu. The latter may be:
@@ -512,6 +523,10 @@ class Matrixet22 (object):
         visu may also be a list (of strings)
         """
 
+        if is_node(ns):
+            print '+++',origin,quals,':',type(ns),str(ns)
+            raise ValueError, 'ns is a nodestub, not a QualScope...'
+        
         # Decode visu:
         if isinstance(visu, bool):
             if visu==False: return False
@@ -527,18 +542,19 @@ class Matrixet22 (object):
         dcolls = []
         for visual in visu:
             if visual=='timetracks':
-                dc = self.show_timetracks (quals=quals, accu=False,
-                                           separate=separate,
+                dc = self.show_timetracks (origin=origin, quals=quals, ns=ns,
+                                           accu=False, separate=separate,
                                            bookpage=bookpage, folder=folder)
                 dcolls.append(dc)
             elif visual=='straight':
-                return self.show_straight (quals=quals, accu=False,
-                                           relative=True,
+                return self.show_straight (origin=origin, quals=quals, ns=ns,
+                                           accu=False, relative=True,
                                            bookpage=bookpage, folder=folder)
             elif visual=='spectra':
                 pass                         # not implemented yet
             else:
-                dc = self.show_rvsi (quals=quals, matrel=matrel, accu=False,
+                dc = self.show_rvsi (origin=origin, quals=quals, ns=ns,
+                                     matrel=matrel, accu=False,
                                      bookpage=bookpage, folder=folder)
                 dcolls.append(dc)
                 
@@ -549,7 +565,7 @@ class Matrixet22 (object):
             if accu: self.accumulist(dcolls[0])
             return dcolls[0]
         else:
-            ns = self._ns._derive(append=quals)
+            ns = self._ns._derive(append=quals, prepend=origin)
             bundle = ns._unique('visu_bundle') << Meq.Composer(children=dcolls)
             if accu: self.accumulist(bundle)
             return bundle
@@ -557,7 +573,8 @@ class Matrixet22 (object):
 
     #.......................................................................
 
-    def show_rvsi (self, quals=None, matrel='*', accu=True,
+    def show_rvsi (self, origin=None, quals=None, ns=None,
+                   matrel='*', accu=True,
                    bookpage='Matrixet22', folder=None):
 
         """Visualise (a subset of) the 4 complex matrix elements of all 
@@ -568,14 +585,16 @@ class Matrixet22 (object):
         The resulting dataCollect node is returned, but if accu=True (default)
         it is also stored in self.accumulist(key=None) for later retrieval."""
 
-        ns = self._ns._derive(append=quals)
+        if ns==None: ns = self._ns
+        ns = ns._derive(append=quals, prepend=origin)
         self.history('.show_rvsi('+str(bookpage)+')', ns=ns)
         dcolls = []
         keys = deepcopy(matrel)
         if keys=='*': keys = self._matrel.keys()      # i.e. ['m11','m12','m21','m22']
         if not isinstance(keys,(list,tuple)): keys = [keys]
         for key in keys:  
-            cc = self.extract_matrix_element(key, quals=quals) 
+            # print '===',type(ns),str(ns)
+            cc = self.extract_matrix_element(key, quals=quals, ns=ns) 
             rr = MG_JEN_dataCollect.dcoll (ns, cc, scope=self.label(), tag=key,
                                            color=self._matrel_color[key],
                                            style=self._matrel_style[key],
@@ -598,7 +617,8 @@ class Matrixet22 (object):
 
     #--------------------------------------------------------------------------
 
-    def show_straight (self, quals=None, accu=True, relative=True,
+    def show_straight (self, origin=None, quals=None, ns=None,
+                       accu=True, relative=True,
                        bookpage='straight22', folder=None):
 
         """Make separate plots of all matrices (assumed interpolatable...).
@@ -606,7 +626,8 @@ class Matrixet22 (object):
         - If accu=True (default) it is also stored in self.accumulist(key=None)
         for later retrieval.
         """
-        ns = self._ns._derive(append=quals)
+        if ns==None: ns = self._ns
+        ns = ns._derive(append=quals, prepend=origin)
         self.history('.show_straight('+str(bookpage)+')', ns=ns)
         cc = self.nodelist()
         if relative:
@@ -624,7 +645,8 @@ class Matrixet22 (object):
 
     #--------------------------------------------------------------------------
 
-    def show_timetracks (self, quals=None, accu=True, separate=False,
+    def show_timetracks (self, origin=None, quals=None, ns=None,
+                         accu=True, separate=False,
                          bookpage='timetracks22', folder=None):
 
         """Make time-track plots of the complex matrix elements of all matrices.
@@ -636,11 +658,13 @@ class Matrixet22 (object):
 
         #............................................................................
         if separate:
-            return self.show_timetracks_separate (quals=quals, matrel='*', accu=accu,
+            return self.show_timetracks_separate (origin=origin, quals=quals,
+                                                  matrel='*', accu=accu,
                                                   bookpage=bookpage, folder=folder)
         #............................................................................
 
-        ns = self._ns._derive(append=quals)
+        if ns==None: ns = self._ns
+        ns = ns._derive(append=quals, prepend=origin)
         self.history('.show_timetracks('+str(bookpage)+')', ns=ns)
         cc = self.nodelist()
         name = 'timetracks'
@@ -661,7 +685,8 @@ class Matrixet22 (object):
 
     #--------------------------------------------------------------------------
 
-    def show_timetracks_separate (self, quals=None, matrel='*', accu=True,
+    def show_timetracks_separate (self, origin=None, quals=None, ns=None,
+                                  matrel='*', accu=True,
                                   bookpage='timetracks22', folder=None):
 
         """Make separate time-track plots for each of the 4 matrix elements
@@ -671,7 +696,8 @@ class Matrixet22 (object):
         for later retrieval.
         - A list of timetracks nodes is returned."""
 
-        ns = self._ns._derive(append=quals)
+        if ns==None: ns = self._ns
+        ns = ns._derive(append=quals, prepend=origin)
         self.history('.show_timetracks_separate('+str(bookpage)+')', ns=ns)
         name = 'timetracks'
 
@@ -683,7 +709,7 @@ class Matrixet22 (object):
         plot_labels = self.plot_labels()                      # ifr-labels
         for key in keys:  
             qnode = ns[name](key)
-            cc = self.extract_matrix_element(key, quals=quals)
+            cc = self.extract_matrix_element(key, quals=quals, ns=ns)
             for i in range(len(cc)):
                 cc[i] = qnode('fmean')(i) << Meq.Mean(cc[i], reduction_axes="freq")
             qnode << Meq.Composer(dims=[len(cc)],

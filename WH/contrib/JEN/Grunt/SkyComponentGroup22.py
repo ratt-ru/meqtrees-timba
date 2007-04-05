@@ -420,8 +420,9 @@ class SkyComponentGroup22 (object):
         key = self.key(key)
         sc = self._skycomp[key]
         if sc['lm']==None:
-            sc['lmdir'] = Meow.LMDirection(self._ns, self._name, quals=[key],
-                                           l=sc['l'], m=sc['m'])
+            sc['lmdir'] = Meow.LMApproxDirection(self._ns, key,
+                                                 quals=[self.label()],
+                                                 l=sc['l'], m=sc['m'])
             sc['lm'] = sc['lmdir'].lm()
         return sc['lm']
     

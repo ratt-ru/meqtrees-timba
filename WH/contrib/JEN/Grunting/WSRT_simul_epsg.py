@@ -121,10 +121,20 @@ def _define_forest (ns):
     # Add gaussian noise, if required:
     vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
+    if True:
+        # Shift the phase-centre to the various peeling sources
+        # and subtract the local mean ('UVLIN')
+        for key in epsg.order():
+            lmdir = epsg.lmdir(key)
+            # vis.shift_phase_centre(lmdir, visu=True)
+            vis.subtract_mean(lmdir=lmdir, visu=True)
+        vis.restore_phase_centre(last=False, visu=True)
+
     # Finished:
     vis.show_timetracks(separate=True)                 
     if TDL_display_Visset22: vis.display(full=True)
     vis.make_sinks(vdm='vdm')        
+    vis.history().display(full=True)
     return True
 
 

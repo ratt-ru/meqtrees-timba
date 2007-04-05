@@ -65,7 +65,7 @@ def _define_forest (ns):
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
     Meow.Context.set(array, observation)
-    center = Meow.LMDirection(ns, 'cps', l=0.0, m=0.0)
+    center = Meow.LMApproxDirection(ns, 'cps', l=0.0, m=0.0)
 
     # Make a user-defined point source, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
@@ -73,27 +73,28 @@ def _define_forest (ns):
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, name='simul',
-                      # phase_centre=anti_shifted,
-                      visu=True)
-
-    if True:
-        # An experiment in shifting the phase-centre:
-        dl = 0.000001
-        dm = dl
-        single = Meow.LMDirection(ns, 'single', l=dl, m=dm)
-        again = Meow.LMDirection(ns, 'again', l=dl, m=dm)
-        double = Meow.LMDirection(ns, 'double', l=2*dl, m=2*dm)
-        triple = Meow.LMDirection(ns, 'triple', l=3*dl, m=3*dm)
-        anti = Meow.LMDirection(ns, 'anti', l=-dl, m=-dm)
-        vis.shift_phase_centre(single, visu=True)
-        # vis.shift_phase_centre(again, visu=True)
-        vis.shift_phase_centre(double, visu=True)
-        vis.shift_phase_centre(triple, visu=True)
-        # vis.restore_phase_centre(visu=True)
-
+    vis = ps.Visset22(array, observation, name='simul', visu=True)
 
     if False:
+        # An experiment in shifting the phase-centre:
+        dl = 0.01            # 0.5 degrees: breaks down
+        dl = 0.001           # 0.05 deg: still ok
+        # dl = 0.00001
+        dm = dl
+        single = Meow.LMApproxDirection(ns, 'single', l=dl, m=dm)
+        mirror = single.mirror()
+        again = Meow.LMApproxDirection(ns, 'again', l=dl, m=dm)
+        double = Meow.LMApproxDirection(ns, 'double', l=2*dl, m=2*dm)
+        triple = Meow.LMApproxDirection(ns, 'triple', l=3*dl, m=3*dm)
+        vis.shift_phase_centre(single, visu=True)
+        vis.shift_phase_centre(mirror, visu=True)
+        # vis.shift_phase_centre(again, visu=True)
+        # vis.shift_phase_centre(double, visu=True)
+        # vis.shift_phase_centre(triple, visu=True)
+        vis.restore_phase_centre(visu=True, last=False)
+
+
+    if True:
         # Corrupt the data with a sequence of Jones matrices:
         #   (Note that the user-defined TDLOption parameters are
         #    short-circuited between the functions in the WSRT_Jones module)
@@ -103,7 +104,7 @@ def _define_forest (ns):
         vis.corrupt(jones, visu=False)
 
     # Add gaussian noise, if required:
-    if False:
+    if True:
         vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
     # Finished:
