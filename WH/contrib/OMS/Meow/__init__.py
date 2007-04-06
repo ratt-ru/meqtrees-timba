@@ -10,6 +10,7 @@ if "Timba.meqkernel" in sys.modules:
 else:
 
   from CorruptComponent import CorruptComponent
+  from Position import Position
   from Direction import Direction
   from LMDirection import LMDirection
   from LMApproxDirection import LMApproxDirection
@@ -30,6 +31,7 @@ else:
 
   __all__ = [
               CorruptComponent,
+              Position,
               Direction,
               LMDirection,
               LMApproxDirection,
