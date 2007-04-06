@@ -19,7 +19,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Contrib.JEN.Grunt import Qualifiers
+from Timba.Contrib.JEN.Grunt import display
 import Meow
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
@@ -322,6 +322,7 @@ class NodeGroup (object):
 
     #===================================================================
     # The following functions are just for convenience.....(kludge)
+    # NB: They are called in various other Grunt modules....
     #===================================================================
 
     def display_node (self, index=0, recurse=1000):
@@ -341,41 +342,14 @@ class NodeGroup (object):
     def display_subtree (self, node, txt=None, level=1,
                          skip_line_before=False,
                          skip_line_after=True,
-                         show_initrec=True, recurse=1000):
+                         show_initrec=True,
+                         recurse=1000):
         """Helper function to display a subtree recursively"""
-        if level==1:
-            if skip_line_before: print
-        prefix = '  '
-        if txt: prefix += ' ('+str(txt)+')'
-        prefix += level*'..'
-        s = prefix
-        s += ' '+str(node.classname)+' '+str(node.name)
-        if show_initrec:
-            initrec = deepcopy(node.initrec())
-            # if len(initrec.keys()) > 1:
-            hide = ['name','class','defined_at','children','stepchildren','step_children']
-            for field in hide:
-                if initrec.has_key(field): initrec.__delitem__(field)
-                if initrec.has_key('value'):
-                    value = initrec.value
-                    # if isinstance(value,(list,tuple)):
-                    #     initrec.value = value.flat
-                if initrec.has_key('default_funklet'):
-                    coeff = initrec.default_funklet.coeff
-                    initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
-            if len(initrec)>0: s += ' '+str(initrec)
-        print s
-        if recurse>0:
-            # print dir(node)
-            # print node.__doc__
-            if node.initialized():
-                for child in node.children:
-                    self.display_subtree (child[1], txt=txt, level=level+1,
-                                          show_initrec=show_initrec, recurse=recurse-1)
-        if level==1:
-            if skip_line_after: print
-        return True
-
+        return display.subtree (node, txt=txt, level=level,
+                                skip_line_before=skip_line_before,
+                                skip_line_after=skip_line_after,
+                                show_initrec=show_initrec,
+                                recurse=recurse)
 
     #======================================================================
 
