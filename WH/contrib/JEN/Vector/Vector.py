@@ -14,28 +14,51 @@ Settings.forest_state.cache_policy = 100
 #================================================================
 
 class Vector (Meow.Parameterization):
-  """Represents a N-dimensional vector """
+  """Represents a N-dimensional vector. The input can be either a list
+  of numeric constants, nodes, or Meow.Parm objects, or a tensor node.
+  The elements are labelled according to the axes argument, which has
+  default ['x','y','z','y'], but may be user-defined. The Vector class
+  inherits from Meow.Parameterization."""
   
-  def __init__(self, ns, name, elem=[], axes=['x','y','z','t'], 
-               unit=None, quals=[], kwquals={}, tags=[], solvable=True,
+  def __init__(self, ns, name, elem=[], nelem=None,
+               axes=['x','y','z','t'], unit=None,
+               quals=[], kwquals={},
+               tags=[], solvable=True,
                test=False):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
     self._unit = unit
+
     self._axes = []
-    for k,item in enumerate(elem):
-      axis = axes[k]
-      self._axes.append(axis)
-      if is_node(item):
+    self._tensor_node = None
+    
+    if is_node(elem):                     # Assume a tensor node
+      self._tensor_node = elem
+      for index in range(nelem):          # NB: nelem must be specified!
+        axis = axes[index]
+        self._axes.append(axis)
         test = False
-        self._add_parm(axis, (self.ns[axis] << Meq.Identity(item)),
-                       tags=tags, solvable=solvable)
-      elif isinstance(item, Meow.Parm):
-        test = False
-        self._add_parm(axis, item, tags=tags, solvable=solvable)
-      else:
-        self._add_parm(axis, item, tags=tags, solvable=solvable)
+        # self._add_parm(axis, (self.ns[axis] << Meq.Selector(elem, index=index)))
+
+    elif not isinstance(elem,(list,tuple)):
+      s = 'elem is not a list, but: '+str(type(elem))
+      raise ValueError,s
+
+    else:
+      for k,item in enumerate(elem):
+        axis = axes[k]
+        self._axes.append(axis)
+        if is_node(item):                   # item is a node 
+          test = False
+          self._add_parm(axis, (self.ns[axis] << Meq.Identity(item)),
+                         tags=tags, solvable=solvable)
+        elif isinstance(item, Meow.Parm):   # item is a Meow.Parm object
+          test = False
+          self._add_parm(axis, item, tags=tags, solvable=solvable)
+        else:                               # assume numeric
+          self._add_parm(axis, item, tags=tags, solvable=solvable)
+
   
     # The following is only for testing: It is assumed that the items
     # are numeric, so we can turn them into a numarray.array:
@@ -79,11 +102,23 @@ class Vector (Meow.Parameterization):
     axis = self.axis(key)
     return self._parm(axis)
 
-  def list (self):
+  def list (self, show=False):
     """Returns the list of elements (nodes) of this Vector."""
     cc = []
-    for axis in self._axes:
-      cc.append(self._parm(axis))
+    if self._tensor_node:
+      for index in range(self.len()):
+        axis = self._axes[index]
+        node = self.ns[axis]
+        if not node.initialized():
+          node << Meq.Selector(self._tensor_node, index=index)
+        cc.append(node)
+    else:
+      for axis in self._axes:
+        cc.append(self._parm(axis))
+    if show:
+      print '\n** Elements of:',self.oneliner()
+      for c in cc: print '   -',str(c)
+      print
     return cc
 
   def commensurate(self, other):
@@ -100,7 +135,7 @@ class Vector (Meow.Parameterization):
 
   def oneliner (self):
     ss = str(type(self))
-    ss += ' '+str(self.name)+': '+str(self._axes)
+    ss += ' '+str(self.name)+'  '+str(self._axes)
     if self._test:
       ss += '='+str(self._test_value)
     if self._unit:
@@ -112,12 +147,15 @@ class Vector (Meow.Parameterization):
   def _show_test_result(self, node, other=None, show=True):
     """Helper function to print the test_result. for comparison with
     the result of the named node in the meqbrowser."""
-    if show: display.subtree(node, node.name)
+    if show: self._show_subtree(node)
     ss = '** test: the result of node:  '+node.name
     ss += '  should be:  '+str(self._test_result)
     print '\n',ss,'\n'
     return ss
 
+  def _show_subtree(self, node):
+    """Helper function to show the subtree under the given node"""
+    return display.subtree(node, node.name)
 
   #---------------------------------------------------------------------
   # Methods that produce a node:
@@ -127,12 +165,12 @@ class Vector (Meow.Parameterization):
     """Returns the n-element 'tensor' node for this Vector."""
     node = self.ns['Vector']
     if not node.initialized():
-      node << Meq.Composer(*self.list())
-    if self._test:
-      self._test_result = self._test_value
-      self._show_test_result(node, show=False)
+      if self._tensor_node:
+        node << Meq.Identity(self._tensor_node)
+      else:
+        node << Meq.Composer(*self.list())
     if show:
-      display.subtree(node, node.name)
+      self._show_subtree(node)
     return node
 
   #---------------------------------------------------------------------
@@ -148,7 +186,9 @@ class Vector (Meow.Parameterization):
       node << Meq.Sqrt(ssq)
     if self._test:
       self._test_result = sqrt(sum(self._test_value*self._test_value))
-      self._show_test_result(node, show=show)
+      self._show_test_result(node, show=False)
+    if show:
+      self._show_subtree(node)
     return node
 
 
@@ -168,7 +208,9 @@ class Vector (Meow.Parameterization):
       node << Meq.Add(*cc1)
     if self._test:
       self._test_result = sum(self._test_value*other._test_value)
-      self._show_test_result(node, other, show=show)
+      self._show_test_result(node, other, show=False)
+    if show:
+      self._show_subtree(node)
     return node
 
   #---------------------------------------------------------------------
@@ -187,18 +229,37 @@ class Vector (Meow.Parameterization):
       m1 = sqrt(sum(self._test_value*self._test_value))
       m2 = sqrt(sum(other._test_value*other._test_value))
       self._test_result = dp/(m1*m2)
-      self._show_test_result(node, other, show=show)
+      self._show_test_result(node, other, show=False)
+    if show:
+      self._show_subtree(node)
     return node
 
   #---------------------------------------------------------------------
   # Methods that produce another Vector object:
   #---------------------------------------------------------------------
 
-  def binop (self, other):
-    """Add the elements"""
-    return False
+  def binop (self, binop, other, name=None, quals=[], show=False):
+    """Returns another Vector object which is the result of the specified
+    binary operation (e.g. binop='Subtract') between itself and another Vector"""
+    self.commensurate(other)
+    node = self.ns[binop].qadd(other.ns)
+    if not node.initialized():
+      node << getattr(Meq,binop)(self.node(),other.node())
+    if show:
+      self._show_subtree(node)
+      
+    # Make a new Vector object:
+    if isinstance(name, str):
+      # Name is specified: make a new start (ns0, quals):
+      vout = Vector(self.ns0, name, node, nelem=self.len(), quals=quals)
+    else:
+      # No name specified: automatic name and combined qualifiers:
+      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=other.ns.quals)
 
-
+    if show:
+      vout.list(show=True)
+      self._show_subtree(vout.node())
+    return vout
 
 
 
@@ -235,7 +296,11 @@ class Vector (Meow.Parameterization):
     return zang
 
 
-#===============================================================
+
+
+
+#================================================================================
+#================================================================================
 
 class Vector2D (Vector):
   """Represents a 2-dimensional Vector, i.e. a Vector with some extra methods"""
@@ -260,15 +325,20 @@ class Vector2D (Vector):
   def rotate (self, angle=0.0, show=False):
     """Returns a Composer (node) for this Vector rotated by the given angle.
     The latter may be a number or a node."""
-    node = self.ns['rotated'](str(angle)+'rad')
-    if not node.initialized():
+    if is_node(angle):
+      node = self.ns['rotated'].qadd(angle)
+      a = angle
+    else:
+      node = self.ns['rotated'](str(angle)+'rad')
       a = node('rotation_angle') << angle
+    if not node.initialized():
       cosa = node('cos') << Meq.Cos(a)
       sina = node('sin') << Meq.Sin(a)
       nsin = node('nsin') << Meq.Negate(sina)
       cc = self.list()
       node << Meq.Composer(cosa*cc[0] + sina*cc[1],
                            nsin*cc[1] + cosa*cc[0])
+    if show: self._show_subtree(node)
     return node
 
 
@@ -321,6 +391,9 @@ if __name__ == '__main__':
     v2 = Vector(ns, 'v2', [1,2,3], test=True, unit='m')
     print v2.oneliner()
 
+    if 1:
+      v4 = v1.binop('Add', v2, name='dc', show=True)
+
     if 0:
       node = v1.enclosed_angle(v2, show=True)
 
@@ -334,6 +407,15 @@ if __name__ == '__main__':
       node = v1.node(show=True)
 
     #---------------------------------------------------
+
+    if 0:
+      node = ns['tensor'] << Meq.Composer(1,2,3)
+      v3 = Vector(ns, 'v3', node, nelem=3)
+      print v3.oneliner()
+      v3.node(show=True)
+      v3.list(show=True)
+      v3.magnitude(show=True)
+
 
     if 0:
       v3 = Vector(ns, 'v3', v1.list())
@@ -364,10 +446,11 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------
 
-    if 1:
+    if 0:
       t1 = Vector2D(ns, 't1', [1,2], test=True, unit='m')
       print t1.oneliner()
     
       if 1:
-        node = t1.rotate(angle=1.0, show=True)
-        display.subtree(node, node.name)
+        angle = 0.8
+        angle = ns.angle << 0.9
+        node = t1.rotate(angle=angle, show=True)
