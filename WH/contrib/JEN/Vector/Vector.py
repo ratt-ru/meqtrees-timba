@@ -64,13 +64,13 @@ class Vector (Meow.Parameterization):
 
   
     # The following is only for testing: It is assumed that the items
-    # are numeric, so we can turn them into a numarray.array:
-    self._test = test
-    self._test_value = []
-    if self._test:
+    # in elem are numeric, so we can turn them into a numarray.array:
+    self._test = None
+    if test:
+      self._test = dict(test=test, elem=[]) 
       for k,item in enumerate(elem):
-        self._test_value.append(item)
-      self._test_value = array(self._test_value)
+        self._test['elem'].append(item)
+      self._test['elem'] = array(self._test['elem'])
 
     return None
 
@@ -149,25 +149,29 @@ class Vector (Meow.Parameterization):
       ss += ' ('+str(self._typename)+')'
     ss += '  '+str(self.name)+'  '+str(self._axes)
     if self._test:
-      ss += '='+str(self._test_value)
+      ss += '='+str(self._test['elem'])
     if self._unit:
       ss += '  (unit='+str(self._unit)+')'
     return ss
 
   #---------------------------------------------------------------------
 
-  def _show_test_result(self, node, other=None, show=True):
-    """Helper function to print the test_result. for comparison with
-    the result of the named node in the meqbrowser."""
-    if show: self._show_subtree(node)
-    ss = '** test: the result of node:  '+node.name
-    ss += '  should be:  '+str(self._test_result)
-    print '\n',ss,'\n'
-    return ss
-
-  def _show_subtree(self, node):
+  def _show_subtree(self, node, show=False, recurse=3):
     """Helper function to show the subtree under the given node"""
-    return display.subtree(node, node.name)
+    if show:
+      return display.subtree(node, node.name, recurse=recurse)
+
+  #---------------------------------------------------------------------
+
+  def test_result(self, show=True):
+    """Helper routine to show the test results"""
+    if show and isinstance(self._test,dict):
+      print '\n** test-results of:',self.oneliner()
+      rr = self._test
+      for key in rr.keys():
+        print '  -',key,':',rr[key]
+      print
+    return self._test
 
   #---------------------------------------------------------------------
   # Methods that produce a node:
@@ -183,26 +187,26 @@ class Vector (Meow.Parameterization):
         node << Meq.Identity(self._tensor_node)
       else:
         node << Meq.Composer(*self.list())
-    if show:
-      self._show_subtree(node)
+    self._show_subtree(node, show=show)
     return node
 
   #---------------------------------------------------------------------
 
   def magnitude (self, show=False):
     """Returns the magnitude (node) for this Vector."""
-    node = self.ns['magnitude']
+    name = 'magnitude'
+    node = self.ns[name]
     if not node.initialized():
       cc = self.list()
       for k,c in enumerate(cc):
         cc[k] = node('Sqr')(k) << Meq.Sqr(c)
       ssq = node('SumSqr') << Meq.Add(*cc)
-      node << Meq.Sqrt(ssq)
-    if self._test:
-      self._test_result = sqrt(sum(self._test_value*self._test_value))
-      self._show_test_result(node, show=False)
-    if show:
-      self._show_subtree(node)
+      if self._test:
+        self._test[name] = sqrt(sum(self._test['elem']*self._test['elem']))
+        node << Meq.Sqrt(ssq, testval=self._test[name])
+      else:
+        node << Meq.Sqrt(ssq)
+    self._show_subtree(node, show=show)
     return node
 
 
@@ -213,18 +217,20 @@ class Vector (Meow.Parameterization):
   def dot_product (self, other, show=False):
     """Returns the dot-product (node) bewteen itself and another Vector"""
     self.commensurate(other)
-    node = self.ns['dot_product'].qadd(other.ns)
+    name = 'dot_product'
+    node = self.ns[name].qadd(other.ns)
     if not node.initialized():
       cc1 = self.list()
       cc2 = other.list()
       for k,c in enumerate(cc1):
         cc1[k] = node('Multiply')(k) << Meq.Multiply(cc1[k],cc2[k])
-      node << Meq.Add(*cc1)
-    if self._test:
-      self._test_result = sum(self._test_value*other._test_value)
-      self._show_test_result(node, other, show=False)
-    if show:
-      self._show_subtree(node)
+      if self._test:
+        self._test['other'] = other.oneliner()
+        self._test[name] = sum(self._test['elem']*other._test['elem'])
+        node << Meq.Add(children=cc1, testval=self._test[name])
+      else:
+        node << Meq.Add(*cc1)
+    self._show_subtree(node, show=show)
     return node
 
   #---------------------------------------------------------------------
@@ -232,20 +238,22 @@ class Vector (Meow.Parameterization):
   def enclosed_angle (self, other, show=False):
     """Returns the enclosed angle (node, rad) between itself and another Vector"""
     self.commensurate(other)
-    node = self.ns['enclosed_angle'].qadd(other.ns)
+    name = 'enclosed_angle'
+    node = self.ns[name].qadd(other.ns)
     if not node.initialized():
       dp = self.dot_product(other)
       m1 = self.magnitude()
       m2 = other.magnitude()
-      node << Meq.Divide(dp,(m1*m2))
-    if self._test:
-      dp = sum(self._test_value*other._test_value)
-      m1 = sqrt(sum(self._test_value*self._test_value))
-      m2 = sqrt(sum(other._test_value*other._test_value))
-      self._test_result = dp/(m1*m2)
-      self._show_test_result(node, other, show=False)
-    if show:
-      self._show_subtree(node)
+      if self._test:
+        self._test['other'] = other.oneliner()
+        dp = sum(self._test['elem']*other._test['elem'])
+        m1 = sqrt(sum(self._test['elem']*self._test['elem']))
+        m2 = sqrt(sum(other._test['elem']*other._test['elem']))
+        self._test[name] = dp/(m1*m2)
+        node << Meq.Divide(dp,(m1*m2), testval=self._test[name])
+      else:
+        node << Meq.Divide(dp,(m1*m2))
+    self._show_subtree(node, show=show)
     return node
 
   #---------------------------------------------------------------------
@@ -271,7 +279,7 @@ class Vector (Meow.Parameterization):
       if not node.initialized():
         node << getattr(Meq,binop)(self.node(),other)
 
-    if show: self._show_subtree(node)
+    self._show_subtree(node, show=show)
       
     # Make a new Vector object:
     if isinstance(name, str):
@@ -286,7 +294,7 @@ class Vector (Meow.Parameterization):
 
     if show:
       vout.list(show=True)
-      self._show_subtree(vout.node())
+      self._show_subtree(vout.node(), show=show)
     return vout
 
 
@@ -294,80 +302,6 @@ class Vector (Meow.Parameterization):
 
 
 
-  #---------------------------------------------------------------------
-
-  def zenith_angle(self):
-    """Return the zenith angle (node) of its satellite, as seen
-    from its station. This is time-dependent, of course.
-    Clumsy, but tested. Works fine."""
-    zang = self.ns.zenith_angle
-    if not zang.initialized():
-      xyz1 = self._satellite.xyz()
-      xyz2 = self._station.xyz()
-      dxyz = zang('dxyz') << Meq.Subtract(xyz1,xyz2)
-      prod11 = zang('prod11') << Meq.Sqr(xyz2)
-      prod22 = zang('prod22') << Meq.Sqr(dxyz)
-      prod12 = zang('prod12') << Meq.Multiply(xyz2,dxyz)
-      cc11 = []
-      cc22 = []
-      cc12 = []
-      for index in [0,1,2]:
-        cc11.append(zang('cc11')(index) << Meq.Selector(prod11, index=index))
-        cc22.append(zang('cc22')(index) << Meq.Selector(prod22, index=index))
-        cc12.append(zang('cc12')(index) << Meq.Selector(prod12, index=index))
-      sum12 = zang('sum12') << Meq.Add(*cc12)
-      ssq12 = zang('ssq12') << Meq.Multiply((zang('ssq1') << Meq.Add(*cc11)),
-                                            (zang('ssq2') << Meq.Add(*cc22)))
-      norm = zang('norm') << Meq.Sqrt(ssq12)
-      cosz = zang('cos') << Meq.Divide(sum12, norm)
-      zang << Meq.Acos(cosz)
-    return zang
-
-
-
-
-
-#================================================================================
-#================================================================================
-
-class Vector2D (Vector):
-  """Represents a 2-dimensional Vector, i.e. a Vector with some extra methods"""
-  
-  def __init__(self, ns, name, elem=[], axes=['x','y'], 
-               unit=None, quals=[], kwquals={},
-               tags=[], solvable=True,
-               test=False):
-
-    if not len(elem)==2:
-      s = 'Vector2D should have 2 elements, not:'+str(len(elem))
-      raise ValueError,s
-
-    Vector.__init__(self, ns, name=name, elem=elem, axes=axes, 
-                    unit=unit, quals=quals, kwquals=kwquals,
-                    tags=tags, solvable=solvable,
-                    test=test)
-    return None
-
-  #---------------------------------------------------------------------
-
-  def rotate (self, angle=0.0, show=False):
-    """Returns a Composer (node) for this Vector rotated by the given angle.
-    The latter may be a number or a node."""
-    if is_node(angle):
-      node = self.ns['rotated'].qadd(angle)
-      a = angle
-    else:
-      node = self.ns['rotated'](str(angle)+'rad')
-      a = node('rotation_angle') << angle
-    if not node.initialized():
-      cosa = node('cos') << Meq.Cos(a)
-      sina = node('sin') << Meq.Sin(a)
-      nsin = node('nsin') << Meq.Negate(sina)
-      cc = self.list()
-      node << Meq.Composer(cosa*cc[0] + sina*cc[1],
-                           nsin*cc[1] + cosa*cc[0])
-    if show: self._show_subtree(node)
-    return node
 
 
 
@@ -392,6 +326,7 @@ def _define_forest(ns):
     cc.append(v1.enclosed_angle(v2, show=True))
 
     ns.result << Meq.Composer(children=cc)
+    v1.test_result()
     return True
 
 #---------------------------------------------------------------
@@ -431,11 +366,14 @@ if __name__ == '__main__':
     if 0:
       node = v1.dot_product(v2, show=True)
 
-    if 0:
+    if 1:
       node = v1.magnitude(show=True)
 
     if 0:
       node = v1.node(show=True)
+
+    if 1:
+      v1.test_result(show=True)
 
     #---------------------------------------------------
 
@@ -477,13 +415,4 @@ if __name__ == '__main__':
       # print v1.axis('q')
       # print v1.axis()
 
-    #-----------------------------------------------------------
 
-    if 0:
-      t1 = Vector2D(ns, 't1', [1,2], test=True, unit='m')
-      print t1.oneliner()
-    
-      if 1:
-        angle = 0.8
-        angle = ns.angle << 0.9
-        node = t1.rotate(angle=angle, show=True)
