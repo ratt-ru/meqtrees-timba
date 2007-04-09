@@ -13,6 +13,7 @@ def subtree (node, txt=None, level=1,
     if level==1:
         if skip_line_before: print
     prefix = '  '
+    if txt==None: txt = node.name               #........?
     if txt: prefix += ' ('+str(txt)+')'
     prefix += level*'..'
     s = prefix

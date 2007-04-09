@@ -21,14 +21,17 @@ class Vector (Meow.Parameterization):
   inherits from Meow.Parameterization."""
   
   def __init__(self, ns, name, elem=[], nelem=None,
-               axes=['x','y','z','t'], unit=None,
                quals=[], kwquals={},
                tags=[], solvable=True,
+               axes=['x','y','z','t'],
+               typename='Vector',
+               unit=None,
                test=False):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
     self._unit = unit
+    self._typename = str(typename)        # used in .node() below
 
     self._axes = []
     self._tensor_node = None
@@ -99,33 +102,40 @@ class Vector (Meow.Parameterization):
 
   def element(self, key=None):
     """Return the specified (key) element (node) of this Vector."""
-    axis = self.axis(key)
-    return self._parm(axis)
+    index = self.index(key)
+    axis = self._axes[index]
+    if self._tensor_node:
+        node = self.ns[axis]
+        if not node.initialized():
+          node << Meq.Selector(self._tensor_node, index=index)
+        return node
+    else:
+      return self._parm(axis)
 
   def list (self, show=False):
     """Returns the list of elements (nodes) of this Vector."""
     cc = []
-    if self._tensor_node:
-      for index in range(self.len()):
-        axis = self._axes[index]
-        node = self.ns[axis]
-        if not node.initialized():
-          node << Meq.Selector(self._tensor_node, index=index)
-        cc.append(node)
-    else:
-      for axis in self._axes:
-        cc.append(self._parm(axis))
+    for axis in self._axes:
+      cc.append(self.element(axis))
     if show:
       print '\n** Elements of:',self.oneliner()
       for c in cc: print '   -',str(c)
       print
     return cc
 
-  def commensurate(self, other):
+
+  def commensurate(self, other, severe=True):
     """Return True if commensurate with the given (other) Vector"""
     s = None
     if not isinstance(other, Vector):
-      s = 'other is not a Vector, but: '+str(type(other))
+      if severe:
+        s = 'other is not a Vector, but: '+str(type(other))
+      elif is_node(other):
+        pass                                         # OK
+      elif isinstance(other,(int,float,complex)):
+        pass                                         # OK
+      else:
+        s = 'other type not recognized: '+str(type(other))
     elif not self.len()==other.len():  
       s = 'Vector length mismatch: '+str(other.len())+' != '+str(self.len())
     if s: raise ValueError,s
@@ -135,11 +145,13 @@ class Vector (Meow.Parameterization):
 
   def oneliner (self):
     ss = str(type(self))
-    ss += ' '+str(self.name)+'  '+str(self._axes)
+    if not self._typename=='Vector':
+      ss += ' ('+str(self._typename)+')'
+    ss += '  '+str(self.name)+'  '+str(self._axes)
     if self._test:
       ss += '='+str(self._test_value)
     if self._unit:
-      ss += ' (unit='+str(self._unit)+')'
+      ss += '  (unit='+str(self._unit)+')'
     return ss
 
   #---------------------------------------------------------------------
@@ -161,9 +173,11 @@ class Vector (Meow.Parameterization):
   # Methods that produce a node:
   #---------------------------------------------------------------------
 
-  def node (self, show=False):
+  def node (self, name=None, show=False):
     """Returns the n-element 'tensor' node for this Vector."""
-    node = self.ns['Vector']
+    if not isinstance(name,str):
+      name = self._typename                   # default: 'Vector'
+    node = self.ns[name]
     if not node.initialized():
       if self._tensor_node:
         node << Meq.Identity(self._tensor_node)
@@ -241,20 +255,34 @@ class Vector (Meow.Parameterization):
   def binop (self, binop, other, name=None, quals=[], show=False):
     """Returns another Vector object which is the result of the specified
     binary operation (e.g. binop='Subtract') between itself and another Vector"""
-    self.commensurate(other)
-    node = self.ns[binop].qadd(other.ns)
-    if not node.initialized():
-      node << getattr(Meq,binop)(self.node(),other.node())
-    if show:
-      self._show_subtree(node)
+    self.commensurate(other, severe=False)
+
+    if isinstance(other, Vector):
+      node = self.ns[binop].qadd(other.ns)
+      if not node.initialized():
+        node << getattr(Meq,binop)(self.node(),other.node())
+    elif is_node(other):
+      node = self.ns[binop].qadd(other)
+      if not node.initialized():
+        node << getattr(Meq,binop)(self.node(),other)
+    else:
+      # Assume numeric value: 
+      node = self.ns[binop](str(other))
+      if not node.initialized():
+        node << getattr(Meq,binop)(self.node(),other)
+
+    if show: self._show_subtree(node)
       
     # Make a new Vector object:
     if isinstance(name, str):
       # Name is specified: make a new start (ns0, quals):
       vout = Vector(self.ns0, name, node, nelem=self.len(), quals=quals)
-    else:
-      # No name specified: automatic name and combined qualifiers:
+    elif isinstance(other, Vector):
       vout = Vector(self.ns, binop, node, nelem=self.len(), quals=other.ns.quals)
+    elif is_node(other):
+      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=other.quals)
+    else:
+      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=str(other))
 
     if show:
       vout.list(show=True)
@@ -391,9 +419,12 @@ if __name__ == '__main__':
     v2 = Vector(ns, 'v2', [1,2,3], test=True, unit='m')
     print v2.oneliner()
 
-    if 1:
-      v4 = v1.binop('Add', v2, name='dc', show=True)
-
+    if 0:
+      other = v2
+      other = ns['other']('qual') << Meq.Constant(56)
+      other = 78
+      v4 = v1.binop('Add', other, name='xxx', show=True)
+      
     if 0:
       node = v1.enclosed_angle(v2, show=True)
 
@@ -423,12 +454,14 @@ if __name__ == '__main__':
       for key in range(v3.len()):
         node = v3.element(key)
         print '- element(',key,'): ',str(node)
+      cc = v3.list(show=True)
       node = v3.node(show=True)
 
     if 0:
       for key in range(v1.len()):
         node = v1.element(key)
         print '- element(',key,'): ',str(node)
+      cc = v1.list(show=True)
       node = v1.node(show=True)
 
     if 0:

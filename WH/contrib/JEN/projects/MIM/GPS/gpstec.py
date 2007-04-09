@@ -7,20 +7,25 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import display
+from Timba.Contrib.JEN.Vector import Vector
 from numarray import *
 
 Settings.forest_state.cache_policy = 100
 
 #================================================================
 
-class GPSStation (Meow.Position):
+class GPSStation (Vector.Vector):
   """Represents a GPS station that measures TEC values"""
 
-  def __init__(self, ns, name, pos=[], refpos=None,
+  def __init__(self, ns, name, pos=[],
+               refpos=None,
                quals=[],kwquals={}):
 
-    Meow.Position.__init__(self, ns=ns, name=name,
-                           x=pos[0], y=pos[1], z=pos[2],
+    Vector.Vector.__init__(self, ns=ns, name=name,
+                           elem=pos, axes=['X','Y','Z'], unit='m',
+                           tags=['position','GPSStation'],
+                           solvable=False, test=False,
+                           typename='location',
                            quals=quals, kwquals=kwquals)
 
     if not isinstance(refpos,(list,tuple)) or not len(refpos)==3:
@@ -32,32 +37,56 @@ class GPSStation (Meow.Position):
 
   
   def oneliner (self):
-    ss = 'GPSStation: '+self.name
+    ss = 'GPSStation'
+    ss += ' ('+str(self._typename)+')'
+    ss += '  '+str(self.name)
     ss += '  (rel)pos='+str(self._relpos)
     return ss
+
   
   def bias (self):
     """Returns the station TEC bias (node)"""
     return self._parm('TEC_bias')
+
+
+  def latlong (self, show=False):
+    """Returns a two-pack with its latitude and longtitude (rad)"""
+    node = self.ns['latlong']
+    if not node.initialized():
+      m = self.magnitude()
+      z = self.element('Z')
+      x = self.element('X')
+      latid = node('latitude') << Meq.Divide(z,m)  
+      longid = node('longitude') << Meq.Divide(x,m)
+      node << Meq.Composer(latid,longid)
+    if show:
+      display.subtree(node)
+    return node
         
 
 #================================================================
 
-class GPSSatellite (Meow.Position):
+class GPSSatellite (Vector.Vector):
   """Represents a GPS satellite"""
 
-  def __init__(self, ns, name,
-               x=None, y=None, z=None, 
+  def __init__(self, ns, name, pos=[],
                quals=[],kwquals={}):
 
-    Meow.Position.__init__(self, ns=ns, name=name, x=x, y=y, z=z,
+    Vector.Vector.__init__(self, ns=ns, name=name,
+                           elem=pos, axes=['X','Y','Z'], unit='m',
+                           tags=['position','GPSSatellite'],
+                           solvable=False, test=False,
+                           typename='location',
                            quals=quals, kwquals=kwquals)
+
     self._add_parm('TEC_bias', Meow.Parm(), tags=['GPSSatellite'])
     return None
 
 
   def oneliner (self):
-    ss = 'GPSSatellite: '+self.name
+    ss = 'GPSSatellite'
+    ss += ' ('+str(self._typename)+')'
+    ss += '  '+str(self.name)
     return ss
 
   
@@ -65,6 +94,24 @@ class GPSSatellite (Meow.Position):
     """Returns the satellite TEC bias (node)"""
     return self._parm('TEC_bias')
         
+
+  def latlong (self, show=False):
+    """Returns a two-pack with its latitude and longtitude (rad)"""
+    node = self.ns['latlong']
+    if not node.initialized():
+      m = self.magnitude()
+      z = self.element('Z')
+      x = self.element('X')
+      latid = node('latitude') << Meq.Divide(z,m)  
+      longid = node('longitude') << Meq.Divide(x,m)
+      node << Meq.Composer(latid,longid)
+    if show:
+      display.subtree(node)
+    return node
+        
+
+
+
 
 #================================================================
 
@@ -128,31 +175,13 @@ class GPSPair (object):
 
   #-------------------------------------------------------
 
-  def zenith_angle(self):
+  def zenith_angle(self, show=False):
     """Return the zenith angle (node) of its satellite, as seen
-    from its station. This is time-dependent, of course.
-    Clumsy, but tested. Works fine."""
+    from its station. This is time-dependent, of course."""
     zang = self.ns.zenith_angle
     if not zang.initialized():
-      xyz1 = self._satellite.xyz()
-      xyz2 = self._station.xyz()
-      dxyz = zang('dxyz') << Meq.Subtract(xyz1,xyz2)
-      prod11 = zang('prod11') << Meq.Sqr(xyz2)
-      prod22 = zang('prod22') << Meq.Sqr(dxyz)
-      prod12 = zang('prod12') << Meq.Multiply(xyz2,dxyz)
-      cc11 = []
-      cc22 = []
-      cc12 = []
-      for index in [0,1,2]:
-        cc11.append(zang('cc11')(index) << Meq.Selector(prod11, index=index))
-        cc22.append(zang('cc22')(index) << Meq.Selector(prod22, index=index))
-        cc12.append(zang('cc12')(index) << Meq.Selector(prod12, index=index))
-      sum12 = zang('sum12') << Meq.Add(*cc12)
-      ssq12 = zang('ssq12') << Meq.Multiply((zang('ssq1') << Meq.Add(*cc11)),
-                                            (zang('ssq2') << Meq.Add(*cc22)))
-      norm = zang('norm') << Meq.Sqrt(ssq12)
-      cosz = zang('cos') << Meq.Divide(sum12, norm)
-      zang << Meq.Acos(cosz)
+      dxyz = self._satellite.binop('Subtract', self._station, show=show)
+      zang = self._satellite.enclosed_angle(dxyz, show=show)
     return zang
 
 
@@ -211,28 +240,40 @@ def _tdl_job_execute (mqs, parent):
     
 if __name__ == '__main__':
     """Test program"""
+    print
     ns = NodeScope()
 
-    st1 = GPSStation(ns, 'st1', [1,2,12])
-    if 0:
-      xyz = st1.xyz()
-      display.subtree(xyz, 'st1')
-      bias = st1.bias()
-      bias = st1.bias()
-      display.subtree(bias, 'st1')
+    if 1:
+      st1 = GPSStation(ns, 'st1', [1,2,12])
+      print st1.oneliner()
+      if 0:
+        xyz = st1.node()
+        display.subtree(xyz)
+        bias = st1.bias()
+        bias = st1.bias()
+        display.subtree(bias)
 
-    sat1 = GPSSatellite(ns, 'sat1', x=4, y=7, z=8)
-    if 0:
-      xyz = sat1.xyz()
-      display.subtree(xyz, 'sat1')
-      bias = sat1.bias()
-      display.subtree(bias, 'sat1')
+      if 1:
+        latlong = st1.latlong(show=True)
 
     if 1:
+      sat1 = GPSSatellite(ns, 'sat1', [4,7,8])
+      print sat1.oneliner()
+      if 0:
+        xyz = sat1.node()
+        display.subtree(xyz)
+        bias = sat1.bias()
+        display.subtree(bias)
+
+      if 1:
+        latlong = sat1.latlong(show=True)
+
+
+    if 0:
       pair = GPSPair (ns, station=st1, satellite=sat1)
       pair.display(full=True)
 
       if 0:
-        zang = pair.zenith_angle()
-        display.subtree(zang, 'zang')
+        zang = pair.zenith_angle(show=True)
+
     
