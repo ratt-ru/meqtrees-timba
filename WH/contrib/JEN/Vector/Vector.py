@@ -25,8 +25,7 @@ class Vector (Meow.Parameterization):
                tags=[], solvable=True,
                axes=['x','y','z','t'],
                typename='Vector',
-               unit=None,
-               test=False):
+               unit=None):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
@@ -36,12 +35,13 @@ class Vector (Meow.Parameterization):
     self._axes = []
     self._tensor_node = None
     
+    test = True
     if is_node(elem):                     # Assume a tensor node
       self._tensor_node = elem
+      test = False
       for index in range(nelem):          # NB: nelem must be specified!
         axis = axes[index]
         self._axes.append(axis)
-        test = False
         # self._add_parm(axis, (self.ns[axis] << Meq.Selector(elem, index=index)))
 
     elif not isinstance(elem,(list,tuple)):
@@ -156,10 +156,14 @@ class Vector (Meow.Parameterization):
 
   #---------------------------------------------------------------------
 
-  def _show_subtree(self, node, show=False, recurse=3):
+  def _show_subtree(self, node, show=False, recurse=5):
     """Helper function to show the subtree under the given node"""
     if show:
-      return display.subtree(node, node.name, recurse=recurse)
+      self.test_result(show=show)
+      print '\** Subtree result from:',self.oneliner()
+      display.subtree(node, node.name, recurse=recurse)
+    return True
+    
 
   #---------------------------------------------------------------------
 
@@ -224,7 +228,7 @@ class Vector (Meow.Parameterization):
       cc2 = other.list()
       for k,c in enumerate(cc1):
         cc1[k] = node('Multiply')(k) << Meq.Multiply(cc1[k],cc2[k])
-      if self._test:
+      if self._test and other._test:
         self._test['other'] = other.oneliner()
         self._test[name] = sum(self._test['elem']*other._test['elem'])
         node << Meq.Add(children=cc1, testval=self._test[name])
@@ -244,7 +248,7 @@ class Vector (Meow.Parameterization):
       dp = self.dot_product(other)
       m1 = self.magnitude()
       m2 = other.magnitude()
-      if self._test:
+      if self._test and other._test:
         self._test['other'] = other.oneliner()
         dp = sum(self._test['elem']*other._test['elem'])
         m1 = sqrt(sum(self._test['elem']*self._test['elem']))
@@ -313,13 +317,13 @@ def _define_forest(ns):
 
     cc = []
 
-    v1 = Vector(ns, 'v1', [1,2,12], test=True, unit='m')
+    v1 = Vector(ns, 'v1', [1,2,12], unit='m')
     print v1.oneliner()
 
     cc.append(v1.node(show=True))
     cc.append(v1.magnitude(show=True))
 
-    v2 = Vector(ns, 'v2', [1,2,-3], test=True, unit='m')
+    v2 = Vector(ns, 'v2', [1,2,-3], unit='m')
     print v2.oneliner()
 
     cc.append(v1.dot_product(v2, show=True))
@@ -349,9 +353,9 @@ if __name__ == '__main__':
     """Test program"""
     ns = NodeScope()
 
-    v1 = Vector(ns, 'v1', [1,2,12], test=True, unit='m')
+    v1 = Vector(ns, 'v1', [1,2,12], unit='m')
     print v1.oneliner()
-    v2 = Vector(ns, 'v2', [1,2,3], test=True, unit='m')
+    v2 = Vector(ns, 'v2', [1,2,3], unit='m')
     print v2.oneliner()
 
     if 0:

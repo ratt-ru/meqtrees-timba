@@ -25,8 +25,7 @@ class GeoLocation (Vector.Vector):
   def __init__(self, ns, name, xyz=[],
                longlat=None, radius=None,
                quals=[],kwquals={},
-               tags=[], solvable=False,
-               test=True):
+               tags=[], solvable=False):
 
     self._Earth = dict(radius=6.378e6, flattening=3.36e-6)
 
@@ -41,8 +40,7 @@ class GeoLocation (Vector.Vector):
                            quals=quals, kwquals=kwquals,
                            tags=tags, solvable=solvable,
                            typename='GeoLocation',
-                           axes=['X','Y','Z'], unit='m',
-                           test=test)
+                           axes=['X','Y','Z'], unit='m')
 
 
     return None
@@ -161,7 +159,7 @@ if __name__ == '__main__':
       if 1:
         g1.altitude(show=True)
 
-      if 1:
+      if 0:
         g1.test_result()
 
 

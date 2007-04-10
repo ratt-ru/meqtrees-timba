@@ -139,28 +139,87 @@ class GPSPair (object):
     node = self.ns[name]
     if not node.initialized():
       dxyz = self._satellite.binop('Subtract', self._station, show=show)
-      node = self._satellite.enclosed_angle(dxyz, show=show)
+      encl = self._satellite.enclosed_angle(dxyz, show=show)
+      node << Meq.Identity(encl)
+    self._station._show_subtree(node, show=show, recurse=4)
     return node
-
 
   #-------------------------------------------------------
 
-  def longlat_piercing(self, h=3e5, show=False):
-    """Return the [longtitude,latitude] of the piercing point through
-    the ionsosphere, given an ionospheric altitude (node/number) h (m)"""
-    name = 'longlat_piercing'
+  def elevation(self, show=False):
+    """Return the elevation angle (node) of its satellite, as seen
+    from its station. This is time-dependent, of course."""
+    name = 'elevation'
+    node = self.ns[name]
+    if not node.initialized():
+      zang = self.zenith_angle()
+      node << Meq.Subtract(pi/2.0, zang)
+    self._station._show_subtree(node, show=show, recurse=4)
+    return node
+
+  #-------------------------------------------------------
+
+  def azimuth(self, show=False):
+    """Return the azimuth angle (node) of its satellite, as seen
+    from its station. This is time-dependent, of course."""
+    name = 'azimuth'
+    node = self.ns[name]
+    if not node.initialized():
+      dll = self.longlat_diff()
+      dlong = node('dlong') << Meq.Selector(dll, index=0)
+      node = False                                # ... still needs a little thought .....
+    self._station._show_subtree(node, show=show, recurse=4)
+    return node
+
+  #-------------------------------------------------------
+
+  def longlat_diff(self, show=False):
+    """Return the [longtitude,latitude] difference between
+    its station and its satellite"""
+    name = 'longlat_diff'
     node = self.ns[name]
     if not node.initialized():
       ll_stat = self._station.longlat()
       ll_sat = self._satellite.longlat()
-      dll = node('dll') << Meq.Subtract(ll_sat,ll_stat)
+      node << Meq.Subtract(ll_sat,ll_stat)
+    self._station._show_subtree(node, show=show, recurse=4)
+    return node
+
+  #-------------------------------------------------------
+
+  def longlat_pierce(self, h=3e5, show=False):
+    """Return the [longtitude,latitude] of the pierce point through
+    the ionsosphere, given an ionospheric altitude (node/number) h (m)"""
+    name = 'longlat_pierce'
+    node = self.ns[name]
+    if not node.initialized():
+      dll = self.longlat_diff()
       alt_sat = self._satellite.altitude()
-      alpha = node('alpha') << Meq.Divide(h, alt_sat)
-      node << Meq.Multiply(dll, alpha)
+      fraction = node('fraction') << Meq.Divide(h, alt_sat)
+      ll_shift = node('dll_pierce') << Meq.Multiply(dll, fraction)
+      ll_stat = self._station.longlat()
+      node << Meq.Add(ll_stat,ll_shift)
     self._station._show_subtree(node, show=show, recurse=4)
     return node
 
 
+  #-------------------------------------------------------
+  #-------------------------------------------------------
+
+  def insert_elevation_flagger(self, data, elmin=1.0, show=False):
+    """Insert a zero-flagger that flags the vells if the satellite
+    elevation is below a specified value (elmin)"""
+    name = 'elevation_flagger'
+    node = self.ns[name]
+    if not node.initialized():
+      elev = self.elevation()
+      eldiff = node('eldiff') << Meq.Subtract(elmin, elev)
+      zerof = node('zerof') << Meq.ZeroFlagger(eldiff,
+                                               oper='GT',
+                                               flag_bit=1)
+      node << Meq.MergeFlags(data, zerof)
+    self._station._show_subtree(node, show=show, recurse=4)
+    return node
 
 
 
@@ -250,10 +309,22 @@ if __name__ == '__main__':
       pair.display(full=True)
 
       if 0:
+        pair.elevation(show=True)
+
+      if 0:
+        pair.azimuth(show=True)
+
+      if 0:
         pair.zenith_angle(show=True)
 
-      if 1:
-        pair.longlat_piercing(show=True)
+      if 0:
+        pair.longlat_diff(show=True)
 
+      if 0:
+        pair.longlat_pierce(show=True)
+
+      if 1:
+        data = ns['data'] << Meq.Constant(-56)
+        pair.insert_elevation_flagger(data, elmin=1.0, show=True)
 
     

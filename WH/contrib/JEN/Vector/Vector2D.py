@@ -17,8 +17,7 @@ class Vector2D (Vector.Vector):
   
   def __init__(self, ns, name, elem=[], axes=['x','y'], 
                unit=None, quals=[], kwquals={},
-               tags=[], solvable=True,
-               test=False):
+               tags=[], solvable=True):
 
     if not len(elem)==2:
       s = 'Vector2D should have 2 elements, not:'+str(len(elem))
@@ -26,8 +25,7 @@ class Vector2D (Vector.Vector):
 
     Vector.Vector.__init__(self, ns, name=name, elem=elem, axes=axes, 
                            unit=unit, quals=quals, kwquals=kwquals,
-                           tags=tags, solvable=solvable,
-                           test=test)
+                           tags=tags, solvable=solvable)
     return None
 
   #---------------------------------------------------------------------
@@ -88,7 +86,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-      t1 = Vector2D(ns, 't1', [1,2], test=True, unit='m')
+      t1 = Vector2D(ns, 't1', [1,2], unit='m')
       print t1.oneliner()
     
       if 1:
