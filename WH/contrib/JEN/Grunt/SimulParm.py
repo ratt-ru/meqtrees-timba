@@ -111,21 +111,39 @@ class SimulParm (Meow.Parameterization):
         """Make the subtree specified by rr"""
         node = self.ns[rr['qual']](qual)
         if node.initialized(): return node
-        ampl = node('ampl') << self._get_value('ampl', rr)
+
+        # Make the cosine argument: 2pi*((t/Psec)+(f/PHz))
         pi2 = 2*math.pi
+        targ = None
+        farg = None
         if rr['Psec']:
             time = node('time') << Meq.Time()
             Psec = node('Psec') << self._get_value('Psec', rr)
-            arg = node('arg') << Meq.Divide(pi2*time,Psec)
-        elif rr['PHz']:
+            targ = node('targ') << Meq.Divide(pi2*time,Psec)
+        if rr['PHz']:
             freq = node('freq') << Meq.Freq()
             PHz = node('PHz') << self._get_value('PHz', rr)
-            arg = node('arg') << Meq.Divide(pi2*freq,PHz)
+            farg = node('farg') << Meq.Divide(pi2*freq,PHz)
+        arg = None
+        if targ and farg:
+            # NB: The two period-terms are ADDED (not subtracted),
+            #     so that they serve as a phase-term for each other,
+            #     and do not affect the periods.
+            arg = node('arg') << Meq.Add(targ,farg)
+        elif targ:
+            arg = targ
+        elif farg:
+            arg = farg
         else:
-            return False
-        cosa = node('cos') << Meq.Cos(arg)
-        node << Meq.Multiply(ampl,cosa)
-        display.subtree(node)
+            raise ValueError,'neither Psec nor PHz specified'
+
+        # Make the full ampl*cos(arg):
+        cosarg = node('cos') << Meq.Cos(arg)
+        ampl = node('ampl') << self._get_value('ampl', rr)
+        node << Meq.Multiply(ampl,cosarg)
+
+        # Finished:
+        if True: display.subtree(node)
         return node
 
     #-------------------------------------------------------------------
@@ -305,10 +323,11 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     sp1 = SimulParm(ns, 'sp1')
-    print sp1.oneliner()
-    sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
-    sp1.factor(Psec=1000, stddev=dict(ampl=0.1, Psec=100))
+    # print sp1.oneliner()
+    # sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
+    sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
     # sp1.binop()
+    sp1.display()
     sp1.next()
     # sp1.next()
     # sp1.next()

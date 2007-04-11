@@ -2,10 +2,9 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from Parameterization import *
 
 import Meow
-import gpstec
+import GPSPair
 
 from Timba.Contrib.JEN.Grunt import display
 from numarray import *
@@ -24,7 +23,7 @@ class MIM (Meow.Parameterization):
   def __init__(self, ns, name='MIM',
                quals=[], kwquals={},
                tags=[], solvable=True,
-               ndeg=2):
+               ndeg=2, simulate=False):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
@@ -49,10 +48,6 @@ class MIM (Meow.Parameterization):
 
 
   #---------------------------------------------------------------
-
-  def name (self):
-    """Return the object name"""
-    return self._name
 
   def oneliner (self):
     ss = 'MIM: '+str(self.name)
@@ -170,20 +165,25 @@ if __name__ == '__main__':
       sim = MIM(ns, 'simul', ndeg=1, solvable=False)
       sim.display(full=True)
 
+    #-----------------------------------------------------------------------
 
     if 1:
-      st1 = gpstec.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
-      sat1 = gpstec.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], radius=8e6)
-      pair = gpstec.GPSPair (ns, station=st1, satellite=sat1)
+      st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
+      sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], radius=8e6)
+      pair = GPSPair.GPSPair (ns, station=st1, satellite=sat1)
       pair.display(full=True)
 
       if 0:
         pair.zenith_angle(show=True)
       
-      if 1:
+      if 0:
         longlat = pair.longlat_pierce(show=True)
         node = mim.TEC(longlat, z=0.1, show=True)
         node = sim.TEC(longlat, z=0.1, show=True)
+
+      if 1:
+        pair.mimTEC(sim, show=True)
+
 
       
 #===============================================================

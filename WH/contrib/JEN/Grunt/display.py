@@ -25,7 +25,7 @@ def subtree (node, txt=None, level=1,
     if skip_duplicate:
         if done.has_key(node.name):
             done[node.name] += 1
-            print s,'... see above ... (',done[node.name],')'
+            print s,'        ... ('+str(done[node.name])+') see above ... '
             return True
 
     if show_initrec:

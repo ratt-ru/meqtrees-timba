@@ -149,7 +149,7 @@ class Vector (Meow.Parameterization):
       ss += ' ('+str(self._typename)+')'
     ss += '  '+str(self.name)+'  '+str(self._axes)
     if self._test:
-      ss += '='+str(self._test['elem'])
+      ss += '='+str(floor(self._test['elem']))
     if self._unit:
       ss += '  (unit='+str(self._unit)+')'
     return ss

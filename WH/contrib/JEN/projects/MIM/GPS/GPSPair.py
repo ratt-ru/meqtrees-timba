@@ -150,9 +150,8 @@ class GPSPair (Meow.Parameterization):
     from the given (simulated) MIM object"""
     node = self.ns['mimTEC']
     if not node.initialized():
-      longlat = self.longlat_pierce()
-      zang = self.zenith_angle()
-      TEC = mim.TEC(longlat, zenith_angle)
+      TEC = mim.TEC(self.longlat_pierce(),
+                    self.zenith_angle())
       node << Meq.Add(TEC, self._station.TEC_bias(),
                       self._satellite.TEC_bias())
     self._station._show_subtree(node, show=show, recurse=4)
@@ -372,10 +371,6 @@ if __name__ == '__main__':
         data = ns['data'] << Meq.Constant(-56)
         pair.insert_elevation_flagger(data, elmin=1.0, show=True)
 
-      if 0:
-        import MIM
-        mim = MIM.MIM(ns, ndeg=2, simulate=True)
-        pair.mimTEC(mim, show=True)
 
 
     
