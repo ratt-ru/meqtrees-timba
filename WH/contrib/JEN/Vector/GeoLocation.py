@@ -62,6 +62,15 @@ class GeoLocation (Vector.Vector):
     self._show_subtree(node, show=show)
     return node
         
+  def longlat_complex (self, show=False):
+    """Returns longlat (node) as complex (long+j*lat), for plotting"""
+    node = self.ns['longlat_complex']
+    if not node.initialized():
+      node << Meq.ToComplex(self.longitude(),
+                            self.latitude())
+    self._show_subtree(node, show=show)
+    return node
+      
   def longlat (self, show=False):
     """Returns a two-pack with its latitude and longtitude (rad)"""
     node = self.ns['longlat']
@@ -150,13 +159,16 @@ if __name__ == '__main__':
       g1 = GeoLocation(ns, 'g1', longlat=[1.1,-0.9])
       print g1.oneliner()
 
-      if 1:
+      if 0:
         xyz = g1.node(show=True)
 
-      if 1:
+      if 0:
         g1.longlat(show=True)
 
       if 1:
+        g1.longlat_complex(show=True)
+
+      if 0:
         g1.altitude(show=True)
 
       if 0:

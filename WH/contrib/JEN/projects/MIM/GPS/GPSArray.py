@@ -9,6 +9,8 @@ import random
 from numarray import *
 
 from Timba.Contrib.JEN.Grunt import display
+from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 Settings.forest_state.cache_policy = 100
 
@@ -32,17 +34,17 @@ class GPSArray (Meow.Parameterization):
 
     self._nstat = nstat               # Nr of GPS stations
     self._nsat = nsat                 # Nr of GPS satellites      
-    self._longlat = longlat           # (long,lat) of station array centre
+    self._longlat0 = longlat          # (long,lat) of station array centre
     self._stddev = stddev             # stddev of positions (long,lat)
 
     # Define GPS stations:
-    rr = dict(name=[], obj=[], longlat=[])
-    stddev = self._stddev['stat']
+    rr = dict(name=[], obj=[], longlat=[], stddev=stddev['stat'],
+              plot=dict(color='blue', style='circle'))
     for k in range(self._nstat):
       sname = 'st'+str(k)
-      longlat = [random.gauss(self._longlat[0], stddev[0]),
-                 random.gauss(self._longlat[1], stddev[1])]
-      obj = GPSPair.GPSStation(ns, sname, longlat=longlat)
+      longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
+                 random.gauss(self._longlat0[1], rr['stddev'][1])]
+      obj = GPSPair.GPSStation(self.ns, sname, longlat=longlat)
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -50,13 +52,14 @@ class GPSArray (Meow.Parameterization):
     self._station = rr
       
     # Define GPS satellites:
-    rr = dict(name=[], obj=[], longlat=[])
+    rr = dict(name=[], obj=[], longlat=[], stddev=stddev['sat'],
+              plot=dict(color='red', style='triangle'))
     stddev = self._stddev['sat']
     for k in range(self._nsat):
-      longlat = [random.gauss(self._longlat[0], stddev[0]),
-                 random.gauss(self._longlat[1], stddev[1])]
+      longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
+                 random.gauss(self._longlat0[1], rr['stddev'][1])]
       sname = 'sat'+str(k)
-      obj = GPSPair.GPSSatellite(ns, sname, longlat=longlat, radius=8e6)
+      obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat, radius=8e6)
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -64,10 +67,11 @@ class GPSArray (Meow.Parameterization):
     self._satellite = rr
 
     # Define station-satellite pairs:
-    rr = dict(name=[], sat=[], stat=[], obj=[])
+    rr = dict(name=[], sat=[], stat=[], obj=[],
+              plot=dict(color='green', style='rectangle'))
     for stat in self._station['obj']:
       for sat in self._satellite['obj']:
-        obj = GPSPair.GPSPair (ns, station=stat, satellite=sat)
+        obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat)
         print obj.oneliner()
         rr['name'].append(sname)
         rr['sat'].append(sat)
@@ -85,7 +89,7 @@ class GPSArray (Meow.Parameterization):
     ss = str(type(self))
     ss += '  '+str(self.name)
     ss += '  nstat='+str(len(self._station['obj']))
-    ss += '  longlat='+str(self._longlat)
+    ss += '  longlat='+str(self._longlat0)
     ss += '  nsat='+str(len(self._satellite['obj']))
     ss += '  npair='+str(len(self._pair['obj']))
     return ss
@@ -93,23 +97,111 @@ class GPSArray (Meow.Parameterization):
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
-    print '  * longlat(rad): '+str(self._longlat)
-    print '  * stddev(rad) : '+str(self._stddev)
+
     print '  * GPSStations:'
     for s in self._station['obj']:
-      print '    '+s.oneliner()
+      print '    - '+s.oneliner()
+    print '    * plotting: '+str(self._station['plot'])
+    print '    * longlat scatter: stddev(rad) = '+str(self._station['stddev'])
+    for k,name in enumerate(self._station['name']):
+      print '      - '+name+': longlat = '+str(self._station['longlat'][k])
+
     print '  * GPSSatellites:'
     for s in self._satellite['obj']:
-      print '    '+s.oneliner()
+      print '    - '+s.oneliner()
+    print '    * plotting: '+str(self._satellite['plot'])
+    print '    * longlat scatter: stddev(rad) = '+str(self._satellite['stddev'])
+    for k,name in enumerate(self._satellite['name']):
+      print '      - '+name+': longlat = '+str(self._satellite['longlat'][k])
+
     print '  * GPSPairs:'
     for s in self._pair['obj']:
-      print '    '+s.oneliner()
+      print '    - '+s.oneliner()
+    print '    * plotting: '+str(self._pair['plot'])
     print
     return True
 
 
   #-------------------------------------------------------
+  # Visualisation
+  #-------------------------------------------------------
 
+  def rvsi_longlat(self, bookpage='GPSArray', folder=None):
+    """Plot the station (blue) and satellite (red) positions"""
+
+    dcolls = []
+    scope = 'longlat'
+
+    # Station positions:
+    cc = []
+    for s in self._station['obj']:
+      cc.append(s.longlat_complex())
+    plot = self._station['plot']
+    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   scope=scope, tag='stations',
+                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                   color=plot['color'], style=plot['style'],
+                                   size=8, pen=2,
+                                   type='realvsimag', errorbars=True)
+    dcolls.append(rr)
+
+    # Satellite positions:
+    cc = []
+    for s in self._satellite['obj']:
+      cc.append(s.longlat_complex())
+    plot = self._satellite['plot']
+    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   scope=scope, tag='satellites',
+                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                   color=plot['color'], style=plot['style'],
+                                   size=8, pen=2,
+                                   type='realvsimag', errorbars=True)
+    dcolls.append(rr)
+
+    # Concatenate:
+    # NB: nodename -> dconc_scope_tag
+    rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
+                                  scope=scope, tag='',
+                                  xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                  bookpage=None)
+    self._dcoll = rr['dcoll']
+    JEN_bookmarks.create(self._dcoll, scope,
+                         page=bookpage, folder=folder)
+    # Return the dataConcat node:
+    return self._dcoll
+
+  #----------------------------------------------------------------------
+
+  def rvsi_azel(self, bookpage='GPSArray', folder=None):
+    """Plot the pair view directions (az,el)"""
+
+    dcolls = []
+    scope = 'azel'
+
+    # Pair positions:
+    cc = []
+    for s in self._pair['obj']:
+      cc.append(s.azel_complex())
+    plot = self._pair['plot']
+    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   scope=scope, tag='stations',
+                                   xlabel='azimuth(rad)', ylabel='elevation(rad)',
+                                   color=plot['color'], style=plot['style'],
+                                   size=8, pen=2,
+                                   type='realvsimag', errorbars=True)
+    dcolls.append(rr)
+
+    # Concatenate:
+    # NB: nodename -> dconc_scope_tag
+    rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
+                                  scope=scope, tag='',
+                                  xlabel='azimuth(rad)', ylabel='elevation(rad)',
+                                  bookpage=None)
+    self._dcoll = rr['dcoll']
+    JEN_bookmarks.create(self._dcoll, scope,
+                         page=bookpage, folder=folder)
+    # Return the dataConcat node:
+    return self._dcoll
 
 
 
@@ -122,6 +214,14 @@ class GPSArray (Meow.Parameterization):
 def _define_forest(ns):
 
     cc = []
+
+    gpa = GPSArray(ns, nstat=5, nsat=5)
+    gpa.display(full=True)
+
+    if 1:
+      cc.append(gpa.rvsi_longlat())
+    if 1:
+      cc.append(gpa.rvsi_azel())
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -146,9 +246,16 @@ if __name__ == '__main__':
     """Test program"""
     ns = NodeScope()
 
-    gpa = GPSArray(ns)
+    gpa = GPSArray(ns, nstat=5, nsat=5)
     gpa.display(full=True)
 
+    if 0:
+      node = gpa.rvsi_longlat()
+      display.subtree(node,node.name)
+
+    if 1:
+      node = gpa.rvsi_azel()
+      display.subtree(node,node.name)
 
       
 #===============================================================

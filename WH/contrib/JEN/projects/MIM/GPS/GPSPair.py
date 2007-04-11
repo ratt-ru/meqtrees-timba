@@ -214,6 +214,28 @@ class GPSPair (Meow.Parameterization):
 
   #-------------------------------------------------------
 
+  def azel (self, show=False):
+    """Returns (azimuth,elevation) (tensor node)"""
+    node = self.ns['azel']
+    if not node.initialized():
+      node << Meq.Composer(self.azimuth(),
+                           self.elevation())
+    self._station._show_subtree(node, show=show)
+    return node
+
+  #-------------------------------------------------------
+
+  def azel_complex (self, show=False):
+    """Returns azel (node) as complex (al+j*elev), for plotting"""
+    node = self.ns['azel_complex']
+    if not node.initialized():
+      node << Meq.ToComplex(self.azimuth(),
+                            self.elevation())
+    self._station._show_subtree(node, show=show)
+    return node
+      
+  #-------------------------------------------------------
+
   def longlat_diff(self, show=False):
     """Return the [longtitude,latitude] difference between
     its station and its satellite"""
@@ -352,10 +374,14 @@ if __name__ == '__main__':
       if 0:
         pair.elevation(show=True)
 
-      if 0:
+      if 0: 
         pair.azimuth(show=True)
 
       if 1:
+        pair.azel(show=True)
+        pair.azel_complex(show=True)
+
+      if 0:
         pair.zenith_angle(show=True)
 
       if 0:
@@ -364,7 +390,7 @@ if __name__ == '__main__':
       if 0:
         pair.longlat_pierce(show=True)
 
-      if 1:
+      if 0:
         pair.solvable(tags='*', show=True)
 
       if 0:
