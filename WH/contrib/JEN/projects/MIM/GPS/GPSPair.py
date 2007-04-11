@@ -1,18 +1,18 @@
-# file ../JEN/projects/MIM/GPS/gpstec.py
+# file ../JEN/projects/MIM/GPS/GPSPair.py
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from Parameterization import *
 
 import Meow
 
 from Timba.Contrib.JEN.Grunt import display
-# from Timba.Contrib.JEN.Vector import Vector
 from Timba.Contrib.JEN.Vector import GeoLocation
 from numarray import *
 
 Settings.forest_state.cache_policy = 100
 
+
+#================================================================
 #================================================================
 
 class GPSStation (GeoLocation.GeoLocation):
@@ -27,18 +27,24 @@ class GPSStation (GeoLocation.GeoLocation):
                                      quals=quals, kwquals=kwquals,
                                      tags=['GeoLocation','GPSStation'],
                                      solvable=False)
-
     self._add_parm('TEC_bias', Meow.Parm(), tags=['GPSStation'])
     return None
 
   #---------------------------------------------------------------
   
-  def bias (self):
+  def TEC_bias (self):
     """Returns the station TEC bias (node)"""
     return self._parm('TEC_bias')
 
+  def solvable(self, tags='*'):
+    """Return a list of solvable parms (nodes)"""
+    return [self.TEC_bias()]
 
 
+
+
+
+#================================================================
 #================================================================
 
 class GPSSatellite (GeoLocation.GeoLocation):
@@ -59,10 +65,17 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
   #---------------------------------------------------------------
   
-  def bias (self):
+  def TEC_bias (self):
     """Returns the satellite TEC bias (node)"""
     return self._parm('TEC_bias')
         
+  def solvable(self, tags='*'):
+    """Return a list of solvable parms (nodes)"""
+    return [self.TEC_bias()]
+
+
+
+
 
 
 
@@ -70,37 +83,36 @@ class GPSSatellite (GeoLocation.GeoLocation):
 #================================================================
 #================================================================
 
-class GPSPair (object):
+class GPSPair (Meow.Parameterization):
   """Represents a combination of a GPSStation and GPSSatellite"""
   
   def __init__(self, ns, station, satellite,
                name=None, quals=[],kwquals={}):
 
-    self._station = station
-    self._satellite = satellite
-
     # The object name. By default a combination of its station/satellite
     # names, but it can be overridden with the user-defined name.
-    self._name = str(self._station.name)+'|'+str(self._satellite.name)
-    if isinstance(name, str): self._name = name
+    if not isinstance(name, str):
+      name = str(station.name)+'|'+str(satellite.name)
+    else:
+      # Add the station/satellite names to the nodescope qualifiers:
+      if quals==None: quals = []
+      if not isinstance(quals,(list,tuple)): quals = [quals]
+      quals.append(station.name)
+      quals.append(satellite.name)
 
-    # Add the station/satellite names to the nodescope qualifiers:
-    if not isinstance(quals,(list,tuple)): quals = [quals]
-    quals.append(self._station.name)
-    quals.append(self._satellite.name)
-    self.ns0 = ns
-    self.ns = Meow.QualScope(ns, quals=quals, kwquals=kwquals)
+    Meow.Parameterization.__init__(self, ns=ns, name=name,
+                                   quals=quals, kwquals=kwquals)
 
+    self._station = station
+    self._satellite = satellite
     return None
 
   #---------------------------------------------------------------
 
-  def name (self):
-    """Return the pair name (station_satellite)"""
-    return self._name
-
   def oneliner (self):
-    ss = 'GPSPair: '+str(self.name())
+    ss = str(type(self))
+    # ss = 'GPSPair: '
+    ss += '  '+str(self.name)
     return ss
   
   def display(self, full=False):
@@ -129,6 +141,36 @@ class GPSPair (object):
     from external GPS data in a file or something."""
     node = None
     return node
+
+  #.......................................................
+
+  def mimTEC(self, mim, show=False):
+    """Return a node/subtree that produces a simulated TEC value for
+    a specified time-range (in the request). It gets its information
+    from the given (simulated) MIM object"""
+    node = self.ns['mimTEC']
+    if not node.initialized():
+      longlat = self.longlat_pierce()
+      zang = self.zenith_angle()
+      TEC = mim.TEC(longlat, zenith_angle)
+      node << Meq.Add(TEC, self._station.TEC_bias(),
+                      self._satellite.TEC_bias())
+    self._station._show_subtree(node, show=show, recurse=4)
+    return node
+
+  #-------------------------------------------------------
+
+  def solvable(self, tags='*', show=True):
+    """Return a list of solvable parms (nodes)"""
+    ss = []
+    ss.extend(self._station.solvable(tags=tags))
+    ss.extend(self._satellite.solvable(tags=tags))
+    if show:
+      print '\n** .solvable(tags=',tags,') <-',self.oneliner()
+      for node in ss:
+        print '  -',str(node)
+      print
+    return ss
 
   #-------------------------------------------------------
 
@@ -280,7 +322,7 @@ if __name__ == '__main__':
         st1.test_result()
 
       if 0:
-        display.subtree(st1.bias())
+        display.subtree(st1.TEC_bias())
 
       if 0:
         st1.longlat(show=True)
@@ -297,7 +339,7 @@ if __name__ == '__main__':
         sat1.test_result()
 
       if 0:
-        display.subtree(sat1.bias())
+        display.subtree(sat1.TEC_bias())
 
       if 0:
         sat1.longlat(show=True)
@@ -314,7 +356,7 @@ if __name__ == '__main__':
       if 0:
         pair.azimuth(show=True)
 
-      if 0:
+      if 1:
         pair.zenith_angle(show=True)
 
       if 0:
@@ -324,7 +366,16 @@ if __name__ == '__main__':
         pair.longlat_pierce(show=True)
 
       if 1:
+        pair.solvable(tags='*', show=True)
+
+      if 0:
         data = ns['data'] << Meq.Constant(-56)
         pair.insert_elevation_flagger(data, elmin=1.0, show=True)
+
+      if 0:
+        import MIM
+        mim = MIM.MIM(ns, ndeg=2, simulate=True)
+        pair.mimTEC(mim, show=True)
+
 
     
