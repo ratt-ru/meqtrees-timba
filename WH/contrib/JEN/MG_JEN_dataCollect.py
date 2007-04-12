@@ -332,6 +332,7 @@ def dcoll (ns, node=[], **pp):
       # Assume pp.type == 'realvsimag'
       attrib['plot'] = record(type=pp.type, title=pp.title,
                               results_buffer=pp['results_buffer'],
+                              x_axis=pp.xlabel, y_axis=pp.ylabel,
                               color=pp.color,
                               symbol=pp.style,
                               symbol_size=pp.size,

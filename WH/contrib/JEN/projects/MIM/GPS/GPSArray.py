@@ -24,7 +24,8 @@ class GPSArray (Meow.Parameterization):
   zenith angle."""
   
   def __init__(self, ns, name='gpa',
-               nstat=2, nsat=3, longlat=[1.0,0.5],
+               nstat=2, nsat=3,
+               longlat=[1.0,0.5],
                stddev=dict(stat=[0.01,0.01],
                            sat=[0.1,0.1]),
                move=False,
@@ -159,6 +160,20 @@ class GPSArray (Meow.Parameterization):
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
 
+    # Lock the scale of the plot:
+    dll = 7*array(self._stddev['sat'])
+    ll0 = array(self._longlat0)
+    print '** dll =',dll,ll0+dll,ll0-dll
+    trc = self.ns.trc(scope) << Meq.ToComplex(ll0[0]+dll[0],ll0[1]+dll[1])
+    blc = self.ns.blc(scope) << Meq.ToComplex(ll0[0]-dll[0],ll0[1]-dll[1])
+    rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
+                                   scope=scope, tag='scale',
+                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                   color='white', style='circle', size=1, pen=1,
+                                   type='realvsimag', errorbars=True)
+    dcolls.append(rr)
+    
+
     # Concatenate:
     # NB: nodename -> dconc_scope_tag
     rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
@@ -192,6 +207,16 @@ class GPSArray (Meow.Parameterization):
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
 
+    # Lock the scale of the plot:
+    trc = self.ns.trc(scope) << Meq.ToComplex(1.6,1.6)
+    blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,1.0)
+    rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
+                                   scope=scope, tag='scale',
+                                   xlabel='azimuth(rad)', ylabel='elevation(rad)',
+                                   color='white', style='circle', size=1, pen=1,
+                                   type='realvsimag', errorbars=True)
+    dcolls.append(rr)
+    
     # Concatenate:
     # NB: nodename -> dconc_scope_tag
     rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
@@ -232,10 +257,9 @@ def _define_forest(ns):
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
     for t in range(-50,50):
-      print 't=',t
-      t1 = t
-      t2 = t1+1
-      domain = meq.domain(1.0e8,1.1e8,t1,t2)                            # (f1,f2,t1,t2)
+      t1 = t*300
+      t2 = t1+0.0001
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
       cells = meq.cells(domain, num_freq=1, num_time=1)
       request = meq.request(cells, rqid=meq.requestid(t+100))
       result = mqs.meq('Node.Execute',record(name='result', request=request))

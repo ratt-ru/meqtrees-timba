@@ -77,17 +77,17 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
         # The longitude varies linearly with time
         # It is equal to longlat[0] for t=0
-        longitude = node('longitude') << (longlat[0] + Meq.Time())
+        period = 12.0*3600.0                     # orbital period (s)
+        omega = 2*pi/period                      # rad/s
+        longitude = node('longitude') << (longlat[0] + omega*Meq.Time())
         
         # The latitude varies sinusoidally with time
         # It is equal to longlat[1] for t=0 (see phase below)
-        period = 12.0*3600.0                     # orbital period (s)
         inclination = 52.0                       # orbit inclination (degr)
         arg = node('latitude')('arg') << (2*pi/period) * Meq.Time()
         ampl = inclination*pi/180                # rad
         phase = node('latitude')('phase') << Meq.Asin(longlat[1]/ampl)
         sinarg = node('latitude')('sinarg') << Meq.Sin(arg+phase)
-        # ampl = node('latitude')('ampl') << Meq.Constant(ampl)
         latitude = node('latitude') << Meq.Multiply(ampl,sinarg)
         longlat = [longitude,latitude]
         if False:
