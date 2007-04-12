@@ -22,25 +22,50 @@ class GeoLocation (Vector.Vector):
   Z ~ R.sin(latitude)
   """
 
-  def __init__(self, ns, name, xyz=[],
+  def __init__(self, ns, name,
                longlat=None, radius=None,
+               xyz=[],
                quals=[],kwquals={},
                tags=[], solvable=False):
 
-    self._Earth = dict(radius=6.378e6, flattening=3.36e-6)
+    self._Earth = dict(radius=6378, flattening=3.36e-6)
 
     if longlat:                              # [long,lat] specified
       if radius==None:
         radius = self._Earth['radius']       # assume Earth surface point
-      xyz = [radius*cos(longlat[1])*sin(longlat[0]),
-             radius*cos(longlat[1])*cos(longlat[0]),
-             radius*sin(longlat[1])]
+
+      node = ns['xyz']('longlat')(name)(*quals)(**kwquals)
+      lat = None
+      if is_node(longlat):                   # assume [long,lat] composer
+        lon = node('longitude') << Meq.Selector(longlat, index=0)
+        lat = node('latitude') << Meq.Selector(longlat, index=1)
+
+      if isinstance(longlat,(list,tuple)):
+        if is_node(longlat[0]):              # assume [long,lat] nodes
+          lon = longlat[0]
+          lat = longlat[1]
+        else:                                # assume [long,lat] numeric
+          # Make numeric [x,y,z]:
+          xyz = [radius*cos(longlat[1])*sin(longlat[0]),
+                 radius*cos(longlat[1])*cos(longlat[0]),
+                 radius*sin(longlat[1])]
+      if lat:
+        # Make [x,y,z] nodes:
+        clong = node('coslong') << Meq.Cos(lon)
+        slong = node('sinlong') << Meq.Sin(lon)
+        clat = node('coslat') << Meq.Cos(lat)
+        slat = node('sinlat') << Meq.Sin(lat)
+        X = node('X') << Meq.Multiply(radius,clat,slong)
+        Y = node('Y') << Meq.Multiply(radius,clat,clong)
+        Z = node('Z') << Meq.Multiply(radius,slat)
+        xyz = [X,Y,Z]
+
 
     Vector.Vector.__init__(self, ns=ns, name=name, elem=xyz,
                            quals=quals, kwquals=kwquals,
                            tags=tags, solvable=solvable,
                            typename='GeoLocation',
-                           axes=['X','Y','Z'], unit='m')
+                           axes=['X','Y','Z'], unit='km')
 
 
     return None

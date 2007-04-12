@@ -248,15 +248,16 @@ class Vector (Meow.Parameterization):
       dp = self.dot_product(other)
       m1 = self.magnitude()
       m2 = other.magnitude()
+      cosa = node('cos') << Meq.Divide(dp,(m1*m2))
       if self._test and other._test:
         self._test['other'] = other.oneliner()
         dp = sum(self._test['elem']*other._test['elem'])
         m1 = sqrt(sum(self._test['elem']*self._test['elem']))
         m2 = sqrt(sum(other._test['elem']*other._test['elem']))
-        self._test[name] = dp/(m1*m2)
-        node << Meq.Divide(dp,(m1*m2), testval=self._test[name])
+        self._test[name] = arccos(dp/(m1*m2))
+        node << Meq.Acos(cosa, testval=self._test[name])
       else:
-        node << Meq.Divide(dp,(m1*m2))
+        node << Meq.Acos(cosa)
     self._show_subtree(node, show=show)
     return node
 
@@ -364,19 +365,19 @@ if __name__ == '__main__':
       other = 78
       v4 = v1.binop('Add', other, name='xxx', show=True)
       
-    if 0:
+    if 1:
       node = v1.enclosed_angle(v2, show=True)
 
     if 0:
       node = v1.dot_product(v2, show=True)
 
-    if 1:
+    if 0:
       node = v1.magnitude(show=True)
 
     if 0:
       node = v1.node(show=True)
 
-    if 1:
+    if 0:
       v1.test_result(show=True)
 
     #---------------------------------------------------

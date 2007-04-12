@@ -24,9 +24,10 @@ class GPSArray (Meow.Parameterization):
   zenith angle."""
   
   def __init__(self, ns, name='gpa',
-               nstat=2, nsat=3, longlat=[1.0,1.0],
+               nstat=2, nsat=3, longlat=[1.0,0.5],
                stddev=dict(stat=[0.01,0.01],
-                           sat=[0.02,0.02]),
+                           sat=[0.1,0.1]),
+               move=False,
                quals=[], kwquals={}):
 
     Meow.Parameterization.__init__(self, ns, name,
@@ -59,7 +60,7 @@ class GPSArray (Meow.Parameterization):
       longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
                  random.gauss(self._longlat0[1], rr['stddev'][1])]
       sname = 'sat'+str(k)
-      obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat, radius=8e6)
+      obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat, move=move)
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -215,7 +216,7 @@ def _define_forest(ns):
 
     cc = []
 
-    gpa = GPSArray(ns, nstat=5, nsat=5)
+    gpa = GPSArray(ns, nstat=2, nsat=2, move=True)
     gpa.display(full=True)
 
     if 1:
@@ -230,10 +231,14 @@ def _define_forest(ns):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
-    request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    for t in range(-50,50):
+      print 't=',t
+      t1 = t
+      t2 = t1+1
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)                            # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=1, num_time=1)
+      request = meq.request(cells, rqid=meq.requestid(t+100))
+      result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
        
@@ -246,14 +251,14 @@ if __name__ == '__main__':
     """Test program"""
     ns = NodeScope()
 
-    gpa = GPSArray(ns, nstat=5, nsat=5)
+    gpa = GPSArray(ns, nstat=2, nsat=2, move=True)
     gpa.display(full=True)
 
     if 0:
       node = gpa.rvsi_longlat()
       display.subtree(node,node.name)
 
-    if 1:
+    if 0:
       node = gpa.rvsi_azel()
       display.subtree(node,node.name)
 

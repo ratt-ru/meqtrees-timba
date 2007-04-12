@@ -18,11 +18,10 @@ Settings.forest_state.cache_policy = 100
 class GPSStation (GeoLocation.GeoLocation):
   """Represents a GPS station that measures TEC values"""
 
-  def __init__(self, ns, name, xyz=[],
-               longlat=None, 
+  def __init__(self, ns, name, longlat=None, 
                quals=[],kwquals={}):
 
-    GeoLocation.GeoLocation.__init__(self, ns=ns, name=name, xyz=xyz,
+    GeoLocation.GeoLocation.__init__(self, ns=ns, name=name,
                                      longlat=longlat, radius=None,
                                      quals=quals, kwquals=kwquals,
                                      tags=['GeoLocation','GPSStation'],
@@ -47,15 +46,63 @@ class GPSStation (GeoLocation.GeoLocation):
 #================================================================
 #================================================================
 
+# 
+
 class GPSSatellite (GeoLocation.GeoLocation):
   """Represents a GPS satellite"""
 
-  def __init__(self, ns, name, xyz=[],
-               longlat=None, radius=None,
+
+  def __init__(self, ns, name, xyz=None, longlat=None, 
+               move=False,
                quals=[],kwquals={}):
 
-    GeoLocation.GeoLocation.__init__(self, ns=ns, name=name, xyz=xyz,
+    # Orbit radius is 21000 km plus the Earth radius (6378 km)
+    # Orbital period is 12 hrs
+    # Orbit inclination is 52 degr (i.e. it gets up to 52 degr latitude)
+    # Coordinate systems:
+    # - longitude is POSITIVE towards the East (right-handed!)
+    # - xyz: z-axis positive alonf the Earth axis
+    #        x-axis intersects with Greenwich meridian
+    #        y-axis is positive towards the East
+    # - movement:
+    #   - longitude varies linearly with time
+    #   - latitide varies sinusoidally
+
+    self._Earth = dict(radius=6378, unit='km', flattening=3.36e-6)
+    radius = self._Earth['radius'] + 21000       # orbit radius (km)
+
+    if longlat:                                  # specified as longlat
+      if move:
+        node = ns['longlat']('orbit')(name)(*quals)(**kwquals)
+
+        # The longitude varies linearly with time
+        # It is equal to longlat[0] for t=0
+        longitude = node('longitude') << (longlat[0] + Meq.Time())
+        
+        # The latitude varies sinusoidally with time
+        # It is equal to longlat[1] for t=0 (see phase below)
+        period = 12.0*3600.0                     # orbital period (s)
+        inclination = 52.0                       # orbit inclination (degr)
+        arg = node('latitude')('arg') << (2*pi/period) * Meq.Time()
+        ampl = inclination*pi/180                # rad
+        phase = node('latitude')('phase') << Meq.Asin(longlat[1]/ampl)
+        sinarg = node('latitude')('sinarg') << Meq.Sin(arg+phase)
+        # ampl = node('latitude')('ampl') << Meq.Constant(ampl)
+        latitude = node('latitude') << Meq.Multiply(ampl,sinarg)
+        longlat = [longitude,latitude]
+        if False:
+          longlat = node << Meq.Composer(longitude,latitude)
+          display.subtree(longlat)
+
+    elif xyz:
+      pass
+    else:
+      raise ValueError,'specify location either as xyz or as longlat'
+    
+
+    GeoLocation.GeoLocation.__init__(self, ns=ns, name=name,
                                      longlat=longlat, radius=radius,
+                                     xyz=xyz, 
                                      quals=quals, kwquals=kwquals,
                                      tags=['GeoLocation','GPSSatellite'],
                                      solvable=False)
@@ -111,7 +158,6 @@ class GPSPair (Meow.Parameterization):
 
   def oneliner (self):
     ss = str(type(self))
-    # ss = 'GPSPair: '
     ss += '  '+str(self.name)
     return ss
   
@@ -208,7 +254,9 @@ class GPSPair (Meow.Parameterization):
     if not node.initialized():
       dll = self.longlat_diff()
       dlong = node('dlong') << Meq.Selector(dll, index=0)
-      node = False                                # ... still needs a little thought .....
+      dlat = node('dlat') << Meq.Selector(dll, index=1)
+      tanaz = node('tanaz') << Meq.Divide(dlong, dlat)
+      node << Meq.Atan(tanaz)
     self._station._show_subtree(node, show=show, recurse=4)
     return node
 
@@ -296,11 +344,8 @@ def _define_forest(ns):
 
     cc = []
 
-    xyz1 = array([1.0,-3.5,5.8])
-    xyz2 = array([10*xyz1[0], 8*xyz1[1], 6*xyz1[2]])
-
-    st1 = GPSStation(ns,'st1', xyz1)
-    sat1 = GPSSatellite(ns,'sat1', xyz2)
+    st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0])
+    sat1 = GPSSatellite(ns, 'sat1', longlat=[0.1,1.0])
 
     pair = GPSPair (ns, station=st1, satellite=sat1)
     pair.display(full=True)
@@ -332,8 +377,7 @@ if __name__ == '__main__':
     print
     ns = NodeScope()
 
-    if 1:
-      # st1 = GPSStation(ns, 'st1', [1,2,12])
+    if 0:
       st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       print st1.oneliner()
 
@@ -351,11 +395,13 @@ if __name__ == '__main__':
     #-------------------------------------------------------
 
     if 1:
-      sat1 = GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], radius=8e6)
+      sat1 = GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], move=True)
       print sat1.oneliner()
 
       if 1:
         sat1.node(show=True)
+
+      if 0:
         sat1.altitude(show=True)
         sat1.test_result()
 
@@ -367,17 +413,17 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------
 
-    if 1:
+    if 0:
       pair = GPSPair (ns, station=st1, satellite=sat1)
       pair.display(full=True)
 
       if 0:
         pair.elevation(show=True)
 
-      if 0: 
+      if 1: 
         pair.azimuth(show=True)
 
-      if 1:
+      if 0:
         pair.azel(show=True)
         pair.azel_complex(show=True)
 
