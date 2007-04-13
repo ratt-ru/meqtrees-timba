@@ -53,7 +53,7 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
 
   def __init__(self, ns, name, xyz=None, longlat=None, 
-               move=False,
+               move=False, sign=dict(direction=1,inclination=1),
                quals=[],kwquals={}):
 
     # Orbit radius is 21000 km plus the Earth radius (6378 km)
@@ -78,12 +78,14 @@ class GPSSatellite (GeoLocation.GeoLocation):
         # The longitude varies linearly with time
         # It is equal to longlat[0] for t=0
         period = 12.0*3600.0                     # orbital period (s)
+        period *= sign['direction']
         omega = 2*pi/period                      # rad/s
         longitude = node('longitude') << (longlat[0] + omega*Meq.Time())
         
         # The latitude varies sinusoidally with time
         # It is equal to longlat[1] for t=0 (see phase below)
         inclination = 52.0                       # orbit inclination (degr)
+        inclination *= sign['inclination']
         arg = node('latitude')('arg') << (2*pi/period) * Meq.Time()
         ampl = inclination*pi/180                # rad
         phase = node('latitude')('phase') << Meq.Asin(longlat[1]/ampl)
@@ -226,7 +228,7 @@ class GPSPair (Meow.Parameterization):
     node = self.ns[name]
     if not node.initialized():
       dxyz = self._satellite.binop('Subtract', self._station, show=show)
-      encl = self._satellite.enclosed_angle(dxyz, show=show)
+      encl = self._station.enclosed_angle(dxyz, show=show)
       node << Meq.Identity(encl)
     self._station._show_subtree(node, show=show, recurse=4)
     return node

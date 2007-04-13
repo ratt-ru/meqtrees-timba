@@ -26,8 +26,8 @@ class GPSArray (Meow.Parameterization):
   def __init__(self, ns, name='gpa',
                nstat=2, nsat=3,
                longlat=[1.0,0.5],
-               stddev=dict(stat=[0.01,0.01],
-                           sat=[0.1,0.1]),
+               stddev=dict(stat=[0.1,0.1],
+                           sat=[0.5,0.5]),
                move=False,
                quals=[], kwquals={}):
 
@@ -57,15 +57,19 @@ class GPSArray (Meow.Parameterization):
     rr = dict(name=[], obj=[], longlat=[], stddev=stddev['sat'],
               plot=dict(color='red', style='triangle'))
     stddev = self._stddev['sat']
+    sign = dict(direction=1, inclination=1)
     for k in range(self._nsat):
       longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
                  random.gauss(self._longlat0[1], rr['stddev'][1])]
       sname = 'sat'+str(k)
-      obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat, move=move)
+      obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat,
+                                 sign=sign, move=move)
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
       rr['longlat'].append(longlat)
+      # sign['inclination'] *= -1
+      sign['direction'] *= -1
     self._satellite = rr
 
     # Define station-satellite pairs:
@@ -156,16 +160,33 @@ class GPSArray (Meow.Parameterization):
                                    scope=scope, tag='satellites',
                                    xlabel='longitude(rad)', ylabel='latitude(rad)',
                                    color=plot['color'], style=plot['style'],
-                                   size=8, pen=2,
+                                   size=18, pen=2,
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
+
+
+    # Input satellite positions:
+    if True:
+      cc = []
+      node = self.ns.longlat('input')
+      for k,ll in enumerate(self._satellite['longlat']):
+        cc.append(node(k) << Meq.ToComplex(ll[0],ll[1]))
+      rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                     scope=scope, tag='input',
+                                     xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                     color='cyan', style='diamond',
+                                     # size=8, pen=2,
+                                     type='realvsimag', errorbars=True)
+      dcolls.append(rr)
+
 
     # Lock the scale of the plot:
     dll = 7*array(self._stddev['sat'])
     ll0 = array(self._longlat0)
-    print '** dll =',dll,ll0+dll,ll0-dll
-    trc = self.ns.trc(scope) << Meq.ToComplex(ll0[0]+dll[0],ll0[1]+dll[1])
-    blc = self.ns.blc(scope) << Meq.ToComplex(ll0[0]-dll[0],ll0[1]-dll[1])
+    # trc = self.ns.trc(scope) << Meq.ToComplex(ll0[0]+dll[0],ll0[1]+dll[1])
+    # blc = self.ns.blc(scope) << Meq.ToComplex(ll0[0]-dll[0],ll0[1]-dll[1])
+    trc = self.ns.trc(scope) << Meq.ToComplex(1.6,1.6)
+    blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,-1.6)
     rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
                                    scope=scope, tag='scale',
                                    xlabel='longitude(rad)', ylabel='latitude(rad)',
@@ -209,7 +230,7 @@ class GPSArray (Meow.Parameterization):
 
     # Lock the scale of the plot:
     trc = self.ns.trc(scope) << Meq.ToComplex(1.6,1.6)
-    blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,1.0)
+    blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,-1.6)
     rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
                                    scope=scope, tag='scale',
                                    xlabel='azimuth(rad)', ylabel='elevation(rad)',
@@ -241,7 +262,11 @@ def _define_forest(ns):
 
     cc = []
 
-    gpa = GPSArray(ns, nstat=2, nsat=2, move=True)
+    gpa = GPSArray(ns, nstat=4, nsat=5, 
+                   longlat=[0.5,0.1],
+                   stddev=dict(stat=[0.1,0.1],
+                               sat=[0.3,0.3]),
+                   move=True)
     gpa.display(full=True)
 
     if 1:
@@ -253,11 +278,22 @@ def _define_forest(ns):
     return True
 
 #---------------------------------------------------------------
+#---------------------------------------------------------------
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
+    t1 = 0                          
+    t2 = t1+0.0001
+    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=1)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
+
+def _tdl_job_sequence (mqs, parent):
+    """Execute the forest, starting at the named node"""
     for t in range(-50,50):
-      t1 = t*300
+      t1 = t*300                                            # 30 sec steps 
       t2 = t1+0.0001
       domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
       cells = meq.cells(domain, num_freq=1, num_time=1)
@@ -275,7 +311,10 @@ if __name__ == '__main__':
     """Test program"""
     ns = NodeScope()
 
-    gpa = GPSArray(ns, nstat=2, nsat=2, move=True)
+    gpa = GPSArray(ns, nstat=5, nsat=5,
+                   stddev=dict(stat=[0.1,0.1],
+                               sat=[0.5,0.5]),
+                   move=True)
     gpa.display(full=True)
 
     if 0:

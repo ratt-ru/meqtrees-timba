@@ -105,10 +105,10 @@ class Vector (Meow.Parameterization):
     index = self.index(key)
     axis = self._axes[index]
     if self._tensor_node:
-        node = self.ns[axis]
-        if not node.initialized():
-          node << Meq.Selector(self._tensor_node, index=index)
-        return node
+        qnode = self.ns[axis]
+        if not qnode.initialized():
+          qnode << Meq.Selector(self._tensor_node, index=index)
+        return qnode
     else:
       return self._parm(axis)
 
@@ -185,33 +185,33 @@ class Vector (Meow.Parameterization):
     """Returns the n-element 'tensor' node for this Vector."""
     if not isinstance(name,str):
       name = self._typename                   # default: 'Vector'
-    node = self.ns[name]
-    if not node.initialized():
+    qnode = self.ns[name]
+    if not qnode.initialized():
       if self._tensor_node:
-        node << Meq.Identity(self._tensor_node)
+        qnode << Meq.Identity(self._tensor_node)
       else:
-        node << Meq.Composer(*self.list())
-    self._show_subtree(node, show=show)
-    return node
+        qnode << Meq.Composer(*self.list())
+    self._show_subtree(qnode, show=show)
+    return qnode
 
   #---------------------------------------------------------------------
 
   def magnitude (self, show=False):
     """Returns the magnitude (node) for this Vector."""
     name = 'magnitude'
-    node = self.ns[name]
-    if not node.initialized():
+    qnode = self.ns[name]
+    if not qnode.initialized():
       cc = self.list()
       for k,c in enumerate(cc):
-        cc[k] = node('Sqr')(k) << Meq.Sqr(c)
-      ssq = node('SumSqr') << Meq.Add(*cc)
+        cc[k] = qnode('Sqr')(k) << Meq.Sqr(c)
+      ssq = qnode('SumSqr') << Meq.Add(*cc)
       if self._test:
         self._test[name] = sqrt(sum(self._test['elem']*self._test['elem']))
-        node << Meq.Sqrt(ssq, testval=self._test[name])
+        qnode << Meq.Sqrt(ssq, testval=self._test[name])
       else:
-        node << Meq.Sqrt(ssq)
-    self._show_subtree(node, show=show)
-    return node
+        qnode << Meq.Sqrt(ssq)
+    self._show_subtree(qnode, show=show)
+    return qnode
 
 
   #---------------------------------------------------------------------
@@ -222,20 +222,20 @@ class Vector (Meow.Parameterization):
     """Returns the dot-product (node) bewteen itself and another Vector"""
     self.commensurate(other)
     name = 'dot_product'
-    node = self.ns[name].qadd(other.ns)
-    if not node.initialized():
+    qnode = self.ns[name].qadd(other.ns)
+    if not qnode.initialized():
       cc1 = self.list()
       cc2 = other.list()
       for k,c in enumerate(cc1):
-        cc1[k] = node('Multiply')(k) << Meq.Multiply(cc1[k],cc2[k])
+        cc1[k] = qnode('Multiply')(k) << Meq.Multiply(cc1[k],cc2[k])
       if self._test and other._test:
         self._test['other'] = other.oneliner()
         self._test[name] = sum(self._test['elem']*other._test['elem'])
-        node << Meq.Add(children=cc1, testval=self._test[name])
+        qnode << Meq.Add(children=cc1, testval=self._test[name])
       else:
-        node << Meq.Add(*cc1)
-    self._show_subtree(node, show=show)
-    return node
+        qnode << Meq.Add(*cc1)
+    self._show_subtree(qnode, show=show)
+    return qnode
 
   #---------------------------------------------------------------------
 
@@ -243,23 +243,23 @@ class Vector (Meow.Parameterization):
     """Returns the enclosed angle (node, rad) between itself and another Vector"""
     self.commensurate(other)
     name = 'enclosed_angle'
-    node = self.ns[name].qadd(other.ns)
-    if not node.initialized():
+    qnode = self.ns[name].qadd(other.ns)
+    if not qnode.initialized():
       dp = self.dot_product(other)
       m1 = self.magnitude()
       m2 = other.magnitude()
-      cosa = node('cos') << Meq.Divide(dp,(m1*m2))
+      cosa = qnode('cos') << Meq.Divide(dp,(m1*m2))
       if self._test and other._test:
         self._test['other'] = other.oneliner()
         dp = sum(self._test['elem']*other._test['elem'])
         m1 = sqrt(sum(self._test['elem']*self._test['elem']))
         m2 = sqrt(sum(other._test['elem']*other._test['elem']))
         self._test[name] = arccos(dp/(m1*m2))
-        node << Meq.Acos(cosa, testval=self._test[name])
+        qnode << Meq.Acos(cosa, testval=self._test[name])
       else:
-        node << Meq.Acos(cosa)
-    self._show_subtree(node, show=show)
-    return node
+        qnode << Meq.Acos(cosa)
+    self._show_subtree(qnode, show=show)
+    return qnode
 
   #---------------------------------------------------------------------
   # Methods that produce another Vector object:
@@ -271,31 +271,31 @@ class Vector (Meow.Parameterization):
     self.commensurate(other, severe=False)
 
     if isinstance(other, Vector):
-      node = self.ns[binop].qadd(other.ns)
-      if not node.initialized():
-        node << getattr(Meq,binop)(self.node(),other.node())
+      qnode = self.ns[binop].qadd(other.ns)
+      if not qnode.initialized():
+        qnode << getattr(Meq,binop)(self.node(),other.node())
     elif is_node(other):
-      node = self.ns[binop].qadd(other)
-      if not node.initialized():
-        node << getattr(Meq,binop)(self.node(),other)
+      qnode = self.ns[binop].qadd(other)
+      if not qnode.initialized():
+        qnode << getattr(Meq,binop)(self.node(),other)
     else:
       # Assume numeric value: 
-      node = self.ns[binop](str(other))
-      if not node.initialized():
-        node << getattr(Meq,binop)(self.node(),other)
+      qnode = self.ns[binop](str(other))
+      if not qnode.initialized():
+        qnode << getattr(Meq,binop)(self.node(),other)
 
-    self._show_subtree(node, show=show)
+    self._show_subtree(qnode, show=show)
       
     # Make a new Vector object:
     if isinstance(name, str):
       # Name is specified: make a new start (ns0, quals):
-      vout = Vector(self.ns0, name, node, nelem=self.len(), quals=quals)
+      vout = Vector(self.ns0, name, qnode, nelem=self.len(), quals=quals)
     elif isinstance(other, Vector):
-      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=other.ns.quals)
+      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=other.ns.quals)
     elif is_node(other):
-      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=other.quals)
+      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=other.quals)
     else:
-      vout = Vector(self.ns, binop, node, nelem=self.len(), quals=str(other))
+      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=str(other))
 
     if show:
       vout.list(show=True)

@@ -109,27 +109,27 @@ class SimulParm (Meow.Parameterization):
 
     def _make_subtree(self, rr, qual=[]):
         """Make the subtree specified by rr"""
-        node = self.ns[rr['qual']](qual)
-        if node.initialized(): return node
+        qnode = self.ns[rr['qual']](qual)
+        if qnode.initialized(): return qnode
 
         # Make the cosine argument: 2pi*((t/Psec)+(f/PHz))
         pi2 = 2*math.pi
         targ = None
         farg = None
         if rr['Psec']:
-            time = node('time') << Meq.Time()
-            Psec = node('Psec') << self._get_value('Psec', rr)
-            targ = node('targ') << Meq.Divide(pi2*time,Psec)
+            time = qnode('time') << Meq.Time()
+            Psec = qnode('Psec') << self._get_value('Psec', rr)
+            targ = qnode('targ') << Meq.Divide(pi2*time,Psec)
         if rr['PHz']:
-            freq = node('freq') << Meq.Freq()
-            PHz = node('PHz') << self._get_value('PHz', rr)
-            farg = node('farg') << Meq.Divide(pi2*freq,PHz)
+            freq = qnode('freq') << Meq.Freq()
+            PHz = qnode('PHz') << self._get_value('PHz', rr)
+            farg = qnode('farg') << Meq.Divide(pi2*freq,PHz)
         arg = None
         if targ and farg:
             # NB: The two period-terms are ADDED (not subtracted),
             #     so that they serve as a phase-term for each other,
             #     and do not affect the periods.
-            arg = node('arg') << Meq.Add(targ,farg)
+            arg = qnode('arg') << Meq.Add(targ,farg)
         elif targ:
             arg = targ
         elif farg:
@@ -138,13 +138,13 @@ class SimulParm (Meow.Parameterization):
             raise ValueError,'neither Psec nor PHz specified'
 
         # Make the full ampl*cos(arg):
-        cosarg = node('cos') << Meq.Cos(arg)
-        ampl = node('ampl') << self._get_value('ampl', rr)
-        node << Meq.Multiply(ampl,cosarg)
+        cosarg = qnode('cos') << Meq.Cos(arg)
+        ampl = qnode('ampl') << self._get_value('ampl', rr)
+        qnode << Meq.Multiply(ampl,cosarg)
 
         # Finished:
-        if True: display.subtree(node)
-        return node
+        if True: display.subtree(qnode)
+        return qnode
 
     #-------------------------------------------------------------------
 
@@ -166,24 +166,24 @@ class SimulParm (Meow.Parameterization):
 
     def create(self, qual=[]):
         """Create a subtree with the specified qualifier(s)"""
-        node = self.ns['SimulParm'](qual)
+        qnode = self.ns['SimulParm'](qual)
         for rr in self._def:
             if rr['mode']=='init':
                 value = random.gauss(rr['value'], rr['stddev'])
-                curr = node('init') << Meq.Constant(value)
+                curr = qnode('init') << Meq.Constant(value)
             elif rr['mode']=='factor':
                 factor = self._make_subtree(rr, qual=qual)
-                curr = node('mult_'+rr['qual']) << Meq.Multiply(curr,factor)
+                curr = qnode('mult_'+rr['qual']) << Meq.Multiply(curr,factor)
             elif rr['mode']=='term':
                 term = self._make_subtree(rr, qual=qual)
-                curr = node('add_'+rr['qual']) << Meq.Add(curr,term)
+                curr = qnode('add_'+rr['qual']) << Meq.Add(curr,term)
             elif rr['mode']=='binop':
                 pass  
             else:
                 pass
-        node << Meq.Identity(curr)
-        display.subtree(node)
-        return node
+        qnode << Meq.Identity(curr)
+        display.subtree(qnode)
+        return qnode
     
 
     #-------------------------------------------------------------------
