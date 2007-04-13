@@ -115,8 +115,9 @@ def _define_forest (ns,**kwargs):
                           children=[ns.img1]
                        );
     bk.add(mom);
-    # first two moments are center of gravity, so make a selector to extract subsequent ones
-    m2 = ns.mom2(src) << Meq.Selector(mom,index=range(2,moments_order+1),multi=True);
+    # first moment is image, next two moments are center of gravity, 
+    # so make a selector to extract subsequent ones
+    m2 = ns.mom2(src) << Meq.Selector(mom,index=range(3,moments_order+2),multi=True);
     # this is the "target" moments that we try to fit
     m0 = ns.mom0 << Meq.Composer(*([0]*(moments_order-1)));
     # create condeq

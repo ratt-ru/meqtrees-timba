@@ -2,6 +2,7 @@ from Timba.dmi import *
 from Timba.Meq import meq
 from Timba import pynode
 from Timba import utils
+from Timba import mequtils
 
 import re
 import os
@@ -145,6 +146,8 @@ class PyCameraImage (pynode.PyNode):
     # image parameters
     mystate('xaxis',image_xaxis);
     mystate('yaxis',image_yaxis);
+    mequtils.add_axis(self.xaxis);
+    mequtils.add_axis(self.yaxis);
     mystate('rescale',1.);
     # actuators
     self._positions = {};
@@ -163,7 +166,7 @@ class PyCameraImage (pynode.PyNode):
     # max perturbation
     mystate('max_pert',3);
     # delay to let the system settle before taking a measurement, in secs
-    mystate('settle_time',.5);
+    mystate('settle_time',.1);
     # name and nodeindex
     mystate('name','');
     mystate('nodeindex',0);
@@ -171,13 +174,16 @@ class PyCameraImage (pynode.PyNode):
   def _spid (self,act):
     return (self.nodeindex<<8)+int(act);
     
-  def _acquire_image (self):
+  def _acquire_image (self,log_filename=None):
     """acquires latest image from camera. Returns a tuple of cells and vells""";
     if self.static_mode:
       filename = self.file_name;
     else:
       filename = acquire_imagename(self._file_re,directory=self.directory_name,
                       timeout=self.timeout,sleep_time=self.sleep_time);
+      if log_filename:
+        os.rename(filename,log_filename);
+        filename = log_filename;
     # read image
     img = pgm.Image(file(filename).read()).pixels;
     img.byteswap();
@@ -364,52 +370,90 @@ class PyMoments (pynode.PyNode):
     mystate("origin_0",(0,0));
     self.origin = self.origin_0;
     mystate("radius",20);
+    self._boxsize = self.radius*2+1;
     mystate("order",2);
+    mystate("isq_moment",True);
+    print "isq_moment:",self.isq_moment;
     mystate("image_threshold",.25);
-  def compute_moments (self,img,recenter=False):
-    # extract box around origin
-    xc,yc = self.origin;
-    xc,yc = int(round(xc)),int(round(yc));
-    x0 = max(xc-self.radius,0);
-    x1 = min(xc+self.radius+1,img.shape[0]);
-    y0 = max(yc-self.radius,0);
-    y1 = min(yc+self.radius+1,img.shape[1]);
-    img = img[x0:x1,y0:y1];
-    nx,ny = img.shape;
-    nel = nx*ny;
-    # renormalize image
-    # threshold it 
-    thr = img.min()*(1-self.image_threshold) + img.max()*self.image_threshold;
-    img = Array.where(img>thr,img,0);
-    img = img/float(img.sum());
-    # if recentering, recompute coordinate arrays
+    mystate('xaxis',image_xaxis);
+    mystate('yaxis',image_yaxis);
+    mequtils.add_axis(self.xaxis);
+    mequtils.add_axis(self.yaxis);
+    self._log = [];
+    
+  def compute_moments (self,img0,recenter=False):
+    # reshape image to two significant axes
+    nx,ny = [ n for n in img0.shape if n != 1 ][0:2];
+    img0 = Array.reshape(img0,(nx,ny));
+    # if recenter mode is on (which it is for the first vells), then we
+    # do two passes: find the center of gravity first, then recenter 
     if recenter:
-      self._images = [];
-      self.set_state('$cropped_image',self._images);
-      self._xi = Array.fromfunction(lambda i,j:i,(nx,ny));
-      self._yi = Array.fromfunction(lambda i,j:j,(nx,ny));
-      self._xisum = self._xi.sum();
-      self._yisum = self._yi.sum();
-      self.set_state('$xi',self._xi);
-      self.set_state('$yi',self._yi);
-    # get center of gravity
-    gx = (img*self._xi).sum();
-    gy = (img*self._yi).sum();
-    # recenter if necessary
-    if recenter:
-      self.origin = x0+gx,y0+gy;
-      self.set_state('origin',self.origin);
-    moments = list(self.origin);
+      npass = 2;
+    else:
+      npass = 1;
+    for ipass in range(0,npass):
+      logrec = record(npass=ipass,origin=self.origin);
+      self._log.append(logrec);
+      # extract box around origin
+      xc,yc = self.origin;
+      xc,yc = int(round(xc)),int(round(yc));
+      x0 = max(xc-self.radius,0);
+      x1 = min(xc+self.radius+1,img0.shape[0]);
+      y0 = max(yc-self.radius,0);
+      y1 = min(yc+self.radius+1,img0.shape[1]);
+      # check for degeneracy
+      if x0>=x1 or y0>=y1:
+        print "box coords",x0,x1,y0,y1;
+        raise ValueError,"Illegal source coordinates: %d,%d"%(xc,yc);
+      img = img0[x0:x1,y0:y1];
+      nx,ny = img.shape;
+      nel = nx*ny;
+      # threshold the image 
+      print "image min/max",img.min(),img.max();
+      # if recentering during a first pass, use a bigger threshold
+      if not ipass and npass > 1:
+        thr = (img.min()+img.max())/2.;
+      else:
+        thr = img.min()*(1-self.image_threshold) + img.max()*self.image_threshold;
+      thr = 16000;
+      img = Array.clip(img,thr,img.max()) - thr;
+      # renormalize image
+      img = img/float(img.sum());
+      logrec.img = img.copy();
+      # if recentering, recompute coordinate arrays
+      if recenter:
+        self._xi = Array.fromfunction(lambda i,j:i,(nx,ny));
+        self._yi = Array.fromfunction(lambda i,j:j,(nx,ny));
+        self._xisum = self._xi.sum();
+        self._yisum = self._yi.sum();
+        self.set_state('$xi',self._xi);
+        self.set_state('$yi',self._yi);
+      # get center of gravity
+      gx = (img*self._xi).sum();
+      gy = (img*self._yi).sum();
+      # recenter if necessary
+      if recenter:
+        self.origin = x0+gx,y0+gy;
+        self.set_state('origin',self.origin);
+        logrec.new_origin = self.origin;
+    moments = [img] + list(self.origin);
     # recompute coordinates w.r.t. center
     x = self._xi - gx;
     y = self._yi - gy;
+    logrec = record();
+    self._log.append(logrec);
     # compute central moments of higher order
     for order in range(2,self.order+1):
       img1 = img*(x**order+y**order);
       moments.append(img1.sum());
-      self._images += [img,img1];
-    self.set_state('$cropped_image',self._images);
-    print moments;
+      logrec["mom_"+str(order)] = img1;
+    # compute I^2 
+    if self.isq_moment:
+      img1 = img*img;
+      moments.append(nel/img1.sum());
+      logrec.sq_img = img1;
+    self.set_state('$op_log',self._log);
+    print moments[1:];
     return moments;
     
   def get_result (self,request,*children):
@@ -423,10 +467,16 @@ class PyMoments (pynode.PyNode):
       # compute centers and moments for main image
       moments = self.compute_moments(vs0.value,recenter=True);
       # returns a list; with #0 and #1 being x/y coordinates, and the rest being central moments
-      result = meq.result();
+      cells = make_symmetric_cells(self._boxsize,self._boxsize,self.xaxis,self.yaxis);
+      cells_shape = meq.shape(cells);
+      result = meq.result(cells=cells);
       result.vellsets = [];
       for mom in moments:
-        vs = meq.vellset(meq.sca_vells(mom));
+        if isinstance(mom,array_class):
+          vells = meq.vells(shape=cells_shape,value=mom);
+        else:
+          vells = meq.vells(shape=[1],value=mom);
+        vs = meq.vellset(vells);
         if spid_index: 
           vs.spid_index = spid_index;
         if perturbations:
@@ -437,7 +487,11 @@ class PyMoments (pynode.PyNode):
       for pval in perturbed_value:
         moments = self.compute_moments(pval);
         for i,mom in enumerate(moments):
-          result.vellsets[i].perturbed_value.append(meq.sca_vells(mom));
+          if isinstance(mom,array_class):
+            vells = meq.vells(shape=cells_shape,value=mom);
+          else:
+            vells = meq.vells(shape=[1],value=mom);
+          result.vellsets[i].perturbed_value.append(vells);
       return result;
     except:
       traceback.print_exc();
