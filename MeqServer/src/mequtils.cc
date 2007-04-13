@@ -36,6 +36,32 @@ static PyObject * get_axis_number (PyObject *, PyObject *args)
   returnNone;
 }
 
+static PyObject * add_axis (PyObject *, PyObject *args)
+{
+  PyObject * axis_id;
+  // ref count of object is not increased, so do not attach ref
+  if( !PyArg_ParseTuple(args,"O",&axis_id) )
+    return NULL;
+  try
+  {
+    // convert ID to string, then to HIID
+    HIID id;
+    if( PyString_Check(axis_id) )
+      id = HIID(PyString_AsString(axis_id));
+    else
+    {
+      PyObjectRef objstr(PyObject_Str(axis_id));
+      id = HIID(PyString_AsString(*objstr));
+    }
+    // look up in map
+    Meq::Axis::addAxis(id);
+    returnNone;
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+
 static PyObject * get_axis_id (PyObject *, PyObject *args)
 {
   int axis_num;
@@ -151,6 +177,8 @@ static PyMethodDef MeqUtilMethods[] = {
           "returns axis ID for given axis number" },
     { "set_axis_list",set_axis_list,METH_VARARGS,
           "changes the axis list" },
+    { "add_axis",add_axis,METH_VARARGS,
+          "adds an axis definition" },
     { "open_boio",open_boio,METH_VARARGS,
           "opens a BOIO file for reading" },
     { "read_boio",read_boio,METH_VARARGS,
