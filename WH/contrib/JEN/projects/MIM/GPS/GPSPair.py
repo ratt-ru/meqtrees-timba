@@ -227,8 +227,11 @@ class GPSPair (Meow.Parameterization):
     name = 'zenith_angle'
     node = self.ns[name]
     if not node.initialized():
-      dxyz = self._satellite.binop('Subtract', self._station, show=show)
-      encl = self._station.enclosed_angle(dxyz, show=show)
+      dxyz = self._satellite.binop('Subtract', self._station,
+                                   show=show)
+      encl = self._station.enclosed_angle(dxyz,
+                                          quals=self._satellite.name,
+                                          show=show)
       node << Meq.Identity(encl)
     self._station._show_subtree(node, show=show, recurse=4)
     return node
@@ -273,14 +276,21 @@ class GPSPair (Meow.Parameterization):
     self._station._show_subtree(node, show=show)
     return node
 
-  #-------------------------------------------------------
-
   def azel_complex (self, show=False):
-    """Returns azel (node) as complex (al+j*elev), for plotting"""
+    """Returns azel (node) as complex (az+j*elev), for plotting"""
     node = self.ns['azel_complex']
     if not node.initialized():
       node << Meq.ToComplex(self.azimuth(),
                             self.elevation())
+    self._station._show_subtree(node, show=show)
+    return node
+      
+  def azang_complex (self, show=False):
+    """Returns azang (node) as complex (az+j*zang), for plotting"""
+    node = self.ns['azang_complex']
+    if not node.initialized():
+      node << Meq.ToComplex(self.azimuth(),
+                            self.zenith_angle())
     self._station._show_subtree(node, show=show)
     return node
       

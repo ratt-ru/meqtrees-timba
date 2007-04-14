@@ -196,10 +196,10 @@ class Vector (Meow.Parameterization):
 
   #---------------------------------------------------------------------
 
-  def magnitude (self, show=False):
+  def magnitude (self, quals=[], show=False):
     """Returns the magnitude (node) for this Vector."""
     name = 'magnitude'
-    qnode = self.ns[name]
+    qnode = self.ns[name](quals)
     if not qnode.initialized():
       cc = self.list()
       for k,c in enumerate(cc):
@@ -218,11 +218,11 @@ class Vector (Meow.Parameterization):
   # Binary vector operations (require another vector):
   #---------------------------------------------------------------------
 
-  def dot_product (self, other, show=False):
+  def dot_product (self, other, quals=[], show=False):
     """Returns the dot-product (node) bewteen itself and another Vector"""
     self.commensurate(other)
     name = 'dot_product'
-    qnode = self.ns[name].qadd(other.ns)
+    qnode = self.ns[name].qadd(other.ns)(quals)
     if not qnode.initialized():
       cc1 = self.list()
       cc2 = other.list()
@@ -239,15 +239,15 @@ class Vector (Meow.Parameterization):
 
   #---------------------------------------------------------------------
 
-  def enclosed_angle (self, other, show=False):
+  def enclosed_angle (self, other, quals=[], show=False):
     """Returns the enclosed angle (node, rad) between itself and another Vector"""
     self.commensurate(other)
     name = 'enclosed_angle'
-    qnode = self.ns[name].qadd(other.ns)
+    qnode = self.ns[name].qadd(other.ns)(quals)
     if not qnode.initialized():
-      dp = self.dot_product(other)
-      m1 = self.magnitude()
-      m2 = other.magnitude()
+      dp = self.dot_product(other, quals=quals)
+      m1 = self.magnitude(quals=quals)
+      m2 = other.magnitude(quals=quals)
       cosa = qnode('cos') << Meq.Divide(dp,(m1*m2))
       if self._test and other._test:
         self._test['other'] = other.oneliner()
@@ -271,16 +271,16 @@ class Vector (Meow.Parameterization):
     self.commensurate(other, severe=False)
 
     if isinstance(other, Vector):
-      qnode = self.ns[binop].qadd(other.ns)
+      qnode = self.ns[binop].qadd(other.ns)(quals)
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other.node())
     elif is_node(other):
-      qnode = self.ns[binop].qadd(other)
+      qnode = self.ns[binop].qadd(other)(quals)
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other)
     else:
       # Assume numeric value: 
-      qnode = self.ns[binop](str(other))
+      qnode = self.ns[binop](str(other))(quals)
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other)
 

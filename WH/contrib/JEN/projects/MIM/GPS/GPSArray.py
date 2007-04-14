@@ -68,8 +68,11 @@ class GPSArray (Meow.Parameterization):
       rr['name'].append(sname)
       rr['obj'].append(obj)
       rr['longlat'].append(longlat)
-      # sign['inclination'] *= -1
-      sign['direction'] *= -1
+      # Change a different orbit parameter each time:
+      if (k%2==0):
+        sign['inclination'] *= -1
+      else:
+        sign['direction'] *= -1
     self._satellite = rr
 
     # Define station-satellite pairs:
@@ -137,6 +140,7 @@ class GPSArray (Meow.Parameterization):
 
     dcolls = []
     scope = 'longlat'
+    results_buffer = 100 
 
     # Station positions:
     cc = []
@@ -145,9 +149,9 @@ class GPSArray (Meow.Parameterization):
     plot = self._station['plot']
     rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
                                    scope=scope, tag='stations',
-                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
                                    color=plot['color'], style=plot['style'],
                                    size=8, pen=2,
+                                   results_buffer=results_buffer,
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
 
@@ -158,7 +162,6 @@ class GPSArray (Meow.Parameterization):
     plot = self._satellite['plot']
     rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
                                    scope=scope, tag='satellites',
-                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
                                    color=plot['color'], style=plot['style'],
                                    size=18, pen=2,
                                    type='realvsimag', errorbars=True)
@@ -173,23 +176,36 @@ class GPSArray (Meow.Parameterization):
         cc.append(node(k) << Meq.ToComplex(ll[0],ll[1]))
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
                                      scope=scope, tag='input',
-                                     xlabel='longitude(rad)', ylabel='latitude(rad)',
                                      color='cyan', style='diamond',
                                      # size=8, pen=2,
                                      type='realvsimag', errorbars=True)
       dcolls.append(rr)
 
+    # Pair positions:
+    if True:
+      cc = []
+      for s in self._pair['obj']:
+        # cc.append(s.azang_complex())
+        cc.append(s.azel_complex())
+      plot = self._pair['plot']
+      rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                     scope=scope, tag='pairs',
+                                     color=plot['color'], style=plot['style'],
+                                     size=8, pen=2,
+                                     results_buffer=results_buffer,
+                                     type='realvsimag', errorbars=True)
+      dcolls.append(rr)
+
+
 
     # Lock the scale of the plot:
-    dll = 7*array(self._stddev['sat'])
-    ll0 = array(self._longlat0)
-    # trc = self.ns.trc(scope) << Meq.ToComplex(ll0[0]+dll[0],ll0[1]+dll[1])
-    # blc = self.ns.blc(scope) << Meq.ToComplex(ll0[0]-dll[0],ll0[1]-dll[1])
     trc = self.ns.trc(scope) << Meq.ToComplex(1.6,1.6)
     blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,-1.6)
     rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
                                    scope=scope, tag='scale',
-                                   xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                   # xlabel='longitude(rad)', ylabel='latitude(rad)',
+                                   xlabel='longitude or azimuth (rad)',
+                                   ylabel='latitude or elevation(rad)',
                                    color='white', style='circle', size=1, pen=1,
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
@@ -199,7 +215,6 @@ class GPSArray (Meow.Parameterization):
     # NB: nodename -> dconc_scope_tag
     rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
                                   scope=scope, tag='',
-                                  xlabel='longitude(rad)', ylabel='latitude(rad)',
                                   bookpage=None)
     self._dcoll = rr['dcoll']
     JEN_bookmarks.create(self._dcoll, scope,
@@ -207,6 +222,8 @@ class GPSArray (Meow.Parameterization):
     # Return the dataConcat node:
     return self._dcoll
 
+
+  #----------------------------------------------------------------------
   #----------------------------------------------------------------------
 
   def rvsi_azel(self, bookpage='GPSArray', folder=None):
@@ -214,6 +231,7 @@ class GPSArray (Meow.Parameterization):
 
     dcolls = []
     scope = 'azel'
+    results_buffer = 100 
 
     # Pair positions:
     cc = []
@@ -221,10 +239,11 @@ class GPSArray (Meow.Parameterization):
       cc.append(s.azel_complex())
     plot = self._pair['plot']
     rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
-                                   scope=scope, tag='stations',
+                                   scope=scope, tag='pairs',
                                    xlabel='azimuth(rad)', ylabel='elevation(rad)',
                                    color=plot['color'], style=plot['style'],
                                    size=8, pen=2,
+                                   results_buffer=results_buffer,
                                    type='realvsimag', errorbars=True)
     dcolls.append(rr)
 
@@ -243,6 +262,7 @@ class GPSArray (Meow.Parameterization):
     rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
                                   scope=scope, tag='',
                                   xlabel='azimuth(rad)', ylabel='elevation(rad)',
+                                  # results_buffer=100,
                                   bookpage=None)
     self._dcoll = rr['dcoll']
     JEN_bookmarks.create(self._dcoll, scope,
@@ -262,16 +282,18 @@ def _define_forest(ns):
 
     cc = []
 
-    gpa = GPSArray(ns, nstat=4, nsat=5, 
+    gpa = GPSArray(ns,
+                   nstat=4, nsat=5, 
+                   # nstat=1, nsat=1, 
                    longlat=[0.5,0.1],
                    stddev=dict(stat=[0.1,0.1],
-                               sat=[0.3,0.3]),
+                               sat=[0.5,0.5]),
                    move=True)
     gpa.display(full=True)
 
     if 1:
       cc.append(gpa.rvsi_longlat())
-    if 1:
+    if 0:
       cc.append(gpa.rvsi_azel())
 
     ns.result << Meq.Composer(children=cc)
@@ -293,7 +315,7 @@ def _tdl_job_execute (mqs, parent):
 def _tdl_job_sequence (mqs, parent):
     """Execute the forest, starting at the named node"""
     for t in range(-50,50):
-      t1 = t*300                                            # 30 sec steps 
+      t1 = t*100                                            # 30 sec steps 
       t2 = t1+0.0001
       domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
       cells = meq.cells(domain, num_freq=1, num_time=1)
@@ -311,7 +333,7 @@ if __name__ == '__main__':
     """Test program"""
     ns = NodeScope()
 
-    gpa = GPSArray(ns, nstat=5, nsat=5,
+    gpa = GPSArray(ns, nstat=2, nsat=1,
                    stddev=dict(stat=[0.1,0.1],
                                sat=[0.5,0.5]),
                    move=True)
