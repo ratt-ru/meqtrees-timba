@@ -7,6 +7,7 @@ import Meow
 
 from Timba.Contrib.JEN.Grunt import display
 from numarray import *
+from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
 
@@ -222,12 +223,14 @@ class Vector (Meow.Parameterization):
     """Returns the dot-product (node) bewteen itself and another Vector"""
     self.commensurate(other)
     name = 'dot_product'
-    qnode = self.ns[name].qadd(other.ns)(quals)
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['Vector_dummy_qnode'])(*quals)       # <-----!!
     if not qnode.initialized():
       cc1 = self.list()
       cc2 = other.list()
       for k,c in enumerate(cc1):
-        cc1[k] = qnode('Multiply')(k) << Meq.Multiply(cc1[k],cc2[k])
+        axis = self._axes[k]
+        cc1[k] = qnode('Multiply')(axis) << Meq.Multiply(cc1[k],cc2[k])
       if self._test and other._test:
         self._test['other'] = other.oneliner()
         self._test[name] = sum(self._test['elem']*other._test['elem'])
@@ -243,7 +246,8 @@ class Vector (Meow.Parameterization):
     """Returns the enclosed angle (node, rad) between itself and another Vector"""
     self.commensurate(other)
     name = 'enclosed_angle'
-    qnode = self.ns[name].qadd(other.ns)(quals)
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['Vector_dummy_qnode'])(*quals)       # <-----!!
     if not qnode.initialized():
       dp = self.dot_product(other, quals=quals)
       m1 = self.magnitude(quals=quals)
@@ -270,17 +274,19 @@ class Vector (Meow.Parameterization):
     binary operation (e.g. binop='Subtract') between itself and another Vector"""
     self.commensurate(other, severe=False)
 
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+
     if isinstance(other, Vector):
-      qnode = self.ns[binop].qadd(other.ns)(quals)
+      qnode = self.ns[binop].qmerge(other.ns['Vector_dummy_qnode'])(*quals)       # <-----!!
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other.node())
     elif is_node(other):
-      qnode = self.ns[binop].qadd(other)(quals)
+      qnode = self.ns[binop].qmerge(other)(*quals)
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other)
     else:
       # Assume numeric value: 
-      qnode = self.ns[binop](str(other))(quals)
+      qnode = self.ns[binop](str(other))(*quals)
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other)
 
@@ -289,13 +295,33 @@ class Vector (Meow.Parameterization):
     # Make a new Vector object:
     if isinstance(name, str):
       # Name is specified: make a new start (ns0, quals):
-      vout = Vector(self.ns0, name, qnode, nelem=self.len(), quals=quals)
+      vout = Vector(self.ns0, name,
+                    elem=qnode, nelem=self.len(),
+                    quals=quals,
+                    axes=self._axes)
+      
     elif isinstance(other, Vector):
-      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=other.ns.quals)
+      qq = deepcopy(list(other.ns['Vector_dummy_qnode'].quals))
+      qq.extend(quals)
+      vout = Vector(self.ns, binop,
+                    elem=qnode, nelem=self.len(),
+                    quals=qq,
+                    axes=self._axes)
+
     elif is_node(other):
-      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=other.quals)
+      qq = deepcopy(list(other.quals))
+      qq.extend(quals)
+      vout = Vector(self.ns, binop,
+                    elem=qnode, nelem=self.len(),
+                    quals=qq,
+                    axes=self._axes)
     else:
-      vout = Vector(self.ns, binop, qnode, nelem=self.len(), quals=str(other))
+      qq = [str(other)]
+      qq.extend(quals)
+      vout = Vector(self.ns, binop,
+                    elem=qnode, nelem=self.len(),
+                    quals=qq,
+                    axes=self._axes)
 
     if show:
       vout.list(show=True)

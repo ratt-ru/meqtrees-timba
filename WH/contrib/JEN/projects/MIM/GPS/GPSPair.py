@@ -229,11 +229,9 @@ class GPSPair (Meow.Parameterization):
     if not node.initialized():
       dxyz = self._satellite.binop('Subtract', self._station,
                                    show=show)
-      encl = self._station.enclosed_angle(dxyz,
-                                          quals=self._satellite.name,
-                                          show=show)
+      encl = self._station.enclosed_angle(dxyz, show=show)
       node << Meq.Identity(encl)
-    self._station._show_subtree(node, show=show, recurse=4)
+    self._station._show_subtree(node, show=show, recurse=6)
     return node
 
   #-------------------------------------------------------
@@ -389,7 +387,7 @@ if __name__ == '__main__':
     print
     ns = NodeScope()
 
-    if 0:
+    if 1:
       st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       print st1.oneliner()
 
@@ -425,21 +423,21 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------
 
-    if 0:
+    if 1:
       pair = GPSPair (ns, station=st1, satellite=sat1)
       pair.display(full=True)
 
       if 0:
         pair.elevation(show=True)
 
-      if 1: 
+      if 0: 
         pair.azimuth(show=True)
 
       if 0:
         pair.azel(show=True)
         pair.azel_complex(show=True)
 
-      if 0:
+      if 1:
         pair.zenith_angle(show=True)
 
       if 0:
