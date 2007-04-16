@@ -5,6 +5,7 @@ from Timba.Meq import meq
 
 import Meow
 import GPSPair
+import MIM
 import random
 from numarray import *
 
@@ -128,8 +129,8 @@ class GPSArray (Meow.Parameterization):
       print '      - '+name+': longlat = '+str(self._satellite['longlat'][k])
 
     print '  * GPSPairs:'
-    for s in self._pair['obj']:
-      print '    - '+s.oneliner()
+    for p in self._pair['obj']:
+      print '    - '+p.oneliner()
     print '    * plotting: '+str(self._pair['plot'])
     print
     return True
@@ -148,6 +149,26 @@ class GPSArray (Meow.Parameterization):
     if show: display.subtree(qnode)
     return qnode
 
+
+  #-------------------------------------------------------
+  #-------------------------------------------------------
+
+  def inspector(self, mim, bookpage='mimTEC', show=False):
+    """Make an inspector for the TEC-values of the various pairs"""
+    name = 'mimTEC'
+    qnode = self.ns[name]
+    if not qnode.initialized():
+      cc =[]
+      labels = []
+      for pair in self._pair['obj']:
+        print '    - '+pair.oneliner()
+        labels.append(pair.name)
+        cc.append(pair.mimTEC(mim))
+      qnode << Meq.Composer(children=cc, plot_label=labels)
+      JEN_bookmarks.create(qnode, page=bookpage,
+                           viewer='Collections Plotter')
+    if show: display.subtree(qnode, recurse=5)
+    return qnode
 
   #-------------------------------------------------------
   # Visualisation
@@ -187,7 +208,7 @@ class GPSArray (Meow.Parameterization):
 
 
     # Input satellite positions:
-    if True:
+    if False:
       cc = []
       node = self.ns.longlat('input')
       for k,ll in enumerate(self._satellite['longlat']):
@@ -301,11 +322,12 @@ def _define_forest(ns):
     cc = []
 
     gpa = GPSArray(ns,
-                   nstat=4, nsat=5, 
+                   nstat=3, nsat=4, 
                    # nstat=1, nsat=1, 
-                   longlat=[0.5,0.1],
+                   longlat=[-0.1,0.1],
                    stddev=dict(stat=[0.1,0.1],
-                               sat=[0.5,0.5]),
+                               sat=[0.2,0.2]),
+                               # sat=[0.4,0.4]),
                    move=True)
     gpa.display(full=True)
 
@@ -313,6 +335,11 @@ def _define_forest(ns):
       cc.append(gpa.rvsi_longlat())
     if 0:
       cc.append(gpa.rvsi_azel())
+
+    if 1:
+      sim = MIM.MIM(ns, ndeg=1, simulate=True)
+      sim.display(full=True)
+      cc.append(gpa.inspector(sim))
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -357,7 +384,7 @@ if __name__ == '__main__':
                    move=True)
     gpa.display(full=True)
 
-    if 1:
+    if 0:
       gpa.longlat0(show=True)
 
     if 0:
@@ -367,6 +394,12 @@ if __name__ == '__main__':
     if 0:
       node = gpa.rvsi_azel()
       display.subtree(node,node.name)
+
+    if 1:
+      sim = MIM.MIM(ns, ndeg=1, simulate=True)
+      sim.display(full=True)
+      gpa.inspector(sim, show=True)
+
 
       
 #===============================================================

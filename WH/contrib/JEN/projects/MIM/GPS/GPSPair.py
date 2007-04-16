@@ -214,18 +214,16 @@ class GPSPair (Meow.Parameterization):
   #.......................................................
 
   def mimTEC(self, mim, show=False):
-    """Return a node/subtree that produces a simulated TEC value for
-    a specified time-range (in the request). It gets its information
-    from the given (simulated) MIM object"""
-    node = self.ns['mimTEC']
-    if not node.initialized():
-      h = mim.effective_altitude()
-      TEC = mim.TEC(self.longlat_pierce(h=h),
-                    self.zenith_angle())
-      node << Meq.Add(TEC, self._station.TEC_bias(),
-                      self._satellite.TEC_bias())
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
+    """Return a node/subtree that produces a simulated TEC value, which
+    includes that station- and satellite TEC bias values. It gets its
+    information from the given (simulated) MIM object"""
+    qnode = self.ns['mimTEC']
+    if not qnode.initialized():
+      TEC = mim.TEC(self._station, self._satellite)
+      qnode << Meq.Add(TEC, self._station.TEC_bias(),
+                       self._satellite.TEC_bias())
+    self._station._show_subtree(qnode, show=show, recurse=4)
+    return qnode
 
   #-------------------------------------------------------
 
@@ -243,47 +241,31 @@ class GPSPair (Meow.Parameterization):
 
   #-------------------------------------------------------
 
+  def longlat_diff(self, show=False):
+    """Return the [longtitude,latitude] difference between
+    its station and its satellite"""
+    return self._station.longlat_diff(self._satellite, show=show)
+
+  #-------------------------------------------------------
+
   def zenith_angle(self, show=False):
     """Return the zenith angle (node) of its satellite, as seen
     from its station. This is time-dependent, of course."""
-    name = 'zenith_angle'
-    node = self.ns[name]
-    if not node.initialized():
-      dxyz = self._satellite.binop('Subtract', self._station,
-                                   show=show)
-      encl = self._station.enclosed_angle(dxyz, show=show)
-      node << Meq.Identity(encl)
-    self._station._show_subtree(node, show=show, recurse=6)
-    return node
+    return self._station.zenith_angle(self._satellite, show=show)
 
   #-------------------------------------------------------
 
   def elevation(self, show=False):
     """Return the elevation angle (node) of its satellite, as seen
     from its station. This is time-dependent, of course."""
-    name = 'elevation'
-    node = self.ns[name]
-    if not node.initialized():
-      zang = self.zenith_angle()
-      node << Meq.Subtract(pi/2.0, zang)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
+    return self._station.elevation(self._satellite, show=show)
 
   #-------------------------------------------------------
 
   def azimuth(self, show=False):
     """Return the azimuth angle (node) of its satellite, as seen
     from its station. This is time-dependent, of course."""
-    name = 'azimuth'
-    node = self.ns[name]
-    if not node.initialized():
-      dll = self.longlat_diff()
-      dlong = node('dlong') << Meq.Selector(dll, index=0)
-      dlat = node('dlat') << Meq.Selector(dll, index=1)
-      tanaz = node('tanaz') << Meq.Divide(dlong, dlat)
-      node << Meq.Atan(tanaz)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
+    return self._station.azimuth(self._satellite, show=show)
 
   #-------------------------------------------------------
 
@@ -314,20 +296,6 @@ class GPSPair (Meow.Parameterization):
     self._station._show_subtree(node, show=show)
     return node
       
-  #-------------------------------------------------------
-
-  def longlat_diff(self, show=False):
-    """Return the [longtitude,latitude] difference between
-    its station and its satellite"""
-    name = 'longlat_diff'
-    node = self.ns[name]
-    if not node.initialized():
-      ll_stat = self._station.longlat()
-      ll_sat = self._satellite.longlat()
-      node << Meq.Subtract(ll_sat,ll_stat)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
-
   #-------------------------------------------------------
   #-------------------------------------------------------
 
@@ -434,14 +402,14 @@ if __name__ == '__main__':
       if 0:
         pair.elevation(show=True)
 
-      if 0: 
+      if 1: 
         pair.azimuth(show=True)
 
       if 0:
         pair.azel(show=True)
         pair.azel_complex(show=True)
 
-      if 1:
+      if 0:
         pair.zenith_angle(show=True)
 
       if 0:

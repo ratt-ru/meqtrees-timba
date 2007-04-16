@@ -138,6 +138,69 @@ class GeoLocation (Vector.Vector):
         
 
 
+  #=====================================================================
+  # Functions that require another GeoLocation object:
+  #=====================================================================
+
+  def longlat_diff(self, other, quals=[], show=False):
+    """Return the [longtitude,latitude] difference between
+    another GeoLocation node and itself."""
+    name = 'longlat_diff'
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['GeoLocation_dummy_qnode'])(*quals) 
+    if not qnode.initialized():
+      qnode << Meq.Subtract(other.longlat(), self.longlat())
+    self._show_subtree(qnode, show=show, recurse=4)
+    return qnode
+
+  #-------------------------------------------------------
+
+  def zenith_angle(self, other, quals=[], show=False):
+    """Return the zenith angle (node) of another GeoLocation,
+    as seen from itself."""
+    name = 'zenith_angle'
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['GeoLocation_dummy_qnode'])(*quals) 
+    if not qnode.initialized():
+      dxyz = other.binop('Subtract', self)
+      encl = self.enclosed_angle(dxyz)
+      qnode << Meq.Identity(encl)
+    self._show_subtree(qnode, show=show, recurse=4)
+    return qnode
+
+  #-------------------------------------------------------
+
+  def elevation(self, other, quals=[], show=False):
+    """Return the elevation angle (node) of another GeoLocation,
+    as seen from itself."""
+    name = 'elevation'
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['GeoLocation_dummy_qnode'])(*quals) 
+    if not qnode.initialized():
+      zang = self.zenith_angle(other, quals=quals)
+      qnode << Meq.Subtract(pi/2.0, zang)
+    self._show_subtree(qnode, show=show, recurse=4)
+    return qnode
+
+  #-------------------------------------------------------
+
+  def azimuth(self, other, quals=[], show=False):
+    """Return the azimuth angle (node) of another GeoLocation
+    as seen from itself."""
+    name = 'azimuth'
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+    qnode = self.ns[name].qmerge(other.ns['GeoLocation_dummy_qnode'])(*quals) 
+    if not qnode.initialized():
+      dll = self.longlat_diff(other, quals=quals)
+      dlong = qnode('dlong') << Meq.Selector(dll, index=0)
+      dlat = qnode('dlat') << Meq.Selector(dll, index=1)
+      tanaz = qnode('tanaz') << Meq.Divide(dlong, dlat)
+      qnode << Meq.Atan(tanaz)
+    self._show_subtree(qnode, show=show, recurse=4)
+    return qnode
+
+
+
 
 
 #===============================================================

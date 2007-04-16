@@ -126,10 +126,9 @@ class MIM (Meow.Parameterization):
     """Return its list of solvable parms (nodes), if any"""
     return self._solvable
 
-  #-------------------------------------------------------
 
   def inspector(self, bookpage='MIM', show=False):
-    """Make an insector node for the p-values:"""
+    """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
     if self._simulate:
       name = 'SimulParm'
     else:
@@ -143,8 +142,10 @@ class MIM (Meow.Parameterization):
     return qnode
 
 
-  #-------------------------------------------------------
-  #-------------------------------------------------------
+
+  #======================================================================
+  # The difficult bits.....
+  #======================================================================
 
   def effective_altitude(self):
     """Return the 'effective altitude' (km!) of the ionosphere.
@@ -152,34 +153,36 @@ class MIM (Meow.Parameterization):
     altitude, but rather a coupling parameter to relate longlat with z"""
     return self._effalt_km
 
+
   #-------------------------------------------------------
 
-  def longlat_pierce(self, show=False):
-    """Return the [longtitude,latitude] of the pierce point through
-    the ionsosphere, given an 'effective' (!) ionospheric altitude
-    (node/number) h (m)"""
+  def longlat_pierce(self, seenfrom, towards, show=False):
+    """Return the longlat (node) of the pierce point through this (MIM) ionsosphere,
+    as seen from the given GeoLocation, towards the other (usually a GPS satellite)."""
     name = 'longlat_pierce'
-    node = self.ns[name]                   # NB: different for different h!
-    if not node.initialized():
-      dll = self.longlat_diff()
-      alt_ionos = self.effective_altidude()
-      alt_sat = self._satellite.altitude()
-      fraction = node('fraction') << Meq.Divide(alt_ionos, alt_sat)
-      ll_shift = node('dll_pierce') << Meq.Multiply(dll, fraction)
-      ll_stat = self._station.longlat()
-      node << Meq.Add(ll_stat,ll_shift)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
+    qnode = self.ns[name]                       # NB: different for different h!
+    if not qnode.initialized():
+      dll = seenfrom.longlat_diff(towards)
+      alt_ionos = self.effective_altitude()     # ionospheric coupling parameter (h)....
+      alt_satellite = towards.altitude()
+      fraction = qnode('fraction') << Meq.Divide(alt_ionos, alt_satellite)
+      ll_shift = qnode('dll_pierce') << Meq.Multiply(dll, fraction)
+      qnode << Meq.Add(seenfrom.longlat(),ll_shift)
+    seenfrom._show_subtree(qnode, show=show, recurse=4)
+    return qnode
 
 
-  #---------------------------------------------------------------------
-  #---------------------------------------------------------------------
+
+
+  #======================================================================
+  # The main function:
+  #======================================================================
 
   def TEC(self, seenfrom=None, towards=None, show=False):
     """Return a node/subtree that predicts an integrated TEC value,
     as seen from the specified location (seenfrom==GeoLocation or None)
     in the direction of the specified (towards) location. The latter
-    may be a GeoLocation object, or ....
+    may be a GeoLocation object, or None (assume zenith direction).
     It first calculates the (long,lat) of the ionosphere piercing point,
     and the zenith angle (z). Then the vertical (z=0) TEC for the piercing
     (long,lat), which is then multiplied by a function S(z) that corrects
@@ -190,25 +193,27 @@ class MIM (Meow.Parameterization):
     name = 'TEC'
     qnode = self.ns[name]                                   
 
-    ll_from = None
+    # Check the first location (if any):
     if seenfrom==None:
+      qnode = qnode('refloc')
       ll_from = self._refloc.longlat()
-      qnode = self.ns[name]                              
     elif isinstance(seenfrom, GeoLocation.GeoLocation):
+      qnode = qnode.qmerge(seenfrom.ns['MIM_dummy_qnode'])  
       ll_from = seenfrom.longlat()
-      qnode = self.ns[name].qmerge(seenfrom.ns['MIM_dummy_qnode'])  
     else:
       s = 'MIM.TEC(): from should be a GeoLocation, not: '+str(type(seenfrom))
       raise ValueError,s
 
+    # Check the second location (if any):
     if towards==None:
       # Assume zenith direction:
+      qnode = qnode('zenith')
       ll_piercing = None
       z = None
     elif isinstance(towards, GeoLocation.GeoLocation):
-      # NB: Calculate zenith angle (z) and piercing longlat (ll_piercing)
-      ll_towards = towards.longlat()
-      ll_piercing = '...'
+      qnode = qnode.qmerge(towards.ns['MIM_dummy_qnode'])  
+      ll_piercing = self.longlat_pierce(seenfrom, towards)
+      z = seenfrom.zenith_angle(towards)
     else:
       s = 'MIM.TEC(): towards should be a GeoLocation, not: '+str(type(towards))
       raise ValueError,s
@@ -216,7 +221,7 @@ class MIM (Meow.Parameterization):
     # Only if not yet initialized:
     if not qnode.initialized():
       if ll_piercing:
-        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,ll_from)
+        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing, ll_from)
         dlong1 = qnode('dlong') << Meq.Selector(dlonglat, index=0)
         dlat1 = qnode('dlat') << Meq.Selector(dlonglat, index=1)
       else:
@@ -323,7 +328,7 @@ if __name__ == '__main__':
       sim = MIM(ns, ndeg=1, simulate=True)
       sim.display(full=True)
 
-      if 1:
+      if 0:
         sim.TEC(show=True)
 
       if 0:
@@ -332,25 +337,23 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------------------
 
-    if 0:
+    if 1:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0])
       pair = GPSPair.GPSPair (ns, station=st1, satellite=sat1)
       pair.display(full=True)
 
       if 0:
-        pair.zenith_angle(show=True)
-      
-      if 0:
-        ll_sat1 = sat1.longlat()
-        ll_st1 = st1.longlat()
-        longlat = mim.longlat_pierce(ll_st1, z=0, show=True)
-        node = mim.TEC(longlat, z=0.1, show=True)
-        node = sim.TEC(longlat, z=0.1, show=True)
+        sim.longlat_pierce(st1, sat1, show=True)
 
       if 0:
+        sim.TEC(st1, sat1, show=True)
+        # sim.TEC(st1, show=True)
+        # sim.TEC(show=True)
+
+      if 1:
         pair.mimTEC(sim, show=True)
-
+      
 
       
 #===============================================================

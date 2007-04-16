@@ -211,6 +211,7 @@ class SimulParm (Meow.Parameterization):
 
     def create(self, qual=None, show=False):
         """Create a subtree (node) with the specified qualifier(s)"""
+
         name = 'SimulParm'
         if not qual:
             qnode = self.ns[name]
@@ -218,7 +219,6 @@ class SimulParm (Meow.Parameterization):
             qnode = self.ns[name](*qual)
         else:
             qnode = self.ns[name](qual)
-        print '**** qnode =',str(qnode),qual
 
         for rr in self._def:
             if rr['mode']=='init':
