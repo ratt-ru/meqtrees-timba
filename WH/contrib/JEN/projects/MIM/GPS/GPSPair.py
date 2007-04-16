@@ -40,6 +40,27 @@ class GPSStation (GeoLocation.GeoLocation):
     return [self.TEC_bias()]
 
 
+  #-------------------------------------------------------
+
+  def mimTECz(self, mim, bookpage='MIM'):
+    """Make an insector node for the TEC values as a function of time,
+    for a range of different zenith-angles, as seen from the specified
+    longitude and latitude (longlat) position. Default longlat=[0,0]."""
+    name = 'mimTECz'
+    qnode = self.ns[name]
+    if not qnode.initialized():
+      longlat = mim.longlat_pierce()     # <---------- !!
+      cc = []
+      labels = []
+      for z in 0.1*array(range(6)):
+        labels.append('z='+str(z))
+        node = qnode(z) << self.TEC(longlat, z=z)
+        print '- z=',z,str(node)
+        cc.append(node)
+      qnode << Meq.Composer(children=cc, plot_label=labels)
+      JEN_bookmarks.create(qnode, name, page=bookpage,
+                           viewer='Collections Plotter')
+    return qnode
 
 
 
@@ -198,7 +219,8 @@ class GPSPair (Meow.Parameterization):
     from the given (simulated) MIM object"""
     node = self.ns['mimTEC']
     if not node.initialized():
-      TEC = mim.TEC(self.longlat_pierce(),
+      h = mim.effective_altitude()
+      TEC = mim.TEC(self.longlat_pierce(h=h),
                     self.zenith_angle())
       node << Meq.Add(TEC, self._station.TEC_bias(),
                       self._satellite.TEC_bias())
@@ -305,24 +327,6 @@ class GPSPair (Meow.Parameterization):
       node << Meq.Subtract(ll_sat,ll_stat)
     self._station._show_subtree(node, show=show, recurse=4)
     return node
-
-  #-------------------------------------------------------
-
-  def longlat_pierce(self, h=3e5, show=False):
-    """Return the [longtitude,latitude] of the pierce point through
-    the ionsosphere, given an ionospheric altitude (node/number) h (m)"""
-    name = 'longlat_pierce'
-    node = self.ns[name]
-    if not node.initialized():
-      dll = self.longlat_diff()
-      alt_sat = self._satellite.altitude()
-      fraction = node('fraction') << Meq.Divide(h, alt_sat)
-      ll_shift = node('dll_pierce') << Meq.Multiply(dll, fraction)
-      ll_stat = self._station.longlat()
-      node << Meq.Add(ll_stat,ll_shift)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
-
 
   #-------------------------------------------------------
   #-------------------------------------------------------
@@ -442,9 +446,6 @@ if __name__ == '__main__':
 
       if 0:
         pair.longlat_diff(show=True)
-
-      if 0:
-        pair.longlat_pierce(show=True)
 
       if 0:
         pair.solvable(tags='*', show=True)

@@ -23,7 +23,7 @@ class GPSArray (Meow.Parameterization):
   as a function of Earth (longitude,latitude) and
   zenith angle."""
   
-  def __init__(self, ns, name='gpa',
+  def __init__(self, ns, name='gparr',
                nstat=2, nsat=3,
                longlat=[1.0,0.5],
                stddev=dict(stat=[0.1,0.1],
@@ -53,6 +53,8 @@ class GPSArray (Meow.Parameterization):
       rr['longlat'].append(longlat)
     self._station = rr
       
+
+
     # Define GPS satellites:
     rr = dict(name=[], obj=[], longlat=[], stddev=stddev['sat'],
               plot=dict(color='red', style='triangle'))
@@ -74,6 +76,8 @@ class GPSArray (Meow.Parameterization):
       else:
         sign['direction'] *= -1
     self._satellite = rr
+
+
 
     # Define station-satellite pairs:
     rr = dict(name=[], sat=[], stat=[], obj=[],
@@ -98,7 +102,7 @@ class GPSArray (Meow.Parameterization):
     ss = str(type(self))
     ss += '  '+str(self.name)
     ss += '  nstat='+str(len(self._station['obj']))
-    ss += '  longlat='+str(self._longlat0)
+    ss += '  longlat0='+str(self._longlat0)
     ss += '  nsat='+str(len(self._satellite['obj']))
     ss += '  npair='+str(len(self._pair['obj']))
     return ss
@@ -129,6 +133,20 @@ class GPSArray (Meow.Parameterization):
     print '    * plotting: '+str(self._pair['plot'])
     print
     return True
+
+
+  #-------------------------------------------------------
+
+  def longlat0(self, show=False):
+    """Return the (long,lat) node for the array reference position"""
+    name = 'longlat0'
+    qnode = self.ns[name]
+    if not qnode.initialized():
+      lo = qnode('longitude') << Meq.Constant(self._longlat0[0])
+      la = qnode('latitude') << Meq.Constant(self._longlat0[1])
+      qnode << Meq.Composer(lo,la)
+    if show: display.subtree(qnode)
+    return qnode
 
 
   #-------------------------------------------------------
@@ -338,6 +356,9 @@ if __name__ == '__main__':
                                sat=[0.5,0.5]),
                    move=True)
     gpa.display(full=True)
+
+    if 1:
+      gpa.longlat0(show=True)
 
     if 0:
       node = gpa.rvsi_longlat()

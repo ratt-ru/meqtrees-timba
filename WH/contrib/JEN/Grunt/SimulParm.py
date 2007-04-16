@@ -144,7 +144,14 @@ class SimulParm (Meow.Parameterization):
 
     def _make_subtree(self, rr, qual=[], show=False):
         """Make the subtree specified by rr"""
-        qnode = self.ns[rr['qual']](qual)
+
+        name = rr['qual']
+        if not qual:
+            qnode = self.ns[name]
+        elif isinstance(qual,(list,tuple)):
+            qnode = self.ns[name](*qual)
+        else:
+            qnode = self.ns[name](qual)
         if qnode.initialized(): return qnode
 
         # Make the cosine argument: 2pi*((t/Psec)+(f/PHz))
@@ -204,12 +211,14 @@ class SimulParm (Meow.Parameterization):
 
     def create(self, qual=None, show=False):
         """Create a subtree (node) with the specified qualifier(s)"""
-        if qual==None:
-            qnode = self.ns['SimulParm']
+        name = 'SimulParm'
+        if not qual:
+            qnode = self.ns[name]
         elif isinstance(qual,(list,tuple)):
-            qnode = self.ns['SimulParm'](*qual)
+            qnode = self.ns[name](*qual)
         else:
-            qnode = self.ns['SimulParm'](qual)
+            qnode = self.ns[name](qual)
+        print '**** qnode =',str(qnode),qual
 
         for rr in self._def:
             if rr['mode']=='init':
@@ -335,7 +344,8 @@ if __name__ == '__main__':
     # sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
     # sp1.binop()
     sp1.display()
-    sp1.create()
+    sp1.create(qual=[], show=True)
+    # sp1.create(show=True)
     # sp1.next()
     # sp1.next()
     # sp1.next()
