@@ -6,6 +6,7 @@ from Timba.Meq import meq
 import Meow
 import GPSPair
 
+from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
 from numarray import *
 
@@ -36,13 +37,31 @@ class MIM (Meow.Parameterization):
       s = 'MIM ndeg should be int or list of two ints, rather than: '+str(self._ndeg)
       raise ValueError,s
 
+    self._simulate = simulate
+    self._SimulParm = []
+    self._solvable = []
     self._pname = []
+    self._usedval = dict()
     for i in range(self._ndeg[0]+1):
       for j in range(self._ndeg[1]+1):
         pname = 'p'+str(i)+str(j)
-        if not pname in self._pname:
-          self._add_parm(pname, Meow.Parm(), tags=['MIM'])
+        if not pname in self._pname:               # avoid duplication of diagonal (j=i)
           self._pname.append(pname)
+          if self._simulate:
+            # Make simulated parms (subtrees) with average value of zero,
+            # but with a cosine time-variation with given ampl and period.
+            # The latter may be randomized with a given stddev.
+            term = dict(ampl=1.0/(1.0+i+j), Psec=1000,
+                        stddev=dict(ampl=0.1, Psec=100))
+            sp = SimulParm.SimulParm(ns, pname, value=0.0, term=term)
+            self._SimulParm.append(sp)             # SimulParm objects          
+            node = sp.create()  
+            self._add_parm(pname, node, tags=['MIM'])
+            self._usedval[pname] = sp._usedval     # actually used simulation values
+          else:
+            # Make a regular MeqParm:
+            self._add_parm(pname, Meow.Parm(), tags=['MIM'])
+            self._solvable.append(self._parm(pname))
 
     return None
 
@@ -52,14 +71,31 @@ class MIM (Meow.Parameterization):
   def oneliner (self):
     ss = 'MIM: '+str(self.name)
     ss += '  ndeg='+str(self._ndeg)
+    if self._simulate:
+      ss += '  (simulated)'
     return ss
   
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
-    print '  * pp: '+str(self._pname)
+    print '  * pname: '+str(self._pname)
+    print '  * solvable ('+str(len(self._solvable))+'):'
+    for k,p in enumerate(self._solvable):
+      print '   - '+str(k)+': '+str(p)
+    for k,sp in enumerate(self._SimulParm):
+      print '   - '+str(k)+': '+sp.oneliner()
+    print '  * Actually used simulation values:'
+    for key in self._pname:
+      if self._usedval.has_key(key):
+        print '   - '+str(key)+': '+str(self._usedval[key])
     print
     return True
+
+  #-------------------------------------------------------
+
+  def solvable(self, tags='*'):
+    """Return its list of solvable parms (nodes), if any"""
+    return self._solvable
 
   #-------------------------------------------------------
 
@@ -73,18 +109,18 @@ class MIM (Meow.Parameterization):
     the curvature of the Earth. In all cases, S(z=0)=1."""
 
     name = 'TEC'
-    node = self.ns[name].qadd(longlat)
-    if not node.initialized(): 
+    qnode = self.ns[name].qadd(longlat)                              # <--------- !!
+    if not qnode.initialized(): 
 
       # First make powers of long/lat
-      long1 = node('pierce_long') << Meq.Selector(longlat, index=0)
-      lat1 = node('pierce_lat') << Meq.Selector(longlat, index=1)
+      long1 = qnode('pierce_long') << Meq.Selector(longlat, index=0)
+      lat1 = qnode('pierce_lat') << Meq.Selector(longlat, index=1)
       llong = [None, long1]
       llat = [None, lat1]
       for k in range(2,self._ndeg[0]+1):
-        llong.append(node('long^'+str(k)) << Meq.Multiply(llong[k-1],long1))
+        llong.append(qnode('long^'+str(k)) << Meq.Multiply(llong[k-1],long1))
       for k in range(2,self._ndeg[1]+1):
-        llat.append(node('lat^'+str(k)) << Meq.Multiply(llat[k-1],lat1))
+        llat.append(qnode('lat^'+str(k)) << Meq.Multiply(llat[k-1],lat1))
 
       # Then make the various polynomial terms, and add them:
       cc = []
@@ -94,27 +130,29 @@ class MIM (Meow.Parameterization):
         p = self._parm(pname)
         tname = 'term'+pname[1:3]
         if i>0 and j>0:
-          n = node(tname) << Meq.Multiply(p,llong[i],llat[j])
+          n = qnode(tname) << Meq.Multiply(p,llong[i],llat[j])
         elif i>0:
-          n = node(tname) << Meq.Multiply(p,llong[i])
+          n = qnode(tname) << Meq.Multiply(p,llong[i])
         elif j>0:
-          n = node(tname) << Meq.Multiply(p,llat[j])
+          n = qnode(tname) << Meq.Multiply(p,llat[j])
         else:
-          n = node(tname) << Meq.Identity(p)
+          n = qnode(tname) << Meq.Identity(p)
         cc.append(n)
 
       # Multiply with S(z), if required:
       if z==None:
-        node << Meq.Add(children=cc)    # zenith direction, not required
+        qnode << Meq.Add(children=cc)    # zenith direction, not required
       else:
-        TEC0 = node('z=0') << Meq.Add(children=cc)
-        cosz = node('cosz') << Meq.Cos(z)
-        node << Meq.Divide(TEC0, cosz)
+        TEC0 = qnode('z=0') << Meq.Add(children=cc)
+        cosz = qnode('cosz') << Meq.Cos(z)
+        qnode << Meq.Divide(TEC0, cosz)
 
     # Finished:
     if show:
-      display.subtree(node, recurse=6, show_initrec=False)
-    return node
+      display.subtree(qnode, recurse=6, show_initrec=False)
+    return qnode
+
+
 
 
 
@@ -162,12 +200,12 @@ if __name__ == '__main__':
     mim.display(full=True)
 
     if 1:
-      sim = MIM(ns, 'simul', ndeg=1, solvable=False)
+      sim = MIM(ns, 'simul', ndeg=1, simulate=True)
       sim.display(full=True)
 
     #-----------------------------------------------------------------------
 
-    if 1:
+    if 0:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], radius=8e6)
       pair = GPSPair.GPSPair (ns, station=st1, satellite=sat1)

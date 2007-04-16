@@ -17,7 +17,7 @@ import Meow
 
 from Timba.Contrib.JEN.Grunt import display 
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 # from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
@@ -25,6 +25,7 @@ import random
 import math
 
 
+Settings.forest_state.cache_policy = 100
 
 
 #==========================================================================
@@ -37,8 +38,10 @@ class SimulParm (Meow.Parameterization):
     """Class that representes a subtree that simulates the behaviour of a
     MeqParm node."""
 
-    def __init__(self, ns, name, quals=[], kwquals={},
+    def __init__(self, ns, name,
                  value=0.0, stddev=0.0,
+                 quals=[], kwquals={},
+                 factor=None, term=None,
                  color='blue', style='circle', size=8, pen=2,
                  descr=None, tags=[]):
 
@@ -46,8 +49,21 @@ class SimulParm (Meow.Parameterization):
                                        quals=quals, kwquals=kwquals)
 
         self._def = [dict(mode='init', value=value, stddev=stddev, qual='init')]
-        self._counter = dict(index=0)
+        self._counter = dict(index=-1)
+        self._usedval = dict()        
         self._index = 0
+
+        # There is a limited possibility to specify the SimulParm behaviour
+        # in the constructor, e.g. by factor=dict(ampl=0.4, Psec=300) etc
+        # Note that one may EITHER specify a factor or a term, but not both.
+        # This is to avoid any confsion about the order.
+        # For more complicated bahaviour, use the factor() or term() functions
+        # explicitly.
+        if isinstance(factor,dict):
+            self.factor(**factor)
+        elif isinstance(term,dict):
+            self.term(**term)
+        
         return None
                 
     #-------------------------------------------------------------------
@@ -79,17 +95,33 @@ class SimulParm (Meow.Parameterization):
 
     #-------------------------------------------------------------------
 
-    def factor(self, ampl=1.0, Psec=None, PHz=None, phase=0.0, stddev=None):
-        """Attach a time-dependent factor to the subtree"""
-        rr = dict(mode='factor', ampl=ampl, Psec=Psec, PHz=PHz,
-                  phase=phase, stddev=stddev)
+    def factor(self, **rr):
+        """Attach a time/freq-dependent factor to the subtree"""
+        if not isinstance(rr, dict):
+            s1 = '.factor(rr): rr should be a dict, not: '+str(type(rr))
+            raise ValueError,s1
+        rr['mode'] = 'factor'
+        rr.setdefault('ampl', 1.0)
+        rr.setdefault('Psec', None)
+        rr.setdefault('PHz', None)
+        rr.setdefault('phase', 0.0)
+        rr.setdefault('stddev', None)
         return self.append(rr)
 
-    def term(self, ampl=1.0, Psec=None, PHz=None, phase=0.0, stddev=None):
-        """Attach a time-dependent factor to the subtree"""
-        rr = dict(mode='term', ampl=ampl, Psec=Psec, PHz=PHz,
-                  phase=phase, stddev=stddev)
+
+    def term(self, **rr):
+        """Attach a time/freq-dependent term to the subtree"""
+        if not isinstance(rr, dict):
+            s1 = '.term(rr): rr should be a dict, not: '+str(type(rr))
+            raise ValueError,s1
+        rr['mode'] = 'term'
+        rr.setdefault('ampl', 1.0)
+        rr.setdefault('Psec', None)
+        rr.setdefault('PHz', None)
+        rr.setdefault('phase', 0.0)
+        rr.setdefault('stddev', None)
         return self.append(rr)
+
 
     def binop (self, binop='Add', node=None):
         """Attach the given subtree (node) by means of the specified binary
@@ -102,12 +134,15 @@ class SimulParm (Meow.Parameterization):
     def _get_value(self, name, rr):
         """Helper function"""
         if not isinstance(rr['stddev'],dict): rr['stddev'] = dict()
-        value = rr[name]
+        value = deepcopy(rr[name])
         if rr['stddev'].has_key(name):
             value = random.gauss(value, rr['stddev'][name])
+        self._usedval[name] = value
         return value
 
-    def _make_subtree(self, rr, qual=[]):
+    #...................................................................
+
+    def _make_subtree(self, rr, qual=[], show=False):
         """Make the subtree specified by rr"""
         qnode = self.ns[rr['qual']](qual)
         if qnode.initialized(): return qnode
@@ -143,7 +178,9 @@ class SimulParm (Meow.Parameterization):
         qnode << Meq.Multiply(ampl,cosarg)
 
         # Finished:
-        if True: display.subtree(qnode)
+        if show:
+            display.subtree(qnode)
+        # print '** SimulParm:',self.name,': _usedval=',self._usedval
         return qnode
 
     #-------------------------------------------------------------------
@@ -159,14 +196,21 @@ class SimulParm (Meow.Parameterization):
 
         
     def next(self):
-        """Create a another subtree with an automatically increased index"""
+        """Create a another subtree (node) with an automatically increased index/qual.
+        If stddev has been defined, the control values will be varied accordingly."""
         self._counter['index'] += 1
         return self.create(qual=self._counter['index'])
     
 
-    def create(self, qual=[]):
-        """Create a subtree with the specified qualifier(s)"""
-        qnode = self.ns['SimulParm'](qual)
+    def create(self, qual=None, show=False):
+        """Create a subtree (node) with the specified qualifier(s)"""
+        if qual==None:
+            qnode = self.ns['SimulParm']
+        elif isinstance(qual,(list,tuple)):
+            qnode = self.ns['SimulParm'](*qual)
+        else:
+            qnode = self.ns['SimulParm'](qual)
+
         for rr in self._def:
             if rr['mode']=='init':
                 value = random.gauss(rr['value'], rr['stddev'])
@@ -182,83 +226,9 @@ class SimulParm (Meow.Parameterization):
             else:
                 pass
         qnode << Meq.Identity(curr)
-        display.subtree(qnode)
+        if show: display.subtree(qnode)
         return qnode
     
-
-    #-------------------------------------------------------------------
-
-
-    def create_member (self, quals=None):
-        """Create an entry, i.e. a simulation subtree, that simulates
-        a MeqParm node that varies with time and/or frequency, and append
-        it to the nodelist"""
-
-        # print '\n** create_member(',quals,'):',self.oneliner(),'\n'
-
-        ns = self._ns._derive(append=quals, prepend=self._basename)
-
-        pp = self._simul                                    # Convenience
-            
-        # Expression used:
-        #  default + fampl*cos(2pi*time/Psec) + tampl*cos(2pi*freq/PHz),
-        #  where tampl, Psec, fsec, PHz may all vary from node to node.
-
-        # The default value is the one that would be used for a regular
-        # (i.e. un-simulated) MeqParm in a ParmGroup (see above) 
-        default_value = ns.default_value << Meq.Constant(pp['default_value'])
-
-
-        # Calculate the time variation:
-        time_variation = None
-        if pp['Psec']>0.0:
-            tvar = ns.time_variation
-            ampl = 0.0
-            if pp['stddev']:                                # variation of the default value
-                stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
-                ampl = random.gauss(ampl, stddev)
-            ampl = tvar('ampl') << Meq.Constant(ampl)
-            Psec = pp['Psec']                               # variation period (sec)
-            if pp['Psec_stddev']:
-                stddev = pp['Psec_stddev']*pp['Psec']       # NB: Psec_stddev is relative
-                Psec = random.gauss(pp['Psec'], stddev) 
-            Psec = tvar('Psec') << Meq.Constant(Psec)
-            time = ns.time << Meq.Time()
-            # time = ns << (time - 4e9)                     # ..........?
-            pi2 = 2*math.pi
-            costime = tvar('cos') << Meq.Cos(pi2*time/Psec)
-            time_variation = tvar << Meq.Multiply(ampl,costime)
-
-        # Calculate the freq variation:
-        freq_variation = None
-        if pp['PMHz']>0.0:
-            fvar = ns.freq_variation 
-            ampl = 0.0
-            if pp['stddev']:                                # variation of the default value
-                stddev = pp['stddev']*pp['scale']           # NB: pp['stddev'] is relative
-                ampl = random.gauss(ampl, stddev)
-            ampl = fvar('ampl') << Meq.Constant(ampl)
-            PMHz = pp['PMHz']                               # variation period (MHz)
-            if pp['PMHz_stddev']:
-                stddev = pp['PMHz_stddev']*pp['PMHz']       # NB: PMHz_stddev is relative
-                PMHz = random.gauss(pp['PMHz'], stddev) 
-            PHz = PMHz*1e6                                  # convert to Hz
-            PHz = fvar('PHz') << Meq.Constant(PHz)
-            freq = ns.freq << Meq.Freq()
-            pi2 = 2*math.pi
-            cosfreq = fvar('cos') << Meq.Cos(pi2*freq/PHz)
-            freq_variation = fvar << Meq.Multiply(ampl,cosfreq)
-
-        # Add the time/freq variation to the default value:
-        cc = [default_value]
-        if freq_variation: cc.append(freq_variation)
-        if time_variation: cc.append(time_variation)
-        ns = self._ns._derive(append=quals)
-        node = ns[self._basename] << Meq.Add(children=cc, tags=self._tags)
-
-        # Append the new node to the internal nodelist:
-        self.append_member(node)
-        return node
 
 
 
@@ -274,30 +244,54 @@ class SimulParm (Meow.Parameterization):
 #===============================================================
 
 def _define_forest(ns):
-
+    
     cc = []
+    
+    # Make a list of subtrees created by SimulParm objects:
+    sp = []
+    spnames = []
+    pnames = []
+    for i in range(3):
+        spname = 'sp'+str(i)
+        spnames.append(spname)
+        pnames.append('p'+str(i))            # used for solver below
+        sp1 = SimulParm(ns, spname)
+        sp1.term(Psec=100+10*i, PHz=None, stddev=dict(ampl=0.1*i, Psec=i))
+        ## sp1.factor(Psec=None, PHz=10000000, stddev=dict(ampl=0.1*i, Psec=i))
+        sp.append(sp1.create())              # list of (subtree) nodes
+        sp1.display()
+    cc.append(ns.SimulParm << Meq.Composer(children=sp, plot_label=spnames))
+    bookpage = 'parms'
+    JEN_bookmarks.create(ns.SimulParm, page=bookpage, viewer='Collections Plotter')
 
-    pg1 = ParmGroup(ns, 'pg1', rider=dict(matrel='m21'))
-    pg1.test()
-    cc.append(pg1.visualize())
-    nn1 = pg1.nodelist()
-    print 'nn1 =',nn1
 
-    pg2 = SimulatedParmGroup(ns, 'pg2')
-    pg2.test()
-    cc.append(pg2.visualize())
-    nn2 = pg2.nodelist()
-    print 'nn2 =',nn2
+    if True:
+        # 'Misuse' the last sp1 object to create the MeqParm counterparts
+        # of the SumulParm subtrees:
+        pp = []
+        for pname in pnames:
+            sp1._add_parm(pname, Meow.Parm(), tags=['test'])
+            pp.append(sp1._parm(pname))
 
-    condeqs = []
-    for i in range(len(nn1)):
-        print '- i =',i
-        condeqs.append(ns.condeq(i) << Meq.Condeq(nn1[i],nn2[i]))
-    solver = ns.solver << Meq.Solver(children=condeqs, solvable=nn1)
-    JEN_bookmarks.create(solver, page='solver')
-    cc.append(solver)
-        
+        # The condeqs compare the SimulParms and their counterparts:
+        condeqs = []
+        labels = []
+        for i in range(len(pp)):
+            labels.append(pnames[i]+'_'+spnames[i])
+            condeqs.append(ns.condeq(i) << Meq.Condeq(pp[i],sp[i]))
 
+        # Make the solver:
+        solver = ns.solver << Meq.Solver(children=condeqs, solvable=pp)
+
+        # Bundle the solver and its associated visualisers with a reqseq:
+        rsc = [solver]
+        rsc.append(ns.Condeqs << Meq.Composer(children=condeqs, plot_label=labels))
+        rsc.append(ns.Parm << Meq.Composer(children=pp, plot_label=pnames))
+        cc.append(ns.solver_reqseq << Meq.ReqSeq(children=rsc))
+
+        JEN_bookmarks.create(solver, page=bookpage)
+        JEN_bookmarks.create(ns.Condeqs, page=bookpage, viewer='Collections Plotter')
+        JEN_bookmarks.create(ns.Parm, page=bookpage, viewer='Collections Plotter')
 
 
     ns.result << Meq.Composer(children=cc)
@@ -307,11 +301,23 @@ def _define_forest(ns):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
+    domain = meq.domain(1.0e8,1.1e8,1,100)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=100)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
+       
+def _tdl_job_sequence (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    for t in range(-5,5):
+      t1 = t                      
+      t2 = t1+1
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)                           # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=1, num_time=3)
+      request = meq.request(cells, rqid=meq.requestid(t+100))
+      result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
        
 
 
@@ -323,12 +329,14 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     sp1 = SimulParm(ns, 'sp1')
+    # sp1 = SimulParm(ns, 'sp1', factor=dict(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100)))
     # print sp1.oneliner()
-    # sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
-    sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
+    sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
+    # sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
     # sp1.binop()
     sp1.display()
-    sp1.next()
+    sp1.create()
+    # sp1.next()
     # sp1.next()
     # sp1.next()
 
