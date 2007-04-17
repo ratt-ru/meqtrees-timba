@@ -352,6 +352,7 @@ MeqInterpolate                   1662       ; from /home/sarod/LOFAR/Timba/MeqNo
 #MeqLMRaDec                      1696       ; from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:29
 #MeqLog                          1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
 MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
+#MeqLST                          1726       ; from /home/twillis/Timba/MeqNodes/src/LST.h:49
 #MeqMatrixInvert22               1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
 #MeqMatrixMultiply               1516       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
 #MeqMax                          1452       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
