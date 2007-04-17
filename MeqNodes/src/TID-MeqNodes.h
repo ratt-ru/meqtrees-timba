@@ -787,6 +787,25 @@ namespace Meq { class LMRaDec; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqLST
+#define _defined_id_TpMeqLST 1
+const DMI::TypeId TpMeqLST(-1726);                // from /home/twillis/Timba/MeqNodes/src/LST.h:49
+const int TpMeqLST_int = -1726;
+namespace Meq { class LST; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::LST> : public TypeTraits<Meq::LST>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqLST_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::LST & ContainerReturnType;
+                typedef const Meq::LST & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqLog
 #define _defined_id_TpMeqLog 1
 const DMI::TypeId TpMeqLog(-1397);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29

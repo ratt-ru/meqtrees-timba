@@ -528,6 +528,11 @@ const int AidMeqLMN_int = -1410;
 const DMI::AtomicID AidMeqLMRaDec(-1696);         // from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:29
 const int AidMeqLMRaDec_int = -1696;
 #endif
+#ifndef _defined_id_AidMeqLST
+#define _defined_id_AidMeqLST 1
+const DMI::AtomicID AidMeqLST(-1726);             // from /home/twillis/Timba/MeqNodes/src/LST.h:49
+const int AidMeqLST_int = -1726;
+#endif
 #ifndef _defined_id_AidMeqLog
 #define _defined_id_AidMeqLog 1
 const DMI::AtomicID AidMeqLog(-1397);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29

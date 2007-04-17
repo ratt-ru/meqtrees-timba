@@ -119,7 +119,8 @@
         Do(Meq::MinLocation,arg) separator \
         Do(Meq::RADec,arg) separator \
         Do(Meq::ObjectRADec,arg) separator \
-        Do(Meq::CoordTransform,arg)
+        Do(Meq::CoordTransform,arg) separator \
+        Do(Meq::LST,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         
