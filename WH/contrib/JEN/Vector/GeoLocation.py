@@ -6,6 +6,7 @@ from Timba.Meq import meq
 # from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Vector import Vector
 from numarray import *
+from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
 
@@ -13,7 +14,7 @@ Settings.forest_state.cache_policy = 100
 
 class GeoLocation (Vector.Vector):
   """Represents a location Vector (X,Y,Z) w.r.t. the Earth centre,
-  which may or may not lie on the Earth surface. Unit in meters.
+  which may or may not lie on the Earth surface. Unit in km.
   The Earth axis is the Z-axis, with North positive.
   The positive Y-axis intersects the Greenwich meridian.
   For a vector magnitude R, we have the following definitions:
@@ -24,7 +25,7 @@ class GeoLocation (Vector.Vector):
 
   def __init__(self, ns, name,
                longlat=None, radius=None,
-               xyz=[],
+               xyz=[], nelem=3,
                quals=[],kwquals={},
                tags=[], solvable=False):
 
@@ -61,7 +62,8 @@ class GeoLocation (Vector.Vector):
         xyz = [X,Y,Z]
 
 
-    Vector.Vector.__init__(self, ns=ns, name=name, elem=xyz,
+    Vector.Vector.__init__(self, ns=ns, name=name,
+                           elem=xyz, nelem=3,
                            quals=quals, kwquals=kwquals,
                            tags=tags, solvable=solvable,
                            typename='GeoLocation',
@@ -162,7 +164,7 @@ class GeoLocation (Vector.Vector):
     if not isinstance(quals,(list,tuple)): quals = [quals]
     qnode = self.ns[name].qmerge(other.ns['GeoLocation_dummy_qnode'])(*quals) 
     if not qnode.initialized():
-      dxyz = other.binop('Subtract', self)
+      dxyz = other.binop('Subtract', self) 
       encl = self.enclosed_angle(dxyz)
       qnode << Meq.Identity(encl)
     self._show_subtree(qnode, show=show, recurse=4)
@@ -198,6 +200,41 @@ class GeoLocation (Vector.Vector):
       qnode << Meq.Atan(tanaz)
     self._show_subtree(qnode, show=show, recurse=4)
     return qnode
+
+
+  #=============================================================================
+
+  def newObject (self, xyz, name=None, localname='local',
+                 quals=[], other=None, show=False):
+    """Makes another GeoLocation object from itself, but using the given
+    tensor node (xyz) as input. This function is a reimplementation of the
+    one in the Vector class, from which GeoLocation is derived."""
+
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+
+    if isinstance(name, str):
+      # Name is specified: make a new start (ns0, quals):
+      obj = GeoLocation(self.ns0, name, xyz=xyz, quals=quals)
+      
+    elif isinstance(other, Vector.Vector):
+      qq = deepcopy(list(other.ns['GeoLocation_dummy_qnode'].quals))
+      qq.extend(quals)
+      obj = GeoLocation(self.ns, localname, xyz=xyz, quals=qq)
+
+    elif is_node(other):
+      qq = deepcopy(list(other.quals))
+      qq.extend(quals)
+      obj = GeoLocation(self.ns, localname, xyz=xyz, quals=qq)
+
+    else:
+      qq = [str(other)]
+      qq.extend(quals)
+      obj = GeoLocation(self.ns, localname, xyz=xyz, quals=qq)
+
+    if show:
+      obj.list(show=True)
+      obj._show_subtree(obj.node(), show=show)
+    return obj
 
 
 
@@ -248,12 +285,25 @@ if __name__ == '__main__':
       print g1.oneliner()
 
       if 0:
+        if isinstance(g1, GeoLocation):
+          print 'g1 is a GeoLocation object'
+        if isinstance(g1, Vector.Vector):
+          print 'g1 is a Vector object'
+
+      if 1:
+        # other = v2
+        other = ns['other']('qual') << Meq.Constant(56)
+        other = 78
+        g4 = g1.binop('Add', other, name='xxx', show=True)
+        print g4.oneliner()
+
+      if 0:
         xyz = g1.node(show=True)
 
       if 0:
         g1.longlat(show=True)
 
-      if 1:
+      if 0:
         g1.longlat_complex(show=True)
 
       if 0:

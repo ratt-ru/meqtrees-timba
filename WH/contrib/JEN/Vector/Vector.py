@@ -270,14 +270,16 @@ class Vector (Meow.Parameterization):
   #---------------------------------------------------------------------
 
   def binop (self, binop, other, name=None, quals=[], show=False):
-    """Returns another Vector object which is the result of the specified
-    binary operation (e.g. binop='Subtract') between itself and another Vector"""
+    """Returns another object of the same type, which is the result of the specified
+    binary operation (e.g. binop='Subtract') between itself and another Vector object.
+    """
+    
     self.commensurate(other, severe=False)
 
     if not isinstance(quals,(list,tuple)): quals = [quals]
 
     if isinstance(other, Vector):
-      qnode = self.ns[binop].qmerge(other.ns['Vector_dummy_qnode'])(*quals)       # <-----!!
+      qnode = self.ns[binop].qmerge(other.ns['Vector_dummy_qnode'])(*quals)  
       if not qnode.initialized():
         qnode << getattr(Meq,binop)(self.node(),other.node())
     elif is_node(other):
@@ -291,42 +293,54 @@ class Vector (Meow.Parameterization):
         qnode << getattr(Meq,binop)(self.node(),other)
 
     self._show_subtree(qnode, show=show)
-      
-    # Make a new Vector object:
+    return self.newObject (qnode, name=name, localname=binop,
+                           quals=quals, other=other, show=show)
+
+
+  #=============================================================================
+
+  def newObject (self, xyz, name=None, localname='local',
+                 quals=[], other=None, show=False):
+    """Makes another Vector object from itself, but using the given
+    tensor node (xyz) as input. This function must be reimplemented
+    in classes that are derived from Vector (e.g. GeoLocation)"""
+
+    if not isinstance(quals,(list,tuple)): quals = [quals]
+
     if isinstance(name, str):
       # Name is specified: make a new start (ns0, quals):
-      vout = Vector(self.ns0, name,
-                    elem=qnode, nelem=self.len(),
-                    quals=quals,
-                    axes=self._axes)
+      obj = Vector(self.ns0, name,
+                   elem=xyz, nelem=self.len(),
+                   quals=quals,
+                   axes=self._axes)
       
     elif isinstance(other, Vector):
       qq = deepcopy(list(other.ns['Vector_dummy_qnode'].quals))
       qq.extend(quals)
-      vout = Vector(self.ns, binop,
-                    elem=qnode, nelem=self.len(),
-                    quals=qq,
-                    axes=self._axes)
+      obj = Vector(self.ns, localname,
+                   elem=xyz, nelem=self.len(),
+                   quals=qq,
+                   axes=self._axes)
 
     elif is_node(other):
       qq = deepcopy(list(other.quals))
       qq.extend(quals)
-      vout = Vector(self.ns, binop,
-                    elem=qnode, nelem=self.len(),
-                    quals=qq,
-                    axes=self._axes)
+      obj = Vector(self.ns, localname,
+                   elem=xyz, nelem=self.len(),
+                   quals=qq,
+                   axes=self._axes)
     else:
       qq = [str(other)]
       qq.extend(quals)
-      vout = Vector(self.ns, binop,
-                    elem=qnode, nelem=self.len(),
-                    quals=qq,
-                    axes=self._axes)
+      obj = Vector(self.ns, localname,
+                   elem=xyz, nelem=self.len(),
+                   quals=qq,
+                   axes=self._axes)
 
     if show:
-      vout.list(show=True)
-      self._show_subtree(vout.node(), show=show)
-    return vout
+      obj.list(show=True)
+      self._show_subtree(obj.node(), show=show)
+    return obj
 
 
 
@@ -385,13 +399,13 @@ if __name__ == '__main__':
     v2 = Vector(ns, 'v2', [1,2,3], unit='m')
     print v2.oneliner()
 
-    if 0:
+    if 1:
       other = v2
       other = ns['other']('qual') << Meq.Constant(56)
       other = 78
       v4 = v1.binop('Add', other, name='xxx', show=True)
       
-    if 1:
+    if 0:
       node = v1.enclosed_angle(v2, show=True)
 
     if 0:
