@@ -92,7 +92,7 @@ class GPSArray (Meow.Parameterization):
         rr['stat'].append(stat)
         rr['obj'].append(obj)
     self._pair = rr
-
+    self._longlat_pierce = []
 
     return None
 
@@ -158,17 +158,28 @@ class GPSArray (Meow.Parameterization):
     name = 'mimTEC'
     qnode = self.ns[name]
     if not qnode.initialized():
+      self._longlat_pierce = []
       cc =[]
       labels = []
       for pair in self._pair['obj']:
-        print '    - '+pair.oneliner()
         labels.append(pair.name)
         cc.append(pair.mimTEC(mim))
+
+        # The following is an innocent kludge, used for rvsi plotting
+        pnode = qnode(pair.name)
+        llp = pair._longlat_pierce    # obtained via pair.mimTEC(mim)
+        lo = pnode('pierce_longitude') << Meq.Selector(llp, index=0)
+        lat = pnode('pierce_latitude') << Meq.Selector(llp, index=1)
+        longlat = pnode('pierce_longlat_complex') << Meq.ToComplex(lo,lat)
+        self._longlat_pierce.append(longlat)
+
       qnode << Meq.Composer(children=cc, plot_label=labels)
       JEN_bookmarks.create(qnode, page=bookpage,
                            viewer='Collections Plotter')
     if show: display.subtree(qnode, recurse=5)
     return qnode
+
+
 
   #-------------------------------------------------------
   # Visualisation
@@ -220,11 +231,22 @@ class GPSArray (Meow.Parameterization):
                                      type='realvsimag', errorbars=True)
       dcolls.append(rr)
 
-    # Pair positions:
+
+    # Longlat of (pair) pierce points (if available):
+    if self._longlat_pierce:
+      rr = MG_JEN_dataCollect.dcoll (self.ns, self._longlat_pierce,
+                                     scope=scope, tag='pierce',
+                                     color='red', style='cross',
+                                     size=8, pen=2,
+                                     results_buffer=results_buffer,
+                                     type='realvsimag', errorbars=True)
+      dcolls.append(rr)
+
+
+    # Alt-az of satellites, as seen from stations:
     if True:
       cc = []
       for s in self._pair['obj']:
-        # cc.append(s.azang_complex())
         cc.append(s.azel_complex())
       plot = self._pair['plot']
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
@@ -332,14 +354,16 @@ def _define_forest(ns):
     gpa.display(full=True)
 
     if 1:
+      sim = MIM.MIM(ns, ndeg=4, simulate=True)
+      sim.display(full=True)
+      cc.append(gpa.inspector(sim))
+
+    if 1:
+      # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
     if 0:
       cc.append(gpa.rvsi_azel())
 
-    if 1:
-      sim = MIM.MIM(ns, ndeg=1, simulate=True)
-      sim.display(full=True)
-      cc.append(gpa.inspector(sim))
 
     ns.result << Meq.Composer(children=cc)
     return True

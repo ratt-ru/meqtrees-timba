@@ -173,8 +173,12 @@ class GPSPair (Meow.Parameterization):
     Meow.Parameterization.__init__(self, ns=ns, name=name,
                                    quals=quals, kwquals=kwquals)
 
-    self._station = station
-    self._satellite = satellite
+    self._station = station           # its station
+    self._satellite = satellite       # its satellite
+
+    # Some extra information:
+    self._longlat_pierce = None       # innocent kludge (see .mimTEC())
+
     return None
 
   #---------------------------------------------------------------
@@ -208,8 +212,8 @@ class GPSPair (Meow.Parameterization):
     """Return a node/subtree that produces a measured TEC value for
     a specified time-range (in the request). It gets its information
     from external GPS data in a file or something."""
-    node = None
-    return node
+    qnode = None
+    return qnode
 
   #.......................................................
 
@@ -220,9 +224,10 @@ class GPSPair (Meow.Parameterization):
     qnode = self.ns['mimTEC']
     if not qnode.initialized():
       TEC = mim.TEC(self._station, self._satellite)
+      self._longlat_pierce = mim._last_longlat_pierce   # innocent kludge
       qnode << Meq.Add(TEC, self._station.TEC_bias(),
                        self._satellite.TEC_bias())
-    self._station._show_subtree(qnode, show=show, recurse=4)
+    self._station._show_subtree(qnode, show=show, recurse=8)
     return qnode
 
   #-------------------------------------------------------
@@ -271,30 +276,30 @@ class GPSPair (Meow.Parameterization):
 
   def azel (self, show=False):
     """Returns (azimuth,elevation) (tensor node)"""
-    node = self.ns['azel']
-    if not node.initialized():
-      node << Meq.Composer(self.azimuth(),
-                           self.elevation())
-    self._station._show_subtree(node, show=show)
-    return node
+    qnode = self.ns['azel']
+    if not qnode.initialized():
+      qnode << Meq.Composer(self.azimuth(),
+                            self.elevation())
+    self._station._show_subtree(qnode, show=show)
+    return qnode
 
   def azel_complex (self, show=False):
     """Returns azel (node) as complex (az+j*elev), for plotting"""
-    node = self.ns['azel_complex']
-    if not node.initialized():
-      node << Meq.ToComplex(self.azimuth(),
-                            self.elevation())
-    self._station._show_subtree(node, show=show)
-    return node
+    qnode = self.ns['azel_complex']
+    if not qnode.initialized():
+      qnode << Meq.ToComplex(self.azimuth(),
+                             self.elevation())
+    self._station._show_subtree(qnode, show=show)
+    return qnode
       
   def azang_complex (self, show=False):
     """Returns azang (node) as complex (az+j*zang), for plotting"""
-    node = self.ns['azang_complex']
-    if not node.initialized():
-      node << Meq.ToComplex(self.azimuth(),
-                            self.zenith_angle())
-    self._station._show_subtree(node, show=show)
-    return node
+    qnode = self.ns['azang_complex']
+    if not qnode.initialized():
+      qnode << Meq.ToComplex(self.azimuth(),
+                             self.zenith_angle())
+    self._station._show_subtree(qnode, show=show)
+    return qnode
       
   #-------------------------------------------------------
   #-------------------------------------------------------
@@ -303,16 +308,16 @@ class GPSPair (Meow.Parameterization):
     """Insert a zero-flagger that flags the vells if the satellite
     elevation is below a specified value (elmin)"""
     name = 'elevation_flagger'
-    node = self.ns[name]
-    if not node.initialized():
+    qnode = self.ns[name]
+    if not qnode.initialized():
       elev = self.elevation()
-      eldiff = node('eldiff') << Meq.Subtract(elmin, elev)
-      zerof = node('zerof') << Meq.ZeroFlagger(eldiff,
+      eldiff = qnode('eldiff') << Meq.Subtract(elmin, elev)
+      zerof = qnode('zerof') << Meq.ZeroFlagger(eldiff,
                                                oper='GT',
                                                flag_bit=1)
-      node << Meq.MergeFlags(data, zerof)
-    self._station._show_subtree(node, show=show, recurse=4)
-    return node
+      qnode << Meq.MergeFlags(data, zerof)
+    self._station._show_subtree(qnode, show=show, recurse=4)
+    return qnode
 
 
 

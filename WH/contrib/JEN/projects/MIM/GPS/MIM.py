@@ -46,6 +46,7 @@ class MIM (Meow.Parameterization):
                                              longlat=[0,0], radius=None,
                                              tags=['GeoLocation','MIM'],
                                              solvable=False)
+    self._Earth = self._refloc._Earth              # copy the Earth dict (radius etc)
       
 
     # Define the MIM:
@@ -86,6 +87,8 @@ class MIM (Meow.Parameterization):
             node = self._parm(pname)
             self._solvable.append(node)
           self._pnode.append(node)                 # Parm/SimulParm nodes
+
+      self._pierce_points = []
     return None
 
 
@@ -103,6 +106,7 @@ class MIM (Meow.Parameterization):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
     print '  * refloc: '+self._refloc.oneliner()
+    print '  * Earth: '+str(self._Earth)
     print '  * pname: '+str(self._pname)
     print '  * solvable ('+str(len(self._solvable))+'):'
     for k,p in enumerate(self._solvable):
@@ -160,7 +164,9 @@ class MIM (Meow.Parameterization):
     """Return the longlat (node) of the pierce point through this (MIM) ionsosphere,
     as seen from the given GeoLocation, towards the other (usually a GPS satellite)."""
     name = 'longlat_pierce'
-    qnode = self.ns[name]                       # NB: different for different h!
+    qnode = self.ns[name]     
+    qnode = qnode.qmerge(seenfrom.ns['MIM_dummy_qnode'])  
+    qnode = qnode.qmerge(towards.ns['MIM_dummy_qnode'])  
     if not qnode.initialized():
       dll = seenfrom.longlat_diff(towards)
       alt_ionos = self.effective_altitude()     # ionospheric coupling parameter (h)....
@@ -169,6 +175,7 @@ class MIM (Meow.Parameterization):
       ll_shift = qnode('dll_pierce') << Meq.Multiply(dll, fraction)
       qnode << Meq.Add(seenfrom.longlat(),ll_shift)
     seenfrom._show_subtree(qnode, show=show, recurse=4)
+    self._last_longlat_pierce = qnode           # innocent kludge, read by GPSPair.mimTEC()
     return qnode
 
 
@@ -255,15 +262,25 @@ class MIM (Meow.Parameterization):
 
       # Multiply with S(z), if required:
       if z==None:
-        qnode << Meq.Add(children=cc)               # zenith direction (z=0)
-      else:
-        TEC0 = qnode('z=0') << Meq.Add(children=cc)
-        cosz = qnode('cosz') << Meq.Cos(z)
-        qnode << Meq.Divide(TEC0, cosz)
+        qnode << Meq.Add(children=cc)                  # zenith direction (z=0)
+      else:                                          
+        TEC0 = qnode('z=0') << Meq.Add(children=cc)    # zenith direction (z=0)
+        if False:
+          cosz = qnode('cosz') << Meq.Cos(z)
+        else:
+          R = self._Earth['radius']                    # km
+          h = self.effective_altitude()                # km
+          Rh = qnode('R/(R+h)') << Meq.Divide(R,R+h)
+          sinz = qnode('sinz') << Meq.Sin(z)
+          Rhsin = qnode('Rhsinz') << Meq.Multiply(Rh,sinz)
+          asin = qnode('asin') << Meq.Asin(Rhsin)
+          cosz = qnode('cosasin') << Meq.Cos(asin)
+        qnode << Meq.Divide(TEC0, cosz)                # TEC0*sec(z')
+          
 
     # Finished:
     if show:
-      display.subtree(qnode, recurse=6, show_initrec=False)
+      display.subtree(qnode, done=None, recurse=10, show_initrec=False)
     return qnode
 
 
