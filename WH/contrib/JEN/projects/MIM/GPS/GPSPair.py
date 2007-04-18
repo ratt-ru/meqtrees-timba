@@ -63,11 +63,14 @@ class GPSStation (GeoLocation.GeoLocation):
     self._show_subtree(node, show=show)
     return node
 
+
   def solvable(self, tags='*'):
-    """Return a list of solvable parms (nodes)"""
-    ss = []
+    """Return a dict of solvable parms (nodes) and their (plot) labels"""
+    ss = dict(nodes=[], labels=[])
     for pname in self._pnames:
-      ss.append(self._parm(pname))
+      # ss['labels'].append(pname+'_'+str(self.name))
+      ss['labels'].append(str(self.name))
+      ss['nodes'].append(self._parm(pname))
     return ss
 
 
@@ -92,6 +95,8 @@ class GPSStation (GeoLocation.GeoLocation):
       JEN_bookmarks.create(qnode, name, page=bookpage,
                            viewer='Collections Plotter')
     return qnode
+
+
 
 
 
@@ -195,11 +200,14 @@ class GPSSatellite (GeoLocation.GeoLocation):
     self._show_subtree(node, show=show)
     return node
 
+
   def solvable(self, tags='*'):
-    """Return a list of solvable parms (nodes)"""
-    ss = []
+    """Return a dict of solvable parms (nodes) and their (plot) labels"""
+    ss = dict(nodes=[], labels=[])
     for pname in self._pnames:
-      ss.append(self._parm(pname))
+      # ss['labels'].append(pname+'_'+str(self.name))
+      ss['labels'].append(str(self.name))
+      ss['nodes'].append(self._parm(pname))
     return ss
 
 
@@ -298,16 +306,6 @@ class GPSPair (Meow.Parameterization):
     return node
 
 
-  def solvable(self, tags='*'):
-    """Return a list of solvable parms (nodes)"""
-    ss = []
-    if self._pair_based_TEC:
-      for pname in self._pnames:
-        ss.append(self._parm(pname))
-    else:
-      ss.append(self._station.solvable(tags=tags),
-                self._satellite.solvable(tags=tags))
-    return ss
 
   #-------------------------------------------------------
 
@@ -321,6 +319,28 @@ class GPSPair (Meow.Parameterization):
 
   #-------------------------------------------------------
 
+  def solvable(self, tags='*', show=False):
+    """Return a list of solvable parms (nodes)"""
+    ss = dict(nodes=[], labels=[])
+    if self._pair_based_TEC:
+      for pname in self._pnames:
+        # ss['labels'].append(pname+'_'+str(self.name))
+        ss['labels'].append(str(self.name))
+        ss['nodes'].append(self._parm(pname))
+    else:
+      for ss1 in [self._station.solvable(tags=tags),
+                  self._satellite.solvable(tags=tags)]:
+        for key in ss.keys():
+          ss[key].extend(ss1[key])
+    if show:
+      print '\n** .solvable(tags=',tags,') <-',self.oneliner()
+      for k,node in enumerate(ss['nodes']):
+        print '  -',ss['labels'][k],': ',str(node)
+      print
+    return ss
+
+  #=================================================================
+
   def TEC(self):
     """Return a node/subtree that produces a measured TEC value for
     a specified time-range (in the request). It gets its information
@@ -328,7 +348,7 @@ class GPSPair (Meow.Parameterization):
     qnode = None
     return qnode
 
-  #.......................................................
+  #.................................................................
 
   def mimTEC(self, mim, show=False):
     """Return a node/subtree that produces a simulated TEC value, which
@@ -343,21 +363,7 @@ class GPSPair (Meow.Parameterization):
     self._station._show_subtree(qnode, show=show, recurse=8)
     return qnode
 
-  #-------------------------------------------------------
-
-  def solvable(self, tags='*', show=True):
-    """Return a list of solvable parms (nodes)"""
-    ss = []
-    ss.extend(self._station.solvable(tags=tags))
-    ss.extend(self._satellite.solvable(tags=tags))
-    if show:
-      print '\n** .solvable(tags=',tags,') <-',self.oneliner()
-      for node in ss:
-        print '  -',str(node)
-      print
-    return ss
-
-  #-------------------------------------------------------
+  #=================================================================
 
   def longlat_diff(self, show=False):
     """Return the [longtitude,latitude] difference between
@@ -532,7 +538,7 @@ if __name__ == '__main__':
       pair.display(full=True)
 
       if 1:
-        print 'solvable:',pair.solvable()
+        print 'solvable:',pair.solvable(show=True)
         print pair.TEC_bias(show=True)
 
 

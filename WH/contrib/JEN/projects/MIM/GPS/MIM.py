@@ -59,7 +59,7 @@ class MIM (Meow.Parameterization):
 
     self._simulate = simulate
     self._SimulParm = []
-    self._solvable = []
+    ss = dict(nodes=[], labels=[])                 # for self._solvable
     self._pname = []
     self._pnode = []
     self._usedval = dict()
@@ -85,10 +85,15 @@ class MIM (Meow.Parameterization):
             # Make a regular MeqParm:
             self._add_parm(pname, Meow.Parm(), tags=['MIM'])
             node = self._parm(pname)
-            self._solvable.append(node)
+            ss['nodes'].append(node)               # for self._solvable
+            ss['labels'].append(pname)             # for self._solvable
           self._pnode.append(node)                 # Parm/SimulParm nodes
+      self._solvable = ss
 
-      self._pierce_points = []
+    # Some extra info:
+    self._pierce_points = []                       # an innocent kludge
+
+    # Finished:
     return None
 
 
@@ -102,15 +107,17 @@ class MIM (Meow.Parameterization):
       ss += '  (simulated)'
     return ss
   
+
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
     print '  * refloc: '+self._refloc.oneliner()
     print '  * Earth: '+str(self._Earth)
     print '  * pname: '+str(self._pname)
-    print '  * solvable ('+str(len(self._solvable))+'):'
-    for k,p in enumerate(self._solvable):
-      print '   - '+str(k)+': '+str(p)
+    print '  * solvable ('+str(len(self._solvable['nodes']))+'):'
+    ss = self._solvable
+    for k,node in enumerate(ss['nodes']):
+      print '   - '+str(ss['labels'][k])+': '+str(node)
     if self._simulate:
       print '  * SimulParm ('+str(len(self._SimulParm))+'):'
       for k,sp in enumerate(self._SimulParm):
@@ -124,12 +131,19 @@ class MIM (Meow.Parameterization):
     print
     return True
 
-  #-------------------------------------------------------
+  #----------------------------------------------------------------
 
-  def solvable(self, tags='*'):
-    """Return its list of solvable parms (nodes), if any"""
+  def solvable(self, tags='*', show=False):
+    """Return a dict of solvable parms (nodes), and their labels"""
+    if show:
+      ss = self._solvable
+      print '\n** solvable MeqParms of:',self.oneliner()
+      for k,node in enumerate(ss['nodes']):
+        print '  -',ss['labels'][k],': ',str(node)
+      print
     return self._solvable
 
+  #-----------------------------------------------------------------
 
   def inspector(self, bookpage='MIM', show=False):
     """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
@@ -142,7 +156,8 @@ class MIM (Meow.Parameterization):
       qnode << Meq.Composer(children=self._pnode, plot_label=self._pname)
       JEN_bookmarks.create(qnode, page=bookpage,
                            viewer='Collections Plotter')
-    if show: display.subtree(qnode)
+    if show:
+      display.subtree(qnode)
     return qnode
 
 

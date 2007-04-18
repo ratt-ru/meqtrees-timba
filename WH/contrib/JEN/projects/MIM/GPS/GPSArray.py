@@ -43,7 +43,9 @@ class GPSArray (Meow.Parameterization):
     self._stddev = stddev                 # stddev of positions (long,lat)
     self._simulate = simulate             # If true, use simulated TEC_biases
     self._pair_based_TEC = pair_based_TEC # If False, use station/satellite-based TECs
+ 
 
+    #---------------------
     # Define GPS stations:
     rr = dict(name=[], obj=[], longlat=[], stddev=stddev['stat'],
               plot=dict(color='blue', style='circle'))
@@ -60,7 +62,7 @@ class GPSArray (Meow.Parameterization):
     self._station = rr
       
 
-
+    #---------------------
     # Define GPS satellites:
     rr = dict(name=[], obj=[], longlat=[], stddev=stddev['sat'],
               plot=dict(color='red', style='triangle'))
@@ -85,9 +87,9 @@ class GPSArray (Meow.Parameterization):
     self._satellite = rr
 
 
-
+    #---------------------
     # Define station-satellite pairs:
-    self._solvable = []
+    ss = dict(nodes=[], labels=[])
     rr = dict(name=[], sat=[], stat=[], obj=[],
               plot=dict(color='green', style='rectangle'))
     for stat in self._station['obj']:
@@ -100,19 +102,27 @@ class GPSArray (Meow.Parameterization):
         rr['sat'].append(sat)
         rr['stat'].append(stat)
         rr['obj'].append(obj)
-        for node in obj.solvable():
-          if not node in self._solvable:
-            self._solvable.append(node)
+        # Collect solvable MeqParms:
+        ss1 = obj.solvable()
+        for k,node in enumerate(ss1['nodes']):
+          if not node in ss['nodes']:
+            ss['nodes'].append(node)
+            ss['labels'].append(ss1['labels'][k])
     self._pair = rr
+    self._solvable = ss
     self._longlat_pierce = []
 
+    #---------------------
+    # Finished:
     return None
+
 
 
   #---------------------------------------------------------------
 
   def oneliner (self):
     ss = str(type(self))
+    ss = 'GPSArray'
     ss += '  '+str(self.name)
     ss += '  nstat='+str(len(self._station['obj']))
     ss += '  longlat0='+str(self._longlat0)
@@ -144,9 +154,10 @@ class GPSArray (Meow.Parameterization):
     print '  * GPSPairs:'
     for p in self._pair['obj']:
       print '    - '+p.oneliner()
-    print '  * solvable ('+str(len(self._solvable))+'):'
-    for node in self._solvable:
-      print '    - '+str(node)
+    ss = self._solvable
+    print '    * solvable ('+str(len(ss['nodes']))+'):'
+    for k,node in enumerate(ss['nodes']):
+      print '      -',ss['labels'][k],': ',str(node)
     print '    * plotting: '+str(self._pair['plot'])
     print
     return True
@@ -154,14 +165,24 @@ class GPSArray (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solvable(self, show=False):
-    """Return the list of solvable nodes (MeqParms)"""
+  def solvable(self, tags='*', merge=None, show=False):
+    """Return a dict with (a selection (tags) of solvable nodes (MeqParms)
+    and their labels. If merge is a dict, include its contents, while
+    avoiding duplicates."""
+    ss = dict(nodes=[], labels=[])
+    for key in ss.keys():
+      ss[key] = self._solvable[key]
+    if isinstance(merge,dict):
+      for k,node in enumerate(merge['nodes']):
+        if not node in ss['nodes']:
+          ss['nodes'].append(node)
+          ss['labels'].append(merge['labels'][k])
     if show:
-      print '\n** solvable MeqParms of:',self.oneliner()
-      for node in self._solvable:
-        print '-',str(node)
+      print '\n** solvable (tags=',tags,') (merge=',type(merge),') from:',self.oneliner()
+      for k,node in enumerate(ss['nodes']):
+        print '  -',ss['labels'][k],': ',str(node)
       print
-    return self._solvable
+    return ss
 
   #-------------------------------------------------------
 
@@ -185,13 +206,25 @@ class GPSArray (Meow.Parameterization):
     name = 'mimTEC'
     qnode = self.ns[name]
     if not qnode.initialized():
-      self._longlat_pierce = []
+      self.longlat_pierce(reset=True)
       cc =[]
       labels = []
       for pair in self._pair['obj']:
         labels.append(pair.name)
         cc.append(pair.mimTEC(mim))
+        self.longlat_pierce(pair, qnode=qnode)
+      qnode << Meq.Composer(children=cc, plot_label=labels)
+      JEN_bookmarks.create(qnode, page=bookpage,
+                           viewer='Collections Plotter')
+    if show: display.subtree(qnode, recurse=5)
+    return qnode
 
+  #--------------------------------------------------------------------
+
+  def longlat_pierce(self, pair=None, qnode=None, reset=False, show=False):
+    """Helper function to deal with longlat_pierce values."""
+    if reset: self._longlat_pierce = []
+    if pair:
         # The following is an innocent kludge, used for rvsi plotting
         pnode = qnode(pair.name)
         llp = pair._longlat_pierce    # obtained via pair.mimTEC(mim)
@@ -199,11 +232,59 @@ class GPSArray (Meow.Parameterization):
         lat = pnode('pierce_latitude') << Meq.Selector(llp, index=1)
         longlat = pnode('pierce_longlat_complex') << Meq.ToComplex(lo,lat)
         self._longlat_pierce.append(longlat)
+    if show:
+      pass
+    return self._longlat_pierce
 
-      qnode << Meq.Composer(children=cc, plot_label=labels)
-      JEN_bookmarks.create(qnode, page=bookpage,
-                           viewer='Collections Plotter')
-    if show: display.subtree(qnode, recurse=5)
+  #-------------------------------------------------------
+
+  def solMIM(self, mim, sim, show=False):
+    """Solve for the parameters of the specified MIM (mim),
+    using the other MIM (sim) to generate predicted TEC values."""
+
+    name = 'solMIM'
+    qnode = self.ns[name]
+    if not qnode.initialized():
+      self.longlat_pierce(reset=True)
+      condeqs =[]
+      labels = []
+      for pair in self._pair['obj']:
+        label = pair.name
+        labels.append(label)
+        condeq = qnode('condeq')(label) << Meq.Condeq(pair.mimTEC(mim),
+                                                      pair.mimTEC(sim))
+        condeqs.append(condeq)
+        self.longlat_pierce(pair, qnode=qnode)
+
+      reqseq = []                    # list of reqseq children
+      solvable = mim.solvable()
+      solvable = self.solvable(merge=solvable, show=show)
+      node = qnode('solver') << Meq.Solver(children=condeqs,
+                                           solvable=solvable['nodes'])
+      JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
+      print str(node)
+      reqseq.append(node)
+
+      # Visualization of (condeq) residuals:
+      node = qnode('condeqs') << Meq.Composer(children=condeqs,
+                                              plot_label=labels)
+      JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
+      print str(node)
+      reqseq.append(node)
+      
+      # Visualization of solvables (MeqParms):
+      node = qnode('solvable') << Meq.Composer(children=solvable['nodes'],
+                                               plot_label=solvable['labels'])
+      JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
+      print str(node)
+      reqseq.append(node)
+      print '** reqseq=',reqseq
+
+      # Make the final reqseq:
+      qnode << Meq.ReqSeq(children=reqseq)
+      
+    if show:
+      display.subtree(qnode, recurse=5)
     return qnode
 
 
@@ -391,8 +472,9 @@ if __name__ == '__main__':
                    move=True)
     gpa.display(full=True)
 
-    if 1:
-      gpa.solvable(show=True)
+    if 0:
+      xxx = dict(nodes=range(3), labels=['xxx','yy','z'])
+      gpa.solvable(merge=xxx, show=True)
 
     if 0:
       gpa.longlat0(show=True)
@@ -409,6 +491,13 @@ if __name__ == '__main__':
       sim = MIM.MIM(ns, ndeg=1, simulate=True)
       sim.display(full=True)
       gpa.mimTEC(sim, show=True)
+
+    if 1:
+      mim = MIM.MIM(ns, ndeg=1)
+      mim.display(full=True)
+      sim = MIM.MIM(ns, ndeg=1, simulate=True)
+      sim.display(full=True)
+      gpa.solMIM(mim, sim, show=True)
 
 
       
