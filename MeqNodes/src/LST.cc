@@ -42,9 +42,10 @@ const HIID child_labels[] = { AidXYZ };
 
 const HIID FDomain = AidDomain;
 
-//The node should assume that only the first child (RADec) is mandatory
+//The node should assume that only the first child (XYZ) is needed
+//if the 'observatory' field is not supplied.
 LST::LST()
-: TensorFunction(2,child_labels,1)
+: TensorFunction(1,child_labels,0)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -78,7 +79,6 @@ void LST::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,c
   ref.attach(cells);
 }
 
-
 LoShape LST::getResultDims (const vector<const LoShape *> &input_dims)
 {
   if( obs_name_.empty() )
@@ -92,8 +92,6 @@ LoShape LST::getResultDims (const vector<const LoShape *> &input_dims)
   // result is a 1-D vector
   return LoShape(1);
 }
-
-
 
 void LST::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
@@ -136,12 +134,13 @@ void LST::evaluateTensors (std::vector<Vells> & out,
   Quantum<double> qepoch(0, "s");
   qepoch.setValue(time(0));
   MEpoch mepoch(qepoch, MEpoch::UTC);
-  Frame.set (mepoch);
+  Frame.set(mepoch);
   for( int i=0; i<ntime; i++) 
   {
     qepoch.setValue (time(i));
     mepoch.set (qepoch);
     Frame.set (mepoch);
+    MEpoch::Convert(mepoch, MEpoch::Ref(MEpoch::LAST,Frame))().getValue();
     Frame.getLASTr(LST[i]);
   }
 }
