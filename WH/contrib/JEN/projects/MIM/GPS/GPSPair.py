@@ -6,6 +6,7 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import display
+from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Vector import GeoLocation
 from numarray import *
 
@@ -18,26 +19,56 @@ Settings.forest_state.cache_policy = 100
 class GPSStation (GeoLocation.GeoLocation):
   """Represents a GPS station that measures TEC values"""
 
-  def __init__(self, ns, name, longlat=None, 
+  def __init__(self, ns, name, longlat=None,
+               simulate=False, stddev=1.0,
                quals=[],kwquals={}):
 
     GeoLocation.GeoLocation.__init__(self, ns=ns, name=name,
                                      longlat=longlat, radius=None,
                                      quals=quals, kwquals=kwquals,
+                                     typename='GPSStation',
                                      tags=['GeoLocation','GPSStation'],
                                      solvable=False)
-    self._add_parm('TEC_bias', Meow.Parm(), tags=['GPSStation'])
+
+    # Define the station parameter (simulated or solvable):
+    self._pnames = []                     # list of (solvable) MeqParm names
+    self._simulate = simulate
+    self._stddev = stddev
+    pname = 'TEC_bias'
+    if self._simulate:
+      sp = SimulParm.SimulParm(self.ns, pname, value=0.0, stddev=self._stddev)
+      self._add_parm(pname, sp.create(), tags=['GPSStation'])
+      sp.display()
+    else:
+      self._add_parm(pname, Meow.Parm(), tags=['GPSStation'])
+      self._pnames.append(pname)
+
+    # Finished:
     return None
+
+  #------------------------------------------------------------------
+
+  def oneliner (self):
+    """Return a one-line summary of this object."""
+    ss = self.oneliner_common()
+    if self._simulate:
+      ss += ' (TEC stddev='+str(self._stddev)+')'
+    return ss
 
   #---------------------------------------------------------------
   
-  def TEC_bias (self):
+  def TEC_bias (self, show=False):
     """Returns the station TEC bias (node)"""
-    return self._parm('TEC_bias')
+    node = self._parm('TEC_bias')
+    self._show_subtree(node, show=show)
+    return node
 
   def solvable(self, tags='*'):
     """Return a list of solvable parms (nodes)"""
-    return [self.TEC_bias()]
+    ss = []
+    for pname in self._pnames:
+      ss.append(self._parm(pname))
+    return ss
 
 
   #-------------------------------------------------------
@@ -75,6 +106,7 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
   def __init__(self, ns, name, xyz=None, longlat=None, 
                move=False, sign=dict(direction=1,inclination=1),
+               simulate=False, stddev=1.0,
                quals=[],kwquals={}):
 
     # Orbit radius is 21000 km plus the Earth radius (6378 km)
@@ -93,7 +125,7 @@ class GPSSatellite (GeoLocation.GeoLocation):
     radius = self._Earth['radius'] + 21000       # orbit radius (km)
 
     if longlat:                                  # specified as longlat
-      if move:
+      if move:                                   # make time-dependent
         node = ns['longlat']('orbit')(name)(*quals)(**kwquals)
 
         # The longitude varies linearly with time
@@ -122,26 +154,53 @@ class GPSSatellite (GeoLocation.GeoLocation):
     else:
       raise ValueError,'specify location either as xyz or as longlat'
     
-
     GeoLocation.GeoLocation.__init__(self, ns=ns, name=name,
                                      longlat=longlat, radius=radius,
                                      xyz=xyz, 
                                      quals=quals, kwquals=kwquals,
+                                     typename='GPSSatellite',
                                      tags=['GeoLocation','GPSSatellite'],
                                      solvable=False)
 
-    self._add_parm('TEC_bias', Meow.Parm(), tags=['GPSSatellite'])
+    # Define the station parameter (simulated or solvable):
+    self._pnames = []                     # list of (solvable) MeqParm names
+    self._simulate = simulate
+    self._stddev = stddev
+    pname = 'TEC_bias'
+    if self._simulate:
+      sp = SimulParm.SimulParm(self.ns, pname, value=0.0, stddev=self._stddev)
+      self._add_parm(pname, sp.create(), tags=['GPSSatellite'])
+      sp.display()
+    else:
+      self._add_parm(pname, Meow.Parm(), tags=['GPSSatellite'])
+      self._pnames.append(pname)
+
+    # Finished:
     return None
+
+  #------------------------------------------------------------------
+
+  def oneliner (self):
+    """Return a one-line summary of this object."""
+    ss = self.oneliner_common()
+    if self._simulate:
+      ss += ' (TEC stddev='+str(self._stddev)+')'
+    return ss
 
   #---------------------------------------------------------------
   
-  def TEC_bias (self):
+  def TEC_bias (self, show=False):
     """Returns the satellite TEC bias (node)"""
-    return self._parm('TEC_bias')
-        
+    node = self._parm('TEC_bias')
+    self._show_subtree(node, show=show)
+    return node
+
   def solvable(self, tags='*'):
     """Return a list of solvable parms (nodes)"""
-    return [self.TEC_bias()]
+    ss = []
+    for pname in self._pnames:
+      ss.append(self._parm(pname))
+    return ss
 
 
 
@@ -157,6 +216,8 @@ class GPSPair (Meow.Parameterization):
   """Represents a combination of a GPSStation and GPSSatellite"""
   
   def __init__(self, ns, station, satellite,
+               simulate=False, stddev=1.0,
+               pair_based_TEC=True,
                name=None, quals=[],kwquals={}):
 
     # The object name. By default a combination of its station/satellite
@@ -179,6 +240,22 @@ class GPSPair (Meow.Parameterization):
     # Some extra information:
     self._longlat_pierce = None       # innocent kludge (see .mimTEC())
 
+    # Define the station parameter (simulated or solvable):
+    self._pair_based_TEC = pair_based_TEC 
+    self._pnames = []                 # list of (solvable) MeqParm names
+    self._simulate = simulate
+    self._stddev = stddev
+    pname = 'TEC_bias'
+    if self._pair_based_TEC:          # if 
+      if self._simulate:
+        sp = SimulParm.SimulParm(self.ns, pname, value=0.0, stddev=self._stddev)
+        self._add_parm(pname, sp.create(), tags=['GPSPair'])
+        sp.display()
+      else:
+        self._add_parm(pname, Meow.Parm(), tags=['GPSPair'])
+        self._pnames.append(pname)
+
+    # Finished:
     return None
 
   #---------------------------------------------------------------
@@ -186,15 +263,51 @@ class GPSPair (Meow.Parameterization):
   def oneliner (self):
     ss = str(type(self))
     ss += '  '+str(self.name)
+    if self._simulate and self._pair_based_TEC:
+      ss += ' (TEC stddev='+str(self._stddev)+')'
     return ss
   
+
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
+    print '  * simulate = '+str(self._simulate)+'  (stddev='+str(self._stddev)+')'
     print '  * '+self.station().oneliner()
     print '  * '+self.satellite().oneliner()
+    print '  * pair_based_TEC = '+str(self._pair_based_TEC)
+    if self._pair_based_TEC:
+      print '  * (solvable) pnames: '+str(self._pnames)
+      for pname in self._pnames:
+        print '    - '+str(self._parm(pname))
     print
     return True
+
+
+  #---------------------------------------------------------------
+  
+  def TEC_bias (self, show=False):
+    """Returns the station TEC bias (node)"""
+    if self._pair_based_TEC:
+      node = self._parm('TEC_bias')
+    else:
+      node = self.ns['TEC_bias']
+      if not node.initialized():
+        node << Meq.Add(self._station.TEC_bias(),
+                        self._satellite.TEC_bias())
+    self._station._show_subtree(node, show=show)
+    return node
+
+
+  def solvable(self, tags='*'):
+    """Return a list of solvable parms (nodes)"""
+    ss = []
+    if self._pair_based_TEC:
+      for pname in self._pnames:
+        ss.append(self._parm(pname))
+    else:
+      ss.append(self._station.solvable(tags=tags),
+                self._satellite.solvable(tags=tags))
+    return ss
 
   #-------------------------------------------------------
 
@@ -364,12 +477,19 @@ if __name__ == '__main__':
     print
     ns = NodeScope()
 
+    simulate = False
+
     if 1:
-      st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0])
+      st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0],
+                       simulate=simulate)
       print st1.oneliner()
 
       if 1:
-        st1.node(show=True)
+        print 'solvable:',st1.solvable()
+        print st1.TEC_bias(show=True)
+
+      if 0:
+        st1.tensornode(show=True)
         st1.altitude(show=True)
         st1.test_result()
 
@@ -382,11 +502,17 @@ if __name__ == '__main__':
     #-------------------------------------------------------
 
     if 1:
-      sat1 = GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0], move=True)
+      sat1 = GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0],
+                          move=True, simulate=simulate)
       print sat1.oneliner()
 
-      if 1:
-        sat1.node(show=True)
+      if 0:
+        print 'solvable:',sat1.solvable()
+        print sat1.TEC_bias(show=True)
+
+
+      if 0:
+        sat1.tensornode(show=True)
 
       if 0:
         sat1.altitude(show=True)
@@ -401,13 +527,19 @@ if __name__ == '__main__':
     #-------------------------------------------------------
 
     if 1:
-      pair = GPSPair (ns, station=st1, satellite=sat1)
+      pair = GPSPair (ns, station=st1, satellite=sat1,
+                      simulate=simulate, pair_based_TEC=False)
       pair.display(full=True)
+
+      if 1:
+        print 'solvable:',pair.solvable()
+        print pair.TEC_bias(show=True)
+
 
       if 0:
         pair.elevation(show=True)
 
-      if 1: 
+      if 0: 
         pair.azimuth(show=True)
 
       if 0:

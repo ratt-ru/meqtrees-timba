@@ -27,6 +27,7 @@ class GeoLocation (Vector.Vector):
                longlat=None, radius=None,
                xyz=[], nelem=3,
                quals=[],kwquals={},
+               typename='GeoLocation',
                tags=[], solvable=False):
 
     self._Earth = dict(radius=6378, flattening=3.36e-6)
@@ -66,12 +67,27 @@ class GeoLocation (Vector.Vector):
                            elem=xyz, nelem=3,
                            quals=quals, kwquals=kwquals,
                            tags=tags, solvable=solvable,
-                           typename='GeoLocation',
+                           typename=typename,
                            axes=['X','Y','Z'], unit='km')
 
 
     return None
 
+  #------------------------------------------------------------------
+
+  def oneliner (self):
+    """Return a one-line summary of this object."""
+    ss = self.oneliner_common()
+    return ss
+
+  #------------------------------------------------------------------
+
+  def XYZ (self, name=None, tensor=True, show=False):
+    """Returns the elements (X,Y,Z) as tensor node (default),
+    or as a list [X,Y,Z] of three nodes"""
+    if tensor:
+      return self.tensornode (name=name, show=show)
+    return self.list(show=show)
 
   #------------------------------------------------------------------
 
@@ -137,7 +153,14 @@ class GeoLocation (Vector.Vector):
         node << Meq.Subtract(m, R)
     self._show_subtree(node, show=show)
     return node
+
         
+  def LST (self):
+    """Returns a node for the Local Sidereal Time of this location"""
+    qnode = self.ns['LocalSiderealTime']
+    if not qnode.initialized():
+      qnode << Meq.LST(self.tensornode())
+    return qnode
 
 
   #=====================================================================
@@ -233,7 +256,7 @@ class GeoLocation (Vector.Vector):
 
     if show:
       obj.list(show=True)
-      obj._show_subtree(obj.node(), show=show)
+      obj._show_subtree(obj.tensornode(), show=show)
     return obj
 
 
@@ -285,12 +308,16 @@ if __name__ == '__main__':
       print g1.oneliner()
 
       if 0:
+        print g1.XYZ(show=True)
+        print g1.XYZ(tensor=False, show=True)
+
+      if 0:
         if isinstance(g1, GeoLocation):
           print 'g1 is a GeoLocation object'
         if isinstance(g1, Vector.Vector):
           print 'g1 is a Vector object'
 
-      if 1:
+      if 0:
         # other = v2
         other = ns['other']('qual') << Meq.Constant(56)
         other = 78
@@ -298,7 +325,7 @@ if __name__ == '__main__':
         print g4.oneliner()
 
       if 0:
-        xyz = g1.node(show=True)
+        xyz = g1.tensornode(show=True)
 
       if 0:
         g1.longlat(show=True)

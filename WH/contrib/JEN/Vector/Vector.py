@@ -31,7 +31,7 @@ class Vector (Meow.Parameterization):
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
     self._unit = unit
-    self._typename = str(typename)        # used in .node() below
+    self._typename = str(typename)        # used in .tensornode() below
 
     self._axes = []
     self._tensor_node = None
@@ -80,6 +80,10 @@ class Vector (Meow.Parameterization):
   def len (self):
     """Return the Vector length/dimensionality"""
     return len(self._axes)
+
+  def unit (self):
+    """Return the measurement unit (e.g. m or km)"""
+    return self._unit
 
   def axes (self):
     """Return the (list of) Vector axes (name)"""
@@ -132,12 +136,12 @@ class Vector (Meow.Parameterization):
       if severe:
         s = 'other is not a Vector, but: '+str(type(other))
       elif is_node(other):
-        pass                                         # OK
+        pass                                         # OK, commensurate
       elif isinstance(other,(int,float,complex)):
-        pass                                         # OK
+        pass                                         # OK, commensurate
       else:
         s = 'other type not recognized: '+str(type(other))
-    elif not self.len()==other.len():  
+    elif not self.len()==other.len():                
       s = 'Vector length mismatch: '+str(other.len())+' != '+str(self.len())
     if s: raise ValueError,s
     return True                    
@@ -145,23 +149,30 @@ class Vector (Meow.Parameterization):
   #-------------------------------------------------------
 
   def oneliner (self):
+    """Return a one-line summary of this object."""
+    return self.oneliner_common()
+
+  def oneliner_common (self):
+    """Make the common part of the oneliner."""
     ss = str(type(self))
     if not self._typename=='Vector':
       ss += ' ('+str(self._typename)+')'
+    ss = '*** '+str(self._typename)+': '                    # better?
     ss += '  '+str(self.name)+'  '+str(self._axes)
     if self._test:
       ss += '='+str(floor(self._test['elem']))
     if self._unit:
-      ss += '  (unit='+str(self._unit)+')'
+      ss += '  (unit='+str(self.unit())+')'
     return ss
 
   #---------------------------------------------------------------------
 
-  def _show_subtree(self, node, show=False, recurse=5):
+  def _show_subtree(self, node, show=False, test=False, recurse=5):
     """Helper function to show the subtree under the given node"""
     if show:
-      self.test_result(show=show)
-      print '\** Subtree result from:',self.oneliner()
+      if test:
+        self.test_result(show=show)
+      print '\n** Subtree result from:',self.oneliner()
       display.subtree(node, node.name, recurse=recurse)
     return True
     
@@ -182,7 +193,12 @@ class Vector (Meow.Parameterization):
   # Methods that produce a node:
   #---------------------------------------------------------------------
 
-  def node (self, name=None, show=False):
+  def node_obsolete (self, name=None, show=False):
+    """Obslolete function call for self.tensornode()"""
+    print '\n** Obsolete call to .node(), use .tensornode() instead....\n'
+    return self.tensornode (name=name, show=show)
+
+  def tensornode (self, name=None, show=False):
     """Returns the n-element 'tensor' node for this Vector."""
     if not isinstance(name,str):
       name = self._typename                   # default: 'Vector'
@@ -281,16 +297,16 @@ class Vector (Meow.Parameterization):
     if isinstance(other, Vector):
       qnode = self.ns[binop].qmerge(other.ns['Vector_dummy_qnode'])(*quals)  
       if not qnode.initialized():
-        qnode << getattr(Meq,binop)(self.node(),other.node())
+        qnode << getattr(Meq,binop)(self.tensornode(),other.tensornode())
     elif is_node(other):
       qnode = self.ns[binop].qmerge(other)(*quals)
       if not qnode.initialized():
-        qnode << getattr(Meq,binop)(self.node(),other)
+        qnode << getattr(Meq,binop)(self.tensornode(),other)
     else:
       # Assume numeric value: 
       qnode = self.ns[binop](str(other))(*quals)
       if not qnode.initialized():
-        qnode << getattr(Meq,binop)(self.node(),other)
+        qnode << getattr(Meq,binop)(self.tensornode(),other)
 
     self._show_subtree(qnode, show=show)
     return self.newObject (qnode, name=name, localname=binop,
@@ -339,7 +355,7 @@ class Vector (Meow.Parameterization):
 
     if show:
       obj.list(show=True)
-      self._show_subtree(obj.node(), show=show)
+      self._show_subtree(obj.tensornode(), show=show)
     return obj
 
 
@@ -361,7 +377,7 @@ def _define_forest(ns):
     v1 = Vector(ns, 'v1', [1,2,12], unit='m')
     print v1.oneliner()
 
-    cc.append(v1.node(show=True))
+    cc.append(v1.tensornode(show=True))
     cc.append(v1.magnitude(show=True))
 
     v2 = Vector(ns, 'v2', [1,2,-3], unit='m')
@@ -415,7 +431,7 @@ if __name__ == '__main__':
       node = v1.magnitude(show=True)
 
     if 0:
-      node = v1.node(show=True)
+      node = v1.tensornode(show=True)
 
     if 0:
       v1.test_result(show=True)
@@ -426,7 +442,7 @@ if __name__ == '__main__':
       node = ns['tensor'] << Meq.Composer(1,2,3)
       v3 = Vector(ns, 'v3', node, nelem=3)
       print v3.oneliner()
-      v3.node(show=True)
+      v3.tensornode(show=True)
       v3.list(show=True)
       v3.magnitude(show=True)
 
@@ -438,14 +454,14 @@ if __name__ == '__main__':
         node = v3.element(key)
         print '- element(',key,'): ',str(node)
       cc = v3.list(show=True)
-      node = v3.node(show=True)
+      node = v3.tensornode(show=True)
 
     if 0:
       for key in range(v1.len()):
         node = v1.element(key)
         print '- element(',key,'): ',str(node)
       cc = v1.list(show=True)
-      node = v1.node(show=True)
+      node = v1.tensornode(show=True)
 
     if 0:
       print v1.commensurate(v1)

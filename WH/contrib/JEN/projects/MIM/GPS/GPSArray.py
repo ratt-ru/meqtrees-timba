@@ -30,15 +30,19 @@ class GPSArray (Meow.Parameterization):
                stddev=dict(stat=[0.1,0.1],
                            sat=[0.5,0.5]),
                move=False,
+               simulate=False,
+               pair_based_TEC=True,
                quals=[], kwquals={}):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
 
-    self._nstat = nstat               # Nr of GPS stations
-    self._nsat = nsat                 # Nr of GPS satellites      
-    self._longlat0 = longlat          # (long,lat) of station array centre
-    self._stddev = stddev             # stddev of positions (long,lat)
+    self._nstat = nstat                   # Nr of GPS stations
+    self._nsat = nsat                     # Nr of GPS satellites      
+    self._longlat0 = longlat              # (long,lat) of station array centre
+    self._stddev = stddev                 # stddev of positions (long,lat)
+    self._simulate = simulate             # If true, use simulated TEC_biases
+    self._pair_based_TEC = pair_based_TEC # If False, use station/satellite-based TECs
 
     # Define GPS stations:
     rr = dict(name=[], obj=[], longlat=[], stddev=stddev['stat'],
@@ -47,7 +51,8 @@ class GPSArray (Meow.Parameterization):
       sname = 'st'+str(k)
       longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
                  random.gauss(self._longlat0[1], rr['stddev'][1])]
-      obj = GPSPair.GPSStation(self.ns, sname, longlat=longlat)
+      obj = GPSPair.GPSStation(self.ns, sname, longlat=longlat,
+                               simulate=self._simulate)
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -66,6 +71,7 @@ class GPSArray (Meow.Parameterization):
                  random.gauss(self._longlat0[1], rr['stddev'][1])]
       sname = 'sat'+str(k)
       obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat,
+                                 simulate=self._simulate,
                                  sign=sign, move=move)
       print obj.oneliner()
       rr['name'].append(sname)
@@ -81,16 +87,22 @@ class GPSArray (Meow.Parameterization):
 
 
     # Define station-satellite pairs:
+    self._solvable = []
     rr = dict(name=[], sat=[], stat=[], obj=[],
               plot=dict(color='green', style='rectangle'))
     for stat in self._station['obj']:
       for sat in self._satellite['obj']:
-        obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat)
+        obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat,
+                               pair_based_TEC=self._pair_based_TEC,
+                               simulate=self._simulate)
         print obj.oneliner()
         rr['name'].append(sname)
         rr['sat'].append(sat)
         rr['stat'].append(stat)
         rr['obj'].append(obj)
+        for node in obj.solvable():
+          if not node in self._solvable:
+            self._solvable.append(node)
     self._pair = rr
     self._longlat_pierce = []
 
@@ -108,6 +120,7 @@ class GPSArray (Meow.Parameterization):
     ss += '  npair='+str(len(self._pair['obj']))
     return ss
   
+
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
@@ -131,10 +144,24 @@ class GPSArray (Meow.Parameterization):
     print '  * GPSPairs:'
     for p in self._pair['obj']:
       print '    - '+p.oneliner()
+    print '  * solvable ('+str(len(self._solvable))+'):'
+    for node in self._solvable:
+      print '    - '+str(node)
     print '    * plotting: '+str(self._pair['plot'])
     print
     return True
 
+
+  #-------------------------------------------------------
+
+  def solvable(self, show=False):
+    """Return the list of solvable nodes (MeqParms)"""
+    if show:
+      print '\n** solvable MeqParms of:',self.oneliner()
+      for node in self._solvable:
+        print '-',str(node)
+      print
+    return self._solvable
 
   #-------------------------------------------------------
 
@@ -153,7 +180,7 @@ class GPSArray (Meow.Parameterization):
   #-------------------------------------------------------
   #-------------------------------------------------------
 
-  def inspector(self, mim, bookpage='mimTEC', show=False):
+  def mimTEC(self, mim, bookpage='mimTEC', show=False):
     """Make an inspector for the TEC-values of the various pairs"""
     name = 'mimTEC'
     qnode = self.ns[name]
@@ -284,54 +311,6 @@ class GPSArray (Meow.Parameterization):
     return self._dcoll
 
 
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  def rvsi_azel(self, bookpage='GPSArray', folder=None):
-    """Plot the pair view directions (az,el)"""
-
-    dcolls = []
-    scope = 'azel'
-    results_buffer = 100 
-
-    # Pair positions:
-    cc = []
-    for s in self._pair['obj']:
-      cc.append(s.azel_complex())
-    plot = self._pair['plot']
-    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
-                                   scope=scope, tag='pairs',
-                                   xlabel='azimuth(rad)', ylabel='elevation(rad)',
-                                   color=plot['color'], style=plot['style'],
-                                   size=8, pen=2,
-                                   results_buffer=results_buffer,
-                                   type='realvsimag', errorbars=True)
-    dcolls.append(rr)
-
-    # Lock the scale of the plot:
-    trc = self.ns.trc(scope) << Meq.ToComplex(1.6,1.6)
-    blc = self.ns.blc(scope) << Meq.ToComplex(-1.6,-1.6)
-    rr = MG_JEN_dataCollect.dcoll (self.ns, [trc,blc],
-                                   scope=scope, tag='scale',
-                                   xlabel='azimuth(rad)', ylabel='elevation(rad)',
-                                   color='white', style='circle', size=1, pen=1,
-                                   type='realvsimag', errorbars=True)
-    dcolls.append(rr)
-    
-    # Concatenate:
-    # NB: nodename -> dconc_scope_tag
-    rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
-                                  scope=scope, tag='',
-                                  xlabel='azimuth(rad)', ylabel='elevation(rad)',
-                                  # results_buffer=100,
-                                  bookpage=None)
-    self._dcoll = rr['dcoll']
-    JEN_bookmarks.create(self._dcoll, scope,
-                         page=bookpage, folder=folder)
-    # Return the dataConcat node:
-    return self._dcoll
-
-
 
 
 
@@ -348,15 +327,17 @@ def _define_forest(ns):
                    # nstat=1, nsat=1, 
                    longlat=[-0.1,0.1],
                    stddev=dict(stat=[0.1,0.1],
-                               sat=[0.2,0.2]),
-                               # sat=[0.4,0.4]),
+                               # sat=[0.2,0.2]),
+                               sat=[0.4,0.4]),
+                   simulate=False,
+                   pair_based_TEC=True,
                    move=True)
     gpa.display(full=True)
 
     if 1:
       sim = MIM.MIM(ns, ndeg=4, simulate=True)
       sim.display(full=True)
-      cc.append(gpa.inspector(sim))
+      cc.append(gpa.mimTEC(sim))
 
     if 1:
       # NB: Do this AFTER MIM, because of pierce points
@@ -405,8 +386,13 @@ if __name__ == '__main__':
     gpa = GPSArray(ns, nstat=2, nsat=1,
                    stddev=dict(stat=[0.1,0.1],
                                sat=[0.5,0.5]),
+                   simulate=False,
+                   pair_based_TEC=True,
                    move=True)
     gpa.display(full=True)
+
+    if 1:
+      gpa.solvable(show=True)
 
     if 0:
       gpa.longlat0(show=True)
@@ -419,10 +405,10 @@ if __name__ == '__main__':
       node = gpa.rvsi_azel()
       display.subtree(node,node.name)
 
-    if 1:
+    if 0:
       sim = MIM.MIM(ns, ndeg=1, simulate=True)
       sim.display(full=True)
-      gpa.inspector(sim, show=True)
+      gpa.mimTEC(sim, show=True)
 
 
       

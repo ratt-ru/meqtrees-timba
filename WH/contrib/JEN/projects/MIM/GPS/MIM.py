@@ -160,33 +160,14 @@ class MIM (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def longlat_pierce_old(self, seenfrom, towards, show=False):
-    """Return the longlat (node) of the pierce point through this (MIM) ionsosphere,
-    as seen from the given GeoLocation, towards the other (usually a GPS satellite)."""
-    name = 'longlat_pierce_old'
-    qnode = self.ns[name]     
-    qnode = qnode.qmerge(seenfrom.ns['MIM_dummy_qnode'])  
-    qnode = qnode.qmerge(towards.ns['MIM_dummy_qnode'])  
-    if not qnode.initialized():
-      dll = seenfrom.longlat_diff(towards)
-      alt_ionos = self.effective_altitude()     # ionospheric coupling parameter (h)....
-      alt_satellite = towards.altitude()
-      fraction = qnode('fraction') << Meq.Divide(alt_ionos, alt_satellite)
-      ll_shift = qnode('dll_pierce') << Meq.Multiply(dll, fraction)
-      qnode << Meq.Add(seenfrom.longlat(),ll_shift)
-    seenfrom._show_subtree(qnode, show=show, recurse=4)
-    self._last_longlat_pierce = qnode           # innocent kludge, read by GPSPair.mimTEC()
-    return qnode
-
-  #-------------------------------------------------------
-
   def longlat_pierce(self, seenfrom, towards, show=False):
     """Return the longlat (node) of the pierce point through this (MIM) ionsosphere,
     as seen from the given GeoLocation, towards the other (usually a GPS satellite).
     xyz_pierce = xyz_station (seenfrom) + fraction * dxyz (satellite - station)
     The fraction is l(z)/magn(dxyz) = (h/cos(z))/magn(dxyz).
-    Assuming that the base angle of the triangle through the Earth centre, the station
-    and the pierce-point is close enough to 90 degr so that sin(a)~tg(a)~a"""
+    Assuming that Earth radius is so much greater than h that the max angle between
+    station position and pierce position (as seen from the Earth centre) is so small
+    that sin(a)~tg(a)~a"""
 
     name = 'longlat_pierce'
     qnode = self.ns[name]     
