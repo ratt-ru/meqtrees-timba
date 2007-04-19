@@ -225,7 +225,7 @@ class GPSPair (Meow.Parameterization):
   
   def __init__(self, ns, station, satellite,
                simulate=False, stddev=1.0,
-               pair_based_TEC=True,
+               pair_based_TECbias=True,
                name=None, quals=[],kwquals={}):
 
     # The object name. By default a combination of its station/satellite
@@ -249,12 +249,12 @@ class GPSPair (Meow.Parameterization):
     self._longlat_pierce = None       # innocent kludge (see .mimTEC())
 
     # Define the station parameter (simulated or solvable):
-    self._pair_based_TEC = pair_based_TEC 
+    self._pair_based_TECbias = pair_based_TECbias 
     self._pnames = []                 # list of (solvable) MeqParm names
     self._simulate = simulate
     self._stddev = stddev
     pname = 'TEC_bias'
-    if self._pair_based_TEC:          # if 
+    if self._pair_based_TECbias:          # if 
       if self._simulate:
         sp = SimulParm.SimulParm(self.ns, pname, value=0.0, stddev=self._stddev)
         self._add_parm(pname, sp.create(), tags=['GPSPair'])
@@ -271,7 +271,7 @@ class GPSPair (Meow.Parameterization):
   def oneliner (self):
     ss = str(type(self))
     ss += '  '+str(self.name)
-    if self._simulate and self._pair_based_TEC:
+    if self._simulate and self._pair_based_TECbias:
       ss += ' (TEC stddev='+str(self._stddev)+')'
     return ss
   
@@ -282,8 +282,8 @@ class GPSPair (Meow.Parameterization):
     print '  * simulate = '+str(self._simulate)+'  (stddev='+str(self._stddev)+')'
     print '  * '+self.station().oneliner()
     print '  * '+self.satellite().oneliner()
-    print '  * pair_based_TEC = '+str(self._pair_based_TEC)
-    if self._pair_based_TEC:
+    print '  * pair_based_TECbias = '+str(self._pair_based_TECbias)
+    if self._pair_based_TECbias:
       print '  * (solvable) pnames: '+str(self._pnames)
       for pname in self._pnames:
         print '    - '+str(self._parm(pname))
@@ -295,7 +295,7 @@ class GPSPair (Meow.Parameterization):
   
   def TEC_bias (self, show=False):
     """Returns the station TEC bias (node)"""
-    if self._pair_based_TEC:
+    if self._pair_based_TECbias:
       node = self._parm('TEC_bias')
     else:
       node = self.ns['TEC_bias']
@@ -322,7 +322,7 @@ class GPSPair (Meow.Parameterization):
   def solvable(self, tags='*', show=False):
     """Return a list of solvable parms (nodes)"""
     ss = dict(nodes=[], labels=[])
-    if self._pair_based_TEC:
+    if self._pair_based_TECbias:
       for pname in self._pnames:
         # ss['labels'].append(pname+'_'+str(self.name))
         ss['labels'].append(str(self.name))
@@ -487,7 +487,7 @@ if __name__ == '__main__':
 
     if 1:
       st1 = GPSStation(ns, 'st1', longlat=[-0.1,1.0],
-                       simulate=simulate)
+                       simulate=simulate, stddev=1.0)
       print st1.oneliner()
 
       if 1:
@@ -509,7 +509,8 @@ if __name__ == '__main__':
 
     if 1:
       sat1 = GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0],
-                          move=True, simulate=simulate)
+                          move=True,
+                          simulate=simulate, stddev=1.0)
       print sat1.oneliner()
 
       if 0:
@@ -534,7 +535,8 @@ if __name__ == '__main__':
 
     if 1:
       pair = GPSPair (ns, station=st1, satellite=sat1,
-                      simulate=simulate, pair_based_TEC=False)
+                      simulate=simulate, stddev=1.0,
+                      pair_based_TECbias=False)
       pair.display(full=True)
 
       if 1:

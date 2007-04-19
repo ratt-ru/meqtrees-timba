@@ -27,11 +27,11 @@ class GPSArray (Meow.Parameterization):
   def __init__(self, ns, name='gparr',
                nstat=2, nsat=3,
                longlat=[1.0,0.5],
-               stddev=dict(stat=[0.1,0.1],
-                           sat=[0.5,0.5]),
+               stddev_pos=dict(stat=[0.1,0.1],
+                               sat=[0.5,0.5]),
                move=False,
-               simulate=False,
-               pair_based_TEC=True,
+               simulate=False, stddev_TECbias=0.0,
+               pair_based_TECbias=True,
                quals=[], kwquals={}):
 
     Meow.Parameterization.__init__(self, ns, name,
@@ -40,21 +40,25 @@ class GPSArray (Meow.Parameterization):
     self._nstat = nstat                   # Nr of GPS stations
     self._nsat = nsat                     # Nr of GPS satellites      
     self._longlat0 = longlat              # (long,lat) of station array centre
-    self._stddev = stddev                 # stddev of positions (long,lat)
+    self._stddev_pos = stddev_pos         # stddev of positions (long,lat)
     self._simulate = simulate             # If true, use simulated TEC_biases
-    self._pair_based_TEC = pair_based_TEC # If False, use station/satellite-based TECs
+    self._stddev_TECbias = stddev_TECbias # stddev of TEC bias values
+    self._pair_based_TECbias = pair_based_TECbias # If False, use station/satellite-based TECs
  
 
     #---------------------
     # Define GPS stations:
-    rr = dict(name=[], obj=[], longlat=[], stddev=stddev['stat'],
+    rr = dict(name=[], obj=[], longlat=[],
+              stddev_pos=self._stddev_pos['stat'],
+              stddev_TECbias=self._stddev_TECbias,
               plot=dict(color='blue', style='circle'))
     for k in range(self._nstat):
       sname = 'st'+str(k)
-      longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
-                 random.gauss(self._longlat0[1], rr['stddev'][1])]
+      longlat = [random.gauss(self._longlat0[0], rr['stddev_pos'][0]),
+                 random.gauss(self._longlat0[1], rr['stddev_pos'][1])]
       obj = GPSPair.GPSStation(self.ns, sname, longlat=longlat,
-                               simulate=self._simulate)
+                               simulate=self._simulate,
+                               stddev=rr['stddev_TECbias'])
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -64,16 +68,18 @@ class GPSArray (Meow.Parameterization):
 
     #---------------------
     # Define GPS satellites:
-    rr = dict(name=[], obj=[], longlat=[], stddev=stddev['sat'],
+    rr = dict(name=[], obj=[], longlat=[],
+              stddev_pos=self._stddev_pos['sat'],
+              stddev_TECbias=self._stddev_TECbias,
               plot=dict(color='red', style='triangle'))
-    stddev = self._stddev['sat']
     sign = dict(direction=1, inclination=1)
     for k in range(self._nsat):
-      longlat = [random.gauss(self._longlat0[0], rr['stddev'][0]),
-                 random.gauss(self._longlat0[1], rr['stddev'][1])]
+      longlat = [random.gauss(self._longlat0[0], rr['stddev_pos'][0]),
+                 random.gauss(self._longlat0[1], rr['stddev_pos'][1])]
       sname = 'sat'+str(k)
       obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat,
-                                 simulate=self._simulate,
+                                 simulate=self._simulate, 
+                                 stddev=rr['stddev_TECbias'],
                                  sign=sign, move=move)
       print obj.oneliner()
       rr['name'].append(sname)
@@ -91,12 +97,14 @@ class GPSArray (Meow.Parameterization):
     # Define station-satellite pairs:
     ss = dict(nodes=[], labels=[])
     rr = dict(name=[], sat=[], stat=[], obj=[],
+              stddev_TECbias=self._stddev_TECbias,
               plot=dict(color='green', style='rectangle'))
     for stat in self._station['obj']:
       for sat in self._satellite['obj']:
         obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat,
-                               pair_based_TEC=self._pair_based_TEC,
-                               simulate=self._simulate)
+                               pair_based_TECbias=self._pair_based_TECbias,
+                               simulate=self._simulate,
+                               stddev=rr['stddev_TECbias'])
         print obj.oneliner()
         rr['name'].append(sname)
         rr['sat'].append(sat)
@@ -139,21 +147,30 @@ class GPSArray (Meow.Parameterization):
     for s in self._station['obj']:
       print '    - '+s.oneliner()
     print '    * plotting: '+str(self._station['plot'])
-    print '    * longlat scatter: stddev(rad) = '+str(self._station['stddev'])
+    print '    * longlat scatter (rad) = '+str(self._station['stddev_pos'])
     for k,name in enumerate(self._station['name']):
       print '      - '+name+': longlat = '+str(self._station['longlat'][k])
+    if not self._pair_based_TECbias:
+      print '    * pair_based_TECbias = '+str(self._pair_based_TECbias)
+      print '    * TECbias scatter (TECU) = '+str(self._station['stddev_TECbias'])
 
     print '  * GPSSatellites:'
     for s in self._satellite['obj']:
       print '    - '+s.oneliner()
     print '    * plotting: '+str(self._satellite['plot'])
-    print '    * longlat scatter: stddev(rad) = '+str(self._satellite['stddev'])
+    print '    * longlat scatter (rad) = '+str(self._satellite['stddev_pos'])
     for k,name in enumerate(self._satellite['name']):
       print '      - '+name+': longlat = '+str(self._satellite['longlat'][k])
+    if not self._pair_based_TECbias:
+      print '    * pair_based_TECbias = '+str(self._pair_based_TECbias)
+      print '    * TECbias scatter (TECU) = '+str(self._satellite['stddev_TECbias'])
 
     print '  * GPSPairs:'
     for p in self._pair['obj']:
       print '    - '+p.oneliner()
+    if self._pair_based_TECbias:
+      print '    * pair_based_TECbias = '+str(self._pair_based_TECbias)
+      print '    * TECbias scatter (TECU) = '+str(self._pair['stddev_TECbias'])
     ss = self._solvable
     print '    * solvable ('+str(len(ss['nodes']))+'):'
     for k,node in enumerate(ss['nodes']):
@@ -256,29 +273,33 @@ class GPSArray (Meow.Parameterization):
         condeqs.append(condeq)
         self.longlat_pierce(pair, qnode=qnode)
 
-      reqseq = []                    # list of reqseq children
+      reqseq = []                             # list of reqseq children
+
+      # Get the mim parameters to be solved for:
       solvable = mim.solvable()
-      solvable = self.solvable(merge=solvable, show=show)
+      JEN_bookmarks.create(solvable['nodes'], page='mim_pp')
+
+      if True:                                            # <----- !!
+        # Add the TECbias values to the solvables 
+        solvable = self.solvable(merge=solvable, show=show)
+
+      # Make the solver itself:
       node = qnode('solver') << Meq.Solver(children=condeqs,
                                            solvable=solvable['nodes'])
-      JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
-      print str(node)
+      JEN_bookmarks.create(node, page=name)
       reqseq.append(node)
 
       # Visualization of (condeq) residuals:
       node = qnode('condeqs') << Meq.Composer(children=condeqs,
                                               plot_label=labels)
       JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
-      print str(node)
       reqseq.append(node)
       
       # Visualization of solvables (MeqParms):
       node = qnode('solvable') << Meq.Composer(children=solvable['nodes'],
                                                plot_label=solvable['labels'])
       JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
-      print str(node)
       reqseq.append(node)
-      print '** reqseq=',reqseq
 
       # Make the final reqseq:
       qnode << Meq.ReqSeq(children=reqseq)
@@ -407,25 +428,31 @@ def _define_forest(ns):
                    nstat=3, nsat=4, 
                    # nstat=1, nsat=1, 
                    longlat=[-0.1,0.1],
-                   stddev=dict(stat=[0.1,0.1],
-                               # sat=[0.2,0.2]),
-                               sat=[0.4,0.4]),
+                   stddev_pos=dict(stat=[0.1,0.1],
+                                   # sat=[0.2,0.2]),
+                                   sat=[0.4,0.4]),
                    simulate=False,
-                   pair_based_TEC=True,
+                   stddev_TECbias=1.0,
+                   pair_based_TECbias=True,
                    move=True)
     gpa.display(full=True)
 
     if 1:
-      sim = MIM.MIM(ns, ndeg=4, simulate=True)
+      # The simulated MIM provide the 'measured' GPS data
+      sim = MIM.MIM(ns, ndeg=1, simulate=True)
       sim.display(full=True)
-      cc.append(gpa.mimTEC(sim))
 
     if 1:
+      cc.append(gpa.mimTEC(sim))
       # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
-    if 0:
-      cc.append(gpa.rvsi_azel())
 
+    if 1:
+      # The MIM for whose parameters we solve
+      mim = MIM.MIM(ns, ndeg=1)
+      mim.display(full=True)
+      reqseq = gpa.solMIM(mim, sim, show=True)
+      cc.append(reqseq)
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -433,12 +460,41 @@ def _define_forest(ns):
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 
-def _tdl_job_execute (mqs, parent):
+def _tdl_job_0s (mqs, parent):
     """Execute the forest, starting at the named node"""
     t1 = 0                          
     t2 = t1+0.0001
     domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
+def _tdl_job_30s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    t1 = 0                          
+    t2 = t1+30
+    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=1)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
+
+def _tdl_job_300s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    t1 = 0                          
+    t2 = t1+300
+    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=10)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
+
+def _tdl_job_3000s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    t1 = 0                          
+    t2 = t1+3000
+    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=100)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
@@ -465,14 +521,15 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     gpa = GPSArray(ns, nstat=2, nsat=1,
-                   stddev=dict(stat=[0.1,0.1],
-                               sat=[0.5,0.5]),
+                   stddev_pos=dict(stat=[0.1,0.1],
+                                   sat=[0.5,0.5]),
                    simulate=False,
-                   pair_based_TEC=True,
+                   stddev_TECbias=1.0,
+                   pair_based_TECbias=True,
                    move=True)
     gpa.display(full=True)
 
-    if 0:
+    if 1:
       xxx = dict(nodes=range(3), labels=['xxx','yy','z'])
       gpa.solvable(merge=xxx, show=True)
 
@@ -484,15 +541,11 @@ if __name__ == '__main__':
       display.subtree(node,node.name)
 
     if 0:
-      node = gpa.rvsi_azel()
-      display.subtree(node,node.name)
-
-    if 0:
       sim = MIM.MIM(ns, ndeg=1, simulate=True)
       sim.display(full=True)
       gpa.mimTEC(sim, show=True)
 
-    if 1:
+    if 0:
       mim = MIM.MIM(ns, ndeg=1)
       mim.display(full=True)
       sim = MIM.MIM(ns, ndeg=1, simulate=True)
