@@ -222,6 +222,7 @@ class GPSArray (Meow.Parameterization):
     """Make an inspector for the TEC-values of the various pairs"""
     name = 'mimTEC'
     qnode = self.ns[name]
+    qnode = qnode.qmerge(mim.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
       cc =[]
@@ -261,6 +262,8 @@ class GPSArray (Meow.Parameterization):
 
     name = 'solMIM'
     qnode = self.ns[name]
+    # qnode = qnode.qmerge(mim.ns['GPSArray_dummy_qnode'])
+    # qnode = qnode.qmerge(sim.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
       condeqs =[]
@@ -279,8 +282,8 @@ class GPSArray (Meow.Parameterization):
       solvable = mim.solvable()
       JEN_bookmarks.create(solvable['nodes'], page='mim_pp')
 
-      if True:                                            # <----- !!
-        # Add the TECbias values to the solvables 
+      if False:                                            # <----- !!
+        # Add the TECbias parameters to the solvables 
         solvable = self.solvable(merge=solvable, show=show)
 
       # Make the solver itself:
@@ -439,20 +442,21 @@ def _define_forest(ns):
 
     if 1:
       # The simulated MIM provide the 'measured' GPS data
-      sim = MIM.MIM(ns, ndeg=1, simulate=True)
+      sim = MIM.MIM(ns, 'sim', ndeg=2, simulate=True)
       sim.display(full=True)
 
-    if 1:
+    if 0:
       cc.append(gpa.mimTEC(sim))
       # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
 
     if 1:
       # The MIM for whose parameters we solve
-      mim = MIM.MIM(ns, ndeg=1)
+      mim = MIM.MIM(ns, 'mim', ndeg=1)
       mim.display(full=True)
-      reqseq = gpa.solMIM(mim, sim, show=True)
-      cc.append(reqseq)
+      if 1:
+        reqseq = gpa.solMIM(mim, sim, show=True)
+        cc.append(reqseq)
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -541,16 +545,14 @@ if __name__ == '__main__':
       display.subtree(node,node.name)
 
     if 0:
-      sim = MIM.MIM(ns, ndeg=1, simulate=True)
+      sim = MIM.MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
       gpa.mimTEC(sim, show=True)
 
-    if 0:
-      mim = MIM.MIM(ns, ndeg=1)
-      mim.display(full=True)
-      sim = MIM.MIM(ns, ndeg=1, simulate=True)
-      sim.display(full=True)
-      gpa.solMIM(mim, sim, show=True)
+      if 0:
+        mim = MIM.MIM(ns, 'mim', ndeg=1)
+        mim.display(full=True)
+        gpa.solMIM(mim, sim, show=True)
 
 
       

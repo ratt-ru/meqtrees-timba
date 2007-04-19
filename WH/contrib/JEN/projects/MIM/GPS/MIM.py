@@ -30,6 +30,7 @@ class MIM (Meow.Parameterization):
                effalt_km=300,
                ndeg=2, simulate=False):
 
+    # if simulate: quals.append('simul')                                 # kludge!!
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
 

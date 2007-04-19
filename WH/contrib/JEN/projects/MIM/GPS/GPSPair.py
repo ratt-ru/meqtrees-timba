@@ -355,6 +355,7 @@ class GPSPair (Meow.Parameterization):
     includes that station- and satellite TEC bias values. It gets its
     information from the given (simulated) MIM object"""
     qnode = self.ns['mimTEC']
+    qnode = qnode.qmerge(mim.ns['GPSPair_dummy_qnode'])
     if not qnode.initialized():
       TEC = mim.TEC(self._station, self._satellite)
       self._longlat_pierce = mim._last_longlat_pierce   # innocent kludge
