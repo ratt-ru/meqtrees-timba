@@ -2,6 +2,7 @@
 
 # History:
 # - 10apr2007: creation (from ParmGroup.py)
+# - 22apr2007: added tags to .create()
 
 # Description:
 
@@ -48,6 +49,14 @@ class SimulParm (Meow.Parameterization):
         Meow.Parameterization.__init__(self, ns=ns, name=name,
                                        quals=quals, kwquals=kwquals)
 
+        # The tags are assigned to the final SimulParm node (see .create())
+        self._tags = deepcopy(tags)
+        if self._tags==None: self._tags = []
+        if not isinstance(self._tags,(list,tuple)):
+            self._tags = [self._tags]
+        self._tags.append(name)
+
+        # Initialize some private quantities:
         self._def = [dict(mode='init', value=value, stddev=stddev, qual='init')]
         self._counter = dict(index=-1)
         self._usedval = dict()        
@@ -209,7 +218,7 @@ class SimulParm (Meow.Parameterization):
         return self.create(qual=self._counter['index'])
     
 
-    def create(self, qual=None, show=False):
+    def create(self, qual=None, tags=[], show=False):
         """Create a subtree (node) with the specified qualifier(s)"""
 
         name = 'SimulParm'
@@ -234,7 +243,19 @@ class SimulParm (Meow.Parameterization):
                 pass  
             else:
                 pass
-        qnode << Meq.Identity(curr)
+
+        # Finally, make the root-node of the SimulParm subtree.
+        qtags = self._tags
+        if qtags==None: qtags = []
+        if not isinstance(qtags,(list,tuple)): qtags = [qtags]
+        if tags:
+            if isinstance(tags,(list,tuple)):
+                qtags.extend(tags)
+            else:
+                qtags.append(tags)
+        qnode << Meq.Identity(curr, tags=qtags)
+
+        # Finished:
         if show: display.subtree(qnode)
         return qnode
     
@@ -276,7 +297,7 @@ def _define_forest(ns):
 
     if True:
         # 'Misuse' the last sp1 object to create the MeqParm counterparts
-        # of the SumulParm subtrees:
+        # of the SimulParm subtrees:
         pp = []
         for pname in pnames:
             sp1._add_parm(pname, Meow.Parm(), tags=['test'])
@@ -337,14 +358,14 @@ def _tdl_job_sequence (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    sp1 = SimulParm(ns, 'sp1')
+    sp1 = SimulParm(ns, 'sp1', tags=range(2))
     # sp1 = SimulParm(ns, 'sp1', factor=dict(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100)))
     # print sp1.oneliner()
     sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
     # sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
     # sp1.binop()
     sp1.display()
-    sp1.create(qual=[], show=True)
+    sp1.create(qual=[], tags='uu', show=True)
     # sp1.create(show=True)
     # sp1.next()
     # sp1.next()
