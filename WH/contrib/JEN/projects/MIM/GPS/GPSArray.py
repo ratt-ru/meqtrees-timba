@@ -5,6 +5,7 @@ from Timba.Meq import meq
 
 import Meow
 import GPSPair
+import IonosphereModel
 import MIM
 import random
 from numarray import *
@@ -20,9 +21,8 @@ Settings.forest_state.cache_policy = 100
 #================================================================
 
 class GPSArray (Meow.Parameterization):
-  """Represents a Minimum Ionospheric Model (MIM)
-  as a function of Earth (longitude,latitude) and
-  zenith angle."""
+  """Represents an array of GPS stations as a function of Earth
+  (longitude,latitude), and a collection of GPS satellites."""
   
   def __init__(self, ns, name='gparr',
                nstat=2, nsat=3,
@@ -214,18 +214,18 @@ class GPSArray (Meow.Parameterization):
   #-------------------------------------------------------
   #-------------------------------------------------------
 
-  def mimTEC(self, mim, bookpage='mimTEC', show=False):
-    """Make an inspector for the TEC-values of the various pairs"""
-    name = 'mimTEC'
+  def ploTEC(self, iom, bookpage='ploTEC', show=False):
+    """Make an inspector (plot) for the TEC-values of the various pairs"""
+    name = 'ploTEC'
     qnode = self.ns[name]
-    qnode = qnode.qmerge(mim.ns['GPSArray_dummy_qnode'])
+    qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
       cc =[]
       labels = []
       for pair in self._pair['obj']:
         labels.append(pair.name)
-        cc.append(pair.mimTEC(mim))
+        cc.append(pair.modelTEC(iom))
         self.longlat_pierce(pair, qnode=qnode)
       self.longlat_pierce(qnode=qnode, bundle=True)
       qnode << Meq.Composer(children=cc, plot_label=labels)
@@ -242,7 +242,7 @@ class GPSArray (Meow.Parameterization):
     if reset: self._longlat_pierce = []
     if pair:
         pnode = qnode(pair.name)
-        llp = pair._longlat_pierce    # obtained via pair.mimTEC(mim)
+        llp = pair._longlat_pierce    # obtained via pair.modelTEC(iom)
         lo = pnode('pierce_longitude') << Meq.Selector(llp, index=0)
         lat = pnode('pierce_latitude') << Meq.Selector(llp, index=1)
         longlat = pnode('pierce_longlat_complex') << Meq.ToComplex(lo,lat)
@@ -256,13 +256,13 @@ class GPSArray (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solMIM(self, mim, sim, show=False):
-    """Solve for the parameters of the specified MIM (mim),
-    using the other MIM (sim) to generate predicted TEC values."""
+  def solIOM(self, iom, sim, show=False):
+    """Solve for the parameters of the specified Ionosphere Model (iom),
+    using the other IOM (sim) to generate predicted TEC values."""
 
-    name = 'solMIM'
+    name = 'solIOM'
     qnode = self.ns[name]
-    # qnode = qnode.qmerge(mim.ns['GPSArray_dummy_qnode'])
+    # qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
     # qnode = qnode.qmerge(sim.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
@@ -271,19 +271,19 @@ class GPSArray (Meow.Parameterization):
       for pair in self._pair['obj']:
         label = pair.name
         labels.append(label)
-        condeq = qnode('condeq')(label) << Meq.Condeq(pair.mimTEC(mim),
-                                                      pair.simTEC(sim))
+        condeq = qnode('condeq')(label) << Meq.Condeq(pair.modelTEC(iom),
+                                                      pair.modelTEC(sim, sim=True))
         condeqs.append(condeq)
         self.longlat_pierce(pair, qnode=qnode)
       self.longlat_pierce(qnode=qnode, bundle=True)
 
       reqseq = []                             # list of reqseq children
 
-      # Get the mim parameters to be solved for:
-      solvable = mim.solvable()
-      JEN_bookmarks.create(solvable['nodes'], page='mim_pp')
+      # Get the iom parameters to be solved for:
+      solvable = iom.solvable()
+      JEN_bookmarks.create(solvable['nodes'], page='iom_pp')
 
-      if False:                                            # <----- !!
+      if False:                                                      # <----- !!
         # Add the TecBias parameters to the solvables 
         solvable = self.solvable(merge=solvable, show=show)
       else:
@@ -434,8 +434,8 @@ def _define_forest(ns):
     cc = []
 
     gpa = GPSArray(ns,
-                   nstat=3, nsat=4, 
-                   # nstat=1, nsat=1, 
+                   # nstat=3, nsat=4, 
+                   nstat=1, nsat=1, 
                    longlat=[-0.1,0.1],
                    stddev_pos=dict(stat=[0.1,0.1],
                                    # sat=[0.2,0.2]),
@@ -446,12 +446,12 @@ def _define_forest(ns):
     gpa.display(full=True)
 
     if 1:
-      # The simulated MIM provide the 'measured' GPS data
+      # The simulated IOM provide the 'measured' GPS data
       sim = MIM.MIM(ns, 'sim', ndeg=2, simulate=True)
       sim.display(full=True)
 
     if 1:
-      cc.append(gpa.mimTEC(sim))
+      cc.append(gpa.ploTEC(sim))
       # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
 
@@ -465,7 +465,7 @@ def _define_forest(ns):
                     tiling=tiling, time_deg=time_deg)
       mim.display(full=True)
       if 1:
-        reqseq = gpa.solMIM(mim, sim, show=True)
+        reqseq = gpa.solIOM(mim, sim, show=True)
         cc.append(reqseq)
 
     ns.result << Meq.Composer(children=cc)
@@ -474,19 +474,21 @@ def _define_forest(ns):
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 
-def _tdl_job_0s (mqs, parent):
+def _tdl_job_dom0s (mqs, parent):
     """Execute the forest, starting at the named node"""
-    t1 = 0                          
-    t2 = t1+0.0001
+    dt = 0.001
+    t1 = -dt/2                          
+    t2 = dt/2
     domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
-def _tdl_job_30s (mqs, parent):
+def _tdl_job_dom30s (mqs, parent):
     """Execute the forest, starting at the named node"""
-    t1 = 0                          
-    t2 = t1+30
+    dt = 30
+    t1 = -dt/2                          
+    t2 = dt/2
     domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
     # request = meq.request(cells, rqtype='ev')
@@ -494,10 +496,11 @@ def _tdl_job_30s (mqs, parent):
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 
-def _tdl_job_300s (mqs, parent):
+def _tdl_job_dom300s (mqs, parent):
     """Execute the forest, starting at the named node"""
-    t1 = 0                          
-    t2 = t1+300
+    dt = 300
+    t1 = -dt/2                          
+    t2 = dt/2
     domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=10)
     # request = meq.request(cells, rqtype='ev')
@@ -505,10 +508,22 @@ def _tdl_job_300s (mqs, parent):
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 
-def _tdl_job_3000s (mqs, parent):
+def _tdl_job_dom3000s (mqs, parent):
     """Execute the forest, starting at the named node"""
-    t1 = 0                          
-    t2 = t1+3000
+    dt = 3000
+    t1 = -dt/2                          
+    t2 = dt/2
+    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=100)
+    # request = meq.request(cells, rqtype='ev')
+    request = meq.request(cells, rqid=meq.requestid(t2))
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
+def _tdl_job_dom20000s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    dt = 20000
+    t1 = -dt/2                          
+    t2 = dt/2
     domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=100)
     # request = meq.request(cells, rqtype='ev')
@@ -516,10 +531,34 @@ def _tdl_job_3000s (mqs, parent):
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 
-def _tdl_job_sequence (mqs, parent):
+def _tdl_job_step30s (mqs, parent):
     """Execute the forest, starting at the named node"""
     for t in range(-50,50):
-      t1 = t*100                                            # 30 sec steps 
+      t1 = t*30                                            # 30 sec steps 
+      t2 = t1+0.0001
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=1, num_time=1)
+      request = meq.request(cells, rqid=meq.requestid(t+100))
+      result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+       
+def _tdl_job_step100s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    for t in range(-50,50):
+      t1 = t*100                                           # 100 sec steps 
+      t2 = t1+0.0001
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=1, num_time=1)
+      request = meq.request(cells, rqid=meq.requestid(t+100))
+      result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+       
+def _tdl_job_step300s (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    for t in range(-50,50):
+      t1 = t*300                                           # 300 sec steps 
       t2 = t1+0.0001
       domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
       cells = meq.cells(domain, num_freq=1, num_time=1)
@@ -559,12 +598,12 @@ if __name__ == '__main__':
     if 0:
       sim = MIM.MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
-      gpa.mimTEC(sim, show=True)
+      gpa.ploTEC(sim, show=True)
 
       if 0:
         mim = MIM.MIM(ns, 'mim', ndeg=1)
         mim.display(full=True)
-        gpa.solMIM(mim, sim, show=True)
+        gpa.solIOM(mim, sim, show=True)
 
 
       

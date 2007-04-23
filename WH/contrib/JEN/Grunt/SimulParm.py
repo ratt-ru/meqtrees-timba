@@ -167,14 +167,22 @@ class SimulParm (Meow.Parameterization):
         pi2 = 2*math.pi
         targ = None
         farg = None
+        phase = self._get_value('phase', rr)
         if rr['Psec']:
             time = qnode('time') << Meq.Time()
             Psec = qnode('Psec') << self._get_value('Psec', rr)
-            targ = qnode('targ') << Meq.Divide(pi2*time,Psec)
+            targ = qnode('targ0') << Meq.Divide(pi2*time,Psec)
+            if not phase==0.0:
+                targ = qnode('targ') << Meq.Add(phase,targ)
+                phase = 0.0    # avoid second application to farg below
+
         if rr['PHz']:
             freq = qnode('freq') << Meq.Freq()
             PHz = qnode('PHz') << self._get_value('PHz', rr)
-            farg = qnode('farg') << Meq.Divide(pi2*freq,PHz)
+            farg = qnode('farg0') << Meq.Divide(pi2*freq,PHz)
+            if not phase==0.0:
+                farg = qnode('farg') << Meq.Add(phase,farg)
+
         arg = None
         if targ and farg:
             # NB: The two period-terms are ADDED (not subtracted),
@@ -361,7 +369,8 @@ if __name__ == '__main__':
     sp1 = SimulParm(ns, 'sp1', tags=range(2))
     # sp1 = SimulParm(ns, 'sp1', factor=dict(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100)))
     # print sp1.oneliner()
-    sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
+    # sp1.term(ampl=100, PHz=5e8, stddev=dict(ampl=0.1, PHz=100))
+    sp1.term(ampl=100, PHz=5e8, phase=math.pi/2, stddev=dict(ampl=0.1, PHz=100, phase=0.2))
     # sp1.factor(Psec=1000, PHz=1e8, stddev=dict(ampl=0.1, Psec=100))
     # sp1.binop()
     sp1.display()

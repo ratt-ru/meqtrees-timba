@@ -5,6 +5,7 @@ from Timba.Meq import meq
 
 import Meow
 import GPSPair
+import IonosphereModel
 
 from Timba.Contrib.JEN.Vector import GeoLocation
 from Timba.Contrib.JEN.Grunt import SimulParm
@@ -18,7 +19,7 @@ Settings.forest_state.cache_policy = 100
 
 #================================================================
 
-class MIM (Meow.Parameterization):
+class MIM (IonosphereModel.IonosphereModel):
   """Represents a Minimum Ionospheric Model (MIM)
   as a function of Earth (longitude,latitude) and
   zenith angle."""
@@ -33,25 +34,12 @@ class MIM (Meow.Parameterization):
                effalt_km=300,
                ndeg=2, simulate=False):
 
-    Meow.Parameterization.__init__(self, ns, name,
-                                   quals=quals, kwquals=kwquals)
+    IonosphereModel.IonosphereModel.__init__(self, ns, name,
+                                             refloc=refloc,
+                                             effalt_km=effalt_km,
+                                             quals=quals, kwquals=kwquals)
 
-    # The 'effective altitude' of the ionosphere. It has the dimension of
-    # a length (km!), but is just a coupling parameter, which may be solved for.
-    # For the moment, it is just a constant
-    self._effalt_km = effalt_km
-
-    # The MIM reference location (refloc) is a GeoLocation object.
-    # If not specified, use longlat=(0,0), on the Eart surface.
-    self._refloc = refloc
-    if not isinstance(refloc, GeoLocation.GeoLocation):
-      self._refloc = GeoLocation.GeoLocation(self.ns, name='refloc',
-                                             longlat=[0,0], radius=None,
-                                             tags=['GeoLocation','MIM'],
-                                             solvable=False)
-    self._Earth = self._refloc._Earth              # copy the Earth dict (radius etc)
-      
-
+    #-------------------------------------------------
     # Define the MIM:
     self._ndeg = ndeg
     if isinstance(self._ndeg,int):
@@ -75,9 +63,11 @@ class MIM (Meow.Parameterization):
             # Make simulated parms (subtrees) with average value of zero,
             # but with a cosine time-variation with given ampl and period.
             # The latter may be randomized with a given stddev.
-            ampl = 1.0/(1.0+i+j)
-            ampl = ampl*ampl
-            term = dict(ampl=ampl, Psec=1000,
+            atij = 1.0/(1.0+i+j)                   # attenuation factor
+            ampl = (atij*atij)                     # time variation amplitude
+            phase = 0.0                            # time variation phase (rad) 
+            # phase = (i+j)*(pi/2)                                # <----!?
+            term = dict(ampl=ampl, Psec=1000, phase=phase,
                         stddev=dict(ampl=ampl/10.0, Psec=100))
             sp = SimulParm.SimulParm(ns, pname, value=0.0, term=term)
             self._SimulParm.append(sp)             # SimulParm objects          
@@ -98,11 +88,9 @@ class MIM (Meow.Parameterization):
           self._pnode.append(node)                 # Parm/SimulParm nodes
       self._solvable = ss
 
-    # Some extra info:
-    self._pierce_points = []                       # an innocent kludge
-
     # Finished:
     return None
+
 
 
   #---------------------------------------------------------------
@@ -139,74 +127,6 @@ class MIM (Meow.Parameterization):
     print
     return True
 
-  #----------------------------------------------------------------
-  #----------------------------------------------------------------
-
-  def effective_altitude(self):
-    """Return the 'effective altitude' (km!) of the ionosphere.
-    Since the MIM does NOT assume a thin layer, this is NOT a physical
-    altitude, but rather a coupling parameter to relate longlat with z"""
-    return self._effalt_km
-
-  #--------------------------------------------------------------------
-
-  def slant_function(self, qnode, z=None, flat_Earth=False, show=False):
-    """Helper function to calculate the ionospheric slant-function S(z),
-    i.e. the function that indicates how much longer the path through the
-    ionosphere is as a function of zenith angle(z).
-    The simplest (flat-Earth) form of S(z) is sec(z)=1/cos(z), but more
-    complicated versions take account of the curvature of the Earth.
-    In all cases, S(z=0)=1."""
-
-    if flat_Earth:
-      cosz = qnode('cosz') << Meq.Cos(z)
-
-    else:
-      R = self._Earth['radius']                             # km
-      h = self.effective_altitude()                         # km
-      Rh = qnode('R/(R+h)') << Meq.Divide(R,R+h)
-      sinz = qnode('sinz') << Meq.Sin(z)
-      Rhsin = qnode('Rhsinz') << Meq.Multiply(Rh,sinz)
-      asin = qnode('asin') << Meq.Asin(Rhsin)
-      cosz = qnode('cosasin') << Meq.Cos(asin)
-
-    # S(z') = sec(z') = 1/cos(z')
-    sz = qnode('Sz') << Meq.Divide(1.0,cosz)
-
-    if show: 
-      display.subtree(sz, recurse=4, show_initrec=False)
-    return sz
-   
-  #----------------------------------------------------------------
-  #----------------------------------------------------------------
-
-  def solvable(self, tags='*', show=False):
-    """Return a dict of solvable parms (nodes), and their labels"""
-    if show:
-      ss = self._solvable
-      print '\n** solvable MeqParms of:',self.oneliner()
-      for k,node in enumerate(ss['nodes']):
-        print '  -',ss['labels'][k],': ',str(node)
-      print
-    return self._solvable
-
-  #-----------------------------------------------------------------
-
-  def inspector(self, bookpage='MIM', show=False):
-    """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
-    if self._simulate:
-      name = 'SimulParm'
-    else:
-      name = 'solvable'
-    qnode = self.ns[name]
-    if not qnode.initialized():
-      qnode << Meq.Composer(children=self._pnode, plot_label=self._pname)
-      JEN_bookmarks.create(qnode, page=bookpage,
-                           viewer='Collections Plotter')
-    if show:
-      display.subtree(qnode)
-    return qnode
-
 
 
 
@@ -218,7 +138,9 @@ class MIM (Meow.Parameterization):
   # suitable for calculating the MIM in the direction of a celestial source.
   #======================================================================
 
-  def geoTEC(self, seenfrom=None, towards=None, show=False):
+
+  def _geoTEC(self, qnode, seenfrom=None, towards=None,
+              ll_seenfrom=None, ll_piercing=None, z=0.0):
     """Return a node/subtree that predicts an integrated TEC value,
     as seen from the specified location (seenfrom==GeoLocation or None)
     in the direction of the specified (towards) location. The latter
@@ -230,39 +152,11 @@ class MIM (Meow.Parameterization):
     is sec(z)=1/cos(z), but more complicated versions take account of
     the curvature of the Earth. In all cases, S(z=0)=1."""
 
-    name = 'geoTEC'
-    qnode = self.ns[name]                                   
-
-    # Check the first location (if any):
-    if seenfrom==None:
-      qnode = qnode('refloc')
-      ll_from = self._refloc.longlat()
-    elif isinstance(seenfrom, GeoLocation.GeoLocation):
-      qnode = qnode.qmerge(seenfrom.ns['MIM_dummy_qnode'])  
-      ll_from = seenfrom.longlat()
-    else:
-      s = 'MIM.geoTEC(): from should be a GeoLocation, not: '+str(type(seenfrom))
-      raise ValueError,s
-
-    # Check the second location (if any):
-    if towards==None:
-      # Assume zenith direction:
-      qnode = qnode('zenith')
-      ll_piercing = None
-      z = None
-    elif isinstance(towards, GeoLocation.GeoLocation):
-      qnode = qnode.qmerge(towards.ns['MIM_dummy_qnode'])  
-      ll_piercing = self.longlat_pierce(seenfrom, towards)
-      z = seenfrom.zenith_angle(towards)
-    else:
-      s = 'MIM.geoTEC(): towards should be a GeoLocation, not: '+str(type(towards))
-      raise ValueError,s
-
-
-    # Only if not yet initialized:
+    # OK, create the geoMIM subtree (if required)
     if not qnode.initialized():
       if ll_piercing:
-        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing, ll_from)
+        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
+                                                     ll_seenfrom)
         dlong1 = qnode('dlong') << Meq.Selector(dlonglat, index=0)
         dlat1 = qnode('dlat') << Meq.Selector(dlonglat, index=1)
       else:
@@ -304,42 +198,10 @@ class MIM (Meow.Parameterization):
         qnode << Meq.Multiply(TEC0, sz)                # TEC0*sec(z')
           
     # Finished:
-    if show:
-      display.subtree(qnode, recurse=4, show_initrec=False)
-    return qnode
+    return True
 
 
-  #-------------------------------------------------------------------------------
-  
-  def longlat_pierce(self, seenfrom, towards, show=False):
-    """Return the longlat (node) of the pierce point through this (MIM) ionsosphere,
-    as seen from the given GeoLocation, towards the other (usually a GPS satellite).
-    xyz_pierce = xyz_station (seenfrom) + fraction * dxyz (satellite - station)
-    The fraction is l(z)/magn(dxyz) = (h/cos(z))/magn(dxyz).
-    Assuming that Earth radius is so much greater than h that the max angle between
-    station position and pierce position (as seen from the Earth centre) is so small
-    that sin(a)~tg(a)~a"""
 
-    name = 'longlat_pierce'
-    qnode = self.ns[name]     
-    qnode = qnode.qmerge(seenfrom.ns['MIM_dummy_qnode'])  
-    qnode = qnode.qmerge(towards.ns['MIM_dummy_qnode'])  
-    if not qnode.initialized():
-      dxyz = towards.binop('Subtract', seenfrom)    # (dx,dy,dz) from station to satellite
-      m = dxyz.magnitude()
-      z = seenfrom.zenith_angle(towards)
-      cosz = qnode('cosz') << Meq.Cos(z)
-      mcos = qnode('mcos') << Meq.Multiply(m,cosz)
-      h = self.effective_altitude()                 # ionospheric coupling parameter (h)....
-      fraction = qnode('fraction') << Meq.Divide(h, mcos)
-      dxyz_fraction = dxyz.binop('Multiply',fraction)     # -> GeoLocation object
-      xyz_pierce = seenfrom.binop('Add', dxyz_fraction)  
-      qnode = xyz_pierce.longlat()
-    seenfrom._show_subtree(qnode, show=show, recurse=4)
-    self._last_longlat_pierce = qnode               # innocent kludge, read by GPSPair.mimTEC()
-    return qnode
-
- 
 
 
 
@@ -351,23 +213,39 @@ def _define_forest(ns):
 
     cc = []
 
-    mim = MIM(ns)
+    mim = MIM(ns, 'mim')
     mim.display(full=True)
-    # cc.append(mim.inspector())
+    cc.append(mim.inspector())
 
     if 1:
-      sim = MIM(ns, 'simul', ndeg=1, simulate=True)
+      sim = MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
       cc.append(sim.inspector())
-      cc.append(sim.visualize())
 
 
-    if False:
-      st1 = GPSStation(ns,'st1', pos1)
-      sat1 = GPSSatellite(ns,'sat1', x=pos2[0], y=pos2[1], z=pos2[2])
-      pair = GPSPair (ns, station=st1, satellite=sat1)
-      pair.display(full=True)
-      cc.append(zang)
+    if 1:
+      st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,0.1])
+      sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[0.1,0.1])
+
+      if 0:
+        cc.append(sim.longlat_pierce(st1, sat1, show=True))
+
+      if 0:
+        qnode = ns.qnode('xxx')
+        cc.append(sim.slant_function(qnode, z=1, flat_Earth=True, show=True))
+
+      if 0:
+        cc.append(sim.geoTEC(st1, sat1, show=True))
+        # cc.append(sim.geoTEC(st1, show=True))
+        # cc.append(sim.geoTEC(show=True))
+
+      if 1:
+        pair = GPSPair.GPSPair(ns, station=st1, satellite=sat1)
+        pair.display(full=True)
+        if 0:
+          cc.append(pair.mimTEC(sim, show=True))
+        if 1:
+          cc.append(pair.simTEC(sim, show=True))
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -393,11 +271,11 @@ if __name__ == '__main__':
     ns = NodeScope()
 
 
-    mim = MIM(ns)
+    mim = MIM(ns, 'mim')
     mim.display(full=True)
 
     if 1:
-      sim = MIM(ns, ndeg=1, simulate=True)
+      sim = MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
 
       if 0:
@@ -409,18 +287,18 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------------------
 
-    if 0:
+    if 1:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0])
 
-      if 1:
+      if 0:
         sim.longlat_pierce(st1, sat1, show=True)
 
       if 0:
         qnode = ns.qnode('xxx')
         sim.slant_function(qnode, z=1, flat_Earth=True, show=True)
 
-      if 0:
+      if 1:
         sim.geoTEC(st1, sat1, show=True)
         # sim.geoTEC(st1, show=True)
         # sim.geoTEC(show=True)

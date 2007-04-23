@@ -13,93 +13,6 @@ from numarray import *
 Settings.forest_state.cache_policy = 100
 
 
-#================================================================
-#================================================================
-
-class TecBias (Meow.Parameterization):
-  """Represents a TEC bias value (MeqParm and/or simulated).
-  This class is used by GPSStation, GPSSatellite and GPSPair."""
-
-  def __init__(self, ns, name, tags=[],
-               simul=dict(value=0.0, stddev=1.0),
-               quals=[],kwquals={}):
-
-    Meow.Parameterization.__init__(self, ns=ns, name=name,
-                                   quals=quals, kwquals=kwquals)
-
-    self._tags = tags
-    
-    # The only parameter is the TecBias.
-    self._pname = 'TecBias'
-    self._pnames = [self._pname]
-    self._add_parm(self._pname, Meow.Parm(), tags=self._tags)
-
-    # The TecBias has a simulated version, which is created if necessary.
-    self._simulated = None     # its simulation subtree
-    ss = simul                 # dict with simulation parameters
-    if not isinstance(ss, dict): ss = dict()
-    ss.setdefault('value', 0.0)
-    ss.setdefault('stddev', 1.0)
-    self._simul = ss
-
-    # Finished:
-    return None
-
-  #------------------------------------------------------------------
-
-  def oneliner (self):
-    """Return a one-line summary of this object."""
-    stddev = self._simul['stddev']
-    ss = 'TecBias: '+str(self.name)
-    ss += ' tags='+str(self._tags)
-    ss += ' (stddev='+str(stddev)+')'
-    return ss
-
-
-  #---------------------------------------------------------------
-  
-  def node (self, sim=False, show=False):
-    """Returns the station TEC bias (node). If sim==True, return the
-    subtree for the simulated value. Otherwise, a MeqParm."""
-    if sim:
-      if not self._simulated:        # create if necessary
-        sp = SimulParm.SimulParm(self.ns, self._pname,
-                                 tags=self._tags,
-                                 value=self._simul['value'],
-                                 stddev=self._simul['stddev'])
-        self._simulated = sp.create()
-      node = self._simulated
-    else:
-      node = self._parm(self._pname)
-    if show:
-      display.subtree(node)
-    return node
-
-  #---------------------------------------------------------------
-
-  def residual (self, show=False):
-    """Returns a subtree with the difference of the simulated and the
-    MeqParm version of TecBias. For plotting and other diagnostics."""
-    qnode = self.ns['TecBias_residual']
-    if not qnode.initialized():
-      qnode << Meq.Subtract(self.node(sim=False),
-                            self.node(sim=True))
-    if show:
-      display.subtree(qnode)
-    return qnode
-
-  #---------------------------------------------------------------
-
-  def solvable(self, tags='*'):
-    """Return a dict of solvable parms (nodes) and their (plot) labels"""
-    ss = dict(nodes=[], labels=[])
-    for pname in self._pnames:
-      # ss['labels'].append(pname+'_'+str(self.name))
-      ss['labels'].append(str(self.name))
-      ss['nodes'].append(self._parm(pname))
-    return ss
-
-
 
 
 
@@ -269,9 +182,6 @@ class GPSPair (Meow.Parameterization):
     self._station = station           # its station
     self._satellite = satellite       # its satellite
 
-    # Some extra information:
-    self._longlat_pierce = None       # innocent kludge (see .mimTEC())
-
     # Define the pair parameter (simulated or solvable):
     self._pair_based_TecBias = pair_based_TecBias 
     self.TecBias = TecBias(ns, name,
@@ -310,7 +220,7 @@ class GPSPair (Meow.Parameterization):
   #---------------------------------------------------------------
   
   def TEC_bias (self, sim=False, show=False):
-    """Returns the combined TEC bias (node) of this pair"""
+    """Returns the combined TEC bias (node) of this GPSPair."""
     if self._pair_based_TecBias:
       node = self.TecBias.node(sim=sim)
     else:
@@ -364,33 +274,32 @@ class GPSPair (Meow.Parameterization):
 
   #=================================================================
 
-  def simTEC(self, mim, show=False):
-    """Special version of mimTEC() that uses the simulated value
-    for the TecBias (rather than MeqParms"""
-    return self.mimTEC(mim, sim=True, show=show)
-
-
-  def mimTEC(self, mim, sim=False, show=False):
+  def modelTEC(self, iom, sim=False, show=False):
     """Return a node/subtree that produces a simulated TEC value, which
     includes that station- and satellite TEC bias values. It gets its
-    information from the given (simulated) MIM object"""
-    qnode = self.ns['mimTEC']
-    qnode = qnode.qmerge(mim.ns['GPSPair_dummy_qnode'])
+    information from the given IonosphereModel (iom) object.
+    If sim==True, use simulated TEC_bias values rather than MeqParms."""
+    if sim:
+      qnode = self.ns['simodelTEC']
+    else:
+      qnode = self.ns['modelTEC']
+    qnode = qnode.qmerge(iom.ns['GPSPair_dummy_qnode'])
     if not qnode.initialized():
-      # First get a subtree for the MIM TEC:
-      TEC = mim.geoTEC(self._station, self._satellite)
-      self._retrieve_last_longlat_pierce_for_plotting(mim)
+      # First get a subtree for the IOM TEC:
+      TEC = iom.geoTEC(self._station, self._satellite)
+      self._retrieve_last_longlat_pierce_for_plotting(iom)
       # Then add the TecBias for this station-satellite pair:
       qnode << Meq.Add(TEC, self.TEC_bias(sim=sim))
     self._station._show_subtree(qnode, show=show, recurse=8)
     return qnode
 
 
-  def _retrieve_last_longlat_pierce_for_plotting(self, mim):
+  def _retrieve_last_longlat_pierce_for_plotting(self, iom):
     """Helper function for retrieving the (long,lat) of the
     ionospheric piercing point that was calculated by the last
-    call to mim.geoTEC(). This can be used for plotting (see
+    call to iom.geoTEC(). This can be used for plotting (see
     GPSArray.py). It is a bit of a kludge, but useful and innocent"""
+    self._longlat_pierce = iom._last_longlat_pierce
     return True
 
   #=================================================================
@@ -469,6 +378,94 @@ class GPSPair (Meow.Parameterization):
 
 
 
+
+
+
+#================================================================
+#================================================================
+
+class TecBias (Meow.Parameterization):
+  """Represents a TEC bias value (MeqParm and/or simulated).
+  This class is used by GPSStation, GPSSatellite and GPSPair."""
+
+  def __init__(self, ns, name, tags=[],
+               simul=dict(value=0.0, stddev=1.0),
+               quals=[],kwquals={}):
+
+    Meow.Parameterization.__init__(self, ns=ns, name=name,
+                                   quals=quals, kwquals=kwquals)
+
+    self._tags = tags
+    
+    # The only parameter is the TecBias.
+    self._pname = 'TecBias'
+    self._pnames = [self._pname]
+    self._add_parm(self._pname, Meow.Parm(), tags=self._tags)
+
+    # The TecBias has a simulated version, which is created if necessary.
+    self._simulated = None     # its simulation subtree
+    ss = simul                 # dict with simulation parameters
+    if not isinstance(ss, dict): ss = dict()
+    ss.setdefault('value', 0.0)
+    ss.setdefault('stddev', 1.0)
+    self._simul = ss
+
+    # Finished:
+    return None
+
+  #------------------------------------------------------------------
+
+  def oneliner (self):
+    """Return a one-line summary of this object."""
+    stddev = self._simul['stddev']
+    ss = 'TecBias: '+str(self.name)
+    ss += ' tags='+str(self._tags)
+    ss += ' (stddev='+str(stddev)+')'
+    return ss
+
+
+  #---------------------------------------------------------------
+  
+  def node (self, sim=False, show=False):
+    """Returns the station TEC bias (node). If sim==True, return the
+    subtree for the simulated value. Otherwise, a MeqParm."""
+    if sim:
+      if not self._simulated:        # create if necessary
+        sp = SimulParm.SimulParm(self.ns, self._pname,
+                                 tags=self._tags,
+                                 value=self._simul['value'],
+                                 stddev=self._simul['stddev'])
+        self._simulated = sp.create()
+      node = self._simulated
+    else:
+      node = self._parm(self._pname)
+    if show:
+      display.subtree(node)
+    return node
+
+  #---------------------------------------------------------------
+
+  def residual (self, show=False):
+    """Returns a subtree with the difference of the simulated and the
+    MeqParm version of TecBias. For plotting and other diagnostics."""
+    qnode = self.ns['TecBias_residual']
+    if not qnode.initialized():
+      qnode << Meq.Subtract(self.node(sim=False),
+                            self.node(sim=True))
+    if show:
+      display.subtree(qnode)
+    return qnode
+
+  #---------------------------------------------------------------
+
+  def solvable(self, tags='*'):
+    """Return a dict of solvable parms (nodes) and their (plot) labels"""
+    ss = dict(nodes=[], labels=[])
+    for pname in self._pnames:
+      # ss['labels'].append(pname+'_'+str(self.name))
+      ss['labels'].append(str(self.name))
+      ss['nodes'].append(self._parm(pname))
+    return ss
 
 
 

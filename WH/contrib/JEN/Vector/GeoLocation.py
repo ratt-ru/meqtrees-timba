@@ -10,6 +10,9 @@ from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
 
+
+
+#================================================================
 #================================================================
 
 class GeoLocation (Vector.Vector):
@@ -32,34 +35,37 @@ class GeoLocation (Vector.Vector):
 
     self._Earth = dict(radius=6378, flattening=3.36e-6)
 
-    if longlat:                              # [long,lat] specified
-      if radius==None:
-        radius = self._Earth['radius']       # assume Earth surface point
 
-      node = ns['xyz']('longlat')(name)(*quals)(**kwquals)
+    # Special case: (longitide,latitude) specified, rather than xyz.
+    # Turn them into xyz for Vector.__init__():
+    if longlat:
+      if radius==None:
+        radius = self._Earth['radius']       # assume location on Earth surface 
+
+      qnode = ns['xyz']('longlat')(name)(*quals)(**kwquals)
       lat = None
-      if is_node(longlat):                   # assume [long,lat] composer
-        lon = node('longitude') << Meq.Selector(longlat, index=0)
-        lat = node('latitude') << Meq.Selector(longlat, index=1)
+      if is_node(longlat):                   # assume [long,lat] tensor node
+        lon = qnode('longitude') << Meq.Selector(longlat, index=0)
+        lat = qnode('latitude') << Meq.Selector(longlat, index=1)
 
       if isinstance(longlat,(list,tuple)):
-        if is_node(longlat[0]):              # assume [long,lat] nodes
+        if is_node(longlat[0]):              # assume list [long,lat] of nodes
           lon = longlat[0]
           lat = longlat[1]
-        else:                                # assume [long,lat] numeric
-          # Make numeric [x,y,z]:
+        else:                                # assume list [long,lat] of numbers
+          # Make list [X,Y,Z] of numbers:
           xyz = [radius*cos(longlat[1])*sin(longlat[0]),
                  radius*cos(longlat[1])*cos(longlat[0]),
                  radius*sin(longlat[1])]
       if lat:
-        # Make [x,y,z] nodes:
-        clong = node('coslong') << Meq.Cos(lon)
-        slong = node('sinlong') << Meq.Sin(lon)
-        clat = node('coslat') << Meq.Cos(lat)
-        slat = node('sinlat') << Meq.Sin(lat)
-        X = node('X') << Meq.Multiply(radius,clat,slong)
-        Y = node('Y') << Meq.Multiply(radius,clat,clong)
-        Z = node('Z') << Meq.Multiply(radius,slat)
+        # Make list [X,Y,Z] of nodes:
+        clong = qnode('coslong') << Meq.Cos(lon)
+        slong = qnode('sinlong') << Meq.Sin(lon)
+        clat = qnode('coslat') << Meq.Cos(lat)
+        slat = qnode('sinlat') << Meq.Sin(lat)
+        X = qnode('X') << Meq.Multiply(radius,clat,slong)
+        Y = qnode('Y') << Meq.Multiply(radius,clat,clong)
+        Z = qnode('Z') << Meq.Multiply(radius,slat)
         xyz = [X,Y,Z]
 
 
