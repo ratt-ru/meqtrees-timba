@@ -27,7 +27,7 @@ class MIM (IonosphereModel.IonosphereModel):
   def __init__(self, ns, name='MIM',
                quals=[], kwquals={},
                tags=[],
-               solvable=True,
+               # solvable=True,
                tiling=None,
                time_deg=0,
                refloc=None,

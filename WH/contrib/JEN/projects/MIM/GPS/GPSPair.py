@@ -448,7 +448,7 @@ class TecBias (Meow.Parameterization):
   def residual (self, show=False):
     """Returns a subtree with the difference of the simulated and the
     MeqParm version of TecBias. For plotting and other diagnostics."""
-    qnode = self.ns['TecBias_residual']
+    qnode = self.ns['residual']
     if not qnode.initialized():
       qnode << Meq.Subtract(self.node(sim=False),
                             self.node(sim=True))

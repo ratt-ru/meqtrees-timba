@@ -49,6 +49,10 @@ class IonosphereModel (Meow.Parameterization):
 
     #-------------------------------------------------
     # Define the IonosphereModel:
+    self._solvable = dict(nodes=[], labels=[])     # expected by .solvable()
+    self._simulate = False                         # expected by .inspector()
+    self._pnode = []                               # expected by .inspector()
+    self._pname = []                               # expected by .inspector()
     #-------------------------------------------------
 
     # Finished:
@@ -71,6 +75,40 @@ class IonosphereModel (Meow.Parameterization):
     print '  * effalt: '+str(int(self._effalt_km))+'km'
     print
     return True
+
+  #----------------------------------------------------------------
+
+  def solvable(self, tags='*', show=False):
+    """Return a dict of solvable parms (nodes), and their labels"""
+    if show:
+      ss = self._solvable
+      print '\n** solvable MeqParms of:',self.oneliner()
+      for k,node in enumerate(ss['nodes']):
+        print '  -',ss['labels'][k],': ',str(node)
+      print
+    return self._solvable
+
+  #-----------------------------------------------------------------
+
+  def inspector(self, bookpage='IonosphereModel', show=False):
+    """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
+    if self._simulate:
+      name = 'SimulParm'
+    else:
+      name = 'solvable'
+    qnode = self.ns[name]
+    if not qnode.initialized():
+      if len(self._pnode)==0:              # nothing to plot
+        qnode << Meq.Constant(-1)          # return a dummy node
+      else:
+        qnode << Meq.Composer(children=self._pnode,
+                              plot_label=self._pname)
+        JEN_bookmarks.create(qnode, page=bookpage,
+                             viewer='Collections Plotter')
+    if show:
+      display.subtree(qnode)
+    return qnode
+
 
 
   #====================================================================
@@ -143,45 +181,14 @@ class IonosphereModel (Meow.Parameterization):
     return qnode
 
  
-  #----------------------------------------------------------------
-  #----------------------------------------------------------------
-
-  def solvable(self, tags='*', show=False):
-    """Return a dict of solvable parms (nodes), and their labels"""
-    if show:
-      ss = self._solvable
-      print '\n** solvable MeqParms of:',self.oneliner()
-      for k,node in enumerate(ss['nodes']):
-        print '  -',ss['labels'][k],': ',str(node)
-      print
-    return self._solvable
-
-  #-----------------------------------------------------------------
-
-  def inspector(self, bookpage='IonosphereModel', show=False):
-    """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
-    if self._simulate:
-      name = 'SimulParm'
-    else:
-      name = 'solvable'
-    qnode = self.ns[name]
-    if not qnode.initialized():
-      qnode << Meq.Composer(children=self._pnode, plot_label=self._pname)
-      JEN_bookmarks.create(qnode, page=bookpage,
-                           viewer='Collections Plotter')
-    if show:
-      display.subtree(qnode)
-    return qnode
-
-
-
 
 
 
   #======================================================================
-  # Return a subtree for the IonosphereModel TEC as seen from a GeoLocation on Earth
-  # towards a GPS satellite (another GeoLocation). This subtree is NOT
-  # suitable for calculating the IonosphereModel in the direction of a celestial source.
+  # Return a subtree for the IonosphereModel TEC as seen from a GeoLocation
+  # on Earth, towards a GPS satellite (another GeoLocation). This subtree is
+  # NOT suitable for calculating the IonosphereModel in the direction of a
+  # celestial source.
   #======================================================================
 
   def geoTEC(self, seenfrom=None, towards=None, show=False):
@@ -235,8 +242,9 @@ class IonosphereModel (Meow.Parameterization):
 
   def _geoTEC(self, qnode, seenfrom=None, towards=None,
               ll_seenfrom=None, ll_piercing=None, z=0.0):
-    """NB: This is a dummy function, which should be re-implemented by
-    each ionosphere model that is derived from this class (see MIM.py).
+    """NB: This is a placeholder dummy function, which should be
+    re-implemented by each ionosphere model that is derived from
+    this class (see MIM.py).
     -------------------------------------------------------------------
     Return a node/subtree that predicts an integrated TEC value,
     as seen from the specified location (seenfrom==GeoLocation or None)
@@ -295,14 +303,14 @@ def _define_forest(ns):
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,0.1])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[0.1,0.1])
 
-      if 0:
+      if 1:
         cc.append(iom.longlat_pierce(st1, sat1, show=True))
 
-      if 0:
+      if 1:
         qnode = ns.qnode('xxx')
         cc.append(iom.slant_function(qnode, z=1, flat_Earth=True, show=True))
 
-      if 0:
+      if 1:
         cc.append(iom.geoTEC(st1, sat1, show=True))
         # cc.append(iom.geoTEC(st1, show=True))
         # cc.append(iom.geoTEC(show=True))
@@ -310,10 +318,10 @@ def _define_forest(ns):
       if 1:
         pair = GPSPair.GPSPair(ns, station=st1, satellite=sat1)
         pair.display(full=True)
-        if 0:
-          cc.append(pair.mimTEC(iom, show=True))
         if 1:
-          cc.append(pair.mimTEC(iom, show=True))
+          cc.append(pair.modelTEC(iom, sim=True, show=True))
+        if 1:
+          cc.append(pair.modelTEC(iom, sim=False, show=True))
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -373,7 +381,7 @@ if __name__ == '__main__':
         pair.display(full=True)
 
         if 1:
-          pair.mimTEC(iom, show=True)
+          pair.modelTEC(iom, show=True)
 
       
 

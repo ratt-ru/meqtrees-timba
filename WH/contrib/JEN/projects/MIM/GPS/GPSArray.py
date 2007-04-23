@@ -7,6 +7,8 @@ import Meow
 import GPSPair
 import IonosphereModel
 import MIM
+
+from copy import deepcopy
 import random
 from numarray import *
 
@@ -132,6 +134,7 @@ class GPSArray (Meow.Parameterization):
     ss += '  longlat0='+str(self._longlat0)
     ss += '  nsat='+str(len(self._satellite['obj']))
     ss += '  npair='+str(len(self._pair['obj']))
+    ss += '  (pbTb='+str(self._pair_based_TecBias)+')'
     return ss
   
 
@@ -256,39 +259,48 @@ class GPSArray (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solIOM(self, iom, sim, show=False):
-    """Solve for the parameters of the specified Ionosphere Model (iom),
-    using the other IOM (sim) to generate predicted TEC values."""
+  def solveIOM(self, iom, sim, solve_bias=False, show=False):
+    """Solve for the parameters of the specified IonosphereModel (iom),
+    using the other IOM (sim) to generate predicted TEC values.
+    If solve_bias==True, solve for the TEC_bias values as well."""
 
-    name = 'solIOM'
+    name = 'solveIOM'
     qnode = self.ns[name]
     # qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
     # qnode = qnode.qmerge(sim.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
       condeqs =[]
+      LHS = []
+      RHS = []
       labels = []
       for pair in self._pair['obj']:
         label = pair.name
         labels.append(label)
-        condeq = qnode('condeq')(label) << Meq.Condeq(pair.modelTEC(iom),
-                                                      pair.modelTEC(sim, sim=True))
+        lhs = pair.modelTEC(iom)
+        rhs = pair.modelTEC(sim, sim=True)
+        condeq = qnode('condeq')(label) << Meq.Condeq(lhs, rhs)
         condeqs.append(condeq)
+        LHS.append(lhs)
+        RHS.append(rhs)
         self.longlat_pierce(pair, qnode=qnode)
       self.longlat_pierce(qnode=qnode, bundle=True)
 
       reqseq = []                             # list of reqseq children
 
-      # Get the iom parameters to be solved for:
+      # Get the IOM parameters to be solved for:
       solvable = iom.solvable()
-      JEN_bookmarks.create(solvable['nodes'], page='iom_pp')
+      IOM_parms = solvable['nodes']
+      IOM_labels = solvable['labels']
+      JEN_bookmarks.create(IOM_parms, page='IOM_parms')
 
-      if False:                                                      # <----- !!
+      if solve_bias:                                   
         # Add the TecBias parameters to the solvables 
         solvable = self.solvable(merge=solvable, show=show)
+        # NB: The TecBias residuals are plotted (rvsi) below
       else:
+        # Do not solve for TecBias, and unclutter the browser (roots):
         ignore = self.solvable(show=show)['nodes']
-        print '\n*** ignore =',ignore
         if ignore:
           qnode('ignored_parms_bundle') << Meq.Composer(*ignore)
 
@@ -303,12 +315,29 @@ class GPSArray (Meow.Parameterization):
                                               plot_label=labels)
       JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
       reqseq.append(node)
+
+      if False:
+        # Visualization of condeq inputs (LHS, RHS)
+        page = 'condeq_inputs'
+        node = qnode('condeqs_LHS') << Meq.Composer(children=LHS,
+                                                    plot_label=labels)
+        JEN_bookmarks.create(node, page=page, viewer='Collections Plotter')
+        reqseq.append(node)
+        node = qnode('condeqs_RHS') << Meq.Composer(children=RHS,
+                                                    plot_label=labels)
+        JEN_bookmarks.create(node, page=page, viewer='Collections Plotter')
+        reqseq.append(node)
       
-      # Visualization of solvables (MeqParms):
-      node = qnode('solvable') << Meq.Composer(children=solvable['nodes'],
-                                               plot_label=solvable['labels'])
+      # Visualization of the IOM solvables (MeqParms):
+      node = qnode('IOM_solvable') << Meq.Composer(children=IOM_parms,
+                                                   plot_label=IOM_labels)
       JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
       reqseq.append(node)
+
+      # Visualization of solvables (MeqParms):
+      if solve_bias:
+        dcoll = self.dcoll_TecBias_residuals(bookpage=name)
+        reqseq.append(dcoll)
 
       # Make the final reqseq:
       qnode << Meq.ReqSeq(children=reqseq)
@@ -322,6 +351,26 @@ class GPSArray (Meow.Parameterization):
   #-------------------------------------------------------
   # Visualisation
   #-------------------------------------------------------
+
+  def dcoll_TecBias_residuals(self, bookpage='TecBias'):
+    """Make an rvsi plot of the TecBias residuals, i.e. the residuals
+    between simulated and estimated TecBiases"""
+    cc = []
+    labels = []
+    for pair in self._pair['obj']:
+      labels.append(pair.name)
+      # NB: What if pair_based_TEC==False??
+      cc.append(pair.TecBias.residual())
+
+    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   scope='TecBias', tag='residuals',
+                                   bookpage=bookpage,
+                                   color='magenta', size=8, pen=2,
+                                   type='realvsimag', errorbars=True)
+    return rr['dcoll']
+
+
+  #----------------------------------------------------------------
 
   def rvsi_longlat(self, bookpage='GPSArray', folder=None):
     """Plot the station (blue) and satellite (red) positions"""
@@ -431,45 +480,53 @@ class GPSArray (Meow.Parameterization):
 
 def _define_forest(ns):
 
-    cc = []
+  solve_bias = True 
+  stddev_TecBias = 0.0
+  stddev_TecBias = 100.0
 
-    gpa = GPSArray(ns,
-                   # nstat=3, nsat=4, 
-                   nstat=1, nsat=1, 
-                   longlat=[-0.1,0.1],
-                   stddev_pos=dict(stat=[0.1,0.1],
-                                   # sat=[0.2,0.2]),
-                                   sat=[0.4,0.4]),
-                   stddev_TecBias=1.0,
-                   pair_based_TecBias=True,
-                   move=True)
-    gpa.display(full=True)
+  cc = []
+  
+  gpa = GPSArray(ns,
+                 nstat=3, nsat=4, 
+                 # nstat=1, nsat=1, 
+                 longlat=[-0.1,0.1],
+                 stddev_pos=dict(stat=[0.1,0.1],
+                                 # sat=[0.2,0.2]),
+                                 sat=[0.4,0.4]),
+                 stddev_TecBias=stddev_TecBias,
+                 pair_based_TecBias=True,
+                 move=True)
+  gpa.display(full=True)
 
-    if 1:
-      # The simulated IOM provide the 'measured' GPS data
-      sim = MIM.MIM(ns, 'sim', ndeg=2, simulate=True)
-      sim.display(full=True)
+  if 1:
+    # The simulated IOM provide the 'measured' GPS data
+    sim = MIM.MIM(ns, 'sim', ndeg=2, simulate=True)
+    sim.display(full=True)
 
     if 1:
       cc.append(gpa.ploTEC(sim))
+
+    if 1:
       # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
 
-    if 0:
-      # The MIM for whose parameters we solve
-      tiling = None
-      # tiling = 1
-      time_deg = 0
-      time_deg = 2
-      mim = MIM.MIM(ns, 'mim', ndeg=1,
-                    tiling=tiling, time_deg=time_deg)
-      mim.display(full=True)
-      if 1:
-        reqseq = gpa.solIOM(mim, sim, show=True)
-        cc.append(reqseq)
+  if 1:
+    # The MIM for whose parameters we solve
+    tiling = None
+    tiling = 1
+    time_deg = 0
+    time_deg = 2
+    mim = MIM.MIM(ns, 'mim', ndeg=1,
+                  tiling=tiling, time_deg=time_deg)
+    mim.display(full=True)
+    if 1:
+      reqseq = gpa.solveIOM(mim, sim,
+                            solve_bias=solve_bias,
+                            show=True)
+      cc.append(reqseq)
 
-    ns.result << Meq.Composer(children=cc)
-    return True
+  ns.result << Meq.Composer(children=cc)
+  return True
 
 #---------------------------------------------------------------
 #---------------------------------------------------------------
@@ -477,9 +534,7 @@ def _define_forest(ns):
 def _tdl_job_dom0s (mqs, parent):
     """Execute the forest, starting at the named node"""
     dt = 0.001
-    t1 = -dt/2                          
-    t2 = dt/2
-    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
@@ -487,49 +542,38 @@ def _tdl_job_dom0s (mqs, parent):
 def _tdl_job_dom30s (mqs, parent):
     """Execute the forest, starting at the named node"""
     dt = 30
-    t1 = -dt/2                          
-    t2 = dt/2
-    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=1)
-    # request = meq.request(cells, rqtype='ev')
-    request = meq.request(cells, rqid=meq.requestid(t2))
+    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
+    request = meq.request(cells, rqid=meq.requestid(dt))
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 
 def _tdl_job_dom300s (mqs, parent):
     """Execute the forest, starting at the named node"""
     dt = 300
-    t1 = -dt/2                          
-    t2 = dt/2
-    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=10)
-    # request = meq.request(cells, rqtype='ev')
-    request = meq.request(cells, rqid=meq.requestid(t2))
+    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
+    request = meq.request(cells, rqid=meq.requestid(dt))
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 
 def _tdl_job_dom3000s (mqs, parent):
     """Execute the forest, starting at the named node"""
     dt = 3000
-    t1 = -dt/2                          
-    t2 = dt/2
-    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=100)
-    # request = meq.request(cells, rqtype='ev')
-    request = meq.request(cells, rqid=meq.requestid(t2))
+    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
+    request = meq.request(cells, rqid=meq.requestid(dt))
     result = mqs.meq('Node.Execute',record(name='result', request=request))
        
 def _tdl_job_dom20000s (mqs, parent):
     """Execute the forest, starting at the named node"""
     dt = 20000
-    t1 = -dt/2                          
-    t2 = dt/2
-    domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=100)
-    # request = meq.request(cells, rqtype='ev')
-    request = meq.request(cells, rqid=meq.requestid(t2))
+    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
+    request = meq.request(cells, rqid=meq.requestid(dt))
     result = mqs.meq('Node.Execute',record(name='result', request=request))
-       
+
+#..........................................................................
 
 def _tdl_job_step30s (mqs, parent):
     """Execute the forest, starting at the named node"""
@@ -584,7 +628,7 @@ if __name__ == '__main__':
                    move=True)
     gpa.display(full=True)
 
-    if 1:
+    if 0:
       xxx = dict(nodes=range(3), labels=['xxx','yy','z'])
       gpa.solvable(merge=xxx, show=True)
 
@@ -595,15 +639,17 @@ if __name__ == '__main__':
       node = gpa.rvsi_longlat()
       display.subtree(node,node.name)
 
-    if 0:
+    if 1:
       sim = MIM.MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
-      gpa.ploTEC(sim, show=True)
+
+      if 1:
+        gpa.ploTEC(sim, show=True)
 
       if 0:
         mim = MIM.MIM(ns, 'mim', ndeg=1)
         mim.display(full=True)
-        gpa.solIOM(mim, sim, show=True)
+        gpa.solveIOM(mim, sim, show=True)
 
 
       
