@@ -32,18 +32,18 @@ class GPSArray (Meow.Parameterization):
                stddev_pos=dict(stat=[0.1,0.1],
                                sat=[0.5,0.5]),
                move=False,
-               stddev_TecBias=0.0,
+               simul_TecBias=dict(value=0.0, stddev=0.0),
                pair_based_TecBias=True,
                quals=[], kwquals={}):
 
     Meow.Parameterization.__init__(self, ns, name,
                                    quals=quals, kwquals=kwquals)
 
-    self._nstat = nstat                   # Nr of GPS stations
-    self._nsat = nsat                     # Nr of GPS satellites      
-    self._longlat0 = longlat              # (long,lat) of station array centre
-    self._stddev_pos = stddev_pos         # stddev of positions (long,lat)
-    self._stddev_TecBias = stddev_TecBias # stddev of TEC bias values
+    self._nstat = nstat                      # Nr of GPS stations
+    self._nsat = nsat                        # Nr of GPS satellites      
+    self._longlat0 = longlat                 # (long,lat) of station array centre
+    self._stddev_pos = stddev_pos            # stddev of positions (long,lat)
+    self._simul_TecBias = simul_TecBias      # value and stddev of simulated TEC bias
     self._pair_based_TecBias = pair_based_TecBias # If False, use station/satellite-based TECs
  
 
@@ -51,14 +51,14 @@ class GPSArray (Meow.Parameterization):
     # Define GPS stations:
     rr = dict(name=[], obj=[], longlat=[],
               stddev_pos=self._stddev_pos['stat'],
-              stddev_TecBias=self._stddev_TecBias,
+              simul_TecBias=self._simul_TecBias,
               plot=dict(color='blue', style='circle'))
     for k in range(self._nstat):
       sname = 'st'+str(k)
       longlat = [random.gauss(self._longlat0[0], rr['stddev_pos'][0]),
                  random.gauss(self._longlat0[1], rr['stddev_pos'][1])]
       obj = GPSPair.GPSStation(self.ns, sname, longlat=longlat,
-                               simul=dict(stddev=rr['stddev_TecBias']))
+                               simul=rr['simul_TecBias'])
       print obj.oneliner()
       rr['name'].append(sname)
       rr['obj'].append(obj)
@@ -70,7 +70,7 @@ class GPSArray (Meow.Parameterization):
     # Define GPS satellites:
     rr = dict(name=[], obj=[], longlat=[],
               stddev_pos=self._stddev_pos['sat'],
-              stddev_TecBias=self._stddev_TecBias,
+              simul_TecBias=self._simul_TecBias,
               plot=dict(color='red', style='triangle'))
     sign = dict(direction=1, inclination=1)
     for k in range(self._nsat):
@@ -78,7 +78,7 @@ class GPSArray (Meow.Parameterization):
                  random.gauss(self._longlat0[1], rr['stddev_pos'][1])]
       sname = 'sat'+str(k)
       obj = GPSPair.GPSSatellite(self.ns, sname, longlat=longlat,
-                                 simul=dict(stddev=rr['stddev_TecBias']),
+                                 simul=rr['simul_TecBias'],
                                  sign=sign, move=move)
       print obj.oneliner()
       rr['name'].append(sname)
@@ -96,13 +96,13 @@ class GPSArray (Meow.Parameterization):
     # Define station-satellite pairs:
     ss = dict(nodes=[], labels=[])
     rr = dict(name=[], sat=[], stat=[], obj=[],
-              stddev_TecBias=self._stddev_TecBias,
+              simul_TecBias=self._simul_TecBias,
               plot=dict(color='green', style='rectangle'))
     for stat in self._station['obj']:
       for sat in self._satellite['obj']:
         obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat,
                                pair_based_TecBias=self._pair_based_TecBias,
-                               simul=dict(stddev=rr['stddev_TecBias']))
+                               simul=rr['simul_TecBias'])
         print obj.oneliner()
         rr['name'].append(sname)
         rr['sat'].append(sat)
@@ -151,7 +151,7 @@ class GPSArray (Meow.Parameterization):
       print '      - '+name+': longlat = '+str(self._station['longlat'][k])
     if not self._pair_based_TecBias:
       print '    * pair_based_TecBias = '+str(self._pair_based_TecBias)
-      print '    * TecBias scatter (TECU) = '+str(self._station['stddev_TecBias'])
+      print '    * TecBias (TECU) = '+str(self._station['simul_TecBias'])
 
     print '  * GPSSatellites:'
     for s in self._satellite['obj']:
@@ -162,14 +162,14 @@ class GPSArray (Meow.Parameterization):
       print '      - '+name+': longlat = '+str(self._satellite['longlat'][k])
     if not self._pair_based_TecBias:
       print '    * pair_based_TecBias = '+str(self._pair_based_TecBias)
-      print '    * TecBias scatter (TECU) = '+str(self._satellite['stddev_TecBias'])
+      print '    * TecBias (TECU) = '+str(self._satellite['simul_TecBias'])
 
     print '  * GPSPairs:'
     for p in self._pair['obj']:
       print '    - '+p.oneliner()
     if self._pair_based_TecBias:
       print '    * pair_based_TecBias = '+str(self._pair_based_TecBias)
-      print '    * TecBias scatter (TECU) = '+str(self._pair['stddev_TecBias'])
+      print '    * TecBias (TECU) = '+str(self._pair['simul_TecBias'])
     ss = self._solvable
     print '    * solvable ('+str(len(ss['nodes']))+'):'
     for k,node in enumerate(ss['nodes']):
@@ -217,10 +217,12 @@ class GPSArray (Meow.Parameterization):
   #-------------------------------------------------------
   #-------------------------------------------------------
 
-  def ploTEC(self, iom, bookpage='ploTEC', show=False):
-    """Make an inspector (plot) for the TEC-values of the various pairs"""
-    name = 'ploTEC'
-    qnode = self.ns[name]
+  def plot_modelTEC(self, iom, bookpage='modelTEC', show=False):
+    """Make an inspector (plot) for the modelTEC-values of the various pairs.
+    This includes the station/satellite TEC_biases."""
+    qnode = self.ns['plot_modelTEC']
+    if iom._simulate:
+      qnode = self.ns['plot_simodelTEC']
     qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
       self.longlat_pierce(reset=True)
@@ -259,7 +261,7 @@ class GPSArray (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solveIOM(self, iom, sim, solve_bias=False, show=False):
+  def solveIOM(self, iom, sim, solve_bias=False, num_iter=5, show=False):
     """Solve for the parameters of the specified IonosphereModel (iom),
     using the other IOM (sim) to generate predicted TEC values.
     If solve_bias==True, solve for the TEC_bias values as well."""
@@ -277,7 +279,7 @@ class GPSArray (Meow.Parameterization):
       for pair in self._pair['obj']:
         label = pair.name
         labels.append(label)
-        lhs = pair.modelTEC(iom)
+        lhs = pair.modelTEC(iom, sim=False)
         rhs = pair.modelTEC(sim, sim=True)
         condeq = qnode('condeq')(label) << Meq.Condeq(lhs, rhs)
         condeqs.append(condeq)
@@ -306,6 +308,7 @@ class GPSArray (Meow.Parameterization):
 
       # Make the solver itself:
       node = qnode('solver') << Meq.Solver(children=condeqs,
+                                           num_iter=num_iter,
                                            solvable=solvable['nodes'])
       JEN_bookmarks.create(node, page=name)
       reqseq.append(node)
@@ -355,18 +358,42 @@ class GPSArray (Meow.Parameterization):
   def dcoll_TecBias_residuals(self, bookpage='TecBias'):
     """Make an rvsi plot of the TecBias residuals, i.e. the residuals
     between simulated and estimated TecBiases"""
-    cc = []
-    labels = []
+    cc1 = []
+    cc2 = []
     for pair in self._pair['obj']:
-      labels.append(pair.name)
-      # NB: What if pair_based_TEC==False??
-      cc.append(pair.TecBias.residual())
+      cc = pair.TEC_bias_residual()         # list of 1 or 2 nodes
+      if not cc[0] in cc1: cc1.append(cc[0])
+      if len(cc)>1:
+        if not cc[1] in cc2: cc2.append(cc[1])
 
-    rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
-                                   scope='TecBias', tag='residuals',
-                                   bookpage=bookpage,
-                                   color='magenta', size=8, pen=2,
-                                   type='realvsimag', errorbars=True)
+    if len(cc2)==0:
+      # All residuals are pair-residuals:
+      rr = MG_JEN_dataCollect.dcoll (self.ns, cc1,
+                                     scope='TecBias', tag='residuals',
+                                     bookpage=bookpage,
+                                     color='magenta', size=8, pen=2,
+                                     mean_circle=False,
+                                     type='realvsimag', errorbars=False)
+
+    else:
+      # Plot the station- and satellite residuals with different colors:
+      dcolls = []
+      rr = MG_JEN_dataCollect.dcoll (self.ns, cc1,
+                                     scope='TecBias', tag='stations',
+                                     color='blue', size=8, pen=2,
+                                     mean_circle=False,
+                                     type='realvsimag', errorbars=False)
+      dcolls.append(rr)
+      rr = MG_JEN_dataCollect.dcoll (self.ns, cc2,
+                                     scope='TecBias', tag='satellites',
+                                     color='red', style='triangle', size=8, pen=2,
+                                     mean_circle=False,
+                                     type='realvsimag', errorbars=False)
+      dcolls.append(rr)
+      # Concatenate: NB: nodename -> dconc_scope_tag
+      rr = MG_JEN_dataCollect.dconc(self.ns, dcolls,
+                                    scope='TecBias', tag='residuals',
+                                    bookpage=bookpage)
     return rr['dcoll']
 
 
@@ -478,50 +505,75 @@ class GPSArray (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #===============================================================
 
-def _define_forest(ns):
 
-  solve_bias = True 
-  stddev_TecBias = 0.0
-  stddev_TecBias = 100.0
+TDLCompileMenu('GPS Array',
+               TDLCompileOption('TDL_nstat','nr of GPS stations',[3,1,2,3,4,5,10], more=int),
+               TDLCompileOption('TDL_nsat','nr of GPS satellites',[3,1,2,3,4,5,10], more=int),
+               TDLCompileOption('TDL_pair_based_bias','indep. bias per sat/stat pair',[True,False]),
+               TDLCompileOption('TDL_value_TecBias','nominal (TECU) of simulated',
+                                [0.0,-1.0,10.0], more=float),
+               TDLCompileOption('TDL_stddev_TecBias','stddev (TECU) of simulated',
+                                [20.0,1.0,5.0,10.0,100.0], more=float),
+               TDLCompileOption('TDL_show_array','Show the GPSArray (rvsi)',[True,False]),
+               )
+TDLCompileMenu('SIM definition',
+               TDLCompileOption('TDL_ndeg_SIM','poldeg of SIM TEC0(long,lat)',[2,0,1,2,3,4,5], more=int),
+               )
+TDLCompileMenu('MIM definition',
+               TDLCompileOption('TDL_define_MIM','Just define the MIM',[True,False]),
+               TDLCompileOption('TDL_ndeg_MIM','poldeg of MIM TEC0(long,lat)',[1,0,1,2,3,4,5], more=int),
+               )
+TDLCompileMenu('solution',
+               TDLCompileOption('TDL_solve_MIM','Solve (for the MIM parameters)',[True,False]),
+               TDLCompileOption('TDL_time_deg_MIM','poldeg of pp time-solution',[2,0,1,2,3,4], more=int),
+               TDLCompileOption('TDL_subtiling_MIM','subtiling (time) (!)',[None,1,2,3,4], more=int),
+               TDLCompileOption('TDL_num_iter','max nr of solver iterations',[10,3,5,20,50], more=int),
+               TDLCompileOption('TDL_solve_for_TecBias','Solve for TEC bias as well',[False,True]),
+               )
+# TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=int);
+
+
+#-----------------------------------------------------------------------------------------
+
+def _define_forest(ns):
 
   cc = []
   
   gpa = GPSArray(ns,
-                 nstat=3, nsat=4, 
-                 # nstat=1, nsat=1, 
+                 nstat=TDL_nstat, nsat=TDL_nsat, 
                  longlat=[-0.1,0.1],
                  stddev_pos=dict(stat=[0.1,0.1],
                                  # sat=[0.2,0.2]),
                                  sat=[0.4,0.4]),
-                 stddev_TecBias=stddev_TecBias,
-                 pair_based_TecBias=True,
+                 simul_TecBias=dict(stddev=TDL_stddev_TecBias, value=TDL_value_TecBias),
+                 pair_based_TecBias=TDL_pair_based_bias,
                  move=True)
   gpa.display(full=True)
 
   if 1:
     # The simulated IOM provide the 'measured' GPS data
-    sim = MIM.MIM(ns, 'sim', ndeg=2, simulate=True)
+    sim = MIM.MIM(ns, 'sim', ndeg=TDL_ndeg_SIM, simulate=True)
     sim.display(full=True)
 
     if 1:
-      cc.append(gpa.ploTEC(sim))
+      cc.append(gpa.plot_modelTEC(sim))
 
-    if 1:
+    if TDL_show_array:
       # NB: Do this AFTER MIM, because of pierce points
       cc.append(gpa.rvsi_longlat())
 
-  if 1:
-    # The MIM for whose parameters we solve
-    tiling = None
-    tiling = 1
-    time_deg = 0
-    time_deg = 2
-    mim = MIM.MIM(ns, 'mim', ndeg=1,
-                  tiling=tiling, time_deg=time_deg)
+  if TDL_solve_MIM or TDL_define_MIM:
+    # Define the MIM for whose parameters (pp) we solve:
+    mim = MIM.MIM(ns, 'mim', ndeg=TDL_ndeg_MIM,
+                  tiling=TDL_subtiling_MIM,
+                  time_deg=TDL_time_deg_MIM)
     mim.display(full=True)
-    if 1:
+    # cc.append(gpa.plot_modelTEC(mim))
+
+    if TDL_solve_MIM:
       reqseq = gpa.solveIOM(mim, sim,
-                            solve_bias=solve_bias,
+                            solve_bias=TDL_solve_for_TecBias,
+                            num_iter=TDL_num_iter,
                             show=True)
       cc.append(reqseq)
 
@@ -533,6 +585,7 @@ def _define_forest(ns):
 
 def _tdl_job_dom0s (mqs, parent):
     """Execute the forest, starting at the named node"""
+    # mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
     dt = 0.001
     domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=1, num_time=1)
@@ -623,7 +676,7 @@ if __name__ == '__main__':
     gpa = GPSArray(ns, nstat=2, nsat=1,
                    stddev_pos=dict(stat=[0.1,0.1],
                                    sat=[0.5,0.5]),
-                   stddev_TecBias=1.0,
+                   simul_TecBias=dict(stddev=1.0, value=0.0),
                    pair_based_TecBias=True,
                    move=True)
     gpa.display(full=True)
@@ -639,7 +692,7 @@ if __name__ == '__main__':
       node = gpa.rvsi_longlat()
       display.subtree(node,node.name)
 
-    if 1:
+    if 0:
       sim = MIM.MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
 

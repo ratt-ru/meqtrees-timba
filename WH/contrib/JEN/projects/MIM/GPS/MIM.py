@@ -37,6 +37,7 @@ class MIM (IonosphereModel.IonosphereModel):
     IonosphereModel.IonosphereModel.__init__(self, ns, name,
                                              refloc=refloc,
                                              effalt_km=effalt_km,
+                                             simulate=simulate,
                                              quals=quals, kwquals=kwquals)
 
     #-------------------------------------------------
@@ -48,7 +49,6 @@ class MIM (IonosphereModel.IonosphereModel):
       s = 'MIM ndeg should be int or list of two ints, rather than: '+str(self._ndeg)
       raise ValueError,s
 
-    self._simulate = simulate
     self._SimulParm = []
     ss = dict(nodes=[], labels=[])                 # for self._solvable
     self._pname = []

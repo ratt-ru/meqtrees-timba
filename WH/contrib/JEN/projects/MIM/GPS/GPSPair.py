@@ -70,7 +70,7 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
   def __init__(self, ns, name, xyz=None, longlat=None, 
                move=False, sign=dict(direction=1,inclination=1),
-               simul=dict(stddev=1.0),
+               simul=dict(value=0.0, stddev=1.0),
                quals=[],kwquals={}):
 
     # Orbit radius is 21000 km plus the Earth radius (6378 km)
@@ -161,7 +161,7 @@ class GPSPair (Meow.Parameterization):
   """Represents a combination of a GPSStation and GPSSatellite"""
   
   def __init__(self, ns, station, satellite,
-               simul=dict(stddev=1.0),
+               simul=dict(value=0.0, stddev=1.0),
                pair_based_TecBias=True,
                name=None, quals=[],kwquals={}):
 
@@ -225,12 +225,29 @@ class GPSPair (Meow.Parameterization):
       node = self.TecBias.node(sim=sim)
     else:
       node = self.ns['TecBias']
+      if sim: node = self.ns['simTecBias']
       if not node.initialized():
-        node << Meq.Add(self._station.TecBias(sim=sim),
-                        self._satellite.TecBias(sim=sim))
+        node << Meq.Add(self._station.TecBias.node(sim=sim),
+                        self._satellite.TecBias.node(sim=sim))
     self._station._show_subtree(node, show=show)
     return node
 
+
+  def TEC_bias_residual (self, show=False):
+    """Returns a list(!) of (1 or 2) residuals between simulated
+    and estimated TecBias values for the pair, or separately for
+    its station and satellite."""
+    if self._pair_based_TecBias:
+      cc = [self.TecBias.residual()]
+    else:
+      # Otherwise: return a list of two nodes
+      cc = [self._station.TecBias.residual(),
+            self._satellite.TecBias.residual()]
+    if show:
+      print '\n** TEC_bias_residual (',len(cc),'):'
+      for c in cc: print '  -',str(c)
+      print
+    return cc
 
   #-------------------------------------------------------
 
@@ -279,6 +296,11 @@ class GPSPair (Meow.Parameterization):
     includes that station- and satellite TEC bias values. It gets its
     information from the given IonosphereModel (iom) object.
     If sim==True, use simulated TEC_bias values rather than MeqParms."""
+
+    #--------------------------------------------------
+    sim = iom._simulate                     # better...
+    #--------------------------------------------------
+
     if sim:
       qnode = self.ns['simodelTEC']
     else:
@@ -591,18 +613,20 @@ if __name__ == '__main__':
                       pair_based_TecBias=True)
       pair.display(full=True)
 
-      if 1:
+      if 0:
         print 'solvable:',pair.solvable(show=True)
-
-      if 1:
-        print pair.TEC_bias(sim=True, show=True)
-        print pair.TEC_bias(sim=False, show=True)
 
       if 0:
         print pair.TecBias.node(sim=True, show=True)
         print pair.TecBias.node(sim=False, show=True)
         print pair.TecBias.residual(show=True)
 
+      if 0:
+        print pair.TEC_bias(sim=True, show=True)
+        print pair.TEC_bias(sim=False, show=True)
+
+      if 1:
+        print pair.TEC_bias_residual(show=True)
 
       if 0:
         pair.elevation(show=True)

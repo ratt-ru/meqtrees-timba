@@ -259,6 +259,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('pen', 1)              # plot pen width (...not yet implemented...)
    pp.setdefault('type', 'realvsimag')  # plot type (realvsimag or spectra)
    pp.setdefault('errorbars', False)    # if True, plot stddev as crosses around mean
+   pp.setdefault('mean_circle', True)   # if True, plot a dashed circle centered on mean
    pp.setdefault('bookmark', False)     # name of dcoll bookmark (False=none)
    pp.setdefault('bookpage', False)     # name of bookpage to be used (False=none)
    pp.setdefault('bookfolder', False)   # name of bookfolder to be used (False=none)
@@ -336,7 +337,8 @@ def dcoll (ns, node=[], **pp):
                               color=pp.color,
                               symbol=pp.style,
                               symbol_size=pp.size,
-                              mean_circle=True, mean_circle_color=pp.color,
+                              mean_circle=pp.mean_circle,
+                              mean_circle_color=pp.color,
                               mean_circle_style='DashLine', mean_arrow=True)
     
     

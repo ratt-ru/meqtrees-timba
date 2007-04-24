@@ -24,6 +24,7 @@ class IonosphereModel (Meow.Parameterization):
   
   def __init__(self, ns, name='IonosphereModel',
                quals=[], kwquals={},
+               simulate=False,
                refloc=None, effalt_km=300):
 
     Meow.Parameterization.__init__(self, ns, name,
@@ -50,7 +51,7 @@ class IonosphereModel (Meow.Parameterization):
     #-------------------------------------------------
     # Define the IonosphereModel:
     self._solvable = dict(nodes=[], labels=[])     # expected by .solvable()
-    self._simulate = False                         # expected by .inspector()
+    self._simulate = simulate                      # expected by derived functions and external
     self._pnode = []                               # expected by .inspector()
     self._pname = []                               # expected by .inspector()
     #-------------------------------------------------
