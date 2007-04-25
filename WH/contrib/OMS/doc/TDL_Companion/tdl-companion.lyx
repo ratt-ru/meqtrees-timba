@@ -1,0 +1,7259 @@
+#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 245
+\begin_document
+\begin_header
+\textclass book
+\options a4
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1cm
+\rightmargin 1in
+\bottommargin 1cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip smallskip
+\quotes_language english
+\papercolumns 1
+\papersides 2
+\paperpagestyle plain
+\tracking_changes false
+\output_changes false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+
+\series bold
+The TDL Bedside Companion
+\series default
+ 
+\newline
+
+\family sans
+\size normal
+How To Find Your Way Among The Trees, And Much More Besides
+\end_layout
+
+\begin_layout Author
+O.M.
+ Smirnov
+\newline
+
+\family typewriter
+smirnov@astron.nl
+\end_layout
+
+\begin_layout Chapter*
+Introduction
+\end_layout
+
+\begin_layout Standard
+blah blah MeqTrees blah blah TDL blah blah
+\end_layout
+
+\begin_layout Section*
+About the demo scripts
+\end_layout
+
+\begin_layout Standard
+With a few exceptions, the demo scripts used here were originally developed
+ for the second MeqTree Workshop (Dwingeloo, January--February 2007.) You
+ can get a copy of all these scripts via our Subversion repository, under
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Timba/doc/TDL_Companion/Scripts/
+\end_layout
+
+\begin_layout Standard
+This directory will contain 
+\emph on
+all
+\emph default
+ the scripts used during the workshop, while the book covers only a subset.
+ If you'd like to look at the extra scripts, then you should refer to the
+ workshop presentations under
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Timba/doc/Courses/Workshop2007-Presentations/
+\end_layout
+
+\begin_layout Standard
+for additional background material.
+\end_layout
+
+\begin_layout Chapter
+Hello World
+\end_layout
+
+\begin_layout Standard
+It has become a tradition to start any introduction to a programming language
+ with a 
+\begin_inset Quotes eld
+\end_inset
+
+Hello World
+\begin_inset Quotes erd
+\end_inset
+
+ program.
+ The first Hello World I ever saw was in Kernighan-Richie's classic 
+\begin_inset Quotes eld
+\end_inset
+
+The C Programming Language
+\begin_inset Quotes erd
+\end_inset
+
+.
+ It is also one of the few Hello World programs that is truly transparent
+ (look up a Java 
+\begin_inset Quotes eld
+\end_inset
+
+Hello World
+\begin_inset Quotes erd
+\end_inset
+
+ some time if you want an example of truly painful programming...) Unfortunately,
+ a TDL 
+\begin_inset Quotes eld
+\end_inset
+
+Hello World
+\begin_inset Quotes erd
+\end_inset
+
+ will necessarily tend to be on the obtuse side, since TDL was designed
+ for something other than printing frivolous messages.
+\end_layout
+
+\begin_layout Standard
+Nevertheless, we can try to provide an equivalent:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+
+\family typewriter
+1-helloworld.py
+\end_layout
+
+\begin_layout Standard
+\begin_inset Include \verbatiminput{1-0_hello-world.py}
+preview false
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Despite looking a little bit odd (i.e.
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+<<
+\begin_inset Quotes erd
+\end_inset
+
+ operator is in an unusual context), this script is undoubtedly pure Python.
+ This is because TDL 
+\emph on
+is
+\emph default
+ Python.
+ The point well-worth emphasizing:
+\end_layout
+
+\begin_layout Standard
+\align center
+
+\series bold
+\size large
+TDL is Python!!!
+\end_layout
+
+\begin_layout Standard
+If you're not familiar with Python, now is the time to close this book and
+ go read the excellent 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+The Python Programming Language
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+ (???).
+ Once you've done that, I recommend also getting 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+The Python Cookbook
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+ and keeping it somewhere where you're likely to broswe it often, a few
+ pages at a time.
+ Python has many elegant mechanisms for getting complex jobs done quickly,
+ and TDL is designed to take full advantage of them; the 
+\emph on
+Cookbook
+\emph default
+ is a great resource for neat and useful little Python tricks.
+\end_layout
+
+\begin_layout Standard
+Now then, what happens if you run this script? Of course, you can just run
+ it through Python from the command line:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+$ python 1-helloworld.py 
+\end_layout
+
+\begin_layout Standard
+
+Debug: registered context Global=0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: tdl = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: pixmaps = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: meqds = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: widgets = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: gw = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: octopussy = 0 
+\end_layout
+
+\begin_layout Standard
+
+Registered verbose context: tdlopt = 0 
+\end_layout
+
+\begin_layout Standard
+
+Hello world!
+\end_layout
+
+\begin_layout Standard
+
+$
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Given that TDL is Python, the result is rather predictable: the 
+\family typewriter
+import
+\family default
+ statement pulls in some modules (which result in the debug messages at
+ the top), then there's a function being defined (seemingly to no purpose),
+ and then the 
+\family typewriter
+print
+\family default
+ statement at the top level produces 
+\begin_inset Quotes eld
+\end_inset
+
+Hello world!
+\begin_inset Quotes erd
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+To see the real point of this script, we have to run it via MeqTrees.
+\end_layout
+
+\begin_layout Section
+Browsers, Kernels, Trees: A Quick Primer
+\end_layout
+
+\begin_layout Standard
+MeqTrees consists of three main components:
+\end_layout
+
+\begin_layout Itemize
+A GUI called the 
+\emph on
+MeqBrowser
+\emph default
+ (or simply the 
+\emph on
+browser
+\emph default
+ for short.) This is the only piece of software that you will be interacting
+ with.
+ The browser is responsible for running TDL scripts, defining trees, controlling
+ trees, and visualizing the results.
+\end_layout
+
+\begin_layout Itemize
+The trees defined inside the browser are passed on to a 
+\emph on
+kernel
+\emph default
+ (a.k.a.
+ the meqserver) for execution.
+ The kernel runs as a separate process --- potentially, even on a different
+ machine.
+ The kernel is where all then computational 
+\begin_inset Quotes eld
+\end_inset
+
+heavy lifting
+\begin_inset Quotes erd
+\end_inset
+
+ occurs.
+ It is meant to be mean, lean and fast, since all the complex eye candy
+ such as visualization is handled by the browser.
+\end_layout
+
+\begin_layout Itemize
+Your scripts can make use of various TDL modules and frameworks, including
+ those contributed by other users.
+\end_layout
+
+\begin_layout Standard
+To start the browser, you have to run the following command:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+$ meqbrowser.py
+\end_layout
+
+\begin_layout Standard
+...and if all goes well, a GUI window will appear.
+ 
+\end_layout
+
+\begin_layout Standard
+The first thing the browser needs to do is to start a kernel process, which
+ it offers to do through the dialog in Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-connectdialog}
+
+\end_inset
+
+.
+ Just click OK to start a local process.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+The option to run a remote kernel was not fully functional at time of writing,
+ so it was greyed out.
+ If you see it available in your GUI, then your version of MeqTrees is a
+ lot newer than this manual!
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-connectdialog}
+
+\end_inset
+
+The 
+\begin_inset Quotes eld
+\end_inset
+
+Connect
+\begin_inset Quotes erd
+\end_inset
+
+ dialog
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset External
+	template RasterImage
+	filename 1-connectdialog.eps
+	rotateAngle 270
+	scale 50
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we can load our Hello World script.
+ Select the 
+\family sans
+TDL | Load & compile TDL script
+\family default
+ menu option (or press 
+\family sans
+Ctrl+T
+\family default
+).
+ If all goes well, you'll see a message to the effect that 
+\begin_inset Quotes eld
+\end_inset
+
+script has run successfully
+\begin_inset Quotes erd
+\end_inset
+
+, and you'll see 
+\family sans
++Root nodes (1)
+\family default
+ show up in the 
+\begin_inset Quotes eld
+\end_inset
+
+Trees
+\begin_inset Quotes erd
+\end_inset
+
+ panel on the left side of the screen.
+ Click on the icon next to the 
+\family sans
+Root nodes
+\family default
+ label to open it up, then click on the 
+\family sans
+hello_world
+\family default
+ entry, to see something like Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-helloworld}
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-helloworld}
+
+\end_inset
+
+The browser, looking at the hello world node
+\end_layout
+
+\begin_layout Standard
+\begin_inset External
+	template RasterImage
+	filename 1-helloworld.png.eps
+	rotateAngle 270
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Defining a node
+\end_layout
+
+\begin_layout Standard
+Now, what do we see here? We can see that we've created one 
+\emph on
+node
+\emph default
+ called 
+\family sans
+hello_world
+\family default
+, of class 
+\family sans
+MeqConstant
+\family default
+.
+ We can see its 
+\emph on
+state record
+\emph default
+ in the panel on the right.
+ The latter is full of stuff we don't need to worry about at the moment,
+ but if you look carefully, you'll see a field called 
+\family sans
+value
+\family default
+, and a field called 
+\family sans
+message
+\family default
+, with values of 0 and 
+\begin_inset Quotes eld
+\end_inset
+
+Hello world!
+\begin_inset Quotes erd
+\end_inset
+
+, respectively.
+ 
+\end_layout
+
+\begin_layout Standard
+This situation was brought about by this bit of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest (ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  ns.hello_world << Meq.Constant(value=0,message="Hello world!"); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now, 
+\family typewriter
+_define_forest()
+\family default
+ here is a predefined TDL name.
+ When you run a TDL script inside the browser, it looks for a function by
+ that name, and invokes it (try loading a script without a 
+\family typewriter
+_define_forest()
+\family default
+, and observe the results.) In that sense it is exactly like the 
+\family typewriter
+main()
+\family default
+ function of a C/C++ program --- it is supposed to be the entrypoint to
+ your script that does all of the work.
+\end_layout
+
+\begin_layout Standard
+When the browser calls 
+\family typewriter
+_define_forest()
+\family default
+, it gives it a parameter called the 
+\emph on
+node scope
+\emph default
+ (
+\family typewriter
+ns
+\family default
+).
+ The node scope is a magical little object that is pretty much at the heart
+ of TDL.
+ The 
+\family typewriter
+**kwargs
+\family default
+
+\begin_inset Foot
+status collapsed
+
+\begin_layout Standard
+If you're not familiar with the Python 
+\begin_inset Quotes eld
+\end_inset
+
+**
+\begin_inset Quotes erd
+\end_inset
+
+ syntax, now is the time to close this book again, and go back to 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+The Python Programming Language
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+ entry serves to catch any optional named parameters which may be supplied
+ by future versions of the browser, and which we needn't concern ourselves
+ with here.
+\end_layout
+
+\begin_layout Standard
+The main purpose of the node scope is to allow us to 
+\emph on
+name
+\emph default
+ nodes.
+ We'll be examining scopes in more detail later on; for now, all that matters
+ is that if 
+\family typewriter
+ns
+\family default
+ is a node scope object, then 
+\family typewriter
+ns.
+\emph on
+name
+\family default
+\emph default
+ declares a node called 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+name
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+.
+ Since in Python terms everything is an object, 
+\family typewriter
+ns.
+\emph on
+name
+\family default
+\emph default
+ is an object too.
+ We call such an object a 
+\emph on
+node stub
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+Taken by itself, a node stub is not yet a real node, because we haven't
+ described what kind of a node it is.
+ We do this by 
+\emph on
+defining
+\emph default
+ a node.
+ To define a node, we create a 
+\emph on
+node definition
+\emph default
+ --- in this case, by calling 
+\family typewriter
+Meq.Constant()
+\family default
+ --- and 
+\emph on
+bind
+\emph default
+ that definition to a node stub using the Python 
+\family typewriter
+<<
+\family default
+ operator.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+The normal meaning of 
+\family typewriter
+<<
+\family default
+ is bitwise shift, which is only applicable to Python integers.
+ TDL redefines this operator for node stub objects, so as to perform binding
+ between a node stub and a node definition.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To make a node definition, we need, as a minimum, to specify a node class
+ --- in this case, calling 
+\family typewriter
+Meq.Constant()
+\family default
+ specifies a node class of 
+\family typewriter
+MeqConstant
+\family default
+.
+ As you'll see in the examples later on, in most simple cases the node class
+ by itself is sufficient.
+ Sometimes, though, you want to pass some optional arguments to a node.
+ A 
+\family typewriter
+MeqConstant
+\family default
+ node needs a value --- this is passed in via the 
+\family typewriter
+value
+\family default
+ argument.
+ You'll notice we also pass it a 
+\family typewriter
+message
+\family default
+ argument.
+ Do constants need messages? They don't --- but you can pass in arbitrary
+ arguments when defining a node, and if they're not recognized by the node,
+ they will just sit in the state record for all to see.
+ This is actually a useful feature, as we'll discover later when we look
+ at node tags.
+\end_layout
+
+\begin_layout Standard
+Now, what is the point of this whole Hello World exercise? Actually, there
+ isn't one.
+ As I said before, TDL isn't really meant for writing Hello World programs.
+ If we want to see something interesting, we should go beyond one node,
+ and make us a 
+\emph on
+tree
+\emph default
+.
+\end_layout
+
+\begin_layout Section
+Our first 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ tree
+\end_layout
+
+\begin_layout Standard
+Nodes can be connected together into a tree structure.
+ If you've already read about or seen something of MeqTrees, then you'll
+ know that the point of a tree is to evaluate a mathematical expression.
+ Any expression can be represented by a tree.
+ For example, the expression 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f=\alpha\sin(bx+cy+1)\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+can be represented by the tree in Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-exprtree}
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement h
+wide false
+sideways false
+status collapsed
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-exprtree}
+
+\end_inset
+
+An expression tree.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset External
+	template RasterImage
+	filename 1-treediagram.eps
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+An expression tree
+\begin_inset Foot
+status collapsed
+
+\begin_layout Standard
+MeqTrees are not quite 
+\emph on
+trees
+\emph default
+ in the pedantic sense, since we allow a child to be shared between multiple
+ parents, and a tree --- in the conventional definition of graph theory
+ --- doesn't.
+ The correct term for the sort of structures created in MeqTrees is a 
+\emph on
+directed acyclic graph
+\emph default
+.
+ You will agree that it doesn't quite roll off the tongue like 
+\begin_inset Quotes eld
+\end_inset
+
+tree
+\begin_inset Quotes erd
+\end_inset
+
+ does.
+ 
+\end_layout
+
+\end_inset
+
+ has the following features:
+\end_layout
+
+\begin_layout Itemize
+nodes can have a parent-child relationship, indicated by connections on
+ the diagram.
+ 
+\emph on
+Parent 
+\emph default
+nodes are shown below their 
+\emph on
+child
+\emph default
+ nodes.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+leaf nodes
+\emph default
+ are the nodes at the top having no children.
+ A leaf node represents an atomic component of an expression, such as a
+ constant (
+\begin_inset Quotes eld
+\end_inset
+
+1
+\begin_inset Quotes erd
+\end_inset
+
+, in this example) or a parameter (
+\begin_inset Formula $\alpha,b,x,c,y$
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+functional nodes
+\emph default
+ have children.
+ A functional node evaluates some kind of a mathematical function on the
+ result(s) of its children, based on its class.
+ In this diagram we see instances of add, multiply, and sine functions.
+ 
+\end_layout
+
+\begin_layout Itemize
+a 
+\emph on
+root node
+\emph default
+ has no parents, its result is the result of the expression (
+\emph on
+f
+\emph default
+, in this case).
+ Note that 
+\emph on
+f
+\emph default
+ here happens to be a multiplication node.
+\end_layout
+
+\begin_layout Standard
+Given a tree, it is very straightforward to evaluate its result algorithmically,
+ by starting at the leaf nodes, and propagating their values through to
+ the parents.
+ The power of MeqTrees lies in the fact that practically any expression
+ can be represented by a tree --- this is only limited by the availability
+ of node classes for particular mathematical operations --- and most tastes
+ are catered for.
+\end_layout
+
+\begin_layout Subsection
+Defining trees
+\end_layout
+
+\begin_layout Standard
+To implement the tree for our expression, we need to define multiple nodes,
+ and somehow specify who is a child of whom.
+ But let's start at the top of the tree, and define the leaf nodes first:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest (ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  # this defines a leaf node named "alpha" of class Meq.Constant,    
+\end_layout
+
+\begin_layout Standard
+
+  # initialized with the given value   
+\end_layout
+
+\begin_layout Standard
+
+  # (i.e.
+ the Fine Structure Constant, in appropriate units)
+\end_layout
+
+\begin_layout Standard
+
+  ns.alpha << Meq.Constant(value=297.61903062068177); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This defines an 
+\begin_inset Quotes eld
+\end_inset
+
+alpha
+\begin_inset Quotes erd
+\end_inset
+
+ node as a constant with the given value.
+ It would be quite tiresome if we always had to define constants in such
+ a roundabout way, so TDL provides a shortcut:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.b << 1;   
+\end_layout
+
+\begin_layout Standard
+
+  ns.c << 1;   
+\end_layout
+
+\begin_layout Standard
+
+  ns.x << 1;   
+\end_layout
+
+\begin_layout Standard
+
+  ns.y << 1; 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Here, instead of creating a node definition, we simply give a numeric value,
+ and bind it to a node stub via the 
+\family typewriter
+<<
+\family default
+ operator.
+ This is exactly equivalent to defining a 
+\family typewriter
+MeqConstant
+\family default
+ the verbose way.
+\end_layout
+
+\begin_layout Standard
+Next, we want to define a parent node to compute the 
+\begin_inset Formula $bx$
+\end_inset
+
+ product.
+ Multiplication is done by the 
+\family typewriter
+MeqMultiply
+\family default
+ node, so we have to define one and tell it that its childen are 
+\begin_inset Quotes eld
+\end_inset
+
+b
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This is easily done:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.bx << Meq.Multiply(ns.b,ns.x); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To specify a node's children, we simply pass the node stubs 
+\family typewriter
+ns.b
+\family default
+ and 
+\family typewriter
+ns.x
+\family default
+ as (unnamed) arguments to the node definition call.
+ In fact, there's an even easier way:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.cy << ns.c * ns.y; 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+TDL redefines Python's 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+*
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operator so that when it is used with node stubs, it automatically produces
+ a definition for a 
+\family typewriter
+MeqMultiply
+\family default
+ node! The same applies to 
+\family typewriter
++
+\family default
+, 
+\family typewriter
+-
+\family default
+ (both subtraction and unary negation), 
+\family typewriter
+/
+\family default
+, 
+\family typewriter
+%
+\family default
+ (modulo), and the built-in 
+\family typewriter
+abs()
+\family default
+ function.
+ This works for single operators and whole expressions, and makes it quite
+ easy to define trees for simple arithmetic.
+ E.g.
+ we could then say:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.sum << ns.bx + ns.cy + 1; 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+to automatically define a 
+\family typewriter
+MeqAdd
+\family default
+ node (two, in fact, since two additions are being done), and even another
+ implict
+\family typewriter
+ MeqConstant
+\family default
+ node to represent the 
+\begin_inset Quotes eld
+\end_inset
+
+1
+\begin_inset Quotes erd
+\end_inset
+
+.
+ We could have even rewritten the whole thing as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.sum << ns.b*ns.x + ns.c*ns.y + 1; 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+An compound expression like this by necessity has to define some intermediate
+ nodes (e.g.
+ for for the products).
+ In the meantime, we've only explicitly named the 
+\begin_inset Quotes eld
+\end_inset
+
+sum
+\begin_inset Quotes erd
+\end_inset
+
+ node.
+ Since every node must have a name, TDL will automatically generate names
+ for the intermediate nodes.
+ If you run the 
+\family typewriter
+Intro1/demo1-first-tree.py
+\family default
+ script in the browser, and open up the Trees view (starting with 
+\family sans
+Root nodes
+\family default
+) on the left, you'll see these auto-generated names show up.
+\end_layout
+
+\begin_layout Standard
+Don't get carried away though, automatic definition only works for basic
+ arithmetic.
+ To compute the sine, we need to define a 
+\family typewriter
+MeqSin
+\family default
+ node the hard way:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.sin << Meq.Sin(ns.sum);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Of course, Python provides a 
+\family typewriter
+math.sin()
+\family default
+ function for computing sines, but it would be a mistake to try to use it
+ here.
+ It's important to always realize that
+\end_layout
+
+\begin_layout Standard
+\align center
+
+\series bold
+TDL does not compute!!!
+\end_layout
+
+\begin_layout Standard
+That is, the actual taking of the sine happens later, 
+\emph on
+on the kernel side,
+\emph default
+ when we evaluate the tree.
+ Over on the TDL side, we're simply defining a sine node to perform this
+ operation.
+ This is why the built-in 
+\family typewriter
+math.sin
+\family default
+ is inappropriate.
+ If you say something like
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.sin << math.sin(ns.sum);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...you'll get back a Python error, since it can't compute the sine of a node
+ stub object.
+ On the other hand, you can always say things like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << math.sin(1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This will evaluate 
+\begin_inset Formula $sin(1)$
+\end_inset
+
+ using Python, the result of which is a numeric value --- which then hits
+ the 
+\family typewriter
+<<
+\family default
+ operator and gets turned into a 
+\family typewriter
+MeqConstant
+\family default
+ definition.
+\end_layout
+
+\begin_layout Standard
+Getting back to our tree, we finally need to define the root node, 
+\begin_inset Quotes eld
+\end_inset
+
+f
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f << ns.alpha * ns.sin;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+or we could roll the sine and the product into a single statement:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f << ns.alpha * Meq.Sin(ns.sum)
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+or even roll up the whole tree into a single statement:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f << ns.alpha*Meq.Sin(ns.b*ns.x+ns.c*ns.y+1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You'll note that here we're applying the multiplication operator 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+*
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ to a node stub (
+\family typewriter
+ns.alpha
+\family default
+) and a node defintion (
+\family typewriter
+Meq.Sin()
+\family default
+).
+ TDL recognizes this kind of thing too, and automatically defines an intermediat
+e node for the sine.
+\end_layout
+
+\begin_layout Standard
+This completes our 
+\family typewriter
+_define_forest()
+\family default
+ function, now it's time to see some results.
+\end_layout
+
+\begin_layout Subsection
+Evaluating trees
+\end_layout
+
+\begin_layout Standard
+Now that we've put together our first tree, how do we get MeqTrees to compute
+ the result? We have to tell the kernel to evaluate the tree.
+ This is called 
+\emph on
+running the tree
+\emph default
+, and is a completely separate step from defining the tree.
+ Oftentimes, you will run a TDL script to define a tree, and then reevaluate
+ that tree many times under different conditions.
+\end_layout
+
+\begin_layout Standard
+To run the tree, we need to add an extra bit of code to our script:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+# at top of file
+\end_layout
+
+\begin_layout Standard
+
+from Timba.Meq import meq
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+# ...and somewhere else
+\end_layout
+
+\begin_layout Standard
+
+def _test_forest (mqs, parent):
+\end_layout
+
+\begin_layout Standard
+
+  domain = meq.domain(1,10,1,10);
+\end_layout
+
+\begin_layout Standard
+
+  cells = meq.cells(domain,num_freq=10, num_time=11);
+\end_layout
+
+\begin_layout Standard
+
+  request = meq.request(cells);
+\end_layout
+
+\begin_layout Standard
+
+  result = mqs.execute('f',request); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Without going into details (of which there will be more than enough later),
+ this function puts together a 
+\emph on
+request
+\emph default
+ object, and (with the final statement) sends it to the root node --- 
+\begin_inset Quotes eld
+\end_inset
+
+f
+\begin_inset Quotes erd
+\end_inset
+
+ --- of our tree.
+ On the kernel side, the request will be passed up to the tree to the leaf
+ nodes, telling them to return their values to their parents, telling the
+ parents to compute their functions and return the results to 
+\emph on
+their
+\emph default
+ parents, and so on all the way back to the root node.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-execmenu}
+
+\end_inset
+
+The script Exec menu.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset External
+	template RasterImage
+	filename 1-tdl-exec-menu.png.eps
+	rotateAngle 270
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As you may have guessed, 
+\family typewriter
+_test_forest()
+\family default
+ is another one of these predefined function names.
+ How do we call the function? If you load and run the 
+\family typewriter
+Intro1/demo1-first-tree.py
+\family default
+ script in the browser, you'll note a button labelled 
+\family sans
+Exec
+\family default
+ at the top of the script editor window (There's actually two redundant
+ buttons --- the second one is labelled 
+\family sans
+TDL Exec
+\family default
+ and is situated somewhat higher.
+ The second button is convenient when you've hidden the editor window.) Pressing
+ this button pops open a menu (see Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-execmenu}
+
+\end_inset
+
+) containing a 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+ item.
+ Clicking on this item will cause the browser to call our 
+\family typewriter
+_test_forest()
+\family default
+ function.
+ Basically, any time the browser loads a script with a 
+\family typewriter
+_test_forest()
+\family default
+ function, it will place a link to it into the 
+\family sans
+Exec
+\family default
+ menu.
+ Other predefined names are also recognized: we'll see more of them later
+ on.
+\end_layout
+
+\begin_layout Subsection
+Results & Bookmarks
+\end_layout
+
+\begin_layout Standard
+Now, clicking on the 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+ item was probably not very satisfying.
+ You may have seen a mesage flash by to the effect that 
+\begin_inset Quotes eld
+\end_inset
+
+tree has executed successfully
+\begin_inset Quotes erd
+\end_inset
+
+, but that's all.
+\end_layout
+
+\begin_layout Standard
+How do we see the result of our calculation? Actually, this isn't something
+ you often need to do in real life, so the browser doesn't try to thrust
+ it in your face.
+ Usually you're more interested in having the result written out somewhere
+ (e.g.
+ to a Measurement Set.) On the other hand, even then one would still like
+ to see something --- some intermediate results for example --- if only
+ to verify that the tree is acting as expected, or to keep track of the
+ data going by.
+ These can often be far more interesting than even the final result itself.
+ 
+\end_layout
+
+\begin_layout Standard
+In fact, MeqTrees goes a lot further than any software system (arguably,
+ all the way), by making available the result of 
+\emph on
+each and every node
+\emph default
+ --- effectively, each and every intermediate calculation.
+ These can be examined by clicking around in the 
+\family sans
+Trees
+\family default
+ view, as we'll see somewhat later.
+ Of course, the result of each and every node is way more information than
+ you'll ever need (unless you're debugging a tree that acts funny.) It's
+ far more likely that there's only a handful of 
+\begin_inset Quotes eld
+\end_inset
+
+interesting
+\begin_inset Quotes erd
+\end_inset
+
+ nodes that you want to look at.
+ For fast access to these, a TDL script can define one or more 
+\emph on
+bookmarks
+\emph default
+, which show up in the 
+\family sans
+Bookmarks
+\family default
+ menu at the top of the screen.
+\end_layout
+
+\begin_layout Standard
+Now load up 
+\family typewriter
+Intro1/demo1-first-tree.py
+\family default
+ if you haven't already done so, and run the tree by clicking on the 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+ item in the 
+\family sans
+Exec
+\family default
+ drop-down menu.
+ Access the 
+\family sans
+Bookmarks
+\family default
+ menu, and click on 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family sans
+result of 'f'
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This is a bookmark to the root node of our tree.
+ You'll see a panel show up in the 
+\family sans
+Gridded Viewers
+\family default
+ pane on the right.
+ Depending on how recent your installation of MeqTrees is --- the viewer
+ widgets are always a work in progress --- this will be a large green box
+ (indicating a constant value), or a simple message.
+ In any case you should be able to see the answer given by our tree: 
+\end_layout
+
+\begin_layout Standard
+\align center
+42.
+\end_layout
+
+\begin_layout Section
+How to ask the right question
+\end_layout
+
+\begin_layout Standard
+At this point you may be feeling somewhat underwhelmed, having gone through
+ a lot of trouble for such a seemingly simple answer.
+ But if you still remember your classics (???), you should immediately recognize
+ that we simply don't know the right question yet.
+\end_layout
+
+\begin_layout Standard
+Fortunately, formulating the right question in MeqTrees is not very difficult.
+ The thing is, if you're only interested in scalar calculations, you don't
+ really need to build trees --- MathLab, or a Python prompt, or even a calculato
+r is way more convenient.
+ MeqTrees was really designed to work with functions, not scalars.
+\end_layout
+
+\begin_layout Subsection
+A world of functions
+\end_layout
+
+\begin_layout Standard
+Most things we deal with in real life (insofar as radioastronomy and such
+ can be considered 
+\begin_inset Quotes eld
+\end_inset
+
+real life
+\begin_inset Quotes erd
+\end_inset
+
+) are functions of something or other.
+ A typical astronomical image gives flux or brightness a function of 
+\begin_inset Formula $x,y$
+\end_inset
+
+ (and perhaps 
+\begin_inset Formula $\nu$
+\end_inset
+
+--- frequency).
+ An interferometer observes correlations as functions of time 
+\begin_inset Formula $t$
+\end_inset
+
+ and frequency 
+\begin_inset Formula $\nu$
+\end_inset
+
+.
+ Antenna gains can be complex functions of 
+\begin_inset Formula $t,\nu$
+\end_inset
+
+.
+ Ionospheric phase (as seen by one antenna) is a function of direction and
+ 
+\begin_inset Formula $\nu$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Now consider our original expression:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f=\alpha\sin(bx+cy+1)\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we make 
+\begin_inset Formula $x$
+\end_inset
+
+ and 
+\begin_inset Formula $y$
+\end_inset
+
+ functions of time and frequency, then 
+\begin_inset Formula $f$
+\end_inset
+
+ itself becomes a function of time and frequency:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f(t,\nu)=\alpha\sin(bx(t,\nu)+cy(t,\nu)+1)\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Can we make a tree to compute 
+\begin_inset Formula $f$
+\end_inset
+
+ as a function of 
+\begin_inset Formula $t,\nu$
+\end_inset
+
+? 
+\emph on
+We already have, pretty much.
+
+\emph default
+ Every node in a tree can produce a function instead of a scalar, and the
+ rest will compute the 
+\begin_inset Quotes eld
+\end_inset
+
+right
+\begin_inset Quotes erd
+\end_inset
+
+ result, regardless.
+ In fact, scalars are just special cases of constant functions.
+\end_layout
+
+\begin_layout Subsection
+Representing functions
+\end_layout
+
+\begin_layout Standard
+Of course a function in the mathematical sense is usually defined over a
+ continuous --- and thus infinite --- space.
+ The conventional way to represent functions in numerical computing, and
+ the one used by MeqTrees, is to limit ourselves to a finite 
+\emph on
+domain
+\emph default
+ (e.g.
+ 
+\begin_inset Formula $[t_{begin},t_{end}]\times[\nu_{begin},\nu_{end}]$
+\end_inset
+
+ ), make a 
+\emph on
+gridding
+\emph default
+ of that domain (
+\begin_inset Formula $\{ t_{1}...t_{n}\},\{\nu_{1}...\nu_{m}\}$
+\end_inset
+
+), and then represent a function 
+\begin_inset Formula $f(t,v)$
+\end_inset
+
+ by an 
+\begin_inset Formula $n\times m$
+\end_inset
+
+ array of samples 
+\begin_inset Formula ${\{ f}_{ij}=f(t_{i},\nu_{j})\}$
+\end_inset
+
+.
+ This of course applies to an arbitrary number of axes, not just two.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+MeqTrees supports up to 8 axes at a time, which may be (re)defined in an
+ arbitrary way.
+ Frequency and time are the more popular ones, and so will be used in most
+ of our examples.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To see this in action, load up 
+\family typewriter
+Intro1/demo2-improved-tree.py
+\family default
+, run 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+, and look at the bookmarks.
+\end_layout
+
+\begin_layout Subsection
+So what's a function look like?
+\end_layout
+
+\begin_layout Standard
+This script actually builds two trees --- one rooted at node 
+\begin_inset Quotes eld
+\end_inset
+
+f
+\begin_inset Quotes erd
+\end_inset
+
+, the other at 
+\begin_inset Quotes eld
+\end_inset
+
+f1
+\begin_inset Quotes erd
+\end_inset
+
+.
+ If you load up the 
+\begin_inset Quotes eld
+\end_inset
+
+f
+\begin_inset Quotes erd
+\end_inset
+
+ bookmark, you should see something like Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-function}
+
+\end_inset
+
+ (and if you don't, you've probably forgotten to run 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+.)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-function}
+
+\end_inset
+
+Viewing a function
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset External
+	template RasterImage
+	filename 1-improved-tree.png.eps
+	rotateAngle 270
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now, if you look at the plot, you will see that it displays ``f'' as a two-dimen
+sional image in frequency and time.
+ How did this time/frequency dependence come about? Look at the top of the
+ script, and you'll see that the 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+ nodes are no longer defined as constants:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.x << Meq.Time;   
+\end_layout
+
+\begin_layout Standard
+
+  ns.y << Meq.Freq; 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+MeqTime
+\family default
+ node returns time as a function of time, the 
+\family typewriter
+MeqFreq
+\family default
+ node likewise (note that when defining a node with no arguments, the 
+\family typewriter
+()
+\family default
+ is not necessary --- but we could have used 
+\family typewriter
+Meq.Time()
+\family default
+ just as well.) So we have just defined
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+x(t)\equiv t,\; y(\nu)\equiv\nu\]
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+Looking at the rest of the tree, the expression for 
+\begin_inset Formula $f$
+\end_inset
+
+ then becomes
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f(t,\nu)=\alpha\sin(t\cos(2\nu))\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that it's only the 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+ nodes where we define a time/frequency dependence --- it propagates through
+ the rest of the tree auto-magically.
+ For comparison, the tree rooted at 
+\begin_inset Quotes eld
+\end_inset
+
+f1
+\begin_inset Quotes erd
+\end_inset
+
+ is defined as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f_{1}=\alpha\sin(x_{1}\cos({2y}_{1})),\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with 
+\begin_inset Formula $x_{1}=y_{1}=1$
+\end_inset
+
+.
+ If you look at the bookmark for 
+\begin_inset Quotes eld
+\end_inset
+
+f1
+\begin_inset Quotes erd
+\end_inset
+
+, you'll see a constant result as previously.
+\end_layout
+
+\begin_layout Standard
+On a side note, note this syntax:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f1 << a*Meq.Sin((ns.x1<<1)*Meq.Cos(2*(ns.y1<<1)))
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This takes advantage of the fact that the 
+\family typewriter
+<<
+\family default
+ operator returns the node stub itself as a result.
+ This lets us name and define nodes directly inside an expression.
+ Thus the line above is just a more concise version of the following piece
+ of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.x1 << 1;
+\end_layout
+
+\begin_layout Standard
+
+  ns.y1 << 1;
+\end_layout
+
+\begin_layout Standard
+
+  ns.f1 << a*Meq.Sin(ns.x1*Meq.Cos(2*ns.y1))
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Intermezzo: assigning nodes to variables
+\end_layout
+
+\begin_layout Standard
+You may have noticed one other interesting twist in this script.
+ At the start of 
+\family typewriter
+_define_forest()
+\family default
+, we define the 
+\begin_inset Quotes eld
+\end_inset
+
+alpha
+\begin_inset Quotes erd
+\end_inset
+
+ node as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  a = ns.alpha << 297.61903062068177;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Recall that the 
+\family typewriter
+<<
+\family default
+ operator has a return value, namely the node stub itelf.
+ The statement above defines the node stub 
+\begin_inset Quotes eld
+\end_inset
+
+alpha
+\begin_inset Quotes erd
+\end_inset
+
+, and assigns it to the Python variable 
+\family typewriter
+a
+\family default
+.
+ We can then reuse 
+\family typewriter
+a
+\family default
+ anywhere in place of 
+\family typewriter
+ns.alpha
+\family default
+, in particular here:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f1 << a*Meq.Sin((ns.x1<<1)*Meq.Cos(2*(ns.y1<<1)))
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As we'll see later, this is a very useful feature of TDL, but it can cause
+ some confusion to beginners, as I saw myself during our workshops.
+ In particular,
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+may look like it produces a node, but in fact it doesn't, 
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+What it actually does will be made clearer in Chapter\InsetSpace ~
+
+\begin_inset LatexCommand \ref{cha:The-Pyton-Perspective}
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+ no more than 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+alone by itself does.
+ 
+\emph on
+To define a real node, you must to make a node stub and bind it to a definition
+ with 
+\family typewriter
+<<
+\family default
+.
+\end_layout
+
+\begin_layout Subsection
+Looking at other results
+\end_layout
+
+\begin_layout Standard
+The browser provides a number of ways of looking at nodes and results.
+ These are provided by different 
+\emph on
+viewer plugins
+\emph default
+.
+ The plots we accessed via the bookmarks were produced by the Result Plotter
+ plugin.
+ A more system-level view can be obtained via the Record Browser.
+ If you left-click on a node in the 
+\family sans
+Trees
+\family default
+ view, it brings up a Record Browser for that node's 
+\emph on
+state record
+\emph default
+.
+ If you right-click on a node, you can select a different viewer via the
+ context menu.
+\end_layout
+
+\begin_layout Standard
+The state record tells you more than you ever want to know about a node.
+ For now, we're only interested in a field called 
+\family sans
+cache.result
+\family default
+.
+ If you find node 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+ and bring up its state record, then expand the 
+\family sans
+cache.result
+\family default
+ field, you should see something like Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-cacheresult}
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Caption
+\begin_inset LatexCommand \label{1-cacheresult}
+
+\end_inset
+
+Looking at a cached result
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset External
+	template RasterImage
+	filename 1-improved-tree-cache-result.png.eps
+	rotateAngle 270
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The browser makes it so easy to examine the tree that it's easy to forget
+ one important thing: what you're looking at is just a Python representation
+ of something that's going on inside the kernel.
+ When you click on a node, the browser sends a message to the kernel requesting
+ that node's state, and receives a snapshot of the state in reply.
+ We'll return to this distinction later on.
+\end_layout
+
+\begin_layout Subsubsection
+Axes of variability
+\end_layout
+
+\begin_layout Standard
+The thing to note in Figure\InsetSpace ~
+
+\begin_inset LatexCommand \ref{1-cacheresult}
+
+\end_inset
+
+ is that the 
+\family sans
+value
+\family default
+ field of the result is a 
+\begin_inset Formula $1\times200$
+\end_inset
+
+ array.
+ This is because the 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+ node depends only on frequency, which is the second axis by default.
+ In this case we say that the result has a single axis of variability, frequency.
+ If you look at the 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+ node, its value will be a 
+\begin_inset Formula $100\times1$
+\end_inset
+
+ array (or a vector of length 100, which is really the same thing as far
+ as MeqTrees are concerned), indicating that time (the first axis) is the
+ only axis of variability.
+ If you click through the 
+\family sans
+cache.result
+\family default
+s of the 
+\emph on
+parents
+\emph default
+ of 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+, you'll see the same 
+\begin_inset Formula $1\times200$
+\end_inset
+
+ dimensions, until we get to the 
+\begin_inset Quotes eld
+\end_inset
+
+multiply...
+\begin_inset Quotes erd
+\end_inset
+
+ node upstream where the 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+ and the 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+ branches come together.
+ The value of this node is a 
+\begin_inset Formula $100\times200$
+\end_inset
+
+array, indicating a that both time and frequency are now axes of variability.
+\end_layout
+
+\begin_layout Standard
+What this illustrates is that MeqTrees is very economical about representing
+ functions --- if a node's result has no variability along a particular
+ axis, its size along that axis will be 1.
+ But results with different axes of variability will be combined together
+ and yield the right answer with the right number of axes.
+\end_layout
+
+\begin_layout Standard
+If you've ever done any numerical code of your own, you've probably written
+ endless 
+\family typewriter
+for
+\family default
+ loops iterating over times, frequencies, coordinates, and whatnot.
+ MeqTrees takes care of all of this for you, and even lets you go back and
+ painlessly introduce an extra dimension somewhere at the start of the calculati
+on --- which in normal numerical code would require restructuring of every
+ subsequent loop.
+\end_layout
+
+\begin_layout Subsection
+Domains, Grids, Cells
+\end_layout
+
+\begin_layout Standard
+Where did the magical sizes of 100 and 200 for the time and frequency axes
+ comes from? From this bit of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def _test_forest (mqs, parent):
+\end_layout
+
+\begin_layout Standard
+
+  domain = meq.domain(10,20,0,10);
+\end_layout
+
+\begin_layout Standard
+
+  cells = meq.cells(domain,num_freq=200, num_time=100);
+\end_layout
+
+\begin_layout Standard
+
+  request = meq.request(cells);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first line constructs a 
+\emph on
+domain
+\emph default
+ object, specifying the domain (in 
+\begin_inset Formula $t,\nu$
+\end_inset
+
+) over which we want to evaluate the tree.
+ In this case 
+\begin_inset Formula $t$
+\end_inset
+
+ goes from 10 to 20, and 
+\begin_inset Formula $\nu$
+\end_inset
+
+ from 0 to 10.
+ The second line constructs a 
+\emph on
+cells
+\emph default
+ object.
+ A cells consists of a domain and a gridding.
+ This particular invocation makes a regular grid of 100 points in 
+\begin_inset Formula $t$
+\end_inset
+
+ and 200 points in 
+\begin_inset Formula $\nu$
+\end_inset
+
+, for the given domain.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+In case you're wondering, it is also possible to specify irregular grids.
+ And of course a domain need not be in frequency and time.
+ We'll see examples of this later.
+\end_layout
+
+\end_inset
+
+ Finally, we put the cells into a 
+\emph on
+request
+\emph default
+ object, which will then be passed to the root node of our tree.
+\end_layout
+
+\begin_layout Subsection
+Who knows what
+\end_layout
+
+\begin_layout Standard
+\begin_inset Quotes eld
+\end_inset
+
+Who knows what
+\begin_inset Quotes erd
+\end_inset
+
+ is a very important question in software design.
+ In a well-designed system, each component should have the minimum information
+ necessary to get its job done.
+ If this 
+\begin_inset Quotes eld
+\end_inset
+
+segregation of information
+\begin_inset Quotes erd
+\end_inset
+
+ is not lovingly maintained, you'll see various assumptions creep in where
+ they don't belong, each one undermining the flexibility of the final system.
+\end_layout
+
+\begin_layout Standard
+We'll be touching on this question again later; in the meantime, let's review
+ who in MeqTrees knew what in the examples we've looked at.
+\end_layout
+
+\begin_layout Subsubsection
+The user (i.e., ourselves)
+\end_layout
+
+\begin_layout Standard
+The user knows all --- or does he? Of course we know the script that built
+ our trees, since we wrote it.
+ On the other hand, somebody else could have written the script for us.
+ We can then choose to treat it as a black box.
+ The only thing we, the users, need to know then is to click on 
+\begin_inset Quotes eld
+\end_inset
+
+test forest
+\begin_inset Quotes erd
+\end_inset
+
+ to run the tree, and click on 
+\family sans
+Bookmarks
+\family default
+ to look at results.
+ If we're really interested in the internal structure of the tree, we can
+ browse it in the 
+\family sans
+Trees
+\family default
+ pane, and click on various nodes to discover everything there is to know
+ about them.
+\end_layout
+
+\begin_layout Standard
+There's an important principle here that was designed into MeqTrees from
+ the very beginning --- the user is allowed to know everything.
+ Practically all the system internals are completely transparent and can
+ be viewed from the browser.
+ On the other hand, for users who just want a broad overview, there's an
+ extensive system of visualizations and bookmarks to provide just that.
+\end_layout
+
+\begin_layout Subsubsection
+The tree
+\end_layout
+
+\begin_layout Standard
+The tree, in fact, knows nothing, because the tree, as a separate entity,
+ is practically non-existent.
+ A tree is only a collection of nodes that happen to be connected.
+ All the knowledge necessary for running the tree resides in the individual
+ nodes.
+ This is the 
+\emph on
+locality
+\emph default
+ principle.
+ 
+\end_layout
+
+\begin_layout Subsubsection
+The nodes
+\end_layout
+
+\begin_layout Standard
+What does a node know?
+\end_layout
+
+\begin_layout Itemize
+It knows its class, i.e.
+ what sort of operation it has to perform
+\end_layout
+
+\begin_layout Itemize
+It knows its children
+\end_layout
+
+\begin_layout Itemize
+It has some knowledge of its parents (mostly for housekeeping purposes such
+ as caching)
+\end_layout
+
+\begin_layout Itemize
+It knows its 
+\emph on
+state
+\emph default
+, which can influence its behaviour
+\end_layout
+
+\begin_layout Standard
+What a node 
+\emph on
+doesn't
+\emph default
+ know:
+\end_layout
+
+\begin_layout Itemize
+It doesn't (usually) know the type of its children.
+ All it knows is that they return some kind of result.
+\end_layout
+
+\begin_layout Itemize
+It doesn't know anything about the tree, apart from its children or parents.
+\end_layout
+
+\begin_layout Itemize
+It doesn't know anything about domains or grids.
+ The domain and grid comes up in the request from its parent(s).
+ It can make use of that information while it processes the request, but
+ it doesn't usually retain it.
+\end_layout
+
+\begin_layout Section*
+Recap
+\end_layout
+
+\begin_layout Standard
+Here's a short review of what we learned in this chapter:
+\end_layout
+
+\begin_layout Itemize
+MeqTrees consists of a fast kernel for doing the real work (building and
+ running trees), and a graphical browser for looking at things.
+\end_layout
+
+\begin_layout Itemize
+You build trees via TDL scripts.
+ TDL scripts define the structure of trees.
+ TDL is Python with some synctatic sugar thrown in.
+\end_layout
+
+\begin_layout Itemize
+The purpose of a tree is (usually) to evaluate some mathematical expression.
+ Most real-life expression will be functions of something or other, e.g.
+ time, frequency, position, etc.
+ A tree provides an efficient way to evaluate such functions 
+\begin_inset Quotes eld
+\end_inset
+
+in bulk
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+You 
+\begin_inset Quotes eld
+\end_inset
+
+run
+\begin_inset Quotes erd
+\end_inset
+
+ a tree by giving it a domain and a gridding (
+\begin_inset Quotes eld
+\end_inset
+
+cells
+\begin_inset Quotes erd
+\end_inset
+
+), and it returns the value of the expression over that grid.
+\end_layout
+
+\begin_layout Itemize
+With the browser, you can look at trees in great detail, and visualize everythin
+g.
+\end_layout
+
+\begin_layout Chapter
+Growing Forests
+\end_layout
+
+\begin_layout Standard
+The previous chapter's examples don't really answer the fundamental question
+ of 
+\emph on
+What's the point?
+\emph default
+ 
+\end_layout
+
+\begin_layout Standard
+blah blah lots of trees blah blah
+\end_layout
+
+\begin_layout Chapter
+The Python Perspective
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand \label{cha:The-Pyton-Perspective}
+
+\end_inset
+
+This chapter aims to provide an in-depth description of how TDL does what
+ it does.
+ As a way of describing trees, TDL is (I hope) natural enough that you can
+ get a very long way without any real idea of what's happening under the
+ hood.
+ The same of course goes for Python itself, or any other high-level programming
+ language.
+ 
+\end_layout
+
+\begin_layout Standard
+To be really proficient in a language, however, requires a solid understanding
+ of the basics.
+ What really happens when you define a node? What's the difference between
+ a node and a Python variable? What happens when you pass a node to a function?
+ What does the node scope 
+\emph on
+really
+\emph default
+ do, and why should you care? 
+\end_layout
+
+\begin_layout Standard
+If you can answer these questions, what have you gained? At least a few
+ things:
+\end_layout
+
+\begin_layout Itemize
+You'll think of faster ways to accomplish the same result, and with fewer
+ errors
+\end_layout
+
+\begin_layout Itemize
+Obscure error messages will cease to be so mysterious
+\end_layout
+
+\begin_layout Itemize
+You'll find your scripts to be a lot more reusable down the line
+\end_layout
+
+\begin_layout Itemize
+You'll have a far clearer idea of how frameworks like Meow work, and you'll
+ be able to employ them better
+\end_layout
+
+\begin_layout Itemize
+You may even make your own frameworks.
+\end_layout
+
+\begin_layout Standard
+All in all, you'll find yourself doing less actual work in TDL while putting
+ it to much better use, leaving you with more time for getting interesting
+ results!
+\end_layout
+
+\begin_layout Standard
+And there's another good reason.
+ Because 
+\emph on
+TDL is Python
+\emph default
+, getting adept at TDL will automatically make you more proficient in Python,
+ thus honing skills which can be quite useful in the world outside of MeqTrees
+ (as much as we hate to admit that there is such a place...)
+\end_layout
+
+\begin_layout Standard
+As a final warning, this chapter will certainly venture into the touchy
+ territory of 
+\emph on
+good
+\emph default
+ (or even --- ambitiously -- best) 
+\emph on
+practices
+\emph default
+.
+ This is a subject that is difficult to cover without hitting the occasional
+ preachy note.
+ As the person who is principally to blame for TDL in the first place, and
+ having done probably more work in it --- and, crucially, having made more
+ mistakes --- than anyone else up till now, I do feel somewhat qualified
+ to preach on the subject.
+ On the other hand, in a project that has always developed through something
+ of a creative anarchy, there's not much place for gospel.
+ Besides, as a language TDL is certainly too young for an anywhere-near-complete
+ body of best practices to have emerged.
+ So please feel free to do things differently and make your own mistakes
+ (try not to repeat too many of mine, though) and refine your own practices.
+\end_layout
+
+\begin_layout Subsection*
+Reading the Python class documentation
+\end_layout
+
+\begin_layout Standard
+The Python classes responsible for making TDL work reside in the 
+\family typewriter
+Timba.TDLimpl
+\family default
+ module.
+ The classes are called 
+\family typewriter
+_NodeScope
+\family default
+, 
+\family typewriter
+_ClassGen
+\family default
+, 
+\family typewriter
+_ClassStub
+\family default
+, 
+\family typewriter
+_NodeDef
+\family default
+ and 
+\family typewriter
+_NodeStub
+\family default
+.
+ You can find a detailed class reference here:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+??????????????????????????????
+\end_layout
+
+\begin_layout Standard
+It's hard to make much sense of the class reference without a basic understandin
+g of how the classes work together.
+ The latter is supposed to be provided by this chapter.
+ After reading this chapter, you can go to the class reference to fill in
+ the gaps.
+\end_layout
+
+\begin_layout Section
+Node scopes, stubs and definitions
+\end_layout
+
+\begin_layout Standard
+If you recall our Hello World script (
+\family typewriter
+1-helloworld.py
+\family default
+), we can see that the 
+\begin_inset Quotes eld
+\end_inset
+
+tree
+\begin_inset Quotes erd
+\end_inset
+
+, such as it is, is brought about by this bit of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest (ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  ns.hello_world << Meq.Constant(value=0,message="Hello world!"); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now, we already know that 
+\family typewriter
+_define_forest()
+\family default
+ is a predefined TDL name that the browser looks for when we load the script.
+ The 
+\emph on
+node scope
+\emph default
+ (
+\family typewriter
+ns
+\family default
+) argument is more precisely known as the 
+\emph on
+global node scope
+\emph default
+.
+ This is a 
+\begin_inset Quotes eld
+\end_inset
+
+magic
+\begin_inset Quotes erd
+\end_inset
+
+ object that's created by the browser.
+ The purpose of 
+\family typewriter
+_define_forest() 
+\family default
+is to populate the global node scope with node definitions, which the browser
+ can then pass onto the kernel to construct a tree.
+ 
+\end_layout
+
+\begin_layout Standard
+A crucial (for us) feature of Python is that function arguments are always
+ passed by reference.
+ This means that only one copy of the 
+\family typewriter
+ns
+\family default
+ object actually exists, and any manipulations inside 
+\family typewriter
+_define_forest()
+\family default
+ are done directly on the original object.
+ Likewise, you can pass 
+\family typewriter
+ns
+\family default
+ to your own functions, and it will still refer to the same original global
+ node scope.
+ 
+\end_layout
+
+\begin_layout Standard
+Note that 
+\emph on
+assignment in Python is not manipulation
+\emph default
+.
+ If your 
+\family typewriter
+_define_forest()
+\family default
+ says
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns = 0;
+\end_layout
+
+\begin_layout Standard
+then you haven't done anything to the 
+\begin_inset Quotes eld
+\end_inset
+
+original
+\begin_inset Quotes erd
+\end_inset
+
+ node scope object.
+ All you've done is disassociated the local (local to 
+\family typewriter
+_define_forest()
+\family default
+, that is) 
+\family typewriter
+ns
+\family default
+ variable from the node scope object, and associated it with the integer
+ 
+\begin_inset Quotes eld
+\end_inset
+
+0
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The original node scope is still out there somewhere, you've simply discarded
+ your reference to it.
+ Similarly, saying
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns1 = ns;
+\end_layout
+
+\begin_layout Standard
+does not make a new node scope object --- all it does is give you two local
+ variables that refer to the same object.
+ This is really fundamental Python, not just TDL.
+\end_layout
+
+\begin_layout Standard
+The main purpose of the node scope is to allow us to 
+\emph on
+name
+\emph default
+ nodes.
+ In Python, saying 
+\family typewriter
+ns.foo
+\family default
+ means 
+\begin_inset Quotes eld
+\end_inset
+
+give me the attribute named 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ of the object referred to by variable 
+\family typewriter
+ns
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ An alternative syntax is 
+\family typewriter
+getattr(ns,
+\emph on
+'
+\emph default
+foo')
+\family default
+.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Normal
+\begin_inset Quotes erd
+\end_inset
+
+ Python objects have a fixed set of attributes defined by their class.
+ The node scope class redefines the get-attribute operation to do node naming.
+ The naming operation works as follows:
+\end_layout
+
+\begin_layout Itemize
+When you try to get the attribute 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+, it checks if a 
+\emph on
+node stub
+\emph default
+ called 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ is already present.
+\end_layout
+
+\begin_layout Itemize
+If it is, it returns that node stub.
+\end_layout
+
+\begin_layout Itemize
+If not, then it creates a new
+\emph on
+ 
+\emph default
+node stub, and returns it.
+\end_layout
+
+\begin_layout Standard
+Note that, once again, Python works by reference.
+ There is only one node stub 
+\begin_inset Quotes eld
+\end_inset
+
+out there
+\begin_inset Quotes erd
+\end_inset
+
+ for 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ If you say:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+foo = ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+bar = ns.foo;
+\end_layout
+
+\begin_layout Standard
+you now have two local variables, 
+\family typewriter
+foo
+\family default
+ and 
+\family typewriter
+bar
+\family default
+, both referring to the same stub for node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The node scope class also redefines the 
+\family typewriter
+[]
+\family default
+ operation to work in exactly the same way.
+ The three expressions
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo
+\end_layout
+
+\begin_layout Standard
+
+  getattr(ns,'foo')
+\end_layout
+
+\begin_layout Standard
+
+  ns['foo']
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+all produce exactly the same result.
+ The second and third form allow one twist that the first form doesn't ---
+ that is, using 
+\emph on
+expressions
+\emph default
+ to 
+\begin_inset Quotes eld
+\end_inset
+
+compute
+\begin_inset Quotes erd
+\end_inset
+
+ node names.
+ For example,
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  a = 'fo' 
+\end_layout
+
+\begin_layout Standard
+
+  ns[a+'o']
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+is a fancy alternative to 
+\family typewriter
+ns.foo
+\family default
+.
+ I'm sure creative minds can find a great use for this.
+\end_layout
+
+\begin_layout Standard
+But what 
+\emph on
+is
+\emph default
+ a node stub? First of all, remember that 
+\emph on
+everything in Python is a first-class object
+\emph default
+.
+ So a node stub is an object --- as it happens, of the 
+\family typewriter
+TDL._NodeStub
+\family default
+ class.
+ We'll study the class in more detail later, in the meantime, the crucial
+ question is, what does a node stub really represent? Well, the answer is,
+ it represents a 
+\emph on
+node name
+\emph default
+.
+ The name, by itself, is not yet a complete node --- we have to associate
+ it with a 
+\emph on
+node definition
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+What's a node definition? You guessed it, it's an object (of the 
+\family typewriter
+TDL._NodeDef
+\family default
+ class.) What does a node definition really represent? All the information
+ required to create a node, except the name.
+ As a minimum, this includes the 
+\emph on
+node class
+\emph default
+ (not to be confused with Python classes!
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+Node classes are only known to the MeqTree kernel.
+ On the kernel side, they actually do correspond to C++ class.
+ On the TDL side, a node class is just a string.
+\end_layout
+
+\end_inset
+
+), but it may also contain references to child nodes, and optional arguments.
+ Node definition objects are created by calling something like 
+\family typewriter
+Meq.
+\emph on
+Classname
+\emph default
+(...)
+\family default
+.
+ By itself, a definition is not a complete node either.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+<<
+\family default
+ operator is how a node stub (i.e.
+ the name) meets a defintion and becomes a fully-fledged node.
+ 
+\end_layout
+
+\begin_layout Standard
+This point is well-worth repeating.
+ Every MeqTree node has a name and a definition, the latter consisting of
+ a 
+\emph on
+node class
+\emph default
+ and optional arguments.
+ The name is unique but the definition isn't --- you can define many identical
+ nodes.
+ Taken by itself, a node stub like 
+\family typewriter
+ns.foo
+\family default
+ is not yet a complete node, it's really just a reference to a node name.
+ Likewise, on its own, a definition object such as returned by 
+\family typewriter
+Meq.Constant()
+\family default
+ is also not a complete node.
+ It is when the two are 
+\emph on
+bound
+\emph default
+ together with the 
+\family typewriter
+<<
+\family default
+ operator that a complete node emerges.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Section
+What really happens during binding
+\end_layout
+
+\begin_layout Standard
+Let's see how Python handles the statement:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo << Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+First, it evaluates the left-hand side, 
+\family typewriter
+ns.foo
+\family default
+.
+ It tries to get the 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ attribute of the node scope object, and gets back a node stub object.
+\end_layout
+
+\begin_layout Standard
+Next, it evaluates the right-hand side.
+ Here we have another 
+\begin_inset Quotes eld
+\end_inset
+
+magic
+\begin_inset Quotes erd
+\end_inset
+
+ TDL object called 
+\family typewriter
+Meq
+\family default
+.
+
+\family typewriter
+ 
+\family default
+This is a 
+\emph on
+node class generator
+\emph default
+ object (
+\family typewriter
+TDL._ClassGen
+\family default
+).
+ We'll take a detailed look inside in a bit.
+ In the meantime, the expression 
+\family typewriter
+Meq.Constant 
+\family default
+means simply 
+\begin_inset Quotes eld
+\end_inset
+
+get the attribute named 
+\begin_inset Quotes eld
+\end_inset
+
+Constant
+\begin_inset Quotes erd
+\end_inset
+
+ of the object referred to by 
+\family typewriter
+Meq
+\family default
+.
+\begin_inset Quotes erd
+\end_inset
+
+ Similarly to how node scopes return node stubs for their attributes, a
+ class generator returns a class stub (
+\family typewriter
+TDL._ClassStub
+\family default
+) when an attribute is accessed.
+ Then, 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+(value=0)
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ means 
+\begin_inset Quotes eld
+\end_inset
+
+treat whatever you got as a function, and call it with a keyword parameter,
+ 
+\family typewriter
+value=0
+\family default
+.
+\begin_inset Quotes erd
+\end_inset
+
+ The end result of the expression is then whatever the function call returned.
+ Which, due to some magic going on inside the class generator and class
+ stub objects, happens to be a node definition object specifying a node
+ class of 
+\begin_inset Quotes eld
+\end_inset
+
+MeqConstant
+\begin_inset Quotes erd
+\end_inset
+
+, with an extra 
+\family typewriter
+value=0
+\family default
+ argument.
+\end_layout
+
+\begin_layout Standard
+Now Python has a node stub object on the left, a node definition on the
+ right, and the 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+<<
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operator in between.
+ This operator normally means 
+\begin_inset Quotes eld
+\end_inset
+
+bitwise shift
+\begin_inset Quotes erd
+\end_inset
+
+, but the 
+\family typewriter
+TDL._NodeStub
+\family default
+ class happens to redefine it to something else.
+ Because of this, Python calls a special method of the node stub object
+ (called 
+\family typewriter
+__lshift__
+\family default
+, if you want to know), with the node definition as an argument.
+ The node stub object then indelibly associates itself with the given definition
+, and now contains enough information to be later turned into a 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ node.
+ This is also called 
+\emph on
+initializing
+\emph default
+ a node stub.
+\end_layout
+
+\begin_layout Standard
+For the sake of illustration, here's an equivalent piece of Python code
+ that makes every step explicit:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  node_stub = ns.foo
+\end_layout
+
+\begin_layout Standard
+
+  # or: nodestub = getattr(ns,'foo') 
+\end_layout
+
+\begin_layout Standard
+
+  class_stub = Meq.Constant
+\end_layout
+
+\begin_layout Standard
+
+  node_def = class_stub(value=0)
+\end_layout
+
+\begin_layout Standard
+
+  node_stub << node_def
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Rebinding and reusing nodes
+\end_layout
+
+\begin_layout Standard
+What happens when you refer to 
+\family typewriter
+ns.foo
+\family default
+ again? Of course you get back a reference to the same node stub, which
+ has now been initialized.
+ We do this all the time when specifying the children of a node.
+ In fact, a little-appreciated feature is that node stubs 
+\emph on
+need not be initialized before use
+\emph default
+, as long as you remember to initialize them later.
+ The following is perfectly legitimate:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << ns.foo + 1;
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If you omit the second line, you'll get back an error message.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+In the current version of TDL, this error message will say something like
+ 
+\begin_inset Quotes eld
+\end_inset
+
+child 
+\emph on
+n
+\emph default
+ not initialized
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This makes some sense: you have specified 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ to be a child of 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+, but you forgot to initialize 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Still, I've noticed that this error tends to confuse people, so I may change
+ it to something more lucid in the future.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+What about doing 
+\family typewriter
+<<
+\family default
+ to an already initialized node stub? This is only allowed if the node definitio
+n is the same:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+is OK, but 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+will produce an error.
+ Personally, I consider rebinding to be bad practice.
+ In some complicated cases, figuring out if a node definition is the same
+ or not can be a dicey process, so I'd rather not rely on this feature.
+\end_layout
+
+\begin_layout Standard
+If you have a function for defining some part of the tree, and you call
+ that function repeatedly, you probably want to initialize the nodes only
+ once, rather than try to rebind them every time.
+ TDL provides two convenient mechanisms for this.
+ The first one is the 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+**
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operator.
+ This is similar to 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+<<
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+, but it means 
+\begin_inset Quotes eld
+\end_inset
+
+only bind if not already bound, otherwise ignore.
+\begin_inset Quotes erd
+\end_inset
+
+ So something like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_tree_for_foo (ns):
+\end_layout
+
+\begin_layout Standard
+
+  return ns.foo ** Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+means that 
+\family typewriter
+ns.foo
+\family default
+ will be initialized as usual the first time the function is called.
+ Subsequent calls will ignore the definition and return the already-initialized
+ 
+\family typewriter
+ns.foo
+\family default
+.
+ This is handy for one-line definitions, but what is you have to make a
+ whole subtree for 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+? The second mechanism is provided by the 
+\family typewriter
+initialized()
+\family default
+ method of a node stub:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_tree_for_foo (ns):
+\end_layout
+
+\begin_layout Standard
+
+  if not ns.foo.initialized():
+\end_layout
+
+\begin_layout Standard
+
+    # define complicated subtree for foo
+\end_layout
+
+\begin_layout Standard
+
+  return ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first time the function is called, 
+\family typewriter
+initialized()
+\family default
+ returns 
+\family typewriter
+False
+\family default
+, so the body of the 
+\family typewriter
+if
+\family default
+ statement is executed and 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ is presumably initialized.
+ For subsequent calls, 
+\family typewriter
+initialized()
+\family default
+ becomes 
+\family typewriter
+True
+\family default
+, so the body is skipped and 
+\family typewriter
+ns.foo
+\family default
+ is simply returned as is.
+ If you combine it with the handy trick of assigning a node stub to a variable
+ for later reuse (see below), you end up with:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_tree_for_foo (ns):
+\end_layout
+
+\begin_layout Standard
+
+  foo = ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+  if not foo.initialized():
+\end_layout
+
+\begin_layout Standard
+
+    # define complicated subtree for foo
+\end_layout
+
+\begin_layout Standard
+
+  return foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+which is my preferred pattern for making define-once functions.
+ I prefer to 
+\emph on
+name
+\emph default
+ the top-level node stub only once, and use a local Python variable to refer
+ to it everywhere else.
+ With this pattern, if I later decide to rename the 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ node to 
+\begin_inset Quotes eld
+\end_inset
+
+foo_with_a_twist
+\begin_inset Quotes erd
+\end_inset
+
+, I only need to change the first line of the function; with the previous
+ pattern, I would have to edit all the 
+\family typewriter
+ns.foo
+\family default
+ invocations.
+ 
+\end_layout
+
+\begin_layout Subsection
+Binding via = (assignment)
+\end_layout
+
+\begin_layout Standard
+It is also possible to bind a node stub to a definition by assigning to
+ a node stub:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+This is fully equivalent to
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+The only difference is that the 
+\family typewriter
+<<
+\family default
+ operator returns the node stub itself as its result (see below), while
+ assignment in Python is not an expression.
+ That is, you can't say
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+a = (b=0) + 1;
+\end_layout
+
+\begin_layout Standard
+in Python, as tempting as it is to someone with a C/C++ background.
+ You 
+\emph on
+can
+\emph default
+ say things like:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+
+\family typewriter
+\InsetSpace ~
+a=b=0;
+\end_layout
+
+\begin_layout Standard
+but that's just a shorthand for two separate assignments:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+a=0; b=0;
+\end_layout
+
+\begin_layout Standard
+Thus the double assignment
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo = ns.bar = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+should initialize both 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+ with the same definition.
+ 
+\end_layout
+
+\begin_layout Standard
+Personally, I don't like to use assignment with node stubs, since it can
+ be easily confused with assignment to a variable.
+ TDL code is clearer when you use 
+\family typewriter
+<<
+\family default
+ for all your nodes.
+ Also, something like
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a = ns.foo = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+produces something entirely different (and less useful) than
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+a = ns.foo << Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+We'll take a look at this closely in the next section.
+\end_layout
+
+\begin_layout Section
+Using Python variables and functions
+\end_layout
+
+\begin_layout Standard
+TDL is Python.
+ Everything in Python is a first-class object.
+ I don't get tired of reiterating these two basic principles because they
+ are effectively the two axioms of TDL from which everything else follows.
+\end_layout
+
+\begin_layout Standard
+We may have redefined the 
+\family typewriter
+<<
+\family default
+ operator in a funny way, but the things on the left- and right-hand side
+ of the 
+\family typewriter
+<<
+\family default
+ are still Python objects, and they are subject to the same rules as any
+ other Python objects.
+ For example, we can assign them to a Python variable.
+\end_layout
+
+\begin_layout Standard
+With that in mind, try to guess what this bit of code really does: 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  foo = Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Does this define any nodes? Of course not.
+ All it does is call 
+\family typewriter
+Meq.Constant()
+\family default
+ to create a node definition object, and associate that object with the
+ Python variable 
+\family typewriter
+foo
+\family default
+.
+ Because everything is a first-class object, everything and anything can
+ be assigned to variables for later reuse.
+ In this case, we've assigned a node definition to 
+\family typewriter
+foo
+\family default
+, so subsequently we can do:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.a << foo;
+\end_layout
+
+\begin_layout Standard
+
+  ns.b << foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...to create nodes named 
+\begin_inset Quotes eld
+\end_inset
+
+a
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+b
+\begin_inset Quotes erd
+\end_inset
+
+, and bind the same definition to both.
+ 
+\end_layout
+
+\begin_layout Standard
+Likewise, a node stub such as 
+\family typewriter
+ns.a
+\family default
+ is also a first-class object.
+ We could have rewritten the above as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+a = ns.a;
+\end_layout
+
+\begin_layout Standard
+
+a << foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first statement here creates a node stub for 
+\begin_inset Quotes eld
+\end_inset
+
+a
+\begin_inset Quotes erd
+\end_inset
+
+ and assigns it to Python variable 
+\family typewriter
+a
+\family default
+, the second statement binds it with the node definition that we had previously
+ assigned to 
+\family typewriter
+foo
+\family default
+.
+ We've already seen things like this in a lot of the examples.
+\end_layout
+
+\begin_layout Subsection
+Using functions
+\end_layout
+
+\begin_layout Standard
+All Python objects can be passed in and out of functions.
+ Since everything is passed by reference, you really are dealing with the
+ same object both inside the function, and outside, in the calling context.
+ For example:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def my_node_definition ():
+\end_layout
+
+\begin_layout Standard
+
+  return Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest(ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  ns.a << my_node_definition();
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+is a perfectly legitimate way of decoupling the definition of the node,
+ and tucking it away inside a function.
+ I've never found this particular pattern very useful, but you may.
+ 
+\end_layout
+
+\begin_layout Subsection
+Functions that define trees
+\end_layout
+
+\begin_layout Standard
+A far far more important practice is illustrated by this example:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def define_tree_to_do_foo(node,a,b):
+\end_layout
+
+\begin_layout Standard
+
+  node << a + b;
+\end_layout
+
+\begin_layout Standard
+
+  return node;
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest(ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  define_tree_to_do_foo(ns.a,1,2);
+\end_layout
+
+\begin_layout Standard
+
+  define_tree_to_do_foo(ns.b,3,4);
+\end_layout
+
+\begin_layout Standard
+
+  define_tree_to_do_foo(ns.c,ns.a,ns.b);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Think carefully about what's happening here!
+\end_layout
+
+\begin_layout Itemize
+We've hidden the knowledge of how to build a tree for some particular operation
+ inside a function.
+ This is a good thing --- we can change the function later without changing
+ the calling code.
+\end_layout
+
+\begin_layout Itemize
+We don't want the function to worry about 
+\emph on
+naming
+\emph default
+ nodes, because we're going to call it many times, to produce differently
+ named nodes.
+ So we name the nodes on the outside, where we create the node stub, and
+ then we pass the stub as an argument to the function.
+ This is a very good thing, since it prevents name clashes.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+You may wonder what happens if our function needs to name some intermediate
+ nodes.
+ The best way to avoid clashes then is to use subscopes, or to add qualifiers
+ to the node stub that is passed in.
+ This will be discussed in detail later on.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Essentially, our function has become a 
+\emph on
+template
+\emph default
+ for making a tree.
+ We've already seen this at work in the ionopshere example.
+ I've thrown in the 
+\family typewriter
+a
+\family default
+ and 
+\family typewriter
+b
+\family default
+ parameters to show how the 
+\begin_inset Quotes eld
+\end_inset
+
+template
+\begin_inset Quotes erd
+\end_inset
+
+ can be made to depend on external arguments.
+ Can you guess what tree this script is going to produce? Load it up in
+ the browser (
+\family typewriter
+?????????.py
+\family default
+) to see if you guessed right.
+ 
+\end_layout
+
+\begin_layout Standard
+There's an important lesson to be learned from 
+\family typewriter
+a
+\family default
+ and 
+\family typewriter
+b
+\family default
+ here.
+ You don't specify parameter types when you define a Python function, and
+ Python does no type checking at call time.
+ So, what 
+\emph on
+can
+\emph default
+ you pass for 
+\family typewriter
+a
+\family default
+ and 
+\family typewriter
+b
+\family default
+? The answer is, anything that'll work (as in, execute without an error).
+ In the particular case of 
+\family typewriter
+define_tree_for_foo()
+\family default
+, this means anything that can be legally added together and bound to a
+ node stub.
+ So the first two times we call 
+\family typewriter
+define_tree_for_foo()
+\family default
+ with constants for 
+\family typewriter
+a
+\family default
+ and 
+\family typewriter
+b
+\family default
+, and the third time with node stubs --- and each time, the function just
+ works as we would intuitively expect it to.
+ This is great, since it makes our function all that more flexible.
+\end_layout
+
+\begin_layout Standard
+Note also the 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+return node
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ statement at the end.
+ The function will return the same node stub that was passed in.
+ This is a convenience device.
+ We ignore the return value when we invoke the function above, but in other
+ contexts it may be handy.
+ For example, we could rewrite the three invocations in one nested statement:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  define_tree_to_do_foo(ns.c,
+\end_layout
+
+\begin_layout Standard
+
+    define_tree_to_do_foo(ns.a,1,2),
+\end_layout
+
+\begin_layout Standard
+
+    define_tree_to_do_foo(ns.b,3,4)
+\end_layout
+
+\begin_layout Standard
+
+  );
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+The reverse of the medal
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand \label{sub:The-reverse-of}
+
+\end_inset
+
+This kind of delayed type checking is an fantastically powerful feature
+ of Python.
+ Used properly, it allows you to write much more flexible and useful code
+ than you ever could with a statically-typed language.
+ Like most power tools, it will happily inflict grievous bodily harm if
+ you don't show it proper respect.
+ Try adding the following line to the code above:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  define_tree_to_do_foo(ns.d,ns.c,"x");
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The function call executes fine, but inside the function Python throws up
+ an error.
+ The error is obvious: you can't add a node stub to a string.
+ The problem is, the 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ mistake occurs at the point where we call the function --- but Python can't
+ detect it until it is executing the function itself.
+ The error message is thus misleading with respect to the actual cause.
+ 
+\end_layout
+
+\begin_layout Standard
+That's no big deal in a short script like this, but imagine we were calling
+ a function in somebody else's code, and got the parameter types wrong.
+ We'd see a mysterious Python error within a completely unfamiliar piece
+ of code.
+ Only by scrolling up through the call stack could we get to the ultimate
+ cause of the error, in our own code.
+ Fortunately, the browser makes this easy --- click on the 
+\begin_inset Quotes eld
+\end_inset
+
++
+\begin_inset Quotes erd
+\end_inset
+
+ symbol next to an error message to see the associated call stack, and click
+ through the entries in the stack to see where the function was called from.
+\end_layout
+
+\begin_layout Standard
+This is a particular headache if you're trying to write a module or a framework
+ for the benefit of the world at large.
+ In my personal experience, wrong parameter types --- and the ensuing confusion
+ of error messages --- have been a constant pain to beginning users of Meow.
+ It is possible to partially alleviate this by adding explicit type checking
+ at the entrypoints to your functions, e.g.:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def define_tree_to_do_foo(node,a,b):
+\end_layout
+
+\begin_layout Standard
+
+  if not ( (is_node(a) or isinstance(a,(int,float,complex))) and 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+      (is_node(b) or isinstance(b,(int,float,complex))) ):
+\end_layout
+
+\begin_layout Standard
+
+    raise TypeError,"define_tree_to_do_foo: node stubs or constants expected";
+\end_layout
+
+\begin_layout Standard
+
+  node << a + b;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...but you can see this has the taste of a losing battle.
+ Not only is it ugly and error-prone, but you can easily throw out the baby
+ with the water and reduce your functions to an inflexible, inelegant mess.
+ My recommendation is:
+\end_layout
+
+\begin_layout Itemize
+If you're a developer, do type checking only where it's worth it.
+ If it's not too much of an effort, or if you think particularly bad confusion
+ may ensue (this, of course, is purely a judgement call, and can be difficult
+ to anticipate), by all means do it, otherwise don't bother.
+ 
+\end_layout
+
+\begin_layout Itemize
+If you're a user of somebody else's code, do not be scared of mysterious
+ errors, and always check the call stack before you panic.
+ More often than not, you can figure out the problem by looking at the point
+ where the call stack leaves your code.
+\end_layout
+
+\begin_layout Subsection
+Using the value of 
+\family typewriter
+<<
+\end_layout
+
+\begin_layout Standard
+The redefined 
+\family typewriter
+<<
+\family default
+ operator, like every other Python operator (except assignment!), can have
+ a return value.
+ In TDL, the return value of 
+\family typewriter
+<<
+\family default
+ on a node stub is the node stub itself.
+ So this bit of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  a = ns.foo << Meq.Constant(value=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+does three things:
+\end_layout
+
+\begin_layout Enumerate
+Creates a node stub named 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Enumerate
+Binds it to a node definition returned by 
+\family typewriter
+Meq.Constant()
+\family default
+.
+\end_layout
+
+\begin_layout Enumerate
+Assigns the node stub to the Python variable 
+\family typewriter
+a
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Point #3 is especially convenient, as it allows us to use the variable 
+\family typewriter
+a
+\family default
+ later on when we want to refer to node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ I do this all the time, for the reason already mentioned --- if I later
+ need to rename the node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ to something else, there's only one point in the code that has to be changed.
+\end_layout
+
+\begin_layout Standard
+In a previous section, I mentioned two similar-looking statements that do
+ something completely different:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+a = ns.foo << Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a = ns.foo = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+The first statement is 
+\begin_inset Quotes eld
+\end_inset
+
+good
+\begin_inset Quotes erd
+\end_inset
+
+, it initializes the node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ and assigns the node stub to variable 
+\family typewriter
+a
+\family default
+.
+ The second statement does something more confusing.
+ It is equivalent to two separate assignments:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  a = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo = Meq.Constant(value=0);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We've initialized node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ fine, but 
+\family typewriter
+a
+\family default
+ now contains a reference to the node definition object, and not the node
+ itself! Not what you would expect from looking at the original statement.
+ 
+\end_layout
+
+\begin_layout Standard
+Another way to put the return value of 
+\family typewriter
+<<
+\family default
+ to good use is through nested node definitions:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.sum << Meq.Add(ns.a<<Meq.Time(),ns.b<<Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  ns.other_sum = (ns.a<<1) + (ns.b<<2);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can nest these definitions to any depth, although at some point it would
+ make for very unwieldy statements.
+\end_layout
+
+\begin_layout Standard
+Note that all this also applies to the 
+\begin_inset Quotes eld
+\end_inset
+
+optional bind
+\begin_inset Quotes erd
+\end_inset
+
+ operator, 
+\family typewriter
+**
+\family default
+.
+\end_layout
+
+\begin_layout Subsection
+Why you can't bind a node to a node
+\end_layout
+
+\begin_layout Standard
+A common gotcha (at least in my experience of the workshop) is trying to
+ bind a node stub to a node stub.
+ The statement:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo << ns.bar
+\end_layout
+
+\begin_layout Standard
+is bound to produce an error --- the two things are two separate node stubs,
+ so you can't just bind them together.
+ The ensuing error message may be somewhat cryptic: 
+\begin_inset Quotes eld
+\end_inset
+
+can't bind node name (operator <<) with argument of type _NodeStub
+\begin_inset Quotes erd
+\end_inset
+
+.
+ It is in fact an instance of amore broad class of error, that is, trying
+ to bind a node stub with something illegal.
+ For example, the statement:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo << 'abc';
+\end_layout
+
+\begin_layout Standard
+results in a similar error: 
+\begin_inset Quotes eld
+\end_inset
+
+can't bind node name (operator <<) with argument of type str
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+A more common occurence of the error is via something like:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.foo << define_tree_to_do_foo (ns.a,1,2);
+\end_layout
+
+\begin_layout Standard
+The function already defines and returns a node stub (
+\family typewriter
+ns.a
+\family default
+, in this case), so we can't just bind it to another node stub with 
+\family typewriter
+<<
+\family default
+.
+ Usually the intent is something like an 
+\emph on
+indentity
+\emph default
+ operation, i.e., trying to make node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ identical to node 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Of course, the nodes cannot be made truly identical --- they have different
+ names, for starters.
+ You can achieve identity in a mathematical sense though, by creating a
+ 
+\family typewriter
+MeqIndentity
+\family default
+ node:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << Meq.Identity(ns.bar)
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+MeqIdentity
+\family default
+ simply passes along the result of its child as is.
+ This trick may come in handy if you're trying to make a single node appear
+ as a set of nodes (see the discussion on qualifiers below).
+\end_layout
+
+\begin_layout Subsection
+Python variables: conclusion
+\end_layout
+
+\begin_layout Standard
+Now, all this may seem trivial, especially if you have a good understanding
+ of Python, but it is really ubiquitous throughout TDL, and so it is vitally
+ important that you understand this thoroughly.
+ To reiterate:
+\end_layout
+
+\begin_layout Itemize
+Everything in Python is a first-class object
+\end_layout
+
+\begin_layout Itemize
+Node stubs, node definitions (and of course the node scope itself) are Python
+ objects...
+\end_layout
+
+\begin_layout Itemize
+...and as such may be assigned to variables, passed into functions, and returned
+ from functions.
+\end_layout
+
+\begin_layout Standard
+These three points encapsulate pretty much everything you need to know about
+ manipulating nodes in TDL! If you ever get confused in the future about
+ what's happening in any given piece of code --- and if you use a TDL framework
+ like Meow, there will be a lot of this kind of manipulation going on ---
+ then you should go back and reread this section.
+\end_layout
+
+\begin_layout Section
+Node definitions, up close
+\end_layout
+
+\begin_layout Standard
+We have sort of glossed over the point of how a node definition comes about.
+ In the example above, the invocation of 
+\family typewriter
+Meq.Constant(...)
+\family default
+ produced a node definition.
+ If this looks to you like a function call, that's because it is.
+ The 
+\family typewriter
+Meq
+\family default
+ object comes from the 
+\family typewriter
+Timba.TDL
+\family default
+ module, via the
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+from Timba.TDL import *
+\end_layout
+
+\begin_layout Standard
+statement.
+ It is also a 
+\begin_inset Quotes eld
+\end_inset
+
+magic
+\begin_inset Quotes erd
+\end_inset
+
+ kind of object, called a 
+\emph on
+class generator
+\emph default
+.
+ Any invocation of the form
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+Meq.
+\emph on
+Classname
+\emph default
+(arg1=value1,arg2=value2...)
+\end_layout
+
+\begin_layout Standard
+produces a node definition for a node of class 
+\family typewriter
+Meq
+\emph on
+Classname
+\family default
+\emph default
+, with the given optional arguments.
+ Note that the 
+\family typewriter
+Meq
+\family default
+ object is not really aware of what node classes are valid, you could write
+ something like
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+Meq.BadClass(...)
+\end_layout
+
+\begin_layout Standard
+and TDL will accept it; but when the tree is sent to the kernel for creation,
+ it will come back with an 
+\begin_inset Quotes eld
+\end_inset
+
+Unknown class 
+\emph on
+BadClass
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+ error.
+ In general, the 
+\begin_inset Quotes eld
+\end_inset
+
+magic
+\begin_inset Quotes erd
+\end_inset
+
+ is that calling an arbitrarily-named method of the 
+\family typewriter
+Meq
+\family default
+ object results in a node definition with the class given by that name.
+\end_layout
+
+\begin_layout Standard
+Likewise, the optional arguments are not enforced --- they are simply inserted
+ into the 
+\emph on
+node state
+\emph default
+ record as is.
+ If an argument has a special meaning for a particular class of node (such
+ as the 
+\family typewriter
+value
+\family default
+ argument to a 
+\family typewriter
+MeqConstant
+\family default
+), then it will have an effect on the node, and will probably be checked
+ for consistency inside the kernel.
+ Any meaningless arguments (e.g.
+ the 
+\family typewriter
+message
+\family default
+ we gave to 
+\family typewriter
+MeqConstant
+\family default
+ in our hello world script) are inserted into the node state record and
+ subsequently ignored by the kernel.
+ This can also be useful, as we will see later on when we look at node tags.
+\end_layout
+
+\begin_layout Standard
+Some node classes are an exception to this rule.
+ In general, if a node class has an overly complicated behaviour (in terms
+ of the available arguments), then the 
+\family typewriter
+Meq
+\family default
+ object provides some explicit argument checking to make life easier.
+ Some examples of this
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+At time of writing --- it is possible that additional explicit definitions
+ will be added to the 
+\family typewriter
+Meq
+\family default
+ object at a later date.
+\end_layout
+
+\end_inset
+
+ are the 
+\family typewriter
+MeqParm
+\family default
+ and 
+\family typewriter
+MeqSolver
+\family default
+ node classes, which we'll learn about later.
+ Another example is the 
+\family typewriter
+Meq.Matrix22()
+\family default
+ 
+\begin_inset Quotes eld
+\end_inset
+
+shortcut class
+\begin_inset Quotes erd
+\end_inset
+
+ which can be used to construct a 2
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+$
+\backslash
+times$
+\end_layout
+
+\end_inset
+
+2 matrix.
+ Matrices are actually created by 
+\family typewriter
+MeqComposer
+\family default
+ nodes with appropriate arguments; the 
+\family typewriter
+Meq.Matrix22()
+\family default
+ method provides a convenient shortcut.
+ You can see all available shortcuts here:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+Timba/PyApps/src/TDL/MeqClasses.py
+\end_layout
+
+\begin_layout Standard
+The mechanics of node definitions will become clearer as you see more examples
+ and write some scripts of your own; in the meantime, all you need to remember
+ is that calling any 
+\family typewriter
+Meq.
+\emph on
+Classname
+\emph default
+() 
+\family default
+usually produces a node definition of class 
+\begin_inset Quotes eld
+\end_inset
+
+
+\emph on
+Classname
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Using qualifiers
+\end_layout
+
+\begin_layout Standard
+Qualifiers are one of the most powerful features of TDL.
+ The example scripts we've seen before have hopefully made it clear how
+ they work on an intuitive level.
+ A piece of code such as
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for k in TERMS:     
+\end_layout
+
+\begin_layout Standard
+
+    for l in TERMS:       
+\end_layout
+
+\begin_layout Standard
+
+      ns.f(k,l) << Meq.Polar(1,-2*math.pi*(k*x+l*y));
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+defines a series of nodes named 
+\begin_inset Quotes eld
+\end_inset
+
+f:
+\emph on
+k
+\emph default
+:
+\emph on
+l
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+ in a loop, for all possible combinations of 
+\begin_inset Formula $k,l$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+What happens on a more technical level? A statement like
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.f(k,l)
+\end_layout
+
+\begin_layout Standard
+invokes the 
+\emph on
+function call operator
+\emph default
+ (
+\family typewriter
+__call__
+\family default
+) on the node stub 
+\family typewriter
+ns.f
+\family default
+.
+ The function call produces a 
+\emph on
+new
+\emph default
+ node stub object, by appending the values of 
+\family typewriter
+k
+\family default
+ and 
+\family typewriter
+l
+\family default
+
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+Or more strictly, their string representation.
+ Any Python object 
+\family typewriter
+\emph on
+x
+\family default
+\emph default
+ has a string representation, which may be obtained by calling 
+\family typewriter
+str(
+\emph on
+x
+\emph default
+)
+\family default
+.
+ For non-trivial objects, this may be something unexpected!
+\end_layout
+
+\end_inset
+
+ to the name of the original node stub, separated by 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+:
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Note that the resulting node stub has absolutely no relationship to the
+ original 
+\family typewriter
+ns.f
+\family default
+, apart from a purely coincedental similarity of names.
+ The following three expressions resolve to exactly the same node stub:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f(1,2)
+\end_layout
+
+\begin_layout Standard
+
+  ns["f:1:2"]
+\end_layout
+
+\begin_layout Standard
+
+  ns.f(1)(2)
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The second statement illustrates that qualifiers are just a naming device.
+ The third statement shows that qualifiers may be chained.
+ It is quite obvious if you think about it: since 
+\family typewriter
+ns.f(1)
+\family default
+ is a node stub, you can certainly repeat the qualification process by applying
+ 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+(2)
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ to it, and (due to the way qualification works) the result is the same
+ as saying 
+\family typewriter
+ns.f(1,2)
+\family default
+ in the first place.
+\end_layout
+
+\begin_layout Standard
+Qualifiers may also contain arbitrary keywords.
+ For example, 
+\family typewriter
+ns.f(1,x=1,y=2)
+\family default
+ will result in a node stub named 
+\begin_inset Quotes eld
+\end_inset
+
+f:1:x=1:y=2
+\begin_inset Quotes erd
+\end_inset
+
+, as will 
+\family typewriter
+ns.f(1)(x=1)(y=2)
+\family default
+.
+ 
+\end_layout
+
+\begin_layout Subsection
+Unqualified and underqualified nodes
+\end_layout
+
+\begin_layout Standard
+After a loop like the one above, what does the 
+\family typewriter
+ns.f
+\family default
+ node stub refer to? The answer is, nothing in particular --- it is still
+ an uninitialized node stub.
+ If you build a tree, there will be no node named 
+\begin_inset Quotes eld
+\end_inset
+
+f
+\begin_inset Quotes erd
+\end_inset
+
+.
+ We could also define it to something unrelated:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.f << 0
+\end_layout
+
+\begin_layout Standard
+would make it a 
+\family typewriter
+MeqConstant
+\family default
+ node.
+ Since there's no relationship between 
+\family typewriter
+ns.f
+\family default
+ and 
+\family typewriter
+ns.f(
+\emph on
+k
+\emph default
+,
+\emph on
+l
+\emph default
+)
+\family default
+, apart from a name similarity, this is a perfectly legitimate thing to
+ do.
+\end_layout
+
+\begin_layout Standard
+On the other hand, 
+\family typewriter
+ns.f
+\family default
+ can play a significant role in our code, since we know that we can qualify
+ it to get at any node in the 
+\begin_inset Formula $k,l$
+\end_inset
+
+ series.
+ Note that the knowledge of this is vested with us --- we know that we can
+ qualify 
+\family typewriter
+ns.f
+\family default
+ with two numbers to get at one of the nodes in a series, because that's
+ the way our script was written.
+ The ns.f node itself has no knowledge of this.
+ We could say something like
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+foobar = ns.f('foo','bar')
+\end_layout
+
+\begin_layout Standard
+and get back a node stub named 
+\begin_inset Quotes eld
+\end_inset
+
+f:foo:bar
+\begin_inset Quotes erd
+\end_inset
+
+, with no-one the wiser.
+ The 
+\family typewriter
+ns.f
+\family default
+ stub certainly doesn't know whether 
+\begin_inset Quotes eld
+\end_inset
+
+f:foo:bar
+\begin_inset Quotes erd
+\end_inset
+
+ refers to a valid & initialized node or not.
+ An error can only arise later, if we happen to use 
+\family typewriter
+foobar
+\family default
+ in a context where a valid node is expected.
+ For example,
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.sum << ns.f('foo','bar') + ns.f(1,2)
+\end_layout
+
+\begin_layout Standard
+will produce an error in the 
+\begin_inset Quotes eld
+\end_inset
+
+sum
+\begin_inset Quotes erd
+\end_inset
+
+ node, complaining that the first child has not been initialized.
+\end_layout
+
+\begin_layout Standard
+Still, the 
+\family typewriter
+ns.f
+\family default
+ node stub is an extremely useful object, because we can use it to refer
+ to all the 
+\begin_inset Quotes eld
+\end_inset
+
+f:
+\emph on
+k
+\emph default
+:
+\emph on
+l
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+ nodes in bulk, as long as we remember to qualify it properly.
+ When used like this, 
+\family typewriter
+ns.f
+\family default
+ is called an 
+\emph on
+unqualified node.
+
+\emph default
+ This can be a very powerful technique, as illustrated by 
+\family typewriter
+Intro1/demo4-more_quals.py
+\family default
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def sum_series (sumnode,fnodes):
+\end_layout
+
+\begin_layout Standard
+
+  sumnode << Meq.Add(*[fnodes(k,l) for k in TERMS for l in TERMS]);
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+def sum_sq_series (sumnode,fnodes):
+\end_layout
+
+\begin_layout Standard
+
+  sumnode << Meq.Add(*[Meq.Sqr(fnodes(k,l)) for k in TERMS for l in TERMS]);
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+def _define_forest (ns, **kwargs):
+\end_layout
+
+\begin_layout Standard
+
+  # (some code skipped)
+\end_layout
+
+\begin_layout Standard
+
+  for k in TERMS:
+\end_layout
+
+\begin_layout Standard
+
+    for l in TERMS:
+\end_layout
+
+\begin_layout Standard
+
+      ns.f(k,l) << Meq.Polar(1,-2*math.pi*(k*x+l*y));
+\end_layout
+
+\begin_layout Standard
+
+  sum_series(ns.sum,ns.f);
+\end_layout
+
+\begin_layout Standard
+
+  sum_sq_series(ns.sum_sq,ns.f);
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+sum_series()
+\family default
+ function implements summation over a 
+\begin_inset Formula $k,l$
+\end_inset
+
+ series.
+ It has no knowledge of the series itself --- all it knows is that it gets
+ an 
+\family typewriter
+fnodes
+\family default
+ object that it can qualify with a 
+\begin_inset Formula $k,l$
+\end_inset
+
+ pair (with 
+\begin_inset Formula $k,l$
+\end_inset
+
+ within some known limits) to get at the individual terms of the series.
+ In this context we say that 
+\family typewriter
+sum_series()
+\family default
+ expects an 
+\emph on
+unqualified node
+\emph default
+ for its 
+\family typewriter
+fnodes
+\family default
+ parameter.
+\end_layout
+
+\begin_layout Standard
+As an aside, if the syntax
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+*[fnodes(k,l) for k in TERMS for l in TERMS]
+\end_layout
+
+\begin_layout Standard
+looks unfamiliar, then you really should brush up on your Python skills.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+[
+\family default
+\emph on
+expr
+\emph default
+ 
+\family typewriter
+for 
+\family default
+\emph on
+x
+\emph default
+ 
+\family typewriter
+in
+\family default
+ 
+\emph on
+L
+\emph default
+ 
+\family typewriter
+\emph on
+[
+\emph default
+for 
+\family default
+\emph on
+y
+\emph default
+ 
+\family typewriter
+in 
+\family default
+\emph on
+M
+\emph default
+ ...
+\emph on
+]
+\emph default
+ 
+\family typewriter
+]
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ syntax is called 
+\emph on
+list comprehension
+\emph default
+.
+ What it does is evaluate 
+\emph on
+expr
+\emph default
+ in a loop over all values of
+\emph on
+ L 
+\emph default
+(and 
+\emph on
+M
+\emph default
+, if a second 
+\family typewriter
+for
+\family default
+ clause is specified, etc.) --- substituting in 
+\emph on
+x
+\emph default
+ (and 
+\emph on
+y
+\emph default
+, etc.), and return a list composed of the resulting values.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+*
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ before the list causes the function to be invoked with parameters composed
+ from the list.
+ For example,
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  L = [1,2,3];
+\end_layout
+
+\begin_layout Standard
+
+  M = [10,20,30];
+\end_layout
+
+\begin_layout Standard
+
+  foo(*[x+y for x in L for y in M])
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+will call the function 
+\family typewriter
+foo
+\family default
+ as 
+\family typewriter
+foo(11,12,13,21,22,23,31,32,33)
+\family default
+.
+ It's very important that you understand this technique thoroughly, since
+ it is ubiquitous throughout our TDL scripts.
+\end_layout
+
+\begin_layout Standard
+On a similar note, what does 
+\family typewriter
+ns.f(1)
+\family default
+ refer to? On the one hand, it's just a node stub named 
+\begin_inset Quotes eld
+\end_inset
+
+f:1
+\begin_inset Quotes erd
+\end_inset
+
+, which is not initialized to a valid node anywhere in our code.
+ On the other hand, it's a means to refer to all the nodes named 
+\begin_inset Quotes eld
+\end_inset
+
+f:1:
+\emph on
+l
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+, as a series.
+ In the latter context we call it an 
+\emph on
+underqualified
+\emph default
+ node, because we can append extra qualifiers to make it refer to valid
+ & initialized nodes.
+ We could write a function to sum over a one-dimensional series:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def sum_1d_series (sumnode,fnodes):
+\end_layout
+
+\begin_layout Standard
+
+  sumnode << Meq.Add(*[fnodes(k) for k in TERMS]);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and then invoke it to make sums over 
+\begin_inset Quotes eld
+\end_inset
+
+cross-sections
+\begin_inset Quotes erd
+\end_inset
+
+ of 
+\begin_inset Quotes eld
+\end_inset
+
+f:
+\emph on
+k
+\emph default
+:
+\emph on
+l
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  sum_1d_series(ns.sum1,ns.f(1));
+\end_layout
+
+\begin_layout Standard
+
+  sum_1d_series(ns.sum2,ns.f(2));
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Design by contract
+\end_layout
+
+\begin_layout Standard
+You'd be right to wonder how we could employ this function sum over a 
+\begin_inset Quotes eld
+\end_inset
+
+cross-section
+\begin_inset Quotes erd
+\end_inset
+
+ for a given 
+\emph on
+l
+\emph default
+.
+ The qualifier syntax only allows us to append qualifiers; there's no prepend
+ feature.
+ Python's absense of type checking comes to the rescue here.
+ If you look at the code for 
+\family typewriter
+sum_1d_series()
+\family default
+, you can see that there's nothing in it that actually demands for 
+\family typewriter
+fnodes
+\family default
+ to be a node stub.
+ All it requires is that 
+\family typewriter
+fnodes
+\family default
+ be something that can be qualified with a single index to yield a real
+ node stub.
+ If we had a function that took one argument and returned a node stub, we
+ could pass in that function for the 
+\family typewriter
+fnodes
+\family default
+ parameter, and obtain the required sum.
+ Python's lambda syntax makes it easy to construct such a function on-the-fly:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  sum_1d_series(ns.sum1,lambda k:ns.f(k,1));
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This defines an anonymous (lambda) function with one argument, 
+\family typewriter
+k
+\family default
+, returning 
+\family typewriter
+ns.f(k,1)
+\family default
+.
+ Inside 
+\family typewriter
+sum_1d_series()
+\family default
+, this lambda-function then behaves in exactly the same way that an underqualifi
+ed node stub would.
+\end_layout
+
+\begin_layout Standard
+This technique is an instance of something called 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+design by contract
+\emph default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Instead of specifying that 
+\family typewriter
+sum_1d_series()
+\family default
+ takes an argument of type node stub (
+\begin_inset Quotes eld
+\end_inset
+
+design by type
+\begin_inset Quotes erd
+\end_inset
+
+), we only specify that the parameter should implement some kind of behaviour,
+ i.e., a contract.
+ In this particular case, the contract on 
+\family typewriter
+fnodes
+\family default
+ is that it supports the function call operator, and that 
+\family typewriter
+fnodes(k)
+\family default
+ returns a valid node stub.
+\end_layout
+
+\begin_layout Standard
+Design by contract is made possible by Python's late type-checking mechanism.
+ It is a very powerful technique, since, by not tying our interfaces to
+ specific types, it allows us to keep them all that more flexible.
+ On the other hand, it carries with it all the risks discussed in section\InsetSpace ~
+
+\begin_inset LatexCommand \ref{sub:The-reverse-of}
+
+\end_inset
+
+.
+ These can be mitigated by making sure that your interfaces are built around
+ a limited set of fairly simple and well-defined contracts.
+ The contract on 
+\family typewriter
+fnodes
+\family default
+, above, is a good example, and is used extensively in frameworks like Meow.
+\end_layout
+
+\begin_layout Section
+Meow: a case study
+\end_layout
+
+\begin_layout Standard
+Meow (Measurement Equation Object frameWork) makes extensive use of all
+ the techniques discussed here.
+ We're going to take an in-depth look at some example scripts that employ
+ Meow, to see how these methods fit together into a coherent whole.
+\end_layout
+
+\begin_layout Subsection
+Jones series
+\end_layout
+
+\begin_layout Standard
+A Jones term is a 
+\begin_inset Formula $2\times2$
+\end_inset
+
+ matrix
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+A Jones matrix can also be represented by a single scalar 
+\begin_inset Formula $g$
+\end_inset
+
+, which is mathematically equivalent to the matrix 
+\begin_inset Formula $ $
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+It which is equivalent to a 
+\emph on
+scalar
+\emph default
+ matrix) that describes a signal propagation effect.
+ 
+\end_layout
+
+\begin_layout Standard
+One area where qualifiers are vitally important are Jones matrices.
+ Depending on context, we usually define a whole series of Jones matrices
+ per antenna, or even per antenna and per source (more rarely, the same
+ Jones term is applied to all antennas, in which case you have a series
+ per source, or even just a single term.)
+\end_layout
+
+\begin_layout Standard
+Jones series are a natural 
+\end_layout
+
+\end_body
+\end_document
