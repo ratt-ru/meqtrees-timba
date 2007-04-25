@@ -280,6 +280,19 @@ class GPSPair (Meow.Parameterization):
 
   #=================================================================
 
+  def geoSz(self, iom, show=False):
+    """Return a node/subtree that produces the ionospheric slant-function S(z)"""
+    qnode = self.ns['geoSz']
+    qnode = qnode.qmerge(iom.ns['GPSPair_dummy_qnode'])
+    if not qnode.initialized():
+      # First get a subtree for the IOM TEC:
+      sz = iom.geoSz(self._station, self._satellite)
+      qnode << Meq.Identity(sz)
+    self._station._show_subtree(qnode, show=show, recurse=4)
+    return qnode
+
+  #=================================================================
+
   def gpsTEC(self):
     """Return a node/subtree that produces a measured TEC value for
     a specified time-range (in the request). It gets its information
@@ -291,21 +304,20 @@ class GPSPair (Meow.Parameterization):
 
   #=================================================================
 
-  def modelTEC(self, iom, sim=False, show=False):
+  def modelTEC(self, iom, show=False):
     """Return a node/subtree that produces a simulated TEC value, which
     includes that station- and satellite TEC bias values. It gets its
     information from the given IonosphereModel (iom) object.
-    If sim==True, use simulated TEC_bias values rather than MeqParms."""
+    If iom.is_simulated()==True, use simulated TEC_bias values, rather
+    than MeqParms."""
 
-    #--------------------------------------------------
-    sim = iom._simulate                     # better...
-    #--------------------------------------------------
-
+    sim = iom.is_simulated()        # override, better...
     if sim:
       qnode = self.ns['simodelTEC']
     else:
       qnode = self.ns['modelTEC']
     qnode = qnode.qmerge(iom.ns['GPSPair_dummy_qnode'])
+
     if not qnode.initialized():
       # First get a subtree for the IOM TEC:
       TEC = iom.geoTEC(self._station, self._satellite)

@@ -27,7 +27,6 @@ class MIM (IonosphereModel.IonosphereModel):
   def __init__(self, ns, name='MIM',
                quals=[], kwquals={},
                tags=[],
-               # solvable=True,
                tiling=None,
                time_deg=0,
                refloc=None,
@@ -50,7 +49,8 @@ class MIM (IonosphereModel.IonosphereModel):
       raise ValueError,s
 
     self._SimulParm = []
-    ss = dict(nodes=[], labels=[])                 # for self._solvable
+    # ss = dict(nodes=[], labels=[])                 # for self._solvable
+    ss = self.solvable()                           # dict(nodes=[], labels=[])  
     self._pname = []
     self._pnode = []
     self._usedval = dict()
@@ -59,7 +59,8 @@ class MIM (IonosphereModel.IonosphereModel):
         pname = 'p'+str(i)+str(j)
         if not pname in self._pname:               # avoid duplication of diagonal (j=i)
           self._pname.append(pname)
-          if self._simulate:
+
+          if self.is_simulated():
             # Make simulated parms (subtrees) with average value of zero,
             # but with a cosine time-variation with given ampl and period.
             # The latter may be randomized with a given stddev.
@@ -99,37 +100,10 @@ class MIM (IonosphereModel.IonosphereModel):
     ss = 'MIM: '+str(self.name)
     ss += '  ndeg='+str(self._ndeg)
     ss += '  effalt='+str(int(self._effalt_km))+'km'
-    if self._simulate:
+    if self.is_simulated():
       ss += '  (simulated)'
     return ss
   
-
-  def display(self, full=False):
-    """Display a summary of this object"""
-    print '\n** '+self.oneliner()
-    print '  * refloc: '+self._refloc.oneliner()
-    print '  * Earth: '+str(self._Earth)
-    print '  * pname: '+str(self._pname)
-    print '  * solvable ('+str(len(self._solvable['nodes']))+'):'
-    ss = self._solvable
-    for k,node in enumerate(ss['nodes']):
-      print '   - '+str(ss['labels'][k])+': '+str(node)
-    if self._simulate:
-      print '  * SimulParm ('+str(len(self._SimulParm))+'):'
-      for k,sp in enumerate(self._SimulParm):
-        print '   - '+str(k)+': '+sp.oneliner()
-      for k,p in enumerate(self._pnode):
-        print '   - '+str(k)+': '+str(p)
-      print '  * Actually used simulation values:'
-      for key in self._pname:
-        if self._usedval.has_key(key):
-          print '   - '+str(key)+': '+str(self._usedval[key])
-    print
-    return True
-
-
-
-
 
 
   #======================================================================
@@ -157,19 +131,19 @@ class MIM (IonosphereModel.IonosphereModel):
       if ll_piercing:
         dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
                                                      ll_seenfrom)
-        dlong1 = qnode('dlong') << Meq.Selector(dlonglat, index=0)
-        dlat1 = qnode('dlat') << Meq.Selector(dlonglat, index=1)
+        dlong = qnode('dlong') << Meq.Selector(dlonglat, index=0)
+        dlat = qnode('dlat') << Meq.Selector(dlonglat, index=1)
       else:
-        dlong1 = qnode('dlong') << Meq.Constant(0.0)
-        dlat1 = qnode('dlat') << Meq.Constant(0.0)
+        dlong = qnode('dlong') << Meq.Constant(0.0)
+        dlat = qnode('dlat') << Meq.Constant(0.0)
         
       # First make powers of dlong/dlat (relative to self._refloc)
-      llong = [None, dlong1]
-      llat = [None, dlat1]
+      llong = [None, dlong]
+      llat = [None, dlat]
       for k in range(2,self._ndeg[0]+1):
-        llong.append(qnode('long^'+str(k)) << Meq.Multiply(llong[k-1],dlong1))
+        llong.append(qnode('long^'+str(k)) << Meq.Multiply(llong[k-1],dlong))
       for k in range(2,self._ndeg[1]+1):
-        llat.append(qnode('lat^'+str(k)) << Meq.Multiply(llat[k-1],dlat1))
+        llat.append(qnode('lat^'+str(k)) << Meq.Multiply(llat[k-1],dlat))
 
       # Then make the various MIM polynomial terms:
       cc = []
@@ -215,12 +189,12 @@ def _define_forest(ns):
 
     mim = MIM(ns, 'mim')
     mim.display(full=True)
-    cc.append(mim.inspector())
+    cc.append(mim.plot_parms())
 
     if 1:
       sim = MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
-      cc.append(sim.inspector())
+      cc.append(sim.plot_parms())
 
 
     if 1:
@@ -275,14 +249,14 @@ if __name__ == '__main__':
     mim.display(full=True)
 
     if 1:
-      sim = MIM(ns, 'sim', ndeg=1, simulate=True)
+      sim = MIM(ns, 'sim', ndeg=1, simulate=False)
       sim.display(full=True)
 
       if 0:
         sim.geoTEC(show=True)
 
       if 0:
-        sim.inspector(show=True)
+        sim.plot_parms(show=True)
       
 
     #-----------------------------------------------------------------------

@@ -96,10 +96,11 @@ class GPSArray (Meow.Parameterization):
     # Define station-satellite pairs:
     ss = dict(nodes=[], labels=[])
     rr = dict(name=[], sat=[], stat=[], obj=[],
+              iistat=[], iisat=[],
               simul_TecBias=self._simul_TecBias,
               plot=dict(color='green', style='rectangle'))
-    for stat in self._station['obj']:
-      for sat in self._satellite['obj']:
+    for istat,stat in enumerate(self._station['obj']):
+      for isat,sat in enumerate(self._satellite['obj']):
         obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat,
                                pair_based_TecBias=self._pair_based_TecBias,
                                simul=rr['simul_TecBias'])
@@ -107,6 +108,8 @@ class GPSArray (Meow.Parameterization):
         rr['name'].append(sname)
         rr['sat'].append(sat)
         rr['stat'].append(stat)
+        rr['iisat'].append(isat)
+        rr['iistat'].append(istat)
         rr['obj'].append(obj)
         # Collect solvable MeqParms:
         ss1 = obj.solvable()
@@ -217,11 +220,30 @@ class GPSArray (Meow.Parameterization):
   #-------------------------------------------------------
   #-------------------------------------------------------
 
+  def plot_geoSz(self, iom, bookpage='geoSz', show=False):
+    """Make an inspector (plot) for the z-dependent slant-function
+    of the various pairs."""
+    qnode = self.ns['plot_geoSz']
+    qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
+    if not qnode.initialized():
+      cc =[]
+      labels = []
+      for pair in self._pair['obj']:
+        labels.append(pair.name)
+        cc.append(pair.geoSz(iom))
+      qnode << Meq.Composer(children=cc, plot_label=labels)
+      JEN_bookmarks.create(qnode, page=bookpage,
+                           viewer='Collections Plotter')
+    if show: display.subtree(qnode, recurse=5)
+    return qnode
+
+  #--------------------------------------------------------------------
+
   def plot_modelTEC(self, iom, bookpage='modelTEC', show=False):
     """Make an inspector (plot) for the modelTEC-values of the various pairs.
     This includes the station/satellite TEC_biases."""
     qnode = self.ns['plot_modelTEC']
-    if iom._simulate:
+    if iom.is_simulated():
       qnode = self.ns['plot_simodelTEC']
     qnode = qnode.qmerge(iom.ns['GPSArray_dummy_qnode'])
     if not qnode.initialized():
@@ -279,8 +301,8 @@ class GPSArray (Meow.Parameterization):
       for pair in self._pair['obj']:
         label = pair.name
         labels.append(label)
-        lhs = pair.modelTEC(iom, sim=False)
-        rhs = pair.modelTEC(sim, sim=True)
+        lhs = pair.modelTEC(iom)
+        rhs = pair.modelTEC(sim)
         condeq = qnode('condeq')(label) << Meq.Condeq(lhs, rhs)
         condeqs.append(condeq)
         LHS.append(lhs)
@@ -360,18 +382,26 @@ class GPSArray (Meow.Parameterization):
     between simulated and estimated TecBiases"""
     cc1 = []
     cc2 = []
-    for pair in self._pair['obj']:
-      cc = pair.TEC_bias_residual()         # list of 1 or 2 nodes
-      if not cc[0] in cc1: cc1.append(cc[0])
+    for k,pair in enumerate(self._pair['obj']):
+      istat = self._pair['iistat'][k]               # station nr (0,1,2,3,...)
+      cc = pair.TEC_bias_residual()                 # list of 1 or 2 nodes
+      if not cc[0] in cc1:
+        cc1.append(Meq.ToComplex(istat, cc[0]))
       if len(cc)>1:
-        if not cc[1] in cc2: cc2.append(cc[1])
+        if not cc[1] in cc2:
+          isat = self._pair['iisat'][k]             # satellite nr (0,1,2,3,...)
+          cc2.append(Meq.ToComplex(istat, cc[0]))
 
+    size = 16                                       # symbol size
     if len(cc2)==0:
       # All residuals are pair-residuals:
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc1,
                                      scope='TecBias', tag='residuals',
                                      bookpage=bookpage,
-                                     color='magenta', size=8, pen=2,
+                                     color='magenta', style='diamond',
+                                     size=size, pen=2,
+                                     xlabel='station nr',
+                                     ylabel='TecBias residual (TECU)',
                                      mean_circle=False,
                                      type='realvsimag', errorbars=False)
 
@@ -380,14 +410,17 @@ class GPSArray (Meow.Parameterization):
       dcolls = []
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc1,
                                      scope='TecBias', tag='stations',
-                                     color='blue', size=8, pen=2,
+                                     color='blue', size=size, pen=2,
                                      mean_circle=False,
                                      type='realvsimag', errorbars=False)
       dcolls.append(rr)
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc2,
                                      scope='TecBias', tag='satellites',
-                                     color='red', style='triangle', size=8, pen=2,
+                                     color='red', style='triangle',
+                                     size=size, pen=2,
                                      mean_circle=False,
+                                     xlabel='station or satellite nr',
+                                     ylabel='TecBias residual (TECU)',
                                      type='realvsimag', errorbars=False)
       dcolls.append(rr)
       # Concatenate: NB: nodename -> dconc_scope_tag
@@ -526,7 +559,7 @@ TDLCompileMenu('MIM definition',
 TDLCompileMenu('solution',
                TDLCompileOption('TDL_solve_MIM','Solve (for the MIM parameters)',[True,False]),
                TDLCompileOption('TDL_time_deg_MIM','poldeg of pp time-solution',[2,0,1,2,3,4], more=int),
-               TDLCompileOption('TDL_subtiling_MIM','subtiling (time) (!)',[None,1,2,3,4], more=int),
+               TDLCompileOption('TDL_subtiling_MIM','subtiling (time)',[None,1,2,3,4], more=int),
                TDLCompileOption('TDL_num_iter','max nr of solver iterations',[10,3,5,20,50], more=int),
                TDLCompileOption('TDL_solve_for_TecBias','Solve for TEC bias as well',[False,True]),
                )
@@ -542,7 +575,7 @@ def _define_forest(ns):
   gpa = GPSArray(ns,
                  nstat=TDL_nstat, nsat=TDL_nsat, 
                  longlat=[-0.1,0.1],
-                 stddev_pos=dict(stat=[0.1,0.1],
+                 stddev_pos=dict(stat=[0.4,0.4],
                                  # sat=[0.2,0.2]),
                                  sat=[0.4,0.4]),
                  simul_TecBias=dict(stddev=TDL_stddev_TecBias, value=TDL_value_TecBias),
@@ -557,6 +590,7 @@ def _define_forest(ns):
 
     if 1:
       cc.append(gpa.plot_modelTEC(sim))
+      cc.append(gpa.plot_geoSz(sim))
 
     if TDL_show_array:
       # NB: Do this AFTER MIM, because of pierce points
@@ -583,85 +617,41 @@ def _define_forest(ns):
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 
-def _tdl_job_dom0s (mqs, parent):
+
+TDLRuntimeMenu('single domain',
+               TDLRuntimeOption('TDL_time_interval','time interval (s)',
+                                [300,1,30,90,300,900,3600,3*3600,12*3600], more=float),
+               )
+
+def _tdl_job_exec_single_domain (mqs, parent):
     """Execute the forest, starting at the named node"""
     # mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
-    dt = 0.001
+    dt = float(TDL_time_interval)
     domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=1)
-    request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
-       
-def _tdl_job_dom30s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    dt = 30
-    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
-    request = meq.request(cells, rqid=meq.requestid(dt))
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
-       
-
-def _tdl_job_dom300s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    dt = 300
-    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
-    request = meq.request(cells, rqid=meq.requestid(dt))
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
-       
-
-def _tdl_job_dom3000s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    dt = 3000
-    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
-    request = meq.request(cells, rqid=meq.requestid(dt))
-    result = mqs.meq('Node.Execute',record(name='result', request=request))
-       
-def _tdl_job_dom20000s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    dt = 20000
-    domain = meq.domain(1.0e8,1.1e8,-dt/2,dt/2)          # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=int(dt/30))
-    request = meq.request(cells, rqid=meq.requestid(dt))
+    cells = meq.cells(domain, num_freq=1, num_time=max(1,int(dt/30)))
+    request = meq.request(cells, rqid=meq.requestid(int(1000*random.random())))
     result = mqs.meq('Node.Execute',record(name='result', request=request))
 
-#..........................................................................
 
-def _tdl_job_step30s (mqs, parent):
+TDLRuntimeMenu('sequence',
+               TDLRuntimeOption('TDL_num_time_steps','nr of time steps',[10,1,3,10,30,100], more=int),
+               TDLRuntimeOption('TDL_time_step_size','time-step size (s)',[30,100,300], more=int),
+               )
+
+def _tdl_job_exec_sequence (mqs, parent):
     """Execute the forest, starting at the named node"""
-    for t in range(-50,50):
-      t1 = t*30                                            # 30 sec steps 
-      t2 = t1+0.0001
-      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
+    # mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
+    n2 = int(TDL_num_time_steps/2)
+    for it in range(-n2,n2):
+      t1 = it*TDL_time_step_size                     # usually: 30 sec steps 
+      t2 = t1+0.0001                                 # ....?
+      domain = meq.domain(1.0e8,1.1e8,t1,t2)         # (f1,f2,t1,t2)
       cells = meq.cells(domain, num_freq=1, num_time=1)
-      request = meq.request(cells, rqid=meq.requestid(t+100))
+      request = meq.request(cells, rqid=meq.requestid(it+TDL_num_time_steps))
       result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
-       
-def _tdl_job_step100s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    for t in range(-50,50):
-      t1 = t*100                                           # 100 sec steps 
-      t2 = t1+0.0001
-      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-      cells = meq.cells(domain, num_freq=1, num_time=1)
-      request = meq.request(cells, rqid=meq.requestid(t+100))
-      result = mqs.meq('Node.Execute',record(name='result', request=request))
-    return result
-       
-       
-def _tdl_job_step300s (mqs, parent):
-    """Execute the forest, starting at the named node"""
-    for t in range(-50,50):
-      t1 = t*300                                           # 300 sec steps 
-      t2 = t1+0.0001
-      domain = meq.domain(1.0e8,1.1e8,t1,t2)               # (f1,f2,t1,t2)
-      cells = meq.cells(domain, num_freq=1, num_time=1)
-      request = meq.request(cells, rqid=meq.requestid(t+100))
-      result = mqs.meq('Node.Execute',record(name='result', request=request))
-    return result
+
        
        
 
@@ -692,12 +682,15 @@ if __name__ == '__main__':
       node = gpa.rvsi_longlat()
       display.subtree(node,node.name)
 
-    if 0:
+    if 1:
       sim = MIM.MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
 
       if 1:
-        gpa.ploTEC(sim, show=True)
+        gpa.plot_geoSz(sim, show=True)
+
+      if 0:
+        gpa.plot_modelTEC(sim, show=True)
 
       if 0:
         mim = MIM.MIM(ns, 'mim', ndeg=1)

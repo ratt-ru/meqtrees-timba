@@ -19,7 +19,7 @@ Settings.forest_state.cache_policy = 100
 #================================================================
 
 class IonosphereModel (Meow.Parameterization):
-  """Baseclass for various ionospheric models (e.g. see MIM.py)
+  """Baseclass for various ionospheric models (IOM, e.g. see MIM.py)
   defined in terms of Earth (longitude,latitude)"""
   
   def __init__(self, ns, name='IonosphereModel',
@@ -44,16 +44,20 @@ class IonosphereModel (Meow.Parameterization):
                                              tags=['GeoLocation','IonosphereModel'],
                                              solvable=False)
     self._Earth = self._refloc._Earth              # copy the Earth dict (radius etc)
-      
+
+    # This is returned by the function .is_simulated()
+    self._simulate = simulate
+
     # Some extra info:
     self._pierce_points = []                       # an innocent kludge
 
     #-------------------------------------------------
     # Define the IonosphereModel:
     self._solvable = dict(nodes=[], labels=[])     # expected by .solvable()
-    self._simulate = simulate                      # expected by derived functions and external
     self._pnode = []                               # expected by .inspector()
     self._pname = []                               # expected by .inspector()
+    self._SimulParm = []
+    self._usedval = dict()
     #-------------------------------------------------
 
     # Finished:
@@ -65,17 +69,40 @@ class IonosphereModel (Meow.Parameterization):
   def oneliner (self):
     ss = 'IonosphereModel: '+str(self.name)
     ss += '  effalt='+str(int(self._effalt_km))+'km'
+    if self.is_simulated():
+      ss += '  (simulated)'
     return ss
   
-
   def display(self, full=False):
     """Display a summary of this object"""
     print '\n** '+self.oneliner()
     print '  * refloc: '+self._refloc.oneliner()
     print '  * Earth: '+str(self._Earth)
-    print '  * effalt: '+str(int(self._effalt_km))+'km'
+    print '  * pname: '+str(self._pname)
+    print '  * solvable ('+str(len(self._solvable['nodes']))+'):'
+    ss = self._solvable
+    for k,node in enumerate(ss['nodes']):
+      print '   - '+str(ss['labels'][k])+': '+str(node)
+    if self.is_simulated():
+      print '  * SimulParm ('+str(len(self._SimulParm))+'):'
+      for k,sp in enumerate(self._SimulParm):
+        print '   - '+str(k)+': '+sp.oneliner()
+      for k,p in enumerate(self._pnode):
+        print '   - '+str(k)+': '+str(p)
+      print '  * Actually used simulation values:'
+      for key in self._pname:
+        if self._usedval.has_key(key):
+          print '   - '+str(key)+': '+str(self._usedval[key])
     print
     return True
+
+
+  #---------------------------------------------------------------
+
+  def is_simulated(self):
+    """True if the object has SimulParm subtrees, rather than MeqParms.
+    The latter are potentially solvable"""
+    return self._simulate
 
   #----------------------------------------------------------------
 
@@ -91,16 +118,17 @@ class IonosphereModel (Meow.Parameterization):
 
   #-----------------------------------------------------------------
 
-  def inspector(self, bookpage='IonosphereModel', show=False):
-    """Make an inspector for the p-nodes (MeqParms or SimulParms)"""
-    if self._simulate:
+  def plot_parms(self, bookpage='IonosphereModel', show=False):
+    """Make an 'inspector' subtree for the IOM parameter nodes
+    (MeqParms or SimulParms)"""
+    if self.is_simulated():
       name = 'SimulParm'
     else:
       name = 'solvable'
     qnode = self.ns[name]
     if not qnode.initialized():
-      if len(self._pnode)==0:              # nothing to plot
-        qnode << Meq.Constant(-1)          # return a dummy node
+      if len(self._pnode)==0:                         # nothing to plot
+        qnode << Meq.Constant(-1)                     # return a dummy node
       else:
         qnode << Meq.Composer(children=self._pnode,
                               plot_label=self._pname)
@@ -192,6 +220,7 @@ class IonosphereModel (Meow.Parameterization):
   # celestial source.
   #======================================================================
 
+
   def geoTEC(self, seenfrom=None, towards=None, show=False):
     """Return a node/subtree that predicts an integrated TEC value,
     as seen from the specified location (seenfrom==GeoLocation or None)
@@ -264,18 +293,18 @@ class IonosphereModel (Meow.Parameterization):
       if ll_piercing:
         dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
                                                      ll_seenfrom)
-        dlong1 = qnode('dlong') << Meq.Selector(dlonglat, index=0)
-        dlat1 = qnode('dlat') << Meq.Selector(dlonglat, index=1)
+        dlong = qnode('dlong') << Meq.Selector(dlonglat, index=0)
+        dlat = qnode('dlat') << Meq.Selector(dlonglat, index=1)
       else:
-        dlong1 = qnode('dlong') << Meq.Constant(0.0)
-        dlat1 = qnode('dlat') << Meq.Constant(0.0)
+        dlong = qnode('dlong') << Meq.Constant(0.0)
+        dlat = qnode('dlat') << Meq.Constant(0.0)
         
-      # Make a dummy 'TEC' by making a complex number from (dlong1,dlat1),
+      # Make a dummy 'TEC' by making a complex number from (dlong,dlat),
       # Multiply the result with the ionospheric slant-function S(z), if required.
       if z==None:
-        qnode << Meq.ToComplex(dlong1,dlat1)           # zenith direction (z=0)
+        qnode << Meq.ToComplex(dlong,dlat)             # zenith direction (z=0)
       else:                                          
-        TEC0 = qnode('z=0') << Meq.ToComplex(dlong1,dlat1) # zenith direction (z=0)
+        TEC0 = qnode('z=0') << Meq.ToComplex(dlong,dlat) # zenith direction (z=0)
         sz = self.slant_function(qnode('slant'), z=z)
         qnode << Meq.Multiply(TEC0, sz)                # TEC0*sec(z')
           
@@ -283,7 +312,50 @@ class IonosphereModel (Meow.Parameterization):
     return True
 
 
+  #===============================================================================
 
+  def geoSz (self, seenfrom=None, towards=None, show=False):
+    """Return a node/subtree that predicts the slant-function S(z),
+    as seen from the specified location (seenfrom==GeoLocation or None)
+    in the direction of the specified (towards) location. The latter
+    may be a GeoLocation object, or None (assume zenith direction)."""
+
+    qnode = self.ns['geoSz']                                   
+
+    # Check the first location (if any):
+    if seenfrom==None:
+      qnode = qnode('refloc')
+    elif isinstance(seenfrom, GeoLocation.GeoLocation):
+      qnode = qnode.qmerge(seenfrom.ns['IonosphereModel_dummy_qnode'])  
+    else:
+      s = '.geoTEC(): from should be a GeoLocation, not: '+str(type(seenfrom))
+      raise ValueError,s
+
+    # Check the second location (if any):
+    if towards==None:
+      # Assume zenith direction:
+      qnode = qnode('zenith')
+      z = None
+    elif isinstance(towards, GeoLocation.GeoLocation):
+      qnode = qnode.qmerge(towards.ns['IonosphereModel_dummy_qnode'])  
+      z = seenfrom.zenith_angle(towards)
+    else:
+      s = '.geoTEC(): towards should be a GeoLocation, not: '+str(type(towards))
+      raise ValueError,s
+
+    # Make the node itself, if required:
+    if not qnode.initialized():
+      if z==None:
+        qnode << Meq.Constant(1.0)                     # zenith direction (z=0)
+      else:                                          
+        sz0 = qnode('z=0') << Meq.Constant(1.0)        # zenith direction (z=0)
+        sz = self.slant_function(qnode('slant'), z=z)
+        qnode << Meq.Multiply(sz0, sz)                 # TEC0*sec(z')
+          
+    # Finished:
+    if show:
+      display.subtree(qnode, recurse=10, show_initrec=True)
+    return qnode
 
 
 
@@ -297,7 +369,7 @@ def _define_forest(ns):
 
     iom = IonosphereModel(ns, 'iom')
     iom.display(full=True)
-    cc.append(iom.inspector())
+    cc.append(iom.plot_parms())
 
 
     if 1:
@@ -315,6 +387,8 @@ def _define_forest(ns):
         cc.append(iom.geoTEC(st1, sat1, show=True))
         # cc.append(iom.geoTEC(st1, show=True))
         # cc.append(iom.geoTEC(show=True))
+
+
 
       if 1:
         pair = GPSPair.GPSPair(ns, station=st1, satellite=sat1)
@@ -351,18 +425,24 @@ if __name__ == '__main__':
       iom = IonosphereModel(ns, 'iom')
       iom.display(full=True)
 
-      if 1:
+      if 0:
         iom.geoTEC(show=True)
 
       if 0:
-        iom.inspector(show=True)
+        iom.geoSz(show=True)
+
+      if 0:
+        iom.plot_parms(show=True)
       
+
 
     #-----------------------------------------------------------------------
 
     if 1:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0])
+      print st1.oneliner()
+      print sat1.oneliner()
 
       if 0:
         iom.longlat_pierce(st1, sat1, show=True)
@@ -371,11 +451,13 @@ if __name__ == '__main__':
         qnode = ns.qnode('xxx')
         iom.slant_function(qnode, z=1, flat_Earth=True, show=True)
 
-      if 1:
+      if 0:
         iom.geoTEC(st1, sat1, show=True)
         # iom.geoTEC(st1, show=True)
         # iom.geoTEC(show=True)
 
+      if 1:
+        iom.geoSz(st1, sat1, show=True)
 
       if 0:
         pair = GPSPair.GPSPair (ns, station=st1, satellite=sat1)
