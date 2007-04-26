@@ -7226,33 +7226,512 @@ A Jones matrix can also be represented by a single scalar
 \begin_inset Formula $g$
 \end_inset
 
-, which is mathematically equivalent to the matrix 
-\begin_inset Formula $ $
+, which is mathematically equivalent to the diagonal matrix 
+\begin_inset Formula $G=\left(\begin{array}{cc}
+g & 0\\
+0 & g\end{array}\right).$
 \end_inset
 
- 
+ Matrix operations in MeqTrees work the same whether the 
+\begin_inset Formula $g$
+\end_inset
+
+ or 
+\begin_inset Formula $G$
+\end_inset
+
+ form is used, so we will not dwell any further on the distinction.
 \end_layout
 
 \end_inset
 
-It which is equivalent to a 
+ that describes a signal propagation effect.
+ The word 
 \emph on
-scalar
+term
 \emph default
- matrix) that describes a signal propagation effect.
+ is used because a Jones matrix usually appears as a term of a 
+\emph on
+measurement equation
+\emph default
+.
+ When putting together a measurement equation, we usually have a separate
+ Jones term per antenna, or, if the effect is also direction-dependent,
+ a separate term per antenna and per direction on the sky (which usually
+ corresponds to what we call a 
+\begin_inset Quotes eld
+\end_inset
+
+source
+\begin_inset Quotes erd
+\end_inset
+
+, since we model the sky by a collection of discrete sources.) Sets of Jones
+ terms describing the same effect per antenna and/or per source are called
+ 
+\emph on
+Jones series
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+The TDL qualifier mechanism is a godsend when creating and manupulating
+ Jones series.
+ As a working example, let's look at the 
+\family typewriter
+ME2/example6-iono.py
+\family default
+ script.
+ The measurement equation used here needs a series of Jones terms (the 
+\begin_inset Quotes eld
+\end_inset
+
+zeta-Jones
+\begin_inset Quotes erd
+\end_inset
+
+, from the ionospheric phase delay 
+\begin_inset Formula $\zeta$
+\end_inset
+
+), 
+\begin_inset Formula $Z_{kp}$
+\end_inset
+
+, one per each source 
+\begin_inset Formula $k$
+\end_inset
+
+ and antenna 
+\begin_inset Formula $p$
+\end_inset
+
+.
+ The trees for these are created by the following call:
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+Zj = iono_model.compute_zeta_jones(ns,sources);
+\family default
  
 \end_layout
 
 \begin_layout Standard
-One area where qualifiers are vitally important are Jones matrices.
- Depending on context, we usually define a whole series of Jones matrices
- per antenna, or even per antenna and per source (more rarely, the same
- Jones term is applied to all antennas, in which case you have a series
- per source, or even just a single term.)
+The 
+\family typewriter
+compute_zeta_jones()
+\family default
+ takes a node scope and a list of Meow source objects, and creates a series
+ of 
+\begin_inset Formula $Z$
+\end_inset
+
+ nodes.
+ These will be created as
 \end_layout
 
 \begin_layout Standard
-Jones series are a natural 
+\InsetSpace ~
+\InsetSpace ~
+
+\family typewriter
+ns.Z(source_name,p)
+\end_layout
+
+\begin_layout Standard
+where 
+\family typewriter
+source_name
+\family default
+ is obtained from each source object, and 
+\family typewriter
+p
+\family default
+ is an antenna index.
+ Ultimately, the nodes are created by this function from 
+\family typewriter
+ME2/iono_geometry.py
+\family default
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def compute_zeta_jones_from_tecs (ns,tecs,source_list):
+\end_layout
+
+\begin_layout Standard
+
+  """Creates the Z Jones for ionospheric phase,
+\end_layout
+
+\begin_layout Standard
+
+  given TECs (per source,   per station).""";
+\end_layout
+
+\begin_layout Standard
+
+  zeta = ns.Z;   
+\end_layout
+
+\begin_layout Standard
+
+  for src in source_list:
+\end_layout
+
+\begin_layout Standard
+
+    for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+      zeta(src.name,p) << Meq.Polar(1,-25*Lightspeed*tecs(src.name,p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  return zeta;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If you've followed this chapter until now, it should be pretty clear what's
+ going on here.
+ First we make a node stub, 
+\family typewriter
+ns.Z
+\family default
+, and assign it to the variable 
+\family typewriter
+zeta
+\family default
+.
+ Then we loop over sources and stations, and define a 
+\family typewriter
+zeta(src.name,p)
+\family default
+ node for each.
+ Since 
+\family typewriter
+zeta
+\family default
+ is just a reference to 
+\family typewriter
+ns.Z
+\family default
+, this is the same as simply creating 
+\family typewriter
+ns.Z(src.name,p)
+\family default
+.
+ Finally, we return the 
+\family typewriter
+ns.Z
+\family default
+ node stub.
+\end_layout
+
+\begin_layout Standard
+The caller of this function doesn't know how the 
+\begin_inset Formula $Z$
+\end_inset
+
+-Jones nodes are named or how they are created.
+ All the caller needs to know is the contract on the return value: 
+\begin_inset Quotes eld
+\end_inset
+
+something that can be qualified with a source name 
+\begin_inset Formula $k$
+\end_inset
+
+ and an antenna index 
+\begin_inset Formula $p$
+\end_inset
+
+ to obtain the node stub for 
+\begin_inset Formula $Z_{kp}$
+\end_inset
+
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Now, how do we use the 
+\begin_inset Formula $Z$
+\end_inset
+
+ terms?
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+for src in sources:
+\end_layout
+
+\begin_layout Standard
+
+  allsky.add(src.corrupt(Zj(src.name))); verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To create a 
+\begin_inset Quotes eld
+\end_inset
+
+corrupted
+\begin_inset Quotes erd
+\end_inset
+
+ source, we need to apply Jones terms to a source.
+ We know that a Meow source object implements a 
+\family typewriter
+corrupt(J)
+\family default
+ method that takes a Jones series as a parameter.
+ The contract on the J parameter is 
+\begin_inset Quotes eld
+\end_inset
+
+something that can be qualified with an antenna index 
+\begin_inset Formula $p$
+\end_inset
+
+ to obtain a node stub for the Jones term corresponding to antenna 
+\begin_inset Formula $p$
+\end_inset
+
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+Unless corrupt is called as 
+\family typewriter
+corrupt(J,per_station=False)
+\family default
+, in which case it knows that 
+\family typewriter
+J
+\family default
+ is not a per-antenna series, but a single Jones term.
+\end_layout
+
+\end_inset
+
+ Well, this is almost a perfect fit with the previous contract --- we know
+ that 
+\family typewriter
+Zj
+\family default
+ takes two qualifiers, so 
+\family typewriter
+Zj(src.name)
+\family default
+ produces an underqualified node stub that is exactly the thing we want
+ to pass to 
+\family typewriter
+corrupt()
+\family default
+.
+ Inside 
+\family typewriter
+corrupt()
+\family default
+ there will be a loop over stations, which will end up accessing the individual
+ Jones terms as 
+\family typewriter
+J(p)
+\family default
+, which is the same thing as 
+\family typewriter
+Zj(src.name)(p)
+\family default
+, which is the same thing as 
+\family typewriter
+Zj(src.name,p)
+\family default
+, which is simply 
+\family typewriter
+ns.Z(src.name,p)
+\family default
+.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+The sharp-eyed reader will notice that sometimes the example scripts use
+ 
+\family typewriter
+src.direction.name
+\family default
+ rather than 
+\family typewriter
+src.name
+\family default
+.
+ For most intents and purposes, this is the same thing.
+ Every source has a 
+\family typewriter
+direction
+\family default
+ attribute that has a 
+\family typewriter
+name
+\family default
+, which is almost always identical to the source name, since most scripts
+ have a one-to-one correspondence between sources and directions.
+ In more exotic scenarios we can have multiple sources in the same direction,
+ in which case you really want to have a per-direction rather than a per-source
+ Jones term.
+ Even though none of the examples actually realize this scenario, the 
+\family typewriter
+src.direction.name
+\family default
+ thing has crept in.
+ I apologize for any confusion.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Contract adapters
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Zj(src.name)
+\family default
+ operation is an example of something I call a 
+\emph on
+contract adapter
+\emph default
+.
+ We have one object (
+\family typewriter
+Zj
+\family default
+) which implements an 
+\begin_inset Quotes eld
+\end_inset
+
+I can be qualified with a name and a station index to make a Jones term
+\begin_inset Quotes erd
+\end_inset
+
+ contract, and another object (the 
+\family typewriter
+J
+\family default
+ argument to 
+\family typewriter
+corrupt()
+\family default
+) that implements an 
+\begin_inset Quotes eld
+\end_inset
+
+I can be qualified with a station index to make a Jones term
+\begin_inset Quotes erd
+\end_inset
+
+ contract.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+(src.name)
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operation adapts one contract to match the other.
+ Happily for us, it really is that simple, which is hardly a coincedence:
+ Meow's contracts are designed around TDL's qualification mechanism.
+ 
+\end_layout
+
+\begin_layout Standard
+A more somewhat more complicated case arises if we decide to change our
+ ionospheric model (i.e.
+ the innards of 
+\family typewriter
+compute_zeta_jones()
+\family default
+) to eliminate directional dependence.
+ We don't want to change the contract on 
+\family typewriter
+Zj
+\family default
+, since our 
+\begin_inset Quotes eld
+\end_inset
+
+customers
+\begin_inset Quotes erd
+\end_inset
+
+ depend on it.
 \end_layout
 
 \end_body
