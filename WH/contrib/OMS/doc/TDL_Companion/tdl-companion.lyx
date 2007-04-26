@@ -1,4 +1,4 @@
-#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -45,6 +45,23 @@ The TDL Bedside Companion
 \family sans
 \size normal
 How To Find Your Way Among The Trees, And Much More Besides
+\family default
+\size default
+
+\newline
+\InsetSpace ~
+\InsetSpace ~
+
+\newline
+
+\begin_inset External
+	template RasterImage
+	filename redhood.eps
+	clip
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Author
@@ -84,13 +101,13 @@ Timba/doc/TDL_Companion/Scripts/
 \end_layout
 
 \begin_layout Standard
-This directory will contain 
+This directory should contain 
 \emph on
 all
 \emph default
  the scripts used during the workshop, while the book covers only a subset.
- If you'd like to look at the extra scripts, then you should refer to the
- workshop presentations under
+ If you'd like to study the other scripts, then you should also refer to
+ the workshop presentations under
 \end_layout
 
 \begin_layout Standard
@@ -2065,6 +2082,8 @@ Gridded Viewers
 
 \begin_layout Standard
 \align center
+
+\size large
 42.
 \end_layout
 
@@ -3303,7 +3322,9 @@ What's the point?
 \end_layout
 
 \begin_layout Standard
-blah blah lots of trees blah blah
+blah blah lots of trees blah blah.
+ Basically some subset of the workshop demos.
+ This may eventually turn into several chapters.
 \end_layout
 
 \begin_layout Chapter
@@ -3316,7 +3337,7 @@ The Python Perspective
 \end_inset
 
 This chapter aims to provide an in-depth description of how TDL does what
- it does.
+ it does, and how to make it do what you want.
  As a way of describing trees, TDL is (I hope) natural enough that you can
  get a very long way without any real idea of what's happening under the
  hood.
@@ -3387,7 +3408,7 @@ As a final warning, this chapter will certainly venture into the touchy
 \emph on
 good
 \emph default
- (or even --- ambitiously -- best) 
+ (or even --- ambitiously --- best) 
 \emph on
 practices
 \emph default
@@ -3404,6 +3425,15 @@ practices
  body of best practices to have emerged.
  So please feel free to do things differently and make your own mistakes
  (try not to repeat too many of mine, though) and refine your own practices.
+ In the words of Captain Barbossa, 
+\begin_inset Quotes eld
+\end_inset
+
+the code is more what you'd call `guidelines' than actual rules.
+\begin_inset Quotes erd
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection*
@@ -3596,7 +3626,7 @@ original
 \end_inset
 
  node scope object.
- All you've done is disassociated the local (local to 
+ All you've done is disassociate the local (local to 
 \family typewriter
 _define_forest()
 \family default
@@ -3630,7 +3660,7 @@ ns1 = ns;
 \begin_layout Standard
 does not make a new node scope object --- all it does is give you two local
  variables that refer to the same object.
- This is really fundamental Python, not just TDL.
+ This is really fundamental to Python, not just TDL.
 \end_layout
 
 \begin_layout Standard
@@ -3647,15 +3677,8 @@ ns.foo
 \begin_inset Quotes eld
 \end_inset
 
-give me the attribute named 
-\begin_inset Quotes eld
-\end_inset
-
-foo
-\begin_inset Quotes erd
-\end_inset
-
- of the object referred to by variable 
+give me the attribute named `foo' of the object referred to by variable
+ 
 \family typewriter
 ns
 \family default
@@ -3664,7 +3687,7 @@ ns
 \end_inset
 
 .
- An alternative syntax is 
+ An alternative syntax for this operation is 
 \family typewriter
 getattr(ns,
 \emph on
@@ -3724,15 +3747,7 @@ node stub, and returns it.
 
 \begin_layout Standard
 Note that, once again, Python works by reference.
- There is only one node stub 
-\begin_inset Quotes eld
-\end_inset
-
-out there
-\begin_inset Quotes erd
-\end_inset
-
- for 
+ There is only one node stub out there for 
 \begin_inset Quotes eld
 \end_inset
 
@@ -3745,19 +3760,40 @@ foo
 \end_layout
 
 \begin_layout Standard
-\InsetSpace ~
-\InsetSpace ~
+\begin_inset ERT
+status open
 
-\family typewriter
-foo = ns.foo;
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
 \end_layout
 
 \begin_layout Standard
 
-\family typewriter
-\InsetSpace ~
-\InsetSpace ~
-bar = ns.foo;
+  foo = ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+  bar = ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -3888,6 +3924,114 @@ ns.foo
  I'm sure creative minds can find a great use for this.
 \end_layout
 
+\begin_layout Subsection
+\begin_inset Quotes eld
+\end_inset
+
+Real
+\begin_inset Quotes erd
+\end_inset
+
+ node scope methods
+\end_layout
+
+\begin_layout Standard
+Note that node scopes also have a few 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ attributes (more precisely, methods) in the conventional Python sense.
+ For example, 
+\family typewriter
+ns.Subscope()
+\family default
+ invokes an actual method to create a subscope, instead of creating a node
+ stub named 
+\begin_inset Quotes eld
+\end_inset
+
+Subscope
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Another example is the 
+\family typewriter
+ns.Search()
+\family default
+ method, which can be used to search node scopes.
+ Both of these operations will be discussed later.
+ 
+\end_layout
+
+\begin_layout Standard
+The convention is that all 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ methods of the node scope object have names that start with a capital.
+ To see a complete list of these reserved names, you can refer to the class
+ documentation.
+\end_layout
+
+\begin_layout Standard
+In the unlikely event that you actually do mean to make a node stub named
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Subscope
+\begin_inset Quotes erd
+\end_inset
+
+ (and are not worried by the ensuing terminology creep --- but hey, it's
+ a free country, presumably), you can always do it via the 
+\family typewriter
+[]
+\family default
+ syntax:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns["Subscope"] << Meq.Confusion(message="I've gone bonkers")
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Objects and more objects
+\end_layout
+
 \begin_layout Standard
 But what 
 \emph on
@@ -3952,10 +4096,7 @@ Classname
 \family default
 .
  By itself, a definition is not a complete node either.
-\end_layout
-
-\begin_layout Standard
-The 
+ The 
 \family typewriter
 <<
 \family default
@@ -3965,25 +4106,54 @@ The
 \end_layout
 
 \begin_layout Standard
-This point is well-worth repeating.
- Every MeqTree node has a name and a definition, the latter consisting of
- a 
-\emph on
-node class
-\emph default
- and optional arguments.
- The name is unique but the definition isn't --- you can define many identical
- nodes.
- Taken by itself, a node stub like 
+This is worth a summary:
+\end_layout
+
+\begin_layout Itemize
+Every MeqTree node needs a name and a definition.
+ The latter consists of a node class, (optional) references to child nodes,
+ and (optional) keyword arguments.
+ 
+\end_layout
+
+\begin_layout Itemize
+The name is unique but the definition isn't.
+ In fact, you can define many identical (in all but name) nodes using the
+ same definition object.
+\end_layout
+
+\begin_layout Itemize
+Taken by itself, a node stub like 
 \family typewriter
 ns.foo
 \family default
- is not yet a complete node, it's really just a reference to a node name.
- Likewise, on its own, a definition object such as returned by 
+ is only a 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ node --- it's really just a node name, nothing more.
+ 
+\end_layout
+
+\begin_layout Itemize
+Likewise, on its own, a node definition object such as that returned by
+ 
 \family typewriter
 Meq.Constant()
 \family default
- is also not a complete node.
+ is also only a 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ node.
  It is when the two are 
 \emph on
 bound
@@ -3995,7 +4165,55 @@ bound
  operator that a complete node emerges.
 \end_layout
 
+\begin_layout Itemize
+Consequently, you may litter your code with node stubs and node definitions
+ that are not bound to anything, and none of these will cause any 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ nodes to be created.
+ The following thoroughly useless bit of code creates an empty tree:
+\end_layout
+
 \begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+        def _define_forest (ns,**kwargs):  
+\end_layout
+
+\begin_layout Standard
+
+          a = ns.foo;
+\end_layout
+
+\begin_layout Standard
+
+          b = Meq.Constant();
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
 
 \end_layout
 
@@ -4060,7 +4278,7 @@ node class generator
 TDL._ClassGen
 \family default
 ).
- We'll take a detailed look inside in a bit.
+ We'll take a detailed look inside it in a bit.
  In the meantime, the expression 
 \family typewriter
 Meq.Constant 
@@ -4069,15 +4287,7 @@ means simply
 \begin_inset Quotes eld
 \end_inset
 
-get the attribute named 
-\begin_inset Quotes eld
-\end_inset
-
-Constant
-\begin_inset Quotes erd
-\end_inset
-
- of the object referred to by 
+get the attribute named `Constant' of the object referred to by 
 \family typewriter
 Meq
 \family default
@@ -4120,13 +4330,9 @@ value=0
  Which, due to some magic going on inside the class generator and class
  stub objects, happens to be a node definition object specifying a node
  class of 
-\begin_inset Quotes eld
-\end_inset
-
+\family typewriter
 MeqConstant
-\begin_inset Quotes erd
-\end_inset
-
+\family default
 , with an extra 
 \family typewriter
 value=0
@@ -4149,19 +4355,11 @@ Now Python has a node stub object on the left, a node definition on the
 \end_inset
 
  operator in between.
- This operator normally means 
-\begin_inset Quotes eld
-\end_inset
-
-bitwise shift
-\begin_inset Quotes erd
-\end_inset
-
-, but the 
+ This operator normally means a bitwise shift, but the 
 \family typewriter
 TDL._NodeStub
 \family default
- class happens to redefine it to something else.
+ redefines it to do something else.
  Because of this, Python calls a special method of the node stub object
  (called 
 \family typewriter
@@ -4178,7 +4376,7 @@ real
 \end_inset
 
  node.
- This is also called 
+ This operation is also called 
 \emph on
 initializing
 \emph default
@@ -4208,7 +4406,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  # or: nodestub = getattr(ns,'foo') 
+  # or equivalently: nodestub = getattr(ns,'foo') 
 \end_layout
 
 \begin_layout Standard
@@ -4297,8 +4495,7 @@ If you omit the second line, you'll get back an error message.
 status open
 
 \begin_layout Standard
-In the current version of TDL, this error message will say something like
- 
+In the current version of TDL, this error message says something like 
 \begin_inset Quotes eld
 \end_inset
 
@@ -4744,7 +4941,7 @@ a = (b=0) + 1;
 \end_layout
 
 \begin_layout Standard
-in Python, as tempting as it is to someone with a C/C++ background.
+in Python, as tempting as it may be to someone with a C/C++ background.
  You 
 \emph on
 can
@@ -4757,7 +4954,7 @@ can
 
 \family typewriter
 \InsetSpace ~
-a=b=0;
+a = b = 0;
 \end_layout
 
 \begin_layout Standard
@@ -4773,7 +4970,7 @@ a=0; b=0;
 \end_layout
 
 \begin_layout Standard
-Thus the double assignment
+Thus, the double assignment
 \end_layout
 
 \begin_layout Standard
@@ -4825,7 +5022,8 @@ a = ns.foo = Meq.Constant(value=0);
 \end_layout
 
 \begin_layout Standard
-produces something entirely different (and less useful) than
+produces something entirely different (and dangerously, unintuitively so)
+ from
 \end_layout
 
 \begin_layout Standard
@@ -4837,11 +5035,34 @@ a = ns.foo << Meq.Constant(value=0);
 \end_layout
 
 \begin_layout Standard
-We'll take a look at this closely in the next section.
+We'll take a closer look at this in section\InsetSpace ~
+
+\begin_inset LatexCommand \ref{sec:Using-Python-variables}
+
+\end_inset
+
+, when we talk about the use of Python variables to refer to nodes.
 \end_layout
 
 \begin_layout Section
 Hiding information
+\end_layout
+
+\begin_layout Standard
+The hiding of information is one of the lesser appreciated virtues of good
+ software design.
+ When an interface appears to be rich in functionality and features, but
+ proves to be clunky and difficult to work with in practice, it is more
+ often than not due to too much information being revealed.
+  
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+******************** more *********************
 \end_layout
 
 \begin_layout Section
@@ -4849,6 +5070,10 @@ Using Python variables and functions
 \end_layout
 
 \begin_layout Standard
+\begin_inset LatexCommand \label{sec:Using-Python-variables}
+
+\end_inset
+
 TDL is Python.
  Everything in Python is a first-class object.
  I don't get tired of reiterating these two basic principles because they
@@ -4978,7 +5203,7 @@ b
 \end_layout
 
 \begin_layout Standard
-Likewise, a node stub such as 
+More usefully, a node stub such as 
 \family typewriter
 ns.a
 \family default
@@ -5106,7 +5331,7 @@ is a perfectly legitimate way of decoupling the definition of the node,
  
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Functions that define trees
 \end_layout
 
@@ -5219,7 +5444,7 @@ Essentially, our function has become a
 template
 \emph default
  for making a tree.
- We've already seen this at work in the ionopshere example.
+ We've already seen this at work in the ionosphere example.
  I've thrown in the 
 \family typewriter
 a
@@ -5236,7 +5461,7 @@ template
 \begin_inset Quotes erd
 \end_inset
 
- can be made to depend on external arguments.
+ can be made to depend on additional arguments.
  Can you guess what tree this script is going to produce? Load it up in
  the browser (
 \family typewriter
@@ -5310,9 +5535,10 @@ return node
  statement at the end.
  The function will return the same node stub that was passed in.
  This is a convenience device.
- We ignore the return value when we invoke the function above, but in other
- contexts it may be handy.
- For example, we could rewrite the three invocations in one nested statement:
+ We ignore the return value in the example here, but in other contexts it
+ may prove to be handy.
+ For example, we could rewrite the three separate invocations above as one
+ nested statement:
 \end_layout
 
 \begin_layout Standard
@@ -5358,7 +5584,7 @@ end{verbatim}
 
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 The reverse of the medal
 \end_layout
 
@@ -5367,8 +5593,8 @@ The reverse of the medal
 
 \end_inset
 
-This kind of delayed type checking is an fantastically powerful feature
- of Python.
+This kind of delayed type checking is a fantastically powerful feature of
+ Python.
  Used properly, it allows you to write much more flexible and useful code
  than you ever could with a statically-typed language.
  Like most power tools, it will happily inflict grievous bodily harm if
@@ -5433,7 +5659,11 @@ That's no big deal in a short script like this, but imagine we were calling
 \begin_inset Quotes eld
 \end_inset
 
+
+\family sans
 +
+\family default
+
 \begin_inset Quotes erd
 \end_inset
 
@@ -5509,17 +5739,19 @@ end{verbatim}
 
 \begin_layout Itemize
 If you're a developer, do type checking only where it's worth it.
- If it's not too much of an effort, or if you think particularly bad confusion
- may ensue (this, of course, is purely a judgement call, and can be difficult
- to anticipate), by all means do it, otherwise don't bother.
+ That is, if it's not too much of an effort, or if you think particularly
+ bad confusion may ensue (this, of course, is purely a judgement call, and
+ can be difficult to anticipate), then by all means do it, otherwise don't
+ bother.
  
 \end_layout
 
 \begin_layout Itemize
 If you're a user of somebody else's code, do not be scared of mysterious
  errors, and always check the call stack before you panic.
- More often than not, you can figure out the problem by looking at the point
- where the call stack leaves your code.
+ More often than not, the error is yours --- and you can figure out exactly
+ where it is by looking at the point where the call stack leaves your own
+ code.
 \end_layout
 
 \begin_layout Subsection
@@ -5596,7 +5828,11 @@ Meq.Constant()
 \end_layout
 
 \begin_layout Enumerate
-Assigns the node stub to the Python variable 
+Assigns the node stub (it being the return value of 
+\family typewriter
+<<
+\family default
+) to the Python variable 
 \family typewriter
 a
 \family default
@@ -5635,10 +5871,10 @@ In a previous section, I mentioned two similar-looking statements that do
 \end_layout
 
 \begin_layout Standard
-\InsetSpace ~
-\InsetSpace ~
 
 \family typewriter
+\InsetSpace ~
+\InsetSpace ~
 a = ns.foo << Meq.Constant(value=0);
 \end_layout
 
@@ -5655,11 +5891,7 @@ The first statement is
 \begin_inset Quotes eld
 \end_inset
 
-good
-\begin_inset Quotes erd
-\end_inset
-
-, it initializes the node 
+good: it initializes the node 
 \begin_inset Quotes eld
 \end_inset
 
@@ -5672,8 +5904,9 @@ foo
 a
 \family default
 .
- The second statement does something more confusing.
- It is equivalent to two separate assignments:
+ The second statement does something way more confusing.
+ Due to the way Python handles repeated assignments, it is actually equivalent
+ to two separate assignments:
 \end_layout
 
 \begin_layout Standard
@@ -5718,12 +5951,12 @@ foo
 \begin_inset Quotes erd
 \end_inset
 
- fine, but 
+ fine, but the variable 
 \family typewriter
 a
 \family default
- now contains a reference to the node definition object, and not the node
- itself! Not what you would expect from looking at the original statement.
+ now refers to the node definition object, and not the node itself! I find
+ this completely counterintuitive.
  
 \end_layout
 
@@ -5769,8 +6002,8 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-You can nest these definitions to any depth, although at some point it would
- make for very unwieldy statements.
+You can nest these definitions to any depth, although it makes for some
+ very unwieldy statements if you take it too far.
 \end_layout
 
 \begin_layout Standard
@@ -5794,7 +6027,7 @@ Why you can't bind a node to a node
 \end_layout
 
 \begin_layout Standard
-A common gotcha (at least in my experience of the workshop) is trying to
+A common gotcha (at least in my experience of the workshops) is trying to
  bind a node stub to a node stub.
  The statement:
 \end_layout
@@ -5819,8 +6052,8 @@ can't bind node name (operator <<) with argument of type _NodeStub
 \end_inset
 
 .
- It is in fact an instance of amore broad class of error, that is, trying
- to bind a node stub with something illegal.
+ It is in fact an instance of a more broad class of error: trying to bind
+ a node stub to something illegal.
  For example, the statement:
 \end_layout
 
@@ -5866,9 +6099,10 @@ ns.a
 <<
 \family default
 .
- Usually the intent is something like an 
+ Usually the intent of a statement like this is to have something like an
+ 
 \emph on
-indentity
+identity
 \emph default
  operation, i.e., trying to make node 
 \begin_inset Quotes eld
@@ -5922,7 +6156,7 @@ Python variables: conclusion
 \begin_layout Standard
 Now, all this may seem trivial, especially if you have a good understanding
  of Python, but it is really ubiquitous throughout TDL, and so it is vitally
- important that you understand this thoroughly.
+ important to understand thoroughly.
  To reiterate:
 \end_layout
 
@@ -6049,7 +6283,7 @@ BadClass
 \end_inset
 
  error.
- In general, the 
+ The 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6057,6 +6291,10 @@ magic
 \begin_inset Quotes erd
 \end_inset
 
+ of 
+\family typewriter
+Meq
+\family default
  is that calling an arbitrarily-named method of the 
 \family typewriter
 Meq
@@ -6065,12 +6303,8 @@ Meq
 \end_layout
 
 \begin_layout Standard
-Likewise, the optional arguments are not enforced --- they are simply inserted
- into the 
-\emph on
-node state
-\emph default
- record as is.
+Likewise, the optional arguments are not enforced --- they are blindly inserted
+ into the initial node state record.
  If an argument has a special meaning for a particular class of node (such
  as the 
 \family typewriter
@@ -6081,7 +6315,7 @@ value
 MeqConstant
 \family default
 ), then it will have an effect on the node, and will probably be checked
- for consistency inside the kernel.
+ for consistency when the node is finally created inside the kernel.
  Any meaningless arguments (e.g.
  the 
 \family typewriter
@@ -6091,9 +6325,10 @@ message
 \family typewriter
 MeqConstant
 \family default
- in our hello world script) are inserted into the node state record and
- subsequently ignored by the kernel.
- This can also be useful, as we will see later on when we look at node tags.
+ in our hello world script) are left to sit and rot in the state record
+ exactly as they came in.
+ This can actually be quite useful, as we will see later on when we look
+ at node tags.
 \end_layout
 
 \begin_layout Standard
@@ -6332,7 +6567,8 @@ x
 )
 \family default
 .
- For non-trivial objects, this may be something unexpected!
+ For non-trivial types, this may be something unexpected.
+ It's a good idea to stick to numbers and strings for your qualifiers.
 \end_layout
 
 \end_inset
@@ -6355,8 +6591,8 @@ x
 \family typewriter
 ns.f
 \family default
-, apart from a purely coincedental similarity of names.
- The following three expressions resolve to exactly the same node stub:
+, apart from a meaningless (for all the nodes know...) similarity of names.
+ The following three expressions all resolve to exactly the same node stub:
 \end_layout
 
 \begin_layout Standard
@@ -6398,7 +6634,8 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-The second statement illustrates that qualifiers are just a naming device.
+The second statement illustrates that qualifiers really are just a naming
+ device.
  The third statement shows that qualifiers may be chained.
  It is quite obvious if you think about it: since 
 \family typewriter
@@ -6444,7 +6681,8 @@ f:1:x=1:y=2
 ns.f(1)(x=1)(y=2)
 \family default
 .
- 
+ I have never found keyword qualifiers to be particularly useful, but some
+ people swear by them.
 \end_layout
 
 \begin_layout Subsection
@@ -6458,7 +6696,7 @@ ns.f
 \family default
  node stub refer to? The answer is, nothing in particular --- it is still
  an uninitialized node stub.
- If you build a tree, there will be no node named 
+ When you build the tree, there won't be a node named 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6466,8 +6704,8 @@ f
 \begin_inset Quotes erd
 \end_inset
 
-.
- We could also define it to something unrelated:
+ in it.
+ You could also define it to something completely unrelated:
 \end_layout
 
 \begin_layout Standard
@@ -6484,7 +6722,7 @@ would make it a
 MeqConstant
 \family default
  node.
- Since there's no relationship between 
+ Since there's only a nominal relationship between 
 \family typewriter
 ns.f
 \family default
@@ -6500,8 +6738,7 @@ l
 \emph default
 )
 \family default
-, apart from a name similarity, this is a perfectly legitimate thing to
- do.
+, this is a perfectly legitimate thing to do.
 \end_layout
 
 \begin_layout Standard
@@ -6522,7 +6759,11 @@ ns.f
 \family default
  with two numbers to get at one of the nodes in a series, because that's
  the way our script was written.
- The ns.f node itself has no knowledge of this.
+ The 
+\family typewriter
+ns.f
+\family default
+ node itself has no knowledge of this.
  We could say something like
 \end_layout
 
@@ -6548,7 +6789,7 @@ f:foo:bar
 \family typewriter
 ns.f
 \family default
- stub certainly doesn't know whether 
+ node stub doesn't know (nor should it) whether 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6570,7 +6811,7 @@ foobar
 \InsetSpace ~
 
 \family typewriter
-ns.sum << ns.f('foo','bar') + ns.f(1,2)
+ns.sum << foobar + ns.f(1,2)
 \end_layout
 
 \begin_layout Standard
@@ -6751,10 +6992,11 @@ unqualified node
 fnodes
 \family default
  parameter.
-\end_layout
+\begin_inset Foot
+status open
 
 \begin_layout Standard
-As an aside, if the syntax
+If the syntax
 \end_layout
 
 \begin_layout Standard
@@ -6766,8 +7008,9 @@ As an aside, if the syntax
 \end_layout
 
 \begin_layout Standard
-looks unfamiliar, then you really should brush up on your Python skills.
- The 
+looks unfamiliar, then you're really missing out on some great labour-saving
+ Python tricks.
+ In brief, the 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6827,7 +7070,7 @@ M
 list comprehension
 \emph default
 .
- What it does is evaluate 
+ It evaluates 
 \emph on
 expr
 \emph default
@@ -6843,7 +7086,7 @@ M
 \family typewriter
 for
 \family default
- clause is specified, etc.) --- substituting in 
+ clause is specified, etc.), while replacing all occurences of 
 \emph on
 x
 \emph default
@@ -6851,8 +7094,21 @@ x
 \emph on
 y
 \emph default
-, etc.), and return a list composed of the resulting values.
- The 
+, etc.) in 
+\emph on
+expr
+\emph default
+ by the corresponding list elements.
+ The result of this is a list composed of the values of 
+\emph on
+expr
+\emph default
+.
+ 
+\end_layout
+
+\begin_layout Standard
+The 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6864,47 +7120,34 @@ y
 \begin_inset Quotes erd
 \end_inset
 
- before the list causes the function to be invoked with parameters composed
- from the list.
+ before the list is a completely independent operation.
+ This causes the function to be invoked with parameters composed from the
+ given list.
  For example,
 \end_layout
 
 \begin_layout Standard
-\begin_inset ERT
-status open
 
-\begin_layout Standard
-
-
-\backslash
-begin{verbatim}
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+L = [1,2,3];
 \end_layout
 
 \begin_layout Standard
 
-  L = [1,2,3];
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+M = [10,20,30];
 \end_layout
 
 \begin_layout Standard
 
-  M = [10,20,30];
-\end_layout
-
-\begin_layout Standard
-
-  foo(*[x+y for x in L for y in M])
-\end_layout
-
-\begin_layout Standard
-
-
-\backslash
-end{verbatim}
-\end_layout
-
-\end_inset
-
-
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+foo(*[x+y for x in L for y in M])
 \end_layout
 
 \begin_layout Standard
@@ -6917,8 +7160,33 @@ foo
 foo(11,12,13,21,22,23,31,32,33)
 \family default
 .
- It's very important that you understand this technique thoroughly, since
- it is ubiquitous throughout our TDL scripts.
+\end_layout
+
+\begin_layout Standard
+List comprehension (and the 
+\family typewriter
+
+\begin_inset Quotes eld
+\end_inset
+
+*
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ parameter list syntax) is a very important technique to understand thoroughly,
+ since it is ubiquitous throughout our TDL scripts.
+ It really 
+\emph on
+does
+\emph default
+ make life easier!
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -6952,8 +7220,16 @@ l
 \emph on
 underqualified
 \emph default
- node, because we can append extra qualifiers to make it refer to valid
- & initialized nodes.
+ node, because we can append an extra qualifier to make it refer to 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ (i.e.
+ valid & initialized) nodes.
  We could write a function to sum over a one-dimensional series:
 \end_layout
 
@@ -7015,6 +7291,10 @@ l
 \begin_inset Quotes erd
 \end_inset
 
+ for a given 
+\begin_inset Formula $k$
+\end_inset
+
 :
 \end_layout
 
@@ -7056,7 +7336,8 @@ Design by contract
 \end_layout
 
 \begin_layout Standard
-You'd be right to wonder how we could employ this function sum over a 
+You'd be right to wonder if we could somehow use the same function to sum
+ over a 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7076,12 +7357,12 @@ l
 \family typewriter
 sum_1d_series()
 \family default
-, you can see that there's nothing in it that actually demands for 
+, you can see that there's nothing in it that actually requires the 
 \family typewriter
 fnodes
 \family default
- to be a node stub.
- All it requires is that 
+ argument to be a node stub.
+ All the function really requires is that 
 \family typewriter
 fnodes
 \family default
@@ -7093,7 +7374,11 @@ fnodes
 fnodes
 \family default
  parameter, and obtain the required sum.
- Python's lambda syntax makes it easy to construct such a function on-the-fly:
+ Python's 
+\emph on
+lambda
+\emph default
+ syntax makes it easy to construct such a function on-the-fly:
 \end_layout
 
 \begin_layout Standard
@@ -7125,7 +7410,25 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-This defines an anonymous (lambda) function with one argument, 
+This defines an anonymous function
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+The term 
+\emph on
+lambda
+\emph default
+ comes from the area of functional programming, which got it from the 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ operation in functional calculus.
+\end_layout
+
+\end_inset
+
+ , with one argument, 
 \family typewriter
 k
 \family default
@@ -7143,24 +7446,13 @@ ed node stub would.
 \end_layout
 
 \begin_layout Standard
-This technique is an instance of something called 
+This technique is an illustration of something called 
 \emph on
-
-\begin_inset Quotes eld
-\end_inset
-
 design by contract
 \emph default
-
-\begin_inset Quotes erd
-\end_inset
-
 .
- Instead of specifying that 
-\family typewriter
-sum_1d_series()
-\family default
- takes an argument of type node stub (
+ Instead of specifying that our summation function takes an argument of
+ type node stub (
 \begin_inset Quotes eld
 \end_inset
 
@@ -7198,21 +7490,31 @@ Design by contract is made possible by Python's late type-checking mechanism.
 \family typewriter
 fnodes
 \family default
-, above, is a good example, and is used extensively in frameworks like Meow.
+, above, is a good example, and is used extensively in frameworks like Meow
+ (which we will look at in a subsequent chapter).
 \end_layout
 
 \begin_layout Section
-Meow: a case study
+Node tags and scope searches
+\end_layout
+
+\begin_layout Section
+Subscopes, qualifiers, and how to avoid node name clashes
+\end_layout
+
+\begin_layout Chapter
+Meow: a Case Study
 \end_layout
 
 \begin_layout Standard
 Meow (Measurement Equation Object frameWork) makes extensive use of all
- the techniques discussed here.
- We're going to take an in-depth look at some example scripts that employ
- Meow, to see how these methods fit together into a coherent whole.
+ the Python and TDL techniques discussed in the previous chapter.
+ In this chapter, we're going to take an in-depth look at some example scripts
+ that employ Meow, to see how these methods can fit together into a coherent
+ whole.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Jones series
 \end_layout
 
@@ -7661,8 +7963,8 @@ src.direction.name
 
 \end_layout
 
-\begin_layout Subsection
-Contract adapters
+\begin_layout Section
+Using contract adapters
 \end_layout
 
 \begin_layout Standard
@@ -8228,6 +8530,10 @@ a thingy that can be qualified by a source name and a station index to derive
 \begin_layout Itemize
 Python makes it easy to write little adapters that make one object behave
  like another.
+\end_layout
+
+\begin_layout Subsection
+Meow and node tags
 \end_layout
 
 \end_body
