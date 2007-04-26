@@ -1,4 +1,4 @@
-#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -4841,6 +4841,10 @@ We'll take a look at this closely in the next section.
 \end_layout
 
 \begin_layout Section
+Hiding information
+\end_layout
+
+\begin_layout Section
 Using Python variables and functions
 \end_layout
 
@@ -7726,23 +7730,504 @@ A more somewhat more complicated case arises if we decide to change our
 compute_zeta_jones()
 \family default
 ) to eliminate directional dependence.
- We don't want to change the contract on 
+ The function would then presumably look something like this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def compute_zeta_jones_from_tecs (ns,tecs,source_list):
+\end_layout
+
+\begin_layout Standard
+
+  """Creates the Z Jones for ionospheric phase,
+\end_layout
+
+\begin_layout Standard
+
+  given TECs (per source,   per station).""";
+\end_layout
+
+\begin_layout Standard
+
+  zeta = ns.Z;
+\end_layout
+
+\begin_layout Standard
+
+  for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+    zeta(p) << Meq.Polar(1,-25*Lightspeed*tecs(p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  return zeta; # really??
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The problem here is that we've gone and changed the contract on the function's
+ return value, thus breaking all scripts that use our model.
+ 
+\end_layout
+
+\begin_layout Standard
+There are a few ways around this difficulty.
+ The naive way is to add some redundant per-source terms:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for src in source_list:
+\end_layout
+
+\begin_layout Standard
+
+    for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+      zeta(src.name,p) << Meq.Polar(1,-25*Lightspeed*tecs(p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  return zeta;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Here we've created a bunch of subtrees that all repeat the same calculation
+ over and over.
+ This is rather wasteful, especially with a lot of source involved.
+ The second approach is to use 
 \family typewriter
-Zj
+MeqIdentity
 \family default
-, since our 
+ nodes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+    zeta(p) << Meq.Polar(1,-25*Lightspeed*tecs(p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+    for src in source_list:
+\end_layout
+
+\begin_layout Standard
+
+      zeta(src.name,p) << Meq.Identity(zeta(p));
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This works rather better --- the tree will have a number of redundant 
+\family typewriter
+MeqIdentity
+\family default
+ nodes, but since they're essentially a no-op, this will not slow it down.
+ 
+\end_layout
+
+\begin_layout Standard
+Finally, there's the purely Pythonic 
 \begin_inset Quotes eld
 \end_inset
 
-customers
+contract adapter
 \begin_inset Quotes erd
 \end_inset
 
- depend on it.
+ approach.
+ We can define a little function that behaves like a node stub.
+ There's a wrong way and a right way to do this.
+ The wrong way goes something like this:
 \end_layout
 
-\begin_layout Subsection
-dd
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+    zeta(p) << Meq.Polar(1,-25*Lightspeed*tecs(p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  return lambda x:zeta;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+lambda x:zeta
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ statement creates a function with one argument that returns 
+\family typewriter
+zeta
+\family default
+ (and ignores the argument).
+ This only half-works with the 
+\family typewriter
+ME2/example6-iono.py
+\family default
+ script:
+\end_layout
+
+\begin_layout Itemize
+the return value --- our lambda function --- gets assigned to 
+\family typewriter
+Zj
+\end_layout
+
+\begin_layout Itemize
+when 
+\family typewriter
+Zj
+\family default
+ is invoked as 
+\family typewriter
+Zj(src.name)
+\family default
+, the lambda function getrs called, and returns 
+\family typewriter
+ns.Z
+\family default
+.
+ This is something that can be qualified with an antenna index (inside 
+\family typewriter
+corrupt()
+\family default
+), so we're doing good so far.
+\end_layout
+
+\begin_layout Itemize
+but when 
+\family typewriter
+Zj
+\family default
+ is invoked as 
+\family typewriter
+Zj(src.name,p)
+\family default
+ a little bit later in the script, the whole thing breaks since the lambda
+ function expects a single argument.
+\end_layout
+
+\begin_layout Standard
+Our lambda function behaves just like a node stub when invoked as 
+\family typewriter
+Zj(src.name)(p)
+\family default
+, but not when invoked as 
+\family typewriter
+Zj(src.name,p)
+\family default
+.
+ To get things right in both cases, we need a somewhat more sophisticated
+ adapter function:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for p in Context.array.stations():
+\end_layout
+
+\begin_layout Standard
+
+    zeta(p) << Meq.Polar(1,-25*Lightspeed*tecs(p)/Meq.Freq());
+\end_layout
+
+\begin_layout Standard
+
+  def adapter (name,p=None):
+\end_layout
+
+\begin_layout Standard
+
+    z = zeta;
+\end_layout
+
+\begin_layout Standard
+
+    if p is not None:
+\end_layout
+
+\begin_layout Standard
+
+      z = z(p);
+\end_layout
+
+\begin_layout Standard
+
+    return z;
+\end_layout
+
+\begin_layout Standard
+
+  return adapter;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This shows a more elaborate syntax for defining a 
+\begin_inset Quotes eld
+\end_inset
+
+local
+\begin_inset Quotes erd
+\end_inset
+
+ function on-the-fly.
+ The return value of 
+\family typewriter
+compute_zeta_jones()
+\family default
+ is the 
+\family typewriter
+adapter
+\family default
+ function.
+ When called as 
+\family typewriter
+adapter(src.name)
+\family default
+, it returns 
+\family typewriter
+zeta
+\family default
+.
+ When called as 
+\family typewriter
+adapter(src.name,p)
+\family default
+, it returns 
+\family typewriter
+zeta(p)
+\family default
+.
+ This is exactly the behaviour we want.
+\end_layout
+
+\begin_layout Standard
+There's an even more elegant to implement this adapter function.
+ Note that the operation we're trying to perform here can be reformulated
+ in a general way as 
+\begin_inset Quotes eld
+\end_inset
+
+ignore the first qualifier, apply the rest
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Here's a suitably general implementation:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  def adapter (first_qual,*other_quals):
+\end_layout
+
+\begin_layout Standard
+
+    return zeta(*other_quals);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this particular scenario, it is really only a matter of taste whether
+ you go for the 
+\family typewriter
+MeqIdentity
+\family default
+ nodes approach, or the (more Pythonic) contract adapter approach.
+ In my opinion, the latter is more elegant, and is an essential technique
+ to master, as it really comes into its own in the more complicated cases.
+ To summarize:
+\end_layout
+
+\begin_layout Itemize
+Python encourages you to consider objects in terms of their behaviour rather
+ than their type.
+ Using this wisely leads to more flexible interfaces and cleaner code.
+\end_layout
+
+\begin_layout Itemize
+The essence of design by contract is to think in terms of behaviour, not
+ type.
+ For example, rather than thinking of the return value of a function as
+ an unqualified node, think of it as 
+\begin_inset Quotes eld
+\end_inset
+
+a thingy that can be qualified by a source name and a station index to derive
+ a node
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+Python makes it easy to write little adapters that make one object behave
+ like another.
 \end_layout
 
 \end_body
