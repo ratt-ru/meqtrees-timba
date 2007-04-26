@@ -7515,7 +7515,14 @@ for src in sources:
 
 \begin_layout Standard
 
-  allsky.add(src.corrupt(Zj(src.name))); verbatim}
+  allsky.add(src.corrupt(Zj(src.name))); 
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
 \end_layout
 
 \end_inset
@@ -7732,6 +7739,10 @@ customers
 \end_inset
 
  depend on it.
+\end_layout
+
+\begin_layout Subsection
+dd
 \end_layout
 
 \end_body
