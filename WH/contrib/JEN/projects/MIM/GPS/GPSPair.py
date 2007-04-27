@@ -53,9 +53,9 @@ class GPSStation (GeoLocation.GeoLocation):
 
   #------------------------------------------------------------------
 
-  def solvable(self, tags='*'):
+  def solvable_parms(self, tags='*'):
     """Return a dict of solvable parms (nodes) and their (plot) labels"""
-    return self.TecBias.solvable(tags=tags)
+    return self.TecBias.solvable_parms(tags=tags)
 
 
 
@@ -145,9 +145,9 @@ class GPSSatellite (GeoLocation.GeoLocation):
 
   #------------------------------------------------------------------
 
-  def solvable(self, tags='*'):
+  def solvable_parms(self, tags='*'):
     """Return a dict of solvable parms (nodes) and their (plot) labels"""
-    return self.TecBias.solvable(tags=tags)
+    return self.TecBias.solvable_parms(tags=tags)
 
 
 
@@ -210,7 +210,7 @@ class GPSPair (Meow.Parameterization):
     print '  * '+self.satellite().oneliner()
     print '  * pair_based_TecBias = '+str(self._pair_based_TecBias)
     print '  * solvable:'
-    ss = self.solvable()
+    ss = self.solvable_parms()
     for k,node in enumerate(ss['nodes']):
       print '    -',ss['labels'][k],': ',str(node)
     print '**\n'
@@ -261,18 +261,18 @@ class GPSPair (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solvable(self, tags='*', show=False):
+  def solvable_parms(self, tags='*', show=False):
     """Return a list of solvable parms (nodes)"""
     ss = dict(nodes=[], labels=[])
     if self._pair_based_TecBias:
-      ss = self.TecBias.solvable(tags=tags)
+      ss = self.TecBias.solvable_parms(tags=tags)
     else:
-      for ss1 in [self._station.solvable(tags=tags),
-                  self._satellite.solvable(tags=tags)]:
+      for ss1 in [self._station.solvable_parms(tags=tags),
+                  self._satellite.solvable_parms(tags=tags)]:
         for key in ss.keys():
           ss[key].extend(ss1[key])
     if show:
-      print '\n** .solvable(tags=',tags,') <-',self.oneliner()
+      print '\n** .solvable_parms(tags=',tags,') <-',self.oneliner()
       for k,node in enumerate(ss['nodes']):
         print '    -',ss['labels'][k],': ',str(node)
       print
@@ -492,7 +492,7 @@ class TecBias (Meow.Parameterization):
 
   #---------------------------------------------------------------
 
-  def solvable(self, tags='*'):
+  def solvable_parms(self, tags='*'):
     """Return a dict of solvable parms (nodes) and their (plot) labels"""
     ss = dict(nodes=[], labels=[])
     for pname in self._pnames:
@@ -556,7 +556,7 @@ if __name__ == '__main__':
       print tb.oneliner()
 
       if 1:
-        print 'tb.solvable:',tb.solvable()
+        print 'tb.solvable_parms:',tb.solvable_parms()
 
       if 1:
         print tb.node(sim=False, show=True)
@@ -572,7 +572,7 @@ if __name__ == '__main__':
       print st1.oneliner()
 
       if 0:
-        print 'solvable:',st1.solvable()
+        print 'solvable:',st1.solvable_parms()
 
       if 0:
         print st1.TecBias.node(sim=False, show=True)
@@ -596,7 +596,7 @@ if __name__ == '__main__':
       print sat1.oneliner()
 
       if 0:
-        print 'solvable:',sat1.solvable()
+        print 'solvable:',sat1.solvable_parms()
 
       if 0:
         print sat1.TecBias.node(sim=False, show=True)
@@ -626,7 +626,7 @@ if __name__ == '__main__':
       pair.display(full=True)
 
       if 0:
-        print 'solvable:',pair.solvable(show=True)
+        print 'solvable:',pair.solvable_parms(show=True)
 
       if 0:
         print pair.TecBias.node(sim=True, show=True)
@@ -657,7 +657,7 @@ if __name__ == '__main__':
         pair.longlat_diff(show=True)
 
       if 0:
-        pair.solvable(tags='*', show=True)
+        pair.solvable_parms(tags='*', show=True)
 
       if 0:
         data = ns['data'] << Meq.Constant(-56)

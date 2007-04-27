@@ -53,9 +53,10 @@ class IonosphereModel (Meow.Parameterization):
 
     #-------------------------------------------------
     # Define the IonosphereModel:
-    self._solvable = dict(nodes=[], labels=[])     # expected by .solvable()
-    self._pnode = []                               # expected by .inspector()
-    self._pname = []                               # expected by .inspector()
+    self._solvable = dict(tags='*', nodes=[], labels=[])   
+    self._simulated = dict(tags='*', nodes=[], labels=[])   
+    self._pnode = []                                    
+    self._pname = []                           
     self._SimulParm = []
     self._usedval = dict()
     #-------------------------------------------------
@@ -79,10 +80,14 @@ class IonosphereModel (Meow.Parameterization):
     print '  * refloc: '+self._refloc.oneliner()
     print '  * Earth: '+str(self._Earth)
     print '  * pname: '+str(self._pname)
-    print '  * solvable ('+str(len(self._solvable['nodes']))+'):'
-    ss = self._solvable
+    if self.is_simulated():
+      ss = self.simulated_parms()
+      print '  * simulated parms (tags='+str(ss['tags'])+'):'
+    else:
+      ss = self.solvable_parms()
+      print '  * solvable parms (tags='+str(ss['tags'])+'):'
     for k,node in enumerate(ss['nodes']):
-      print '   - '+str(ss['labels'][k])+': '+str(node)
+      print '   - '+str(k)+' (label='+str(ss['labels'][k])+'):  '+str(node)
     if self.is_simulated():
       print '  * SimulParm ('+str(len(self._SimulParm))+'):'
       for k,sp in enumerate(self._SimulParm):
@@ -106,7 +111,7 @@ class IonosphereModel (Meow.Parameterization):
 
   #----------------------------------------------------------------
 
-  def solvable(self, tags='*', show=False):
+  def solvable_parms (self, tags='*', show=False):
     """Return a dict of solvable parms (nodes), and their labels"""
     if show:
       ss = self._solvable
@@ -115,6 +120,17 @@ class IonosphereModel (Meow.Parameterization):
         print '  -',ss['labels'][k],': ',str(node)
       print
     return self._solvable
+
+
+  def simulated_parms (self, tags='*', show=False):
+    """Return a dict of simulated parms (nodes), and their labels"""
+    if show:
+      ss = self._simulated
+      print '\n** simulated parms (subtrees) of:',self.oneliner()
+      for k,node in enumerate(ss['nodes']):
+        print '  -',ss['labels'][k],': ',str(node)
+      print
+    return self._simulated
 
   #-----------------------------------------------------------------
 
@@ -311,6 +327,22 @@ class IonosphereModel (Meow.Parameterization):
     # Finished:
     return True
 
+  #-------------------------------------------------------------------------------
+
+  def TEC0(self, qnode=None, dlong=0, dlat=0, show=False):
+    """Return a node/subtree that predicts the vertical (z=0) TEC value,
+    at the relative position (dlong,dlat). This function is usually called
+    by the function .geoTEC() of this baseclass.
+    NB: This is a placeholder dummy function, which should be re-implemented
+    by each ionosphere model that is derived from this class (see e.g. MIM.py).
+    """
+    if qnode==None:
+      # For testing only:
+      qnode = self.ns['TEC0']
+    TEC0 = qnode('z=0') << Meq.ToComplex(dlong,dlat) 
+    if show:
+      display.subtree(TEC0, recurse=5, show_initrec=True)
+    return TEC0    
 
   #===============================================================================
 

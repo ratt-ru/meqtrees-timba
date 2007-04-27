@@ -49,8 +49,8 @@ class MIM (IonosphereModel.IonosphereModel):
       raise ValueError,s
 
     self._SimulParm = []
-    # ss = dict(nodes=[], labels=[])                 # for self._solvable
-    ss = self.solvable()                           # dict(nodes=[], labels=[])  
+    # ss = dict(nodes=[], labels=[])               # for self._solvable
+    ss = self.solvable_parms()                     # dict(nodes=[], labels=[])  
     self._pname = []
     self._pnode = []
     self._usedval = dict()
@@ -84,9 +84,14 @@ class MIM (IonosphereModel.IonosphereModel):
             parm = Meow.Parm(value=0, tags=[], time_deg=time_deg, tiling=tiling)
             self._add_parm(pname, parm, tags=['MIM'])
             node = self._parm(pname)
-            ss['nodes'].append(node)               # for self._solvable
-            ss['labels'].append(pname)             # for self._solvable
+
           self._pnode.append(node)                 # Parm/SimulParm nodes
+          ss['nodes'].append(node)               # for self._solvable
+          ss['labels'].append(pname)             # for self._solvable
+
+    if self.is_simulated():
+      self._simulated = ss
+    else:
       self._solvable = ss
 
     # Finished:
@@ -176,6 +181,46 @@ class MIM (IonosphereModel.IonosphereModel):
 
 
 
+  def TEC0(self, qnode=None, dlong=0, dlat=0, show=False):
+    """Return a node/subtree that predicts the vertical (z=0) TEC value,
+    at the relative position (dlong,dlat). This function is usually called
+    by the function .geoTEC() of the baseclass IonosphereModel.py"""
+
+    # For testing only:
+    if qnode==None:
+      qnode = self.ns['TEC0']
+    
+    # First make powers of dlong/dlat (relative to self._refloc)
+    llong = [None, dlong]
+    llat = [None, dlat]
+    for k in range(2,self._ndeg[0]+1):
+      llong.append(qnode('long^'+str(k)) << Meq.Multiply(llong[k-1],dlong))
+    for k in range(2,self._ndeg[1]+1):
+      llat.append(qnode('lat^'+str(k)) << Meq.Multiply(llat[k-1],dlat))
+
+    # Then make the various MIM polynomial terms:
+    cc = []
+    for pname in self._pname:
+      i = int(pname[1])
+      j = int(pname[2])
+      p = self._parm(pname)
+      tname = 'term'+pname[1:3]
+      if i>0 and j>0:
+        n = qnode(tname) << Meq.Multiply(p,llong[i],llat[j])
+      elif i>0:
+        n = qnode(tname) << Meq.Multiply(p,llong[i])
+      elif j>0:
+        n = qnode(tname) << Meq.Multiply(p,llat[j])
+      else:
+        n = qnode(tname) << Meq.Identity(p)
+      cc.append(n)
+
+    # Finally, add the polynomial terms:
+    TEC0 = qnode('TEC0') << Meq.Add(children=cc) 
+    if show:
+      display.subtree(TEC0, recurse=5, show_initrec=True)
+    return TEC0
+
 
 
 
@@ -249,11 +294,14 @@ if __name__ == '__main__':
     mim.display(full=True)
 
     if 1:
-      sim = MIM(ns, 'sim', ndeg=1, simulate=False)
+      sim = MIM(ns, 'sim', ndeg=1, simulate=True)
       sim.display(full=True)
 
       if 0:
         sim.geoTEC(show=True)
+
+      if 1:
+        sim.TEC0(show=True)
 
       if 0:
         sim.plot_parms(show=True)
@@ -261,7 +309,7 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------------------
 
-    if 1:
+    if 0:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0])
 

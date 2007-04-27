@@ -241,7 +241,7 @@ def plot_dict(mode='styles'):
 #================================================================================
 
 
-def dcoll (ns, node=[], **pp):
+def dcoll (ns, node=[], labels=[], **pp):
    """visualises the given node(s) and return a dcoll dict"""
 
    uniqual = MG_JEN_forest_state.uniqual('MG_JEN_dataCollect::dcoll()')
@@ -250,7 +250,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'
    pp.setdefault('tag', '<tag>')        # plot tag (e.g. allcorrs)
    pp.setdefault('title',False )        # plot title
-   pp.setdefault('graft', False)       # if node given, graft dconc node
+   pp.setdefault('graft', False)        # if node given, graft dconc node
    pp.setdefault('xlabel', '<xlabel>')  # x-axis label
    pp.setdefault('ylabel', '<ylabel>')  # y-axis label
    pp.setdefault('color', 'red')        # plot color
@@ -274,27 +274,33 @@ def dcoll (ns, node=[], **pp):
    
    # Make sure that the input is a list:
    if not isinstance(node, (list, tuple)): node = [node]
+   label = deepcopy(labels)
+   if not isinstance(label, (list, tuple)): label = []
+   if not len(label)==len(node):
+      label = range(len(node))
    
    # Make the visualisation chains per node: (temporary, see below)
    for i in range(len(node)):
-      stripped = ns.stripped(i)(uniqual) << Meq.Stripper (node[i])
+      qi = label[i]
+      stripped = ns.stripped(qi)(uniqual) << Meq.Stripper (node[i])
       dcoll['stripped'].append (stripped)
       if pp.type == 'realvsimag':
-         mean = ns.mean(i)(uniqual) << Meq.Mean(stripped)
+         mean = ns.mean(qi)(uniqual) << Meq.Mean(stripped)
          dcoll['mean'].append(mean)
          if pp.errorbars:
             if True:
                # Place-holder until Meq.StdDev is repaired:
-               ms = ns.meansqrabs(i)(uniqual) << Meq.Mean(ns.sqr(i)(uniqual) << Meq.Sqr(ns.abs(i)(uniqual) << Meq.Abs(stripped)))
-               m2 = ns.sqrabs(i)(uniqual) << Meq.Sqr(ns.sqrabsmean(i)(uniqual) << Meq.Abs(mean))
-               stddev = ns.stddev(i)(uniqual) << Meq.Sqrt(ms-m2)
+               ms = ns.meansqrabs(qi)(uniqual) << Meq.Mean(ns.sqr(qi)(uniqual) << Meq.Sqr(ns.abs(qi)(uniqual) << Meq.Abs(stripped)))
+               m2 = ns.sqrabs(qi)(uniqual) << Meq.Sqr(ns.sqrabsmean(qi)(uniqual) << Meq.Abs(mean))
+               stddev = ns.stddev(qi)(uniqual) << Meq.Sqrt(ms-m2)
             else:
-               stddev = ns.stddev(i)(uniqual) << Meq.StdDev(stripped)
+               stddev = ns.stddev(qi)(uniqual) << Meq.StdDev(stripped)
             dcoll['stddev'].append (stddev)
 
    if False:
       # Make the visualisation chains per node:  (use when QualScope problem solved)
       for i in range(len(node)):
+         qi = label[i]
          stripped = ns << Meq.Stripper (node[i])
          dcoll['stripped'].append (stripped)
          if pp.type == 'realvsimag':

@@ -104,15 +104,16 @@ class GPSArray (Meow.Parameterization):
         obj = GPSPair.GPSPair (self.ns, station=stat, satellite=sat,
                                pair_based_TecBias=self._pair_based_TecBias,
                                simul=rr['simul_TecBias'])
+        pname = obj.name
         print obj.oneliner()
-        rr['name'].append(sname)
+        rr['name'].append(pname)
         rr['sat'].append(sat)
         rr['stat'].append(stat)
         rr['iisat'].append(isat)
         rr['iistat'].append(istat)
         rr['obj'].append(obj)
         # Collect solvable MeqParms:
-        ss1 = obj.solvable()
+        ss1 = obj.solvable_parms()
         for k,node in enumerate(ss1['nodes']):
           if not node in ss['nodes']:
             ss['nodes'].append(node)
@@ -184,7 +185,7 @@ class GPSArray (Meow.Parameterization):
 
   #-------------------------------------------------------
 
-  def solvable(self, tags='*', merge=None, show=False):
+  def solvable_parms(self, tags='*', merge=None, show=False):
     """Return a dict with (a selection (tags) of solvable nodes (MeqParms)
     and their labels. If merge is a dict, include its contents, while
     avoiding duplicates."""
@@ -313,18 +314,39 @@ class GPSArray (Meow.Parameterization):
       reqseq = []                             # list of reqseq children
 
       # Get the IOM parameters to be solved for:
-      solvable = iom.solvable()
+      solvable = iom.solvable_parms()
       IOM_parms = solvable['nodes']
       IOM_labels = solvable['labels']
       JEN_bookmarks.create(IOM_parms, page='IOM_parms')
 
+      commensurate = True
+      if True:
+        # Get the simulated parameters:
+        simulated = sim.simulated_parms()
+        print 'solvable:',solvable
+        print 'simulated:',simulated
+        sim_parms = simulated['nodes']
+        sim_labels = simulated['labels']
+        JEN_bookmarks.create(sim_parms, page='sim_parms')
+        IOM_diff = []
+        for k,label in enumerate(IOM_labels):
+          if sim_labels[k]==label:
+            IOM_diff.append(qnode('diff')(label) << Meq.Subtract(IOM_parms[k],
+                                                                 sim_parms[k]))
+          else:
+            commensurate = False
+            
+        if commensurate:
+          JEN_bookmarks.create(IOM_diff, page='diff_parms')
+
+
       if solve_bias:                                   
         # Add the TecBias parameters to the solvables 
-        solvable = self.solvable(merge=solvable, show=show)
+        solvable = self.solvable_parms(merge=solvable, show=show)
         # NB: The TecBias residuals are plotted (rvsi) below
       else:
         # Do not solve for TecBias, and unclutter the browser (roots):
-        ignore = self.solvable(show=show)['nodes']
+        ignore = self.solvable_parms(show=show)['nodes']
         if ignore:
           qnode('ignored_parms_bundle') << Meq.Composer(*ignore)
 
@@ -353,11 +375,17 @@ class GPSArray (Meow.Parameterization):
         JEN_bookmarks.create(node, page=page, viewer='Collections Plotter')
         reqseq.append(node)
       
-      # Visualization of the IOM solvables (MeqParms):
+      # Visualization of the IOM parms:
       node = qnode('IOM_solvable') << Meq.Composer(children=IOM_parms,
                                                    plot_label=IOM_labels)
       JEN_bookmarks.create(node, page=name, viewer='Collections Plotter')
       reqseq.append(node)
+      if commensurate:
+        node = qnode('IOM_diff') << Meq.Composer(children=IOM_diff,
+                                                 plot_label=IOM_labels)
+        JEN_bookmarks.create(node, page='IOM_diff', viewer='Collections Plotter')
+        reqseq.append(node)
+        
 
       # Visualization of solvables (MeqParms):
       if solve_bias:
@@ -445,6 +473,7 @@ class GPSArray (Meow.Parameterization):
       cc.append(s.longlat_complex())
     plot = self._station['plot']
     rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   self._station['name'],
                                    scope=scope, tag='stations',
                                    color=plot['color'], style=plot['style'],
                                    size=8, pen=2,
@@ -458,6 +487,7 @@ class GPSArray (Meow.Parameterization):
       cc.append(s.longlat_complex())
     plot = self._satellite['plot']
     rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                   self._satellite['name'],
                                    scope=scope, tag='satellites',
                                    color=plot['color'], style=plot['style'],
                                    size=18, pen=2,
@@ -482,6 +512,7 @@ class GPSArray (Meow.Parameterization):
     # Longlat of (pair) pierce points (if available):
     if self._longlat_pierce:
       rr = MG_JEN_dataCollect.dcoll (self.ns, self._longlat_pierce,
+                                     self._pair['name'],
                                      scope=scope, tag='pierce',
                                      color='red', style='cross',
                                      size=8, pen=2,
@@ -497,6 +528,7 @@ class GPSArray (Meow.Parameterization):
         cc.append(s.azel_complex())
       plot = self._pair['plot']
       rr = MG_JEN_dataCollect.dcoll (self.ns, cc,
+                                     self._pair['name'],
                                      scope=scope, tag='pairs',
                                      color=plot['color'], style=plot['style'],
                                      size=8, pen=2,
@@ -547,6 +579,12 @@ TDLCompileMenu('GPS Array',
                                 [0.0,-1.0,10.0], more=float),
                TDLCompileOption('TDL_stddev_TecBias','stddev (TECU) of simulated',
                                 [20.0,1.0,5.0,10.0,100.0], more=float),
+               TDLCompileOption('TDL_stddev_stat_pos','scatter(rad) of station pos',
+                                [0.1,0.2,0.3], more=float),
+               TDLCompileOption('TDL_stddev_sat_pos','scatter(rad) of satellite pos',
+                                [0.4,0.1,0.2,0.3], more=float),
+               TDLCompileOption('TDL_refpos_long','ref longitude (rad)',[-0.1], more=float),
+               TDLCompileOption('TDL_refpos_lat','ref latitude (rad)',[0.1], more=float),
                TDLCompileOption('TDL_show_array','Show the GPSArray (rvsi)',[True,False]),
                )
 TDLCompileMenu('SIM definition',
@@ -563,7 +601,7 @@ TDLCompileMenu('solution',
                TDLCompileOption('TDL_num_iter','max nr of solver iterations',[10,3,5,20,50], more=int),
                TDLCompileOption('TDL_solve_for_TecBias','Solve for TEC bias as well',[False,True]),
                )
-# TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=int);
+# TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=int)
 
 
 #-----------------------------------------------------------------------------------------
@@ -574,10 +612,9 @@ def _define_forest(ns):
   
   gpa = GPSArray(ns,
                  nstat=TDL_nstat, nsat=TDL_nsat, 
-                 longlat=[-0.1,0.1],
-                 stddev_pos=dict(stat=[0.4,0.4],
-                                 # sat=[0.2,0.2]),
-                                 sat=[0.4,0.4]),
+                 longlat=[TDL_refpos_long, TDL_refpos_lat],
+                 stddev_pos=dict(stat=[TDL_stddev_stat_pos,TDL_stddev_stat_pos],
+                                 sat=[TDL_stddev_sat_pos,TDL_stddev_sat_pos]),
                  simul_TecBias=dict(stddev=TDL_stddev_TecBias, value=TDL_value_TecBias),
                  pair_based_TecBias=TDL_pair_based_bias,
                  move=True)
@@ -589,8 +626,9 @@ def _define_forest(ns):
     sim.display(full=True)
 
     if 1:
-      cc.append(gpa.plot_modelTEC(sim))
-      cc.append(gpa.plot_geoSz(sim))
+      page = 'modelTEC'
+      cc.append(gpa.plot_modelTEC(sim, bookpage=page))
+      cc.append(gpa.plot_geoSz(sim, bookpage=page))
 
     if TDL_show_array:
       # NB: Do this AFTER MIM, because of pierce points
@@ -620,7 +658,7 @@ def _define_forest(ns):
 
 TDLRuntimeMenu('single domain',
                TDLRuntimeOption('TDL_time_interval','time interval (s)',
-                                [300,1,30,90,300,900,3600,3*3600,12*3600], more=float),
+                                [300,1,30,90,300,500,900,3600,3*3600,12*3600], more=float),
                )
 
 def _tdl_job_exec_single_domain (mqs, parent):
@@ -673,7 +711,7 @@ if __name__ == '__main__':
 
     if 0:
       xxx = dict(nodes=range(3), labels=['xxx','yy','z'])
-      gpa.solvable(merge=xxx, show=True)
+      gpa.solvable_parms(merge=xxx, show=True)
 
     if 0:
       gpa.longlat0(show=True)
