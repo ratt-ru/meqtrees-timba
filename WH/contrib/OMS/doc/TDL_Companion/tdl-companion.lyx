@@ -1,4 +1,4 @@
-#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -11,7 +11,7 @@
 \paperfontsize default
 \spacing single
 \papersize default
-\use_geometry true
+\use_geometry false
 \use_amsmath 1
 \cite_engine basic
 \use_bibtopic false
@@ -21,7 +21,7 @@
 \rightmargin 1in
 \bottommargin 1cm
 \secnumdepth 3
-\tocdepth 3
+\tocdepth 1
 \paragraph_separation skip
 \defskip smallskip
 \quotes_language english
@@ -71,6 +71,14 @@ O.M.
 
 \family typewriter
 smirnov@astron.nl
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter*
@@ -374,7 +382,7 @@ To see the real point of this script, we have to run it via MeqTrees.
 \end_layout
 
 \begin_layout Section
-Browsers, Kernels, Trees: A Quick Primer
+Browsers, kernels, trees: a quick primer
 \end_layout
 
 \begin_layout Standard
@@ -488,7 +496,7 @@ Connect
 	template RasterImage
 	filename 1-connectdialog.eps
 	rotateAngle 270
-	scale 50
+	scale 30
 
 \end_inset
 
@@ -564,11 +572,12 @@ The browser, looking at the hello world node
 \end_layout
 
 \begin_layout Standard
+\align center
 \begin_inset External
 	template RasterImage
 	filename 1-helloworld.png.eps
 	rotateAngle 270
-	scale 50
+	scale 40
 
 \end_inset
 
@@ -1894,7 +1903,7 @@ The script Exec menu.
 	template RasterImage
 	filename 1-tdl-exec-menu.png.eps
 	rotateAngle 270
-	scale 50
+	scale 40
 
 \end_inset
 
@@ -2261,10 +2270,10 @@ gridding
 status open
 
 \begin_layout Standard
-MeqTrees supports up to 8 axes at a time, which may be (re)defined in an
- arbitrary way.
- Frequency and time are the more popular ones, and so will be used in most
- of our examples.
+MeqTrees supports up to 8 axes at a time, the meaning of which may be (re)define
+d in an arbitrary way.
+ Frequency and time, being the two most popular ones, are the default for
+ axis 1 and 2, and so will be used in most of our examples.
 \end_layout
 
 \end_inset
@@ -2346,7 +2355,7 @@ status open
 
 \end_inset
 
-Viewing a function
+Viewing a function in the browser
 \end_layout
 
 \begin_layout Standard
@@ -2355,7 +2364,7 @@ Viewing a function
 	template RasterImage
 	filename 1-improved-tree.png.eps
 	rotateAngle 270
-	scale 50
+	scale 40
 
 \end_inset
 
@@ -2748,7 +2757,7 @@ a = Meq.Constant(value=0);
 \end_layout
 
 \begin_layout Standard
-may look like it produces a node, but in fact it doesn't, 
+may look like it produces a node, but in fact it doesn't
 \begin_inset Foot
 status open
 
@@ -2764,7 +2773,7 @@ What it actually does will be made clearer in Chapter\InsetSpace ~
 
 \end_inset
 
- no more than 
+, no more than
 \end_layout
 
 \begin_layout Standard
@@ -2862,7 +2871,7 @@ Looking at a cached result
 	template RasterImage
 	filename 1-improved-tree-cache-result.png.eps
 	rotateAngle 270
-	scale 50
+	scale 40
 
 \end_inset
 
@@ -3324,7 +3333,7 @@ What's the point?
 \begin_layout Standard
 blah blah lots of trees blah blah.
  Basically some subset of the workshop demos.
- This may eventually turn into several chapters.
+ This may even grow into several chapters.
 \end_layout
 
 \begin_layout Chapter
@@ -5051,18 +5060,89 @@ Hiding information
 \begin_layout Standard
 The hiding of information is one of the lesser appreciated virtues of good
  software design.
- When an interface appears to be rich in functionality and features, but
+ When a framework appears to be rich in functionality and features, but
  proves to be clunky and difficult to work with in practice, it is more
- often than not due to too much information being revealed.
-  
+ often than not due to too much information being revealed and/or shared.
 \end_layout
 
 \begin_layout Standard
+An design based on many small components (functions and classes) that reveal
+ and share minimal information will usually prove to be superior --- in
+ the sense of being easier to use and extend --- to a functionally equivalent
+ one that is based on a few aggregate components that try to do and reveal
+ too much.
+ One reason for this is something I call 
+\emph on
+assumption creep
+\emph default
+.
+ When you write code based on an interface, you can't help making extra
+ assumptions about what goes on behind the scenes, some of which invariably
+ go beyond what the original developer (which may even be yourself) intended.
+ The result of this can be fragile code with a spaghetti-like web of dependencie
+s that is hard to extend but easy to break.
+ Assumption creep can be somewhat mitigated by good coding discipline, but
+ truly disciplined programmers are few and far between (I certainly don't
+ count myself in that category.) A good interface that hides more than it
+ reveals can be a powerful deterrent all by itself.
+ This may seem counterintuitive at first (you'd think 
+\begin_inset Quotes eld
+\end_inset
 
+less information
+\begin_inset Quotes erd
+\end_inset
+
+ = 
+\begin_inset Quotes eld
+\end_inset
+
+more assumptions
+\begin_inset Quotes erd
+\end_inset
+
+), but is none the less true.
+ The key word here is 
+\emph on
+good
+\emph default
+ interface.
+ It's certainly possible to hide too much and/or to hide the wrong things.
+ A 
+\begin_inset Quotes eld
+\end_inset
+
+many small components
+\begin_inset Quotes erd
+\end_inset
+
+ design may be thoroughly useless if the components hide the important things
+ and reveal the trivial ones.
+ 
 \end_layout
 
 \begin_layout Standard
-******************** more *********************
+Striking the right balance between hiding and revealing information is a
+ matter of judgement and hands-on experience.
+ Nobody (that I know of) gets it right the first time anyway.
+ My personal preference is to err on the side of caution --- expose minimal
+ information at first, and reveal more in later iterations as required.
+\end_layout
+
+\begin_layout Standard
+The reason I bring the subject up here is that subsequent discussion will
+ feature many examples of information being hidden, in ways both good and
+ bad.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+hiding of information
+\begin_inset Quotes erd
+\end_inset
+
+ point of view can (hopefully) provide an additional perspective on what
+ constitutes good and bad TDL and Python.
 \end_layout
 
 \begin_layout Section
@@ -5326,7 +5406,7 @@ end{verbatim}
 
 \begin_layout Standard
 is a perfectly legitimate way of decoupling the definition of the node,
- and tucking it away inside a function.
+ and hiding it away inside a function.
  I've never found this particular pattern very useful, but you may.
  
 \end_layout
@@ -5406,8 +5486,12 @@ Think carefully about what's happening here!
 \end_layout
 
 \begin_layout Itemize
-We've hidden the knowledge of how to build a tree for some particular operation
- inside a function.
+We've 
+\series bold
+hidden
+\series default
+ the knowledge of how to build a tree for this particular operation inside
+ a function.
  This is a good thing --- we can change the function later without changing
  the calling code.
 \end_layout
@@ -5421,7 +5505,12 @@ naming
  named nodes.
  So we name the nodes on the outside, where we create the node stub, and
  then we pass the stub as an argument to the function.
- This is a very good thing, since it prevents name clashes.
+ This is a very good thing, since it 
+\series bold
+hides 
+\series default
+the business of naming from the function, and ultimately helps to avoid
+ name clashes.
 \begin_inset Foot
 status open
 
@@ -5863,6 +5952,25 @@ foo
 \end_inset
 
  to something else, there's only one point in the code that has to be changed.
+ Think of it as another way of hiding information: you name the node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ in only one place, where you invoke 
+\family typewriter
+ns.foo
+\family default
+.
+ As far as the rest of your code is concerned, the name is hidden behind
+ the 
+\family typewriter
+a
+\family default
+ variable.
 \end_layout
 
 \begin_layout Standard
@@ -5891,7 +5999,11 @@ The first statement is
 \begin_inset Quotes eld
 \end_inset
 
-good: it initializes the node 
+good
+\begin_inset Quotes erd
+\end_inset
+
+: it initializes the node 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6591,7 +6703,7 @@ x
 \family typewriter
 ns.f
 \family default
-, apart from a meaningless (for all the nodes know...) similarity of names.
+, apart from a meaningless (for all the node stubs know...) similarity of names.
  The following three expressions all resolve to exactly the same node stub:
 \end_layout
 
@@ -6979,7 +7091,8 @@ fnodes
 \end_inset
 
  within some known limits) to get at the individual terms of the series.
- In this context we say that 
+ This is a good way of hiding information.
+ In the context, we say that 
 \family typewriter
 sum_series()
 \family default
@@ -7216,11 +7329,11 @@ l
 \end_inset
 
 , as a series.
- In the latter context we call it an 
+ In this latter context we call it an 
 \emph on
 underqualified
 \emph default
- node, because we can append an extra qualifier to make it refer to 
+ node, because we can append an extra qualifier to make it refer to a 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7229,7 +7342,7 @@ real
 \end_inset
 
  (i.e.
- valid & initialized) nodes.
+ valid & initialized) node.
  We could write a function to sum over a one-dimensional series:
 \end_layout
 
@@ -7267,15 +7380,7 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-and then invoke it to make sums over 
-\begin_inset Quotes eld
-\end_inset
-
-cross-sections
-\begin_inset Quotes erd
-\end_inset
-
- of 
+and then invoke it to make sums over cross-sections of 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7350,8 +7455,8 @@ cross-section
 l
 \emph default
 .
- The qualifier syntax only allows us to append qualifiers; there's no prepend
- feature.
+ The qualifier syntax only allows us to append qualifiers; there's no easy
+ prepend feature.
  Python's absense of type checking comes to the rescue here.
  If you look at the code for 
 \family typewriter
@@ -7366,14 +7471,25 @@ fnodes
 \family typewriter
 fnodes
 \family default
- be something that can be qualified with a single index to yield a real
- node stub.
- If we had a function that took one argument and returned a node stub, we
- could pass in that function for the 
+ be something that can be qualified with a single index (
+\begin_inset Formula $k$
+\end_inset
+
+) to yield a valid node stub.
+ If we had a function that took a single argument --- the missing 
+\begin_inset Formula $k$
+\end_inset
+
+ qualifier --- and returned a fully-qualified node stub, we could pass that
+ function as the 
 \family typewriter
 fnodes
 \family default
- parameter, and obtain the required sum.
+ parameter, and 
+\family typewriter
+sum_1d_series()
+\family default
+ would do exactly the right thing.
  Python's 
 \emph on
 lambda
@@ -7419,7 +7535,7 @@ The term
 \emph on
 lambda
 \emph default
- comes from the area of functional programming, which got it from the 
+ comes from functional programming, which ultimately got it from the 
 \begin_inset Formula $\lambda$
 \end_inset
 
@@ -7442,7 +7558,7 @@ ns.f(k,1)
 sum_1d_series()
 \family default
 , this lambda-function then behaves in exactly the same way that an underqualifi
-ed node stub would.
+ed node stub would have.
 \end_layout
 
 \begin_layout Standard
@@ -7451,8 +7567,11 @@ This technique is an illustration of something called
 design by contract
 \emph default
 .
- Instead of specifying that our summation function takes an argument of
- type node stub (
+ Instead of specifying that our 
+\family typewriter
+sum_1d_series()
+\family default
+ function takes an argument of type node stub (
 \begin_inset Quotes eld
 \end_inset
 
@@ -7460,8 +7579,22 @@ design by type
 \begin_inset Quotes erd
 \end_inset
 
-), we only specify that the parameter should implement some kind of behaviour,
- i.e., a contract.
+), we only specify that the parameter should implement some kind of behaviour
+ --- that it behaves 
+\begin_inset Quotes eld
+\end_inset
+
+like
+\begin_inset Quotes erd
+\end_inset
+
+ a node stub w.r.t.
+ qualification.
+ This behaviour requirement is called a 
+\emph on
+contract
+\emph default
+.
  In this particular case, the contract on 
 \family typewriter
 fnodes
@@ -7475,8 +7608,8 @@ fnodes(k)
 
 \begin_layout Standard
 Design by contract is made possible by Python's late type-checking mechanism.
- It is a very powerful technique, since, by not tying our interfaces to
- specific types, it allows us to keep them all that more flexible.
+ It is a very powerful technique: by not tying our interfaces to specific
+ types, it allows us to keep them all that more flexible.
  On the other hand, it carries with it all the risks discussed in section\InsetSpace ~
 
 \begin_inset LatexCommand \ref{sub:The-reverse-of}
@@ -7562,8 +7695,8 @@ measurement equation
 \emph default
 .
  When putting together a measurement equation, we usually have a separate
- Jones term per antenna, or, if the effect is also direction-dependent,
- a separate term per antenna and per direction on the sky (which usually
+ Jones term per antenna, or, if the effect also happens to be direction-dependen
+t, a separate term per antenna and per direction on the sky (which usually
  corresponds to what we call a 
 \begin_inset Quotes eld
 \end_inset
@@ -7572,9 +7705,9 @@ source
 \begin_inset Quotes erd
 \end_inset
 
-, since we model the sky by a collection of discrete sources.) Sets of Jones
- terms describing the same effect per antenna and/or per source are called
- 
+, since we model the sky by a collection of discrete sources.) A set of Jones
+ terms describing the same effect per antenna and/or per source is called
+ a 
 \emph on
 Jones series
 \emph default
@@ -7659,7 +7792,7 @@ source_name
 p
 \family default
  is an antenna index.
- Ultimately, the nodes are created by this function from 
+ Ultimately, the nodes are created inside this function from 
 \family typewriter
 ME2/iono_geometry.py
 \family default
@@ -7800,7 +7933,11 @@ Now, how do we use the
 \begin_inset Formula $Z$
 \end_inset
 
- terms?
+ terms? Looking at 
+\family typewriter
+ME2/example6-iono.py
+\family default
+:
 \end_layout
 
 \begin_layout Standard
@@ -7816,12 +7953,12 @@ begin{verbatim}
 
 \begin_layout Standard
 
-for src in sources:
+  for src in sources:
 \end_layout
 
 \begin_layout Standard
 
-  allsky.add(src.corrupt(Zj(src.name))); 
+    allsky.add(src.corrupt(Zj(src.name))); 
 \end_layout
 
 \begin_layout Standard
@@ -7845,13 +7982,17 @@ corrupted
 \begin_inset Quotes erd
 \end_inset
 
- source, we need to apply Jones terms to a source.
+ source, we need to apply the Jones terms to a source.
  We know that a Meow source object implements a 
 \family typewriter
 corrupt(J)
 \family default
  method that takes a Jones series as a parameter.
- The contract on the J parameter is 
+ The contract on the 
+\family typewriter
+J
+\family default
+ parameter is 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7963,6 +8104,109 @@ src.direction.name
 
 \end_layout
 
+\begin_layout Subsection
+Mea culpa
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+compute_zeta_jones()
+\family default
+ function as shown here (and in the demo scripts) has one somewhat glaring
+ design defect.
+ We name the 
+\family typewriter
+ns.Z
+\family default
+ node inside the function.
+ What if we also use a different piece of code that wants to make a 
+\begin_inset Quotes eld
+\end_inset
+
+Z
+\begin_inset Quotes erd
+\end_inset
+
+ node? All sorts of confusion ensues.
+ 
+\end_layout
+
+\begin_layout Standard
+The more robust appproach to node naming is illustrated by the function
+ in section\InsetSpace ~
+
+\begin_inset LatexCommand \ref{sec:Using-Python-variables}
+
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def define_tree_to_do_foo(node,a,b):
+\end_layout
+
+\begin_layout Standard
+
+  node << a + b;
+\end_layout
+
+\begin_layout Standard
+
+  return node;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Here, we name the node outside the function, and pass in a node stub.
+ This a much better approach than allowing functions to pick their own names,
+ since it gives the caller an opportunity to avoid name clashes.
+ We want to 
+\series bold
+hide
+\series default
+ the business of node naming from functions as much as possible.
+\end_layout
+
+\begin_layout Standard
+In these particular circumstances this is only a minor sin --- the letter
+ 
+\begin_inset Formula $Z$
+\end_inset
+
+ is (hopefully) a well-established term for ionopsheric phase, so it's unlikely
+ that someone else will have another 
+\begin_inset Formula $Z$
+\end_inset
+
+ of their own.
+ Even then, this sort of thing is to be avoided in a proper design!
+\end_layout
+
 \begin_layout Section
 Using contract adapters
 \end_layout
@@ -7972,7 +8216,7 @@ The
 \family typewriter
 Zj(src.name)
 \family default
- operation is an example of something I call a 
+ operation is a simple example of something I call a 
 \emph on
 contract adapter
 \emph default
@@ -8095,7 +8339,7 @@ end{verbatim}
 
 \begin_layout Standard
 The problem here is that we've gone and changed the contract on the function's
- return value, thus breaking all scripts that use our model.
+ return value, thus breaking all the scripts that use our model.
  
 \end_layout
 
@@ -8206,7 +8450,8 @@ This works rather better --- the tree will have a number of redundant
 \family typewriter
 MeqIdentity
 \family default
- nodes, but since they're essentially a no-op, this will not slow it down.
+ nodes, but since they're effectively a no-op, they will not slow it down
+ in any noticeable way.
  
 \end_layout
 
@@ -8291,7 +8536,7 @@ ME2/example6-iono.py
 \begin_layout Itemize
 the return value --- our lambda function --- gets assigned to 
 \family typewriter
-Zj
+Zj.
 \end_layout
 
 \begin_layout Itemize
@@ -8303,16 +8548,16 @@ Zj
 \family typewriter
 Zj(src.name)
 \family default
-, the lambda function getrs called, and returns 
+, the lambda function is called, and returns 
 \family typewriter
 ns.Z
 \family default
 .
- This is something that can be qualified with an antenna index (inside 
+ This is something that can be qualified with an antenna index inside 
 \family typewriter
 corrupt()
 \family default
-), so we're doing good so far.
+, so we're doing good so far.
 \end_layout
 
 \begin_layout Itemize
@@ -8324,8 +8569,8 @@ Zj
 \family typewriter
 Zj(src.name,p)
 \family default
- a little bit later in the script, the whole thing breaks since the lambda
- function expects a single argument.
+ a little bit later in the script, the whole thing breaks down since the
+ lambda function expects a single argument.
 \end_layout
 
 \begin_layout Standard
@@ -8406,7 +8651,7 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-This shows a more elaborate syntax for defining a 
+This shows how you can define and return a 
 \begin_inset Quotes eld
 \end_inset
 
@@ -8424,6 +8669,28 @@ compute_zeta_jones()
 adapter
 \family default
  function.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+Note that the name 
+\family typewriter
+adapter
+\family default
+ is local to 
+\family typewriter
+compute_zeta_jones()
+\family default
+ and is not seen anywhere outside that function.
+ Other functions can define their own local things called 
+\family typewriter
+adapter
+\family default
+ without any confusion.
+\end_layout
+
+\end_inset
+
  When called as 
 \family typewriter
 adapter(src.name)
@@ -8501,7 +8768,8 @@ MeqIdentity
 \family default
  nodes approach, or the (more Pythonic) contract adapter approach.
  In my opinion, the latter is more elegant, and is an essential technique
- to master, as it really comes into its own in the more complicated cases.
+ to master, as it really comes into its own once you get into more complicated
+ territory.
  To summarize:
 \end_layout
 
@@ -8532,8 +8800,12 @@ Python makes it easy to write little adapters that make one object behave
  like another.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Meow and node tags
+\end_layout
+
+\begin_layout Standard
+**** to be continued ***
 \end_layout
 
 \end_body
