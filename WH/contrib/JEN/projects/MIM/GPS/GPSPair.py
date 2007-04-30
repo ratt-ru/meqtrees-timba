@@ -189,6 +189,9 @@ class GPSPair (Meow.Parameterization):
                            tags=['GPSPair'],
                            simul=simul)
 
+    # Pass on the last versions of certain nodes, for plotting...
+    self._last = dict()
+
     # Finished:
     return None
 
@@ -321,19 +324,18 @@ class GPSPair (Meow.Parameterization):
     if not qnode.initialized():
       # First get a subtree for the IOM TEC:
       TEC = iom.geoTEC(self._station, self._satellite)
-      self._retrieve_last_longlat_pierce_for_plotting(iom)
+      self._retrieve_last_for_plotting(iom)
       # Then add the TecBias for this station-satellite pair:
       qnode << Meq.Add(TEC, self.TEC_bias(sim=sim))
     self._station._show_subtree(qnode, show=show, recurse=8)
     return qnode
 
 
-  def _retrieve_last_longlat_pierce_for_plotting(self, iom):
-    """Helper function for retrieving the (long,lat) of the
-    ionospheric piercing point that was calculated by the last
-    call to iom.geoTEC(). This can be used for plotting (see
-    GPSArray.py). It is a bit of a kludge, but useful and innocent"""
-    self._longlat_pierce = iom._last_longlat_pierce
+  def _retrieve_last_for_plotting(self, iom):
+    """Helper function for retrieving the last versions of some values
+    that were calculated by the given object. This can be used for plotting
+    (see GPSArray.py). It is a bit of a kludge, but useful and innocent"""
+    self._last = iom._last
     return True
 
   #=================================================================

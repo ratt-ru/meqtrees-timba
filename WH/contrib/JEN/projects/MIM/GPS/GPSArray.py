@@ -267,17 +267,24 @@ class GPSArray (Meow.Parameterization):
   def longlat_pierce(self, pair=None, qnode=None,
                      reset=False, bundle=False, show=False):
     """Helper function to deal with longlat_pierce values."""
-    if reset: self._longlat_pierce = []
+    if reset:
+      self._longlat_pierce = []
+      self._dlong_pierce = []
+      self._dlat_pierce = []
     if pair:
         pnode = qnode(pair.name)
-        llp = pair._longlat_pierce    # obtained via pair.modelTEC(iom)
+        llp = pair._last['longlat_pierce']     # obtained via pair.modelTEC(iom)
         lo = pnode('pierce_longitude') << Meq.Selector(llp, index=0)
         lat = pnode('pierce_latitude') << Meq.Selector(llp, index=1)
         longlat = pnode('pierce_longlat_complex') << Meq.ToComplex(lo,lat)
         self._longlat_pierce.append(longlat)
+        self._dlong_pierce.append(pair._last['dlong'])
+        self._dlat_pierce.append(pair._last['dlat'])
     if bundle:
-      # Bundle them to limit clutter in the browser (root nodes)
+      # Make node bundles to limit clutter in the browser (root nodes)
       qnode('pierce_longlat_bundle') << Meq.Composer(*self._longlat_pierce)
+      qnode('pierce_dlong_bundle') << Meq.Composer(*self._dlong_pierce)
+      qnode('pierce_dlat_bundle') << Meq.Composer(*self._dlat_pierce)
     if show:
       pass
     return self._longlat_pierce

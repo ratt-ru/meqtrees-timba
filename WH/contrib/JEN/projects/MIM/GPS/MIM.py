@@ -112,83 +112,14 @@ class MIM (IonosphereModel.IonosphereModel):
 
 
   #======================================================================
-  # Return a subtree for the MIM TEC as seen from a GeoLocation on Earth
-  # towards a GPS satellite (another GeoLocation). This subtree is NOT
-  # suitable for calculating the MIM in the direction of a celestial source.
-  #======================================================================
-
-
-  def _geoTEC(self, qnode, seenfrom=None, towards=None,
-              ll_seenfrom=None, ll_piercing=None, z=0.0):
-    """Return a node/subtree that predicts an integrated TEC value,
-    as seen from the specified location (seenfrom==GeoLocation or None)
-    in the direction of the specified (towards) location. The latter
-    may be a GeoLocation object, or None (assume zenith direction).
-    It first calculates the (long,lat) of the ionosphere piercing point,
-    and the zenith angle (z). Then the vertical (z=0) TEC for the piercing
-    (long,lat), which is then multiplied by a function S(z) that corrects
-    for the slanted path through the ionosphere. The simplest form of S(z)
-    is sec(z)=1/cos(z), but more complicated versions take account of
-    the curvature of the Earth. In all cases, S(z=0)=1."""
-
-    # OK, create the geoMIM subtree (if required)
-    if not qnode.initialized():
-      if ll_piercing:
-        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
-                                                     ll_seenfrom)
-        dlong = qnode('dlong') << Meq.Selector(dlonglat, index=0)
-        dlat = qnode('dlat') << Meq.Selector(dlonglat, index=1)
-      else:
-        dlong = qnode('dlong') << Meq.Constant(0.0)
-        dlat = qnode('dlat') << Meq.Constant(0.0)
-        
-      # First make powers of dlong/dlat (relative to self._refloc)
-      llong = [None, dlong]
-      llat = [None, dlat]
-      for k in range(2,self._ndeg[0]+1):
-        llong.append(qnode('long^'+str(k)) << Meq.Multiply(llong[k-1],dlong))
-      for k in range(2,self._ndeg[1]+1):
-        llat.append(qnode('lat^'+str(k)) << Meq.Multiply(llat[k-1],dlat))
-
-      # Then make the various MIM polynomial terms:
-      cc = []
-      for pname in self._pname:
-        i = int(pname[1])
-        j = int(pname[2])
-        p = self._parm(pname)
-        tname = 'term'+pname[1:3]
-        if i>0 and j>0:
-          n = qnode(tname) << Meq.Multiply(p,llong[i],llat[j])
-        elif i>0:
-          n = qnode(tname) << Meq.Multiply(p,llong[i])
-        elif j>0:
-          n = qnode(tname) << Meq.Multiply(p,llat[j])
-        else:
-          n = qnode(tname) << Meq.Identity(p)
-        cc.append(n)
-
-      # Finally, add the polynomial terms, and multiply the result with
-      # the ionospheric slant-function S(z), if required:
-      if z==None:
-        qnode << Meq.Add(children=cc)                  # zenith direction (z=0)
-      else:                                          
-        TEC0 = qnode('z=0') << Meq.Add(children=cc)    # zenith direction (z=0)
-        sz = self.slant_function(qnode('slant'), z=z)
-        qnode << Meq.Multiply(TEC0, sz)                # TEC0*sec(z')
-          
-    # Finished:
-    return True
-
-
 
   def TEC0(self, qnode=None, dlong=0, dlat=0, show=False):
     """Return a node/subtree that predicts the vertical (z=0) TEC value,
     at the relative position (dlong,dlat). This function is usually called
-    by the function .geoTEC() of the baseclass IonosphereModel.py"""
+    by the function .geoTEC() of the base class IonosphereModel.py"""
 
     # For testing only:
-    if qnode==None:
-      qnode = self.ns['TEC0']
+    if qnode==None: qnode = self.ns['TEC0']
     
     # First make powers of dlong/dlat (relative to self._refloc)
     llong = [None, dlong]
@@ -216,7 +147,7 @@ class MIM (IonosphereModel.IonosphereModel):
       cc.append(n)
 
     # Finally, add the polynomial terms:
-    TEC0 = qnode('TEC0') << Meq.Add(children=cc) 
+    TEC0 = qnode << Meq.Add(children=cc) 
     if show:
       display.subtree(TEC0, recurse=5, show_initrec=True)
     return TEC0
@@ -253,12 +184,12 @@ def _define_forest(ns):
         qnode = ns.qnode('xxx')
         cc.append(sim.slant_function(qnode, z=1, flat_Earth=True, show=True))
 
-      if 0:
+      if 1:
         cc.append(sim.geoTEC(st1, sat1, show=True))
         # cc.append(sim.geoTEC(st1, show=True))
         # cc.append(sim.geoTEC(show=True))
 
-      if 1:
+      if 0:
         pair = GPSPair.GPSPair(ns, station=st1, satellite=sat1)
         pair.display(full=True)
         if 0:
@@ -300,7 +231,7 @@ if __name__ == '__main__':
       if 0:
         sim.geoTEC(show=True)
 
-      if 1:
+      if 0:
         sim.TEC0(show=True)
 
       if 0:
@@ -309,7 +240,7 @@ if __name__ == '__main__':
 
     #-----------------------------------------------------------------------
 
-    if 0:
+    if 1:
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,1.0])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[-0.1,1.0])
 

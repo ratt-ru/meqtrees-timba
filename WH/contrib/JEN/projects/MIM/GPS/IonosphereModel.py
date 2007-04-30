@@ -48,8 +48,8 @@ class IonosphereModel (Meow.Parameterization):
     # This is returned by the function .is_simulated()
     self._simulate = simulate
 
-    # Some extra info:
-    self._pierce_points = []                       # an innocent kludge
+    # Keep the last versions of certain nodes, for plotting...
+    self._last = dict()
 
     #-------------------------------------------------
     # Define the IonosphereModel:
@@ -222,7 +222,7 @@ class IonosphereModel (Meow.Parameterization):
       xyz_pierce = seenfrom.binop('Add', dxyz_fraction)   # -> GeoLocation object  
       qnode << Meq.Identity(xyz_pierce.longlat())
     seenfrom._show_subtree(qnode, show=show, recurse=4)
-    self._last_longlat_pierce = qnode               # innocent kludge, read by GPSPair.mimTEC()
+    self._last['longlat_pierce'] = qnode                  # keep for plotting....
     return qnode
 
  
@@ -230,24 +230,21 @@ class IonosphereModel (Meow.Parameterization):
 
 
   #======================================================================
-  # Return a subtree for the IonosphereModel TEC as seen from a GeoLocation
-  # on Earth, towards a GPS satellite (another GeoLocation). This subtree is
-  # NOT suitable for calculating the IonosphereModel in the direction of a
-  # celestial source.
-  #======================================================================
 
-
-  def geoTEC(self, seenfrom=None, towards=None, show=False):
+  def geoTEC(self, seenfrom=None, towards=None, geoSz=False, show=False):
     """Return a node/subtree that predicts an integrated TEC value,
     as seen from the specified location (seenfrom==GeoLocation or None)
     in the direction of the specified (towards) location. The latter
     may be a GeoLocation object, or None (assume zenith direction).
+    If geoSz==True, just calculate the slant-function S(z).
+    ...................................................................
     NB: This is just a front-end function, which is common to various
     classes that are derived from this one. It calls the specific function
-    ._geoTEC(), which must be implemented in each derived class. 
+    .TEC0(), which must be implemented in each derived class.
     """
 
     qnode = self.ns['geoTEC']                                   
+    if geoSz: qnode = self.ns['geoSz']    # special case: slant-function only                                 
 
     # Check the first location (if any):
     if seenfrom==None:
@@ -274,58 +271,39 @@ class IonosphereModel (Meow.Parameterization):
       s = '.geoTEC(): towards should be a GeoLocation, not: '+str(type(towards))
       raise ValueError,s
 
-    # Call the function that does the actual work:
-    self._geoTEC(qnode, seenfrom=seenfrom, towards=towards,
-                 ll_seenfrom=ll_seenfrom, ll_piercing=ll_piercing, z=z)
+    # OK, go ahead:
+    if not qnode.initialized():
+      if geoSz:
+        # Slant-function only:
+        TEC0 = qnode('z=0') << Meq.Constant(1.0)  
+      else:
+        # First calculate (dlong,dlat) of the ionospheric pierce location
+        # relative to the viewing location on Earth (seenfrom):
+        if ll_piercing:
+          dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
+                                                       ll_seenfrom)
+          dlong = qnode('dlong') << Meq.Selector(dlonglat, index=0)
+          dlat = qnode('dlat') << Meq.Selector(dlonglat, index=1)
+          self._last['dlong'] = dlong                  # keep for plotting....
+          self._last['dlat'] = dlong                   # keep for plotting....
+        else:
+          dlong = qnode('dlong') << Meq.Constant(0.0)
+          dlat = qnode('dlat') << Meq.Constant(0.0)
+        # Calculate the integrated TEC in the zenith direction (z=0):
+        TEC0 = self.TEC0(qnode('TEC0'), dlong=dlong, dlat=dlat)
+
+      # Multiply the result with the ionospheric slant-function S(z), if required.
+      if z==None:
+        qnode = TEC0
+      else:
+        sz = self.slant_function(qnode('slant'), z=z)
+        qnode << Meq.Multiply(TEC0, sz)                # TEC0*sec(z')
+          
 
     # Finished:
     if show:
       display.subtree(qnode, recurse=4, show_initrec=False)
     return qnode
-
-
-  #--------------------------------------------------------------------------
-
-  def _geoTEC(self, qnode, seenfrom=None, towards=None,
-              ll_seenfrom=None, ll_piercing=None, z=0.0):
-    """NB: This is a placeholder dummy function, which should be
-    re-implemented by each ionosphere model that is derived from
-    this class (see MIM.py).
-    -------------------------------------------------------------------
-    Return a node/subtree that predicts an integrated TEC value,
-    as seen from the specified location (seenfrom==GeoLocation or None)
-    in the direction of the specified (towards) location. The latter
-    may be a GeoLocation object, or None (assume zenith direction).
-    It first calculates the (long,lat) of the ionosphere piercing point,
-    and the zenith angle (z). Then the vertical (z=0) TEC for the piercing
-    (long,lat), which is then multiplied by a function S(z) that corrects
-    for the slanted path through the ionosphere. The simplest form of S(z)
-    is sec(z)=1/cos(z), but more complicated versions take account of
-    the curvature of the Earth. In all cases, S(z=0)=1."""
-
-    if not qnode.initialized():
-      # First calculate (dlong,dlat) of the ionospheric pierce location
-      # relative to the viewing location on Earth (seenfrom):
-      if ll_piercing:
-        dlonglat = qnode('dlonglat') << Meq.Subtract(ll_piercing,
-                                                     ll_seenfrom)
-        dlong = qnode('dlong') << Meq.Selector(dlonglat, index=0)
-        dlat = qnode('dlat') << Meq.Selector(dlonglat, index=1)
-      else:
-        dlong = qnode('dlong') << Meq.Constant(0.0)
-        dlat = qnode('dlat') << Meq.Constant(0.0)
-        
-      # Make a dummy 'TEC' by making a complex number from (dlong,dlat),
-      # Multiply the result with the ionospheric slant-function S(z), if required.
-      if z==None:
-        qnode << Meq.ToComplex(dlong,dlat)             # zenith direction (z=0)
-      else:                                          
-        TEC0 = qnode('z=0') << Meq.ToComplex(dlong,dlat) # zenith direction (z=0)
-        sz = self.slant_function(qnode('slant'), z=z)
-        qnode << Meq.Multiply(TEC0, sz)                # TEC0*sec(z')
-          
-    # Finished:
-    return True
 
   #-------------------------------------------------------------------------------
 
@@ -336,13 +314,13 @@ class IonosphereModel (Meow.Parameterization):
     NB: This is a placeholder dummy function, which should be re-implemented
     by each ionosphere model that is derived from this class (see e.g. MIM.py).
     """
-    if qnode==None:
-      # For testing only:
-      qnode = self.ns['TEC0']
-    TEC0 = qnode('z=0') << Meq.ToComplex(dlong,dlat) 
+    if qnode==None: qnode = self.ns['TEC0']            # For testing only
+    TEC0 = qnode('z=0')('placeholder') << Meq.ToComplex(dlong,dlat) 
     if show:
       display.subtree(TEC0, recurse=5, show_initrec=True)
     return TEC0    
+
+
 
   #===============================================================================
 
@@ -351,42 +329,9 @@ class IonosphereModel (Meow.Parameterization):
     as seen from the specified location (seenfrom==GeoLocation or None)
     in the direction of the specified (towards) location. The latter
     may be a GeoLocation object, or None (assume zenith direction)."""
-
-    qnode = self.ns['geoSz']                                   
-
-    # Check the first location (if any):
-    if seenfrom==None:
-      qnode = qnode('refloc')
-    elif isinstance(seenfrom, GeoLocation.GeoLocation):
-      qnode = qnode.qmerge(seenfrom.ns['IonosphereModel_dummy_qnode'])  
-    else:
-      s = '.geoTEC(): from should be a GeoLocation, not: '+str(type(seenfrom))
-      raise ValueError,s
-
-    # Check the second location (if any):
-    if towards==None:
-      # Assume zenith direction:
-      qnode = qnode('zenith')
-      z = None
-    elif isinstance(towards, GeoLocation.GeoLocation):
-      qnode = qnode.qmerge(towards.ns['IonosphereModel_dummy_qnode'])  
-      z = seenfrom.zenith_angle(towards)
-    else:
-      s = '.geoTEC(): towards should be a GeoLocation, not: '+str(type(towards))
-      raise ValueError,s
-
-    # Make the node itself, if required:
-    if not qnode.initialized():
-      if z==None:
-        qnode << Meq.Constant(1.0)                     # zenith direction (z=0)
-      else:                                          
-        sz0 = qnode('z=0') << Meq.Constant(1.0)        # zenith direction (z=0)
-        sz = self.slant_function(qnode('slant'), z=z)
-        qnode << Meq.Multiply(sz0, sz)                 # TEC0*sec(z')
-          
-    # Finished:
+    qnode = self.geoTEC(seenfrom=seenfrom, towards=towards, geoSz=True)
     if show:
-      display.subtree(qnode, recurse=10, show_initrec=True)
+      display.subtree(qnode, recurse=8, show_initrec=False)
     return qnode
 
 
