@@ -100,6 +100,7 @@ def _define_forest(ns):
   # create 343 source model
   source_list = source_model(ns,Utils.get_source_table());
     
+  lsm_beam_parms = [];
   # add LSM sources
   if lsm_count is not None:
     lsm = LSM();
@@ -215,8 +216,9 @@ def _define_forest(ns):
     solve_tree.define_solve_job("Calibrate bright sources","flux",
          predict.search(tags="bright (flux|spectrum) solvable"));
 
-    solve_tree.define_solve_job("Calibrate LSM sources","flux_lsm",
-         predict.search(tags="lsm (flux|spectrum) solvable")+lsm_beam_parms);
+    if lsm_count is not None:
+      solve_tree.define_solve_job("Calibrate LSM sources","flux_lsm",
+           predict.search(tags="lsm (flux|spectrum) solvable")+lsm_beam_parms);
 
     GPs = predict.search(tags="G phase");
     solve_tree.define_solve_job("Calibrate G phases","g_phase",GPs);

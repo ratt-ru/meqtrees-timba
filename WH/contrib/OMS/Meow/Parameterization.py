@@ -13,18 +13,6 @@ def create_polc(c00=0.0,deg_f=0,deg_t=0):
 # type of polc object  
 POLC_TYPE = type(meq.polc(0));
 
-class QualScope (object):
-  """Helper class used to create nodes with a given scope and set of
-  qualifiers.""";
-  def __init__ (self,ns,quals,kwquals):
-    self.ns = ns;
-    self.quals = quals;
-    self.kwquals = kwquals;
-  def __getattr__ (self,name):
-    return self.ns[name](*self.quals,**self.kwquals);
-  def __getitem__ (self,name):
-    return self.ns[name](*self.quals,**self.kwquals);
-    
 def resolve_parameter (name,node,value,tags=[],solvable=True):
   # make sure tags is a list, and add name
   if isinstance(tags,str):
@@ -66,7 +54,7 @@ class Parameterization (object):
     if name is not None:
       self._quals.append(name);
     if self._quals or self._kwquals:
-      self.ns = QualScope(ns,self._quals,self._kwquals);
+      self.ns = ns.QualScope(*self._quals,**self._kwquals);
     else:
       self.ns = ns;
     

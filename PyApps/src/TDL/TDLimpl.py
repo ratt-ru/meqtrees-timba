@@ -341,12 +341,12 @@ class _NodeStub (object):
     """Creates a NodeStub. This is usually called as a result of
     ns.name(...). fqname is the fully-qualified node name. Basename
     is the unqualified name. Scope is the parent scope object.
-    Quals and kwquals are the qualifiers that were applied.
+    Quals and kwquals are the (user-supplied) qualifiers that were applied.
     """;
-    _dprint(5,'creating node stub',fqname,basename,scope._name,quals,kwquals);
+    _dprint(5,'creating node stub',fqname,basename,quals,kwquals,'in scope',scope.Description());
     self.name = fqname;
-    self.scope = scope;
     self.basename = basename;
+    self.scope = scope;
     self.quals = quals;
     self.kwquals = kwquals;
     self.classname = None;
@@ -460,8 +460,8 @@ class _NodeStub (object):
     Returns a _NodeStub.""";
     (q,kw) = (list(self.quals),dict(self.kwquals));
     _mergeQualifiers(q,kw,quals,kwquals,uniq=merge);
-    _dprint(4,"creating requalified node",self.basename,q,kw);
-    fqname = qualifyName(self.basename,*q,**kw);
+    fqname = self.scope.QualifyScopedName(self.basename,*q,**kw);
+    _dprint(4,"creating requalified node",self.basename,q,kw,':',fqname);
     try: 
       return self.scope._repository[fqname];
     except KeyError:
@@ -482,6 +482,14 @@ class _NodeStub (object):
     for n in nodes:
       res = res._qualify(n.quals,n.kwquals,True);
     return res;
+  def Subscope (self):
+    """turns node into a subscope. The node's name and qualifiers will be used as
+    the subscope name. See NodeScope.Subscope() for details.""";
+    return self.scope.Subscope(self.basename,*self.quals,**self.kwquals);
+  def QualScope (self):
+    """turns node into a QualScope. The node's qualifiers will be used
+    to create the QualScope. See NodeScope.QualScope() for details.""";
+    return self.scope.QualScope(*self.quals,**self.kwquals);
   # add_children(...,label=...)    adds children to node    
   def add_children (self,*args):
     """adds children to node. Node stub must have been already initialized."""
@@ -876,9 +884,9 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            self.add_error(ChildError("child %s = %s is not initialized" % (str(i),ch.name)),tb=node._deftb);
+            self.add_error(UninitializeNode("node '%s' not initialized anywhere" % (ch.name)),tb=node._deftb);
             if node._caller != ch._caller:
-              self.add_error(CalledFrom("child referenced here"),tb=ch._deftb);
+              self.add_error(CalledFrom("node was referenced here"),tb=ch._deftb);
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
@@ -929,47 +937,110 @@ class _NodeRepository (dict):
       _dprint(5,"nodes remaining:",self.keys());
 
 class NodeScope (object):
-  def __init__ (self,name=None,parent=None,test=False,*quals,**kwquals):
-    # are we a subscope?
-    if parent:
-      if name is None:
-        raise ValueError,"subscope must have a name";
-      if parent._name:
-        name = parent._name + '::' + name;
-    # qualify name
-    if name is None:
-      if quals:
-        raise ValueError,"scope name must be set if qualifiers are used";
-      self._name = None;
-    else:
-      self._name = qualifyName(name,*quals,**kwquals);
+  def __init__ (self,name=None,parent=None,test=False,quals=[],kwquals={}):
+    """Creates a NodeScope.
+    If 'name' is not None, this is a subscope. The name will then be added as a prefix to 
+    all nodes created within this scope.
+    'parent' is the parent node scope. If None, then this is the global node scope. Normally,
+    only one global node scope may exist; this is created before running the TDL script.
+    'test' should normally be False. If True, the script is being run in test mode.
+    'quals' and 'kwquals' are optional 'scope qualifiers'. These will be applied before
+    node qualifiers within QualifyScopedName.
+    """;
+    self._name = name;
+    self._quals = list(quals) + NodeScope._flatten_keyword_quals(kwquals);
     # repository: only one parent repository is created
     if parent is None:
+      self._globalscope = self;
       self._repository = _NodeRepository(self,test);
       self._constants = weakref.WeakValueDictionary();
+      # predefined root group to be used by TDL scripts
+      object.__setattr__(self,'ROOT',NodeGroup());
     else:
+      self._globalscope = parent._globalscope;
       self._repository = parent._repository;
       self._constants = parent._constants;
-    # root nodes
-    self._roots = None;
+      object.__setattr__(self,'ROOT',parent.ROOT);
     # unique names
     self._uniqname_counters = {};
-    # predefined root group to be used by TDL scripts
-    object.__setattr__(self,'ROOT',NodeGroup());
     
+  def Description (self):
+    """returns description of scope""";
+    desc = self._name or 'GLOBAL';
+    if self._quals:
+      desc = "%s(%s)" % (desc,NodeScope._apply_qualifiers('',self._quals));
+    return desc;
+  
+  def QualifyScopedName (self,name,*quals,**kwquals):
+    """Returns a fully-qualified name for the given basename and set of
+    qualifiers. The default behaviour is to add our name prefix, then apply the 
+    scope's qualifiers, then the supplied qualifiers. Subclasses may override this."""
+    name = str(name);
+    if self._name:
+      name = '::'.join((self._name,name));
+    name = NodeScope._apply_qualifiers(name,self._quals);
+    return NodeScope._apply_qualifiers(name,quals,kwquals);
+
+  def _resolve_to_string (value):
+    """helper method, resolves a value to a string for qualification purposes.
+    If value has a 'name' attribute, uses that.
+    If value is a list or tuple, recursively resolves the elements and concatenates them
+    with ','. All else failing, uses plain str.
+    """;
+    name = getattr(value,'name',None);
+    if isinstance(name,str):
+      return name;
+    if isinstance(value,(list,tuple)):
+      return ','.join(map(NodeScope._resolve_to_string,value));
+    return str(value);
+  _resolve_to_string = staticmethod(_resolve_to_string);
+
+  def _flatten_keyword_quals (kwquals):
+    """converts a dict (presumably, of keyword qualifiers) into a list of
+    "key=value" strings."""
+    return [ "=".join((str(key),NodeScope._resolve_to_string(value))) 
+             for key,value in kwquals.iteritems() ];
+  _flatten_keyword_quals = staticmethod(_flatten_keyword_quals);
+    
+  def _apply_qualifiers (name,quals=[],kwquals={}):
+    """Qualifies a name by appending qualifiers to it, in the form
+    of name:a1:a2:k1=v1:k2=v2, etc."""
+    return ':'.join([str(name)]+map(str,quals)+NodeScope._flatten_keyword_quals(kwquals));
+  _apply_qualifiers = staticmethod(_apply_qualifiers);
+  
   def Subscope (self,name,*quals,**kwquals):
-    """Creates a subscope of this scope, with optional qualifiers""";
-    return NodeScope(name,self,False,*quals,**kwquals);
+    """Creates a subscope based on this scope, with name and qualifiers.
+    A subscope adds a prefix to each node name created within it, separated
+    from the node name with '::'. The prefix may include qualifiers. For example,
+      ns1 = ns.Subscope("foo",1,x=2)
+      ns1.a(3) << 1
+      ns2 = ns1.Subscope("bar",y=4)
+      ns2.b(5) << 1
+    will create nodes named "foo:1:x=2::a:3" and "foo:1:x=2::bar:y=4::b:5"
+    """;
+    return NodeScope(self.QualifyScopedName(name,*quals,**kwquals),parent=self,test=False);
+  
+  def QualScope (self,*quals,**kwquals):
+    """Creates a qualscope of this scope, with name and qualifiers.
+    A qualscope prepends extra qualifiers to each node name created within it. For example,
+      ns1 = ns.QualScope("foo",1,x=2)
+      ns1.a(3,y=4) << 1
+    will create a node named "a:1:x=2:3:y=4"
+    """;
+    qq = self._quals + list(quals) + NodeScope._flatten_keyword_quals(kwquals);
+    return NodeScope(self._name,parent=self,test=False,quals=qq);
+  
+  def __call__ (self,*quals,**kwquals):
+    """Using () on a NodeScope is equivalent to calling ns.QualScope() with the same
+    arguments.""";
+    return self.QualScope(*quals,**kwquals);
     
   def __getattr__ (self,name):
     try: node = self.__dict__[name];
     except KeyError: 
       _dprint(5,'node',name,'not found, creating stub for it');
-      if self._name is None:
-        nodename = name;
-      else:
-        nodename = '::'.join((self._name,name));
-      node = _NodeStub(nodename,nodename,self);
+      fqname = self.QualifyScopedName(name);
+      node = _NodeStub(fqname,name,self);
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
     return node;
@@ -1011,7 +1082,6 @@ class NodeScope (object):
       return "(%s)%d" % (name,num);
     else:
       return "(%s)" % (name,);
-    
   
   def MakeConstant (self,value):
     """make or reuse a Meq.Constant node with the given value""";
@@ -1025,7 +1095,7 @@ class NodeScope (object):
       name = "%s%d" % (name0,count);
       count += 1;
     # create the node
-    node = _NodeStub(name,name,self);
+    node = _NodeStub(name,name,self._globalscope);
     # bind node, this also adds it to the repository
     node << _Meq.Constant(value=value);
     # add to map of constants 
@@ -1066,21 +1136,6 @@ class NodeScope (object):
     """;
     return self._repository.rootmap();
 
-
-# helper func to qualify a name
-def qualifyName (name,*args,**kws):
-  """Qualifies name by appending a dict of qualifiers to it, in the form
-  of name:a1:a2:k1=v1:k2=v2, etc."""
-  qqs0 = list(kws.iteritems());
-  qqs0.sort();
-  qqs = [];
-  for (kw,val) in qqs0:
-    if isinstance(val,list):
-      val = ','.join(map(str,val));
-    else:
-      val = str(val);
-    qqs.append('='.join((kw,val)));
-  return ':'.join([name]+map(str,args)+qqs);
 
 # used to generate Meq.Constants and such
 _Meq = ClassGen('Meq');
