@@ -899,13 +899,15 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            self.add_error(
-                UninitializedNode("node '%s' used but not initialized anywhere"%ch.name,
-                   filename=node._caller[0],lineno=node._caller[1]),tb=node._deftb);
-## no need for this, since we're not really interested where the node was defined,
-## and we're going to get this error everywhere that it's used
-#            if node._caller != ch._caller:
-#              self.add_error(CalledFrom("node was referenced here"),tb=ch._deftb);
+            if node._caller != ch._caller:
+              error = UninitializedNode("node '%s' not initialized"%ch.name,
+                        filename=ch._caller[0],lineno=ch._caller[1],tb=ch._deftb,
+                        next=UninitializedNode("node used in this context",
+                           filename=node._caller[0],lineno=node._caller[1],tb=node._deftb));
+            else:
+              error = UninitializedNode("node '%s' not initialized"%ch.name,
+                          filename=node._caller[0],lineno=node._caller[1],tb=node._deftb);
+            self.add_error(error);
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
