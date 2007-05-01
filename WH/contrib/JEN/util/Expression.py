@@ -19,39 +19,21 @@
 #     -) Parameters in curly brackets{}.
 #     -) The expression is supplied to the Expression constructor
 #     -) Extra information about parameters is supplied via a function:
-#         -) e0.parm('A', 34)                         numeric, default value is 34
-#         -) e0.parm('A', 34, constant=True)          numeric constant, value is 34
-#         -) e0.parm('ampl', e1)                      another Expression object
-#         -) e0.parm('phase', polc=[2,3])             A polc-type Expression generated internally
-#         -) e0.parm('A', f1)                         A Funklet object
-#         -) e0.parm('A', node)                       A node (child of a MeqFunctional node)
-#         -) e0.parm('A', image)                      A FITS image
+#         -) e0.parm('{A}', 34)                         numeric, default value is 34
+#         -) e0.parm('{ampl}', e1)                      another Expression object
+#         -) e0.parm('{phase}', polc=[2,3])             A polc-type Expression generated internally
+#         -) e0.parm('{A}', f1)                         A Funklet object
+#         -) e0.parm('{A}', node)                       A node (child of a MeqFunctional node)
+#         -) e0.parm('{A}', image)                      A FITS image
 #     -) The Expression object may be converted to:
 #         -) a Funklet                                  with p0,p1,p2,... and x0,x1,...
 #         -) a MeqParm node (init_funklet=Funklet)
-#         -) a MeqFunctional node                     (parms AND vars are its children)      
-#         -) a MeqCompounder node                     needs extra children
+#         -) a MeqFunctional node                       (parms AND vars are its children)      
+#         -) a MeqCompounder node                       needs extra children
 #         -) ...
 #     -) Easy to build up complex expressions (MIM, beamshape)
-#     -) Internally, there is a self._expression, which does not change, and an
-#        expanded version self._xexpr. In the latter, parameters that are Expressions,
-#        Funklets, MeqNodes etc are replaced with sub-expressions. The self._xexpr is
-#        the basis for translation into a Funklet, evaluation, etc.
 #     -) Should be very useful for LSM
-#     -) Plotting: Each parameter and variable has an internal testval (scalar) and testvec
-#                  vector. These will be used for plotting, unless otherwise specified.
-#                  The testval/testvec may be specified explicitly with .parm() and .var().
-#         -) .plot()               Plots the Expression for its internal parameter test-values,
-#                                  and against the internal testvec of one of its variables.
-#         -) .plot(A=True)         Multiple plots for the internal testvec of parm {A} 
-#         -) .plot(A=True, B=True) The same , but it uses the longest A/B testvec as x-axis
-#         -) .plot(f=True)         Enforce the use of the freq variable as the x-axis
-#     -) Fitting: If the Expression is a has multiple additive terms, each with a single
-#                 numeric parameter, it is possible to solve for the parameter values
-#                 to fit a given number of values vv(f,t,l,m). The result is plotted.
-#     -) Other functionality:
-#         -) Uncertainty (rms stddev) in default values (simulation)
-#         -) Etc
+
 
 
 
@@ -60,27 +42,27 @@
 #***************************************************************************************
 
 from Timba.Meq import meq
-from Timba.TDL import *                       # needed for type Funklet....
+from Timba.TDL import *                         # needed for type Funklet....
 
 import Meow
 
 # from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
-from Timba.Contrib.JEN.util import JEN_bookmarks
+# from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 
-import numarray                               # see numarray.rank()
+# import numarray                               # see numarray.rank()
 from numarray import *
 # import numarray.linear_algebra                # redefines numarray.rank....
-import random
+# import random
 # import pylab
 from copy import deepcopy
 
 
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
-from Timba.Contrib.JEN.util import TDL_Leaf
+# from Timba.Contrib.JEN.util import TDL_Leaf
 from Timba.Contrib.JEN.util import JEN_parse
 
 
@@ -104,18 +86,19 @@ class Expression (Meow.Parameterization):
         may be supplied via keyword arguments pp. More detailed
         information may be supplied via the function .parm()."""
 
-        Meow.Parameterization.__init__(self, ns, 'E_'+str(name),
+        Meow.Parameterization.__init__(self, ns, str(name),
                                        quals=quals, kwquals=kwquals)
 
         self._descr = descr                       # optional description
         self._unit = unit                         # unit of the result
         self._expression = deepcopy(expr)         # never modified
-        self._expanded = None                     # working version
+        self._expanded = deepcopy(expr)           # working version
 
         # For each parameter in self._expression, make an entry in self._parm.
         # These entries may be modified with extra info by self.parm().
         self._parm = dict()
         self._parm_order = []
+        self._has_MeqNodes = False
         self._parmtype = dict()
         self._find_parms(self._expression)
 
@@ -124,11 +107,17 @@ class Expression (Meow.Parameterization):
         self._find_vars(self._expression)
 
         # Some placeholders:
-        self._vars2nodes = False
-        self._parms2nodes = False
+        self._done_vars2nodes = False
+        self._done_parms2nodes = False
+        self._MeqNode = None
+        self._MeqParm = None
         self._Funklet = None
+        self._Funklet_function = None
         self._Functional = None
+        self._Functional_function = None
         self._Compounder = None
+        self._Compounder_common_axes = None
+        self._testexpr = None
 
         # Finished:
         return None
@@ -147,11 +136,8 @@ class Expression (Meow.Parameterization):
         """Return the brief description of this Expression object"""
         return str(self._descr)
 
-    def expression (self, expand=False):
-        """Return its (mathematical) expression.
-        If expand==True, first replace any sub-expressions."""
-        if expand:
-            return self._expand()
+    def expression (self):
+        """Return its (mathematical) expression."""
         return self._expression
 
     def parm_order (self):
@@ -192,21 +178,23 @@ class Expression (Meow.Parameterization):
 
     def display(self, full=False):
         """Display a summary of this object"""
-        print '\n** '+self.oneliner()
+        print '\n** Summary of: '+self.oneliner()
         print '  * description: '+str(self._descr)
         print '  * expression: '+str(self._expression)
-        print '  * parameters ('+str(len(self._parm))+'):'
+        print '  * parameters ('+str(len(self._parm))+', has_MeqNodes='+str(self._has_MeqNodes)+'):'
         for key in self.parm_order():
             rr = self._parm[key]
             print '    - '+str(key)+':  ('+str(rr['type'])+'):  '+str(rr['parm']),
             if rr.has_key('from'):
                 print '  <- '+str(rr['from'])
+            elif rr.has_key('default'):
+                print '  default='+str(rr['default'])
             else:
                 print
         if full:
             for key in self.parm_order():
                 print '    - '+str(key)+':  '+str(self._parm[key])
-        if True or full:
+        if False:
             print '  * parmtypes ('+str(len(self.parmtype()))+'):'
             for key in self._parmtype.keys():
                 print '    - '+str(key)+':  '+str(self.parmtype(key))
@@ -214,13 +202,19 @@ class Expression (Meow.Parameterization):
         for key in self._var.keys():
             print '    - '+str(key)+':  '+str(self._var[key])
         v = self._testeval()
-        print '  * testeval() ->  '+str(v)+'  ('+str(type(v))+')'
+        print '  * testexpr: '+str(self._testexpr)
+        print '    - testeval() ->  '+str(v)+'  ('+str(type(v))+')'
         print '  * expanded: '+str(self._expanded)
-        print '  * vars2nodes  = '+str(self._vars2nodes)
-        print '  * parms2nodes = '+str(self._parms2nodes)
+        print '  * done_vars2nodes  = '+str(self._done_vars2nodes)
+        print '  * done_parms2nodes = '+str(self._done_parms2nodes)
+        print '  * (single) MeqNode = '+str(self._MeqNode)
+        print '  * (single) MeqParm = '+str(self._MeqParm)
         print '  * Funklet = '+str(self._Funklet)
-        print '  * Functional (function) = '+str(self._Functional)
-        print '  * Compounder (common_axes) = '+str(self._Compounder)
+        print '    - function = '+str(self._Funklet_function)
+        print '  * Functional = '+str(self._Functional)
+        print '    - function = '+str(self._Functional_function)
+        print '  * Compounder = '+str(self._Compounder)
+        print '    - common_axes = '+str(self._Compounder_common_axes)
         print '**\n'
         return True
         
@@ -236,7 +230,7 @@ class Expression (Meow.Parameterization):
         order = JEN_parse.find_enclosed(expr, brackets='{}')
         if not isinstance(order,(list,tuple)):
             s = '** order is not a list, but: '+str(type(order))
-            raise ValueError,s
+            raise TypeError,s
         for key in order:
             self._create_undefined_parm ('{'+key+'}')
         # Finished: 
@@ -284,7 +278,12 @@ class Expression (Meow.Parameterization):
         if not isinstance(pp, dict): pp = dict()
 
         # OK, go ahead:
-        if isinstance(parm, str):
+        if parm=='MeqParm':
+            rr['parm'] = self.ns[key] << Meq.Parm(**pp)  # use Meow....
+            rr['type'] = 'MeqParm'
+            rr['default'] = pp['default']
+            rr['testval'] = pp['default']
+        elif isinstance(parm, str):                      # assume sub-expr
             rr['parm'] = parm
             rr['type'] = 'subexpr'
             self._find_parms(parm)
@@ -294,16 +293,21 @@ class Expression (Meow.Parameterization):
             rr['type'] = 'numeric'
         elif is_node(parm):
             rr['parm'] = parm
-            # print dir(parm)
             if parm.classname=='MeqParm':
                 rr['type'] = 'MeqParm'
+                default = parm.initrec()['init_funklet']['coeff']
+                rr['default'] = default
+            elif parm.classname=='MeqConstant':          # ....?
+                rr['type'] = 'MeqNode'
+                value = parm.initrec()['value']
+                rr['value'] = value
             else:
                 rr['type'] = 'MeqNode'
         elif isinstance(parm, Funklet):
             rr['parm'] = parm
             rr['type'] = 'Funklet'
         elif isinstance(parm, Expression):
-            expr = parm._expand()
+            expr = parm._expand()                        # ....??
             rr['parm'] = expr
             rr['type'] = 'subexpr'
             rr['from'] = 'Expression: '+str(parm.name)
@@ -311,12 +315,13 @@ class Expression (Meow.Parameterization):
             self._find_vars(expr)
         else:
             s = '** parameter type not recognised: '+str(type(parm))
-            raise ValueError, s
+            raise TypeError, s
 
         # Finishing touches:
         # Keep track of the different types of parameters:
         self.parmtype (rr['type'], key)
-        # Transfer some optional parameters from input pp to rr:
+
+        # Transfer optional parameters from input pp to rr:
         for key in ['testval']:
             if pp.has_key(key):
                 rr[key] = pp[key]
@@ -324,17 +329,17 @@ class Expression (Meow.Parameterization):
 
     #---------------------------------------------------------------------------
 
-    def parms2nodes (self):
+    def _parms2nodes (self):
         """Convert parameter(s) in self._expression to node(s).
         E.g. {xx} is converted into a MeqParm node, etc"""
 
         # Do this only once:
-        if self._parms2nodes:
+        if self._done_parms2nodes:
             return True                                  # done already
-        self._parms2nodes = True
+        self._done_parms2nodes = True
 
         # Turn the vars [] into parms {} first:
-        self.vars2nodes()
+        self._vars2nodes()
         
         for key in self._parm.keys():
             rr = self._parm[key]
@@ -342,7 +347,7 @@ class Expression (Meow.Parameterization):
             qnode = self.ns[pname]
             funklet = None
             if rr['type']=='Funklet':
-                funklet = rr['parm']                     # used below
+                funklet = rr['parm']                     # used below......?
             elif rr['type']=='subexpr':
                 pass                                     # should not occur
             elif rr['type']=='MeqNode':
@@ -350,15 +355,16 @@ class Expression (Meow.Parameterization):
             elif rr['type']=='MeqParm':
                 pass                                     # already a node
             elif rr['type']=='numeric':
-                qnode << Meq.Constant(rr['parm'])
-                self.parm(key, qnode, redefine=True)      
+                pass                                     # part of expanded expr
+                # qnode << Meq.Constant(rr['parm'])
+                # self.parm(key, qnode, redefine=True)      
             else:                                        # assume numeric
                 s = '** parmtype not recognised: '+str(rr['type'])
-                raise ValueError,s
+                raise TypeError,s
 
             if funklet:
                 qnode << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
-                                 node_groups=['Parm'])
+                                  node_groups=['Parm'])
                 self.parm(key, qnode, redefine=True)             
 
         # Finished
@@ -406,15 +412,15 @@ class Expression (Meow.Parameterization):
 
     #----------------------------------------------------------------------------
 
-    def vars2nodes (self):
+    def _vars2nodes (self):
         """Convert the variable(s) in self._expression to node(s).
         E.g. [t] is converted into a MeqTime node, etc.
         This is only done when needed"""
 
         # Do this only once:
-        if self._vars2nodes:
+        if self._done_vars2nodes:
             return True                                # done already
-        self._vars2nodes = True
+        self._done_vars2nodes = True
 
         expr = self._expand()
         for key in self._var.keys():
@@ -424,7 +430,6 @@ class Expression (Meow.Parameterization):
             if pkey in self._parm_order:
                 s = '\n** var is already a parm: '+str(pkey)
                 raise ValueError,s
-            # qnode = self.ns[vtype]
             qnode = self.ns[pkey]
             if not qnode.initialized():                # ....?
                 if vtype=='MeqTime':
@@ -437,14 +442,14 @@ class Expression (Meow.Parameterization):
                     qnode << Meq.Grid(axis='m')
                 else:
                     s = '\n** var2node(): not recognised:'+str(vtype)
-                    raise ValueError,s
+                    raise TypeError,s
             # Define a MeqNode parm with qnode
             expr = expr.replace(key, pkey)             # e.g. replace [t] with {MeqTime}
             self._create_undefined_parm (pkey)         
             self.parm (pkey, qnode, testval=rr['testval'])
 
         # Finished:
-        self._expression = expr
+        self._expanded = expr
         return True
 
 
@@ -452,7 +457,7 @@ class Expression (Meow.Parameterization):
     # Expansion and evaluation:
     #================================================================================
 
-    def _expand (self, replace_numeric=False, trace=False):
+    def _expand (self, replace_numeric=True, trace=False):
         """Expand its expression by replacing the sub-expressions.
         If replace_numeric==True, also replace the numeric ones (for eval())."""
         expr = deepcopy(self._expression)
@@ -482,8 +487,8 @@ class Expression (Meow.Parameterization):
                 raise ValueError, s
         # Finished:    
         self._expanded = expr
-        self._parms2nodes = False
-        self._vars2nodes = False
+        self._done_parms2nodes = False
+        self._done_vars2nodes = False
         return expr
 
     #---------------------------------------------------------------------------
@@ -505,12 +510,14 @@ class Expression (Meow.Parameterization):
                 expr = expr.replace(key, replace)
                 if trace:
                     print '** replace:',key,' with:',replace,' ->',expr
+        # Finished:
+        self._testexpr = expr
         v = eval(expr)
         return v
                                     
 
     #============================================================================
-    # The Expression can be converted into a Funklet:
+    # The Expression can be converted into various other objects:
     #============================================================================
 
     def MeqFunctional (self, show=False):
@@ -519,8 +526,8 @@ class Expression (Meow.Parameterization):
 
         qnode = self.ns['Functional']
         if not qnode.initialized():
-            self.parms2nodes()                                  # also does .vars2nodes()
-            function = deepcopy(self._expression)
+            self._parms2nodes()              # calls ._expand() and ._vars2nodes()
+            function = deepcopy(self._expanded)
             children = []
             nodenames = []
             child_map = []                                      # for MeqFunctional
@@ -543,7 +550,8 @@ class Expression (Meow.Parameterization):
                                     function=function,
                                     child_map=child_map)
         # Finsihed:
-        self._Functional = function
+        self._Functional_function = function
+        self._Functional = qnode
         if show: display.subtree(qnode)
         return qnode
 
@@ -558,36 +566,32 @@ class Expression (Meow.Parameterization):
         qnode = self.ns['MeqCompounder']
         if not qnode.initialized():
 
-            # Make a MeqParm node from the Expression:
-            parm = self.MeqParm()
+            # Make a single node from the Expression:
+            node = self.MeqNode()
 
             # Check whether there are extra axes defined for all variables
             # in the expression other than [t] and [f]:
             caxes = []
-            caxstring = ''
             for cax in common_axes:
-                caxes.append(str(cax))
-                caxstring += str(cax)
+                caxes.append('['+str(cax)+']')
             for key in self._var.keys():
-                if not key in ['t','f']:
-                    if not key in caxes:
-                        s = '** missing cax:',key
-                        raise ValueError, s
+                print key,caxes
+                if not key in ['[t]','[f]']:
+                    pass
+                    #if not key in caxes:
+                    #    s = '** missing cax:',key
+                    #    raise ValueError, s
                 
-            # NB: The specified qualifier (qual) is used for the MeqCompounder,
-            # but NOT for the MeqParm. The reason is that the Compounder has more
-            # qualifiers than the Parm. E.g. EJones_X is per station, but the
-            # compounder and its children (l,m) are for a specific source (q=3c84)
-            qnode << Meq.Compounder(children=[extra_axes,parm], common_axes=common_axes)
-            self._Compounder = str(common_axes)
+            qnode << Meq.Compounder(children=[extra_axes, node],
+                                    common_axes=common_axes)
+            self._Compounder = qnode
+            self._Compounder_common_axes = str(common_axes)
 
         # Finished
         if show: display.subtree(qnode)
         return qnode
 
 
-    #============================================================================
-    # The Expression can be converted into a Funklet:
     #============================================================================
 
     def Funklet (self):
@@ -597,33 +601,33 @@ class Expression (Meow.Parameterization):
         if self._Funklet:
             return self._Funklet
 
-        if len(self._parmtype['MeqNode'])>0:
+        if self._has_MeqNodes:
             # If there are MeqNode children, the Expression should be turned into
             # a MeqFunctional node. It is not possible to make a Funklet.
-            print '\n** .Funklet(): Expression has MeqNode child(ren)!\n'
             return False
         
-        expr = deepcopy(self.expression())
+        function = deepcopy(self._expanded)
+
         # Replace the parameters {} with pk = p0,p1,p2,...
         # and fill the coeff-list with their default values
         coeff = []
         k = -1
-        for key in self._parm_order():
+        for key in self.parm_order():
             rr = self._parm[key]
             if rr['type'] in ['MeqParm']:
                 k += 1
                 pk = 'p'+str(k)
-                expr = expr.replace(key, pk)
+                function = function.replace(key, pk)
                 value = rr['default']
-                value = float(value)                    # required by Funklet...!?
+                value = float(value)                   # required by Funklet...!?
                 coeff.append(value)
                 print '- parm',k,key,pk,coeff
 
         # Replace the valiables [] with x0 (time), x1(freq) etc
         for key in self._var.keys():
             xk = self._var[key]['xn']
-            expr = expr.replace(key, xk) 
-            if trace: print '- var',key,xk
+            function = function.replace(key, xk) 
+            print '- var',key,xk
 
         # Make the Funklet, and attach it:
         # if self._expression_type=='MeqPolc':         # see polc_Expression()
@@ -632,34 +636,72 @@ class Expression (Meow.Parameterization):
         #-----------------------------------------------------
         if True:
             # type: isinstance(f0, Funklet) -> True
-            f0 = Funklet(funklet=record(function=expr, coeff=coeff), name=self.label())
+            f0 = Funklet(funklet=record(function=function, coeff=coeff),
+                         name=self.name)
         else:
             # Alternative: type(meq.polc(0)) 
             f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-            f0.function = expr
+            f0.function = function
         #-----------------------------------------------------
-        ex._Funklet = f0
-        self._Funklet = f0
-        ex._Funklet_function = expr                    # for display only
-        self._Funklet_function = expr                  # for display only
-
-        # Optional: plot the funklet in the browser (WITHOUT execution!)
-        if not plot==None:
-            print '\n** Expression.Funklet(plot=',plot,'):'
-            print '   Funklet()  -> expr =',expr
-            if isinstance(plot, dict):                  # explicit variable ranges
-                cells = self.expanded().make_cells(**plot) 
-            else:                                       # default variable ranges
-                # cells = self.expanded().make_cells()
-                cells = self.expanded().make_cells(t=dict(nr=1), f=dict(nr=5))
-            f0.plot(cells=cells, newpage=newpage)
 
         # Finished:
-        if trace:
-            print '   Funklet()  -> expr =',expr
-            print dir(f0)
-            print ''
+        self._Funklet = f0
+        self._Funklet_function = function         
         return self._Funklet
+
+
+
+
+
+    #--------------------------------------------------------------------------
+
+    def MeqParm (self, show=False):
+        """Make a MeqParm node by converting the (expanded) expression into
+        a Funklet, and using that as init_funklet."""
+        qnode = self.ns['MeqParm']
+        if not qnode.initialized():
+            funklet = self.Funklet()
+            if isinstance(funklet, bool):
+                s = '** funklet is '+str(type(funklet))
+                raise TypeError,s
+            qnode << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
+                              node_groups=['Parm'])
+        # Finished
+        self._MeqParm = qnode
+        if show: display.subtree(qnode)
+        return qnode
+
+    # MXM: 28 June 2006
+    # Ok, ik heb een functie get_meqfunklet() toegevoegd, die kun je gebruiken om
+    # het funklet_type object te krijgen, nodig als je het 'init_funklet' veld zelf
+    # met de hand zet (zoals je nu doet in Expression). Als je Meq.Parm
+    # aanroept met als eerste variable het Funklet object (of: funklet =  funklet,
+    # ipv init_funklet=funklet), gaat het ook goed, de Meq.Parm functie roept dan
+    # zelf get_meqfunket() aan.
+    # WEl lijkt het om vreemde import redenen niet te werken, dit komt omdat je
+    # Timba.TDL niet direkt geimporteerd hebt, als je :
+    #            from Timba.TDL import *
+    # toevoegt werkt het.
+
+    #---------------------------------------------------------------------------
+
+    def MeqNode (self, show=False):
+        """Make a single node/subtree from the Expression. In most cases,
+        this will be a MeqParm, with the expression Funklet as init_funklet.
+        But if the expression has at least one parameter that is a node,
+        the result will be a MeqFunctional node."""
+
+        qnode = self.ns['MeqNode']
+        if not qnode.initialized():
+            if not self._has_MeqNodes:        
+                qnode = self.MeqParm(show=show)
+            else:
+                qnode = self.MeqFunctional(show=show)
+            self._MeqNode = qnode
+        if show:
+            display.subtree(qnode)
+        return qnode
+
 
 
     #===========================================================================
@@ -695,501 +737,6 @@ class Expression (Meow.Parameterization):
             self._MeqParms['all'].extend(klasses['MeqParm'])
         return self._MeqParms
 
-
-    #===========================================================================
-    # Functions that require a nodescope (ns)
-    #===========================================================================
-
-
-    def leaf2node (self, ns, level=0, trace=False):
-        """Convert leaf parameter(s) and variable(s) in self._expression to node(s).
-        This is a recursive combination of var2node() and (part of) parm2node()."""
-
-        self.var2node (ns, trace=trace)                  # convert vars to nodes
-
-        for key in self._parm.keys():
-            parm = self._parm[key]
-            name = 'Expr_'+self.label(strip=True)+'_'+key
-            node = self._unique_node (ns, name, qual=[], trace=trace)
-            if key in self._parmtype['Expression']:     # recursive
-                parm.leaf2node(ns, level=level+1, trace=trace)
-            elif key in self._parmtype['Funklet']:
-                pass                                     # ignore
-            elif key in self._parmtype['MeqNode']:
-                pass                                     # already a node
-            elif parm.has_key('constant') and parm['constant']==True:
-                node << Meq.Constant(parm['default'])
-                self.parm(key, node, origin='leaf2node') # redefine the parm
-            else:                                        # assume numeric
-                node << Meq.Parm(parm['default'],
-                                 node_groups=['Parm'])
-                self.parm(key, node, origin='leaf2node') # redefine the parm
-
-        if trace: self.display('.leaf2node('+str(level)+')', full=True)
-        return True
-
-
-    #--------------------------------------------------------------------------
-
-    def subExpression (self, substring, label='substring', trace=False):
-        """Convert the specified substring of self._expression
-        into a separate Expression object, including its parm/var info."""
-        # trace = True
-        if trace:
-            print '\n** .subExpression(',substring,'):'
-        index = self._expression.rfind(substring)
-        if index<0:
-            print '\n** .subExpression(',substring,'): not found in:',self._expression,'\n'
-            return False
-        e1 = Expression(substring, label,
-                        descr='subExpression from: '+self.tlabel())
-        for key in e1._parm.keys():
-            parm = self._parm[key]
-            # NB: Turn this into a routine .replace_parmdef().....
-            e1._parm[key] = parm
-            if isinstance(parm, Expression):
-                if not key in e1._parmtype['Expression']:
-                    e1._parmtype['Expression'].append(key)
-            elif isinstance(parm, Funklet):
-                if not key in e1._parmtype['Funklet']:
-                    e1._parmtype['Funklet'].append(key)
-            elif isinstance(parm, dict):
-                if parm.has_key('node'):
-                    if not key in e1._parmtype['MeqNode']:
-                        e1._parmtype['MeqNode'].append(key)
-            if trace: print '- copy parm[',key,']:',e1._parm[key]
-        for key in e1._var.keys():
-            e1._var[key] = self._var[key]
-            if trace: print '- copy var[',key,']:',e1._var[key]
-        e1._quals = self._quals
-        if trace:
-            e1.display('subExpression()', full=True)
-        return e1
-
-    #--------------------------------------------------------------------------
-
-    def subTree (self, ns, expand=True, diff=False, solve=False, trace=False):
-        """Make a subtree of separate nodes from self._expression"""
-
-        trace = True
-        if trace: print '\n** .subTree():',self.tlabel()
-
-        # NB: Work on a copy, since self is modified!
-        if expand:
-            ex = self.expanded(expand=True, trace=trace)
-            copy = ex.copy(label=self.label(), descr='copy used for .subTree()')
-        else:
-            copy = self.copy(label=self.label(), descr='copy used for .subTree()')
-        if trace: copy.display('after .copy()', full=False)
-
-        # Turn all the leaf {parameters} into MeqLeaves:
-        copy.leaf2node(ns, trace=False)
-        if trace: copy.display('after .leaf2node()', full=False)
-
-        # Make the subtree:
-        if True:
-            node = copy.terms2node (ns, trace=trace)
-            if trace: copy.display('after .terms2node()', full=False)
-        else:
-            node = copy.factors2node (ns, trace=trace)
-            if trace: copy.display('after .factors2node()', full=False)
-
-        # The original Expression object is NOT modified:
-        # if trace: self.display('original object, should be unchanged')
-
-        if trace:
-            f0 = self.Funklet()
-            print '\n** expressions:'
-            print '- Funklet: ',f0._function
-            if expand:
-                print '- expanded:',ex._expression
-            else:
-                print '- self:    ',self._expression
-            print '- copy:    ',copy._expression
-
-        # Optional, extend the subtree (node) with a subtract, for comparison:
-        if diff:
-            f0 = self.MeqNode(ns)                       # creates a Funklet or Functional 
-            name = 'subTree_diff_'+self.label()
-            diff = ns[name] << Meq.Subtract(f0,node)
-            return diff
-
-        # Optional, extend the subtree (node) with a solver, for comparison:
-        elif solve:
-            # if isinstance(solve, bool): solve='subtree'
-            if True:
-                self.display('before perturb')
-                self.perturb(stddev=0.1)
-                self.display('after perturb')
-                solvable = self.MeqParms(ns, trace=True)    # <--- solve for funklet/Functional
-            else:
-                copy.display('before perturb')
-                copy.perturb(stddev=0.1)
-                copy.display('after perturb')
-                solvable = copy.MeqParms(ns, trace=True)    # <--- solve for subtree MeqParms
-            f0 = self.MeqNode(ns)                           # creates a Funklet or Functional 
-            name = 'Expr_'+self.label(strip=True)+'_subTree_condeq'
-            condeq = ns[name] << Meq.Condeq(f0,node)
-            name = 'Expr_'+self.label(strip=True)+'_subTree_solver'
-            solver = ns[name] << Meq.Solver(children=[condeq],
-                                            num_iter=20,
-                                            solvable=solvable)
-            return solver
-
-        # Return the root node of the generated subtree:
-        return node
-
-    #--------------------------------------------------------------------------
-
-    def bunop2node (self, ns, level=0, trace=False):
-        """Turn a (top-level, isolated) unary (e.g. cos(a)) or binary operation
-        in self._expression into a node, i.e. a root node of a subtree"""
-        if trace: print '**** .bunop2node(',level,'):',self.tlabel()
-        node = None
-        name = 'Expr_'+self.label(strip=True)+'_'
-        rr = JEN_parse.find_unop(self._expression, trace=trace)
-        if isinstance(rr['unop'], str):
-            subex = self.subExpression(rr['arg'], label=rr['unop']+'_arg')
-            if trace: print subex.oneliner()
-            arg_node = subex.factors2node (ns, level=level+1, trace=trace)
-            node = self._unique_node (ns, name+rr['unop']+'(..)')
-            node << getattr(Meq,rr['node'])(arg_node)
-        else:
-            rr = JEN_parse.find_binop(self._expression, trace=trace)
-            if isinstance(rr['binop'], str):
-                lhs = self.subExpression(rr['lhs'], label=rr['binop']+'_lhs')
-                if trace: print lhs.oneliner()
-                rhs = self.subExpression(rr['rhs'], label=rr['binop']+'_rhs')
-                if trace: print rhs.oneliner()
-                lhs_node = lhs.factors2node (ns, level=level+1, trace=trace)
-                rhs_node = rhs.factors2node (ns, level=level+1, trace=trace)
-                node = self._unique_node (ns, name+rr['binop']+'(..)')
-                node << getattr(Meq,rr['node'])(lhs_node,rhs_node)
-        return node
-
-    #--------------------------------------------------------------------------
-
-    def terms2node (self, ns, level=0, trace=False):
-        """Turn the additive terms of self._expression into a (subtree) node"""
-
-        if trace: print '**** .terms2node(',level,'):',self.tlabel()
-
-        # Split self._expression into additive terms:
-        rr = JEN_parse.find_terms(self._expression, trace=trace)
-        nterms = len(rr['pos'])+len(rr['neg'])          
-        if nterms==0:                                   # no terms at all..?
-            return None                                 # something wrong
-
-        # Convert the term(s) into node(s):
-        cc = dict(pos=[], neg=[])
-        for key in cc.keys():                           # 'pos','neg'
-            for i in range(len(rr[key])):
-                if trace: print '-',key,i,rr[key][i]
-                subex = self.subExpression(rr[key][i], label=key+'term'+str(i))
-                if trace: print subex.oneliner()
-                node = subex.bunop2node (ns, level=level+1, trace=trace)
-                if node==None:
-                    if nterms>1 or level<10:
-                        node = subex.factors2node(ns, level=level+1, trace=trace)      
-                    else:                               # ...excape...
-                        print '.... escape: level=',level
-                        node = subex.MeqNode(ns)        # convert into a node
-                if not node==None:                      # assume a valid node (..?) 
-                    cc[key].append(node)                    
-
-        # Make a subtree if more than one term:
-        if nterms>1:        
-            name = 'Expr_'+self.label(strip=True)+'_'
-            # Make separate subtrees (sums) for the positive and negative terms:
-            for key in cc.keys():                       # 'pos','neg'
-                if len(cc[key])==0:                     # no nodes
-                    cc[key] = None
-                elif len(cc[key])==1:                   # one node: keep it
-                    cc[key] = cc[key][0]
-                else:                                   # more than one: MeqAdd
-                    node = self._unique_node (ns, name+'add(..)')
-                    node << Meq.Add(children=cc[key])
-                    cc[key] = node                      # used below 
-            # Subtract the negative from the positive:
-            node = None
-            if cc['pos']==None:
-                if not cc['neg']==None:
-                    node = self._unique_node (ns, name+'negate(..)')
-                    node << Meq.Negate(cc['neg'])
-            elif cc['neg']==None:
-                node = cc['pos']
-            else:
-                node = self._unique_node (ns, name+'subtract(..)')
-                node << Meq.Subtract(cc['pos'],cc['neg'])
-
-        # Return the root node of the resulting subtree:
-        return node
-
-    #--------------------------------------------------------------------------
-
-    def factors2node (self, ns, level=0, trace=False):
-        """Turn the additive factors of self._expression into a (subtree) node"""
-
-        if trace: print '**** .factors2node(',level,'):',self.tlabel()
-
-        # Split self._expression into multiplicative factors:
-        rr = JEN_parse.find_factors(self._expression, trace=trace)
-        nfactors = len(rr['mult'])+len(rr['div'])          
-        if nfactors==0:                                 # no factors at all ..?
-            return None                                 # something wrong
-
-        # Convert the factors into nodes:
-        cc = dict(mult=[], div=[])
-        for key in cc.keys():                           # 'mult','div'
-            for i in range(len(rr[key])):
-                if trace: print '-',key,i,rr[key][i]
-                subex = self.subExpression(rr[key][i], label=key+'factor'+str(i))
-                if trace: print subex.oneliner()
-                if nfactors>1 or level<10:
-                    node = subex.terms2node(ns, level=level+1, trace=trace)      
-                else:                                   # ...escape...
-                    print '.... escape: level=',level
-                    node = subex.MeqNode(ns)            # convert into a node
-                if not node==None:                      # assume a valid node (..?)
-                    cc[key].append(node)
-                    nfactors += 1
-
-        if nfactors>1:                                  # more than one factor
-            name = 'Expr_'+self.label(strip=True)+'_'
-            # Make separate subtrees (products) for the multiplicative and divisive factors:
-            for key in cc.keys():                       # 'mult','div'
-                if len(cc[key])==0:                     # no nodes
-                    cc[key] = None
-                elif len(cc[key])==1:                   # one node: keep it
-                    cc[key] = cc[key][0]
-                else:                                   # more than one: MeqAdd
-                    node = self._unique_node (ns, name+'multiply(..)')
-                    node << Meq.Multiply(children=cc[key])
-                    cc[key] = node                      # used below
-            # Subtract the negative from the positive:
-            node = None
-            if cc['mult']==None:
-                if not ncc['div']==None:
-                    node = self._unique_node (ns, name+'inverse(..)')
-                    node << Meq.Inverse(cc['div'])
-            elif cc['div']==None:
-                node = cc['mult']
-            else:
-                node = self._unique_node (ns, name+'divide(..)')
-                node << Meq.Divide(cc['mult'],cc['div'])
-
-        # Return the root node of the resulting subtree:
-        return node
-
-
-    #--------------------------------------------------------------------------
-
-    def MeqParm (self, show=False):
-        """Make a MeqParm node by converting the (expanded) expression into
-        a Funklet, and using that as init_funklet."""
-        qnode = self.ns['MeqParm']
-        if not qnode.initialized():
-            funklet = self.Funklet()
-            if isinstance(funklet, bool):
-                s = '** funklet is '+str(type(funklet))
-                raise ValueError,s
-            qnode << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
-                              node_groups=['Parm'])
-        # Finished
-        if show: display.subtree(qnode)
-        return qnode
-
-    # MXM: 28 June 2006
-    # Ok, ik heb een functie get_meqfunklet() toegevoegd, die kun je gebruiken om
-    # het funklet_type object te krijgen, nodig als je het 'init_funklet' veld zelf
-    # met de hand zet (zoals je nu doet in Expression). Als je Meq.Parm
-    # aanroept met als eerste variable het Funklet object (of: funklet =  funklet,
-    # ipv init_funklet=funklet), gaat het ook goed, de Meq.Parm functie roept dan
-    # zelf get_meqfunket() aan.
-    # WEl lijkt het om vreemde import redenen niet te werken, dit komt omdat je
-    # Timba.TDL niet direkt geimporteerd hebt, als je :
-    #            from Timba.TDL import *
-    # toevoegt werkt het.
-
-    #---------------------------------------------------------------------------
-
-    def MeqNode (self, ns, name=None, qual=[], expand=True, trace=False):
-        """Make a single node/subtree from the Expression. In most cases,
-        this will be a MeqParm, with the expression Funklet as init_funklet.
-        But if the expression has at least one parameter that is a node,
-        the result will be a MeqFunctional node."""
-        nv = self.numeric_value()
-        if not nv==None:
-            # Special case: the Expression is purely numeric
-            if not self._MeqConstant:               # avoid duplication...
-                if not name:
-                    name = 'Expr_'+self.label(strip=True)+'_MeqConstant'
-                self._MeqConstant = self._unique_node (ns, name, qual=qual, trace=trace)
-                self._MeqConstant  << Meq.Constant(nv)
-            node = self._MeqConstant
-
-        elif len(self._parmtype['MeqNode'])==0:     # no node parms
-            node = self.MeqParm(ns, name=name, qual=qual, trace=trace)
-
-        elif len(self._parm)==1 and len(self._var)==0:
-            # The one exception: a single (node) parm, and no var
-            # NB: This goes wrong if expr = {A}+{A} ........!!
-            key = self._parm.keys()[0]
-            node = self._parm[key]['node']          # just use the single node parm
-
-        else:
-            node = self.MeqFunctional(ns, name=name, qual=qual,
-                                      expand=expand, trace=trace)
-        self._MeqNode = node
-        return node
-
-    #---------------------------------------------------------------------------
-
-    def MeqFunctional_obsolete (self, ns, name=None, qual=[], expand=True, trace=False):
-        """Make a MeqFunctional node from the Expression, by replacing all its
-        parameters and variables with nodes (MeqParm, MeqTime, MeqFreq, etc).
-        If expand==True (default), the Functional is made from the expanded
-        expression. Note that, if expand==False, the object itself is modified!!"""
-        if self._MeqFunctional:
-            return self._MeqFunctional                 # avoid duplication
-        if expand:
-            ex = self.expanded(expand=True, trace=trace)
-            f0 = ex.make_MeqFunctional (ns, name=name, qual=qual, trace=trace)
-        else:
-            f0 = self.make_MeqFunctional (ns, name=name, qual=qual, trace=trace)
-        self._MeqFunctional = f0
-        return self._MeqFunctional
-
-    #..........................................................................
-        
-    def make_MeqFunctional_obsolete (self, ns, name=None, qual=[], trace=False):
-        """Helper function that does the work for .MeqFunctional()"""
-        if trace: print '\n** MeqFunctional(',name,qual,'):'
-
-        self.parm2node (ns, trace=trace)                # convert parms to nodes
-        self.var2node (ns, trace=trace)                 # convert vars to nodes
-
-        function = deepcopy(self._expression)
-        children = []
-        nodenames = []
-        child_map = []                                  # for MeqFunctional
-        k = -1
-        for key in self._parm.keys():
-            k += 1                                      # increment
-            xk = 'x'+str(k)                             # x0, x1, x2, ..
-            function = function.replace('{'+key+'}',xk)
-            parm = self._parm[key]                     # parm definition record
-            nodename = parm['nodename']
-            if not nodename in nodenames:               # once only
-                nodenames.append(nodename)
-                children.append(parm['node'])
-            child_num = nodenames.index(nodename)       # 0-based(!)
-            rr = record(child_num=child_num, index=parm['index'],
-                        nodename=parm['nodename'])
-            if trace: print '-',key,xk,rr
-            child_map.append(rr)
-        if not name:
-            name = 'Expr_'+self.label(strip=True)+'_MeqFunctional'
-        self._MeqFunctional = self._unique_node (ns, name, qual=qual, trace=trace)
-        self._MeqFunctional << Meq.Functional(children=children,
-                                               function=function,
-                                               child_map=child_map)
-        self._expanded = True
-        return self._MeqFunctional
-
-
-    #--------------------------------------------------------------------------
-
-    def MeqCompounder (self, ns, name=None, qual=[], 
-                       extra_axes=None, common_axes=None, trace=False):
-        """Make a MeqCompunder node from the Expression. The extra_axes argument
-        should be a MeqComposer that bundles the extra (coordinate) children,
-        described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
-
-        # Make a MeqParm node from the Expression:
-        parm = self.MeqParm (ns, name=name, qual=[], trace=trace)
-
-        # Check whether there are extra axes defined for all variables
-        # in the expression other than [t] and [f]:
-        caxes = []
-        caxstring = ''
-        for cax in common_axes:
-            caxes.append(str(cax))
-            caxstring += str(cax)
-        for key in self._var.keys():
-            if not key in ['t','f']:
-                if not key in caxes:
-                    print '\n** .MeqCompouder(',name,qual,'): missing cax:',key,'\n'
-                
-        # NB: The specified qualifier (qual) is used for the MeqCompounder,
-        # but NOT for the MeqParm. The reason is that the Compounder has more
-        # qualifiers than the Parm. E.g. EJones_X is per station, but the
-        # compounder and its children (l,m) are for a specific source (q=3c84)
-        if not name: name = 'Expr_'+self.label(strip=True)+'_'+caxstring
-        node = self._unique_node (ns, name, qual=qual, trace=trace)
-        node << Meq.Compounder(children=[extra_axes,parm], common_axes=common_axes)
-        return node
-
-
-    #================================================================================
-    # Node-names:
-    #================================================================================
-
-    def quals(self, quals=[]):
-        """Get/set the overall MeqNode node-name qualifier(s)"""
-
-        if quals==None: quals = []
-        if not isinstance(quals,(list,tuple)): quals = [quals]
-
-        # Reset the object (if nominal, reset parm defaults to nominal, else stddev):
-        nominal = True
-        if len(quals)>0: nominal=False
-        self._reset (nominal=nominal)              # BEFORE modifying self._quals
-
-        # Modify self._quals (always!):
-        for qual in quals:
-            self._quals.append(qual)        # 
-        # Always return the current self._quals
-        return self._quals
-
-    #..........................................................................
-
-    def qualtag(self):
-        """Get a string summary of the qualifiers, e.g. to tag (expanded) parm names"""
-        qtag = ''                                  # default: none
-        for qual in self._quals:
-            qtag += str(qual) 
-        return qtag
-
-
-    #--------------------------------------------------------------------------
-
-    def _unique_node (self, ns, name, qual=[], trace=False):
-        """Helper function to generate a unique node-name.
-        It first tries one with the internal and the specified qualifiers.
-        If that exists already, it add a unique qualifier (uniqual)."""
-
-        trace = False
-        
-        # Combine any specified qualifiers (qual) with any internal ones:
-        quals = deepcopy(self._quals)
-        qualin = deepcopy(qual)
-        if qualin==None: qualin = []
-        if not isinstance(qualin, (list,tuple)): qualin = [qualin]
-        for q in qualin:
-            if not q in quals: quals.append(q)
-            
-        # First try without uniqual:
-        node = ns[name](*quals)
-
-        # If the node exists already, make a unique one:
-        if node.initialized():
-            # Add an extra qualifier to make the nodename unique:
-            uniqual = _counter (name, increment=-1)
-            node = ns[name](*quals)(uniqual)
-                
-        if trace: print '\n** ._unique_node(',name,qual,') ->',node
-        return node
 
 
 #----------------------------------------------------------------------------------
@@ -1901,30 +1448,67 @@ if __name__ == '__main__':
         e1 = Expression(ns,'e1','xx')
         e1.display()
 
-    if 1:
-        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}')
+    if 0:
+        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
         e0.parm('{a}', '[f]*{c}/{b}+{d}')
-        e0.parm('{b}', (ns << Meq.Constant(56)))
+        e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
         e0.parm('{c}', 47)
         e0.parm('{d}', (ns << Meq.Parm(-56)))
+        e0.parm('{f}', 'MeqParm', default=-56)
         if True:
             e1 = Expression(ns,'e1','{A}+{B}/[m]')
             e1.parm('{A}', 45)
             e1.parm('{B}', -45)
             e0.parm('{e}', e1)
         e0.display()
+        if 1:
+            e0.MeqNode()
+            e0.display()
+        if 0:
+            e0.MeqParm()
+            e0.display()
+        if 0:
+            e0._vars2nodes()
+            e0.display()
+        if 0:
+            e0._parms2nodes()
+            e0.display()
+        if 0:
+            e0.MeqFunctional(show=True)
+            e0.display()
 
     if 0:
-        e0.vars2nodes()
-        e0.display()
-    if 0:
-        e0.parms2nodes()
-        e0.display()
+        e2 = Expression(ns, 'e2', '{a}*[t]-{a}**{f}')
+        e2.parm('{a}', '[f]*{c}/{b}+{d}')
+        e2.parm('{b}', 447)
+        e2.parm('{c}', 47)
+        e2.parm('{d}', (ns << Meq.Parm(-56)))
+        e2.parm('{f}', 'MeqParm', default=-56)
+        e2.display()
+        if 0:
+            e2.MeqNode()
+            e2.display()
+        if 1:
+            e2.MeqParm()
+            e2.display()
+        if 0:
+            e2.Funklet()
+            e2.display()
+        if 0:
+            e2.MeqCompounder(show=True)
+            e2.display()
 
     if 1:
-        e0.MeqFunctional(show=True)
-        e0.display()
-
+        e4 = Expression(ns, 'e4', '[l]-[m]')
+        e4.display()
+        if 1:
+            L = ns.L << 0.1
+            M = ns.M << -0.2
+            LM = ns.LM << Meq.Composer(L,M)
+            node = e4.MeqCompounder(extra_axes=LM,
+                                    common_axes=[hiid('l'),hiid('m')],
+                                    show=True)
+            e4.display()
 
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
