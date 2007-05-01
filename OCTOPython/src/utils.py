@@ -19,7 +19,7 @@ def extract_stack (f=None,limit=None):
   """equivalent to traceback.extract_stack(), but also works with psyco
   """
   if f is not None:
-    raise RuntimeError,"Timba.utils.extract_stack: f has to be None";
+    raise RuntimeError,"Timba.utils.extract_stack: f has to be None, don't ask why";
   # normally we can just use the traceback.extract_stack() function and
   # cut out the last frame (which is just ourselves). However, under psyco
   # this seems to return an empty list, so we use sys._getframe() instead
@@ -29,7 +29,12 @@ def extract_stack (f=None,limit=None):
   tb = traceback.extract_stack(None,lim);
   if tb:
     return tb[:-1];  # skip current frame
-  # presumably running under psyco
+  # else presumably running under psyco
+  return nonportable_extract_stack(f,limit);
+
+def nonportable_extract_stack (f=None,limit=None):
+  if f is not None:
+    raise RuntimeError,"Timba.utils.nonportable_extract_stack: f has to be None, don't ask why";
   tb = [];
   fr = sys._getframe(1);  # caller's frame
   while fr and (limit is None or len(tb) < limit):

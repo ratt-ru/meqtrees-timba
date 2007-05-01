@@ -353,14 +353,17 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
-    self._deftb = Timba.utils.extract_stack(None);
-    ## this used to say:
+    ## this used to say
     # self._deftb = Timba.utils.extract_stack(None,4);
-    ## but this broke the mechanism used to identify where in our code a node
+    ## but this broke the mechanism used to identify where in 'user' code a node
     ## was initialized (because implicit arithmetic can cause a stack of deeper than 
-    ## 4 of TDLimpl-only calls, before we got to 'user' code.) I'm no longer
-    ## sure why I had a 4 there to begin with, presumably for performance... 
-    self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
+    ## 4 of internal calls.) On the other hand, removing the limit: 
+    # self._deftb = Timba.utils.extract_stack(None);
+    # self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
+    ## causes compilation to be really slow, since extract_stack() is so slow.
+    ## So now we use a slightly less portable, but hopefully faster version: 
+    self._deftb = Timba.utils.nonportable_extract_stack(None);
+    self._caller =  _identifyCaller(stack=self._deftb,depth=2)[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
   def __copy__ (self):
     return self;
@@ -409,8 +412,8 @@ class _NodeStub (object):
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          where = NodeRedefinedError("node %s first defined here"%(self.name,),tb=self._deftb);
-          raise NodeRedefinedError("conflicting definition for node %s"%(self.name,),next=where);
+          where = NodeRedefinedError("node '%s' first defined here"%(self.name,),filename=self._caller[0],lineno=self._caller[1],tb=self._deftb);
+          raise NodeRedefinedError("conflicting definition for node '%s'"%(self.name,),next=where);
       else:
         try: self.classname = getattr(initrec,'class');
         except AttributeError: 
@@ -896,9 +899,13 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            self.add_error(UninitializedNode("node '%s' used but not initialized anywhere" % (ch.name)),tb=node._deftb);
-            if node._caller != ch._caller:
-              self.add_error(CalledFrom("node was referenced here"),tb=ch._deftb);
+            self.add_error(
+                UninitializedNode("node '%s' used but not initialized anywhere"%ch.name,
+                   filename=node._caller[0],lineno=node._caller[1]),tb=node._deftb);
+## no need for this, since we're not really interested where the node was defined,
+## and we're going to get this error everywhere that it's used
+#            if node._caller != ch._caller:
+#              self.add_error(CalledFrom("node was referenced here"),tb=ch._deftb);
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
@@ -1017,7 +1024,9 @@ class NodeScope (object):
   def _apply_qualifiers (name,quals=[],kwquals={}):
     """Qualifies a name by appending qualifiers to it, in the form
     of name:a1:a2:k1=v1:k2=v2, etc."""
-    return ':'.join([str(name)]+map(str,quals)+NodeScope._flatten_keyword_quals(kwquals));
+    return ':'.join([str(name)]+
+                     map(NodeScope._resolve_to_string,quals)+
+                     NodeScope._flatten_keyword_quals(kwquals));
   _apply_qualifiers = staticmethod(_apply_qualifiers);
   
   def Subscope (self,name,*quals,**kwquals):
@@ -1175,7 +1184,25 @@ def _identifyCaller (depth=3,skip_internals=True,stack=None):
   else:
     (filename,line,funcname,text) = stack[-depth];
   return (filename,line,funcname);
-  # return "%s:%d:%s" % (filename,line,funcname);
+  
+def _fastIdentifyCaller (depth=2,skip_internals=True):
+  """Identifies source location from which function was called.
+  Normal depth is 2, corresponding to the caller of the caller of
+  _fastIdentifyCaller(), but if skip_internals=True, this will additionally 
+  skip over internal methods.
+  This is an alternative to _identifyCaller() which does not use traceback/stack objects,
+  and so should be significantly faster. It may be less portable though.
+  Returns triplet of (filename,line,None).
+  """;
+  fr = sys._getframe(depth);  # caller's frame
+  while fr:
+    filename = fr.f_code.co_filename;
+    lineno = fr.f_lineno;
+    if not _re_localfiles.match(filename):
+      break;
+    fr = fr.f_back;
+  return (filename,lineno,None);
+
   
 # helper func to pretty-print a node
 def _printNode (node,name='',offset=0):
