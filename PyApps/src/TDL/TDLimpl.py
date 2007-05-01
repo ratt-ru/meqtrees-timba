@@ -353,7 +353,13 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
-    self._deftb = Timba.utils.extract_stack(None,4);
+    self._deftb = Timba.utils.extract_stack(None);
+    ## this used to say:
+    # self._deftb = Timba.utils.extract_stack(None,4);
+    ## but this broke the mechanism used to identify where in our code a node
+    ## was initialized (because implicit arithmetic can cause a stack of deeper than 
+    ## 4 of TDLimpl-only calls, before we got to 'user' code.) I'm no longer
+    ## sure why I had a 4 there to begin with, presumably for performance... 
     self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
   def __copy__ (self):
@@ -417,8 +423,6 @@ class _NodeStub (object):
           if child is not None:
             child.parents[self.name] = self;
         # set init record and add ourselves to repository
-        _dprint(5,'adding',self.name,'to repository with initrec',self._initrec);
-        self.scope._repository[self.name] = self;
         # if creating sink or spigot, mark that we need a VisDataMux
         if self.classname == 'MeqSink':
           self.scope._repository._sinks.append(self);
@@ -462,10 +466,7 @@ class _NodeStub (object):
     _mergeQualifiers(q,kw,quals,kwquals,uniq=merge);
     fqname = self.scope.QualifyScopedName(self.basename,*q,**kw);
     _dprint(4,"creating requalified node",self.basename,q,kw,':',fqname);
-    try: 
-      return self.scope._repository[fqname];
-    except KeyError:
-      return _NodeStub(fqname,self.basename,self.scope,*q,**kw);
+    return self.scope._repository.nodeStub(fqname,self.basename,self.scope,*q,**kw);
   def __call__ (self,*quals,**kwquals):
     """Creates a node based on this one, with additional qualifiers. Extend, not merge
     is implied. Returns a _NodeStub.""";
@@ -636,6 +637,17 @@ class _NodeRepository (dict):
     self._have_vdm = None;
     # used during recursive searches
     self._search_cookie = 0;
+    
+  def nodeStub (self,name,*args,**kwargs):
+    """If the named node stub exists in the repository, returns it.
+    Else creates a new _NodeStub with the given arguments, adds it to the repository,
+    and returns it.
+    """;
+    try:
+      return self[name];
+    except KeyError:
+      nodestub = self[name] = _NodeStub(name,*args,**kwargs);
+      return nodestub;
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
@@ -884,7 +896,7 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            self.add_error(UninitializeNode("node '%s' not initialized anywhere" % (ch.name)),tb=node._deftb);
+            self.add_error(UninitializedNode("node '%s' used but not initialized anywhere" % (ch.name)),tb=node._deftb);
             if node._caller != ch._caller:
               self.add_error(CalledFrom("node was referenced here"),tb=ch._deftb);
         # make copy of initrec if needed
@@ -1040,7 +1052,7 @@ class NodeScope (object):
     except KeyError: 
       _dprint(5,'node',name,'not found, creating stub for it');
       fqname = self.QualifyScopedName(name);
-      node = _NodeStub(fqname,name,self);
+      node = self._repository.nodeStub(fqname,name,self);
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
     return node;
@@ -1095,7 +1107,7 @@ class NodeScope (object):
       name = "%s%d" % (name0,count);
       count += 1;
     # create the node
-    node = _NodeStub(name,name,self._globalscope);
+    node = self._repository.nodeStub(name,name,self._globalscope);
     # bind node, this also adds it to the repository
     node << _Meq.Constant(value=value);
     # add to map of constants 

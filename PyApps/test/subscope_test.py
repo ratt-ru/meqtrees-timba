@@ -46,6 +46,12 @@ def _define_forest (ns,**kwargs):
   ns9 = ns6.foo6(11,x=22).QualScope();
   ns9.foo6a(1,x=2) << 1;
 
+  # this tests for conflicting node, by contriving to create two nodes with the same
+  # fully-qualified name, via qualscopes.
+  # The node below gives the same name as ns3.foo. If uncommented, this should produce
+  # a NodeRedefinedError
+  # ns.foo(5,z=6) << 1;
+
 def _test_forest (mqs,parent,**kwargs):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
