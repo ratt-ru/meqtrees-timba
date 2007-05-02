@@ -357,7 +357,8 @@ class Funklet:
         if data is None:
             print "get_result failed, no data"
             return None;
-        result = meq.result(cells=cells,data=data);
+        vellset      = [record(shape=data.shape,value=data)],
+        result = meq.result(cells=cells,vellset=vellset);
         #print result;
         return result;
 
