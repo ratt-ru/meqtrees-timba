@@ -99,7 +99,6 @@ class Expression (Meow.Parameterization):
         self._parm = dict()
         self._parm_order = []
         self._has_MeqNodes = False
-        self._parmtype = dict()
         self._find_parms(self._expression)
 
         # For each variable in self._expression, make an entry in self._var.
@@ -144,19 +143,6 @@ class Expression (Meow.Parameterization):
         """Return the order of parameters in the input expression"""
         return self._parm_order
 
-    def parmtype (self, parmtype=None, key=None):
-        """Helper function to read/update self._parmtype"""
-        if parmtype==None:
-            return self._parmtype
-        elif key==None:
-            return self._parmtype[parmtype]
-        else:
-            self._parmtype.setdefault(parmtype,[])
-            if not key in self._parmtype[parmtype]:
-                self._parmtype[parmtype].append(key)
-        return True
-
-
 
     #----------------------------------------------------------------------------
     # Some display functions:
@@ -194,10 +180,6 @@ class Expression (Meow.Parameterization):
         if full:
             for key in self.parm_order():
                 print '    - '+str(key)+':  '+str(self._parm[key])
-        if False:
-            print '  * parmtypes ('+str(len(self.parmtype()))+'):'
-            for key in self._parmtype.keys():
-                print '    - '+str(key)+':  '+str(self.parmtype(key))
         print '  * variables ('+str(len(self._var))+'):'
         for key in self._var.keys():
             print '    - '+str(key)+':  '+str(self._var[key])
@@ -256,7 +238,6 @@ class Expression (Meow.Parameterization):
             else:
                 self._parm[key] = other._parm[key]
                 self._parm_order.append(key)
-            self.parmtype (other._parm[key]['type'], key)
         # Finished: 
         return True
 
@@ -298,10 +279,12 @@ class Expression (Meow.Parameterization):
                 default = parm.initrec()['init_funklet']['coeff']
                 rr['default'] = default
             elif parm.classname=='MeqConstant':          # ....?
+                self._has_MeqNodes = True
                 rr['type'] = 'MeqNode'
                 value = parm.initrec()['value']
                 rr['value'] = value
             else:
+                self._has_MeqNodes = True
                 rr['type'] = 'MeqNode'
         elif isinstance(parm, Funklet):
             rr['parm'] = parm
@@ -318,9 +301,6 @@ class Expression (Meow.Parameterization):
             raise TypeError, s
 
         # Finishing touches:
-        # Keep track of the different types of parameters:
-        self.parmtype (rr['type'], key)
-
         # Transfer optional parameters from input pp to rr:
         for key in ['testval']:
             if pp.has_key(key):
@@ -356,8 +336,6 @@ class Expression (Meow.Parameterization):
                 pass                                     # already a node
             elif rr['type']=='numeric':
                 pass                                     # part of expanded expr
-                # qnode << Meq.Constant(rr['parm'])
-                # self.parm(key, qnode, redefine=True)      
             else:                                        # assume numeric
                 s = '** parmtype not recognised: '+str(rr['type'])
                 raise TypeError,s
@@ -578,6 +556,7 @@ class Expression (Meow.Parameterization):
                 print key,caxes
                 if not key in ['[t]','[f]']:
                     pass
+                    # NB: str(hiid('m')) -> 'M'   ............!
                     #if not key in caxes:
                     #    s = '** missing cax:',key
                     #    raise ValueError, s
@@ -660,11 +639,16 @@ class Expression (Meow.Parameterization):
         a Funklet, and using that as init_funklet."""
         qnode = self.ns['MeqParm']
         if not qnode.initialized():
-            funklet = self.Funklet()
+            f0 = self.Funklet()
+            print dir(f0)
+            funklet = f0._funklet
+            if len(funklet['coeff'])==0:
+                funklet['coeff'] = [0.0]
+            print '** funklet =',funklet
             if isinstance(funklet, bool):
                 s = '** funklet is '+str(type(funklet))
                 raise TypeError,s
-            qnode << Meq.Parm(funklet=funklet,       # new MXM 28 June 2006
+            qnode << Meq.Parm(init_funklet=funklet,       # new MXM 28 June 2006
                               node_groups=['Parm'])
         # Finished
         self._MeqParm = qnode
@@ -677,7 +661,7 @@ class Expression (Meow.Parameterization):
     # met de hand zet (zoals je nu doet in Expression). Als je Meq.Parm
     # aanroept met als eerste variable het Funklet object (of: funklet =  funklet,
     # ipv init_funklet=funklet), gaat het ook goed, de Meq.Parm functie roept dan
-    # zelf get_meqfunket() aan.
+    # zelf get_meqfunklet() aan.
     # WEl lijkt het om vreemde import redenen niet te werken, dit komt omdat je
     # Timba.TDL niet direkt geimporteerd hebt, als je :
     #            from Timba.TDL import *
@@ -955,12 +939,13 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
                     uunit[pk] += '/Hz'
                 first = False
                 if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
-    result = Expression(func, label, descr='polc_Expression')
+    result = Expression(ns, 'p1', func,
+                        descr='polc_Expression')
     result._expression_type = type
 
     # Define the Expression parms:
     for key in pp.keys():
-        result.parm(key, pp[key], testinc=testinc[key], unit=uunit[key], stddev=stddev)
+        result.parm('{'+key+'}', pp[key], unit=uunit[key])
 
     # Define the Expression 'variable' parms, if necessary:
     if type=='MeqPolcLog':
@@ -986,55 +971,80 @@ def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
     return result
 
 
- 
-#=======================================================================================
 
-def Explot (*ee, **pp):
-    """Plot the list of Expressions (ee) in a mosaic of subplots"""
 
-    # Find the nr of rows and columns of the mosaic: 
-    n = len(ee)                                 # nr of Expressions/subplots
-    ncol = int(ceil(sqrt(n)))
-    nrow = int(ceil(float(n)/ncol))
+#===============================================================
+# Test routine (with meqbrowser):
+#===============================================================
 
-    _legend = False
-    if pp.has_key('_legend'):
-        _legend = pp['_legend']
-        pp._delitem__('_legend')
+def _define_forest(ns):
 
-    # Make the plots:
-    k = -1
-    for row in range(1,nrow+1):
-        for col in range(1,ncol+1):
-            k += 1
-            if k<n:
-                sp = nrow*100 + ncol*10 + k+1
-                ee[k].plot (_plot='linear', _test=False, _cells=None,
-                            _legend=_legend,
-                            _figure=1, _subplot=sp, _show=False, **pp)
-    # Show the result:
-    show()
+    cc = []
+
+    e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
+    e0.parm('{a}', '[f]*{c}/{b}+{d}')
+    e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
+    e0.parm('{c}', 47)
+    e0.parm('{d}', (ns << Meq.Parm(-56)))
+    e0.parm('{f}', 'MeqParm', default=-56)
+    e1 = 111
+    if False:
+        e1 = Expression(ns,'e1','{A}+{B}/[m]')
+        e1.parm('{A}', 45)
+        e1.parm('{B}', -45)
+    e0.parm('{e}', e1)    
+    e0.display()
+    
+    if 0:
+        cc.append(e0.MeqNode())           # kernel crashes!!
+        e0.display()
+
+    if 0:
+        cc.append(e0.MeqParm())
+        e0.display()
+
+    if 0:
+        cc.append(e0.MeqFunctional(show=True))
+        e0.display()
+
+    e4 = Expression(ns, 'e4', '[l]-[m]')
+    if 1:
+        LM = ns.LM << Meq.Composer(ns.L<<0.1, ns.M<<-0.2)
+        node = e4.MeqCompounder(extra_axes=LM,
+                                common_axes=[hiid('l'),hiid('m')],
+                                show=True)
+        cc.append(node)
+        e4.display()
+
+
+    ns.result << Meq.Composer(children=cc)
     return True
+
+#---------------------------------------------------------------
+
+def _tdl_job_execute (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=100)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+
+
+
 
 
 
 
 #========================================================================
-# Test routine:
+# Test routine (without meqbrowser):
 #========================================================================
 
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
-    # from numarray import *
-    # from numarray.linear_algebra import *
-    # from Timba.Contrib.JEN.util import TDL_display
-    # import pylab
-    # from Timba.Contrib.JEN.util import TDL_Joneset
-    # from Timba.Contrib.JEN import MG_JEN_funklet
-    # from Timba.Contrib.JEN.util import JEN_record
     ns = NodeScope()
-
 
 
     #-------------------------------------------------------------------
@@ -1071,318 +1081,7 @@ if __name__ == '__main__':
         e0 = Funklet2Expression(f0, 'A', trace=True)
         e0.plot('semilogy', f=dict(min=1e8,max=1e9), t=range(1,5))
 
-    #---------------------------------------------------------
-
-    if 0:
-        # Special case: A purely numeric Expression
-        num = Expression('67', label='num')
-        num.display()
-        funklet = num.Funklet(trace=True)
-        v = funklet.eval()
-        print 'funklet.eval() ->',v
  
-    #---------------------------------------------------------
-
-    if 0:
-        expr = '{A}*{B}*[f]'
-        expr = '{A}*{B}/[f]'
-        expr = '{A}/[f]'
-        expr = '{A}'
-        expr = '2.5/{A}'
-        expr = '{A}*({B}+{C})*[f]'
-        expr = '{A}+{B}*{C}-[f]'
-        expr = '{A}+{B}*({C}-{D})-[f]'
-        expr = '{A}+{B}*({C}*{B}-{A})'
-        expr = '{A}+{B}*(-{C}*{B}-{A})'
-        expr = '{A}+{B}*(-{C}*{B}+{A})'
-        expr = 'cos({A}+{B}+sin({C}*exp({A}+{C})))'
-        expr = '{a}*sin({b}+{c}*cos({d}*[t]))-[f]'
-        expr = '{A}+pow({B},{C})'
-        e3 = Expression(expr, label='e3')
-        e3.display('initial', full=True)
-        node = e3.subTree (ns, trace=True)
-        TDL_display.subtree(node, 'subTree', full=True, recurse=10)
-
-
-
-    #---------------------------------------------------------
- 
-    if 0:
-        e1 = Expression('{A}*cos({B}*[f])-{C}+({neq}-67)+[l]+[m]', label='e1')
-        print 'before A'
-        e1.parm('A', -5, constant=True, stddev=0.1)
-        print 'after A'
-        # e1.parm('B', (ns.B << Meq.Add(ns.aa<<4, ns.bb<<7)))      # node variable
-        e1.parm('B', (ns.B('ext')(8) << Meq.Parm(34)))                   # node variable
-        # e1.parm('B', 10, help='help for B')
-        # e1.parm('C', f0, help='help for C')
-        e1.quals([5,6])
-        e1.display('initial', full=True)
-
-        if 0:
-            e1.expand()
-            e1.display('after .expand', full=True)
-            e1.expanded().display('.expanded()', full=True)
-
-        if 0:
-            e1.display(e1.quals([1,17]))
-            e1.display(e1.quals([5,6]))
-            e1.display(e1.quals())
-
-        if 0:
-            ff = array(range(-10,15))/10.0
-            # e1.eval(f=ff, A=range(2))
-            e1.plot(f=ff, A=range(4))
-            # e1.plot(f=True, A=True, B=True)
-            # e1.plot(f=True)
-
-        if 0:
-            e1.plotall(t=True)
-
-        if 0:
-            e2 = e1.subExpression('cos({B}*[f])', trace=True)
-            e2.expand()
-            e2.display('after expand()')
-
-        if 0:
-            node = e1.subTree (ns, trace=True)
-            TDL_display.subtree(node, 'subTree', full=True, recurse=10)
-            
-        if 0:
-            f1 = e1.Funklet(trace=True)
-            e1.display()
-            # e2 = Funklet2Expression(f1, 'A', trace=True)
-            # e2.plot()
-
-        if 1:
-            node = e1.MeqFunctional (ns, expand=True, trace=True)
-            e1.display('MeqFunctional', full=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-
-        if 0:
-            node = e1.MeqParm (ns, trace=True)
-            e1.display('MeqParm', full=True)
-            TDL_display.subtree(node, 'MeqParm', full=True, recurse=5)
-
-        if 0:
-            node = e1.MeqNode (ns, trace=True)
-            e1.display('MeqNode', full=True)
-            TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
-
-        if 0:
-            L = ns.L << 0.1
-            M = ns.M << -0.2
-            LM = ns.LM << Meq.Composer(L,M)
-            node = e1.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
-                                    common_axes=[hiid('l'),hiid('m')], trace=True)
-            e1.display('MeqCompounder', full=True)
-            TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
-            # print 'hiid(m) =',hiid('m'),type(hiid('m')),'  str() ->',str(hiid('m')),type(str(hiid('m')))
-
-    #.........................................................................
-
-    if 0:
-        e2 = Expression('{r}+{BA}*[t]+{A[1,2]}-{xxx}', label='e2')
-        e2.parm ('BA', default=e1, help='help')
-        e2.parm ('r', default=11, polc=[4,5], help='help')
-        if 1:
-            node = ns << 10
-            # e2.parm ('A[1,2]', default=node, help='help')
-            e2.parm ('xxx', default=node, help='help')
-        e2.display(full=True)
-        # e2.eval(f=range(5))
-        # e2.parm2node(ns, trace=True)
-        # e2.var2node(ns, trace=True)
-
-        if 0:
-            e2.expand()
-            e2.display('after .expand()', full=True)
-
-        if 0:
-            e2.plot()
-
-        if 0:
-            e2.Funklet(trace=True)
-            e2.display(full=True)
-
-        if 1:
-            node = e2.MeqFunctional(ns, expand=True, trace=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-
-        if 0:
-            node = e2.MeqNode(ns, expand=False, trace=True)
-            TDL_display.subtree(node, 'MeqNode', full=True, recurse=5)
-            e2.display(full=True)
-
-    #-----------------------------------------------------------------------------
-
-    if 0:
-        # Cosine time variation (multiplicative) of an M.E. parameter:
-        cosvar = Expression('{ampl}*cos(2*pi*[t]/{T}+{phi})', label='cosvar',
-                            descr='cos(t) variation of an M.E. parameter')
-        cosvar.parm('ampl', 1.0, polc=[2,3], unit='unit', help='amplitude(f,t) of the variation') 
-        cosvar.parm('T', 100, unit='s', help='period (s) of the variation') 
-        cosvar.parm('phi', 0.1, unit='rad', help='phase (f,t) of the cosine') 
-        cosvar.display(full=True)
-        cosvar.expanded().display(full=True)
-        cosvar.plot()
-        # cosvar.plotall()
-        # cosvar.plot(_test=True, phi=True)
-        # cosvar.plot(t=True, phi=True, ampl_c00=3.45)
-        # cosvar.plot(_test=True, ampl_c01=True, ampl_c00=True)
-        # Explot(cosvar,cosvar,cosvar,cosvar,cosvar)
-
-    if 0:
-        def func(a=5, b=7):
-            print 'func(a=',a,', b=',b,')'
-        func()
-        pp = dict(a=-4)
-        func(**pp)
-
-
-    if 0:
-        # WSRT telescope voltage beams (gaussian) with external MeqParms:
-        Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
-                           descr='WSRT X voltage beam (gaussian)', unit='kg')
-        Xbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-
-        Lterm = Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
-        Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
-        Xbeam.parm ('Lterm', default=Lterm)
-
-        Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
-        # Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        # Mterm.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
-
-        Xbeam.parm ('Mterm', default=Mterm)
-        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', constant=True, origin='test')
-        Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
-                                                 descr='observing wavelength'), unit='m')
-        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
-
-        Xbeam.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        # Xbeam.parm ('M0', default=(ns.M0_external << Meq.Constant(12.9)))
-
-        # Xbeam.display(full=True)
-        # Xbeam.display(full=False)
-        # Xbeam.expanded().display(full=True)
-        Xbeam.expanded().display(full=False)
-        # Xbeam.plot()
-
-        if 1:
-            Xbeam.quals(6)
-            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-
-
-        
-
-
-    if 0:
-        # WSRT telescope voltage beams (gaussian):
-        Xbeam = Expression('{peak}*exp(-{Lterm}-{Mterm})', label='gaussXbeam',
-                           descr='WSRT X voltage beam (gaussian)', unit='kg')
-        Xbeam.parm ('peak', default=1.0, polc=[2,1], unit='Jy', help='peak voltage beam')
-        Lterm = Expression('(([l]-{L0})*{_D}*(1+{_ell})/{lambda})**2', label='Lterm')
-        Lterm.parm ('L0', default=0.0, unit='rad', help='pointing error in L-direction')
-        Xbeam.parm ('Lterm', default=Lterm)
-        Mterm = Expression('(([m]-{M0})*{_D}*(1-{_ell})/{lambda})**2', label='Mterm')
-        Mterm.parm ('M0', default=0.0, unit='rad', help='pointing error in M-direction')
-        Xbeam.parm ('Mterm', default=Mterm)
-        Xbeam.parm ('_D', default=25.0, unit='m', help='WSRT telescope diameter', origin='test')
-        Xbeam.parm ('lambda', default=Expression('3e8/[f]', label='lambda',
-                                                 descr='observing wavelength'), unit='m')
-        Xbeam.parm ('_ell', default=0.1, help='Voltage beam elongation factor (1+ell)', origin='test')
-        # Xbeam.display(full=True)
-        # Xbeam.display(full=False)
-        # Xbeam.expanded().display(full=True)
-        Xbeam.expanded().display(full=False)
-        # Xbeam.plot()
-
-        if 0:
-            Xbeam.expanded().make_cells(t=dict(nr=2),l=dict(nr=5),m=dict(nr=3))
-            Xbeam.expanded().Funklet(plot=True)
-
-        if 1:
-            Ybeam = Xbeam.copy(label='gaussYbeam', descr='WSRT Y voltage beam (gaussian)')
-            Ybeam.parm ('_ell', default=-0.1, help='Voltage beam elongation factor (1+ell)')
-            Ybeam.expanded().display(full=False)
-            # Ybeam.plot(l=True, m=True)
-            # Explot(Xbeam, Ybeam, _legend=True, l=True, m=True)
-            # Xbeam.compare(Ybeam, l=True, m=True)
-            diff = Expression('{Xbeam}-{Ybeam}', label='diff')
-            diff.parm('Xbeam', Xbeam)
-            diff.parm('Ybeam', Ybeam)
-            diff.expanded().display()
-
-        if 0:
-            L = ns.L << 0.1
-            M = ns.M << -0.2
-            LM = ns.LM << Meq.Composer(L,M)
-            node = Xbeam.MeqCompounder(ns, qual=dict(q='3c84'), extra_axes=LM,
-                                       common_axes=[hiid('l'),hiid('m')], trace=True)
-            TDL_display.subtree(node, 'MeqCompounder', full=True, recurse=5)
-
-        if 0:
-            node = Xbeam.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-            
-
-    if 0:
-        # MXM: Bandpass function:
-        mxm = Expression('{a}*([f]**{b})+{c}', label='MXM',
-                         descr='MXM bandpass function')
-        mxm.parm('a', 2.3, polc=[2,1], help='a')
-        # mxm.parm('b', 1.1, polc=[2,1], help='b')
-        mxm.parm('b', 1.1, help='b')
-        mxm.parm('c', -4.5, polc=[4,3], unit='kg/m', help='c')
-        mxm.var('t', 100)
-        mxm.var('f', 200, testinc=13)
-        mxm.expanded().display('expanded mxm', full=True)
-        mxm.display('mxm', full=True)
-        # mxm.plot(_test=True)
-        mxm.plot(f=dict(min=100, max=200), b=dict(min=1, max=2, nr=5))
-        
-    if 0:
-        # Elliptic gaussian source:
-        attuv = Expression('exp(-({Uterm}**2)-({Vterm}**2))', label='attuv',
-                           descr='elliptic gaussian source attenuation factor(u,v)')
-        # Uterm = Expression('exp(-{Uterm}-{Vterm})', label='Uterm')
-        urot = Expression('{_major_axis}*({_u}*{cospa}-{_v}*{sinpa})', label='urot')
-        vrot = Expression('{_minor_axis}*({_u}*{sinpa}+{_v}*{cospa})', label='vrot')
-
-        attuv.parm('Uterm', urot)
-        attuv.parm('Vterm', vrot)
-
-        uvquals = dict(s1=3,s2=5)
-        ucoord = ns.ucoord(**uvquals) << 1
-        vcoord = ns.vcoord(**uvquals) << 1
-        attuv.parm('_u', ucoord, unit='wvl', help='u-coordinate')
-        attuv.parm('_v', vcoord, unit='wvl', help='v-coordinate')
-
-        qqual = ['3c56']
-        major = ns.major_axis(*qqual) << Meq.Parm(0.1)
-        minor = ns.minor_axis(*qqual) << Meq.Parm(0.01)
-        pa = ns.posangle(*qqual) << Meq.Parm(-0.1)
-        cospa = Expression('cos({_posangle})', label='cospa')
-        sinpa = Expression('sin({_posangle})', label='sinpa')
-
-        attuv.parm('cospa', cospa, recurse=True, help='cos(posangle)')
-        attuv.parm('sinpa', sinpa, recurse=True, help='sin(posangle)')
-        group = 'source_shape'
-        attuv.parm('_posangle', pa, unit='rad', group=group, help='source position angle (rad)')
-        attuv.parm('_major_axis', major, unit='rad', group=group, help='source major axis (rad)')
-        attuv.parm('_minor_axis', minor, unit='rad', group=group, help='source minor axis (rad)')
-
-        if 1:
-            node = attuv.MeqFunctional(ns, qual=dict(q='3c84'), trace=True)
-            TDL_display.subtree(node, 'MeqFunctional', full=True, recurse=5)
-            klasses = classwise(node, trace=True)
-
-        attuv.display('attuv', full=True)
-        attuv.expanded().display('expanded attuv', full=True)
-        attuv.plot()
-
     #--------------------------------------------------------------------------
     # Tests of standalone helper functions:
     #--------------------------------------------------------------------------
@@ -1390,14 +1089,11 @@ if __name__ == '__main__':
         
     if 0:
         fp = polc_Expression([2,1], 56, trace=True)
-        print fp.parm_order()
-        if False:
-            fp.parm(fp.parm_order()[1], 34)
-            fp.display(full=True)
-        fp2 = polc_Expression([1,2], 56, trace=True)
-        fp.parm(fp.parm_order()[1], fp2)
-        fp.expand()
-        fp.display(full=True)
+        fp.display()
+        if 1:
+            fp.Funklet()
+            fp.display()
+
 
     if 0:
         vv = array(range(10))
@@ -1477,7 +1173,7 @@ if __name__ == '__main__':
             e0.MeqFunctional(show=True)
             e0.display()
 
-    if 0:
+    if 1:
         e2 = Expression(ns, 'e2', '{a}*[t]-{a}**{f}')
         e2.parm('{a}', '[f]*{c}/{b}+{d}')
         e2.parm('{b}', 447)
@@ -1498,7 +1194,7 @@ if __name__ == '__main__':
             e2.MeqCompounder(show=True)
             e2.display()
 
-    if 1:
+    if 0:
         e4 = Expression(ns, 'e4', '[l]-[m]')
         e4.display()
         if 1:
