@@ -163,7 +163,7 @@ namespace Meq {
 	vector<int> mapv = vellsnr_[dim_nr];
 	LoShape shape = shapes_[childnr_[dim_nr]];
 	arraynr_[dim_nr]=0;
-	for(uint imap = 0; imap<mapv.size()-1;imap++)
+	for(int imap = 0; imap<mapv.size()-1;imap++)
 	  arraynr_[dim_nr]+=shape[imap]*mapv[imap];
 	arraynr_[dim_nr]+=mapv.back();
 	
