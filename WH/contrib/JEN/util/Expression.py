@@ -98,7 +98,9 @@ class Expression (Meow.Parameterization):
         # These entries may be modified with extra info by self.parm().
         self._parm = dict()
         self._parm_order = []
-        self._has_MeqNodes = False
+        self._has_MeqNodes = False       # what about AFTER vars2nodes()?
+        self._has_variables = False
+        self._has_parms = False
         self._find_parms(self._expression)
 
         # For each variable in self._expression, make an entry in self._var.
@@ -243,7 +245,7 @@ class Expression (Meow.Parameterization):
 
     #----------------------------------------------------------------------------
 
-    def parm (self, key, parm, redefine=False, **pp):
+    def parm (self, key, parm, arg=None, redefine=False, **pp):
         """Define an existing {key} parameter as a numeric value, an expression,
         a MeqParm or another MeqNode, etc"""
 
@@ -260,9 +262,14 @@ class Expression (Meow.Parameterization):
 
         # OK, go ahead:
         if parm=='MeqParm':
+            if not pp.has_key('default'):
+                if isinstance(arg, (int, long, float)):
+                    pp['default'] = arg
+                else:
+                    raise TypeError,'** MeqParm needs a default value'
+            rr['default'] = pp['default']
             rr['parm'] = self.ns[key] << Meq.Parm(**pp)  # use Meow....
             rr['type'] = 'MeqParm'
-            rr['default'] = pp['default']
             rr['testval'] = pp['default']
         elif isinstance(parm, str):                      # assume sub-expr
             rr['parm'] = parm
@@ -573,7 +580,7 @@ class Expression (Meow.Parameterization):
 
     #============================================================================
 
-    def Funklet (self):
+    def Funklet (self, plot=False):
         """Return the corresponding Funklet object. Make one if necessary."""
 
         # Avoid double work:
@@ -623,6 +630,12 @@ class Expression (Meow.Parameterization):
             f0.function = function
         #-----------------------------------------------------
 
+        if plot:
+            # NB: The following plots WITHOUT execution!
+            dom = meq.gen_domain(time=(0,1),freq=(100e6,110e6),l=(-0.1,0.1),m=(-0.1,0.1))
+            cells = meq.gen_cells(domain=dom,num_time=1,num_freq=5, num_l=11, num_m=12)
+            f0.plot(cells=cells)
+
         # Finished:
         self._Funklet = f0
         self._Funklet_function = function         
@@ -640,14 +653,15 @@ class Expression (Meow.Parameterization):
         qnode = self.ns['MeqParm']
         if not qnode.initialized():
             f0 = self.Funklet()
-            print dir(f0)
-            funklet = f0._funklet
-            if len(funklet['coeff'])==0:
-                funklet['coeff'] = [0.0]
-            print '** funklet =',funklet
-            if isinstance(funklet, bool):
-                s = '** funklet is '+str(type(funklet))
+            if isinstance(f0, bool):
+                s = '** Funklet is '+str(type(f0))
                 raise TypeError,s
+            funklet = f0.get_meqfunklet()
+            print '** funklet =',funklet
+            print dir(f0)
+            if len(funklet['coeff'])==0:
+                s = '** coeff is empty'
+                raise ValueError,s
             qnode << Meq.Parm(init_funklet=funklet,       # new MXM 28 June 2006
                               node_groups=['Parm'])
         # Finished
@@ -981,34 +995,42 @@ def _define_forest(ns):
 
     cc = []
 
-    e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
-    e0.parm('{a}', '[f]*{c}/{b}+{d}')
-    e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
-    e0.parm('{c}', 47)
-    e0.parm('{d}', (ns << Meq.Parm(-56)))
-    e0.parm('{f}', 'MeqParm', default=-56)
-    e1 = 111
-    if False:
-        e1 = Expression(ns,'e1','{A}+{B}/[m]')
-        e1.parm('{A}', 45)
-        e1.parm('{B}', -45)
-    e0.parm('{e}', e1)    
-    e0.display()
+    if 0:
+        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
+        e0.parm('{a}', '[f]*{c}/{b}+{d}')
+        e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
+        e0.parm('{c}', 47)
+        e0.parm('{d}', (ns << Meq.Parm(-56)))
+        e0.parm('{f}', 'MeqParm', default=-56)
+        e1 = 111
+        if False:
+            e1 = Expression(ns,'e1','{A}+{B}/[m]')
+            e1.parm('{A}', 45)
+            e1.parm('{B}', -45)
+        e0.parm('{e}', e1)    
+        e0.display()
     
-    if 0:
-        cc.append(e0.MeqNode())           # kernel crashes!!
-        e0.display()
+        if 1:
+            cc.append(e0.MeqNode())           # kernel crashes!!
+            e0.display()
 
-    if 0:
-        cc.append(e0.MeqParm())
-        e0.display()
+        if 0:
+            cc.append(e0.MeqParm())
+            e0.display()
 
-    if 0:
-        cc.append(e0.MeqFunctional(show=True))
-        e0.display()
+        if 0:
+            cc.append(e0.MeqFunctional(show=True))
+            e0.display()
 
-    e4 = Expression(ns, 'e4', '[l]-[m]')
+
+    #------------------------------------------------------------
+
+    e4 = Expression(ns, 'e4', '[l]-[m]+{a}')
+    e4.parm('{a}','MeqParm', default=9)
     if 1:
+        f0 = e4.Funklet(plot=True)
+        print '** f0 =',f0
+    if 0:
         LM = ns.LM << Meq.Composer(ns.L<<0.1, ns.M<<-0.2)
         node = e4.MeqCompounder(extra_axes=LM,
                                 common_axes=[hiid('l'),hiid('m')],
