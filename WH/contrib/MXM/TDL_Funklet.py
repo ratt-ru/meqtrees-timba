@@ -357,8 +357,21 @@ class Funklet:
         if data is None:
             print "get_result failed, no data"
             return None;
-        vellset      = [record(shape=data.shape,value=data)],
+        vellset      = record(shape=data.shape,value=data);
         result = meq.result(cells=cells,vellset=vellset);
+        # result assumes axis_map in domain needed for result_plotter
+ 
+        dom  =  result.cells.domain;
+        forest_state=meqds.get_forest_state();
+        axis_map=forest_state.axis_map;
+        axis_list = [];
+ 
+        for i in range(len(axis_map)):
+            if axis_map[i].has_key('id') and axis_map[i]['id']:
+                axis_list.append(str(axis_map[i]['id']).lower());
+        dom['axis_map'] = axis_list;
+ 
+        result.cells.domain = dom;
         #print result;
         return result;
 
@@ -391,8 +404,7 @@ class Funklet:
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
         result = self.get_result(cells=cells);
-
-                
+        
         self.emit_display_signal(result=result,parent=parent,newpage=newpage,newcell=True);
         return result;
 
