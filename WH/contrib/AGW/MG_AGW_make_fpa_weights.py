@@ -83,7 +83,8 @@ def _define_forest(ns):
 
   # define location for phase-up
 # BEAM_LM = [(0.0,0.0)]
-  offset = 1.5 * 0.01414214
+#  offset = 1.5 * 0.0141421
+  offset = 0.0
   BEAM_LM = [(offset,offset)]
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
