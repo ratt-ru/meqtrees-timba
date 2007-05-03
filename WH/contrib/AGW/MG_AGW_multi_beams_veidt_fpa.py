@@ -64,8 +64,7 @@ def _define_forest(ns):
   ns.m_beam_c << Meq.Constant(m_beam)
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
-# read in beam images
- # fit all 180 beams
+# read in 30 beam images in each of X and Y
   BEAMS = range(0,30)
   home_dir = os.environ['HOME']
   # read in beam data
