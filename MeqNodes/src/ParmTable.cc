@@ -44,7 +44,7 @@
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/ArrayUtil.h>
 #include <casa/Arrays/Slice.h>
-#include <casa/Utilities/Regex.h>
+// #include <casa/Utilities/Regex.h>
 #include <casa/Utilities/GenSort.h>
 #include <casa/BasicMath/Math.h>
 #include <TimBase/BlitzToAips.h>
