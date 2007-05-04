@@ -308,6 +308,7 @@ void Dispatcher::stop ()
   // cancel the event thread
   event_thread.kill(SIGUSR1);
   event_thread.join();
+  event_thread = 0;
 #else
   running = false;
   // stop the heartbeat timer
@@ -564,7 +565,8 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
 #ifdef USE_THREADS
     lock.release();
     // send signal to event thread to re-do a select
-    event_thread.kill(SIGUSR1);
+    if( event_thread.id() != 0 )
+      event_thread.kill(SIGUSR1);
 #endif
   }
 }
