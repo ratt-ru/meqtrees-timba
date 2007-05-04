@@ -13,6 +13,7 @@ import traceback
 import sets
 import os
 import os.path
+import inspect
 
 _dbg = verbosity(0,name='tdlc');
 _dprint = _dbg.dprint;
@@ -136,10 +137,23 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       predef_result = predefine_func(mqs,parent,**predef_args);
     else:
       predef_result = None;
+    # inspect the define function to support older scripts that only
+    # defined a define_forest(ns), i.e., with a single argument
+    (fargs,fvarargs,fvarkw,fdefaults) = inspect.getargspec(define_func);
+    if not fargs:
+      raise TDL.TDLError("invalid _define_forest() function: must have at least a single argument ('ns')",filename=filename,lineno=1);
+    # function must have either a single argument, or allow keyword arguments
+    if len(fargs) > 1 and not fvarkw:
+      raise TDL.TDLError("invalid _define_forest() function: must have a **kwargs parameter",filename=filename,lineno=1);
+    # if no support for keyword arguments, pass an empty dict, else use valid dict
+    if fvarkw:
+      args = define_args.copy();
+      args['parent'] = parent;
+      if isinstance(predef_result,dict):
+        args.update(predef_result);
+    else:
+      args = {};
     # call the define function
-    args = define_args.copy();
-    if isinstance(predef_result,dict):
-      args.update(predef_result);
     define_func(ns,**args);
     # resolve the nodescope
     ns.Resolve();
