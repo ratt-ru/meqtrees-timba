@@ -231,6 +231,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
     self._werrlist.setSorting(-1); 
     # self._werrlist.setColumnAlignment(0,Qt.AlignRight);
     self._werrlist.setRootIsDecorated(True);
@@ -386,7 +387,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   def clear_error_list (self,signal=True):
     if signal:
       self.emit(PYSIGNAL("hasErrors()"),(0,));
-    self._error_items = None;
+    self._error_items = self._toplevel_error_items = None;
     self._werrlist.clear();
     self._editor.markerDeleteAll();
     self._error_count_label.setText('');
@@ -402,76 +403,84 @@ class TDLEditor (QFrame,PersistentCurrier):
     """returns the current error list."""
     return self._error_title;
       
-  def set_error_list (self,errlist,signal=True,show_item=True,
+  def _populate_error_list (self,parent,errlist,toplevel=False):
+    """helper function to recursively populate an error ListView""";
+    previtem = None;
+    for index,err in enumerate(errlist):
+      errmsg = str(err.args[0]);
+      filename = getattr(err,'filename',None);
+      line = getattr(err,'lineno',0);
+      column = getattr(err,'offset',0);
+      _dprint(1,errmsg,"at",filename);
+      # index of corresponding top-level item
+      toplevel_index = len(self._toplevel_error_items)-1;
+      if toplevel:
+        toplevel_index += 1;
+      # create item
+      if previtem is not None:
+        previtem = item = QListViewItem(parent,previtem,"%d:"%(toplevel_index+1,));
+      else:
+        previtem = item = QListViewItem(parent,"%d:"%(toplevel_index+1,));
+      # add housekeeping info
+      item._toplevel_index = toplevel_index;
+      if toplevel:
+        if filename == self._filename:
+          self._num_local_errors += 1;
+	self._toplevel_error_items.append(item);
+      toplevel_index = len(self._toplevel_error_items)-1;
+      self._error_items.append(item);
+      item.setOpen(False);
+      # set item content
+      if filename is None:
+        item.setText(2,"["+errmsg+"]");
+        item.setText(1,"internal compilation error: text console may have more info");
+      else:
+        item.setText(1,errmsg);
+        item.setText(3,err.__class__.__name__);
+        if filename == self._filename:
+          item._err_location =  len(self._error_items)-1,None,line,column;
+          item.setText(2,"[line %d]" % (line,));
+          self._editor.markerAdd(line-1,self.ErrorMarker);
+          self._error_at_line.setdefault(line-1,item);
+        else:
+          item._err_location =  len(self._error_items)-1,filename,line,column;
+          item.setText(2,"[line %d of %s]" % (line,filename));
+      # recursively populate with nested errors if needed
+      nested = getattr(err,'nested_errors',None);
+      if nested:
+        self._populate_error_list(item,nested);
+    
+  def set_error_list (self,error_list,signal=True,show_item=True,
                       message="TDL compile failed"):
     """Shows an error list. errlist should be a sequence of Exception
     objects following the TDL error convention.
     """;
-    _dprint(1,self._filename,"error list of",len(errlist),"entries",id(errlist));
+    _dprint(1,self._filename,"error list of",len(error_list),"entries",id(error_list));
     _dprint(1,self._filename,"current list has",len(self._error_list),"entries",id(self._error_list));
     # do nothing if already set
-    if self._error_list is errlist:
+    if self._error_list is error_list:
       return;
     self._error_title = message;
     self.clear_error_list(signal=False);
-    self._error_list = errlist;
+    self._error_list = error_list;
     _dprint(1,self._filename,"processing list");
-    if errlist:
+    if error_list:
       self._error_items = [];
+      self._toplevel_error_items = [];
       self._error_at_line = {};
-      mainitem = None;      # previous main-level item
-      subitem = None;       # previous sub-item
-      nerr = 1;
-      nhere = 0;
-      for index,err in enumerate(errlist):
-        errmsg = str(err.args[0]);
-        filename = getattr(err,'filename',None);
-        line = getattr(err,'lineno',0);
-        column = getattr(err,'offset',0);
-        # effectively, this makes CalledFrom errors child items
-        # of the previous non-error item (previtem)
-        if isinstance(err,TDL.CalledFrom):
-          _dprint(1,"called from",filename);
-          if subitem is not None:
-            item = QListViewItem(mainitem or self._werrlist,subitem,'');
-          else:
-            item = QListViewItem(mainitem or self._werrlist,'');
-          subitem = item;
-        else:
-          _dprint(1,errmsg,"at",filename);
-          if mainitem is not None:
-            mainitem = item = QListViewItem(self._werrlist,mainitem,"%d:"%(nerr,));
-          else:
-            mainitem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
-          subitem = None;
-          nerr += 1;
-          if filename == self._filename:
-            nhere += 1;
-        item.setOpen(True);
-        self._error_items.append(item);
-        # set item content
-        if filename is None:
-          item.setText(2,"["+errmsg+"]");
-          item.setText(1,"internal compilation error; see text console for more info");
-        else:
-          item.setText(1,err.__class__.__name__+": "+errmsg);
-          if filename == self._filename:
-            item._err_location = index,None,line,column;
-            item.setText(2,"[line %d]" % (line,));
-            self._editor.markerAdd(line-1,self.ErrorMarker);
-            self._error_at_line.setdefault(line-1,item);
-          else:
-            item._err_location = index,filename,line,column;
-            item.setText(2,"[line %d of %s]" % (line,filename));
-      if nhere == nerr-1:
-        self._error_count_label.setText('%s. <b>%d</b> errors total'%(message,nhere,));
+      # a counter of all errors local to this file
+      self._num_local_errors = 0;
+      self._populate_error_list(self._werrlist,error_list,toplevel=True);
+      nerr = len(self._toplevel_error_items);
+      if self._num_local_errors == nerr:
+        self._error_count_label.setText('%s. <b>%d</b> errors total'%(message,self._num_local_errors,));
       else:
-        self._error_count_label.setText('%s. <b>%d</b> errors here, <b>%d</b> total'%(message,nhere,nerr-1,));
+        self._error_count_label.setText('%s. <b>%d</b> errors here, <b>%d</b> total'%(message,self._num_local_errors,nerr,));
       self._werrlist_box.show();
       if signal:
-        self.emit(PYSIGNAL("hasErrors()"),(nhere,));
+        self.emit(PYSIGNAL("hasErrors()"),(self._num_local_errors,));
       if show_item:
-        self._show_error_item(self._error_items[0]);
+        self._show_error_item(self._toplevel_error_items[0]);
       # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
@@ -479,18 +488,20 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._werrlist_box.hide();
       
   def _highlight_error_item (self,item,signal=True):
-    self._qa_prev_err.setEnabled(item is not self._error_items[0]);
-    self._qa_next_err.setEnabled(item is not self._error_items[-1]);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);
-    # does item contain a location attribute?
-    try: index,filename,line,column = item._err_location;
-    except AttributeError: return;
-    # indicate location
-    _dprint(1,"highlighting error in",filename);
-    if filename is None:
-      self.show_position(line-1,column,mark_error=True);
-    else:
-      self.emit(PYSIGNAL("showError()"),(index,filename,line,column));
+    if item:
+      toplevel_index = item._toplevel_index;
+      self._qa_prev_err.setEnabled(toplevel_index > 0);
+      self._qa_next_err.setEnabled(toplevel_index < len(self._toplevel_error_items)-1);
+      # does item contain a location attribute?
+      try: index,filename,line,column = item._err_location;
+      except AttributeError: return;
+      # indicate location
+      _dprint(1,"highlighting error in",filename);
+      if filename is None:
+        self.show_position(line-1,column,mark_error=True);
+      else:
+        self.emit(PYSIGNAL("showError()"),(index,filename,line,column));
   
   def show_position (self,line,column=0,mark_error=False):
     """shows indicated position""";
@@ -505,7 +516,10 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _show_next_error (self):
     item = self._werrlist.currentItem();
     if item:
-      item = item.itemBelow();
+      toplevel_index = item._toplevel_index + 1;
+      if toplevel_index >= len(self._toplevel_error_items):
+        toplevel_index = 0;
+      item = self._toplevel_error_items[toplevel_index];
     else:
       item = self._error_items[0];
     if item:
@@ -514,9 +528,12 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _show_prev_error (self):
     item = self._werrlist.currentItem();
     if item:
-      item = item.itemAbove();
+      toplevel_index = item._toplevel_index - 1;
+      if toplevel_index < 0:
+        toplevel_index = len(self._toplevel_error_items)-1;
+      item = self._toplevel_error_items[toplevel_index];
     else:
-      item = self._error_items[-1];
+      item = self._toplevel_error_items[-1];
     if item:
       self._show_error_item(item);
   

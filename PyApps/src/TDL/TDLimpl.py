@@ -20,6 +20,15 @@ _dbg = utils.verbosity(0,name='tdl');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# this regex is used to match "local" files during error processing. Stack frames
+# within the local files will not be added to nested CalledFrom error lists
+_re_localfiles = re.compile('.*TDL/(TDLimpl|MeqClasses).py$');
+
+# name of file from which the node scope was created. Error tracebacks will
+# be stopped once they hit this name. Initialized when a NodeRepository is 
+# created
+_original_invocation_filename = None;
+
 class TDLError (RuntimeError):
   """Base class for TDL errors. 
   In order to be processed properly, errors may be raised with one or 
@@ -29,18 +38,41 @@ class TDLError (RuntimeError):
   Optional attributes:
     filename,lineno: indicates error location. 
     offset:          optional error column.
-    tb: the exception traceback (as returned by traceback.extract_tb()).
-    next_error: chained error object
-  The Repository.add_error() method below automatically expands tracebacks
-  into lists of CalledFrom() error objects with appropriate filename,lineno
-  attributes. 
+    tb: the exception traceback (as returned by traceback.extract_tb()). This
+      will automatically be turned into a list of CalledFrom nested errors.
+    next_error: chained error object, for throwing several exceptions at once
+    nested_errors: list of additional nested error objects, usually describing the call
+      stack where the error occurred. These will be placed in front of the
+      CalledFrom nested errors.
   """;
-  def __init__(self,message,next=None,tb=None,filename=None,lineno=None):
+  def __init__(self,message,next=None,nested=[],tb=None,filename=None,lineno=None):
     RuntimeError.__init__(self,message);
     self.next_error = next;
-    self.tb = tb or Timba.utils.extract_stack();
-    self.filename = filename;
+    # resolve traceback
+    if tb:
+      tb = list(tb);
+    else:
+      tb = Timba.utils.extract_stack();
+    # pop "internal" frames from the traceback
+    while tb and _re_localfiles.match(tb[-1][0]):
+      tb.pop(-1);
+    self.tb = tb;
+    # put error location into object
+    self.filename = filename or (tb and tb[-1][0]) or None;
+    if lineno is None and tb:
+      lineno = tb[-1][1];
     self.lineno = lineno;
+    # init nested errors
+    self.nested_errors = list(nested);
+    # add CalledFrom chain
+    for (filename,lineno,funcname,text) in tb[-1::-1]:
+      global _original_invocation_filename;
+      if filename == _original_invocation_filename:
+        break;
+      if (filename,lineno) != (self.filename,self.lineno):
+        self.nested_errors.append(CalledFrom("called from "+filename,
+                                    filename=filename,lineno=lineno));
+
   def __str__ (self):
     s = ':'.join([self.__class__.__name__]+list(map(str,self.args)));
     if self.filename is not None:
@@ -81,9 +113,17 @@ class NodeDefError (TDLError):
     TDLError.__init__(self,message,next,tb,filename,lineno);
   pass;
 
-class CalledFrom (TDLError):
+class NestedTDLError (TDLError):
   """one or more of these errors are added to error lists after one of the 
-  "real" errors above to indicate where the offending code was called from""";
+  "real" errors above to indicate that it is a nested error""";
+  pass;
+
+class DefinedHere (NestedTDLError):
+  """a nested error indicating where a node was first defined""";
+  pass;
+
+class CalledFrom (NestedTDLError):
+  """a nested error indicating where the offending code was called from""";
   pass;
 
 class CumulativeError (RuntimeError):
@@ -325,7 +365,8 @@ class _NodeStub (object):
   """;
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
-            "nodeindex","_initrec","_caller","_deftb","_debuginfo",
+            "nodeindex",
+            "_initrec","_caller","_deftb","_debuginfo","_basenode",
             "_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the 
@@ -337,10 +378,12 @@ class _NodeStub (object):
     def __deepcopy__ (self,memo):
       return self.__class__(self);
   
-  def __init__ (self,fqname,basename,scope,*quals,**kwquals):
+  def __init__ (self,fqname,basename,scope,basenode,*quals,**kwquals):
     """Creates a NodeStub. This is usually called as a result of
     ns.name(...). fqname is the fully-qualified node name. Basename
-    is the unqualified name. Scope is the parent scope object.
+    is the unqualified name. Scope is the parent scope object. Basenode is
+    the node stub from which this one was derived (via qualifying, presumably),
+    or None if node was not derived from anything.
     Quals and kwquals are the (user-supplied) qualifiers that were applied.
     """;
     _dprint(5,'creating node stub',fqname,basename,quals,kwquals,'in scope',scope.Description());
@@ -351,6 +394,7 @@ class _NodeStub (object):
     self.kwquals = kwquals;
     self.classname = None;
     self.parents = self.Parents();
+    self._basenode = basenode;
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
     ## this used to say
@@ -394,7 +438,7 @@ class _NodeStub (object):
       # can't resolve? error
       if nodedef is None:
         traceback.print_stack();
-        raise TypeError,"can't bind node name (operator <<) with argument of type "+type(arg).__name__;
+        raise TypeError,"can't bind node (using operator <<) with argument of type "+type(arg).__name__;
       # error NodeDef? raise it as a proper exception
       if nodedef.error:
         raise nodedef.error;
@@ -412,8 +456,11 @@ class _NodeStub (object):
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          where = NodeRedefinedError("node '%s' first defined here"%(self.name,),filename=self._caller[0],lineno=self._caller[1],tb=self._deftb);
-          raise NodeRedefinedError("conflicting definition for node '%s'"%(self.name,),next=where);
+          where = NodeRedefinedError("node '%s' first defined here"%self.name,
+                    filename=self._caller[0],lineno=self._caller[1],tb=self._deftb,
+                    nested=self._get_definition_chain());
+          raise NodeRedefinedError("conflicting definition for node '%s'"%self.name,
+                                   next=where);
       else:
         try: self.classname = getattr(initrec,'class');
         except AttributeError: 
@@ -460,6 +507,19 @@ class _NodeStub (object):
       raise NodeDefError,"set_options() on an uninitialized node";
     for name,value in kw.iteritems():
       self._initrec[name] = value;
+  def _get_definition_chain (self):
+    """helper method for error reporting. Returns a list of DefinedHere
+    errors for all the basenodes of the current node. If no basenodes found, returns 
+    None""";
+    chain = [];
+    basenode = self._basenode;
+    while basenode:
+      chain.append(DefinedHere("possibly derived from '%s'"%basenode.name,
+                      filename=basenode._caller[0],lineno=basenode._caller[1],
+                      tb=basenode._deftb));
+      basenode = basenode._basenode;
+    return chain;
+    
   def _qualify (self,quals,kwquals,merge):
     """Helper method for operator (), qadd() and qmerge() below.
     Creates a node based on this one, with additional qualifiers. If merge=True,
@@ -469,7 +529,7 @@ class _NodeStub (object):
     _mergeQualifiers(q,kw,quals,kwquals,uniq=merge);
     fqname = self.scope.QualifyScopedName(self.basename,*q,**kw);
     _dprint(4,"creating requalified node",self.basename,q,kw,':',fqname);
-    return self.scope._repository.nodeStub(fqname,self.basename,self.scope,*q,**kw);
+    return self.scope._repository.nodeStub(fqname,self.basename,self.scope,self,*q,**kw);
   def __call__ (self,*quals,**kwquals):
     """Creates a node based on this one, with additional qualifiers. Extend, not merge
     is implied. Returns a _NodeStub.""";
@@ -627,13 +687,13 @@ class _NodeRepository (dict):
     self._root_scope = root_scope;
     self._errors = [];
     self._testing = testing;
-    # determine caller if not supplied
-    if not caller_filename:
+    # determine original invocation filename
+    global _original_invocation_filename;
+    if not _original_invocation_filename:
       for (filename,lineno,funcname,text) in Timba.utils.extract_stack()[-2::-1]:
         if filename != _MODULE_FILENAME:
-          caller_filename = filename;
+          _original_invocation_filename = filename;
           break; 
-    self._caller_filename = caller_filename;
     # other state
     self._sinks = [];
     self._spigots = [];
@@ -721,7 +781,7 @@ class _NodeRepository (dict):
     _dprint(2,'traceback',tb);
     # trim our own frames from top of stack
     # while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
-    while tb and tb[-1][0] == _MODULE_FILENAME:
+    while tb and _re_localfiles.match(tb[-1][0]):
       tb.pop(-1);
     # put error location into object
     if not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
@@ -738,14 +798,18 @@ class _NodeRepository (dict):
       raise err;
     # add to list
     self._errors.append(err);
-    # add traceback
-    for (filename,lineno,funcname,text) in tb[-1::-1]:
-      _dprint(2,'next traceback frame',filename,lineno);
-      if filename == self._caller_filename:
-        break;
-      if (filename,lineno) != (err.filename,err.lineno):
-        self._errors.append(CalledFrom("called from "+filename,filename=filename,lineno=lineno));
-    # add chained error if appropriate
+    # add nested traceback, if not already present
+    if not hasattr(err,'nested_errors'):
+      setattr(err,'nested_errors',[]);
+      for (filename,lineno,funcname,text) in tb[-1::-1]:
+        _dprint(2,'next traceback frame',filename,lineno);
+        global _original_invocation_filename;
+        if filename == _original_invocation_filename:
+          break;
+        if (filename,lineno) != (err.filename,err.lineno):
+          err.nested_errors.append(CalledFrom("called from"+filename,
+                                     filename=filename,lineno=lineno));
+    # add a chained error if appropriate
     next = getattr(err,'next_error',None);
     if next:
       self.add_error(next);
@@ -755,7 +819,6 @@ class _NodeRepository (dict):
       
   def get_errors (self):
     return self._errors;
-    
     
   def _make_OR_conditional (arg,argname):
     """helper function to make a OR-conditional from an argument.
@@ -899,15 +962,13 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            if node._caller != ch._caller:
-              error = UninitializedNode("node '%s' not initialized"%ch.name,
+            self.add_error(UninitializedNode("node '%s' not initialized"%ch.name,
                         filename=ch._caller[0],lineno=ch._caller[1],tb=ch._deftb,
-                        next=UninitializedNode("node used in this context",
-                           filename=node._caller[0],lineno=node._caller[1],tb=node._deftb));
-            else:
-              error = UninitializedNode("node '%s' not initialized"%ch.name,
-                          filename=node._caller[0],lineno=node._caller[1],tb=node._deftb);
-            self.add_error(error);
+                        nested=ch._get_definition_chain()));
+            if node._caller != ch._caller:
+              self.add_error(UninitializedNode("node used in this context",
+                               filename=node._caller[0],lineno=node._caller[1],
+                               tb=node._deftb));
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
@@ -1063,7 +1124,7 @@ class NodeScope (object):
     except KeyError: 
       _dprint(5,'node',name,'not found, creating stub for it');
       fqname = self.QualifyScopedName(name);
-      node = self._repository.nodeStub(fqname,name,self);
+      node = self._repository.nodeStub(fqname,name,self,None);
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
     return node;
@@ -1118,7 +1179,7 @@ class NodeScope (object):
       name = "%s%d" % (name0,count);
       count += 1;
     # create the node
-    node = self._repository.nodeStub(name,name,self._globalscope);
+    node = self._repository.nodeStub(name,name,self._globalscope,None);
     # bind node, this also adds it to the repository
     node << _Meq.Constant(value=value);
     # add to map of constants 
@@ -1163,7 +1224,6 @@ class NodeScope (object):
 # used to generate Meq.Constants and such
 _Meq = ClassGen('Meq');
 
-_re_localfiles = re.compile('.*TDL/(TDLimpl|MeqClasses).py$');
 
 # helper func to identify original caller of a function
 def _identifyCaller (depth=3,skip_internals=True,stack=None):

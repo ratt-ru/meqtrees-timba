@@ -20,6 +20,7 @@ def _define_forest (ns,**kwargs):
   ns2.foo2(1,x=2) << 1;
   ns3 = ns.QualScope(5,z=6);
   ns3.foo << ns.foo + ns2.foo;
+  ns3.foo3 << 3;
   ns3.foo3(1,x=2) << 1;
   ns4 = ns3.QualScope(7,x=8);
   ns4.foo << ns3.foo + ns2.foo;
@@ -50,7 +51,8 @@ def _define_forest (ns,**kwargs):
   ## fully-qualified name, via qualscopes.
   ## The node below gives the same name as ns3.foo. If uncommented, this should produce
   ## a NodeRedefinedError
-  ns.foo(5,z=6) << 1;
+  # foo = ns.foo;
+  # foo(5,z=6) << 1;
 
 def _test_forest (mqs,parent,**kwargs):
   """test_forest() is a standard TDL name. When a forest script is
