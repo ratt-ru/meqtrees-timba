@@ -1,19 +1,19 @@
 include 'imager.g'
 include 'viewer.g'
 
-spid:=2
+spid:=3
 fid:=1
-startch:=100
-infile:="L2007_01576_SB4-copy.MS";
+startch:=32
+#infile:="L2007_02091_SB3-5.MS";
+infile:="L2007_02092_SB15-17.MS";
 # CygA
-#myphasecenter:=dm.direction('J2000', '19h57m42','40d35m54')
-infile:="L2007_01576_SB6-7.MS";
+myphasecenter:=dm.direction('J2000', '19h59m28.36','40d44m02.42')
 # CasA
-myphasecenter:=dm.direction('J2000', '23h23m24','58d48m54')
+#myphasecenter:=dm.direction('J2000', '23h23m24','58d48m54')
 # flip CasA
 #myphasecenter:=dm.direction('J2000', '12h23m24','58d48m54')
 msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100",fid)
-while (startch<102) {
+while (startch<224) {
 my_model:=sprintf("d%d_%d.model",startch,spid)
 my_img:=sprintf("d%d_%d.img",startch,spid)
 my_res:=sprintf("d%d_%d.residual",startch,spid)
