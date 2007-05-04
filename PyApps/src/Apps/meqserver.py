@@ -119,8 +119,10 @@ class meqserver (app_proxy):
     initrec = make_record(initrec);
     return self.meq('Create.Node',initrec,wait=wait,silent=silent);
   
-  def getnodestate (self,node,wait=True):
-    return self.meq('Node.Get.State',self.makenodespec(node),wait=wait);
+  def getnodestate (self,node,wait=True,sync=False):
+    spec = self.makenodespec(node);
+    spec.sync = sync;
+    return self.meq('Node.Get.State',spec,wait=wait);
 
   def setnodestate (self,node,fields_record,wait=False,sync=True):
     spec = self.makenodespec(node);

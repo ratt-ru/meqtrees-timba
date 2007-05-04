@@ -21,8 +21,9 @@ if __name__ == '__main__':
 
   mod._test_forest(mqs,None);
 
-  state = mqs.getnodestate('solver');
-  print state
+  # sync=True makes sure all commands above have completed on the kernel side
+  # before state is fetched
+  state = mqs.getnodestate('solver',sync=True);
   req = state.request;
 
   res = mqs.execute('x',req,wait=True);

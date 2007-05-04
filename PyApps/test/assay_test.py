@@ -16,8 +16,8 @@ if __name__ == '__main__':
 
   ass.init_test("default");
 
-  ass.watch_node('x','cache.request_id');
-  ass.watch_node('x','cache.result');
+  ass.watch('x/cache.request_id');
+  ass.watch('x/cache.result');
 
   ass.run();
 
