@@ -69,7 +69,9 @@ class MeqServer : public DMI::EventRecepient
     //    Command results are returned via a record ref. If command is sync
     //    (i.e. has been placed on exec queue), this will be an empty record.
     //    Any errors will be thrown as exceptions.
-    DMI::Record::Ref executeCommand (const HIID &cmd,DMI::Record::Ref &args,bool post_results=false);
+    // If wait_for_async_queue is True and a sync command is being executed,
+    // waits for the async queue to finish
+    DMI::Record::Ref executeCommand (const HIID &cmd,DMI::Record::Ref &args,bool post_results=false,bool wait_for_async_queue=true);
 
     // halts the meqserver
     void halt (DMI::Record::Ref &out,DMI::Record::Ref &in);

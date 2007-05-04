@@ -55,7 +55,10 @@ static PyObject * mqexec (PyObject *, PyObject *args)
     cmdrec[AidArgs] = args;
     cmdrec[AidSilent] = bool(silent);
     args.detach();
-    DMI::Record::Ref retval = pmqs->executeCommand(cmd,cmdrec,false); // false=do not post reply but return it here
+    DMI::Record::Ref retval = pmqs->executeCommand(cmd,cmdrec,false,false); 
+    // 1st false = post_reply = do not post reply but return it here
+    // 2nd false = wait_for_async_queue = do not wait on queue, since
+    //   being invoked from Python, we may be part of the queue anyway
     return pyFromDMI(*retval);
   }
   catchStandardErrors(NULL);

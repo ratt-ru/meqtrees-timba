@@ -930,7 +930,7 @@ DMI::Record::Ref MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate,
   return out;
 }
 
-DMI::Record::Ref MeqServer::executeCommand (const HIID &cmdid,DMI::Record::Ref &cmd_data,bool post_results)
+DMI::Record::Ref MeqServer::executeCommand (const HIID &cmdid,DMI::Record::Ref &cmd_data,bool post_results,bool wait_for_async_queue)
 {
   DMI::Record::Ref result;
   // MeqCommands are expected to have a DMI::Record payload
@@ -993,11 +993,13 @@ DMI::Record::Ref MeqServer::executeCommand (const HIID &cmdid,DMI::Record::Ref &
   // directly execute command if found in map
   if( !sync )
   {
-    // for sync commands, make sure the async queue is completed first
-    Thread::Mutex::Lock lock(exec_cond_);
-    while( !exec_queue_.empty() )
-      exec_cond_.wait();
-    lock.release();
+    if( wait_for_async_queue )
+    {
+      // for sync commands, make sure the async queue is completed first
+      Thread::Mutex::Lock lock(exec_cond_);
+      while( !exec_queue_.empty() )
+        exec_cond_.wait();
+    }
     result = execCommandEntry(qe,false,post_results); // false=do not save/restore state
   }
   // else push onto sync queue for exec thread to handle
