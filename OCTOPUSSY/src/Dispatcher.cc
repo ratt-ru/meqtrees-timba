@@ -306,9 +306,12 @@ void Dispatcher::stop ()
     main_thread.join();
   }
   // cancel the event thread
-  event_thread.kill(SIGUSR1);
-  event_thread.join();
-  event_thread = 0;
+  if( event_thread.id() != 0 )
+  {
+    event_thread.kill(SIGUSR1);
+    event_thread.join();
+    event_thread = 0;
+  }
 #else
   running = false;
   // stop the heartbeat timer
