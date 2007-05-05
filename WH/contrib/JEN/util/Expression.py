@@ -523,23 +523,29 @@ class Expression (Meow.Parameterization):
             function = deepcopy(self._expanded)
             children = []
             nodenames = []
-            child_map = []                                      # for MeqFunctional
+            child_map = []            
             k = -1
             for key in self.item_order():
-                rr = self._item[key]                            # item definition record
-                if rr['type'] in ['MeqNode','MeqParm']:
-                    k += 1                                      # increment
-                    xk = 'x'+str(k)                             # x0, x1, x2, ..
-                    function = function.replace(key, xk)
-                    nodename = rr['item'].name
-                    if not nodename in nodenames:               # once only
-                        nodenames.append(nodename)
-                        children.append(rr['item'])
-                    child_num = nodenames.index(nodename)       # 0-based(!)
-                    qq = record(child_num=child_num,
-                                index=rr['index'],              # usually: [0]
-                                nodename=nodename)
-                    child_map.append(qq)
+                if key in self._expanded:                           # extra check...
+                    rr = self._item[key]                            # item definition record
+                    if rr['type']=='parm':                          # undefined item
+                        rr['type'] = 'MeqNode'                      # turn into MeqParm node
+                        rr['item'] = self.ns[key] << Meq.Parm(rr['default'])  # use Meow....
+
+                    if rr['type']=='MeqNode':
+                        k += 1                                      # increment
+                        xk = 'x'+str(k)                             # x0, x1, x2, ..
+                        function = function.replace(key, xk)
+                        nodename = rr['item'].name
+                        if not nodename in nodenames:               # once only
+                            nodenames.append(nodename)
+                            children.append(rr['item'])
+                        child_num = nodenames.index(nodename)       # 0-based(!)
+                        qq = record(child_num=child_num,
+                                    index=rr['index'],              # usually: [0]
+                                    nodename=nodename)
+                        child_map.append(qq)
+
             qnode << Meq.Functional(children=children,
                                     function=function,
                                     child_map=child_map)
@@ -561,20 +567,22 @@ class Expression (Meow.Parameterization):
         qnode = self.ns['MeqCompounder']
         if not qnode.initialized():
 
-            # Make a single node from the Expression:
+            # Make a 'single' node from the Expression, i.e.
+            # either a MeqParm(Funklet), or a MeqFunctional:
             node = self.MeqNode()
 
             # Check whether there are extra axes defined for all variables
             # in the expression other than [t] and [f]:
-            caxes = []
-            for cax in common_axes:
-                caxes.append('['+str(cax)+']')
-            for key in self.item_order():
-                if key[0]=='[' and key in self._expanded:
-                    print key,caxes
-                    if not key in ['[t]','[f]']:
-                        pass
-                    # NB: str(hiid('m')) -> 'M'   ............!
+            #    NB:   str(hiid('m')) -> 'M'   ............!
+            if False:
+                caxes = []
+                for cax in common_axes:
+                    caxes.append('['+str(cax)+']')
+                for key in self.item_order():
+                    if key[0]=='[' and key in self._expanded:
+                        print key,caxes
+                        if not key in ['[t]','[f]']:
+                            pass
                     #if not key in caxes:
                     #    s = '** missing cax:',key
                     #    raise ValueError, s
@@ -605,7 +613,6 @@ class Expression (Meow.Parameterization):
             return False
         
         function = deepcopy(self._expanded)
-
         coeff = []
         k = -1
         for key in self.item_order():
@@ -668,7 +675,13 @@ class Expression (Meow.Parameterization):
         the result will be a MeqFunctional node."""
 
         self._nodes2vars()
-        if not self.has_itemtype ('MeqNode'):
+
+        if self.has_itemtype ('MeqNode'):
+            qnode = self.ns['Expr_MeqNode']
+            if not qnode.initialized():
+                qnode = self.MeqFunctional()
+
+        elif self.has_itemtype ('parm'):
             qnode = self.ns['Expr_MeqParm']
             if not qnode.initialized():
                 f0 = self.Funklet()
@@ -683,10 +696,19 @@ class Expression (Meow.Parameterization):
                     raise ValueError,s
                 qnode << Meq.Parm(init_funklet=funklet,       # new MXM 28 June 2006
                                   node_groups=['Parm'])
-        else:
+
+        elif self.has_itemtype ('var'):
+            # Special case: only variables [] in the expression.
+            # Since a Funklet requires at least one 'parm', make
+            # a MeqFunctional after turning the vars into MeqGrid nodes.
+            self._vars2nodes()
             qnode = self.ns['Expr_MeqNode']
             if not qnode.initialized():
                 qnode = self.MeqFunctional()
+
+        else:
+            s = 'cannot make a MeqNode'
+            raise ValueError,s
 
         # Finished:
         self._MeqNode = qnode
@@ -782,264 +804,13 @@ class Expression (Meow.Parameterization):
 
 
 
-
-#----------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------
-
-
-def classwise (node, klasses=dict(), done=[], level=0, trace=False):
-   """Recursively collect the nodes of the given subtree, divided in classes """
-
-   # trace = True
-
-   # Keep track of the processed nodes (to avoid duplication):
-   if node.name in done: return True
-   done.append(node.name)
-
-   # Append the nodename to its (klass) group:
-   klass = node.classname
-   klasses.setdefault(klass, [])
-   klasses[klass].append(node.name)
-   if trace:
-       print (level*'.')+klass+' '+node.name+' '+str(len(klasses[klass]))
-
-   # Recursive:
-   if True:
-       for i in range(len(node.stepchildren)):
-           stepchild = node.stepchildren[i][1]
-           classwise (stepchild, klasses=klasses, done=done, level=level+1, trace=trace)
-   for i in range(len(node.children)):
-      child = node.children[i][1]
-      classwise (child, klasses=klasses, done=done, level=level+1, trace=trace)
-
-   # Finished:
-   if level==0:
-       if trace:
-           print '\n** classwise():'
-           for klass in klasses.keys():
-               print '-',klass,':',klasses[klass]
-           print
-       return klasses
-   return True
-
-
-
-#=======================================================================================
-#=======================================================================================
-#=======================================================================================
-# Standalone helper functions
-#=======================================================================================
-
-#-------------------------------------------------------------------------------
-# Functions dealing with (unique) labels etc:
-#-------------------------------------------------------------------------------
-
-_labels = {}
-
-def _unique_label (label, trace=False):
-    """Helper function to generate a unique object label."""
-    global _labels
-    if not _labels.has_key(label):                # label has not been used yet
-        _labels.setdefault(label, 1)              # create an entry
-        return label                              # return label unchanged
-    # Duplicate label: 
-    _labels[label] += 1                           # increment the counter
-    return label+'<'+str(_labels[label])+'>'      # modify the label 
-
-#-----------------------------------------------------------------------------
-
-_counters = {}
-
-def _counter (key, increment=0, reset=False, trace=False):
-    """Counter service (use to automatically generate unique node names)"""
-    global _counters
-    _counters.setdefault(key, 0)
-    if reset: _counters[key] = 0
-    _counters[key] += increment
-    if trace: print '** Expression: _counters(',key,') =',_counters[key]
-    return _counters[key]
-
-
-
-#=======================================================================================
-
-def Funklet2Expression (Funklet, label='C', trace=False):
-    """Create an Expression object from the given Funklet object"""
-    if trace:
-        print '\n** Funklet2Expression():'
-        print Funklet._coeff,Funklet._type, Funklet._name
-        print Funklet._function
-        print Funklet._coeff
-
-    # Get the essential information from the Funklet
-    expr = deepcopy(Funklet._function)             
-    if Funklet._type in ['MeqPolc','MeqPolcLog']:
-        coeff = Funklet._coeff                     # 2D, e.g. [[2,3],[0,2]] 
-    else:                                          # Any other 'functional' Funklet:
-        coeff = array(Funklet._coeff).flat         # flatten first....?
-    if numarray.rank(coeff)==1:
-        # Replace all C[i] in the Funklet expression with {<label>_i} 
-        for i in range(len(coeff)):
-            pname = label+'_'+str(i)
-            expr = expr.replace('C['+str(i)+']', '{'+pname+'}')
-    elif numarray.rank(coeff)==2:
-        # Replace all C[i][j] in the Funklet expression with {<label>_ij}
-        for i in range(len(coeff)):
-            for j in range(len(coeff[i])):
-                pname = label+'_'+str(i)+str(j)
-                expr = expr.replace('C['+str(i)+']['+str(j)+']', '{'+pname+'}')
-    else:
-        pass                                       # error?
-
-    # Replace all x[n] in the Funklet expression to [t],[f] etc
-    expr = expr.replace('x[0]','[t]')
-    expr = expr.replace('x[1]','[f]')
-    expr = expr.replace('x[2]','[l]')              # .........?
-    expr = expr.replace('x[3]','[m]')              # .........?
-
-    # Make the Expression object:
-    e0 = Expression(expr, 'Funklet_'+label, descr='from: ')
-
-    # Transfer the coeff default values: 
-    if numarray.rank(coeff)==1:
-        for i in range(len(coeff)):
-            pname = label+'_'+str(i)
-            e0.parm(pname, coeff[i])
-    elif numarray.rank(coeff)==2:
-        for i in range(len(coeff)):
-            for j in range(len(coeff[i])):
-                pname = label+'_'+str(i)+str(j)
-                e0.parm(pname, coeff[i][j])
-
-    # Finished: return the Expression object:
-    if trace: e0.display('Funklet2Expression()', full=True)
-    return e0
-
-
-
-#=======================================================================================
-
-
-def polc_Expression(shape=[1,1], coeff=None, label=None, unit=None,
-                    ignore_triangle=True,
-                    nonzero_default=True, stddev=0.1,
-                    type='MeqPolc', f0=1e6, t0=1.0,
-                    fit=None, plot=False, trace=False):
-    """Create an Expression object for a polc with the given shape (and type).
-    Parameters can be initialized by specifying a list of coeff.
-    The coeff will be assumed 0 for all those missing in the list.
-    If type==MeqPolcLog, the variables [t] and/or [f] are replaced by
-    Expression parameters {tvar}= log([t]/{t0}) and {fvar}=log([f]/{f0}),
-    with the constants t0 and f0 given by input arguments.
-    Optionally, the polc coeff may be determined by fitting to a given
-    set of polc function values vv(t,f): fit=dict(vv=, tt=, ff=)."""
-
-    if trace:
-        print '\n** polc_Expression(',shape,coeff,label,type,'):'
-        if fit: print '       fit =',fit
-    if coeff==None: coeff = []
-    if not isinstance(coeff, (list,tuple)): coeff = [coeff]
-    coeff = array(coeff).flat
-    if len(shape)==1: shape.append(1)
-    if shape[0]==0: shape[0] = 1
-    if shape[1]==0: shape[1] = 1
-    if label==None: label = 'polc'+str(shape[0])+str(shape[1])
-
-    # Whereas the MeqPolc just has variables ([f],[t]),
-    # the MeqPolcLog has parameters that are Expressions:
-    fvar = '[f]'
-    tvar = '[t]'
-    if type=='MeqPolcLog':
-        fvar = '{logf}'
-        tvar = '{logt}'
-
-    func = ""
-    k = -1
-    pp = dict()
-    testinc = dict()
-    help = dict()
-    sunit = ''
-    if isinstance(unit, str): sunit = unit
-    uunit = dict()
-    first = True
-    tdep = False
-    fdep = False
-    include = True
-    sign = -1
-    ijmax = max(shape[0],shape[1])
-    for i in range(shape[1]):
-        if i>0: fdep = True                          # depends on freq
-        for j in range(shape[0]):
-            if j>0: fdep = True                      # depends on time
-            if ignore_triangle:                      # optional:
-                if (i+j)>=ijmax: include = False     # ignore higher-order cross-terms
-            if include:                              # include this term
-                k += 1
-                sign *= -1
-                pk = 'c'+str(j)+str(i)                   # e.g. c01
-                testinc[pk] = sign*(10**(-i-j))          # test-increment 
-                pp[pk] = 0.0                             # default value = 0
-                if nonzero_default:
-                    pp[pk] = testinc[pk]                 # non-zero default value ....
-                if len(coeff)>k:                         # explicitly specified
-                    pp[pk] = coeff[k]                    # override
-                help[pk] = label+'_'+str(j)+str(i)
-                uunit[pk] = sunit
-                if not first: func += '+'
-                func += '{'+pk+'}'                       # {c01}
-                for i2 in range(j):
-                    func += '*'+tvar                     # e.g:  *[t] or *{logt}
-                    uunit[pk] += '/s'
-                for i1 in range(i):
-                    func += '*'+fvar                     # e.g:  *[f] or *{logf}
-                    uunit[pk] += '/Hz'
-                first = False
-                if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
-    result = Expression(ns, 'p1', func,
-                        descr='polc_Expression')
-    result._expression_type = type
-
-    # Define the Expression parms:
-    for key in pp.keys():
-        result.parm('{'+key+'}', pp[key], unit=uunit[key])
-
-    # Define the Expression 'variable' parms, if necessary:
-    if type=='MeqPolcLog':
-        if fdep:
-            logf = Expression('log([f]/{f0})', label='fvar')
-            logf.parm('f0', f0)
-            logf.var('f', 1.e8, testinc=0.5*1e7)  
-            result.parm('logf', logf)
-        if tdep:
-            logf = Expression('log([t]/{t0})', label='tvar')
-            logf.parm('t0', t0)
-            result.parm('logt', logt)
-
-    # Optionally, fit the new polc to a given set of values(f,t):
-    if isinstance(fit, dict):
-        result.fit(**fit)
-
-    # insert help......?
-
-    # Finished: return the polc Expression:
-    if trace: result.display()
-    if plot: result.plot(_plot='loglog')
-    return result
-
-
-
-
 #===============================================================
 # Test routine (with meqbrowser):
 #===============================================================
 
 def _define_forest(ns):
 
-    cc = []
+    cc = [ns.dummy<<45]
 
     if 0:
         e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
@@ -1067,9 +838,12 @@ def _define_forest(ns):
 
     #------------------------------------------------------------
 
-    if 1:
-        e4 = Expression(ns, 'e4', '[l]-[m]+{a}')
-        e4.parm('{a}','MeqParm', default=9)
+    if 0:
+        # e4 = Expression(ns, 'e4', '[l]-[m]+{a}+[long]')
+        e4 = Expression(ns, 'e4', '[l]-[m]')
+        # e4 = Expression(ns, 'e4', '[l]-[m]+{a}')
+        # e4.parm('{a}','MeqParm', default=9)
+        # e4.var('[long]', xn='x6', axis='long')
         e4.display()
 
         if 0:
@@ -1077,9 +851,13 @@ def _define_forest(ns):
             print '** f0 =',f0
 
         if 1:
-            LM = ns.LM << Meq.Composer(ns.L<<0.1, ns.M<<-0.2)
+            # LM = ns.LM << Meq.Composer(ns.L<<0.1, ns.M<<-0.2)
+            LM = ns.LM << Meq.Composer(ns.L<<Meq.Freq(), ns.M<<Meq.Time())
             node = e4.MeqCompounder(extra_axes=LM,
-                                    common_axes=[hiid('l'),hiid('m')],
+                                    common_axes=[hiid('l'),hiid('m')],        # Time, Freq, L, M, 4, 5, 6, 7
+                                    # common_axes=[hiid('lat'),hiid('long')],     # Time, Freq, $lat, long, L, M, 6, 7
+                                    # common_axes=[hiid('q'),hiid('m')],        # Time, Freq, q, M, L, 5, 6, 7
+                                    # common_axes=[hiid('m')],                  # kernel crash
                                     show=True)
             cc.append(node)
             e4.display()
@@ -1087,6 +865,17 @@ def _define_forest(ns):
         if 0:
             cc.append(e4.MeqNode())   
             e4.display()
+
+
+    if 1:
+        e5 = Expression(ns, 'e5', '[long]-[$lat]+{p}')
+        e5.parm('{p}', 'MeqParm', default=-56)
+        e5.var('[long]', xn='x2', axis='long')
+        e5.var('[$lat]', xn='x3', axis='$lat')
+        e5.display()
+        if 1:
+            cc.append(e5.MeqNode())   
+            e5.display()
 
 
     ns.result << Meq.Composer(children=cc)
@@ -1097,7 +886,7 @@ def _define_forest(ns):
 def _tdl_job_2D_tf (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
     domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=100)
+    cells = meq.cells(domain, num_freq=10, num_time=11)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
@@ -1108,6 +897,17 @@ def _tdl_job_4D_tflm (mqs, parent):
     NB: This does NOT work on a Compounder node!"""
     domain = meq.gen_domain(time=(0.0,1.0),freq=(100e6,110e6),l=(-0.1,0.1),m=(-0.1,0.1))
     cells = meq.gen_cells(domain=domain, num_time=4, num_freq=5, num_l=6, num_m=7)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+def _tdl_job_4D_tf_lat_long (mqs, parent):
+    """Execute the forest with a 4D request (freq,time,$lat,long).
+    NB: This does NOT work on a Compounder node!"""
+    domain = meq.gen_domain(time=(0.0,1.0),freq=(100e6,110e6),
+                            lat=(-0.1,0.1),long=(-0.1,0.1))
+    cells = meq.gen_cells(domain=domain, num_time=4, num_freq=5,
+                          num_lat=6, num_long=7)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
@@ -1126,84 +926,13 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-
-    #-------------------------------------------------------------------
-
-    if 0:
-        f0 = Funklet()
-        # f0.setCoeff([[1,0,4],[2,3,4]])       # [t]*[f]*[f] highest order
-        # f0.setCoeff([[1,0],[2,3]]) 
-        f0.setCoeff([1.0,0.,2.,3.])               # [t] only !!
-        # f0.setCoeff([[1,0,2,3]])           # [f] only 
-        # f0.setCoeff([[1],[0],[2],[3]])     # [t] only            
-        # f0.setCoeff([[1,9],[0,9],[2,9],[3,8]])                
-        f0.init_function()
-        print dir(f0)
-        print f0._function
-        print f0._coeff
-        print f0._type
-        e0 = Funklet2Expression(f0, 'A', trace=True)
-        vv = array(range(10))
-        vv = 14+0.123*(vv**2)-7.8*(vv**3)
-        e0.fit(vv=vv, t=range(10))
- 
-    if 0:
-        f0 = Funklet()
-        f0.setCoeff([[1,0,2,3]])             # [f] only 
-        # f0.setCoeff([1,0,2,3])               # [t] only !!
-        # f0.setCoeff([[1,0],[2,3]]) 
-        f0._type = 'MeqPolcLog' 
-        f0.init_function()
-        print dir(f0)
-        print f0._function
-        print f0._coeff
-        print f0._type
-        e0 = Funklet2Expression(f0, 'A', trace=True)
-        e0.plot('semilogy', f=dict(min=1e8,max=1e9), t=range(1,5))
-
- 
-    #--------------------------------------------------------------------------
-    # Tests of standalone helper functions:
-    #--------------------------------------------------------------------------
-
         
-    if 0:
-        fp = polc_Expression([2,1], 56, trace=True)
+    if 1:
+        fp = polc_Expression([2,3], 56, trace=True)
         fp.display()
         if 1:
             fp.Funklet()
             fp.display()
-
-
-    if 0:
-        vv = array(range(10))
-        vv = 12 - vv + 3*(vv**2) - 14.5*(vv**4)
-        if True:
-            fit = dict(vv=vv, t=range(10))
-            fp = polc_Expression([6,1], fit=fit, trace=True)
-        else:
-            fit = dict(vv=vv, f=range(10))
-            fp = polc_Expression([1,5], fit=fit, trace=True)
-        fp.display()
-
-    if 0:
-        fp = polc_Expression([1,4], [1,0,0,2], type='MeqPolcLog', trace=True, plot=True)
-        # fp.plot(f=dict(min=1e7, max=1e9, nr=100))
-
-    if 0:
-        fp = polc_Expression([1,3], [10**1.766,0.447, -0.148],
-                             type='MeqPolcLog', label='3c147',
-                             trace=True, plot=False)
-        fp.plot(f=dict(min=1e7, max=1e9, nr=100))
-
-    if 0:
-        fp = polc_Expression([0,0], 56, trace=True)
-        fp = polc_Expression([1,1], 56, trace=True)
-        fp = polc_Expression([2,2], 56, trace=True)
-        fp = polc_Expression([1,2], 56, trace=True)
-        fp = polc_Expression([2,1], 56, trace=True)
-        fp = polc_Expression([3,2], 56, trace=True)
-        fp = polc_Expression([2,3], 56, trace=True)
 
 
     #===============================================================================
@@ -1224,20 +953,19 @@ if __name__ == '__main__':
         e1 = Expression(ns,'e1','xx')
         e1.display()
 
-    if 1:
+    if 0:
         e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
-        if False:
+        e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
+        e1 = 111.111
+        if True:
             e0.parm('{a}', '[f]*{c}/{b}+{d}')
-            e0.parm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
             e0.parm('{c}', 47)
-            e1 = 111.111
-            if True:
-                e1 = Expression(ns,'e1','{A}+{B}/[m]')
-                e1.parm('{A}', 45)
-                e1.parm('{B}', -45)
-            e0.parm('{e}', e1)
-            e0.parm('{d}', (ns << Meq.Parm(-56)))
-            e0.parm('{f}', 'MeqParm', default=-56)
+            e1 = Expression(ns,'e1','{A}+{B}/[m]')
+            e1.parm('{A}', 45)
+            e1.parm('{B}', -45)
+        e0.parm('{e}', e1)
+        # e0.parm('{d}', (ns << Meq.Parm(-56)))
+        # e0.parm('{f}', 'MeqParm', default=-56)
         e0.display()
 
         if 1:
@@ -1274,7 +1002,8 @@ if __name__ == '__main__':
 
     if 0:
         e4 = Expression(ns, 'e4', '[l]-[m]+{p}')
-        e4.parm('{p}', 'MeqParm', default=-56)
+        # e4 = Expression(ns, 'e4', '[l]-[m]')
+        # e4.parm('{p}', 'MeqParm', default=-56)
         # e4.var('[m]', xn='x10', axis='mcoord')
         e4.display()
         if 0:
@@ -1283,32 +1012,42 @@ if __name__ == '__main__':
         if 0:
             e4.MeqFunctional(show=True)
             e4.display()
-        if 0:
+        if 1:
             L = ns.L << 0.1
             M = ns.M << -0.2
             LM = ns.LM << Meq.Composer(L,M)
             node = e4.MeqCompounder(extra_axes=LM,
-                                    common_axes=[hiid('l'),hiid('m')],
+                                    # common_axes=[hiid('l'),hiid('m')],
+                                    common_axes=[hiid('m')],
                                     show=True)
             e4.display()
+
+    if 0:
+        e5 = Expression(ns, 'e5', '[long]-[$lat]+{p}')
+        # e5.parm('{p}', 'MeqParm', default=-56)
+        e5.var('[long]', xn='x2', axis='long')
+        e5.var('[$lat]', xn='x3', axis='$lat')
+        e5.display()
+        if 1:
+            e5.MeqNode(show=True)
+            e5.display()
+        if 0:
+            e5.MeqFunctional(show=True)
+            e5.display()
+        if 0:
+            L = ns.L << 0.1
+            M = ns.M << -0.2
+            LM = ns.LM << Meq.Composer(L,M)
+            node = e5.MeqCompounder(extra_axes=LM,
+                                    # common_axes=[hiid('l'),hiid('m')],
+                                    common_axes=[hiid('m')],
+                                    show=True)
+            e5.display()
 
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
 
 
-
-
-#============================================================================================
-# Remarks:
-#
-# - MXM cannot interprete pk for k>9. Use C[k] (and X[n]) instead?
-#
-# - Funklets cannot handle purely numeric expressions (e.g. '67')
-#
-# - after Funklet.setCoeff(..), call .init_function()
-#   NB: Convert coeff to float automatically...!
-#
-# - 
 
 
 #============================================================================================
