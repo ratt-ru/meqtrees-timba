@@ -113,11 +113,65 @@ class QwtColorBar(QwtPlot):
           zoom.addTo(self._menu);
           QObject.connect(self._menu,SIGNAL("activated(int)"), self.unzoom)
         
+# for drag & drop stuff ...
+        self.drag_entered = False
+        self.setAcceptDrops(True)
+        self.yhb = 0
+        self.ylb = 0
+        self.xhb = 0
+        self.xlb = 0
+
         # replot
         self.replot()
     # __init__()
 
+    def get_data_range(self):
+      """ returns range of this widget when called by 'foreign'
+          widget on which we have done a drop event
+      """ 
+      rng = (self.min, self.max, self.colorbar_number)
+      return rng
+
+    def dragEnterEvent(self, event):
+      """ drag & drop event callback entered when we move out of or
+          in to a widget 
+      """ 
+# we seem to get an extra dragEnterEvent with 'event' having an
+# unknown type when we're sharing drag & drop with zooming so
+# we have to test for exceptions 
+      try:
+        if not self.drag_entered:
+          event.accept(QTextDrag.canDecode(event))
+        self.drag_entered = True
+      except:
+        pass
+
+    def dropEvent(self, event):
+      """ callback that handles a drop event from frag & drop """
+      try:
+        command= QString()
+        if QTextDrag.decode(event, command): # fills 'command' with decoded text
+          if str(command) == "copyColorRange":
+            if event.source() != self:
+              rng = event.source().get_data_range();
+              self.drag_entered = False
+              self.setRange(rng[0], rng[1], rng[2])
+#           else:
+#             print 'dropping into same widget'
+#       else:
+#         print 'decode failure'
+      except:
+        pass
+
+    def startDrag(self):
+      """ operations done when we start a drag event """ 
+      d = QTextDrag('copyColorRange', self)
+      d.dragCopy()
+
     def setRange(self, min, max,colorbar_number=0):
+      """ sets display range for this colorbar and emits signal
+          to associated display to set corresponding range 
+      """ 
       if colorbar_number == self.colorbar_number:
         if min > max:
           temp = max
@@ -150,6 +204,7 @@ class QwtColorBar(QwtPlot):
     # set Range()
 
     def getTransformOffset(self):
+      """ get the offset value for a plot with a log scale """
       return self.plotImage.getTransformOffset()
  
     def setScales(self):
@@ -161,6 +216,7 @@ class QwtColorBar(QwtPlot):
         self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
 
     def setMaxRange(self, limits, colorbar_number=0, log_scale=False):
+      """ sets maximum range parameters for this colorbar """
       if colorbar_number == self.colorbar_number:
         self.log_scale = log_scale
         self.setScales()
@@ -205,6 +261,7 @@ class QwtColorBar(QwtPlot):
     # setMaxRange()
 
     def showDisplay(self, show_self, colorbar_number=0):
+      """ callback to show or hide this colorbar """
       if colorbar_number == self.colorbar_number:
         self.is_active = True
         if show_self > 0:
@@ -215,22 +272,23 @@ class QwtColorBar(QwtPlot):
     # showDisplay
 
     def unHide(self):
+      """ callback to show this colorbar """
       if self.is_active:
         self.show()
 
     def unzoom(self):
-        if len(self.zoomStack):
-          while len(self.zoomStack):
-            xmin, xmax, ymin, ymax = self.zoomStack.pop()
-          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-          self.setAxisScale(QwtPlot.yLeft, self.image_min, self.image_max)
-          if self.image_min > self.image_max:
-            temp = self.image_max
-            self.image_max = self.image_min
-            self.image_min = temp
-          self.setRange(self.image_min, self.image_max, self.colorbar_number)
-        else:
-          return
+      """ callback to set range of this colorbar back to default """
+      if len(self.zoomStack):
+        while len(self.zoomStack):
+          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+
+      self.setAxisScale(QwtPlot.yLeft, self.image_min, self.image_max)
+      if self.image_min > self.image_max:
+        temp = self.image_max
+        self.image_max = self.image_min
+        self.image_min = temp
+      self.setRange(self.image_min, self.image_max, self.colorbar_number)
 
     # set the type of colorbar display, can be one of "hippo", "grayscale" 
     # or "brentjens"
@@ -248,65 +306,83 @@ class QwtColorBar(QwtPlot):
     # drawCanvasItems()
 
     def onMouseMoved(self, e):
-        pass
+      """ callback to handle mouse moved event """
+      xPos = e.pos().x()
+      yPos = e.pos().y()
+      # Test if mouse has moved outside the plot. If yes, we're 
+      # starting a drag.
+      if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
+        self.enableOutline(0)
+        self.startDrag()
+        self.dragEnterEvent(e)
+        self.drag_entered = False
     # onMouseMoved()
 
     def onMousePressed(self, e):
-        if Qt.LeftButton == e.button():
-            # Python semantics: self.pos = e.pos() does not work; force a copy
-            _dprint(3, 'e.pos() ', e.pos())
-            self.xpos = e.pos().x()
-            self.ypos = e.pos().y()
-            _dprint(3, 'self.xpos self.ypos ', self.xpos, ' ', self.ypos)
-            self.enableOutline(1)
-            self.setOutlinePen(QPen(Qt.black))
-            self.setOutlineStyle(Qwt.Rect)
-            self.zooming = 1
-            if self.zoomStack == []:
-                self.zoomState = (
-                    self.axisScale(QwtPlot.xBottom).lBound(),
-                    self.axisScale(QwtPlot.xBottom).hBound(),
-                    self.axisScale(QwtPlot.yLeft).lBound(),
-                    self.axisScale(QwtPlot.yLeft).hBound(),
-                    )
-        elif Qt.RightButton == e.button():
-            e.accept()
-            self._menu.popup(e.globalPos())
+      """ callback to handle mouse pressed event """
+      if Qt.LeftButton == e.button():
+        # get bounds of plot. Keep them around for later test if
+        # we're initiating a drag operation
+        self.yhb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).hBound())
+        self.ylb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).lBound())
+        self.xhb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).hBound())
+        self.xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
+        # Python semantics: self.pos = e.pos() does not work; force a copy
+        _dprint(3, 'e.pos() ', e.pos())
+        self.xpos = e.pos().x()
+        self.ypos = e.pos().y()
+        _dprint(3, 'self.xpos self.ypos ', self.xpos, ' ', self.ypos)
+        self.enableOutline(1)
+        self.setOutlinePen(QPen(Qt.black))
+        self.setOutlineStyle(Qwt.Rect)
+        self.zooming = 1
+        if self.zoomStack == []:
+          self.zoomState = (
+            self.axisScale(QwtPlot.xBottom).lBound(),
+            self.axisScale(QwtPlot.xBottom).hBound(),
+            self.axisScale(QwtPlot.yLeft).lBound(),
+            self.axisScale(QwtPlot.yLeft).hBound(),
+            )
         # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
+      elif Qt.RightButton == e.button():
+        e.accept()
+        self._menu.popup(e.globalPos())
     # onMousePressed()
 
     def onMouseReleased(self, e):
-        if Qt.LeftButton == e.button():
-            xmin = min(self.xpos, e.pos().x())
-            xmax = max(self.xpos, e.pos().x())
-            ymin = min(self.ypos, e.pos().y())
-            ymax = max(self.ypos, e.pos().y())
-            self.setOutlineStyle(Qwt.Cross)
-            xmin = self.invTransform(QwtPlot.xBottom, xmin)
-            xmax = self.invTransform(QwtPlot.xBottom, xmax)
-            ymin = self.invTransform(QwtPlot.yLeft, ymin)
-            ymax = self.invTransform(QwtPlot.yLeft, ymax)
-            if xmin == xmax or ymin == ymax:
-                return
-            self.zoomStack.append(self.zoomState)
-            self.zoomState = (xmin, xmax, ymin, ymax)
-            self.enableOutline(0)
-        elif Qt.RightButton == e.button():
-            if len(self.zoomStack):
-                xmin, xmax, ymin, ymax = self.zoomStack.pop()
-            else:
-                return
+      """ handles mouse release event if we're not doing a drop """
+      self.drag_entered = False
+      if Qt.LeftButton == e.button():
+        xmin = min(self.xpos, e.pos().x())
+        xmax = max(self.xpos, e.pos().x())
+        ymin = min(self.ypos, e.pos().y())
+        ymax = max(self.ypos, e.pos().y())
+        self.setOutlineStyle(Qwt.Cross)
+        xmin = self.invTransform(QwtPlot.xBottom, xmin)
+        xmax = self.invTransform(QwtPlot.xBottom, xmax)
+        ymin = self.invTransform(QwtPlot.yLeft, ymin)
+        ymax = self.invTransform(QwtPlot.yLeft, ymax)
+        if xmin == xmax or ymin == ymax:
+          return
+        self.zoomStack.append(self.zoomState)
+        self.zoomState = (xmin, xmax, ymin, ymax)
+        self.enableOutline(0)
+      elif Qt.RightButton == e.button():
+        if len(self.zoomStack):
+          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+        else:
+          return
 
-        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-        if ymin > ymax:
-          temp = ymax
-          ymax = ymin
-          ymin = temp
-        self.setRange(ymin, ymax, self.colorbar_number)
+      self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+      self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+      if ymin > ymax:
+        temp = ymax
+        ymax = ymin
+        ymin = temp
+      self.setRange(ymin, ymax, self.colorbar_number)
 
-        self.replot()
+      self.replot()
     # onMouseReleased()
 
 # class QwtColorBar
