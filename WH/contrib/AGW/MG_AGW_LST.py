@@ -37,6 +37,13 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
  
+# setup a bookmark for display of results with a 'Collections Plotter'
+Settings.forest_state = record(bookmarks=[
+  record(name='LST',page=[
+    record(udi="/node/LST",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/LST1",viewer="Result Plotter",pos=(1,0))]
+)]);
+
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
