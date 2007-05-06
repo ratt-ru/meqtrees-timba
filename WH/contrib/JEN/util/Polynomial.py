@@ -26,23 +26,19 @@ from Timba.TDL import *                         # needed for type Funklet....
 import Meow
 #
 from Timba.Contrib.JEN.util import Expression
+from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
 
 Settings.forest_state.cache_policy = 100
 
-# import numarray                               # see numarray.rank()
 from numarray import *
-# import numarray.linear_algebra                # redefines numarray.rank....
 # import random
-# import pylab
 from copy import deepcopy
 
 
 # from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
-# from Timba.Contrib.JEN.util import TDL_Leaf
-# from Timba.Contrib.JEN.util import JEN_parse
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
@@ -314,6 +310,7 @@ def _define_forest(ns):
     # dims = ['t^1','mm^2']
     # dims = ['t^1','f^2','l^2','m^3']
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+    p0.display('initial')
 
     if 0:
         c1 = p0.MeqNode(show=True)
@@ -325,28 +322,46 @@ def _define_forest(ns):
 
     if 1:
         reqseq = []
-        c1 = ns.sincos << Meq.Multiply(ns<<Meq.Sin(ns<<Meq.Time),
-                                       ns<<Meq.Cos(ns<<Meq.Freq))
-        c2 = p0.MeqFunctional(show=True) 
-        solvable = p0.solvable(trace=True)
-        condeq1 = ns.condeq_Functional << Meq.Condeq(c1,c2)
-        solver1 = ns.solver_Functional << Meq.Solver(condeq1,
-                                                num_iter=10,
-                                                solvable=solvable)
-        reqseq.append(solver1)
+        sincos = ns.sincos << Meq.Multiply(ns<<Meq.Sin(ns<<Meq.Time),
+                                           ns<<Meq.Cos(ns<<Meq.Freq))
+        JEN_bookmarks.create(sincos, page='condeqs')
 
-        c2 = p0.MeqNode(show=True) 
-        solvable = p0.solvable(trace=True)
-        condeq2 = ns.condeq_MeqNode << Meq.Condeq(c1,c2)
-        solver2 = ns.solver_MeqNode << Meq.Solver(condeq2,
-                                                  num_iter=10,
-                                                  solvable=solvable)
-        reqseq.append(solver2)
-        reqseq.append(ns.condeq_diff << Meq.Subtract(condeq1,condeq2)) 
-        cc.append(ns.reqseq << Meq.ReqSeq(children=reqseq))
+        if 1:
+            c2 = p0.MeqNode(show=True) 
+            p0.display('after p0.MeqNode()')
+            solvable = p0.solvable(trace=True)
+            condeq2 = ns.condeq_Funklet << Meq.Condeq(sincos,c2)
+            solver2 = ns.solver_Funklet << Meq.Solver(condeq2,
+                                                      num_iter=10,
+                                                      solvable=solvable)
+            reqseq.append(solver2)
+            JEN_bookmarks.create(c2, page='solvers')
+            JEN_bookmarks.create(solver2, page='solvers')
+            JEN_bookmarks.create(condeq2, page='condeqs')
 
-    p0.display()
+        if 1:
+            c1 = p0.MeqFunctional(show=True) 
+            p0.display('after p0.MeqFunctional()')
+            solvable = p0.solvable(trace=True)
+            condeq1 = ns.condeq_Functional << Meq.Condeq(sincos,c1)
+            solver1 = ns.solver_Functional << Meq.Solver(condeq1,
+                                                         num_iter=10,
+                                                         solvable=solvable)
+            reqseq.append(solver1)
+            JEN_bookmarks.create(c1, page='solvers')
+            JEN_bookmarks.create(condeq1, page='condeqs')
+            JEN_bookmarks.create(solver1, page='solvers')
 
+
+        if 1:
+            cdiff = ns.cdiff << Meq.Subtract(condeq1,condeq2) 
+            reqseq.append(cdiff)
+            JEN_bookmarks.create(cdiff, page='condeqs')
+
+        cc.append(ns.solver_reqseq << Meq.ReqSeq(children=reqseq))
+
+
+    # p0.display('final')
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -385,14 +400,16 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     dims = ['t^3']
-    dims = ['t^1','f^1']
+    dims = ['dt^1','ff^1']
     # dims = ['t^1','mm^2']
     # dims = ['t^1','f^2','m^3']
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
-    # p0.MeqNode(show=True)
+    p0.display('initial')
+    p0.MeqNode(show=True)
+    p0.solvable(trace=True)
     p0.MeqFunctional(show=True)
     p0.solvable(trace=True)
-    p0.display()
+    p0.display('final')
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
 
