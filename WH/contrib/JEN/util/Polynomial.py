@@ -59,20 +59,21 @@ class Polynomial (Expression.Expression):
 
     def __init__(self, ns, name, 
                  dims=['t^2','f^3'], symbol='c',
+                 exclude_triangle=True,
                  descr=None, unit=None,
                  quals=[], kwquals={}):
 
         self._dims = dims
         self._symbol = symbol
+        self._exclude_triangle = exclude_triangle
 
-        expr = self._makexpr (dims, symbol, trace=True)
+        expr = self._makexpr (dims, symbol,
+                              exclude_triangle=exclude_triangle,
+                              trace=True)
         
         Expression.Expression.__init__(self, ns, name, expr=expr,
                                        descr=descr, unit=unit,
                                        quals=quals, kwquals=kwquals)
-
-        # Replace the variables {t^3} with proper ones [t]:
-        self._makevars()
 
         # Finished:
         return None
@@ -96,28 +97,39 @@ class Polynomial (Expression.Expression):
     # Functions that generate the polynomial expression:
     #=============================================================================
 
-    def _makexpr (self, dims=['t2','f3'], symbol='c', trace=False):
+    def _makexpr (self, dims=['t^2','f^3'], symbol='c',
+                  exclude_triangle=True, trace=False):
         """Make the ND polynomial expression.""" 
         if trace: print '\n** _multex(',dims,symbol,'):'
         self._vv = []
         terms = []
+        isumax = 0
         for dim in dims:
             dd = dim.split('^')
+            isumax = max(isumax,int(dd[1]))
             if int(dd[1])>0:
                 terms = self._maketerms(terms, dim=dim, trace=trace)
+        if isumax==1: isumax += 1
 
         expr = None
         for k,term in enumerate(terms):
             tt = term.split('_')
+            isum = 0
+            for c in tt[0]:
+                isum += int(c)
             if tt[1]=='':
                 s = '{'+symbol+tt[0]+'}'
             else:
                 s = '{'+symbol+tt[0]+'}*'+tt[1]
-            if trace: print '-',s
-            if not expr:
-                expr = s
+            if trace: print '-',isum,'/',isumax,':',s,
+            if exclude_triangle and isum>isumax:
+                if trace: print ' (ignored)',
+                pass                       # ignore the highest order triangle
+            elif not expr:
+                expr = s                   # first term
             else:
-                expr += ' + '+s
+                expr += ' + '+s            # other terms
+            if trace: print
 
         if expr==None: expr = '{'+symbol+'}'
         return expr
@@ -133,66 +145,42 @@ class Polynomial (Expression.Expression):
         n = int(dd[1])+1
         if trace: print '\n** _multex(',len(terms),dim,'):'
 
-        if len(terms)==0:
+        if len(terms)==0:                                   # first dimension
             for i in range(n):
                 if i==0:
                     s = str(i)+'_'
                 else:
                     v = vs+str(i)
-                    s = str(i)+'_{'+v+'}'
-                    if not v in self._vv: self._vv.append(v)
+                    if i==1: v = dd[0]                      # t^1 = t
+                    s = str(i)+'_['+v+']'
+                    if not v in self._vv:
+                        self._vv.append(v)
                 if trace: print '-',i,':',s
                 new.append(s)
 
-        else:
+        else:                                               # later dimension
             for k,term in enumerate(terms): 
                 for i in range(n):
                     tt = term.split('_')
-                    v = vs+str(i)
-                    if i==0:
+                    v = None                             
+                    if i==0:                                    # ignore t^0
                         s = tt[0]+str(i)+'_'+tt[1]
                     elif tt[1]=='':
-                        s = tt[0]+str(i)+'_{'+v+'}'
-                        if not v in self._vv: self._vv.append(v)
+                        v = vs+str(i)                           # e.g. t^i
+                        if i==1: v = dd[0]                      # t^1 = t
+                        s = tt[0]+str(i)+'_['+v+']'
                     else:
-                        s = tt[0]+str(i)+'_'+tt[1]+'*{'+v+'}'
-                        if not v in self._vv: self._vv.append(v)
+                        v = vs+str(i)                           # e.g. t^i
+                        if i==1: v = dd[0]                      # t^1 = t
+                        s = tt[0]+str(i)+'_'+tt[1]+'*['+v+']'
+                    if v and not v in self._vv:
+                        self._vv.append(v)
                     if trace: print '-',k,i,':',s
                     new.append(s)
+
         # Finished:
         print '** len(new)=',len(new),'\n'
         return new
-
-    #-------------------------------------------------------------------------
-        
-    def _makevars(self, nodes=False, trace=True):
-        """Replace the variables {t^3} in with proper ones [t].
-        There are various possibilities."""
-        if trace: print '\n** vv =',self._vv
-        
-        for v in self._vv:
-            tt = v.split('^')
-            vs = '['+tt[0]+']'
-            k = int(tt[1])
-            subexpr = vs
-            if k==1:
-                if nodes:
-                    # This needs a little more thought......
-                    subexpr = self.ns << Meq.Time()
-            elif k>1:
-                if False:
-                    subexpr += '**'+str(k)          # e.g. [t]**4
-                elif nodes:
-                    # Make a node. It will no longer be possible to make a polc-parm.
-                    # Problem: How to get the var-node (from Expression, via vars2nodes?)
-                    subexpr = self.ns << Meq.Pow(Meq.Grid(axis='...'),k)
-                else:
-                    for i in range(1,k):
-                        subexpr += '*'+vs           # e.g. [t]*[t]*[t]*[t]
-            self.parm('{'+v+'}', subexpr)
-            if trace: print '-',v,tt,k,' subexpr =',subexpr
-        return True
-
 
 
 
@@ -321,6 +309,44 @@ def _define_forest(ns):
 
     cc = [ns.dummy<<45]
 
+    dims = ['t^3']
+    dims = ['t^4','f^4']
+    # dims = ['t^1','mm^2']
+    # dims = ['t^1','f^2','l^2','m^3']
+    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+
+    if 0:
+        c1 = p0.MeqNode(show=True)
+        c2 = p0.MeqFunctional(show=True)
+        cc.append(ns.diff << Meq.Subtract(c1,c2)) 
+
+    if 0:
+        cc.append(p0.MeqCompounder())
+
+    if 1:
+        reqseq = []
+        c1 = ns.sincos << Meq.Multiply(ns<<Meq.Sin(ns<<Meq.Time),
+                                       ns<<Meq.Cos(ns<<Meq.Freq))
+        c2 = p0.MeqFunctional(show=True) 
+        solvable = p0.solvable(trace=True)
+        condeq1 = ns.condeq_Functional << Meq.Condeq(c1,c2)
+        solver1 = ns.solver_Functional << Meq.Solver(condeq1,
+                                                num_iter=10,
+                                                solvable=solvable)
+        reqseq.append(solver1)
+
+        c2 = p0.MeqNode(show=True) 
+        solvable = p0.solvable(trace=True)
+        condeq2 = ns.condeq_MeqNode << Meq.Condeq(c1,c2)
+        solver2 = ns.solver_MeqNode << Meq.Solver(condeq2,
+                                                  num_iter=10,
+                                                  solvable=solvable)
+        reqseq.append(solver2)
+        reqseq.append(ns.condeq_diff << Meq.Subtract(condeq1,condeq2)) 
+        cc.append(ns.reqseq << Meq.ReqSeq(children=reqseq))
+
+    p0.display()
+
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -328,7 +354,7 @@ def _define_forest(ns):
 
 def _tdl_job_2D_tf (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
+    domain = meq.domain(1,5,0,5)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=10, num_time=11)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
@@ -338,7 +364,7 @@ def _tdl_job_2D_tf (mqs, parent):
 def _tdl_job_4D_tflm (mqs, parent):
     """Execute the forest with a 4D request (freq,time,l,m).
     NB: This does NOT work on a Compounder node!"""
-    domain = meq.gen_domain(time=(0.0,1.0),freq=(100e6,110e6),l=(-0.1,0.1),m=(-0.1,0.1))
+    domain = meq.gen_domain(time=(0.0,1.0),freq=(1,10),l=(-0.1,0.1),m=(-0.1,0.1))
     cells = meq.gen_cells(domain=domain, num_time=4, num_freq=5, num_l=6, num_m=7)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
@@ -359,10 +385,13 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     dims = ['t^3']
-    dims = ['t^3','f^4']
+    dims = ['t^1','f^1']
     # dims = ['t^1','mm^2']
-    # dims = ['t^0','f^0','m^0']
-    p0 = Polynomial(ns, 'p0', dims=dims, symbol='p')
+    # dims = ['t^1','f^2','m^3']
+    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+    # p0.MeqNode(show=True)
+    p0.MeqFunctional(show=True)
+    p0.solvable(trace=True)
     p0.display()
 
     print '\n*******************\n** End of local test of: Expression.py:\n'

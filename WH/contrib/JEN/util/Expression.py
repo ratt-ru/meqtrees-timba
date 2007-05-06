@@ -107,6 +107,7 @@ class Expression (Meow.Parameterization):
         self._Funklet_function = None
         self._Functional = None
         self._Functional_function = None
+        self._Functional_childmap = []
         self._Compounder = None
         self._Compounder_common_axes = None
         self._testexpr = None
@@ -178,16 +179,30 @@ class Expression (Meow.Parameterization):
         v = self._testeval()
         print '  * testexpr: '+str(self._testexpr)
         print '    - .testeval() ->  '+str(v)+'  ('+str(type(v))+')'
+
+        nmax = 100
+        # print len(self._expanded),nmax
+        if len(self._expanded)>nmax: print
         print '  * expanded: '+str(self._expanded)
-        for itemtype in ['MeqNode']:
-            print '    - .has_itemtype('+str(itemtype)+') -> '+str(self.has_itemtype(itemtype))
-        print '  * MeqNode = '+str(self._MeqNode)
-        print '  * Funklet = '+str(self._Funklet)
-        print '    - function = '+str(self._Funklet_function)
-        print '  * Functional = '+str(self._Functional)
-        print '    - function = '+str(self._Functional_function)
-        print '  * Compounder = '+str(self._Compounder)
-        print '    - common_axes = '+str(self._Compounder_common_axes)
+        if len(self._expanded)>nmax: print
+
+        if full:
+            for itemtype in ['MeqNode']:
+                print '    - .has_itemtype('+str(itemtype)+') -> '+str(self.has_itemtype(itemtype))
+        if self._MeqNode:
+            print '  * MeqNode = '+str(self._MeqNode)
+        if self._Funklet:
+            print '  * Funklet = '+str(self._Funklet)
+            print '    - function = '+str(self._Funklet_function)
+        if self._Functional:
+            print '  * Functional = '+str(self._Functional)
+            print '    - function = '+str(self._Functional_function)
+            if True or full:
+                for k,rr in enumerate(self._Functional_childmap):
+                    print '    - '+str(rr)
+        if self._Compounder:
+            print '  * Compounder = '+str(self._Compounder)
+            print '    - common_axes = '+str(self._Compounder_common_axes)
         print '**\n'
         return True
         
@@ -366,7 +381,7 @@ class Expression (Meow.Parameterization):
         if isinstance(nodeclass, str):
             rr['var']['nodeclass'] = nodeclass    # default: 'MeqGrid'
         if isinstance(xn, str):
-            rr['var']['xn'] = xn                  # e.g. 'x2' or 'x7'
+            rr['var']['funktion'] = xn            # e.g. 'x2' or 'x7'
         if isinstance(axis, str):
             rr['var']['axis'] = axis              # e.g. 'x' or 'lat'
         if isinstance(unit, str):
@@ -380,32 +395,48 @@ class Expression (Meow.Parameterization):
         and add them to self._item, avoiding duplication"""
         vv = JEN_parse.find_enclosed(expr, brackets='[]')
         for key in vv:
+            kk = key.split('^')                     # e.g. t^4
             key = '['+key+']'
+            key0 = '['+kk[0]+']'                    # e.g. [t]
+            
             if not self._item.has_key(key):
                 rr = dict(type='var', item=None, index=[0],
                           unit=None, default=10.0)
-                var = dict(nodeclass='MeqGrid', xn='xn', axis=None)
+                var = dict(nodeclass='MeqGrid', key0=key0,
+                           axis=None, pow=None, funktion=None)
+
+                
                 # Deal with some standard variables:
-                if key=='[t]':                      # time
+                if key=='[t]':                
                     var['nodeclass'] = 'MeqTime' 
-                    var['xn'] = 'x0'                # used in Funklet
-                    var['axis'] = 'time'            # used in MeqKernel
+                    var['funktion'] = 'x0'          # used in Funklet
+                    var['axis'] = 'time'    
                     rr['unit'] = 's'
-                elif key=='[f]':                    # freq
+                elif key=='[f]':              
                     var['nodeclass'] = 'MeqFreq'  
-                    var['xn'] = 'x1'
-                    var['axis'] = 'freq'            # used in MeqKernel
+                    var['funktion'] = 'x1'          # used in Funklet
+                    var['axis'] = 'freq'    
                     rr['unit'] = 'Hz'
                 elif key=='[l]':                    # celestial l-coordinate
                     var['nodeclass'] = 'MeqGrid'   
-                    var['axis'] = 'l'               # used in MeqKernel
-                    var['xn'] = 'x2'                # .....!?
+                    var['funktion'] = 'x2'          # used in Funklet
+                    var['axis'] = 'l'      
                     rr['unit'] = 'rad'
                 elif key=='[m]':                    # celestial m-coordinate
                     var['nodeclass'] = 'MeqGrid'  
-                    var['axis'] = 'm'               # used in MeqKernel
-                    var['xn'] = 'x3'                # .....!?
+                    var['funktion'] = 'x3'          # used in Funklet
+                    var['axis'] = 'm'        
                     rr['unit'] = 'rad'
+
+                # Variables can be functions of the basic one
+                elif len(kk)>1:                     # e.g. [t^4]
+                    var['nodeclass'] = 'MeqPow'     # for MeqFunctional
+                    var['pow'] = int(kk[1])
+                    rr['unit'] = str(self._item[key0]['unit'])+'^'+kk[1]
+                    funktion = self._item[key0]['var']['funktion']       # e.g. [t]
+                    funktion = '('+str(funktion)+'**'+kk[1]+')'          # e.g. ([t]**4)
+                    var['funktion'] = funktion      # used in Funklet
+
                 rr['var'] = var                     # attach the var definition record
                 self._item[key] = rr                # attach the item definition record
                 self._item_order.append(key)        # include the key
@@ -434,6 +465,7 @@ class Expression (Meow.Parameterization):
             if rr.has_key('var'):                          # var definition record
                 if not rr['item']:                         # only if not yet defined
                     nodeclass = rr['var']['nodeclass']     # e.g. 'MeqTime'
+                    key0 = rr['var']['key0']               # e.g. [t]
                     axis = rr['var']['axis']               # e.g. 'freq', or 'm'
                     qnode = self.ns[key]
                     if nodeclass=='MeqTime':
@@ -442,6 +474,10 @@ class Expression (Meow.Parameterization):
                         qnode << Meq.Freq()
                     elif nodeclass=='MeqGrid':
                         qnode << Meq.Grid(axis=axis)
+                    elif nodeclass=='MeqPow':
+                        node = self._item[key0]['item']    # e.g. MeqTime
+                        power = rr['var']['pow']           # e.g. 2
+                        qnode << Meq.Pow(node,power)   
                     else:
                         s = 'nodeclass not recognised:'+str(nodeclass)
                         raise TypeError,s
@@ -517,9 +553,9 @@ class Expression (Meow.Parameterization):
         """Turn the expression into a MeqFunctional node,
         i.e. an expression of its children."""
 
+        self._vars2nodes()        
         qnode = self.ns['Functional']
         if not qnode.initialized():
-            self._vars2nodes()        
             function = deepcopy(self._expanded)
             children = []
             nodenames = []
@@ -549,15 +585,18 @@ class Expression (Meow.Parameterization):
             qnode << Meq.Functional(children=children,
                                     function=function,
                                     child_map=child_map)
-        # Finsihed:
+            self._Functional = qnode
+            self._Functional_childmap = child_map
+            self._Functional_function = function
+
+        # Finished:
         self._locked = True                              # no more modifications
-        self._Functional_function = function
-        self._Functional = qnode
         if show: display.subtree(qnode)
         return qnode
 
 
     #--------------------------------------------------------------------------
+
 
     def MeqCompounder (self, extra_axes=None, common_axes=None, show=False):
         """Make a MeqCompounder node from the Expression. The extra_axes argument
@@ -566,6 +605,14 @@ class Expression (Meow.Parameterization):
 
         qnode = self.ns['MeqCompounder']
         if not qnode.initialized():
+
+            if extra_axes==None:
+                # Kludge for convenient testing of the Compounder
+                # Assume (l,m), and provide automatic L and M nodes
+                # with some variation by using MeqFreq and MeqTime
+                extra_axes = self.ns.LM << Meq.Composer(self.ns.L<<Meq.Freq(),
+                                                        self.ns.M<<Meq.Time())
+                common_axes = [hiid('l'),hiid('m')]
 
             # Make a 'single' node from the Expression, i.e.
             # either a MeqParm(Funklet), or a MeqFunctional:
@@ -629,8 +676,9 @@ class Expression (Meow.Parameterization):
 
             elif rr['type']=='var':
                 # Replace the valiables [] with x0 (time), x1(freq) etc
-                xn = rr['var']['xn']
-                function = function.replace(key, xn) 
+                funktion = rr['var']['funktion']
+                function = function.replace(key, funktion)
+                print '- replace:',key,'by:',funktion,'\n  ->',function
 
 
         # Make the Funklet, and attach it:
@@ -769,6 +817,28 @@ class Expression (Meow.Parameterization):
     # Functions dealing with the available MeqParms (for solving etc)
     #===========================================================================
 
+
+    def solvable (self, trace=False):
+        """Return a list of solvable MeqParm nodes"""
+        ss = []
+        if self._MeqNode:
+            if self._MeqNode.classname=='MeqParm':
+                ss.append(self._MeqNode)
+        else:
+            for key in self.item_order():
+                rr = self._item[key]
+                if rr['type']=='MeqNode':
+                    if is_node(rr['item']):
+                        if rr['item'].classname=='MeqParm':
+                            ss.append(rr['item'])
+        if trace:
+            print '\n** solvable():'
+            for s in ss: print '-',str(s)
+            print
+        return ss
+
+    
+
     def MeqParms (self, ns=None, group='all', trace=False):
         """Access to the (groups of) MeqParm nodes associated with this Expression"""
         if not self._MeqParms:
@@ -880,6 +950,8 @@ def _define_forest(ns):
 
     ns.result << Meq.Composer(children=cc)
     return True
+
+
 
 #---------------------------------------------------------------
 
