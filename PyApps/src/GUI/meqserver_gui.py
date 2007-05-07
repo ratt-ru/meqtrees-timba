@@ -389,7 +389,8 @@ class meqserver_gui (app_proxy_gui):
     meqds.subscribe_forest_state(self._update_forest_state);
     # clear the splash screen
     # _splash_screen.finish(self);
-    # add signal handler for SIGCHLD
+    # add signal handler for SIGCHLD. This will probably override the signal handler set
+    # by Apps.meqserver, but that's OK
     signal.signal(signal.SIGCHLD,self._sigchld_handler);
     self._kernel_pid = self._kernel_pathname = None;
     # other internal state
