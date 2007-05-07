@@ -381,7 +381,23 @@ class app_proxy (verbosity):
     
   def await (self,what,timeout=None,resume=False):
     "interface to pwp's event loop, in the await form";
-    return self._pwp.await(self._rcv_prefix + what,timeout=timeout,resume=resume);
+    if timeout is not None:
+      await_timeout = min(1,timeout);
+      timeout = time.time() + timeout;
+    else:
+      await_timeout = 1;
+    while True:
+      # throw error on disconnect
+      if self.app_addr is None:
+        raise RuntimeError,"lost connection while waiting for event "+str(what);
+      res = self._pwp.await(self._rcv_prefix + what,timeout=await_timeout,resume=resume);
+      # return message if something is received
+      if res is not None:
+        return res;
+      # check for timeout and return None
+      if timeout is not None and time.time() >= timeout:
+        return None;
+      # else go back to top of loop to wait some more
     
   def run_gui (self):
     if not app_defaults.include_gui:
