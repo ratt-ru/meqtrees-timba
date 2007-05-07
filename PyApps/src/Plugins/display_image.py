@@ -175,6 +175,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Warp Display': 316,
         'Toggle Pause': 317,
         'Toggle Comparison': 318,
+        'Drag Amplitude Scale': 319,
         }
 
     _start_spectrum_menu_id = 0
@@ -332,6 +333,7 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_gray_scale = 0
         self._toggle_flag_label = None
         self._toggle_blink_label = None
+        self._drag_amplitude_scale = False
 
         self.first_chi_test = True
         self.log_axis_chi_0 = False
@@ -354,7 +356,44 @@ class QwtImageDisplay(QwtPlot):
 # QGridlayout
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
+# for drag & drop stuff ...
+        self.drag_entered = False
+        self.setAcceptDrops(True)
+
 #       self.__init__
+
+    def dragEnterEvent(self, event):
+      """ drag & drop event callback entered when we move out of or
+          in to a widget
+      """
+      try:
+        if not self.drag_entered:
+          event.accept(QTextDrag.canDecode(event))
+        self.drag_entered = True
+      except:
+        pass
+
+    def dropEvent(self, event):
+      """ callback that handles a drop event from drag & drop """
+      try:
+        command= QString()
+        if QTextDrag.decode(event, command): # fills 'command' with decoded text
+          if str(command) == "copyPlotParms":
+            if event.source() != self:
+              parms = event.source().getPlotParms();
+              self.drag_entered = False
+              self.setPlotParms(parms,True)
+#           else:
+#             print 'dropping into same widget'
+#       else:
+#         print 'decode failure'
+      except:
+        pass
+
+    def startDrag(self):
+      """ operations done when we start a drag event """
+      d = QTextDrag('copyPlotParms', self)
+      d.dragCopy()
 
     def setZoomDisplay(self):
       self._zoom_display = True
@@ -374,37 +413,40 @@ class QwtImageDisplay(QwtPlot):
      
         return plot_parms
 
-    def setPlotParms(self, plot_parms):
+    def setPlotParms(self, plot_parms,copy_axes=False):
         """ Set modified plot parameters """
-        self._window_title = plot_parms['window_title'] 
-        self._x_title = plot_parms['x_title']
-        self._y_title = plot_parms['y_title'] 
+        if not copy_axes: 
+          self._window_title = plot_parms['window_title'] 
+          self._x_title = plot_parms['x_title']
+          self._y_title = plot_parms['y_title'] 
 
-        self.setTitle(self._window_title)
-        self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-        self.setAxisTitle(QwtPlot.yLeft, self._y_title)
+          self.setTitle(self._window_title)
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+          self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 
-        self._x_auto_scale = plot_parms['x_axis_auto_scale']
-        if self._x_auto_scale == '1':
-          self._x_auto_scale = True
-        else:
-          self._x_auto_scale = False
-        self._y_auto_scale = plot_parms['y_axis_auto_scale']
-        if self._y_auto_scale == '1':
-          self._y_auto_scale = True
-        else:
-          self._y_auto_scale = False
+        if self.zoomStack == []:
+                self.zoomState = (
+                    self.axisScale(QwtPlot.xBottom).lBound(),
+                    self.axisScale(QwtPlot.xBottom).hBound(),
+                    self.axisScale(QwtPlot.yLeft).lBound(),
+                    self.axisScale(QwtPlot.yLeft).hBound(), True
+                    )
+        self.zoomStack.append(self.zoomState)
+        self._x_auto_scale = plot_parms['x_auto_scale']
+        self._y_auto_scale = plot_parms['y_auto_scale']
         if not self._x_auto_scale: 
-          self.axis_xmin = plot_parms['x_axis_min']
-          self.axis_xmax = plot_parms['x_axis_max']
+          self.axis_xmin = plot_parms['axis_xmin']
+          self.axis_xmax = plot_parms['axis_xmax']
+          self.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
         if not self._y_auto_scale: 
-          self.axis_ymin = plot_parms['y_axis_min']
-          self.axis_ymax = plot_parms['y_axis_max']
-        self.axis_ratio = plot_parms['ratio']
-        self.aspect_ratio = plot_parms['aspect_ratio']
+          self.axis_ymin = plot_parms['axis_ymin']
+          self.axis_ymax = plot_parms['axis_ymax']
+          self.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
+        self.zoomState = (self.axis_xmin, self.axis_xmax, self.axis_ymin, self.axis_ymax, True)
+        toggle_id = self.menu_table['Reset zoomer']
+        self._menu.setItemVisible(toggle_id, True)
         self.replot()
         _dprint(3, 'called replot in setPlotParms')
-
 
     def initSpectrumContextMenu(self):
         """Initialize the spectrum context menu """
@@ -943,9 +985,18 @@ class QwtImageDisplay(QwtPlot):
     
     def reset_zoom(self, replot=False):
       """ resets data display so all data are visible """
+      do_replot = False
       if len(self.zoomStack):
         while len(self.zoomStack):
-          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+          axis_parms = self.zoomStack.pop()
+          xmin = axis_parms[0]
+          xmax = axis_parms[1]
+          ymin = axis_parms[2]
+          ymax = axis_parms[3]
+          try:
+            do_replot = axis_parms[4]
+          except:
+            pass
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self._x_auto_scale = False
@@ -964,6 +1015,9 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
 # do a complete replot in the following situation
 # as both axes will have changed even if nothing to unzoom.
+      if do_replot:
+        self.replot()
+    
       if replot:
         self.array_plot(self._window_title, self.complex_image, False)
       _dprint(3, 'exiting reset_zoom')
@@ -1306,6 +1360,17 @@ class QwtImageDisplay(QwtPlot):
       """ callback to handle MouseMoved event """ 
       if self.scalar_display:
         return
+
+      xPos = e.pos().x()
+      yPos = e.pos().y()
+      if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
+        if not self.display_solution_distances:
+          self.enableOutline(0)
+          self.startDrag()
+          self.dragEnterEvent(e)
+          self.drag_entered = False
+        return
+
       # remove any 'source' descriptor if we are zooming
       if abs(self.xpos - e.pos().x()) >2 and abs(self.ypos - e.pos().y())>2:
         if not self.source_marker is None:
@@ -1315,6 +1380,11 @@ class QwtImageDisplay(QwtPlot):
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
+        self.yhb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).hBound())
+        self.ylb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).lBound())
+        self.xhb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).hBound())
+        self.xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
+
         if Qt.LeftButton == e.button():
             if self.is_vector: 
               if not self.display_solution_distances:
@@ -1386,7 +1456,7 @@ class QwtImageDisplay(QwtPlot):
     # onMousePressed()
 
     def onMouseReleased(self, e):
-        """ callback to handle MouseReleased event """
+        self.drag_entered = False
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
