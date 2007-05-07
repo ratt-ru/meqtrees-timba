@@ -321,19 +321,22 @@ def _define_forest(ns):
         cc.append(p0.MeqCompounder())
 
     if 1:
+        #----------------------------------------------------------
+        # Compare the FunkletParm en MeqFunctional solutions
+        #----------------------------------------------------------
         reqseq = []
         sincos = ns.sincos << Meq.Multiply(ns<<Meq.Sin(ns<<Meq.Time),
                                            ns<<Meq.Cos(ns<<Meq.Freq))
         JEN_bookmarks.create(sincos, page='condeqs')
 
         if 1:
-            c2 = p0.MeqNode(show=True) 
-            p0.display('after p0.MeqNode()')
+            c2 = p0.FunkletParm(show=True) 
+            p0.display('after p0.FunkletParm()')
             solvable = p0.solvable(trace=True)
-            condeq2 = ns.condeq_Funklet << Meq.Condeq(sincos,c2)
-            solver2 = ns.solver_Funklet << Meq.Solver(condeq2,
-                                                      num_iter=10,
-                                                      solvable=solvable)
+            condeq2 = ns.condeq_FunkletParm << Meq.Condeq(sincos,c2)
+            solver2 = ns.solver_FunkletParm << Meq.Solver(condeq2,
+                                                          num_iter=10,
+                                                          solvable=solvable)
             reqseq.append(solver2)
             JEN_bookmarks.create(c2, page='solvers')
             JEN_bookmarks.create(solver2, page='solvers')
@@ -359,6 +362,7 @@ def _define_forest(ns):
             JEN_bookmarks.create(cdiff, page='condeqs')
 
         cc.append(ns.solver_reqseq << Meq.ReqSeq(children=reqseq))
+        #----------------------------------------------------------
 
 
     # p0.display('final')
@@ -405,10 +409,18 @@ if __name__ == '__main__':
     # dims = ['t^1','f^2','m^3']
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
     p0.display('initial')
-    p0.MeqNode(show=True)
-    p0.solvable(trace=True)
-    p0.MeqFunctional(show=True)
-    p0.solvable(trace=True)
+    if 0:
+        p0.MeqNode(show=True)
+        p0.solvable(trace=True)
+    if 1:
+        p0.FunkletParm(show=True)
+        p0.solvable(trace=True)
+    if 0:
+        p0.MeqFunctional(show=True)
+        p0.solvable(trace=True)
+        if 0:
+            p0.MeqNode(show=True)
+            p0.solvable(trace=True)
     p0.display('final')
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
