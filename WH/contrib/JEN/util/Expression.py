@@ -842,7 +842,8 @@ class Expression (Meow.Parameterization):
     #==========================================================================
 
 
-    def MeqCompounder (self, extra_axes=None, common_axes=None, show=False):
+    def MeqCompounder (self, extra_axes=None, common_axes=None,
+                       use='MeqFunctional', show=False):
         """Make a MeqCompounder node from the Expression. The extra_axes argument
         should be a MeqComposer that bundles the extra (coordinate) children,
         described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
@@ -850,34 +851,43 @@ class Expression (Meow.Parameterization):
         qnode = self.ns['MeqCompounder']
         if not qnode.initialized():
 
-            if extra_axes==None:
-                # Kludge for convenient testing of the Compounder
-                # Assume (l,m), and provide automatic L and M nodes
-                # with some variation by using MeqFreq and MeqTime
-                extra_axes = self.ns.LM << Meq.Composer(self.ns.L<<Meq.Freq(),
-                                                        self.ns.M<<Meq.Time())
-                common_axes = [hiid('l'),hiid('m')]
-
-            # Make a 'single' node from the Expression, i.e.
-            # either a MeqParm(Funklet), or a MeqFunctional:
-            node = self.MeqNode()
-
-            # Check whether there are extra axes defined for all variables
-            # in the expression other than [t] and [f]:
-            #    NB:   str(hiid('m')) -> 'M'   ............!
-            if False:
-                caxes = []
-                for cax in common_axes:
-                    caxes.append('['+str(cax)+']')
-                for key in self.item_order():
-                    if key[0]=='[' and key in self._expanded:
-                        print key,caxes
-                        if not key in ['[t]','[f]']:
+            # Find the variable axes other than 'time' and 'freq':
+            caxes = []
+            for key in self.item_order():
+                if self._item[key].has_key('var'):
+                    var = self._item[key]['var']
+                    # print '***',key,':',var
+                    if var.has_key('axis') and var['axis']:
+                        if var['axis'] in ['freq','time']:
                             pass
-                    #if not key in caxes:
-                    #    s = '** missing cax:',key
-                    #    raise ValueError, s
+                        else:
+                            caxes.append(var['axis'])
+
+            if extra_axes==None:
+                # Kludge for convenient testing of the Compounder.
+                #    NB:   str(hiid('m')) -> 'M'   ............!
+                print '** caxes =',caxes
+                cc = []
+                common_axes = []
+                for k,axis in enumerate(caxes):
+                    common_axes.append(hiid(axis))
+                    if (k%2)==0:        # alternate between MeqFreq and MeqTime
+                        cc.append(self.ns['extra_axis_'+axis] << Meq.Time())
+                    else:
+                        cc.append(self.ns['extra_axis_'+axis] << Meq.Freq())
+                if len(cc)==0:
+                    raise ValueError,'** no common axes for MeqCompounder() ...'
+                extra_axes = self.ns['extra_axes'] << Meq.Composer(children=cc)
+                print '** common_axes=',common_axes,str(extra_axes)
                 
+
+            # Make/get a node/subtree from the Expression:
+            if use=='MeqFunctional':
+                node = self.MeqFunctional()
+            else:
+                node = self.MeqNode()
+
+            # OK, make the compounder:
             qnode << Meq.Compounder(children=[extra_axes, node],
                                     common_axes=common_axes)
             self._Compounder = qnode
@@ -887,7 +897,6 @@ class Expression (Meow.Parameterization):
         self._locked = True                              # no more modifications
         if show: display.subtree(qnode)
         return qnode
-
 
 
 

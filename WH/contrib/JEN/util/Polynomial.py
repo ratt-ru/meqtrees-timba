@@ -308,7 +308,8 @@ def _define_forest(ns):
     dims = ['t^3']
     dims = ['t^4','f^4']
     # dims = ['t^1','mm^2']
-    # dims = ['t^1','f^2','l^2','m^3']
+    dims = ['t^1','f^2','l^2','m^3']                    # ND plotter sees NaN's that are not there
+    # dims = ['t^1','f^2','m^3']                        # crashes when executed...
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
     p0.display('initial')
 
@@ -317,10 +318,12 @@ def _define_forest(ns):
         c2 = p0.MeqFunctional(show=True)
         cc.append(ns.diff << Meq.Subtract(c1,c2)) 
 
-    if 0:
-        cc.append(p0.MeqCompounder())
-
     if 1:
+        c = p0.MeqCompounder()
+        cc.append(c)
+        JEN_bookmarks.create(c, page='compounder', recurse=1)
+
+    if 0:
         #----------------------------------------------------------
         # Compare the FunkletParm en MeqFunctional solutions
         #----------------------------------------------------------
@@ -406,13 +409,14 @@ if __name__ == '__main__':
     dims = ['t^3']
     dims = ['dt^1','ff^1']
     # dims = ['t^1','mm^2']
-    # dims = ['t^1','f^2','m^3']
+    dims = ['dt^1','f^2','m^3']
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
     p0.display('initial')
+
     if 0:
         p0.MeqNode(show=True)
         p0.solvable(trace=True)
-    if 1:
+    if 0:
         p0.FunkletParm(show=True)
         p0.solvable(trace=True)
     if 0:
@@ -421,6 +425,11 @@ if __name__ == '__main__':
         if 0:
             p0.MeqNode(show=True)
             p0.solvable(trace=True)
+
+    if 1:
+        p0.MeqCompounder(show=True)
+        # p0.solvable(trace=True)
+
     p0.display('final')
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
