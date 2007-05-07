@@ -83,11 +83,29 @@ class VellsData:
           _dprint(3,'current label ', current_label)
           if current_label != '(null)':
             begin = 0
-            end = 0
+            end = 1
             title = current_label
-            if vells_rec.cells.domain.has_key(current_label):
-              begin = vells_rec.cells.domain.get(current_label)[0]
-              end = vells_rec.cells.domain.get(current_label)[1]
+            if vells_rec.cells.grid.has_key(current_label):
+              try:
+                grid_array = vells_rec.cells.grid.get(current_label)
+                delta = vells_rec.cells.cell_size.get(current_label)
+                # for the moment, assume all deltas are the same, 
+                # so use first one
+                try:
+                  grid_step = 0.5 * delta[0]
+                except:
+                  grid_step = 0.5 * delta
+                self.axis_shape[current_label] = grid_array.shape[0]
+                _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
+                self.num_possible_ND_axes = self.num_possible_ND_axes + 1
+                _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
+                begin = grid_array[0] - grid_step
+                if self.axis_shape[current_label] > 1:
+                  end = grid_array[self.axis_shape[current_label] -1] + grid_step
+                else:
+                  end = grid_array[0] + grid_step
+              except:
+                self.axis_shape[current_label] = 1
               title = current_label
               if current_label == 'time':
                 end = end - begin
@@ -104,15 +122,6 @@ class VellsData:
                   title = 'Frequency(KHz)'
                 else:
                   title = 'Frequency(Hz)'
-            if vells_rec.cells.grid.has_key(current_label):
-              grid_array = vells_rec.cells.grid.get(current_label)
-              try:
-                self.axis_shape[current_label] = grid_array.shape[0]
-                _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
-                self.num_possible_ND_axes = self.num_possible_ND_axes + 1
-                _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
-              except:
-                self.axis_shape[current_label] = 1
             else:
               self.axis_shape[current_label] = 1
             _dprint(3,'assigning self.vells_axis_parms key ', current_label)
@@ -146,7 +155,8 @@ class VellsData:
         _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
       _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
       _dprint(3, 'self.axis_labels is ', self.axis_labels)
-    # calc-vells_ranges
+
+    # calc_vells_ranges
 
    def getVellsDataParms(self):
      """ returns vells parameters for use with the visualization display """
