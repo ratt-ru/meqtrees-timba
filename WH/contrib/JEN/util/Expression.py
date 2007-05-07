@@ -54,6 +54,7 @@ Settings.forest_state.cache_policy = 100
 
 # import numarray                               # see numarray.rank()
 from numarray import *
+from math import *
 # import numarray.linear_algebra                # redefines numarray.rank....
 import random
 # import pylab
@@ -77,7 +78,7 @@ class Expression (Meow.Parameterization):
 
     def __init__(self, ns, name, expr,
                  descr=None, unit=None,
-                 quals=[], kwquals={}):
+                 quals=[], kwquals={}, **pp):
         """Create the object with a mathematical expression (string)
         of the form:  {aa}*[t]+cos({b}*[f]).
         Variables are enclosed in square brackets: [t],[f],[m],...
@@ -91,7 +92,8 @@ class Expression (Meow.Parameterization):
 
         self._descr = descr                       # optional description
         self._unit = unit                         # unit of the result
-        self._expression = deepcopy(expr)         # never modified
+        self._exprin = deepcopy(expr)             # never modified
+        self._expression = deepcopy(expr)         # may be modified: {a=10~0.1} -> {a}
         self._expanded = deepcopy(expr)           # working version
         self._locked = False                      # if true, do not modify
         self._last_solvable_tags = None           # used by .solvable()
@@ -100,15 +102,20 @@ class Expression (Meow.Parameterization):
         self._var_modifier = dict(t0=0.0, f0=1.0)
 
         # Default values for the Meow.Parms defined in .find_items()
-        self._parm_default = dict(value=2.0, stddev=0.5,
+        self._parm_default = dict(value=2.0, stddev=0.0,
                                   tags=['MeqFunctional'],
                                   tiling=None, time_deg=0, freq_deg=0)  # **kw
+
+        if not isinstance(pp, dict): pp = dict()
+        for key in self._parm_default.keys():
+            if pp.has_key(key):
+               self._parm_default[key] = pp[key] 
 
         # For each parameter in self._expression, make an entry in self._item.
         # These entries may be modified with extra info by self.modparm().
         self._item = dict()
         self._item_order = []
-        self._find_items(self._expression)
+        self._expression = self._find_items(self._expression)
 
         # Some placeholders:
         self._MeqNode = None
@@ -175,15 +182,21 @@ class Expression (Meow.Parameterization):
         print
         print '  * description: '+str(self._descr)
         print '  * expression: '+str(self._expression)
+        if not self._exprin==self._expression:
+            print '    - exprin: '+str(self._exprin)
         print '  * items ('+str(len(self._item))+'):'
         self._adjust_item_order()
         for key in self.item_order():
             rr = self._item[key]
             print '    - '+str(key)+':  ('+str(rr['type'])+'):  '+str(rr['item']),
             if rr['type']=='parm':
-                print '  default='+str(rr['default']),
+                s1 = '  default='+str(rr['default'])
+                if rr['stddev']>0: s1 += '  stddev='+str(rr['stddev'])
+                print s1,
             if rr['type']=='var':
                 print '  '+str(rr['var']),
+            if rr.has_key('unit') and rr['unit']:
+                print '  unit='+str(rr['unit']),
             if rr.has_key('from'):
                 print '  <- '+str(rr['from']),
             print
@@ -250,7 +263,7 @@ class Expression (Meow.Parameterization):
         Also find the vars (enclosed in []) in the expression, and add them to
         self._item. These may be re-specified with the function .modvar()."""
 
-        order = JEN_parse.find_enclosed(expr, brackets='{}')
+        order = JEN_parse.find_enclosed(expr, brackets='{}', enclose=False)
         if not isinstance(order,(list,tuple)):
             s = '** order is not a list, but: '+str(type(order))
             raise TypeError,s
@@ -262,15 +275,30 @@ class Expression (Meow.Parameterization):
         if not 'MeqFunctional' in tags:
             tags.append('MeqFunctional')
         
-        for key1 in order:
-            key = '{'+key1+'}'
+        for unenc in order:                   # still unenclosed, e.g. 'a'
+            default = pp['value']
+            stddev = pp['stddev']
+
+            # The key may contain optional information about the
+            # default value and the stddev: e.g. {a=10~0.5}
+            kk = unenc.split('=')
+            key = '{'+kk[0]+'}'               # enclose: -> {a}
+            expr = expr.replace('{'+unenc+'}', key)
+            if len(kk)>1:                     # default value specified
+                vv = kk[1].split('~')
+                default = float(vv[0])        # default = 10.0
+                if len(vv)>1:                 # stddev (~) specified
+                    stddev = float(vv[1])     # stddev = 0.5
+
+            # If stddev specified, perturb the default value:
+            if stddev>0.0:
+                default = random.gauss(default, stddev)
+
+            # Create the new item (if it does not exist already!)
             if not self._item.has_key(key):
-                default = pp['value']
-                if pp['stddev']>0.0:
-                    default = random.gauss(pp['value'], pp['stddev'])
                 self._item[key] = dict(type='parm', item=None,
-                                       index=[0],
-                                       unit=None, default=default)
+                                       index=[0], unit=None,
+                                       default=default, stddev=stddev)
                 parmdef = Meow.Parm(value=default, tags=tags,
                                     tiling=pp['tiling'],
                                     time_deg=pp['time_deg'],
@@ -278,9 +306,8 @@ class Expression (Meow.Parameterization):
                 self._add_parm(key, parmdef, solvable=True) 
                 self._item_order.append(key)
 
-        # Do the same for the vars [] in expr
-        self._find_vars(expr)
-        return True
+        # Do someting similar for the vars [] in expr
+        return self._find_vars(expr)
 
     #-------------------------------------------------------------------------
 
@@ -354,9 +381,8 @@ class Expression (Meow.Parameterization):
             rr['default'] = float(pp['default'])
 
         elif isinstance(item, str):                      # assume sub-expr
-            rr['item'] = item
             rr['type'] = 'subexpr'
-            self._find_items(item)
+            rr['item'] = self._find_items(item)          # item(expr) may be modified!
 
         elif isinstance(item, (int, long, float, complex)):
             rr['item'] = item
@@ -381,9 +407,22 @@ class Expression (Meow.Parameterization):
             s = '** parameter type not recognised: '+str(type(item))
             raise TypeError, s
 
+        # Some input parameters:
+        for key in ['unit']:
+            if pp.has_key(key):
+                rr[key] = pp[key]
+
         # Finished:
         return True
 
+
+    #============================================================================
+
+    def find_functions (self, expr):
+        """Helper function to find functions like sinh(...) in the given expression,
+        which cannot not be evaluated in a Funklet expression. They are turned into
+        separate parameters {}, which translate to nodes."""
+        return False
 
     #============================================================================
     # Functions dealing with variables []:
@@ -416,7 +455,7 @@ class Expression (Meow.Parameterization):
     def _find_vars (self, expr=None):
         """Find the variables (enclosed in []) in the given expression string,
         and add them to self._item, avoiding duplication"""
-        vv = JEN_parse.find_enclosed(expr, brackets='[]')
+        vv = JEN_parse.find_enclosed(expr, brackets='[]', enclose=False)
         for key in vv:
             kk = key.split('^')                     # e.g. t^4
             key = '['+key+']'
@@ -472,7 +511,7 @@ class Expression (Meow.Parameterization):
                 self._item[key] = rr                # attach the item definition record
                 self._item_order.append(key)        # include the key
         # Finished
-        return True
+        return expr
 
     #-------------------------------------------------------------------------------
 
@@ -696,6 +735,7 @@ class Expression (Meow.Parameterization):
                         child_map.append(qq)
 
             qnode << Meq.Functional(children=children,
+                                    testval=self._testeval(),
                                     function=function,
                                     child_map=child_map)
             self._MeqFunctional = qnode
@@ -743,6 +783,7 @@ class Expression (Meow.Parameterization):
                 s = '** coeff is empty'
                 raise ValueError,s
             qnode << Meq.Parm(init_funklet=funklet,       # new MXM 28 June 2006
+                              testval=self._testeval(),
                               tags=['FunkletParm'],
                               node_groups=['Parm'])
 
@@ -862,6 +903,10 @@ class Expression (Meow.Parameterization):
                             pass
                         else:
                             caxes.append(var['axis'])
+            if len(caxes)==1:
+                # For some reason, there should be 2 common_axes....??!
+                if caxes[0]=='m': caxes.append('l')
+                if caxes[0]=='l': caxes.append('m')
 
             if extra_axes==None:
                 # Kludge for convenient testing of the Compounder.
@@ -875,8 +920,8 @@ class Expression (Meow.Parameterization):
                         cc.append(self.ns['extra_axis_'+axis] << Meq.Time())
                     else:
                         cc.append(self.ns['extra_axis_'+axis] << Meq.Freq())
-                if len(cc)==0:
-                    raise ValueError,'** no common axes for MeqCompounder() ...'
+                if len(cc)<2:
+                    raise ValueError,'** too few common axes for MeqCompounder() ...'
                 extra_axes = self.ns['extra_axes'] << Meq.Composer(children=cc)
                 print '** common_axes=',common_axes,str(extra_axes)
                 
@@ -963,7 +1008,7 @@ def _define_forest(ns):
             e4.display()
 
 
-    if 1:
+    if 0:
         e5 = Expression(ns, 'e5', '[long]-[$lat]+{p}')
         e5.modvar('[long]', xn='x2', axis='long')
         e5.modvar('[$lat]', xn='x3', axis='$lat')
@@ -971,6 +1016,30 @@ def _define_forest(ns):
         if 1:
             cc.append(e5.MeqNode())   
             e5.display()
+
+    if 1:
+        expr = '{a0}'
+        for k in range(1,9):
+            expr += ' + {a'+str(k)+'}'
+        e9 = Expression(ns, 'e9', expr, value=0.0)
+
+        # The following are OK with FunkletParm or MeqFunctional: 
+        e9.modparm('{a0}', 'pi')                               # +e')
+        e9.modparm('{a1}','sin(2)+cos(3)')                     # +tan(4)')
+        e9.modparm('{a4}','exp(-2)+sqrt(4)')                   # +log(2)')    <- works, but 10log?
+        e9.modparm('{a5}','(5**2)')                            # +pow(-2,3)')
+        e9.modparm('{a6}','abs(-2)+ceil(3.5)+floor(3.7)')
+
+        # Works with MeqFunctional
+        e9.modparm('{a2}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
+
+        # The following work neither with FunkletParm as with MeqFunctional
+        ## e9.modparm('{a8}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
+        ## e9.modparm('{a3}','sinh(2)+cosh(-2)+tanh(4)')
+        ## e9.modparm('{a7}','complex(5,3)')
+        e9.display()
+        # cc.append(e9.FunkletParm())       
+        cc.append(e9.MeqFunctional())   
 
 
     ns.result << Meq.Composer(children=cc)
@@ -1106,7 +1175,7 @@ if __name__ == '__main__':
                                     show=True)
             e4.display()
 
-    if 1:
+    if 0:
         e5 = Expression(ns, 'e5', '[long]-[$lat]+{p}')
         e5.modvar('[long]', xn='x2', axis='long')
         e5.modvar('[$lat]', xn='x3', axis='$lat')
@@ -1127,6 +1196,31 @@ if __name__ == '__main__':
                                     show=True)
             e5.display()
 
+    if 1:
+        e8 = Expression(ns,'e8','{a}+{b=12}+{c=4~0.5}')
+        e8.display()
+
+    if 0:
+        expr = '{a0}'
+        for k in range(1,9):
+            expr += ' + {a'+str(k)+'}'
+        print expr
+        e9 = Expression(ns, 'e9', expr, value=0.0)
+        e9.modparm('{a0}', 'pi+e')
+        e9.modparm('{a1}','sin(2)+cos(3)+tan(4)')
+        # e9.modparm('{a2}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
+        e9.modparm('{a2}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
+        e9.modparm('{a3}','sinh(2)+cosh(-2)+tanh(4)')
+        e9.modparm('{a4}','log(2)+exp(-2)+sqrt(4)')
+        e9.modparm('{a5}','pow(-2,3)+(5**2)')
+        e9.modparm('{a6}','abs(-2)+ceil(3.5)+floor(3.7)')
+        e9.modparm('{a7}','complex(5,3)')
+        e9.display()
+        if True:
+            import numarray
+            print '\n** numarray:',dir(numarray)
+            import math
+            print '\n** math:',dir(math)
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
 

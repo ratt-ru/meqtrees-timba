@@ -8,6 +8,7 @@
 # History:
 #    - 02 jul 2006: creation, from TDL_Expression.py
 #    - 07 aug 2006: implement .find_unop()
+#    - 07 may 2007: .find_enclosed(): add arg: enclose=False
 #
 # Remarks:
 #
@@ -96,9 +97,10 @@ def make_global (expr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def find_enclosed (expr, brackets='{}', trace=False):
+def find_enclosed (expr, brackets='{}', enclose=False, trace=False):
     """Return a list of substrings that are enclosed in the specified brackets.
-    e.g. expr='{A}+{B}*{A}' would produce ['A','B']"""
+    e.g. expr='{A}+{B}*{A}' would produce ['A','B'].
+    If enclose==True, enclose the substrings in their original brackets."""
     if trace: print '\n** find_enclosed(',brackets,'): ',expr
     b1 = brackets[0]                            # opening bracket
     b2 = brackets[1]                            # closing bracket
@@ -119,7 +121,10 @@ def find_enclosed (expr, brackets='{}', trace=False):
                 substring = expr[i1:(i+1)]
                 substring = deenclose(substring, brackets)
                 if not substring in cc:
-                    cc.append(substring)
+                    if enclose:
+                        cc.append(b1+substring+b2)    # re-enclose substring
+                    else:
+                        cc.append(substring)          # unenclosed substring
                     if trace: print '-',i,level,cc
     # Some checks:
     if not level==0:

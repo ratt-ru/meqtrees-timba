@@ -9,6 +9,7 @@ import GPSPair
 from Timba.Contrib.JEN.Vector import GeoLocation
 from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
+from Timba.Contrib.JEN.util import Expression
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from numarray import *
 
@@ -190,6 +191,36 @@ class IonosphereModel (Meow.Parameterization):
 
     # S(z') = sec(z') = 1/cos(z')
     sz = qnode('Sz') << Meq.Divide(1.0,cosz)
+
+    if show: 
+      display.subtree(sz, recurse=4, show_initrec=False)
+    return sz
+
+  #.....................................................................
+
+  def slant_Expression(self, qnode, z=None, flat_Earth=False, show=False):
+    """Helper function to calculate the ionospheric slant-function S(z),
+    i.e. the function that indicates how much longer the path through the
+    ionosphere is as a function of zenith angle(z).
+    The simplest (flat-Earth) form of S(z) is sec(z)=1/cos(z), but more
+    complicated versions take account of the curvature of the Earth.
+    In all cases, S(z=0)=1."""
+
+    if flat_Earth:
+      expr = '1.0/cos({z})'
+      esz = Expression.Expression(qnode.QualScope(), 'Sz', expr)
+      
+    else:
+      expr = '1.0/cos(asin({Rh})*sin({z}))'
+      esz = Expression.Expression(qnode.QualScope(), 'Sz', expr)
+      esz.modparm('{Rh}', '{R}/({R}+{h})')
+      esz.modparm('{R}', self._Earth['radius'], unit='km')
+      esz.modparm('{h}', self.effective_altitude(), unit='km')
+
+
+    esz.modparm('{z}', z, unit='rad')
+    esz.display()
+    sz = esz.MeqFunctional()
 
     if show: 
       display.subtree(sz, recurse=4, show_initrec=False)
@@ -426,14 +457,19 @@ if __name__ == '__main__':
 
       if 0:
         qnode = ns.qnode('xxx')
-        iom.slant_function(qnode, z=1, flat_Earth=True, show=True)
+        iom.slant_function(qnode, z=1.5, flat_Earth=True, show=True)
+
+      if 1:
+        qnode = ns.qnode('xxx')
+        z = ns.z << 1.5
+        iom.slant_Expression(qnode, z=z, flat_Earth=False, show=True)
 
       if 0:
         iom.geoTEC(st1, sat1, show=True)
         # iom.geoTEC(st1, show=True)
         # iom.geoTEC(show=True)
 
-      if 1:
+      if 0:
         iom.geoSz(st1, sat1, show=True)
 
       if 0:
