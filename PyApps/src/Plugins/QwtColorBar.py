@@ -77,6 +77,7 @@ class QwtColorBar(QwtPlot):
         self.max = 256.0
         self.is_active = False
         self.log_scale = False
+        self.ampl_phase = False
         self.bar_array = reshape(arange(self.max), (1,256))
         self.y_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
@@ -128,7 +129,7 @@ class QwtColorBar(QwtPlot):
       """ returns range of this widget when called by 'foreign'
           widget on which we have done a drop event
       """ 
-      rng = (self.min, self.max, self.colorbar_number)
+      rng = (self.min, self.max, self.colorbar_number, self.ampl_phase)
       return rng
 
     def dragEnterEvent(self, event):
@@ -148,7 +149,7 @@ class QwtColorBar(QwtPlot):
           if str(command) == "copyColorRange":
             if event.source() != self:
               rng = event.source().get_data_range();
-              self.setRange(rng[0], rng[1], rng[2])
+              self.setRange(rng[0], rng[1], rng[2],rng[3])
 #           else:
 #             print 'dropping into same widget'
 #       else:
@@ -161,10 +162,13 @@ class QwtColorBar(QwtPlot):
       d = QTextDrag('copyColorRange', self)
       d.dragCopy()
 
-    def setRange(self, min, max,colorbar_number=0):
+    def setRange(self, min, max,colorbar_number=0, ampl_phase=False):
       """ sets display range for this colorbar and emits signal
           to associated display to set corresponding range 
       """ 
+      if ampl_phase != self.ampl_phase:
+        return
+
       if colorbar_number == self.colorbar_number:
         if min > max:
           temp = max
@@ -208,9 +212,13 @@ class QwtColorBar(QwtPlot):
       else:
         self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
 
-    def setMaxRange(self, limits, colorbar_number=0, log_scale=False):
+    def setMaxRange(self, limits, colorbar_number=0, log_scale=False, ampl_phase=False):
       """ sets maximum range parameters for this colorbar """
       if colorbar_number == self.colorbar_number:
+        self.ampl_phase = ampl_phase
+        
+        if self.ampl_phase is None:
+          self.ampl_phase = False
         self.log_scale = log_scale
         self.setScales()
         min = limits[0]
@@ -281,7 +289,7 @@ class QwtColorBar(QwtPlot):
         temp = self.image_max
         self.image_max = self.image_min
         self.image_min = temp
-      self.setRange(self.image_min, self.image_max, self.colorbar_number)
+      self.setRange(self.image_min, self.image_max, self.colorbar_number,self.ampl_phase)
 
     # set the type of colorbar display, can be one of "hippo", "grayscale" 
     # or "brentjens"
@@ -370,7 +378,7 @@ class QwtColorBar(QwtPlot):
         temp = ymax
         ymax = ymin
         ymin = temp
-      self.setRange(ymin, ymax, self.colorbar_number)
+      self.setRange(ymin, ymax, self.colorbar_number, self.ampl_phase)
 
       self.replot()
     # onMouseReleased()
