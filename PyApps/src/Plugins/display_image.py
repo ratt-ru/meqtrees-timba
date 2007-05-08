@@ -356,6 +356,14 @@ class QwtImageDisplay(QwtPlot):
 # QGridlayout
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
+# set up pop up text
+        font = QFont("Helvetica",10)
+        self._popup_text = QLabel(self)
+        self._popup_text.setFont(font)
+        self._popup_text.setFrameStyle(QFrame.Box | QFrame.Plain)
+        # start the text off hidden at 0,0
+        self._popup_text.hide()
+
 # for drag & drop stuff ...
         self.setAcceptDrops(True)
 
@@ -1253,25 +1261,7 @@ class QwtImageDisplay(QwtPlot):
           else:
             message = result + temp_str
     
-# alias
-        fn = self.fontInfo().family()
-
-# text marker giving source of point that was clicked
-        if not self.source_marker is None:
-          self.removeMarker(self.source_marker)
-        self.source_marker = self.insertMarker()
-        ylb = self.axisScale(QwtPlot.yLeft).lBound()
-        xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        self.setMarkerPos(self.source_marker, xlb, ylb)
-        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
-        self.setMarkerLabel( self.source_marker, message,
-          QFont(fn, 7, QFont.Bold, False),
-          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-
-# insert array info if available
-        self.insert_array_info()
-        self.replot()
-        _dprint(3, 'called replot in formatCoordinates ')
+        return message
             
     # formatCoordinates()
 
@@ -1300,25 +1290,8 @@ class QwtImageDisplay(QwtPlot):
           temp_str = "nearest x=%-.3g" % x
           temp_str1 = " y=%-.3g" % y
 	  message = temp_str + temp_str1 
-# alias
-          fn = self.fontInfo().family()
+          return message
 
-# text marker giving source of point that was clicked
-          if not self.source_marker is None:
-            self.removeMarker(self.source_marker);
-          self.source_marker = self.insertMarker()
-          ylb = self.axisScale(QwtPlot.yLeft).lBound()
-          xlb = self.axisScale(QwtPlot.xBottom).lBound()
-          self.setMarkerPos(self.source_marker, xlb, ylb)
-          self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
-          self.setMarkerLabel( self.source_marker, message,
-            QFont(fn, 7, QFont.Bold, False),
-            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-
-# insert array info if available
-          self.insert_array_info()
-          self.replot()
-          _dprint(3, 'called replot in reportCoordinates ')
     # reportCoordinates()
 
 
@@ -1366,11 +1339,40 @@ class QwtImageDisplay(QwtPlot):
         return
 
       # remove any 'source' descriptor if we are zooming
-      if abs(self.xpos - e.pos().x()) >2 and abs(self.ypos - e.pos().y())>2:
+      if abs(self.xpos - xPos) > 2 and abs(self.ypos - yPos)>2:
+        if self._popup_text.isVisible():
+          self._popup_text.hide()
         if not self.source_marker is None:
           self.removeMarker(self.source_marker)
           self.source_marker = None
           self.replot()
+
+    def infoDisplay(self, message, xpos, ypos):
+      """ Display text under cursor in plot
+          Figures out where the cursor is, generates the appropriate text, 
+          and puts it on the screen.
+      """
+      self._popup_text.setText(message)
+      self._popup_text.adjustSize()
+      yhb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).hBound())
+      ylb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).lBound())
+      xhb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).hBound())
+      xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
+      height = self._popup_text.height()
+#     if ypos + height > ylb:
+      ymove = ypos - 0.75 * height
+      if ymove < yhb:
+        ymove = yhb + 1.5 * height
+#     else:
+#       ymove = ypos + 0.5 * height
+      width = self._popup_text.width()
+      if xpos + width > xhb:
+        xmove = xhb - width
+      else:
+        xmove = xpos
+      self._popup_text.move(xmove, ymove)
+      if not self._popup_text.isVisible():
+        self._popup_text.show()
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
@@ -1392,9 +1394,10 @@ class QwtImageDisplay(QwtPlot):
 # sequence number of the nearest point in that curve.
                 curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
                 _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
-                self.reportCoordinates(xVal, yVal)
+                message = self.reportCoordinates(xVal, yVal)
             else:
-              self.formatCoordinates(e.pos().x(), e.pos().y())
+              message = self.formatCoordinates(e.pos().x(), e.pos().y())
+            self.infoDisplay(message, e.pos().x(), e.pos().y())
             if self.zooming:
               self.xpos = e.pos().x()
               self.ypos = e.pos().y()
@@ -1451,6 +1454,8 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseReleased(self, e):
         if Qt.LeftButton == e.button():
+            if self._popup_text.isVisible():
+              self._popup_text.hide()
             self.refresh_marker_display()
             if self.zooming:
 # assume a change of <= 2 screen pixels is just due to clicking
