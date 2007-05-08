@@ -135,9 +135,6 @@ class QwtColorBar(QwtPlot):
       """ drag & drop event callback entered when we move out of or
           in to a widget 
       """ 
-# we seem to get an extra dragEnterEvent with 'event' having an
-# unknown type when we're sharing drag & drop with zooming so
-# we have to test for exceptions 
       try:
         event.accept(QTextDrag.canDecode(event))
       except:
