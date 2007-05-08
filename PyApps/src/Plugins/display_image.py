@@ -618,10 +618,10 @@ class QwtImageDisplay(QwtPlot):
           self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display))
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1,self.toggle_log_display) )
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1,self.toggle_log_display,self.ampl_phase) )
         self.log_offset = 0.0
         if self.toggle_log_display:
           self.log_offset = self.plotImage.getTransformOffset()
@@ -810,19 +810,19 @@ class QwtImageDisplay(QwtPlot):
         self.plotImage.setFlaggedImageRange()
         self.plotImage.updateImage(self.raw_image)
         flag_image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 0, self.toggle_log_display))
+        self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 0, self.toggle_log_display,self.ampl_phase))
         if self.complex_type:
           flag_image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1, self.toggle_log_display))
+          self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1, self.toggle_log_display,self.ampl_phase))
       else:
         self.flag_range = False
         self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display))
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display))
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display,self.ampl_phase))
 
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
@@ -1792,10 +1792,10 @@ class QwtImageDisplay(QwtPlot):
       if self.adjust_color_bar:
         self.plotImage.setImageRange(image)
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display))
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display))
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display,self.ampl_phase))
         self.adjust_color_bar = False
 
       if self._vells_plot:
