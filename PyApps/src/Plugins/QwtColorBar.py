@@ -114,7 +114,6 @@ class QwtColorBar(QwtPlot):
           QObject.connect(self._menu,SIGNAL("activated(int)"), self.unzoom)
         
 # for drag & drop stuff ...
-        self.drag_entered = False
         self.setAcceptDrops(True)
         self.yhb = 0
         self.ylb = 0
@@ -140,9 +139,7 @@ class QwtColorBar(QwtPlot):
 # unknown type when we're sharing drag & drop with zooming so
 # we have to test for exceptions 
       try:
-        if not self.drag_entered:
-          event.accept(QTextDrag.canDecode(event))
-        self.drag_entered = True
+        event.accept(QTextDrag.canDecode(event))
       except:
         pass
 
@@ -154,7 +151,6 @@ class QwtColorBar(QwtPlot):
           if str(command) == "copyColorRange":
             if event.source() != self:
               rng = event.source().get_data_range();
-              self.drag_entered = False
               self.setRange(rng[0], rng[1], rng[2])
 #           else:
 #             print 'dropping into same widget'
@@ -314,8 +310,6 @@ class QwtColorBar(QwtPlot):
       if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
         self.enableOutline(0)
         self.startDrag()
-        self.dragEnterEvent(e)
-        self.drag_entered = False
     # onMouseMoved()
 
     def onMousePressed(self, e):
@@ -352,7 +346,6 @@ class QwtColorBar(QwtPlot):
 
     def onMouseReleased(self, e):
       """ handles mouse release event if we're not doing a drop """
-      self.drag_entered = False
       if Qt.LeftButton == e.button():
         xmin = min(self.xpos, e.pos().x())
         xmax = max(self.xpos, e.pos().x())

@@ -357,7 +357,6 @@ class QwtImageDisplay(QwtPlot):
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
 # for drag & drop stuff ...
-        self.drag_entered = False
         self.setAcceptDrops(True)
 
 #       self.__init__
@@ -367,9 +366,7 @@ class QwtImageDisplay(QwtPlot):
           in to a widget
       """
       try:
-        if not self.drag_entered:
-          event.accept(QTextDrag.canDecode(event))
-        self.drag_entered = True
+        event.accept(QTextDrag.canDecode(event))
       except:
         pass
 
@@ -381,7 +378,6 @@ class QwtImageDisplay(QwtPlot):
           if str(command) == "copyPlotParms":
             if event.source() != self:
               parms = event.source().getPlotParms();
-              self.drag_entered = False
               self.setPlotParms(parms,True)
 #           else:
 #             print 'dropping into same widget'
@@ -1367,8 +1363,6 @@ class QwtImageDisplay(QwtPlot):
         if not self.display_solution_distances:
           self.enableOutline(0)
           self.startDrag()
-          self.dragEnterEvent(e)
-          self.drag_entered = False
         return
 
       # remove any 'source' descriptor if we are zooming
@@ -1456,7 +1450,6 @@ class QwtImageDisplay(QwtPlot):
     # onMousePressed()
 
     def onMouseReleased(self, e):
-        self.drag_entered = False
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
