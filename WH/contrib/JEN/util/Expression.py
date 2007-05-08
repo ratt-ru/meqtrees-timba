@@ -48,7 +48,7 @@ import Meow
 
 # from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
-# from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 
@@ -59,6 +59,7 @@ from math import *
 import random
 # import pylab
 from copy import deepcopy
+import re
 
 
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
@@ -119,6 +120,7 @@ class Expression (Meow.Parameterization):
 
         # Some placeholders:
         self._MeqNode = None
+        self._FunckDiff = None
         self._FunkletParm = None
         self._Funklet = None
         self._Funklet_funktion = None
@@ -184,6 +186,7 @@ class Expression (Meow.Parameterization):
         print '  * expression: '+str(self._expression)
         if not self._exprin==self._expression:
             print '    - exprin: '+str(self._exprin)
+        #..........................................................
         print '  * items ('+str(len(self._item))+'):'
         self._adjust_item_order()
         for key in self.item_order():
@@ -203,12 +206,26 @@ class Expression (Meow.Parameterization):
         if full:
             for key in self.item_order():
                 print '    - '+str(key)+':  '+str(self._item[key])
+        #..........................................................
         print '  * parm_default: '+str(self._parm_default)
         print '  * var_modier: '+str(self._var_modifier)
+        #..........................................................
         print '  * last_solvable_tags: '+str(self._last_solvable_tags)
+        cc = self.solvable()
+        ncc = len(cc)
+        print '    - .solvable(): -> '+str(ncc)
+        if full or ncc<5:
+            for k,c in enumerate(cc):
+                print '    - '+str(k)+': '+str(c)
+        else:
+            print '    - '+str(0)+': '+str(cc[0])
+            print '         ...'
+            print '    - '+str(ncc-1)+': '+str(cc[ncc-1])
+        #..........................................................
         v = self._testeval()
         print '  * testexpr: '+str(self._testexpr)
         print '    - .testeval() ->  '+str(v)+'  ('+str(type(v))+')'
+        #..........................................................
 
         nmax = 100
         if len(self._expanded)>nmax: print
@@ -220,6 +237,8 @@ class Expression (Meow.Parameterization):
                 print '    - .has_itemtype('+str(itemtype)+') -> '+str(self.has_itemtype(itemtype))
         if self._MeqNode:
             print '  * MeqNode = '+str(self._MeqNode)
+        if self._FunckDiff:
+            print '  * FunckDiff = '+str(self._FunckDiff)
         if self._FunkletParm or self._Funklet:
             print '  * FunkletParm = '+str(self._FunkletParm)
             print '  * Funklet = '+str(self._Funklet)
@@ -227,9 +246,16 @@ class Expression (Meow.Parameterization):
         if self._MeqFunctional:
             print '  * MeqFunctional = '+str(self._MeqFunctional)
             print '    - function = '+str(self._MeqFunctional_function)
-            if True or full:
-                for k,rr in enumerate(self._MeqFunctional_childmap):
-                    print '    - '+str(rr)
+            cc = self._MeqFunctional_childmap
+            ncc = len(cc)
+            if full or ncc<5:
+                for k,c in enumerate(cc):
+                    print '    - '+str(k)+': '+str(c)
+            else:
+                print '    - '+str(0)+': '+str(cc[0])
+                print '         ...'
+                print '    - '+str(ncc-1)+': '+str(cc[ncc-1])
+                
         if self._Compounder:
             print '  * Compounder = '+str(self._Compounder)
             print '    - common_axes = '+str(self._Compounder_common_axes)
@@ -415,14 +441,6 @@ class Expression (Meow.Parameterization):
         # Finished:
         return True
 
-
-    #============================================================================
-
-    def find_functions (self, expr):
-        """Helper function to find functions like sinh(...) in the given expression,
-        which cannot not be evaluated in a Funklet expression. They are turned into
-        separate parameters {}, which translate to nodes."""
-        return False
 
     #============================================================================
     # Functions dealing with variables []:
@@ -667,6 +685,20 @@ class Expression (Meow.Parameterization):
     
     #--------------------------------------------------------------------
 
+    def FunckDiff (self, show=False):
+        """Make s subtree for the difference between the FunkletParm
+        and the MeqFunctional"""
+        qnode = self.ns['FunckDiff']
+        if not qnode.initialized():
+            c1 = self.FunkletParm()              # this one FIRST!
+            c2 = self.MeqFunctional()
+            qnode << Meq.Subtract(c1,c2)
+        self._FunckDiff = qnode
+        if show: display.subtree(qnode)
+        return qnode
+
+    #=====================================================================
+
     def solvable (self, tags='last', trace=False):
         """Return a list of solvable MeqParm nodes. If tags='last',
         it will use the tags of the MeqParm(s) that were generated
@@ -733,7 +765,7 @@ class Expression (Meow.Parameterization):
                                     index=rr['index'],              # usually: [0]
                                     nodename=nodename)
                         child_map.append(qq)
-
+            function = self._adjust_functions(function)              # deal with log(..) etc
             qnode << Meq.Functional(children=children,
                                     testval=self._testeval(),
                                     function=function,
@@ -750,6 +782,23 @@ class Expression (Meow.Parameterization):
 
 
     #============================================================================
+
+    def _adjust_functions (self, expr, trace=True):
+        """Helper function to replace functions like sinh(...) in the given expr
+        with versions that can not be evaluated in a Funklet expression."""
+
+        ff = JEN_parse.find_function (expr, func='log', trace=False)
+        # ff is a list of dict(substring='sin(..)', arg='..')
+        for rr in ff:
+            old = rr['substring']
+            # new = '('+old+'/log(10))'
+            new = '('+old+'/log('+str(e)+'))'
+            if trace: print '** replace:',old,'  with:',new
+            expr = expr.replace(old, new)
+
+        return expr
+
+    #============================================================================
     # Turn the Expression into a MeqParm with an init Funklet
     #============================================================================
 
@@ -762,11 +811,11 @@ class Expression (Meow.Parameterization):
             # possible to turn the Expression into a Funklet. So if
             # the latter is required, it should be done BEFORE the
             # function .MeqFunctional() is called....
-            s = '** not possible to make a FunkletParm (no MeqNodes)'
+            s = '** not possible to make a FunkletParm (has node-items)'
             raise ValueError, s
 
         elif not self.has_itemtype ('parm'):
-            s = '** not possible to make a FunkletParm (no parms)'
+            s = '** not possible to make a FunkletParm (no parm-items)'
             raise ValueError,s
 
             
@@ -844,6 +893,7 @@ class Expression (Meow.Parameterization):
                 funktion = funktion.replace(key, rr['var']['funktion'])
                 # print '- replace:',key,'by:',funktion,'\n  ->',funktion
 
+        funktion = self._adjust_functions(funktion)    # deal with log(..) etc
 
         # Make the Funklet, and attach it:
         # if self._expression_type=='MeqPolc':         # see polc_Expression()
@@ -1019,27 +1069,41 @@ def _define_forest(ns):
 
     if 1:
         expr = '{a0}'
-        for k in range(1,9):
+        for k in range(1,15):
             expr += ' + {a'+str(k)+'}'
         e9 = Expression(ns, 'e9', expr, value=0.0)
 
         # The following are OK with FunkletParm or MeqFunctional: 
-        e9.modparm('{a0}', 'pi')                               # +e')
-        e9.modparm('{a1}','sin(2)+cos(3)')                     # +tan(4)')
-        e9.modparm('{a4}','exp(-2)+sqrt(4)')                   # +log(2)')    <- works, but 10log?
-        e9.modparm('{a5}','(5**2)')                            # +pow(-2,3)')
-        e9.modparm('{a6}','abs(-2)+ceil(3.5)+floor(3.7)')
+        # e9.modparm('{a0}', 'pi')                  
+        # e9.modparm('{a1}','sin(2)+cos(3)')             
+        # e9.modparm('{a2}','exp(-2)+sqrt(4)')       
+        # e9.modparm('{a3}','(5**2)')                       
+        # e9.modparm('{a4}','abs(-2)+ceil(3.5)+floor(3.7)')
 
-        # Works with MeqFunctional
-        e9.modparm('{a2}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
+        # Works with MeqFunctional, but NOT with Funklet(!!?)
+        # e9.modparm('{a5}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
 
         # The following work neither with FunkletParm as with MeqFunctional
-        ## e9.modparm('{a8}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
-        ## e9.modparm('{a3}','sinh(2)+cosh(-2)+tanh(4)')
-        ## e9.modparm('{a7}','complex(5,3)')
+        ## e9.modparm('{a6}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
+        ## e9.modparm('{a7}','sinh(2)+cosh(-2)+tanh(4)')
+        ## e9.modparm('{a8}','complex(5,3)')
+        ## e9.modparm('{a9}','tan(4)')                         # <--!!
+        ## e9.modparm('{a10}','pow(-2,3)')             
+        ## e9.modparm('{a11}','e')
+
+        # The following gives different results in Python (testeval) and the node.
+        # Python log(x)=elog(x) while Funklet (AIPS++ functional) assumes 10log(x)
+        # The latter can be turned into the former: elog(x) = 10log(x)/10log(e)
+        # NB: OK now, since log(x) is replaced with (log(x)/log(e)) in Funklet funktion,
+        #     but not in the Python expression. This then gives the same result.
+        e9.modparm('{a12}','log(10)')         # funklet/functional=1.0,  python=2.3 
+        cc.append(ns.log10 << Meq.Log(10))    # =2.3 So: replace in funklet expr 
+
         e9.display()
-        # cc.append(e9.FunkletParm())       
-        cc.append(e9.MeqFunctional())   
+        # c = e9.FunkletParm()       
+        c = e9.MeqFunctional()
+        cc.append(c)
+        JEN_bookmarks.create(c, 'eval')
 
 
     ns.result << Meq.Composer(children=cc)

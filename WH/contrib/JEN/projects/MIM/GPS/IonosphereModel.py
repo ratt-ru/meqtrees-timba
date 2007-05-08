@@ -211,7 +211,7 @@ class IonosphereModel (Meow.Parameterization):
       esz = Expression.Expression(qnode.QualScope(), 'Sz', expr)
       
     else:
-      expr = '1.0/cos(asin({Rh})*sin({z}))'
+      expr = '1.0/cos(asin({Rh}*sin({z})))'
       esz = Expression.Expression(qnode.QualScope(), 'Sz', expr)
       esz.modparm('{Rh}', '{R}/({R}+{h})')
       esz.modparm('{R}', self._Earth['radius'], unit='km')
@@ -384,21 +384,29 @@ def _define_forest(ns):
       st1 = GPSPair.GPSStation(ns, 'st1', longlat=[-0.1,0.1])
       sat1 = GPSPair.GPSSatellite(ns, 'sat1', longlat=[0.1,0.1])
 
-      if 1:
+      if 0:
         cc.append(iom.longlat_pierce(st1, sat1, show=True))
 
       if 1:
         qnode = ns.qnode('xxx')
-        cc.append(iom.slant_function(qnode, z=1, flat_Earth=True, show=True))
+        z = ns.z << 1.0
+        flat_Earth = False
+        sz1 = iom.slant_function(qnode, z=z, flat_Earth=flat_Earth, show=True)
+        if 1:
+          sz2 = iom.slant_Expression(qnode, z=z, flat_Earth=flat_Earth, show=True)
+          szdiff = qnode('diff') << Meq.Subtract(sz1,sz2)
+          cc.append(szdiff)
+          JEN_bookmarks.create(szdiff,'slant', recurse=1)
 
-      if 1:
+
+      if 0:
         cc.append(iom.geoTEC(st1, sat1, show=True))
         # cc.append(iom.geoTEC(st1, show=True))
         # cc.append(iom.geoTEC(show=True))
 
 
 
-      if 1:
+      if 0:
         pair = GPSPair.GPSPair(ns, station=st1, satellite=sat1)
         pair.display(full=True)
         if 1:

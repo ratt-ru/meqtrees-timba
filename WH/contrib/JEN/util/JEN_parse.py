@@ -9,6 +9,7 @@
 #    - 02 jul 2006: creation, from TDL_Expression.py
 #    - 07 aug 2006: implement .find_unop()
 #    - 07 may 2007: .find_enclosed(): add arg: enclose=False
+#    - 09 may 2007: .find_function()
 #
 # Remarks:
 #
@@ -21,6 +22,7 @@
 #***************************************************************************************
 
 from copy import deepcopy
+import re
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):
 NUMERIC_TYPES = (int, long, float, complex)
@@ -131,6 +133,55 @@ def find_enclosed (expr, brackets='{}', enclose=False, trace=False):
         return False
     if trace: print '   -> (',len(cc),level,'):',cc
     return cc
+
+#----------------------------------------------------------------------------
+
+def find_function (expr, func=None, level=0, trace=False):
+    """Return a record with the essentials of the specified function, e.g sin()"""
+    prefix = level*'  '
+    if trace:
+        print '\n',prefix,'** find_function(',func,'): ',expr
+    ff = []
+    rr = None
+    nf = len(func)
+    nest = 0
+    i0 = 0
+    i1 = 0
+    active = False
+    for i,c in enumerate(expr):
+        if trace: print prefix,'-',i,':',c,nest,i0,i1,active,':',
+        if c=='(':
+            nest += 1
+            if nest==1:
+                i0 = i
+                if i>(nf-1):
+                    lastf = expr[(i-nf):i]
+                    if trace: print 'lastf=',lastf,
+                    if lastf==func:
+                        if trace: print 'found',
+                        i1 = i
+                        active = True
+                        
+        elif c==')':
+            nest -= 1
+            if nest==0:
+                ff1 = find_function(expr[(i0+1):i], func=func,
+                                    level=level+1, trace=trace)
+                ff.extend(ff1)
+                if len(ff1)>0: print '\n',prefix,'ff1=',ff1
+                if active:
+                    rr = dict(func=func, arg=expr[(i1+1):i],
+                              substring=expr[(i1-nf):(i+1)])
+                    ff.append(rr)
+                    if trace: print '\n',prefix,'rr=',rr
+                    active = False
+                               
+        if trace: print 'len(ff)=',len(ff)
+    # Finished:
+    if trace and level==0:
+        for rr in ff: print ' - ',rr
+        print '**\n'
+    return ff
 
 
 #----------------------------------------------------------------------------
@@ -495,6 +546,17 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_parse.py:\n'
 
     if 0:
+        matchstr = re.compile(r'Jones')
+        print matchstr.sub(r'xxx', 'abcJonesABS')
+
+    if 1:
+        expr = 'a + b*sin(c+d) - 6'
+        expr = 'a + b*sin(c+d*sin(c)) - 6*(sin(5))'
+        expr = 'a + b*sin(c+d*sin(c)) - 6*(sin(5/sin()))'
+        # expr = 'sin(c+d)'
+        rr = find_function (expr, func='sin', trace=True)
+
+    if 0:
         for x in [3,3.4,12345678907777777777777,'a',3+7j]:
             tf = isinstance(x, NUMERIC_TYPES)
             print '- isinstance(',x,type(x),', NUMERIC_TYPES) ->',tf
@@ -507,7 +569,7 @@ if __name__ == '__main__':
         find_unop('max(a)', trace=True)
         find_unop('max(a,b)', trace=True)
 
-    if 1:
+    if 0:
         find_binop('atan(a,b)', trace=True)
         find_binop('atan2(a,b)', trace=True)
         find_binop('pow(a,b)', trace=True)

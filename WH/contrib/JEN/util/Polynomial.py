@@ -413,6 +413,9 @@ if __name__ == '__main__':
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
     p0.display('initial')
 
+    if 1:
+        p0.FunckDiff(show=True)
+
     if 0:
         p0.MeqNode(show=True)
         p0.solvable(trace=True)
@@ -426,7 +429,7 @@ if __name__ == '__main__':
             p0.MeqNode(show=True)
             p0.solvable(trace=True)
 
-    if 1:
+    if 0:
         p0.MeqCompounder(show=True)
         # p0.solvable(trace=True)
 
