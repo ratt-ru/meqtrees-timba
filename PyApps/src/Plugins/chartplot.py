@@ -916,6 +916,11 @@ class ChartPlot(QWidget):
       else:
         incoming_data = new_chart_val
         incoming_flags = new_chart_flags
+
+      # skip rest of processing if incoming_data is non-existent
+      if incoming_data is None:
+        continue
+
       #print 'incoming flags ', incoming_flags
 # first, do we have a scalar?
       is_scalar = False
