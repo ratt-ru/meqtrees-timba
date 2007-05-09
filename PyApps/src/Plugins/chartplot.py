@@ -1001,6 +1001,7 @@ class ChartPlot(QWidget):
     self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
+      self._plotter.curve(self._crv_key[channel]).setEnabled(False)
       self._updated_data[channel] = True
     self.reset_zoom()
     self.refresh_event()
@@ -1081,7 +1082,6 @@ class ChartPlot(QWidget):
     # first determine offsets
     if self._auto_offset:
       for channel in range(self._nbcrv):
-        self._plotter.curve(self._crv_key[channel]).setEnabled(False)
         if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
           try:
             chart = array(self._chart_data[channel][self._data_index])
