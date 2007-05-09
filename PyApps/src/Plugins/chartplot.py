@@ -1081,6 +1081,7 @@ class ChartPlot(QWidget):
     # first determine offsets
     if self._auto_offset:
       for channel in range(self._nbcrv):
+        self._plotter.curve(self._crv_key[channel]).setEnabled(False)
         if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
           try:
             chart = array(self._chart_data[channel][self._data_index])
@@ -1192,6 +1193,7 @@ class ChartPlot(QWidget):
 
           if not y_plot_values is None: 
             self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
+            self._plotter.curve(self._crv_key[channel]).setEnabled(True)
             ylb = y_plot_values[0] + temp_off 
         else:
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
@@ -1207,6 +1209,7 @@ class ChartPlot(QWidget):
 
           if not y_plot_values is None: 
             self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
+            self._plotter.curve(self._crv_key[channel]).setEnabled(True)
             ylb = y_plot_values[0] + temp_off 
 
         # update marker with info about the plot
