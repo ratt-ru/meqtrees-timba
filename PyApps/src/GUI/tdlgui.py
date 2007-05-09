@@ -52,7 +52,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   # a single editor always has the focus
   current_editor = None;
   
-  def __init__ (self,parent,close_button=False):
+  def __init__ (self,parent,close_button=False,error_window=None):
     QFrame.__init__(self,parent);
     toplo = QVBoxLayout(self);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
@@ -199,50 +199,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     QToolTip.add(self._message_icon,"Click here to clear the message");
     self._message_widgets = [];
     self._message_transient = False;
-
-    # add error list widget
-    self._werrlist_box = QFrame(splitter);
-    eblo = QVBoxLayout(self._werrlist_box);
-    # error list header is a toolbar
-    errlist_hdr = QToolBar("TDL errors",self._appgui,self._werrlist_box);
-    eblo.addWidget(errlist_hdr);
-    errsym = QLabel(errlist_hdr);
-    errsym.setPixmap(pixmaps.red_round_cross.pm());
-    errlist_hdr.addSeparator();
-    self._error_count_label = QLabel(errlist_hdr);
-    errlist_hdr.setStretchableWidget(self._error_count_label);
-    # prev/next error buttons
-    self._qa_prev_err = QAction(pixmaps.red_leftarrow.iconset(),"Show &previous error",Qt.ALT+Qt.Key_P,self);
-    self._qa_prev_err.addTo(errlist_hdr);
-    QObject.connect(self._qa_prev_err,SIGNAL("activated()"),self._show_prev_error);
-    self._qa_next_err = QAction(pixmaps.red_rightarrow.iconset(),"Show &next error",Qt.ALT+Qt.Key_N,self);
-    self._qa_next_err.addTo(errlist_hdr);
-    QObject.connect(self._qa_next_err,SIGNAL("activated()"),self._show_next_error);
-    # run button
-    self._qa_runmain.addTo(errlist_hdr);
-    # error list itself
-    # self._werrlist = QListBox(self._werrlist_box);
-    # QObject.connect(self._werrlist,SIGNAL("highlighted(int)"),self.highlight_error);
-    self._werrlist = QListView(self._werrlist_box);
-    QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._highlight_error_item);
-    QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self._highlight_error_item);
-    QObject.connect(self._werrlist,SIGNAL("spacePressed(QListViewItem*)"),self._highlight_error_item);
-    QObject.connect(self._werrlist,SIGNAL("returnPressed(QListViewItem*)"),self._highlight_error_item);
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.setSorting(-1); 
-    # self._werrlist.setColumnAlignment(0,Qt.AlignRight);
-    self._werrlist.setRootIsDecorated(True);
-    self._werrlist.setAllColumnsShowFocus(True);
-    self._werrlist.header().hide();
     
-    eblo.addWidget(self._werrlist);
-    self._werrlist_box.hide();
-    self._error_title = "";
-    self._error_list = [];
-    self._error_at_line = {};
+    # figure out if we already have an error box to attach to
+    self._error_window = error_window or getattr(parent,'_tdlgui_error_window',None);
+    if self._error_window:
+      #self._resize_errwin = False;
+      pass;
+    else:
+      # otherwise create an error floater
+      self._error_window = TDLErrorFloat(parent);
+      setattr(parent,'_tdlgui_error_window',self._error_window);
+      # self._resize_errwin = True;
+    QObject.connect(self._error_window,PYSIGNAL("hasErrors()"),self._reset_errors);
+    QObject.connect(self._error_window,PYSIGNAL("showError()"),self.show_error);
 
     # set filename
     self._filename = None;       # "official" path of file (None if new script not yet saved)
@@ -254,7 +223,17 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def __del__ (self):
     self.has_focus(False);
-    
+  
+  def hideEvent (self,ev):
+    self.emit(PYSIGNAL("hidden()"),());
+    self.emit(PYSIGNAL("visible()"),(False,));
+    return QFrame.hideEvent(self,ev);
+  
+  def showEvent (self,ev):
+    self.emit(PYSIGNAL("shown()"),());
+    self.emit(PYSIGNAL("visible()"),(True,));
+    return QFrame.showEvent(self,ev);
+  
   def hide_jobs_menu (self,dum=False):
     if self._closed:
       return;
@@ -295,13 +274,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     return self._mainfile;
     
   def _run_main_file (self):
-    self.clear_error_list();
+    self.clear_errors();
     if self._mainfile and self._editor.isModified():
       self._save_file();
     self.emit(PYSIGNAL("compileFile()"),(self._mainfile or self._filename,));
     
   def _run_as_main_file (self):
-    self.clear_error_list();
+    self.clear_errors();
     self._set_mainfile(None);
     self._text_modified(self._editor.isModified());   # to reset labels
     self.emit(PYSIGNAL("fileChanged()"),());
@@ -375,7 +354,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_icon.setIconSet(iconset);
     self._message_box.show();
     self._message_transient = transient;
-    self._werrlist_box.hide();
+    self.clear_errors();
     
   def messagebox ():
     return self._message_box;
@@ -383,175 +362,44 @@ class TDLEditor (QFrame,PersistentCurrier):
   def add_message_widget (self,widget):
     self._mblo.addWidget(widget);
     self._message_widgets.append(widget);
-
-  def clear_error_list (self,signal=True):
-    if signal:
-      self.emit(PYSIGNAL("hasErrors()"),(0,));
-    self._error_items = self._toplevel_error_items = None;
-    self._werrlist.clear();
-    self._editor.markerDeleteAll();
-    self._error_count_label.setText('');
-    self._error_list = [];
-    self._error_at_line = {};
-    self.clear_message();
     
-  def get_error_list (self):
-    """returns the current error list."""
-    return self._error_list;
+  def clear_errors (self):
+    self._error_window.clear_errors();
     
-  def get_error_title (self):
-    """returns the current error list."""
-    return self._error_title;
-      
-  def _populate_error_list (self,parent,errlist,toplevel=False):
-    """helper function to recursively populate an error ListView""";
-    previtem = None;
-    for index,err in enumerate(errlist):
-      errmsg = str(err.args[0]);
-      filename = getattr(err,'filename',None);
-      line = getattr(err,'lineno',0);
-      column = getattr(err,'offset',0);
-      _dprint(1,errmsg,"at",filename);
-      # index of corresponding top-level item
-      toplevel_index = len(self._toplevel_error_items)-1;
-      if toplevel:
-        toplevel_index += 1;
-      # create item
-      if previtem is not None:
-        previtem = item = QListViewItem(parent,previtem,"%d:"%(toplevel_index+1,));
-      else:
-        previtem = item = QListViewItem(parent,"%d:"%(toplevel_index+1,));
-      # add housekeeping info
-      item._toplevel_index = toplevel_index;
-      if toplevel:
-        if filename == self._filename:
-          self._num_local_errors += 1;
-	self._toplevel_error_items.append(item);
-      toplevel_index = len(self._toplevel_error_items)-1;
-      self._error_items.append(item);
-      item.setOpen(False);
-      # set item content
-      if filename is None:
-        item.setText(2,"["+errmsg+"]");
-        item.setText(1,"internal compilation error: text console may have more info");
-      else:
-        item.setText(1,errmsg);
-        item.setText(3,err.__class__.__name__);
-        if filename == self._filename:
-          item._err_location =  len(self._error_items)-1,None,line,column;
-          item.setText(2,"[line %d]" % (line,));
-          self._editor.markerAdd(line-1,self.ErrorMarker);
-          self._error_at_line.setdefault(line-1,item);
-        else:
-          item._err_location =  len(self._error_items)-1,filename,line,column;
-          item.setText(2,"[line %d of %s]" % (line,filename));
-      # recursively populate with nested errors if needed
-      nested = getattr(err,'nested_errors',None);
-      if nested:
-        self._populate_error_list(item,nested);
-    
-  def set_error_list (self,error_list,signal=True,show_item=True,
-                      message="TDL compile failed"):
-    """Shows an error list. errlist should be a sequence of Exception
-    objects following the TDL error convention.
-    """;
-    _dprint(1,self._filename,"error list of",len(error_list),"entries",id(error_list));
-    _dprint(1,self._filename,"current list has",len(self._error_list),"entries",id(self._error_list));
-    # do nothing if already set
-    if self._error_list is error_list:
-      return;
-    self._error_title = message;
-    self.clear_error_list(signal=False);
-    self._error_list = error_list;
-    _dprint(1,self._filename,"processing list");
-    if error_list:
-      self._error_items = [];
-      self._toplevel_error_items = [];
-      self._error_at_line = {};
-      # a counter of all errors local to this file
-      self._num_local_errors = 0;
-      self._populate_error_list(self._werrlist,error_list,toplevel=True);
-      nerr = len(self._toplevel_error_items);
-      if self._num_local_errors == nerr:
-        self._error_count_label.setText('%s. <b>%d</b> errors total'%(message,self._num_local_errors,));
-      else:
-        self._error_count_label.setText('%s. <b>%d</b> errors here, <b>%d</b> total'%(message,self._num_local_errors,nerr,));
-      self._werrlist_box.show();
-      if signal:
-        self.emit(PYSIGNAL("hasErrors()"),(self._num_local_errors,));
-      if show_item:
-        self._show_error_item(self._toplevel_error_items[0]);
-      # self._highlight_error(0);
-      # disable run control until something gets modified
-      # self._qa_run.setVisible(False);
-    else:
-      self._werrlist_box.hide();
-      
-  def _highlight_error_item (self,item,signal=True):
+  def _reset_errors (self,nerr):
+    """helper method, resets error markers and such. Usually tied to a hasErrors() signal
+    from an error window""";
+    self._editor.markerDeleteAll(self.ErrorMarker);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);
-    if item:
-      toplevel_index = item._toplevel_index;
-      self._qa_prev_err.setEnabled(toplevel_index > 0);
-      self._qa_next_err.setEnabled(toplevel_index < len(self._toplevel_error_items)-1);
-      # does item contain a location attribute?
-      try: index,filename,line,column = item._err_location;
-      except AttributeError: return;
-      # indicate location
-      _dprint(1,"highlighting error in",filename);
-      if filename is None:
-        self.show_position(line-1,column,mark_error=True);
-      else:
-        self.emit(PYSIGNAL("showError()"),(index,filename,line,column));
-  
-  def show_position (self,line,column=0,mark_error=False):
-    """shows indicated position""";
-    self._editor.ensureLineVisible(line);
-    self._editor.setCursorPosition(line,column);
-    # a little kludge to prevent line from being hidden by a resize
-    self._editor.ensureLineVisible(line+5); 
-    if mark_error:
-      self._editor.markerDeleteAll(self.CurrentErrorMarker);
-      self._editor.markerAdd(line,self.CurrentErrorMarker);
-      
-  def _show_next_error (self):
-    item = self._werrlist.currentItem();
-    if item:
-      toplevel_index = item._toplevel_index + 1;
-      if toplevel_index >= len(self._toplevel_error_items):
-        toplevel_index = 0;
-      item = self._toplevel_error_items[toplevel_index];
-    else:
-      item = self._error_items[0];
-    if item:
-      self._show_error_item(item);
-    
-  def _show_prev_error (self):
-    item = self._werrlist.currentItem();
-    if item:
-      toplevel_index = item._toplevel_index - 1;
-      if toplevel_index < 0:
-        toplevel_index = len(self._toplevel_error_items)-1;
-      item = self._toplevel_error_items[toplevel_index];
-    else:
-      item = self._toplevel_error_items[-1];
-    if item:
-      self._show_error_item(item);
-  
-  def show_error_number (self,index,signal=True):
-    self._show_error_item(self._error_items[index],signal=signal);
-    
-  def _show_error_item (self,item,signal=True):
-    _dprint(1,item);
-    self._werrlist.ensureItemVisible(item);
-    self._werrlist.setCurrentItem(item);
-    self._highlight_error_item(item,signal=signal);
+    self._error_at_line = {};
+    nerr_local = 0;
+    if nerr:
+      error_locations = self._error_window.get_error_locations();
+      for err_num,filename,line,column in error_locations:
+        if filename == self._filename:
+          self._error_at_line[line-1] = err_num;
+          self._editor.markerAdd(line-1,self.ErrorMarker);
+          nerr_local += 1;
+    self.emit(PYSIGNAL("hasErrors()"),(nerr_local,));
+        
+  def show_error (self,err_num,filename,line,column):
+    """Shows error at the given position, but only if the filename matches.
+    Can be directly connected to a showError() signal from an error window""";
+    self._editor.markerDeleteAll(self.CurrentErrorMarker);
+    if filename == self._filename:
+      # scintilla's line numbers are 0-based
+      self._editor.ensureLineVisible(line-1);
+      self._editor.setCursorPosition(line-1,column);
+      # a little kludge to prevent line from being hidden by a resize
+      self._editor.ensureLineVisible(line+4); 
+      self._editor.markerAdd(line-1,self.CurrentErrorMarker);
       
   def _process_margin_click (self,margin,line,button):
     _dprint(1,margin,line,button);
     # look through current error widget to find relevant error
-    item = self._error_at_line.get(line,None);
-    if item:
-      self._show_error_item(item);
+    err_num = self._error_at_line.get(line,None);
+    if err_num is not None:
+      self._error_window.show_error_number(err_num);
       
   def _sync_external_file (self,filename,ask=True):
     filetime = _file_mod_time(filename);
@@ -666,7 +514,9 @@ class TDLEditor (QFrame,PersistentCurrier):
     """;
     _dprint(1,self._filename,"importing");
     self.clear_message();
-    self.clear_error_list();
+    self.clear_errors();
+    # change the current directory to where the file is
+    # os.chdir(os.path.dirname(self._filename));
     # The Python imp module expects text to reside in a disk file, which is
     # a pain in the ass for us if we're dealing with modified text or text
     # entered on-the-fly. So, either save or sync before proceeding
@@ -694,7 +544,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # catch import errors
     except TDL.CumulativeError,value:
       _dprint(0,"caught cumulative error, length",len(value.args));
-      self.set_error_list(value.args,message="TDL import failed");
+      self._error_window.set_errors(value.args,message="TDL import failed");
       return None;
     except Exception,value:
       _dprint(0,"caught other error, traceback follows");
@@ -744,12 +594,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     # catch compilation errors
     except TDL.CumulativeError,value:
       _dprint(0,"caught cumulative error, length",len(value.args));
-      self.set_error_list(value.args);
+      self._error_window.set_errors(value.args,message="TDL import failed");
       return None;
     except Exception,value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
-      self.set_error_list([value]);
+      self._error_window.set_errors([value]);
       return None;
     # refresh the nodelist
     meqds.request_nodelist(sync=True);
@@ -827,7 +677,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       finally:
         QApplication.restoreOverrideCursor();
       # no errors, so clear error list, if any
-      self.clear_error_list();
+      self.clear_errors();
       self.show_message("TDL job '"+name+"' executed.",transient=True);
     except:
       (etype,exc,tb) = sys.exc_info();
@@ -844,7 +694,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       tb.pop(0);
       ns.AddError(exc,tb,error_limit=None);
       msg = "TDL job '"+name+"' failed";
-      self.set_error_list(ns.GetErrors(),signal=True,message=msg);
+      self._error_window.set_errors(ns.GetErrors(),signal=True,message=msg);
       self.emit(PYSIGNAL("showEditor()"),());
     
   def get_jobs_popup (self):
@@ -875,7 +725,6 @@ class TDLEditor (QFrame,PersistentCurrier):
     case for files included from other modules.
     """
     self.clear_message();
-    self.clear_error_list();
     if not os.access(filename,os.W_OK):
       readonly = True;
     # load text from file if not supplied
@@ -916,6 +765,301 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       if TDLEditor.current_editor == self:
         TDLEditor.current_editor = None;
+
+class TDLErrorFloat (QMainWindow):
+  """implements a floating window for TDL error reports""";
+  def __init__ (self,parent):
+    fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+    fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+    QMainWindow.__init__(self,parent,"float",fl);
+    self.hide();
+    self.setIcon(pixmaps.red_round_cross.pm());
+    self.setCaption("TDL Errors");
+    # make widgets
+    self._werrlist_box = QVBox(self);
+    self.setCentralWidget(self._werrlist_box);
+    # error list header is a toolbar
+    errlist_hdr = QToolBar("TDL errors",self,self._werrlist_box);
+    errlist_hdr.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Minimum);
+    # prev/next error buttons
+    self._qa_prev_err = QAction(pixmaps.red_leftarrow.iconset(),"Show &previous error",Qt.ALT+Qt.Key_P,self);
+    self._qa_prev_err.addTo(errlist_hdr);
+    QObject.connect(self._qa_prev_err,SIGNAL("activated()"),self._show_prev_error);
+    self._qa_next_err = QAction(pixmaps.red_rightarrow.iconset(),"Show &next error",Qt.ALT+Qt.Key_N,self);
+    self._qa_next_err.addTo(errlist_hdr);
+    QObject.connect(self._qa_next_err,SIGNAL("activated()"),self._show_next_error);
+    # label with error count
+    self._error_count_label = QLabel(errlist_hdr);
+    errlist_hdr.setStretchableWidget(self._error_count_label);
+    # error list itself
+    self._werrlist = QListView(self._werrlist_box);
+    self._werrlist.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Preferred);
+    QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._process_item_click);
+    QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self._process_item_click);
+    QObject.connect(self._werrlist,SIGNAL("spacePressed(QListViewItem*)"),self._process_item_click);
+    QObject.connect(self._werrlist,SIGNAL("returnPressed(QListViewItem*)"),self._process_item_click);
+    self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
+    self._werrlist.setSorting(-1); 
+    self._werrlist.setRootIsDecorated(True);
+    self._werrlist.setAllColumnsShowFocus(True);
+    self._werrlist.header().hide();
+    # size the widget
+    self.setMinimumSize(QSize(200,60));
+    self.setGeometry(0,0,200,60);
+    # anchor and position relative to anchor
+    self._anchor_widget = None;
+    self._anchor_xy0 = None;
+    self._anchor_xy  = 0,0;
+    self._current_xy = 0,0;
+    self._anchor_ref = 0,0;
+    self._anchoring = False;
+    # timer used for move operations
+    self._move_timer = QTimer(self);
+    # internal state
+    self._error_list = [];
+
+  def closeEvent (self,ev):
+    """Window closed: hide and set a flag""";
+    self.hide();
+    ev.ignore();
+    
+  def show (self):
+    """Only show the window if we have errors in it""";
+    if self._error_list:
+      QMainWindow.show(self);
+      
+  def moveEvent (self,ev):
+    QMainWindow.moveEvent(self,ev);
+    # ignore move events for some time after a move_anchor() -- these are probably caused
+    # by the anchor moving us, and not by the user
+    if not self._move_timer.isActive():
+      self._current_xy = self.geometry().x(),self.geometry().y();
+  
+  def set_anchor (self,widget,x,y,xref=0,yref=0):
+    """Tells the window to anchor itself to point x,y of the given widget.
+    If xref is 0, x is relative to the left side, otherwise to the right side.
+    If yref is 0, y is relative to the top edge, otherwise to the bottom edge.
+    """;
+    self._anchor_widget = widget;
+    self._anchor_xy = x,y;
+    self._anchor_ref = xref,yref;
+    print "anchoring to",x,y,xref,yref;
+    self.move_anchor();
+    
+  def move_anchor (self):
+    """Notifies the window that its anchor widget has moved around.
+    Changes position following the anchor.""";
+    # get dx,dy coordinates relative to old anchor point
+    if self._anchor_xy0 is not None:
+      x0,y0 = self._anchor_xy0;
+      x,y = self._current_xy;
+      # print "move_anchor: old location is",x,y;
+      dx = x - x0;
+      dy = y - y0;
+    else:
+      dx = dy = 0;
+    #print "move_anchor: dxy relative to old anchor is",dx,dy;
+    # compute new anchoring point
+    top = self._anchor_widget.mapToGlobal(QPoint(0,0));
+    btm = self._anchor_widget.mapToGlobal(QPoint(self._anchor_widget.width(),
+                          self._anchor_widget.height()));
+    #print "move_anchor: widget top is",top.x(),top.y();
+    #print "move_anchor: widget btm is",btm.x(),btm.y();
+    x,y = self._anchor_xy;
+    # add to coordinates of reference point on anchor
+    if self._anchor_ref[0]:
+      x0 = btm.x() + x;
+    else:
+      x0 = top.x() + x;
+    if self._anchor_ref[1]:
+      y0 = btm.y() + y;
+    else:
+      y0 = top.y() + y;
+    # move to new location
+    #print "move_anchor: new location is",x0,y0;
+    self._anchor_xy0 = x0,y0;
+    self._current_xy = x0+dx,y0+dy;
+    self.setGeometry(x0+dx,y0+dy,self.width(),self.height());
+    # Start a timer to ignore move events for a bit. The reason for this is that sometimes
+    # very rapid moving of the main window causes the float to "lag" because the setGeometry()
+    # call is not processed before another call to move_anchor(). A small delay should eliminate this.
+    self._move_timer.start(300,True);
+    
+  def _populate_error_list (self,parent,errlist,toplevel=False):
+    """helper function to recursively populate the error ListView""";
+    previtem = None;
+    for index,err in enumerate(errlist):
+      errmsg = str(err.args[0]);
+      filename = getattr(err,'filename',None);
+      line = getattr(err,'lineno',0);
+      column = getattr(err,'offset',0);
+      _dprint(1,errmsg,"at",filename);
+      # index of corresponding top-level item
+      toplevel_index = len(self._toplevel_error_items)-1;
+      if toplevel:
+        toplevel_index += 1;
+      # create item
+      if previtem is not None:
+        previtem = item = QListViewItem(parent,previtem,"%d:"%(toplevel_index+1,));
+      else:
+        previtem = item = QListViewItem(parent,"%d:"%(toplevel_index+1,));
+      # add housekeeping info
+      item._toplevel_index = toplevel_index;
+      if toplevel:
+	self._toplevel_error_items.append(item);
+      toplevel_index = len(self._toplevel_error_items)-1;
+      self._error_items.append(item);
+      item.setOpen(False);
+      # set item content
+      if filename is None:
+        item.setText(2,"["+errmsg+"]");
+        item.setText(1,"internal compilation error: text console may have more info");
+      else:
+        # normalize filenames: eliminate CWD, leave just one path element
+        fname = filename;
+        if os.path.samefile(os.path.dirname(fname),'.'):
+          fname = os.path.basename(filename);
+        else:
+          dirname,fname = os.path.split(filename);
+          dir1,dir2 = os.path.split(dirname);
+          if dir1 == '/' or not dir1:
+            fname = filename;
+          else:
+            fname = os.path.join("...",dir2,fname);
+        item.setText(1,errmsg);
+        item.setText(3,"(%s)"%err.__class__.__name__);
+        item._err_location = len(self._error_items)-1,filename,line,column;
+        self._error_locations.append(item._err_location);
+        item.setText(2,"[%s:%d]" % (fname,line));
+      # recursively populate with nested errors if needed
+      nested = getattr(err,'nested_errors',None);
+      if nested:
+        self._populate_error_list(item,nested);
+
+  def set_errors (self,error_list,signal=True,show_item=True,
+                      message="TDL compile failed"):
+    """Shows an error list. errlist should be a sequence of Exception
+    objects following the TDL error convention.
+    message is a status message
+    If show_item=True, highlights the first error
+    If signal=True, emits a hasErrors(nerr) pysignal
+    """;
+    _dprint(1,"set_errors: list of",len(error_list),"entries");
+    _dprint(1,"current list has",len(self._error_list),"entries");
+    # do nothing if already set
+    if self._error_list is error_list:
+      return;
+    self.clear_errors(signal=False);
+    self._error_list = error_list;
+    self._error_locations = [];         # list of error locations
+    self._error_items = [];
+    self._toplevel_error_items = [];
+    if error_list:
+      self._populate_error_list(self._werrlist,error_list,toplevel=True);
+      nerr = len(self._toplevel_error_items);
+      self._error_count_label.setText('%s: <b>%d</b> errors'%(message,nerr));
+      self.setCaption("TDL Errors: %d"%nerr);
+      self.show();
+      if signal:
+        self.emit(PYSIGNAL("hasErrors()"),(nerr,));
+      if show_item:
+        self._show_error_item(self._toplevel_error_items[0]);
+      # resize ourselves according to number of errors
+      height = (len(self._error_items)+1)*self._werrlist.fontMetrics().lineSpacing(); 
+      height = min(200,height);
+      self.setGeometry(self.x(),self.y(),self.width(),height);
+      self.updateGeometry();
+      # self._highlight_error(0);
+      # disable run control until something gets modified
+      # self._qa_run.setVisible(False);
+    else:
+      self.setCaption("TDL Errors");
+      self.hide();
+      
+  def get_error_list (self):
+    return self._error_list;
+  
+  def get_error_locations (self):
+    return self._error_locations;
+
+  def clear_errors (self,signal=False):
+    """clears the error list. If signal=True, emits a hasErrors(0) pysignal""";
+    if signal:
+      self.emit(PYSIGNAL("hasErrors()"),(0,));
+    self._error_items = self._toplevel_error_items = None;
+    self.setCaption("TDL Errors");
+    self._werrlist.clear();
+    self._error_count_label.setText('');
+    self._error_list = [];
+    self._error_locations = [];
+    self.hide();
+    
+  def _highlight_error_item (self,item,signal=True):
+    """highlights the given error item. If signal=True, emits a
+    showError(index,filename,line,column) or showError(None) pysignal.
+    """;
+    if item:
+      self.show();
+      toplevel_index = item._toplevel_index;
+      self._qa_prev_err.setEnabled(toplevel_index > 0);
+      self._qa_next_err.setEnabled(toplevel_index < len(self._toplevel_error_items)-1);
+      # does item contain a location attribute?
+      errloc = getattr(item,'_err_location',None);
+      if errloc:
+        # indicate location
+        _dprint(1,"highlighting error in",errloc);
+        if signal:
+          self.emit(PYSIGNAL("showError()"),errloc);
+        return
+    # if we fell through to here, then no error has been shown -- emit appropriate signal
+    if signal:
+      self.emit(PYSIGNAL("showError()"),(None,None,None,None));
+      
+  def _show_next_error (self):
+    item = self._werrlist.currentItem();
+    if item:
+      toplevel_index = item._toplevel_index + 1;
+      if toplevel_index >= len(self._toplevel_error_items):
+        toplevel_index = 0;
+      item = self._toplevel_error_items[toplevel_index];
+    else:
+      item = self._error_items[0];
+    if item:
+      self._show_error_item(item);
+    
+  def _show_prev_error (self):
+    item = self._werrlist.currentItem();
+    if item:
+      toplevel_index = item._toplevel_index - 1;
+      if toplevel_index < 0:
+        toplevel_index = len(self._toplevel_error_items)-1;
+      item = self._toplevel_error_items[toplevel_index];
+    else:
+      item = self._toplevel_error_items[-1];
+    if item:
+      self._show_error_item(item);
+  
+  def show_error_number (self,index,signal=True):
+    self._show_error_item(self._error_items[index],signal=signal);
+    
+  def _show_error_item (self,item,signal=True,select=True):
+    for other in self._toplevel_error_items:
+      if other is item:
+        other.setOpen(True);
+      else:
+        other.setOpen(False);
+    self._werrlist.ensureItemVisible(item);
+    if select:
+      self._werrlist.setCurrentItem(item);
+      self._werrlist.setSelected(item,True);
+    self._highlight_error_item(item,signal=signal);
+    
+  def _process_item_click (self,item):
+    self._show_error_item(item,signal=True,select=False);
+    
 
 class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";

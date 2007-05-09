@@ -266,9 +266,9 @@ class _NodeDef (object):
       return arg;
     elif isinstance(arg,complex):
       return _Meq.Constant(value=arg);
-    if isinstance(arg,(bool,int,long,float)):
+    elif isinstance(arg,(bool,int,long,float)):
       return _Meq.Constant(value=float(arg));
-    if callable(arg) and recurse>0:
+    elif callable(arg) and recurse>0:
       return _NodeDef.resolve(arg(),recurse=recurse-1);
     return None;
   resolve = staticmethod(resolve);

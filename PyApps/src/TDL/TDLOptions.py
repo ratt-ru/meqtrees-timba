@@ -19,6 +19,7 @@ _dprintf = _dbg.dprintf;
 config_file = ".tdl.conf";
 config = ConfigParser.RawConfigParser();
 config.read(config_file);
+_dprint(1,"read config file",config_file);
 
 def save_config ():
   config.write(file(config_file,"w"));
@@ -48,6 +49,7 @@ def init_options (filename):
   clear_options();
   global config_section;
   config_section = filename;
+  _dprint(1,"config section is now",filename);
   
 def get_compile_options ():
   return compile_options;

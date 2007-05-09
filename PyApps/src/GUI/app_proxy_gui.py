@@ -461,6 +461,9 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       layout.addSpacing(2);
       layout.addWidget(label);
       layout.addWidget(minbtn);
+    def resizeEvent (self,ev):
+      self.emit(PYSIGNAL("resized()"),());
+      return QVBox.resizeEvent(self,ev);
     def show (self):
       if self.isHidden():
         _dprint(1,'showing',self,self.parent());
