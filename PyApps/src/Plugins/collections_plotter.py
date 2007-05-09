@@ -252,7 +252,10 @@ class CollectionsPlotter(GriddedPlugin):
 #       if channel == 100:
 #         data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
 #       else:
-        data_dict['value'][index] = self._rec.vellsets[i].value
+        if  self._rec.vellsets[i].has_key("value"):
+          data_dict['value'][index] = self._rec.vellsets[i].value
+        else:
+          data_dict['value'][index] = None
         if  self._rec.vellsets[i].has_key("flags"):
           data_dict['flags'][index] = self._rec.vellsets[i].flags
         else:
