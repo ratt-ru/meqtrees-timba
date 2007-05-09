@@ -261,6 +261,9 @@ class CollectionsPlotter(GriddedPlugin):
             data_dict['value'][index] = None
         except:
             data_dict['value'][index] = None
+# for test purposes
+#       if index == 2:
+#           data_dict['value'][index] = None
         try:
           if  self._rec.vellsets[i].has_key("flags"):
             data_dict['flags'][index] = self._rec.vellsets[i].flags
