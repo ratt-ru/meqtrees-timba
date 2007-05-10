@@ -176,6 +176,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Pause': 317,
         'Toggle Comparison': 318,
         'Drag Amplitude Scale': 319,
+        'Undo Last Zoom': 320,
         }
 
     _start_spectrum_menu_id = 0
@@ -438,17 +439,36 @@ class QwtImageDisplay(QwtPlot):
         self.zoomStack.append(self.zoomState)
         self._x_auto_scale = plot_parms['x_auto_scale']
         self._y_auto_scale = plot_parms['y_auto_scale']
+        display_zoom_menu = False
         if not self._x_auto_scale: 
-          self.axis_xmin = plot_parms['axis_xmin']
-          self.axis_xmax = plot_parms['axis_xmax']
+          if plot_parms['axis_xmin'] > self.zoomStack[0][0] or plot_parms['axis_xmax'] < self.zoomStack[0][1]:
+            self.axis_xmin = plot_parms['axis_xmin']
+            self.axis_xmax = plot_parms['axis_xmax']
+            display_zoom_menu = True
+          else:
+            self.axis_xmin =  self.zoomStack[0][0]
+            self.axis_xmax =  self.zoomStack[0][1]
           self.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
         if not self._y_auto_scale: 
-          self.axis_ymin = plot_parms['axis_ymin']
-          self.axis_ymax = plot_parms['axis_ymax']
+          if plot_parms['axis_ymin'] > self.zoomStack[0][2] or plot_parms['axis_ymax'] < self.zoomStack[0][3]:
+            self.axis_ymin = plot_parms['axis_ymin']
+            self.axis_ymax = plot_parms['axis_ymax']
+            display_zoom_menu = True
+          else:
+            self.axis_ymin =  self.zoomStack[0][2]
+            self.axis_ymax =  self.zoomStack[0][3]
           self.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
-        self.zoomState = (self.axis_xmin, self.axis_xmax, self.axis_ymin, self.axis_ymax, True)
-        toggle_id = self.menu_table['Reset zoomer']
-        self._menu.setItemVisible(toggle_id, True)
+        if display_zoom_menu:
+          self.zoomState = (self.axis_xmin, self.axis_xmax, self.axis_ymin, self.axis_ymax, True)
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Undo Last Zoom']
+          self._menu.setItemVisible(toggle_id, True)
+        else:
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, False)
+          toggle_id = self.menu_table['Undo Last Zoom']
+          self._menu.setItemVisible(toggle_id, False)
         self.replot()
         _dprint(3, 'called replot in setPlotParms')
 
@@ -517,6 +537,13 @@ class QwtImageDisplay(QwtPlot):
         else:
           replot = False
         self.reset_zoom(replot)
+        return True
+      if menuid == self.menu_table['Undo Last Zoom']:
+        if self.is_vector and self.complex_type:
+          replot = True
+        else:
+          replot = False
+        self.reset_zoom(replot, True)
         return True
       if menuid == self.menu_table['Delete X-Section Display']:
         self.delete_cross_sections()
@@ -987,9 +1014,10 @@ class QwtImageDisplay(QwtPlot):
     def getSpectrumTags(self):
        return (self._data_labels, self._string_tag) 
     
-    def reset_zoom(self, replot=False):
+    def reset_zoom(self, replot=False, undo_last_zoom = False):
       """ resets data display so all data are visible """
       do_replot = False
+#     print 'stack length ', len(self.zoomStack)
       if len(self.zoomStack):
         while len(self.zoomStack):
           axis_parms = self.zoomStack.pop()
@@ -1001,6 +1029,9 @@ class QwtImageDisplay(QwtPlot):
             do_replot = axis_parms[4]
           except:
             pass
+          if undo_last_zoom:
+#           print 'popped range ', axis_parms
+            break
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self._x_auto_scale = False
@@ -1009,14 +1040,23 @@ class QwtImageDisplay(QwtPlot):
         self.axis_xmax = xmax
         self.axis_ymin = ymin
         self.axis_ymax = ymax
-        self.xmin = None
-        self.xmax = None
-        self.ymin = None
-        self.ymax = None
+        if undo_last_zoom:
+          self.xmin = xmin
+          self.xmax = xmax
+          self.ymin = ymin
+          self.ymax = ymax
+        else:
+          self.xmin = None
+          self.xmax = None
+          self.ymin = None
+          self.ymax = None
         self.test_plot_array_sizes()
         self.refresh_marker_display()
-        toggle_id = self.menu_table['Reset zoomer']
-        self._menu.setItemVisible(toggle_id, False)
+        if not len (self.zoomStack):
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, False)
+          toggle_id = self.menu_table['Undo Last Zoom']
+          self._menu.setItemVisible(toggle_id, False)
 # do a complete replot in the following situation
 # as both axes will have changed even if nothing to unzoom.
       if do_replot:
@@ -1553,6 +1593,8 @@ class QwtImageDisplay(QwtPlot):
               self.axis_ymin = ymin
               self.axis_ymax = ymax
               toggle_id = self.menu_table['Reset zoomer']
+              self._menu.setItemVisible(toggle_id, True)
+              toggle_id = self.menu_table['Undo Last Zoom']
               self._menu.setItemVisible(toggle_id, True)
               self.test_plot_array_sizes()
             self.replot()
@@ -2411,6 +2453,8 @@ class QwtImageDisplay(QwtPlot):
         if len(self.zoomStack):
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Undo Last Zoom']
+          self._menu.setItemVisible(toggle_id, True)
 
         self.active_image = True
 
@@ -2950,6 +2994,9 @@ class QwtImageDisplay(QwtPlot):
 # add zoomer and printer stuff
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.insertItem(pixmaps.viewmag.iconset(), "Reset zoomer", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Undo Last Zoom']
+        self._menu.insertItem(pixmaps.viewmag.iconset(), "Undo latest zoom", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
 
 # add the printer to the menu
