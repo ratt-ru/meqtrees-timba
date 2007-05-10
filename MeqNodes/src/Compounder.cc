@@ -333,7 +333,11 @@ namespace Meq {
         	space[ch](i)=grid_[ch](i)-grid_[ch](i-1);
        space[ch](0)=space[ch](1);
       }
-      domain().defineAxis(Axis::axis(comm_axes_[ch]),-INFINITY,INFINITY);
+      //calculate extents for domain 
+      double llimit=grid_[ch](0)-space[ch](0);
+      double ulimit=grid_[ch](grid_[ch].extent(0)-1)+space[ch](grid_[ch].extent(0)-1);
+      if (llimit==ulimit) ulimit=llimit+1; //catch scalar case
+      domain().defineAxis(Axis::axis(comm_axes_[ch]),llimit,ulimit);
 		}
 
     Cells &outcells=outcells_ref<<=new Cells(*domain);
