@@ -463,7 +463,10 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Undo Last Zoom']
-          self._menu.setItemVisible(toggle_id, True)
+          if self.is_vector and self.complex_type:
+            self._menu.setItemVisible(toggle_id, False)
+          else:
+            self._menu.setItemVisible(toggle_id, True)
         else:
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, False)
@@ -539,10 +542,7 @@ class QwtImageDisplay(QwtPlot):
         self.reset_zoom(replot)
         return True
       if menuid == self.menu_table['Undo Last Zoom']:
-        if self.is_vector and self.complex_type:
-          replot = True
-        else:
-          replot = False
+        replot = False
         self.reset_zoom(replot, True)
         return True
       if menuid == self.menu_table['Delete X-Section Display']:
@@ -1595,7 +1595,10 @@ class QwtImageDisplay(QwtPlot):
               toggle_id = self.menu_table['Reset zoomer']
               self._menu.setItemVisible(toggle_id, True)
               toggle_id = self.menu_table['Undo Last Zoom']
-              self._menu.setItemVisible(toggle_id, True)
+              if self.is_vector and self.complex_type:
+                self._menu.setItemVisible(toggle_id, False)
+              else:
+                self._menu.setItemVisible(toggle_id, True)
               self.test_plot_array_sizes()
             self.replot()
             _dprint(3, 'called replot in onMouseReleased');
@@ -2454,7 +2457,10 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Undo Last Zoom']
-          self._menu.setItemVisible(toggle_id, True)
+          if self.is_vector and self.complex_type:
+            self._menu.setItemVisible(toggle_id, False)
+          else:
+            self._menu.setItemVisible(toggle_id, True)
 
         self.active_image = True
 
