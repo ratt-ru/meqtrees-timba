@@ -1,0 +1,63 @@
+[/home/oms/Workshop2007/ME2/demo1-predict-nps.py]
+imaging_weight = briggs
+
+[/home/oms/Workshop2007/ME2/example3-nps-corrupt-meow.py]
+imaging_mode = channel
+imaging_weight = briggs
+
+[/home/oms/Workshop2007/ME2/example10-tracking.py]
+imaging_mode = channel
+grid_size = 3
+min_tr_period = 1
+grid_step = 1
+imaging_weight = briggs
+max_tr_error = 5
+output_column = CORRECTED_DATA
+model_func = grid_model
+
+[/home/oms/Workshop2007/ME2/example2-nps-meow.py]
+imaging_weight = briggs
+tile_size = 32
+
+[/home/oms/Workshop2007/ME2/example8-smear-diff.py]
+imaging_mode = channel
+imaging_weight = natural
+grid_step = 2
+grid_size = 5
+
+[/home/oms/Workshop2007/ME2/example6-iono.py]
+imaging_mode = channel
+tid_x_ampl_0 = 0.01
+grid_size = 3
+tid_x_size_km = 50
+tec0 = 10
+tid_x_speed_kmh = 200
+tid_x_ampl_1hr = 0.01
+grid_step = 5
+output_column = DATA
+imaging_weight = natural
+model_func = grid_model
+msname = demo-30-190.MS
+
+[/home/oms/Workshop2007/ME2/example7-smear.py]
+imaging_mode = channel
+grid_size = 5
+imaging_arcmin = 10.0
+grid_step = 2
+model_func = cross_model
+
+[/home/oms/Workshop2007/ME2/example4-nps-ext-meow.py]
+imaging_mode = channel
+imaging_weight = briggs
+
+[/home/oms/Workshop2007/ME2/example9-clar-shortcut.py]
+imaging_mode = channel
+model_func = star8_model
+grid_step = 2
+grid_size = 5
+
+[/home/oms/Workshop2007/ME2/example5-clar.py]
+imaging_mode = channel
+imaging_weight = natural
+apply_clar_beam = 1
+
