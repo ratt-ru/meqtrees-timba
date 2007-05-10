@@ -45,7 +45,7 @@ class Direction (Parameterization):
   def _lmn_component (self,name,dir0,index):
     """Helper method for below, returns part of the LMN vector.""";
     lmn = self.lmn(dir0);
-    comp = self.ns0[name].qadd(lmn);  # use ns0: all qualifiers are in lmn already
+    comp = self.ns[name].qadd(lmn);  # use ns0: all qualifiers are in lmn already
     # if we used self.ns, we'd have duplicate qualifiers
     if not comp.initialized():
       comp << Meq.Selector(lmn,index=index,multi=True);
