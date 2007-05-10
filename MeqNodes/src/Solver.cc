@@ -1076,12 +1076,12 @@ int Solver::getResult (Result::Ref &resref,
     for(int ich=0; ich<numc; ich++) 
     {
       children().getChild(ich).execute(child_res,reqref);
+      double sumc=0; //for a tensor, sum the result
       for( int ivs = 0; ivs < child_res->numVellSets(); ivs++ )
       {
             const VellSet &vs = child_res->vellSet(ivs);
             // ignore failed or null vellsets
             if( vs.isFail() || vs.isNull() ) {
-              logfile_<<" -1";
               continue;
             }
             //SBY: write vs to file
@@ -1090,9 +1090,10 @@ int Solver::getResult (Result::Ref &resref,
             double *indata=const_cast<double*>(ivl.realStorage());
             blitz::Array<double,2> A(indata,blitz::shape(ivl.extent(0),ivl.extent(1)),blitz::neverDeleteData);
             //reshape to a column vector
-            logfile_<<" "<<A(0,0);
+            sumc+=blitz::mean(A);
 
       }
+      logfile_<<" "<<sumc;
     }
     logfile_<<std::endl;
   }
@@ -1419,12 +1420,14 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
     ofstream logfile_;
     logfile_.open(debug_filename_.c_str(), ios::out | ios::app);
     //write names of condeqs to file first
+    if (!initializing) {
     int numc=children().numChildren();
     logfile_<<numc<<" ";
     for(int ich=0; ich<numc; ich++) {
      logfile_<<" "<<children().getChild(ich).name();
     }
     logfile_<<std::endl;
+    }
   }
   ////////////////////////////////////
 }
