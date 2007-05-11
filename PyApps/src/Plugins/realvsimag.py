@@ -163,6 +163,7 @@ class realvsimag_plotter(object):
         'Modify Plot Parameters': 299,
         'Reset zoomer': 300,
         'Toggle Legend': 301,
+        'Undo Last Zoom': 302,
         }
     
   def __init__(self, plot_key="", parent=None):
@@ -245,6 +246,7 @@ class realvsimag_plotter(object):
         self._legend_plot = None
         self._legend_popup = None
         self.label = ''
+        self._data_labels = None
 
         self._plot_x_axis_label = 'Real Axis'
         self._plot_y_axis_label = 'Imaginary Axis'
@@ -385,6 +387,10 @@ class realvsimag_plotter(object):
         menu_id = 300
         self._menu.insertItem("Reset zoomer", menu_id)
         self._menu.setItemVisible(menu_id, False)
+        menu_id = 302
+        self._menu.insertItem("Undo Last Zoom", menu_id)
+        self._menu.setItemVisible(menu_id, False)
+
         menu_id = 301
         self._menu.insertItem("Toggle Legend", menu_id)
         
@@ -457,7 +463,6 @@ class realvsimag_plotter(object):
     return plot_parms
 
   def setPlotParms(self, plot_parms):
-#   print 'in setPlotParms with plot_parms ', plot_parms
     self._plot_title = plot_parms['window_title'] 
     self._plot_x_axis_label = plot_parms['x_title']
     self._plot_y_axis_label = plot_parms['y_title'] 
@@ -502,6 +507,9 @@ class realvsimag_plotter(object):
       return
     if menuid == 301:
       self.toggleLegend()
+      return
+    if menuid == 302:
+      self.reset_zoom(True)
       return
 
     if menuid == self.menu_table['Toggle results history']:
@@ -676,32 +684,29 @@ class realvsimag_plotter(object):
             label_index = len(start_pos) - 1
 # We should have now found the right group of points
 # and can get the appropriate label.
-          print 'label index', label_index
           if not label_index is None:
-            message = 'this data point comes from \n ' + label[label_index] 
+            try:
+              message = 'this data point comes from \n ' + label[label_index] 
+            except:
+              message = 'data source is not known'
           else:
             message = ''
-
+        else:
+          message = 'data source is not known'
 # alias
-          fn = self.plot.fontInfo().family()
+        fn = self.plot.fontInfo().family()
 
-# Bow create text marker giving source of point that was clicked
-          self.marker = self.plot.insertMarker()
-          ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
-          xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-          self.plot.setMarkerPos(self.marker, xlb, ylb)
-          self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
-          self.plot.setMarkerLabel( self.marker, message,
-            QFont(fn, 7, QFont.Bold, False),
-            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+# Now create text marker giving source of point that was clicked
+        self.marker = self.plot.insertMarker()
+        ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
+        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+        self.plot.setMarkerPos(self.marker, xlb, ylb)
+        self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
+        self.plot.setMarkerLabel( self.marker, message,
+          QFont(fn, 7, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 # We have inserted the marker, so replot.
-          self.plot.replot()
-
-# Then start a timer so that after 3 sec the marker should vaporize
-# in the timerEvent_marker method defined below.
-#          timer = QTimer(self.plot)
-#          timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
-#          timer.start(3000, True)
+        self.plot.replot()
 
     elif e.button() == QMouseEvent.RightButton:
       e.accept();  # accept even so that parent widget won't get it
@@ -738,6 +743,8 @@ class realvsimag_plotter(object):
         self.axis_ymin = ymin
         self.axis_ymax = ymax
         menu_id = self.menu_table['Reset zoomer']
+        self._menu.setItemVisible(menu_id, True)
+        menu_id = self.menu_table['Undo Last Zoom']
         self._menu.setItemVisible(menu_id, True)
 
         self.zoomStack.append(self.zoomState)
@@ -1246,7 +1253,6 @@ class realvsimag_plotter(object):
           for k in range(0, num_elements):
             if k % 2 == 0:
               xx_f[k] = 1
-#          print xx_f
           flag_array_dim = len(xx_f.shape)
           num_flag_elements = 1
           for j in range(0, flag_array_dim):
@@ -1865,10 +1871,17 @@ class realvsimag_plotter(object):
 
   # timerEvent()
 
-  def reset_zoom(self):
+  def reset_zoom(self, undo_last_zoom = False):
+    """ resets data display so all data are visible """
     if len(self.zoomStack):
       while len(self.zoomStack):
-        xmin, xmax, ymin, ymax = self.zoomStack.pop()
+        axis_parms = self.zoomStack.pop()
+        xmin = axis_parms[0]
+        xmax = axis_parms[1]
+        ymin = axis_parms[2]
+        ymax = axis_parms[3]
+        if undo_last_zoom:
+          break
       self.plot.setAxisScale(QwtPlot.xBottom, xmin, xmax)
       self.plot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
       self._x_auto_scale = False
@@ -1877,15 +1890,22 @@ class realvsimag_plotter(object):
       self.axis_xmax = xmax
       self.axis_ymin = ymin
       self.axis_ymax = ymax
-      self.xmin = None
-      self.xmax = None
-      self.ymin = None
-      self.ymax = None
-      toggle_id = self.menu_table['Reset zoomer']
-      self._menu.setItemVisible(toggle_id, False)
-      _dprint(3, 'called replot in unzoom')
+      if undo_last_zoom:
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+      else:
+        self.xmin = None
+        self.xmax = None
+        self.ymin = None
+        self.ymax = None
+      if not len (self.zoomStack):
+        toggle_id = self.menu_table['Reset zoomer']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Undo Last Zoom']
+        self._menu.setItemVisible(toggle_id, False)
       self.plot.replot()
-    else:
       return
 
   def printPlot(self):
