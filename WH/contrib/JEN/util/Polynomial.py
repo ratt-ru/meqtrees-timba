@@ -55,13 +55,16 @@ class Polynomial (Expression.Expression):
 
     def __init__(self, ns, name, 
                  dims=['t^2','f^3'], symbol='c',
+                 t0=0.0, f0=1.0,
                  exclude_triangle=True,
                  descr=None, unit=None,
-                 quals=[], kwquals={}):
+                 quals=[], kwquals={},
+                 **pp):
 
         self._dims = dims
         self._symbol = symbol
         self._exclude_triangle = exclude_triangle
+        self._subexpr = dict()
 
         expr = self._makexpr (dims, symbol,
                               exclude_triangle=exclude_triangle,
@@ -69,7 +72,15 @@ class Polynomial (Expression.Expression):
         
         Expression.Expression.__init__(self, ns, name, expr=expr,
                                        descr=descr, unit=unit,
-                                       quals=quals, kwquals=kwquals)
+                                       quals=quals, kwquals=kwquals,
+                                       **pp)
+
+        # Fill in the parameter sub-expressions collected in ._makexpr()
+        print '\n** modparm subexpr:'
+        for key in self._subexpr.keys():
+            print '-',key,':',self._subexpr[key]
+            self.modparm(key, self._subexpr[key])
+        print
 
         # Finished:
         return None
@@ -96,17 +107,24 @@ class Polynomial (Expression.Expression):
     def _makexpr (self, dims=['t^2','f^3'], symbol='c',
                   exclude_triangle=True, trace=False):
         """Make the ND polynomial expression.""" 
-        if trace: print '\n** _multex(',dims,symbol,'):'
-        self._vv = []
-        terms = []
-        isumax = 0
-        for dim in dims:
-            dd = dim.split('^')
-            isumax = max(isumax,int(dd[1]))
-            if int(dd[1])>0:
-                terms = self._maketerms(terms, dim=dim, trace=trace)
-        if isumax==1: isumax += 1
+        if trace: print '\n** _makexpr(',dims,symbol,'):'
 
+        # Collect the various terms:
+        # self._vv = []                      # list of variables
+        terms = []                         # list of terms
+        maxdeg = 0                         # max degree of any term 
+        for dim in dims:
+            dd = dim.split('^')            # look for t^i
+            if len(dd)==0:                 #
+                pass                       # should not happen
+            elif len(dd)==1:               # assume omitted ^1  
+                maxdeg = max(maxdeg,1)
+                terms = self._maketerms(terms, dim=dim+'^1', trace=trace)
+            elif int(dd[1])>0:             # exponent specified
+                maxdeg = max(maxdeg,int(dd[1]))
+                terms = self._maketerms(terms, dim=dim, trace=trace)
+
+        # Make the full expr by adding the terms:
         expr = None
         for k,term in enumerate(terms):
             tt = term.split('_')
@@ -117,8 +135,8 @@ class Polynomial (Expression.Expression):
                 s = '{'+symbol+tt[0]+'}'
             else:
                 s = '{'+symbol+tt[0]+'}*'+tt[1]
-            if trace: print '-',isum,'/',isumax,':',s,
-            if exclude_triangle and isum>isumax:
+            if trace: print '-',isum,'/',maxdeg,':',s,
+            if exclude_triangle and isum>maxdeg:
                 if trace: print ' (ignored)',
                 pass                       # ignore the highest order triangle
             elif not expr:
@@ -130,23 +148,113 @@ class Polynomial (Expression.Expression):
         if expr==None: expr = '{'+symbol+'}'
         return expr
 
+
+
+
     #----------------------------------------------------------------------------
 
-    def _maketerms (self, terms=[], dim='f3', trace=True):
+    def _make_subexpr (self, dd0, i, t0=0.0, f0=1.0):
+        """Helper function"""
+        if dd0=='dt':
+            subexpr = '{dt}**'+str(i)      
+            self._subexpr['{dt}'] = '([t]-'+str(t0)+')'
+        elif dd0=='ff':
+            subexpr = '{ff}**'+str(i)      
+            self._subexpr['{ff}'] = '([f]/'+str(f0)+')'
+        else:
+            subexpr = '['+dd0+']**'+str(i)                  # e.g. [t]**i
+        return subexpr
+     
+    #----------------------------------------------------------------------------
+
+    def _maketerms (self, terms=[], dim='f3', f0=1.0, t0=0.0, trace=True):
+        """Helper function to replace the given list of terms
+        with new terms that include the specified dimension."""
+        new = []
+        dd = dim.split('^')
+        n = int(dd[1])+1
+        if trace: print '\n** _maketerms(',len(terms),dim,'):'
+
+        if len(terms)==0:                                   # first dimension
+            for i in range(n):
+                key = '{'+dd[0]+'^'+str(i)+'}'              # e.g. _{t^i}
+                subexpr = self._make_subexpr (dd[0], i)
+                curly = self._subexpr.has_key('{'+dd[0]+'}')
+
+                if i==0:                                    # ignore t^0
+                    s = str(i)+'_'
+                else:
+                    if i==1:
+                        s = str(i)+'_['+dd[0]+']'           # e.g. _[t]
+                        if curly:
+                            s = str(i)+'_{'+dd[0]+'}'       # e.g. _{dt}
+                    else:
+                        s = str(i)+'_'+key
+                        self._subexpr[key] = subexpr
+                if trace: print '-',i,':',s
+                new.append(s)
+
+
+        else:                                                         # non-first dimension
+            for k,term in enumerate(terms): 
+                for i in range(n):
+                    key = '{'+dd[0]+'^'+str(i)+'}'                    # e.g. {t^i}
+                    subexpr = self._make_subexpr (dd[0], i)
+                    curly = self._subexpr.has_key('{'+dd[0]+'}')
+                    tt = term.split('_')
+
+                    if i==0:                                          # ignore t^0
+                        s = tt[0]+str(i)+'_'+tt[1]
+
+                    elif tt[1]=='':
+                        if i==1:
+                            s = tt[0]+str(i)+'_['+dd[0]+']'           # e.g. _[t]
+                            if curly:
+                                s = tt[0]+str(i)+'_{'+dd[0]+'}'       # e.g. _{dt}
+                        else:
+                            s = tt[0]+str(i)+'_'+key                  # e.g. _{t^i}   
+                            self._subexpr[key] = subexpr
+
+                    else:
+                        if i==1:
+                            s = tt[0]+str(i)+'_'+tt[1]+'*['+dd[0]+']'     # e.g. *[t]
+                            if curly:
+                                s = tt[0]+str(i)+'_'+tt[1]+'*{'+dd[0]+'}' # e.g. *{dt}
+                        else:
+                            s = tt[0]+str(i)+'_'+tt[1]+'*'+key            # e.g. *{t^i} 
+                            self._subexpr[key] = subexpr
+
+                    if trace: print '-',k,i,':',s
+                    new.append(s)
+
+        # Finished:
+        print '** len(new)=',len(new),'\n'
+        return new
+
+
+
+
+
+
+
+
+    #----------------------------------------------------------------------------
+
+    def _maketerms_old (self, terms=[], dim='f3', trace=True):
         """Helper function to replace the given list of terms
         with new terms that include the specified dimension."""
         new = []
         dd = dim.split('^')
         vs = dd[0]+'^'
         n = int(dd[1])+1
-        if trace: print '\n** _multex(',len(terms),dim,'):'
+        if trace: print '\n** _maketerms_old(',len(terms),dim,'):'
 
         if len(terms)==0:                                   # first dimension
             for i in range(n):
                 if i==0:
                     s = str(i)+'_'
                 else:
-                    v = vs+str(i)
+                    v = vs+str(i)                           # e.g. t^i
                     if i==1: v = dd[0]                      # t^1 = t
                     s = str(i)+'_['+v+']'
                     if not v in self._vv:
@@ -308,17 +416,18 @@ def _define_forest(ns):
     dims = ['t^3']
     dims = ['t^4','f^4']
     # dims = ['t^1','mm^2']
-    dims = ['t^1','f^2','l^2','m^3']                    # ND plotter sees NaN's that are not there
-    # dims = ['t^1','f^2','m^3']                        # crashes when executed...
+    dims = ['t^1','f^2','l^2','m^3']             
+    # dims = ['t^1','f^2','m^3']
+    dims = ['ff^2']
     p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
     p0.display('initial')
 
-    if 0:
-        c1 = p0.MeqNode(show=True)
-        c2 = p0.MeqFunctional(show=True)
-        cc.append(ns.diff << Meq.Subtract(c1,c2)) 
-
     if 1:
+        c = p0.FunckDiff(show=True)
+        cc.append(c)
+        JEN_bookmarks.create(c, page='FunckDiff', recurse=1)
+
+    if 0:
         c = p0.MeqCompounder()
         cc.append(c)
         JEN_bookmarks.create(c, page='compounder', recurse=1)
@@ -376,7 +485,7 @@ def _define_forest(ns):
 
 def _tdl_job_2D_tf (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
-    domain = meq.domain(1,5,0,5)                            # (f1,f2,t1,t2)
+    domain = meq.domain(1,5,0.5,10)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=10, num_time=11)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
@@ -406,14 +515,16 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-    dims = ['t^3']
     dims = ['dt^1','ff^1']
     # dims = ['t^1','mm^2']
     dims = ['dt^1','f^2','m^3']
-    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+    dims = ['ff^3']
+    dims = ['dt^3','t^2','ff^2']
+    # dims = ['t^3', 'f^2']
+    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w', t0=4.4, f0=102)
     p0.display('initial')
 
-    if 1:
+    if 0:
         p0.FunckDiff(show=True)
 
     if 0:

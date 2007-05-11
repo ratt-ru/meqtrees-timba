@@ -99,14 +99,13 @@ class Expression (Meow.Parameterization):
         self._locked = False                      # if true, do not modify
         self._last_solvable_tags = None           # used by .solvable()
 
-        # Default values for the variable-modification constants:
-        self._var_modifier = dict(t0=0.0, f0=1.0)
-
         # Default values for the Meow.Parms defined in .find_items()
         self._parm_default = dict(value=2.0, stddev=0.0,
                                   tags=['MeqFunctional'],
                                   tiling=None, time_deg=0, freq_deg=0)  # **kw
 
+        # The fields of the two dicts above may be re-specified
+        # in the object constructor, via pp:
         if not isinstance(pp, dict): pp = dict()
         for key in self._parm_default.keys():
             if pp.has_key(key):
@@ -208,7 +207,6 @@ class Expression (Meow.Parameterization):
                 print '    - '+str(key)+':  '+str(self._item[key])
         #..........................................................
         print '  * parm_default: '+str(self._parm_default)
-        print '  * var_modier: '+str(self._var_modifier)
         #..........................................................
         print '  * last_solvable_tags: '+str(self._last_solvable_tags)
         cc = self.solvable()
@@ -475,55 +473,38 @@ class Expression (Meow.Parameterization):
         and add them to self._item, avoiding duplication"""
         vv = JEN_parse.find_enclosed(expr, brackets='[]', enclose=False)
         for key in vv:
-            kk = key.split('^')                     # e.g. t^4
             key = '['+key+']'
-            key0 = '['+kk[0]+']'                    # e.g. [t]
             
             if not self._item.has_key(key):
                 rr = dict(type='var', item=None, index=[0],
                           unit=None, default=10.0)
-                var = dict(nodeclass='MeqGrid', key0=key0,
+                var = dict(nodeclass='MeqGrid',
                            axis=None, funktion=None)
 
-                
                 # Deal with some standard variables:
-                if key=='[t]' or key=='[dt]':                
+                if key=='[t]':                
                     var['nodeclass'] = 'MeqTime' 
                     var['funktion'] = 'x0'          # used in Funklet
                     var['axis'] = 'time'    
                     rr['unit'] = 's'
-                    if key=='[dt]':                 # relative time (t-t0)
-                        t0 = self._var_modifier['t0']     
-                        var['subtract'] = t0
-                        var['funktion'] = '(x0-'+str(t0)+')'
-                elif key=='[f]' or key=='[ff]':              
+
+                elif key=='[f]':              
                     var['nodeclass'] = 'MeqFreq'  
                     var['funktion'] = 'x1'          # used in Funklet
                     var['axis'] = 'freq'    
                     rr['unit'] = 'Hz'
-                    if key=='[ff]':                 # normalized freq (f/f0)
-                        f0 = self._var_modifier['f0']     
-                        var['divide'] = f0
-                        var['funktion'] = '(x1/'+str(f0)+')'
+
                 elif key=='[l]':                    # celestial l-coordinate
                     var['nodeclass'] = 'MeqGrid'   
                     var['funktion'] = 'x2'          # used in Funklet
                     var['axis'] = 'l'      
                     rr['unit'] = 'rad'
+
                 elif key=='[m]':                    # celestial m-coordinate
                     var['nodeclass'] = 'MeqGrid'  
                     var['funktion'] = 'x3'          # used in Funklet
                     var['axis'] = 'm'        
                     rr['unit'] = 'rad'
-
-                # Variables can be functions of the basic one
-                elif len(kk)>1:                     # e.g. [t^4]
-                    var['nodeclass'] = 'MeqPow'     # for MeqFunctional
-                    var['power'] = int(kk[1])
-                    rr['unit'] = str(self._item[key0]['unit'])+'^'+kk[1]
-                    funktion = self._item[key0]['var']['funktion']       # e.g. [t]
-                    funktion = '('+str(funktion)+'**'+kk[1]+')'          # e.g. ([t]**4)
-                    var['funktion'] = funktion      # used in Funklet
 
                 rr['var'] = var                     # attach the var definition record
                 self._item[key] = rr                # attach the item definition record
@@ -554,27 +535,17 @@ class Expression (Meow.Parameterization):
                 if not rr['item']:                         # only if not yet defined
                     var = rr['var']
                     nodeclass = var['nodeclass']           # e.g. 'MeqTime'
-                    key0 = var['key0']                     # e.g. [t]
                     axis = var['axis']                     # e.g. 'freq', or 'm'
                     qnode = self.ns[key]
+
                     if nodeclass=='MeqTime':
-                        if var.has_key('subtract') and var['subtract']:
-                            tnode = self.ns['[t]'] << Meq.Time()
-                            qnode << Meq.Subtract(tnode,var['subtract'])
-                        else:
-                            qnode << Meq.Time()
+                        qnode << Meq.Time()
+
                     elif nodeclass=='MeqFreq':
-                        if var.has_key('divide') and var['divide']:
-                            fnode = self.ns['[f]'] << Meq.Freq()
-                            qnode << Meq.Divide(fnode,var['divide'])
-                        else:
-                            qnode << Meq.Freq()
+                        qnode << Meq.Freq()
+
                     elif nodeclass=='MeqGrid':
                         qnode << Meq.Grid(axis=axis)
-                    elif nodeclass=='MeqPow':
-                        node = self._item[key0]['item']    # e.g. MeqTime
-                        power = var['power']               # e.g. 2
-                        qnode << Meq.Pow(node,power)   
 
                     else:
                         s = 'nodeclass not recognised:'+str(nodeclass)
@@ -765,7 +736,7 @@ class Expression (Meow.Parameterization):
                                     index=rr['index'],              # usually: [0]
                                     nodename=nodename)
                         child_map.append(qq)
-            function = self._adjust_functions(function)              # deal with log(..) etc
+            function = _replace_Funcktions(function)                 # deal with log(..) etc
             qnode << Meq.Functional(children=children,
                                     testval=self._testeval(),
                                     function=function,
@@ -780,23 +751,6 @@ class Expression (Meow.Parameterization):
         if show: display.subtree(qnode)
         return qnode
 
-
-    #============================================================================
-
-    def _adjust_functions (self, expr, trace=True):
-        """Helper function to replace functions like sinh(...) in the given expr
-        with versions that can not be evaluated in a Funklet expression."""
-
-        ff = JEN_parse.find_function (expr, func='log', trace=False)
-        # ff is a list of dict(substring='sin(..)', arg='..')
-        for rr in ff:
-            old = rr['substring']
-            # new = '('+old+'/log(10))'
-            new = '('+old+'/log('+str(e)+'))'
-            if trace: print '** replace:',old,'  with:',new
-            expr = expr.replace(old, new)
-
-        return expr
 
     #============================================================================
     # Turn the Expression into a MeqParm with an init Funklet
@@ -893,7 +847,7 @@ class Expression (Meow.Parameterization):
                 funktion = funktion.replace(key, rr['var']['funktion'])
                 # print '- replace:',key,'by:',funktion,'\n  ->',funktion
 
-        funktion = self._adjust_functions(funktion)    # deal with log(..) etc
+        funktion = _replace_Funcktions(funktion)        # deal with log(..) etc
 
         # Make the Funklet, and attach it:
         # if self._expression_type=='MeqPolc':         # see polc_Expression()
@@ -997,6 +951,75 @@ class Expression (Meow.Parameterization):
 
 
 
+#============================================================================
+#============================================================================
+#============================================================================
+# Some standalone helper functions that are used by Expression:
+#============================================================================
+
+def _replace_Funcktions (expr, trace=True):
+    """Helper function to replace functions like tan(..) in the given expr
+    with versions that can be evaluated (properly) in a Funklet expression,
+    which uses AIPS++ functional functions."""
+
+    # The Meq.Log and python math.log() are elog, while the
+    # AIPS++ functional (used in Funklet and Functional) is 10log.
+    # So, make elog from 10log by dividing by 10log(e).
+    ff = JEN_parse.find_function (expr, func='log', trace=False)
+    # NB: ff is a list of dict(substring='sin(..)', arg='..')
+    for rr in ff:
+        old = rr['substring']
+        new = '('+old+'/log('+str(e)+'))'
+        if trace: print '** replace (log):',old,'  with:',new
+        expr = expr.replace(old, new)
+        
+    # Strangely, the tan() is not available. Use sin()/cos()
+    ff = JEN_parse.find_function (expr, func='tan', trace=False)
+    for rr in ff:
+        old = rr['substring']
+        new = '('+'sin('+rr['arg']+')/cos('+rr['arg']+'))'
+        if trace: print '** replace (tan):',old,'  with:',new
+        expr = expr.replace(old, new)
+
+
+    # In the next three, the order is important, ecause tanh() is first
+    # replaced with sinh()/cosh(), which are then replaced themselves:
+    ff = JEN_parse.find_function (expr, func='tanh', trace=False)
+    for rr in ff:
+        old = rr['substring']
+        new = '('+'sinh('+rr['arg']+')/cosh('+rr['arg']+'))'
+        if trace: print '** replace (tanh):',old,'  with:',new
+        expr = expr.replace(old, new)
+
+    ff = JEN_parse.find_function (expr, func='sinh', trace=False)
+    for rr in ff:
+        old = rr['substring']
+        new = '(('+'exp('+rr['arg']+')-exp(-('+rr['arg']+')))/2)'
+        if trace: print '** replace (sinh):',old,'  with:',new
+        expr = expr.replace(old, new)
+
+    ff = JEN_parse.find_function (expr, func='cosh', trace=False)
+    for rr in ff:
+        old = rr['substring']
+        new = '(('+'exp('+rr['arg']+')+exp(-('+rr['arg']+')))/2)'
+        if trace: print '** replace (cosh):',old,'  with:',new
+        expr = expr.replace(old, new)
+
+
+    # Finally, replace some constants (pi is OK):
+
+    # The euler number (e): Note the blanks on either side!
+    if ' e ' in expr:
+        if trace: print '** replace: " e " with:',str(e)
+        expr = expr.replace(' e ', str(e))
+
+
+
+    # Return the modified expr string:
+    return expr
+
+
+
 #===============================================================
 # Test routine (with meqbrowser):
 #===============================================================
@@ -1080,28 +1103,36 @@ def _define_forest(ns):
         # e9.modparm('{a3}','(5**2)')                       
         # e9.modparm('{a4}','abs(-2)+ceil(3.5)+floor(3.7)')
 
-        # Works with MeqFunctional, but NOT with Funklet(!!?)
-        # e9.modparm('{a5}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
-
-        # The following work neither with FunkletParm as with MeqFunctional
-        ## e9.modparm('{a6}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
-        ## e9.modparm('{a7}','sinh(2)+cosh(-2)+tanh(4)')
-        ## e9.modparm('{a8}','complex(5,3)')
-        ## e9.modparm('{a9}','tan(4)')                         # <--!!
-        ## e9.modparm('{a10}','pow(-2,3)')             
-        ## e9.modparm('{a11}','e')
-
         # The following gives different results in Python (testeval) and the node.
         # Python log(x)=elog(x) while Funklet (AIPS++ functional) assumes 10log(x)
         # The latter can be turned into the former: elog(x) = 10log(x)/10log(e)
         # NB: OK now, since log(x) is replaced with (log(x)/log(e)) in Funklet funktion,
         #     but not in the Python expression. This then gives the same result.
-        e9.modparm('{a12}','log(10)')         # funklet/functional=1.0,  python=2.3 
-        cc.append(ns.log10 << Meq.Log(10))    # =2.3 So: replace in funklet expr 
+        # e9.modparm('{a12}','log(10)')         # funklet/functional=1.0,  python=2.3 
+        # cc.append(ns.log10 << Meq.Log(10))    # =2.3 So: replace in funklet expr 
+
+        # Other functions that are replaced by other ones (_replace_Funcktions())
+        # e9.modparm('{a9}','tan(4)')                    
+        # e9.modparm('{a7}','sinh(2)+cosh(-2)+tanh(4)')
+        e9.modparm('{a11}',' e ')
+
+        #---------------------------------------------------
+        # problems:
+        #---------------------------------------------------
+
+        # The following works with MeqFunctional, but NOT with Funklet(!!?):
+        # e9.modparm('{a5}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')           # math
+
+        # The following work neither with FunkletParm as with MeqFunctional:
+        ## e9.modparm('{a6}','arcsin(0.5)')  # +arccos(-0.5)+arctan(4)')         # numarray
+        ## e9.modparm('{a8}','complex(5,3)')
+        ## e9.modparm('{a10}','pow(-2,3)')             
+        ## e9.modparm('{a11}','e')           # use ' e ' (see above)
 
         e9.display()
         # c = e9.FunkletParm()       
         c = e9.MeqFunctional()
+        e9.display('eval')
         cc.append(c)
         JEN_bookmarks.create(c, 'eval')
 
@@ -1260,7 +1291,7 @@ if __name__ == '__main__':
                                     show=True)
             e5.display()
 
-    if 1:
+    if 0:
         e8 = Expression(ns,'e8','{a}+{b=12}+{c=4~0.5}')
         e8.display()
 
