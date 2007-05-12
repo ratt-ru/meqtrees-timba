@@ -144,14 +144,12 @@ class WidgetSettingsDialog:
         settings['min_grid_colour'] = str(self._min_colour_button.paletteBackgroundColor().name())
 
         # axes settings
-        settings['x_axis_auto_scale'] = str(int(self._widget.child('check_box_x_auto_scale').isChecked()))
-        settings['y_axis_auto_scale'] = str(int(self._widget.child('check_box_y_auto_scale').isChecked()))
-        settings['x_axis_min'] = str(self._x_min.text())
-        settings['x_axis_max'] = str(self._x_max.text())
-        settings['y_axis_min'] = str(self._y_min.text())
-        settings['y_axis_max'] = str(self._y_max.text())
-        settings['ratio'] = str(int(self._widget.child('check_box_ratio').isChecked()))
-        settings['aspect_ratio'] = str(self._ratio.text())
+        settings['x_auto_scale'] = str(int(self._widget.child('check_box_x_auto_scale').isChecked()))
+        settings['y_auto_scale'] = str(int(self._widget.child('check_box_y_auto_scale').isChecked()))
+        settings['axis_xmin'] = str(self._x_min.text())
+        settings['axis_xmax'] = str(self._x_max.text())
+        settings['axis_ymin'] = str(self._y_min.text())
+        settings['axis_ymax'] = str(self._y_max.text())
 
         # apply settings
         self._parent_widget.setPlotParms(settings)
