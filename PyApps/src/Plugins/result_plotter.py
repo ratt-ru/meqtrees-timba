@@ -160,7 +160,7 @@ class ResultPlotter(GriddedPlugin):
     self.data_list = []
     self.data_list_labels = []
     self.data_list_length = 0
-    self.max_list_length = 20
+    self.max_list_length = 50
     self._window_controller = None
     self.array_shape = None
     self.actual_rank = None
@@ -181,6 +181,7 @@ class ResultPlotter(GriddedPlugin):
         out a message about Cache not containing results, etc
     """
     self._visu_plotter = None
+    self.QTextBrowser = None
     self.colorbar = {}
     self.results_selector = None
     self.spectrum_node_selector = None
@@ -594,6 +595,9 @@ class ResultPlotter(GriddedPlugin):
     if self.layout_parent is None or not self.layout_created:
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
+      self.QTextBrowser = QTextBrowser(self.layout_parent)
+      self.layout.addWidget(self.QTextBrowser, 0, 1)
+      self.QTextBrowser.hide()
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
     self._wtop = self.layout_parent;       
@@ -655,6 +659,7 @@ class ResultPlotter(GriddedPlugin):
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.reset_plot_stuff()
+
         return
     
 # update display with current data
@@ -685,25 +690,6 @@ class ResultPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
-
-# uncomment this block of code to get vells displayed directly to
-# widget without plotter
-#   if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
-#     _dprint(3, 'should have passed no-cells self._rec test')
-#     if self._vells_data is None:
-#       self._vells_data = VellsData()
-#     self._vells_data.setInitialSelection(False)
-#     self._vells_data.StoreVellsData(self._rec,self.label)
-#     Message = ""
-#     if self._vells_data.isVellsScalar():
-#       _dprint(3, 'we have a scalar vells')
-#       Message =  self._vells_data.getScalarString()
-#       _dprint(3, 'vells message is ', Message)
-#     cache_message = QLabel(Message,self.wparent())
-#     self._wtop = cache_message
-#     self.set_widgets(cache_message)
-#     self.reset_plot_stuff()
-#     return process_result
 
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
@@ -760,6 +746,7 @@ class ResultPlotter(GriddedPlugin):
         return
 
       _dprint(3, 'handling vellsets')
+
 # store the data
       if self._vells_data is None:
         self._vells_data = VellsData()
@@ -769,6 +756,14 @@ class ResultPlotter(GriddedPlugin):
       if store_rec:
         self._vells_data.setInitialSelection(False)
         self._vells_data.StoreVellsData(self._rec,self.label)
+
+      if self._vells_data.isVellsScalar():
+        if not self._visu_plotter is None:
+          self._visu_plotter.hide()
+        Message =  self._vells_data.getScalarString()
+        self.QTextBrowser.setText(Message)
+        self.QTextBrowser.show()
+        return
 
       self._vells_plot = True
 
@@ -812,15 +807,8 @@ class ResultPlotter(GriddedPlugin):
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
-      if self._vells_data.isVellsScalar():
-#       try:
-#         plot_label =  self._vells_data.getScalarString()
-#         self._visu_plotter.report_scalar_value(plot_label)
-#       except:
-          self._visu_plotter.report_scalar_value(plot_label, plot_data)
-      else:
-        if not self.test_vells_scalar(plot_data, plot_label):
-          self._visu_plotter.plot_vells_array(plot_data, plot_label)
+      if not self.test_vells_scalar(plot_data, plot_label):
+        self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
 
@@ -989,11 +977,13 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
       QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
-      self._visu_plotter.setResultsSelector()
+      if not self._visu_plotter is None:
+        self._visu_plotter.setResultsSelector()
       if self._plot_type == 'realvsimag':
         QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
       else:
-        QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
+        if not self._visu_plotter is None:
+          QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
     self.results_selector.set_emit(False)
     self.results_selector.setRange(self.data_list_length)
     self.results_selector.setLabel(self.label)
