@@ -915,7 +915,7 @@ namespace Meq {
 	  else
 	    its_funklet_().update(values.data(),force_positive_);
 	  wstate()[FFunklet].replace()=its_funklet_().getState();
-	  if( auto_save_ )
+	  if( auto_save_ && parmtable_ )
 	  {
 	    save();
 	    saved = true;
@@ -944,7 +944,7 @@ namespace Meq {
       cdebug(2)<<"saving funklets ? "<<args[FSaveFunklets].as<bool>(false)<<endl;
       if( !saved && args[FSaveFunklets].as<bool>(false) )
       {
-	if(converged_||ignore_convergence_)
+	if(parmtable_ && (converged_||ignore_convergence_))
 	  {
 	    save();
 	    saved = true;
