@@ -846,7 +846,7 @@ class TDLErrorFloat (QMainWindow):
     self._anchor_widget = widget;
     self._anchor_xy = x,y;
     self._anchor_ref = xref,yref;
-    print "anchoring to",x,y,xref,yref;
+    # print "anchoring to",x,y,xref,yref;
     self.move_anchor();
     
   def move_anchor (self):
