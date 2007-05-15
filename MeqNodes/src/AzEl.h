@@ -22,6 +22,7 @@
 
 // A MeqAzEl node transforms Right Ascension and Declination coordinates 
 // (first and second children) into observed Azimuth and Elevation. 
+// MDirection::AZEL := topocentric Azimuth and Elevation (N through E)
 // Since azimuth and elevation are dependent on the location on the Earth 
 // where a source is observed, you must provide this mode with a location. 
 // This can be done in two ways. If you instantiate the node with the name 
