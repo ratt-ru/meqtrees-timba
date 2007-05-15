@@ -298,8 +298,8 @@ Integrator::setup(const Cells &in, const Cells &out) {
 	nx_=xax.extent(0);
 	ny_=yax.extent(0);
 
-	int nxs=xaxs.extent(0);
-	int nys=yaxs.extent(0);
+	int nxs=nx0_=xaxs.extent(0);
+	int nys=ny0_=yaxs.extent(0);
 
 	//if out cells are smaller than in cells
 	//it will be taken to be idential for the moment
@@ -444,7 +444,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
         //handle scalar case as a special case
         if (nx0==1 || ny0==1) {
           if (nx0==1 && ny0==1) {
-            A=B(0,0); //divide by correct weight
+            A=B(0,0)*nx0_*ny0_/(nx_*ny_); //divide by correct weight
             return 0;
           } else if(nx0==1) {
         	  for (int i=0; i<bx_[0].size();i++) {
@@ -545,7 +545,57 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 				 Acell=0;
 				 Aflg=0;
 				 cell_weight_=0;
-				for (int i=0; i<bx_[0].size();i++) {
+        int nx0=B.extent(0);
+        int ny0=B.extent(1);
+
+
+        //handle scalar case as a special case
+        if (nx0==1 || ny0==1) {
+          if (nx0==1 && ny0==1) {
+            A=B(0,0)*nx0_*ny0_/(nx_*ny_); //divide by correct weight
+            return 0;
+          } else if(nx0==1) {
+        	  for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
+								A(i,j)+=tmp*B(0,(*fy).id);
+								std::advance(fy,1);
+							}
+                fy=yy.begin();
+								std::advance(fx,1);
+						 }
+						}
+				   }
+          } else {
+        	  for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
+								A(i,j)+=tmp*B((*fx).id,0);
+								std::advance(fy,1);
+							}
+                fy=yy.begin();
+								std::advance(fx,1);
+						 }
+						}
+				   }
+          }
+
+        } else {
+				 for (int i=0; i<bx_[0].size();i++) {
 						Bnode &xx=bx_[0].get(i);
 						for (int j=0; j<bx_[1].size(); j++) {
 						 Bnode &yy=bx_[1].get(j);
@@ -573,7 +623,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 						 //cout<<"A("<<i<<","<<j<<")="<<A(i,j)<<endl;
 						}
 				}
-
+      }
 #ifdef DEBUG
 
 			 cout<<" Weight "<<cell_weight_<<endl;
