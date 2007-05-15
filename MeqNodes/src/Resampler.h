@@ -223,6 +223,7 @@ class Integrator: public ResampleMachine {
 	 std::vector<Bgraph> bx_;
 
 	 int nx_,ny_; // size of the resampled (new) cells
+   int nx0_,ny0_; // input cell sizes
 	 blitz::Array<double,2> cell_weight_;
 
   template<class T> int  
