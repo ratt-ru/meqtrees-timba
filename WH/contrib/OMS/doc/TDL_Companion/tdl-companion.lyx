@@ -1,4 +1,4 @@
-#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -177,29 +177,59 @@ Hello World
 \end_layout
 
 \begin_layout Standard
-Nevertheless, we can try to provide an equivalent:
+Nevertheless, we can try to provide an equivalent (see 
+\family typewriter
+1-hello-world.py
+\family default
+):
 \end_layout
 
 \begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
+\begin_inset ERT
 status open
 
-\begin_layout Caption
+\begin_layout Standard
 
-\family typewriter
-1-helloworld.py
+
+\backslash
+begin{verbatim}
 \end_layout
 
 \begin_layout Standard
-\begin_inset Include \verbatiminput{1-0_hello-world.py}
-preview false
 
-\end_inset
+  from Timba.TDL import *
+\end_layout
+
+\begin_layout Standard
+
+  
+\end_layout
+
+\begin_layout Standard
+
+  def _define_forest (ns,**kwargs):
+\end_layout
+
+\begin_layout Standard
+
+    ns.hello_world << Meq.Constant(value=0,message="Hello world!");
+\end_layout
+
+\begin_layout Standard
+
+  
+\end_layout
+
+\begin_layout Standard
+
+  print "Hello world!" 
+\end_layout
+
+\begin_layout Standard
 
 
+\backslash
+end{verbatim}
 \end_layout
 
 \end_inset
@@ -213,7 +243,11 @@ Despite looking a little bit odd (i.e.
 \begin_inset Quotes eld
 \end_inset
 
+
+\family typewriter
 <<
+\family default
+
 \begin_inset Quotes erd
 \end_inset
 
@@ -399,7 +433,7 @@ MeqBrowser
 browser
 \emph default
  for short.) This is the only piece of software that you will be interacting
- with.
+ with directly.
  The browser is responsible for running TDL scripts, defining trees, controlling
  trees, and visualizing the results.
 \end_layout
@@ -413,26 +447,18 @@ kernel
  the meqserver) for execution.
  The kernel runs as a separate process --- potentially, even on a different
  machine.
- The kernel is where all then computational 
-\begin_inset Quotes eld
-\end_inset
-
-heavy lifting
-\begin_inset Quotes erd
-\end_inset
-
- occurs.
- It is meant to be mean, lean and fast, since all the complex eye candy
- such as visualization is handled by the browser.
+ The kernel is where all the computational heavy lifting occurs.
+ It is meant to be lean, mean and fast, with all the complex eye candy such
+ as visualization passed off to the browser.
 \end_layout
 
 \begin_layout Itemize
-Your scripts can make use of various TDL modules and frameworks, including
- those contributed by other users.
+A set of importable TDL modules and frameworks, including those contributed
+ by other users, which your scripts can make use of.
 \end_layout
 
 \begin_layout Standard
-To start the browser, you have to run the following command:
+To start the browser, you run the following command:
 \end_layout
 
 \begin_layout Standard
@@ -796,7 +822,9 @@ Taken by itself, a node stub is not yet a real node, because we haven't
 defining
 \emph default
  a node.
- To define a node, we create a 
+ To define a node (i.e.
+ to turn a node stub into a fully-fledged node on the kernel side), we create
+ a 
 \emph on
 node definition
 \emph default
@@ -829,6 +857,40 @@ The normal meaning of
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+There's some potential for confusion here, so this deserves to be reiterated.
+ Nodes as such only exist on the kernel side of things.
+ On the TDL side, they're represented by node stubs.
+ To define a node on the kernel side, we have to make a node stub on the
+ TDL side, and bind it with a definition.
+ The node stub is the TDL equivalent of a kernel-side node, so sometimes
+ the two terms are used interchangably.
+ There is an important difference though -- not all node stubs get turned
+ into nodes.
+ If you don't bind a node stub with a definition, it will remain a 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ node in TDL, and no kernel-side counterpart will be created.
+ When you do bind a node stub, the result is called an 
+\emph on
+initialized
+\emph default
+ node stub -- and a 
+\begin_inset Quotes eld
+\end_inset
+
+real
+\begin_inset Quotes erd
+\end_inset
+
+ node counterpart will be created by the kernel.
 \end_layout
 
 \begin_layout Standard
@@ -888,6 +950,11 @@ real
 \end_inset
 
  tree
+\begin_inset LatexCommand \label{sec:Our-first-"real"}
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1030,8 +1097,12 @@ functional nodes
 \emph default
  have children.
  A functional node evaluates some kind of a mathematical function on the
- result(s) of its children, based on its class.
- In this diagram we see instances of add, multiply, and sine functions.
+ result(s) of its children, as determined by its 
+\emph on
+class
+\emph default
+.
+ In this diagram we see instances of add, multiply, and sine classes.
  
 \end_layout
 
@@ -1050,6 +1121,20 @@ f
 f
 \emph default
  here happens to be a multiplication node.
+ Note that we can choose to view any node as a 
+\begin_inset Quotes eld
+\end_inset
+
+root
+\begin_inset Quotes erd
+\end_inset
+
+ node, the result of which is determined by its 
+\emph on
+subtree
+\emph default
+ --- the tree above it.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -1431,9 +1516,17 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-An compound expression like this by necessity has to define some intermediate
+A compound expression like this has to implicitly define some intermediate
  nodes (e.g.
- for for the products).
+ for the 
+\begin_inset Formula $bx$
+\end_inset
+
+ and 
+\begin_inset Formula $cy$
+\end_inset
+
+ products).
  In the meantime, we've only explicitly named the 
 \begin_inset Quotes eld
 \end_inset
@@ -1777,15 +1870,46 @@ Now that we've put together our first tree, how do we get MeqTrees to compute
  the result? We have to tell the kernel to evaluate the tree.
  This is called 
 \emph on
-running the tree
+executing the tree
 \emph default
 , and is a completely separate step from defining the tree.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+The term 
+\emph on
+running
+\emph default
+ a tree is occasionally used in place of 
+\emph on
+executing
+\emph default
+.
+ To most programmers, the two words mean pretty much the same.
+ We prefer to 
+\emph on
+execute
+\emph default
+ our trees, so as not to confuse it with 
+\emph on
+running
+\emph default
+ TDL scripts (which only 
+\emph on
+define
+\emph default
+ trees.)
+\end_layout
+
+\end_inset
+
  Oftentimes, you will run a TDL script to define a tree, and then reevaluate
  that tree many times under different conditions.
 \end_layout
 
 \begin_layout Standard
-To run the tree, we need to add an extra bit of code to our script:
+To execute the tree, we need to add an extra bit of code to our script:
 \end_layout
 
 \begin_layout Standard
@@ -1865,7 +1989,8 @@ Without going into details (of which there will be more than enough later),
 \emph on
 request
 \emph default
- object, and (with the final statement) sends it to the root node --- 
+ object, and (with the final statement) sends it to a node of our tree,
+ in this case 
 \begin_inset Quotes eld
 \end_inset
 
@@ -1873,10 +1998,11 @@ f
 \begin_inset Quotes erd
 \end_inset
 
- --- of our tree.
- On the kernel side, the request will be passed up to the tree to the leaf
- nodes, telling them to return their values to their parents, telling the
- parents to compute their functions and return the results to 
+ (it is also perfectly all right to send the request to any node --- not
+ just the root node --- so as to evaluate its subtree separately.) On the
+ kernel side, the request will be passed up the tree to the leaf nodes,
+ telling them to return their values to their parents, telling the parents
+ to compute their functions and return the results to 
 \emph on
 their
 \emph default
@@ -1921,7 +2047,7 @@ As you may have guessed,
 _test_forest()
 \family default
  is another one of these predefined function names.
- How do we call the function? If you load and run the 
+ How do we invoke this function? If you load and run the 
 \family typewriter
 Intro1/demo1-first-tree.py
 \family default
@@ -1983,7 +2109,7 @@ test forest
 \end_inset
 
  item was probably not very satisfying.
- You may have seen a mesage flash by to the effect that 
+ You may have seen a message flash by to the effect that 
 \begin_inset Quotes eld
 \end_inset
 
@@ -2000,11 +2126,11 @@ How do we see the result of our calculation? Actually, this isn't something
  it in your face.
  Usually you're more interested in having the result written out somewhere
  (e.g.
- to a Measurement Set.) On the other hand, even then one would still like
- to see something --- some intermediate results for example --- if only
- to verify that the tree is acting as expected, or to keep track of the
- data going by.
- These can often be far more interesting than even the final result itself.
+ to an AIPS++ Measurement Set.) On the other hand, even then one would still
+ like to see something --- some intermediate results for example --- if
+ only to verify that the tree is acting as expected, or to keep track of
+ the data going by.
+ These can often be far more interesting than the final result itself.
  
 \end_layout
 
@@ -2084,8 +2210,8 @@ Gridded Viewers
 \family default
  pane on the right.
  Depending on how recent your installation of MeqTrees is --- the viewer
- widgets are always a work in progress --- this will be a large green box
- (indicating a constant value), or a simple message.
+ widgets are always a work in progress --- this will either be a large green
+ box (indicating a constant value), or a simple message.
  In any case you should be able to see the answer given by our tree: 
 \end_layout
 
@@ -2104,7 +2230,7 @@ How to ask the right question
 At this point you may be feeling somewhat underwhelmed, having gone through
  a lot of trouble for such a seemingly simple answer.
  But if you still remember your classics (???), you should immediately recognize
- that we simply don't know the right question yet.
+ that we simply don't know how to ask the right question yet.
 \end_layout
 
 \begin_layout Standard
@@ -2138,7 +2264,7 @@ real life
 \begin_inset Formula $\nu$
 \end_inset
 
---- frequency).
+ --- frequency).
  An interferometer observes correlations as functions of time 
 \begin_inset Formula $t$
 \end_inset
@@ -2333,7 +2459,7 @@ f
 
 \end_inset
 
- (and if you don't, you've probably forgotten to run 
+ (and if you don't, you've probably forgotten to click on 
 \begin_inset Quotes eld
 \end_inset
 
@@ -2685,7 +2811,7 @@ Recall that the
 \family typewriter
 <<
 \family default
- operator has a return value, namely the node stub itelf.
+ operator has a return value, namely the node stub itself.
  The statement above defines the node stub 
 \begin_inset Quotes eld
 \end_inset
@@ -2788,8 +2914,8 @@ Meq.Constant(value=0);
 alone by itself does.
  
 \emph on
-To define a real node, you must to make a node stub and bind it to a definition
- with 
+To define a real node, you must always do two things: make a node stub,
+ and bind it to a definition with 
 \family typewriter
 <<
 \family default
@@ -2965,7 +3091,7 @@ multiply...
 \begin_inset Quotes erd
 \end_inset
 
- node upstream where the 
+ node upstream, where the 
 \begin_inset Quotes eld
 \end_inset
 
@@ -2986,7 +3112,7 @@ y
 \begin_inset Formula $100\times200$
 \end_inset
 
-array, indicating a that both time and frequency are now axes of variability.
+ array, indicating a that both time and frequency are now axes of variability.
 \end_layout
 
 \begin_layout Standard
@@ -3076,11 +3202,11 @@ domain
 \begin_inset Formula $t$
 \end_inset
 
- goes from 10 to 20, and 
+ goes from 0 to 10, and 
 \begin_inset Formula $\nu$
 \end_inset
 
- from 0 to 10.
+ from 10 to 20.
  The second line constructs a 
 \emph on
 cells
@@ -3151,8 +3277,8 @@ The user (i.e., ourselves)
 \end_layout
 
 \begin_layout Standard
-The user knows all --- or does he? Of course we know the script that built
- our trees, since we wrote it.
+We know all --- or do we? Of course we know the script that built our trees,
+ since we wrote it.
  On the other hand, somebody else could have written the script for us.
  We can then choose to treat it as a black box.
  The only thing we, the users, need to know then is to click on 
@@ -3196,11 +3322,11 @@ The tree, in fact, knows nothing, because the tree, as a separate entity,
  A tree is only a collection of nodes that happen to be connected.
  All the knowledge necessary for running the tree resides in the individual
  nodes.
- This is the 
+ This is called the 
 \emph on
-locality
+locality principle
 \emph default
- principle.
+.
  
 \end_layout
 
@@ -3274,7 +3400,7 @@ MeqTrees consists of a fast kernel for doing the real work (building and
 \begin_layout Itemize
 You build trees via TDL scripts.
  TDL scripts define the structure of trees.
- TDL is Python with some synctatic sugar thrown in.
+ TDL is Python with some syntactic sugar thrown in.
 \end_layout
 
 \begin_layout Itemize
@@ -3391,7 +3517,7 @@ You'll have a far clearer idea of how frameworks like Meow work, and you'll
 \end_layout
 
 \begin_layout Itemize
-You may even make your own frameworks.
+You may even make your own frameworks and modules.
 \end_layout
 
 \begin_layout Standard
@@ -3438,7 +3564,7 @@ practices
 \begin_inset Quotes eld
 \end_inset
 
-the code is more what you'd call `guidelines' than actual rules.
+the [Pirate] Code is more what you'd call `guidelines' than actual rules.
 \begin_inset Quotes erd
 \end_inset
 
@@ -3626,15 +3752,7 @@ ns = 0;
 \end_layout
 
 \begin_layout Standard
-then you haven't done anything to the 
-\begin_inset Quotes eld
-\end_inset
-
-original
-\begin_inset Quotes erd
-\end_inset
-
- node scope object.
+then you haven't done anything to the original node scope object.
  All you've done is disassociate the local (local to 
 \family typewriter
 _define_forest()
@@ -3643,7 +3761,7 @@ _define_forest()
 \family typewriter
 ns
 \family default
- variable from the node scope object, and associated it with the integer
+ variable from the node scope object, and associate it with the integer
  
 \begin_inset Quotes eld
 \end_inset
@@ -4072,7 +4190,7 @@ node definition
 \end_layout
 
 \begin_layout Standard
-What's a node definition? You guessed it, it's an object (of the 
+What's a node definition? You guessed it, it's also an object (of the 
 \family typewriter
 TDL._NodeDef
 \family default
@@ -4088,8 +4206,16 @@ status open
 
 \begin_layout Standard
 Node classes are only known to the MeqTree kernel.
- On the kernel side, they actually do correspond to C++ class.
- On the TDL side, a node class is just a string.
+ On the kernel side, they actually correspond to C++ classes.
+ On the TDL side, a 
+\begin_inset Quotes eld
+\end_inset
+
+node class
+\begin_inset Quotes erd
+\end_inset
+
+ is just a string identifier.
 \end_layout
 
 \end_inset
@@ -5720,8 +5846,8 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-The function call executes fine, but inside the function Python throws up
- an error.
+The function call executes fine, but inside the function Python throws an
+ error.
  The error is obvious: you can't add a node stub to a string.
  The problem is, the 
 \begin_inset Quotes eld
@@ -5742,22 +5868,11 @@ That's no big deal in a short script like this, but imagine we were calling
  a function in somebody else's code, and got the parameter types wrong.
  We'd see a mysterious Python error within a completely unfamiliar piece
  of code.
- Only by scrolling up through the call stack could we get to the ultimate
- cause of the error, in our own code.
- Fortunately, the browser makes this easy --- click on the 
-\begin_inset Quotes eld
-\end_inset
-
-
-\family sans
-+
-\family default
-
-\begin_inset Quotes erd
-\end_inset
-
- symbol next to an error message to see the associated call stack, and click
- through the entries in the stack to see where the function was called from.
+ Only by looking through the call stack could we get to the ultimate cause
+ of the error, which is in our own code.
+ Fortunately, the browser makes this easy --- every error message shows
+ an associated call stack, which you can quickly click through to see where
+ the error may have arisen.
 \end_layout
 
 \begin_layout Standard
@@ -6753,8 +6868,8 @@ The second statement illustrates that qualifiers really are just a naming
 \family typewriter
 ns.f(1)
 \family default
- is a node stub, you can certainly repeat the qualification process by applying
- 
+ evaluates to a node stub, you can certainly repeat the qualification process
+ by applying 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6766,8 +6881,8 @@ ns.f(1)
 \begin_inset Quotes erd
 \end_inset
 
- to it, and (due to the way qualification works) the result is the same
- as saying 
+ to it, and --- due to the way qualification works --- the result is the
+ same as saying 
 \family typewriter
 ns.f(1,2)
 \family default
@@ -7380,7 +7495,11 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-and then invoke it to make sums over cross-sections of 
+and then invoke it to make sums over slices over 
+\begin_inset Formula $l$
+\end_inset
+
+ through 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7396,7 +7515,7 @@ l
 \begin_inset Quotes erd
 \end_inset
 
- for a given 
+, for a given 
 \begin_inset Formula $k$
 \end_inset
 
@@ -7442,12 +7561,9 @@ Design by contract
 
 \begin_layout Standard
 You'd be right to wonder if we could somehow use the same function to sum
- over a 
-\begin_inset Quotes eld
-\end_inset
-
-cross-section
-\begin_inset Quotes erd
+ over slices in the other direction, i.e.
+ over 
+\begin_inset Formula $k$
 \end_inset
 
  for a given 
@@ -7628,11 +7744,1526 @@ fnodes
 \end_layout
 
 \begin_layout Section
-Node tags and scope searches
+Built-in node arithmetic
 \end_layout
 
 \begin_layout Section
-Subscopes, qualifiers, and how to avoid node name clashes
+Node tags and scope searches
+\end_layout
+
+\begin_layout Chapter
+What's In a Name?
+\end_layout
+
+\begin_layout Standard
+Naming can be a difficult business --- just ask Ford Prefect (???).
+ For various good reasons that we will not go into too deeply, every node
+ in the tree must have a unique name.
+ It would be easy to generate unique names automatically, but these would
+ be largely meaningless to the user.
+ Good, meaningful node names are important, because they make a tree easier
+ to understand.
+ This in turn makes it easier to indentify intermediate values, keep track
+ of what's going on, and locate potential errors.
+\end_layout
+
+\begin_layout Standard
+Real-life trees can have thousands of nodes, and it would be rather tedious
+ if we had to choose names for them all.
+ TDL provides a number of convenient shortcuts.
+ First of all, repeated structures in the tree (such as per-baseline, per-source
+ and per-station branches) can be given different qualifiers.
+ Then there's implicit arithmetic and automatic node naming, which assigns
+ names to intermediate nodes for us.
+ Recall our first 
+\begin_inset Quotes eld
+\end_inset
+
+meaningful
+\begin_inset Quotes erd
+\end_inset
+
+ tree of section\InsetSpace ~
+
+\begin_inset LatexCommand \ref{sec:Our-first-"real"}
+
+\end_inset
+
+, which implemented the expression:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula \[
+f=\alpha\sin(bx+cy+1).\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In TDL, such a subtree can be defined by a single statement:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f << ns.alpha*Meq.Sin(ns.b*ns.x + ns.c*ns.y + 1)
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...provided we have already defined the 
+\family typewriter
+alpha
+\family default
+, 
+\family typewriter
+b
+\family default
+, 
+\family typewriter
+c
+\family default
+, 
+\family typewriter
+x
+\family default
+ and 
+\family typewriter
+y
+\family default
+ nodes.
+ All the intermediates nodes in this expression will be assigned names automatic
+ally, based on their class and arguments.
+ If you study these names in the browser, you'll see a clear meaning to
+ them.
+\end_layout
+
+\begin_layout Standard
+Is it a good idea to rely on these automatic names? In general, they tend
+ to make life a lot easier, but, like any good idea, they can be taken too
+ far.
+ For example, the following is perfectly legitimate TDL:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.f << 297*Meq.Sin(1*Meq.Freq() + 2*Meq.Time() + 1)
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...but the resulting tree will be much more difficult to understand.
+\end_layout
+
+\begin_layout Standard
+In general, I would recommend the following guidelines:
+\end_layout
+
+\begin_layout Itemize
+If a node represents some well-defined physical or mathematical quantity,
+ name it explicitly.
+\end_layout
+
+\begin_layout Itemize
+If a node represents something you might want to look at separately, name
+ it explicitly.
+\end_layout
+
+\begin_layout Itemize
+Otherwise, allow automatic naming to take care of it.
+\end_layout
+
+\begin_layout Standard
+Striking the right balance here is a matter of feeling and personal preference.
+ Trees that explicitly name every single node are easy to understand, but
+ take a lot more TDL code (which in itself can be difficult to read).
+ Trees that explicitly name barely anything at all may be easy to code,
+ but will be perfectly inscrutable.
+\end_layout
+
+\begin_layout Standard
+Of course, picking the right name is only part of the problem.
+ Imagine you're using a framework or a module that was written by Bob.
+ This module will build a large part of the tree for you, using some naming
+ scheme invented by Bob.
+ The details of this scheme are hidden inside Bob's code, so you could very
+ well end up using the same names for your own, compelely unrelated nodes.
+ All sorts of confusion may ensue, all the worse if Bob (and/or you) is
+ sloppy in his naming, or if he's fond of generic names like 
+\begin_inset Quotes eld
+\end_inset
+
+x
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+y
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Then you try to make use of another module, this one written by Alice,
+ with its own naming scheme.
+ There's now three potential sources of conflicting names.
+ Then you pull out all your hair and swear off other people's code for life...
+\end_layout
+
+\begin_layout Standard
+This scenario shows that using good naming schemes, and avoiding naming
+ conflicts, is terribly important --- the more so as your scripts get more
+ complex and as you start sharing code with other people.
+ This is a matter of good coding practice.
+ Fortunately, TDL provides a number of tools that, if properly used, let
+ you implement good naming practices will relatively little effort.
+ The purpose of this chapter is to discuss these tools and practices in
+ depth.
+\end_layout
+
+\begin_layout Section
+Node scopes
+\end_layout
+
+\begin_layout Standard
+Up till now, we've only dealt with the 
+\emph on
+global node scope
+\emph default
+, a.k.a.
+ the 
+\family typewriter
+ns
+\family default
+ object.
+ The good news (for people wanting to avoid name conflicts) is that we can
+ make use of other node scopes.
+ If you're familiar with C++ namespaces, or just name scopes in general,
+ then this concept should be quite familiar.
+ For example, in the following bit of (rather silly) Python code, the name
+ 
+\family typewriter
+foo
+\family default
+ appears twice:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def a():
+\end_layout
+
+\begin_layout Standard
+
+  foo = 1;
+\end_layout
+
+\begin_layout Standard
+
+  return foo;
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+def b():
+\end_layout
+
+\begin_layout Standard
+
+  foo = 2;
+\end_layout
+
+\begin_layout Standard
+
+  return foo;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...yet there's no confusion at all between the two 
+\family typewriter
+foo
+\family default
+'s, because one resides in the local scope of function 
+\family typewriter
+a()
+\family default
+, and the other in the local scope of 
+\family typewriter
+b()
+\family default
+.
+ In C++, you could have something like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+namespace a
+\end_layout
+
+\begin_layout Standard
+
+{
+\end_layout
+
+\begin_layout Standard
+
+  int foo;
+\end_layout
+
+\begin_layout Standard
+
+}
+\end_layout
+
+\begin_layout Standard
+
+int foo;
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+
+int b ()
+\end_layout
+
+\begin_layout Standard
+
+{
+\end_layout
+
+\begin_layout Standard
+
+  int foo = 2;
+\end_layout
+
+\begin_layout Standard
+
+  return foo + ::foo + a::foo;
+\end_layout
+
+\begin_layout Standard
+
+}
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Again, we have three separate 
+\family typewriter
+foo
+\family default
+s.
+ One is declared in 
+\emph on
+namespace
+\emph default
+ a, another in the global scope, and the third in the local scope of function
+ 
+\family typewriter
+b()
+\family default
+.
+ It is even possible to explicitly refer to the 
+\begin_inset Quotes eld
+\end_inset
+
+other
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\family typewriter
+foo
+\family default
+s inside of 
+\family typewriter
+b()
+\family default
+, by prepending 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+::
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+a::
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ to the name.
+\end_layout
+
+\begin_layout Standard
+TDL provides a similar (though more powerful) mechanism via node scopes.
+ Think of a node scope object as a naming device.
+ The global node scope is the equivalent of global name scope of most programmin
+g langauges.
+ If 
+\family typewriter
+ns
+\family default
+ is the global node scope, then 
+\family typewriter
+ns.foo
+\family default
+ refers to the name 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The name 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ is global in the sense that anyone else attempting to define a node named
+ 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ will end up referring to the same name.
+\end_layout
+
+\begin_layout Subsection
+Subscopes
+\end_layout
+
+\begin_layout Standard
+If we want make different distinct 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ nodes, we can make use of subscopes.
+ This bit of TDL code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsa = ns.Subscope("a");
+\end_layout
+
+\begin_layout Standard
+
+  nsb = ns.Subscope("b");
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << 1;
+\end_layout
+
+\begin_layout Standard
+
+  nsa.foo << 2;
+\end_layout
+
+\begin_layout Standard
+
+  nsb.foo << 3;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+will define three nodes named 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+a::foo
+\begin_inset Quotes erd
+\end_inset
+
+, and 
+\begin_inset Quotes eld
+\end_inset
+
+b::foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The 
+\family typewriter
+nsa
+\family default
+ and 
+\family typewriter
+nsb
+\family default
+ objects are called 
+\emph on
+subscopes
+\emph default
+.
+ When you declare node stubs inside a subscope, the name of the subscope
+ is prepended to the node name, separated by 
+\begin_inset Quotes eld
+\end_inset
+
+::
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Note that this is purely a naming trick.
+ You could declare something like
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns1 = ns.Subscope("a");
+\end_layout
+
+\begin_layout Standard
+
+  ns2 = ns.Subscope("a");
+\end_layout
+
+\begin_layout Standard
+
+  ns1.foo << 1;
+\end_layout
+
+\begin_layout Standard
+
+  ns2.foo << 2;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and get back a 
+\begin_inset Quotes eld
+\end_inset
+
+node redefined
+\begin_inset Quotes erd
+\end_inset
+
+ error, because while the 
+\family typewriter
+ns1
+\family default
+ and 
+\family typewriter
+ns2
+\family default
+ subscopes are, technically, different Python objects, they name their nodes
+ the same way.
+ Likewise, if 
+\family typewriter
+ns
+\family default
+ is the global node scope, then 
+\family typewriter
+ns['a::foo']
+\family default
+ is yet another way to refer to 
+\begin_inset Quotes eld
+\end_inset
+
+a::foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The bottom line is that all node names still reside within a single global
+ 
+\emph on
+name
+\emph default
+ scope --- subscopes are simply a handy way to automatically prepend something
+ to a name.
+ This is similar to what happens with qualifiers.
+ For example, if 
+\family typewriter
+nsa
+\family default
+ is a subscope of 
+\family typewriter
+ns
+\family default
+ named 
+\begin_inset Quotes eld
+\end_inset
+
+a
+\begin_inset Quotes erd
+\end_inset
+
+, then 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsa.foo(1)
+\end_layout
+
+\begin_layout Standard
+
+  ns['a::foo'](1)
+\end_layout
+
+\begin_layout Standard
+
+  ns['a::foo:1']
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+are simply three different ways of referring to the same name, 
+\begin_inset Quotes eld
+\end_inset
+
+a::foo:1
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Subscopes and qualifiers are merely naming devices, so it is important
+ that you understand exactly what they do and don't do!
+\end_layout
+
+\begin_layout Subsection
+A subscope is just a scope
+\end_layout
+
+\begin_layout Standard
+The power of subscopes lies in the fact that they're entirely indistiguishable,
+ from a program's point of view, from the global node scope.
+ All node scopes are instances of the 
+\family typewriter
+TDL.NodeScope
+\family default
+ class.
+ When you pass a node scope to a function, the function has no way of knowing
+ whether it's dealing with the global scope or a subscope, because the object
+ 
+\begin_inset Quotes eld
+\end_inset
+
+looks and feels
+\begin_inset Quotes erd
+\end_inset
+
+ the same way.
+ This is another instance of 
+\begin_inset Quotes eld
+\end_inset
+
+good
+\begin_inset Quotes erd
+\end_inset
+
+ information hiding.
+ 
+\end_layout
+
+\begin_layout Standard
+Consider our Alice/Bob scenario.
+ Say we're trying to make use of Alice's module, 
+\family typewriter
+alice.py
+\family default
+, which contains
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_useful_subtree (ns,node,a=1):
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << a + 1;
+\end_layout
+
+\begin_layout Standard
+
+  node << ns.foo + Meq.Freq();
+\end_layout
+
+\begin_layout Standard
+
+  return node;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Obviously, Alice is aware of the good practice of letting the caller create
+ and pass in the 
+\begin_inset Quotes eld
+\end_inset
+
+output
+\begin_inset Quotes erd
+\end_inset
+
+ node stub as the 
+\family typewriter
+node
+\family default
+ argument.
+ Then, we're also trying to pull in 
+\family typewriter
+bob.py
+\family default
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_really_useful_subtree (ns,b=1):
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << b*2;
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << ns.foo + Meq.Time();
+\end_layout
+
+\begin_layout Standard
+
+  return ns.bar;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Bob's module prefers to declare its own output node stub.
+ When we try to combine the two in our own code, we start out with something
+ like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  import alice;
+\end_layout
+
+\begin_layout Standard
+
+  import bob;
+\end_layout
+
+\begin_layout Standard
+
+  x = alice.make_useful_subtree(ns,ns.x,a=1);
+\end_layout
+
+\begin_layout Standard
+
+  y = bob.make_useful_subtree(ns,b=2);
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << ns.x + ns.y;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This produces at least two naming conflicts --- both Alice and Bob use 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+, and both Bob and us use 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The easiest way to resolve this problem is to put Alice and Bob into separate
+ subscopes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  x = alice.make_useful_subtree(ns.Subscope("alice"),ns.x,a=1);
+\end_layout
+
+\begin_layout Standard
+
+  y = bob.make_useful_subtree(ns.Subscope("bob"),b=2);
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << ns.x + ns.y;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+All Alice's nodes will now be called 
+\begin_inset Quotes eld
+\end_inset
+
+alice::...
+\begin_inset Quotes erd
+\end_inset
+
+, all Bob's nodes will be called 
+\begin_inset Quotes eld
+\end_inset
+
+bob::...
+\begin_inset Quotes erd
+\end_inset
+
+, and we can freely use the global scope for our own nodes without worrying
+ about naming conflicts.
+ 
+\end_layout
+
+\begin_layout Standard
+This is great, because it allows us to treat Alice and Bob's modules as
+ a black box (which we should be entitled to), and not worry about how they
+ name their nodes internally.
+ 
+\end_layout
+
+\begin_layout Subsection
+Qualifying subscopes
+\end_layout
+
+\begin_layout Standard
+When creating a subscope, you can also pass in arbitrary qualifiers:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsa = ns.Subscope("a",1,x=2);
+\end_layout
+
+\begin_layout Standard
+
+  nsa.foo << 1;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...creates a subscope named 
+\begin_inset Quotes eld
+\end_inset
+
+a:1:x=2
+\begin_inset Quotes erd
+\end_inset
+
+, and a node named 
+\begin_inset Quotes eld
+\end_inset
+
+a:1:x=2::foo
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Again, this is only a naming convenience --- we could have achieved exactly
+ the same result by saying:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsa = ns.Subscope("a:1:x=2");
+\end_layout
+
+\begin_layout Standard
+
+  nsa.foo << 1;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+QualScopes
+\end_layout
+
+\begin_layout Standard
+A 
+\emph on
+QualScope
+\emph default
+ is a variation on the subscope theme.
+ You can create a qualscope with an arbitrary set of qualifiers:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsq = ns.QualScope("x",y=1);
+\end_layout
+
+\begin_layout Standard
+
+  nsq.foo << 1;
+\end_layout
+
+\begin_layout Standard
+
+  nsq.bar(2,a=3);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...and the qualscope's qualifiers will be 
+\emph on
+prepended
+\emph default
+ to the set of a node's qualifiers when creating nodes within that qualscope.
+ Thus, the example above produces nodes named 
+\begin_inset Quotes eld
+\end_inset
+
+foo:x:y=1
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+bar:x:y=1:2:a=3
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Qualscopes are very useful when you know you will be creating a large number
+ of nodes sharing the same qualifiers.
+ For example, classes in the the 
+\family typewriter
+Meow.SkyComponent
+\family default
+ hierarchy, which represent individual sources on the sky, make themselves
+ a qualscope using the source name as a qualifier.
+ All nodes related to that component are then created within that qualscope,
+ and thus are automatically qualified with the source name.
+\end_layout
+
+\begin_layout Subsection
+Nesting scopes
+\end_layout
+
+\begin_layout Standard
+Just like subscopes, qualscopes are also fully-fleged scopes.
+ This means you can do anything with a qualscope that you could with the
+ global node scope, including creating another qualscope or subscope within
+ it.
+ This leads to 
+\emph on
+nested
+\emph default
+ scopes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsa = ns.Subscope("a");
+\end_layout
+
+\begin_layout Standard
+
+  nsq = ns.QualScope("x",y=1);
+\end_layout
+
+\begin_layout Standard
+
+  nsq1 = nsa.QualScope("z",t=2);   # nested qualscope
+\end_layout
+
+\begin_layout Standard
+
+  nsb = nsq1.Subscope("b");        # nested subscope
+\end_layout
+
+\begin_layout Standard
+
+  nsq2 = nsb.QualScope("x",y=2);
+\end_layout
+
+\begin_layout Standard
+
+  nsa.foo << 1;                    # creates "a::foo"
+\end_layout
+
+\begin_layout Standard
+
+  nsq.foo << 1;                    # creates "foo:x:y=1"
+\end_layout
+
+\begin_layout Standard
+
+  nsq1.foo << 1;                   # creates "a::foo:z:t=2"
+\end_layout
+
+\begin_layout Standard
+
+  nsb.foo << 1;                    # creates "a::b::foo:z:t=2"
+\end_layout
+
+\begin_layout Standard
+
+  nsq2.foo << 1;                   # creates "a::b::foo:z:t=2:x:y=2"
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Having too many nested scopes can look confusing, but you don't generally
+ need to worry about it.
+ The important thing to know is that you can always make a subscope or qualscope
+ from any scope.
+ Returning to our Alice/Bob example, if Alice's function were to look like
+ this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_useful_subtree (ns,node,a=1):
+\end_layout
+
+\begin_layout Standard
+
+  qualscope = ns.QualScope(alice=a);
+\end_layout
+
+\begin_layout Standard
+
+  qualscope.foo << a + 1;
+\end_layout
+
+\begin_layout Standard
+
+  node << ns.foo + Meq.Freq();
+\end_layout
+
+\begin_layout Standard
+
+  return node;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...it would work perfectly fine whethere invoked as 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  alice.make_useful_subtree (ns,ns.x,a=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+...or as
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  alice.make_useful_subtree (ns.Subscope("alice"),ns.x,a=1);
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the first case the foo node will be named 
+\begin_inset Quotes eld
+\end_inset
+
+foo:alice=1
+\begin_inset Quotes erd
+\end_inset
+
+, in the second case 
+\begin_inset Quotes eld
+\end_inset
+
+alice::foo:alice=1
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The bottom line is, if you're Alice or Bob --- writing modules for other
+ people to use --- you're free to make sensible use of subscopes and qualscopes
+ within your own module, as long as these are derived from the 
+\family typewriter
+ns
+\family default
+ object that the user of your code passes in.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+user
+\begin_inset Quotes erd
+\end_inset
+
+ can then decide to 
+\begin_inset Quotes eld
+\end_inset
+
+sandbox
+\begin_inset Quotes erd
+\end_inset
+
+ you module into a subscope as he or she sees fit; your own subscopes and
+ qualscopes will then nest inside the subscope that the user has selected
+ for you, but it's not something you need to concern yourself with at all.
+\end_layout
+
+\begin_layout Subsection
+Scopifying nodes
 \end_layout
 
 \begin_layout Chapter
