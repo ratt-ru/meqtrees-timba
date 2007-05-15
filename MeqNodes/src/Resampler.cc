@@ -28,7 +28,6 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <complex>
 
-//#define DEBUG
 namespace Meq {
 
 const HIID FFlagDensity = AidFlag|AidDensity;
@@ -437,8 +436,58 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 				bx_[0].print();
 				bx_[1].print();
 #endif
+        int nx0=B.extent(0);
+        int ny0=B.extent(1);
+
 				double tmp;
 				cell_weight_=0;
+        //handle scalar case as a special case
+        if (nx0==1 || ny0==1) {
+          if (nx0==1 && ny0==1) {
+            A=B(0,0); //divide by correct weight
+            return 0;
+          } else if(nx0==1) {
+        	  for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
+								A(i,j)+=tmp*B(0,(*fy).id);
+								std::advance(fy,1);
+							}
+                fy=yy.begin();
+								std::advance(fx,1);
+						 }
+						}
+				   }
+          } else {
+        	  for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
+								A(i,j)+=tmp*B((*fx).id,0);
+								std::advance(fy,1);
+							}
+                fy=yy.begin();
+								std::advance(fx,1);
+						 }
+						}
+				   }
+          }
+
+        } else {
+
 				for (int i=0; i<bx_[0].size();i++) {
 						Bnode &xx=bx_[0].get(i);
 						for (int j=0; j<bx_[1].size(); j++) {
@@ -459,6 +508,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 						 }
 						}
 				}
+       }
 #ifdef DEBUG
 				cout<<" Weight "<<cell_weight_<<endl;
 
@@ -473,6 +523,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 				return 0;
 }
 
+#define DEBUG
 //return 0 if no new flags were created,
 //return 1 if new flags were created
 template<class T> int  
@@ -549,6 +600,8 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 				return create_flags;
 }
 
+#undef DEBUG
+
 #ifndef MAX
 #define MAX(a,b)\
 				(a>b?a:b)
@@ -609,7 +662,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				if (invl.hasDataFlags() ) {
         Vells &flvl=const_cast<Vells &>(invl.dataFlags());
 
-				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(LoRange::all(),LoRange::all()); 
+				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
 
 #ifdef DEBUG
 				cout <<"Flags 1"<<FF<<endl;
@@ -623,12 +676,12 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				}
 
 				if (invl.isReal()) {
-				 blitz::Array<double,2> B=invl.as<double,2>()(LoRange::all(),LoRange::all()); 
+				 blitz::Array<double,2> B=invl.as<double,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
          blitz::Array<double,2> A(nx_,ny_);
 				 A=0;
 #ifdef DEBUG
-				 cout<<" A "<<A<<endl;
-				 cout<<" B "<<B<<endl;
+				 cout<<" A "<<A.shape()<<endl;
+				 cout<<" B "<<B.shape()<<endl;
 #endif
 				if (!invl.hasDataFlags() ) {
          do_resample(A,  B);
@@ -643,7 +696,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 					out.setDataFlags(new Vells(Aflag));
 				}
 				}else{
-				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(LoRange::all(),LoRange::all()); 
+				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
          blitz::Array<dcomplex,2> Ac(nx_,ny_);
 				 Ac = make_dcomplex(0);
 
