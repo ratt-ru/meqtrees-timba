@@ -15,7 +15,7 @@ else
   setenv DEFAULT_PYTHON_PATH $PYTHONPATH
 
 
-alias _timba-setup "set arg1 = \\!^ ; setenv PATH ${DEFAULT_PATH}:$TIMBA_PATH/install/$arg1/bin ; setenv PYTHONPATH ${DEFAULT_PYTHON_PATH}:$TIMBA_PATH/install/$arg1/libexec/python ; setenv LD_LIBRARY_PATH ${DEFAULT_LD_LIBRARY_PATH}:$TIMBA_PATH/install/$arg1/lib ; echo "Using Timba install $TIMBA_PATH/install/$arg1""
+alias _timba-setup "setenv PATH ${DEFAULT_PATH}:$TIMBA_PATH/install/\!:1/bin ; setenv PYTHONPATH ${DEFAULT_PYTHON_PATH}:$TIMBA_PATH/install/\!:1/libexec/python ; setenv LD_LIBRARY_PATH ${DEFAULT_LD_LIBRARY_PATH}:$TIMBA_PATH/install/\!:1/lib ; echo "Using Timba install $TIMBA_PATH/install/\!:1""
 
 _timba-setup current
 endif
