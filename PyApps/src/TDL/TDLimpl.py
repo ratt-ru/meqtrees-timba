@@ -287,7 +287,7 @@ class _NodeDef (object):
       quals = [];
       kwquals = {};
       for (ich,child) in self.children:
-        _mergeQualifiers(quals,kwquals,child.quals,child.kwquals,uniq=True);
+        _mergeQualifiers(quals,kwquals,list(child.scope._quals)+list(child.quals),child.kwquals,uniq=True);
       basename = ','.join(map(lambda x:x[1].basename,self.children));
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
@@ -513,11 +513,13 @@ class _NodeStub (object):
     None""";
     chain = [];
     basenode = self._basenode;
+    _dprint(5,"_get_definition_chain: basenode is",basenode and basenode.name);
     while basenode:
       chain.append(DefinedHere("possibly derived from '%s'"%basenode.name,
                       filename=basenode._caller[0],lineno=basenode._caller[1],
                       tb=basenode._deftb));
       basenode = basenode._basenode;
+      _dprint(5,"_get_definition_chain: basenode is",basenode and basenode.name);
     return chain;
     
   def _qualify (self,quals,kwquals,merge):
