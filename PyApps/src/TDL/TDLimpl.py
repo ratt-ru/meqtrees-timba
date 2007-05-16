@@ -3,7 +3,7 @@
 #  psyco.full();
 #except:
 #  pass;
-  
+
 from Timba import dmi
 from Timba import utils
 import Timba.TDL.Settings
@@ -25,18 +25,18 @@ _dprintf = _dbg.dprintf;
 _re_localfiles = re.compile('.*TDL/(TDLimpl|MeqClasses).py$');
 
 # name of file from which the node scope was created. Error tracebacks will
-# be stopped once they hit this name. Initialized when a NodeRepository is 
+# be stopped once they hit this name. Initialized when a NodeRepository is
 # created
 _original_invocation_filename = None;
 
 class TDLError (RuntimeError):
-  """Base class for TDL errors. 
-  In order to be processed properly, errors may be raised with one or 
-  two arguments. The first argument is an error message, the second 
-  (optional) is a another error object (the allows multiple errors to 
+  """Base class for TDL errors.
+  In order to be processed properly, errors may be raised with one or
+  two arguments. The first argument is an error message, the second
+  (optional) is a another error object (the allows multiple errors to
   be chained together and raised as one value).
   Optional attributes:
-    filename,lineno: indicates error location. 
+    filename,lineno: indicates error location.
     offset:          optional error column.
     tb: the exception traceback (as returned by traceback.extract_tb()). This
       will automatically be turned into a list of CalledFrom nested errors.
@@ -45,7 +45,7 @@ class TDLError (RuntimeError):
       stack where the error occurred. These will be placed in front of the
       CalledFrom nested errors.
   """;
-  def __init__(self,message,next=None,nested=[],tb=None,filename=None,lineno=None):
+  def __init__(self,message,next=None,nested=[],tb=None,filename=None,lineno=None,append_callstack=True):
     RuntimeError.__init__(self,message);
     self.next_error = next;
     # resolve traceback
@@ -65,13 +65,14 @@ class TDLError (RuntimeError):
     # init nested errors
     self.nested_errors = list(nested);
     # add CalledFrom chain
-    for (filename,lineno,funcname,text) in tb[-1::-1]:
-      global _original_invocation_filename;
-      if filename == _original_invocation_filename:
-        break;
-      if (filename,lineno) != (self.filename,self.lineno):
-        self.nested_errors.append(CalledFrom("called from "+filename,
-                                    filename=filename,lineno=lineno));
+    if append_callstack:
+      for (filename,lineno,funcname,text) in tb[-1::-1]:
+        global _original_invocation_filename;
+        if filename == _original_invocation_filename:
+          break;
+        if (filename,lineno) != (self.filename,self.lineno):
+          self.nested_errors.append(CalledFrom("called from "+filename,
+                                        filename=filename,lineno=lineno,append_callstack=False));
 
   def __str__ (self):
     s = ':'.join([self.__class__.__name__]+list(map(str,self.args)));
@@ -84,7 +85,7 @@ class TDLError (RuntimeError):
     return s;
 
 class NodeRedefinedError (TDLError):
-  """this error is raised when a node is being redefined with a different 
+  """this error is raised when a node is being redefined with a different
   init-record""";
   pass;
 
@@ -95,7 +96,7 @@ class UninitializedNode (TDLError):
 class UnboundNode (TDLError):
   """this error is raised when a node definition has not been bound to a name""";
   pass;
-  
+
 class ChildError (TDLError):
   """this error is raised when a child is incorrectly specified""";
   pass;
@@ -114,7 +115,7 @@ class NodeDefError (TDLError):
   pass;
 
 class NestedTDLError (TDLError):
-  """one or more of these errors are added to error lists after one of the 
+  """one or more of these errors are added to error lists after one of the
   "real" errors above to indicate that it is a nested error""";
   pass;
 
@@ -139,15 +140,15 @@ class CumulativeError (RuntimeError):
 class _NodeDef (object):
   """this represents a node definition, as returned by a node class call""";
   __slots__ = ("children","stepchildren","initrec","error","_class");
-  
+
   class ChildList (list):
-    """A ChildList is a list of (id,child) pairs. 
+    """A ChildList is a list of (id,child) pairs.
     'id' may be a child label, or an ordinal number.
     'child' may be a NodeStub, a string node name, a numeric constant, or
         something that resolves to a NodeDef.
     """;
     def __init__ (self,x=None):
-      """A ChildList may be initialized from a dict, from a sequence (of 
+      """A ChildList may be initialized from a dict, from a sequence (of
       children, or of (id,child) tuples), or from a single object.""";
       self.is_dict = isinstance(x,dict);
       if x is None:
@@ -175,7 +176,7 @@ class _NodeDef (object):
       for (i,(ich,child)) in enumerate(self):
         _dprint(5,'checking child',i,ich,'=',child);
         if child is not None and not isinstance(child,_NodeStub):
-          if isinstance(child,str):        # child referenced by name? 
+          if isinstance(child,str):        # child referenced by name?
             try: child = scope.Repository()[child];
             except KeyError:
               raise ChildError,"child '%s' = %s not found" % (str(ich),child);
@@ -194,12 +195,12 @@ class _NodeDef (object):
       reslist.is_dict = self.is_dict;
       reslist._resolved = True;
       return reslist;
-        
+
   def __init__ (self,pkgname,classname='',*childlist,**kw):
     """Creates a _NodeDef object for a node of the given package/classname.
     Children are built up from either the argument list, or the 'children'
     keyword (if both are supplied, an error is thrown), or from keywords of
-    type '_NodeDef' or '_NodeStub', or set to None if no children are specified. 
+    type '_NodeDef' or '_NodeStub', or set to None if no children are specified.
     The initrec is built from the remaining keyword arguments, with the field
     class=pkgname+classname inserted as well.
     """;
@@ -208,15 +209,15 @@ class _NodeDef (object):
       if isinstance(pkgname,Exception):
         raise pkgname;
       # figure out children. May be specified as
-      # (a) a 'children' keyword 
+      # (a) a 'children' keyword
       # (b) an argument list (but not both a and b)
       # (c) keywords with values of type NodeDef or NodeStub
       try:
         children = kw.pop('children');
-        if childlist: 
+        if childlist:
           raise ChildError,"children specified both by arguments and 'children' keyword";
       except KeyError:  # no 'children' keyword, case (b) or (c)
-        if childlist: 
+        if childlist:
           children = childlist;
         else: # else see if some keyword arguments specify children-like objects
           children = dict([(key,val) for (key,val) in kw.iteritems()
@@ -236,7 +237,7 @@ class _NodeDef (object):
           kw['tags'] = tags.split(" ");
         elif not isinstance(tags,(list,tuple)):
           raise TypeError,"'tags' must be a string, or a list or tuple of strings";
-      # create init-record 
+      # create init-record
       initrec = dmi.record(**kw);
       initrec['class'] = ''.join((pkgname,classname));
       self._class = classname;
@@ -254,7 +255,7 @@ class _NodeDef (object):
       if not hasattr(self.error,'tb'):
         setattr(self.error,'tb',traceback.extract_tb(tb));
       _dprint(1,'init error def',self.error);
-  
+
   def resolve (arg,recurse=5):
     """static method to resolve an argument to a _NodeDef object, or return None on error.
     This method implements some implicit ways to create a node:
@@ -272,7 +273,7 @@ class _NodeDef (object):
       return _NodeDef.resolve(arg(),recurse=recurse-1);
     return None;
   resolve = staticmethod(resolve);
-  
+
   def autodefine (self,scope):
     """Auto-defines a stub from NodeDef. Name is generated
     automatically using classname, child names and child qualifiers."""
@@ -287,7 +288,8 @@ class _NodeDef (object):
       quals = [];
       kwquals = {};
       for (ich,child) in self.children:
-        _mergeQualifiers(quals,kwquals,list(child.scope._quals)+list(child.quals),child.kwquals,uniq=True);
+        _mergeQualifiers(quals,kwquals,
+            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
       basename = ','.join(map(lambda x:x[1].basename,self.children));
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
@@ -295,7 +297,7 @@ class _NodeDef (object):
     else:
       basename = scope.MakeUniqueName(classname);
       return scope[basename] << self;
-    
+
   # define implicit arithmetic operators
   def __add__ (self,other):
     return _Meq.Add(self,other);
@@ -325,7 +327,7 @@ class _NodeDef (object):
     return _Meq.Negate(self);
   def __abs__ (self):
     return _Meq.Abs(self);
-    
+
 def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
   """Merges qualifiers qual,kwqual into qual0,kwqual0.
   If uniq=False, then the unnamed qualifier lists (qual0 and qual) are simply
@@ -347,18 +349,18 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
       val = [val];
     val0.extend([q for q in val if q not in val0]);
     kwqual0[kw] = val0;
-    
+
 def NodeType ():
   return _NodeStub;
-  
+
 def is_node (x):
   return isinstance(x,_NodeStub);
-  
-  
+
+
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
-  a name. To make a fully-fledged node, a stub must be bound with a NodeDef 
-  object via the bind() method, or the << operator. One bound, the 
+  a name. To make a fully-fledged node, a stub must be bound with a NodeDef
+  object via the bind() method, or the << operator. One bound, the
   node stub is added to its repository.
   A stub may also be qualified via the () operator, this creates new node stubs
   with qualified names.
@@ -369,15 +371,15 @@ class _NodeStub (object):
             "_initrec","_caller","_deftb","_debuginfo","_basenode",
             "_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
-    """The Parents class is used to manage a weakly-reffed dictionary of the 
-    node's parents. We only redefine it as a class to implement __copy__ 
+    """The Parents class is used to manage a weakly-reffed dictionary of the
+    node's parents. We only redefine it as a class to implement __copy__
     and __depcopy__ (which otherwise crashes and burns on weakrefs)
     """;
     def __copy__ (self):
       return self.__class__(self);
     def __deepcopy__ (self,memo):
       return self.__class__(self);
-  
+
   def __init__ (self,fqname,basename,scope,basenode,*quals,**kwquals):
     """Creates a NodeStub. This is usually called as a result of
     ns.name(...). fqname is the fully-qualified node name. Basename
@@ -400,12 +402,12 @@ class _NodeStub (object):
     ## this used to say
     # self._deftb = Timba.utils.extract_stack(None,4);
     ## but this broke the mechanism used to identify where in 'user' code a node
-    ## was initialized (because implicit arithmetic can cause a stack of deeper than 
-    ## 4 of internal calls.) On the other hand, removing the limit: 
+    ## was initialized (because implicit arithmetic can cause a stack of deeper than
+    ## 4 of internal calls.) On the other hand, removing the limit:
     # self._deftb = Timba.utils.extract_stack(None);
     # self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
     ## causes compilation to be really slow, since extract_stack() is so slow.
-    ## So now we use a slightly less portable, but hopefully faster version: 
+    ## So now we use a slightly less portable, but hopefully faster version:
     self._deftb = Timba.utils.nonportable_extract_stack(None);
     self._caller =  _identifyCaller(stack=self._deftb,depth=2)[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
@@ -415,8 +417,8 @@ class _NodeStub (object):
     return self;
   def bind (self,arg,*args,**kwargs):
     """The bind() method is an alternative form of <<. If called with
-    a str as the first argument, it is assumed to be a classname, and a 
-    NodeDef is constructed using all the arguments. This NodeDef is bound 
+    a str as the first argument, it is assumed to be a classname, and a
+    NodeDef is constructed using all the arguments. This NodeDef is bound
     with the normal << call.
     Otherwise, a straight call to << with the first argument is done.
     """
@@ -424,7 +426,7 @@ class _NodeStub (object):
       arg = _NodeDef(arg,*args,**kwargs);
     return self << arg;
   def __pow__ (self,arg):
-    """The ** operator is an optional-bind: it binds a node with a 
+    """The ** operator is an optional-bind: it binds a node with a
     definition, but only if the node is not already bound.""";
     if self.initialized():
       return self;
@@ -463,7 +465,7 @@ class _NodeStub (object):
                                    next=where);
       else:
         try: self.classname = getattr(initrec,'class');
-        except AttributeError: 
+        except AttributeError:
           raise NodeDefError,"init record missing class field";
         _dprint(4,self.name,'children are',children);
         self.children = children;
@@ -509,7 +511,7 @@ class _NodeStub (object):
       self._initrec[name] = value;
   def _get_definition_chain (self):
     """helper method for error reporting. Returns a list of DefinedHere
-    errors for all the basenodes of the current node. If no basenodes found, returns 
+    errors for all the basenodes of the current node. If no basenodes found, returns
     None""";
     chain = [];
     basenode = self._basenode;
@@ -521,7 +523,7 @@ class _NodeStub (object):
       basenode = basenode._basenode;
       _dprint(5,"_get_definition_chain: basenode is",basenode and basenode.name);
     return chain;
-    
+
   def _qualify (self,quals,kwquals,merge):
     """Helper method for operator (), qadd() and qmerge() below.
     Creates a node based on this one, with additional qualifiers. If merge=True,
@@ -556,7 +558,7 @@ class _NodeStub (object):
     """turns node into a QualScope. The node's qualifiers will be used
     to create the QualScope. See NodeScope.QualScope() for details.""";
     return self.scope.QualScope(*self.quals,**self.kwquals);
-  # add_children(...,label=...)    adds children to node    
+  # add_children(...,label=...)    adds children to node
   def add_children (self,*args):
     """adds children to node. Node stub must have been already initialized."""
     if not self.initialized():
@@ -569,7 +571,7 @@ class _NodeStub (object):
       if child is not None:
         child.parents[self.name] = self;
     return self;
-  # add_stepchildren(...)    adds stepchildren to node    
+  # add_stepchildren(...)    adds stepchildren to node
   def add_stepchildren (self,*args):
     """adds stepchildren to node. Node stub must have been already initialized."""
     if not self.initialized():
@@ -583,12 +585,12 @@ class _NodeStub (object):
       child.parents[self.name] = self;
     return self;
   def family (self):
-    """Returns the node's "family": i.e. all (initialized) nodes which have 
+    """Returns the node's "family": i.e. all (initialized) nodes which have
     been derived from this one using any set of qualifiers.""";
     return self.scope.FindFamily(self);
   def search (self,no_family=False,*args,**kw):
     """Does a search operation on the node's entire family tree (i.e. all
-    subtrees in the node's family.) Arguments are the same as to 
+    subtrees in the node's family.) Arguments are the same as to
     NodeScope.Search()""";
     if no_family:
       subtree = [ self ];
@@ -649,7 +651,7 @@ class ClassGen (object):
     return stub;
   def __getitem__ (self,name):
     return getattr(self,name);
-  
+
 class NodeGroup (dict):
   """This represents a group of nodes, such as, e.g., root nodes. The
   << operator is redefined to add nodes to the group.""";
@@ -695,14 +697,14 @@ class _NodeRepository (dict):
       for (filename,lineno,funcname,text) in Timba.utils.extract_stack()[-2::-1]:
         if filename != _MODULE_FILENAME:
           _original_invocation_filename = filename;
-          break; 
+          break;
     # other state
     self._sinks = [];
     self._spigots = [];
     self._have_vdm = None;
     # used during recursive searches
     self._search_cookie = 0;
-    
+
   def nodeStub (self,name,*args,**kwargs):
     """If the named node stub exists in the repository, returns it.
     Else creates a new _NodeStub with the given arguments, adds it to the repository,
@@ -724,7 +726,7 @@ class _NodeRepository (dict):
       try: delattr(node.scope,node.name.split('::')[-1]);
       except AttributeError: pass;
     # get refcount of this node. True orphans will only have 2:
-    # ourselves, and the local 'node' symbol. 
+    # ourselves, and the local 'node' symbol.
     refcount = len(gc.get_referrers(node));
     if refcount > 2:
       _dprint(3,"node",name,"has",refcount,"refs to it, skipping");
@@ -747,14 +749,14 @@ class _NodeRepository (dict):
         if ch:
           self.deleteOrphan(ch);
     return True;
-    
+
   def rootmap (self):
     try: return self._roots;
     except:
       raise TDLError,"Repository must be resolve()d to determine root nodes";
-  
+
   def add_error (self,err,tb=None,error_limit=100):
-    """adds an error object to internal error list. 
+    """adds an error object to internal error list.
     If error_limit is not None, raises exception if the length of the error
     list exceeds error_limit.
     The object is augumented with location information (err.filename, err.lineno)
@@ -762,12 +764,12 @@ class _NodeRepository (dict):
       * if err.filename and err.lineno exist, they are left as-is
       * otherwise, filename and lineno is extracted from tb, err.tb or
         Timba.utils.extract_stack() (in that order) and placed into err.
-    Then, the traceback (tb or err.tb or Timba.utils.extract_stack()) is 
+    Then, the traceback (tb or err.tb or Timba.utils.extract_stack()) is
     processed, and all stack frames leading up to the error are added
     to the list as CalledFrom() errors.
     Note that the stack traceback is trimmed as follows:
       * frames from bottom up to and including our caller_filename (see above).
-      * consecutive frames from the top of the stack that belong to 
+      * consecutive frames from the top of the stack that belong to
         this module here
       (NB: the old behaviour was:
           * consecutive frames from the top of the stack that belong to files in
@@ -818,13 +820,13 @@ class _NodeRepository (dict):
     # raise cumulative error if we get too many
     if error_limit is not None and len(self._errors) >= error_limit:
       raise CumulativeError(*self._errors);
-      
+
   def get_errors (self):
     return self._errors;
-    
+
   def _make_OR_conditional (arg,argname):
     """helper function to make a OR-conditional from an argument.
-    The argument can be either boolean false (corresponding to an 
+    The argument can be either boolean false (corresponding to an
     always-true conditional), a string, or a sequence of strings giving
     a regex. Returns a callable conditional
     """;
@@ -835,7 +837,7 @@ class _NodeRepository (dict):
     else:
       raise TypeError,("%s argument must be a a string, or None"%argname);
   _make_OR_conditional = staticmethod(_make_OR_conditional);
-  
+
   def search (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
     """Searches repository for nodes matching the specified criteria.
     If subtree is None, searches entire repository, else searches
@@ -883,10 +885,10 @@ class _NodeRepository (dict):
     # if no subtree specified, search whole repository
     if subtree is None:
       if return_names:
-        return [ name for name,node in self.iteritems() 
+        return [ name for name,node in self.iteritems()
                  if name_conditional(name) and search_condition(node) ];
       else:
-        return [ node for name,node in self.iteritems() 
+        return [ node for name,node in self.iteritems()
                  if name_conditional(name) and search_condition(node) ];
     # else search subtree rooted at 'subtree'
     else:
@@ -895,7 +897,7 @@ class _NodeRepository (dict):
       elif not isinstance(subtree,(list,tuple)):
         raise TypeError,"find: 'subtree' argument must be a node or a list of nodes";
       self._search_cookie += 1;
-      # Define function to recursively search node and its children. 
+      # Define function to recursively search node and its children.
       # A list of matching nodes is returned.
       # We use search_cookie to mark branches that have already been searched.
       def recursive_find (result,node):
@@ -917,30 +919,30 @@ class _NodeRepository (dict):
         return [ node.name for node in found ];
       else:
         return found;
-      
+
   def find_node_family (self,name_prefix):
-    """finds the node "family" with the given name prefix: 
-    i.e. all nodes that are initialized, and whose name is "name_prefix" 
+    """finds the node "family" with the given name prefix:
+    i.e. all nodes that are initialized, and whose name is "name_prefix"
     or "name_prefix:*" """;
     regex = re.compile(name_prefix+"(:.*)?$").match;
     return [ node for name,node in self.iteritems() \
                   if regex(name) and node._initrec is not None ];
-  
+
   def resolve (self,cleanup_orphans):
-    """resolves contents of repository. 
-    cleanup_orphans: If True, then all orphan nodes are deleted. 
+    """resolves contents of repository.
+    cleanup_orphans: If True, then all orphan nodes are deleted.
                      If False, all orphans will be treated as root nodes.
     This will also create a VisDataMux as needed.
     """;
     uninit = [];
     orphans = [];
     self._roots = {};
-    # create mux if needed. 
+    # create mux if needed.
     if self._sinks or self._spigots:
       if not self._have_vdm:
         self._have_vdm = self._root_scope.VisDataMux << \
           _Meq.VisDataMux(children={'pre':None,'post':None,'start':None});
-      # now assign sinks and spigots to vdm, unless they already have a 
+      # now assign sinks and spigots to vdm, unless they already have a
       # vdm parent
       self._have_vdm.add_children(*[ node for node in self._sinks
         if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
@@ -948,8 +950,8 @@ class _NodeRepository (dict):
         if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
     else: # no vdm needed. So release ref to it even if explicitly created,
       # to ensure it is orphaned or kept as needed elsewhere.
-      self._have_vdm = None;  
-    # now go through node list, weed out uninitialized nodes, finalize 
+      self._have_vdm = None;
+    # now go through node list, weed out uninitialized nodes, finalize
     # parents and children, etc.
     current_nodeindex = 1;
     for (name,node) in self.iteritems():
@@ -1002,7 +1004,7 @@ class _NodeRepository (dict):
     # the children specifications and replace them with node indices
     for node in self.itervalues():
       if node.children.is_dict:
-        children = dmi.record([(label,getattr(child,'nodeindex',-1)) 
+        children = dmi.record([(label,getattr(child,'nodeindex',-1))
                                   for label,child in node.children]);
       else:  # children as list
         children = [ getattr(child,'nodeindex',-1) for label,child in node.children ];
@@ -1023,7 +1025,7 @@ class _NodeRepository (dict):
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,test=False,quals=[],kwquals={}):
     """Creates a NodeScope.
-    If 'name' is not None, this is a subscope. The name will then be added as a prefix to 
+    If 'name' is not None, this is a subscope. The name will then be added as a prefix to
     all nodes created within this scope.
     'parent' is the parent node scope. If None, then this is the global node scope. Normally,
     only one global node scope may exist; this is created before running the TDL script.
@@ -1047,17 +1049,17 @@ class NodeScope (object):
       object.__setattr__(self,'ROOT',parent.ROOT);
     # unique names
     self._uniqname_counters = {};
-    
+
   def Description (self):
     """returns description of scope""";
     desc = self._name or 'GLOBAL';
     if self._quals:
       desc = "%s(%s)" % (desc,NodeScope._apply_qualifiers('',self._quals));
     return desc;
-  
+
   def QualifyScopedName (self,name,*quals,**kwquals):
     """Returns a fully-qualified name for the given basename and set of
-    qualifiers. The default behaviour is to add our name prefix, then apply the 
+    qualifiers. The default behaviour is to add our name prefix, then apply the
     scope's qualifiers, then the supplied qualifiers. Subclasses may override this."""
     name = str(name);
     if self._name:
@@ -1082,10 +1084,10 @@ class NodeScope (object):
   def _flatten_keyword_quals (kwquals):
     """converts a dict (presumably, of keyword qualifiers) into a list of
     "key=value" strings."""
-    return [ "=".join((str(key),NodeScope._resolve_to_string(value))) 
+    return [ "=".join((str(key),NodeScope._resolve_to_string(value)))
              for key,value in kwquals.iteritems() ];
   _flatten_keyword_quals = staticmethod(_flatten_keyword_quals);
-    
+
   def _apply_qualifiers (name,quals=[],kwquals={}):
     """Qualifies a name by appending qualifiers to it, in the form
     of name:a1:a2:k1=v1:k2=v2, etc."""
@@ -1093,7 +1095,7 @@ class NodeScope (object):
                      map(NodeScope._resolve_to_string,quals)+
                      NodeScope._flatten_keyword_quals(kwquals));
   _apply_qualifiers = staticmethod(_apply_qualifiers);
-  
+
   def Subscope (self,name,*quals,**kwquals):
     """Creates a subscope based on this scope, with name and qualifiers.
     A subscope adds a prefix to each node name created within it, separated
@@ -1105,7 +1107,7 @@ class NodeScope (object):
     will create nodes named "foo:1:x=2::a:3" and "foo:1:x=2::bar:y=4::b:5"
     """;
     return NodeScope(self.QualifyScopedName(name,*quals,**kwquals),parent=self,test=False);
-  
+
   def QualScope (self,*quals,**kwquals):
     """Creates a qualscope of this scope, with name and qualifiers.
     A qualscope prepends extra qualifiers to each node name created within it. For example,
@@ -1115,22 +1117,22 @@ class NodeScope (object):
     """;
     qq = self._quals + list(quals) + NodeScope._flatten_keyword_quals(kwquals);
     return NodeScope(self._name,parent=self,test=False,quals=qq);
-  
+
   def __call__ (self,*quals,**kwquals):
     """Using () on a NodeScope is equivalent to calling ns.QualScope() with the same
     arguments.""";
     return self.QualScope(*quals,**kwquals);
-    
+
   def __getattr__ (self,name):
     try: node = self.__dict__[name];
-    except KeyError: 
+    except KeyError:
       _dprint(5,'node',name,'not found, creating stub for it');
       fqname = self.QualifyScopedName(name);
       node = self._repository.nodeStub(fqname,name,self,None);
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
     return node;
-  
+
   def __setattr__ (self,name,value):
     """you can directly assign a node definition to a scope. Names
     starting with "_" are treated as true attributes though.
@@ -1138,11 +1140,11 @@ class NodeScope (object):
     if name.startswith("_"):
       return object.__setattr__(self,name,value);
     self.__getattr__(name) << value;
-    
+
   __getitem__ = __getattr__;
   __setitem__ = __setattr__;
   __contains__ = hasattr;
-    
+
   def __lshift__ (self,arg):
     """<<ing a NodeDef into a scope creates a node with an auto-generated name""";
     nodedef = _NodeDef.resolve(arg);
@@ -1154,13 +1156,13 @@ class NodeScope (object):
     if nodedef.error:
       raise nodedef.error;
     return nodedef.autodefine(self);
-  
+
   def GetErrors (self):
     return self._repository.get_errors();
-    
+
   def AddError (self,*args,**kwargs):
     return self._repository.add_error(*args,**kwargs);
-    
+
   def MakeUniqueName (self,name):
     num = self._uniqname_counters.get(name,0);
     self._uniqname_counters[name] = num+1;
@@ -1168,7 +1170,7 @@ class NodeScope (object):
       return "(%s)%d" % (name,num);
     else:
       return "(%s)" % (name,);
-  
+
   def MakeConstant (self,value):
     """make or reuse a Meq.Constant node with the given value""";
     node = self._constants.get(value,None);
@@ -1184,13 +1186,13 @@ class NodeScope (object):
     node = self._repository.nodeStub(name,name,self._globalscope,None);
     # bind node, this also adds it to the repository
     node << _Meq.Constant(value=value);
-    # add to map of constants 
+    # add to map of constants
     self._constants[value] = node;
     return node;
-    
+
   def Search (self,*args,**kw):
     return self._repository.search(*args,**kw);
-    
+
   def FindFamily (self,node):
     if isinstance(node,str):
       name = node;
@@ -1199,23 +1201,23 @@ class NodeScope (object):
     else:
       raise TypeError,"FindFamily: 'node' argument must be a node or a node name";
     return self._repository.find_node_family(name);
-    
+
   def Repository (self):
     """Returns the repository""";
     return self._repository;
-    
+
   def Resolve (self):
     """Resolves the node repository: checks tree, trims orphans, etc. Should be done as the final
-    step of tree definition. If rootnodes is supplied (or if self.ROOT is populated), then root 
+    step of tree definition. If rootnodes is supplied (or if self.ROOT is populated), then root
     nodes outside the specified group will be considered orphans and trimmed away.
     """;
     self._repository.resolve(not Timba.TDL.Settings.orphans_are_roots);
-    
+
   def AllNodes (self):
     """returns the complete node repository. A node repository is essentially
     a dict, with node names as keys and node init-records as values.""";
     return self._repository;
-    
+
   def RootNodes (self):
     """returns the root nodes of the node repository, as a dict with name keys
     and init-record values. Only available after a resolve() has been performed.
@@ -1231,7 +1233,7 @@ _Meq = ClassGen('Meq');
 def _identifyCaller (depth=3,skip_internals=True,stack=None):
   """Identifies source location from which function was called.
   Normal depth is 3, corresponding to the caller of the caller of
-  _identifyCaller(), but if skip_internals=True, this will additionally 
+  _identifyCaller(), but if skip_internals=True, this will additionally
   skip over internal methods (which are supposed to start with __).
   Returns triplet of (filename,line,funcname).
   """;
@@ -1241,18 +1243,18 @@ def _identifyCaller (depth=3,skip_internals=True,stack=None):
       (filename,line,funcname,text) = frame;
       if not _re_localfiles.match(filename):
         break;
-    # got to the end of the stack without finding a non-built-in? Fall back 
+    # got to the end of the stack without finding a non-built-in? Fall back
     # to starting frame
     if funcname.startswith('__'):
       (filename,line,funcname,text) = stack[-depth];
   else:
     (filename,line,funcname,text) = stack[-depth];
   return (filename,line,funcname);
-  
+
 def _fastIdentifyCaller (depth=2,skip_internals=True):
   """Identifies source location from which function was called.
   Normal depth is 2, corresponding to the caller of the caller of
-  _fastIdentifyCaller(), but if skip_internals=True, this will additionally 
+  _fastIdentifyCaller(), but if skip_internals=True, this will additionally
   skip over internal methods.
   This is an alternative to _identifyCaller() which does not use traceback/stack objects,
   and so should be significantly faster. It may be less portable though.
@@ -1267,7 +1269,7 @@ def _fastIdentifyCaller (depth=2,skip_internals=True):
     fr = fr.f_back;
   return (filename,lineno,None);
 
-  
+
 # helper func to pretty-print a node
 def _printNode (node,name='',offset=0):
   header = (' ' * offset);
@@ -1282,4 +1284,4 @@ def _printNode (node,name='',offset=0):
       _printNode(child,str(ich),offset+2);
     for (ich,child) in node.stepchildren:
       _printNode(child,"(%d)"%ich,offset+2);
-    
+
