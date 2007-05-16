@@ -781,7 +781,7 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
     self.setCentralWidget(self._werrlist_box);
     # error list header is a toolbar
     errlist_hdr = QToolBar("TDL errors",self,self._werrlist_box);
-    errlist_hdr.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Minimum);
+    errlist_hdr.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Fixed);
     # prev/next error buttons
     self._qa_prev_err = QAction(pixmaps.red_leftarrow.iconset(),"Show &previous error",Qt.ALT+Qt.Key_P,self);
     self._qa_prev_err.addTo(errlist_hdr);
@@ -792,6 +792,7 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
     # label with error count
     self._error_count_label = QLabel(errlist_hdr);
     errlist_hdr.setStretchableWidget(self._error_count_label);
+    self._error_count_label.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Fixed);
     # error list itself
     self._werrlist = QListView(self._werrlist_box);
     self._werrlist.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Preferred);
