@@ -3,7 +3,7 @@
 import Timba
 from Timba.dmi import *
 from Timba.utils import *
-from Timba import Grid 
+from Timba import Grid
 from Timba.GUI import browsers
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import app_proxy_gui
@@ -31,10 +31,10 @@ _dprintf = _dbg.dprintf;
 
 def _file_mod_time (path):
   try:
-    return os.stat(path).st_mtime; 
+    return os.stat(path).st_mtime;
   except IOError:
     return None;
-    
+
 # flag: sync to external editor
 _external_sync = True;
 def set_external_sync (value):
@@ -51,7 +51,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   CurrentErrorMarker = 1;
   # a single editor always has the focus
   current_editor = None;
-  
+
   def __init__ (self,parent,close_button=False,error_window=None):
     QFrame.__init__(self,parent);
     toplo = QVBoxLayout(self);
@@ -60,20 +60,20 @@ class TDLEditor (QFrame,PersistentCurrier):
     toplo.addWidget(splitter);
     splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     splitter.setChildrenCollapsible(False);
-    
+
     # figure out our app_gui parent
     self._appgui = app_proxy_gui.appgui(parent);
-    
+
     # create an editor box
     editor_box = QFrame(splitter);
     lo = QVBoxLayout(editor_box);
-    
+
     # find main window to associate our toolbar with
     self._toolbar = QToolBar("TDL tools",self._appgui,editor_box);
     lo.addWidget(self._toolbar);
-    
+
     #### populate toolbar
-    
+
     # Exec button and menu
     self._tb_jobs = QToolButton(self._toolbar);
     self._tb_jobs.setIconSet(pixmaps.gear.iconset());
@@ -85,7 +85,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setPopup(self._jobmenu);
     self._tb_jobs.setPopupDelay(1);
     self._tb_jobs.hide();
-    
+
     # save menu and button
     self._tb_save = QToolButton(self._toolbar);
     self._tb_save.setIconSet(pixmaps.file_save.iconset());
@@ -104,11 +104,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_revert = self._qa_revert = QAction("Revert to saved",0,self);
     QObject.connect(qa_revert,SIGNAL("activated()"),self._revert_to_saved);
     qa_revert.addTo(savemenu);
-    
+
     # run menu and button
     self._tb_run = QToolButton(self._toolbar);
     self._tb_run.setIconSet(pixmaps.blue_round_reload.iconset());
-    
+
     self._tb_runmenu = QPopupMenu(self);
     self._tb_run.setPopup(self._tb_runmenu);
     self._tb_run.setPopupDelay(0);
@@ -121,7 +121,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
     QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
-    
+
     # Compile-time options and menu
     self._tb_opts = QToolButton(self._toolbar);
     self._tb_opts.setIconSet(pixmaps.wrench.iconset());
@@ -133,11 +133,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_opts.setPopup(self._options_menu);
     self._tb_opts.setPopupDelay(1);
     self._tb_opts.hide();
-    
+
     self._qa_recompile = qa_recomp = QAction(pixmaps.blue_round_reload.iconset(),"Re&compile script to apply new options",0,self);
     qa_recomp.setToolTip("You must recompile this script for new options to take effect");
     QObject.connect(qa_recomp,SIGNAL("activated()"),self._run_main_file);
-    
+
     # self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
     # self._qa_run.addTo(self._toolbar);
     # QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
@@ -155,9 +155,9 @@ class TDLEditor (QFrame,PersistentCurrier):
       QObject.connect(self._qa_close,SIGNAL("activated()"),self,PYSIGNAL("fileClosed()"));
       self._qa_close.addTo(self._toolbar);
     self._toolbar.setStretchableWidget(self._pathlabel);
-    
+
     #### add editor window
-    
+
     self._editor = QextScintilla(editor_box);
     lo.addWidget(self._editor);
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
@@ -199,7 +199,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     QToolTip.add(self._message_icon,"Click here to clear the message");
     self._message_widgets = [];
     self._message_transient = False;
-    
+
     # figure out if we already have an error box to attach to
     self._error_window = error_window or getattr(parent,'_tdlgui_error_window',None);
     if self._error_window:
@@ -220,38 +220,39 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._basename = None;
     self._modified = False;
     self._closed = False;
-    
+    self._error_at_line = {};
+
   def __del__ (self):
     self.has_focus(False);
-  
+
   def hideEvent (self,ev):
     self.emit(PYSIGNAL("hidden()"),());
     self.emit(PYSIGNAL("visible()"),(False,));
     return QFrame.hideEvent(self,ev);
-  
+
   def showEvent (self,ev):
     self.emit(PYSIGNAL("shown()"),());
     self.emit(PYSIGNAL("visible()"),(True,));
     return QFrame.showEvent(self,ev);
-  
+
   def hide_jobs_menu (self,dum=False):
     if self._closed:
       return;
     self._tb_jobs.hide();
     self.clear_message();
-    
+
   def show_line_numbers (self,show):
     if show:
       self._editor.setMarginWidth(1,36);
     else:
       self._editor.setMarginWidth(1,12);
     self._editor.setMarginLineNumbers(1,show);
-    
+
   def show_run_control (self,show=True):
     if self._closed:
       return;
     self._tb_run.setShown(show);
-    
+
   def enable_controls (self,enable=True):
     if self._closed:
       return;
@@ -259,7 +260,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setEnabled(enable);
     if not enable:
       self.clear_message();
-    
+
   def disable_controls (self,disable=True):
     if self._closed:
       return;
@@ -267,30 +268,30 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setDisabled(disable);
     if disable:
       self.clear_message();
-    
+
   def get_filename (self):
     return self._filename;
   def get_mainfile (self):
     return self._mainfile;
-    
+
   def _run_main_file (self):
     self.clear_errors();
     if self._mainfile and self._editor.isModified():
       self._save_file();
     self.emit(PYSIGNAL("compileFile()"),(self._mainfile or self._filename,));
-    
+
   def _run_as_main_file (self):
     self.clear_errors();
     self._set_mainfile(None);
     self._text_modified(self._editor.isModified());   # to reset labels
     self.emit(PYSIGNAL("fileChanged()"),());
     self.emit(PYSIGNAL("compileFile()"),(self._filename,));
-    
+
   def _clear_transients (self):
     """if message box contains a transient message, clears it""";
     if self._message_transient:
       self.clear_message();
-      
+
   def _text_changed (self):
     self._clear_transients();
 #    self._qa_run.setVisible(True);
@@ -298,7 +299,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _display_cursor_position (self,line,col):
     self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
     self._poslabel.repaint();
-  
+
   def _text_modified (self,mod):
     self._modified = mod;
     self.emit(PYSIGNAL("textModified()"),(bool(mod),));
@@ -320,7 +321,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._clear_transients();
       label = '[mod] ' + label;
     self._pathlabel.setText(label);
-    
+
 #   def _show_jobs_menu (self):
 #     if self._jobmenu:
 #       pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
@@ -338,7 +339,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       for w in self._message_widgets:
         w.reparent(dum);
       self._message_widgets = [];
-    
+
   def show_message (self,msg,error=False,iconset=None,transient=False):
     """Shows message in box.
     If iconset is not None, overrides standard icon.
@@ -355,17 +356,17 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_box.show();
     self._message_transient = transient;
     self.clear_errors();
-    
+
   def messagebox ():
     return self._message_box;
-    
+
   def add_message_widget (self,widget):
     self._mblo.addWidget(widget);
     self._message_widgets.append(widget);
-    
+
   def clear_errors (self):
-    self._error_window.clear_errors();
-    
+    self._error_window.clear_errors(signal=True);
+
   def _reset_errors (self,nerr):
     """helper method, resets error markers and such. Usually tied to a hasErrors() signal
     from an error window""";
@@ -381,7 +382,7 @@ class TDLEditor (QFrame,PersistentCurrier):
           self._editor.markerAdd(line-1,self.ErrorMarker);
           nerr_local += 1;
     self.emit(PYSIGNAL("hasErrors()"),(nerr_local,));
-        
+
   def show_error (self,err_num,filename,line,column):
     """Shows error at the given position, but only if the filename matches.
     Can be directly connected to a showError() signal from an error window""";
@@ -391,16 +392,16 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._editor.ensureLineVisible(line-1);
       self._editor.setCursorPosition(line-1,column);
       # a little kludge to prevent line from being hidden by a resize
-      self._editor.ensureLineVisible(line+4); 
+      self._editor.ensureLineVisible(line+4);
       self._editor.markerAdd(line-1,self.CurrentErrorMarker);
-      
+
   def _process_margin_click (self,margin,line,button):
     _dprint(1,margin,line,button);
     # look through current error widget to find relevant error
     err_num = self._error_at_line.get(line,None);
     if err_num is not None:
       self._error_window.show_error_number(err_num);
-      
+
   def _sync_external_file (self,filename,ask=True):
     filetime = _file_mod_time(filename);
     if not filetime or filetime == self._file_disktime:
@@ -409,7 +410,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       res = 1;
     else:
       res = QMessageBox.warning(self,"TDL file changed",
-        """<p><tt>%s</tt> has been modified by another program. 
+        """<p><tt>%s</tt> has been modified by another program.
         Would you like to overwrite the disk version, revert to the disk
         version, or cancel the operation?"""
         % (filename,),
@@ -419,12 +420,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     elif res == 1:
       self.load_file(filename);
       return True;  # in sync
-      
+
   def _save_file (self,filename=None,text=None,force=False,save_as=False):
     """Saves text. If force=False, checks modification times in case
-    the file has been modified by another program. 
-    If force=True, saves unconditionally. 
-    If no filename is known, asks for one. 
+    the file has been modified by another program.
+    If force=True, saves unconditionally.
+    If no filename is known, asks for one.
     Returns True if file was successfully saved, else None.""";
     filename = filename or self._filename;
     if filename and not save_as:
@@ -466,10 +467,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._text_modified(False);
     self.emit(PYSIGNAL("fileSaved()"),(filename,));
     return self._filename;
-    
+
   def close (self):
-    self._closed = True;    
-  
+    self._closed = True;
+
   def confirm_close (self):
     if self._modified:
       res = QMessageBox.warning(self,"TDL file modified",
@@ -482,8 +483,8 @@ class TDLEditor (QFrame,PersistentCurrier):
         if not self._save_file():
           return False;
     self.close();
-    return True; 
-    
+    return True;
+
   def _revert_to_saved (self,force=False):
     if not self._filename:
       return;
@@ -494,14 +495,14 @@ class TDLEditor (QFrame,PersistentCurrier):
         "Revert","Cancel","",0,1):
         return;
     self.load_file(self._filename);
-    
+
   def _add_menu_label (self,menu,label):
     tlab = QLabel("<b>"+label+"</b>",menu);
     tlab.setAlignment(Qt.AlignCenter);
     tlab.setFrameShape(QFrame.ToolBarPanel);
     tlab.setFrameShadow(QFrame.Sunken);
     menu.insertItem(tlab);
-    
+
   def import_content (self,force=False):
     """imports TDL module but does not run _define_forest().
     Depending on autosync/modified state, asks to save or revert.
@@ -570,7 +571,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
       self.emit(PYSIGNAL("hasCompileOptions()"),(len(opts),));
     return True;
-        
+
   def compile_content (self):
     # import content first, and return if failed
     if not self.import_content(force=True):
@@ -578,8 +579,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     _dprint(1,self._filename,"compiling forest");
     # clear predefined functions
     self._tb_jobs.hide();
-    # make list of publishing nodes 
-    pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
+    # make list of publishing nodes
+    pub_nodes = [ node.name for node in meqds.nodelist.iternodes()
                   if node.is_publishing() ];
     # try the compilation
     try:
@@ -604,7 +605,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # refresh the nodelist
     meqds.request_nodelist(sync=True);
     # restore publishing nodes
-    for name in pub_nodes: 
+    for name in pub_nodes:
       if name in ns.AllNodes():
         meqds.enable_node_publish_by_name(name,sync=True);
     ### NB: presume this all was successful for now
@@ -614,7 +615,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # does the script define an explicit job list?
     joblist = getattr(_tdlmod,'_tdl_job_list',[]);
     if not joblist:
-      joblist = []; 
+      joblist = [];
       # try to build it from implicit function names
       for (name,func) in _tdlmod.__dict__.iteritems():
         if name.startswith("_tdl_job_") and callable(func):
@@ -626,8 +627,8 @@ class TDLEditor (QFrame,PersistentCurrier):
       if callable(testfunc):
         res = QMessageBox.warning(self,"Deprecated method",
           """Your script contains a test_forest() method. This is deprecated
-          and will be disabled in the future. Please rename it to 
-          _test_forest(). 
+          and will be disabled in the future. Please rename it to
+          _test_forest().
           """,
           QMessageBox.Ok);
     if callable(testfunc):
@@ -664,10 +665,10 @@ class TDLEditor (QFrame,PersistentCurrier):
 
     if joblist:
       msg += " %d predefined function(s) available, please use the Exec menu to run them." % (len(joblist),);
-      
+
     self.show_message(msg,transient=True);
     return True;
-    
+
   def execute_tdl_job (self,_tdlmod,ns,func,name):
     """executes a predefined TDL job given by func""";
     try:
@@ -696,13 +697,13 @@ class TDLEditor (QFrame,PersistentCurrier):
       msg = "TDL job '"+name+"' failed";
       self._error_window.set_errors(ns.GetErrors(),signal=True,message=msg);
       self.emit(PYSIGNAL("showEditor()"),());
-    
+
   def get_jobs_popup (self):
     return self._jobmenu;
-    
+
   def get_options_popup (self):
     return self._options_menu;
-    
+
   def _set_mainfile (self,mainfile):
     """adjusts GUI controls based on whether we are a mainfile or not""";
     self._mainfile = mainfile;
@@ -716,7 +717,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       self._tb_run.setPopup(None);
       QToolTip.add(self._tb_run,"Saves and runs the script.");
-    
+
   def load_file (self,filename,text=None,readonly=False,mainfile=None):
     """loads editor content.
     filename is filename. text is file contents, if none then file will be re-read.
@@ -746,19 +747,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._text_modified(False);
     # emit signals
     self.emit(PYSIGNAL("fileLoaded()"),(filename,));
-    # if module is a main-level file (i.e. not slaved to another mainfile), 
+    # if module is a main-level file (i.e. not slaved to another mainfile),
     # pre-import it so that compile-time menus become available
     self._tdlmod = None;
     if not mainfile:
       self.import_content();
-    
+
   def adjust_editor_font (self):
     self._editor.setFont(self.font());
     self._lexer.setDefaultFont(self.font());
     self._lexer.setFont(self.font(),-1);
     ps = self.fontInfo().pointSize()+self._editor_fontadjust;
     self._editor.zoomTo(ps);
-    
+
   def has_focus (self,focus):
     if focus:
       TDLEditor.current_editor = self;
@@ -766,7 +767,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       if TDLEditor.current_editor == self:
         TDLEditor.current_editor = None;
 
-class TDLErrorFloat (QMainWindow):
+class TDLErrorFloat (QMainWindow,PersistentCurrier):
   """implements a floating window for TDL error reports""";
   def __init__ (self,parent):
     fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
@@ -794,15 +795,16 @@ class TDLErrorFloat (QMainWindow):
     # error list itself
     self._werrlist = QListView(self._werrlist_box);
     self._werrlist.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Preferred);
-    QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._process_item_click);
-    QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self._process_item_click);
-    QObject.connect(self._werrlist,SIGNAL("spacePressed(QListViewItem*)"),self._process_item_click);
-    QObject.connect(self._werrlist,SIGNAL("returnPressed(QListViewItem*)"),self._process_item_click);
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.addColumn(''); 
-    self._werrlist.setSorting(-1); 
+    QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self.curry(self._process_item_click,"currentChanged"));
+    QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self.curry(self._process_item_click,"clicked"));
+    QObject.connect(self._werrlist,SIGNAL("spacePressed(QListViewItem*)"),self.curry(self._process_item_click,"spacePressed"));
+    QObject.connect(self._werrlist,SIGNAL("returnPressed(QListViewItem*)"),self.curry(self._process_item_click,"returnPressed"));
+    QObject.connect(self._werrlist,SIGNAL("expanded(QListViewItem*)"),self.curry(self._process_item_click,"expanded"));
+    self._werrlist.addColumn('');
+    self._werrlist.addColumn('');
+    self._werrlist.addColumn('');
+    self._werrlist.addColumn('');
+    self._werrlist.setSorting(-1);
     self._werrlist.setRootIsDecorated(True);
     self._werrlist.setAllColumnsShowFocus(True);
     self._werrlist.header().hide();
@@ -816,28 +818,43 @@ class TDLErrorFloat (QMainWindow):
     self._current_xy = 0,0;
     self._anchor_ref = 0,0;
     self._anchoring = False;
+    # explicit geometry set via anchor, None of none set
+    self._geom = None;
     # timer used for move operations
     self._move_timer = QTimer(self);
     # internal state
+    self._item_shown = None;
+    self._in_show_error_item = False;
     self._error_list = [];
 
   def closeEvent (self,ev):
     """Window closed: hide and set a flag""";
     self.hide();
     ev.ignore();
-    
+
   def show (self):
     """Only show the window if we have errors in it""";
     if self._error_list:
       QMainWindow.show(self);
-      
+
   def moveEvent (self,ev):
     QMainWindow.moveEvent(self,ev);
+#    print "moveEvent spontaneous:",ev.spontaneous();
     # ignore move events for some time after a move_anchor() -- these are probably caused
     # by the anchor moving us, and not by the user
     if not self._move_timer.isActive():
       self._current_xy = self.geometry().x(),self.geometry().y();
-  
+#      print "current xy is",self._current_xy;
+
+  def showEvent (self,ev):
+#    print "showEvent spontaneous:",ev.spontaneous();
+    if not ev.spontaneous():
+      x,y = self._current_xy;
+      self.setGeometry(x,y,self.width(),self.height());
+      self._move_timer.start(200,True);
+    QMainWindow.showEvent(self,ev);
+#    print "showEvent ends";
+
   def set_anchor (self,widget,x,y,xref=0,yref=0):
     """Tells the window to anchor itself to point x,y of the given widget.
     If xref is 0, x is relative to the left side, otherwise to the right side.
@@ -846,9 +863,9 @@ class TDLErrorFloat (QMainWindow):
     self._anchor_widget = widget;
     self._anchor_xy = x,y;
     self._anchor_ref = xref,yref;
-    # print "anchoring to",x,y,xref,yref;
+#    print "anchoring to",x,y,xref,yref;
     self.move_anchor();
-    
+
   def move_anchor (self):
     """Notifies the window that its anchor widget has moved around.
     Changes position following the anchor.""";
@@ -856,12 +873,12 @@ class TDLErrorFloat (QMainWindow):
     if self._anchor_xy0 is not None:
       x0,y0 = self._anchor_xy0;
       x,y = self._current_xy;
-      # print "move_anchor: old location is",x,y;
+#      print "move_anchor: old location is",x,y;
       dx = x - x0;
       dy = y - y0;
     else:
       dx = dy = 0;
-    #print "move_anchor: dxy relative to old anchor is",dx,dy;
+#    print "move_anchor: dxy relative to old anchor is",dx,dy;
     # compute new anchoring point
     top = self._anchor_widget.mapToGlobal(QPoint(0,0));
     btm = self._anchor_widget.mapToGlobal(QPoint(self._anchor_widget.width(),
@@ -886,13 +903,16 @@ class TDLErrorFloat (QMainWindow):
     # Start a timer to ignore move events for a bit. The reason for this is that sometimes
     # very rapid moving of the main window causes the float to "lag" because the setGeometry()
     # call is not processed before another call to move_anchor(). A small delay should eliminate this.
-    self._move_timer.start(300,True);
-    
+    self._move_timer.start(200,True);
+
   def _populate_error_list (self,parent,errlist,toplevel=False):
     """helper function to recursively populate the error ListView""";
     previtem = None;
     for index,err in enumerate(errlist):
-      errmsg = str(err.args[0]);
+      if isinstance(err,TDL.TDLError):
+        errmsg = str(err.args[0]);
+      else:
+        errmsg = str(err);
       filename = getattr(err,'filename',None);
       line = getattr(err,'lineno',0);
       column = getattr(err,'offset',0);
@@ -968,7 +988,7 @@ class TDLErrorFloat (QMainWindow):
       if show_item:
         self._show_error_item(self._toplevel_error_items[0]);
       # resize ourselves according to number of errors
-      height = (len(self._error_items)+1)*self._werrlist.fontMetrics().lineSpacing(); 
+      height = (len(self._error_items)+1)*self._werrlist.fontMetrics().lineSpacing();
       height = min(200,height);
       self.setGeometry(self.x(),self.y(),self.width(),height);
       self.updateGeometry();
@@ -978,14 +998,14 @@ class TDLErrorFloat (QMainWindow):
     else:
       self.setCaption("TDL Errors");
       self.hide();
-      
+
   def get_error_list (self):
     return self._error_list;
-  
+
   def get_error_locations (self):
     return self._error_locations;
 
-  def clear_errors (self,signal=False):
+  def clear_errors (self,signal=True):
     """clears the error list. If signal=True, emits a hasErrors(0) pysignal""";
     if signal:
       self.emit(PYSIGNAL("hasErrors()"),(0,));
@@ -995,8 +1015,9 @@ class TDLErrorFloat (QMainWindow):
     self._error_count_label.setText('');
     self._error_list = [];
     self._error_locations = [];
+    self._item_shown = None;
     self.hide();
-    
+
   def _highlight_error_item (self,item,signal=True):
     """highlights the given error item. If signal=True, emits a
     showError(index,filename,line,column) or showError(None) pysignal.
@@ -1017,7 +1038,7 @@ class TDLErrorFloat (QMainWindow):
     # if we fell through to here, then no error has been shown -- emit appropriate signal
     if signal:
       self.emit(PYSIGNAL("showError()"),(None,None,None,None));
-      
+
   def _show_next_error (self):
     item = self._werrlist.currentItem();
     if item:
@@ -1029,7 +1050,7 @@ class TDLErrorFloat (QMainWindow):
       item = self._error_items[0];
     if item:
       self._show_error_item(item);
-    
+
   def _show_prev_error (self):
     item = self._werrlist.currentItem();
     if item:
@@ -1041,25 +1062,32 @@ class TDLErrorFloat (QMainWindow):
       item = self._toplevel_error_items[-1];
     if item:
       self._show_error_item(item);
-  
+
   def show_error_number (self,index,signal=True):
     self._show_error_item(self._error_items[index],signal=signal);
-    
-  def _show_error_item (self,item,signal=True,select=True):
-    for other in self._toplevel_error_items:
-      if other is item:
-        other.setOpen(True);
-      else:
-        other.setOpen(False);
-    self._werrlist.ensureItemVisible(item);
-    if select:
+
+  def _show_error_item (self,item,signal=True):
+    # do nothing if item is None, or already shown, or if already within this function
+    if item is None or self._in_show_error_item or item is self._item_shown:
+      return;
+    self._in_show_error_item = True;
+    try:
+      self._item_shown = item;
       self._werrlist.setCurrentItem(item);
       self._werrlist.setSelected(item,True);
-    self._highlight_error_item(item,signal=signal);
-    
-  def _process_item_click (self,item):
-    self._show_error_item(item,signal=True,select=False);
-    
+      for other in self._toplevel_error_items:
+        if other is item:
+          other.setOpen(True);
+        else:
+          other.setOpen(False);
+      self._werrlist.ensureItemVisible(item);
+      self._highlight_error_item(item,signal=signal);
+    finally:
+      self._in_show_error_item = False;
+
+  def _process_item_click (self,why,item):
+    self._show_error_item(item,signal=True);
+
 
 class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";
@@ -1077,12 +1105,12 @@ class TDLFileDataItem (Grid.DataItem):
     Grid.DataItem.__init__(self,udi,name=name,caption=caption,desc=desc,data=text,viewer=TDLBrowser,refresh=None);
     # add extra pathname attribute for tdl objects
     self.tdl_pathname = pathname;
-      
+
 
 class TDLBrowser(browsers.GriddedPlugin):
   _icon = pixmaps.text_tdl;
   viewer_name = "TDL Browser";
-  
+
   def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     self._wedit = TDLEditor(self.wparent());
@@ -1090,17 +1118,17 @@ class TDLBrowser(browsers.GriddedPlugin):
     if dataitem.data is not None:
       self.set_data(dataitem);
     QObject.connect(self.wtop(),PYSIGNAL("fontChanged()"),self.wtop().adjust_editor_font);
-    
+
   def wtop (self):
     return self._wedit;
   def editor (self):
     return self._wedit;
-    
+
   def set_data (self,dataitem,default_open=None,**opts):
     _dprint(3,'set_data ',dataitem.udi);
     pathname = getattr(dataitem,'tdl_pathname',None);
     self._wedit.load_file(pathname,text=dataitem.data);
-    
+
   def highlight (self,color=True):
     browsers.GriddedPlugin.highlight(self,color);
     self._wedit.has_focus(bool(color));
@@ -1121,4 +1149,4 @@ Grid.Services.registerViewer(str,TDLBrowser,priority=10,check_udi=lambda x:x.end
 #   _qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.CTRL+Qt.Key_R,parent);
 #   _qa_run.addTo(menu['TDL']);
 #   _qa_run.setEnabled(False);
-# 
+#
