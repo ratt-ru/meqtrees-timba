@@ -40,6 +40,7 @@ def _tdl_job_1_correct_MS (mqs,parent):
   req.input = record( 
     ms = record(  
       ms_name          = 'demo.MS',
+      data_column  ='DATA',
       tile_size        = 30
     ),
     python_init = 'Meow.ReadVisHeader'
