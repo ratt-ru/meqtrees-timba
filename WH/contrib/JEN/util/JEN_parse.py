@@ -136,7 +136,7 @@ def find_enclosed (expr, brackets='{}', enclose=False, trace=False):
 
 #----------------------------------------------------------------------------
 
-def find_function (expr, func=None, level=0, trace=False):
+def find_function (expr, func=None, done=[], level=0, trace=False):
     """Return a record with the essentials of the specified function, e.g sin()"""
     prefix = level*'  '
     if trace:
@@ -165,16 +165,19 @@ def find_function (expr, func=None, level=0, trace=False):
         elif c==')':
             nest -= 1
             if nest==0:
-                ff1 = find_function(expr[(i0+1):i], func=func,
+                ff1 = find_function(expr[(i0+1):i], func=func, done=done,
                                     level=level+1, trace=trace)
                 ff.extend(ff1)
-                if len(ff1)>0: print '\n',prefix,'ff1=',ff1
+                if trace and len(ff1)>0: print '\n',prefix,'ff1=',ff1
                 if active:
-                    rr = dict(func=func, arg=expr[(i1+1):i],
-                              substring=expr[(i1-nf):(i+1)])
-                    ff.append(rr)
-                    if trace: print '\n',prefix,'rr=',rr
                     active = False
+                    substring = expr[(i1-nf):(i+1)]
+                    if not substring in done:                # avoid duplication
+                        done.append(substring)
+                        rr = dict(func=func, arg=expr[(i1+1):i],
+                                  substring=substring)
+                        ff.append(rr)
+                        if trace: print '\n',prefix,'rr=',rr
                                
         if trace: print 'len(ff)=',len(ff)
     # Finished:

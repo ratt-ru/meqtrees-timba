@@ -52,12 +52,11 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 
-# import numarray                               # see numarray.rank()
 from numarray import *
 from math import *
-# import numarray.linear_algebra                # redefines numarray.rank....
+
 import random
-# import pylab
+# import pylab                                  # gives problems with kernel...
 from copy import deepcopy
 import re
 
@@ -78,6 +77,7 @@ NUMERIC_TYPES = (int, long, float, complex)
 class Expression (Meow.Parameterization):
 
     def __init__(self, ns, name, expr,
+                 simul=None,
                  descr=None, unit=None,
                  quals=[], kwquals={}, **pp):
         """Create the object with a mathematical expression (string)
@@ -93,31 +93,32 @@ class Expression (Meow.Parameterization):
 
         self._descr = descr                       # optional description
         self._unit = unit                         # unit of the result
-        self._exprin = deepcopy(expr)             # never modified
+
+        # Various forms of its math expression (string):
+        self._exprin = deepcopy(expr)             # never modified (for display only)
         self._expression = deepcopy(expr)         # may be modified: {a=10~0.1} -> {a}
         self._expanded = deepcopy(expr)           # working version
-        self._locked = False                      # if true, do not modify
-        self._last_solvable_tags = None           # used by .solvable()
-
+        
         # Default values for the Meow.Parms defined in .find_items()
         self._parm_default = dict(value=2.0, stddev=0.0,
                                   tags=['MeqFunctional'],
                                   tiling=None, time_deg=0, freq_deg=0)  # **kw
 
-        # The fields of the two dicts above may be re-specified
-        # in the object constructor, via pp:
+        # If simul==True, or a dict() with specific instructions,
+        # the default manifestations of the {} items defined in
+        # .find_items() are not parms, but nodes/subtrees that
+        # simulate parm values.
+        self._simul = simul                  
+
+        # The fields of the dict(s) above may be re-specified via **pp:
         if not isinstance(pp, dict): pp = dict()
         for key in self._parm_default.keys():
             if pp.has_key(key):
                self._parm_default[key] = pp[key] 
 
-        # For each parameter in self._expression, make an entry in self._item.
-        # These entries may be modified with extra info by self.modparm().
-        self._item = dict()
-        self._item_order = []
-        self._expression = self._find_items(self._expression)
-
-        # Some placeholders:
+        # Initialize some internal information carriers:
+        self._locked = False                      # if true, do not modify
+        self._last_solvable_tags = None           # used by .solvable()
         self._MeqNode = None
         self._FunckDiff = None
         self._FunkletParm = None
@@ -129,6 +130,13 @@ class Expression (Meow.Parameterization):
         self._Compounder = None
         self._Compounder_common_axes = None
         self._testexpr = None
+
+        # For each parameter in self._expression, make an entry in self._item.
+        # These entries may be modified with extra info by self.modparm().
+        self._item = dict()
+        self._item_order = []
+        self._expression = self._find_items(self._expression)
+        self._variables = []
 
         # Finished:
         return None
@@ -151,6 +159,10 @@ class Expression (Meow.Parameterization):
         """Return its (mathematical) expression."""
         return self._expression
 
+    def variables (self):
+        """Return a list of the variables [] in the expression"""
+        return self._variables
+
     def item_order (self):
         """Return the order of parameters in the input expression"""
         return self._item_order
@@ -163,7 +175,10 @@ class Expression (Meow.Parameterization):
     def oneliner(self, full=True):
         """Return a one-line summary of the Expression"""
         ss = '** Expression ('+str(self.name)+'):  '
-        if self._unit: ss += '('+str(self._unit)+') '
+        if self._unit:
+            ss += '('+str(self._unit)+') '
+        if self._simul:
+            ss += '  (simul)'
         if self._descr:
             ss += str(self._descr)
         elif full:
@@ -176,12 +191,22 @@ class Expression (Meow.Parameterization):
 
     #----------------------------------------------------------------
 
+    def display_specific(self, full=False):
+        """Display the specific part of a class that is derived from an
+        Expression object. This function is called by .display()."""
+        # print '  * Specific for class derived from Expression: '
+        return True
+
+
     def display(self, txt=None, full=False):
         """Display a summary of this object"""
         print '\n** Summary of: '+self.oneliner(),
         if txt: print '  (*** '+str(txt)+' ***)',
         print
         print '  * description: '+str(self._descr)
+        #..........................................................
+        self.display_specific(full=full)
+        #..........................................................
         print '  * expression: '+str(self._expression)
         if not self._exprin==self._expression:
             print '    - exprin: '+str(self._exprin)
@@ -206,6 +231,11 @@ class Expression (Meow.Parameterization):
             for key in self.item_order():
                 print '    - '+str(key)+':  '+str(self._item[key])
         #..........................................................
+        print '  * Parameterization ('+str(len(self._parmdefs))+'): '
+        if full:
+            for key in self._parmdefs.keys():
+                print '    - '+key+': '+str(self._parmdefs[key])
+        #..........................................................
         print '  * parm_default: '+str(self._parm_default)
         #..........................................................
         print '  * last_solvable_tags: '+str(self._last_solvable_tags)
@@ -228,6 +258,7 @@ class Expression (Meow.Parameterization):
         nmax = 100
         if len(self._expanded)>nmax: print
         print '  * expanded: '+str(self._expanded)
+        print '  * variables: '+str(self.variables())
         if len(self._expanded)>nmax: print
 
         if full:
@@ -272,7 +303,22 @@ class Expression (Meow.Parameterization):
             if not key in order: order.append(key)
         self._item_order = order
         return True
-        
+
+    #-------------------------------------------------------------------------
+
+    def modify_default(self, key, new):
+        """Modify the default value of the specified parameter"""
+        if not self._item.has_key(key):
+            s = 'key not recognized: '+str(key)
+            raise ValueError,s
+        self._item[key]['default'] = new
+        if self._parmdefs.has_key(key):
+            aa = self._parmdefs[key]
+            parm = aa[0]                                # assume Meow Parm
+            # print type(parm),isinstance(parm,Meow.Parm)
+            # Overwrite the earlier definition with a copy of its Meow.Parm....
+            self._add_parm(key, parm.new(new), aa[1], aa[2])
+        return True
 
     #============================================================================
     # Functions dealing with items, i.e. {parms} and [vars]:
@@ -320,14 +366,21 @@ class Expression (Meow.Parameterization):
 
             # Create the new item (if it does not exist already!)
             if not self._item.has_key(key):
-                self._item[key] = dict(type='parm', item=None,
-                                       index=[0], unit=None,
-                                       default=default, stddev=stddev)
-                parmdef = Meow.Parm(value=default, tags=tags,
-                                    tiling=pp['tiling'],
-                                    time_deg=pp['time_deg'],
-                                    freq_deg=pp['freq_deg'])           # **kw
-                self._add_parm(key, parmdef, solvable=True) 
+                if self._simul:
+                    node = self.ns.simulparm(key) << Meq.Constant(default)
+                    self._item[key] = dict(type='node', item=node,
+                                           index=[0], unit=None,
+                                           default=default, stddev=stddev)
+
+                else:
+                    self._item[key] = dict(type='parm', item=None,
+                                           index=[0], unit=None,
+                                           default=default, stddev=stddev)
+                    parmdef = Meow.Parm(value=default, tags=tags,
+                                        tiling=pp['tiling'],
+                                        time_deg=pp['time_deg'],
+                                        freq_deg=pp['freq_deg'])           # **kw
+                    self._add_parm(key, parmdef, solvable=True) 
                 self._item_order.append(key)
 
         # Do someting similar for the vars [] in expr
@@ -560,7 +613,7 @@ class Expression (Meow.Parameterization):
  
 
     #================================================================================
-    # Expansion and evaluation:
+    # Expansion of the expression:
     #================================================================================
 
     def _expand (self, replace_numeric=True, trace=False):
@@ -593,27 +646,14 @@ class Expression (Meow.Parameterization):
                 raise ValueError, s
         # Finished:    
         self._expanded = expr
+        vv = JEN_parse.find_enclosed(self._expanded, brackets='[]', enclose=True)
+        self._variables = []
+        for v in vv:
+            if not v in self._variables:
+                self._variables.append(v)
         self._locked = True                              # no more modifications
         return expr
 
-    #---------------------------------------------------------------------------
-
-    def _testeval(self, trace=False):
-        """Test-evaluation of its expression, in which all the non-numeric
-        parameters have been replaced with their test-values. This is primarily
-        a syntax check (brackets etc), but it may have other uses too"""
-        expr = self._expand(replace_numeric=True)
-        for key in self.item_order():
-            if key in expr:
-                replace = '('+str(self._item[key]['default'])+')'
-                expr = expr.replace(key, replace)
-                if trace:
-                    print '** replace:',key,' with:',replace,' ->',expr
-        # Finished:
-        self._testexpr = expr
-        v = eval(expr)
-        return v
-                                    
 
     #===========================================================================
     # Turn the Expression into a single node/subtree:
@@ -739,6 +779,8 @@ class Expression (Meow.Parameterization):
             function = _replace_Funcktions(function)                 # deal with log(..) etc
             qnode << Meq.Functional(children=children,
                                     testval=self._testeval(),
+                                    expression=self._expression,
+                                    expanded=self._expanded,
                                     function=function,
                                     child_map=child_map)
             self._MeqFunctional = qnode
@@ -787,6 +829,8 @@ class Expression (Meow.Parameterization):
                 raise ValueError,s
             qnode << Meq.Parm(init_funklet=funklet,       # new MXM 28 June 2006
                               testval=self._testeval(),
+                              expression=self._expression,
+                              expanded=self._expanded,
                               tags=['FunkletParm'],
                               node_groups=['Parm'])
 
@@ -850,19 +894,9 @@ class Expression (Meow.Parameterization):
         funktion = _replace_Funcktions(funktion)        # deal with log(..) etc
 
         # Make the Funklet, and attach it:
-        # if self._expression_type=='MeqPolc':         # see polc_Expression()
-        # elif self._expression_type=='MeqPolcLog':    # see polc_Expression()
-        # else:
-        #-----------------------------------------------------
-        if True:
-            # type: isinstance(f0, Funklet) -> True
-            f0 = Funklet(funklet=record(function=funktion, coeff=coeff),
-                         name=self.name)
-        else:
-            # Alternative: type(meq.polc(0)) 
-            f0 = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-            f0.function = funktion
-        #-----------------------------------------------------
+        # if isinstance(f0, Funklet): ......?
+        f0 = Funklet(funklet=record(function=funktion, coeff=coeff),
+                     name=self.name)
 
         if plot:
             # NB: The following plots WITHOUT execution!
@@ -949,6 +983,131 @@ class Expression (Meow.Parameterization):
 
 
 
+    #=============================================================================
+    # Evaluation and plotting:
+    #=============================================================================
+
+    def _testeval(self, trace=False):
+        """Test-evaluation of its expression, in which all the non-numeric
+        parameters have been replaced with their test-values. This is primarily
+        a syntax check (brackets etc), but it may have other uses too"""
+        expr = self._expand(replace_numeric=True)
+        for key in self.item_order():
+            if key in expr:
+                replace = '('+str(self._item[key]['default'])+')'
+                expr = expr.replace(key, replace)
+                if trace:
+                    print '** replace:',key,' with:',replace,' ->',expr
+        # Finished:
+        self._testexpr = expr
+        v = eval(expr)
+        return v
+                                    
+    #---------------------------------------------------------------------------
+
+    def plot (self, title=None, **pp):
+        """Plot the Expression"""
+        import pylab                                  # gives problems with kernel...
+        trace = False
+        if not title: title = self.oneliner()
+
+        # The first variable [] in the expression is the default.
+        # This may be overridden via arange in pp (see below)
+        xkey = self.variables()[0]
+        xx = None                        # T.B.D. (see below)
+
+        # Make multiple plots if a range of values is specified for
+        # a specific parameter {}: pp['{a}'] = [
+        mkey = None
+        mm = range(1)
+
+        # mkey and xkey may be specified via pp:
+        if not isinstance(pp,dict): pp = dict()
+        keys = self._item.keys()
+        for key in pp.keys():
+            if not key[0] in ['{','[']:
+                if '['+key+']' in keys:
+                    key1 = '['+key+']'
+                elif '{'+key+'}' in keys:
+                    key1 = '{'+key+'}'
+                else:
+                    s = '** key not recognised: '+str(key)
+                    raise ValueError,s
+            if key1[0]=='[':
+                xkey = key1              # variable to be used
+                xx = arange(*pp[key])    # (min,max,incr)
+                xlabel = xkey
+            elif key1[0]=='{':  
+                mkey = key1              # parameter for multiple plots
+                mm = arange(*pp[key])    # (min,max,incr)
+                title += ' (for various '+mkey+')'
+
+        # Indicate the fiducial points, if any.
+        # Do this first, so that the fiducial points
+        # can also provide a meaningful default xx
+        xmin = 1e12
+        xmax = -1e12
+        for fc in self._fiduc:
+            if trace: print fc
+            if fc.has_key(xkey):
+                x = float(eval(str(fc[xkey])))
+                xmin = min(xmin,x)
+                xmax = max(xmax,x)
+                if not mkey:
+                    # Only plot the fid.points if not making multiple plots
+                    # i.e. when using the parameter values that (may) have
+                    # been obtained by fitting the fiducial points.
+                    y = float(eval(str(fc['value'])))
+                    pylab.plot([x,x], [y,y], 'o')
+                    if fc.has_key('eval'):
+                        y = float(eval(str(fc['eval'])))
+                        pylab.plot([x,x], [y,y], 'o')
+        if xx==None:
+            # If no xx specified, use the range of fiducial x-positions:
+            if xmax>xmin:
+                dx = (xmax-xmin)/10
+                xx = arange(xmin,xmax+dx,dx)
+            else:
+                xx = arange(1,10)
+
+        # First replace the 'other' (i.e. not mkey or xkey) vars/parms
+        # in the expression with their default values:
+        expr = self._expand(replace_numeric=True)
+        for key in self.item_order():
+            if not key in [mkey,xkey]:
+                replace = '('+str(self._item[key]['default'])+')'
+                expr = expr.replace(key, replace)
+                if trace: print '** replace:',key,' with:',replace,' ->',expr
+        ylabel = expr
+
+        # Evaluate the expression for the values of xx (and mm):
+        for m in mm:
+            expr1 = expr
+            if mkey:
+                expr1 = expr1.replace(mkey, '('+str(m)+')')
+                if trace: print '--',mkey,'=',m,' -> ',expr1
+            yy = []
+            for x in xx:
+                expr2 = expr1.replace(xkey, '('+str(x)+')')
+                if trace: print '----',xkey,'=',x,' -> ',expr2
+                y = eval(expr2)
+                yy.append(y)
+            # pylab.plot(xx, yy, 'o', color='red')
+            pylab.plot(xx, yy, color='red')
+            if mkey:
+                pylab.text(x, y, mkey+'='+str(m), color='green')
+        if mkey: pylab.legend()
+
+        # Finishing touches:
+        xlabel = xkey
+        pylab.xlabel(xlabel)
+        pylab.ylabel(ylabel)
+        pylab.title(title)
+        pylab.show()
+        return True
+
+
+
 
 
 #============================================================================
@@ -957,21 +1116,27 @@ class Expression (Meow.Parameterization):
 # Some standalone helper functions that are used by Expression:
 #============================================================================
 
-def _replace_Funcktions (expr, trace=True):
+def _replace_Funcktions (expr, trace=False):
     """Helper function to replace functions like tan(..) in the given expr
     with versions that can be evaluated (properly) in a Funklet expression,
     which uses AIPS++ functional functions."""
 
-    # The Meq.Log and python math.log() are elog, while the
-    # AIPS++ functional (used in Funklet and Functional) is 10log.
-    # So, make elog from 10log by dividing by 10log(e).
-    ff = JEN_parse.find_function (expr, func='log', trace=False)
-    # NB: ff is a list of dict(substring='sin(..)', arg='..')
-    for rr in ff:
-        old = rr['substring']
-        new = '('+old+'/log('+str(e)+'))'
-        if trace: print '** replace (log):',old,'  with:',new
-        expr = expr.replace(old, new)
+    # trace = True
+
+    if True:
+        # The Meq.Log and python math.log() are elog, while the
+        # AIPS++ functional (used in Funklet and Functional) is 10log.
+        # So, assure elog by dividing by log(e). Note that this gives
+        # the desired result, whatever the definition of log()...!
+        ff = JEN_parse.find_function (expr, func='log', trace=False)
+        print 'expr=',expr
+        print 'parse(log): ff=',ff
+        # NB: ff is a list of dict(substring='sin(..)', arg='..')
+        for rr in ff:
+            old = rr['substring']
+            new = '('+old+'/log('+str(e)+'))'
+            if trace: print '** replace (log):',old,'  with:',new
+            expr = expr.replace(old, new)
         
     # Strangely, the tan() is not available. Use sin()/cos()
     ff = JEN_parse.find_function (expr, func='tan', trace=False)
@@ -1108,13 +1273,13 @@ def _define_forest(ns):
         # The latter can be turned into the former: elog(x) = 10log(x)/10log(e)
         # NB: OK now, since log(x) is replaced with (log(x)/log(e)) in Funklet funktion,
         #     but not in the Python expression. This then gives the same result.
-        # e9.modparm('{a12}','log(10)')         # funklet/functional=1.0,  python=2.3 
+        e9.modparm('{a12}','log(10)')         # funklet/functional=1.0,  python=2.3 
         # cc.append(ns.log10 << Meq.Log(10))    # =2.3 So: replace in funklet expr 
 
         # Other functions that are replaced by other ones (_replace_Funcktions())
         # e9.modparm('{a9}','tan(4)')                    
         # e9.modparm('{a7}','sinh(2)+cosh(-2)+tanh(4)')
-        e9.modparm('{a11}',' e ')
+        # e9.modparm('{a11}',' e ')
 
         #---------------------------------------------------
         # problems:
@@ -1131,10 +1296,11 @@ def _define_forest(ns):
 
         e9.display()
         # c = e9.FunkletParm()       
-        c = e9.MeqFunctional()
+        # c = e9.MeqFunctional()
+        c = e9.FunckDiff(show=True)
         e9.display('eval')
         cc.append(c)
-        JEN_bookmarks.create(c, 'eval')
+        JEN_bookmarks.create(c, 'eval', recurse=1)
 
 
     ns.result << Meq.Composer(children=cc)
@@ -1186,6 +1352,7 @@ def _tdl_job_4D_tf_lat_long (mqs, parent):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
+    # import pylab           # gives problems with meqkernel
 
         
     if 0:
@@ -1204,18 +1371,17 @@ if __name__ == '__main__':
         e1 = Expression(ns,'e1','xx')
         e1.display()
 
-    if 0:
-        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}')
-        e0.modparm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
-        e1 = 111.111
-        if True:
+    if 1:
+        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}', simul=True)
+        if 0:
+            e0.modparm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
             e0.modparm('{a}', '[f]*{c}/{b}+{d}')
             e0.modparm('{c}', 47)
-            e1 = Expression(ns,'e1','{A}+{B}/[m]')
-            e1.modparm('{A}', 45)
-            e1.modparm('{B}', -45)
-        e0.modparm('{e}', e1)
-        # e0.modparm('{d}', (ns << Meq.Parm(-56)))
+            if 0:
+                e1 = Expression(ns,'e1','{A}+{B}/[m]')
+                e1.modparm('{A}', 45)
+                e1.modparm('{B}', -45)
+                e0.modparm('{e}', e1)
         e0.display()
 
         if 0:
@@ -1227,8 +1393,11 @@ if __name__ == '__main__':
         if 0:
             e0._nodes2vars()
             e0.display()
-        if 0:
+        if 1:
             e0.MeqFunctional(show=True)
+            e0.display()
+        if 0:
+            e0.FunckDiff(show=True)
             e0.display()
 
     if 0:

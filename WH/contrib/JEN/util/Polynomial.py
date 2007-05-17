@@ -33,6 +33,8 @@ from Timba.Contrib.JEN.Grunt import display
 Settings.forest_state.cache_policy = 100
 
 from numarray import *
+import numarray.linear_algebra                # redefines numarray.rank....
+
 # import random
 from copy import deepcopy
 
@@ -55,18 +57,27 @@ class Polynomial (Expression.Expression):
 
     def __init__(self, ns, name, 
                  dims=['t^2','f^3'], symbol='c',
-                 t0=0.0, f0=1.0,
+                 polc=None,
+                 subexpr=dict(),
+                 fiduc=dict(),
                  exclude_triangle=True,
                  descr=None, unit=None,
                  quals=[], kwquals={},
                  **pp):
 
+        # The polynomial may also be specified in 'polc'-form:
+        self._polc = polc
+        if isinstance(polc, (list,tuple)):         # assume [tdeg,fdeg], one-relative
+            dims = ['t^'+str(polc[0]-1), 'f^'+str(polc[1]-1)]
+
         self._dims = dims
         self._symbol = symbol
         self._exclude_triangle = exclude_triangle
-        self._subexpr = dict()
 
-        expr = self._makexpr (dims, symbol,
+        self._check_subexpr(subexpr)
+        self._check_fiduc(fiduc)
+
+        expr = self._makexpr (self._dims, symbol,
                               exclude_triangle=exclude_triangle,
                               trace=True)
         
@@ -76,15 +87,49 @@ class Polynomial (Expression.Expression):
                                        **pp)
 
         # Fill in the parameter sub-expressions collected in ._makexpr()
-        print '\n** modparm subexpr:'
+        # print '\n** modparm subexpr:'
         for key in self._subexpr.keys():
-            print '-',key,':',self._subexpr[key]
-            self.modparm(key, self._subexpr[key])
-        print
+            if key in expr:
+                # print '-',key,':',self._subexpr[key]
+                self.modparm(key, self._subexpr[key])
+        # print
 
         # Finished:
         return None
 
+    #----------------------------------------------------------------------------
+
+    def _check_fiduc(self, fiduc):
+        """Helper function to set and check self._fiduc.
+        Called from __init__() only."""
+        self._fiduc = fiduc
+        if not isinstance(self._fiduc,(list,tuple)):
+            self._fiduc = []
+        # Make sure that all variable names are enclosed []:
+        for k,rr in enumerate(self._fiduc):
+            cc = dict()
+            for key in rr.keys():
+                if key in ['value','eval']:
+                    cc[key] = str(rr[key])           # make str
+                elif not key[0]=='[':
+                    cc['['+key+']'] = rr[key]        # e.g. f -> [f]
+            self._fiduc[k] = cc
+        # NB: Check whether it has got values for all entries of self.variables()....!
+        return True                  
+
+
+    def _check_subexpr(self, subexpr):
+        """Helper function to set and check self._subexpr.
+        Called from __init__() only."""
+        self._subexpr = subexpr
+        # Make sure that all the subexpr are enclosed in ():
+        if not isinstance(self._subexpr,dict):
+            self._subexpr = dict()
+        for key in self._subexpr.keys():
+            s = self._subexpr[key]
+            if not s[0]=='(':
+                self._subexpr[key] = '('+s+')'
+        return True
 
     #----------------------------------------------------------------------------
     # Some display functions:
@@ -93,12 +138,23 @@ class Polynomial (Expression.Expression):
     def oneliner(self, full=True):
         """Return a one-line summary of the Expression"""
         ss = '** Polynomial ('+str(self.name)+'):  '
+        if self._polc:
+            ss += '  polc='+str(self._polc)+' ->'
         ss += '  dims='+str(self._dims)
         if self._unit: ss += '('+str(self._unit)+') '
         if self._descr:
             ss += str(self._descr)
         return ss
 
+    def display_specific(self, full=False):
+        """Display the specific part of a class that is derived from an
+        Expression object. This function is called by .display()."""
+        print '  # Specific for class derived from Expression: '
+        print '  # Polynomial terms ('+str(len(self._term))+'):'
+        print '  # Fiducial points ('+str(len(self._fiduc))+'):'
+        for k,rr in enumerate(self._fiduc):
+            print '    - '+str(k)+': '+str(rr)
+        return True
 
     #=============================================================================
     # Functions that generate the polynomial expression:
@@ -109,87 +165,121 @@ class Polynomial (Expression.Expression):
         """Make the ND polynomial expression.""" 
         if trace: print '\n** _makexpr(',dims,symbol,'):'
 
-        # Collect the various terms:
-        # self._vv = []                      # list of variables
+        # Check (and make consistent) the input dims,
+        # and collect the various polynomial terms accordingly:
         terms = []                         # list of terms
         maxdeg = 0                         # max degree of any term 
-        for dim in dims:
-            dd = dim.split('^')            # look for t^i
-            if len(dd)==0:                 #
-                pass                       # should not happen
-            elif len(dd)==1:               # assume omitted ^1  
+        for k,dim in enumerate(dims):
+            dimin = dim                    # keep input for printing                
+            dd = dim.split('^')            # look for ..^i
+
+            if dd[0] in ['t','f','l','m']: # standard variables
+                dd[0] = '['+dd[0]+']'      # enclose -> [t]
+
+            if not dd[0][0] in ['{','[']:
+                s = '** dim not enclosed in [] or {}: '+dd[0]
+                raise ValueError,s
+
+            if len(dd)==1:                 # no exponent (^) specified 
                 maxdeg = max(maxdeg,1)
-                terms = self._maketerms(terms, dim=dim+'^1', trace=trace)
-            elif int(dd[1])>0:             # exponent specified
-                maxdeg = max(maxdeg,int(dd[1]))
-                terms = self._maketerms(terms, dim=dim, trace=trace)
+                dims[k] = dd[0]+'^1'       # modify, assume ^1
+                terms = self._maketerms(terms, dim=dims[k], trace=trace)
+
+            else:                          # exponent (^) specified
+                dims[k] = dd[0]+'^'+dd[1]  # modify
+                if int(dd[1])>0:           # exponent > 0
+                    maxdeg = max(maxdeg,int(dd[1]))
+                    terms = self._maketerms(terms, dim=dims[k], trace=trace)
+
+            if trace: print '- collected terms from dim[',k,']:',dimin,'->',dims[k]
 
         # Make the full expr by adding the terms:
+        if trace: print '\n Add the terms to make the expr:'
         expr = None
+        self._term_order = []
+        self._term = dict()
         for k,term in enumerate(terms):
             tt = term.split('_')
             isum = 0
             for c in tt[0]:
-                isum += int(c)
-            if tt[1]=='':
-                s = '{'+symbol+tt[0]+'}'
-            else:
-                s = '{'+symbol+tt[0]+'}*'+tt[1]
+                isum += int(c)             # total degree of this term
+            key = '{'+symbol+tt[0]+'}'     # e.g. {w021}
+            s = key
+            deriv = '1.0'                  # default (for c00)
+            if len(tt[1])>0:
+                s += '*'+tt[1]
+                deriv = tt[1]
             if trace: print '-',isum,'/',maxdeg,':',s,
             if exclude_triangle and isum>maxdeg:
                 if trace: print ' (ignored)',
                 pass                       # ignore the highest order triangle
-            elif not expr:
-                expr = s                   # first term
             else:
-                expr += ' + '+s            # other terms
+                if not expr:
+                    expr = s               # first term
+                else:
+                    expr += ' + '+s        # other terms
+                self._term_order.append(key)
+                self._term[key] = dict(key=key, term=s, deriv=deriv)
             if trace: print
-
+        self._check_terms(trace=trace)
         if expr==None: expr = '{'+symbol+'}'
         return expr
 
 
+    #----------------------------------------------------------------------------
+
+    def _check_terms(self, level=0, trace=False):
+        """Helper function to process self._term"""
+        if trace and level==0: print '\n** _check_terms():'
+        recurse = False
+        prefix = '..'*level
+        for key in self._term_order:
+            rr = self._term[key]
+            for skey in self._subexpr.keys():
+                if skey in rr['term']:
+                    recurse = True
+                    new = self._subexpr[skey]
+                    if trace: print prefix,'-- replace: ',skey,' with: ',new
+                    rr['term'] = rr['term'].replace(skey,new)
+                    rr['deriv'] = rr['deriv'].replace(skey,new)
+            if trace: print prefix,'-',self._term[key]
+        if recurse:
+            if level>10:
+                raise ValueError,'_checkterm(): exceeded recursion limit' 
+            self._check_terms(level=level+1, trace=trace)
+        if trace and level==0: print '**\n'
+        return True
+
+
 
 
     #----------------------------------------------------------------------------
 
-    def _make_subexpr (self, dd0, i, t0=0.0, f0=1.0):
-        """Helper function"""
-        if dd0=='dt':
-            subexpr = '{dt}**'+str(i)      
-            self._subexpr['{dt}'] = '([t]-'+str(t0)+')'
-        elif dd0=='ff':
-            subexpr = '{ff}**'+str(i)      
-            self._subexpr['{ff}'] = '([f]/'+str(f0)+')'
-        else:
-            subexpr = '['+dd0+']**'+str(i)                  # e.g. [t]**i
-        return subexpr
-     
-    #----------------------------------------------------------------------------
-
-    def _maketerms (self, terms=[], dim='f3', f0=1.0, t0=0.0, trace=True):
+    def _maketerms (self, terms=[], dim='[f]^3', trace=True):
         """Helper function to replace the given list of terms
         with new terms that include the specified dimension."""
-        new = []
-        dd = dim.split('^')
-        n = int(dd[1])+1
+
         if trace: print '\n** _maketerms(',len(terms),dim,'):'
 
-        if len(terms)==0:                                   # first dimension
-            for i in range(n):
-                key = '{'+dd[0]+'^'+str(i)+'}'              # e.g. _{t^i}
-                subexpr = self._make_subexpr (dd[0], i)
-                curly = self._subexpr.has_key('{'+dd[0]+'}')
+        # Analyse the dimension string (e.g. [t]^3, or {dt}^3):
+        dd = dim.split('^')
+        n = int(dd[1])+1
+        dds = dd[0]                                         # deenclosed dd[0]
+        for c in ['{','}','[',']']:
+            dds = dds.replace(c,'')
 
-                if i==0:                                    # ignore t^0
+        new = []
+        if len(terms)==0:                                     # first dimension
+            for i in range(n):
+                if i==0:                                      # ignore [t]^0
                     s = str(i)+'_'
                 else:
                     if i==1:
-                        s = str(i)+'_['+dd[0]+']'           # e.g. _[t]
-                        if curly:
-                            s = str(i)+'_{'+dd[0]+'}'       # e.g. _{dt}
+                        s = str(i)+'_'+dd[0]                  # ignore exponent **1
                     else:
-                        s = str(i)+'_'+key
+                        subexpr = '('+dd[0]+'**'+str(i)+')' 
+                        key = '{'+dds+'^'+str(i)+'}'          # e.g. {t^3}
+                        s = str(i)+'_'+key                    # e.g. _{t^i}
                         self._subexpr[key] = subexpr
                 if trace: print '-',i,':',s
                 new.append(s)
@@ -198,30 +288,25 @@ class Polynomial (Expression.Expression):
         else:                                                         # non-first dimension
             for k,term in enumerate(terms): 
                 for i in range(n):
-                    key = '{'+dd[0]+'^'+str(i)+'}'                    # e.g. {t^i}
-                    subexpr = self._make_subexpr (dd[0], i)
-                    curly = self._subexpr.has_key('{'+dd[0]+'}')
+                    subexpr = '('+dd[0]+'**'+str(i)+')' 
+                    key = '{'+dds+'^'+str(i)+'}'                        # e.g. {t^3}
                     tt = term.split('_')
 
-                    if i==0:                                          # ignore t^0
+                    if i==0:                                            # ignore t^0
                         s = tt[0]+str(i)+'_'+tt[1]
 
-                    elif tt[1]=='':
+                    elif tt[1]=='':                                     # first term     
                         if i==1:
-                            s = tt[0]+str(i)+'_['+dd[0]+']'           # e.g. _[t]
-                            if curly:
-                                s = tt[0]+str(i)+'_{'+dd[0]+'}'       # e.g. _{dt}
+                            s = tt[0]+str(i)+'_'+dd[0]                  # ignore exponent **1
                         else:
-                            s = tt[0]+str(i)+'_'+key                  # e.g. _{t^i}   
+                            s = tt[0]+str(i)+'_'+key                    # e.g. _{t^i}
                             self._subexpr[key] = subexpr
 
                     else:
                         if i==1:
-                            s = tt[0]+str(i)+'_'+tt[1]+'*['+dd[0]+']'     # e.g. *[t]
-                            if curly:
-                                s = tt[0]+str(i)+'_'+tt[1]+'*{'+dd[0]+'}' # e.g. *{dt}
+                            s = tt[0]+str(i)+'_'+tt[1]+'*'+dd[0]        # ignore exponent **1
                         else:
-                            s = tt[0]+str(i)+'_'+tt[1]+'*'+key            # e.g. *{t^i} 
+                            s = tt[0]+str(i)+'_'+tt[1]+'*'+key    
                             self._subexpr[key] = subexpr
 
                     if trace: print '-',k,i,':',s
@@ -232,175 +317,63 @@ class Polynomial (Expression.Expression):
         return new
 
 
+    #=============================================================================
+    # Determine values for the polynomial coeff by fitting to fiducial points:
+    #=============================================================================
+
+    def fiducfit (self, trace=False):
+        """Fit the expression to the fiducial points. I.e. find the polynomial
+        coeff that make the polynomial go through these points. Modify the
+        default values of the Polynomial accordingly."""
+        
+        # Initialize the (rectangular) condition matrix aa:
+        nuk = len(self._term)                              # nr of unknowns
+        neq = len(self._fiduc)                             # nr of equations
+        aa = zeros([neq,nuk])                              # matrix
+        vv = zeros(neq)                                    # driving values
+        for ieq in range(neq):
+            vv[ieq] = 0.0
+            for iuk in range(nuk):
+                aa[ieq,iuk] = iuk-ieq
+
+        # Fill the matrix:
+        for ieq,fc in enumerate(self._fiduc):              # for each fiducial point
+            vv[ieq] = float(eval(fc['value']))             # string -> driving value
+            for iuk,key in enumerate(self._term_order):    # for each term
+                cc = self._term[key]
+                deriv = cc['deriv']
+                for v in self.variables():
+                    deriv = deriv.replace(v, '('+str(fc[v])+')')
+                veval = float(eval(deriv))
+                aa[ieq,iuk] = veval
+
+        # Solve for the unknown polynomial terms by inverting the matrix aa:
+        # NB:  numarray.linear_algebra not supported on birch......
+        if True:
+            bb = numarray.linear_algebra.linear_least_squares(aa,vv)
+            solvec = bb[0]                                 # solution vector
+            for iuk,key in enumerate(self._term_order):    # for each term
+                self.modify_default(key,solvec[iuk])
+
+
+        # Finally, evaluate the Polynomial with the new coeff at the
+        # fiducual points, and store the value as 'eval':
+        for ieq,fc in enumerate(self._fiduc):              # for each fiducial point
+            tsum = 0.0
+            for iuk,key in enumerate(self._term_order):    # for each term
+                cc = self._term[key]
+                term = cc['term']
+                term = term.replace(key, '('+str(solvec[iuk])+')')
+                for v in self.variables():
+                    term = term.replace(v, '('+str(fc[v])+')')
+                tsum += float(eval(term))                  # sum of the terms
+            fc['eval'] = tsum
+
+        # Finished
+        return True
 
 
 
-
-
-
-    #----------------------------------------------------------------------------
-
-    def _maketerms_old (self, terms=[], dim='f3', trace=True):
-        """Helper function to replace the given list of terms
-        with new terms that include the specified dimension."""
-        new = []
-        dd = dim.split('^')
-        vs = dd[0]+'^'
-        n = int(dd[1])+1
-        if trace: print '\n** _maketerms_old(',len(terms),dim,'):'
-
-        if len(terms)==0:                                   # first dimension
-            for i in range(n):
-                if i==0:
-                    s = str(i)+'_'
-                else:
-                    v = vs+str(i)                           # e.g. t^i
-                    if i==1: v = dd[0]                      # t^1 = t
-                    s = str(i)+'_['+v+']'
-                    if not v in self._vv:
-                        self._vv.append(v)
-                if trace: print '-',i,':',s
-                new.append(s)
-
-        else:                                               # later dimension
-            for k,term in enumerate(terms): 
-                for i in range(n):
-                    tt = term.split('_')
-                    v = None                             
-                    if i==0:                                    # ignore t^0
-                        s = tt[0]+str(i)+'_'+tt[1]
-                    elif tt[1]=='':
-                        v = vs+str(i)                           # e.g. t^i
-                        if i==1: v = dd[0]                      # t^1 = t
-                        s = tt[0]+str(i)+'_['+v+']'
-                    else:
-                        v = vs+str(i)                           # e.g. t^i
-                        if i==1: v = dd[0]                      # t^1 = t
-                        s = tt[0]+str(i)+'_'+tt[1]+'*['+v+']'
-                    if v and not v in self._vv:
-                        self._vv.append(v)
-                    if trace: print '-',k,i,':',s
-                    new.append(s)
-
-        # Finished:
-        print '** len(new)=',len(new),'\n'
-        return new
-
-
-
-
-
-
-#=============================================================================
-#=============================================================================
-#=============================================================================
-
-
-def polc_Expression(shape=[1,1], coeff=None, name='pE', unit=None,
-                    ignore_triangle=True,
-                    nonzero_default=True, stddev=0.1,
-                    type='MeqPolc', f0=1e6, t0=1.0,
-                    fit=None, plot=False, trace=False):
-    """Create an Expression object for a polc with the given shape (and type).
-    Parameters can be initialized by specifying a list of coeff.
-    The coeff will be assumed 0 for all those missing in the list.
-    If type==MeqPolcLog, the variables [t] and/or [f] are replaced by
-    Expression parameters {tvar}= log([t]/{t0}) and {fvar}=log([f]/{f0}),
-    with the constants t0 and f0 given by input arguments.
-    Optionally, the polc coeff may be determined by fitting to a given
-    set of polc function values vv(t,f): fit=dict(vv=, tt=, ff=)."""
-
-    if trace:
-        print '\n** polc_Expression(',shape,coeff,name,type,'):'
-        if fit: print '       fit =',fit
-    if coeff==None: coeff = []
-    if not isinstance(coeff, (list,tuple)): coeff = [coeff]
-    coeff = array(coeff).flat
-    if len(shape)==1: shape.append(1)
-    if shape[0]==0: shape[0] = 1
-    if shape[1]==0: shape[1] = 1
-    if name==None: name = 'polc'+str(shape[0])+str(shape[1])
-
-    # Whereas the MeqPolc just has variables ([f],[t]),
-    # the MeqPolcLog has parameters that are Expressions:
-    fvar = '[f]'
-    tvar = '[t]'
-    if type=='MeqPolcLog':
-        fvar = '{logf}'
-        tvar = '{logt}'
-
-    func = ""
-    k = -1
-    pp = dict()
-    testinc = dict()
-    help = dict()
-    sunit = ''
-    if isinstance(unit, str): sunit = unit
-    uunit = dict()
-    first = True
-    tdep = False
-    fdep = False
-    include = True
-    sign = -1
-    ijmax = max(shape[0],shape[1])
-    for i in range(shape[1]):
-        if i>0: fdep = True                          # depends on freq
-        for j in range(shape[0]):
-            if j>0: fdep = True                      # depends on time
-            if ignore_triangle:                      # optional:
-                if (i+j)>=ijmax: include = False     # ignore higher-order cross-terms
-            if include:                              # include this term
-                k += 1
-                sign *= -1
-                pk = 'c'+str(j)+str(i)                   # e.g. c01
-                testinc[pk] = sign*(10**(-i-j))          # test-increment 
-                pp[pk] = 0.0                             # default value = 0
-                if nonzero_default:
-                    pp[pk] = testinc[pk]                 # non-zero default value ....
-                if len(coeff)>k:                         # explicitly specified
-                    pp[pk] = coeff[k]                    # override
-                help[pk] = name+'_'+str(j)+str(i)
-                uunit[pk] = sunit
-                if not first: func += '+'
-                func += '{'+pk+'}'                       # {c01}
-                for i2 in range(j):
-                    func += '*'+tvar                     # e.g:  *[t] or *{logt}
-                    uunit[pk] += '/s'
-                for i1 in range(i):
-                    func += '*'+fvar                     # e.g:  *[f] or *{logf}
-                    uunit[pk] += '/Hz'
-                first = False
-                if trace: print '-',i,j,' (',i+j,ijmax,') ',k,pk,':',func
-    result = Expression(ns, name, func,
-                        descr='polc_Expression')
-    result._expression_type = type
-
-    # Define the Expression parms:
-    for key in pp.keys():
-        result.parm('{'+key+'}', pp[key], unit=uunit[key])
-
-    # Define the Expression 'variable' parms, if necessary:
-    if type=='MeqPolcLog':
-        if fdep:
-            logf = Expression('log([f]/{f0})', name='fvar')
-            logf.parm('f0', f0)
-            logf.var('f', 1.e8, testinc=0.5*1e7)  
-            result.parm('logf', logf)
-        if tdep:
-            logf = Expression('log([t]/{t0})', name='tvar')
-            logf.parm('t0', t0)
-            result.parm('logt', logt)
-
-    # Optionally, fit the new polc to a given set of values(f,t):
-    if isinstance(fit, dict):
-        result.fit(**fit)
-
-    # insert help......?
-
-    # Finished: return the polc Expression:
-    if trace: result.display()
-    if plot: result.plot(_plot='loglog')
-    return result
 
 
 
@@ -413,14 +386,32 @@ def _define_forest(ns):
 
     cc = [ns.dummy<<45]
 
-    dims = ['t^3']
-    dims = ['t^4','f^4']
-    # dims = ['t^1','mm^2']
-    dims = ['t^1','f^2','l^2','m^3']             
-    # dims = ['t^1','f^2','m^3']
-    dims = ['ff^2']
-    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
-    p0.display('initial')
+    if 0:
+        # Regular polynomial:
+        dims = ['t^3']
+        dims = ['t^4','f^4']
+        # dims = ['t^1','mm^2']
+        dims = ['t^1','f^2','l^2','m^3']             
+        dims = ['t^1','f^2','m^3']
+        # dims = ['ff^2']
+        dims = ['sin(t)^2']
+        p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+        p0.display('initial')
+
+    elif 1:
+        # Polclog (used for Spectral Index):
+        sex = dict()
+        fiduc = []
+        dims = ['{logff}^5']
+        sex['{logff}'] = 'log([f]/1e6)'                    # f0 = 1 MHz
+        fiduc.append(dict(f=1e6, value=5))                 # I0 (@f0) Jy
+        fiduc.append(dict(f=100e6, value=3))
+        fiduc.append(dict(f=200e6, value=3))
+        p0 = Polynomial(ns, 'polclog', dims=dims, symbol='s',
+                        subexpr=sex, fiduc=fiduc)
+        p0.display('initial')
+        p0.fiducfit(trace=True)
+        p0.display('fiducfit')
 
     if 1:
         c = p0.FunckDiff(show=True)
@@ -491,6 +482,14 @@ def _tdl_job_2D_tf (mqs, parent):
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
        
+def _tdl_job_polclog (mqs, parent):
+    """Execute the forest with a 2D request (freq,time), starting at the named node"""
+    domain = meq.domain(1e6,200e6,0.5,10)                      # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=30, num_time=1)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
 
 def _tdl_job_4D_tflm (mqs, parent):
     """Execute the forest with a 4D request (freq,time,l,m).
@@ -515,14 +514,54 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-    dims = ['dt^1','ff^1']
-    # dims = ['t^1','mm^2']
-    dims = ['dt^1','f^2','m^3']
-    dims = ['ff^3']
-    dims = ['dt^3','t^2','ff^2']
-    # dims = ['t^3', 'f^2']
-    p0 = Polynomial(ns, 'p0', dims=dims, symbol='w', t0=4.4, f0=102)
-    p0.display('initial')
+    if 0: 
+        sex = dict()
+        fiduc = []
+        dims = ['dt^1','ff^1']
+        dims = ['t^1','f^2','m^3']
+        dims = ['t^3','t^2','f^2']
+        dims = ['t^3', 'f^2']
+        dims = ['{dt}^2']
+        dims = ['t^2']
+        dims = ['[t]^3','m^2','{logff}','l^0','{dt}']
+        # dims = ['{dt}^2']
+        sex['{dt}'] = '[t]-2.3'
+        # dims = ['{logff}^2']
+        sex['{logff}'] = 'log([f]/2.3)'
+        dims = ['t^2']
+        fiduc.append(dict(t=-2, value=5))
+        fiduc.append(dict(t=0, value=-3))
+        fiduc.append(dict(t=2, value=5))
+        p0 = Polynomial(ns, 'p0',
+                        dims=dims,
+                        symbol='w',
+                        polc=[3,2],                        # overrides dims
+                        subexpr=sex, fiduc=fiduc)
+        p0.display('initial')
+
+    if 1:
+        sex = dict()
+        fiduc = []
+        dims = ['{logff}^4']
+        sex['{logff}'] = 'log([f]/1e6)'                    # f0 = 1 MHz
+        fiduc.append(dict(f=1e6, value=5))                 # I0 (@f0) Jy
+        fiduc.append(dict(f=100e6, value=3))
+        fiduc.append(dict(f=200e6, value=3))
+        p0 = Polynomial(ns, 'polclog',
+                        dims=dims,
+                        symbol='s',
+                        subexpr=sex, fiduc=fiduc)
+        p0.display('initial')
+        p0.fiducfit(trace=True)
+        p0.display('fiducfit')
+        p0.plot()    
+
+    if 0:
+        p0.fiducfit(trace=True)
+
+    if 0:
+        p0.plot()             # t=[-5,5,0.5])
+        # p0.plot(w1=[-1,1])      # t=[-5,5,0.5])
 
     if 0:
         p0.FunckDiff(show=True)
