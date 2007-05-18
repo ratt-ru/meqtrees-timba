@@ -57,7 +57,7 @@ class Polynomial (Expression.Expression):
 
     def __init__(self, ns, name, 
                  dims=['t^2','f^3'], symbol='c',
-                 polc=None,
+                 polc=None, simul=False,
                  subexpr=dict(),
                  fiduc=dict(),
                  exclude_triangle=True,
@@ -84,14 +84,18 @@ class Polynomial (Expression.Expression):
         Expression.Expression.__init__(self, ns, name, expr=expr,
                                        descr=descr, unit=unit,
                                        quals=quals, kwquals=kwquals,
+                                       typename='Polynomial',
+                                       simul=simul,
                                        **pp)
 
         # Fill in the parameter sub-expressions collected in ._makexpr()
+        # self.display('intermediate')
         # print '\n** modparm subexpr:'
         for key in self._subexpr.keys():
             if key in expr:
                 # print '-',key,':',self._subexpr[key]
-                self.modparm(key, self._subexpr[key])
+                self.modparm(key, self._subexpr[key],
+                             redefine=True, unlock=True)
         # print
 
         # Finished:
@@ -386,7 +390,7 @@ def _define_forest(ns):
 
     cc = [ns.dummy<<45]
 
-    if 0:
+    if 1:
         # Regular polynomial:
         dims = ['t^3']
         dims = ['t^4','f^4']
@@ -394,11 +398,12 @@ def _define_forest(ns):
         dims = ['t^1','f^2','l^2','m^3']             
         dims = ['t^1','f^2','m^3']
         # dims = ['ff^2']
-        dims = ['sin(t)^2']
-        p0 = Polynomial(ns, 'p0', dims=dims, symbol='w')
+        # dims = ['sin(t)^2']
+        dims = ['t^2','f^1']
+        p0 = Polynomial(ns, 'p0', dims=dims, symbol='w', simul=False)
         p0.display('initial')
 
-    elif 1:
+    elif 0:
         # Polclog (used for Spectral Index):
         sex = dict()
         fiduc = []
@@ -417,6 +422,9 @@ def _define_forest(ns):
         c = p0.FunckDiff(show=True)
         cc.append(c)
         JEN_bookmarks.create(c, page='FunckDiff', recurse=1)
+
+    if 1:
+        cc.append(p0.inspector(bookpage=True))
 
     if 0:
         c = p0.MeqCompounder()
@@ -514,7 +522,7 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-    if 0: 
+    if 1: 
         sex = dict()
         fiduc = []
         dims = ['dt^1','ff^1']
@@ -529,17 +537,19 @@ if __name__ == '__main__':
         # dims = ['{logff}^2']
         sex['{logff}'] = 'log([f]/2.3)'
         dims = ['t^2']
+        dims = ['t^2','f^1']
         fiduc.append(dict(t=-2, value=5))
         fiduc.append(dict(t=0, value=-3))
         fiduc.append(dict(t=2, value=5))
         p0 = Polynomial(ns, 'p0',
                         dims=dims,
                         symbol='w',
-                        polc=[3,2],                        # overrides dims
+                        # polc=[3,2],                        # overrides dims
+                        simul=True,
                         subexpr=sex, fiduc=fiduc)
         p0.display('initial')
 
-    if 1:
+    if 0:
         sex = dict()
         fiduc = []
         dims = ['{logff}^4']

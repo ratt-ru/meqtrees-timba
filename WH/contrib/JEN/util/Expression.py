@@ -79,6 +79,7 @@ class Expression (Meow.Parameterization):
     def __init__(self, ns, name, expr,
                  simul=None,
                  descr=None, unit=None,
+                 typename='Expression',
                  quals=[], kwquals={}, **pp):
         """Create the object with a mathematical expression (string)
         of the form:  {aa}*[t]+cos({b}*[f]).
@@ -88,16 +89,20 @@ class Expression (Meow.Parameterization):
         may be supplied via keyword arguments pp. More detailed
         information may be supplied via the function .modparm()."""
 
+        # if is_node(ns): ns = ns.QualScope()
+
         Meow.Parameterization.__init__(self, ns, str(name),
                                        quals=quals, kwquals=kwquals)
 
         self._descr = descr                       # optional description
         self._unit = unit                         # unit of the result
+        self._typename = typename                 # e.g. Polynomial
 
         # Various forms of its math expression (string):
         self._exprin = deepcopy(expr)             # never modified (for display only)
-        self._expression = deepcopy(expr)         # may be modified: {a=10~0.1} -> {a}
-        self._expanded = deepcopy(expr)           # working version
+        expr1 = _replace_tilde_numeric(expr)      # replace any {100~10} with numeric
+        self._expression = deepcopy(expr1)        # may be modified: {a=10~0.1} -> {a}
+        self._expanded = deepcopy(expr1)          # working version
         
         # Default values for the Meow.Parms defined in .find_items()
         self._parm_default = dict(value=2.0, stddev=0.0,
@@ -108,7 +113,10 @@ class Expression (Meow.Parameterization):
         # the default manifestations of the {} items defined in
         # .find_items() are not parms, but nodes/subtrees that
         # simulate parm values.
-        self._simul = simul                  
+        self._simul = simul
+        if self._simul and not isinstance(self._simul,dict):
+            factor = '(1+{0.01~0.001}*sin(2*pi*[t]/{500~50}))'   
+            self._simul = dict(factor=factor)
 
         # The fields of the dict(s) above may be re-specified via **pp:
         if not isinstance(pp, dict): pp = dict()
@@ -155,6 +163,10 @@ class Expression (Meow.Parameterization):
         """Return the brief description of this Expression object"""
         return str(self._descr)
 
+    def label (self):
+        """Return the label, i.e. Expression_<name>"""
+        return self._typename+'_'+self.name
+
     def expression (self):
         """Return its (mathematical) expression."""
         return self._expression
@@ -174,19 +186,17 @@ class Expression (Meow.Parameterization):
 
     def oneliner(self, full=True):
         """Return a one-line summary of the Expression"""
-        ss = '** Expression ('+str(self.name)+'):  '
+        ss = '** Expression ('+str(self.name)+'):'
         if self._unit:
             ss += '('+str(self._unit)+') '
         if self._simul:
             ss += '  (simul)'
         if self._descr:
-            ss += str(self._descr)
+            ss += '  '+str(self._descr)
         elif full:
             s1 = str(self._expression)
             if len(s1)>50: s1 = s1[:50]+' ...' 
-            ss += s1
-        if self._locked:
-            ss += '  (locked) '
+            ss += '  '+s1
         return ss
 
     #----------------------------------------------------------------
@@ -204,6 +214,7 @@ class Expression (Meow.Parameterization):
         if txt: print '  (*** '+str(txt)+' ***)',
         print
         print '  * description: '+str(self._descr)
+        print '  * locked = '+str(self._locked)
         #..........................................................
         self.display_specific(full=full)
         #..........................................................
@@ -237,6 +248,7 @@ class Expression (Meow.Parameterization):
                 print '    - '+key+': '+str(self._parmdefs[key])
         #..........................................................
         print '  * parm_default: '+str(self._parm_default)
+        print '  * simul: '+str(self._simul)
         #..........................................................
         print '  * last_solvable_tags: '+str(self._last_solvable_tags)
         cc = self.solvable()
@@ -363,12 +375,17 @@ class Expression (Meow.Parameterization):
             # If stddev specified, perturb the default value:
             if stddev>0.0:
                 default = random.gauss(default, stddev)
+                # Limit the number of digits, to avoid expr clutter:
+                q = 100.0/stddev
+                default = float(int(default*q))/q
 
             # Create the new item (if it does not exist already!)
             if not self._item.has_key(key):
                 if self._simul:
-                    node = self.ns.simulparm(key) << Meq.Constant(default)
-                    self._item[key] = dict(type='node', item=node,
+                    simexpr = _replace_tilde_numeric(self._simul['factor'])
+                    simexpr = str(default)+'*'+simexpr
+                    # node = self.ns.simulparm(key) << Meq.Constant(default)
+                    self._item[key] = dict(type='subexpr', item=simexpr,
                                            index=[0], unit=None,
                                            default=default, stddev=stddev)
 
@@ -744,7 +761,7 @@ class Expression (Meow.Parameterization):
     # Turn the Expression into a MeqFunctional node:
     #============================================================================
 
-    def MeqFunctional (self, show=False):
+    def MeqFunctional (self, bookpage=False, show=False):
         """Turn the expression into a MeqFunctional node,
         i.e. an expression of its children."""
 
@@ -754,6 +771,7 @@ class Expression (Meow.Parameterization):
             function = deepcopy(self._expanded)
             children = []
             nodenames = []
+            plot = dict(children=[], labels=[])                     # used in inspector()
             child_map = []            
             k = -1
             for key in self.item_order():
@@ -776,7 +794,10 @@ class Expression (Meow.Parameterization):
                                     index=rr['index'],              # usually: [0]
                                     nodename=nodename)
                         child_map.append(qq)
-            function = _replace_Funcktions(function)                 # deal with log(..) etc
+                        if not key[0]=='[':                         # used in inspector()
+                            plot['labels'].append(self.name+'_'+key)  
+                            plot['children'].append(rr['item'])  
+            function = _replace_Funcktions(function)                # deal with log(..) etc
             qnode << Meq.Functional(children=children,
                                     testval=self._testeval(),
                                     expression=self._expression,
@@ -784,15 +805,41 @@ class Expression (Meow.Parameterization):
                                     function=function,
                                     child_map=child_map)
             self._MeqFunctional = qnode
+            self._MeqFunctional_plot = plot                         # used in inspector()
+            self._MeqFunctional_children = children
             self._MeqFunctional_childmap = child_map
             self._MeqFunctional_function = function
 
         # Finished:
         self._last_solvable_tags = 'MeqFunctional'          # used by .solvable()
         self._locked = True                                 # no more modifications
+        if bookpage:
+            if not isinstance(bookpage, str): bookpage = self.label()
+            JEN_bookmarks.create(qnode, recurse=1)          # itself and its children
         if show: display.subtree(qnode)
         return qnode
 
+    #---------------------------------------------------------------------------
+
+    def inspector(self, bookpage=True):
+        """Make an 'inspector' node (i.e. a MeqComposer expected by the
+        Collections Plotter) for the MeqFunctional and its children"""
+
+        qnode = self.ns['inspector']
+        
+        if not qnode.initialized():                         # avoid duplication
+            self.MeqFunctional(show=False, bookpage=bookpage)               
+            plot = self._MeqFunctional_plot
+            if len(plot['children'])>0:
+                qnode << Meq.Composer(children=plot['children'],
+                                      plot_label=plot['labels'])
+                if bookpage:
+                    if not isinstance(bookpage, str): bookpage = self.label()
+                    JEN_bookmarks.create(qnode, page=bookpage,
+                                         viewer='Collections Plotter')       
+        return qnode
+            
+        
 
     #============================================================================
     # Turn the Expression into a MeqParm with an init Funklet
@@ -1116,6 +1163,36 @@ class Expression (Meow.Parameterization):
 # Some standalone helper functions that are used by Expression:
 #============================================================================
 
+
+
+def _replace_tilde_numeric (expr, trace=False):
+    """Helper function to replace strings of the form {100~10} with their
+    numeric values (in this case a random number drawn from a gaussian
+    distribution with mean=100 and stddev=10). It looks for strings that
+    are enclosed in {}, and that do have a tilde (~) but not a '='"""
+
+    ss = JEN_parse.find_enclosed(expr, brackets='{}', enclose=False)
+    if trace: print '\n** _replace_tilde_numeric(',expr,'):'
+    for s in ss:
+        if '~' in s and not '=' in s:
+            vv = s.split('~')
+            v = float(eval(vv[0]))
+            stddev = float(eval(vv[1]))
+            if stddev>0.0:
+                # Limit the number of digits to avoid clutter in expr:
+                v = random.gauss(v, stddev)
+                q = 100.0/stddev
+                v = float(int(v*q))/q
+            old = '{'+s+'}'
+            new = '('+str(v)+')'
+            expr = expr.replace(old,new)
+            if trace: print '-- replace:',old,'  with:',new
+    if trace: print '  ->',expr,'\n'
+    return expr
+    
+    
+#-------------------------------------------------------------------------
+
 def _replace_Funcktions (expr, trace=False):
     """Helper function to replace functions like tan(..) in the given expr
     with versions that can be evaluated (properly) in a Funklet expression,
@@ -1255,7 +1332,7 @@ def _define_forest(ns):
             cc.append(e5.MeqNode())   
             e5.display()
 
-    if 1:
+    if 0:
         expr = '{a0}'
         for k in range(1,15):
             expr += ' + {a'+str(k)+'}'
@@ -1372,7 +1449,7 @@ if __name__ == '__main__':
         e1.display()
 
     if 1:
-        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}', simul=True)
+        e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=True)
         if 0:
             e0.modparm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))
             e0.modparm('{a}', '[f]*{c}/{b}+{d}')
@@ -1485,6 +1562,13 @@ if __name__ == '__main__':
             print '\n** numarray:',dir(numarray)
             import math
             print '\n** math:',dir(math)
+
+    if 0:
+        expr = 'xx + {100~10}-{100.001~10}'
+        # expr = 'xx + {a~10}'
+        ss = _replace_tilde_numeric(expr, trace=False)
+        print 'ss =',ss
+        print 'expr =',expr
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
 
