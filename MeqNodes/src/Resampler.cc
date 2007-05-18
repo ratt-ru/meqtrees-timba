@@ -523,7 +523,6 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 				return 0;
 }
 
-#define DEBUG
 //return 0 if no new flags were created,
 //return 1 if new flags were created
 template<class T> int  
@@ -650,7 +649,6 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 				return create_flags;
 }
 
-#undef DEBUG
 
 #ifndef MAX
 #define MAX(a,b)\
