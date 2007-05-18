@@ -83,9 +83,15 @@ def tpolc (tdeg,c00=0.0):
 def _define_forest(ns):  
 
   # define location for phase-up
-# BEAM_LM = [(0.0,0.0)]
-  offset = 0.01414214
-  BEAM_LM = [(offset,offset)]
+# BEAM_LM = [(0.0,0.0)]                # xntd_0
+# BEAM_LM = [(0.0108735,0.0)]          # xntd_1
+# BEAM_LM = [(0.021747,0.0)]           # xntd_2
+# BEAM_LM = [(0.032620,0.0)]           # xntd_3
+# BEAM_LM = [(0.043494,0.0)]           # xntd_4
+# BEAM_LM = [(0.0, 0.0108735)]         # xntd_m_1
+# BEAM_LM = [(0.0, 0.021747)]          # xntd_m_2
+# BEAM_LM = [(0.0, 0.032620)]          # xntd_m_3
+  BEAM_LM = [(0.0, 0.043494)]          # xntd_m_4
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
   ns.m_beam_c << Meq.Constant(m_beam)
@@ -94,7 +100,7 @@ def _define_forest(ns):
   ns.ln_16 << Meq.Constant(-2.7725887)
 
   # define desired half-intensity width of power pattern (HPBW)
-  # as we are fitting total intensity I pattern
+  # as we are fitting total intensity I pattern (here 74.8 arcmin)
   ns.width << Meq.Constant(0.021747)                 
 
   laxis = ns.laxis << Meq.Grid(axis=2);
@@ -293,7 +299,7 @@ def _test_forest(mqs,parent):
   t1 = 1.5e70
 
   f0 = 0.5
-  f1 = 1.5
+  f1 = 5000.0e6
 
   lm_range = [-0.15,0.15];
   lm_num = 50;
