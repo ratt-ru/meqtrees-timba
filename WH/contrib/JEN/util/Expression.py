@@ -115,7 +115,7 @@ class Expression (Meow.Parameterization):
         # simulate parm values.
         self._simul = simul
         if self._simul and not isinstance(self._simul,dict):
-            factor = '(1+{0.01~0.001}*sin(2*pi*[t]/{500~50}))'   
+            factor = '(1+{0.01~0.001}*sin(2*pi*([t]/{500~50}+{0~1})))'   
             self._simul = dict(factor=factor)
 
         # The fields of the dict(s) above may be re-specified via **pp:
@@ -381,13 +381,32 @@ class Expression (Meow.Parameterization):
 
             # Create the new item (if it does not exist already!)
             if not self._item.has_key(key):
-                if self._simul:
-                    simexpr = _replace_tilde_numeric(self._simul['factor'])
-                    simexpr = str(default)+'*'+simexpr
-                    # node = self.ns.simulparm(key) << Meq.Constant(default)
-                    self._item[key] = dict(type='subexpr', item=simexpr,
+                if '^' in key:                # e.g. {t^2} (see Polynomial)
+                    # Make a temporary placeholder, which may be assumed to
+                    # be redefined (or cleaned up) later (bit of a kludge): 
+                    self._item[key] = dict(type='temp', item=None,
                                            index=[0], unit=None,
                                            default=default, stddev=stddev)
+
+                elif self._simul:             # Simulation mode
+                    # For each parm {}, insert a subtree that causes its
+                    # value to vary as a function of variables. e.g. [t]
+                    simexpr = _replace_tilde_numeric(self._simul['factor'])
+                    simexpr = str(default)+'*'+simexpr
+                    if False:
+                        # Insert the simexpr into its expression as a subexpr.
+                        # This works, but makes a very big and unreadable expr.
+                        # Also, it is not easy to analyse its behaviour.
+                        self._item[key] = dict(type='subexpr', item=simexpr,
+                                               index=[0], unit=None,
+                                               default=default, stddev=stddev)
+                    else:
+                        # Better: Make a separate MeqFunctional node of each parm {}
+                        Ekey = Expression(self.ns, key, expr=simexpr)
+                        node = Ekey.MeqFunctional()
+                        self._item[key] = dict(type='node', item=node,
+                                               index=[0], unit=None,
+                                               default=default, stddev=stddev)
 
                 else:
                     self._item[key] = dict(type='parm', item=None,
@@ -398,6 +417,7 @@ class Expression (Meow.Parameterization):
                                         time_deg=pp['time_deg'],
                                         freq_deg=pp['freq_deg'])           # **kw
                     self._add_parm(key, parmdef, solvable=True) 
+
                 self._item_order.append(key)
 
         # Do someting similar for the vars [] in expr
@@ -805,10 +825,12 @@ class Expression (Meow.Parameterization):
                                     function=function,
                                     child_map=child_map)
             self._MeqFunctional = qnode
-            self._MeqFunctional_plot = plot                         # used in inspector()
             self._MeqFunctional_children = children
             self._MeqFunctional_childmap = child_map
             self._MeqFunctional_function = function
+            plot['children'].append(qnode)
+            plot['labels'].append(self.name)
+            self._MeqFunctional_plot = plot                         # used in inspector()
 
         # Finished:
         self._last_solvable_tags = 'MeqFunctional'          # used by .solvable()
@@ -858,6 +880,7 @@ class Expression (Meow.Parameterization):
             raise ValueError, s
 
         elif not self.has_itemtype ('parm'):
+            # NB: This would cause an empty coeff (see below)
             s = '** not possible to make a FunkletParm (no parm-items)'
             raise ValueError,s
 

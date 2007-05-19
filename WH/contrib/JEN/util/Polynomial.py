@@ -399,8 +399,9 @@ def _define_forest(ns):
         dims = ['t^1','f^2','m^3']
         # dims = ['ff^2']
         # dims = ['sin(t)^2']
-        dims = ['t^2','f^1']
-        p0 = Polynomial(ns, 'p0', dims=dims, symbol='w', simul=False)
+        dims = ['t^2','f^2']
+        # dims = ['t^6']
+        p0 = Polynomial(ns, 'p0', dims=dims, symbol='w', simul=True)
         p0.display('initial')
 
     elif 0:
@@ -418,7 +419,7 @@ def _define_forest(ns):
         p0.fiducfit(trace=True)
         p0.display('fiducfit')
 
-    if 1:
+    if 0:
         c = p0.FunckDiff(show=True)
         cc.append(c)
         JEN_bookmarks.create(c, page='FunckDiff', recurse=1)
@@ -484,8 +485,8 @@ def _define_forest(ns):
 
 def _tdl_job_2D_tf (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
-    domain = meq.domain(1,5,0.5,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
+    domain = meq.domain(1,5,0.5,1000)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=50)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
