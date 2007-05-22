@@ -64,7 +64,7 @@ import re
 from Timba.Contrib.MXM.TDL_Funklet import *   # needed for type Funklet.... 
 # from Timba.Contrib.MXM import TDL_Funklet
 # from Timba.Contrib.JEN.util import TDL_Leaf
-from Timba.Contrib.JEN.util import JEN_parse
+from Timba.Contrib.JEN.Expression import JEN_parse
 
 
 # Replacement for is_numeric(): if isinstance(x, NUMMERIC_TYPES):

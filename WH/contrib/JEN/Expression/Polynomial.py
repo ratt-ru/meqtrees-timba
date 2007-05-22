@@ -27,7 +27,7 @@ import Meow
 #
 from Timba.Contrib.JEN.util import Expression
 from Timba.Contrib.JEN.util import JEN_bookmarks
-from Timba.Contrib.JEN.Grunt import SimulParm
+# from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
 
 Settings.forest_state.cache_policy = 100
