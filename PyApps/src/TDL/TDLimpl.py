@@ -581,14 +581,15 @@ class _NodeStub (object):
     tb = Timba.utils.nonportable_extract_stack(None);
     this_stack = _CallStack(tb);
     # three options:
-    # option 1: must_define_here() already called before -- check for match
+    # option 1: must_define_here() already called before -- check for match, return True/False
+    # depending on whether the node needs to be initialized.
     if self._must_define_stack:
       if self._must_define_stack.caller() != this_stack.caller():
         message = "node '%s' must be defined here"%self.name;
       elif self._must_define_by != by_whom:
         message = "node '%s' has been defined here, but with different arguments"%self.name;
       else:
-        return False;
+        return self._initrec is None;
       # at this point we must report an error
       err = self._make_redefinition_error(this_stack,self._must_define_stack,message);
       self.scope.Repository().add_error(err);
