@@ -1,11 +1,14 @@
 # standard preamble
 from Timba.TDL import *
 
-#import tdl_error1
+import tdl_error1
 
 # forest_state is a standard TDL name. If defined in the script, this
 # record is passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
+
+
+
 
 def _define_forest (ns):
   """

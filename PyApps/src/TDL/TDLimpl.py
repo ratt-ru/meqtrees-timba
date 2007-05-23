@@ -68,6 +68,8 @@ class TDLError (RuntimeError):
     if append_callstack:
       for (filename,lineno,funcname,text) in tb[-1::-1]:
         global _original_invocation_filename;
+        # _original_invocation_filename refers to whoever is calling define_forest, so we stop the stack
+        # when we reach that
         if filename == _original_invocation_filename:
           break;
         if (filename,lineno) != (self.filename,self.lineno):
@@ -102,16 +104,6 @@ class ChildError (TDLError):
   pass;
 
 class NodeDefError (TDLError):
-  """this error is raised when a node is incorrectly defined""";
-  def __init__(self,message,next=None,tb=None,filename=None,lineno=None):
-    # trim the top frame from the stack traceback; this excludes the
-    # point where the error was actually created, since the error actually
-    # originates at the _caller_ of the error creator.
-    if tb is None:
-      tb = Timba.utils.extract_stack();
-      tb.pop(-1);
-      tb.pop(-1);
-    TDLError.__init__(self,message,next,tb,filename,lineno);
   pass;
 
 class NestedTDLError (TDLError):
@@ -123,8 +115,16 @@ class DefinedHere (NestedTDLError):
   """a nested error indicating where a node was first defined""";
   pass;
 
+class NamedHere (NestedTDLError):
+  """a nested error indicating where a node was first named""";
+  pass;
+
 class CalledFrom (NestedTDLError):
   """a nested error indicating where the offending code was called from""";
+  pass;
+
+class TooManyErrors(TDLError):
+  """error indicating that too many errors have been reported""";
   pass;
 
 class CumulativeError (RuntimeError):
@@ -179,7 +179,7 @@ class _NodeDef (object):
           if isinstance(child,str):        # child referenced by name?
             try: child = scope.Repository()[child];
             except KeyError:
-              raise ChildError,"child '%s' = %s not found" % (str(ich),child);
+              raise ChildError,"child node specified by name '%s' not found" % child;
           elif isinstance(child,(complex,float)):
             child = scope.MakeConstant(child);
           elif isinstance(child,(bool,int,long)):
@@ -188,7 +188,7 @@ class _NodeDef (object):
             # try to resolve child to a _NodeDef
             anonch = _NodeDef.resolve(child);
             if anonch is None:
-              raise ChildError,"child '%s' has illegal type %s" % (str(ich),type(child).__name__);
+              raise ChildError,"child %s has illegal type '%s'" % (str(ich),type(child).__name__);
             _dprint(4,'creating anon child',ich);
             child = anonch.autodefine(scope);
         reslist.append((ich,child));
@@ -250,11 +250,11 @@ class _NodeDef (object):
     except:
       # catch exceptions and produce an "error" def, to be reported later on
       self.children = self.initrec = None;
-      (exctype,excvalue,tb) = sys.exc_info();
+      (exctype,excvalue,) = sys.exc_info()[:2];
       self.error = excvalue;
       if not hasattr(self.error,'tb'):
-        setattr(self.error,'tb',traceback.extract_tb(tb));
-      _dprint(1,'init error def',self.error);
+        setattr(self.error,'tb',Timba.utils.extract_stack(None));
+      _dprint(1,'creating error def',self.error);
 
   def resolve (arg,recurse=5):
     """static method to resolve an argument to a _NodeDef object, or return None on error.
@@ -289,7 +289,8 @@ class _NodeDef (object):
       kwquals = {};
       for (ich,child) in self.children:
         _mergeQualifiers(quals,kwquals,
-            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
+#            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
+            list(child.quals),child.kwquals, uniq=True);
       basename = ','.join(map(lambda x:x[1].basename,self.children));
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
@@ -356,6 +357,35 @@ def NodeType ():
 def is_node (x):
   return isinstance(x,_NodeStub);
 
+class _CallStack (object):
+  """CallStack represents a call stack. It is initialized with a traceback
+  object, and encapsulates information about the caller, etc.""";
+  def __init__ (self,tb):
+    """tb is a traceback object, such as returned by Timba.utils.extract_stack()
+    or Timba.utils.nonportable_extract_stack()""";
+    self._tb = tb;
+    # strip off all "internal" stack frames
+    while tb and _re_localfiles.match(tb[-1][0]):
+      tb.pop(-1);
+    if tb:
+      self._caller = tb[-1][:2];
+    else:
+      self._caller = None,None;
+  def tb (self):
+    return self._tb;
+  def filename (self):
+    return self._caller[0];
+  def lineno (self):
+    return self._caller[1];
+  def make_error (self,error_class,message,**kwargs):
+    """Makes an error object of the given class, and includes traceback information.
+    Any keyword arguments are passed to the error constructor""";
+    return error_class(message,
+              filename=self._caller[0],lineno=self._caller[1],tb=self._tb,**kwargs);
+  def __eq__ (self,other):
+    return self._tb == other._tb;
+  def __ne__ (self,other):
+    return self._tb != other._tb;
 
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
@@ -368,7 +398,7 @@ class _NodeStub (object):
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
             "nodeindex",
-            "_initrec","_caller","_deftb","_debuginfo","_basenode",
+            "_initrec","_name_stack","_bind_stack","_debuginfo","_basenode",
             "_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the
@@ -408,9 +438,10 @@ class _NodeStub (object):
     # self._caller = _identifyCaller(stack=self._deftb,depth=2)[:2];
     ## causes compilation to be really slow, since extract_stack() is so slow.
     ## So now we use a slightly less portable, but hopefully faster version:
-    self._deftb = Timba.utils.nonportable_extract_stack(None);
-    self._caller =  _identifyCaller(stack=self._deftb,depth=2)[:2];
-    self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
+    tb = Timba.utils.nonportable_extract_stack(None);
+    self._name_stack = _CallStack(tb);
+    self._debuginfo = "%s:%d" % \
+          (os.path.basename(self._name_stack.filename()),self._name_stack.lineno());
   def __copy__ (self):
     return self;
   def __deepcopy__ (self,memo):
@@ -433,6 +464,12 @@ class _NodeStub (object):
     return self << arg;
   def __lshift__ (self,arg):
     """The << operator binds a node with a definition""";
+    tb = Timba.utils.nonportable_extract_stack(None);
+    this_stack = _CallStack(tb);
+    # Error handling: unexpected error will be caught by the except clause below,
+    # which will append the traceback "tb" to them, and optionally a "NamedHere" error,
+    # if the _name_stack set in the constructor is different from this_stack.
+    # More elaborate errors will be added to the repository explicitly.
     try:
       # resolve argument to a node spec. This will throw an exception on error
       nodedef = _NodeDef.resolve(arg);
@@ -440,8 +477,8 @@ class _NodeStub (object):
       # can't resolve? error
       if nodedef is None:
         traceback.print_stack();
-        raise TypeError,"can't bind node (using operator <<) with argument of type "+type(arg).__name__;
-      # error NodeDef? raise it as a proper exception
+        raise NodeDefError,"can't define node '%s' using an argument of type '%s'"%(self.name,type(arg).__name__);
+      # error NodeDef? reraise for processing by except clause below
       if nodedef.error:
         raise nodedef.error;
       # resolve list of children in the nodedef to a list of node stubs
@@ -458,15 +495,30 @@ class _NodeStub (object):
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          where = NodeRedefinedError("node '%s' first defined here"%self.name,
-                    filename=self._caller[0],lineno=self._caller[1],tb=self._deftb,
-                    nested=self._get_definition_chain());
-          raise NodeRedefinedError("conflicting definition for node '%s'"%self.name,
-                                   next=where);
-      else:
+          # report where node was named, and where first definition occurred
+          print "name stack",self._name_stack.tb();
+          print "bind stack",self._bind_stack.tb();
+          print "are equal",self._name_stack == self._bind_stack;
+          if self._name_stack == self._bind_stack:
+            where = self._bind_stack.make_error(DefinedHere,
+                            "...node '%s' first named and defined here"%self.name,
+                            nested=self._get_definition_chain());
+          else:
+            where = self._bind_stack.make_error(DefinedHere,"...and defined here");
+            where = self._name_stack.make_error(NamedHere,
+                            "...node '%s' first named here"%self.name,
+                            nested=self._get_definition_chain(),next=where);
+          err = this_stack.make_error(NodeRedefinedError,
+                          "conflicting definition for node '%s'"%self.name,
+                           next=where);
+          self.scope.Repository().add_error(err);
+          return self;
+        else: # else node initialized the same way, that's ok
+          return self;
+      else:  # else node not initialized
         try: self.classname = getattr(initrec,'class');
         except AttributeError:
-          raise NodeDefError,"init record missing class field";
+          raise NodeDefError,"init record missing class field, this is clearly impossible";
         _dprint(4,self.name,'children are',children);
         self.children = children;
         self.stepchildren = stepchildren;
@@ -484,20 +536,70 @@ class _NodeStub (object):
         elif self.classname == 'MeqVisDataMux':
           self.scope._repository._have_vdm = self;
         self._initrec = initrec;
+      # success
+      self._bind_stack = this_stack;
       return self;
     # any error is reported to the scope object for accumulation, we remain
     # uninitialized and return ourselves
     except:
-      (exctype,excvalue,tb) = sys.exc_info();
+      exctype,excvalue = sys.exc_info()[:2];
       traceback.print_exc();
       _dprint(0,"caught",exctype,excvalue);
-      tb = getattr(excvalue,'tb',None) or traceback.extract_tb(tb,None);
+      # if exception already contains a traceback attribute, use that, else
+      # add our own traceback ('tb') which we made at the top of the function
+      tb = getattr(excvalue,'tb',None) or tb;
       self.scope.Repository().add_error(excvalue,tb=tb);
       return self;
   def __str__ (self):
     return "%s(%s)" % (self.name,self.classname);
   def initialized (self):
+    """Returns True if node stub is already initialized, False otherwise""";
     return self._initrec is not None;
+  def only_define_here (self,by=None):
+    """If node stub is already initialized, checks that the _defined_where and _defined_by
+    attributes match the caller and the 'by' argument, throws an exception on
+    mismatch, else returns False.
+    If node stub is not initialized, sets the _defined_where and _defined_by attributes to
+    from the caller and the 'by' argument, and returns True.
+    Used for patterns like:
+      node = ns.somename
+      if node.define_here(self):
+        node << ...
+    This skips initialization if node is already defined, but does check that someone else
+    doesn't try to use the same node name somewhere else.
+    """;
+    # get stack tracback for caller
+    def_tb    = Timba.utils.nonportable_extract_stack(None);
+    def_where = _identifyCaller(stack=def_tb,depth=2)[:2];
+    # not initialized -- store caller info
+    if self._initrec is None:
+      self._defined_where = def_where;
+      self._defined_tb    = def_tb;
+      self._defined_by    = by;
+      return True;
+    # initialized, check for match
+    else:
+      if self._defined_where is None:
+        where = NodeRedefinedError("node '%s' first mentioned here"%self.name,
+                  filename=self._caller[0],lineno=self._caller[1],tb=self._deftb,
+                  nested=self._get_definition_chain());
+      elif self._defined_where != def_where:
+        where = NodeRedefinedError("node '%s' first defined here"%self.name,
+                  filename=self._defined_where[0],lineno=self._defined_where[1],tb=self._defined_tb,nested=self._get_definition_chain());
+      else:
+        where = None;
+      if where:
+        raise NodeRedefinedError("node '%s' already defined elsewhere"%self.name,next=where);
+      if self._defined_by != by:
+        raise NodeRedefinedError("node '%s' already defined by '%s' (we are '%s')"%(self.name,str(self._defined_by),str(by)),next=where);
+      return False;
+      ##******** NB:
+      ## we should really have three tracebacks for a node:
+      ## * where it was first named
+      ## * where it was first defined
+      ## * optional: where only_define_here() was called
+      ## error messages should reflect all three
+
   def initrec (self):
     return self._initrec;
   def num_children (self):
@@ -517,9 +619,8 @@ class _NodeStub (object):
     basenode = self._basenode;
     _dprint(5,"_get_definition_chain: basenode is",basenode and basenode.name);
     while basenode:
-      chain.append(DefinedHere("possibly derived from '%s'"%basenode.name,
-                      filename=basenode._caller[0],lineno=basenode._caller[1],
-                      tb=basenode._deftb));
+      chain.append(basenode._name_stack.make_error(NamedHere,
+                      "possibly derived from node '%s'"%basenode.name,append_callstack=False));
       basenode = basenode._basenode;
       _dprint(5,"_get_definition_chain: basenode is",basenode and basenode.name);
     return chain;
@@ -788,15 +889,16 @@ class _NodeRepository (dict):
     while tb and _re_localfiles.match(tb[-1][0]):
       tb.pop(-1);
     # put error location into object
-    if not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
+    filename = getattr(err,'filename',None);
+    lineno = getattr(err,'lineno',None);
+    if not (filename and lineno is not None):
+      _dprint(2,'no error information, setting from traceback');
       if tb:
-        setattr(err,'filename',tb[-1][0]);
-        setattr(err,'lineno',tb[-1][1]);
-      else:
-        setattr(err,'filename',None);
-        setattr(err,'lineno',None);
+        filename,lineno = tb[-1][:2]
+      setattr(err,'filename',filename);
+      setattr(err,'lineno',lineno);
     setattr(err,'tb',tb);
-    _dprint(1,'error location resolved',err,err.filename,err.lineno);
+    _dprint(1,'error location resolved:',filename,lineno);
     # in test mode, raise error immediately
     if self._testing:
       raise err;
@@ -805,20 +907,22 @@ class _NodeRepository (dict):
     # add nested traceback, if not already present
     if not hasattr(err,'nested_errors'):
       setattr(err,'nested_errors',[]);
-      for (filename,lineno,funcname,text) in tb[-1::-1]:
-        _dprint(2,'next traceback frame',filename,lineno);
+      for (filename1,lineno1,funcname,text) in tb[-1::-1]:
+        _dprint(2,'next traceback frame',filename1,lineno1);
         global _original_invocation_filename;
-        if filename == _original_invocation_filename:
+        if filename1 == _original_invocation_filename:
           break;
-        if (filename,lineno) != (err.filename,err.lineno):
-          err.nested_errors.append(CalledFrom("called from"+filename,
-                                     filename=filename,lineno=lineno));
+        if (filename1,lineno1) != (filename,lineno):
+          err.nested_errors.append(CalledFrom("called from "+filename1,
+                                     filename=filename1,lineno=lineno1,append_callstack=False));
     # add a chained error if appropriate
     next = getattr(err,'next_error',None);
     if next:
       self.add_error(next);
     # raise cumulative error if we get too many
     if error_limit is not None and len(self._errors) >= error_limit:
+      self._errors.append(TooManyErrors("too many errors, giving up",
+                                        filename=filename,lineno=lineno,append_callstack=False));
       raise CumulativeError(*self._errors);
 
   def get_errors (self):
@@ -966,13 +1070,13 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if ch is not None and not ch.initialized():
-            self.add_error(UninitializedNode("node '%s' not initialized"%ch.name,
-                        filename=ch._caller[0],lineno=ch._caller[1],tb=ch._deftb,
-                        nested=ch._get_definition_chain()));
-            if node._caller != ch._caller:
-              self.add_error(UninitializedNode("node used in this context",
-                               filename=node._caller[0],lineno=node._caller[1],
-                               tb=node._deftb));
+            self.add_error(
+              ch._name_stack.make_error(UninitializedNode,
+                                "node '%s' not initialized"%ch.name,
+                                 nested=ch._get_definition_chain()));
+            if node._name_stack != ch._name_stack:
+              self.add_error(node._name_stack.make_error(UninitializedNode,
+                                "...node '%s' used in this context"%ch.name));
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();

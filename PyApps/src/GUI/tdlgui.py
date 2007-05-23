@@ -47,8 +47,9 @@ _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 
 class TDLEditor (QFrame,PersistentCurrier):
-  ErrorMarker = 0;
-  CurrentErrorMarker = 1;
+  SubErrorMarker = 0;
+  ErrorMarker = 1;
+  CurrentErrorMarker = 2;
   # a single editor always has the focus
   current_editor = None;
 
@@ -166,8 +167,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._editor_fontadjust = -6;
     self.adjust_editor_font();
     self._editor.markerDefine(QextScintilla.RightTriangle,self.ErrorMarker);
+    self._editor.markerDefine(QextScintilla.RightTriangle,self.SubErrorMarker);
     self._editor.markerDefine(QextScintilla.RightTriangle,self.CurrentErrorMarker);
     self._editor.setMarkerForegroundColor(QColor("red"),self.ErrorMarker);
+    self._editor.setMarkerForegroundColor(QColor("grey"),self.SubErrorMarker);
     self._editor.setMarkerForegroundColor(QColor("red"),self.CurrentErrorMarker);
     self._editor.setMarkerBackgroundColor(QColor("red"),self.CurrentErrorMarker);
     self._editor.setMarginSensitivity(1,True);
@@ -371,15 +374,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     """helper method, resets error markers and such. Usually tied to a hasErrors() signal
     from an error window""";
     self._editor.markerDeleteAll(self.ErrorMarker);
+    self._editor.markerDeleteAll(self.SubErrorMarker);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);
     self._error_at_line = {};
     nerr_local = 0;
     if nerr:
       error_locations = self._error_window.get_error_locations();
-      for err_num,filename,line,column in error_locations:
+      for err_num,filename,line,column,suberror in error_locations:
         if filename == self._filename:
           self._error_at_line[line-1] = err_num;
-          self._editor.markerAdd(line-1,self.ErrorMarker);
+          if suberror:
+            self._editor.markerAdd(line-1,self.SubErrorMarker);
+          else:
+            self._editor.markerAdd(line-1,self.ErrorMarker);
           nerr_local += 1;
     self.emit(PYSIGNAL("hasErrors()"),(nerr_local,));
 
@@ -916,8 +923,9 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
         errmsg = str(err);
       filename = getattr(err,'filename',None);
       line = getattr(err,'lineno',0);
-      column = getattr(err,'offset',0);
-      _dprint(1,errmsg,"at",filename);
+      column = getattr(err,'offset',0) or 0;  # offset is sometimes None, make sure this is 0
+      suberror = isinstance(err,TDL.NestedTDLError);
+      _dprint(1,errmsg,"at",filename,line,column);
       # index of corresponding top-level item
       toplevel_index = len(self._toplevel_error_items)-1;
       if toplevel:
@@ -936,8 +944,9 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       item.setOpen(False);
       # set item content
       if filename is None:
-        item.setText(2,"["+errmsg+"]");
-        item.setText(1,"internal compilation error: text console may have more info");
+        item.setText(1,errmsg);
+        item.setText(2,"<unknown>");
+        item.setText(3,"(%s)"%err.__class__.__name__);
       else:
         # normalize filenames: eliminate CWD, leave just one path element
         fname = filename;
@@ -952,7 +961,7 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
             fname = os.path.join("...",dir2,fname);
         item.setText(1,errmsg);
         item.setText(3,"(%s)"%err.__class__.__name__);
-        item._err_location = len(self._error_items)-1,filename,line,column;
+        item._err_location = len(self._error_items)-1,filename,line,column,suberror;
         self._error_locations.append(item._err_location);
         item.setText(2,"[%s:%d]" % (fname,line));
       # recursively populate with nested errors if needed

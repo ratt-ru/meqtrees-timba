@@ -45,7 +45,7 @@ def _define_forest (ns,**kwargs):
         a=None
       ),
     );
-  ns.reqseq = Meq.ReqSeq(ns.solver3,ns.solver2);
+  ns.reqseq = Meq.ReqSeq(ns.solver,ns.solver2);
     
 
 def _test_forest (mqs,parent,**kwargs):
