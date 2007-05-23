@@ -373,6 +373,8 @@ class _CallStack (object):
       self._caller = None,None;
   def tb (self):
     return self._tb;
+  def caller (self):
+    return self._caller;
   def filename (self):
     return self._caller[0];
   def lineno (self):
@@ -399,6 +401,7 @@ class _NodeStub (object):
             "classname","parents","children","stepchildren",
             "nodeindex",
             "_initrec","_name_stack","_bind_stack","_debuginfo","_basenode",
+            "_must_define_stack","_must_define_by",
             "_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the
@@ -442,6 +445,7 @@ class _NodeStub (object):
     self._name_stack = _CallStack(tb);
     self._debuginfo = "%s:%d" % \
           (os.path.basename(self._name_stack.filename()),self._name_stack.lineno());
+    self._must_define_stack = self._must_define_by = None;
   def __copy__ (self):
     return self;
   def __deepcopy__ (self,memo):
@@ -495,22 +499,9 @@ class _NodeStub (object):
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          # report where node was named, and where first definition occurred
-          print "name stack",self._name_stack.tb();
-          print "bind stack",self._bind_stack.tb();
-          print "are equal",self._name_stack == self._bind_stack;
-          if self._name_stack == self._bind_stack:
-            where = self._bind_stack.make_error(DefinedHere,
-                            "...node '%s' first named and defined here"%self.name,
-                            nested=self._get_definition_chain());
-          else:
-            where = self._bind_stack.make_error(DefinedHere,"...and defined here");
-            where = self._name_stack.make_error(NamedHere,
-                            "...node '%s' first named here"%self.name,
-                            nested=self._get_definition_chain(),next=where);
-          err = this_stack.make_error(NodeRedefinedError,
-                          "conflicting definition for node '%s'"%self.name,
-                           next=where);
+          # report error
+          err = self._make_redefinition_error(this_stack,self._bind_stack,
+                        "conflicting definition for node '%s'"%self.name);
           self.scope.Repository().add_error(err);
           return self;
         else: # else node initialized the same way, that's ok
@@ -555,51 +546,65 @@ class _NodeStub (object):
   def initialized (self):
     """Returns True if node stub is already initialized, False otherwise""";
     return self._initrec is not None;
-  def only_define_here (self,by=None):
+  def _make_redefinition_error (self,callstack,bindstack,message):
+    """helper function to form up 'node redefined' errors. Called both by lshift()
+    above, and must_define_here() below.
+    callstack is a _CallStack for the current caller.
+    binstack is a _CallStack where the node was defined
+    message is error message.
+    """;
+    if self._name_stack == bindstack:
+      where = bindstack.make_error(DefinedHere,
+                      "...node '%s' first named and defined here"%self.name,
+                      nested=self._get_definition_chain());
+    else:
+      where = bindstack.make_error(DefinedHere,"...and defined here");
+      where = self._name_stack.make_error(NamedHere,
+                      "...node '%s' first named here"%self.name,
+                      nested=self._get_definition_chain(),next=where);
+    return callstack.make_error(NodeRedefinedError,message,next=where);
+    
+  def must_define_here (self,*by_whom):
     """If node stub is already initialized, checks that the _defined_where and _defined_by
-    attributes match the caller and the 'by' argument, throws an exception on
+    attributes match the caller and the argument list. Throws an exception on
     mismatch, else returns False.
-    If node stub is not initialized, sets the _defined_where and _defined_by attributes to
-    from the caller and the 'by' argument, and returns True.
+    If node stub is not initialized, sets the _must_define_stack and _must_define_by attributes 
+    from the caller and arguments, and returns True.
     Used for patterns like:
       node = ns.somename
-      if node.define_here(self):
+      if node.must_define_here(self):
         node << ...
     This skips initialization if node is already defined, but does check that someone else
     doesn't try to use the same node name somewhere else.
     """;
-    # get stack tracback for caller
-    def_tb    = Timba.utils.nonportable_extract_stack(None);
-    def_where = _identifyCaller(stack=def_tb,depth=2)[:2];
-    # not initialized -- store caller info
-    if self._initrec is None:
-      self._defined_where = def_where;
-      self._defined_tb    = def_tb;
-      self._defined_by    = by;
-      return True;
-    # initialized, check for match
-    else:
-      if self._defined_where is None:
-        where = NodeRedefinedError("node '%s' first mentioned here"%self.name,
-                  filename=self._caller[0],lineno=self._caller[1],tb=self._deftb,
-                  nested=self._get_definition_chain());
-      elif self._defined_where != def_where:
-        where = NodeRedefinedError("node '%s' first defined here"%self.name,
-                  filename=self._defined_where[0],lineno=self._defined_where[1],tb=self._defined_tb,nested=self._get_definition_chain());
+    # get stack traceback and extract caller information
+    tb = Timba.utils.nonportable_extract_stack(None);
+    this_stack = _CallStack(tb);
+    # three options:
+    # option 1: must_define_here() already called before -- check for match
+    if self._must_define_stack:
+      if self._must_define_stack.caller() != this_stack.caller():
+        message = "node '%s' must be defined here"%self.name;
+      elif self._must_define_by != by_whom:
+        message = "node '%s' has been defined here, but with different arguments"%self.name;
       else:
-        where = None;
-      if where:
-        raise NodeRedefinedError("node '%s' already defined elsewhere"%self.name,next=where);
-      if self._defined_by != by:
-        raise NodeRedefinedError("node '%s' already defined by '%s' (we are '%s')"%(self.name,str(self._defined_by),str(by)),next=where);
+        return False;
+      # at this point we must report an error
+      err = self._make_redefinition_error(this_stack,self._must_define_stack,message);
+      self.scope.Repository().add_error(err);
       return False;
-      ##******** NB:
-      ## we should really have three tracebacks for a node:
-      ## * where it was first named
-      ## * where it was first defined
-      ## * optional: where only_define_here() was called
-      ## error messages should reflect all three
-
+    # option 2: called for the first time, node already initialized elsewhere
+    elif self._initrec is not None:
+      err = self._make_redefinition_error(this_stack,self._bind_stack,
+        message = "node '%s' must be defined here"%self.name);
+      self.scope.Repository().add_error(err);
+      return False;
+    # option 3: called for the first time, node not initialized
+    else:
+      self._must_define_stack = this_stack;
+      self._must_define_by = by_whom;
+      return True;
+    
   def initrec (self):
     return self._initrec;
   def num_children (self):

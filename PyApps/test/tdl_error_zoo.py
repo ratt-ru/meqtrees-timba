@@ -68,6 +68,16 @@ def tdl_node_errors (ns,nested=False):
   x2 = ns.x(2);
   x2 << 1; 
   
+  # now check the must_define_by function
+  def must_define_node_here (node,value,*by_whom):
+    if node.must_define_here(*by_whom):
+      node << value;
+  CALL(must_define_node_here,ns.z1,0,"by me");   # no error
+  CALL(must_define_node_here,ns.z1,1,"by me");   # no error -- already defined, so value is ignored
+  CALL(must_define_node_here,ns.z1,2,"by him");  # error -- defined by someone else
+  ns.z1.must_define_here("by me");               # error -- must be defined elsewhere
+  ns.x.must_define_here("by me");                # error -- already defined
+  
   # ...also through nodescopes and subscopes
   ns1 = ns.Subscope('a');
   ns1.a << 0;
