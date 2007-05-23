@@ -121,7 +121,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
     MDirection sn(sunr);
     MDirection::Convert sc0(sn, MDirection::Ref(MDirection::J2000));
     //MDirection::Ref sunr(MDirection::MOON, frame);
-    for (int ci=1; ci<ntime; ci++) {
+    for (int ci=0; ci<ntime; ci++) {
       qepoch.setValue(arrtime(ci)/(3600*24.0));
       dat=qepoch;
       mdat.set(dat);
