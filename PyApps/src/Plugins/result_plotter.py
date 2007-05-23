@@ -785,14 +785,7 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.initVellsContextMenu()
 
 # do we have flags for data?	  
-      if self._vells_data.activePlaneHasFlags():
-        flag_plane = self._vells_data.getActivePlane()
-        self._visu_plotter.set_flag_toggles(flag_plane, True)
-        self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
-      else:
-        flag_plane = self._vells_data.getActivePlane()
-        self._visu_plotter.set_flag_toggles(flag_plane, False)
-        self._visu_plotter.unsetFlagsData()
+      self.test_for_flags()
 
 # test and update the context menu
       menu_data = self._vells_data.getMenuData()
@@ -811,6 +804,16 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
+
+  def test_for_flags(self):
+    flag_plane = self._vells_data.getActivePlane()
+    if self._vells_data.activePlaneHasFlags():
+      self._visu_plotter.set_flag_toggles(flag_plane, True)
+      self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
+    else:
+      self._visu_plotter.set_flag_toggles(flag_plane, False)
+      self._visu_plotter.unsetFlagsData()
+
 
   def update_display_control (self):
       vells_data_parms = self._vells_data.getVellsDataParms()
@@ -909,22 +912,33 @@ class ResultPlotter(GriddedPlugin):
     """ callback to handle a request from the lower level 
         display_image.py code for different Vells data """
     _dprint(3, 'starting update_vells_display')
+     
     self._vells_data.unravelMenuId(menuid)
     plot_label = self._vells_data.getPlotLabel()
     plot_data = self._vells_data.getActiveData()
+
+# do we have flags for data?	  
+    self.test_for_flags()
+
     if self._vells_data.getShapeChange():
       self.update_display_control()
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
     self._visu_plotter.reset_color_bar(True)
     if self._vells_data.isVellsScalar():
-#     try:
-#       plot_label =  self._vells_data.getScalarString()
-#       self._visu_plotter.report_scalar_value(plot_label)
-#     except:
-        self._visu_plotter.report_scalar_value(plot_label, plot_data)
+#     self._visu_plotter.report_scalar_value(plot_label, plot_data)
+      if not self._visu_plotter is None:
+        self._visu_plotter.hide()
+      Message =  self._vells_data.getScalarString()
+      self.QTextBrowser.setText(Message)
+      self.QTextBrowser.show()
+      return
     else:
       if not self.test_vells_scalar(plot_data, plot_label):
+        if not self.QTextBrowser is None:
+          self.QTextBrowser.hide()
+        if not self._visu_plotter is None:
+          self._visu_plotter.show()
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_spectrum_display(self, menuid):
