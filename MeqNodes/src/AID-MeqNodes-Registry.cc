@@ -507,11 +507,11 @@ DMI::BObj * __construct_MeqLST (int n) { return n>0 ? new Meq::LST [n] : new Meq
         AtomicID::registerId(-1384,"MeqRandomNoise")+
         TypeInfoReg::addToRegistry(-1384,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1384,__construct_MeqRandomNoise)+
+        AtomicID::registerId(-1725,"Seed")+
         AtomicID::registerId(-1449,"MeqGaussNoise")+
         TypeInfoReg::addToRegistry(-1449,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1449,__construct_MeqGaussNoise)+
         AtomicID::registerId(-1350,"StdDev")+
-        AtomicID::registerId(-1725,"Seed")+
         AtomicID::registerId(-1434,"MeqZeroFlagger")+
         TypeInfoReg::addToRegistry(-1434,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1434,__construct_MeqZeroFlagger)+

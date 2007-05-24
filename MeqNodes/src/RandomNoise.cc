@@ -22,12 +22,15 @@
 
 #include <stdlib.h>
 
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/RandomNoise.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 
 namespace Meq {    
+
+const HIID FSeed = AidSeed;
 
 //##ModelId=400E535502AC
 RandomNoise::RandomNoise()
@@ -47,6 +50,16 @@ RandomNoise::~RandomNoise()
   // FailWhen(numChildren(),"RandomNoise node cannot have children");
 //}
 
+void RandomNoise::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  int seed;
+  if( rec[FSeed].get(seed,initializing) )
+  {
+    // if seed was supplied, reseed generator
+    srandom((unsigned int) seed);
+  }
+}
+
 //##ModelId=400E535502B5
 int RandomNoise::getResult (Result::Ref &resref, 
                      const std::vector<Result::Ref> &childres,
@@ -65,6 +78,7 @@ int RandomNoise::getResult (Result::Ref &resref,
   double MaxVal = vrb.as<double>();
 
   double range = MaxVal - MinVal;
+//  srandom(123);
 
   //
   // Create the cells.

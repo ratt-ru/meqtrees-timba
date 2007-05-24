@@ -29,6 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::RandomNoise
+#pragma aid Seed
 
 namespace Meq {    
 
@@ -50,6 +51,9 @@ public:
   { return TpMeqRandomNoise; }
 
 protected:
+  // sets up state from state record
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
   // Evaluate the value for the given request.
     //##ModelId=400E535502B5
   virtual int getResult (Result::Ref &resref, 
