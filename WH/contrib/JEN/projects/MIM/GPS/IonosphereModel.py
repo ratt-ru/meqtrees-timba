@@ -9,7 +9,7 @@ import GPSPair
 from Timba.Contrib.JEN.Vector import GeoLocation
 from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
-from Timba.Contrib.JEN.util import Expression
+from Timba.Contrib.JEN.Expression import Expression
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from numarray import *
 
