@@ -479,7 +479,7 @@ class Matrixet22 (object):
 
     #---------------------------------------------------------------------
 
-     def mean(self, quals=None):
+    def mean(self, quals=None):
         """Calculate the mean of all 2x2 matrices"""
         return self.bundle('Add', qual=quals, normalise=True)
 

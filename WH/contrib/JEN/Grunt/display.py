@@ -49,8 +49,6 @@ def subtree (node, txt=None, level=1,
         done[node.name] += 1
 
     if recurse>0:
-        # print dir(node)
-        # print node.__doc__
         if node.initialized():
             for child in node.children:
                 subtree (child[1], txt=txt, level=level+1, done=done,
