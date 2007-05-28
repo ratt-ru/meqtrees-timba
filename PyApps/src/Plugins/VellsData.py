@@ -46,7 +46,9 @@ class VellsData:
      self._plot_labels = {}
      self._key_menu_labels = {}
      self._menu_labels = {}
-     self._perturbations_index = []
+     self._perturbations_index = {}
+     self._planes_index = []
+     self.start_vells_id = 499
      self.array_selector = []
      self.array_tuple = None
      self.data_max = None
@@ -172,7 +174,8 @@ class VellsData:
      self._plot_flags_dict = {}
      self._plot_labels = {}
      self._menu_labels = {}
-     self._perturbations_index = []
+     self._perturbations_index = {}
+     self._planes_index = []
      self.scalar_data = False
      self.scalar_string = ""
      self.rq_label = rq_label
@@ -186,7 +189,7 @@ class VellsData:
 
      self._number_of_planes = len(vells_rec["vellsets"])
      _dprint(3, 'number of planes ', self._number_of_planes)
-     id = -1
+     id = self.start_vells_id
      self.dims = None
      self.index = []
      self.start_index = None
@@ -194,7 +197,6 @@ class VellsData:
        dims = vells_rec.dims
        self.dims = list(dims)
        for i in range(len(self.dims)):
-         self.dims[i] = self.dims[i] - 1
          self.index.append(0)
        self.start_index = len(self.dims) - 1
 
@@ -210,6 +212,7 @@ class VellsData:
 #        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = text_display
          self._key_menu_labels[id] = menu_label
+         self._planes_index.append(id)
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          tag = "] main value "
@@ -234,6 +237,7 @@ class VellsData:
            number_of_perturbed_arrays = len(vells_rec.vellsets[i].perturbed_value)
            tag = "] perturbed value "
            perturbations_list = []
+           perturbations_key = str(id) + ' perturbations'
            for j in range(number_of_perturbed_arrays):
              menu_label =  "[" + str(i) + tag + str(j) 
              if self.dims is None:
@@ -257,7 +261,7 @@ class VellsData:
              if self.scalar_data:
                self.scalar_string = self.scalar_string + plot_string + " " + str(self._plot_vells_dict[menu_label]) + "\n"
              self._plot_labels[menu_label] = plot_string
-           self._perturbations_index.append(perturbations_list)
+           self._perturbations_index[perturbations_key] = perturbations_list
 
          except:
            _dprint(3, 'The perturbed values cannot be displayed.')
@@ -277,7 +281,7 @@ class VellsData:
 # update index used for strings on displays if self.dims exists
        if not self.dims is None:
          for j in range(self.start_index,-1,-1):
-           if self.index[j] < self.dims[j]:
+           if self.index[j] < self.dims[j] - 1:
              self.index[j] = self.index[j] + 1
              if j < self.start_index:
                for k in range(j+1, len(self.index)):
@@ -288,7 +292,7 @@ class VellsData:
 
 # initialize axis selection ?
      if not self.initialSelection:
-       tag = self._key_menu_labels[0]
+       tag = self._key_menu_labels[self.start_vells_id + 1]
        data = self._plot_vells_dict[tag]
        rank = data.rank
        shape = data.shape
@@ -315,7 +319,8 @@ class VellsData:
 
    def getMenuData(self):
      """ returns the labels for vells selection menu """
-     return (self._menu_labels, self._perturbations_index)
+     return (self._menu_labels, self._perturbations_index, self._planes_index, self.dims)
+
 
    def getVellsPlotLabels(self):
      """ returns the labels for vells plot menu """
