@@ -235,8 +235,11 @@ class _NodeDef (object):
       if tags is not None:
         if isinstance(tags,str):
           kw['tags'] = tags.split(" ");
-        elif not isinstance(tags,(list,tuple)):
-          raise TypeError,"'tags' must be a string, or a list or tuple of strings";
+        elif isinstance(tags,(list,tuple)):
+          if filter(lambda tag:not isinstance(tag,str),tags):
+            raise TypeError,"'tags' must be a string or a sequence of strings";
+        else:
+          raise TypeError,"'tags' must be a string or a sequence of strings";
       # create init-record
       initrec = dmi.record(**kw);
       initrec['class'] = ''.join((pkgname,classname));
@@ -986,7 +989,7 @@ class _NodeRepository (dict):
         return False;
       for cond in tag_conds:
         for t in node_tags:
-          if cond(t):
+          if isinstance(t,str) and cond(t):
             break;  # found, break and go to next condition
         # no node tag found for this conditon
         else:
