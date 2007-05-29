@@ -426,10 +426,10 @@ class ParameterizationPlus (Meow.Parameterization):
     #===============================================================
 
     def p_bundle (self, parmgroup='*', combine='Add',
-                  bookpage=None, show=False):
+                  bookpage=True, show=False):
         """Bundle the nodes in the specified parmgroup(s) by applying the
         specified combine-operation (default='Add') to them. Return the
-        root node of the resulting subtree."""
+        root node of the resulting subtree. Make bookpages for each parmgroup."""
 
         pg = self.p_check_parmgroups (parmgroup, severe=True)
         bb = []
@@ -440,6 +440,8 @@ class ParameterizationPlus (Meow.Parameterization):
             if not qnode.initialized():
                 qnode << getattr(Meq,combine)(children=nodes)
             bb.append(qnode)
+            if bookpage:
+                JEN_bookmarks.create(qnode, recurse=1, page=qnode.name)
 
         # Bundle the parmgroup bundles, if necessary:
         if len(bb)==0:
@@ -460,15 +462,35 @@ class ParameterizationPlus (Meow.Parameterization):
     # Visualization:
     #===============================================================
 
-    def p_inspector (self, parmgroup, bookpage=None,
-                     unop=None,
-                     binop='ToComplex', rhs=None):
-        """Visualize the nodes in the specified (key) parmgroup.
-        - If another parmgroup (rhs) is specified, apply the
-        specified binary operation (binop) to corresponding nodes.
-        - If an unary operation (unop, e.g. 'Abs') is specified,
-        first apply this operation to the nodes first (rhs also)"""
-        return node
+    def p_inspector (self, parmgroup='*'):
+        """Visualize the nodes in the specified parmgroup(s) in a separate
+        'inspector' per parmgroup. Return the root node of the resulting subtree.
+        Make bookpages for each parmgroup."""
+
+        pg = self.p_check_parmgroups (parmgroup, severe=True)
+        bb = []
+        for key in pg:
+            quals = [key]
+            qnode = self.ns['p_inspector'](*quals)
+            if not qnode.initialized():
+                nodes = self._parmgroups[key]['nodes']
+                labels = self._parmgroups[key]['plot_labels']
+                qnode << Meq.Composer(children=nodes,
+                                      plot_label=labels)
+            bb.append(qnode)
+            JEN_bookmarks.create(qnode, key, page='p_inspector_'+self.name,
+                                 viewer='Collections Plotter')
+
+        # Make a subtree of inspectors, and return the root node:
+        if len(bb)==0:
+            return None
+        elif len(bb)==1:
+            qnode = bb[0]
+        else:
+            qnode = self.ns['p_inspector'](parmgroup)
+            if not qnode.initialized():
+                qnode << Meq.Composer(children=bb)
+        return qnode
 
     #---------------------------------------------------------------
 
@@ -546,6 +568,69 @@ def _simul_subtree(rr, qnode,
       
     
     
+
+
+
+
+
+#=============================================================================
+#=============================================================================
+#=============================================================================
+# Test routine (with meqbrowser):
+#=============================================================================
+
+def _define_forest(ns):
+
+    # cc = [ns.dummy<<45]
+    cc = []
+
+    pp1 = ParameterizationPlus(ns, 'G',
+                               # kwquals=dict(tel='WSRT', band='21cm'),
+                               quals='3c84')
+    pp1.p_display('initial')
+
+    if 1:
+        pp1.p_group_define('Gphase', tiling=3, simul=True)
+        pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
+
+    if 1:
+        pp1.p_group_create_member('Gphase', 1)
+        pp1.p_group_create_member('Gphase', 2.1, value=(ns << -89))
+        pp1.p_group_create_member('Gphase', 2, value=34)
+        pp1.p_group_create_member('Gphase', 3, tiling=5, simul=False)
+        pp1.p_group_create_member('Gphase', 7, freq_deg=2)
+
+    if 1:
+        pp1.p_group_create_member('Ggain', 7, freq_deg=6)
+        pp1.p_group_create_member('Ggain', 4, time_deg=3)
+
+    if 0:
+        node = pp1.p_bundle(show=True)
+        cc.append(node)
+
+    if 1:
+        node = pp1.p_inspector()
+        cc.append(node)
+
+    pp1.p_display('final', full=True)
+
+    ns.result << Meq.Composer(children=cc)
+    return True
+
+
+
+#---------------------------------------------------------------
+
+def _tdl_job_2D_tf (mqs, parent):
+    """Execute the forest with a 2D request (freq,time), starting at the named node"""
+    domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=10, num_time=100)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+
+
 
 
 
