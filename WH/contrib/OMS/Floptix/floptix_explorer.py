@@ -24,7 +24,7 @@ _dbg = utils.verbosity(0,name='floptix_explorer');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-class PyMultipleImages (floptix.PyCameraImage):
+class PyImage_ExploreAroundCenter (floptix.PyCameraImage):
   def update_state (self,mystate):
     floptix.PyCameraImage.update_state(self,mystate);
     mystate("actuator",1);
@@ -52,6 +52,26 @@ class PyMultipleImages (floptix.PyCameraImage):
         result.vellsets.insert(0,meq.vellset(vells));
       # return to 0
       motor_control.move(self.actuator,1,self.max_extension);
+      return result;
+    except:
+      traceback.print_exc();
+      raise;
+
+class PyImage_ExploreImageStability (floptix.PyCameraImage):
+  def update_state (self,mystate):
+    floptix.PyCameraImage.update_state(self,mystate);
+    mystate("num_images",10);
+    
+  def get_result (self,request,*children):
+    try:
+      # read main image
+      time.sleep(self.settle_time);
+      cells,value = self._acquire_image("image.00.pgm");
+      result = meq.result(meq.vellset(value),cells);
+      # take extra images
+      for i in range(self.num_images-1):
+        cells,vells = self._acquire_image("image.+%d.pgm"%(i+1));
+        result.vellsets.append(meq.vellset(vells));
       return result;
     except:
       traceback.print_exc();
@@ -168,12 +188,14 @@ class PyFlattenTensor (pynode.PyNode):
 TDLCompileOption('static_filename',"Static filename (enables static mode for testing)",[None,'test.pgm'],more=str);
 TDLCompileOption('filename_pattern',"Image filename pattern",["live.*pgm","test.pgm"],more=str);
 TDLCompileOption('directory_name',"Directory name",["/home/oms/live","."],more=str);
+TDLCompileOption('average_frames',"Average N frames together",[1,2,5,10],more=int);
 TDLCompileOption('scaling_factor',"Rescale image",[.25,.5,1],more=float);
-TDLCompileOption('masking_radius',"Radius of box around sources",[20],more=int);
+TDLCompileOption('masking_radius',"Radius of box around sources",[20,40,60],more=int);
+TDLCompileOption('psf_radius',"Radius of PSF",[10,15,20,30],more=int);
 TDLCompileOption('moments_order',"Max moment order",[2]);
 TDLCompileOption('moments_image_threshold',"Image threshold for moment calculation",[0,.1,.25,.5],more=float);
 TDLCompileOption('test_actuator',"Actuator to test",motor_control.ALL_MOTORS);
-TDLCompileOption('actuator_extension',"Actuator extension",[5,10,20],more=int);
+TDLCompileOption('max_extension',"Max actuator extension",[5,10,20],more=int);
 
 def read_lsm (filename):
   """Reads catalog file produced by sextractor, returns a list
@@ -213,45 +235,65 @@ def _define_forest (ns,**kwargs):
   _dprint(0,"scaled image size is",image_nx,image_ny);
 
   # now make the tree
-  ns.img << Meq.PyNode(class_name="PyMultipleImages",module_name=__file__,
+  ns.img('center') << Meq.PyNode(class_name="PyImage_ExploreAroundCenter",module_name=__file__,
                        directory_name=directory_name,
                        file_name=filename_pattern,
                        static_mode=(static_filename is not None),
                        xaxis="x",yaxis="y",
-                       settle_time=.5,
+                       settle_time=.1,
                        rescale=scaling_factor,
-                       actuator=test_actuator,max_extension=actuator_extension,
-                       radius=masking_radius
+                       average=average_frames,
+                       actuator=test_actuator,
+                       max_extension=max_extension,
+                       detection_radius=masking_radius
+                     );
+  ns.img('stability') << Meq.PyNode(class_name="PyImage_ExploreImageStability",module_name=__file__,
+                       directory_name=directory_name,
+                       file_name=filename_pattern,
+                       static_mode=(static_filename is not None),
+                       xaxis="x",yaxis="y",
+                       settle_time=.1,
+                       rescale=scaling_factor,
+                       average=average_frames,
+                       num_images=max_extension*2+1,
+                       detection_radius=masking_radius
                      );
                      
   sources = read_lsm('test.cat');
   if len(sources) > 10:
     raise ValueError,"too many sources found, edit 'default.sex' and try again";
-  for src,x,y in sources:
-    mom = ns.moments(src) << Meq.PyNode(class_name="PyExploreMoments",module_name=__file__,
-                          origin_0=[x,y],
-                          radius=masking_radius,
-                          order=moments_order,
-                          image_threshold=moments_image_threshold,
-                          isq_moment=True,
-                          xaxis='x',yaxis='y',
-                          children=[ns.img]
-                       );
-    ns.flat(src) << Meq.PyNode(ns.moments(src),class_name="PyFlattenTensor",module_name=__file__);
-  # make node to acquire all moments
-  ns.all_moments << Meq.Composer(dims=[0],*[ns.flat(src) for src,x,y in sources]);
+  for tp in 'center','stability':
+    for src,x,y in sources:
+      mom = ns.moments(tp,src) << Meq.PyNode(class_name="PyExploreMoments",module_name=__file__,
+                            origin_0=[x,y],
+                            detection_radius=masking_radius,
+                            psf_radius=psf_radius,
+                            order=moments_order,
+                            image_threshold=moments_image_threshold,
+                            isq_moment=True,
+                            xaxis='x',yaxis='y',
+                            cache_policy=100,
+                            children=[ns.img(tp)]
+                        );
+      ns.flat(tp,src) << Meq.PyNode(ns.moments(tp,src),class_name="PyFlattenTensor",module_name=__file__);
+    # make node to acquire all moments
+    ns.all_moments(tp) << Meq.Composer(dims=[0],cache_policy=100,*[ns.flat(tp,src) for src,x,y in sources]);
+    ns.root(tp) << Meq.Composer(ns.all_moments(tp));
   
-  ns.root << Meq.Composer(ns.all_moments,cache_policy=100);
+    bk = Meow.Bookmarks.Page("Moments "+tp);
+    bk.add(ns.all_moments(tp));
   
-  bk = Meow.Bookmarks.Page("Moments");
-  bk.add(ns.all_moments);
-  
-  bk = Meow.Bookmarks.Page("Images");
-  bk.add(ns.img);
+    bk = Meow.Bookmarks.Page("Images "+tp);
+    bk.add(ns.img(tp));
 
-def _tdl_job_1_run_through_actuator (mqs,parent,**kwargs):
+def _tdl_job_1_run_actuator_around_center (mqs,parent,**kwargs):
   # run tests on the forest
   cells = floptix.make_cells(image_nx,image_ny,'x','y');
   request = meq.request(cells);
-  mqs.execute('root',request);
+  mqs.execute('root:center',request);
 
+def _tdl_job_2_check_image_stability (mqs,parent,**kwargs):
+  # run tests on the forest
+  cells = floptix.make_cells(image_nx,image_ny,'x','y');
+  request = meq.request(cells);
+  mqs.execute('root:stability',request);

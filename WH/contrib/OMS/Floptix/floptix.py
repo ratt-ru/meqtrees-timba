@@ -10,6 +10,7 @@ import os.path
 import time
 import motor_control
 import pgm
+import math
 
 import numarray
 Array = numarray
@@ -149,6 +150,8 @@ class PyCameraImage (pynode.PyNode):
     mequtils.add_axis(self.xaxis);
     mequtils.add_axis(self.yaxis);
     mystate('rescale',1.);
+    # average N frames together
+    mystate('average',1);
     # actuators
     self._positions = {};
     mystate('actuators',motor_control.ALL_MOTORS);
@@ -176,17 +179,26 @@ class PyCameraImage (pynode.PyNode):
     
   def _acquire_image (self,log_filename=None):
     """acquires latest image from camera. Returns a tuple of cells and vells""";
-    if self.static_mode:
-      filename = self.file_name;
-    else:
-      filename = acquire_imagename(self._file_re,directory=self.directory_name,
-                      timeout=self.timeout,sleep_time=self.sleep_time);
-      if log_filename:
-        os.rename(filename,log_filename);
-        filename = log_filename;
-    # read image
-    img = pgm.Image(file(filename).read()).pixels;
-    img.byteswap();
+    for nframe in range(self.average):
+      if self.static_mode:
+        filename = self.file_name;
+      else:
+        filename = acquire_imagename(self._file_re,directory=self.directory_name,
+                        timeout=self.timeout,sleep_time=self.sleep_time);
+        if log_filename:
+          os.rename(filename,log_filename);
+          filename = log_filename;
+      # read image
+      img = pgm.Image(file(filename).read()).pixels;
+      img.byteswap();
+      if self.average > 1:
+        if nframe:
+          sumimage = sumimage + img;
+        else:
+          sumimage = img.astype(Array.Int32);
+    # if averaging is in effect, use average image
+    if self.average > 1:
+      sumimage = sumimage/self.average;
 #    img.transpose();
     nx,ny = img.shape;
     if self.rescale != 1:
@@ -369,8 +381,9 @@ class PyMoments (pynode.PyNode):
   def update_state (self,mystate):
     mystate("origin_0",(0,0));
     self.origin = self.origin_0;
-    mystate("radius",20);
-    self._boxsize = self.radius*2+1;
+    mystate("detection_radius",20);
+    self._boxsize = self.detection_radius*2+1;
+    mystate("psf_radius",10);
     mystate("order",2);
     mystate("isq_moment",True);
     print "isq_moment:",self.isq_moment;
@@ -397,10 +410,10 @@ class PyMoments (pynode.PyNode):
       # extract box around origin
       xc,yc = self.origin;
       xc,yc = int(round(xc)),int(round(yc));
-      x0 = max(xc-self.radius,0);
-      x1 = min(xc+self.radius+1,img0.shape[0]);
-      y0 = max(yc-self.radius,0);
-      y1 = min(yc+self.radius+1,img0.shape[1]);
+      x0 = max(xc-self.detection_radius,0);
+      x1 = min(xc+self.detection_radius+1,img0.shape[0]);
+      y0 = max(yc-self.detection_radius,0);
+      y1 = min(yc+self.detection_radius+1,img0.shape[1]);
       # check for degeneracy
       if x0>=x1 or y0>=y1:
         print "box coords",x0,x1,y0,y1;
@@ -408,6 +421,8 @@ class PyMoments (pynode.PyNode):
       img = img0[x0:x1,y0:y1];
       nx,ny = img.shape;
       nel = nx*ny;
+      if not ipass:
+        img_sum0 = img.sum();
       # threshold the image 
       print "image min/max",img.min(),img.max();
       # if recentering during a first pass, use a bigger threshold
@@ -415,10 +430,11 @@ class PyMoments (pynode.PyNode):
         thr = (img.min()+img.max())/2.;
       else:
         thr = img.min()*(1-self.image_threshold) + img.max()*self.image_threshold;
-      thr = 16000;
+#      thr = img.min();
       img = Array.clip(img,thr,img.max()) - thr;
       # renormalize image
-      img = img/float(img.sum());
+      img_sum = float(img.sum());
+      img = img/img_sum;
       logrec.img = img.copy();
       # if recentering, recompute coordinate arrays
       if recenter:
@@ -436,18 +452,44 @@ class PyMoments (pynode.PyNode):
         self.origin = x0+gx,y0+gy;
         self.set_state('origin',self.origin);
         logrec.new_origin = self.origin;
-    moments = [img] + list(self.origin);
     # recompute coordinates w.r.t. center
     x = self._xi - gx;
     y = self._yi - gy;
     logrec = record();
     self._log.append(logrec);
-    # compute central moments of higher order
-    for order in range(2,self.order+1):
-      img1 = img*(x**order+y**order);
-      moments.append(img1.sum());
-      logrec["mom_"+str(order)] = img1;
-    # compute I^2 
+    # mask points outside of PSF radius
+    img = Array.where(x*x+y*y <= (self.psf_radius**2),img,0);
+    # set initial moments array
+    moments = [img] + list(self.origin);
+    # compute central moments
+    # 2nd order moment
+    img1 = img*(x*x+y*y);
+    logrec.mom_2 = img1;
+    mom2 = img1.sum();
+    moments.append(img1.sum());
+    sigma = math.sqrt(mom2);
+    # normalized 3rd order moment (skewness)
+    img1 = img*(x**3+y**3);
+    logrec.mom_3 = img1;
+    moments.append(img1.sum()/(sigma**3));
+    # normalized 4th order moment 
+    img1 = img*(x**4+y**4);
+    logrec.mom_4 = img1;
+    moments.append(img1.sum()/(sigma**4));
+    # 2nd-order difference moments
+    img1 = img*(x**2-y**2);
+    logrec.mom_dxy = img1;
+    moments.append(img1.sum()/(sigma**2));
+    # rotate by 45 degrees
+    cos45 = math.sqrt(2.);
+    x1 = x*cos45-y*cos45;
+    y1 = x*cos45+y*cos45;
+    img1 = img*(x1**2-y1**2);
+    logrec.mom_dxy1 = img1;
+    moments.append(img1.sum()/(sigma**2));
+    # add sum(I)
+    moments.append(img_sum0);
+    # add sum(I^2) 
     if self.isq_moment:
       img1 = img*img;
       moments.append(nel/img1.sum());

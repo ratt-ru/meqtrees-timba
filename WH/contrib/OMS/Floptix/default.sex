@@ -14,9 +14,9 @@ PARAMETERS_NAME  default.param  # name of the file containing catalog contents
  
 DETECT_TYPE      CCD           # "CCD" or "PHOTO"
 FLAG_IMAGE       flag.fits      # filename for an input FLAG-image
-DETECT_MINAREA   15              # minimum number of pixels above threshold
-DETECT_THRESH    12            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  12           # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_MINAREA   30              # minimum number of pixels above threshold
+DETECT_THRESH    10            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+ANALYSIS_THRESH  10           # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
  
 FILTER           Y              # apply filter for detection ("Y" or "N")?
 FILTER_NAME      gauss_3.0_5x5.conv  # default.conv   # name of the file containing the filter
