@@ -21,7 +21,7 @@ TDLCompileOption('source_model',"Source model",[
 # define antenna list
 ANTENNAS = range(1,28);
 
-def _define_forest (ns):
+def _define_forest (ns,parent=None,**kw):
   # create an Array object
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=True);
   # create an Observation object
@@ -37,7 +37,8 @@ def _define_forest (ns):
   # fill it using an NVSS catalog file
   lsm.build_from_catalog("nvss.txt",ns)
   #lsm.build_from_catalog("crab1.nvss.txt",ns)
-  lsm.display()
+  if parent:
+    lsm.display()
 
   source_list = source_model(ns,lsm,count=100);
   

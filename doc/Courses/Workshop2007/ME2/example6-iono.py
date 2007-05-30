@@ -96,10 +96,10 @@ def _define_forest (ns):
   
 
 
-def _tdl_job_1_simulate_MS (mqs,parent):
+def _tdl_job_1_simulate_MS (mqs,parent,wait=False):
   req = Meow.Utils.create_io_request();
   # execute    
-  mqs.execute('VisDataMux',req,wait=False);
+  mqs.execute('VisDataMux',req,wait=wait);
   
   
 # this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
