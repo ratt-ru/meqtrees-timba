@@ -13,24 +13,30 @@ from Trut import _dprint,_dprintf
 import TrutTDL
 
 class TrutLogger (object):
-  def __init__ (self,logfile,verbose=0):
+  def __init__ (self,logfile,verbose=0,console=False):
     """Creates a logger. 'logfile' can be a filename or a file object. 'verbosity' specifies
     the verbosity level."""
     if logfile is None:
       raise TypeError,"'logfile' should be a filename or a file object";
     self.set_file(logfile);
     self.verbose = verbose;
+    self._is_console = console;
     
-  def log (self,message,status="",level=0):
+  def log (self,message,status="",level=0,progress=False):
     """writes message and optional status, if the specified level is <= the verbosity
-    level we were created with.
-    'message' may be an (type,value,traceback) tuple, in which case status is ignored""";
-    if level <= self.verbose:
+    level we were created with.""";
+    # progress messages only go to consoles
+    if progress:
+      if self._is_console:
+        self.fileobj.write("%-70.70s\r"%message);
+        self.fileobj.flush();
+    # normal messages go according to level
+    elif level <= self.verbose:
       _dprint(5,os.getpid(),"logging to file",self.fileobj,level,message,status);
       if status:
         self.fileobj.write("%-70s [%s]\n"%(message,status));
       else:
-        self.fileobj.write(message+"\n");
+        self.fileobj.write("%-80s\n"%message);
         
   def log_exc (self,exctype,excvalue,exctb,level=0):
     """writes exception, if the specified level is <= the verbosity level we were created with.""";
@@ -91,10 +97,10 @@ class TrutBatchRun (Trut.Unit):
       if log in self.loggers:
         self.loggers.remove(log);
     
-  def log_message (self,message,status,level=1):
+  def log_message (self,message,status,level=1,progress=False):
     _dprint(5,os.getpid(),"logging message",level,message,status);
     for logger in self.loggers:
-      logger.log(message,status,level);
+      logger.log(message,status,level=level,progress=progress);
       
   def log_exc (self,exctype,excvalue,exctb,level=0):
     _dprint(5,os.getpid(),"logging exception",excvalue);
@@ -135,7 +141,7 @@ class FileMultiplexer (object):
       f.write(string);
 
 def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
-  errlog = TrutLogger(sys.stderr,verbosity);
+  errlog = TrutLogger(sys.stderr,verbosity,console=True);
   brieflog = TrutLogger('Trut.log',log_verbosity);
   full_log = TrutLogger('Trut.full.log',999999);
   # create a batch run unit

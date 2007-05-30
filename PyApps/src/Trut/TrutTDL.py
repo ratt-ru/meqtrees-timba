@@ -35,6 +35,7 @@ class TDLScript (Trut.Unit):
     If need_mqs=True, starts a meqserver and builds the tree as well""";
     if not self._module:
       self._compile_failed = True;  # will reset to False if all goes well\
+      self.log_progress("compile");
       # start meqserver if required
       if ( need_mqs or int(self.get_option("start_meqserver",0)) ) and not self._mqs:
         from Timba.Apps import meqserver

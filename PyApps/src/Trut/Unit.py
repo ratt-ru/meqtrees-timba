@@ -71,9 +71,9 @@ class Unit (object):
     between subtests, and give up if giveup() is true""";
     return self.failed and self.persist <= 0;
   
-  def log_message (self,message,status,level=1):
+  def log_message (self,message,status,level=1,progress=False):
     """Logs message at a given verbosity level""";
-    self.parent and self.parent.log_message("  "+message,status,level+10);
+    self.parent and self.parent.log_message("  "+message,status,level+10,progress=progress);
       
   def log (self,message,status='',level=1):
     """Logs message at a given verbosity level, prepending our unit class and name""";
@@ -82,6 +82,10 @@ class Unit (object):
   def log_exc (self,exctype,excvalue,exctb,level=0):
     """Logs exception at a given verbosity level""";
     self.parent and self.parent.log_exc(exctype,excvalue,exctb,level=level+10);
+    
+  def log_progress (self,message):
+    """Logs progress message. These will only appear on the console (normally)""";
+    self.log_message("%s %s: %s"%(self.__class__.__name__,self.name,message),status="",progress=True);
     
   def set_option (self,option,value):
     """set_option() is called if an option line is found inside a stanza for that unit""";
