@@ -75,7 +75,8 @@ class verbosity:
     self._verbosities[name] = self;
     print "Registered verbose context:",name,"=",self.verbose;
   def __del__ (self):
-    del self._verbosities[self.verbosity_name];
+    if self.verbosity_name in self._verbosities:
+      del self._verbosities[self.verbosity_name];
   def dheader (self,tblevel=-2):
     if self._tb:
       tb = extract_stack();
