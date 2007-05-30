@@ -30,6 +30,8 @@ namespace Debug
   // -----------------------------------------------------------------------
   // various globals
   // -----------------------------------------------------------------------
+  bool print_debug_contexts = false;
+  
   // default debug context
   Context DebugContext("Global");
 
@@ -223,6 +225,8 @@ namespace Debug
       cerr<<"initLevels: warning: context map not initialized\n";
       return;
     }
+    // did we print debug contexts before?
+    bool old_print_debug_contexts = print_debug_contexts;
     // scan command line
     for( int i=1; i<argc; i++ )
     {
@@ -231,26 +235,44 @@ namespace Debug
       const string ext = ".debug";
       if( str.length() >= ext.length() && str.substr(str.length()-ext.length()) == ext )
       {
+        print_debug_contexts = true;
         changed = false;
         loadLevels(str);
+      }
+      // "-d" alone: print known debug contexts
+      else if( str == string("-d") )
+      {
+        print_debug_contexts = true;
       }
       // "-dl": load default file
       else if( str.substr(0,3) == string("-dl") )
       {
+        print_debug_contexts = true;
         changed = false;
         loadLevels();
       }
       // "-d:filename": redirect debug output to file
       else if( str.substr(0,3) == string("-d:") )
       {
+        print_debug_contexts = true;
         redirectOutput(str.substr(3));
       }
       // "-dxxx": debug level specification
       else if( str.substr(0,2) == string("-d") )
       {
-        changed = true;
-        setLevel( str.substr(2) );
+        print_debug_contexts = true;
+        if( str.length() > 3 )
+        {
+          changed = true;
+          setLevel( str.substr(2) );
+        }
       }
+    }
+    // print current set of contexts, if we weren't printing before
+    if( print_debug_contexts && !old_print_debug_contexts && levels )
+    {
+      for( CDLMI iter = levels->begin(); iter != levels->end(); iter++ )
+        cerr<<"Debug: registered context "<<iter->first<<"="<<iter->second<<"\n";
     }
     if( save && changed )
       saveLevels();
@@ -373,7 +395,7 @@ namespace Debug
     }
     setLevel(lev);
 #ifndef DISABLE_DEBUG_OUTPUT
-    if( newcontext ) 
+    if( newcontext && print_debug_contexts ) 
       cerr<<"Debug: registered context "<<name<<"="<<lev<<"\n";
 #endif
     //## end Debug::Context::Context%3C21B594005B.body

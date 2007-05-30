@@ -187,8 +187,8 @@ namespace LFDebug
     }
     setLevel(lev);
 #ifndef DISABLE_DEBUG_OUTPUT
-    if( newcontext ) 
-      cerr<<"Debug: registered context "<<name<<"="<<lev<<"\n";
+//    if( newcontext ) 
+//      cerr<<"Debug: registered context "<<name<<"="<<lev<<"\n";
 #endif
     //## end Debug::Context::Context%3C21B594005B.body
   }
