@@ -292,8 +292,8 @@ class _NodeDef (object):
       kwquals = {};
       for (ich,child) in self.children:
         _mergeQualifiers(quals,kwquals,
-#            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
-            list(child.quals),child.kwquals, uniq=True);
+            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
+#            list(child.quals),child.kwquals, uniq=True);
       basename = ','.join(map(lambda x:x[1].basename,self.children));
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
