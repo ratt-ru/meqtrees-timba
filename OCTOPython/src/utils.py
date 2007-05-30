@@ -65,15 +65,20 @@ class verbosity:
     # NB: sys.argv doesn't always exist -- e.g., when embedding Python
     # it doesn't seem to be present.  Hence the check.
     argv = getattr(sys,'argv',None);
+    have_debug = False;
     if argv:
       patt = re.compile('-d'+name+'=(.*)$');
       for arg in argv[1:]:
+        if arg.startswith('-d'):
+          have_debug = True;
         try: 
           self.verbose = int(patt.match(arg).group(1));
         except: pass;
     # add name to map
     self._verbosities[name] = self;
-    print "Registered verbose context:",name,"=",self.verbose;
+    # if any "-d" switches were supplied, print our context
+    if have_debug:
+      print "Registered debug verbosity context:",name,"=",self.verbose;
   def __del__ (self):
     if self.verbosity_name in self._verbosities:
       del self._verbosities[self.verbosity_name];
