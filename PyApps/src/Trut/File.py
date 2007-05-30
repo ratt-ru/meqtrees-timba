@@ -121,7 +121,7 @@ class File (Trut.Unit):
   def execute (self):
     # log a message about running the tests, at level 10 (i.e. the "error"
     # level of the child units)
-    self.log('',level=10);
+    self.log('start',level=10);
     self._new_topunit(self,-1);
     # cd to directory of file
     dirname = os.path.dirname(self.name);

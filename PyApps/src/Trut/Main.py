@@ -121,6 +121,8 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
                           TrutLogger('Trut.full.log',999999) 
                         ]
               );
+  # get absolute name for all files
+  files = [ os.path.abspath(file) for file in files ];
   # execute each file in turn, break out on error (unless persist=True)
   for filename in files:
     trutfile = Trut.File(filename,parent=batchrun,maxjobs=maxjobs);

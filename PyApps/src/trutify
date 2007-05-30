@@ -1,0 +1,28 @@
+#!/bin/bash
+
+dirs="$*";
+if [ "$dirs" == "" ]; then
+  dirs=.
+fi
+
+for dname in $dirs; do
+(
+  cd $dname
+  
+  echo -n "Will make a TRUT file in ";
+  pwd
+  
+  if [ -f "TRUT" ]; then
+    echo "  A file called TRUT already exists, will not ovewrite."
+    echo "  Remove the file and run this script again, if you really want to overwrite it."
+  else
+    for f in *.py; do
+      if grep "_define_forest" $f >/dev/null; then
+        echo "  Adding entry for $f"
+        echo "TDL $f" >>TRUT
+        echo " " >> TRUT
+      fi
+    done
+  fi
+)
+done
