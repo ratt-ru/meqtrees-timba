@@ -25,9 +25,10 @@ class TrutLogger (object):
     """writes message and optional status, if the specified level is <= the verbosity
     level we were created with""";
     if level <= self.verbose:
-      if status:
+     _dprint(5,os.getpid(),"logging to file",self.fileobj,level,message,status);
+     if status:
         self.fileobj.write("%-70s [%s]\n"%(message,status));
-      else:
+     else:
         self.fileobj.write(message+"\n");
 
   def allocate_tmp_file (self):
@@ -35,7 +36,9 @@ class TrutLogger (object):
     file object and not a filename.""";
     if not self.filename:
       return None;
-    dirname,fname = os.path.split(os.path.abspath(self.filename));
+    # flush current buffers
+    self.fileobj.flush();
+    # make temp file
     tmpfile = os.tmpfile();
     return tmpfile;
 
@@ -59,6 +62,9 @@ class TrutLogger (object):
     if isinstance(logfile,str):
       self.fileobj.writelines(file(logfile,'r'));
     elif isinstance(logfile,file):
+      # logfile.seek(0);
+      # for line in logfile:
+      #   _dprint(0,os.getpid(),"merging from",logfile,line);
       logfile.seek(0);
       self.fileobj.writelines(logfile);
     else:
@@ -79,7 +85,7 @@ class TrutBatchRun (Trut.Unit):
         self.loggers.remove(log);
     
   def log_message (self,message,status,level=1):
-    _dprint(5,"logging message",level,message,status);
+    _dprint(5,os.getpid(),"logging message",level,message,status);
     for logger in self.loggers:
       logger.log(message,status,level);
       
@@ -108,23 +114,33 @@ class TrutBatchRun (Trut.Unit):
 
 
 def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
+  errlog = TrutLogger(sys.stderr,verbosity);
   batchrun = TrutBatchRun(persist=persist,
-                loggers=[ TrutLogger(sys.stderr,verbosity),
-                          TrutLogger('Trut.log',log_verbosity),
-                          TrutLogger('Trut.full.log',999999) ]
+                loggers=[ errlog,
+                          TrutLogger('Trut.log',log_verbosity), 
+                          TrutLogger('Trut.full.log',999999) 
+                        ]
               );
   # execute each file in turn, break out on error (unless persist=True)
   for filename in files:
     trutfile = Trut.File(filename,parent=batchrun,maxjobs=maxjobs);
     # make loggers local to that directory
     dirname = os.path.dirname(os.path.abspath(filename));
-    loggers = [ TrutLogger(os.path.join(dirname,'trut.log'),log_verbosity),
-                TrutLogger(os.path.join(dirname,'trut.full.log'),999999) ];
+    log1 = os.path.join(dirname,'trut.log');
+    log2 = os.path.join(dirname,'trut.full.log');
+    loggers = [ TrutLogger(log1,log_verbosity),
+                TrutLogger(log2,999999) 
+    ];
     batchrun.add_loggers(*loggers);
     trutfile.execute();
     batchrun.remove_loggers(*loggers);
+    if trutfile.failed:
+      errlog.log("%s/trut[.full].log will contain more details of the failure"%dirname,level=1);
     if batchrun.giveup():
       break;
     
   # this will print a fail/success message
-  return batchrun.success();
+  result = batchrun.success();
+  if not result:
+    errlog.log("Trut[.full].log will contain more details of the failure",level=1);
+  return result;
