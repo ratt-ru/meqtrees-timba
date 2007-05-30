@@ -77,6 +77,7 @@ def create_polc(c00=0.0,degree_f=0,degree_t=0):
 def tpolc (tdeg,c00=0.0):
   return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
                   node_groups='Parm',
+#                 node_groups='Parm', save_all=True,
                   table_name=mep_beam_weights)
 
 ########################################################
