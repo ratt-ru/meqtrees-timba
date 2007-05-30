@@ -414,6 +414,7 @@ MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServ
 MeqSpline                        1704       ; from /home/mevius/Timba/MEQ/src/Spline.h:10
 #MeqSqr                          1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 #MeqSqrt                         1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
+#MeqStationBeam                  1727       ; from /home/sarod/Timba/MeqNodes/src/StationBeam.h:33
 MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
 #MeqStdDev                       1491       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StdDev.h:29
 #MeqStokes                       1568       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/Stokes.h:34
