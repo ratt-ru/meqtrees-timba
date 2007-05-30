@@ -1,0 +1,11 @@
+#!/bin/bash
+
+files=`find . -type f -name TRUT`
+
+if [ "$files" == "" ]; then
+  echo "No TRUT files found"
+  exit 0;
+fi
+
+exec trut.py $* $files
+

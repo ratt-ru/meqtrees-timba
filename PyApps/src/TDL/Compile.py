@@ -103,7 +103,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
                            predef_args={},define_args={},postdef_args={}):
   """Compiles a TDL script and sends it to meqserver given by mqs.
   Parameters:
-    mqs:      a meqserver object
+    mqs:      a meqserver object (None to run without a meqserver)
     filename: the filename of the script (used for error reporting)
     tdlmod:   the imported TDL module, as returned by import_tdl_module()
     text:     script text for putting into forest
@@ -167,23 +167,23 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     if not num_nodes:
       return (tdlmod,ns,"Script has run successfully, but no nodes were defined.");
     # try to run stuff
-    meqds.clear_forest();
-    # is a forest state defined? send it on then
-    fst = getattr(Timba.TDL.Settings,'forest_state',record());
-    # add in source code
-    fst.tdl_source = record(**{os.path.basename(filename):text});
-    mqs.meq('Set.Forest.State',record(state=fst,get_forest_status=0));
-    if num_nodes:
-      mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-      mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
-      msg = """Script has run successfully. %d node definitions 
-(of which %d are root nodes) sent to the kernel.""" \
-        % (num_nodes,len(ns.RootNodes()));
-    else:  
-      msg = "Script has run successfully, but no nodes were defined.";    
-    ## do not request frest state here, let the GUI do it for us
-    ## this ensures that bookmarks show up only after all nodes are available
-    # mqs.meq('Get.Forest.State',record(sync=2));
+    if mqs is not None:
+      meqds.clear_forest();
+      # is a forest state defined? send it on then
+      fst = getattr(Timba.TDL.Settings,'forest_state',record());
+      # add in source code
+      fst.tdl_source = record(**{os.path.basename(filename):text});
+      mqs.meq('Set.Forest.State',record(state=fst,get_forest_status=0));
+      if num_nodes:
+        mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
+        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
+        msg = """Script has run successfully. %d node definitions 
+  (of which %d are root nodes) sent to the kernel.""" \
+          % (num_nodes,len(ns.RootNodes()));
+      else:  
+        msg = "Script has run successfully, but no nodes were defined.";    
+    else:
+      msg = "Script has run successfully, %d nodes were defined."%num_nodes; 
     
     # call the post-define function
     postdefine_func = getattr(tdlmod,'_tdl_postdefine',None);
