@@ -42,13 +42,13 @@ importPlugin('stream_control');
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({
-  'MeqNode'      :2,
-  'MeqForest'    :2,
-  'MeqSink'      :2,
-  'MeqSpigot'    :2,
-  'MeqVisHandler':2,
-  'MeqServer'    :2,
-  'meqserver'    :1,
+#  'MeqNode'      :2,
+#  'MeqForest'    :2,
+#  'MeqSink'      :2,
+#  'MeqSpigot'    :2,
+#  'MeqVisHandler':2,
+#  'MeqServer'    :2,
+#  'meqserver'    :1,
 #  'gwclientwp'   :1,
 #  'gwserverwp'   :1,
 });

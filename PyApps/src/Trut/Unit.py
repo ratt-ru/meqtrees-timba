@@ -85,4 +85,17 @@ class Unit (object):
     
   def get_option (self,option,default=None):
     return self.options.get(option,default);
-
+  
+  def _allocate_tmp_loggers (self):
+    """returns a set of temporary logfiles for use by child jobs""";
+    return self.parent and self.parent._allocate_tmp_loggers();
+  
+  def _set_tmp_loggers (self,tmplogs):
+    """switches loggers to temporary logfiles for use by child jobs. The tmplogs
+    argument should be the return value of _allocate_tmp_loggers(), above.""";
+    return self.parent and self.parent._set_tmp_loggers(tmplogs);
+  
+  def _merge_tmp_loggers (self,tmplogs):
+    """merges in temporary logfiles filled in by child jobs. The tmplogs argument 
+    should be the return value of _allocate_tmp_loggers(), above.""";
+    return self.parent and self.parent._merge_tmp_loggers(tmplogs);
