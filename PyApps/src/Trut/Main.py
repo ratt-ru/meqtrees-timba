@@ -23,13 +23,20 @@ class TrutLogger (object):
     
   def log (self,message,status="",level=0):
     """writes message and optional status, if the specified level is <= the verbosity
-    level we were created with""";
+    level we were created with.
+    'message' may be an (type,value,traceback) tuple, in which case status is ignored""";
     if level <= self.verbose:
-     _dprint(5,os.getpid(),"logging to file",self.fileobj,level,message,status);
-     if status:
+      _dprint(5,os.getpid(),"logging to file",self.fileobj,level,message,status);
+      if status:
         self.fileobj.write("%-70s [%s]\n"%(message,status));
-     else:
+      else:
         self.fileobj.write(message+"\n");
+        
+  def log_exc (self,exctype,excvalue,exctb,level=0):
+    """writes exception, if the specified level is <= the verbosity level we were created with.""";
+    if level <= self.verbose:
+      _dprint(5,os.getpid(),"logging to file",self.fileobj,excvalue);
+      traceback.print_exception(exctype,excvalue,exctb,limit=None,file=self.fileobj);
 
   def allocate_tmp_file (self):
     """allocates a temporary file based on the current logfile. Returns None if we were created with a
@@ -89,6 +96,11 @@ class TrutBatchRun (Trut.Unit):
     for logger in self.loggers:
       logger.log(message,status,level);
       
+  def log_exc (self,exctype,excvalue,exctb,level=0):
+    _dprint(5,os.getpid(),"logging exception",excvalue);
+    for logger in self.loggers:
+      logger.log_exc(exctype,excvalue,exctb,level=level);
+      
   def _allocate_tmp_loggers (self):
     """returns a set of temporary logfiles for use by child jobs""";
     return [ logger.allocate_tmp_file() for logger in self.loggers ];
@@ -110,17 +122,24 @@ class TrutBatchRun (Trut.Unit):
         raise ValueError,"length of tmplogs argument does not match number of loggers";
       for tmplog,logger in zip(tmplogs,self.loggers):
         logger.merge_file(tmplog);
-
-
+        
+class FileMultiplexer (object):
+  """A FileMultiplexer implements the write(str) method that is required
+  of an object that can be assigned to sys.stdout or sys.stderr. We use it
+  to redirect the program output to the required loggers.
+  """;
+  def __init__ (self,*files):
+    self.files = files;
+  def write (self,string):
+    for f in self.files:
+      f.write(string);
 
 def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
   errlog = TrutLogger(sys.stderr,verbosity);
-  batchrun = TrutBatchRun(persist=persist,
-                loggers=[ errlog,
-                          TrutLogger('Trut.log',log_verbosity), 
-                          TrutLogger('Trut.full.log',999999) 
-                        ]
-              );
+  brieflog = TrutLogger('Trut.log',log_verbosity);
+  full_log = TrutLogger('Trut.full.log',999999);
+  # create a batch run unit
+  batchrun = TrutBatchRun(persist=persist,loggers=[errlog,brieflog,full_log]);
   # get absolute name for all files
   files = [ os.path.abspath(file) for file in files ];
   # execute each file in turn, break out on error (unless persist=True)
@@ -130,12 +149,19 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
     dirname = os.path.dirname(os.path.abspath(filename));
     log1 = os.path.join(dirname,'trut.log');
     log2 = os.path.join(dirname,'trut.full.log');
-    loggers = [ TrutLogger(log1,log_verbosity),
-                TrutLogger(log2,999999) 
-    ];
-    batchrun.add_loggers(*loggers);
+    local_brieflog = TrutLogger(log1,log_verbosity);
+    local_full_log = TrutLogger(log2,log_verbosity)
+    batchrun.add_loggers(local_brieflog,local_full_log);
+    # replace stdout and stderr by the full logger's file object
+    old_streams = sys.stdout,sys.stderr;
+    sys.stdout = sys.stderr = FileMultiplexer(full_log.fileobj,local_full_log.fileobj);
+    # execute file
     trutfile.execute();
-    batchrun.remove_loggers(*loggers);
+    # restore old stdout/stderr
+    sys.stdout,sys.stderr = old_streams;
+    # remove local loggers
+    batchrun.remove_loggers(local_brieflog,local_full_log);
+    # check for fails
     if trutfile.failed:
       errlog.log("%s/trut[.full].log will contain more details of the failure"%dirname,level=1);
     if batchrun.giveup():

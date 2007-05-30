@@ -57,15 +57,16 @@ class File (Trut.Unit):
     try:
       self.top_unit.execute();
     except:
-      err = sys.exc_info()[1];
-      traceback.print_exc();
-      self.top_unit.fail(err);
+      excinfo = sys.exc_info();
+      self.log_exc(level=0,*excinfo);
+      self.top_unit.fail(excinfo[1]);
     try:
       self.top_unit.cleanup();
     except:
-      err = sys.exc_info()[1];
-      traceback.print_exc();
-      self.top_unit.fail(err);
+      excinfo = sys.exc_info();
+      self.log_exc(level=0,*excinfo);
+      self.top_unit.fail(excinfo[1]);
+    excinfo = None;
     clsname,name = self.top_unit.__class__.__name__,self.top_unit.name;
     _dprint(3,os.getpid(),"finished directive",clsname,name,"fail is",self.failed);
     self.top_unit = self.top_unit.parent;
@@ -177,18 +178,20 @@ class File (Trut.Unit):
       # wait for child jobs to finish before reporting success or failure
       self._reap_all_children();
       # failure deferred due to persistency will be reported here
-      self.success();
+      self.success("finish");
     # catch exceptions and fail
     except:
-      err = sys.exc_info()[1];
-      # re-raise if exiting
+      errtype,err,tb = sys.exc_info();
+       # re-raise if exiting
       if isinstance(err,SystemExit):
         raise err;
+      # log
+      self.log_exc(errtype,err,tb,level=0);
+      tb = None;  # avoids garbage collection delay
       # kill children if interrupted
       if isinstance(err,KeyboardInterrupt):
         for pid in self._child_jobs.iterkeys():
           os.kill(pid,signal.SIGINT);
-      traceback.print_exc();
       self.fail(err);
       if self._we_are_child:
         sys.exit(2);

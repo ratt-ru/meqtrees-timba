@@ -78,6 +78,10 @@ class Unit (object):
   def log (self,message,status='',level=1):
     """Logs message at a given verbosity level, prepending our unit class and name""";
     self.log_message("%s %s: %s"%(self.__class__.__name__,self.name,message),status,level);
+
+  def log_exc (self,exctype,excvalue,exctb,level=0):
+    """Logs exception at a given verbosity level""";
+    self.parent and self.parent.log_exc(exctype,excvalue,exctb,level=level+10);
     
   def set_option (self,option,value):
     """set_option() is called if an option line is found inside a stanza for that unit""";
