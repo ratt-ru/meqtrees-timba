@@ -14,7 +14,19 @@ if __name__ == '__main__':
   opts = dict(opts);
   
   if "-h" in opts or "--help" in opts or not files:
-    print "Usage: trut [-v<verbosity level>] [-p<persistence level>] [-l<loglevel] [-j<maxjobs>] trutfiles ...."
+    print """
+    TRUT: Timba Reduction & Unit Testing
+    
+    Usage: trut [-jN] [-vN] [-lN] [-pN] [-dContext=level] [trutfiles...]
+    
+      -jN: run up to N tests in parallel (set to # of CPUs).
+      -vN: set console verbosity level (default is 21 -- try increments of 10).
+      -lN: set trut.log verbosity level (default is 41).
+      -pN: set persistence level (default is 0). Use >0 to keep running when tests fail.
+      -dContext=level: enable debug messages from given Python context
+      
+    If no trutfiles are specified, all TRUT files in the current directory tree will be found & used.
+   """;
     sys.exit(1);
   
   verbose = int(opts.get('-v',21));
