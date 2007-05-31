@@ -1,11 +1,25 @@
 #!/bin/bash
 
-files=`find . -type f -name TRUT`
+args=""
+files=""
+
+while [ "$1" != "" ]; do
+  if [ "${1#-*}" == "$1" ]; then
+    files="$files $1"
+  else
+    args="$args $1";
+  fi
+  shift
+done
+
+if [ "$files" == "" ]; then
+  files=`find . -type f -name TRUT`
+fi
 
 if [ "$files" == "" ]; then
   echo "No TRUT files found"
   exit 0;
 fi
 
-exec trut.py $* $files
+exec trut.py $args $files
 
