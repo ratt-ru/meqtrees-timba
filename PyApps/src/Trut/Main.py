@@ -25,13 +25,15 @@ class TrutLogger (object):
   def log (self,message,status="",level=0,progress=False):
     """writes message and optional status, if the specified level is <= the verbosity
     level we were created with.""";
+    if level > self.verbose:
+      return;
     # progress messages only go to consoles
     if progress:
       if self._is_console:
         self.fileobj.write("%-70.70s\r"%message);
         self.fileobj.flush();
     # normal messages go according to level
-    elif level <= self.verbose:
+    else:
       _dprint(5,os.getpid(),"logging to file",self.fileobj,level,message,status);
       if status:
         self.fileobj.write("%-70s [%s]\n"%(message,status));
