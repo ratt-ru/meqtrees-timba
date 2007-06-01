@@ -37,7 +37,7 @@ from copy import deepcopy
 class NodeList (object):
     """The Grunt NodeList class encapsulates an arbitrary list of nodes"""
 
-    def __init__(self, ns, name, nodes=[], labels=None):
+    def __init__(self, ns, name, nodes=[], labels=None, **opt):
 
         # The name of this group of nodes:
         self._name = str(name)
@@ -47,16 +47,23 @@ class NodeList (object):
         self.append(nodes, labels)
 
         # Scopify ns, if necessary:
-        self._ns0 = ns
         if is_node(ns):
             self._ns = ns.QualScope(self._name)
+            self._ns0 = ns.QualScope()
         else:
             self._ns = ns(self._name)
+            self._ns0 = ns
 
-
+        # Miscellaneous options:
+        self._opt = opt
+        if not isinstance(opt, dict): opt = dict()
+        opt.setdefault('color','red')
+        opt.setdefault('style','circle')
         return None
 
 
+    #===============================================================
+    # Basic access functions:
     #===============================================================
 
     def len (self):
@@ -83,6 +90,47 @@ class NodeList (object):
                 self._labels.append(str(label))      # assume len(node)==1...
         return True
 
+    def __getitem__(self, index):
+        """Get the speciified (index) item from the NodeList"""
+        if not isinstance(index, int):
+            raise TypeError,' index not an int'
+        elif index<0 or index>=self.len():
+            raise TypeError,' index out of range'
+        else:
+            return self._nodes[index]
+            
+
+    #===============================================================
+    # Some local helper functions:
+    #===============================================================
+
+    def copy (self):
+        """Make a copy of this object"""
+        new = NodeList(self._ns0, self._name)
+        new._nodes = deepcopy(self._nodes)
+        new._labels = deepcopy(self._labels)
+        new._opt = deepcopy(self._opt)
+        return new
+
+    def _dispose(self, copy, replace=False):
+        """Dispose of the (modified) copy of itself."""
+        if replace:
+            self._nodes = deepcopy(copy._nodes)
+            self._labels = deepcopy(copy._labels)
+            self._opt = deepcopy(copy._opt)
+            return True
+        copy._ns = copy._ns0(copy._name)
+        return copy
+
+    def _is_commensurate(self, other, severe=True):
+        """Check whether the other Nodelist is commensurate with self.
+        If severe==True, raise an error if not commensurate."""
+        if other.len()==self.len(): return True
+        if severe:
+            s = '** NodeLists not commensurate'
+            raise ValueError,s
+        return False
+        
 
     #===============================================================
     # Display of the contents of this object:
@@ -105,6 +153,7 @@ class NodeList (object):
         print '  * Nodes ('+str(len(self._nodes))+'):'
         for k,node in enumerate(self._nodes):
             print '   - ('+self._labels[k]+'): '+str(node)
+        print '  * opt: '+str(self._opt)
         print '**\n'
         return True
 
@@ -115,41 +164,63 @@ class NodeList (object):
 
     def unop(self, unop, replace=False):
         """Apply one or more unary operations (e.g. Cos()) to all nodes.
+        NB: The ops are applied from right to left, i.e. like a math expr.
         If replace==True, replace the nodes with the new ones.
-        Otherwise, return a NodeList with the new nodes."""
+        Otherwise, return a new NodeList with the new nodes."""
 
-        if isinstance(unop, str): unop = [unop]
+        if isinstance(unop, str): unop = unop.split(' ')
+        unop = list(unop)
         unop.reverse()
-        nodes = deepcopy(self._nodes)
-        labels = deepcopy(self._labels)
-        name = self._name
+        copy = self.copy()
         for unop1 in unop:
-            name = unop1+'('+name+')'
-            for k,node in enumerate(nodes):
-                nodes[k] = self._ns << getattr(Meq,unop1)(node)
-                labels[k] = '('+labels[k]+')'
-                if replace:
-                    self._name = name
-                    self._nodes[k] = nodes[k]
-                    self._labels[k] = labels[k]
-        if not replace:
-            return NodeList(self._ns0, name, nodes=nodes, labels=labels)
-        return True
+            copy._name = unop1+'('+copy._name+')'
+            for k,node in enumerate(copy._nodes):
+                copy._nodes[k] = self._ns << getattr(Meq,unop1)(node)
+                copy._labels[k] = '('+copy._labels[k]+')'
+        return self._dispose(copy, replace)
+
+    #---------------------------------------------------------------
+
+    def binop(self, binop, other, replace=False):
+        """Apply the specified binary operations (e.g. '+') on 
+        a node-by-node basis between itself and another NodeList.
+        If replace==True, replace the nodes with the new ones.
+        Otherwise, return a new NodeList with the new nodes."""
+
+        binopin = binop
+        if binop=='+': binop = 'Add'
+        if binop=='-': binop = 'Subtract'
+        if binop=='*': binop = 'Multiply'
+        if binop=='/': binop = 'Divide'
+        if binop=='^': binop = 'Pow'
+        if binop=='%': binop = 'Mod'
+        copy = self.copy()
+        copy._name = '('+copy._name+'_'+binopin+'_'+other._name+')'
+        for k,lhs in enumerate(copy._nodes):
+            rhs = other._nodes[k]
+            copy._nodes[k] = self._ns << getattr(Meq,binop)(lhs, rhs)
+            copy._labels[k] = '('+copy._labels[k]+'_'+binopin+'_'+other._labels[k]+')'
+        return self._dispose(copy, replace)
         
 
     #===============================================================
     # subtrees:
     #===============================================================
 
-    def bundle (self, combine='Add', bookpage=True, show=False):
+    def bundle (self, combine='Add', unop=None, bookpage=True, show=False):
         """Bundle the nodes by applying the specified combine-operation
-        (default='Add') to them. Return the root node of the resulting
-        subtree. If bookpage is specified, make a bookmark."""
+        (default='Add') to them.
+        If unary operation(s) specified, apply it/them first.
+        Return the root node of the resulting subtree.
+        If bookpage is specified, make a bookmark."""
 
         nodes = self._nodes
-        quals = [combine,str(len(nodes))]
+        quals = [combine,str(self.len())]
+        if unop: quals.insert(0,unop)      
         qnode = self._ns['bundle'](*quals)
         if not qnode.initialized():
+            if unop:
+                nodes = self.unop(unop)._nodes
             qnode << getattr(Meq,combine)(children=nodes)
         if bookpage:
             page = self._name
@@ -159,6 +230,20 @@ class NodeList (object):
         # Finished: Return the root-node of the bundle subtree:
         if show: display.subtree(qnode, show_initrec=False)
         return qnode
+
+    #---------------------------------------------------------------
+
+    def max (self, unop=None, bookpage=True, show=False):
+        """Return a node that returns the maximum cell value of the list nodes"""
+        return self.bundle('Max', unop=unop, bookpage=bookpage, show=show)
+
+    def maxabs (self, bookpage=True, show=False):
+        """Return a node that returns the maximum cell value of the list nodes"""
+        return self.bundle('Max', unop='Abs', bookpage=bookpage, show=show)
+
+    def min (self, unop=None, bookpage=True, show=False):
+        """Return a node that returns the minimum cell value of the list nodes"""
+        return self.bundle('Min', unop=unop, bookpage=bookpage, show=show)
 
 
     #===============================================================
@@ -237,15 +322,21 @@ def _define_forest(ns):
             nn1.append(ns << k)
     nn1.display('initial')
 
-    if 1:
-        node = nn1.bundle(show=True)
+    if 0:
+        unop = None
+        unop = 'Cos Sin'
+        node = nn1.bundle(unop=unop, show=True)
         cc.append(node)
 
     if 1:
         unop = 'Cos'
         unop = ['Cos','Sin']
+        unop = 'Cos Sin'
         nn2 = nn1.unop(unop, replace=False)
         cc.append(nn2.bundle(show=True))
+        if 1:
+            nn3 = nn1.unop(unop, replace=False)
+            cc.append(nn3.bundle(show=True))
 
     if 0:
         node = nn1.inspector()
@@ -298,14 +389,39 @@ if __name__ == '__main__':
         nn1.append(range(2))
 
     if 0:
-        nn1.bundle(show=True)
+        nn2 = nn1.copy()
+        nn2.append(range(2))
+        nn2._opt = 'new'
+        nn1._opt = 'old'
+        nn1.append(140, 'labell')
+        nn2.display('copy')
 
-    if 1:
+    if 0:
+        for index in range(5):
+            print index, nn1[index] 
+
+    if 0:
+        unop = None
+        unop = 'Cos'
+        unop = 'Cos Sin'
+        unop = ['Cos','Sin']
+        print nn1.bundle(unop=unop, show=True)
+
+    if 0:
         replace = False
         unop = 'Cos'
-        unop = ['Cos','Sin']
+        # unop = ['Cos','Sin']
+        unop = 'Cos Sin'
         nn2 = nn1.unop(unop, replace=replace)
         if not replace: nn2.display('unop')
+
+    if 0:
+        print nn1.maxabs(show=True)
+
+    if 1:
+        nn2 = nn1.copy()
+        nn3 = nn1.binop('*', nn2)
+        nn3.display('binop')
 
     nn1.display('final', full=True)
 
