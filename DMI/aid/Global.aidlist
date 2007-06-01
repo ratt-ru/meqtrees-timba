@@ -507,6 +507,7 @@ Pert                             1325       ; from /home/oms/LOFAR/Timba/MEQ/src
 Perturbations                    1367       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 Perturbed                        1372       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 Phase                            1129       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
+Phi0                             1728       ; from /home/sarod/Timba/MeqNodes/src/StationBeam.h:35
 Ping                             1100       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:10
 Playback                         1542       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/FileSink.h:12
 Plot                             1432       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
