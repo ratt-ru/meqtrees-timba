@@ -55,8 +55,10 @@ Settings.forest_state = record(bookmarks=[
   record(name='Results',page=[
     record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/Ins_pol",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/gaussian",viewer="Result Plotter",pos=(1,0)),
     record(udi="/node/IQUV_complex",viewer="Result Plotter",pos=(2,0)),
-    record(udi="/node/condeq",viewer="Result Plotter",pos=(1,0))])]);
+    record(udi="/node/condeq",viewer="Result Plotter",pos=(1,1))])]);
+
 # to force caching put 100
 #Settings.forest_state.cache_policy = 100
 
@@ -92,7 +94,14 @@ def _define_forest(ns):
 # BEAM_LM = [(0.0, 0.0108735)]         # xntd_m_1
 # BEAM_LM = [(0.0, 0.021747)]          # xntd_m_2
 # BEAM_LM = [(0.0, 0.032620)]          # xntd_m_3
-  BEAM_LM = [(0.0, 0.043494)]          # xntd_m_4
+# BEAM_LM = [(0.0, 0.043494)]          # xntd_m_4
+# BEAM_LM = [(-0.0108735,0.0)]         # xntd_l_1
+# BEAM_LM = [(-0.021747,0.0)]          # xntd_l_2
+# BEAM_LM = [(-0.032620,0.0)]          # xntd_l_3
+# BEAM_LM = [(-0.043494,0.0)]          # xntd_l_4
+# BEAM_LM = [(0.00543675,0.0)]         # xntd_0_a
+# BEAM_LM = [(0.01631025,0.0)]         # xntd_1_a
+  BEAM_LM = [(0.038057,0.0)]           # xntd_3_a
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) 
   ns.m_beam_c << Meq.Constant(m_beam)
@@ -307,7 +316,7 @@ def _test_forest(mqs,parent):
   counter = 0
   request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=True);
+  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=False);
 
 #####################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
