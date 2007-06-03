@@ -31,13 +31,14 @@ from Timba.Contrib.JEN.Grunt import display
 # from Timba.Contrib.JEN.Expression import Expression
 
 from copy import deepcopy
+from numarray import array
 
 #======================================================================================
 
 class NodeList (object):
     """The Grunt NodeList class encapsulates an arbitrary list of nodes"""
 
-    def __init__(self, ns, name, nodes=[], labels=None, **opt):
+    def __init__(self, ns, name, nodes=[], labels=None, **pp):
 
         # The name of this group of nodes:
         self._name = str(name)
@@ -54,12 +55,49 @@ class NodeList (object):
             self._ns = ns(self._name)
             self._ns0 = ns
 
-        # Miscellaneous options:
-        self._opt = opt
-        if not isinstance(opt, dict): opt = dict()
-        opt.setdefault('color','red')
-        opt.setdefault('style','circle')
+        # Miscellaneous settings:
+        self._pp = pp
+        if not isinstance(pp, dict): pp = dict()
+        # Plotting instructions:
+        pp.setdefault('color','red')
+        pp.setdefault('style','circle')
+        pp.setdefault('size',5)
+        pp.setdefault('pen',2)
+        # Tensor information:
+        pp.setdefault('dims',None)
+        pp.setdefault('elements',None)       # e.g. ['XX','XY','YX','YY']
+
+        # Misc initializations:
+        self._counter = dict(copy=0)
         return None
+
+
+    #===============================================================
+    # Display of the contents of this object:
+    #===============================================================
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = 'Grunt.NodeList:'
+        ss += ' '+str(self._name)
+        ss += '  (len='+str(self.len())+')'
+        return ss
+
+
+    def display(self, txt=None, full=False, recurse=3):
+        """Print a summary of this object"""
+        print ' '
+        print '** '+self.oneliner()
+        if txt: print '  * (txt='+str(txt)+')'
+        #...............................................................
+        print '  * Nodes ('+str(len(self._nodes))+'):'
+        for k,node in enumerate(self._nodes):
+            print '   - ('+self._labels[k]+'): '+str(node)
+        #...............................................................
+        print '  * settings (pp): '+str(self._pp)
+        print '  * counter(s): '+str(self._counter)
+        print '**\n'
+        return True
 
 
     #===============================================================
@@ -104,23 +142,40 @@ class NodeList (object):
     # Some local helper functions:
     #===============================================================
 
-    def copy (self):
-        """Make a copy of this object"""
-        new = NodeList(self._ns0, self._name)
-        new._nodes = deepcopy(self._nodes)
-        new._labels = deepcopy(self._labels)
-        new._opt = deepcopy(self._opt)
+    def copy (self, select='*'):
+        """Make a copy of this object, optionally selecting nodes."""
+        # Most of the NodeList operations work on copies. Among
+
+        # Make an empty new NodeList with a unique name. This greatly reduces
+        # the danger of nodename clashes, or inadvertent branch cross-overs.
+        # (The only danger is with NodeList objects that have the same name,
+        # e.g. generated automatically in widely separated branches of the tree...)
+        
+        self._counter['copy'] += 1                 # increment copy-counter
+        name = '('+self._name+'|'+str(self._counter['copy'])+')'     
+        new = NodeList(self._ns0, name)            # note self._ns0....!
+
+        # Transfer the (selection of) nodes and their labels:
+        ii = self._selection (select)
+        for i in ii:
+            new._nodes.append(self._nodes[i])
+            new._labels.append(self._labels[i])
+        new._pp = deepcopy(self._pp)
         return new
+
+    #----------------------------------------------------------------
 
     def _dispose(self, copy, replace=False):
         """Dispose of the (modified) copy of itself."""
         if replace:
             self._nodes = deepcopy(copy._nodes)
             self._labels = deepcopy(copy._labels)
-            self._opt = deepcopy(copy._opt)
+            self._pp = deepcopy(copy._pp)
             return True
         copy._ns = copy._ns0(copy._name)
         return copy
+
+    #----------------------------------------------------------------
 
     def _is_commensurate(self, other, severe=True):
         """Check whether the other Nodelist is commensurate with self.
@@ -130,32 +185,82 @@ class NodeList (object):
             s = '** NodeLists not commensurate'
             raise ValueError,s
         return False
-        
 
-    #===============================================================
-    # Display of the contents of this object:
-    #===============================================================
+    #----------------------------------------------------------------
 
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = 'Grunt.NodeList:'
-        ss += ' '+str(self._name)
-        ss += '  (len='+str(self.len())+')'
-        return ss
+    def _selection (self, select='*'):
+        """Return a list of valid indices for node selection.
+        The following possibilities are available:
+        - select='*': select all available nodes
+        - select=[list]: return one or more specific (but valid) node indices.
+        - select=int: specifies the size of a regular subset of the available nodes.
+        """
+        n = self.len()
+        ii = []
+        if isinstance(select,str):
+            if select=='*': ii = range(n)
 
+        elif isinstance(select,int) and select>0:
+            # Select a regular subset of nreg items:
+            jj = array(range(0,n,max(1,(n+1)/select)))
+            jj = jj[range(min(select,n))]
+            if select>1: jj[len(jj)-1] = n-1
+            ii.extend(jj)
 
-    def display(self, txt=None, full=False, recurse=3):
-        """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print '  * (txt='+str(txt)+')'
-        #...............................................................
-        print '  * Nodes ('+str(len(self._nodes))+'):'
-        for k,node in enumerate(self._nodes):
-            print '   - ('+self._labels[k]+'): '+str(node)
-        print '  * opt: '+str(self._opt)
-        print '**\n'
-        return True
+        elif isinstance(select,(list,tuple)):
+            # Select specific node(s):
+            for i in select:
+                if i>=0 and i<n:
+                    if not i in ii: ii.append(i)
+        ii.sort()
+        # print '** _selection(',select,' (n=',n,')) -> ',ii
+        return ii
+
+    #----------------------------------------------------------------
+
+    def extract (self, elem=0, replace=False):
+        """Extract the specified elements (elem, may be a list) from the
+        (assumedly tensor) nodes in the NodeList. The elem may be integer(s),
+        or element name(s). In the latter case, a list of element names must
+        be supplied at NodeList creation. (e.g. , elements=['XX','XY','YX','YY'])
+        If replace==True, replace the nodes with the new ones.
+        Otherwise, return a new NodeList with the new nodes."""
+
+        ii = deepcopy(elem)
+        if not isinstance(ii, (list,tuple)): ii = [ii]
+        ppel = self._pp['elements']
+        elems = []
+        for k,i in enumerate(ii):
+            if isinstance(i,int):           # e.g. 1
+                if isinstance(ppel,list):
+                    elems.append(ppel[i])   # e.g. 'XX'
+                else:
+                    elems.append(str(i))
+            elif isinstance(i,str):         # e.g. 'XX'
+                ii[k] = ppel.index(i)       # index must be integer
+                elems.append(i)
+
+        # NB: MeqSelector only supports a single integer index....!?
+        # That is why we offer a workaround by re-composing multiple ones.
+
+        copy = self.copy()
+        copy._pp['elements'] = elems 
+        copy._pp['dims'] = len(elems)       # .....?
+        for k,node in enumerate(copy._nodes):
+            cc = []
+            selems = elems[0]
+            for m,i in enumerate(ii):       # extract nodes one-by-one
+                name = 'selector('+copy._labels[k]+')['+str(elems[m])+']'
+                node = copy._ns[name] << Meq.Selector(copy._nodes[k], index=i)
+                cc.append(node)
+                if m>0: selems += ','+elems[m]
+            if len(cc)==1:                  # extracted one only
+                copy._nodes[k] = cc[0]
+            else:                           # extracted more: recompose
+                name = 'selector('+copy._labels[k]+')['+selems+']'
+                copy._nodes[k] = copy._ns[name] << Meq.Composer(*cc)
+            copy._labels[k] = name
+        return self._dispose(copy, replace)
 
 
     #===============================================================
@@ -175,7 +280,7 @@ class NodeList (object):
         for unop1 in unop:
             copy._name = unop1+'('+copy._name+')'
             for k,node in enumerate(copy._nodes):
-                copy._nodes[k] = self._ns << getattr(Meq,unop1)(node)
+                copy._nodes[k] = copy._ns << getattr(Meq,unop1)(node)
                 copy._labels[k] = '('+copy._labels[k]+')'
         return self._dispose(copy, replace)
 
@@ -187,6 +292,7 @@ class NodeList (object):
         If replace==True, replace the nodes with the new ones.
         Otherwise, return a new NodeList with the new nodes."""
 
+        self._is_commensurate(other, severe=True)
         binopin = binop
         if binop=='+': binop = 'Add'
         if binop=='-': binop = 'Subtract'
@@ -198,34 +304,48 @@ class NodeList (object):
         copy._name = '('+copy._name+'_'+binopin+'_'+other._name+')'
         for k,lhs in enumerate(copy._nodes):
             rhs = other._nodes[k]
-            copy._nodes[k] = self._ns << getattr(Meq,binop)(lhs, rhs)
+            copy._nodes[k] = copy._ns << getattr(Meq,binop)(lhs, rhs)
             copy._labels[k] = '('+copy._labels[k]+'_'+binopin+'_'+other._labels[k]+')'
         return self._dispose(copy, replace)
         
+    #---------------------------------------------------------------
+
+    def compare (self, other, bookpage=True, show=False):
+        """Compare the nodes of a NodeList with the corresponding ones
+        of another NodeList."""
+        diff = self.binop('-', other)
+        qnode = diff.bundle(unop='Abs', combine='Add',
+                            bookpage=bookpage, recurse=None)
+        if show: display.subtree(qnode, show_initrec=False)
+        return qnode
+
 
     #===============================================================
     # subtrees:
     #===============================================================
 
-    def bundle (self, combine='Add', unop=None, bookpage=True, show=False):
-        """Bundle the nodes by applying the specified combine-operation
-        (default='Add') to them.
+    def bundle (self, combine='Add',
+                bookpage=True, recurse=1,
+                select='*', unop=None, show=False):
+        """Bundle the (selection of) nodes by applying the specified
+        combine-operation (default='Add') to them.
         If unary operation(s) specified, apply it/them first.
         Return the root node of the resulting subtree.
         If bookpage is specified, make a bookmark."""
 
-        nodes = self._nodes
-        quals = [combine,str(self.len())]
+        copy = self.copy(select=select)
+        quals = [combine,str(copy.len())]
         if unop: quals.insert(0,unop)      
-        qnode = self._ns['bundle'](*quals)
-        if not qnode.initialized():
+        qnode = copy._ns['bundle'](*quals)
+        if qnode.must_define_here(self):
+            nodes = copy._nodes
             if unop:
-                nodes = self.unop(unop)._nodes
+                nodes = copy.unop(unop)._nodes
             qnode << getattr(Meq,combine)(children=nodes)
         if bookpage:
             page = self._name
             if isinstance(bookpage, str): page = bookpage
-            JEN_bookmarks.create(qnode, qnode.name, recurse=1, page=page)
+            JEN_bookmarks.create(qnode, qnode.name, recurse=recurse, page=page)
 
         # Finished: Return the root-node of the bundle subtree:
         if show: display.subtree(qnode, show_initrec=False)
@@ -250,49 +370,78 @@ class NodeList (object):
     # Visualization:
     #===============================================================
 
-    def inspector (self, parmgroup='*'):
-        """Visualize the nodes in the specified parmgroup(s) in a separate
-        'inspector' per parmgroup. Return the root node of the resulting subtree.
-        Make bookpages for each parmgroup."""
+    def inspector (self, select='*', bookpage=True):
+        """Visualize the (selected) nodes with an 'inspector' (Collections Viewer).
+        Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        pg = self.check_parmgroups (parmgroup, severe=True)
-        bb = []
-        for key in pg:
-            quals = [key]
-            qnode = self._ns['inspector'](*quals)
-            if not qnode.initialized():
-                nodes = self._parmgroups[key]['nodes']
-                labels = self._parmgroups[key]['plot_labels']
-                qnode << Meq.Composer(children=nodes,
-                                      plot_label=labels)
-            bb.append(qnode)
-            JEN_bookmarks.create(qnode, key, page='inspector_'+self.name,
+        copy = self.copy(select=select)
+        qnode = copy._ns['inspector']
+        if qnode.must_define_here(self):
+            qnode << Meq.Composer(children=copy._nodes,
+                                  plot_label=copy._labels)
+        if bookpage:
+            JEN_bookmarks.create(qnode, self.name,
+                                 # page='inspector_'+self.name,
                                  viewer='Collections Plotter')
-
-        # Make a subtree of inspectors, and return the root node:
-        if len(bb)==0:
-            return None
-        elif len(bb)==1:
-            qnode = bb[0]
-        else:
-            qnode = self._ns['inspector'](parmgroup)
-            if not qnode.initialized():
-                qnode << Meq.Composer(children=bb)
         return qnode
 
-    #---------------------------------------------------------------
+    #--------------------------------------------------------------
 
-    def compare (self, parmgroup, with, trace=False):
-        """Compare the nodes of a parmgroup with the corresponding ones
-        of the given parmgroup (with)."""
+    def rvsi (self, select='*', other=None, bookpage=True):
+        """Visualize the (selected) nodes with a 'real-vs-imaginary' plot.
+        If another (commensurate) NodeList is specified, make complex numbers with
+        (real,imag) is (self,other). This misuses the rvsi plot to plot one agains
+        the other....
+        Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        self.has_group (parmgroup, severe=True)
-        # .... unfinished ....
-        
+        copy = self.copy(select=select)
+        if other:
+            copy = self.binop('ToComplex', other.copy(select=select)) 
+        rr = MG_JEN_dataCollect.dcoll (copy._ns, copy._nodes, 
+                                       scope='', tag='',
+                                       color=self._pp['color'],
+                                       style=self._pp['style'],
+                                       size=self._pp['size'],
+                                       pen=self._pp['pen'],
+                                       type='realvsimag', errorbars=True)
+        qnode = rr['dcoll']
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'rvsi_'+copy._name
+            JEN_bookmarks.create(qnode, self._name,
+                                 page=bookpage, folder=None)
+        return qnode
+
+
+
+    #================================================================
+    # Fill the NodeList with some test-nodes:
+    #================================================================
+
+    def test(self, n=8):
+        """Fill the NodeList with n test-nodes"""
+        freq = self._ns << Meq.Freq()
+        time = self._ns << Meq.time()
+        self._pp['elements'] = ['s','c','cs','cx']             # tensor element names
+        self._pp['dims'] = [2,2]                               # tensor dims....
+        k = 0
+        for i in range(10):
+            first = True
+            for j in range(1,3):
+                label = 'T'+str(i)+str(j)
+                qnode = self._ns[label]
+                if first:
+                    c = qnode('cos')(i) << Meq.Cos(i*time)
+                    first = False
+                s = qnode('sin')(j) << Meq.Sin(j*freq)
+                cs = qnode('cs') << Meq.Multiply(c,s)
+                cx = qnode('cx') << Meq.ToComplex(c,s)
+                qnode << Meq.Composer(s,c,cs,cx, dims=[2,2])   # make tensor node
+                self.append(qnode, label)
+                k += 1
+                if k>=n: break
+            if k>=n: break
         return True
-
-
-
 
 
 
@@ -316,30 +465,32 @@ def _define_forest(ns):
     cc = []
 
     nn1 = NodeList(ns, 'nn1')
-    nn1.display('initial')
-    if 1:
-        for k in range(4):
-            nn1.append(ns << k)
+    nn1.test(3)
     nn1.display('initial')
 
-    if 0:
+    if 1:
         unop = None
-        unop = 'Cos Sin'
-        node = nn1.bundle(unop=unop, show=True)
+        # unop = 'Cos Sin'
+        node = nn1.bundle(select='*', unop=unop, show=True)
         cc.append(node)
 
     if 1:
-        unop = 'Cos'
-        unop = ['Cos','Sin']
-        unop = 'Cos Sin'
-        nn2 = nn1.unop(unop, replace=False)
-        cc.append(nn2.bundle(show=True))
-        if 1:
-            nn3 = nn1.unop(unop, replace=False)
-            cc.append(nn3.bundle(show=True))
+        # nn2 = nn1.extract(elem=[2,3])
+        nn2 = nn1.extract(elem=['cx','c','c'])
+        nn2.display('extracted')
+        node = nn2.bundle(show=True)
+        cc.append(node)
 
     if 0:
         node = nn1.inspector()
+        cc.append(node)
+
+    if 0:
+        node = nn1.rvsi(other=nn1)
+        cc.append(node)
+
+    if 0:
+        node = nn1.compare(other=nn1)
         cc.append(node)
 
     nn1.display('final', full=True)
@@ -353,8 +504,8 @@ def _define_forest(ns):
 
 def _tdl_job_2D_tf (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=100)
+    domain = meq.domain(1,5,0,6)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=100, num_time=100)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
@@ -382,17 +533,29 @@ if __name__ == '__main__':
     if 1:
         for k in range(4):
             nn1.append(ns << k)
-
     if 0:
         nn1.append('node')
         nn1.append(14, 'label')
         nn1.append(range(2))
 
+    if 1:
+        nn1 = NodeList(ns, 'nt1')
+        nn1.test(8)
+        nn1.display('test')
+
     if 0:
-        nn2 = nn1.copy()
+        for nreg in range(10):
+            nn1._selection(nreg)
+        nn1._selection([6])
+        nn1._selection([6,9])
+        nn1._selection('*')
+        nn1._selection(3.4)
+
+    if 0:
+        nn2 = nn1.copy(select=[1,2])
         nn2.append(range(2))
-        nn2._opt = 'new'
-        nn1._opt = 'old'
+        nn2._pp = 'new'
+        nn1._pp = 'old'
         nn1.append(140, 'labell')
         nn2.display('copy')
 
@@ -400,12 +563,12 @@ if __name__ == '__main__':
         for index in range(5):
             print index, nn1[index] 
 
-    if 0:
-        unop = None
+    if 1:
         unop = 'Cos'
         unop = 'Cos Sin'
         unop = ['Cos','Sin']
-        print nn1.bundle(unop=unop, show=True)
+        unop = None
+        print nn1.bundle(unop=unop, select=3, show=True)
 
     if 0:
         replace = False
@@ -418,7 +581,7 @@ if __name__ == '__main__':
     if 0:
         print nn1.maxabs(show=True)
 
-    if 1:
+    if 0:
         nn2 = nn1.copy()
         nn3 = nn1.binop('*', nn2)
         nn3.display('binop')
