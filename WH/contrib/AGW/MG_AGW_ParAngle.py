@@ -77,6 +77,13 @@ def _define_forest (ns):
 # we should now be able to create an ParAngle node with X,Y,Z station positions
   ns.ParAngle << Meq.ParAngle(radec=ns.RADec, xyz=ns.XYZ)
 
+# and a pretty well identical one using the observatory name
+  ns.ParAngle1 << Meq.ParAngle(radec=ns.RADec, observatory = 'VLA')
+
+# create a ReqSeq node to call the two AzEl nodes
+  ns.reqseq <<Meq.ReqSeq(ns.ParAngle,ns.ParAngle1)
+
+
 def _test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
@@ -104,7 +111,7 @@ def _test_forest (mqs,parent):
   request = meq.request(cells,rqtype='e1')
 
 # execute request
-  a = mqs.meq('Node.Execute',record(name='ParAngle',request=request),wait=True);
+  a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=True);
 
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
