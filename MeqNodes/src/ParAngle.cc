@@ -28,6 +28,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <measures/Measures/MBaseline.h>
 #include <measures/Measures/MPosition.h>
+#include <measures/Measures/MeasTable.h>
 #include <measures/Measures/MEpoch.h>
 #include <measures/Measures/ParAngleMachine.h>
 
@@ -43,8 +44,9 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
 
+//The node should assume that only the first child (RADec) is mandatory
 ParAngle::ParAngle()
-: TensorFunction(2,child_labels)
+: TensorFunction(2,child_labels,1)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -52,6 +54,20 @@ ParAngle::ParAngle()
 
 ParAngle::~ParAngle()
 {}
+
+// Obtain an observatory - if a name is supplied
+// use a 'global observatory position' to calculate the parallactic Angle.
+// Otherwise the parallactic angle will be calculated for individual
+// station positions.
+void ParAngle::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  TensorFunction::setStateImpl(rec,initializing);
+
+  if(rec->hasField(FObservatory))
+      {
+        rec[FObservatory].get(obs_name_,initializing);
+      }
+}
 
 void ParAngle::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
 {
@@ -63,47 +79,62 @@ void ParAngle::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref
   ref.attach(cells);
 }
 
-
 LoShape ParAngle::getResultDims (const vector<const LoShape *> &input_dims)
 {
   Assert(input_dims.size()>=1);
   // child 0 (RaDec0): expected 2-vector
   const LoShape &dim0 = *input_dims[0];
   FailWhen(dim0.size()!=1 || dim0[0]!=2,"child '"+child_labels[0].toString()+"': 2-vector expected");
-  // children 1 (XYZ): expecting 3-vector, if any
-  const LoShape &dim1 = *input_dims[1];
-  FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
+  if( obs_name_.empty() )
+    {
+      // children 1 (XYZ): expecting 3-vector, if any
+      const LoShape &dim1 = *input_dims[1];
+      FailWhen(dim1.size()!=1 || dim1[0]!=3,"child '"+child_labels[1].toString()+"': 3-vector expected");
+    }
   // result is a 1-D vector
   return LoShape(1);
 }
 
-
-
 void ParAngle::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
+  // create a frame for an Observatory, or a telescope station
+  MeasFrame Frame; // create default frame 
+
   // thanks to checks in getResultDims(), we can expect all 
   // vectors to have the right sizes
   // Get RA and DEC, and station positions
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
-  const Vells& vx   = *(args[1][0]);
-  const Vells& vy   = *(args[1][1]);
-  const Vells& vz   = *(args[1][2]);
-  
-  // NB: for the time being we only support scalars
-  Assert( vra.isScalar() && vdec.isScalar() &&
-          vx.isScalar() && vy.isScalar() && vz.isScalar() );
 
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  // create a frame for an Observatory, or a telescope station
-  MeasFrame Frame; // create default frame 
   
-  double x = vx.getScalar<double>();
-  double y = vy.getScalar<double>();
-  double z = vz.getScalar<double>();
-  MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
-  Frame.set(stnpos); // tie this frame to station position
+
+  if( obs_name_.empty() )
+    {
+    const Vells& vx   = *(args[1][0]);
+    const Vells& vy   = *(args[1][1]);
+    const Vells& vz   = *(args[1][2]);
+  
+    // NB: for the time being we only support scalars
+    Assert( vra.isScalar() && vdec.isScalar() &&
+          vx.isScalar() && vy.isScalar() && vz.isScalar() );
+
+    double x = vx.getScalar<double>();
+    double y = vy.getScalar<double>();
+    double z = vz.getScalar<double>();
+    MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
+    Frame.set(stnpos); // tie this frame to station position
+  }
+  else
+  {
+    // NB: for the time being we only support scalars
+    Assert( vra.isScalar() && vdec.isScalar() );
+    // create frame for an observatory
+    MPosition Obs;
+    MeasTable::Observatory(Obs,obs_name_);
+    Frame.set(Obs);  // tie this frame to a known observatory
+  }
 
   const Cells& cells = resultCells();
   // Get RA and DEC of location where Parallactic Angle is to be 

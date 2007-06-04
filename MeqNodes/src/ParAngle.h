@@ -44,7 +44,6 @@
 namespace Meq {    
 
 
-
 class ParAngle : public TensorFunction
 {
 public:
@@ -70,9 +69,14 @@ protected:
   // Evaluates ParAngle for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args );
-  
-};
 
+  // Used to test if we are initializing with an observatory name
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  
+private:
+  string obs_name_;
+
+};
 
 
 } // namespace Meq
