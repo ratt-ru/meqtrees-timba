@@ -646,6 +646,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     """enables/disables the Run TDL QAction. If kernel is connected and a TDL script
     is loaded, enables, else disables.""";
     if self._connected and self._main_tdlfile is not None:
+      print self._main_tdlfile;
       filename = "("+os.path.basename(self._main_tdlfile)+")";
       self._qa_runtdl.setWhatsThis("Re-runs the current TDL script "+filename);
       self._qa_runtdl.setVisible(True);
@@ -662,7 +663,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if not self._connected:
       QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
       return;
-    self._tdl_compile_file(self._main_tdlfile,show=False);
+    self._tdltab_compile_file(None,self._main_tdlfile,show=False);
   
   class LoadTDLDialog (QFileDialog):
     def __init__ (self,*args):
@@ -709,6 +710,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       tab.show_line_numbers(show);
   
   def show_tdl_file (self,pathname,run=False,mainfile=None,show=True):
+    if not isinstance(pathname,str):
+      raise TypeError,"show_tdl_file: string argument expected";
     if mainfile is None:
       self._main_tdlfile = pathname;
       self._enable_run_current();  # update GUI
@@ -752,7 +755,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(tab,PYSIGNAL("textModified()"),self._tdltab_modified);
       QObject.connect(tab,PYSIGNAL("fileClosed()"),self._tdltab_close);
       QObject.connect(tab,PYSIGNAL("showEditor()"),self._tdltab_show);
-      QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdl_compile_file);
+      QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdltab_compile_file);
       QObject.connect(tab,PYSIGNAL("fileChanged()"),self._tdltab_reset_label);
       QObject.connect(tab,PYSIGNAL("hasCompileOptions()"),self._tdltab_refresh_compile_options);
       tab.load_file(pathname,text,mainfile=mainfile);
@@ -825,7 +828,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       raise;
     
     
-  def _tdl_compile_file (self,filename,show=True):
+  def _tdltab_compile_file (self,origin_tab,filename,show=True):
     # reset all tab icons
     for tab in self._tdl_tabs.itervalues():
       self.maintab.setTabIconSet(tab,QIconSet());
@@ -874,6 +877,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # make it visible if it exists
       if tab:
         self._tdltab_show(tab);
+        tab.sync_external_file(ask=False);
       # else load new tab
       else:
         tab = self.show_tdl_file(filename,mainfile=self._main_tdlfile,show=True);

@@ -30,7 +30,7 @@ def _define_forest (ns,**kwargs):
   ns['solver'] << Meq.Solver(
       num_iter=15,debug_level=10,solvable="x",epsilon=1e-5,last_update=True,save_funklets=True,
       children = Meq.Condeq(
-        Meq.Parm([0,1]),
+        Meq.Parm([0,2]),
         5 + (ns.x << Meq.Parm(0,node_groups='Parm',table_name='test2345',shape=[2,3],log_policy=100)),
         a=None
       ),

@@ -409,7 +409,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     if err_num is not None:
       self._error_window.show_error_number(err_num);
 
-  def _sync_external_file (self,filename,ask=True):
+  def sync_external_file (self,filename=None,ask=True):
+    #
+    # NB: problem because it resets the errors
+    filename = filename or self._filename;
     filetime = _file_mod_time(filename);
     if not filetime or filetime == self._file_disktime:
       return True;  # in sync
@@ -425,7 +428,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     if res == 2:
       return None;
     elif res == 1:
-      self.load_file(filename);
+      if filename != self._filename:
+        self.load_file(filename);
+      else:
+        self.reload_file();
       return True;  # in sync
 
   def _save_file (self,filename=None,text=None,force=False,save_as=False):
@@ -437,7 +443,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     filename = filename or self._filename;
     if filename and not save_as:
       if not force:
-        if not self._sync_external_file(filename,ask=True):
+        if not self.sync_external_file(filename=filename,ask=True):
           return None;
     else: # no filename, ask for one
       try: dialog = self._save_as_dialog;
@@ -533,7 +539,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       if not self._save_file():
         return None;
     else:
-      if not self._sync_external_file(self._filename,ask=False):
+      if not self.sync_external_file(ask=False):
         return None;
     # if we already have an imported module and sisk file hasn't changed, do
     # nothing and return success.
@@ -724,6 +730,16 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       self._tb_run.setPopup(None);
       QToolTip.add(self._tb_run,"Saves and runs the script.");
+      
+  def reload_file (self):
+    text = file(self._filename).read();
+    # set save icons, etc.
+    self._qa_revert.setEnabled(True);
+    self._file_disktime = _file_mod_time(self._filename);
+    self._editor.setText(text);
+    self._editor.setReadOnly(not os.access(self._filename,os.W_OK));
+    self._editor.setModified(False);
+    self._text_modified(False);
 
   def load_file (self,filename,text=None,readonly=False,mainfile=None):
     """loads editor content.
@@ -737,14 +753,12 @@ class TDLEditor (QFrame,PersistentCurrier):
       readonly = True;
     # load text from file if not supplied
     if text is None:
-      ff = file(filename);
-      text = ff.read();
-      ff.close();
+      text = file(filename).read();
     self._filename = filename;
     # sets as as the mainfile or as a submodule of a main file
     self._set_mainfile(mainfile);
     # set save icons, etc.
-    self._qa_revert.setEnabled(bool(filename));
+    self._qa_revert.setEnabled(True);
     self._basename = os.path.basename(filename);
     self._readonly = readonly;
     self._file_disktime = filename and _file_mod_time(filename);
