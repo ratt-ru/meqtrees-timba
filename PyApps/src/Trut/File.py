@@ -58,13 +58,13 @@ class File (Trut.Unit):
       self.top_unit.execute();
     except:
       excinfo = sys.exc_info();
-      self.log_exc(level=0,*excinfo);
+      self.log_exc(*excinfo);
       self.top_unit.fail(excinfo[1]);
     try:
       self.top_unit.cleanup();
     except:
       excinfo = sys.exc_info();
-      self.log_exc(level=0,*excinfo);
+      self.log_exc(*excinfo);
       self.top_unit.fail(excinfo[1]);
     excinfo = None;
     clsname,name = self.top_unit.__class__.__name__,self.top_unit.name;

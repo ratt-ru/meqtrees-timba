@@ -42,6 +42,7 @@ class TrutLogger (object):
         
   def log_exc (self,exctype,excvalue,exctb,level=0):
     """writes exception, if the specified level is <= the verbosity level we were created with.""";
+    # STDERR.write("***exc %s %d %d\n"%(exctype,level,self.verbose));
     if level <= self.verbose:
       _dprint(5,os.getpid(),"logging to file",self.fileobj,excvalue);
       traceback.print_exception(exctype,excvalue,exctb,limit=None,file=self.fileobj);
@@ -85,6 +86,8 @@ class TrutLogger (object):
     else:
       raise TypeError,"'logfile' should be a filename or a file object";
 
+STDERR = sys.stderr;
+
 class TrutBatchRun (Trut.Unit):
   def __init__ (self,name="",persist=0,loggers=[]):
     Trut.Unit.__init__(self,name);
@@ -104,7 +107,7 @@ class TrutBatchRun (Trut.Unit):
     for logger in self.loggers:
       logger.log(message,status,level=level,progress=progress);
       
-  def log_exc (self,exctype,excvalue,exctb,level=0):
+  def log_exc (self,exctype,excvalue,exctb,level=1):
     _dprint(5,os.getpid(),"logging exception",excvalue);
     for logger in self.loggers:
       logger.log_exc(exctype,excvalue,exctb,level=level);

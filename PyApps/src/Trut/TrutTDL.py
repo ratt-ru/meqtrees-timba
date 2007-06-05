@@ -1,4 +1,5 @@
 import Trut
+import sys
 from Trut import _dprint,_dprintf
 
 
@@ -55,7 +56,15 @@ class TDLScript (Trut.Unit):
       TDLOptions.init_options(self.name);
       # compile TDL module
       _dprint(1,"compiling TDL script",self.name);
-      (self._module,ns,msg) = Compile.compile_file(self._mqs,self.name);
+      try:
+        (self._module,ns,msg) = Compile.compile_file(self._mqs,self.name);
+      except:
+        excinfo = sys.exc_info();
+        self.log_exc(level=2,*excinfo);
+        self.fail("compile failed");
+        excinfo = None;
+        return;
+      # success
       self.log(msg,level=2);
       self.success("compile");
       self._compile_failed = False;

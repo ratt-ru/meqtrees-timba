@@ -57,8 +57,7 @@ class Unit (object):
     if not self._fail_logged:
       if not from_child or self.persist <= 0:
         if isinstance(message,Exception):
-          args = " ".join(map(str,getattr(message,'args',[])));
-          message = ": ".join((str(message.__class__.__name__),args));
+          message = message.__class__.__name__;
         self.log(message,"FAIL",level=-999999);
         self._fail_logged = True;
     if not self.failed:
@@ -79,7 +78,7 @@ class Unit (object):
     """Logs message at a given verbosity level, prepending our unit class and name""";
     self.log_message("%s %s: %s"%(self.__class__.__name__,self.name,message),status,level);
 
-  def log_exc (self,exctype,excvalue,exctb,level=0):
+  def log_exc (self,exctype,excvalue,exctb,level=1):
     """Logs exception at a given verbosity level""";
     self.parent and self.parent.log_exc(exctype,excvalue,exctb,level=level+10);
     
