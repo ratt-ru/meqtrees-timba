@@ -747,14 +747,14 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       if show:
         self._tdltab_show(tab);
       QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
-      QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
-      QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_has_errors,tab));
-      QObject.connect(tab,PYSIGNAL("textModified()"),self.curry(self._tdltab_modified,tab));
-      QObject.connect(tab,PYSIGNAL("fileClosed()"),self.curry(self._tdltab_close,tab));
-      QObject.connect(tab,PYSIGNAL("showEditor()"),self.curry(self._tdltab_show,tab));
+      QObject.connect(tab,PYSIGNAL("fileSaved()"),self._tdltab_change);
+      QObject.connect(tab,PYSIGNAL("hasErrors()"),self._tdltab_has_errors);
+      QObject.connect(tab,PYSIGNAL("textModified()"),self._tdltab_modified);
+      QObject.connect(tab,PYSIGNAL("fileClosed()"),self._tdltab_close);
+      QObject.connect(tab,PYSIGNAL("showEditor()"),self._tdltab_show);
       QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdl_compile_file);
-      QObject.connect(tab,PYSIGNAL("fileChanged()"),self.curry(self._tdltab_reset_label,tab));
-      QObject.connect(tab,PYSIGNAL("hasCompileOptions()"),self.curry(self._tdltab_refresh_compile_options,tab));
+      QObject.connect(tab,PYSIGNAL("fileChanged()"),self._tdltab_reset_label);
+      QObject.connect(tab,PYSIGNAL("hasCompileOptions()"),self._tdltab_refresh_compile_options);
       tab.load_file(pathname,text,mainfile=mainfile);
     else:
       _dprint(1,'we already have a tab for',pathname);
@@ -832,7 +832,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     # load file as needed
     tab = self._tdl_tabs.get(filename,None);
     if tab is None:
-      _dprint(1,'No tab open, loading',pathname);
+      _dprint(1,'No tab open, loading',filename);
       self.show_tdl_file(filename,run=True,show=show);
     else:
       if show:

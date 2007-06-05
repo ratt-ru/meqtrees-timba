@@ -281,14 +281,14 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.clear_errors();
     if self._mainfile and self._editor.isModified():
       self._save_file();
-    self.emit(PYSIGNAL("compileFile()"),(self._mainfile or self._filename,));
+    self.emit(PYSIGNAL("compileFile()"),(self,self._mainfile or self._filename,));
 
   def _run_as_main_file (self):
     self.clear_errors();
     self._set_mainfile(None);
     self._text_modified(self._editor.isModified());   # to reset labels
-    self.emit(PYSIGNAL("fileChanged()"),());
-    self.emit(PYSIGNAL("compileFile()"),(self._filename,));
+    self.emit(PYSIGNAL("fileChanged()"),(self,));
+    self.emit(PYSIGNAL("compileFile()"),(self,self._filename,));
 
   def _clear_transients (self):
     """if message box contains a transient message, clears it""";
@@ -305,7 +305,7 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def _text_modified (self,mod):
     self._modified = mod;
-    self.emit(PYSIGNAL("textModified()"),(bool(mod),));
+    self.emit(PYSIGNAL("textModified()"),(self,bool(mod),));
     if mod:
       self._tb_save.setPaletteBackgroundColor(self._tb_save._modified_color);
     else:
@@ -388,7 +388,7 @@ class TDLEditor (QFrame,PersistentCurrier):
           else:
             self._editor.markerAdd(line-1,self.ErrorMarker);
           nerr_local += 1;
-    self.emit(PYSIGNAL("hasErrors()"),(nerr_local,));
+    self.emit(PYSIGNAL("hasErrors()"),(self,nerr_local,));
 
   def show_error (self,err_num,filename,line,column):
     """Shows error at the given position, but only if the filename matches.
@@ -472,7 +472,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._file_disktime = _file_mod_time(filename);
     self._editor.setModified(False);
     self._text_modified(False);
-    self.emit(PYSIGNAL("fileSaved()"),(filename,));
+    self.emit(PYSIGNAL("fileSaved()"),(self,filename,));
     return self._filename;
 
   def close (self):
@@ -542,7 +542,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # reset data members
     self._tb_opts.hide();
     _dprint(2,self._filename,"emitting signal for 0 compile-time options");
-    self.emit(PYSIGNAL("hasCompileOptions()"),(0,));
+    self.emit(PYSIGNAL("hasCompileOptions()"),(self,0,));
     self._options_menu.clear();
     self._tdlmod = None;
     # get text from editor
@@ -576,7 +576,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._qa_recompile.addTo(self._options_menu);
       self._tb_opts.show();
       _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-      self.emit(PYSIGNAL("hasCompileOptions()"),(len(opts),));
+      self.emit(PYSIGNAL("hasCompileOptions()"),(self,len(opts),));
     return True;
 
   def compile_content (self):
@@ -703,7 +703,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       ns.AddError(exc,tb,error_limit=None);
       msg = "TDL job '"+name+"' failed";
       self._error_window.set_errors(ns.GetErrors(),signal=True,message=msg);
-      self.emit(PYSIGNAL("showEditor()"),());
+      self.emit(PYSIGNAL("showEditor()"),(self,));
 
   def get_jobs_popup (self):
     return self._jobmenu;
@@ -753,7 +753,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._editor.setModified(False);
     self._text_modified(False);
     # emit signals
-    self.emit(PYSIGNAL("fileLoaded()"),(filename,));
+    self.emit(PYSIGNAL("fileLoaded()"),(self,filename,));
     # if module is a main-level file (i.e. not slaved to another mainfile),
     # pre-import it so that compile-time menus become available
     self._tdlmod = None;
