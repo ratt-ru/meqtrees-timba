@@ -22,8 +22,9 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.util import JEN_bookmarks
-from Timba.Contrib.JEN import MG_JEN_dataCollect
+# from Timba.Contrib.JEN.util import JEN_bookmarks
+# from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
 
@@ -50,6 +51,8 @@ class ParameterizationPlus (Meow.Parameterization):
                                        quals=quals, kwquals=kwquals)
         # Initialize local data:
         self._parmgroups = dict()
+        self._parmNodeList = dict()
+        self._parmgogs = dict()
 
         # Optional: Copy the parametrization of another object:
         if merge:
@@ -86,6 +89,10 @@ class ParameterizationPlus (Meow.Parameterization):
                 rr['deviation'] = '<NA>'
             print '    - ('+key+'): '+str(rr)
         #...............................................................
+        print '  * Grunt _parmgogs (groups of parmgroups, derived from their tags):'
+        for key in self.p_gogs():
+            print '    - ('+key+'): '+str(self._parmgogs[key])
+        #...............................................................
         print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
         if full:
             for key in self._parmdefs:
@@ -105,6 +112,11 @@ class ParameterizationPlus (Meow.Parameterization):
             for key in self._parmnodes:
                 rr = self._parmnodes[key]
                 print '    - ('+key+'): '+str(rr)
+        #...............................................................
+        print '  * NodeList objects ('+str(len(self._parmNodeList))+'):'
+        for key in self._parmNodeList:
+            s = self._parmNodeList[key].oneliner()
+            print '    - ('+key+'): '+s
         #...............................................................
         print '**\n'
         return True
@@ -215,20 +227,24 @@ class ParameterizationPlus (Meow.Parameterization):
         ptags.extend(rr['tags'])
 
         # Use the Meow Parm/Parameterization mechanism as much as possible:
+        node = None
         if simul:
             # Return the root node of a subtree that simulates the MeqParm
             # NB: The default (rr) default and deviation may be overridden here
             rootnode = _simul_subtree(rr, qnode,
                                       default=default, deviation=deviation,
                                       tags=ptags)
-            solvable = False
-            self._add_parm(nodename, rootnode, tags=tags, solvable=solvable)
+            solvable = False                           # used below also!
+            self._add_parm(nodename, rootnode, tags=['<NA>'], solvable=solvable)
+            node = self._parm(nodename)
 
         elif isinstance(value, Meow.Parm):
             self._add_parm(nodename, value, tags=ptags, solvable=solvable)
+            node = self._parm(nodename)
 
         elif is_node(value):
             self._add_parm(nodename, value, tags=ptags, solvable=solvable)
+            node = self._parm(nodename)
 
         else:
             # NB: Check the exact working of or/and etc on lists, dicts.......!!
@@ -238,15 +254,16 @@ class ParameterizationPlus (Meow.Parameterization):
                               freq_deg=(freq_deg or rr['freq_deg']),
                               tags=[])
             self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
+            node = self._parm(nodename, nodename=qnode.name)
 
         # Update the parmgroup with the new member node:
-        node = self._parm(nodename)
         rr['nodes'].append(node)
         rr['plot_labels'].append(nodename)
         rr['solvable'].append(solvable)
 
         # Return the new member node:
         return node
+
 
 
     #===============================================================
@@ -350,27 +367,37 @@ class ParameterizationPlus (Meow.Parameterization):
     # Convenient access to a list of nodes/subtrees, e.g. for solving
     #===============================================================
 
-    def p_solvable (self, tags=None, parmgroups='*', trace=False):
+    def p_solvable (self, tags=None, groups='*', return_NodeList=True, trace=False):
         """Return a list with the specified selection of solvable MeqParm nodes.
         The nodes may be specified by their tags (n.search) or by parmgroups."""
-        return self.p_find_nodes (tags=tags, parmgroups=parmgroups,
+        return self.p_find_nodes (tags=tags, groups=groups,
+                                  return_NodeList=return_NodeList,
                                   solvable=True, trace=trace)
 
 
     #----------------------------------------------------------------
 
-    def p_find_nodes (self, tags=None, parmgroups='*',
-                      solvable=None, trace=False):
+    def p_find_nodes (self, tags=None, groups='*', solvable=None,
+                      return_NodeList=True, trace=False):
         """Return a list with the specified selection of the nodes (names)
         that are known to this Parameterization object. The nodes may be
         specified by their tags (n.search) or by parmgroups. The defaults are
-        tags=None and parmgroups='*', but tags are checked first."""
+        tags=None and groups='*', but tags are checked first."""
 
-        if trace: print '\n** p_find_nodes(tags=',tags,', pg=',parmgroups,', solvable=',solvable,'):'
+        if trace:
+            print '\n** p_find_nodes(tags=',tags,', groups=',groups,', solvable=',solvable,'):'
         nodes = []
         labels = []
+        name = 'parms'
+
         if tags:
+            # A tags specification has precedence:
             tags = _tags2list(tags)
+            name = 'tags'
+            for k,tag in enumerate(tags):
+                name += str(tag)
+            if trace:
+                print ' -- tags =',tags,' (name=',name,')'
             class_name = None
             if solvable:
                 tags.append('solvable')
@@ -381,8 +408,17 @@ class ParameterizationPlus (Meow.Parameterization):
             for node in nodes:
                 labels.append(node.name)
 
-        elif parmgroups:
-            pg = self.p_check_parmgroups (parmgroups, severe=True)
+        elif groups:
+            # Use the groups specification:
+            pg = self.p_find_parmgroups (groups, severe=True)
+            name = 'gogs'
+            if isinstance(groups,str):
+                name += groups
+            elif isinstance(groups,(list,tuple)):
+                for k,group in enumerate(groups):
+                    name += str(group)
+            if trace:
+                print ' -- groups =',groups,'(name=',name,') -> pg =',pg
             for key in pg:
                 rr = self._parmgroups[key]              # convenience
                 if not isinstance(solvable, bool):      # solvable not speified
@@ -397,60 +433,98 @@ class ParameterizationPlus (Meow.Parameterization):
         if trace:
             for k,node in enumerate(nodes):
                 print '  - (',labels[k],'):',str(node)
-            print ' ->',len(nodes),'nodes, ',len(labels),'labels\n'
-        return nodes
+            print ' ->',len(nodes),'nodes, ',len(labels),'labels'
+
+        # Optionally, return a NodeList object of the selected nodes and their labels
+        if return_NodeList:
+            nn = NodeList.NodeList(self.ns, name, nodes=nodes, labels=labels)
+            if trace: print ' ->',nn.oneliner(),'\n'
+            return nn
+        else:
+            # Otherwise, just return a list of nodes:
+            return nodes
+
 
     #------------------------------------------------------------------------
 
-    def p_check_parmgroups (self, select, severe=True, trace=False):
-        """Helper function to covert the selection (parmgroups) into a list of
-        existing parmgroup names. If severe==True, stop if error."""
-        # First make sure that the selection is a list (of parmgroup names):
-        if isinstance(select, str):
-            select = select.split(' ')                 # make a list from string
-        select = list(select)                          # make sure of list
-        if select[0]=='*':
-            select = self._parmgroups.keys()           # all parmgroups
-        # Check the existence of the selected parmgroups:
+    def p_find_parmgroups (self, groups, severe=True, trace=False):
+        """Helper function to covert the specified groups (parmgroups or gogs)
+        into a list of existing parmgroup names. If severe==True, stop if error.
+        """
+        # First make sure that the selection is a list (of names):
+        if isinstance(groups, str):
+            groups = groups.split(' ')                 # make a list from string
+        groups = list(groups)                          # make sure of list
+        if groups[0]=='*':
+            groups = self._parmgroups.keys()           # all parmgroups
+
+        # Make a (unique) list pg of valid parmgroups from the gogs: 
+        self._p_make_gogs()
         pg = []
-        for key in select:
-            if self._parmgroups.has_key(key):
-                pg.append(key)
+        for key in groups:
+            if self._parmgogs.has_key(key):
+                for g in self._parmgogs[key]:
+                    if not g in pg: pg.append(g)
             elif severe:
                 raise ValueError,'** parmgroup not recognised: '+key
         return pg
 
 
     #===============================================================
-    # Parmgroup subtrees:
+    # Parmgogs: Groups of parmgroups
     #===============================================================
 
-    def p_bundle (self, parmgroup='*', combine='Add',
-                  bookpage=True, show=False):
-        """Bundle the nodes in the specified parmgroup(s) by applying the
-        specified combine-operation (default='Add') to them. Return the
-        root node of the resulting subtree. Make bookpages for each parmgroup."""
+    def p_gogs (self):
+        """Return the list of available groups of parmgroups (gogs).
+        These are used in finding groups, e.g. for solving."""
+        return self._p_make_gogs().keys()
 
-        pg = self.p_check_parmgroups (parmgroup, severe=True)
-        bb = []
-        for key in pg:
+    def _p_make_gogs (self):
+        """Derive a dict of named groups of parmgroups from the tags
+        of the various parmgroups. These may be used to select groups,
+        e.g. in .solvable()."""
+        gg = dict()
+        keys = self._parmgroups.keys()
+        for key in keys:
+            tags = self._parmgroups[key]['tags']
+            for tag in tags:
+                gg.setdefault(tag,[])
+                if not key in gg[tag]:
+                    gg[tag].append(key)
+        self._parmgogs = gg
+        return self._parmgogs
+
+
+
+    #===============================================================
+    # Methods using NodeLists:
+    #===============================================================
+
+    def p_NodeList (self, parmgroup):
+        """Helper function to get a NodeList object for the specified parmgroup.
+        In order to avoid duplication, the created NodeList object are reused.
+        """
+        key = self.p_find_parmgroups (parmgroup, severe=True)[0]
+        print 'key=',key,key[0]
+        if not self._parmNodeList.has_key(key):
             nodes = self._parmgroups[key]['nodes']
-            quals = [combine+'_'+str(len(nodes)),key]
-            qnode = self.ns['p_bundle'](*quals)
-            if not qnode.initialized():
-                qnode << getattr(Meq,combine)(children=nodes)
-            bb.append(qnode)
-            if bookpage:
-                JEN_bookmarks.create(qnode, recurse=1, page=qnode.name)
+            labels = self._parmgroups[key]['plot_labels']
+            nn = NodeList.NodeList(self.ns, key, nodes=nodes, labels=labels)
+            self._parmNodeList[key] = nn
+        return self._parmNodeList[key]
 
-        # Bundle the parmgroup bundles, if necessary:
+    #---------------------------------------------------------------
+
+    def _p_bundle_of_bundles (self, bb, name=None, qual=None, show=False):
+        """Helper function to bundle a list of parmgroup bundles"""
+
         if len(bb)==0:
             return None
         elif len(bb)==1:
             qnode = bb[0]
         else:
-            qnode = self.ns['p_bundle'](parmgroup)
-            if not qnode.initialized():
+            qnode = self.ns[name](qual)
+            if not qnode.initialized():                        #......!!?
                 qnode << Meq.Composer(children=bb)
 
         # Finished: Return the root-node of the bundle subtree:
@@ -458,50 +532,53 @@ class ParameterizationPlus (Meow.Parameterization):
         return qnode
 
 
-    #===============================================================
-    # Visualization:
-    #===============================================================
+    #---------------------------------------------------------------
+    #---------------------------------------------------------------
 
-    def p_inspector (self, parmgroup='*'):
-        """Visualize the nodes in the specified parmgroup(s) in a separate
-        'inspector' per parmgroup. Return the root node of the resulting subtree.
-        Make bookpages for each parmgroup."""
-
-        pg = self.p_check_parmgroups (parmgroup, severe=True)
+    def p_bundle (self, parmgroup='*', combine='Add',
+                  bookpage=True, show=False):
+        """Bundle the nodes in the specified parmgroup(s) by applying the
+        specified combine-operation (default='Add') to them. Return the
+        root node of the resulting subtree. Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
         bb = []
         for key in pg:
-            quals = [key]
-            qnode = self.ns['p_inspector'](*quals)
-            if not qnode.initialized():
-                nodes = self._parmgroups[key]['nodes']
-                labels = self._parmgroups[key]['plot_labels']
-                qnode << Meq.Composer(children=nodes,
-                                      plot_label=labels)
-            bb.append(qnode)
-            JEN_bookmarks.create(qnode, key, page='p_inspector_'+self.name,
-                                 viewer='Collections Plotter')
-
-        # Make a subtree of inspectors, and return the root node:
-        if len(bb)==0:
-            return None
-        elif len(bb)==1:
-            qnode = bb[0]
-        else:
-            qnode = self.ns['p_inspector'](parmgroup)
-            if not qnode.initialized():
-                qnode << Meq.Composer(children=bb)
-        return qnode
+            nn = self.p_NodeList(key)
+            bb.append(nn.bundle(combine=combine, bookpage=bookpage))
+        return self._p_bundle_of_bundles (bb, name='p_bundle',
+                                          qual=parmgroup, show=show)
 
     #---------------------------------------------------------------
 
-    def p_compare (self, parmgroup, with, trace=False):
-        """Compare the nodes of a parmgroup with the corresponding ones
-        of the given parmgroup (with)."""
+    def p_inspector (self, parmgroup='*', show=False):
+        """Visualize the nodes in the specified parmgroup(s) in a separate
+        'inspector' per parmgroup. Return the root node of the resulting subtree.
+        Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        bb = []
+        for key in pg:
+            print 'key=',key
+            nn = self.p_NodeList(key)
+            bb.append(nn.inspector(bookpage=True))
+        return self._p_bundle_of_bundles (bb, name='p_inspector',
+                                          qual=parmgroup, show=show)
 
+    #---------------------------------------------------------------
+
+    def p_compare (self, parmgroup, other, show=False):
+        """Compare the nodes of a parmgroup with the corresponding ones
+        of the given (and assumedly commensurate) parmgroup (other).
+        The results are visualized in various helpful ways.
+        The rootnode of the comparison subtree is returned.
+        """
         self.p_has_group (parmgroup, severe=True)
-        # .... unfinished ....
-        
-        return True
+        self.p_has_group (other, severe=True)
+        nn1 = self.p_NodeList(parmgroup)
+        nn2 = self.p_NodeList(other)
+        qnode = nn1.compare(nn2, bookpage=True, show=show)
+        return qnode
 
 
 
@@ -512,7 +589,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
     def p_modify_default (self, name):
         """Modify the default value of the specified parm"""
-        # See Expression.py
+        # Not yet implemented..... See Expression.py
         return False
 
 
@@ -558,8 +635,8 @@ def _simul_subtree(rr, qnode,
     node = Ekey.MeqFunctional()
 
     # Make a root node with the correct name (qnode) and tags:
-    ptags = tags
-    if not 'simul' in tags: tags.append('simul')
+    ptags = deepcopy(tags)
+    if not 'simul' in ptags: ptags.append('simul')
     qnode << Meq.Identity(node, tags=ptags)
     if show: display.subtree(qnode)
     return qnode
@@ -584,7 +661,7 @@ def _define_forest(ns):
     # cc = [ns.dummy<<45]
     cc = []
 
-    pp1 = ParameterizationPlus(ns, 'G',
+    pp1 = ParameterizationPlus(ns, 'GJones',
                                # kwquals=dict(tel='WSRT', band='21cm'),
                                quals='3c84')
     pp1.p_display('initial')
@@ -611,6 +688,12 @@ def _define_forest(ns):
     if 1:
         node = pp1.p_inspector()
         cc.append(node)
+
+    if 1:
+        nn = pp1.p_solvable(groups='GJones')
+        nn.display('solvable')
+        nn.bookpage(select=4)
+        
 
     pp1.p_display('final', full=True)
 
@@ -654,7 +737,7 @@ if __name__ == '__main__':
 
     if 1:
         pp1.p_group_define('Gphase', tiling=3, simul=True)
-        pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
+        pp1.p_group_define('Ggain', default=1.0, freq_deg=2, simul=False)
 
     if 1:
         pp1.p_group_create_member('Gphase', 1)
@@ -683,11 +766,13 @@ if __name__ == '__main__':
 
     if 0:
         pp1.p_solvable()
-        pp1.p_solvable(parmgroups='Gphase')
-        pp1.p_solvable(parmgroups=['Ggain'])
-        pp1.p_solvable(parmgroups=['Gphase','Ggain'])
-        pp1.p_solvable(parmgroups=pp1.p_groups())
-        # pp1.p_solvable(parmgroups=['Gphase','xxx'])
+        pp1.p_solvable(groups='Gphase', trace=True)
+        pp1.p_solvable(groups=['Ggain'], trace=True)
+        pp1.p_solvable(groups=['GJones'], trace=True)
+        pp1.p_solvable(groups=['Gphase','Ggain'], trace=True)
+        pp1.p_solvable(groups=pp1.p_groups(), trace=True)
+        pp1.p_solvable(groups=pp1.p_gogs(), trace=True)
+        # pp1.p_solvable(groups=['Gphase','xxx'], trace=True)
 
     if 0:
         pp1.p_solvable(tags='Gphase', trace=True)
@@ -695,8 +780,10 @@ if __name__ == '__main__':
         pp1.p_solvable(tags=['Gphase','GJones'], trace=True)
         pp1.p_solvable(tags=['Gphase','Dgain'], trace=True)
 
-    if 0:
-        pp1.p_find_nodes(solvable=True)
+    if 1:
+        solvable = True
+        pp1.p_find_nodes(groups='GJones', solvable=solvable, trace=True)
+        pp1.p_find_nodes(groups=pp1.p_gogs(), solvable=solvable, trace=True)
 
     if 0:
         pp2 = ParameterizationPlus(ns, 'DJones', quals='CasA')

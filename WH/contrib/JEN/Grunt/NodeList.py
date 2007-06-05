@@ -23,6 +23,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
+# import Meow
+
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN.Grunt import display
@@ -35,7 +37,8 @@ from numarray import array
 class NodeList (object):
     """The Grunt NodeList class encapsulates an arbitrary list of nodes"""
 
-    def __init__(self, ns, name, nodes=[], labels=None, **pp):
+    def __init__(self, ns, name, quals=[], kwquals={},
+                 nodes=[], labels=None, **pp):
 
         # The name of this group of nodes:
         self._name = str(name)
@@ -44,13 +47,21 @@ class NodeList (object):
         self._labels = []
         self.append(nodes, labels)
 
-        # Scopify ns, if necessary:
+        # Scopify, if necessary:
         if is_node(ns):
-            self._ns = ns.QualScope(self._name)
+            self._ns = ns[self._name].QualScope()
             self._ns0 = ns.QualScope()
         else:
-            self._ns = ns(self._name)
+            self._ns = ns.QualScope(self._name)
             self._ns0 = ns
+
+        # Attach qualifiers, if required:
+        if isinstance(quals,str): quals = quals.split(' ')
+        self._quals = list(quals)
+        self._kwquals = kwquals
+        if not isinstance(self._kwquals,dict): self._kwquals = dict()
+        if self._quals or self._kwquals:
+            self._ns = self._ns.QualScope(*self._quals,**self._kwquals)        
 
         # Miscellaneous settings:
         self._pp = pp
@@ -144,6 +155,9 @@ class NodeList (object):
         print ' '
         print '** '+self.oneliner()
         if txt: print '  * (txt='+str(txt)+')'
+        print '  * quals = '+str(self._quals)+'   kwquals = '+str(self._kwquals)
+        print '  * ns = '+str(self._ns)+' -> '+str(self._ns << 1)
+        print '  * ns0 = '+str(self._ns0)+ ' -> '+str(self._ns0 << 1)
         #...............................................................
         print '  * Nodes ('+str(len(self._nodes))+'):'
         for k,node in enumerate(self._nodes):
@@ -202,7 +216,7 @@ class NodeList (object):
         
         name = self._name
         if isinstance(affix,str): name += '_'+affix
-        self._counter['copy'] += 1                   # increment copy-counter
+        self._counter['copy'] += 1                   # increment kopie-counter
         name += '|'+str(self._counter['copy'])
         new = NodeList(self._ns0, name)              # note self._ns0....!
 
@@ -212,20 +226,22 @@ class NodeList (object):
             new._nodes.append(self._nodes[i])
             new._labels.append(self._labels[i])
         new._pp = deepcopy(self._pp)
+
+        new.display('.copy()')
         return new
 
     #----------------------------------------------------------------
 
-    def _dispose(self, copy, replace=False):
+    def _dispose(self, kopie, replace=False):
         """Dispose of the (modified) copy of itself. Either return
         the given copy, or replace its own internals with the copy."""
         if replace:
-            self._nodes = deepcopy(copy._nodes)
-            self._labels = deepcopy(copy._labels)
-            self._pp = deepcopy(copy._pp)
+            self._nodes = deepcopy(kopie._nodes)
+            self._labels = deepcopy(kopie._labels)
+            self._pp = deepcopy(kopie._pp)
             return True
-        copy._ns = copy._ns0(copy._name)
-        return copy
+        kopie._ns = kopie._ns0(kopie._name)
+        return kopie
 
     #----------------------------------------------------------------
 
@@ -312,21 +328,21 @@ class NodeList (object):
         # NB: MeqSelector only supports a single integer index....!?
         # That is why we offer a workaround by re-composing multiple ones.
 
-        copy = self.copy(affix=selems)
-        copy.tensor_elements(elems)         # adjust nr of tensor elements
-        for k,node in enumerate(copy._nodes):
+        kopie = self.copy(affix=selems)
+        kopie.tensor_elements(elems)         # adjust nr of tensor elements
+        for k,node in enumerate(kopie._nodes):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
-                name = 'selector('+copy._labels[k]+')['+str(elems[m])+']'
-                node = copy._ns[name] << Meq.Selector(copy._nodes[k], index=i)
+                name = 'selector('+kopie._labels[k]+')('+str(elems[m])+')'
+                node = kopie._ns[name] << Meq.Selector(kopie._nodes[k], index=i)
                 cc.append(node)
             if len(cc)==1:                  # extracted one only element
-                copy._nodes[k] = cc[0]
+                kopie._nodes[k] = cc[0]
             else:                           # more: recompose into new tensor
-                name = 'selector('+copy._labels[k]+')'+selems
-                copy._nodes[k] = copy._ns[name] << Meq.Composer(*cc)
-            copy._labels[k] = name
-        return self._dispose(copy, replace)
+                name = 'selector('+kopie._labels[k]+')'+selems
+                kopie._nodes[k] = kopie._ns[name] << Meq.Composer(*cc)
+            kopie._labels[k] = name
+        return self._dispose(kopie, replace)
 
 
     #===============================================================
@@ -342,13 +358,13 @@ class NodeList (object):
         if isinstance(unop, str): unop = unop.split(' ')
         unop = list(unop)
         unop.reverse()
-        copy = self.copy()
+        kopie = self.copy()
         for unop1 in unop:
-            copy._name = unop1+'('+copy._name+')'
-            for k,node in enumerate(copy._nodes):
-                copy._nodes[k] = copy._ns << getattr(Meq,unop1)(node)
-                copy._labels[k] = '('+copy._labels[k]+')'
-        return self._dispose(copy, replace)
+            kopie._name = unop1+'('+kopie._name+')'
+            for k,node in enumerate(kopie._nodes):
+                kopie._nodes[k] = kopie._ns << getattr(Meq,unop1)(node)
+                kopie._labels[k] = '('+kopie._labels[k]+')'
+        return self._dispose(kopie, replace)
 
     #---------------------------------------------------------------
 
@@ -366,13 +382,13 @@ class NodeList (object):
         if binop=='/': binop = 'Divide'
         if binop=='^': binop = 'Pow'
         if binop=='%': binop = 'Mod'
-        copy = self.copy()
-        copy._name = '('+copy._name+'_'+binopin+'_'+other._name+')'
-        for k,lhs in enumerate(copy._nodes):
+        kopie = self.copy()
+        kopie._name = '('+kopie._name+'_'+binopin+'_'+other._name+')'
+        for k,lhs in enumerate(kopie._nodes):
             rhs = other._nodes[k]
-            copy._nodes[k] = copy._ns << getattr(Meq,binop)(lhs, rhs)
-            copy._labels[k] = '('+copy._labels[k]+'_'+binopin+'_'+other._labels[k]+')'
-        return self._dispose(copy, replace)
+            kopie._nodes[k] = kopie._ns << getattr(Meq,binop)(lhs, rhs)
+            kopie._labels[k] = '('+kopie._labels[k]+'_'+binopin+'_'+other._labels[k]+')'
+        return self._dispose(kopie, replace)
         
     #---------------------------------------------------------------
 
@@ -400,14 +416,14 @@ class NodeList (object):
         If bookpage is specified, make a bookmark on the specified page.
         """
 
-        copy = self.copy(select=select)
-        quals = [combine,str(copy.len())]
+        kopie = self.copy(select=select)
+        quals = [combine,str(kopie.len())]
         if unop: quals.insert(0,unop)      
-        qnode = copy._ns['bundle'](*quals)
+        qnode = kopie._ns['bundle'](*quals)
         if qnode.must_define_here(self):
-            nodes = copy._nodes
+            nodes = kopie._nodes
             if unop:
-                nodes = copy.unop(unop)._nodes
+                nodes = kopie.unop(unop)._nodes
             qnode << getattr(Meq,combine)(children=nodes)
         if bookpage:
             page = self.name(strip=True)
@@ -464,14 +480,14 @@ class NodeList (object):
         """Visualize the (selected) nodes with an 'inspector' (Collections Viewer).
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        copy = self.copy(select=select)
-        qnode = copy._ns['inspector']
+        kopie = self.copy(select=select)
+        qnode = kopie._ns['inspector']
         if qnode.must_define_here(self):
-            qnode << Meq.Composer(children=copy._nodes,
-                                  plot_label=copy._labels)
+            qnode << Meq.Composer(children=kopie._nodes,
+                                  plot_label=kopie._labels)
         if bookpage:
             JEN_bookmarks.create(qnode, 'inspector_'+self.name(strip=True),
-                                 page='collectors',             # something funny when None....!
+                                 page='inspectors',             # something funny when None....!
                                  viewer='Collections Plotter')
         return qnode
 
@@ -497,33 +513,33 @@ class NodeList (object):
         the other....
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        copy = self.copy(select=select)
+        kopie = self.copy(select=select)
         if other:
-            copy = self.binop('ToComplex', other.copy(select=select)) 
+            kopie = self.binop('ToComplex', other.copy(select=select)) 
 
-        tt = copy._pp['tensor']
+        tt = kopie._pp['tensor']
         if isinstance(tt['elems'],list) and len(tt['elems'])>1:
             # Special case: Tensor elements are plotted with different colors/styles
             dcolls = []
             for k,elem in enumerate(tt['elems']):
-                nn = copy.extract(elem)
+                nn = kopie.extract(elem)
                 nn.tensor_elements()
                 for key in ['color','style','size','pen']:
                     nn._pp[key] = tt[key][k]
                 rr = nn.rvsi(bookpage=False, concat=True, tag=elem)
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
-            rr = MG_JEN_dataCollect.dconc(copy._ns, dcolls,
+            rr = MG_JEN_dataCollect.dconc(kopie._ns, dcolls,
                                           scope='', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
-            rr = MG_JEN_dataCollect.dcoll (copy._ns, copy._nodes, 
+            rr = MG_JEN_dataCollect.dcoll (kopie._ns, kopie._nodes, 
                                            scope='', tag=tag,
-                                           color=copy._pp['color'],
-                                           style=copy._pp['style'],
-                                           size=copy._pp['size'],
-                                           pen=copy._pp['pen'],
+                                           color=kopie._pp['color'],
+                                           style=kopie._pp['style'],
+                                           size=kopie._pp['size'],
+                                           pen=kopie._pp['pen'],
                                            xlabel=xlabel, ylabel=ylabel,
                                            errorbars=errorbars, mean_circle=False,
                                            type='realvsimag')
@@ -531,8 +547,8 @@ class NodeList (object):
         qnode = rr['dcoll']
         if bookpage:
             if not isinstance(bookpage, str):
-                bookpage = 'rvsi_'+copy.name(strip=True)
-            JEN_bookmarks.create(qnode, copy.name(strip=True),
+                bookpage = 'rvsi_'+kopie.name(strip=True)
+            JEN_bookmarks.create(qnode, kopie.name(strip=True),
                                  page=bookpage, folder=None)
         if concat: return rr
         return qnode
@@ -623,11 +639,10 @@ def _define_forest(ns):
 
     if 1:
         nns = nn1.extract(elem='s')
-        nns.display()
         nnc = nn1.extract(elem='c')
-        nnc.display()
         node = nns.plotxy(nnc)
-        nns.display('after plotxy()')
+        cc.append(node)
+        node = nnc.plotxy(nns)
         cc.append(node)
 
     if 0:
@@ -669,6 +684,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
+        # nn1 = NodeList(ns, 'nn1', quals='qual', kwquals=dict(b=5))
         nn1 = NodeList(ns, 'nn1')
         nn1.display('initial')
     if 1:
@@ -686,7 +702,7 @@ if __name__ == '__main__':
         nn2.display('appended')
         nn1.display('append')
 
-    if 1:
+    if 0:
         nn1 = NodeList(ns, 'nt1')
         nn1.test(8)
         nn1.tensor_elements()
