@@ -49,7 +49,7 @@ def nonportable_extract_stack (f=None,limit=None):
 #
 class verbosity:
   _verbosities = {};
-  def __init__(self,verbose=0,stream=sys.stderr,name=None,tb=2):
+  def __init__(self,verbose=0,stream=None,name=None,tb=2):
     if not __debug__:
       verbose=0;
     (self.verbose,self.stream,self._tb) = (verbose,stream,tb);
@@ -98,17 +98,19 @@ class verbosity:
       return self.get_verbosity_name()+': ';
   def dprint(self,level,*args):
     if level <= self.verbose:
-      self.stream.write(self.dheader(-3));
-      self.stream.write(string.join(map(str,args),' ')+'\n'); 
+      stream = self.stream or sys.stderr;
+      stream.write(self.dheader(-3));
+      stream.write(string.join(map(str,args),' ')+'\n'); 
   def dprintf(self,level,format,*args):
 #    print format,args;
     if level <= self.verbose:
+      stream = self.stream or sys.stderr;
       try: s = format % args;
       except: 
-        self.stream.write('dprintf format exception: ' + str(format) + '\n');
+        stream.write('dprintf format exception: ' + str(format) + '\n');
       else:
-        self.stream.write(self.dheader(-3));
-        self.stream.write(s);
+        stream.write(self.dheader(-3));
+        stream.write(s);
   def get_verbose(self):
     return self.verbose;
   def set_verbose(self,verbose):
