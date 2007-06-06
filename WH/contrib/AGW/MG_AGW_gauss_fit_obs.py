@@ -316,7 +316,7 @@ def _define_forest(ns):
   # order I,U,V,Q!
 
 ########################################################################
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
 # any large time range will do: we observe the changes in the beam
 # pattern in timesteps of 12 x 30 sec
@@ -337,11 +337,11 @@ def _test_forest(mqs,parent):
   for i in range(80):
       t0 = t0 + delta_t    # step is now 12 thirty sec integrations
       t1 = t0 + delta_t 
-      mqs.clearcache('Ins_pol',recursive=True)
+      mqs.clearcache('Ins_pol',recursive=True,wait=wait)
       request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,96,lm_num,lm_num])
       counter = counter + 1
 # execute request
-      mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=False);
+      mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=wait);
 
 
 #####################################################################
@@ -391,35 +391,35 @@ def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
 
 if __name__=='__main__':
 
- if '-run' in sys.argv:
-   from Timba.Apps import meqserver
-   from Timba.TDL import Compile
-
-   # you may need the following line for more complicated scripts 
-   # that use TDL options
-   # from Timba.TDL import TDLOptions
-   
-   # this starts a kernel.
-   mqs = meqserver.default_mqs(wait_init=10);
-
-   # more complicated scripts might want to invoke TDLOptions here ...
-   # e.g. this loads a tdl.conf file.
-   # Note that it may be better to use a separate config file, rather
-   # than the default .tdl.conf that the browser creates
-   # TDLOptions.config.read(".tdl.conf");
-   # etc
-
-   # This compiles a script as a TDL module. Any errors will be thrown as
-   # an exception, so this always returns successfully. We pass in
-   # __file__ so as to compile ourselves.
-   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
-
-   # this runs the _test_forest job.
-   mod._test_forest(mqs,None);
-
- else:
-  ns=NodeScope()
-  _define_forest(ns)
-  ns.Resolve()
-  print "Added %d nodes" % len(ns.AllNodes())
+  if '-run' in sys.argv:
+    from Timba.Apps import meqserver
+    from Timba.TDL import Compile
+    
+    # you may need the following line for more complicated scripts 
+    # that use TDL options
+    # from Timba.TDL import TDLOptions
+    
+    # this starts a kernel.
+    mqs = meqserver.default_mqs(wait_init=10);
+    
+    # more complicated scripts might want to invoke TDLOptions here ...
+    # e.g. this loads a tdl.conf file.
+    # Note that it may be better to use a separate config file, rather
+    # than the default .tdl.conf that the browser creates
+    # TDLOptions.config.read(".tdl.conf");
+    # etc
+    
+    # This compiles a script as a TDL module. Any errors will be thrown as
+    # an exception, so this always returns successfully. We pass in
+    # __file__ so as to compile ourselves.
+    (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+    
+    # this runs the _test_forest job.
+    mod._test_forest(mqs,None,wait=True);
+  
+  else:
+    ns=NodeScope()
+    _define_forest(ns)
+    ns.Resolve()
+    print "Added %d nodes" % len(ns.AllNodes())
   
