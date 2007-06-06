@@ -55,7 +55,8 @@ def _define_forest (ns):
 
 # first define an RA and DEC (in radians)
   ra = 0.0
-  dec = 0.57595865
+# dec = 0.57595865
+  dec = 0.0
   ns.ra0 << Meq.Parm(ra,node_groups='Parm')
   ns.dec0 << Meq.Parm(dec,node_groups='Parm')
 
@@ -83,7 +84,7 @@ def _define_forest (ns):
 # create a ReqSeq node to call the two AzEl nodes
   ns.reqseq <<Meq.ReqSeq(ns.AzEl,ns.AzEl1)
 
-def _test_forest (mqs,parent):
+def _test_forest (mqs,parent,wait=False):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 
@@ -110,13 +111,52 @@ def _test_forest (mqs,parent):
   request = meq.request(cells,rqtype='e1')
 
 # execute request
-  a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=True);
+  a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=wait);
 
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
 if __name__ == '__main__':
-  Timba.TDL._dbg.set_verbose(5);
-  ns = NodeScope();
-  _define_forest(ns);
-  # resolves nodes
-  ns.Resolve();
+ # You can run the script in headless / batch mode from the
+ # command line by saying something like
+ #  python demo_script.py -run
+ #
+ # If you want to keep track of what's happening, use
+ #
+ #  python demo_script.py -run -dmeqserver=3
+ #
+ # This dumps various messages to stdout, which let you keep
+ # track of how the script is progressing.
+ #
+ # Here's the code required to handle the '-run' flag
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # you may need the following line for more complicated scripts 
+   # that use TDL options
+   # from Timba.TDL import TDLOptions
+
+   # this starts a kernel.
+   mqs = meqserver.default_mqs(wait_init=10);
+
+   # more complicated scripts might want to invoke TDLOptions here ...
+   # e.g. this loads a tdl.conf file.
+   # Note that it may be better to use a separate config file, rather
+   # than the default .tdl.conf that the browser creates
+   # TDLOptions.config.read(".tdl.conf");
+   # etc
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+
+ else:
+   Timba.TDL._dbg.set_verbose(5);
+   ns = NodeScope();
+   _define_forest(ns);
+   # resolves nodes
+   ns.Resolve();
