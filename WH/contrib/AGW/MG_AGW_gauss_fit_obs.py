@@ -337,7 +337,7 @@ def _test_forest(mqs,parent,wait=False):
   for i in range(80):
       t0 = t0 + delta_t    # step is now 12 thirty sec integrations
       t1 = t0 + delta_t 
-      mqs.clearcache('Ins_pol',recursive=True,wait=wait)
+      mqs.clearcache('Ins_pol',recursive=True,wait=wait,sync=True)
       request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,96,lm_num,lm_num])
       counter = counter + 1
 # execute request
