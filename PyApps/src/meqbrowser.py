@@ -1,5 +1,9 @@
 #!/usr/bin/python -O
 
+if __name__ == "__main__":
+  print "Welcome to the MeqTree Browser!";
+  print "Please wait while the GUI starts up.";
+
 import sys
 
 # first things first: setup app defaults from here and from

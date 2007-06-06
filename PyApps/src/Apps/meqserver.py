@@ -145,15 +145,34 @@ class meqserver (app_proxy):
     rec.request = req;
     return self.meq('Node.Execute',rec,wait=wait);
     
-  def clearcache (self,node,recursive=True,wait=False):
+  def clearcache (self,node,recursive=True,wait=False,sync=True):
     rec = self.makenodespec(node);
     rec.recursive = recursive;
+    rec.sync = sync;
     return self.meq('Node.Clear.Cache',rec,wait=wait);
     
   def publish (self,node,wait=False):
     rec = self.makenodespec(node);
     rec.level = 1;
     return self.meq('Node.Set.Publish.Level',rec,wait=wait);
+    
+  def _event_handler (self,msg):
+    """Auguments app_proxy._event_handler(), to keep track of forest state""";
+    app_proxy._event_handler(self,msg);
+    payload = msg.payload;
+    if isinstance(payload,record):
+      # check if message includes update of forest state and/or status
+      fstatus = getattr(payload,'forest_status',None);
+      fstate  = getattr(payload,'forest_state',None);
+      # update forest state, if supplied. Merge in the forest status if
+      # we also have it
+      if fstate is not None:
+        if fstatus is not None:
+          fstate.update(fstatus);
+        meqds.update_forest_state(fstate);
+      # no forest state supplied but a status is: merge it in
+      elif fstatus is not None:
+        meqds.update_forest_state(fstatus,merge=True);
     
   def _result_handler (self,msg):
     try:
@@ -202,7 +221,7 @@ def default_mqs (debug={},nokill=False,**kwargs):
     spawn = args.get('spawn',None);
     mqs = meqserver(**args);
     meqds.set_meqserver(mqs);
-    if spawn and not nokill:
+    if not nokill:
       atexit.register(stop_default_mqs);
     if debug is None:
       pass;
@@ -215,6 +234,7 @@ def default_mqs (debug={},nokill=False,**kwargs):
 def stop_default_mqs ():
   global mqs;
   if mqs: 
+    mqs.dprint(0,"stopping default meqserver");
     mqs.halt();
     mqs.disconnect();
     mqs = None;

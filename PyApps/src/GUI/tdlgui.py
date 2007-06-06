@@ -602,7 +602,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         (_tdlmod,ns,msg) = \
           TDL.Compile.run_forest_definition(
               meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
-              parent=self);
+              parent=self,wait=False);
       finally:
         QApplication.restoreOverrideCursor();
     # catch compilation errors

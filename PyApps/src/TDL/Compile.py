@@ -99,7 +99,7 @@ def import_tdl_module (filename,text=None):
     raise TDL.CumulativeError(*ns.GetErrors());
     
 def run_forest_definition (mqs,filename,tdlmod,text,
-                           parent=None,
+                           parent=None,wait=True,
                            predef_args={},define_args={},postdef_args={}):
   """Compiles a TDL script and sends it to meqserver given by mqs.
   Parameters:
@@ -108,6 +108,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     tdlmod:   the imported TDL module, as returned by import_tdl_module()
     text:     script text for putting into forest
     parent:   parent widget passed to TDL script (if a GUI is running)
+    wait:     if True, waits for forest to build before returning
     predef_args: dict of extra arguments for _tdl_predefine()
     define_args: dict of extra arguments for _define_forest()
     postdef_args: dict of extra arguments for _tdl_postdefine()
@@ -176,7 +177,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       mqs.meq('Set.Forest.State',record(state=fst,get_forest_status=0));
       if num_nodes:
         mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
+        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
         msg = """Script has run successfully. %d node definitions 
   (of which %d are root nodes) sent to the kernel.""" \
           % (num_nodes,len(ns.RootNodes()));
@@ -214,12 +215,12 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     raise TDL.CumulativeError(*ns.GetErrors());
     
     
-def compile_file (mqs,filename,text=None,parent=None,
+def compile_file (mqs,filename,text=None,parent=None,wait=True,
                   predef_args={},define_args={},postdef_args={}):
   """imports TDL module and runs forest definition.
   Basically a compound of the above two functions.""";
   (tdlmod,text) = import_tdl_module(filename,text=text);
-  return run_forest_definition(mqs,filename,tdlmod,text,
+  return run_forest_definition(mqs,filename,tdlmod,text,wait=wait,
                   predef_args=predef_args,define_args=define_args,postdef_args=postdef_args);
 
 

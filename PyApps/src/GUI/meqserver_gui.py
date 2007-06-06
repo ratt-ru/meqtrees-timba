@@ -1128,18 +1128,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._checkStateUpdate(ev,value);
       # check if message includes update of forest status
       fstatus = getattr(value,'forest_status',None);
-      fstate  = getattr(value,'forest_state',None);
       if fstatus is not None:
         self.treebrowser.update_forest_status(fstatus);
-      # update forest state, if supplied. Merge in the forest status if
-      # we also have it
-      if fstate is not None:
-        if fstatus is not None:
-          fstate.update(fstatus);
-        meqds.update_forest_state(fstate);
-      # no forest state supplied but a status is: merge it in
-      elif fstatus is not None:
-        meqds.update_forest_state(fstatus,True);
     # auto-request mechanism:
     # if we're not up-to-date with a node list or forest state, start a timer as soon as we
     # reach idle mode or stopped mode. If this timer is allowed to expire, consider the 
