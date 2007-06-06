@@ -20,17 +20,15 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Contrib.JEN.Grunt import Qualifiers
-from Timba.Contrib.JEN.Grunt import ParmGroup
-from Timba.Contrib.JEN.Grunt import ParmGroupManager
-from Timba.Contrib.JEN.Grunt import ObjectHistory
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import ParameterizationPlus
+from Timba.Contrib.JEN.Grunt import display
+from Timba.Contrib.JEN.Grunt import ObjectHistory
 
 import Meow
 
-from Timba.Contrib.JEN.util import JEN_bookmarks
-from Timba.Contrib.JEN import MG_JEN_dataCollect
+# from Timba.Contrib.JEN.util import JEN_bookmarks
+# from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 from copy import deepcopy
 
@@ -54,7 +52,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
         self._descr = descr                          # decription of the matrixet 
 
-        self._polrep = polrep                        # polarization representation (linear, circular)
+        # polarization representation (linear, circular)
+        self._polrep = polrep
         self._pols = ['A','B']
         self._corrs = ['AA','AB','BA','BB']
         if self._polrep == 'linear':
@@ -64,6 +63,21 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             self._pols = ['R','L']
             self._corrs = ['RR','RL','LR','LL']
 
+        # Define names and plotting instructions (see make_NodeList()):
+        self._matrix_elements = dict(name=self._corrs,
+                                     color=['red','magenta','darkCyan','blue'],
+                                     style=['circle','xcross','xcross','circle'],
+                                     size=[10,10,10,10], pen=[2,2,2,2])
+
+        # Various counters, e.g. for unique name generation:                               
+        self._counter = dict()
+
+        # At each stage, all matrix nodes are replaced by a parent.
+        # The stage naming information is kept in a dict():
+        self._stage = dict(letter='M', count=-1)
+        self._nextstage()
+
+        # The actual 2x2 matrixes:
         self._matrixet = None                        # the actual matrices (contract!)
         self._indices = []                           # list of matrixet 'indices' (e.g. stations)
         self._list_indices = []                      # version where each item is a list
@@ -161,8 +175,11 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             self._matrixet = new
         return self._matrixet
 
-    def make_NodeList(self, quals=None):
+    #-------------------------------------------------------------------------
+
+    def make_NodeList(self, quals=quals, trace=False):
         """Put the current matrix nodes into a NodeList object"""
+        # First make lists of nodes and labels:
         nodes = []
         labels = []
         for i in self.list_indices():
@@ -170,13 +187,66 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             label = str(i[0])
             if len(i)>1: label += '_'+str(i[1])
             labels.append(label)
-        nn = NodeList.NodeList(self.ns, self.name,
+
+        # Then make the NodeList object with automatic names/quals
+        ss = self._stage
+        qq = ss['quals']
+        if quals:
+            # Some extra quals specified:
+            if isinstance(quals,(list,tuple)):
+                qq.extend(quals)
+            else:
+                qq.append(quals)
+        nn = NodeList.NodeList(self.ns, ss['name'],
+                               quals=qq, kwquals=ss['kwquals'],
                                nodes=nodes, labels=labels)
-        nn.tensor_elements(self._corrs,
-                           color=['red','magenta','darkCyan','blue'],
-                           style=['circle','xcross','xcross','circle'])
-        nn.display()
+
+        # Provide information about the 4 matrix elements (for plotting etc):
+        rr = self._matrix_elements
+        nn.tensor_elements(rr['name'], color=rr['color'], style=rr['style'],
+                           size=rr['size'], pen=rr['pen'])
+        if trace: nn.display('make_NodeList()')
         return nn
+
+    #-------------------------------------------------------------------------
+
+    def _nextstage (self, name=None, quals=None, kwquals=None, other=None):
+        """Helper function to increment the stage information."""
+
+        # Make sure that (kw)quals have the correct type: 
+        if quals==None: quals = []
+        if isinstance(quals,str): quals = quals.split(' ')
+        quals = list(quals)
+        if not isinstance(kwquals,dict): kwquals = dict()
+
+        # Whenever the matrix nodes are replaced by a new parent,
+        # this is called a stage. This is part of the node names.
+        self._stage['count'] += 1
+        self._stage['stage'] = self._stage['letter']+str(self._stage['count'])  # e.g. 'M3'
+
+        # If another Matrixet22 object is involved:
+        if isinstance(other, Matrixet22):
+            # Merge its ns qualifiers?
+            quals.append(other.name)
+
+        # Add the stage-string to the name or the quals:
+        # This avoids inadvertent node-name clashes.
+        if isinstance(name,str):
+            quals.append(self._stage['stage'])
+        else:
+            name = 'stage_'+self._stage['stage']
+        self._stage['qnode'] = self.ns[name](*quals,**kwquals)
+        self._stage['sqnode'] = str(self._stage['qnode'])
+
+        # Keep the stage information for later reference:
+        self._stage['name'] = name
+        self._stage['quals'] = quals
+        self._stage['kwquals'] = kwquals
+
+        # Return the stage-dict:
+        return self._stage
+
+    #-------------------------------------------------------------------------
 
     def nodelist(self):
         """Get/set a list of matrix nodes"""
@@ -228,6 +298,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         print '** Generic (class Matrixet22):'
         print ' * descr: '+str(self.descr())
         print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
+        print ' * stage: '+str(self._stage)
         print ' * Available indices ('+str(self.len())+'): ',
         if self.len()<30:
             print str(self.indices())
@@ -253,6 +324,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                 print '  - '+str(i)+': '+str(self.matrixet()(*i))
             print ' * The first matrix of the set:'
             node = self.firstnode()
+            display.subtree(node, txt='first node')
         #...............................................................
         print ' * Visualization subtree: '
         if self._dcoll:
@@ -265,6 +337,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             if full:
                 for v in vv: print '    - '+str(type(v))+' '+str(v)
         #...............................................................
+        print ' * matrix_elements: '+str(self._matrix_elements)
+        print ' * counter(s): '+str(self._counter)
         self.p_display(full=full)
         #...............................................................
         print '**\n'
@@ -356,53 +430,41 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
     def binop(self, binop=None, other=None, quals=None, visu=False):
         """Do an (item-by-item) binary operation (e.g. Subtract)
         between itself and another Matrixet22 object."""
-        n1 = self.make_NodeList(quals=quals)
-        n2 = other.make_NodeList(quals=quals)
-        new = nn.binop (binop, n2) 
-        self.matrixet(new=new.qnode())                     
+        qnode = self._nextstage(name=binop, quals=quals, other=other)['qnode']
+        for i in self.list_indices():
+            qnode(*i) << getattr(Meq,binop)(self._matrixet(*i),
+                                            other._matrixet(*i))
+        self.matrixet(new=qnode)                                     # replace
         # Transfer any parmgroups from other:
         # self.ParmGroupManager(merge=other.ParmGroupManager())
         if visu: self.visualize(['binop',binop], quals=quals, visu=visu)
         return True
 
 
-    def unop(self, unop=None, quals=None):
+    def unop(self, unop=None, quals=None, visu=False):
         """Do an (item-by-item) unary operation on itself (e.g. Abs)"""
-        ns = self.ns._derive(append=quals)
-        self.history('.unop('+str(unop)+')', ns=ns)
-        qnode = ns[unop]
+        qnode = self._nextstage(name=unop, quals=quals)['qnode']
+        self.history('.unop('+str(unop)+')')
         for i in self.list_indices():
             qnode(*i) << getattr(Meq,unop)(self._matrixet(*i))
         self.matrixet(new=qnode)                                     # replace
+        if visu: self.visualize(['unop',unop], quals=quals, visu=visu)
         return True
 
     #---------------------------------------------------------------------
 
-    def mean(self, quals=None):
-        """Calculate the mean of all 2x2 matrices"""
-        return self.bundle('Add', qual=quals, normalise=True)
+    def bundle(self, oper='Composer', quals=[]):
+        """Bundle its matrices, using an operation like Composer, Add,
+        Multiply, WMean, etc."""
+        nn = self.make_NodeList(quals=quals)
+        bundle = nn.bundle(oper)
+        return bundle
 
     #---------------------------------------------------------------------
 
-    def bundle(self, oper='Composer', quals=None, normalise=False):
-        """Bundle its matrices, using an operation like Composer, Add, Multiply etc.
-        If normalise, divide by the number of matrices."""
-        ns = self.ns._derive(append=quals)
-        self.history('.bundle('+str(oper)+')', ns=ns)
-        qnode = ns.bundle(oper)
-        if not qnode.initialized():
-            cc = []
-            for i in self.list_indices():
-                cc.append(self._matrixet(*i))
-            if oper=='Composer':
-                # Append a reqseq of self._accumulist nodes (if any):
-                accuroot = self.bundle_accumulist(quals=quals)
-                if accuroot: cc.append(accuroot)
-            qnode << getattr(Meq,oper)(children=cc)
-        if normalise:
-            qnode = ns.mean << Meq.Divide(qnode,len(cc))
-        return qnode
-
+    def mean(self, quals=None):
+        """Return a single node with the mean of all 2x2 matrices"""
+        return self.bundle('WMean', quals=quals)
 
 
     #=====================================================================
@@ -475,8 +537,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
     def test (self, quals=None, simulate=False):
         """Helper function to make some test-matrices"""
-        # ns = self.ns._derive(append=quals)
-        # self.history('.test('+str(simulate)+')', ns=ns)
+        # self.history('.test('+str(simulate)+')')
         name = 'matrix22'
         keys = ['m11','m12','m21','m22']
         index = 0
@@ -486,24 +547,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         for key in keys:                           # keys=['m11','m12','m21','m22']
             index += 1
             indices.append(index)
-            # pg = self.pgm().define(self.ns, key,
-            #                       # quals='xxx',
-            #                       descr='matrix element: '+key,
-            #                       default=dict(value=index/10.0),
-            #                       # simul=dict(stddev=0.01),
-            #                       simulate=simulate,
-            #                       rider=dict(matrel='*'),
-            #                       tags=['testing'])
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             for elem in keys:
-                mm[elem] = self.ns.polar(elem)(key) << Meq.Polar(1.0, 0.0)
+                mm[elem] = self.ns.polar(elem)(index) << Meq.Polar(1.0, 0.0)
             # The one non-zero element is complex, with amplitude=1.0,
             # and phase equal to index/10 radians (plus variation if simulate=True):
             # phase = pg.create_member(index)
             phase = self.ns['phase'](index) << Meq.Parm(index)
             mm[key] = self.ns.polar(key) << Meq.Polar(1.0, phase)
             mat = self.ns[name](index) << Meq.Matrix22(mm['m11'],mm['m12'],
-                                                        mm['m21'],mm['m22'])
+                                                       mm['m21'],mm['m22'])
         # Store the matrices and the list if indices:
         self.indices(new=indices)
         self.matrixet(new=self.ns[name])
@@ -536,16 +589,23 @@ def _define_forest(ns):
     aa = mat1.accumulist()
 
     if False:
+        mat1.unop('Cos', visu=True)
+        mat1.display('unop', full=True)
+
+    if True:
+        node = mat1.mean()
+        cc.append(node)
+
+    if False:
         mat2 = Matrixet22(ns, quals=[])
         mat2.test()
         mat2.visualize()
         mat2.display(full=True)
         aa.extend(mat2.accumulist())
 
-    print 'aa=',aa
     node = ns.accu << Meq.Composer(children=aa)
+    print 'node=',str(node)
     cc.append(node)
-    # ns.result << Meq.ReqSeq(children=cc)
     ns.result << Meq.Composer(children=cc)
     return True
 

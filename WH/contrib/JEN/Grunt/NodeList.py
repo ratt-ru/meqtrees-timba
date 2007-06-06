@@ -56,6 +56,8 @@ class NodeList (object):
             self._ns0 = ns
 
         # Attach qualifiers, if required:
+        # print 'quals =',quals,'  kwquals =',kwquals
+        if quals==None: quals = []
         if isinstance(quals,str): quals = quals.split(' ')
         self._quals = list(quals)
         self._kwquals = kwquals
@@ -73,7 +75,8 @@ class NodeList (object):
         pp.setdefault('pen',2)
         pp.setdefault('unit',None)
         # Tensor information (see .tensor_elements()):
-        pp['tensor'] = dict(elems=None, color=None, style=None, size=None, pen=None)
+        pp['tensor'] = dict(elems=None, color=None, style=None,
+                            size=None, pen=None)
 
         # Misc initializations:
         self._counter = dict(copy=0)
@@ -205,7 +208,7 @@ class NodeList (object):
     # Some local helper functions:
     #===============================================================
 
-    def copy (self, affix=None, select='*'):
+    def copy (self, affix=None, select='*', trace=False):
         """Make a copy of this object, with a selection of its nodes.
         Optionally, affix a substring to the (unique) name of the copy."""
 
@@ -216,9 +219,12 @@ class NodeList (object):
         
         name = self._name
         if isinstance(affix,str): name += '_'+affix
+
         self._counter['copy'] += 1                   # increment kopie-counter
-        name += '|'+str(self._counter['copy'])
-        new = NodeList(self._ns0, name)              # note self._ns0....!
+        # name += '|'+str(self._counter['copy'])
+        qual = 'C'+str(self._counter['copy'])
+
+        new = NodeList(self._ns0, name, quals=qual)  # note self._ns0....!
 
         # Transfer the (selection of) nodes and their labels:
         ii = self._selection (select)
@@ -227,7 +233,7 @@ class NodeList (object):
             new._labels.append(self._labels[i])
         new._pp = deepcopy(self._pp)
 
-        new.display('.copy()')
+        if trace: new.display('from inside .copy()')
         return new
 
     #----------------------------------------------------------------
@@ -382,12 +388,20 @@ class NodeList (object):
         if binop=='/': binop = 'Divide'
         if binop=='^': binop = 'Pow'
         if binop=='%': binop = 'Mod'
+
         kopie = self.copy()
-        kopie._name = '('+kopie._name+'_'+binopin+'_'+other._name+')'
+        if len(binopin)==1:
+            kopie._name = '('+kopie._name+binopin+other._name+')'
+        else:
+            kopie._name = '('+kopie._name+'|'+binopin+'|'+other._name+')'
+
         for k,lhs in enumerate(kopie._nodes):
             rhs = other._nodes[k]
             kopie._nodes[k] = kopie._ns << getattr(Meq,binop)(lhs, rhs)
-            kopie._labels[k] = '('+kopie._labels[k]+'_'+binopin+'_'+other._labels[k]+')'
+            if len(binopin)==1:
+                kopie._labels[k] = '('+kopie._labels[k]+binopin+other._labels[k]+')'
+            else:
+                kopie._labels[k] = '('+kopie._labels[k]+'|'+binopin+'|'+other._labels[k]+')'
         return self._dispose(kopie, replace)
         
     #---------------------------------------------------------------
@@ -406,11 +420,12 @@ class NodeList (object):
     # subtrees:
     #===============================================================
 
-    def bundle (self, combine='Add',
+    def bundle (self, combine='Add', wgt=None,
                 bookpage=True, recurse=1,
                 select='*', unop=None, show=False):
         """Bundle the (selection of) nodes by applying the specified
         combine-operation (default='Add') to them.
+        The (optional) wgt vector is used for WMean and WSum only. 
         If unary operation(s) specified (unop), apply it/them first.
         Return the root node of the resulting subtree.
         If bookpage is specified, make a bookmark on the specified page.
@@ -424,7 +439,14 @@ class NodeList (object):
             nodes = kopie._nodes
             if unop:
                 nodes = kopie.unop(unop)._nodes
-            qnode << getattr(Meq,combine)(children=nodes)
+            if combine in ['WSum','WMean']:
+                if not isinstance(wgt,list): wgt = []
+                if not len(wgt)==len(nodes):
+                    wgt = []
+                    for node in nodes: wgt.append(1.0)
+                qnode << getattr(Meq,combine)(children=nodes, weights=wgt)
+            else:
+                qnode << getattr(Meq,combine)(children=nodes)
         if bookpage:
             page = self.name(strip=True)
             if isinstance(bookpage, str): page = bookpage
@@ -614,10 +636,10 @@ def _define_forest(ns):
     if 1:
         nn1.bookpage(4)
 
-    if 0:
+    if 1:
         unop = None
         # unop = 'Cos Sin'
-        node = nn1.bundle(select='*', unop=unop, show=True)
+        node = nn1.bundle('WSum', select='*', unop=unop, show=True)
         cc.append(node)
 
     if 0:
@@ -637,7 +659,7 @@ def _define_forest(ns):
         node = nn1.rvsi()
         cc.append(node)
 
-    if 1:
+    if 0:
         nns = nn1.extract(elem='s')
         nnc = nn1.extract(elem='c')
         node = nns.plotxy(nnc)
@@ -746,8 +768,8 @@ if __name__ == '__main__':
     if 0:
         print nn1.maxabs(show=True)
 
-    if 0:
-        nn2 = nn1.copy()
+    if 1:
+        nn2 = nn1.copy(trace=True)
         nn3 = nn1.binop('*', nn2)
         nn3.display('binop')
 
