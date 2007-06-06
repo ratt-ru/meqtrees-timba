@@ -256,7 +256,7 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   // form a response message
   out[AidMessage] = ssprintf("created %d nodes",nn);
   out[FForestChanged] = incrementForestSerial();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -345,7 +345,7 @@ void MeqServer::initNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(3)<<"init complete"<<endl;
   out[AidMessage] = "recursive init complete";
   out[FForestChanged] = incrementForestSerial();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
 }
 
 void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
