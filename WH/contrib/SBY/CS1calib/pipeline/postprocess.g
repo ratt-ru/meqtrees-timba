@@ -10,7 +10,7 @@ defstartch:=32;
 endch:=224;
 step:=8;
 spwids:=1;
-limuv=100;
+limuv:=100;
 
 
 # CygA
