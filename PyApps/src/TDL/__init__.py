@@ -6,6 +6,7 @@ from Timba.TDL.MeqClasses import Meq
 from Timba.TDL import Settings
 from Timba.TDL.TDLOptions import TDLOption,TDLMenu,TDLJob
 from Timba.TDL.TDLOptions import TDLCompileOption,TDLRuntimeOption,TDLRuntimeJob
+from Timba.TDL.TDLOptions import TDLCompileOptionSeparator,TDLRuntimeOptionSeparator
 from Timba.TDL.TDLOptions import TDLCompileOptions,TDLRuntimeOptions
 from Timba.TDL.TDLOptions import TDLCompileMenu,TDLRuntimeMenu
 
