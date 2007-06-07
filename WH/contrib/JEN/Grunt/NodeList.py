@@ -49,11 +49,11 @@ class NodeList (object):
 
         # Scopify, if necessary:
         if is_node(ns):
-            self._ns = ns[self._name].QualScope()
-            self._ns0 = ns.QualScope()
+            self.ns = ns[self._name].QualScope()
+            self.ns0 = ns.QualScope()
         else:
-            self._ns = ns.QualScope(self._name)
-            self._ns0 = ns
+            self.ns = ns.QualScope(self._name)
+            self.ns0 = ns
 
         # Attach qualifiers, if required:
         # print 'quals =',quals,'  kwquals =',kwquals
@@ -63,7 +63,7 @@ class NodeList (object):
         self._kwquals = kwquals
         if not isinstance(self._kwquals,dict): self._kwquals = dict()
         if self._quals or self._kwquals:
-            self._ns = self._ns.QualScope(*self._quals,**self._kwquals)        
+            self.ns = self.ns.QualScope(*self._quals,**self._kwquals)        
 
         # Miscellaneous settings:
         self._pp = pp
@@ -150,6 +150,7 @@ class NodeList (object):
         ss = 'Grunt.NodeList:'
         ss += ' '+str(self._name)
         ss += '  (len='+str(self.len())+')'
+        ss += '  ('+str(self.ns['<nodename>'].name)+')'
         return ss
 
 
@@ -159,8 +160,8 @@ class NodeList (object):
         print '** '+self.oneliner()
         if txt: print '  * (txt='+str(txt)+')'
         print '  * quals = '+str(self._quals)+'   kwquals = '+str(self._kwquals)
-        print '  * ns = '+str(self._ns)+' -> '+str(self._ns << 1)
-        print '  * ns0 = '+str(self._ns0)+ ' -> '+str(self._ns0 << 1)
+        print '  * ns = '+str(self.ns)+' -> '+str(self.ns << 1)
+        print '  * ns0 = '+str(self.ns0)+ ' -> '+str(self.ns0 << 1)
         #...............................................................
         print '  * Nodes ('+str(len(self._nodes))+'):'
         for k,node in enumerate(self._nodes):
@@ -224,7 +225,7 @@ class NodeList (object):
         # name += '|'+str(self._counter['copy'])
         qual = 'C'+str(self._counter['copy'])
 
-        new = NodeList(self._ns0, name, quals=qual)  # note self._ns0....!
+        new = NodeList(self.ns0, name, quals=qual)  # note self.ns0....!
 
         # Transfer the (selection of) nodes and their labels:
         ii = self._selection (select)
@@ -246,7 +247,7 @@ class NodeList (object):
             self._labels = deepcopy(kopie._labels)
             self._pp = deepcopy(kopie._pp)
             return True
-        kopie._ns = kopie._ns0(kopie._name)
+        kopie.ns = kopie.ns0(kopie._name)
         return kopie
 
     #----------------------------------------------------------------
@@ -340,13 +341,13 @@ class NodeList (object):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
                 name = 'selector('+kopie._labels[k]+')('+str(elems[m])+')'
-                node = kopie._ns[name] << Meq.Selector(kopie._nodes[k], index=i)
+                node = kopie.ns[name] << Meq.Selector(kopie._nodes[k], index=i)
                 cc.append(node)
             if len(cc)==1:                  # extracted one only element
                 kopie._nodes[k] = cc[0]
             else:                           # more: recompose into new tensor
                 name = 'selector('+kopie._labels[k]+')'+selems
-                kopie._nodes[k] = kopie._ns[name] << Meq.Composer(*cc)
+                kopie._nodes[k] = kopie.ns[name] << Meq.Composer(*cc)
             kopie._labels[k] = name
         return self._dispose(kopie, replace)
 
@@ -368,7 +369,7 @@ class NodeList (object):
         for unop1 in unop:
             kopie._name = unop1+'('+kopie._name+')'
             for k,node in enumerate(kopie._nodes):
-                kopie._nodes[k] = kopie._ns << getattr(Meq,unop1)(node)
+                kopie._nodes[k] = kopie.ns << getattr(Meq,unop1)(node)
                 kopie._labels[k] = '('+kopie._labels[k]+')'
         return self._dispose(kopie, replace)
 
@@ -397,7 +398,7 @@ class NodeList (object):
 
         for k,lhs in enumerate(kopie._nodes):
             rhs = other._nodes[k]
-            kopie._nodes[k] = kopie._ns << getattr(Meq,binop)(lhs, rhs)
+            kopie._nodes[k] = kopie.ns << getattr(Meq,binop)(lhs, rhs)
             if len(binopin)==1:
                 kopie._labels[k] = '('+kopie._labels[k]+binopin+other._labels[k]+')'
             else:
@@ -421,7 +422,7 @@ class NodeList (object):
     #===============================================================
 
     def bundle (self, combine='Add', wgt=None,
-                bookpage=True, recurse=1,
+                bookpage=True, folder=None, recurse=1,
                 select='*', unop=None, show=False):
         """Bundle the (selection of) nodes by applying the specified
         combine-operation (default='Add') to them.
@@ -434,7 +435,7 @@ class NodeList (object):
         kopie = self.copy(select=select)
         quals = [combine,str(kopie.len())]
         if unop: quals.insert(0,unop)      
-        qnode = kopie._ns['bundle'](*quals)
+        qnode = kopie.ns['bundle'](*quals)
         if qnode.must_define_here(self):
             nodes = kopie._nodes
             if unop:
@@ -450,7 +451,8 @@ class NodeList (object):
         if bookpage:
             page = self.name(strip=True)
             if isinstance(bookpage, str): page = bookpage
-            JEN_bookmarks.create(qnode, qnode.name, recurse=recurse, page=page)
+            JEN_bookmarks.create(qnode, qnode.name, recurse=recurse,
+                                 page=page, folder=folder)
 
         # Finished: Return the root-node of the bundle subtree:
         if show: display.subtree(qnode, show_initrec=False)
@@ -469,6 +471,12 @@ class NodeList (object):
     def min (self, unop=None, bookpage=True, show=False):
         """Return a node that returns the minimum CELL value of the list nodes"""
         return self.bundle('Min', unop=unop, bookpage=bookpage, show=show)
+
+    #---------------------------------------------------------------
+
+    def mean (self, unop=None, bookpage=True, show=False):
+        """Return a node that returns the cell-by-cell mean of the list nodes"""
+        return self.bundle('WMean', unop=unop, bookpage=bookpage, show=show)
 
 
     #===============================================================
@@ -503,7 +511,7 @@ class NodeList (object):
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
         kopie = self.copy(select=select)
-        qnode = kopie._ns['inspector']
+        qnode = kopie.ns['inspector']
         if qnode.must_define_here(self):
             qnode << Meq.Composer(children=kopie._nodes,
                                   plot_label=kopie._labels)
@@ -551,12 +559,12 @@ class NodeList (object):
                 rr = nn.rvsi(bookpage=False, concat=True, tag=elem)
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
-            rr = MG_JEN_dataCollect.dconc(kopie._ns, dcolls,
+            rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
                                           scope='', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
-            rr = MG_JEN_dataCollect.dcoll (kopie._ns, kopie._nodes, 
+            rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
                                            scope='', tag=tag,
                                            color=kopie._pp['color'],
                                            style=kopie._pp['style'],
@@ -584,8 +592,8 @@ class NodeList (object):
 
     def test(self, n=8):
         """Fill the NodeList with n test-nodes"""
-        freq = self._ns << Meq.Freq()
-        time = self._ns << Meq.time()
+        freq = self.ns << Meq.Freq()
+        time = self.ns << Meq.time()
         self.tensor_elements (['s','c','cs','cx'],
                               style=['circle','cross','cross','circle'],
                               color=['red','cyan','green','blue'])
@@ -594,7 +602,7 @@ class NodeList (object):
             first = True
             for j in range(1,3):
                 label = 'T'+str(i)+str(j)
-                qnode = self._ns[label]
+                qnode = self.ns[label]
                 if first:
                     c = qnode('cos')(i) << Meq.Cos(i*time)
                     first = False

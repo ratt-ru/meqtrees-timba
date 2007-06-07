@@ -44,10 +44,11 @@
 from Timba.Meq import meq
 from Timba.TDL import *                         # needed for type Funklet....
 
+# import Grunt
 import Meow
 
-# from Timba.Contrib.JEN.Grunt import SimulParm
 from Timba.Contrib.JEN.Grunt import display
+# from Timba.Contrib.JEN.Grunt import ParameterizationPlus
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
@@ -74,6 +75,7 @@ NUMERIC_TYPES = (int, long, float, complex)
 #***************************************************************************************
 #***************************************************************************************
 
+# class Expression (ParameterizationPlus.ParameterizationPlus):
 class Expression (Meow.Parameterization):
 
     def __init__(self, ns, name, expr,
@@ -89,8 +91,9 @@ class Expression (Meow.Parameterization):
         may be supplied via keyword arguments pp. More detailed
         information may be supplied via the function .modparm()."""
 
-        # if is_node(ns): ns = ns.QualScope()
+        if is_node(ns): ns = ns.QualScope()
 
+        # ParameterizationPlus.ParameterizationPlus.__init__(self, ns, str(name),
         Meow.Parameterization.__init__(self, ns, str(name),
                                        quals=quals, kwquals=kwquals)
 
@@ -737,7 +740,8 @@ class Expression (Meow.Parameterization):
         """Make s subtree for the difference between the FunkletParm
         and the MeqFunctional"""
         qnode = self.ns['FunckDiff']
-        if not qnode.initialized():
+        if qnode.must_define_here(self):
+        # if not qnode.initialized():
             c1 = self.FunkletParm()              # this one FIRST!
             c2 = self.MeqFunctional()
             qnode << Meq.Subtract(c1,c2)
@@ -787,7 +791,8 @@ class Expression (Meow.Parameterization):
 
         self._vars2nodes()        
         qnode = self.ns['Expr_MeqFunctional']
-        if not qnode.initialized():
+        # if not qnode.initialized():
+        if qnode.must_define_here(self):
             function = deepcopy(self._expanded)
             children = []
             nodenames = []
@@ -849,7 +854,8 @@ class Expression (Meow.Parameterization):
 
         qnode = self.ns['inspector']
         
-        if not qnode.initialized():                         # avoid duplication
+        if qnode.must_define_here(self):
+        # if not qnode.initialized():                         # avoid duplication
             self.MeqFunctional(show=False, bookpage=bookpage)               
             plot = self._MeqFunctional_plot
             if len(plot['children'])>0:
@@ -886,7 +892,8 @@ class Expression (Meow.Parameterization):
 
             
         qnode = self.ns['Expr_FunkletParm']
-        if not qnode.initialized():
+        if qnode.must_define_here(self):
+        # if not qnode.initialized():
             f0 = self.Funklet()
             if isinstance(f0, bool):
                 s = '** Funklet is '+str(type(f0))
@@ -998,7 +1005,8 @@ class Expression (Meow.Parameterization):
         described by the common_axes argument (e.g. [hiid('l'),hiid('m')]."""                   
 
         qnode = self.ns['MeqCompounder']
-        if not qnode.initialized():
+        # if not qnode.initialized():
+        if qnode.must_define_here(self):
 
             # Find the variable axes other than 'time' and 'freq':
             caxes = []
@@ -1192,7 +1200,8 @@ def _replace_tilde_numeric (expr, trace=False):
     """Helper function to replace strings of the form {100~10} with their
     numeric values (in this case a random number drawn from a gaussian
     distribution with mean=100 and stddev=10). It looks for strings that
-    are enclosed in {}, and that do have a tilde (~) but not a '='"""
+    are enclosed in {}, and that do have a tilde (~) but not a '='.
+    It is also possible to specify {345~0.1%}."""
 
     ss = JEN_parse.find_enclosed(expr, brackets='{}', enclose=False)
     if trace: print '\n** _replace_tilde_numeric(',expr,'):'
@@ -1200,7 +1209,10 @@ def _replace_tilde_numeric (expr, trace=False):
         if '~' in s and not '=' in s:
             vv = s.split('~')
             v = float(eval(vv[0]))
-            stddev = float(eval(vv[1]))
+            if '%' in vv[1]:
+                stddev = v*float(eval(vv[1].split('%')[0]))/100.0
+            else:
+                stddev = float(eval(vv[1]))
             if stddev>0.0:
                 # Limit the number of digits to avoid clutter in expr:
                 v = random.gauss(v, stddev)
@@ -1229,8 +1241,6 @@ def _replace_Funcktions (expr, trace=False):
         # So, assure elog by dividing by log(e). Note that this gives
         # the desired result, whatever the definition of log()...!
         ff = JEN_parse.find_function (expr, func='log', trace=False)
-        print 'expr=',expr
-        print 'parse(log): ff=',ff
         # NB: ff is a list of dict(substring='sin(..)', arg='..')
         for rr in ff:
             old = rr['substring']
@@ -1454,6 +1464,12 @@ if __name__ == '__main__':
     ns = NodeScope()
     # import pylab           # gives problems with meqkernel
 
+    if 0:
+        _replace_tilde_numeric ('{100~10}', trace=True)
+        _replace_tilde_numeric ('{100~1%}', trace=True)
+        _replace_tilde_numeric ('{100~0.1%}', trace=True)
+        _replace_tilde_numeric ('{100~10%}', trace=True)
+
         
     if 0:
         e0 = Expression(ns, 'e0')
@@ -1471,7 +1487,8 @@ if __name__ == '__main__':
         e1 = Expression(ns,'e1','xx')
         e1.display()
 
-    if 1:
+
+    if 0:
         e0 = Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=True)
         if 0:
             e0.modparm('{b}', (ns << Meq.Add(ns<<13,ns<<89)))

@@ -37,22 +37,22 @@ from copy import deepcopy
 class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
     """Class that represents a set of 2x2 matrices.
     It is inherited by the Jones22 class and the Vis22 class.  
-    It also contains a ParmGroupManager object that encapsulates
-    groups of MeqParm nodes (or their simulation subtrees)."""
+    It is derived from the ParameterizationPlus class, which
+    encapsulates groups of MeqParm nodes (or their simulation subtrees).
+    """
 
-    def __init__(self, ns, quals=[], label='M', descr='<descr>',
+    def __init__(self, ns, name='M', quals=[], kwquals={},
+                 descr='<descr>',
                  matrixet=None, indices=[],
-                 polrep=None, kwquals={}):
+                 polrep=None):
         
-        # NB: change label into name, and remove label....
-        # self._label = label                          # label of the matrixet 
-
-        ParameterizationPlus.ParameterizationPlus.__init__(self, ns, label, quals=quals,
+        ParameterizationPlus.ParameterizationPlus.__init__(self, ns, name,
+                                                           quals=quals,
                                                            kwquals=kwquals)
 
         self._descr = descr                          # decription of the matrixet 
 
-        # polarization representation (linear, circular)
+        # Polarization representation (linear, circular)
         self._polrep = polrep
         self._pols = ['A','B']
         self._corrs = ['AA','AB','BA','BB']
@@ -74,7 +74,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
         # At each stage, all matrix nodes are replaced by a parent.
         # The stage naming information is kept in a dict():
-        self._stage = dict(letter='M', count=-1)
+        self._stage = dict(char='@', count=-1)
         self._nextstage()
 
         # The actual 2x2 matrixes:
@@ -105,7 +105,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # return deepcopy(self)..........................does not work...
         # self.display('copy(), before')
         new = Matrixet22(self.ns,
-                         label='copy('+self.name+')',
+                         name='copy('+self.name+')',
                          descr=self.descr(),
                          matrixet=self.matrixet(),
                          indices=self.indices())
@@ -177,7 +177,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
     #-------------------------------------------------------------------------
 
-    def make_NodeList(self, quals=quals, trace=False):
+    def make_NodeList(self, quals=None, trace=False):
         """Put the current matrix nodes into a NodeList object"""
         # First make lists of nodes and labels:
         nodes = []
@@ -197,7 +197,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                 qq.extend(quals)
             else:
                 qq.append(quals)
-        nn = NodeList.NodeList(self.ns, ss['name'],
+        nn = NodeList.NodeList(self.ns,
+                               self.name+'_'+ss['name'],
                                quals=qq, kwquals=ss['kwquals'],
                                nodes=nodes, labels=labels)
 
@@ -222,7 +223,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # Whenever the matrix nodes are replaced by a new parent,
         # this is called a stage. This is part of the node names.
         self._stage['count'] += 1
-        self._stage['stage'] = self._stage['letter']+str(self._stage['count'])  # e.g. 'M3'
+        self._stage['stage'] = self._stage['char']+str(self._stage['count'])  # e.g. 'M3'
 
         # If another Matrixet22 object is involved:
         if isinstance(other, Matrixet22):
@@ -234,7 +235,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         if isinstance(name,str):
             quals.append(self._stage['stage'])
         else:
-            name = 'stage_'+self._stage['stage']
+            name = self._stage['stage']
         self._stage['qnode'] = self.ns[name](*quals,**kwquals)
         self._stage['sqnode'] = str(self._stage['qnode'])
 
@@ -276,6 +277,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         ss = str(type(self))
         ss += '  '+str(self.name)
         ss += '  n='+str(len(self.indices()))
+        ss += '  ('+str(self.ns['<nodename>'].name)+')'
         return ss
 
     def display_ParmGroupManager(self, full=False):
@@ -298,6 +300,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         print '** Generic (class Matrixet22):'
         print ' * descr: '+str(self.descr())
         print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
+        print ' * corrs: '+str(self._corrs)
         print ' * stage: '+str(self._stage)
         print ' * Available indices ('+str(self.len())+'): ',
         if self.len()<30:
@@ -436,7 +439,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                                             other._matrixet(*i))
         self.matrixet(new=qnode)                                     # replace
         # Transfer any parmgroups from other:
-        # self.ParmGroupManager(merge=other.ParmGroupManager())
+        # self.p_merge(other)
         if visu: self.visualize(['binop',binop], quals=quals, visu=visu)
         return True
 
@@ -458,6 +461,10 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         Multiply, WMean, etc."""
         nn = self.make_NodeList(quals=quals)
         bundle = nn.bundle(oper)
+        # if oper=='Composer':
+            # Append a reqseq of self._accumulist nodes (if any):
+        #    accuroot = self.bundle_accumulist(quals=quals)
+        #    if accuroot: cc.append(accuroot)
         return bundle
 
     #---------------------------------------------------------------------
@@ -472,9 +479,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
     #=====================================================================
 
 
-    def visualize (self, origin=None, quals=None,
-                   visu='rvsi', accu=True,
-                   separate=False,
+    def visualize (self, visu='rvsi', quals=None,
+                   accu=True, separate=False,
                    bookpage='Matrixet22', folder=None):
         """Generic visualisation, controlled by visu. The latter may be:
         - timetracks: show timetracks for all matrices, averaged over freq.
@@ -498,7 +504,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             return False
 
         # Make a NodeList object:
-        nn = self.make_NodeList()
+        nn = self.make_NodeList(quals=quals)
 
         dcolls = []
         for visual in visu:
@@ -528,8 +534,24 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # Return the dataConcat node:
         return self._dcoll
 
+    #-------------------------------------------------------------------------
+
+    def bookpage (self, select=9, page=None, folder=None):
+        """Make a page of bookmarks for (a selection of) the nodes of
+        this NodeList object. Nothing is returned, because the bookmarks
+        just publish the selected nodes as they are doing their thing."""
+        nn = self.make_NodeList()
+        nn.bookpage (select=select, page=page, folder=folder)
+        return True
 
 
+    def bookmark (self, select=[0], page=None, folder=None):
+        """Make bookmark(s) for a specific selection of the nodes of
+        this NodeList object. Nothing is returned, because the bookmarks
+        just publish the selected nodes as they are doing their thing."""
+        nn = self.make_NodeList()
+        nn.bookmark (select=select, page=page, folder=folder)
+        return True
 
     #=====================================================================
     # Fill the object with some test data:
@@ -549,20 +571,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             indices.append(index)
             mm = dict(m11=0.0, m12=0.0, m21=0.0, m22=0.0)
             for elem in keys:
-                mm[elem] = self.ns.polar(elem)(index) << Meq.Polar(1.0, 0.0)
-            # The one non-zero element is complex, with amplitude=1.0,
-            # and phase equal to index/10 radians (plus variation if simulate=True):
-            # phase = pg.create_member(index)
-            phase = self.ns['phase'](index) << Meq.Parm(index)
-            mm[key] = self.ns.polar(key) << Meq.Polar(1.0, phase)
+                phase = 0.0
+                if elem==key:
+                    phase = self.ns['phase'](elem)(index) << Meq.Parm(index)
+                mm[elem] = self.ns.polar(elem)(index) << Meq.Polar(1.0, phase)
+                # print key,elem,' phase =',str(phase)
             mat = self.ns[name](index) << Meq.Matrix22(mm['m11'],mm['m12'],
                                                        mm['m21'],mm['m22'])
         # Store the matrices and the list if indices:
         self.indices(new=indices)
         self.matrixet(new=self.ns[name])
-
-        # Make some secondary (composite) ParmGroups:
-        # self.pgm().define_gogs('test')
         return True
 
 
@@ -651,7 +669,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m1 = Matrixet22(ns, quals=['3c84'], label='HH')
+        m1 = Matrixet22(ns, 'HHH', quals=['3c84'])
         m1.test(simulate=True)
         m1.visualize(visu='*',separate=True)
         m1.display(full=True)
@@ -679,7 +697,7 @@ if __name__ == '__main__':
         m1.display('after unop', full=True)
         
     if 0:
-        m2 = Matrixet22(ns, quals=['yyy'], label='TT')
+        m2 = Matrixet22(ns, 'TTT', quals=['yyy'])
         m2.test(simulate=False)
         m2.display('m2',full=True)
         if 1:

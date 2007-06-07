@@ -1,7 +1,9 @@
 # file: ../Grunt/ParameterizationPlus.py
 
 # History:
-# - 26may2007: creation 
+# - 26may2007: creation
+# - 07jun2007: allow {100~10%}
+# - 07jun2007: p_deviation_expr()
 
 # Description:
 
@@ -22,8 +24,6 @@ from Timba.Meq import meq
 
 import Meow
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
@@ -82,6 +82,7 @@ class ParameterizationPlus (Meow.Parameterization):
         print '  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._parmgroups:
             rr = deepcopy(self._parmgroups[key])
+            print key,rr
             rr['nodes'] = '<'+str(len(rr['nodes']))+'>'
             rr['solvable'] = '<'+str(len(rr['solvable']))+'>'
             rr['plot_labels'] = '<'+str(len(rr['plot_labels']))+'>'
@@ -153,10 +154,14 @@ class ParameterizationPlus (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def p_group_define (self, key, tags=None, descr='<descr>',
-                        default=0.0, 
+    def p_group_define (self, key, tags=None,
+                        descr='<descr>', unit=None,
+                        default=0.0, constraint=None,
                         simul=False, deviation=None,
-                        tiling=None, time_deg=0, freq_deg=0, **kw):
+                        tiling=None, time_deg=0, freq_deg=0,
+                        # constrain_min=0.1, constrain_max=10.0,
+                        rider=None, override=None,
+                        **kw):
         """Define a named (key) group of similar parameters"""
 
         # Check whether the group exists already:
@@ -177,16 +182,24 @@ class ParameterizationPlus (Meow.Parameterization):
         if not isinstance(deviation, str):
             deviation = '{0.01~0.001}*sin(2*pi*([t]/{500~50}+{0~1}))'
 
+        # It is possible to override values via this dict.....
+        # This requires a little thought....
+        if isinstance(override, dict):
+            pass
+
         # Create the group definition:
-        rr = dict(default=default, 
+        rr = dict(default=default, tags=tags,
                   simul=simul, deviation=deviation,
-                  descr=descr, tags=tags,
+                  constraint=constraint,
+                  descr=descr, unit=unit,
                   tiling=tiling,
                   time_deg=time_deg,
                   freq_deg=freq_deg,
+                  rider=rider,
                   nodes=[], solvable=[], plot_labels=[])
         self._parmgroups[key] = rr
-        return self._parmgroups[key]
+        # return self._parmgroups[key]
+        return key
 
 
     #-----------------------------------------------------------------
@@ -265,6 +278,21 @@ class ParameterizationPlus (Meow.Parameterization):
         return node
 
 
+    #-------------------------------------------------------------------
+
+    def p_deviation_expr (self, ampl='{0.01~10%}', Psec='{500~10%}', PHz=None):
+        """Helper function to make a standard deviation expression.
+        All arguments must be strings of the form {<value>~<stddev>}.
+        The <stddev> is used to generate different values around <value>
+        for each member of the group (see .p_group_create_member())."""
+        s = ampl
+        if isinstance(Psec,str):
+            s += '* sin(2*pi*([t]/'+Psec+'+{0~1}))'
+        if isinstance(PHz,str):
+            s += '* sin(2*pi*([f]/'+PHz+'+{0~1}))'
+        return s
+
+
 
     #===============================================================
     # Meow.Parametrization methods
@@ -326,10 +354,10 @@ class ParameterizationPlus (Meow.Parameterization):
 
                 # First update the Meow.Parameterization attributes.
                 # (This allows a mix between the two frameworks)
-                rr = getattr(other, '_parmdefs', None)
-                self._parmdefs.update(rr)
-                rr = getattr(other, '_parmnodes', dict())
-                self._parmnodes.update(rr)
+                qq = getattr(other, '_parmdefs', None)
+                self._parmdefs.update(qq)
+                qq = getattr(other, '_parmnodes', dict())
+                self._parmnodes.update(qq)
 
                 # Then copy the Grunt.ParameterizationPlus parmgroups:
                 # NB: Avoid duplicate parmgroups (solvable and simulated versions
@@ -533,19 +561,21 @@ class ParameterizationPlus (Meow.Parameterization):
 
 
     #---------------------------------------------------------------
-    #---------------------------------------------------------------
 
     def p_bundle (self, parmgroup='*', combine='Add',
-                  bookpage=True, show=False):
+                  bookpage=True, folder=None, show=False):
         """Bundle the nodes in the specified parmgroup(s) by applying the
         specified combine-operation (default='Add') to them. Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
         """
         pg = self.p_find_parmgroups (parmgroup, severe=True)
+        if folder==None:
+            if len(pg)>1: folder = 'params_'+self.name
+        
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
-            bb.append(nn.bundle(combine=combine, bookpage=bookpage))
+            bb.append(nn.bundle(combine=combine, bookpage=bookpage, folder=folder))
         return self._p_bundle_of_bundles (bb, name='p_bundle',
                                           qual=parmgroup, show=show)
 
@@ -620,24 +650,29 @@ def _quals2list (quals):
 
 #----------------------------------------------------------------------------
     
-def _simul_subtree(rr, qnode,
-                   default=None, deviation=None,
-                   tags=[], show=True):
+def _simul_subtree(rr, qnode, default=None, deviation=None,
+                   tags=[], show=False, trace=False):
     """Return the root node of a subtree that simulates the
     behaviour of a MeqParm."""
+
+    if trace: print '\n** _simul_subtree(',str(qnode),'):'
     
     # The deviation from the default value is described by a math expression.
     # The default (rr) values may be overridden.
     simexpr = str(default or rr['default'])+'+'+(deviation or rr['deviation'])
+    if trace: print '    ',simexpr
     
     # Make a MeqFunctional node from the given expression
-    Ekey = Expression.Expression(qnode, ' ', expr=simexpr)
+    Ekey = Expression.Expression(qnode, qnode.name, expr=simexpr)
     node = Ekey.MeqFunctional()
+
+    if trace: print '  -> node =',str(node)
 
     # Make a root node with the correct name (qnode) and tags:
     ptags = deepcopy(tags)
     if not 'simul' in ptags: ptags.append('simul')
     qnode << Meq.Identity(node, tags=ptags)
+    if trace: print '  -> qnode =',str(qnode)
     if show: display.subtree(qnode)
     return qnode
 

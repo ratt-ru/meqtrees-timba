@@ -4,6 +4,7 @@
 # - 05jan2007: creation (from JEN_SolverChain.py)
 # - 14mar2007: added MSSE support (sigma) to .corrupt()
 # - 26mar2007: adapted for QualScope
+# - 07jun2007: adapted to NodeList/ParameterizationPlus
 
 # Description:
 
@@ -16,9 +17,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Matrixet22
-
-from Timba.Contrib.JEN.util import JEN_bookmarks
-from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN.Grunt import display
 
 from copy import deepcopy
 
@@ -28,16 +27,12 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 
 
 
-# Global counter used to generate unique node-names
-# unique = -1
-
-
 #======================================================================================
 
 class Visset22 (Matrixet22.Matrixet22):
     """Class that represents a set of 2x2 Cohaerency  matrices"""
 
-    def __init__(self, ns, quals=[], label='<v>',
+    def __init__(self, ns, name='<v>', quals=[], kwquals={}, 
                  cohset=None, array=None,
                  # observation=None,
                  polrep=None):
@@ -51,9 +46,10 @@ class Visset22 (Matrixet22.Matrixet22):
         self._stations = array.stations()               # convenience only ...?           
 
         # Initialise its Matrixet22 object:
-        Matrixet22.Matrixet22.__init__(self, ns, quals=quals, label=label,
-                                       polrep=polrep,
-                                       indices=array.ifrs())
+        Matrixet22.Matrixet22.__init__(self, ns, name,
+                                       quals=quals, kwquals=kwquals,
+                                       polrep=polrep, indices=array.ifrs())
+
         if cohset:
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None
             self._matrixet = cohset
@@ -62,10 +58,10 @@ class Visset22 (Matrixet22.Matrixet22):
         # This is changed whenever the phase centre is shifted (see below).
         self._dir0 = Meow.Context.get_dir0(None)
         if not self._dir0:
-            self._dir0 = Meow.LMApproxDirection(ns, self.label()+'_dir0', l=0.0, m=0.0)
+            self._dir0 = Meow.LMApproxDirection(ns, self.name+'_dir0', l=0.0, m=0.0)
         self._dir00 = self._dir0                        # see .restore_phase_centre()
         if not isinstance(self._dir00, Meow.LMApproxDirection):
-            self._dir00 = Meow.LMApproxDirection(ns, self.label()+'_dir00', l=0.0, m=0.0)
+            self._dir00 = Meow.LMApproxDirection(ns, self.name+'_dir00', l=0.0, m=0.0)
         self._last_dir0 = None                          # see .restore_phase_centre()
 
         return None
@@ -75,11 +71,11 @@ class Visset22 (Matrixet22.Matrixet22):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = str(type(self))
-        ss += '  '+str(self.label())
+        ss += '  '+str(self.name)
         ss += '  pols='+str(self._pols)
         ss += '  nstat='+str(len(self.stations()))
         ss += '  nifr='+str(len(self.ifrs()))
-        ss += '  quals='+str(self._ns._qualstring())
+        ss += '  ('+str(self.ns['<nodename>'].name)+')'
         return ss
 
 
@@ -89,14 +85,12 @@ class Visset22 (Matrixet22.Matrixet22):
         print '   - MS_corr_index: '+str(self._MS_corr_index)
         print '   - Current phase centre (dir0): '+str(self._dir0)
         if full:
-            # self._pgm.display_subtree(self._dir0.radec(), txt='dir0.radec',
-            #                           skip_line_after=False, show_initrec=True)
-            self._pgm.display_subtree(self._dir0.lmn(), txt='dir0.lmn',
-                                      skip_line_after=False, show_initrec=True)
+            display.subtree(self._dir0.lmn(), txt='dir0.lmn',
+                            skip_line_after=False, show_initrec=True)
             print '   - Last phase centre: '+str(self._last_dir0)
             if self._last_dir0:
-                self._pgm.display_subtree(self._last_dir0.lmn(), txt='last_dir0.lmn',
-                                          skip_line_after=False, show_initrec=True)
+                display.subtree(self._last_dir0.lmn(), txt='last_dir0.lmn',
+                                skip_line_after=False, show_initrec=True)
         
 
         return True 
@@ -140,7 +134,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
         self._MS_corr_index = MS_corr_index    # Keep. See also .make_sinks()
 
-        qnode = self._ns['spigot']
+        qnode = self._nextstage(name='spigot')['qnode']
         for p,q in self.ifrs():
             qnode(p,q) << Meq.Spigot(station_1_index=p-1,
                                      station_2_index=q-1,
@@ -151,7 +145,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
         if False:
             # Optional: insert a dummy node after the spigot for testing
-            qnode = self._ns['dummy']
+            qnode = self._nextstage(name='dummy')['qnode']
             for p,q in self.ifrs():
                 qnode(p,q) << Meq.Identity(self._matrixet(p,q))
             self._matrixet = qnode
@@ -160,7 +154,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # self.create_ReadVisHeader_placeholders()    # see below....
 
         if visu:
-            self.visualize('spigots', visu=visu)
+            self.visualize(visu, 'spigots')
         return True
 
     #--------------------------------------------------------------------------
@@ -168,21 +162,21 @@ class Visset22 (Matrixet22.Matrixet22):
     def create_ReadVisHeader_placeholders(self):
         """Create placeholder nodes expected by ReadVisHeader.py"""
         # nodes for phase centre
-        self._ns.radec0 = Meq.Composer(self._ns.ra<<0, self._ns.dec<<0)
+        self.ns.radec0 = Meq.Composer(self.ns.ra<<0, self.ns.dec<<0)
         
         # nodes for array reference position
-        self._ns.xyz0 = Meq.Composer(self._ns.x0<<0,
-                                     self._ns.y0<<0,
-                                     self._ns.z0<<0)
+        self.ns.xyz0 = Meq.Composer(self.ns.x0<<0,
+                                     self.ns.y0<<0,
+                                     self.ns.z0<<0)
         
         # now define per-station stuff: XYZs and UVWs 
         for p in ANTENNAS:
-            self._ns.xyz(p) << Meq.Composer(self._ns.x(p)<<0,
-                                            self._ns.y(p)<<0,
-                                            self._ns.z(p)<<0)
-            self._ns.uvw(p) << Meq.UVW(radec=self._ns.radec0,
+            self.ns.xyz(p) << Meq.Composer(self.ns.x(p)<<0,
+                                            self.ns.y(p)<<0,
+                                            self.ns.z(p)<<0)
+            self.ns.uvw(p) << Meq.UVW(radec=self.ns.radec0,
                                        xyz_0=self.ns.xyz0,
-                                       xyz=self._ns.xyz(p))
+                                       xyz=self.ns.xyz(p))
 
         return True
 
@@ -219,7 +213,7 @@ class Visset22 (Matrixet22.Matrixet22):
         self.insert_accumulist_reqseq(visu=visu, name='sinks')
 
         # Make the sinks:
-        qnode = self._ns['sink']
+        qnode = self._nextstage(name='sink')['qnode']
         for p,q in self.ifrs():
             qnode(p,q) << Meq.Sink(self._matrixet(p,q),
                                    station_1_index=p-1,
@@ -230,7 +224,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
         
         # The single VisDataMux node is the actual interface node.
-        self._ns[vdm] << Meq.VisDataMux(*[self._matrixet(*ifr) for ifr in self.ifrs()]);
+        self.ns[vdm] << Meq.VisDataMux(*[self._matrixet(*ifr) for ifr in self.ifrs()]);
 
         # Return the actual name of the VisDataMux (needed for tree execution)
         return vdm
@@ -243,17 +237,19 @@ class Visset22 (Matrixet22.Matrixet22):
         """Fill the Visset22 with 2x2 identical matrices. If coh==None, these are
         complex unit matrices. Otherwise, assume that coh is a 2x2 matrix, and use that.
         If stddev>0, add gaussian noise with this stddev."""
+
         self.history('.fill_with_identical_matrices('+str(coh)+')')
         if coh==None:
-            coh = self._ns.unit_matrix << Meq.Matrix22(complex(1.0),complex(0.0),
+            coh = self.ns.unit_matrix << Meq.Matrix22(complex(1.0),complex(0.0),
                                                        complex(0.0),complex(1.0))
                 
-        self._matrixet = self._ns[name]
+        qnode = self._nextstage(name=name)['qnode']
+        self._matrixet = qnode
         for ifr in self.ifrs():
             self._matrixet(*ifr) << Meq.Identity(coh)
         if stddev>0:
             self.addGaussianNoise (stddev=stddev, quals=None, visu=False)
-        if visu: return self.visualize(name, visu=visu)
+        if visu: return self.visualize(visu, name)
         return True
 
     #---------------------------------------------------------------------------
@@ -261,23 +257,22 @@ class Visset22 (Matrixet22.Matrixet22):
     def addGaussianNoise (self, stddev=0.1, quals=None, visu=True):
         """Add gaussian noise with given stddev to the internal cohset"""
         if stddev>0.0:
-            ns = self._ns._derive(append=quals)
-            self.history('.addGaussianNoise('+str(stddev)+')', ns=ns)
-            name = 'addGaussianNoise22'
-            qnode = ns[name]
-            matrels = self.matrel_keys()
+            self.history('.addGaussianNoise('+str(stddev)+')')
+            name = 'addGaussianNoise'
+            qnode = self._nextstage(name=name, quals=quals,
+                                    kwquals=dict(stddev=stddev))['qnode']
             for ifr in self.ifrs():
-                noise = ns['stddev='+str(stddev)](*ifr)
+                noise = qnode('noise')(*ifr)
                 mm = range(4)
                 for i in range(4):
-                    m = matrels[i]
+                    m = self._corrs[i]
                     rnoise = noise(m)('real') << Meq.GaussNoise(stddev=stddev)
                     inoise = noise(m)('imag') << Meq.GaussNoise(stddev=stddev)
                     mm[i] = noise(m) << Meq.ToComplex(rnoise,inoise)
                 noise << Meq.Matrix22(*mm)
                 qnode(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
             self._matrixet = qnode           
-            if visu: return self.visualize(name, quals=quals, visu=visu)
+            if visu: return self.visualize(visu, name)
         return None
 
     #...........................................................................
@@ -302,16 +297,16 @@ class Visset22 (Matrixet22.Matrixet22):
         (defined by the internal Direction object self._dir0) to the position
         defined by the given LMDirection object (lmdir).
         Replace self._dir0 with lmdir, so that cumulative shifts are possible."""
-        ns = self._ns._derive(append=quals, prepend=lmdir.name)
-        self.history('.shift_phase_centre()', ns=ns)
-        qnode = ns.shifted
+
+        self.history('.shift_phase_centre()')
+        qnode = self._nextstage(name='shifted', quals=quals)['qnode']
         lmdir.make_phase_shift(qnode, vis0=self._matrixet,
                                array=self._array, dir0=self._dir0) 
         self._matrixet = qnode
         self._last_dir0 = self._dir0       # Keep for use by restore_phase_centre()
         self._dir0 = lmdir                 # The new uv-data phase centre
         self.display('vis.shift_phase_centre() to: '+lmdir.name, full=True)
-        if visu: return self.visualize('shift_pc', quals=quals, visu=visu, ns=ns)
+        if visu: return self.visualize(visu, 'shift_pc')
         return None
 
 
@@ -328,15 +323,14 @@ class Visset22 (Matrixet22.Matrixet22):
         if lmdir:
             self.shift_phase_centre (lmdir, quals=quals, visu=False)
             lmname = lmdir.name
-        ns = self._ns._derive(append=quals, prepend=lmname)
-        self.history('.subtract_mean()', ns=ns)
+        self.history('.subtract_mean()')
         name = 'subtract_mean'
-        qnode = ns[name]
+        qnode = self._nextstage(name=name, quals=quals)['qnode']
         for ifr in self.ifrs():
             mean = qnode(*ifr)('mean') << Meq.Mean(self._matrixet(*ifr))
             qnode(*ifr) << Meq.Subtract(self._matrixet(*ifr),mean)
         self._matrixet = qnode              
-        if visu: return self.visualize(name, quals, visu=visu, ns=ns)
+        if visu: return self.visualize(visu, name)
         if lmdir and restore:
             self.restore_phase_centre (last=True, quals=quals, visu=False)
         return None
@@ -346,13 +340,11 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def corrupt (self, joneset=None, quals=None, visu=False):
         """Corrupt the internal matrices with the matrices of the given Joneset22 object.
-        Transfer the parmgroups of the Joneset22 to its own ParmGroupManager (pgm)."""
-        ns = self._ns._derive(append=quals)
-        ns = ns._merge(joneset.ns())
-        self.history('.corrupt()', ns=ns)
+        Merge the parmgroups of the Joneset22 with its own set."""
+        self.history('.corrupt()')
         self.history(subappend=joneset.history())
         name = 'corrupt22'
-        qnode = ns[name]
+        qnode = self._nextstage(name=name, quals=quals, other=joneset)['qnode']
         jmat = joneset.matrixet() 
         for ifr in self.ifrs():
             j1 = jmat(ifr[0])
@@ -360,8 +352,8 @@ class Visset22 (Matrixet22.Matrixet22):
             qnode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = qnode              
         # Transfer any parmgroups (used by the solver downstream)
-        self.ParmGroupManager(merge=joneset.ParmGroupManager())
-        if visu: return self.visualize(name, quals=quals, visu=visu)
+        self.p_merge(joneset)                                    
+        if visu: return self.visualize(visu, name)
         return None
 
     #...........................................................................
@@ -372,9 +364,7 @@ class Visset22 (Matrixet22.Matrixet22):
         If sigma is specified (number or node), add a unit matrix multiplied by the
         estimated noise (sigma**2) before inversion (MMSE)."""
 
-        ns = self._ns._derive(append=quals)
-        ns = ns._merge(joneset.ns())
-        self.history('.correct('+str(sigma)+' '+str(pgm_merge)+')', ns=ns)
+        self.history('.correct('+str(sigma)+' '+str(pgm_merge)+')')
         self.history(subappend=joneset.history())
 
         # Robust correction (MSSE):
@@ -383,7 +373,7 @@ class Visset22 (Matrixet22.Matrixet22):
             MSSE = ns.MSSE << Meq.Matrix22(sigma2,0.0,0.0,sigma2)
             
         name = 'correct22'
-        qnode = ns[name]
+        qnode = self._nextstage(name=name, quals=quals, other=joneset)['qnode']
         jmat = joneset.matrixet()
         for ifr in self.ifrs():
             if sigma:
@@ -399,10 +389,10 @@ class Visset22 (Matrixet22.Matrixet22):
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
-            self.ParmGroupManager(merge=joneset.ParmGroupManager())
+            self.p_merge(joneset)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
         # self.merge_accumulist(joneset)
-        if visu: return self.visualize(name, quals=quals, visu=visu)
+        if visu: return self.visualize(visu, name)
         return None
 
 
@@ -413,19 +403,18 @@ class Visset22 (Matrixet22.Matrixet22):
         in self._accumulist (see Matrixet22). The reqseqs will get the current
         matrix nodes as their last child, to which their result is transmitted."""
 
-        ns = self._ns._derive(append=quals)
-        self.history('.insert_accumulist_reqseq('+str(key)+' '+str(name)+')', ns=ns)
+        self.history('.insert_accumulist_reqseq('+str(key)+' '+str(name)+')')
 
         # If visu==True, append the visualisation dcoll to the accumulist,
         # so that it will get the last request before the main-stream is addressed.
-        if visu: self.visualize(name, quals=quals, visu=visu)
+        if visu: self.visualize(visu, name)
         
         cc = self.accumulist(key=key, clear=False)
         n = len(cc)
         if n>0:
             cc.append('placeholder')
             name = 'reqseq'
-            qnode = ns[name]
+            qnode = self._nextstage(name=name, quals=quals)['qnode']
             if isinstance(key, str): name += '_'+str(key)
             for ifr in self.ifrs():
                 cc[n] = self._matrixet(*ifr)         # fill in the placeholder
@@ -446,10 +435,11 @@ def _define_forest(ns):
     num_stations = 3
     ANTENNAS = range(1,num_stations+1)
     array = Meow.IfrArray(ns,ANTENNAS)
+    observation = Meow.Observation(ns)
+    Meow.Context.set(array, observation)
 
     cohset = None
-    if False:
-        observation = Meow.Observation(ns)
+    if 0:
         allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
         l = 1.0
         m = 1.0
@@ -458,24 +448,36 @@ def _define_forest(ns):
         source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
         allsky.add(source)
         cohset = allsky.visibilities(array, observation)
-    vis = Visset22(ns, label='test', quals='yyc',
+
+    vis = Visset22(ns, 'test',
+                   # quals='yyc',
                    array=array, cohset=cohset)
+    if not cohset:
+        vis.fill_with_identical_matrices()
+
+    if 0:
+        vis.addGaussianNoise()
     vis.display('initial')
 
-    if True:
-        G = Joneset22.GJones(ns, stations=array.stations(), simulate=True)
-        D = Joneset22.DJones(ns, stations=array.stations(), simulate=True)
-        jones = G
-        jones = D
-        jones = Joneset22.Joneseq22([G,D])
-        vis.corrupt(jones, visu=True)
-        vis.addGaussianNoise(stddev=0.05, visu=True)
-        vis.display('after corruption')
-        if False:
-            vis.correct(jones, visu=True)
+    if 0:
+        vis.subtract_mean(visu=True)
+        vis.display(recurse=5)
 
-    if True:
-        pred = Visset22(ns, label='nominal', quals='xxc', array=array, cohset=cohset)
+    if 1:
+        G = Joneset22.GJones(ns, stations=array.stations(), simulate=True)
+        # D = Joneset22.DJones(ns, stations=array.stations(), simulate=True)
+        jones = G
+        # jones = D
+        # jones = Joneset22.Joneseq22([G,D])
+        vis.corrupt(jones, visu=True)
+        # vis.addGaussianNoise(stddev=0.05, visu=True)
+        vis.display('after corruption')
+        if 1:
+            vis.correct(jones, visu=True)
+            vis.display('after correction')
+
+    if 0:
+        pred = Visset22(ns, 'nominal', quals='xxc', array=array, cohset=cohset)
         pred.display('initial')
         G = Joneset22.GJones(ns, stations=array.stations(), simulate=False)
         D = Joneset22.DJones(ns, stations=array.stations(), simulate=False)
@@ -524,7 +526,7 @@ if __name__ == '__main__':
         observation = Meow.Observation(ns)
         Meow.Context.set(array, observation)
         cohset = None
-        if False:
+        if 0:
             allsky = Meow.Patch(ns, 'nominall', observation.phase_centre)
             l = 1.0
             m = 1.0
@@ -533,8 +535,9 @@ if __name__ == '__main__':
             source = Meow.PointSource(ns, src, src_dir, I=1.0, Q=0.1, U=-0.1, V=0.01)
             allsky.add(source)
             cohset = allsky.visibilities(array, observation)
-        vis = Visset22(ns, label='test',
-                       quals='yut',
+        vis = Visset22(ns, 'test',
+                       # quals='yut',
+                       polrep='circular',
                        array=array, cohset=cohset)
         if not cohset:
             vis.fill_with_identical_matrices()
@@ -544,22 +547,24 @@ if __name__ == '__main__':
         vis.addGaussianNoise()
         vis.display(recurse=5)
 
-    if 1:
-        lmdir = Meow.LMDirection(ns, 'shiftest', l=0.01, m=-0.02)
+    if 0:
+        lmdir = Meow.LMDirection(ns, 'shift_test', l=0.01, m=-0.02)
         print '** lmdir =',str(lmdir)
         vis.shift_phase_centre (lmdir, quals=None, visu=False)
         vis.display('after shift', full=True)
 
-    if 0:
+    if 1:
         G = Joneset22.GJones (ns, stations=array.stations(),
                               # telescope='WSRT', band='90cm',
                               simulate=True)
-        # vis.corrupt(G, visu=True)
-        # vis.addGaussianNoise(stddev=0.05, visu=True)
-        # vis.correct(G, visu=True) 
-        sigma = 0.1
-        # sigma = ns.SIGMA << 0.1
-        vis.correct(G, quals='ccc', sigma=sigma, visu=True)
+        if 1:
+            vis.corrupt(G, visu=True)
+            # vis.addGaussianNoise(stddev=0.05, visu=True)
+            vis.correct(G, visu=True)
+        if 0:
+            sigma = 0.1
+            # sigma = ns.SIGMA << 0.1
+            vis.correct(G, quals='ccc', sigma=sigma, visu=True)
         vis.display('after correction', recurse=5)
         vis.history().display(full=True)
 
