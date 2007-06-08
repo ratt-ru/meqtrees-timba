@@ -573,17 +573,20 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._options_menu.clear();
     opts = TDLOptions.get_compile_options();
     if opts:
-      self._options_menu.insertTearOffHandle();
+      ## old style: self._options_menu.insertTearOffHandle();
       self._add_menu_label(self._options_menu,"Compile-time options");
       # add options
-      TDLOptions.populate_option_menu(self._options_menu,opts);
+      ## new style: make a listview
+      TDLOptions.populate_option_listview(self._options_menu,opts);
+      ## old style: add as menu items
+      # TDLOptions.populate_option_menu(self._options_menu,opts);
       # add re-run button
       self._qa_recompile.addTo(self._options_menu);
       self._tb_opts.show();
       _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
       self.emit(PYSIGNAL("hasCompileOptions()"),(self,len(opts),));
     return True;
-
+      
   def compile_content (self):
     # import content first, and return if failed
     if not self.import_content(force=True):
@@ -652,11 +655,14 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._jobmenu.clear();
     if joblist or opts:
       self._tb_jobs.show();
-      self._jobmenu.insertTearOffHandle();
+      ## old style: self._jobmenu.insertTearOffHandle();
       if opts:
         self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
         self._add_menu_label(self._jobmenu,"Run-time options");
-        TDLOptions.populate_option_menu(self._jobmenu,opts,executor=self._job_executor);
+        ## new style:
+        TDLOptions.populate_option_listview(self._jobmenu,opts,executor=self._job_executor);
+        ## old style:
+        # TDLOptions.populate_option_menu(self._jobmenu,opts,executor=self._job_executor);
       if joblist:
         self._add_menu_label(self._jobmenu,"Predefined jobs");
         for func in joblist:

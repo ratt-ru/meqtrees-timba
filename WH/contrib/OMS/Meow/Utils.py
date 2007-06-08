@@ -47,7 +47,8 @@ def ms_options (
   if tile_sizes:
     opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
   if ddid:
-    opts.append(TDLOption('ddid_index',"data description id",ddid,more=int));
+    opts.append(TDLOption('ddid_index',"Data description ID",ddid,more=int,
+      doc="""If the MS contains multiple spectral windows, etc., then use this option to select different DATA_DESCRIPTION_IDs. Default is 0."""));
   if channels:
     opts.append(TDLOption('ms_channels',"Channel selection",channels));
   if flags:

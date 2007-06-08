@@ -7969,6 +7969,47 @@ This scenario shows that using good naming schemes, and avoiding naming
 \end_layout
 
 \begin_layout Section
+Qualifiers as naming devices
+\end_layout
+
+\begin_layout Standard
+If used properly, qualifiers will help avoid most naming conflicts.
+ We have already seen many examples of this.
+ Some of the more straightforward ones are:
+\end_layout
+
+\begin_layout Itemize
+Using a station index and a station pair to distinguish per-station and
+ per-baseline nodes.
+\end_layout
+
+\begin_layout Itemize
+Using a 
+\begin_inset Quotes eld
+\end_inset
+
+source name
+\begin_inset Quotes erd
+\end_inset
+
+ qualifier to distinguish nodes related to a particular source.
+ Meow makes heavy use of this, by forcing you to assign a unique name to
+ each 
+\begin_inset Quotes eld
+\end_inset
+
+sky component
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+aaa
+\end_layout
+
+\begin_layout Section
 Node scopes
 \end_layout
 
@@ -7983,8 +8024,7 @@ global node scope
 ns
 \family default
  object.
- The good news (for people wanting to avoid name conflicts) is that we can
- make use of other node scopes.
+ The good news is that we can make use of other node scopes.
  If you're familiar with C++ namespaces, or just name scopes in general,
  then this concept should be quite familiar.
  For example, in the following bit of (rather silly) Python code, the name
@@ -8147,7 +8187,7 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-Again, we have three separate 
+Here we have three separate 
 \family typewriter
 foo
 \family default
@@ -8444,13 +8484,14 @@ a::foo
 \end_inset
 
 .
- The bottom line is that all node names still reside within a single global
- 
+ The bottom line is that all node names, no matter how you put them together,
+ still reside within a single global
 \emph on
-name
+ 
 \emph default
- scope --- subscopes are simply a handy way to automatically prepend something
- to a name.
+name repository, and as such are subject to potential conflicts.
+ Subscopes are simply a handy way to automatically prepend something to
+ a group of names.
  This is similar to what happens with qualifiers.
  For example, if 
 \family typewriter
@@ -8714,7 +8755,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  ns.bar << ns.x + ns.y;
+  ns.bar << x + y;
 \end_layout
 
 \begin_layout Standard
@@ -8774,7 +8815,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  ns.bar << ns.x + ns.y;
+  ns.bar << x + y;
 \end_layout
 
 \begin_layout Standard
@@ -8806,7 +8847,7 @@ bob::...
 \begin_inset Quotes erd
 \end_inset
 
-, and we can freely use the global scope for our own nodes without worrying
+, and we're free to use the global scope for our own nodes without worrying
  about naming conflicts.
  
 \end_layout
@@ -8860,7 +8901,7 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-...creates a subscope named 
+This creates a subscope named 
 \begin_inset Quotes eld
 \end_inset
 
@@ -8950,7 +8991,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  nsq.bar(2,a=3);
+  nsq.bar(2,a=3) << 1;
 \end_layout
 
 \begin_layout Standard
@@ -9096,7 +9137,7 @@ end{verbatim}
 Having too many nested scopes can look confusing, but you don't generally
  need to worry about it.
  The important thing to know is that you can always make a subscope or qualscope
- from any scope.
+ of any given scope object.
  Returning to our Alice/Bob example, if Alice's function were to look like
  this:
 \end_layout
@@ -9150,7 +9191,7 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-...it would work perfectly fine whethere invoked as 
+...it would work perfectly fine whether invoked as 
 \end_layout
 
 \begin_layout Standard
@@ -9166,7 +9207,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  alice.make_useful_subtree (ns,ns.x,a=1);
+  alice.make_useful_subtree(ns,ns.x,a=1);
 \end_layout
 
 \begin_layout Standard
@@ -9198,7 +9239,7 @@ begin{verbatim}
 
 \begin_layout Standard
 
-  alice.make_useful_subtree (ns.Subscope("alice"),ns.x,a=1);
+  alice.make_useful_subtree(ns.Subscope("alice"),ns.x,a=1);
 \end_layout
 
 \begin_layout Standard
@@ -9241,15 +9282,7 @@ The bottom line is, if you're Alice or Bob --- writing modules for other
 ns
 \family default
  object that the user of your code passes in.
- The 
-\begin_inset Quotes eld
-\end_inset
-
-user
-\begin_inset Quotes erd
-\end_inset
-
- can then decide to 
+ The user can then decide to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -9257,7 +9290,7 @@ sandbox
 \begin_inset Quotes erd
 \end_inset
 
- you module into a subscope as he or she sees fit; your own subscopes and
+ your module into a subscope as he or she sees fit; your own subscopes and
  qualscopes will then nest inside the subscope that the user has selected
  for you, but it's not something you need to concern yourself with at all.
 \end_layout

@@ -98,6 +98,7 @@ class _TDLBaseOption (object):
     self.is_runtime = None;
     # most options have an associated widget or QAction. This is stored here.
     self._qa      = None;
+    self._lvitem  = None;
     
   def set_runtime (self,runtime):
     """marks the option as run-time. This is called as soon as it is known
@@ -107,14 +108,27 @@ class _TDLBaseOption (object):
   def set_qaction (self,qa):
     """sets the option's QAction. Makes it enabled or disabled as appropriate""";
     self._qa = qa;
+    if self.doc:
+      qa.setToolTip(self.doc);
+      qa.setWhatsThis(self.doc);
     qa.setEnabled(self.enabled);
     qa.setVisible(self.visible);
+    return qa;
+    
+  def set_listview_item (self,item):
+    """sets the option's QListViewItem. Makes it enabled or disabled as appropriate""";
+    self._lvitem = item;
+    if self.doc:
+      item.setText(2,"     "+self.doc);
+    item.setEnabled(self.enabled);
+    item.setVisible(self.visible);
+    return item;
     
   def enable (self,enabled=True):
     """enables/disables the option. Default behaviour enables/disables the QAction""";
     self.enabled = enabled;
-    if self._qa:
-      self._qa.setEnabled(enabled);
+    self._qa and self._qa.setEnabled(enabled);
+    self._lvitem and self._lvitem.setEnabled(enabled);
     return enabled;
     
   def disable (self,disabled=True):
@@ -124,8 +138,8 @@ class _TDLBaseOption (object):
   def show (self,visible=True):
     """shows/hides the option. Default behaviour shows/hides the QAction""";
     self.visible = visible;
-    if self._qa:
-      self._qa.setVisible(visible);
+    self._qa and self._qa.setVisible(visible);
+    self._lvitem and self._lvitem.setVisible(visible);
     return visible;
     
   def hide (self,hidden=True):
@@ -146,9 +160,18 @@ class _TDLOptionSeparator (_TDLBaseOption):
     _TDLBaseOption.__init__(self,name=None,namespace=namespace,doc=None);
     
   def add_to_menu (self,menu,executor):
-    if not getattr(menu,'_end_with_separator',True):
+    if not getattr(menu,'_ends_with_separator',True):
       menu.insertSeparator();
     menu._ends_with_separator = True;
+    
+  def make_listview_item (self,parent,after,executor=None):
+    if not getattr(parent,'_ends_with_separator',True):
+      item = QListViewItem(parent,after);
+      item.setText(0,"-----------");
+      item.setEnabled(False);
+      parent._ends_with_separator = True;
+      return item;
+    return None;
   
 class _TDLJobItem (_TDLBaseOption):
   def __init__ (self,func,name=None,namespace=None,doc=None):
@@ -163,13 +186,20 @@ class _TDLJobItem (_TDLBaseOption):
     # create toggle action for bool options
     qa = QAction(self.name,0,menu);
     self.set_qaction(qa);
-    if self.doc:
-      qa.setToolTip(self.doc);
     qa.setIconSet(pixmaps.gear.iconset());
     self._exec = curry(executor,self.func,self.name);
     QObject.connect(qa,SIGNAL("activated()"),self._exec);
     qa.addTo(menu);
     menu._ends_with_separator = False;
+    
+  def make_listview_item (self,parent,after,executor=None):
+    item = QListViewItem(parent,after);
+    item.setText(0,self.name);
+    item.setPixmap(0,pixmaps.gear.pm());
+    item._on_click = curry(executor,self.func,self.name);
+    item._close_on_click = True;
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
   
 class _TDLOptionItem(_TDLBaseOption):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
@@ -236,14 +266,18 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     # create toggle action for bool options
     qa = QAction(self.name or self.symbol,0,menu);
     self.set_qaction(qa);
-    if self.doc:
-      qa.setToolTip(self.doc);
     qa.setToggleAction(True);
     qa.setOn(self.value);
     QObject.connect(qa,SIGNAL("toggled(bool)"),self.set);
     qa.addTo(menu);
     menu._ends_with_separator = False;
     
+  def make_listview_item (self,parent,after,executor=None):
+    item = QCheckListItem(parent,after,self.name,QCheckListItem.CheckBox);
+    item.setText(0,self.name);
+    item.setOn(self.value);
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
     
 class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None,more=None,
@@ -295,6 +329,8 @@ class _TDLListOptionItem (_TDLOptionItem):
       if _dbg.verbose > 0:
         traceback.print_exc();
       self.selected = default;
+      if more is not None:
+        self.set_custom_value(self.get_option(self.selected));
     # set the value
     self._set(self.get_option(self.selected));
 
@@ -336,8 +372,6 @@ class _TDLListOptionItem (_TDLOptionItem):
         menu.insertSeparator();
     else:
       qag.setUsesDropDown(True);
-    if self.doc:
-      qag.setToolTip(self.doc);
     # create QActions within group
     for ival in range(self.num_options()):
       is_custom = self._more is not None and ival == self.num_options()-1;
@@ -350,6 +384,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       qa.setToggleAction(True);
       if self.doc:
         qa.setToolTip(self.doc);
+        qa.setWhatsThis(self.doc);
       if ival == self.selected:
         qa.setOn(True);
       if is_custom:
@@ -365,6 +400,71 @@ class _TDLListOptionItem (_TDLOptionItem):
     else:
       qag.setMenuText(groupname + ": " + self.get_option_desc(self.selected));
       menu._ends_with_separator = False;
+
+  def make_listview_item (self,parent,after,executor=None):
+    """makes a listview entry for the item""";
+    item = QListViewItem(parent,after);
+    item.setText(0,self.name+":");
+    item.setText(1,self.get_option_desc(self.selected));
+    # create QPopupMenu for available options
+    self._submenu = submenu = QPopupMenu(item.listView());
+    submenu.setCheckable(True);
+    self._submenu_items = [];
+    self._submenu_editor = None;
+    for ival in range(self.num_options()):
+      if self._more is not None and ival == self.num_options()-1:
+        box = QHBox(self._submenu);
+        spacer = QLabel("",box);
+        spacer.setMinimumWidth(32);
+        spacer.setBackgroundMode(Qt.PaletteButton);
+        #for color in self._submenu.paletteBackgroundColor(),spacer.paletteBackgroundColor():
+        #  print color.red(),color.green(),color.blue();
+        self._submenu_editor = QLineEdit(self.get_option_desc(ival),box);
+        self._submenu_editor.setBackgroundMode(Qt.PaletteMidlight);
+        if self._more is int:
+          self._submenu_editor.setValidator(QIntValidator(self._submenu_editor));
+        elif self._more is float:
+          self._submenu_editor.setValidator(QDoubleValidator(self._submenu_editor));
+        # connect signal
+        QObject.connect(self._submenu_editor,SIGNAL("returnPressed()"),
+                        self._set_submenu_custom_value);
+        submenu.insertItem("Custom:",ival);
+        submenu.insertItem(box);
+      else:
+        submenu.insertItem(self.get_option_desc(ival),ival);
+      submenu.setItemChecked(ival,ival==self.selected);
+    QObject.connect(submenu,SIGNAL("activated(int)"),self._activate_submenu_item);
+    # make menu pop up when item is pressed
+    item._on_click = self._popup_menu;
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
+      
+  def _popup_menu (self):
+    # figure out where to pop up the menu
+    listview = self._lvitem.listView();
+    pos = listview.itemRect(self._lvitem).topLeft();
+    pos.setX(pos.x()+listview.columnWidth(0));    # position in listview
+    # now map to global coordinates
+    self._submenu.popup(listview.mapToGlobal(pos));
+    
+  def _activate_submenu_item (self,selected):
+    self.set(selected);
+    for ival in range(self.num_options()):
+      self._submenu.setItemChecked(ival,ival==selected);
+    self._lvitem.setText(1,self.get_option_desc(selected));
+
+  def _set_submenu_custom_value (self):
+    # get value from editor
+    value = self._submenu_editor.text();
+    if self._more is int:
+      value = int(value);
+    elif self._more is float:
+      value = float(value);
+    # set as custom value
+    self.set_custom_value(value);
+    # update menu
+    self._activate_submenu_item(self.num_options()-1);
+    self._submenu.close();
 
   def _set_custom_menu_option (self,qag,qa,ivalue,toggled):
     if not toggled:
@@ -410,7 +510,8 @@ class _TDLSubmenu (_TDLBaseOption):
     if self.is_runtime is None:
       _dprint(3,"menu",self._title,"runtime is",runtime);
       # process the items as follows:
-      # 1. If the item is None, it is a separator -- leave it alone
+      # 1. If the item is None, it is a separator
+      # 2. If the item is a string, it is a doc string
       # 2. If the item is an option:
       #    Check the global run-time and compile-time option lists and remove item
       #    from them, if found. This allows us to include items into a menu with
@@ -421,11 +522,15 @@ class _TDLSubmenu (_TDLBaseOption):
       itemlist = self._items;
       self._items = [];
       for item in itemlist:
+        # None is a separator
         if item is None:
           _dprint(3,"menu: separator");
           item = _TDLOptionSeparator(namespace=self.namespace);
           item.set_runtime(runtime);
           self._items.append(item);
+        # strings are documentation
+        elif isinstance(item,str):
+          self.set_doc(item);
         # item is an option: add to list, steal from global lists
         elif isinstance(item,_TDLBaseOption):
           _dprint(3,"menu: ",item.name);
@@ -469,12 +574,13 @@ class _TDLSubmenu (_TDLBaseOption):
     _TDLBaseOption.set_runtime(self,runtime);
   
   def enable (self,enabled=True):
-    self.enabled = enabled;
+    _TDLBaseOption.enable(self,enabled);
     if self._parent_menu:
       self._parent_menu.setItemEnabled(self._menu_id,enabled);
     return enabled;
     
   def show (self,visible=True):
+    _TDLBaseOption.show(self,visible);
     self.visible = visible;
     if self._parent_menu:
       self._parent_menu.setItemVisible(self._menu_id,visible);
@@ -484,20 +590,66 @@ class _TDLSubmenu (_TDLBaseOption):
     """adds submenu to menu object (usually of class QPopupMenu)."""
     self._parent_menu = menu;
     submenu = QPopupMenu(menu);
+    if self.doc:
+      QToolTip.add(submenu,self.doc);
+      QWhatsThis.add(submenu,self.doc);
     self._menu_id = menu.insertItem(self._title,submenu);
     self.enable(self.enabled);
     self.show(self.visible);
     populate_option_menu(submenu,self._items,executor=executor);
     menu._ends_with_separator = False;
+    
+  def make_listview_item (self,parent,after,executor=None):
+    """makes a listview entry for the menu""";
+    item = QListViewItem(parent,after);
+    item.setText(0,self.name);
+    item.setExpandable(True);
+    # loop over items
+    previtem = None;
+    for subitem in self._items:
+      _dprint(3,"adding",subitem,getattr(subitem,'name',''),"to item",self.name);
+      subitem = subitem or _TDLOptionSeparator();
+      previtem = subitem.make_listview_item(item,previtem,executor=executor) or previtem;
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
         
-def populate_option_menu (menu,items,executor=None):
+def populate_option_menu (menu,option_items,executor=None):
   """static helper method to populate a menu with the given list of items""";
   # create entries for sub-items
-  for item in items:
+  for item in option_items:
     _dprint(3,"adding",item,getattr(item,'name',''),"to submenu",menu);
     item = item or _TDLOptionSeparator();
     item.add_to_menu(menu,executor=executor);
 
+def populate_option_listview (menu,option_items,executor=None):
+  listview = QListView(menu);
+  listview.addColumn("name");
+  listview.addColumn("value");
+  listview.addColumn("description",100);
+  listview.setRootIsDecorated(True);
+  listview.setShowToolTips(True);
+  listview.setSorting(-1);
+  listview.header().hide();
+  listview.viewport().setBackgroundMode(Qt.PaletteMidlight);
+  # populate listview
+  previtem = None;
+  for item in option_items:
+    previtem = item.make_listview_item(listview,previtem,executor=executor);
+  # add callbacks
+  QObject.connect(listview,SIGNAL("clicked(QListViewItem*)"),_process_listview_click);
+  # add to menu
+  menu.insertItem(listview);
+
+def _process_listview_click (item):
+  """helper function to process a click on a listview item. Meant to be connected
+  to the clicked() signal of a QListView""";
+  on_click = getattr(item,'_on_click',None);
+  if on_click:
+    on_click();
+  if getattr(item,'_close_on_click',False):
+    item.listView().parent().close();
+  
+  
 def _make_option_item (namespace,symbol,name,value,default=None,
                        inline=False,doc=None,more=None,runtime=False):
   # if namespace is not specified, set it to the globals() of the caller of our caller
@@ -534,6 +686,9 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   item.set_doc(doc);
   item.set_runtime(runtime);
   return item;
+
+
+
 
 def TDLMenu (title,*items):
   """this creates and returns a submenu object, without adding it to
