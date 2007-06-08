@@ -2,6 +2,7 @@
 
 # History:
 # - 31mar2007: creation
+# - 08jun2007: remove Meow.QualScope
 
 # Description:
 
@@ -63,8 +64,8 @@ class ObjectHistory (object):
         self._items.append(item)
         self._prefix.append('  '+str(prefix))
         scope = ''
-        if isinstance(ns, Meow.QualScope):
-            scope = ns._qualstring()
+        if ns:
+            scope = str(ns.dummy.name.split(':'))
         self._scope.append(scope)
         return True
 

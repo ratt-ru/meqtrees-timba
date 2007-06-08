@@ -543,17 +543,86 @@ class ParameterizationPlus (Meow.Parameterization):
 
     def p_NodeList (self, parmgroup):
         """Helper function to get a NodeList object for the specified parmgroup.
-        In order to avoid duplication, the created NodeList object are reused.
+        In order to avoid duplication, the created NodeList objects are reused.
         """
         key = self.p_find_parmgroups (parmgroup, severe=True)[0]
-        print 'key=',key,key[0]
         if not self._parmNodeList.has_key(key):
             nodes = self._parmgroups[key]['nodes']
             labels = self._parmgroups[key]['plot_labels']
-            nn = NodeList.NodeList(self.ns, key, nodes=nodes, labels=labels)
+            name = key
+            nn = NodeList.NodeList(self.ns, name, nodes=nodes, labels=labels)
             self._parmNodeList[key] = nn
         return self._parmNodeList[key]
 
+    #---------------------------------------------------------------
+
+    def p_compare (self, parmgroup, other, show=False):
+        """Compare the nodes of a parmgroup with the corresponding ones
+        of the given (and assumedly commensurate) parmgroup (other).
+        The results are visualized in various helpful ways.
+        The rootnode of the comparison subtree is returned.
+        """
+        self.p_has_group (parmgroup, severe=True)
+        self.p_has_group (other, severe=True)
+        nn1 = self.p_NodeList(parmgroup)
+        nn2 = self.p_NodeList(other)
+        qnode = nn1.compare(nn2, bookpage=True, show=show)
+        return qnode
+
+    #---------------------------------------------------------------
+
+    def p_rvsi (self, parmgroup='*',
+                bookpage=True, folder=None, show=False):
+        """Make separate rvsi plots of the specified parmgroup(s). Return the
+        root node of the resulting subtree. Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'p_rvsi_'+self.name
+        bb = []
+        for key in pg:
+            nn = self.p_NodeList(key)
+            rvsi = nn.rvsi(bookpage=bookpage, folder=folder)
+            bb.append(rvsi)
+        return self._p_bundle_of_bundles (bb, name='p_rvsi',
+                                          qual=parmgroup, show=show)
+    
+    #---------------------------------------------------------------
+
+    def p_bundle (self, parmgroup='*', combine='Add',
+                  bookpage=True, folder=None, show=False):
+        """Bundle the nodes in the specified parmgroup(s) by applying the
+        specified combine-operation (default='Add') to them. Return the
+        root node of the resulting subtree. Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        if folder==None:
+            if len(pg)>1: folder = 'params_'+self.name
+        bb = []
+        for key in pg:
+            nn = self.p_NodeList(key)
+            bundle = nn.bundle(combine=combine, bookpage=bookpage, folder=folder)
+            bb.append(bundle)
+        return self._p_bundle_of_bundles (bb, name='p_bundle',
+                                          qual=parmgroup, show=show)
+
+    #---------------------------------------------------------------
+
+    def p_inspector (self, parmgroup='*', show=False):
+        """Visualize the nodes in the specified parmgroup(s) in a separate
+        'inspector' per parmgroup. Return the root node of the resulting subtree.
+        Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        bb = []
+        for key in pg:
+            nn = self.p_NodeList(key)
+            bb.append(nn.inspector(bookpage=True))
+        return self._p_bundle_of_bundles (bb, name='p_inspector',
+                                          qual=parmgroup, show=show)
+
+    #---------------------------------------------------------------
     #---------------------------------------------------------------
 
     def _p_bundle_of_bundles (self, bb, name=None, qual=None, show=False):
@@ -570,57 +639,6 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Finished: Return the root-node of the bundle subtree:
         if show: display.subtree(qnode, show_initrec=False)
-        return qnode
-
-
-    #---------------------------------------------------------------
-
-    def p_bundle (self, parmgroup='*', combine='Add',
-                  bookpage=True, folder=None, show=False):
-        """Bundle the nodes in the specified parmgroup(s) by applying the
-        specified combine-operation (default='Add') to them. Return the
-        root node of the resulting subtree. Make bookpages for each parmgroup.
-        """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
-        if folder==None:
-            if len(pg)>1: folder = 'params_'+self.name
-        
-        bb = []
-        for key in pg:
-            nn = self.p_NodeList(key)
-            bb.append(nn.bundle(combine=combine, bookpage=bookpage, folder=folder))
-        return self._p_bundle_of_bundles (bb, name='p_bundle',
-                                          qual=parmgroup, show=show)
-
-    #---------------------------------------------------------------
-
-    def p_inspector (self, parmgroup='*', show=False):
-        """Visualize the nodes in the specified parmgroup(s) in a separate
-        'inspector' per parmgroup. Return the root node of the resulting subtree.
-        Make bookpages for each parmgroup.
-        """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
-        bb = []
-        for key in pg:
-            print 'key=',key
-            nn = self.p_NodeList(key)
-            bb.append(nn.inspector(bookpage=True))
-        return self._p_bundle_of_bundles (bb, name='p_inspector',
-                                          qual=parmgroup, show=show)
-
-    #---------------------------------------------------------------
-
-    def p_compare (self, parmgroup, other, show=False):
-        """Compare the nodes of a parmgroup with the corresponding ones
-        of the given (and assumedly commensurate) parmgroup (other).
-        The results are visualized in various helpful ways.
-        The rootnode of the comparison subtree is returned.
-        """
-        self.p_has_group (parmgroup, severe=True)
-        self.p_has_group (other, severe=True)
-        nn1 = self.p_NodeList(parmgroup)
-        nn2 = self.p_NodeList(other)
-        qnode = nn1.compare(nn2, bookpage=True, show=show)
         return qnode
 
 

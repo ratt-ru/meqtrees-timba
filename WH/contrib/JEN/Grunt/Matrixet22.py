@@ -128,7 +128,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         """Return its ObjectHistory object. Optionally, append an item.
         The sub and subsub prefixes offer some standard indentation.
         If a nodescope/qualscope is specified, its qualifiers will be shown.""" 
-        if ns==None: ns = self.ns()
+        if ns==None: ns = self.ns
         if append: self._hist.append(append, ns=ns)
         if subappend: self._hist.subappend(subappend, ns=ns)
         if subsubappend: self._hist.subsubappend(subsubappend, ns=ns)
@@ -197,8 +197,10 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                 qq.extend(quals)
             else:
                 qq.append(quals)
-        nn = NodeList.NodeList(self.ns,
-                               self.name+'_'+ss['name'],
+        name = self.name
+        if ss['name'][0]==ss['char']:
+            name += '_'+ss['name']
+        nn = NodeList.NodeList(self.ns, name,
                                quals=qq, kwquals=ss['kwquals'],
                                nodes=nodes, labels=labels)
 
@@ -522,7 +524,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             elif visual=='straight':
                 nn.bookpage(4)
             elif visual=='spectra':
-                pass                         # not implemented yet
+                dc = nn.spectra()
+                dcolls.append(dc)
             else:
                 dc = nn.rvsi()
                 dcolls.append(dc)
@@ -549,6 +552,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         just publish the selected nodes as they are doing their thing."""
         nn = self.make_NodeList()
         nn.bookpage (select=select, page=page, folder=folder)
+        nn.display('Matrixet22.bookpage()')
         return True
 
 

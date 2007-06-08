@@ -548,11 +548,11 @@ def find_unop (expr, trace=False):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: JEN_parse.py:\n'
 
-    if 0:
+    if 1:
         matchstr = re.compile(r'Jones')
         print matchstr.sub(r'xxx', 'abcJonesABS')
 
-    if 1:
+    if 0:
         expr = 'a + b*sin(c+d) - 6'
         expr = 'a + b*sin(c+d*sin(c)) - 6*(sin(5))'
         expr = 'a + b*sin(c+d*sin(c)) - 6*(sin(5/sin()))'

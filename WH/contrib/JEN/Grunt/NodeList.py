@@ -301,7 +301,7 @@ class NodeList (object):
     #----------------------------------------------------------------
 
     def extract (self, elem=0, replace=False):
-        """Extract the specified element(s) (may be a list) from the
+        """Extract the specified tensor element(s) (may be a list) from the
         (assumedly tensor) nodes in the NodeList. The elem may be integer(s),
         or element name(s). In the latter case, a list of element names must
         be supplied at NodeList creation. (e.g. , elements=['XX','XY','YX','YY']).
@@ -340,12 +340,14 @@ class NodeList (object):
         for k,node in enumerate(kopie._nodes):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
-                name = 'selector('+kopie._labels[k]+')('+str(elems[m])+')'
-                node = kopie.ns[name] << Meq.Selector(kopie._nodes[k], index=i)
+                # name = 'selector('+kopie._labels[k]+')('+str(elems[m])+')'
+                name = 'selector('+str(elems[m])+')'
+                node = kopie.ns[name](k)(m) << Meq.Selector(kopie._nodes[k], index=i)
                 cc.append(node)
             if len(cc)==1:                  # extracted one only element
                 kopie._nodes[k] = cc[0]
             else:                           # more: recompose into new tensor
+                # name = 'selector('+kopie._labels[k]+')'+selems
                 name = 'selector('+kopie._labels[k]+')'+selems
                 kopie._nodes[k] = kopie.ns[name] << Meq.Composer(*cc)
             kopie._labels[k] = name
@@ -422,14 +424,15 @@ class NodeList (object):
     #===============================================================
 
     def bundle (self, combine='Add', wgt=None,
-                bookpage=True, folder=None, recurse=1,
+                bookpage=True, subset=8, folder=None, 
                 select='*', unop=None, show=False):
         """Bundle the (selection of) nodes by applying the specified
         combine-operation (default='Add') to them.
         The (optional) wgt vector is used for WMean and WSum only. 
         If unary operation(s) specified (unop), apply it/them first.
         Return the root node of the resulting subtree.
-        If bookpage is specified, make a bookmark on the specified page.
+        If bookpage is specified, make a bookmark on the specified page
+        and folder. Show the bundle, and a subset (display) of nodes. 
         """
 
         kopie = self.copy(select=select)
@@ -448,10 +451,15 @@ class NodeList (object):
                 qnode << getattr(Meq,combine)(children=nodes, weights=wgt)
             else:
                 qnode << getattr(Meq,combine)(children=nodes)
+
         if bookpage:
+            # Make a page with the bundle and a subset of the list nodes:
+            nodes = [qnode]
+            cc = self._selection (select=subset, return_nodes=True)
+            nodes.extend(cc)
             page = self.name(strip=True)
             if isinstance(bookpage, str): page = bookpage
-            JEN_bookmarks.create(qnode, qnode.name, recurse=recurse,
+            JEN_bookmarks.create(nodes, qnode.basename, recurse=0,
                                  page=page, folder=folder)
 
         # Finished: Return the root-node of the bundle subtree:
@@ -534,9 +542,11 @@ class NodeList (object):
         
     #--------------------------------------------------------------
 
-    def rvsi (self, select='*', other=None, bookpage=True,
+    def rvsi (self, select='*', other=None,
+              bookpage=True, folder=None,
               xlabel='xx', ylabel='yy',
-              tag='', concat=False, errorbars=True):
+              tag='', concat=False,
+              mean_circle=False, errorbars=True):
         """Visualize the (selected) nodes with a 'real-vs-imaginary' plot.
         If another (commensurate) NodeList is specified, make complex numbers with
         (real,imag) is (self,other). This misuses the rvsi plot to plot one agains
@@ -553,25 +563,26 @@ class NodeList (object):
             dcolls = []
             for k,elem in enumerate(tt['elems']):
                 nn = kopie.extract(elem)
-                nn.tensor_elements()
+                nn.tensor_elements()                 # reset...
                 for key in ['color','style','size','pen']:
                     nn._pp[key] = tt[key][k]
                 rr = nn.rvsi(bookpage=False, concat=True, tag=elem)
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
             rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
-                                          scope='', tag='',
+                                          scope='rvsi', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
             rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
-                                           scope='', tag=tag,
+                                           scope='rvsi', tag=tag,
                                            color=kopie._pp['color'],
                                            style=kopie._pp['style'],
                                            size=kopie._pp['size'],
                                            pen=kopie._pp['pen'],
                                            xlabel=xlabel, ylabel=ylabel,
-                                           errorbars=errorbars, mean_circle=False,
+                                           errorbars=errorbars,
+                                           mean_circle=mean_circle,
                                            type='realvsimag')
                                            
         qnode = rr['dcoll']
@@ -579,7 +590,47 @@ class NodeList (object):
             if not isinstance(bookpage, str):
                 bookpage = 'rvsi_'+kopie.name(strip=True)
             JEN_bookmarks.create(qnode, kopie.name(strip=True),
-                                 page=bookpage, folder=None)
+                                 page=bookpage, folder=folder)
+        if concat: return rr
+        return qnode
+
+
+    #--------------------------------------------------------------
+
+    def spectra (self, select='*', bookpage=True, folder=None,
+                 xlabel='xx', ylabel='yy',
+                 tag='', concat=False):
+        """Visualize the (selected) nodes with a dataCollect 'spectra' plot.
+        Return the root node of the resulting subtree. Make a bookmark, if required."""
+
+        kopie = self.copy(select=select)
+        tt = kopie._pp['tensor']
+        if isinstance(tt['elems'],list) and len(tt['elems'])>1:
+            # Special case: Tensor elements are plotted separately
+            dcolls = []
+            for k,elem in enumerate(tt['elems']):
+                nn = kopie.extract(elem)
+                nn.tensor_elements()             
+                rr = nn.spectra(bookpage=False, concat=True, tag=elem)
+                dcolls.append(rr)
+            # Concatenate the dcolls of the various tensor elements:
+            rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
+                                          scope='spectra', tag='',
+                                          bookpage=None)
+        else:
+            # Normal case: All nodes are plotted in the same color/style
+            rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
+                                           scope='spectra', tag=tag,
+                                           xlabel=xlabel, ylabel=ylabel,
+                                           type='spectra')
+                                           
+        qnode = rr['dcoll']
+        if bookpage:
+            kopie.display('inside NodeList.spectra()')
+            if not isinstance(bookpage, str):
+                bookpage = 'spectra_'+kopie.name(strip=True)
+            JEN_bookmarks.create(qnode, kopie.name(strip=True),
+                                 page=bookpage, folder=folder)
         if concat: return rr
         return qnode
 
@@ -648,6 +699,7 @@ def _define_forest(ns):
         unop = None
         # unop = 'Cos Sin'
         node = nn1.bundle('WSum', select='*', unop=unop, show=True)
+        node = nn1.bundle('Composer', select='*', unop=unop, show=True)
         cc.append(node)
 
     if 0:

@@ -128,7 +128,7 @@ class Joneset22 (Matrixet22.Matrixet22):
 # Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
 #=================================================================================================
 
-def Joneseq22 (joneslist=None, quals=None):
+def Joneseq22 (ns, joneslist=None, quals=None):
     """Return a Jones22 object that contains an (item-by-item) matrix multiplication
     of the matrices of the list (joneslist) of two or more Joneset22 objects."""
 
@@ -141,16 +141,18 @@ def Joneseq22 (joneslist=None, quals=None):
     
     # First create a new Jonset22 object with name/quals/descr that are
     # suitable combinations of those of the contributing Joneset22 objects: 
-    name = joneslist[0].name
-    descr = joneslist[0].name+': '+joneslist[0].descr()
-    stations = joneslist[0].stations()
-    qq = joneslist[0].p_get_quals(remove=[joneslist[0].name])
+    first = joneslist[0]
+    name = first.name[0]
+    descr = first.name+': '+first.descr()
+    stations = first.stations()
+    qq = first.p_get_quals(remove=[first.name])
     for jones in joneslist[1:]:
-        name += jones.name
+        name += jones.name[0]
         descr += '\n '+jones.name+': '+jones.descr()
         qq = jones.p_get_quals(merge=qq, remove=[jones.name])
-    qq.extend(joneslist[0].p_quals2list(quals))
-    jnew = Joneset22 (ns, name=name, quals=qq, stations=stations) 
+    qq.extend(first.p_quals2list(quals))
+    jnew = Joneset22(ns, name=name+'Jones',
+                     quals=qq, stations=stations) 
 
     # Then create the new Jones matrices by matrix-multiplication:
     jnew.history('.Joneseq22(): Matrix multiplication of '+str(len(joneslist))+' Jones matrices')
@@ -194,7 +196,7 @@ class GJones (Joneset22):
     GJones is the same for linear and circular polarizations."""
 
 
-    def __init__(self, ns, name='G', quals=[], 
+    def __init__(self, ns, name='GJones', quals=[], 
                  polrep=None,
                  telescope=None, band=None,
                  override=None,
@@ -249,7 +251,6 @@ class GJones (Joneset22):
             for pol in pols:
                 phase = self.p_group_create_member (pg[pol][pname], quals=s)
                 gain = self.p_group_create_member (pg[pol][gname], quals=s)
-                # mm[pol] = self.ns[jname+pol](s) << Meq.Polar(gain,phase)
                 mm[pol] = qnode(pol)(s) << Meq.Polar(gain,phase)
             qnode(s) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
         self.matrixet(new=qnode)
@@ -272,7 +273,7 @@ class BJones (Joneset22):
     BJones is a uv-plane effect, i.e. it is valid for the entire FOV.
     BJones is the same for linear and circular polarizations."""
 
-    def __init__(self, ns, name='B', quals=[], 
+    def __init__(self, ns, name='BJones', quals=[], 
                  polrep=None, telescope=None, band=None,
                  tfdeg=[0,5],
                  override=None,
@@ -342,7 +343,7 @@ class JJones (Joneset22):
     and imaginary parts (i.e. 8 real parameters per station).
     JJones is the same for linear and circular polarizations."""
 
-    def __init__(self, ns, name='J', quals=[],
+    def __init__(self, ns, name='JJones', quals=[],
                  diagonal=False,
                  polrep=None, telescope=None, band=None,
                  override=None,
@@ -415,7 +416,7 @@ class FJones (Joneset22):
     This FJones is assumed to be large-scale compared to the array size,
     i.e. it is the same for all stations, and the entire FOV."""
 
-    def __init__(self, ns, name='F', quals=[], 
+    def __init__(self, ns, name='FJones', quals=[], 
                  polrep='linear', telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
@@ -481,37 +482,57 @@ class FJones (Joneset22):
 def _define_forest(ns):
 
     cc = []
+    jj = []
     simulate = True
 
     jones = GJones(ns, quals=[], simulate=simulate)
-    jones.p_bundle()
-    jones.bookpage(4)
-    cc.append(jones.visualize())
-    cc.append(jones.visualize('timetracks'))
+    jj.append(jones)
+    # cc.append(jones.p_bundle(combine='Composer'))
+    # cc.append(jones.p_rvsi())
+    # jones.bookpage(4)
+    # cc.append(jones.visualize('rvsi'))          # default is rvsi
+    # cc.append(jones.visualize('timetracks'))
+    # cc.append(jones.visualize('spectra'))
     # jones.display(full=True)
 
-    if False:
+    if 0:
         j2 = GJones(ns, quals=[], simulate=False)
         cc.append(j2.visualize())
         # j2.display(full=True)
 
-    if False:
+    if 1:
         jones = BJones(ns, quals=[], simulate=simulate)
-        cc.append(jones.visualize())
-        # jones.display(full=True)
-        
-        jones = JJones(ns, quals=[], simulate=simulate)
-        cc.append(jones.visualize())
+        jj.append(jones)
+        # cc.append(jones.visualize())
+        # cc.append(jones.visualize('spectra'))
         # jones.display(full=True)
 
+    if 0:
+        jones = JJones(ns, quals=[], simulate=simulate)
+        jj.append(jones)
+        # cc.append(jones.visualize())
+        # jones.display(full=True)
+
+    if 0:
         jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
-        cc.append(jones.visualize())
+        jj.append(jones)
+        # cc.append(jones.visualize())
         jones.display(full=True)
         # jones.display_parmgroups(full=False)
-    
+
+    if 0:
         jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
-        cc.append(jones.visualize())
+        jj.append(jones)
+        # cc.append(jones.visualize())
         jones.display(full=True)
+
+    if 1:
+        jseq = Joneseq22 (ns, jj, quals='mmm')
+        cc.append(jseq.p_bundle())
+        cc.append(jseq.p_rvsi())
+        cc.append(jseq.visualize())
+        jseq.display(full=True)
+        jseq.history().display(full=True)
 
     ns.result << Meq.Composer(children=cc)
     return True
@@ -543,20 +564,20 @@ if __name__ == '__main__':
         jones.visualize()
         jones.display(full=True, recurse=10)
 
-    if 1:
+    if 0:
         jones = BJones(ns, quals=['3c84'], simulate=False, telescope='WSRT', band='21cm')
         jj.append(jones)
         jones.visualize()
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jones = FJones(ns, polrep='linear',simulate=True )
         # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
         jj.append(jones)
         jones.visualize()
         jones.display(full=True, recurse=12)
 
-    if 1:
+    if 0:
         jones = JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
         jj.append(jones)
         jones.display(full=True)
@@ -564,8 +585,8 @@ if __name__ == '__main__':
     if 1:
         jones.history().display(full=True)
 
-    if 1:
-        jseq = Joneseq22 (jj, quals='mmm')
+    if 0:
+        jseq = Joneseq22 (ns, jj, quals='mmm')
         jseq.display(full=True)
         jseq.history().display(full=True)
 
