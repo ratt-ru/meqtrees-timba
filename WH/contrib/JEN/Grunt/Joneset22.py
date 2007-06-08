@@ -529,6 +529,7 @@ def _define_forest(ns):
     if 1:
         jseq = Joneseq22 (ns, jj, quals='mmm')
         cc.append(jseq.p_bundle())
+        cc.append(jseq.p_compare('GphaseA','GphaseB'))
         cc.append(jseq.p_rvsi())
         cc.append(jseq.visualize())
         jseq.display(full=True)

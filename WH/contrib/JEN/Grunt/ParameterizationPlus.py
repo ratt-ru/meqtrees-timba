@@ -541,7 +541,7 @@ class ParameterizationPlus (Meow.Parameterization):
     # Methods using NodeLists:
     #===============================================================
 
-    def p_NodeList (self, parmgroup):
+    def p_NodeList (self, parmgroup, color='blue', style='diamond'):
         """Helper function to get a NodeList object for the specified parmgroup.
         In order to avoid duplication, the created NodeList objects are reused.
         """
@@ -549,9 +549,10 @@ class ParameterizationPlus (Meow.Parameterization):
         if not self._parmNodeList.has_key(key):
             nodes = self._parmgroups[key]['nodes']
             labels = self._parmgroups[key]['plot_labels']
-            name = key
-            nn = NodeList.NodeList(self.ns, name, nodes=nodes, labels=labels)
+            nn = NodeList.NodeList(self.ns, key, nodes=nodes, labels=labels,
+                                   color=color, style=style)
             self._parmNodeList[key] = nn
+            nn.display('inside p_NodeList()')
         return self._parmNodeList[key]
 
     #---------------------------------------------------------------
@@ -583,14 +584,15 @@ class ParameterizationPlus (Meow.Parameterization):
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
-            rvsi = nn.rvsi(bookpage=bookpage, folder=folder)
+            rvsi = nn.rvsi(bookpage=bookpage, folder=folder,
+                           xlabel=key, ylabel='stddev')
             bb.append(rvsi)
         return self._p_bundle_of_bundles (bb, name='p_rvsi',
                                           qual=parmgroup, show=show)
     
     #---------------------------------------------------------------
 
-    def p_bundle (self, parmgroup='*', combine='Add',
+    def p_bundle (self, parmgroup='*', combine='Composer',
                   bookpage=True, folder=None, show=False):
         """Bundle the nodes in the specified parmgroup(s) by applying the
         specified combine-operation (default='Add') to them. Return the
@@ -602,7 +604,8 @@ class ParameterizationPlus (Meow.Parameterization):
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
-            bundle = nn.bundle(combine=combine, bookpage=bookpage, folder=folder)
+            bundle = nn.bundle(combine=combine,
+                               bookpage=bookpage, folder=folder)
             bb.append(bundle)
         return self._p_bundle_of_bundles (bb, name='p_bundle',
                                           qual=parmgroup, show=show)

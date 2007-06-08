@@ -52,7 +52,11 @@ class NodeList (object):
             self.ns = ns[self._name].QualScope()
             self.ns0 = ns.QualScope()
         else:
-            self.ns = ns.QualScope(self._name)
+            qq = ns.dummy.name.split(':')
+            if self._name in qq:
+                self.ns = ns.QualScope()
+            else:
+                self.ns = ns.QualScope(self._name)
             self.ns0 = ns
 
         # Attach qualifiers, if required:
@@ -225,7 +229,7 @@ class NodeList (object):
         # name += '|'+str(self._counter['copy'])
         qual = 'C'+str(self._counter['copy'])
 
-        new = NodeList(self.ns0, name, quals=qual)  # note self.ns0....!
+        new = NodeList(self.ns0, name, quals=qual)   # note self.ns0....!
 
         # Transfer the (selection of) nodes and their labels:
         ii = self._selection (select)
@@ -335,21 +339,20 @@ class NodeList (object):
         # NB: MeqSelector only supports a single integer index....!?
         # That is why we offer a workaround by re-composing multiple ones.
 
-        kopie = self.copy(affix=selems)
+        ## kopie = self.copy(affix=selems)
+        kopie = self.copy()
         kopie.tensor_elements(elems)         # adjust nr of tensor elements
         for k,node in enumerate(kopie._nodes):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
-                # name = 'selector('+kopie._labels[k]+')('+str(elems[m])+')'
-                name = 'selector('+str(elems[m])+')'
-                node = kopie.ns[name](k)(m) << Meq.Selector(kopie._nodes[k], index=i)
+                name = 'extract['+str(elems[m])+']'
+                node = kopie.ns[name](k) << Meq.Selector(kopie._nodes[k], index=i)
                 cc.append(node)
             if len(cc)==1:                  # extracted one only element
                 kopie._nodes[k] = cc[0]
             else:                           # more: recompose into new tensor
-                # name = 'selector('+kopie._labels[k]+')'+selems
-                name = 'selector('+kopie._labels[k]+')'+selems
-                kopie._nodes[k] = kopie.ns[name] << Meq.Composer(*cc)
+                name = 'extract'+selems
+                kopie._nodes[k] = kopie.ns[name](k) << Meq.Composer(*cc)
             kopie._labels[k] = name
         return self._dispose(kopie, replace)
 
@@ -414,7 +417,7 @@ class NodeList (object):
         of another NodeList."""
         diff = self.binop('-', other)
         qnode = diff.bundle(unop='Abs', combine='Add',
-                            bookpage=bookpage, recurse=None)
+                            bookpage=bookpage)
         if show: display.subtree(qnode, show_initrec=False)
         return qnode
 
@@ -436,7 +439,7 @@ class NodeList (object):
         """
 
         kopie = self.copy(select=select)
-        quals = [combine,str(kopie.len())]
+        quals = [combine, str(kopie.len())]
         if unop: quals.insert(0,unop)      
         qnode = kopie.ns['bundle'](*quals)
         if qnode.must_define_here(self):
@@ -455,11 +458,18 @@ class NodeList (object):
         if bookpage:
             # Make a page with the bundle and a subset of the list nodes:
             nodes = [qnode]
-            cc = self._selection (select=subset, return_nodes=True)
+            n = subset
+            if not combine=='Composer':
+                # Always include a Composer, since it gives access to all nodes
+                xnode = kopie.ns['extra'](*quals)
+                extra = xnode << Meq.Composer(children=nodes)
+                nodes.append(extra)
+                n = min(8,n-1)
+            cc = self._selection (select=n, return_nodes=True)
             nodes.extend(cc)
             page = self.name(strip=True)
             if isinstance(bookpage, str): page = bookpage
-            JEN_bookmarks.create(nodes, qnode.basename, recurse=0,
+            JEN_bookmarks.create(nodes, 'bundle_'+self._name,
                                  page=page, folder=folder)
 
         # Finished: Return the root-node of the bundle subtree:
