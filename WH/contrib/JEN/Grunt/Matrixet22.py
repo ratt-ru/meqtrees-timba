@@ -55,16 +55,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # Polarization representation (linear, circular)
         self._polrep = polrep
         self._pols = ['A','B']
-        self._corrs = ['AA','AB','BA','BB']
+        matrix_elements = ['AA','AB','BA','BB']
         if self._polrep == 'linear':
             self._pols = ['X','Y']
-            self._corrs = ['XX','XY','YX','YY']
+            matrix_elements = ['XX','XY','YX','YY']
         elif self._polrep == 'circular':
             self._pols = ['R','L']
-            self._corrs = ['RR','RL','LR','LL']
+            matrix_elements = ['RR','RL','LR','LL']
 
-        # Define names and plotting instructions (see make_NodeList()):
-        self._matrix_elements = dict(name=self._corrs,
+        # Define matrix element names and plotting instructions (see make_NodeList()):
+        self._matrix_elements = dict(name=matrix_elements,
                                      color=['red','magenta','darkCyan','blue'],
                                      style=['circle','xcross','xcross','circle'],
                                      size=[10,10,10,10], pen=[2,2,2,2])
@@ -75,7 +75,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # At each stage, all matrix nodes are replaced by a parent.
         # The stage naming information is kept in a dict():
         self._stage = dict(char='@', count=-1)
-        self._nextstage()
+        self._nextstage(self.name)
 
         # The actual 2x2 matrixes:
         self._matrixet = None                        # the actual matrices (contract!)
@@ -232,10 +232,10 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
         # Add the stage-string to the name or the quals:
         # This avoids inadvertent node-name clashes.
-        if isinstance(name,str):
+        if not isinstance(name,str):
+            name = 'stage_'+self._stage['stage']
+        elif self._stage['count']>0:
             quals.append(self._stage['stage'])
-        else:
-            name = self._stage['stage']
         self._stage['qnode'] = self.ns[name](*quals,**kwquals)
         self._stage['sqnode'] = str(self._stage['qnode'])
 
@@ -300,7 +300,6 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         print '** Generic (class Matrixet22):'
         print ' * descr: '+str(self.descr())
         print ' * polrep: '+str(self._polrep)+', pols='+str(self._pols)
-        print ' * corrs: '+str(self._corrs)
         print ' * stage: '+str(self._stage)
         print ' * Available indices ('+str(self.len())+'): ',
         if self.len()<30:
@@ -325,13 +324,21 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                 print '         ......'
                 i = ii[len(ii)-1]                             # and the last one
                 print '  - '+str(i)+': '+str(self.matrixet()(*i))
-            print ' * The first matrix of the set:'
+            print ' * The first matrix22 of the set:'
             node = self.firstnode()
-            display.subtree(node, txt='first node')
+            display.subtree(node, txt='first',
+                            recurse=recurse,
+                            show_initrec=False,
+                            skip_line_before=False,
+                            skip_line_after=False)
         #...............................................................
-        print ' * Visualization subtree: '
+        print ' * The (last) result of .visualize() ('+str(self._dcoll)+'):'
         if self._dcoll:
-            display.subtree(self._dcoll, txt=':',show_initrec=False, recurse=1)
+            display.subtree(self._dcoll, txt='visual',
+                            show_initrec=False,
+                            skip_line_before=False,
+                            skip_line_after=False,
+                            recurse=1)
         #...............................................................
         print ' * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -340,15 +347,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             if full:
                 for v in vv: print '    - '+str(type(v))+' '+str(v)
         #...............................................................
-        print ' * matrix_elements: '+str(self._matrix_elements)
-        print ' * counter(s): '+str(self._counter)
+        print ' * Matrix_elements: '+str(self._matrix_elements)
+        if self._counter:
+            print ' * Counter(s): '+str(self._counter)
         self.p_display(full=full)
         #...............................................................
         print '**\n'
         return True
 
 
-    #........................................................................
+    #--------------------------------------------------------------------------
 
     def show_matrix_subtree (self, index='*', recurse=2, show_initrec=False):
         """Helper function for closer inspection of the specified matrix(es)"""
@@ -521,18 +529,17 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                 
         # Return a single node (bundle if necessary):
         if len(dcolls)==0:
+            self._dcoll = None
             return False
         elif len(dcolls)==1:
             if accu: self.accumulist(dcolls[0])
+            self._dcoll = dcolls[0]                  # for .display() only
             return dcolls[0]
         else:
             bundle = self.ns['visu_bundle'] << Meq.Composer(children=dcolls)
             if accu: self.accumulist(bundle)
+            self._dcoll = bundle                     # for .display() only
             return bundle
-
-        # Keep the dcoll node for later retrieval (e.g. attachment to reqseq):
-        # Return the dataConcat node:
-        return self._dcoll
 
     #-------------------------------------------------------------------------
 

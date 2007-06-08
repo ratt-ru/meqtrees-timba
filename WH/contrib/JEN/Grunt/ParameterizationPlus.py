@@ -4,6 +4,7 @@
 # - 26may2007: creation
 # - 07jun2007: allow {100~10%}
 # - 07jun2007: p_deviation_expr()
+# - 08jun2007: p_quals2list() and p_tags2list()
 
 # Description:
 
@@ -45,7 +46,10 @@ class ParameterizationPlus (Meow.Parameterization):
             ns = ns.QualScope()        
 
         # Make a little more robust 
-        quals = _quals2list(quals)
+        quals = self.p_quals2list(quals)
+
+        # NB: Weed out duplicated qualifiers here....?
+        # qq = (ns.dummy).name.split(':')
 
         Meow.Parameterization.__init__(self, ns, str(name),
                                        quals=quals, kwquals=kwquals)
@@ -82,15 +86,21 @@ class ParameterizationPlus (Meow.Parameterization):
         print '  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._parmgroups:
             rr = deepcopy(self._parmgroups[key])
-            print key,rr
             rr['nodes'] = '<'+str(len(rr['nodes']))+'>'
             rr['solvable'] = '<'+str(len(rr['solvable']))+'>'
             rr['plot_labels'] = '<'+str(len(rr['plot_labels']))+'>'
+            rr['deviation'] = '<see below>'
             if not rr['simul']:
                 rr['deviation'] = '<NA>'
             print '    - ('+key+'): '+str(rr)
         #...............................................................
-        print '  * Grunt _parmgogs (groups of parmgroups, derived from their tags):'
+        print '  * Deviation expressions (simul only):'
+        for key in self._parmgroups:
+            rr = deepcopy(self._parmgroups[key])
+            if rr['simul']:
+                print '    - ('+key+'): '+rr['deviation']
+        #...............................................................
+        print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.p_gogs():
             print '    - ('+key+'): '+str(self._parmgogs[key])
         #...............................................................
@@ -170,9 +180,10 @@ class ParameterizationPlus (Meow.Parameterization):
             raise ValueError,s
 
         # The node tags may be used for finding nodes in ns:
-        tags = _tags2list(tags)
+        tags = self.p_tags2list(tags)
         if not key in tags: tags.append(key)
-        if not self.name in tags: tags.append(self.name)
+        if False:
+            if not self.name in tags: tags.append(self.name)      # <----- ??
         # NB: What about a qualifier like '3c84'?
         # qnode = self.ns0[key]
 
@@ -219,12 +230,14 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Make the qualified node (qnode) for the new group member,
         # and check whether it already exists: 
-        quals = _quals2list(quals)
+        quals = self.p_quals2list(quals)
         if not isinstance(simul, bool):                # simul not explicitly specfied
             simul = rr['simul']                        # use the group default
 
         if simul:
-            quals.append('simul')                      # add 'simul' qualifier
+            s = (self.ns.dummy).name.split(':')        # make a list of current qualifiers
+            if not 'simul' in s:                       #   if necessary
+                quals.append('simul')                  #     add 'simul' qualifier
             qnode = self.ns[key](*quals)(**kwquals)    # qualified node (stub)       
             nodename = qnode.name                      # used in ._add_parm()
         else:
@@ -236,7 +249,7 @@ class ParameterizationPlus (Meow.Parameterization):
             raise ValueError,s
 
         # Any extra tags are appended to the default (rr) ones.....?!
-        ptags = _tags2list(tags)
+        ptags = self.p_tags2list(tags)
         ptags.extend(rr['tags'])
 
         # Use the Meow Parm/Parameterization mechanism as much as possible:
@@ -287,9 +300,9 @@ class ParameterizationPlus (Meow.Parameterization):
         for each member of the group (see .p_group_create_member())."""
         s = ampl
         if isinstance(Psec,str):
-            s += '* sin(2*pi*([t]/'+Psec+'+{0~1}))'
+            s += ' * sin(2*pi*([t]/'+Psec+'+{0~1}))'
         if isinstance(PHz,str):
-            s += '* sin(2*pi*([f]/'+PHz+'+{0~1}))'
+            s += ' * sin(2*pi*([f]/'+PHz+'+{0~1}))'
         return s
 
 
@@ -420,7 +433,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
         if tags:
             # A tags specification has precedence:
-            tags = _tags2list(tags)
+            tags = self.p_tags2list(tags)
             name = 'tags'
             for k,tag in enumerate(tags):
                 name += str(tag)
@@ -612,13 +625,48 @@ class ParameterizationPlus (Meow.Parameterization):
 
 
 
+    #===============================================================
+    # Some useful helper functions (available to all derived classes)
+    #===============================================================
+
+    def p_tags2list (self, tags):
+        """Helper function to make sure that the given tags are a list"""
+        if tags==None: return []
+        if isinstance(tags, (list, tuple)): return list(tags)
+        if isinstance(tags, str): return tags.split(' ')
+        s = '** cannot convert tag(s) to list: '+str(type(tags))+' '+str(tags)
+        raise TypeError, s
+
+    def p_quals2list (self, quals):
+        """Helper function to make sure that the given quals are a list"""
+        if quals==None: return []
+        if isinstance(quals, (list,tuple)): return list(quals)
+        if isinstance(quals, str): return quals.split(' ')
+        return [str(quals)]
+
+    #----------------------------------------------------------------
+
+    def p_get_quals (self, merge=None, remove=None):
+        """Helper function to get a list of the current nodescope qualifiers"""
+        quals = (self.ns.dummy).name.split(':')
+        quals.remove(quals[0])
+        if isinstance(merge,list):
+            for q in merge:
+                if not q in quals:
+                    quals.append(q)
+        if isinstance(remove,list):
+            for q in remove:
+                if q in quals:
+                    quals.remove(q)
+        return quals
+
 
     #===============================================================
     # Some extra functionality for Meow.Parameterization 
     #===============================================================
 
-    def p_modify_default (self, name):
-        """Modify the default value of the specified parm"""
+    def p_modify_default (self, key):
+        """Modify the default value of the specified (key) parm"""
         # Not yet implemented..... See Expression.py
         return False
 
@@ -633,22 +681,6 @@ class ParameterizationPlus (Meow.Parameterization):
 # Some helper functions (standalone, so they do not clog up the object):
 #=============================================================================
 
-def _tags2list (tags):
-    """Helper function to make sure that the given tags are a list"""
-    if isinstance(tags, (list, tuple)): return list(tags)
-    if tags==None: return []
-    if isinstance(tags, str): return tags.split(' ')
-    s = '** cannot convert to list: '+str(type(tags))+' '+str(tags)
-    raise TypeError, s
-
-def _quals2list (quals):
-    """Helper function to make sure that the given quals are a list"""
-    if isinstance(quals, (list,tuple)): return list(quals)
-    if quals==None: return []
-    if isinstance(quals, str): return quals.split(' ')
-    return [str(quals)]
-
-#----------------------------------------------------------------------------
     
 def _simul_subtree(rr, qnode, default=None, deviation=None,
                    tags=[], show=False, trace=False):
@@ -663,7 +695,7 @@ def _simul_subtree(rr, qnode, default=None, deviation=None,
     if trace: print '    ',simexpr
     
     # Make a MeqFunctional node from the given expression
-    Ekey = Expression.Expression(qnode, qnode.name, expr=simexpr)
+    Ekey = Expression.Expression(qnode, qnode.basename, expr=simexpr)
     node = Ekey.MeqFunctional()
 
     if trace: print '  -> node =',str(node)

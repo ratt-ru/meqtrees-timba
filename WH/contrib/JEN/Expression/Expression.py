@@ -741,7 +741,6 @@ class Expression (Meow.Parameterization):
         and the MeqFunctional"""
         qnode = self.ns['FunckDiff']
         if qnode.must_define_here(self):
-        # if not qnode.initialized():
             c1 = self.FunkletParm()              # this one FIRST!
             c2 = self.MeqFunctional()
             qnode << Meq.Subtract(c1,c2)
