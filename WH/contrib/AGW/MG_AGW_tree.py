@@ -91,7 +91,7 @@ def _define_forest (ns):
   ns['solver'] << Meq.Solver(
       num_iter=3,debug_level=10,solvable="coeff", children = ns['condeq'])
 
-def _test_forest (mqs,parent):
+def _test_forest (mqs,parent,wait=False):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 
@@ -108,16 +108,32 @@ def _test_forest (mqs,parent):
   request = meq.request(cells,rqtype='e1')
 #  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
 #  mqs.meq('Debug.Set.Level',record(debug_level=100));
-  a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=True);
+  a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=wait);
 
 
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
 
 if __name__ == '__main__':
-#  from Timba.Meq import meqds 
+ # run in batch mode?
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # this starts a kernel.
+   mqs = meqserver.default_mqs(wait_init=10);
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+ else:
   Timba.TDL._dbg.set_verbose(5);
-  ns = NodeScope();
-  _define_forest(ns);
-  # resolves nodes
-  ns.Resolve();
+  ns=NodeScope()
+  _define_forest(ns)
+  ns.Resolve()
+  print "Added %d nodes" % len(ns.AllNodes())
+
