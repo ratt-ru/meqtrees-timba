@@ -21,7 +21,7 @@ from Timba.LSM.LSM import LSM
 
 ### MS params ####
 # MS names - in a text file, line by line
-TDLRuntimeOption('msnames',"MS Names",["filelist.txt"],inline=True);
+TDLRuntimeOption('msnames',"MS Names",["filelist.txt"],inline=True,doc="File List");
 # read data from
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 # write data to
@@ -64,9 +64,9 @@ TDLCompileOption('mysave',"save all",[False,True],default=False);
 # subtile solutions
 TDLCompileOption('dosubtile',"subtile",[True,False],default=True);
 # solve for real/imag or gain/phase
-TDLCompileOption('gain_phase_solution',"Gain/Phase",[True,False],default=True);
+TDLCompileOption('gain_phase_solution',"Gain/Phase",[True,False],default=False);
 # correct for all baselines
-TDLCompileOption('include_short_base',"Short Baselines",[True,False],default=True);
+TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
 
 
 
@@ -316,10 +316,10 @@ def create_solver_defaults(num_iter=solver_maxiter,epsilon=1e-4,convergence_quot
   solver_defaults.convergence_quota = convergence_quota
   solver_defaults.balanced_equations = False
   solver_defaults.debug_level = solver_debug_level;
-  solver_defaults.save_funklets= mysave 
-  #solver_defaults.save_funklets= False
-  solver_defaults.last_update  = mysave
-  #solver_defaults.last_update  = False
+  #solver_defaults.save_funklets= True
+  solver_defaults.save_funklets= False
+  #solver_defaults.last_update  = True
+  solver_defaults.last_update  = False
   solver_defaults.debug_file = debug_file
 #See example in TDL/MeqClasses.py
   solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
@@ -422,7 +422,7 @@ def _do_preprocess(fname,mqs):
     # default flagging by uv distance
     os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=70','minclip=1e5']);
   else:
-    # not short baseling flagging
+    # no short baseline flagging
     os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
 
 
@@ -459,7 +459,7 @@ def _do_calibrate(fname,mqs):
           ddid_index=spwid,
           selection_string='sumsqr(UVW[1:2]) > 100')
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
-      # update parmtablename - not needed yet
+      # update parmtablename 
       if mytable !=None:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
@@ -474,7 +474,7 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
   # residual plots
   for spwid in range(min_spwid-1,max_spwid):
     for schan in range(start_channel,end_channel,channel_step):
