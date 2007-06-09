@@ -234,6 +234,7 @@ class ParameterizationPlus (Meow.Parameterization):
         if not isinstance(simul, bool):                # simul not explicitly specfied
             simul = rr['simul']                        # use the group default
 
+        # Make qnode and nodename
         if simul:
             s = (self.ns.dummy).name.split(':')        # make a list of current qualifiers
             if not 'simul' in s:                       #   if necessary
@@ -247,6 +248,11 @@ class ParameterizationPlus (Meow.Parameterization):
         if qnode.initialized():
             s = '** parmgroup member already exists: '+str(qnode)
             raise ValueError,s
+
+        # Make the plot_label:
+        plot_label = key
+        for q in quals: key += '_'+str(q)
+        # kwquals too?
 
         # Any extra tags are appended to the default (rr) ones.....?!
         ptags = self.p_tags2list(tags)
@@ -284,7 +290,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Update the parmgroup with the new member node:
         rr['nodes'].append(node)
-        rr['plot_labels'].append(nodename)
+        rr['plot_labels'].append(plot_label)
         rr['solvable'].append(solvable)
 
         # Return the new member node:
@@ -572,7 +578,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def p_rvsi (self, parmgroup='*',
+    def p_plot_rvsi (self, parmgroup='*',
                 bookpage=True, folder=None, show=False):
         """Make separate rvsi plots of the specified parmgroup(s). Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
@@ -580,14 +586,14 @@ class ParameterizationPlus (Meow.Parameterization):
         pg = self.p_find_parmgroups (parmgroup, severe=True)
         if bookpage:
             if not isinstance(bookpage, str):
-                bookpage = 'p_rvsi_'+self.name
+                bookpage = 'params_rvsi_'+self.name
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
-            rvsi = nn.rvsi(bookpage=bookpage, folder=folder,
-                           xlabel=key, ylabel='stddev')
+            rvsi = nn.plot_rvsi(bookpage=bookpage, folder=folder,
+                                xlabel=key, ylabel='stddev')
             bb.append(rvsi)
-        return self._p_bundle_of_bundles (bb, name='p_rvsi',
+        return self._p_bundle_of_bundles (bb, name='params_rvsi',
                                           qual=parmgroup, show=show)
     
     #---------------------------------------------------------------
@@ -607,7 +613,7 @@ class ParameterizationPlus (Meow.Parameterization):
             bundle = nn.bundle(combine=combine,
                                bookpage=bookpage, folder=folder)
             bb.append(bundle)
-        return self._p_bundle_of_bundles (bb, name='p_bundle',
+        return self._p_bundle_of_bundles (bb, name='params_bundle',
                                           qual=parmgroup, show=show)
 
     #---------------------------------------------------------------
@@ -622,7 +628,7 @@ class ParameterizationPlus (Meow.Parameterization):
         for key in pg:
             nn = self.p_NodeList(key)
             bb.append(nn.inspector(bookpage=True))
-        return self._p_bundle_of_bundles (bb, name='p_inspector',
+        return self._p_bundle_of_bundles (bb, name='params_inspector',
                                           qual=parmgroup, show=show)
 
     #---------------------------------------------------------------

@@ -4,6 +4,8 @@
 # - 14jan2007: creation (from Grunt/Joneset22.py)
 # - 29jan2007: split into uv-plane and image-plane effects
 # - 30jan2007: adapted to QualScope etc:
+# - 09jun2007: adapted to ParameterizationPlus
+# - 09jun2007: adapted to new TDLOptions
 
 # Description:
 
@@ -27,7 +29,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Joneset22
-from Timba.Contrib.JEN.util import TDL_Expression
+from Timba.Contrib.JEN.Expression import Expression
 
 
 #=================================================================================================
@@ -126,7 +128,7 @@ def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
     # Then matrix-multiply them into a single Joneset22 object:
     # NB: Its ParmGroupManager will contain all information (parmgroups)
     #     from those of the contributing Joneset22 objects.
-    jones = Joneset22.Joneseq22(jseq)
+    jones = Joneset22.Joneseq22(ns, jseq)
     return jones
 
 
@@ -149,13 +151,13 @@ class GJones (Joneset22.GJones):
     and (optionally) the tropospheric phase (a.k.a. TJones).
     GJones is a uv-plane effect, i.e. it is valid for the entire FOV."""
 
-    def __init__(self, ns, quals=[], label='G',
+    def __init__(self, ns, quals=[], name='GJones',
                  override=None,
                  stations=None, simulate=False):
         
         # Just use the generic GJones in Grunt/Joneset22.py
-        Joneset22.GJones.__init__(self, ns, quals=quals, label=label,
-                                  # telescope='WSRT',
+        Joneset22.GJones.__init__(self, ns, quals=quals, name=name,
+                                  telescope='WSRT',
                                   polrep='linear', 
                                   override=override,
                                   stations=stations, simulate=simulate)
@@ -176,13 +178,13 @@ class JJones (Joneset22.JJones):
     is assumed to be independent. The parameters are their real
     and imaginary parts (i.e. 8 real parameters per station)."""
 
-    def __init__(self, ns, quals=[], label='J',
+    def __init__(self, ns, quals=[], name='JJones',
                  diagonal=False,
                  override=None,
                  stations=None, simulate=False):
 
         # Just use the generic JJones in Grunt/Joneset22.py
-        Joneset22.JJones.__init__(self, ns, quals=quals, label=label,
+        Joneset22.JJones.__init__(self, ns, quals=quals, name=name,
                                   polrep='linear',
                                   # telescope='WSRT',
                                   diagonal=diagonal,
@@ -205,12 +207,12 @@ class FJones (Joneset22.FJones):
     For the moment, the ionospheric Faraday rotation is assumed
     to be the same for all stations, and the entire FOV."""
 
-    def __init__(self, ns, quals=[], label='F',
+    def __init__(self, ns, quals=[], name='FJones',
                  override=None,
                  stations=None, simulate=False):
         
         # Just use the generic FJones in Grunt/Joneset22.py
-        Joneset22.FJones.__init__(self, ns, quals=quals, label=label,
+        Joneset22.FJones.__init__(self, ns, quals=quals, name=name,
                                   # telescope='WSRT',
                                   polrep='linear',
                                   override=override,
@@ -233,13 +235,13 @@ class BJones (Joneset22.BJones):
     In principle, BJones models on the electronic IF bandpass,
     but in practice it usually absorbs other frequency effects as well"""
 
-    def __init__(self, ns, quals=[], label='B',
+    def __init__(self, ns, quals=[], name='BJones',
                  tfdeg=[0,5],
                  override=None,
                  stations=None, simulate=False):
         
         # Just use the generic BJones in Grunt/Joneset22.py
-        Joneset22.BJones.__init__(self, ns, quals=quals, label=label,
+        Joneset22.BJones.__init__(self, ns, quals=quals, name=name,
                                   # telescope='WSRT',
                                   polrep='linear',
                                   tfdeg=tfdeg,
@@ -248,6 +250,13 @@ class BJones (Joneset22.BJones):
         return None
 
 
+
+
+
+
+
+#--------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
 
 
@@ -269,12 +278,12 @@ class DJones (Joneset22.Joneset22):
     per telescope.
     - A non-zero PZD converts StokesU into StokesV."""
 
-    def __init__(self, ns, quals=[], label='D',
+    def __init__(self, ns, quals=[], name='DJones',
                  coupled_dang=True, coupled_dell=True,
                  override=None,
                  stations=None, simulate=False):
         
-        Joneset22.Joneset22.__init__(self, ns, quals=quals, label=label,
+        Joneset22.Joneset22.__init__(self, ns, name=name, quals=quals, 
                                      telescope='WSRT', polrep='linear',
                                      stations=stations, simulate=simulate)
         
@@ -282,62 +291,83 @@ class DJones (Joneset22.Joneset22):
         self.history('coupled_dang='+str(coupled_dang)+' coupled_dell='+str(coupled_dell))
         
         pols = self._pols
-        dname = self.label()+'dang'
-        ename = self.label()+'dell'
-        pname = self.label()+'pzd'
-        jname = self.label()+'Jones'
-        matrel = ['m12','m21']
+        dname = 'Ddang'
+        ename = 'Ddell'
+        pname = 'PZD'
+        jname = 'DJones'
 
         # Define the various primary ParmGroups:
         pg = dict()
+        rider = dict(use_matrix_element=['XY','YX'])
+        dev = self.p_deviation_expr (ampl='{0.001~10%}', Psec='{1500~10%}', PHz=None)
+
+        # Dipole angle errors (dang):
         if coupled_dang:
-            pg[dname] = self.pgm().define(self._ns, dname, 
-                                          descr='dipole angle error',
-                                          default=dict(c00=0.0),
-                                          simul=dict(),
-                                          override=override,
-                                          rider=dict(matrel=matrel),
-                                          tags=[dname,jname])
+            pg[dname] = self.p_group_define (dname, 
+                                             descr='dipole angle error',
+                                             default=0.0, unit='rad',
+                                             # tiling=None, time_deg=0, freq_deg=0,
+                                             simul=simulate, deviation=dev,
+                                             override=override,
+                                             rider=rider,
+                                             tags=[dname,jname])
         else:
             pg[dname] = dict()
             for pol in pols:
-                pg[dname][pol] = self.pgm().define(self._ns, dname+pol, 
-                                                   descr=pol+'-dipole angle error',
-                                                   default=dict(c00=0.0),
-                                                   simul=dict(),
-                                                   override=override,
-                                                   rider=dict(matrel=matrel),
-                                                   tags=[dname,jname])
+                pg[dname][pol] = self.p_group_define (dname+pol, 
+                                                      descr=pol+'-dipole angle error',
+                                                      default=0.0, unit='rad',
+                                                      # tiling=None, time_deg=0, freq_deg=0,
+                                                      simul=simulate, deviation=dev,
+                                                      override=override,
+                                                      rider=rider,
+                                                      tags=[dname,jname])
+        # Dipole ellipticities (dell):
         if coupled_dell:
-            pg[ename] = self.pgm().define(self._ns, ename, 
-                                          descr='dipole ellipticity',
-                                          default=dict(c00=0.0),
-                                          simul=dict(),
-                                          override=override,
-                                          rider=dict(matrel=matrel),
-                                          tags=[ename,jname])
+            pg[ename] = self.p_group_define (ename, 
+                                             descr='dipole ellipticity',
+                                             default=0.0, unit='rad',
+                                             # tiling=None, time_deg=0, freq_deg=0,
+                                             constraint=dict(sum=0.0, first=0.0),
+                                             simul=simulate, deviation=dev,
+                                             override=override,
+                                             rider=rider,
+                                             tags=[ename,jname])
         else:
             pg[ename] = dict()
             for pol in pols:
-                pg[ename][pol] = self.pgm().define(self._ns, ename+pol,
-                                                   descr=pol+'-dipole ellipticity',
-                                                   default=dict(c00=0.0),
-                                                   simul=dict(),
-                                                   override=override,
-                                                   rider=dict(matrel=matrel),
-                                                   tags=[ename,jname])
-        pg[pname] = self.pgm().define(self._ns, pname,
-                                      descr='XY/RL phase-zero difference',
-                                      override=override,
-                                      rider=dict(matrel=matrel),
-                                      tags=[pname,jname])
+                pg[ename][pol] = self.p_group_define (ename+pol,
+                                                      descr=pol+'-dipole ellipticity',
+                                                      default=0.0, unit='rad',
+                                                      # tiling=None, time_deg=0, freq_deg=0,
+                                                      constraint=dict(sum=0.0, first=0.0),
+                                                      simul=simulate, deviation=dev,
+                                                      override=override,
+                                                      rider=rider,
+                                                      tags=[ename,jname])
+
+        # Phase-zero difference (PZD) between X and Y systems:
+        dev = self.p_deviation_expr (ampl='{0.1~10%}', Psec='{500~10%}', PHz=None)
+        pg[pname] = self.p_group_define (pname,
+                                         descr='XY phase-zero difference',
+                                         override=override,
+                                         simul=simulate, deviation=dev,
+                                         rider=rider,
+                                         tags=[pname,jname])
+
+        # Make and check the qualifiable base-node (qnode):
+        qnode = self.ns[jname]
+        if not qnode.must_define_here(self):
+            raise ValueError,'** nodename clash'
 
         # Make the (overall) 2x2 PZD jones matrix:
-        pmat = self._ns.pmat 
-        pzd = pg[pname].create_member()
+        pmat = self.ns.pmat 
+        pmat = qnode('pmat')
+        pzd = self.p_group_create_member (pg[pname])
+        # pzd = pg[pname].create_member()
         pzd2 = pmat('pzd2') << pzd/2
-        m11 = pmat('m11') << Meq.Polar(1.0, pzd2)
-        m22 = pmat('m22') << Meq.Polar(1.0, pmat('npzd2') << Meq.Negate(pzd2))
+        m11 = pmat('11') << Meq.Polar(1.0, pzd2)
+        m22 = pmat('22') << Meq.Polar(1.0, pmat('npzd2') << Meq.Negate(pzd2))
         pmat << Meq.Matrix22(m11,0.0,0.0,m22)
 
 
@@ -345,16 +375,20 @@ class DJones (Joneset22.Joneset22):
         for s in self.stations():
 
             # Dipole rotation angles:
-            dmat = self._ns.dmat(s)
+            dmat = self.ns.dmat(s)
+            dmat = qnode('dmat')(s)
             if coupled_dang:
-                dang = pg[dname].create_member(s)
+                dang = self.p_group_create_member (pg[dname], quals=s)
+                # dang = pg[dname].create_member(s)
                 cos = dmat('cos') << Meq.Cos(dang)
                 sin = dmat('sin') << Meq.Sin(dang)
                 sinneg = dmat('nsin') << Meq.Negate(sin)
                 dmat << Meq.Matrix22(cos,sin,sinneg,cos)
             else:
-                dang1 = pg[dname][pols[0]].create_member(s)
-                dang2 = pg[dname][pols[1]].create_member(s)
+                dang1 = self.p_group_create_member (pg[dname][pols[0]], quals=s)
+                dang2 = self.p_group_create_member (pg[dname][pols[1]], quals=s)
+                # dang1 = pg[dname][pols[0]].create_member(s)
+                # dang2 = pg[dname][pols[1]].create_member(s)
                 cos1 = dmat('cos1') << Meq.Cos(dang1)
                 cos2 = dmat('cos2') << Meq.Cos(dang2)
                 sin1 = dmat('nsin1') << Meq.Negate(dmat('sin1') << Meq.Sin(dang1))
@@ -363,16 +397,20 @@ class DJones (Joneset22.Joneset22):
 
 
             # Dipole ellipticities:
-            emat = self._ns.emat(s)
+            emat = self.ns.emat(s)
+            emat = qnode('emat')(s)
             if coupled_dell:
-                dell = pg[ename].create_member(s)
+                dell = self.p_group_create_member (pg[ename], quals=s)
+                # dell = pg[ename].create_member(s)
                 cos = emat('cos') << Meq.Cos(dell)
                 sin = emat('sin') << Meq.Sin(dell)
                 isin = emat('isin') << Meq.ToComplex(0.0, sin)
                 emat << Meq.Matrix22(cos,isin,isin,cos)
             else:
-                dell1 = pg[ename][pols[0]].create_member(s)
-                dell2 = pg[ename][pols[1]].create_member(s)
+                dell1 = self.p_group_create_member (pg[ename][pols[0]], quals=s)
+                dell2 = self.p_group_create_member (pg[ename][pols[1]], quals=s)
+                # dell1 = pg[ename][pols[0]].create_member(s)
+                # dell2 = pg[ename][pols[1]].create_member(s)
                 cos1 = emat('cos1') << Meq.Cos(dell1)
                 cos2 = emat('cos2') << Meq.Cos(dell2)
                 isin1 = emat('isin1') << Meq.ToComplex(0.0, emat('sin1') << Meq.Sin(dell1))
@@ -381,11 +419,9 @@ class DJones (Joneset22.Joneset22):
                 emat << Meq.Matrix22(cos1,isin1,isin2,cos2)
 
             # Make the station Jones matrix by multiplying the sub-matrices:
-            self._ns[jname](s) << Meq.MatrixMultiply (dmat, emat, pmat)
+            qnode(s) << Meq.MatrixMultiply (dmat, emat, pmat)
 
-        self.matrixet(new=self._ns[jname])
-        # Make some secondary (composite) ParmGroups:
-        self.pgm().define_gogs(jname)
+        self.matrixet(new=qnode)
         return None
 
 
@@ -406,11 +442,11 @@ class EJones (Joneset22.Joneset22):
     which model the WSRT telescope beamshapes with the 21cm MFFE receivers.
     EJones is an image-plane effect."""
 
-    def __init__(self, ns, quals=[], label='E',
+    def __init__(self, ns, quals=[], name='EJones',
                  override=None,
                  stations=None, simulate=False):
         
-        Joneset22.Joneset22.__init__(self, ns, quals=quals, label=label,
+        Joneset22.Joneset22.__init__(self, ns, quals=quals, name=name,
                                      polrep='linear',
                                      telescope='WSRT', band='21cm',
                                      stations=stations, simulate=simulate)
@@ -442,28 +478,28 @@ class EJones (Joneset22.Joneset22):
         for key in beamparms: pg[key] = dict()
         for pol in pols:
             matrel = self._pols_matrel()[pol]                         # i.e. 'm11' or 'm22'
-            pg['peak'][pol] = self.pgm().define(self._ns, 'peak'+pol,
+            pg['peak'][pol] = self.p_group_define ('peak'+pol,
                                                 descr='peak value of '+pol+' voltage beam',
                                                 default=dict(c00=1.0),
                                                 simul=dict(Tsec=2000),
                                                 override=override,
                                                 rider=dict(matrel=matrel),
                                                 tags=['peak', jname])
-            pg['L0'][pol] = self.pgm().define(self._ns, 'L0'+pol,
+            pg['L0'][pol] = self.p_group_define ('L0'+pol,
                                               descr='pointing error in L-direction',
                                               default=dict(c00=0.0),
                                               simul=dict(scale=0.01, Tsec=2000),
                                               override=override,
                                               rider=dict(matrel=matrel),
                                               tags=['L0', 'pointing', jname])
-            pg['M0'][pol] = self.pgm().define(self._ns, 'M0'+pol,
+            pg['M0'][pol] = self.p_group_define ('M0'+pol,
                                               descr='pointing error in M-direction',
                                               default=dict(c00=0.0),
                                               simul=dict(scale=0.01, Tsec=2000),
                                               override=override,
                                               rider=dict(matrel=matrel),
                                               tags=['M0', 'pointing', jname])
-            pg['_ell'][pol] = self.pgm().define(self._ns, '_ell'+pol, 
+            pg['_ell'][pol] = self.p_group_define ('_ell'+pol, 
                                                 descr='Voltage beam elongation factor (1+ell)',
                                                 default=dict(c00=0.1),
                                                 simul=dict(Tsec=2000),
@@ -472,22 +508,18 @@ class EJones (Joneset22.Joneset22):
                                                 tags=['_ell', 'ellipticity', jname])
 
         # Make the Jones matrices per station:
-        unode = self._ns[jname]
+        qnode = self.ns[jname]
         for s in self.stations():
             mm = dict()
             for pol in pols:
                 beam[pol].quals(s)
                 # Provide external parameters for the Functional of station s:
                 for pname in beamparms:
-                    node = pg[pname][pol].create_member(s)     # create a parm (pname,pol) node
+                    node = self.p_group_create_member (pg[pname][pol], quals=s)
                     beam[pol].parm(pname, node)                # replace it in the (pol) Expression
-                mm[pol] = beam[pol].MeqFunctional(self._ns)
-            unode(s) << Meq.Matrix22(mm[pols[0]],0.0,
-                                     0.0,mm[pols[1]])
-        self.matrixet(new=unode)
-
-        # Make some secondary (composite) ParmGroups:
-        self.pgm().define_gogs(jname)
+                mm[pol] = beam[pol].MeqFunctional(self.ns)
+            qnode(s) << Meq.Matrix22(mm[pols[0]], 0.0, 0.0,mm[pols[1]])
+        self.matrixet(new=qnode)
         return None
 
 
@@ -502,25 +534,39 @@ class EJones (Joneset22.Joneset22):
 def _define_forest(ns):
 
     cc = []
-    simulate = False
+    jj = []
+    simulate = True
 
     if False:
         jones = GJones(ns, quals=[], simulate=simulate)
+        jj.append(jones)
         cc.append(jones.visualize())
         # jones.display(full=True)
         
         jones = JJones(ns, quals=[], simulate=simulate)
+        jj.append(jones)
         cc.append(jones.visualize())
         # jones.display(full=True)
         
-        jones = FJones(ns, quals=['L'], simulate=simulate)
+        jones = FJones(ns, quals=['L'], simulate=simulate) 
+        jj.append(jones)
         cc.append(jones.visualize())
         # jones.display(full=True)
         
     if True:
         jones = DJones(ns, quals=[], simulate=simulate)
-        cc.append(jones.visualize())
+        jj.append(jones)
+        cc.append(jones.visualize('*'))
+        cc.append(jones.p_plot_rvsi())
+        cc.append(jones.p_bundle())
         jones.display(full=True, recurse=10)
+
+    if 0:
+        jseq = Joneset22.Joneseq22 (ns, jj)
+        cc.append(jseq.visualize('*'))
+        cc.append(jseq.p_plot_rvsi())
+        cc.append(jseq.p_bundle())
+        jseq.display(full=True)
 
     if False:
         jones = EJones(ns, quals=[], simulate=simulate)
@@ -536,8 +582,8 @@ def _define_forest(ns):
 
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=10, num_time=11)
+    domain = meq.domain(1.0e8,1.1e8,1,1000)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=100)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
@@ -570,14 +616,13 @@ if __name__ == '__main__':
 
     jj = []
 
-    if 0:
+    if 1:
         G = GJones(ns,
                    # quals=['3c84','xxx'],
                    simulate=True)
         jj.append(G)
         G.visualize()
         G.display(full=True, recurse=10)
-        # G.display_NodeGroups()
 
     if 0:
         J = JJones(ns, quals=['xxx'], diagonal=False)
@@ -597,15 +642,14 @@ if __name__ == '__main__':
 
 
     if 1:
-        # D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=False)
-        D = DJones(ns, coupled_dang=False, coupled_dell=False)
+        D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=False)
+        # D = DJones(ns, coupled_dang=False, coupled_dell=False)
         jj.append(D)
         D.display(full=True, recurse=10)
-        # D._pgm.display_NodeGroups()
         D.history().display(full=True)
 
-    if 0:
-        jseq = Joneset22.Joneseq22 (jj)
+    if 1:
+        jseq = Joneset22.Joneseq22 (ns, jj)
         jseq.display(full=True)
 
     #-----------------------------------------------------------

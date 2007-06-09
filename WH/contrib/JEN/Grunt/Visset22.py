@@ -224,10 +224,10 @@ class Visset22 (Matrixet22.Matrixet22):
 
         
         # The single VisDataMux node is the actual interface node.
-        self.ns[vdm] << Meq.VisDataMux(*[self._matrixet(*ifr) for ifr in self.ifrs()]);
+        vdm = self.ns0[vdm] << Meq.VisDataMux(*[self._matrixet(*ifr) for ifr in self.ifrs()]);
 
         # Return the actual name of the VisDataMux (needed for tree execution)
-        return vdm
+        return vdm.name
 
 
     #--------------------------------------------------------------------------

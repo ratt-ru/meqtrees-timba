@@ -6,6 +6,7 @@
 
 # History:
 # - 14jan2007: creation
+# - 09jun2007: adapted to new TDLOptions
 
 # Copyright: The MeqTree Foundation
 
@@ -52,12 +53,13 @@ def _define_forest (ns):
 
     array = Meow.IfrArray(ns, range(1,TDL_num_stations+1))
     observation = Meow.Observation(ns)
+    Meow.Context.set(array, observation)
 
-    data = Visset22.Visset22(ns, label='inspectMS', array=array)
+    data = Visset22.Visset22(ns, name='inspectMS', array=array)
     data.make_spigots(visu=True)
 
-    # data.show_timetracks(separate=True)
     data.visualize(visu='*', separate=True)
+    data.bookpage(9)
 
     # Insert array configuration visualisation here.....?
     # Keep the relevant functions in this script?
@@ -76,7 +78,8 @@ def _define_forest (ns):
 
     # Finished:
     if TDL_display_Visset22: data.display(full=True)
-    data.make_sinks(vdm='vdm')
+    global vdm_nodename
+    vdm_nodename = data.make_sinks(vdm='vdm')
     return True
 
 
@@ -90,7 +93,7 @@ def _define_forest (ns):
 def _tdl_job_1_inspect_MS (mqs,parent):
     mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
     req = JEN_Meow_Utils.create_io_request(override_output_column=None);
-    mqs.execute('vdm',req,wait=False);
+    mqs.execute(vdm_nodename, req, wait=False);
     return True
                                      
   

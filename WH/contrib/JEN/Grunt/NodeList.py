@@ -96,7 +96,7 @@ class NodeList (object):
             for k,nd in enumerate(node._nodes):
                 self._nodes.append(nd)
                 self._labels.append(node._labels[k])
-            self._name = '('+self.name(strip=True)+','+node.name(strip=True)+')'
+            self._name = '('+self.name()+','+node.name()+')'
             # NB: Update self._opt....?
         else:
             if not isinstance(node,(list,tuple)): node = [node]
@@ -106,7 +106,7 @@ class NodeList (object):
                 self._nodes.append(nd)
                 k += 1
                 if label==None:                # Give automatic node label, e.g. for plotting
-                    self._labels.append(self.name(strip=True)+'_'+str(k))
+                    self._labels.append(self.name()+'_'+str(k))
                 elif isinstance(label,(list,tuple)):
                     self._labels.append(str(label[i]))   # assume (node,label) equal length
                 else:              
@@ -119,7 +119,7 @@ class NodeList (object):
     def tensor_elements (self, elems=None, color=None, style=None,
                          size=None, pen=None):
         """Set the names/colors/etc of tensor elements, so that they may
-        be extracted by name (see .extract()), or plotted (see .rvsi())
+        be extracted by name (see .extract()), or plotted (see .plot_rvsi())
         with different colors/styles. If no arguments are given, the
         tensor-element definition is reset to None."""
 
@@ -188,7 +188,7 @@ class NodeList (object):
         """Return the length of its list of nodes"""
         return len(self._nodes)
 
-    def name (self, strip=False):
+    def name (self, strip=True):
         """Return the name of this object. If strip==True, remove the
         bits after (|) that make this name unique (for readability)."""
         if strip:
@@ -402,12 +402,13 @@ class NodeList (object):
             kopie._name = '('+kopie._name+'|'+binopin+'|'+other._name+')'
 
         for k,lhs in enumerate(kopie._nodes):
-            rhs = other._nodes[k]
-            kopie._nodes[k] = kopie.ns << getattr(Meq,binop)(lhs, rhs)
             if len(binopin)==1:
                 kopie._labels[k] = '('+kopie._labels[k]+binopin+other._labels[k]+')'
             else:
                 kopie._labels[k] = '('+kopie._labels[k]+'|'+binopin+'|'+other._labels[k]+')'
+            name = kopie._labels[k]
+            rhs = other._nodes[k]
+            kopie._nodes[k] = kopie.ns[name].qmerge(rhs) << getattr(Meq,binop)(lhs, rhs)
         return self._dispose(kopie, replace)
         
     #---------------------------------------------------------------
@@ -439,8 +440,9 @@ class NodeList (object):
         """
 
         kopie = self.copy(select=select)
-        quals = [combine, str(kopie.len())]
-        if unop: quals.insert(0,unop)      
+        quals = []
+        if unop: quals.append(unop)      
+        quals.append(combine+str(kopie.len()))
         qnode = kopie.ns['bundle'](*quals)
         if qnode.must_define_here(self):
             nodes = kopie._nodes
@@ -459,7 +461,7 @@ class NodeList (object):
             # Make a page with the bundle and a subset of the list nodes:
             nodes = [qnode]
             n = subset
-            if not combine=='Composer':
+            if False and not combine=='Composer':
                 # Always include a Composer, since it gives access to all nodes
                 xnode = kopie.ns['extra'](*quals)
                 extra = xnode << Meq.Composer(children=nodes)
@@ -467,7 +469,7 @@ class NodeList (object):
                 n = min(8,n-1)
             cc = self._selection (select=n, return_nodes=True)
             nodes.extend(cc)
-            page = self.name(strip=True)
+            page = self.name()
             if isinstance(bookpage, str): page = bookpage
             JEN_bookmarks.create(nodes, 'bundle_'+self._name,
                                  page=page, folder=folder)
@@ -507,8 +509,8 @@ class NodeList (object):
         this NodeList object. Nothing is returned, because the bookmarks
         just publish the selected nodes as they are doing their thing."""
         cc = self._selection(select, return_nodes=True)
-        if not isinstance(page, str): page = self.name(strip=True)
-        JEN_bookmarks.create(cc, self.name(strip=True)+'_select='+str(select),
+        if not isinstance(page, str): page = self.name()
+        JEN_bookmarks.create(cc, self.name()+'_select='+str(select),
                              page=page, folder=folder)
         return True
 
@@ -518,45 +520,50 @@ class NodeList (object):
         this NodeList object. Nothing is returned, because the bookmarks
         just publish the selected nodes as they are doing their thing."""
         cc = self._selection(select, return_nodes=True)
-        JEN_bookmarks.create(cc, self.name(strip=True)+'_select='+str(select),
+        JEN_bookmarks.create(cc, self.name()+'_select='+str(select),
                              page=page, folder=folder)
         return True
 
     #--------------------------------------------------------------
 
-    def inspector (self, select='*', bookpage=True):
-        """Visualize the (selected) nodes with an 'inspector' (Collections Viewer).
+    def plot_timetrack (self, select='*', bookpage=True, folder=None):
+        """Visualize the (selected) nodes with an 'timetrack' (Collections Viewer).
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
         kopie = self.copy(select=select)
-        qnode = kopie.ns['inspector']
+        qnode = kopie.ns['timetrack']
         if qnode.must_define_here(self):
             qnode << Meq.Composer(children=kopie._nodes,
                                   plot_label=kopie._labels)
         if bookpage:
-            JEN_bookmarks.create(qnode, 'inspector_'+self.name(strip=True),
-                                 page='inspectors',             # something funny when None....!
+            if not isinstance(bookpage, str):
+                bookpage = 'plot_timetracks_'+kopie.name()
+            JEN_bookmarks.create(qnode, 'timetrack_'+kopie.name(),
+                                 page=bookpage, folder=folder,
                                  viewer='Collections Plotter')
         return qnode
 
     #--------------------------------------------------------------
 
-    def plotxy (self, other, bookpage=True):
+    def plot_xy (self, other, bookpage=True, folder=None):
         """Misuse the rvsi plotter to plot the node-values of this NodeList
         against those of another (commensurate) one."""
-        xlabel = self.name(strip=True)+'  (unit='+str(self._pp['unit'])+')'
-        ylabel = other.name(strip=True)+'  (unit='+str(other._pp['unit'])+')'
-        return self.rvsi (other=other, bookpage=bookpage,
-                          errorbars=False,
-                          xlabel=xlabel, ylabel=ylabel)
+        xlabel = self.name()+'  (unit='+str(self._pp['unit'])+')'
+        ylabel = other.name()+'  (unit='+str(other._pp['unit'])+')'
+        if not isinstance(bookpage, str):
+            bookpage = 'plot_xy_'+kopie.name()
+        return self.plot_rvsi (other=other,
+                               bookpage=bookpage, folder=folder,
+                               mean_circle=False, errorbars=False,
+                               xlabel=xlabel, ylabel=ylabel)
         
     #--------------------------------------------------------------
 
-    def rvsi (self, select='*', other=None,
-              bookpage=True, folder=None,
-              xlabel='xx', ylabel='yy',
-              tag='', concat=False,
-              mean_circle=False, errorbars=True):
+    def plot_rvsi (self, select='*', other=None,
+                   bookpage=True, folder=None,
+                   xlabel='xx', ylabel='yy',
+                   tag='', concat=False,
+                   mean_circle=False, errorbars=True):
         """Visualize the (selected) nodes with a 'real-vs-imaginary' plot.
         If another (commensurate) NodeList is specified, make complex numbers with
         (real,imag) is (self,other). This misuses the rvsi plot to plot one agains
@@ -576,16 +583,16 @@ class NodeList (object):
                 nn.tensor_elements()                 # reset...
                 for key in ['color','style','size','pen']:
                     nn._pp[key] = tt[key][k]
-                rr = nn.rvsi(bookpage=False, concat=True, tag=elem)
+                rr = nn.plot_rvsi(bookpage=False, concat=True, tag=elem)
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
             rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
-                                          scope='rvsi', tag='',
+                                          scope='plot_rvsi', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
             rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
-                                           scope='rvsi', tag=tag,
+                                           scope='plot_rvsi', tag=tag,
                                            color=kopie._pp['color'],
                                            style=kopie._pp['style'],
                                            size=kopie._pp['size'],
@@ -598,8 +605,8 @@ class NodeList (object):
         qnode = rr['dcoll']
         if bookpage:
             if not isinstance(bookpage, str):
-                bookpage = 'rvsi_'+kopie.name(strip=True)
-            JEN_bookmarks.create(qnode, kopie.name(strip=True),
+                bookpage = 'plot_rvsi_'+kopie.name()
+            JEN_bookmarks.create(qnode, kopie.name(),
                                  page=bookpage, folder=folder)
         if concat: return rr
         return qnode
@@ -607,9 +614,9 @@ class NodeList (object):
 
     #--------------------------------------------------------------
 
-    def spectra (self, select='*', bookpage=True, folder=None,
-                 xlabel='xx', ylabel='yy',
-                 tag='', concat=False):
+    def plot_spectra (self, select='*', bookpage=True, folder=None,
+                      xlabel='xx', ylabel='yy',
+                      tag='', concat=False):
         """Visualize the (selected) nodes with a dataCollect 'spectra' plot.
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
@@ -621,25 +628,25 @@ class NodeList (object):
             for k,elem in enumerate(tt['elems']):
                 nn = kopie.extract(elem)
                 nn.tensor_elements()             
-                rr = nn.spectra(bookpage=False, concat=True, tag=elem)
+                rr = nn.plot_spectra(bookpage=False, concat=True, tag=elem)
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
             rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
-                                          scope='spectra', tag='',
+                                          scope='p_plot_spectra', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
             rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
-                                           scope='spectra', tag=tag,
+                                           scope='p_plot_spectra', tag=tag,
                                            xlabel=xlabel, ylabel=ylabel,
                                            type='spectra')
                                            
         qnode = rr['dcoll']
         if bookpage:
-            kopie.display('inside NodeList.spectra()')
+            # kopie.display('inside NodeList.plot_spectra()')
             if not isinstance(bookpage, str):
-                bookpage = 'spectra_'+kopie.name(strip=True)
-            JEN_bookmarks.create(qnode, kopie.name(strip=True),
+                bookpage = 'p_plot_spectra_'+kopie.name()
+            JEN_bookmarks.create(qnode, kopie.name(),
                                  page=bookpage, folder=folder)
         if concat: return rr
         return qnode
@@ -720,21 +727,21 @@ def _define_forest(ns):
         cc.append(node)
 
     if 0:
-        node = nn1.inspector()
+        node = nn1.plot_timetrack()
         cc.append(node)
 
     if 0:
-        # node = nn1.rvsi(other=nn1)
+        # node = nn1.plot_rvsi(other=nn1)
         # nn1.tensor_elements()      # reset
-        node = nn1.rvsi()
+        node = nn1.plot_rvsi()
         cc.append(node)
 
     if 0:
         nns = nn1.extract(elem='s')
         nnc = nn1.extract(elem='c')
-        node = nns.plotxy(nnc)
+        node = nns.plot_xy(nnc)
         cc.append(node)
-        node = nnc.plotxy(nns)
+        node = nnc.plot_xy(nns)
         cc.append(node)
 
     if 0:

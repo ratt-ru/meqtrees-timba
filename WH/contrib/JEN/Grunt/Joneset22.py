@@ -488,7 +488,7 @@ def _define_forest(ns):
     jones = GJones(ns, quals=[], simulate=simulate)
     jj.append(jones)
     # cc.append(jones.p_bundle(combine='Composer'))
-    # cc.append(jones.p_rvsi())
+    # cc.append(jones.p_plot_rvsi())
     # jones.bookpage(4)
     # cc.append(jones.visualize('rvsi'))          # default is rvsi
     # cc.append(jones.visualize('timetracks'))
@@ -530,8 +530,8 @@ def _define_forest(ns):
         jseq = Joneseq22 (ns, jj, quals='mmm')
         cc.append(jseq.p_bundle())
         cc.append(jseq.p_compare('GphaseA','GphaseB'))
-        cc.append(jseq.p_rvsi())
-        cc.append(jseq.visualize())
+        cc.append(jseq.p_plot_rvsi())
+        cc.append(jseq.visualize('*'))
         jseq.display(full=True)
         jseq.history().display(full=True)
 

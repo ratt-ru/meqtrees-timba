@@ -519,15 +519,15 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         dcolls = []
         for visual in visu:
             if visual=='timetracks':
-                dc = nn.inspector()
+                dc = nn.plot_timetrack(bookpage='M22_plot_timetracks')
                 dcolls.append(dc)
             elif visual=='straight':
                 nn.bookpage(4)
             elif visual=='spectra':
-                dc = nn.spectra()
+                dc = nn.plot_spectra(bookpage='M22_plot_spectra')
                 dcolls.append(dc)
             else:
-                dc = nn.rvsi()
+                dc = nn.plot_rvsi(bookpage='M22_plot_rvsi')
                 dcolls.append(dc)
                 
         # Return a single node (bundle if necessary):
@@ -563,6 +563,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         nn = self.make_NodeList()
         nn.bookmark (select=select, page=page, folder=folder)
         return True
+
+
 
     #=====================================================================
     # Fill the object with some test data:

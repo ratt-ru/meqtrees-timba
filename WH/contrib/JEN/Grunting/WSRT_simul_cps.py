@@ -110,7 +110,8 @@ def _define_forest (ns):
     # Finished:
     vis.show_timetracks(separate=True)                 
     if TDL_display_Visset22: vis.display(full=True)
-    vis.make_sinks(vdm='vdm')
+    global vdm_nodename
+    vdm_nodename = vis.make_sinks(vdm='vdm')
     vis.history().display(full=True)
     return True
 
@@ -126,7 +127,7 @@ def _tdl_job_1_WSRT_simul_cps (mqs,parent):
     mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
     # req = JEN_Meow_Utils.create_io_request(override_output_column='MODEL_DATA');
     req = JEN_Meow_Utils.create_io_request();
-    mqs.execute('vdm',req,wait=False);
+    mqs.execute(vdm_nodename, req, wait=False);
     return True
                                      
   
