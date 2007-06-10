@@ -9,6 +9,7 @@ from Timba.TDL.TDLOptions import TDLCompileOption,TDLRuntimeOption,TDLRuntimeJob
 from Timba.TDL.TDLOptions import TDLCompileOptionSeparator,TDLRuntimeOptionSeparator
 from Timba.TDL.TDLOptions import TDLCompileOptions,TDLRuntimeOptions
 from Timba.TDL.TDLOptions import TDLCompileMenu,TDLRuntimeMenu
+from Timba.TDL.TDLOptions import TDLFileSelect,TDLDirSelect
 
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;

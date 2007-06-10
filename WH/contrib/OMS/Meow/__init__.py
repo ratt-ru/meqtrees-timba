@@ -27,6 +27,7 @@ else:
   
   import Bookmarks
   import Utils
+  import MSUtils
 
   __all__ = [
               CorruptComponent,

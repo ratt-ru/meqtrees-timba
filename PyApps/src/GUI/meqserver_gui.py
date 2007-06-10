@@ -646,7 +646,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     """enables/disables the Run TDL QAction. If kernel is connected and a TDL script
     is loaded, enables, else disables.""";
     if self._connected and self._main_tdlfile is not None:
-      print self._main_tdlfile;
       filename = "("+os.path.basename(self._main_tdlfile)+")";
       self._qa_runtdl.setWhatsThis("Re-runs the current TDL script "+filename);
       self._qa_runtdl.setVisible(True);

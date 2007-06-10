@@ -153,7 +153,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       if not isinstance(close_button,QIconSet):
         close_button = pixmaps.remove.iconset();
       self._qa_close = QAction(close_button,"&Close file",Qt.ALT+Qt.Key_W,self);
-      QObject.connect(self._qa_close,SIGNAL("activated()"),self,PYSIGNAL("fileClosed()"));
+      QObject.connect(self._qa_close,SIGNAL("activated()"),self._file_closed);
       self._qa_close.addTo(self._toolbar);
     self._toolbar.setStretchableWidget(self._pathlabel);
 
@@ -227,6 +227,9 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def __del__ (self):
     self.has_focus(False);
+  
+  def _file_closed (self):
+    self.emit(PYSIGNAL("fileClosed()"),(self,));
 
   def hideEvent (self,ev):
     self.emit(PYSIGNAL("hidden()"),());

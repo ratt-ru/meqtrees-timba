@@ -8,6 +8,8 @@ import inspect
 import sys
 import os.path 
 import re
+import glob
+
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
@@ -18,13 +20,6 @@ except:
 _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
-
-# config file for script options
-config_file = ".tdl.conf";
-config = ConfigParser.RawConfigParser();
-config.read(config_file);
-_dprint(1,"read config file",config_file);
-_config_write_failed = False;
 
 def save_config ():
   global _config_write_failed;
@@ -57,11 +52,17 @@ def clear_options ():
   runtime_options = [];
   
 def init_options (filename):
-  """initializes option list for given script. 
-  This also reads in the config file specified by filename. The basename of filename
-  is taken, and the .py extension is stripped"""
+  """initializes option list for given script.""" 
+  # re-read config file
+  global config_file;
+  config_file = ".tdl.conf";
+  global config;
+  config = ConfigParser.RawConfigParser();
+  config.read(config_file);
+  _dprint(1,"read config file",config_file);
   global _config_write_failed;
   _config_write_failed = False;
+  # init stuff
   clear_options();
   global config_section;
   config_section = re.sub('\.py[co]?','',os.path.basename(filename));
@@ -126,6 +127,7 @@ class _TDLBaseOption (object):
     
   def enable (self,enabled=True):
     """enables/disables the option. Default behaviour enables/disables the QAction""";
+    _dprint(3,"enable item",self.name,":",visible);
     self.enabled = enabled;
     self._qa and self._qa.setEnabled(enabled);
     self._lvitem and self._lvitem.setEnabled(enabled);
@@ -137,6 +139,7 @@ class _TDLBaseOption (object):
   
   def show (self,visible=True):
     """shows/hides the option. Default behaviour shows/hides the QAction""";
+    _dprint(3,"show item",self.name,":",visible);
     self.visible = visible;
     self._qa and self._qa.setVisible(visible);
     self._lvitem and self._lvitem.setVisible(visible);
@@ -153,16 +156,13 @@ class _TDLBaseOption (object):
   def set_doc (self,doc):
     """Changes option documentation string""";
     self.doc = doc;
+    if self._lvitem:
+      self._lvitem.setText(2,doc);
 
 class _TDLOptionSeparator (_TDLBaseOption):
   """This option simply inserts a separator into a menu""";
   def __init__ (self,namespace=None):
     _TDLBaseOption.__init__(self,name=None,namespace=namespace,doc=None);
-    
-  def add_to_menu (self,menu,executor):
-    if not getattr(menu,'_ends_with_separator',True):
-      menu.insertSeparator();
-    menu._ends_with_separator = True;
     
   def make_listview_item (self,parent,after,executor=None):
     if not getattr(parent,'_ends_with_separator',True):
@@ -180,18 +180,6 @@ class _TDLJobItem (_TDLBaseOption):
     self.func = func;
     self.symbol = func.__name__;
     
-  def add_to_menu (self,menu,executor):
-    """adds entry for job to menu object (usually of class QPopupMenu).
-    """
-    # create toggle action for bool options
-    qa = QAction(self.name,0,menu);
-    self.set_qaction(qa);
-    qa.setIconSet(pixmaps.gear.iconset());
-    self._exec = curry(executor,self.func,self.name);
-    QObject.connect(qa,SIGNAL("activated()"),self._exec);
-    qa.addTo(menu);
-    menu._ends_with_separator = False;
-    
   def make_listview_item (self,parent,after,executor=None):
     item = QListViewItem(parent,after);
     item.setText(0,self.name);
@@ -203,7 +191,7 @@ class _TDLJobItem (_TDLBaseOption):
   
 class _TDLOptionItem(_TDLBaseOption):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
-    _TDLBaseOption.__init__(self,name,namespace=namespace,doc=doc);
+    _TDLBaseOption.__init__(self,name or symbol,namespace=namespace,doc=doc);
     # config_name specifies the configuration file entry
     self.config_name = config_name or symbol;
     # symbol may have nested namespaces specified with '.'
@@ -222,9 +210,10 @@ class _TDLOptionItem(_TDLBaseOption):
     self._when_changed_callbacks = [];
     
   def _set (self,value):
+    _dprint(1,"setting",self.name,"=",value);
     self.value = self.namespace[self.symbol] = value;
     # be anal about whether the _when_changed_callbacks attribute is initialized,
-    #as _set may have been called before the constructor
+    # as _set may have been called before the constructor
     for callback in getattr(self,'_when_changed_callbacks',[]):
       callback(value);
     
@@ -255,29 +244,116 @@ class _TDLBoolOptionItem (_TDLOptionItem):
       if _dbg.verbose > 0:
         traceback.print_exc();
     
-  def set (self,value):
+  def set (self,value,save=True):
     value = bool(value);
-    set_config(self.config_name,int(value));
+    if save:
+      set_config(self.config_name,int(value));
     self._set(value);
 
-  def add_to_menu (self,menu,executor=None):
-    """adds entry for option to menu object (usually of class QPopupMenu).
-    """
-    # create toggle action for bool options
-    qa = QAction(self.name or self.symbol,0,menu);
-    self.set_qaction(qa);
-    qa.setToggleAction(True);
-    qa.setOn(self.value);
-    QObject.connect(qa,SIGNAL("toggled(bool)"),self.set);
-    qa.addTo(menu);
-    menu._ends_with_separator = False;
-    
   def make_listview_item (self,parent,after,executor=None):
     item = QCheckListItem(parent,after,self.name,QCheckListItem.CheckBox);
     item.setText(0,self.name);
     item.setOn(self.value);
+    item._on_click = item._on_press = self._check_item;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
+  
+  def _check_item (self):
+    self.set(self._lvitem.isOn());
+    
+class TDLFileSelect (object):
+  def __init__ (self,filenames="",default=None,exist=True):
+    self.filenames  = str(filenames);
+    self.exist      = exist;
+    self.default    = default;
+    
+class TDLDirSelect (TDLFileSelect):
+  def __init__ (self,filenames="",default=None):
+    self.filenames  = str(filenames);
+    self.default    = default;
+    
+class _TDLFileOptionItem (_TDLOptionItem):
+  def __init__ (self,namespace,symbol,filespec,
+                default=None,config_name=None,name=None,doc=None):
+    _TDLOptionItem.__init__(self,namespace,symbol,'',
+                            config_name=config_name,name=name,doc=doc);
+    self._filespec = filespec;
+    try:
+      value = config.get(config_section,self.config_name);
+      self._set(value);
+      _dprint(1,"read",symbol,"=",value,"from config");
+    except:
+      _dprint(1,"error reading",symbol,"from config");
+      if _dbg.verbose > 0:
+        traceback.print_exc();
+      # no value in config -- try default
+      if filespec.default:
+        self._set(str(filespec.default));
+      # else try to find first matching file
+      else:
+        for pattern in filespec.filenames.split(" "):
+          files = glob.glob(pattern);
+          if files:
+            self._set(files[0]);
+            break;
+    self._validator = lambda dum:True;
+    
+  def set_validator (self,validator):
+    self._validator = validator;
+    if self.value and not self._validator(self.value):
+      self.set(None);
+      
+  def set (self,value,save=True):
+    value = str(value);
+    if save:
+      set_config(self.config_name,value);
+    self._set(value);
+    
+  def enable (enabled=True):
+    _TDLOptionItem.enable(enabled);
+    if not enabled:
+      self._file_dialog.hide();
+  
+  def show (visible=True):
+    _TDLOptionItem.show(visible);
+    if not visible:
+      self._file_dialog.hide();
+      
+  class FileDialog (QFileDialog):
+    def done (self,result):
+      if result:
+        self.emit(PYSIGNAL("selectedFile()"),(self.selectedFile(),));
+      QFileDialog.done(self,result);
+
+  def make_listview_item (self,parent,after,executor=None):
+    item = QListViewItem(parent,after);
+    item.setText(0,self.name+":");
+    item.setText(1,os.path.basename(self.value.rstrip("/")));
+    # create file dialog
+    self._file_dialog = file_dialog = \
+        self.FileDialog(".",self._filespec.filenames,item.listView());
+    if isinstance(self._filespec,TDLDirSelect):
+      file_dialog.setMode(QFileDialog.DirectoryOnly);
+    else:
+      if self._filespec.exist:
+        file_dialog.setMode(QFileDialog.ExistingFile);
+      else:
+        file_dialog.setMode(QFileDialog.AnyFile);
+    QObject.connect(file_dialog,PYSIGNAL("selectedFile()"),self._select_file);
+    # make file selection dialog pop up when item is pressed
+    item._on_click = self._show_dialog;
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
+      
+  def _show_dialog (self):
+    self._file_dialog.rereadDir();
+    self._file_dialog.show();
+    
+  def _select_file (self,name):
+    name = str(name);
+    if self._validator(name):
+      self._lvitem.setText(1,os.path.basename(name.rstrip("/")));
+      self.set(name);
     
 class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None,more=None,
@@ -285,29 +361,20 @@ class _TDLListOptionItem (_TDLOptionItem):
     _TDLOptionItem.__init__(self,namespace,symbol,None,config_name=config_name,name=name,doc=doc);
     if more not in (None,int,float,str):
       raise ValueError,"'more' argument to list options must be 'None', 'int', 'float' or 'str'"
+    if not more and not value:
+      raise ValueError,"empty option list, and 'more=' not specified";
     self._more = more;
-    if isinstance(value,(list,tuple)):
-      self.option_list = list(value);
-      self.option_list_str = map(lambda x:self.item_str(x),value);
-      self.option_list_desc = list(self.option_list_str);
-    elif isinstance(value,dict):
-      self.option_list = list(value.iterkeys());
-      self.option_list_str = map(lambda x:self.item_str(x),value.iterkeys());
-      self.option_list_desc = map(lambda x:str(x),value.itervalues());
-    else:
-      raise TypeError,"TDLListOptionItem: list or dict of options expected";
+    self._custom_value = (None,'');
+    self.set_option_list(value,conserve_selection=False);
     self.inline = False;
-    # if 'more' is specified, add a placeholder in the list for the custom value
-    if more is not None:
-      self.option_list.append(None);
-      self.option_list_str.append('');
-      self.option_list_desc.append('');
+    # default validator accepts everything
+    self._validator = lambda x:x is not None;
     # verify default arg
     if default is None:
       default = 0;
     if not isinstance(default,int):
       raise TypeError,"'default': list index expected";
-    elif default < 0 or default >= len(value):
+    elif default < 0 or default >= len(self.option_list):
       raise ValueError,"'default': index out of range";
     # try to read value from config file
     try:
@@ -330,9 +397,12 @@ class _TDLListOptionItem (_TDLOptionItem):
         traceback.print_exc();
       self.selected = default;
       if more is not None:
-        self.set_custom_value(self.get_option(self.selected));
+        self.set_custom_value(self.get_option(self.selected),select=False);
     # set the value
     self._set(self.get_option(self.selected));
+    
+  def set_validator (self,validator):
+    self._validator = validator;
 
   def num_options (self):
     return len(self.option_list);
@@ -345,64 +415,69 @@ class _TDLListOptionItem (_TDLOptionItem):
     
   def get_option_desc (self,num):
     return self.option_list_desc[num];
-    
-  def set (self,ivalue):
+  
+  def set_option_list (self,opts,select=None,conserve_selection=True):
+    """changes the option list. If conserve_selection is True, attempts
+    to preserve the current selection""";
+    if select is None and conserve_selection:
+      selection = self.get_option_str(self.selected);
+    if isinstance(opts,(list,tuple)):
+      self.option_list = list(opts);
+      self.option_list_str = map(lambda x:self.item_str(x),opts);
+      self.option_list_desc = list(self.option_list_str);
+    elif isinstance(opts,dict):
+      self.option_list = list(opts.iterkeys());
+      self.option_list_str = map(lambda x:self.item_str(x),opts.iterkeys());
+      self.option_list_desc = map(lambda x:str(x),opts.itervalues());
+    else:
+      raise TypeError,"TDLListOptionItem: list or dict of options expected";
+    # add custom value
+    if self._more is not None:
+      self.option_list.append(self._custom_value[0]);
+      self.option_list_str.append(self._custom_value[1]);
+      self.option_list_desc.append(self._custom_value[1]);
+    # re-select previous value, or selected value
+    if select is not None:
+      self.set(select,save=False);
+    elif conserve_selection:
+      try:
+        index = self.option_list_str.index(selection);
+        self.set(index,save=False);
+      except:
+        self.set(0);
+        
+  def set_value (self,value,save=True):
+    """selects given value in list. If value is not in list, sets
+    custom value if possible"""
+    try:
+      index = self.option_list.index(value);
+      self.set(index,save=save);
+    except:
+      if self._more is None:
+        raise ValueError,"%s is not a legal value for option '%s'"%(value,self.name);
+      self.set_custom_value(value,select=True);
+  
+  def set (self,ivalue,save=True):
+    """selects value #ivalue in list""";
     self.selected = value = int(ivalue);
     self._set(self.get_option(value));
-    set_config(self.config_name,self.get_option_str(value));
+    if self._lvitem:
+      self._lvitem.setText(1,self.get_option_desc(value));
+    if save:
+      set_config(self.config_name,self.get_option_str(value));
     
-  def set_custom_value (self,value):
+  def set_custom_value (self,value,select=True):
     if self._more is None:
       raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
+    self._custom_value = (value,str(value));
     self.option_list[-1] = value;
     self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
+    if select:
+      self.set(len(self.option_list)-1);
     
-  def add_to_menu (self,menu,executor=None):
-    """adds entry for option to menu object (usually of class QPopupMenu).
-    """
-    # create QActionGroup for list items
-    groupname = self.name or self.symbol;
-    qag = QActionGroup(menu);
-    self.set_qaction(qag);
-    qag._groupname = groupname;
-    qag.setExclusive(True);
-    if self.inline:
-      qag.setUsesDropDown(False);
-      if not getattr(menu,'_ends_with_separator',True):
-        menu.insertSeparator();
-    else:
-      qag.setUsesDropDown(True);
-    # create QActions within group
-    for ival in range(self.num_options()):
-      is_custom = self._more is not None and ival == self.num_options()-1;
-      name = self.get_option_desc(ival);
-      if is_custom:
-        name += '...';
-      if self.inline:
-        name = groupname + ": " + name;
-      qa = QAction(name,0,qag);
-      qa.setToggleAction(True);
-      if self.doc:
-        qa.setToolTip(self.doc);
-        qa.setWhatsThis(self.doc);
-      if ival == self.selected:
-        qa.setOn(True);
-      if is_custom:
-        qa._togglefunc = curry(self._set_custom_menu_option,qag,qa,ival);
-      else:
-        qa._togglefunc = curry(self._set_menu_option,qag,ival);
-      QObject.connect(qa,SIGNAL("toggled(bool)"),qa._togglefunc);
-    # add to menu
-    qag.addTo(menu);
-    if self.inline:
-      menu.insertSeparator();
-      menu._ends_with_separator = True;
-    else:
-      qag.setMenuText(groupname + ": " + self.get_option_desc(self.selected));
-      menu._ends_with_separator = False;
-
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the item""";
+    _dprint(3,"making listview item for",self.name);
     item = QListViewItem(parent,after);
     item.setText(0,self.name+":");
     item.setText(1,self.get_option_desc(self.selected));
@@ -448,6 +523,10 @@ class _TDLListOptionItem (_TDLOptionItem):
     self._submenu.popup(listview.mapToGlobal(pos));
     
   def _activate_submenu_item (self,selected):
+    # validate custom value
+    if self._more is not None and selected == self.num_options()-1:
+      if not self._validator(self._custom_value[0]):
+        return;
     self.set(selected);
     for ival in range(self.num_options()):
       self._submenu.setItemChecked(ival,ival==selected);
@@ -455,54 +534,51 @@ class _TDLListOptionItem (_TDLOptionItem):
 
   def _set_submenu_custom_value (self):
     # get value from editor
-    value = self._submenu_editor.text();
+    value = str(self._submenu_editor.text());
     if self._more is int:
       value = int(value);
     elif self._more is float:
       value = float(value);
-    # set as custom value
-    self.set_custom_value(value);
-    # update menu
-    self._activate_submenu_item(self.num_options()-1);
-    self._submenu.close();
+    if self._validator(value):
+      # set as custom value
+      self.set_custom_value(value,select=True);
+      # update menu
+      self._activate_submenu_item(self.num_options()-1);
+      self._submenu.close();
+    else:  # invalid value
+      self._submenu_editor.setText(self._custom_value[1]);
+      if self._custom_value[0] is None:
+        self.set(0);
 
-  def _set_custom_menu_option (self,qag,qa,ivalue,toggled):
-    if not toggled:
-      return;
-    ok = False;
-    # show input dialog, if the "Other" option was selected
-    if self._more is int:
-      value,ok = QInputDialog.getInteger(qag._groupname,qag._groupname,self.option_list[-1] or 0);
-    elif self._more is float:
-      value,ok = QInputDialog.getDouble(qag._groupname,qag._groupname,self.option_list[-1] or 0,-2147483647,2147483647,6);
-    elif self._more is str:
-      value,ok = QInputDialog.getText(qag._groupname,qag._groupname,QLineEdit.Normal,self.option_list[-1] or '');
-    if ok:
-      self.set_custom_value(value);
-    self.set(ivalue);
-    txt = self.get_option_desc(ivalue);
-    if self.inline:
-      qa.setMenuText(qag._groupname+": "+txt+'...');
+class _TDLSubmenu (_TDLBoolOptionItem):
+  def __init__ (self,title,*items,**kw):
+    """Creates a submenu from the given list of option items.
+    Note that an item may be specified as None, to get a separator.
+    Optional keywords:
+      doc: documentation string
+      open: if True, menu starts out open (this is only a hint)
+      toggle: if to a symbol name, the menu entry itself has an associated
+              checkbox, and acts as a TDLBoolItem. Initial state is taken from
+              the 'open' keyword.
+      namespace: overrides the namespace passed to constructor -- only
+              makes sense if toggle is set as well.
+    """;
+    doc = kw.get('doc');
+    self._is_open = kw.get('open',False);
+    self._toggle = kw.get('toggle','');
+    namespace = kw.get('namespace');
+    # depth is 2 (this frame, TDLxxxMenu frame, caller frame)
+    namespace,config_name = _resolve_namespace(namespace,self._toggle,calldepth=2);
+    # somewhat kludgy, but what the hell: if toggle is set, init our BoolOptionItem
+    # parent, else only init the TDLBaseOption parent
+    if self._toggle:
+      _TDLBoolOptionItem.__init__(self,namespace,self._toggle,self._is_open,
+                                  name=title,config_name=config_name,doc=doc);
+      self._old_value = self._is_open;
     else:
-      qa.setMenuText(txt+'...');
-      qag.setMenuText(qag._groupname+": "+txt);
-  
-  def _set_menu_option (self,qag,ivalue,toggled):
-    if not toggled:
-      return;
-    self.set(ivalue);
-    if not self.inline:
-      qag.setMenuText(qag._groupname+": "+self.get_option_desc(ivalue));
-      
-class _TDLSubmenu (_TDLBaseOption):
-  def __init__ (self,title,namespace,*items):
-    _TDLBaseOption.__init__(self,name=title,namespace=namespace);
-    """Creates a submenu from the given list of options.
-    is_runtime is True for runtime options, False for compile-time options.
-    Note that an item may be specified as None, to get a separator.""";
-    self.name = self._title = title;
+      _TDLBaseOption.__init__(self,name=title,namespace=namespace,doc=doc);
+    self._title = title;
     self._items = items;
-    self._parent_menu = self._menu_id = None;
     
   def set_runtime (self,runtime):
     # if option not previously marked as runtime or compile-time, then we need to process
@@ -511,7 +587,6 @@ class _TDLSubmenu (_TDLBaseOption):
       _dprint(3,"menu",self._title,"runtime is",runtime);
       # process the items as follows:
       # 1. If the item is None, it is a separator
-      # 2. If the item is a string, it is a doc string
       # 2. If the item is an option:
       #    Check the global run-time and compile-time option lists and remove item
       #    from them, if found. This allows us to include items into a menu with
@@ -528,9 +603,6 @@ class _TDLSubmenu (_TDLBaseOption):
           item = _TDLOptionSeparator(namespace=self.namespace);
           item.set_runtime(runtime);
           self._items.append(item);
-        # strings are documentation
-        elif isinstance(item,str):
-          self.set_doc(item);
         # item is an option: add to list, steal from global lists
         elif isinstance(item,_TDLBaseOption):
           _dprint(3,"menu: ",item.name);
@@ -554,7 +626,7 @@ class _TDLSubmenu (_TDLBaseOption):
             _dprint(3,"menu: stealing items from ",getattr(item,'__name__','?'));
             namespace = getattr(item,'__dict__',None);
             if not namespace:
-              raise TypeError,"invalid item in option menu '%s'"%self._title;
+              raise TypeError,"invalid item type '%s' in option menu '%s'"%(type(item),self._title);
           # now steal items from this namespace's runtime or compile-time options
           if runtime:
             option_list = runtime_options;
@@ -573,37 +645,32 @@ class _TDLSubmenu (_TDLBaseOption):
     # call parent's function
     _TDLBaseOption.set_runtime(self,runtime);
   
-  def enable (self,enabled=True):
-    _TDLBaseOption.enable(self,enabled);
-    if self._parent_menu:
-      self._parent_menu.setItemEnabled(self._menu_id,enabled);
-    return enabled;
-    
-  def show (self,visible=True):
-    _TDLBaseOption.show(self,visible);
-    self.visible = visible;
-    if self._parent_menu:
-      self._parent_menu.setItemVisible(self._menu_id,visible);
-    return visible;
-    
-  def add_to_menu (self,menu,executor=None):
-    """adds submenu to menu object (usually of class QPopupMenu)."""
-    self._parent_menu = menu;
-    submenu = QPopupMenu(menu);
-    if self.doc:
-      QToolTip.add(submenu,self.doc);
-      QWhatsThis.add(submenu,self.doc);
-    self._menu_id = menu.insertItem(self._title,submenu);
-    self.enable(self.enabled);
-    self.show(self.visible);
-    populate_option_menu(submenu,self._items,executor=executor);
-    menu._ends_with_separator = False;
+  def expand (self,expand=True):
+    self._is_open = expand;
+    if self._lvitem:
+      self._lvitem.setOpen(expand);
+      
+  def set (self,value):
+    _TDLBoolOptionItem.set(self,value);
+    # open/close menu when going from unset to set and vice versa
+    if self._lvitem and self._old_value != value:
+      self._lvitem.setOpen(value);
+    self._old_value = value;
     
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
-    item = QListViewItem(parent,after);
-    item.setText(0,self.name);
-    item.setExpandable(True);
+    if self._toggle:
+      item = QCheckListItem(parent,after,self._title,QCheckListItem.CheckBox);
+      item.setExpandable(True);
+      self._old_value = self.value;
+      item.setOn(self.value);
+      item.setOpen(self.value);
+      item._on_click = item._on_press = self._check_item;
+    else:
+      item = QListViewItem(parent,after);
+      item.setText(0,self._title);
+      item.setExpandable(True);
+      item.setOpen(self._is_open);
     # loop over items
     previtem = None;
     for subitem in self._items:
@@ -612,15 +679,10 @@ class _TDLSubmenu (_TDLBaseOption):
       previtem = subitem.make_listview_item(item,previtem,executor=executor) or previtem;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-        
-def populate_option_menu (menu,option_items,executor=None):
-  """static helper method to populate a menu with the given list of items""";
-  # create entries for sub-items
-  for item in option_items:
-    _dprint(3,"adding",item,getattr(item,'name',''),"to submenu",menu);
-    item = item or _TDLOptionSeparator();
-    item.add_to_menu(menu,executor=executor);
-
+    item._on_click = item._on_press = self._check_item;
+    parent._ends_with_separator = False;
+    return self.set_listview_item(item);
+    
 def populate_option_listview (menu,option_items,executor=None):
   listview = QListView(menu);
   listview.addColumn("name");
@@ -637,10 +699,14 @@ def populate_option_listview (menu,option_items,executor=None):
     previtem = item.make_listview_item(listview,previtem,executor=executor);
   # add callbacks
   QObject.connect(listview,SIGNAL("clicked(QListViewItem*)"),_process_listview_click);
+  QObject.connect(listview,SIGNAL("pressed(QListViewItem*)"),_process_listview_press);
+  QObject.connect(listview,SIGNAL("returnPressed(QListViewItem*)"),_process_listview_click);
+  QObject.connect(listview,SIGNAL("spacePressed(QListViewItem*)"),_process_listview_click);
+  QObject.connect(listview,SIGNAL("doubleClicked(QListViewItem*,const QPoint &, int)"),_process_listview_click);
   # add to menu
   menu.insertItem(listview);
 
-def _process_listview_click (item):
+def _process_listview_click (item,*dum):
   """helper function to process a click on a listview item. Meant to be connected
   to the clicked() signal of a QListView""";
   on_click = getattr(item,'_on_click',None);
@@ -649,21 +715,30 @@ def _process_listview_click (item):
   if getattr(item,'_close_on_click',False):
     item.listView().parent().close();
   
-  
-def _make_option_item (namespace,symbol,name,value,default=None,
-                       inline=False,doc=None,more=None,runtime=False):
+def _process_listview_press (item,*dum):
+  """helper function to process a press on a listview item. Meant to be connected
+  to the pressed() signal of a QListView""";
+  on_click = getattr(item,'_on_press',None);
+  if on_click:
+    on_click();
+
+def _resolve_namespace (namespace,symbol,calldepth=2):
   # if namespace is not specified, set it to the globals() of the caller of our caller
   if namespace is None:
-    # figure out filename of caller frame
-    namespace = sys._getframe(2).f_globals;
-    filename = inspect.getframeinfo(sys._getframe(2))[0];
+    # figure out filename of caller frame -- skip frames in this file
+    namespace = sys._getframe(calldepth+1).f_globals;
+    filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
+    _dprint(2,"option",symbol,"filename is",filename);
     namespace_name = os.path.basename(filename).split('.')[0];
   # else namespace is a dict
   elif isinstance(namespace,dict):
     namespace_name = None;
   # else namespace must have a __dict__ attribute
   else:
-    namespace_name = getattr(namespace,'__name__',None);
+    namespace_name = getattr(namespace,'tdloption_namespace',None) or \
+                     getattr(namespace,'__name__',None) or \
+                     type(namespace).__name__;
+    _dprint(2,"option",symbol,"namespace is",namespace);
     namespace = getattr(namespace,'__dict__',None);
     if namespace is None:
       raise TypeError,"invalid namespace specified";
@@ -672,6 +747,13 @@ def _make_option_item (namespace,symbol,name,value,default=None,
     config_name = ".".join((namespace_name,symbol));
   else:
     config_name = symbol;
+  return namespace,config_name;
+  
+def _make_option_item (namespace,symbol,name,value,default=None,
+                       inline=False,doc=None,more=None,runtime=False):
+  # resolve namespace based on caller
+  # depth is 2 (this frame, TDLxxxOption frame, caller frame)
+  namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
   # boolean option
   if isinstance(value,bool):
     item = _TDLBoolOptionItem(namespace,symbol,value,config_name=config_name);
@@ -680,6 +762,8 @@ def _make_option_item (namespace,symbol,name,value,default=None,
     item = _TDLListOptionItem(namespace,symbol,value,
                               default=default,more=more,config_name=config_name);
     setattr(item,'inline',inline);
+  elif isinstance(value,TDLFileSelect):
+    item = _TDLFileOptionItem(namespace,symbol,value);
   else:
     raise TypeError,"Illegal type for TDL option: "+type(value).__name__;
   item.set_name(name);
@@ -687,14 +771,10 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   item.set_runtime(runtime);
   return item;
 
-
-
-
-def TDLMenu (title,*items):
+def TDLMenu (title,*items,**kw):
   """this creates and returns a submenu object, without adding it to
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
-  namespace = sys._getframe(1).f_globals;
-  return _TDLSubmenu(title,namespace,*items);
+  return _TDLSubmenu(title,*items,**kw);
 
 def TDLOption (symbol,name,value,default=None,
                inline=False,doc=None,namespace=None,more=None,runtime=False):
@@ -757,20 +837,18 @@ def TDLRuntimeOptions (*opts):
     opt and opt.set_runtime(True);
   runtime_options += opts;
   
-def TDLCompileMenu (title,*items):
+def TDLCompileMenu (title,*items,**kw):
   """This creates a submenu inside the compile-time menu, and adds a number
   of entires (created with TDLOption) to it.""";
-  namespace = sys._getframe(1).f_globals;
-  menu = _TDLSubmenu(title,namespace,*items);
+  menu = _TDLSubmenu(title,*items,**kw);
   menu.set_runtime(False);
   compile_options.append(menu);
   return menu;
 
-def TDLRuntimeMenu (title,True,*items):
+def TDLRuntimeMenu (title,*items,**kw):
   """This creates a submenu inside the run-time menu, and adds a number
   of entires (created with TDLOption or TDLJob) to it.""";
-  namespace = sys._getframe(1).f_globals;
-  menu = _TDLSubmenu(title,namespace,*items);
+  menu = _TDLSubmenu(title,*items,**kw);
   menu.set_runtime(True);
   runtime_options.append(menu);
   return menu;

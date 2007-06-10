@@ -13,6 +13,7 @@ cell := '1arcsec';
 image_viewer := 'kvis';
 fieldid := 1;
 spwid := 1;
+chanmode := 'channel';
 nchan := 1;
 chanstart := 1;
 chanstep := 1;
@@ -29,29 +30,31 @@ for( a in argv )
     imagetype:="corrected";
   else if( a =='RESIDUAL' )
     imagetype:="residual";
-  else if( a =~ s/ms=// )
+  else if( a =~ s/^ms=// )
     msname := a;
-  else if( a =~ s/mode=// )
+  else if( a =~ s/^mode=// )
     mode := a;
-  else if( a =~ s/weight=// )
+  else if( a =~ s/^weight=// )
     weighting := a;
-  else if( a =~ s/stokes=// )
+  else if( a =~ s/^stokes=// )
     stokes := a;
-  else if( a =~ s/npix=// )
+  else if( a =~ s/^npix=// )
     npix := as_integer(a);
-  else if( a =~ s/cellsize=// )
+  else if( a =~ s/^cellsize=// )
     cell := a;
-  else if( a =~ s/viewer=// )
+  else if( a =~ s/^viewer=// )
     image_viewer := a;
-  else if( a =~ s/fieldid=// )
+  else if( a =~ s/^field=// )
     fieldid := as_integer(a);
-  else if( a =~ s/spwid=// )
+  else if( a =~ s/^spwid=// )
     spwid := as_integer(a);
-  else if( a =~ s/nchan=// )
+  else if( a =~ s/^chanmode=// )
+    chanmode := a;
+  else if( a =~ s/^nchan=// )
     nchan := as_integer(a);
-  else if( a =~ s/chanstart=// )
+  else if( a =~ s/^chanstart=// )
     chanstart := as_integer(a);
-  else if( a =~ s/chanstep=// )
+  else if( a =~ s/^chanstep=// )
     chanstep := as_integer(a);
 }
 if( select != '' )
@@ -62,7 +65,7 @@ print "Selection string: ",select;
 
 # setup the imager
 myimager:=imager(msname)
-myimager.setdata(mode='channel',
+myimager.setdata(mode=chanmode,
              fieldid=fieldid,
              spwid=spwid,
              nchan=nchan,
@@ -86,10 +89,9 @@ myimager.weight(weighting);
   
 myimager.setoptions(cache=100000000);
 
-
-# generate an output image name
 imgname := msname
 imgname =~ s/\..*//;
+imgname =~ s/.*\///;
 imgname := spaste(imgname,".",imagetype,"-",stokes,"-",mode);
 imgfile := spaste(imgname,".img");
 

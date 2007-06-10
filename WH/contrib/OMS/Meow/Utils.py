@@ -5,11 +5,25 @@ import math
 import random
 import Meow
 
+try:
+  import pycasatable
+except:
+  pycasatable = None;
+  
+
+msname = '';
 input_column = output_column = imaging_column = None;
 tile_size = None;
 ddid_index = None;
+field_index = None;
 ms_channels = None;
-msname = '';
+ms_channel_start = None;
+ms_channel_end = None;
+ms_channel_step = None;
+ms_data_columns = None;
+ms_antenna_names = [];
+ms_field_names = None;
+ms_ddid_numchan = None;
 ms_write_flags = False;
 ms_input_flag_bit = 1;
 ms_has_output = False;
@@ -29,31 +43,119 @@ def ms_options (
     has_input=True,
     has_output=True,
     tile_sizes=[1,5,10,20,30,60],
-    ddid=[0,1],
+    ddid=[0],
+    field_id=None,
     channels=None,
     flags=False
   ):
   """Returns list of MS input/output options""";
-  ms_list = filter(lambda name:name.endswith('.ms') or name.endswith('.MS'),os.listdir('.'));
-  if not ms_list:
-    ms_list = [ "no MSs found" ];
-  opts = [ TDLOption('msname',"MS",ms_list) ];
+  global ms_option,input_col_option,ddid_option,field_option,channel_options;
+  ms_option = TDLOption('msname',"MS",TDLDirSelect("*.ms *.MS"));
+  opts = [ ms_option ];
   if has_input:
-    opts.append(TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0));
+    input_col_option = TDLOption('input_column',"Input MS column",
+                        ["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+    opts.append(input_col_option);
+  else:
+    input_col_option = None;
   if has_output:
     global ms_has_output;
     ms_has_output = True;
-    opts.append(TDLOption('output_column',"Output MS column",["DATA","MODEL_DATA","CORRECTED_DATA",None],default=2));
+    opts.append(TDLOption('output_column',"Output MS column",
+                        ["DATA","MODEL_DATA","CORRECTED_DATA",None],default=2));
   if tile_sizes:
     opts.append(TDLOption('tile_size',"Tile size (timeslots)",tile_sizes,more=int));
+  more_ids = int;
+  if pycasatable:
+    ddid = [0];
+    field_id = [0];
+    more_ids = None;  # no more= option to ddid/field: they come from the MS
   if ddid:
-    opts.append(TDLOption('ddid_index',"Data description ID",ddid,more=int,
-      doc="""If the MS contains multiple spectral windows, etc., then use this option to select different DATA_DESCRIPTION_IDs. Default is 0."""));
+    ddid_option = TDLOption('ddid_index',"Data description ID",ddid,more=more_ids,
+      doc="""If the MS contains multiple spectral windows, etc., then use this option to select different DATA_DESCRIPTION_IDs. Default is 0.""");
+    opts.append(ddid_option);
+  if field_id:
+    field_option = TDLOption('field_index',"Field ID",field_id,more=more_ids,
+      doc="""If the MS contains multiple fields, then use this option to select different FIELD_IDs. Default is 0.""");
+    opts.append(field_option);
+  channel_options = [];
   if channels:
-    opts.append(TDLOption('ms_channels',"Channel selection",channels));
+    if pycasatable:
+      channel_options = [
+        TDLOption('ms_channel_start',"First channel",[0],more=int),
+        TDLOption('ms_channel_end',"Last channel",[0],more=int),
+        TDLOption('ms_channel_step',"Channel stepping",[1,2],more=int)
+      ];
+      opts.append(TDLMenu("Channel selection",*channel_options));
+    else:
+      if not isinstance(channels,(list,tuple)):
+        channels = [[0,0,1]];
+      opts.append(TDLOption('ms_channels',"Channel selection",channels));
   if flags:
     opts.append(TDLOption('ms_write_flags',"Write flags to output",False));
+  # if pycasatable exists, set up interactivity for MS options
+  if pycasatable:
+    global _select_new_ms;
+    ms_option.when_changed(_select_new_ms);
+    ddid_option.when_changed(_select_ddid);
+    if channel_options:
+      channel_options[0].set_validator(_validate_first_channel);
+      channel_options[1].set_validator(_validate_last_channel);
+      channel_options[2].set_validator(_validate_channel_step);
   return opts;
+  
+def _select_new_ms (msname):
+  ms = pycasatable.table(msname);
+  # data columns
+  global ms_data_columns;
+  ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
+  if input_col_option:
+    input_col_option.set_option_list(ms_data_columns);
+  # antennas
+  global ms_antenna_names;
+  ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA')).getcol('NAME');
+  # DDIDs
+  ddid_table = pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'));
+  spws = ddid_table.getcol('SPECTRAL_WINDOW_ID');
+  numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW')).getcol('NUM_CHAN');
+  global ms_ddid_numchannels;
+  ms_ddid_numchannels = [ numchans[spw] for spw in spws ];
+  ddid_option.set_option_list(range(len(ms_ddid_numchannels)));
+  if len(ms_ddid_numchannels) < 2:
+    ddid_option.hide();
+  # Fields
+  global ms_field_names;
+  ms_field_names = pycasatable.table(ms.getkeyword('FIELD')).getcol('NAME');
+  field_option.set_option_list(dict(enumerate(ms_field_names)));
+  if len(ms_field_names) < 2:
+    field_option.hide();
+  
+def _select_ddid (value):
+  nchan = ms_ddid_numchannels[value];
+  if channel_options:
+    channel_options[0].set_option_list([0,nchan-1]);
+    channel_options[0].set_value(0);
+    channel_options[0].set_doc("(max %d) select first channel"%(nchan-1));
+    channel_options[1].set_option_list([0,nchan-1]);
+    channel_options[1].set_value(nchan-1);
+    channel_options[1].set_doc("(max %d) select last channel"%(nchan-1));
+    channel_options[2].set_value(1);
+    channel_options[2].set_doc("(max %d) select channel steping"%nchan);
+
+def _validate_first_channel (value):
+  return isinstance(value,int) and \
+         value >=0 and \
+         value < channel_options[1].value;
+
+def _validate_last_channel (value):
+  return isinstance(value,int) and \
+         value >= channel_options[0].value and \
+         value < ms_ddid_numchannels[ddid_option.value];
+
+def _validate_channel_step (value):
+  return isinstance(value,int) and \
+         value >= 1 and \
+         value <= ms_ddid_numchannels[ddid_option.value];
   
 imaging_npix = 256;
 imaging_cellsize = '1arcsec';
@@ -215,7 +317,14 @@ def create_inputrec (tiling=None):
       rec.selection.channel_end_index = ms_channels[1];
       if len(ms_channels) > 2:
         rec.selection.channel_increment = ms_channels[2];
-    rec.selection.ddid_index = ddid_index;
+    elif channel_options is not None:
+      rec.selection.channel_start_index = ms_channel_start;
+      rec.selection.channel_end_index = ms_channel_end;
+      rec.selection.channel_increment = ms_channel_step;
+    if ddid_index is not None:
+      rec.selection.ddid_index = ddid_index;
+    if field_index is not None:
+      rec.selection.field_index = field_index;
     rec = record(ms=rec);
   rec.python_init = 'Meow.ReadVisHeader';
   rec.mt_queue_size = ms_queue_size;
