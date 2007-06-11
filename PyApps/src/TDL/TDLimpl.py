@@ -287,13 +287,20 @@ class _NodeDef (object):
     classname = self._class.lower();
     # create name as Class(child1,child2,...):qualifiers
     if self.children:
+      # use the scope of the first child. If scopes differ, we'll append them as subscopes
+      scope = self.children[0][1].scope;
       # generate qualifier list
       quals = [];
       kwquals = {};
       for (ich,child) in self.children:
+        child_quals = list(child.quals);
+        # if child (1+) comes from a different scope, then prepend its name and qualifiers
+        if child.scope is not scope:
+          child_quals = list(child.scope._quals) + child_quals;
+          if child.scope._name != scope._name:
+            child_quals.insert(0,child.scope._name);
         _mergeQualifiers(quals,kwquals,
-            list(child.scope._quals)+list(child.quals),child.kwquals, uniq=True);
-#            list(child.quals),child.kwquals, uniq=True);
+           child_quals,child.kwquals,uniq=True);
       basename = ','.join(map(lambda x:x[1].basename,self.children));
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
@@ -660,10 +667,13 @@ class _NodeStub (object):
     for n in nodes:
       res = res._qualify(n.quals,n.kwquals,True);
     return res;
-  def Subscope (self):
+  def Subscope (self,*quals,**kwquals):
     """turns node into a subscope. The node's name and qualifiers will be used as
     the subscope name. See NodeScope.Subscope() for details.""";
-    return self.scope.Subscope(self.basename,*self.quals,**self.kwquals);
+    quals = list(self.quals) + list(quals);
+    kwq = dict(self.kwquals);
+    kwq.update(kwquals);
+    return self.scope.Subscope(self.basename,*quals,**kwq);
   def QualScope (self):
     """turns node into a QualScope. The node's qualifiers will be used
     to create the QualScope. See NodeScope.QualScope() for details.""";

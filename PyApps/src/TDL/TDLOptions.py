@@ -21,10 +21,34 @@ _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# current config section, this is set to the script name by init_options()
+config_section = "default";
+# config file
+config_file = ".tdl.conf";
+# flag: write failed (so that we only report it once)
+_config_write_failed = False;
+
+class _OurConfigParser (ConfigParser.RawConfigParser):
+  """extend the standard ConfigParser with a 'sticky' filename""";
+  def __init__ (self,*args):
+    ConfigParser.RawConfigParser.__init__(self,*args);
+    self._file = config_file;
+  def read (self,filename):
+    self._file = filename;
+    self.reread();
+  def reread (self):
+    _dprint(1,"reading config file",self._file);
+    ConfigParser.RawConfigParser.read(self,self._file);
+  def rewrite (self):
+    ConfigParser.RawConfigParser.write(self,file(self._file,"w"));
+
+# create global config object
+config = _OurConfigParser();
+
 def save_config ():
   global _config_write_failed;
   try:
-    config.write(file(config_file,"w"));
+    config.rewrite();
     _config_write_failed = False;
   except IOError:
     if not _config_write_failed:
@@ -39,9 +63,6 @@ def set_config (option,value):
   _dprint(1,"setting",option,"=",value,"in config",config_section);
   save_config();
 
-# current config section, this is set to the script name by init_options()
-config_section = "default";
-
 compile_options = [];
 runtime_options = [];
 
@@ -54,12 +75,8 @@ def clear_options ():
 def init_options (filename):
   """initializes option list for given script.""" 
   # re-read config file
-  global config_file;
-  config_file = ".tdl.conf";
   global config;
-  config = ConfigParser.RawConfigParser();
-  config.read(config_file);
-  _dprint(1,"read config file",config_file);
+  config.reread();
   global _config_write_failed;
   _config_write_failed = False;
   # init stuff
