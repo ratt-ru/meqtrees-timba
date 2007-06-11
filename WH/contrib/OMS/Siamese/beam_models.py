@@ -4,6 +4,9 @@ from Meow import Context
 import random
 import math
 
+import ErrorGens
+
+
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
 ARCSEC = DEG/3600;
@@ -28,27 +31,19 @@ def compute_E_jones(Ej,sources):
   Ej is an output node, which will be qualified with either a source only,
   or a source/station pair.
   """;
-  if include_pointing_errors:
-    # work out pointing error (dlm per station)
-    ampl = max_pe_error*ARCSEC; 
+  # are pointing errors configured?
+  if _pe_errgen.has_errors():
+    node_maker = _pe_errgen.node_maker();
     ns = Ej.Subscope("pe");
-    dlm = ns.dlm;
     # create nodes to compute pointing errors per antenna
     for p in Context.array.stations():
-      # pick random periods of dl/dm variation, in seconds
-      dlp = random.uniform(min_pe_period*3600,max_pe_period*3600);
-      dmp = random.uniform(min_pe_period*3600,max_pe_period*3600);
-      # pick a random starting phase for the variations
-      dlp_0 = random.uniform(0,2*math.pi); 
-      dmp_0 = random.uniform(0,2*math.pi);
-      dlm(p) << Meq.Composer( 
-        ns.dl(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/dlp)+dlp_0),
-        ns.dm(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/dmp)+dmp_0)
-      );
-    # now work out "error" direction per source, 
-    # and compute the beam gain in that direction
+      node_maker(ns.dl(p),station=p);
+      node_maker(ns.dm(p),station=p);
+      ns.dlm(p) << Meq.Composer(ns.dl(p),ns.dm(p));
+      # now work out "error" direction per source, 
+      # and compute the beam gain in that direction
       for src in sources:
-        lm = ns.lm(src.direction.name,p) << src.direction.lm() + dlm(p);
+        lm = ns.lm(src.direction.name,p) << src.direction.lm() + ns.dlm(p);
         beam_model(Ej(src.direction.name,p),lm,p);
   # no pointing errors
   else:
@@ -70,19 +65,12 @@ _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
   TDLOption('wsrt_beam_size_factor',"Beam size factor",[2e-6],more=float)
 );
 
-TDLCompileMenu('Include pointing errors',
-  TDLOption("max_pe_error","Max pointing error, arcsec",[1,2,5],more=float),
-  TDLOption("min_pe_period","Min time scale for pointing variation, hours",
-            [0,1],more=float),
-  TDLOption("max_pe_period","Max time scale for pointing variation, hours",
-            [2,4],more=float),
-  toggle='include_pointing_errors'
-);
+_pe_errgen = ErrorGens.Selector("pointing",0,10,label="pe",unit=("arcsec",ARCSEC));
+
+TDLCompileOptions(*_pe_errgen.options());
 
 # show/hide options based on selected model
 def _show_option_menus (model):
   _wsrt_option_menu.show(model==WSRT_cos3_beam);
 
 _model_option.when_changed(_show_option_menus);
-
-

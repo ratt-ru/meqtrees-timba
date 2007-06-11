@@ -1,4 +1,4 @@
-# standard preamble
+ # standard preamble
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
@@ -60,7 +60,7 @@ def _define_forest (ns):
         plot_label = [ "%s:%s"%(p,src.direction.name) for src in sources for p in stas ],
         *[ ns.tec(src.direction.name,p) for src in sources for p in stas ]
       ),
-      ns.inspect_Z_jones << Meq.Composer(
+      ns.inspect_Z_phase << Meq.Composer(
         plot_label = [ "%s:%s"%(p,src.direction.name) for src in sources for p in stas ],
         *[ Meq.Mean(Meq.Arg(Zj(src.direction.name,p),reduction_axes="freq")) for src in sources for p in stas ]
       )
@@ -77,14 +77,16 @@ def _define_forest (ns):
                 for src in sources ];
     # add inspectors
     if per_station:
-      ns.inspect_E_jones << Meq.Composer(
+      ns.inspect_E_jones << Meq.Composer(dims=[0],
         plot_label = [ "%s:%s"%(p,src.direction.name) for src in sources for p in stas ],
-        *[ Ej(src.direction.name,p) for src in sources for p in stas ]
+        *[ Meq.Mean(Ej(src.direction.name,p),reduction_axes="freq")
+           for src in sources for p in stas ]
       );
     else:
-      ns.inspect_E_jones << Meq.Composer(
+      ns.inspect_E_jones << Meq.Composer(dims=[0],
         plot_label = [ src.direction.name for src in sources ],
-        *[ Ej(src.direction.name) for src in sources ]
+        *[ Meq.Mean(Ej(src.direction.name),reduction_axes="freq")
+           for src in sources ]
       );
     inspectors.append(ns.inspect_E_jones);
     
@@ -94,10 +96,11 @@ def _define_forest (ns):
   
   # add uv-plane effects
   if include_gains:
-    Gj = gain_models.compute_G_jones(ns);
+    Gj = ns.G;
+    gain_models.compute_G_jones(Gj);
     allsky = allsky.corrupt(Gj);
     inspectors.append(
-      ns.inspect_G_jones << Meq.Composer(
+      ns.inspect_G_jones << Meq.Composer(dims=[0],
         plot_label = map(str,stas),
         *[ Gj(p) for p in stas  ]
       )
