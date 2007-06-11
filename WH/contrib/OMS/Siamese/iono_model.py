@@ -58,13 +58,13 @@ def compute_zeta_jones (ns,source_list):
   zeta = iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,source_list);
   return zeta;
 
-TDLCompileOption('iono_model',"Ionospheric model",
+_model_option = TDLCompileOption('iono_model',"Ionospheric model",
   [sine_tid_model,wedge_model]
 );
 
 TDLCompileOption('TEC0',"Base TEC value",[0,5,10],more=float);
 
-TDLCompileMenu('Sine TID model options',
+_sine_option_menu = TDLCompileMenu('Sine TID model options',
   TDLOption('tid_x_ampl_0',"Relative TID-X amplitude at t=0",[0,0.01,0.02,0.05,0.1],more=float),
   TDLOption('tid_x_ampl_1hr',"Relative TID-X amplitude at t=1hr",[0,0.002,0.01,0.02,0.05,0.1],more=float),
   TDLOption('tid_x_size_km',"TID-X size, in km",[25,50,100,200,1000],more=int),
@@ -74,10 +74,17 @@ TDLCompileMenu('Sine TID model options',
   TDLOption('tid_y_size_km',"TID-Y size, in km",[25,50,100,200,1000],more=int),
   TDLOption('tid_y_speed_kmh',"TID-Y speed, in km/h",[25,50,100,200,300,500],more=int),
 );
-TDLCompileMenu('Wedge model options',
+_wedge_option_menu = TDLCompileMenu('Wedge model options',
   TDLOption('wedge_min','Min delta-TEC over 100km',[0,0.001,0.1,1,2,5],more=float),
   TDLOption('wedge_max','Max delta-TEC over 100km',[0,0.001,0.1,1,2,5],more=float),
   TDLOption('wedge_time','Time to reach max delta-TEC, hours',[1,2,4,8],more=float)
 );
+
+# show/hide options based on selected model
+def _show_option_menus (model):
+  _sine_option_menu.show(model==sine_tid_model);
+  _wedge_option_menu.show(model==wedge_model);
+
+_model_option.when_changed(_show_option_menus);
 
 
