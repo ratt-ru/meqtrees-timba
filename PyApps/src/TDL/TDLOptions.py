@@ -105,22 +105,30 @@ def get_runtime_options ():
   
 class _TDLBaseOption (object):
   """abstract base class for all option entries""";
-  def __init__ (self,name,namespace=None,doc=None):
+  def __init__ (self,name,namespace=None,owner=None,doc=None):
+    if not isinstance(name,str):
+      raise TypeError,"option name must be a string";
     self.name    = name;
     self.doc     = doc;
     self.enabled = True;
     self.visible = True;
-    # namespace to which this option belongs
+    # namespace in which the option's symbol is set
     self.namespace = namespace;
+    # name of module that owns this option, or None for the top-level TDL script
+    self.owner = None;
     # is this a runtime or a compile-time option?
     self.is_runtime = None;
     # most options have an associated widget or QAction. This is stored here.
     self._qa      = None;
     self._lvitem  = None;
     
-  def set_runtime (self,runtime):
-    """marks the option as run-time. This is called as soon as it is known
-    whether the option is going to be run-time or compile-time.""";
+  def init (self,owner,runtime):
+    """initializes the option. This is called when the option is placed into a
+    run-time or compile-time menu. owner is the name of a module to
+    which this option belongs, or None for the top-level script.
+    runtime is True if option is runtime.""";
+    _dprint(3,"item '%s' owner '%s' runtime %d"%(self.name,owner,int(runtime)));
+    self.owner = owner;
     self.is_runtime = runtime;
     
   def set_qaction (self,qa):
@@ -226,6 +234,13 @@ class _TDLOptionItem(_TDLBaseOption):
     self._set(value);
     self._when_changed_callbacks = [];
     
+  def init (self,owner,runtime):
+    """initializes the option. This is called when the option is placed into a
+    run-time or compile-time menu.""";
+    _TDLBaseOption.init(self,owner,runtime);
+    if owner:
+      self.config_name = '.'.join((owner,self.config_name));
+    
   def _set (self,value):
     _dprint(1,"setting",self.name,"=",value);
     self.value = self.namespace[self.symbol] = value;
@@ -252,13 +267,19 @@ class _TDLOptionItem(_TDLBaseOption):
 class _TDLBoolOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
     _TDLOptionItem.__init__(self,namespace,symbol,value,config_name=config_name,name=name,doc=doc);
+    self._set(value);
+  
+  def init (self,owner,runtime):
+    """initializes the option. This is called when the option is placed into a
+    run-time or compile-time menu.""";
+    _TDLOptionItem.init(self,owner,runtime);
     try:
       value = bool(config.getint(config_section,self.config_name));
       self._set(value);
-      _dprint(1,"read",symbol,"=",value,"from config");
+      _dprint(1,"read",self.config_name,"=",value,"from config");
     except:
-      _dprint(1,"error reading",symbol,"from config");
-      if _dbg.verbose > 0:
+      _dprint(1,"error reading",self.config_name,"from config");
+      if _dbg.verbose > 2:
         traceback.print_exc();
     
   def set (self,value,save=True):
@@ -295,25 +316,36 @@ class _TDLFileOptionItem (_TDLOptionItem):
     _TDLOptionItem.__init__(self,namespace,symbol,'',
                             config_name=config_name,name=name,doc=doc);
     self._filespec = filespec;
+    self._validator = lambda dum:True;
+    # no value in config -- try default
+    if filespec.default:
+      self._set(str(filespec.default));
+    else:
+      self._set(None);
+    
+  def init (self,owner,runtime):
+    """initializes the option. This is called when the option is placed into a
+    run-time or compile-time menu.""";
+    _TDLOptionItem.init(self,owner,runtime);
     try:
       value = config.get(config_section,self.config_name);
-      self._set(value);
-      _dprint(1,"read",symbol,"=",value,"from config");
+      if self._validator(value):
+        self._set(value);
+      _dprint(1,"read",self.config_name,"=",value,"from config");
     except:
-      _dprint(1,"error reading",symbol,"from config");
-      if _dbg.verbose > 0:
+      _dprint(1,"error reading",self.config_name,"from config");
+      if _dbg.verbose > 2:
         traceback.print_exc();
       # no value in config -- try default
-      if filespec.default:
-        self._set(str(filespec.default));
+      if self._filespec.default:
+        self._set(str(self._filespec.default));
       # else try to find first matching file
       else:
-        for pattern in filespec.filenames.split(" "):
-          files = glob.glob(pattern);
-          if files:
-            self._set(files[0]);
-            break;
-    self._validator = lambda dum:True;
+        for pattern in self._filespec.filenames.split(" "):
+          for filename in glob.glob(pattern):
+            if self._validator(filename):
+              self._set(filename);
+              return;
     
   def set_validator (self,validator):
     self._validator = validator;
@@ -389,34 +421,49 @@ class _TDLListOptionItem (_TDLOptionItem):
     # verify default arg
     if default is None:
       default = 0;
-    if not isinstance(default,int):
-      raise TypeError,"'default': list index expected";
-    elif default < 0 or default >= len(self.option_list):
-      raise ValueError,"'default': index out of range";
-    # try to read value from config file
-    try:
-      def1 = config.get(config_section,self.config_name);
-      # look up value in list
-      _dprint(1,"read",symbol,"=",def1,"from config");
+    else:
+      # try to treat as a list value
       try:
-        self.selected = self.option_list_str.index(def1);
+        default = self.option_list.index(default);
       except:
-        if more is None:
-          _dprint(1,def1,"is an illegal value for",symbol);
-          self.selected = default;
+      # no, treat as an integer index into the list
+        if not isinstance(default,int):
+          raise TypeError,"'default': list index expected";
+        elif default < 0 or default >= len(self.option_list):
+          raise ValueError,"'default': index out of range";
+    # set the default value
+    self.set(default,save=False);
+    
+  def init (self,owner,runtime):
+    """initializes the option. This is called when the option is placed into a
+    run-time or compile-time menu.""";
+    _TDLOptionItem.init(self,owner,runtime);
+    select = None;
+    try:
+      value = config.get(config_section,self.config_name);
+      _dprint(1,"read",self.config_name,"=",value,"from config");
+      # look up value in list
+      try:
+        select = self.option_list_str.index(value);
+      except:
+        if self._more is None or not self._validator(value):
+          _dprint(1,value,"is an illegal value for",self.name);
         # add configured symbol to list of values
         else:
-          self.set_custom_value(more(def1));
-          self.selected = len(self.option_list) - 1;
+          try:
+            value = self._more(value);
+          except:
+            _dprint(1,value,"is an illegal value for",self.name);
+          else:
+            self.set_custom_value(value);
+            select = len(self.option_list)-1;
     except:
-      _dprint(1,"error reading",symbol,"from config");
-      if _dbg.verbose > 0:
+      _dprint(1,"error reading",self.config_name,"from config");
+      if _dbg.verbose > 2:
         traceback.print_exc();
-      self.selected = default;
-      if more is not None:
-        self.set_custom_value(self.get_option(self.selected),select=False);
-    # set the value
-    self._set(self.get_option(self.selected));
+    # if select was set, we have a legal value
+    if select is not None:
+      self.set(select,save=False);
     
   def set_validator (self,validator):
     self._validator = validator;
@@ -595,12 +642,18 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     else:
       _TDLBaseOption.__init__(self,name=title,namespace=namespace,doc=doc);
     self._title = title;
-    self._items = items;
+    self._items0 = items;
+    self._items  = None;
     
-  def set_runtime (self,runtime):
-    # if option not previously marked as runtime or compile-time, then we need to process
-    # the items list
-    if self.is_runtime is None:
+  def init (self,owner,runtime):
+    _dprint(3,"menu",self._title,"owner",owner);
+    # in toggle mode, init BoolItem parent to read value from config
+    if self._toggle:
+      _TDLBoolOptionItem.init(self,owner,runtime);
+    else:
+      _TDLBaseOption.init(self,owner,runtime);
+    # if option not previously initialized, then we need to process the items list
+    if self._items is None:
       _dprint(3,"menu",self._title,"runtime is",runtime);
       # process the items as follows:
       # 1. If the item is None, it is a separator
@@ -611,9 +664,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       # 3. check if item is a module or a dict. Encapsulate all options
       #    from that module or dict if so. Here we need to know if it is runtime 
       #    or compile-time items that need to be encapsulated.
-      itemlist = self._items;
       self._items = [];
-      for item in itemlist:
+      for item in self._items0:
         # None is a separator
         if item is None:
           _dprint(3,"menu: separator");
@@ -623,16 +675,16 @@ class _TDLSubmenu (_TDLBoolOptionItem):
         # item is an option: add to list, steal from global lists
         elif isinstance(item,_TDLBaseOption):
           _dprint(3,"menu: ",item.name);
-          for option_list in (compile_options,runtime_options):
-            steal_items = [];
-            for i,item0 in enumerate(option_list):
-              if item is item0:
-                steal_items.insert(0,i);
-            # delete stolen items -- they've been listed in reverse order
-            for i in steal_items:
-              del option_list[i];
-          item.set_runtime(runtime);
+          self._steal_items(False,lambda item0:item is item0);
+          self._steal_items(True,lambda item0:item is item0);
+          item.init(owner,runtime);
           self._items.append(item);
+        # item is a module: steal items from that module
+        elif inspect.ismodule(item):
+          owner = os.path.basename(item.__file__).split('.')[0];
+          _dprint(3,"menu: stealing items from module",owner);
+          # now steal items from this namespace's runtime or compile-time options
+          self._steal_items(runtime,lambda item0:item0.owner == owner);
         # item is a namespace: steal items from that namespace
         else:  
           namespace = None;
@@ -645,22 +697,24 @@ class _TDLSubmenu (_TDLBoolOptionItem):
             if not namespace:
               raise TypeError,"invalid item type '%s' in option menu '%s'"%(type(item),self._title);
           # now steal items from this namespace's runtime or compile-time options
-          if runtime:
-            option_list = runtime_options;
-          else:
-            option_list = compile_options;
-          steal_items = [];
-          for i,item0 in enumerate(option_list):
-            if isinstance(item0,_TDLBaseOption) and item0.namespace is namespace:
-              _dprint(3,"menu: stealing ",item0.name);
-              steal_items.insert(0,i);
-              item0.set_runtime(runtime);
-              self._items.append(item0);
-          # delete stolen items
-          for i in steal_items:
-            del option_list[i];
-    # call parent's function
-    _TDLBaseOption.set_runtime(self,runtime);
+          self._steal_items(runtime,lambda item0:item0.namespace is namespace);
+      self._items0 = None;
+  
+  def _steal_items (self,runtime,predicate):
+    """helper function: steals items matching the given predicate""";
+    if runtime:
+      option_list = runtime_options;
+    else:
+      option_list = compile_options;
+    steal_items = [];
+    for i,item0 in enumerate(option_list):
+      if isinstance(item0,_TDLBaseOption) and predicate(item0):
+        _dprint(3,"menu: stealing ",item0.name);
+        steal_items.insert(0,i);
+        self._items.append(item0);
+    # delete stolen items
+    for i in steal_items:
+      del option_list[i];
   
   def expand (self,expand=True):
     self._is_open = expand;
@@ -676,6 +730,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
+    if self._items is None:
+      raise RuntimeError,"option menu '%s' not initialized, this should be impossible!"%self._title;
     if self._toggle:
       item = QCheckListItem(parent,after,self._title,QCheckListItem.CheckBox);
       item.setExpandable(True);
@@ -739,35 +795,41 @@ def _process_listview_press (item,*dum):
   if on_click:
     on_click();
 
+def _resolve_owner (calldepth=2):
+  filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
+  filename = os.path.basename(filename).split('.')[0];
+  # if owner matches our config section, return None
+  if filename == config_section:
+    return None;
+  else:
+    return filename;
+
 def _resolve_namespace (namespace,symbol,calldepth=2):
   # if namespace is not specified, set it to the globals() of the caller of our caller
   if namespace is None:
     # figure out filename of caller frame -- skip frames in this file
     namespace = sys._getframe(calldepth+1).f_globals;
-    filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
-    _dprint(2,"option",symbol,"filename is",filename);
-    namespace_name = os.path.basename(filename).split('.')[0];
   # else namespace is a dict
   elif isinstance(namespace,dict):
     namespace_name = None;
   # else namespace must have a __dict__ attribute
   else:
-    namespace_name = getattr(namespace,'tdloption_namespace',None) or \
-                     getattr(namespace,'__name__',None) or \
-                     type(namespace).__name__;
-    _dprint(2,"option",symbol,"namespace is",namespace);
+    # form options inside an explcit namespace (e.g. inside an object), prepend the 
+    # name of the object to the config name
+    prefix = getattr(namespace,'tdloption_namespace',None) or \
+             getattr(namespace,'__name__',None) or \
+             type(namespace).__name__;
+    _dprint(2,"option",symbol,"namespace is",namespace,", prefix is",prefix);
     namespace = getattr(namespace,'__dict__',None);
     if namespace is None:
       raise TypeError,"invalid namespace specified";
-  # get name for config file, by prepending the namespace
-  if namespace_name and namespace_name != config_section:
-    config_name = ".".join((namespace_name,symbol));
-  else:
-    config_name = symbol;
-  return namespace,config_name;
+    # get name for config file, by prepending the namespace name
+    if prefix:
+      symbol = ".".join((prefix,symbol));
+  return namespace,symbol;
   
 def _make_option_item (namespace,symbol,name,value,default=None,
-                       inline=False,doc=None,more=None,runtime=False):
+                       inline=False,doc=None,more=None,runtime=None):
   # resolve namespace based on caller
   # depth is 2 (this frame, TDLxxxOption frame, caller frame)
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
@@ -785,7 +847,10 @@ def _make_option_item (namespace,symbol,name,value,default=None,
     raise TypeError,"Illegal type for TDL option: "+type(value).__name__;
   item.set_name(name);
   item.set_doc(doc);
-  item.set_runtime(runtime);
+  if runtime is not None:
+    # resolve owner
+    # depth is 2 (this frame, TDLxxxOption frame, caller frame)
+    item.init(_resolve_owner(calldepth=2),runtime);
   return item;
 
 def TDLMenu (title,*items,**kw):
@@ -794,10 +859,10 @@ def TDLMenu (title,*items,**kw):
   return _TDLSubmenu(title,*items,**kw);
 
 def TDLOption (symbol,name,value,default=None,
-               inline=False,doc=None,namespace=None,more=None,runtime=False):
+               inline=False,doc=None,namespace=None,more=None):
   """this creates and returns an option object, without adding it to
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
-  item = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,runtime);
+  item = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
   return item;
 
 def TDLJob (function,name=None,doc=None):
@@ -808,57 +873,67 @@ def TDLJob (function,name=None,doc=None):
 
 def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
   """this creates an option object and adds it to the compile-time menu""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,False);
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,runtime=False);
   compile_options.append(opt);
   return opt;
 
 def TDLCompileOptionSeparator ():
   namespace = sys._getframe(1).f_globals;
   opt = _TDLOptionSeparator(namespace=namespace);
+  # owner is at depth 1 -- our caller
+  opt.init(_resolve_owner(calldepth=1),False);
   compile_options.append(opt);
   return opt;
 
 def TDLRuntimeOption (symbol,name,value,default=None,
                       inline=False,doc=None,namespace=None,more=None):
   """this creates an option object and adds it to the runtime menu""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,True);
+  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,runtime=True);
   runtime_options.append(opt);
   return opt;
 
 def TDLRuntimeOptionSeparator ():
   namespace = sys._getframe(1).f_globals;
   opt = _TDLOptionSeparator(namespace=namespace);
+  # owner is at depth 1 -- our caller
+  opt.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(opt);
   return opt;
 
 def TDLRuntimeJob (function,name=None,doc=None):
   """this creates a TDL job entry, and adds it to the runtime menu.""";
   job = _TDLJobItem(function,name=name,doc=doc);
-  job.set_runtime(True);
+  # owner is at depth 1 -- our caller
+  opt.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(job);
   return job;
   
 def TDLCompileOptions (*opts):
   """this adds a number of entries (created with TDLOption) to the
   compile-time menu""";
+  # owner is at depth 1 -- our caller
+  owner = _resolve_owner(calldepth=1);
   for opt in opts:
-    opt and opt.set_runtime(False);
+    opt and opt.init(owner,False);
   global compile_options;
   compile_options += opts;
 
 def TDLRuntimeOptions (*opts):
-  """this adds a number of entries (created with TDLOption or TDLJob) to the
+  """this fadds a number of entries (created with TDLOption or TDLJob) to the
   run-time menu""";
   global runtime_options;
+  # owner is at depth 1 -- our caller
+  owner = _resolve_owner(calldepth=1);
   for opt in opts:
-    opt and opt.set_runtime(True);
+    opt and opt.init(owner,True);
   runtime_options += opts;
   
 def TDLCompileMenu (title,*items,**kw):
   """This creates a submenu inside the compile-time menu, and adds a number
   of entires (created with TDLOption) to it.""";
   menu = _TDLSubmenu(title,*items,**kw);
-  menu.set_runtime(False);
+  # owner is at depth 1 -- our caller
+  menu.init(_resolve_owner(calldepth=1),False);
   compile_options.append(menu);
   return menu;
 
@@ -866,7 +941,8 @@ def TDLRuntimeMenu (title,*items,**kw):
   """This creates a submenu inside the run-time menu, and adds a number
   of entires (created with TDLOption or TDLJob) to it.""";
   menu = _TDLSubmenu(title,*items,**kw);
-  menu.set_runtime(True);
+  # owner is at depth 1 -- our caller
+  menu.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(menu);
   return menu;
 

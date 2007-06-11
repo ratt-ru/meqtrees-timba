@@ -580,7 +580,13 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._add_menu_label(self._options_menu,"Compile-time options");
       # add options
       ## new style: make a listview
-      TDLOptions.populate_option_listview(self._options_menu,opts);
+      try:
+        TDLOptions.populate_option_listview(self._options_menu,opts);
+      except Exception,value:
+        _dprint(0,"error setting up TDL options GUI");
+        traceback.print_exc();
+        self.set_error_list([value],message="Error setting up TDL options GUI");
+        return None;
       ## old style: add as menu items
       # TDLOptions.populate_option_menu(self._options_menu,opts);
       # add re-run button
@@ -663,7 +669,13 @@ class TDLEditor (QFrame,PersistentCurrier):
         self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
         self._add_menu_label(self._jobmenu,"Run-time options");
         ## new style:
-        TDLOptions.populate_option_listview(self._jobmenu,opts,executor=self._job_executor);
+        try:
+          TDLOptions.populate_option_listview(self._jobmenu,opts,executor=self._job_executor);
+        except Exception,value:
+          _dprint(0,"error setting up TDL options GUI");
+          traceback.print_exc();
+          self.set_error_list([value],message="Error setting up TDL options GUI");
+          return None;
         ## old style:
         # TDLOptions.populate_option_menu(self._jobmenu,opts,executor=self._job_executor);
       if joblist:
