@@ -12,12 +12,12 @@ if [ ! -d $TIMBA_PATH/install ]; then
 else
   export DEFAULT_PATH=$PATH
   export DEFAULT_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-  export DEFAULT_PYTHON_PATH=$PYTHON_PATH
+  export DEFAULT_PYTHONPATH=$PYTHON_PATH
 
   _timba-setup()
   {
     export PATH=$DEFAULT_PATH:$TIMBA_PATH/install/$1/bin
-    export PYTHONPATH=.:$TIMBA_PATH/install/$1/libexec/python
+    export PYTHONPATH=$DEFAULT_PYTHONPATH:.:$TIMBA_PATH/install/$1/libexec/python
     export LD_LIBRARY_PATH=$DEFAULT_LD_LIBRARY_PATH:$TIMBA_PATH/install/$1/lib
     echo "Using Timba install $TIMBA_PATH/install/$1"
   }
