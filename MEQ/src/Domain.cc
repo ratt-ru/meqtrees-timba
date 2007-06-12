@@ -63,7 +63,12 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
 {
   Thread::Mutex::Lock lock(mutex());
   FailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
-  FailWhen(a1>=a2,"segment start must be < end");
+  //// FailWhen(a1>=a2,"segment start must be < end");
+  // swap a1/a2 around if a2>=a1
+  if( a1==a2 )
+    a1 -= 1e-6;
+  else if( a1>a2 )
+  { double tmp=a1; a1=a2;  a2 = tmp; }
   range_[iaxis][0] = a1;
   range_[iaxis][1] = a2;
   defined_[iaxis]  = true;
