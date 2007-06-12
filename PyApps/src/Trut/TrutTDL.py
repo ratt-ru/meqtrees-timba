@@ -53,7 +53,7 @@ class TDLScript (Trut.Unit):
       # load config file
       tdlconf = self.get_option("tdlconf",".tdl.conf");
       TDLOptions.config.read(tdlconf);
-      TDLOptions.init_options(self.name);
+      TDLOptions.init_options(self.name,save=False);
       # compile TDL module
       _dprint(1,"compiling TDL script",self.name);
       try:

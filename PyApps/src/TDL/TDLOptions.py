@@ -27,6 +27,8 @@ config_section = "default";
 config_file = ".tdl.conf";
 # flag: write failed (so that we only report it once)
 _config_write_failed = False;
+# flag: save changes to config
+_config_save_enabled = True;
 
 class _OurConfigParser (ConfigParser.RawConfigParser):
   """extend the standard ConfigParser with a 'sticky' filename""";
@@ -46,6 +48,9 @@ class _OurConfigParser (ConfigParser.RawConfigParser):
 config = _OurConfigParser();
 
 def save_config ():
+  global _config_save_enabled;
+  if not _config_save_enabled:
+    return;
   global _config_write_failed;
   try:
     config.rewrite();
@@ -72,13 +77,17 @@ def clear_options ():
   compile_options = [];
   runtime_options = [];
   
-def init_options (filename):
-  """initializes option list for given script.""" 
+def init_options (filename,save=True):
+  """initializes option list for given script.
+  If save=False, updated opotions will never be saved.
+  """ 
   # re-read config file
   global config;
   config.reread();
   global _config_write_failed;
   _config_write_failed = False;
+  global _config_save_enabled;
+  config_save_enabled = save;
   # init stuff
   clear_options();
   global config_section;
