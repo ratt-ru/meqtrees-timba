@@ -346,13 +346,18 @@ class NodeList (object):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
                 name = 'extract['+str(elems[m])+']'
-                node = kopie.ns[name](k) << Meq.Selector(kopie._nodes[k], index=i)
-                cc.append(node)
+                qnode = kopie.ns[name](k)
+                if not qnode.initialized():
+                    qnode << Meq.Selector(kopie._nodes[k], index=i)
+                cc.append(qnode)
             if len(cc)==1:                  # extracted one only element
                 kopie._nodes[k] = cc[0]
             else:                           # more: recompose into new tensor
                 name = 'extract'+selems
-                kopie._nodes[k] = kopie.ns[name](k) << Meq.Composer(*cc)
+                qnode = kopie.ns[name](k)
+                if not qnode.initialized():
+                    qnode << Meq.Composer(*cc)
+                kopie._nodes[k] = qnode
             kopie._labels[k] = name
         return self._dispose(kopie, replace)
 

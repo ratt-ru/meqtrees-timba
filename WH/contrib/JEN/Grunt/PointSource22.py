@@ -7,8 +7,10 @@
 
 # The PointSource22 class is a wrapper around the Meow PointSource class.
 # Its extra features are:
-# - It has a number of predefined sources (3c147 etc) 
-# - It makes a Visset22 with a ParmGroupManager, so we can solve for
+# - It has a number of predefined sources (3c147 etc)
+# - It can turn the source visibilities into a Visset22 object.
+# - It merges the contents of the Meow.Parameterization with the
+#   Grunt.ParameterizationPlus of the Visset22, so we can solve for
 #   source parameters in the Grunt system
 
 #======================================================================================
@@ -19,12 +21,10 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import Visset22
-from Timba.Contrib.JEN.Grunt import ParmGroupManager
+# from Timba.Contrib.JEN.Grunt import ParmGroupManager
 
 TDL_options_counter = 0
 
-# Global counter used to generate unique node-names
-# unique = -1
 
 
 #======================================================================================
@@ -44,10 +44,14 @@ def include_TDL_options(prompt='definition'):
                        TDLOption('TDL_StokesQ',"Stokes Q (Jy)",[None, 0.0, 0.1], more=float),
                        TDLOption('TDL_StokesU',"Stokes U (Jy)",[None, 0.0, -0.1], more=float),
                        TDLOption('TDL_StokesV',"Stokes V (Jy)",[None, 0.0, 0.02], more=float),
-                       TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",[0.0, 1.0], more=float),
-                       TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",[None, 1.0], more=float),
-                       TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",[None, 0.0, 1.0], more=float),
-                       TDLOption('TDL_source_name',"source name (overridden by predefined)", ['PS22'], more=str),
+                       TDLOption('TDL_spi',"Spectral Index (I=I0*(f/f0)**(-spi)",
+                                 [0.0, 1.0], more=float),
+                       TDLOption('TDL_freq0',"Reference freq (MHz) for Spectral Index",
+                                 [None, 1.0], more=float),
+                       TDLOption('TDL_RM',"Intrinsic Rotation Measure (rad/m2)",
+                                 [None, 0.0, 1.0], more=float),
+                       TDLOption('TDL_source_name',"source name (overridden by predefined)",
+                                 ['PS22'], more=str),
                        );
         TDL_options_counter += 1
     return True
@@ -104,7 +108,7 @@ class PointSource22 (Meow.PointSource):
         # NB: Parameters have been made for Q,U,V with tag 'flux pol'
         # NB: Parameters have been made for si with tag 'spectrum'
         # NB: Parameters have been made for RM with tag 'pol'
-        self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._pp['name'])
+        # self._pgm = ParmGroupManager.ParmGroupManager(ns, label=self._pp['name'])
 
         # Some placeholders:
         self._Visset22 = None
@@ -224,14 +228,15 @@ class PointSource22 (Meow.PointSource):
             polrep = 'linear'
             if observation.circular():
                 polrep = 'circular'
+
             # Make the Visset22:
-            # NB: Use the ORIGINAL nodescope (self.ns0), not the Qualscope (self.ns)
-            #     See Meow.Parametrization.py
+            # NB: Use the ORIGINAL nodescope (i.e. self.ns0, not self.ns).....
             if not name: name = self._pp['name']
-            self._Visset22 = Visset22.Visset22 (self.ns0, quals=[], label=name,
+            self._Visset22 = Visset22.Visset22 (self.ns0, name=name, quals=[],
                                                 polrep=polrep,
                                                 # observation=observation,
                                                 array=array)
+
             # Make the 2x2 visibility matrices per ifr:
             if False:
                 # Use this if the source has to be shifted (KJones):
@@ -242,10 +247,14 @@ class PointSource22 (Meow.PointSource):
                 matrix = self.coherency(observation)
                 self._Visset22.fill_with_identical_matrices ('PS22_visibility', coh=matrix)
 
-            # ParmGroupManager... (get all MeqParms from self.ns...?)
-            # NB: Not if self._simulate==True (i.e. hide the MeqParms)
+            # The Meow.PointSource from which this object is derived
+            # is itself derived from Meow.Parameterization. The Visset22
+            # is derived from Grunt.ParameterizationPlus, which has a
+            # function that puts all the Meow.Parameterization parameters
+            # into a separate parmgroup.
+            self._Visset22.p_merge(self)
 
-            if visu: self._Visset22.visualize('PS22', quals=self._pp['name'])
+            if visu: self._Visset22.visualize(visu='rvsi', quals=self._pp['name'])
         return self._Visset22
 
 
@@ -301,7 +310,7 @@ if __name__ == '__main__':
     ns = NodeScope()
     print type(ns)
 
-    if 0:
+    if 1:
         num_stations = 3
         ANTENNAS = range(1,num_stations+1)
         array = Meow.IfrArray(ns,ANTENNAS)
@@ -315,9 +324,9 @@ if __name__ == '__main__':
         ps.display()
         # print type(ps.ns)
 
-    if 0:
+    if 1:
         vis = ps.Visset22(array, observation)
-        vis.display()
+        vis.display(full=True)
 
 
 #=======================================================================

@@ -38,17 +38,18 @@ JEN_Meow_Utils.include_imaging_options();
 
 
 # Compile-time menu:
-
-# Compile-time menu:
 PointSource22.include_TDL_options('cps model')  
 
 WSRT_Jones.include_TDL_options_uvp('corruption')
 
-TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',[0.0, 0.0001, 0.001, 0.01,0.1,1.0], more=float);
+TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',
+                 [0.0, 0.0001, 0.001, 0.01,0.1,1.0], more=float);
 TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);
 TDLCompileMenu('Print extra information',
-               TDLCompileOption('TDL_display_PointSource22','Display PointSource22 object', [False, True]),
-               TDLCompileOption('TDL_display_Visset22','Display Visset22 object', [False, True]),
+               TDLCompileOption('TDL_display_PointSource22',
+                                'Display PointSource22 object', [False, True]),
+               TDLCompileOption('TDL_display_Visset22',
+                                'Display Visset22 object', [False, True]),
                );
 TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=int);
 
@@ -73,7 +74,7 @@ def _define_forest (ns):
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, name='simul', visu=True)
+    vis = ps.Visset22(array, observation, name='vissimmul', visu=True)
 
     if False:
         # An experiment in shifting the phase-centre:
@@ -99,7 +100,7 @@ def _define_forest (ns):
         #   (Note that the user-defined TDLOption parameters are
         #    short-circuited between the functions in the WSRT_Jones module)
         jones = WSRT_Jones.Joneseq22_uvp(ns, stations=array.stations(),
-                                         override=dict(GJones=dict(Psec=500)),
+                                         # override=dict(GJones=dict(Psec=500)),
                                          simulate=True)
         vis.corrupt(jones, visu=False)
 
@@ -108,7 +109,7 @@ def _define_forest (ns):
         vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
     # Finished:
-    vis.show_timetracks(separate=True)                 
+    vis.visualize(visu='timetracks')                 
     if TDL_display_Visset22: vis.display(full=True)
     global vdm_nodename
     vdm_nodename = vis.make_sinks(vdm='vdm')

@@ -50,6 +50,8 @@ class Visset22 (Matrixet22.Matrixet22):
                                        quals=quals, kwquals=kwquals,
                                        polrep=polrep, indices=array.ifrs())
 
+        self._corrs = self._matrix_elements['name']     # e.g. ['XX','XY','YX','YY']
+
         if cohset:
             # If supplied, fill in the Matriset22 matrices, otherwise leave at None
             self._matrixet = cohset
@@ -82,6 +84,7 @@ class Visset22 (Matrixet22.Matrixet22):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - stations: '+str(self.stations())
+        print '   - _corrs: '+str(self._corrs)
         print '   - MS_corr_index: '+str(self._MS_corr_index)
         print '   - Current phase centre (dir0): '+str(self._dir0)
         if full:
