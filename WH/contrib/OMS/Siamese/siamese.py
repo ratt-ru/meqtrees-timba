@@ -30,6 +30,10 @@ TDLCompileMenu("Include gain/phase errors",gain_models,toggle='include_gains');
 
 TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
 
+diff_sim_opt = TDLCompileOption("diff_sim","Differential simulation (sim-input)",False);
+diff_sim_opt.when_changed(mssel.enable_input_column);
+
+
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,28));
   array = Meow.IfrArray(ns,ANTENNAS);
@@ -107,7 +111,7 @@ def _define_forest (ns):
     );
 
   # get predicted visibilities
-  predict = allsky.visibilities();
+  output = predict = allsky.visibilities();
   
   # throw in a bit of noise
   if noise_stddev:
@@ -125,12 +129,20 @@ def _define_forest (ns):
         noise_y(p)+noise_x(q),noise_y(p)+noise_y(q)
       );
       ns.noisy_predict(p,q) << predict(p,q) + noise;
-    predict = ns.noisy_predict;
+    output = ns.noisy_predict;
     
+  # in diff-sim mode, make some spigots
+  if diff_sim:
+    spigots = array.spigots();
+    for p,q in array.ifrs():
+      ns.diff(p,q) << output(p,q) - spigots(p,q);
+    output = ns.diff;
+  else:
+    spigots = False;
   
-  # make sinks and vdm. Note that we don't want to make any spigots...
+  # make sinks and vdm.
   # The list of inspectors comes in handy here
-  Meow.StdTrees.make_sinks(ns,predict,spigots=False,post=(inspectors or None));
+  Meow.StdTrees.make_sinks(ns,output,spigots=spigots,post=(inspectors or None));
   
   # make bookmarks for inspectors
   for node in inspectors:
