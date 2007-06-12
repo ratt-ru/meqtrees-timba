@@ -8,6 +8,7 @@ import os
 import os.path
 import Meow
 import Meow.Utils
+import sets
 
 try:
   import pycasatable
@@ -184,6 +185,7 @@ class MSSelector (object):
                 filter="*.ms *.MS",
                 has_input=True,
                 has_output=True,
+                forbid_output=["DATA"],
                 antsel=True,
                 tile_sizes=[1,5,10,20,30,60],
                 ddid=[0],
@@ -194,8 +196,9 @@ class MSSelector (object):
                 ):
     """Creates an MSSelector object
     filter:     ms name filter. Default is "*.ms *.MS"
-    has_input:  if True, input column options will be provided.
-    has_output: if True, output column options will be provided.
+    has_input:  is an input column selector initially enabled.
+    has_input:  is an output column selector initially enabled.
+    forbid_output: a list of forbidden output columns. "DATA" by default.
     antsel:     if True, an antenna subset selector will be provided
     tile_sizes: list of suggested tile sizes. If false, no tile size selector is provided.
     ddid:       list of suggested DDIDs, or false for no selector. 
@@ -223,7 +226,11 @@ class MSSelector (object):
       else:
         antsel = [None];
       self.antsel_option = TDLOption("ms_antenna_sel","Antenna subset",
-                                     [None],more=str,namespace=self);
+                                     [None],more=str,namespace=self,
+        doc="""Selects a subset of antennas to use. You can specify individual indices (1-based) 
+        separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), or ":M" (1 to M),
+        or "N:" (N to last). Example subset: ":3 5 8 10:12 16:"."""
+      );
       self.antsel_option.set_validator(self._antenna_sel_validator);
       # hide until an MS is selected
       if pycasatable:
@@ -231,25 +238,30 @@ class MSSelector (object):
       self._compile_opts.append(self.antsel_option);
     # input/output column options
     self.ms_data_columns = ["DATA","MODEL_DATA","CORRECTED_DATA"];
-    self.input_col_option = self.output_col_option = None;
+    if isinstance(forbid_output,str):
+      self._forbid_output = sets.Set([forbid_output]);
+    elif forbid_output:
+      self._forbid_output = sets.Set(forbid_output);
+    else:
+      self._forbid_output = [];
     self.input_column = self.output_column = None;
     self.ms_has_input = has_input;
-    if has_input:
-      # if no access to tables, then allow more columns to be entered
-      if pycasatable:
-        more_col = None;
-      else:
-        more_col = str;
-      self.input_col_option = TDLOption('input_column',"Input MS column",
-                          self.ms_data_columns,
-                          namespace=self,more=more_col);
-      self._opts.append(self.input_col_option);
     self.ms_has_output = has_output;
-    if has_output:
-      self.output_col_option = TDLOption('output_column',"Output MS column",
-                          self.ms_data_columns + [None],
-                          namespace=self,more=str,default=2);
-      self._opts.append(self.output_col_option);
+    # if no access to tables, then allow more input columns to be entered
+    if pycasatable:
+      more_col = None;
+    else:
+      more_col = str;
+    self.input_col_option = TDLOption('input_column',"Input MS column",
+                                      self.ms_data_columns,
+                                      namespace=self,more=more_col);
+    self.input_col_option.show(has_input);
+    self._opts.append(self.input_col_option);
+    self.output_col_option = TDLOption('output_column',"Output MS column",
+                                      self.ms_data_columns + [None],
+                                      namespace=self,more=str,default=2);
+    self.output_col_option.show(has_output);
+    self._opts.append(self.output_col_option);
     # tile sizes
     if tile_sizes:
       self._opts.append(TDLOption('tile_size',"Tile size (timeslots)",
@@ -268,6 +280,14 @@ class MSSelector (object):
     # if pycasatable exists, set up interactivity for MS options
     if pycasatable:
       ms_option.set_validator(self._select_new_ms);
+  
+  def enable_input_column (self,enable=True):
+    self.ms_has_input = enable;
+    self.input_col_option.show(enable);
+    
+  def enable_output_column (self,enable=True):
+    self.ms_has_output = enable;
+    self.output_col_option.show(enable);
   
   def option_list (self):
     """Returns list of all TDL options. Note that the MS name is always
@@ -322,10 +342,9 @@ class MSSelector (object):
       ms = pycasatable.table(msname);
       # data columns
       self.ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
-      if self.input_col_option:
-        self.input_col_option.set_option_list(self.ms_data_columns);
-      if self.output_col_option:
-        self.output_col_option.set_option_list(self.ms_data_columns);
+      self.input_col_option.set_option_list(self.ms_data_columns);
+      outcols = [ col for col in self.ms_data_columns if col not in self._forbid_output ];
+      self.output_col_option.set_option_list(outcols);
       # antennas
       self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA')).getcol('NAME');
       if self.antsel_option:
