@@ -36,7 +36,7 @@ from Dummy import *
 from common_utils import *
 from Timba.Meq import meq
 from Timba.TDL import *
-from Timba.Trees import TDL_Sixpack
+import LSM_Sixpack
 from Timba.Meq import meq
 
 from Timba.Apps import app_nogui

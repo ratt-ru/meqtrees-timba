@@ -408,6 +408,41 @@ def serialize_funklet(fnklt):
 # sixpack=sixpack object (in composed form)
 # ns=nodescope used for the sixpack
 def extract_parms(sixpack,ns):
+ myra=sixpack.ra()
+ mydec=sixpack.dec()
+ mybr=sixpack.stokesI()
+ #print "RA,Dec,App.Bri=",myra,mydec,mybr
+ return [myra,mydec,mybr]
+
+
+# utility function to extract polarization percentage [Q,U,V]
+# MeqParm information from a TDL_Sixpack
+# sixpack=sixpack object (in composed form)
+# ns=nodescope used for the sixpack
+def extract_polarization_parms(sixpack,ns,absolute=0):
+ myii=sixpack.stokesI()
+ myqq=sixpack.stokesQ()
+ myuu=sixpack.stokesU()
+ myvv=sixpack.stokesV()
+
+ if absolute==0:
+  ##print "Q,U,V=",myqq,myuu,myvv
+  return [myqq,myuu,myvv]
+
+ 
+ RM=sixpack.rm()
+ SI=sixpack.SI()
+ f0=sixpack.f0()
+ 
+ return [myii,myqq,myuu,myvv,SI,f0,RM]
+ 
+
+
+#########################################################################
+# utility function to extract MeqParm information from a TDL_Sixpack
+# sixpack=sixpack object (in composed form)
+# ns=nodescope used for the sixpack
+def node_extract_parms(sixpack,ns):
  # get name
  myname=sixpack.label()
  if ns._name:
@@ -445,8 +480,9 @@ def extract_parms(sixpack,ns):
 # MeqParm information from a TDL_Sixpack
 # sixpack=sixpack object (in composed form)
 # ns=nodescope used for the sixpack
-def extract_polarization_parms(sixpack,ns,absolute=0):
+def node_extract_polarization_parms(sixpack,ns,absolute=0):
  # get name
+ print dir(sixpack)
  myname=sixpack.label()
  #print "looking for QUV of ",myname
  # first get I0 for further processing
@@ -728,9 +764,8 @@ def radec_to_lm(ra0,dec0,ra,dec):
     return (l,m)
 #################################################################
 if __name__ == '__main__':
-  from Timba.Contrib.JEN import MG_JEN_Sixpack
   ns=NodeScope()
-  my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit="foo",I0=1.0, f0=1e6,RA=2.0, Dec=2.1,trace=0, Qpct=0.1, Upct=1,Vpct=-0.1)
+  my_sixpack=LSM_Sixpack.newstar_source(ns,punit="foo",I0=1.0, f0=1e6,RA=2.0, Dec=2.1,trace=0, Qpct=0.1, Upct=1,Vpct=-0.1)
   my_sixpack.sixpack(ns)
   ns.Resolve()
   print ns.AllNodes()

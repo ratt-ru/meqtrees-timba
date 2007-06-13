@@ -39,17 +39,11 @@ from common_utils import *
 from LSM_inner import *
 from Timba.Meq import meq
 from Timba.TDL import *
-from Timba.Trees import TDL_Sixpack
-from Timba.Trees import TDL_ParmSet
+import LSM_Sixpack
 from Timba.Meq import meq
 
 from Timba.Apps import app_nogui
 from Timba.Apps import assayer
-
-try:
-  from Timba.Contrib.JEN import MG_JEN_Sixpack
-except ImportError:
-  pass
 
 ###############################################
 class PUnit:
@@ -306,12 +300,6 @@ class PUnit:
   if self.__sixpack==None or ns==None:
     print "WARNING: cannot reconstruct ParmSet"
     return
-  # recreate ParmSet
-  pset=TDL_ParmSet.ParmSet()
-  pset.restore(tmp_dict,ns)
-  #pset.display()
-  # attach it to sixpack 
-  self.__sixpack.ParmSet=pset
 ###############################################
 class LSM:
  """LSM Object:
@@ -847,12 +835,12 @@ class LSM:
     tmp_dict=punit.getSP()
     #print tmp_dict
     if tmp_dict.has_key('patchroot'):
-     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+     my_sp=LSM_Sixpack.Sixpack(label=tmp_dict['label'],\
       ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
     else: 
      # NOTE: do not give the nodescope because then it tries to
      # compose, but the tree is already composed
-     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+     my_sp=LSM_Sixpack.Sixpack(label=tmp_dict['label'],\
        ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
        dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
        stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
@@ -1069,7 +1057,7 @@ class LSM:
    # object does not apply here. However, we will create a dummy 
    # sixpack object.
 
-   newp.setSP(TDL_Sixpack.Sixpack(root=patch_root,label=patch_root.name))
+   newp.setSP(LSM_Sixpack.Sixpack(root=patch_root,label=patch_root.name))
 
    # add new PUnit to table
    self.insertPUnit(newp)
@@ -1248,54 +1236,13 @@ class LSM:
 
  # set the current NodeScope
  def setNodeScope(self,ns):
-  #print dir(ns)
-  #print ns._name
   self.__ns=ns
-  # create a single root not to accomodate all subtrees
-  # in the PUnit table, if id does not already exist
-  if self.__root!=None:
-   return
-  child_list=[]
-  for pname in self.p_table.keys():
-   punit=self.getPUnit(pname)
-   psixpack=punit.getSP()
-   if psixpack!=None:
-    if psixpack.ispoint():
-     root_node=psixpack.sixpack()
-    else: #Patch
-     root_node=psixpack.root()
-    child_list.append(root_node.name)
-   elif punit.sp!=None:
-    child_list.append('sixpack:q='+pname)
-  #print child_list
-  # create a common root
-  if len(child_list)!=0:
-   prefix=ns._name# true if ns is a sub scope
-   if prefix!=None: 
-    self.__root_name=ns._name+ns.MakeUniqueName('_lsmroot')
-   else: 
-    self.__root_name=ns.MakeUniqueName('_lsmroot')
-   self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
-
 
  # add a child node (subtree) to the root node
  def addToTree(self,child):
-  if(self.__root!=None):
-   self.__root.add_children(child)
-  elif self.__ns!=None:
-    # no root node still exist so create one
-    child_list=[]
-    child_list.append(child.name)
-    ns=self.__ns
-    prefix=ns._name# true if ns is a sub scope
-    if prefix!=None: 
-      self.__root_name=ns._name+ns.MakeUniqueName('_lsmroot')
-    else: 
-      self.__root_name=ns.MakeUniqueName('_lsmroot')
-    self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
-  else:
-   pass
-   #print "WARNING: cannot create _lsm_root. please ignore this if you used add_sixpack() method."
+  # no root node still exist so create one
+  child_list=[]
+  child_list.append(child)
 
  # return the current NodeScope
  def getNodeScope(self):
@@ -1320,78 +1267,6 @@ class LSM:
   # truncate filename if too long
   self.__file=fname
 
-
- # read in a list of sixpacks (composed) for sources
- # and build the LSM using the MeqServer.
- # sixpack_list: list of sixpacks
- # ns: NodeScope of the sixpack trees
- # f0=rest frequency
- # mqs=MeqServer proxy, when run within MeqBrowser, this should
- #     be given. Else a MeqServer will be created.
- def build_from_sixpacks_assy(self,sixpack_list,ns,f0=1.6e6,mqs=None):
-   if mqs==None:
-    # fire up a server instance
-    my_ass = assayer.assayer("LSM-"+time.strftime('%Y-%d-%H-%M-%S'));
-    my_mqs=my_ass.mqs;
-   else:
-    my_mqs=mqs;
-   my_ns=ns
-   my_ns.Resolve()
-   # form a request
-   f1=f0+1.0
-   t0=0.0
-   t1=1.0
-   nfreq=ntime=1
-   freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
-   cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
-   request = meq.request(cells,rqtype='e1');
-   # populate tree
-   # kernel will recreate the forest
-   my_mqs.meq('Clear.Forest');
-   my_mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),my_ns.AllNodes().itervalues())));
-   my_mqs.meq('Resolve.Batch',record(name=list(my_ns.RootNodes().iterkeys())))
-   fst = getattr(Timba.TDL.Settings,'forest_state',record());
-   my_mqs.meq('Set.Forest.State',record(state=fst));
-
-
-
-   for my_sp in sixpack_list:
-    # create a source object
-    s=Source(my_sp.label())
-    s_root=my_sp.sixpack()
-
-    # get RA 
-    b = my_mqs.meq('Node.Execute',record(name=my_sp.ra().name,request=request),wait=True);
-    if hasattr(b.result.vellsets[0].value[0],'tolist'):
-       source_RA=b.result.vellsets[0].value[0].tolist().pop(0)
-    else:
-       source_RA=b.result.vellsets[0].value[0]
-
-    # get Dec 
-    b = my_mqs.meq('Node.Execute',record(name=my_sp.dec().name,request=request),wait=True);
-    if hasattr(b.result.vellsets[0].value[0],'tolist'):
-       source_Dec=b.result.vellsets[0].value[0].tolist().pop(0)
-    else:
-       source_Dec=b.result.vellsets[0].value[0]
-
-    # get Stokes I
-    b = my_mqs.meq('Node.Execute',record(name=my_sp.stokesI().name,request=request),wait=True);
-    if hasattr(b.result.vellsets[0].value[0],'tolist'):
-       my_brightness=b.result.vellsets[0].value[0].tolist().pop(0)
-    else:
-       my_brightness=b.result.vellsets[0].value[0]
-
-
-    # add this to the LSM
-    self.add_source(s,brightness=my_brightness,
-     sixpack=my_sp,
-     ra=source_RA, dec=source_Dec)
-
-
-
-   if mqs==None:
-    # shutdown
-    my_ass.finish()
 
  # read in a list of sixpacks (composed) for sources
  # and build the LSM by reading MeqParms.
@@ -1494,7 +1369,7 @@ class LSM:
     source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
     source_Dec*=math.pi/180.0
 
-    my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=eval(v.group('col12')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+    my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=eval(v.group('col12')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
     my_sixpack.display()
@@ -1589,12 +1464,12 @@ class LSM:
        tmp_dict=punit.getSixpack()
        #print tmp_dict
        if tmp_dict.has_key('patchroot'):
-           my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+           my_sp=LSM_Sixpack.Sixpack(label=tmp_dict['label'],\
             ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
        else: 
        # NOTE: do not give the nodescope because then it tries to
        # compose, but the tree is already composed
-          my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+          my_sp=LSM_Sixpack.Sixpack(label=tmp_dict['label'],\
             ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
             dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
             stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
@@ -1808,13 +1683,13 @@ class LSM:
 
             #print ii,id,ll,mm,source_RA,source_Dec
             if ignore_pol:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
             elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
             elif (RM==0):
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
             else:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
 
             # first compose the sixpack before giving it to the LSM
             my_sixpack.sixpack(ns)
@@ -1844,13 +1719,13 @@ class LSM:
 
             #print ii,id,ll,mm,source_RA,source_Dec
             if ignore_pol:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
             elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
             elif (RM==0):
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
             else:
-             my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
 
             # first compose the sixpack before giving it to the LSM
             my_sixpack.sixpack(ns)
@@ -1876,13 +1751,13 @@ class LSM:
 
           #print ii,id,ll,mm,source_RA,source_Dec
           if ignore_pol:
-           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI, trace=0)
           elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
-           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
           elif (RM==0):
-           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
           else:
-           my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
 
           # first compose the sixpack before giving it to the LSM
           my_sixpack.sixpack(ns)
@@ -1941,9 +1816,9 @@ class LSM:
     #print sI,sQ,sU,sV
     freq0=1e6
     if (sQ==0 and sU==0 and sV==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     else:
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
     self.add_source(s,brightness=eval(v.group('col3')),
@@ -2013,11 +1888,11 @@ class LSM:
     #print sI,sQ,sU,sV
     freq0=1e6
     if (SI==0 and sQ==0 and sU==0 and sV==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
     else :
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI,trace=0)
  
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
@@ -2107,16 +1982,15 @@ class LSM:
     else:
      freq0=f0
     if (ignore_pol==True or (sQ==0 and sU==0 and sV==0 and RM==0)):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0 and RM==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
     elif (SI==0):
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM, trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM, trace=0)
     else :
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI, RM=RM, trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI, RM=RM, trace=0)
  
    # first compose the sixpack before giving it to the LSM
-    SourceRoot=my_sixpack.sixpack(ns)
     self.add_source(s,brightness=eval(v.group('col8')),
      sixpack=my_sixpack,
      ra=source_RA, dec=source_Dec)
@@ -2324,7 +2198,7 @@ class LSM:
       freq0=1e6
      else:
       freq0=f0
-     my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
  
      # first compose the sixpack before giving it to the LSM
      SourceRoot=my_sixpack.sixpack(ns)
