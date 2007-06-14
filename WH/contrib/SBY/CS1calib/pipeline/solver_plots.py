@@ -228,8 +228,10 @@ def read_array(infile, dtype='float32', separator=None):
 
 
 
-
 ######## test
 if __name__ == '__main__':
-  create_residual_plots("L2007_02413_SB6-11.MS_201_0.log",npages=1)
+  import sys
+  argc=len(sys.argv)
+  if argc>1:
+   create_residual_plots(sys.argv[1],npages=4)
 
