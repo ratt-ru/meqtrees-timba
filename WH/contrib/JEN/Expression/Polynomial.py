@@ -522,7 +522,10 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-    if 1: 
+    if 1:
+        _define_forest(ns)
+
+    if 0: 
         sex = dict()
         fiduc = []
         dims = ['dt^1','ff^1']
