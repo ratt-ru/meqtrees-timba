@@ -1,0 +1,67 @@
+TDL meq_42.py
+ 
+TDL MG_AGW_azel.py
+ 
+TDL MG_AGW_Collections_Plotter.py
+ 
+TDL MG_AGW_form_beam_from_meptable.py
+ 
+TDL MG_AGW_form_beams_all.py
+ 
+TDL MG_AGW_form_resampler_beam.py
+ 
+TDL MG_AGW_FPA_azel_gauss_obs.py
+ 
+TDL MG_AGW_FPA_azel_obs1.py
+ 
+TDL MG_AGW_FPA_azel_obs.py
+ 
+TDL MG_AGW_full_gain_varying_FPA.py
+ 
+TDL MG_AGW_gain_varying_FPA.py
+ 
+TDL MG_AGW_gain_varying_FPA_solving_problem.py
+ 
+TDL MG_AGW_gain_varying_FPA_solving.py
+ 
+TDL MG_AGW_gauss_fit_obs.py
+ 
+TDL MG_AGW_history.py
+ 
+TDL MG_AGW_LMRaDec.py
+ 
+TDL MG_AGW_LST.py
+ 
+TDL MG_AGW_make_polarization_images.py
+ 
+TDL MG_AGW_make_polarization_images_veidt_fpa.py
+ 
+TDL MG_AGW_modcal.py
+ 
+TDL MG_AGW_multi_beams.py
+ 
+TDL MG_AGW_multi_beams_veidt_fpa.py
+ 
+TDL MG_AGW_multifreq_poln_images.py
+ 
+TDL MG_AGW_observe_noise_from_meptable.py
+ 
+TDL MG_AGW_ParAngle.py
+ 
+TDL MG_AGW_phased_beam_obs.py
+ 
+TDL MG_AGW_project2a.py
+ 
+TDL MG_AGW_project5.py
+ 
+TDL MG_AGW_project6.py
+ 
+TDL MG_AGW_solve_720_beams.py
+ 
+TDL MG_AGW_solve_FPA_beam.py
+ 
+TDL MG_AGW_solve_veidt_fpa.py
+ 
+TDL MG_AGW_store_beam_weights.py
+ 
+TDL MG_AGW_tree.py
