@@ -15,8 +15,7 @@ def _define_forest (ns, **kwargs):
    # just read a FITS file, 
    # cutoff=any value in the range 0 to 1.0
    # filename= any FITS file of an image
-   #ns.image<<Meq.FITSImage(filename="demo.fits",cutoff=0.2)
-   ns.image<<Meq.FITSImage(filename="swapped_xx_freqend.fits",cutoff=1.0,mode=2)
+   ns.image<<Meq.FITSImage(filename="demo.fits",cutoff=0.2)
 
    # Make a bookmark of the result node, for easy viewing:
    bm = record(name='result', viewer='Result Plotter',
