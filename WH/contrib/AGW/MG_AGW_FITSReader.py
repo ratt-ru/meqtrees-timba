@@ -99,7 +99,7 @@ def _test_forest(mqs,parent):
 
 if __name__=='__main__':
   ns=NodeScope()
-  define_forest(ns)
+  _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
   
