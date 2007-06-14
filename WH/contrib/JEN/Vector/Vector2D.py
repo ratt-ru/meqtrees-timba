@@ -59,9 +59,10 @@ def _define_forest(ns):
 
     cc = []
 
+    t1 = Vector2D(ns, 't1', [1,2], unit='m')
+    t1.test_result()
 
     ns.result << Meq.Composer(children=cc)
-    v1.test_result()
     return True
 
 #---------------------------------------------------------------
@@ -84,6 +85,10 @@ if __name__ == '__main__':
     """Test program"""
     print
     ns = NodeScope()
+
+    if 1:
+      _define_forest(ns)
+      
 
     if 1:
       t1 = Vector2D(ns, 't1', [1,2], unit='m')
