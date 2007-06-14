@@ -14,7 +14,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
+# import Meow
 
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
@@ -102,32 +102,6 @@ def _define_forest (ns, **kwargs):
    cc.append(node('q1') << 1)
    cc.append(node('q2') << 1)
    cc.append(node('q1')('q11') << 1)
-   gg.append(ns[group] << Meq.Composer(children=cc))
-
-
-   #--------------------------------------------------------------------------
-   # The use of the Meow QualScope object:
-   group = 'QualScope'
-   cc = []
-   ns1 = Meow.QualScope(ns, quals=['q1','q2'], kwquals=dict(q2='kw2'))
-   name = 'ns1'
-   # cc.append(ns1 << 1)                # temporary problem
-   cc.append(ns1[name] << 1)
-   cc.append(ns1[name](*[1,2]) << 1)
-   cc.append(ns1[name]([1,2]) << 1)
-   cc.append(ns1[name](1)(2) << 1)
-   cc.append(ns1[name](s1=1)(s2=2) << 1)
-
-   # The QualScope is cumulative, of course. Note the merging rules for quals and kwquals.
-   ns11 = Meow.QualScope(ns1, quals=['q3'], kwquals=dict(q4='kw4'))
-   cc.append(ns11['ns11'] << 1)
-   ns12 = Meow.QualScope(ns1, quals=['q2'])
-   cc.append(ns12['ns12'] << 1)
-   ns13 = Meow.QualScope(ns1, kwquals=dict(q4='kw44'))
-   cc.append(ns13['ns13'] << 1)
-   ns14 = Meow.QualScope(ns1, kwquals=dict(q2='kw22'))
-   cc.append(ns14['ns14'] << 1)
-
    gg.append(ns[group] << Meq.Composer(children=cc))
 
 
