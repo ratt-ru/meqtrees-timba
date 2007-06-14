@@ -28,14 +28,14 @@ TDLRuntimeMenu("MS Selection",
 # write data to
   TDLOption('output_column',"Output MS column",[None,"MODEL_DATA","CORRECTED_DATA"],default=0),
 # number of spectral windows to process 
-  TDLOption('min_spwid',"Start subband",[1,2,3]),
-  TDLOption('max_spwid',"End subband",[1,2,3,4,5,6]),
+  TDLOption('min_spwid',"Start subband",[1,2,3],more=int),
+  TDLOption('max_spwid',"End subband",[1,2,3,4,5,6],more=int),
 # number of channels per job
-  TDLOption('channel_step',"channels per job",[8,2,10,20]),
+  TDLOption('channel_step',"channels per job",[8,2,10,20],more=int),
 # start channel in subband (from 0)
-  TDLOption('start_channel',"start channel",[31,99]),
+  TDLOption('start_channel',"start channel",[31,99],more=int),
 # end channel in subband (from 0)
-  TDLOption('end_channel',"end channel",[223,41,240])
+  TDLOption('end_channel',"end channel",[223,41,240],more=int)
 );
 
 
@@ -49,9 +49,9 @@ TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
 # solver debug level
 TDLOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]),
 # max number of iterations
-TDLOption('solver_maxiter',"Max iterations",[10,3,15]),
+TDLOption('solver_maxiter',"Max iterations",[10,3,15],more=int),
 # number of timeslots to use at once
-TDLOption('tile_size',"Tile size",[1,10,30,48,60,96,480]),
+TDLOption('tile_size',"Tile size",[1,10,30,48,60,96,480],more=int),
 # solve for full J Jones or  diagonal J Jones
 TDLOption('full_J',"Full Jones",[False,True]),
 );
@@ -483,7 +483,7 @@ def _do_calibrate(fname,mqs):
           channel_end_index=schan+channel_step-1,
           channel_increment=1,
           ddid_index=spwid,
-          selection_string='sumsqr(UVW[1:2]) > 100')
+          selection_string='sumsqr(UVW[1:2]) > 20') # exclude only autocorrelations
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
       # update parmtablename 
       if mytable !=None:
