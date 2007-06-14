@@ -56,6 +56,12 @@ TDLOption('tile_size',"Tile size",[1,10,30,48,60,96,480]),
 TDLOption('full_J',"Full Jones",[False,True]),
 );
 
+TDLRuntimeMenu("Calibration",
+#### imaging options ####
+TDLOption('do_preprocess',"Preprocess",[True,False]),
+TDLOption('do_calibrate',"Calibrate",[True,False]),
+TDLOption('do_postprocess',"Postprocess",[True,False]),
+);
 
 TDLRuntimeMenu("Imager",
 #### imaging options ####
@@ -76,6 +82,13 @@ TDLOption('dosubtile',"subtile",[True,False],default=True),
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
 # which solution used for correction?
 TDLOption('ph_center',"Phase Cen",["CasA","CygA"])
+);
+
+TDLCompileMenu("Post-flags",
+TDLOption('mmse_sigma',"MMSE noise var",[2e-5,1e-5],more=float,doc="noise variance for MMSE correction"),
+TDLOption('rms_sigmas',"RMS sigmas",[5,10],more=float,doc="How many sigmas away to flag"),
+TDLOption('abs_clipval',"Abs Cutoff",[1e4,1e5],more=float,doc="Clipping value"),
+TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max condition number"),
 );
 
 # correct for all baselines
@@ -246,10 +259,10 @@ def _define_forest(ns, parent=None, **kw):
   else:
     whichG=1;
   #sigma2=1e-5; for band 4-5
-  sigma2=2e-5;
+  sigma2=mmse_sigma;
   ns.I0<<Meq.Matrix22(sigma2,0,0,sigma2)
   # threshold for flagging - condition number
-  fthreshold=3
+  fthreshold=max_condnum;
   for station in array.stations():
     # get min value
     ns.Jmin(station)<<Meq.Min(Meq.Abs(ns.J11(station,whichG)+sigma2),Meq.Abs(ns.J22(station,whichG)+sigma2))
@@ -272,9 +285,9 @@ def _define_forest(ns, parent=None, **kw):
     
 
   ## attach a clipper too as final flagging step
-  threshold_sigmas=5;
+  threshold_sigmas=rms_sigmas;
   ## also cutoff
-  abs_cutoff=1e4
+  abs_cutoff=abs_clipval;
   for sta1,sta2 in array.ifrs():
     inp = ns.corrected(sta1,sta2);
     a = ns.flagged("abs",sta1,sta2) << Meq.Abs(inp);
@@ -417,12 +430,15 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   infile.close()
   
   ### run each file through the pipeline
-  for fname in filelist:
-    _do_preprocess(fname,mqs);
-  for fname in filelist:
-    _do_calibrate(fname,mqs);
-  for fname in filelist:
-    _do_postprocess(fname,mqs);
+  if do_preprocess:
+    for fname in filelist:
+      _do_preprocess(fname,mqs);
+  if do_calibrate:
+    for fname in filelist:
+      _do_calibrate(fname,mqs);
+  if do_postprocess:
+    for fname in filelist:
+      _do_postprocess(fname,mqs);
 
 
 def _do_preprocess(fname,mqs):
