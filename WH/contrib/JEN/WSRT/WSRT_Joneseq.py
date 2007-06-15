@@ -1,0 +1,240 @@
+# file: ../WSRT/WSRT_Joneseq.py
+
+# History:
+# - 15jun2007: creation (from Grunting/WSRT_Jones.py)
+
+# Description:
+
+# Make a matrix product of a sequence 2x2 WSRT Jones matrices. The
+# result is a Jones matrix object, derived from Grunt.Joneset22.
+
+# Copyright: The MeqTree Foundation
+
+
+#======================================================================================
+# Preamble:
+#======================================================================================
+
+from Timba.TDL import *
+from Timba.Meq import meq
+
+from Timba.Contrib.JEN.Grunt import Joneset22
+import WSRT_GJones
+import WSRT_DJones
+import WSRT_FJones
+import WSRT_JJones
+import WSRT_BJones
+# from Timba.Contrib.JEN.WSRT import WSRT_JJones
+# from Timba.Contrib.JEN.WSRT import WSRT_GJones
+# from Timba.Contrib.JEN.WSRT import WSRT_FJones
+# from Timba.Contrib.JEN.WSRT import WSRT_DJones
+# from Timba.Contrib.JEN.WSRT import WSRT_BJones
+# from Timba.Contrib.JEN.WSRT import WSRT_EJones
+
+
+
+#=================================================================================================
+# Functions to streamline the use of WSRT Jones matrices: 
+#=================================================================================================
+
+def help ():
+    ss = 'help on WSRT Jones matrices'
+    return ss
+
+
+def parmgroups_uvp(full=False):
+    """Return the available groups of MeqParms from the (uv-plane) Jones matrices
+    in this Jones module"""
+    pg = ['*']
+    pg.extend(WSRT_GJones_parmgroups(full=full)) 
+    pg.extend(WSRT_DJones_parmgroups(full=full)) 
+    pg.extend(WSRT_FJones_parmgroups(full=full)) 
+    pg.extend(WSRT_JJones_parmgroups(full=full)) 
+    pg.extend(WSRT_BJones_parmgroups(full=full))
+    pg.append(['GJones','BJones'])
+    pg.append(['GJones','DJones'])
+    pg.append(['GJones','DJones','FJones'])
+    pg.append(['DJones','FJones'])
+    return pg
+
+
+
+#------------------------------------------------------------------------------------------
+
+def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
+    """Return a Jonest22 object that contains a set of Jones matrices for
+    the given stations. This function deals with uv-plane effects only.
+    The Jones matrices are the matrix product of a
+    sequence of WSRT Jones matrices that are defined in this module.
+    - The 'TDL_' arguments in this function are user-defined in the meqbrowser,
+    via the TDLOptions defined in the function .include_TDL_options() in this module.
+    - The sequence is defined by the letters (e.g. 'GD') of the string TDL_joneseq.
+    - If simulate==True, the Jones matrices do not contain MeqParms,
+    but subtrees that simulate MeqParm values that change with time etc."""
+
+    if not isinstance(pp, dict): pp = dict()
+    pp.setdefault('joneseq',TDL_joneseq)
+    pp.setdefault('D_coupled_dell',TDL_D_coupled_dell)
+    pp.setdefault('D_coupled_dang',TDL_D_coupled_dang)
+    pp.setdefault('J_diagonal',TDL_J_diagonal)
+    pp.setdefault('B_tfdeg',TDL_B_tfdeg)
+
+    # First make a sequence (list) of Joneset22 objects:
+    jseq = []
+    for c in pp['joneseq']:
+        if c=='G':
+            jseq.append(GJones(ns, stations=stations,
+                               override=override,
+                               simulate=simulate))
+        elif c=='D':
+            jseq.append(DJones(ns, stations=stations,
+                               coupled_dell=pp['D_coupled_dell'],
+                               coupled_dang=pp['D_coupled_dang'],
+                               override=override,
+                               simulate=simulate))
+        elif c=='F':
+            jseq.append(FJones(ns, stations=stations,
+                               override=override,
+                               simulate=simulate))
+        elif c=='J':
+            jseq.append(JJones(ns, stations=stations,
+                               diagonal=pp['J_diagonal'],
+                               override=override,
+                               simulate=simulate))
+        elif c=='B':
+            jseq.append(BJones(ns, stations=stations,
+                               tfdeg=pp['B_tfdeg'],
+                               override=override,
+                               simulate=simulate))
+        else:
+            raise ValueError,'WSRT jones matrix not recognised: '+str(c)
+
+    # Then matrix-multiply them into a single Joneset22 object:
+    # NB: Its ParmGroupManager will contain all information (parmgroups)
+    #     from those of the contributing Joneset22 objects.
+    jones = Joneset22.Joneseq22(ns, jseq)
+    return jones
+
+
+
+#============================================================================
+
+_jseq_option = TDLCompileOption('TDL_jseq',"Jones matrix sequence",
+                                ['J','G','F','GD','GDF','GDFJB'],
+                                more=str);
+
+# Make a dict of named option-menu-objects for the various Jones matrices:
+rr = dict(G=TDLCompileMenu('Options for WSRT_GJones', WSRT_GJones),
+          D=TDLCompileMenu('Options for WSRT_DJones', WSRT_DJones),
+          F=TDLCompileMenu('Options for WSRT_FJones', WSRT_FJones),
+          J=TDLCompileMenu('Options for WSRT_JJones', WSRT_JJones),
+          B=TDLCompileMenu('Options for WSRT_BJones', WSRT_BJones))
+# 
+_matrix_option_menu = TDLCompileMenu('Jones matrix options',
+                                     rr['G'],
+                                     rr['D'],
+                                     rr['F'],
+                                     rr['J'],
+                                     rr['B'],
+                                     );
+
+
+# show/hide option menus based on selected Jones matrix sequence (jseq)
+def _show_option_menus (jseq):
+    # print '** jseq =',jseq
+    # Only show the relevant menu if the Jones matrix (jchar, e.g. G)
+    # is in the selected sequence (jseq):
+    for jchar in rr.keys():
+        rr[jchar].show(jchar in jseq)
+        rr[jchar].hide(not jchar in jseq)
+            
+_jseq_option.when_changed(_show_option_menus);
+
+
+
+
+
+     
+#===============================================================
+# Test routine (with meqbrowser):
+#===============================================================
+
+def _define_forest(ns):
+
+    cc = [ns.dummy<<1]
+    jj = []
+    simulate = True
+
+
+    if 0:
+        jseq = Joneset22.Joneseq22 (ns, jj)
+        cc.append(jseq.visualize('*'))
+        cc.append(jseq.p_plot_rvsi())
+        cc.append(jseq.p_bundle())
+        jseq.display(full=True)
+
+
+    ns.result << Meq.Composer(children=cc)
+    return True
+
+#---------------------------------------------------------------
+
+def _tdl_job_execute (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    domain = meq.domain(1.0e8,1.1e8,1,1000)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=1, num_time=100)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='result', request=request))
+    return result
+       
+
+
+
+#===============================================================
+# Test routine:
+#===============================================================
+
+if __name__ == '__main__':
+    ns = NodeScope()
+
+    jj = []
+
+    if 1:
+        G = GJones(ns,
+                   # quals=['3c84','xxx'],
+                   simulate=True)
+        jj.append(G)
+        G.visualize()
+        G.display(full=True, recurse=10)
+
+    if 0:
+        J = JJones(ns, quals=['xxx'], diagonal=False)
+        jj.append(J)
+        J.display(full=True)
+
+
+    if 0:
+        J = BJones(ns, quals=['xxx'])
+        jj.append(J)
+        J.display(full=True)
+
+    if 0:
+        F = FJones(ns)
+        jj.append(F)
+        F.display(full=True)
+
+
+    if 1:
+        D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=False)
+        # D = DJones(ns, coupled_dang=False, coupled_dell=False)
+        jj.append(D)
+        D.display(full=True, recurse=10)
+        D.history().display(full=True)
+
+    if 1:
+        jseq = Joneset22.Joneseq22 (ns, jj)
+        jseq.display(full=True)
+
+
+#===============================================================
+    
