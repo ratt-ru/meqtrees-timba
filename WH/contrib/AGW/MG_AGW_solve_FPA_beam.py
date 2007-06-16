@@ -94,7 +94,7 @@ def _define_forest(ns):
   maxis = ns.maxis << Meq.Grid(axis=3);
 
 # read in beam images
-  home_dir = os.environ['LOFAR_AGW']
+  home_dir = os.environ.get('LOFAR_AGW','.');
   # read in beam data
 
   infile_name_re_yx = home_dir + '/veidt_stuff/yx_real.fits'
