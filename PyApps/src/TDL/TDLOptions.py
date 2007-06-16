@@ -396,7 +396,10 @@ class _TDLFileOptionItem (_TDLOptionItem):
   def make_listview_item (self,parent,after,executor=None):
     item = QListViewItem(parent,after);
     item.setText(0,self.name+":");
-    item.setText(1,os.path.basename(self.value.rstrip("/")));
+    if self.value:
+      item.setText(1,os.path.basename(self.value.rstrip("/")));
+    else:
+      item.setText(1,"<none>");
     # create file dialog
     self._file_dialog = file_dialog = \
         self.FileDialog(".",self._filespec.filenames,item.listView());

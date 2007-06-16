@@ -566,7 +566,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     except Exception,value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
-      self.set_error_list([value],message="TDL import failed");
+      self._error_window.set_errors([value],message="TDL import failed");
       return None;
     # remember module and nodescope
     self._tdlmod = tdlmod;
@@ -585,7 +585,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       except Exception,value:
         _dprint(0,"error setting up TDL options GUI");
         traceback.print_exc();
-        self.set_error_list([value],message="Error setting up TDL options GUI");
+        self._error_window.set_errors([value],message="Error setting up TDL options GUI");
         return None;
       ## old style: add as menu items
       # TDLOptions.populate_option_menu(self._options_menu,opts);
@@ -674,7 +674,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         except Exception,value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
-          self.set_error_list([value],message="Error setting up TDL options GUI");
+          self._error_window.set_errors([value],message="Error setting up TDL options GUI");
           return None;
         ## old style:
         # TDLOptions.populate_option_menu(self._jobmenu,opts,executor=self._job_executor);
