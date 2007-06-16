@@ -41,7 +41,7 @@ TDLCompileOption('TDL_coupled_dell',"coupled_dell",[True,False],
 #--------------------------------------------------------------------------------------------
 
 
-class WSRT_DJones (Joneset22.Joneset22):
+class DJones (Joneset22.Joneset22):
     """Class that represents a set of 2x2 WSRT DJones matrices.
     They model the (on-axis) leakage if signal between the two dipoles,
     caused by small errors in dipole position angle (dang) and in dipole
@@ -53,15 +53,20 @@ class WSRT_DJones (Joneset22.Joneset22):
     per telescope.
     - A non-zero PZD converts StokesU into StokesV."""
 
-    def __init__(self, ns, name='WSRT_DJones', quals=[], 
-                 coupled_dang=TDL_coupled_dang,
-                 coupled_dell=TDL_coupled_dell,
+    def __init__(self, ns, name='DJones', quals=[], 
+                 coupled_dang=None,
+                 coupled_dell=None,
                  override=None,
                  stations=None, simulate=False):
         
         Joneset22.Joneset22.__init__(self, ns, name=name, quals=quals, 
-                                     telescope='WSRT', polrep='linear',
-                                     stations=stations, simulate=simulate)
+                                     telescope='WSRT',
+                                     polrep='linear',
+                                     stations=stations,
+                                     simulate=simulate)
+
+        if coupled_dang==None: coupled_dang = TDL_coupled_dang 
+        if coupled_dell==None: coupled_dell = TDL_coupled_dell 
         
         self.history(override)
         self.history('coupled_dang='+str(coupled_dang)+' coupled_dell='+str(coupled_dell))
@@ -213,9 +218,9 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    jones = WSRT_DJones(ns, quals=[], simulate=simulate,
-                        coupled_dang=TDL_coupled_dang,
-                        coupled_dell=TDL_coupled_dell)
+    jones = DJones(ns, quals=[], simulate=simulate,
+                   coupled_dang=TDL_coupled_dang,
+                   coupled_dell=TDL_coupled_dell)
     cc.append(jones.visualize())
     jones.display(full=True)
         
@@ -243,9 +248,9 @@ if __name__ == '__main__':
 
 
     if 1:
-        J = WSRT_DJones(ns, quals=['xxx'],
-                        coupled_dang=TDL_coupled_dang,
-                        coupled_dell=TDL_coupled_dell)
+        J = DJones(ns, quals=['xxx'],
+                   coupled_dang=TDL_coupled_dang,
+                   coupled_dell=TDL_coupled_dell)
         J.display(full=True)
 
 

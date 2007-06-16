@@ -394,7 +394,7 @@ class Visset22 (Matrixet22.Matrixet22):
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
             self.p_merge(joneset)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        # self.merge_accumulist(joneset)
+        self.merge_accumulist(joneset)
         if visu: return self.visualize(visu, name)
         return None
 

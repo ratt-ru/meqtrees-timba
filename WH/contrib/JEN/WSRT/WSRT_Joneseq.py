@@ -19,16 +19,11 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import Joneset22
-import WSRT_GJones
-import WSRT_DJones
-import WSRT_FJones
-import WSRT_JJones
-import WSRT_BJones
-# from Timba.Contrib.JEN.WSRT import WSRT_JJones
-# from Timba.Contrib.JEN.WSRT import WSRT_GJones
-# from Timba.Contrib.JEN.WSRT import WSRT_FJones
-# from Timba.Contrib.JEN.WSRT import WSRT_DJones
-# from Timba.Contrib.JEN.WSRT import WSRT_BJones
+from Timba.Contrib.JEN.WSRT import WSRT_JJones
+from Timba.Contrib.JEN.WSRT import WSRT_GJones
+from Timba.Contrib.JEN.WSRT import WSRT_FJones
+from Timba.Contrib.JEN.WSRT import WSRT_DJones
+from Timba.Contrib.JEN.WSRT import WSRT_BJones
 # from Timba.Contrib.JEN.WSRT import WSRT_EJones
 
 
@@ -61,7 +56,7 @@ def parmgroups_uvp(full=False):
 
 #------------------------------------------------------------------------------------------
 
-def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
+def Joneseq22_uvp(ns, stations, jseq=None, simulate=False, override=None):
     """Return a Jonest22 object that contains a set of Jones matrices for
     the given stations. This function deals with uv-plane effects only.
     The Jones matrices are the matrix product of a
@@ -72,47 +67,38 @@ def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
     - If simulate==True, the Jones matrices do not contain MeqParms,
     but subtrees that simulate MeqParm values that change with time etc."""
 
-    if not isinstance(pp, dict): pp = dict()
-    pp.setdefault('joneseq',TDL_joneseq)
-    pp.setdefault('D_coupled_dell',TDL_D_coupled_dell)
-    pp.setdefault('D_coupled_dang',TDL_D_coupled_dang)
-    pp.setdefault('J_diagonal',TDL_J_diagonal)
-    pp.setdefault('B_tfdeg',TDL_B_tfdeg)
+    # If not specified, use the TDLOption value:
+    if jseq==None: jseq = TDL_jseq
+    print '** jseq=',jseq,' simulate=',simulate,'\n'
 
-    # First make a sequence (list) of Joneset22 objects:
-    jseq = []
-    for c in pp['joneseq']:
-        if c=='G':
-            jseq.append(GJones(ns, stations=stations,
-                               override=override,
-                               simulate=simulate))
-        elif c=='D':
-            jseq.append(DJones(ns, stations=stations,
-                               coupled_dell=pp['D_coupled_dell'],
-                               coupled_dang=pp['D_coupled_dang'],
-                               override=override,
-                               simulate=simulate))
-        elif c=='F':
-            jseq.append(FJones(ns, stations=stations,
-                               override=override,
-                               simulate=simulate))
-        elif c=='J':
-            jseq.append(JJones(ns, stations=stations,
-                               diagonal=pp['J_diagonal'],
-                               override=override,
-                               simulate=simulate))
-        elif c=='B':
-            jseq.append(BJones(ns, stations=stations,
-                               tfdeg=pp['B_tfdeg'],
-                               override=override,
-                               simulate=simulate))
+    # First make a sequence (list jj) of Joneset22 objects:
+    jj = []
+    for jchar in jseq:
+        if jchar=='G':
+            jj.append(WSRT_GJones.GJones(ns, stations=stations,
+                                         override=override,
+                                         simulate=simulate))
+        elif jchar=='D':
+            jj.append(WSRT_DJones.DJones(ns, stations=stations,
+                                         override=override,
+                                         simulate=simulate))
+        elif jchar=='F':
+            jj.append(WSRT_FJones.FJones(ns, stations=stations,
+                                         override=override,
+                                         simulate=simulate))
+        elif jchar=='J':
+            jj.append(WSRT_JJones.JJones(ns, stations=stations,
+                                         override=override,
+                                         simulate=simulate))
+        elif jchar=='B':
+            jj.append(WSRT_BJones.BJones(ns, stations=stations,
+                                         override=override,
+                                         simulate=simulate))
         else:
-            raise ValueError,'WSRT jones matrix not recognised: '+str(c)
+            raise ValueError,'WSRT jones matrix not recognised: '+str(jchar)
 
     # Then matrix-multiply them into a single Joneset22 object:
-    # NB: Its ParmGroupManager will contain all information (parmgroups)
-    #     from those of the contributing Joneset22 objects.
-    jones = Joneset22.Joneseq22(ns, jseq)
+    jones = Joneset22.Joneseq22(ns, jj)
     return jones
 
 
@@ -120,7 +106,7 @@ def Joneseq22_uvp(ns, stations, simulate=False, override=None, **pp):
 #============================================================================
 
 _jseq_option = TDLCompileOption('TDL_jseq',"Jones matrix sequence",
-                                ['J','G','F','GD','GDF','GDFJB'],
+                                ['J','G','F','J','B','GD','GDF','GDFJB'],
                                 more=str);
 
 # Make a dict of named option-menu-objects for the various Jones matrices:
@@ -146,7 +132,7 @@ def _show_option_menus (jseq):
     # is in the selected sequence (jseq):
     for jchar in rr.keys():
         rr[jchar].show(jchar in jseq)
-        rr[jchar].hide(not jchar in jseq)
+        # rr[jchar].hide(not jchar in jseq)
             
 _jseq_option.when_changed(_show_option_menus);
 
@@ -161,21 +147,21 @@ _jseq_option.when_changed(_show_option_menus);
 
 def _define_forest(ns):
 
-    cc = [ns.dummy<<1]
-    jj = []
-    simulate = True
+    cc = []
+    stations = range(3)
 
+    jones = Joneseq22_uvp(ns, stations, simulate=True, override=None)
 
-    if 0:
-        jseq = Joneset22.Joneseq22 (ns, jj)
-        cc.append(jseq.visualize('*'))
-        cc.append(jseq.p_plot_rvsi())
-        cc.append(jseq.p_bundle())
-        jseq.display(full=True)
-
+    cc.append(jones.visualize('*'))
+    cc.append(jones.p_plot_rvsi())
+    cc.append(jones.p_bundle())
+    cc.append(jones.bundle())
+    jones.display(full=True)
 
     ns.result << Meq.Composer(children=cc)
     return True
+
+
 
 #---------------------------------------------------------------
 
@@ -197,43 +183,19 @@ def _tdl_job_execute (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    jj = []
-
     if 1:
-        G = GJones(ns,
-                   # quals=['3c84','xxx'],
-                   simulate=True)
-        jj.append(G)
-        G.visualize()
-        G.display(full=True, recurse=10)
+        stations = range(3)
+        jseq = 'GD'
+        jones = Joneseq22_uvp(ns, stations, jseq=jseq, simulate=False, override=None)
 
     if 0:
-        J = JJones(ns, quals=['xxx'], diagonal=False)
-        jj.append(J)
-        J.display(full=True)
-
-
-    if 0:
-        J = BJones(ns, quals=['xxx'])
-        jj.append(J)
-        J.display(full=True)
-
-    if 0:
-        F = FJones(ns)
-        jj.append(F)
-        F.display(full=True)
-
+        jones.visualize('*')
+        jones.p_plot_rvsi()
+        jones.p_bundle()
+        jones.bundle()
 
     if 1:
-        D = DJones(ns, coupled_dang=True, coupled_dell=True, simulate=False)
-        # D = DJones(ns, coupled_dang=False, coupled_dell=False)
-        jj.append(D)
-        D.display(full=True, recurse=10)
-        D.history().display(full=True)
-
-    if 1:
-        jseq = Joneset22.Joneseq22 (ns, jj)
-        jseq.display(full=True)
+        jones.display(full=True)
 
 
 #===============================================================

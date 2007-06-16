@@ -25,7 +25,7 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 #=================================================================================================
 
 
-def WSRT_JJones_parmgroups(full=False):
+def JJones_parmgroups(full=False):
     """Return the available groups of MeqParms"""
     pg = ['JJones','Jdiag','Joffdiag']
     return pg
@@ -39,16 +39,18 @@ TDLCompileOption('TDL_diagonal',"diagonal",[True,False],
 #--------------------------------------------------------------------------------------------
 
 
-class WSRT_JJones (Joneset22.JJones):
+class JJones (Joneset22.JJones):
     """Class that represents a set of 2x2 WSRT JJones matrices.
     Each of the 4 complex elements of a station Jones matrix
     is assumed to be independent. The parameters are their real
     and imaginary parts (i.e. 8 real parameters per station)."""
 
-    def __init__(self, ns, name='WSRT_JJones', quals=[], 
-                 diagonal=False,
+    def __init__(self, ns, name='JJones', quals=[], 
+                 diagonal=TDL_diagonal,
                  override=None,
                  stations=None, simulate=False):
+
+        print '** diagonal=',diagonal
 
         # Just use the generic JJones in Grunt/Joneset22.py
         Joneset22.JJones.__init__(self, ns, quals=quals, name=name,
@@ -70,7 +72,7 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    jones = WSRT_JJones(ns, quals=[], simulate=simulate,
+    jones = JJones(ns, quals=[], simulate=simulate,
                         diagonal=TDL_diagonal)
     cc.append(jones.visualize())
     jones.display(full=True)
@@ -99,7 +101,7 @@ if __name__ == '__main__':
 
 
     if 1:
-        J = WSRT_JJones(ns, quals=['xxx'], diagonal=TDL_diagonal)
+        J = JJones(ns, quals=['xxx'], diagonal=TDL_diagonal)
         J.display(full=True)
 
 

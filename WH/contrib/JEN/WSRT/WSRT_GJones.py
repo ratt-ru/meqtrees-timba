@@ -24,20 +24,20 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 # Functions to streamline the use of WSRT Jones matrices: 
 #=================================================================================================
 
-def WSRT_GJones_parmgroups(full=False):
+def GJones_parmgroups(full=False):
     """Return the available groups of MeqParms"""
     pg = ['GJones','Gphase','Ggain'] 
     if full: pg.extend(['GphaseX','GgainX','GphaseY','GgainY']) 
     return pg
 
 
-class WSRT_GJones (Joneset22.GJones):
+class GJones (Joneset22.GJones):
     """Class that represents a set of 2x2 WSRT GJones matrices,
     which model the (complex) gains due to electronics
     and (optionally) the tropospheric phase (a.k.a. TJones).
     GJones is a uv-plane effect, i.e. it is valid for the entire FOV."""
 
-    def __init__(self, ns, name='WSRT_GJones', quals=[], 
+    def __init__(self, ns, name='GJones', quals=[], 
                  override=None,
                  stations=None, simulate=False):
         
@@ -46,7 +46,8 @@ class WSRT_GJones (Joneset22.GJones):
                                   telescope='WSRT',
                                   polrep='linear', 
                                   override=override,
-                                  stations=stations, simulate=simulate)
+                                  stations=stations,
+                                  simulate=simulate)
         return None
 
 
@@ -61,7 +62,7 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    jones = WSRT_GJones(ns, quals=[], simulate=simulate)
+    jones = GJones(ns, quals=[], simulate=simulate)
     cc.append(jones.visualize())
     jones.display(full=True)
         
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
 
     if 1:
-        J = WSRT_GJones(ns, quals=['xxx'])
+        J = GJones(ns, quals=['xxx'])
         J.display(full=True)
 
 

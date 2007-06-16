@@ -366,7 +366,7 @@ class NodeList (object):
     # Math operations on the nodes:
     #===============================================================
 
-    def unop(self, unop, replace=False):
+    def unop(self, unop, replace=False, **pp):
         """Apply one or more unary operations (e.g. Cos()) to all nodes.
         NB: The ops are applied from right to left, i.e. like a math expr.
         If replace==True, replace the nodes with the new ones.
@@ -377,9 +377,18 @@ class NodeList (object):
         unop.reverse()
         kopie = self.copy()
         for unop1 in unop:
+            raxes = None
+            if unop1 in ['Sum','Product','StdDev','Rms','Mean','Max','Min']:
+                if not isinstance(pp,dict): pp = dict()
+                pp.setdefault('reduction_axes',None)        # written correctly?
+                raxes = pp['reduction_axes']                # e.g. ['time']
             kopie._name = unop1+'('+kopie._name+')'
             for k,node in enumerate(kopie._nodes):
-                kopie._nodes[k] = kopie.ns << getattr(Meq,unop1)(node)
+                if raxes:
+                    unode = kopie.ns << getattr(Meq,unop1)(node, reduction_axes=raxes)
+                else:
+                    unode = kopie.ns << getattr(Meq,unop1)(node)
+                kopie._nodes[k] = unode
                 kopie._labels[k] = '('+kopie._labels[k]+')'
         return self._dispose(kopie, replace)
 
@@ -531,21 +540,23 @@ class NodeList (object):
 
     #--------------------------------------------------------------
 
-    def plot_timetrack (self, select='*', bookpage=True, folder=None):
+    def plot_timetracks (self, select='*', bookpage=True, folder=None, show=False):
         """Visualize the (selected) nodes with an 'timetrack' (Collections Viewer).
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
         kopie = self.copy(select=select)
-        qnode = kopie.ns['timetrack']
+        qnode = kopie.ns['timetracks']
         if qnode.must_define_here(self):
+            kopie = kopie.unop('Mean', reduction_axes='time')       # <-------!!?
             qnode << Meq.Composer(children=kopie._nodes,
                                   plot_label=kopie._labels)
         if bookpage:
             if not isinstance(bookpage, str):
                 bookpage = 'plot_timetracks_'+kopie.name()
-            JEN_bookmarks.create(qnode, 'timetrack_'+kopie.name(),
+            JEN_bookmarks.create(qnode, 'timetracks_'+kopie.name(),
                                  page=bookpage, folder=folder,
                                  viewer='Collections Plotter')
+        if show: display.subtree(qnode, show_initrec=True)
         return qnode
 
     #--------------------------------------------------------------
@@ -732,7 +743,7 @@ def _define_forest(ns):
         cc.append(node)
 
     if 0:
-        node = nn1.plot_timetrack()
+        node = nn1.plot_timetracks()
         cc.append(node)
 
     if 0:
@@ -850,10 +861,13 @@ if __name__ == '__main__':
     if 0:
         print nn1.maxabs(show=True)
 
-    if 1:
+    if 0:
         nn2 = nn1.copy(trace=True)
         nn3 = nn1.binop('*', nn2)
         nn3.display('binop')
+
+    if 1:
+        nn1.plot_timetracks(show=True)
 
     nn1.display('final', full=True)
 

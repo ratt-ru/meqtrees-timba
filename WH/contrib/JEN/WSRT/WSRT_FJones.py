@@ -26,25 +26,25 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 
 #--------------------------------------------------------------------------------------------
 
-def WSRT_FJones_parmgroups(full=False):
+def FJones_parmgroups(full=False):
     """Return the available groups of MeqParms"""
     pg = ['FJones','Frm']
     return pg
 
 
 
-class WSRT_FJones (Joneset22.FJones):
+class FJones (Joneset22.FJones):
     """Class that represents a set of 2x2 WSRT FJones matrices.
     For the moment, the ionospheric Faraday rotation is assumed
     to be the same for all stations, and the entire FOV."""
 
-    def __init__(self, ns, name='WSRT_FJones', quals=[],
+    def __init__(self, ns, name='FJones', quals=[],
                  override=None,
                  stations=None, simulate=False):
         
         # Just use the generic FJones in Grunt/Joneset22.py
         Joneset22.FJones.__init__(self, ns, quals=quals, name=name,
-                                  # telescope='WSRT',
+                                  telescope='WSRT',
                                   polrep='linear',
                                   override=override,
                                   stations=stations, simulate=simulate)
@@ -61,7 +61,7 @@ def _define_forest(ns):
     cc = []
     simulate = True
 
-    jones = WSRT_FJones(ns, quals=[], simulate=simulate)
+    jones = FJones(ns, quals=[], simulate=simulate)
     cc.append(jones.visualize())
     jones.display(full=True)
         
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
 
     if 1:
-        J = WSRT_FJones(ns, quals=['xxx'])
+        J = FJones(ns, quals=['xxx'])
         J.display(full=True)
 
 

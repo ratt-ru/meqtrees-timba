@@ -558,7 +558,7 @@ class ParameterizationPlus (Meow.Parameterization):
             nn = NodeList.NodeList(self.ns, key, nodes=nodes, labels=labels,
                                    color=color, style=style)
             self._parmNodeList[key] = nn
-            nn.display('inside p_NodeList()')
+            # nn.display('inside p_NodeList()')
         return self._parmNodeList[key]
 
     #---------------------------------------------------------------

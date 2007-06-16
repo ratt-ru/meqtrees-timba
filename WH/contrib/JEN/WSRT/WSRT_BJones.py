@@ -26,7 +26,7 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 
 
 
-def WSRT_BJones_parmgroups(full=False):
+def BJones_parmgroups(full=False):
     """Return the available groups of MeqParms"""
     pg = ['BJones'] 
     return pg
@@ -39,19 +39,21 @@ TDLCompileOption('TDL_tfdeg',"tfdeg",
 
 #--------------------------------------------------------------------------------------------
 
-class WSRT_BJones (Joneset22.BJones):
+class BJones (Joneset22.BJones):
     """Class that represents a set of 2x2 WSRT BJones matrices.
     In principle, BJones models on the electronic IF bandpass,
     but in practice it usually absorbs other frequency effects as well"""
 
-    def __init__(self, ns, name='WSRT_BJones',quals=[], 
-                 tfdeg=TDL_tfdeg,
+    def __init__(self, ns, name='BJones',quals=[], 
+                 tfdeg=None,
                  override=None,
                  stations=None, simulate=False):
+
+        if tfdeg==None: tfdeg = TDL_tfdeg
         
         # Just use the generic BJones in Grunt/Joneset22.py
         Joneset22.BJones.__init__(self, ns, quals=quals, name=name,
-                                  # telescope='WSRT',
+                                  telescope='WSRT',
                                   polrep='linear',
                                   tfdeg=tfdeg,
                                   override=override,
@@ -71,10 +73,8 @@ class WSRT_BJones (Joneset22.BJones):
 def _define_forest(ns):
 
     cc = []
-    simulate = True
 
-    jones = WSRT_BJones(ns, quals=[], simulate=simulate,
-                        tfdeg=TDL_tfdeg)
+    jones = BJones(ns, quals=[], simulate=False)
     cc.append(jones.visualize())
     jones.display(full=True)
         
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
 
     if 1:
-        J = WSRT_BJones(ns, quals=['xxx'], tfdeg=TDL_tfdeg)
+        J = BJones(ns, quals=['xxx'], tfdeg=TDL_tfdeg)
         J.display(full=True)
 
 

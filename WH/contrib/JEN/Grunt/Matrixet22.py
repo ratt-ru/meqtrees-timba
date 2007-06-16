@@ -384,6 +384,9 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         If flat=True, flatten make a flat list by extending the list with a new item
         rather than appending it.
         An extra list with key=* contains all items of all lists"""
+
+        print '\n** accumulist(',str(item),')\n'
+        
         if key==None: key = '_default_'
         if not isinstance(key, str):
             print '\n** .accumulist(): key is wrong type:',type(key),'\n'
@@ -519,7 +522,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         dcolls = []
         for visual in visu:
             if visual=='timetracks':
-                dc = nn.plot_timetrack(bookpage='M22_plot_timetracks')
+                dc = nn.plot_timetracks(bookpage='M22_plot_timetracks')
                 dcolls.append(dc)
             elif visual=='straight':
                 nn.bookpage(4)
