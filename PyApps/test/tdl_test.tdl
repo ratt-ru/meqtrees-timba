@@ -10,6 +10,7 @@ try:
 except ImportError:
   _gui = False;
 
+TDLCompileMenu('menu',TDLCompileOption('dum','Dummy',True));
  
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 

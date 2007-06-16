@@ -251,12 +251,22 @@ class _TDLOptionItem(_TDLBaseOption):
       self.config_name = '.'.join((owner,self.config_name));
     
   def _set (self,value):
+    """private method for changing the internal value of an option"""
     _dprint(1,"setting",self.name,"=",value);
     self.value = self.namespace[self.symbol] = value;
     # be anal about whether the _when_changed_callbacks attribute is initialized,
     # as _set may have been called before the constructor
     for callback in getattr(self,'_when_changed_callbacks',[]):
       callback(value);
+  
+  def set (self,value,**kw):
+    """public method for changing the internal value of an option. Must be implemented
+    in child classes""";
+    raise TypeError,"set() not implemented in child class""";
+      
+  def set_value (self,value,**kw):
+    """set_value() is by default an alias for set()"""
+    self.set(value,**kw);
     
   def get_str (self):
     return self.item_str(self.value);
@@ -528,7 +538,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     except:
       if self._more is None:
         raise ValueError,"%s is not a legal value for option '%s'"%(value,self.name);
-      self.set_custom_value(value,select=True);
+      self.set_custom_value(self._more(value),save=save,select=True);
   
   def set (self,ivalue,save=True):
     """selects value #ivalue in list""";
@@ -539,14 +549,14 @@ class _TDLListOptionItem (_TDLOptionItem):
     if save:
       set_config(self.config_name,self.get_option_str(value));
     
-  def set_custom_value (self,value,select=True):
+  def set_custom_value (self,value,select=True,save=True):
     if self._more is None:
       raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
     self._custom_value = (value,str(value));
     self.option_list[-1] = value;
     self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
     if select:
-      self.set(len(self.option_list)-1);
+      self.set(len(self.option_list)-1,save=save);
     
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the item""";
@@ -687,7 +697,6 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           self._steal_items(False,lambda item0:item is item0);
           self._steal_items(True,lambda item0:item is item0);
           item.init(owner,runtime);
-          self._items.append(item);
         # item is a module: steal items from that module
         elif inspect.ismodule(item):
           owner = os.path.basename(item.__file__).split('.')[0];
