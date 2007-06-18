@@ -161,7 +161,7 @@ class _TDLBaseOption (object):
     
   def enable (self,enabled=True):
     """enables/disables the option. Default behaviour enables/disables the QAction""";
-    _dprint(3,"enable item",self.name,":",visible);
+    _dprint(3,"enable item",self.name,":",enabled);
     self.enabled = enabled;
     self._qa and self._qa.setEnabled(enabled);
     self._lvitem and self._lvitem.setEnabled(enabled);
@@ -326,8 +326,7 @@ class TDLFileSelect (object):
     
 class TDLDirSelect (TDLFileSelect):
   def __init__ (self,filenames="",default=None):
-    self.filenames  = str(filenames);
-    self.default    = default;
+    TDLFileSelect.__init__(self,filenames,default);
     
 class _TDLFileOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,filespec,
@@ -336,8 +335,9 @@ class _TDLFileOptionItem (_TDLOptionItem):
                             config_name=config_name,name=name,doc=doc);
     self._filespec = filespec;
     self._validator = lambda dum:True;
+    self._file_dialog = None;
     # no value in config -- try default
-    if filespec.default:
+    if isinstance(filespec.default,str):
       self._set(str(filespec.default));
     else:
       self._set(None);
@@ -355,11 +355,11 @@ class _TDLFileOptionItem (_TDLOptionItem):
       _dprint(1,"error reading",self.config_name,"from config");
       if _dbg.verbose > 2:
         traceback.print_exc();
-      # no value in config -- try default
-      if self._filespec.default:
+      # no value in config -- try default, if supplied a string
+      if isinstance(self._filespec.default,str):
         self._set(str(self._filespec.default));
-      # else try to find first matching file
-      else:
+      # else try to find first matching file (default=True)
+      elif self._filespec.default:
         for pattern in self._filespec.filenames.split(" "):
           for filename in glob.glob(pattern):
             if self._validator(filename):
@@ -377,14 +377,14 @@ class _TDLFileOptionItem (_TDLOptionItem):
       set_config(self.config_name,value);
     self._set(value);
     
-  def enable (enabled=True):
-    _TDLOptionItem.enable(enabled);
-    if not enabled:
+  def enable (self,enabled=True):
+    _TDLOptionItem.enable(self,enabled);
+    if not enabled and self._file_dialog:
       self._file_dialog.hide();
   
-  def show (visible=True):
-    _TDLOptionItem.show(visible);
-    if not visible:
+  def show (self,visible=True):
+    _TDLOptionItem.show(self,visible);
+    if not visible and self._file_dialog:
       self._file_dialog.hide();
       
   class FileDialog (QFileDialog):
@@ -699,6 +699,9 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           _dprint(3,"menu: ",item.name);
           self._steal_items(False,lambda item0:item is item0);
           self._steal_items(True,lambda item0:item is item0);
+          # append to list, if not stolen
+          if not ( self._items and self._items[-1] is item ):
+            self._items.append(item);
           item.init(owner,runtime);
         # item is a module: steal items from that module
         elif inspect.ismodule(item):
@@ -925,7 +928,7 @@ def TDLRuntimeJob (function,name=None,doc=None):
   """this creates a TDL job entry, and adds it to the runtime menu.""";
   job = _TDLJobItem(function,name=name,doc=doc);
   # owner is at depth 1 -- our caller
-  opt.init(_resolve_owner(calldepth=1),True);
+  job.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(job);
   return job;
   
