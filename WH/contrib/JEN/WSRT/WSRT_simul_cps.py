@@ -89,7 +89,7 @@ def _define_forest (ns):
     if TDL_display_PointSource22: ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
-    vis = ps.Visset22(array, observation, name='vissimmul', visu=True)
+    vis = ps.Visset22(array, observation, name='simvis', visu=True)
 
     if False:
         # An experiment in shifting the phase-centre:
@@ -118,19 +118,18 @@ def _define_forest (ns):
         jones.visualize('*')
         jones.p_plot_rvsi()
         jones.display(full=True)
-        # jones.p_bundle()
-        # jones.bundle()
-        vis.corrupt(jones, visu=False)
+        jones.p_bundle()
+        jones.bundle()
+        vis.corrupt(jones, visu='*')
 
     # Add gaussian noise, if required:
-    if True:
+    if False:
         vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
     # Finished:
-    vis.visualize(visu='timetracks')                 
     if TDL_display_Visset22: vis.display(full=True)
     global vdm_nodename
-    vdm_nodename = vis.make_sinks(vdm='vdm')
+    vdm_nodename = vis.make_sinks(vdm='vdm', visu=False)
     vis.history().display(full=True)
     return True
 
@@ -142,14 +141,14 @@ def _define_forest (ns):
 # Routines for the TDL execute menu:
 #========================================================================
 
-def _tdl_job_1_WSRT_simul_cps (mqs,parent):
-    mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
-    # req = JEN_Meow_Utils.create_io_request(override_output_column='MODEL_DATA');
-    req = JEN_Meow_Utils.create_io_request();
-    mqs.execute(vdm_nodename, req, wait=False);
-    return True
+# def _tdl_job_1_WSRT_simul_cps (mqs,parent):
+#    mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
+#    # req = JEN_Meow_Utils.create_io_request(override_output_column='MODEL_DATA');
+#    req = JEN_Meow_Utils.create_io_request();
+#    mqs.execute(vdm_nodename, req, wait=False);
+#    return True
                                      
-def _tdl_job_1_simulate_MS (mqs,parent,wait=False):
+def _tdl_job_1_simulate_MS (mqs, parent, wait=False):
     mqs.execute(vdm_nodename, mssel.create_io_request(), wait=wait);
   
   

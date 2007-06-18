@@ -27,9 +27,6 @@ from Timba.Contrib.JEN.Grunt import ObjectHistory
 
 import Meow
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-
 from copy import deepcopy
 
 #======================================================================================
@@ -87,10 +84,6 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # Visualization:
         self._dcoll = None
 
-        # Service: It is possible to accumulate lists of things (nodes, usually),
-        # that are carried along by the object until needed downstream.
-        self._accumulist = dict()
-
         # Attach an object to collect the object history:
         self._hist = ObjectHistory.ObjectHistory(self.name, parent=self.oneliner())
 
@@ -124,14 +117,13 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         """Return the object description""" 
         return self._descr
 
-    def history(self, append=None, subappend=None, subsubappend=None, ns=None):
+    def history(self, append=None, subappend=None, subsubappend=None):
         """Return its ObjectHistory object. Optionally, append an item.
         The sub and subsub prefixes offer some standard indentation.
         If a nodescope/qualscope is specified, its qualifiers will be shown.""" 
-        if ns==None: ns = self.ns
-        if append: self._hist.append(append, ns=ns)
-        if subappend: self._hist.subappend(subappend, ns=ns)
-        if subsubappend: self._hist.subsubappend(subsubappend, ns=ns)
+        if append: self._hist.append(append)
+        if subappend: self._hist.subappend(subappend)
+        if subsubappend: self._hist.subsubappend(subsubappend)
         # Return the ObjectHistory object:
         return self._hist
 
@@ -178,7 +170,9 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
     #-------------------------------------------------------------------------
 
     def make_NodeList(self, quals=None, trace=False):
-        """Put the current matrix nodes into a NodeList object"""
+        """Put the current matrix nodes into a NodeList object.
+        """
+
         # First make lists of nodes and labels:
         nodes = []
         labels = []
@@ -200,6 +194,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         name = self.name
         if ss['name'][0]==ss['char']:
             name += '_'+ss['name']
+        # print '\n** name=',name,'  quals=',quals,qq,'\n'
         nn = NodeList.NodeList(self.ns, name,
                                quals=qq, kwquals=ss['kwquals'],
                                nodes=nodes, labels=labels)
@@ -208,8 +203,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         rr = self._matrix_elements
         nn.tensor_elements(rr['name'], color=rr['color'], style=rr['style'],
                            size=rr['size'], pen=rr['pen'])
-        if trace: nn.display('make_NodeList()')
+        
+        if trace: nn.display('inside M22.make_NodeList()')
         return nn
+
+    #-------------------------------------------------------------------------
+
+    def stagename (self):
+        """Return the name of the current stage, e.g. 'corrected'.
+        This may be used for visualization labels, etc"""
+        return self._stage['name']
 
     #-------------------------------------------------------------------------
 
@@ -236,8 +239,9 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         # This avoids inadvertent node-name clashes.
         if not isinstance(name,str):
             name = 'stage_'+self._stage['stage']
-        elif self._stage['count']>0:
-            quals.append(self._stage['stage'])
+        else:
+            if self._stage['count']>0:
+                quals.append(self._stage['stage'])
         self._stage['qnode'] = self.ns[name](*quals,**kwquals)
         self._stage['sqnode'] = str(self._stage['qnode'])
 
@@ -279,7 +283,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         ss = str(type(self))
         ss += '  '+str(self.name)
         ss += '  n='+str(len(self.indices()))
-        ss += '  ('+str(self.ns['<nodename>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
     def display_ParmGroupManager(self, full=False):
@@ -342,7 +346,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                             skip_line_after=False,
                             recurse=1)
         #...............................................................
-        print ' * Accumulist entries: '
+        print ' * Accumulist entries (in ParameterizationPlus..): '
         for key in self._accumulist.keys():
             vv = self._accumulist[key]
             print '  - '+str(key)+' ('+str(len(vv))+'):'
@@ -373,70 +377,6 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         return True
         
 
-
-    #=====================================================================================
-    # Accumulist service (separate class?):
-    #=====================================================================================
-
-    def accumulist (self, item=None, key=None, flat=False, clear=False):
-        """Interact with the internal service for accumulating named (key) lists of
-        items (nodes, usually), for later retrieval downstream.
-        If flat=True, flatten make a flat list by extending the list with a new item
-        rather than appending it.
-        An extra list with key=* contains all items of all lists"""
-
-        print '\n** accumulist(',str(item),')\n'
-        
-        if key==None: key = '_default_'
-        if not isinstance(key, str):
-            print '\n** .accumulist(): key is wrong type:',type(key),'\n'
-            return False      
-        self._accumulist.setdefault(key, [])           # Make sure that the list exists
-        self._accumulist.setdefault('*', [])           # The list of ALL entries
-        if item:
-            if not flat:                                                                  
-                self._accumulist[key].append(item)
-                self._accumulist['*'].append(item)
-            elif isinstance(item, (list,tuple)):
-                self._accumulist[key].extend(item)
-                self._accumulist['*'].extend(item)
-            else:
-                self._accumulist[key].append(item)
-                self._accumulist['*'].append(item)
-        # Always return the current value of the specified (key) list:
-        keylist = self._accumulist[key]           
-        if clear:
-            # Optional: clear the entry (NB: What happens to '*' list??)
-            self._accumulist[key] = []
-            # self._accumulist['*'] = []
-        # Enhancement: If flat=True, flatten the keylist....?
-        return keylist
-
-    #---------------------------------------------------------------------
-
-    def bundle_accumulist(self, quals=None):
-        """Bundle the nodes in self._accumulist with a reqseq"""
-        cc = self.accumulist(clear=False)
-        n = len(cc)
-        if n==0: return None
-        if n==1: return cc[0]
-        ns = self.ns._derive(append=quals)
-        self.history('.bundle_accumulist()', ns=ns)
-        if not ns.bundle_accumulist.initialized():
-            ns.bundle_accumulist << Meq.ReqSeq(children=cc,
-                                               result_index=n-1)
-        return ns.bundle_accumulist
-
-    #---------------------------------------------------------------------------
-
-    def merge_accumulist (self, other):
-        """Merge the accumulist of another Matrix22 object with its own."""
-        self.history('.merge_accumulist()')
-        olist = other._accumulist
-        for key in olist.keys():
-            if not key=='*':
-                self.accumulist(olist[key], key=key, flat=True)
-        return True
 
 
     #=====================================================================================
@@ -476,7 +416,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         bundle = nn.bundle(oper)
         # if oper=='Composer':
             # Append a reqseq of self._accumulist nodes (if any):
-        #    accuroot = self.bundle_accumulist(quals=quals)
+        #    accuroot = self.p_bundle_accumulist(quals=quals)
         #    if accuroot: cc.append(accuroot)
         return bundle
 
@@ -517,20 +457,23 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             return False
 
         # Make a NodeList object:
+        # print '** quals=',quals
         nn = self.make_NodeList(quals=quals)
+        # nn.display('after make_Nodelist() in visu')
 
         dcolls = []
         for visual in visu:
             if visual=='timetracks':
-                dc = nn.plot_timetracks(bookpage='M22_plot_timetracks')
+                dc = nn.plot_timetracks(bookpage='M22_plot_timetracks',
+                                        quals=quals)
                 dcolls.append(dc)
             elif visual=='straight':
                 nn.bookpage(4)
             elif visual=='spectra':
-                dc = nn.plot_spectra(bookpage='M22_plot_spectra')
+                dc = nn.plot_spectra(bookpage='M22_plot_spectra', quals=quals)
                 dcolls.append(dc)
             else:
-                dc = nn.plot_rvsi(bookpage='M22_plot_rvsi')
+                dc = nn.plot_rvsi(bookpage='M22_plot_rvsi', quals=quals)
                 dcolls.append(dc)
                 
         # Return a single node (bundle if necessary):
@@ -538,12 +481,12 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             self._dcoll = None
             return False
         elif len(dcolls)==1:
-            if accu: self.accumulist(dcolls[0])
+            if accu: self.p_accumulist(dcolls[0])
             self._dcoll = dcolls[0]                  # for .display() only
             return dcolls[0]
         else:
             bundle = self.ns['visu_bundle'] << Meq.Composer(children=dcolls)
-            if accu: self.accumulist(bundle)
+            if accu: self.p_accumulist(bundle)
             self._dcoll = bundle                     # for .display() only
             return bundle
 
@@ -620,7 +563,7 @@ def _define_forest(ns):
     mat1.visualize(visu='straight')
     mat1.visualize(visu='timetracks', separate=False)
     mat1.display(full=True)
-    aa = mat1.accumulist()
+    aa = mat1.p_accumulist()
 
     if False:
         mat1.unop('Cos', visu=True)
@@ -635,7 +578,7 @@ def _define_forest(ns):
         mat2.test()
         mat2.visualize()
         mat2.display(full=True)
-        aa.extend(mat2.accumulist())
+        aa.extend(mat2.p_accumulist())
 
     node = ns.accu << Meq.Composer(children=aa)
     print 'node=',str(node)
@@ -692,17 +635,6 @@ if __name__ == '__main__':
 
     if 1:
         m1.make_NodeList()
-
-    if 0:
-        m1.accumulist('aa')
-        m1.accumulist('2')
-        m1.accumulist(range(3), flat=True)
-        m1.accumulist('bb', key='extra')
-        m1.display(full=True)
-        print '1st time:',m1.accumulist()
-        print '1st time*:',m1.accumulist(key='*')
-        print '2nd time:',m1.accumulist(clear=True)
-        print '3rd time:',m1.accumulist()
 
     if 0:
         mc = m1.copy()

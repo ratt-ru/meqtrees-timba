@@ -254,7 +254,8 @@ class PointSource22 (Meow.PointSource):
             # into a separate parmgroup.
             self._Visset22.p_merge(self)
 
-            if visu: self._Visset22.visualize(visu='rvsi', quals=self._pp['name'])
+            if visu:
+                self._Visset22.visualize(visu=visu, quals=self._pp['name'])
         return self._Visset22
 
 

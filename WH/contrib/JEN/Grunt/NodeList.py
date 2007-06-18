@@ -60,14 +60,11 @@ class NodeList (object):
             self.ns0 = ns
 
         # Attach qualifiers, if required:
-        # print 'quals =',quals,'  kwquals =',kwquals
-        if quals==None: quals = []
-        if isinstance(quals,str): quals = quals.split(' ')
-        self._quals = list(quals)
+        self._quals = _quals2list(quals)
         self._kwquals = kwquals
         if not isinstance(self._kwquals,dict): self._kwquals = dict()
         if self._quals or self._kwquals:
-            self.ns = self.ns.QualScope(*self._quals,**self._kwquals)        
+            self.ns = self.ns.QualScope(*self._quals, **self._kwquals)        
 
         # Miscellaneous settings:
         self._pp = pp
@@ -154,7 +151,7 @@ class NodeList (object):
         ss = 'Grunt.NodeList:'
         ss += ' '+str(self._name)
         ss += '  (len='+str(self.len())+')'
-        ss += '  ('+str(self.ns['<nodename>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
@@ -213,9 +210,11 @@ class NodeList (object):
     # Some local helper functions:
     #===============================================================
 
-    def copy (self, affix=None, select='*', trace=False):
-        """Make a copy of this object, with a selection of its nodes.
-        Optionally, affix a substring to the (unique) name of the copy."""
+    def copy (self, quals=None, select='*', trace=False):
+        """Make a copy of this object, with (a selection of) its nodes.
+        The new object will be qualified with any quals that are specified
+        in this call.
+        """
 
         # Make an empty new NodeList with a unique name. This greatly reduces
         # the danger of nodename clashes, or inadvertent branch cross-overs.
@@ -223,13 +222,18 @@ class NodeList (object):
         # e.g. generated automatically in widely separated branches of the tree...)
         
         name = self._name
-        if isinstance(affix,str): name += '_'+affix
 
         self._counter['copy'] += 1                   # increment kopie-counter
-        # name += '|'+str(self._counter['copy'])
-        qual = 'C'+str(self._counter['copy'])
+        quals = _quals2list(quals)
+        quals.append('C'+str(self._counter['copy']))
 
-        new = NodeList(self.ns0, name, quals=qual)   # note self.ns0....!
+        # Avoid duplication of qualifiers:
+        qq = self.ns['dummy'].name.split(':')
+        for q in qq:
+            if q in quals: quals.remove(q)
+        if name in quals: quals.remove(name)
+
+        new = NodeList(self.ns, name, quals=quals)
 
         # Transfer the (selection of) nodes and their labels:
         ii = self._selection (select)
@@ -339,9 +343,8 @@ class NodeList (object):
         # NB: MeqSelector only supports a single integer index....!?
         # That is why we offer a workaround by re-composing multiple ones.
 
-        ## kopie = self.copy(affix=selems)
         kopie = self.copy()
-        kopie.tensor_elements(elems)         # adjust nr of tensor elements
+        kopie.tensor_elements(elems)        # adjust nr of tensor elements
         for k,node in enumerate(kopie._nodes):
             cc = []
             for m,i in enumerate(ii):       # extract elements one-by-one
@@ -350,15 +353,17 @@ class NodeList (object):
                 if not qnode.initialized():
                     qnode << Meq.Selector(kopie._nodes[k], index=i)
                 cc.append(qnode)
+
             if len(cc)==1:                  # extracted one only element
                 kopie._nodes[k] = cc[0]
+                kopie._labels[k] += ' ['+str(elems[m])+']'
             else:                           # more: recompose into new tensor
                 name = 'extract'+selems
                 qnode = kopie.ns[name](k)
                 if not qnode.initialized():
                     qnode << Meq.Composer(*cc)
                 kopie._nodes[k] = qnode
-            kopie._labels[k] = name
+                kopie._labels[k] += selems
         return self._dispose(kopie, replace)
 
 
@@ -540,27 +545,6 @@ class NodeList (object):
 
     #--------------------------------------------------------------
 
-    def plot_timetracks (self, select='*', bookpage=True, folder=None, show=False):
-        """Visualize the (selected) nodes with an 'timetrack' (Collections Viewer).
-        Return the root node of the resulting subtree. Make a bookmark, if required."""
-
-        kopie = self.copy(select=select)
-        qnode = kopie.ns['timetracks']
-        if qnode.must_define_here(self):
-            kopie = kopie.unop('Mean', reduction_axes='time')       # <-------!!?
-            qnode << Meq.Composer(children=kopie._nodes,
-                                  plot_label=kopie._labels)
-        if bookpage:
-            if not isinstance(bookpage, str):
-                bookpage = 'plot_timetracks_'+kopie.name()
-            JEN_bookmarks.create(qnode, 'timetracks_'+kopie.name(),
-                                 page=bookpage, folder=folder,
-                                 viewer='Collections Plotter')
-        if show: display.subtree(qnode, show_initrec=True)
-        return qnode
-
-    #--------------------------------------------------------------
-
     def plot_xy (self, other, bookpage=True, folder=None):
         """Misuse the rvsi plotter to plot the node-values of this NodeList
         against those of another (commensurate) one."""
@@ -575,7 +559,7 @@ class NodeList (object):
         
     #--------------------------------------------------------------
 
-    def plot_rvsi (self, select='*', other=None,
+    def plot_rvsi (self, select='*', other=None, quals=None,
                    bookpage=True, folder=None,
                    xlabel='xx', ylabel='yy',
                    tag='', concat=False,
@@ -586,9 +570,9 @@ class NodeList (object):
         the other....
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        kopie = self.copy(select=select)
+        kopie = self.copy(select=select, quals=quals)
         if other:
-            kopie = self.binop('ToComplex', other.copy(select=select)) 
+            kopie = self.binop('ToComplex', other.copy(select=select, quals=quals)) 
 
         tt = kopie._pp['tensor']
         if isinstance(tt['elems'],list) and len(tt['elems'])>1:
@@ -630,13 +614,14 @@ class NodeList (object):
 
     #--------------------------------------------------------------
 
-    def plot_spectra (self, select='*', bookpage=True, folder=None,
+    def plot_spectra (self, select='*', quals=None,
+                      bookpage=True, folder=None,
                       xlabel='xx', ylabel='yy',
                       tag='', concat=False):
         """Visualize the (selected) nodes with a dataCollect 'spectra' plot.
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
-        kopie = self.copy(select=select)
+        kopie = self.copy(select=select, quals=quals)
         tt = kopie._pp['tensor']
         if isinstance(tt['elems'],list) and len(tt['elems'])>1:
             # Special case: Tensor elements are plotted separately
@@ -648,12 +633,12 @@ class NodeList (object):
                 dcolls.append(rr)
             # Concatenate the dcolls of the various tensor elements:
             rr = MG_JEN_dataCollect.dconc(kopie.ns, dcolls,
-                                          scope='p_plot_spectra', tag='',
+                                          scope='plot_spectra', tag='',
                                           bookpage=None)
         else:
             # Normal case: All nodes are plotted in the same color/style
             rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
-                                           scope='p_plot_spectra', tag=tag,
+                                           scope='plot_spectra', tag=tag,
                                            xlabel=xlabel, ylabel=ylabel,
                                            type='spectra')
                                            
@@ -661,10 +646,54 @@ class NodeList (object):
         if bookpage:
             # kopie.display('inside NodeList.plot_spectra()')
             if not isinstance(bookpage, str):
-                bookpage = 'p_plot_spectra_'+kopie.name()
+                bookpage = 'plot_spectra_'+kopie.name()
             JEN_bookmarks.create(qnode, kopie.name(),
                                  page=bookpage, folder=folder)
         if concat: return rr
+        return qnode
+
+
+    #--------------------------------------------------------------
+
+    def plot_timetracks (self, select='*', quals=None,
+                         bookpage=True, folder=None,
+                         show=False):
+        """Visualize the (selected) nodes with timetrack plots (Collections Viewer).
+        Return the root node of the resulting subtree. Make a bookmark, if required."""
+
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'plot_timetracks_'+kopie.name()
+
+        kopie = self.copy(select=select, quals=quals)
+        tt = kopie._pp['tensor']
+        qnode = kopie.ns['timetracks']
+
+        if not qnode.must_define_here(self):
+            pass
+        
+        elif isinstance(tt['elems'],list) and len(tt['elems'])>1:
+            # Special case: Tensor elements are plotted separately
+            cc = []
+            for k,elem in enumerate(tt['elems']):
+                nn = kopie.extract(elem)
+                nn.tensor_elements()             
+                node = nn.plot_timetracks(quals=elem, bookpage=bookpage,
+                                          folder=folder, show=False)
+                cc.append(node)
+            qnode << Meq.Composer(children=cc)
+
+        else:
+            # Scalar case:
+            kopie = kopie.unop('Mean', reduction_axes='time')  
+            qnode << Meq.Composer(children=kopie._nodes,
+                                  plot_label=kopie._labels)
+            JEN_bookmarks.create(qnode, 'plot_timetracks_'+kopie.name(),
+                                 page=bookpage, folder=folder,
+                                 viewer='Collections Plotter')
+
+        # Finished, return the root node:
+        if show: display.subtree(qnode, show_initrec=True)
         return qnode
 
 
@@ -703,6 +732,17 @@ class NodeList (object):
 
 
 
+#=============================================================================
+# Standalone helper function(s):
+#=============================================================================
+
+
+def _quals2list (quals):
+    """Helper function to make sure that the given quals are a list"""
+    if quals==None: return []
+    if isinstance(quals, (list,tuple)): return list(quals)
+    if isinstance(quals, str): return quals.split(' ')
+    return [str(quals)]
 
 
 

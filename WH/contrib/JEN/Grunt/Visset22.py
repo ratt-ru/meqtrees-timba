@@ -77,7 +77,7 @@ class Visset22 (Matrixet22.Matrixet22):
         ss += '  pols='+str(self._pols)
         ss += '  nstat='+str(len(self.stations()))
         ss += '  nifr='+str(len(self.ifrs()))
-        ss += '  ('+str(self.ns['<nodename>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
@@ -137,7 +137,7 @@ class Visset22 (Matrixet22.Matrixet22):
 
         self._MS_corr_index = MS_corr_index    # Keep. See also .make_sinks()
 
-        qnode = self._nextstage(name='spigot')['qnode']
+        qnode = self._nextstage(name='spigots')['qnode']
         for p,q in self.ifrs():
             qnode(p,q) << Meq.Spigot(station_1_index=p-1,
                                      station_2_index=q-1,
@@ -157,7 +157,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # self.create_ReadVisHeader_placeholders()    # see below....
 
         if visu:
-            self.visualize(visu, 'spigots')
+            self.visualize(visu, quals=self.stagename())
         return True
 
     #--------------------------------------------------------------------------
@@ -252,7 +252,7 @@ class Visset22 (Matrixet22.Matrixet22):
             self._matrixet(*ifr) << Meq.Identity(coh)
         if stddev>0:
             self.addGaussianNoise (stddev=stddev, quals=None, visu=False)
-        if visu: return self.visualize(visu, name)
+        if visu: return self.visualize(visu, quals=self.stagename())
         return True
 
     #---------------------------------------------------------------------------
@@ -275,7 +275,7 @@ class Visset22 (Matrixet22.Matrixet22):
                 noise << Meq.Matrix22(*mm)
                 qnode(*ifr) << Meq.Add(self._matrixet(*ifr),noise)
             self._matrixet = qnode           
-            if visu: return self.visualize(visu, name)
+            if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
     #...........................................................................
@@ -309,7 +309,7 @@ class Visset22 (Matrixet22.Matrixet22):
         self._last_dir0 = self._dir0       # Keep for use by restore_phase_centre()
         self._dir0 = lmdir                 # The new uv-data phase centre
         self.display('vis.shift_phase_centre() to: '+lmdir.name, full=True)
-        if visu: return self.visualize(visu, 'shift_pc')
+        if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
 
@@ -333,7 +333,7 @@ class Visset22 (Matrixet22.Matrixet22):
             mean = qnode(*ifr)('mean') << Meq.Mean(self._matrixet(*ifr))
             qnode(*ifr) << Meq.Subtract(self._matrixet(*ifr),mean)
         self._matrixet = qnode              
-        if visu: return self.visualize(visu, name)
+        if visu: return self.visualize(visu, quals=self.stagename())
         if lmdir and restore:
             self.restore_phase_centre (last=True, quals=quals, visu=False)
         return None
@@ -354,9 +354,11 @@ class Visset22 (Matrixet22.Matrixet22):
             j2c = jmat(ifr[1])('conj') ** Meq.ConjTranspose(jmat(ifr[1])) 
             qnode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = qnode              
+        # Transfer any accumulist entries (e.g. visualisation dcolls etc)
+        self.p_merge_accumulist(joneset)
         # Transfer any parmgroups (used by the solver downstream)
         self.p_merge(joneset)                                    
-        if visu: return self.visualize(visu, name)
+        if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
     #...........................................................................
@@ -394,8 +396,8 @@ class Visset22 (Matrixet22.Matrixet22):
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
             self.p_merge(joneset)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        self.merge_accumulist(joneset)
-        if visu: return self.visualize(visu, name)
+        self.p_merge_accumulist(joneset)
+        if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
 
@@ -403,16 +405,16 @@ class Visset22 (Matrixet22.Matrixet22):
 
     def insert_accumulist_reqseq (self, key=None, quals=None, visu=False, name='accumulist'):
         """Insert a series of reqseq node(s) with the children accumulated
-        in self._accumulist (see Matrixet22). The reqseqs will get the current
+        in self._accumulist (see ParameterizationPlus). The reqseqs will get the current
         matrix nodes as their last child, to which their result is transmitted."""
 
         self.history('.insert_accumulist_reqseq('+str(key)+' '+str(name)+')')
 
         # If visu==True, append the visualisation dcoll to the accumulist,
         # so that it will get the last request before the main-stream is addressed.
-        if visu: self.visualize(visu, name)
+        if visu: self.visualize(visu, quals=self.stagename())
         
-        cc = self.accumulist(key=key, clear=False)
+        cc = self.p_accumulist(key=key, clear=False)
         n = len(cc)
         if n>0:
             cc.append('placeholder')
@@ -425,6 +427,10 @@ class Visset22 (Matrixet22.Matrixet22):
                                           cache_num_active_parents=1)
             self._matrixet = qnode
         return True
+
+
+
+
 
 
 #===============================================================

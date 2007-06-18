@@ -45,18 +45,27 @@ class ParameterizationPlus (Meow.Parameterization):
         if is_node(ns):
             ns = ns.QualScope()        
 
+        name = str(name)                   # just in case....
+
         # Make a little more robust 
         quals = self.p_quals2list(quals)
 
-        # NB: Weed out duplicated qualifiers here....?
-        # qq = (ns.dummy).name.split(':')
+        # Avoid duplication of qualifiers:
+        if True:
+            qq = ns['dummy'].name.split(':')
+            for q in qq:
+                if q in quals: quals.remove(q)
+            if name in quals: quals.remove(name)
 
-        Meow.Parameterization.__init__(self, ns, str(name),
-                                       quals=quals, kwquals=kwquals)
+        Meow.Parameterization.__init__(self, ns, name,
+                                       quals=quals,
+                                       kwquals=kwquals)
         # Initialize local data:
         self._parmgroups = dict()
         self._parmNodeList = dict()
         self._parmgogs = dict()
+
+        self._accumulist = dict()
 
         # Optional: Copy the parametrization of another object:
         if merge:
@@ -73,7 +82,7 @@ class ParameterizationPlus (Meow.Parameterization):
         """Return a one-line summary of this object"""
         ss = 'Grunt.ParameterizationPlus:'
         ss += ' '+str(self.name)
-        ss += '  ('+str(self.ns['<nodename>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
@@ -128,6 +137,13 @@ class ParameterizationPlus (Meow.Parameterization):
         for key in self._parmNodeList:
             s = self._parmNodeList[key].oneliner()
             print '    - ('+key+'): '+s
+        #...............................................................
+        print '  * Accumulist entries: '
+        for key in self._accumulist.keys():
+            vv = self._accumulist[key]
+            print '    - '+str(key)+' ('+str(len(vv))+'):'
+            if full:
+                for v in vv: print '    - '+str(type(v))+' '+str(v)
         #...............................................................
         print '**\n'
         return True
@@ -549,8 +565,8 @@ class ParameterizationPlus (Meow.Parameterization):
 
     def p_NodeList (self, parmgroup, color='blue', style='diamond'):
         """Helper function to get a NodeList object for the specified parmgroup.
-        In order to avoid duplication, the created NodeList objects are reused.
-        """
+        In order to avoid duplication, any already created NodeList objects are
+        reused....(!?)"""
         key = self.p_find_parmgroups (parmgroup, severe=True)[0]
         if not self._parmNodeList.has_key(key):
             nodes = self._parmgroups[key]['nodes']
@@ -576,26 +592,7 @@ class ParameterizationPlus (Meow.Parameterization):
         qnode = nn1.compare(nn2, bookpage=True, show=show)
         return qnode
 
-    #---------------------------------------------------------------
 
-    def p_plot_rvsi (self, parmgroup='*',
-                bookpage=True, folder=None, show=False):
-        """Make separate rvsi plots of the specified parmgroup(s). Return the
-        root node of the resulting subtree. Make bookpages for each parmgroup.
-        """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
-        if bookpage:
-            if not isinstance(bookpage, str):
-                bookpage = 'params_rvsi_'+self.name
-        bb = []
-        for key in pg:
-            nn = self.p_NodeList(key)
-            rvsi = nn.plot_rvsi(bookpage=bookpage, folder=folder,
-                                xlabel=key, ylabel='stddev')
-            bb.append(rvsi)
-        return self._p_bundle_of_bundles (bb, name='params_rvsi',
-                                          qual=parmgroup, show=show)
-    
     #---------------------------------------------------------------
 
     def p_bundle (self, parmgroup='*', combine='Composer',
@@ -606,35 +603,72 @@ class ParameterizationPlus (Meow.Parameterization):
         """
         pg = self.p_find_parmgroups (parmgroup, severe=True)
         if folder==None:
-            if len(pg)>1: folder = 'params_'+self.name
+            if len(pg)>1: folder = 'p_bundle_'+self.name
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
             bundle = nn.bundle(combine=combine,
                                bookpage=bookpage, folder=folder)
             bb.append(bundle)
-        return self._p_bundle_of_bundles (bb, name='params_bundle',
-                                          qual=parmgroup, show=show)
+        return self._p_bundle_of_bundles (bb, name='p_bundle',
+                                          qual=parmgroup,
+                                          accu=True, show=show)
 
     #---------------------------------------------------------------
 
-    def p_inspector (self, parmgroup='*', show=False):
-        """Visualize the nodes in the specified parmgroup(s) in a separate
-        'inspector' per parmgroup. Return the root node of the resulting subtree.
-        Make bookpages for each parmgroup.
+    def p_plot_rvsi (self, parmgroup='*',
+                     bookpage=True, folder=None, show=False):
+        """Make separate rvsi plots of the specified parmgroup(s). Return the
+        root node of the resulting subtree. Make bookpages for each parmgroup.
         """
         pg = self.p_find_parmgroups (parmgroup, severe=True)
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'p_plot_rvsi_'+self.name
         bb = []
         for key in pg:
             nn = self.p_NodeList(key)
-            bb.append(nn.inspector(bookpage=True))
-        return self._p_bundle_of_bundles (bb, name='params_inspector',
-                                          qual=parmgroup, show=show)
-
+            rvsi = nn.plot_rvsi(bookpage=bookpage, folder=folder,
+                                xlabel=key, ylabel='stddev')
+            bb.append(rvsi)
+        return self._p_bundle_of_bundles (bb, name='p_plot_rvsi',
+                                          qual=parmgroup,
+                                          accu=True, show=show)
+    
     #---------------------------------------------------------------
+
+    def p_plot_timetracks (self, parmgroup='*', 
+                           bookpage=True, folder=None, show=False):
+        """Visualize the nodes in the specified parmgroup(s) in a separate
+        'inspector' (time-tracks) per parmgroup. Return the root node of
+        the resulting subtree. Make bookpages for each parmgroup.
+        """
+        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'p_plot_timetracks_'+self.name
+        bb = []
+        for key in pg:
+            nn = self.p_NodeList(key)
+            tt = nn.plot_timetracks (bookpage=bookpage, folder=folder)
+            bb.append(tt)
+        return self._p_bundle_of_bundles (bb, name='p_plot_timetracks',
+                                          qual=parmgroup,
+                                          accu=True, show=show)
+
+
+    #................................................................
+    def p_inspector_obsolete (self, parmgroup='*', show=False):
+        """Alternative function for p_plot_timetracks()"""
+        return self.p_plot_timetracks (parmgroup=parmgroup, show=show)
+
+    
+    #---------------------------------------------------------------
+    # Helper function:
     #---------------------------------------------------------------
 
-    def _p_bundle_of_bundles (self, bb, name=None, qual=None, show=False):
+    def _p_bundle_of_bundles (self, bb, name=None, qual=None,
+                              accu=False, show=False):
         """Helper function to bundle a list of parmgroup bundles"""
 
         if len(bb)==0:
@@ -647,9 +681,9 @@ class ParameterizationPlus (Meow.Parameterization):
                 qnode << Meq.Composer(children=bb)
 
         # Finished: Return the root-node of the bundle subtree:
+        if accu: self.p_accumulist(qnode)
         if show: display.subtree(qnode, show_initrec=False)
         return qnode
-
 
 
     #===============================================================
@@ -698,6 +732,72 @@ class ParameterizationPlus (Meow.Parameterization):
         return False
 
 
+
+    #=====================================================================================
+    #=====================================================================================
+    # Accumulist service:
+    # NB: This service does not really belong here, but is convenient.
+    #=====================================================================================
+
+    def p_accumulist (self, item=None, key=None, flat=False, clear=False):
+        """Interact with the internal service for accumulating named (key) lists of
+        items (nodes, usually), for later retrieval downstream.
+        If flat=True, flatten make a flat list by extending the list with a new item
+        rather than appending it.
+        An extra list with key=* contains all items of all lists"""
+
+        print '\n** p_accumulist(',str(item),')\n'
+        
+        if key==None: key = '_default_'
+        if not isinstance(key, str):
+            print '\n** .p_accumulist(): key is wrong type:',type(key),'\n'
+            return False      
+        self._accumulist.setdefault(key, [])           # Make sure that the list exists
+        self._accumulist.setdefault('*', [])           # The list of ALL entries
+        if item:
+            if not flat:                                                                  
+                self._accumulist[key].append(item)
+                self._accumulist['*'].append(item)
+            elif isinstance(item, (list,tuple)):
+                self._accumulist[key].extend(item)
+                self._accumulist['*'].extend(item)
+            else:
+                self._accumulist[key].append(item)
+                self._accumulist['*'].append(item)
+        # Always return the current value of the specified (key) list:
+        keylist = self._accumulist[key]           
+        if clear:
+            # Optional: clear the entry (NB: What happens to '*' list??)
+            self._accumulist[key] = []
+            # self._accumulist['*'] = []
+        # Enhancement: If flat=True, flatten the keylist....?
+        return keylist
+
+    #---------------------------------------------------------------------
+
+    def p_bundle_accumulist(self, quals=None):
+        """Bundle the nodes in self._accumulist with a reqseq"""
+        cc = self.p_accumulist(clear=False)
+        n = len(cc)
+        if n==0: return None
+        if n==1: return cc[0]
+        # self.p_history('.p_bundle_accumulist()')
+        qnode = self.ns['p_bundle_accumulist']
+        if quals: qnode = qnode(quals)
+        if not qnode.initialized():
+            qnode << Meq.ReqSeq(children=cc, result_index=n-1)
+        return qnode
+
+    #---------------------------------------------------------------------------
+
+    def p_merge_accumulist (self, other):
+        """Merge the accumulist of another Matrix22 object with its own."""
+        # self.history('.p_merge_accumulist()')
+        olist = other._accumulist
+        for key in olist.keys():
+            if not key=='*':
+                self.p_accumulist(olist[key], key=key, flat=True)
+        return True
 
 
 
@@ -780,7 +880,7 @@ def _define_forest(ns):
         cc.append(node)
 
     if 1:
-        node = pp1.p_inspector()
+        node = pp1.p_plot_timetracks()
         cc.append(node)
 
     if 1:
@@ -874,7 +974,7 @@ if __name__ == '__main__':
         pp1.p_solvable(tags=['Gphase','GJones'], trace=True)
         pp1.p_solvable(tags=['Gphase','Dgain'], trace=True)
 
-    if 1:
+    if 0:
         solvable = True
         pp1.p_find_nodes(groups='GJones', solvable=solvable, trace=True)
         pp1.p_find_nodes(groups=pp1.p_gogs(), solvable=solvable, trace=True)
@@ -896,6 +996,17 @@ if __name__ == '__main__':
             pp3 = ParameterizationPlus(ns, 'e0', merge=e0)
         if 0:
             pp1.p_merge(e0, trace=True)
+
+    if 0:
+        pp1.p_accumulist('aa')
+        pp1.p_accumulist('2')
+        pp1.p_accumulist(range(3), flat=True)
+        pp1.p_accumulist('bb', key='extra')
+        pp1.p_display(full=True)
+        print '1st time:',pp1.p_accumulist()
+        print '1st time*:',pp1.p_accumulist(key='*')
+        print '2nd time:',pp1.p_accumulist(clear=True)
+        print '3rd time:',pp1.p_accumulist()
 
 
 #===============================================================

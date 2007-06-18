@@ -3,6 +3,7 @@
 # History:
 # - 31mar2007: creation
 # - 08jun2007: remove Meow.QualScope
+# - 18jun2007: remove argument ns= from .append() etc
 
 # Description:
 
@@ -15,14 +16,10 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
-
 from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
 
-# Global counter used to generate unique node-names
-# unique = -1
 
         
 #======================================================================================
@@ -59,21 +56,21 @@ class ObjectHistory (object):
         """Return the name/oneliner of its parent"""
         return self._parent
 
-    def append(self, item, prefix='*', ns=None):
+    def append(self, item, prefix='*'):
         """Append an item (line) to the internal list"""
         self._items.append(item)
         self._prefix.append('  '+str(prefix))
         scope = ''
-        if ns:
-            scope = str(ns.dummy.name.split(':'))
+        # if is_node(item):
+        #     scope = str(item.name.split(':'))
         self._scope.append(scope)
         return True
 
-    def subappend(self, item, ns=None):
-        return self.append(item, prefix='   -', ns=ns)
+    def subappend(self, item):
+        return self.append(item, prefix='   -')
 
-    def subsubappend(self, item, ns=None):
-        return self.append(item, prefix='     .', ns=ns)
+    def subsubappend(self, item):
+        return self.append(item, prefix='     .')
 
     #-------------------------------------------------------------
 

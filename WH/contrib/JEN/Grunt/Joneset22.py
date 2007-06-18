@@ -113,7 +113,7 @@ class Joneset22 (Matrixet22.Matrixet22):
         else:
             ss += '  pols='+str(self._pols)
         ss += '  n='+str(len(self.stations()))
-        ss += '  ('+str(self.ns['<nodename>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
