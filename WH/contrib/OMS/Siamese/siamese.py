@@ -15,8 +15,21 @@ TDLRuntimeOptions(*mssel.runtime_options());
 ## also possible:
 # TDLRuntimeMenu("MS selection options",open=True,*mssel.runtime_options());
 
-import sky_models
-TDLCompileMenu("Sky model options",sky_models);
+# simulation mode menu
+SIM_ONLY = "sim only";
+ADD_MS   = "add to MS";
+SUB_MS   = "subtract from MS";
+simmode_opt = TDLCompileOption("sim_mode","Simulation mode",[SIM_ONLY,ADD_MS,SUB_MS]);
+simmode_opt.when_changed(lambda mode:mssel.enable_input_column(mode!=SIM_ONLY));
+
+
+import gridded_sky
+import lsm_sky
+TDLCompileMenu('sky_model',"Sky model to use",
+  options",sky_models);
+
+TDLCompileMenu('sky_model',"Sky model to use",
+  options",sky_models);
 
 import iono_geometry
 import iono_model
@@ -29,9 +42,6 @@ import gain_models
 TDLCompileMenu("Include gain/phase errors",gain_models,toggle='include_gains');
 
 TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
-
-diff_sim_opt = TDLCompileOption("diff_sim","Differential simulation (sim-input)",False);
-diff_sim_opt.when_changed(mssel.enable_input_column);
 
 
 def _define_forest (ns):
@@ -131,8 +141,13 @@ def _define_forest (ns):
       ns.noisy_predict(p,q) << predict(p,q) + noise;
     output = ns.noisy_predict;
     
-  # in diff-sim mode, make some spigots
-  if diff_sim:
+  # in add or subtract sim mode, make some spigots and add/subtract visibilities
+  if sim_mode == ADD_MS:
+    spigots = array.spigots();
+    for p,q in array.ifrs():
+      ns.sum(p,q) << output(p,q) + spigots(p,q);
+    output = ns.sum;
+  elif sim_mode == SUB_MS:
     spigots = array.spigots();
     for p,q in array.ifrs():
       ns.diff(p,q) << output(p,q) - spigots(p,q);

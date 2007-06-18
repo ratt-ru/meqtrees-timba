@@ -70,8 +70,12 @@ def grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
         model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
   return model;
 
+# NB: use lm0=1e-20 to avoid our nasty bug when there's only a single source
+# at the phase centre
 def make_model (ns,basename="S",l0=0,m0=0):
   """Creates and returns selected model""";
+  if grid_size == 1 && not l0 and not m0:
+    l0 = m0 = 1e-20;
   return model_func(ns,basename,l0,m0,
                     grid_step*ARCMIN,grid_step*ARCMIN,
                     (grid_size-1)/2,source_flux);
@@ -80,7 +84,7 @@ def lsm_model (ns):
   pass;
 
 # model options
-model_option = TDLCompileOption("model_func","Model type",
+model_option = TDLCompileOption("model_func","Sky model type",
       [cross_model,grid_model,star8_model,lbar_model,mbar_model,lsm_model]);
 
 grid_options = [
