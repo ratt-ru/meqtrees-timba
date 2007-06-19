@@ -5,7 +5,7 @@ import math
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
 
-def imagesize ():
+def get_recommended_imagesize ():
   """Returns current image size, based on grid size and step""";
   return grid_size*grid_step;
 
@@ -74,37 +74,20 @@ def grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
 # at the phase centre
 def make_model (ns,basename="S",l0=0,m0=0):
   """Creates and returns selected model""";
-  if grid_size == 1 && not l0 and not m0:
+  if grid_size == 1 and not l0 and not m0:
     l0 = m0 = 1e-20;
   return model_func(ns,basename,l0,m0,
                     grid_step*ARCMIN,grid_step*ARCMIN,
                     (grid_size-1)/2,source_flux);
 
-def lsm_model (ns):
-  pass;
-
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
-      [cross_model,grid_model,star8_model,lbar_model,mbar_model,lsm_model]);
+      [cross_model,grid_model,star8_model,lbar_model,mbar_model]);
 
-grid_options = [
-  TDLCompileOption("grid_size","Number of sources in each direction",
-      [1,3,5,7],more=int),
-  TDLCompileOption("grid_step","Grid step, in arcmin",
-      [.1,.5,1,2,5,10,15,20,30],more=float),
-  TDLCompileOption("source_flux","Source flux, Jy",
-      [1e-6,1e-3,1],more=float)
-];
-lsm_options = TDLCompileMenu("LSM model options",
-    TDLOption("lsm_filename","LSM file",
-        filter(lambda name:name.endswith('.txt'),os.listdir('.')),more=str),
-    TDLOption("lsm_count","Max number of LSM sources to use",[5,10,20],more=int),
-    TDLOption("lsm_show_gui","Show LSM GUI",False),
-);
+TDLCompileOption("grid_size","Number of sources in each direction",
+      [1,3,5,7],more=int);
+TDLCompileOption("grid_step","Grid step, in arcmin",
+      [.1,.5,1,2,5,10,15,20,30],more=float);
+TDLCompileOption("source_flux","Source flux, Jy",
+      [1e-6,1e-3,1],more=float);
 
-def _enable_model_options (model):
-  for opt in grid_options:
-    opt.show(model != lsm_model);
-  lsm_options.show(model == lsm_model);
-  
-model_option.when_changed(_enable_model_options);

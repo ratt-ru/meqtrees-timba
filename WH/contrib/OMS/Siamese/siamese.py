@@ -24,12 +24,21 @@ simmode_opt.when_changed(lambda mode:mssel.enable_input_column(mode!=SIM_ONLY));
 
 
 import gridded_sky
-import lsm_sky
-TDLCompileMenu('sky_model',"Sky model to use",
-  options",sky_models);
+import Meow.LSM
+  
+lsm = Meow.LSM.MeowLSM(include_options=False);
 
-TDLCompileMenu('sky_model',"Sky model to use",
-  options",sky_models);
+sky_opt = TDLCompileOption('sky_model',"Sky model",["gridded sky","LSM"]);
+
+# encapsulate options from sky model modules
+grid_menu = TDLCompileMenu("Gridded sky options",gridded_sky);
+lsm_menu  = TDLCompileMenu("LSM options",*lsm.compile_options());
+
+def _enable_skymodel_submenus (model):
+  grid_menu.show( model == 'gridded sky' );
+  lsm_menu.show ( model == 'LSM' );
+sky_opt.when_changed(_enable_skymodel_submenus);
+
 
 import iono_geometry
 import iono_model
@@ -51,16 +60,26 @@ def _define_forest (ns):
   Meow.Context.set(array,observation);
   stas = array.stations();
 
-  # note how we set default image size from our current sky model
-  imsel = mssel.imaging_selector(npix=512,arcmin=sky_models.imagesize());
+  # create source list
+  if sky_model == 'LSM':
+    sources = lsm.source_list(ns);
+    imagesize = 10;
+  elif sky_model == 'gridded sky':
+    sources = gridded_sky.make_model(ns);
+    imagesize = gridded_sky.get_recommended_imagesize();
+  else:
+    sources = [];
+  print "Sky model consists of",len(sources),"sources";
+  if not sources:
+    raise RuntimeError,"No sources in your sky model, you'll have to change some settings."
+
+  # setup imaging options (now that we have an imaging size set up)
+  imsel = mssel.imaging_selector(npix=512,arcmin=imagesize);
   TDLRuntimeMenu("Imaging options",*imsel.option_list());
   
   # list of inspector nodes
   inspectors = [];
     
-  # create source list
-  sources = sky_models.make_model(ns,"S0");
-  
   if include_ionosphere:
     # make Zjones for all positions in source list (and all stations)
     # this returns Zj which sould be qualified as Zj(srcname,station)
