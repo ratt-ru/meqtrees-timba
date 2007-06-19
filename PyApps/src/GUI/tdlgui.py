@@ -701,6 +701,8 @@ class TDLEditor (QFrame,PersistentCurrier):
   def execute_tdl_job (self,_tdlmod,ns,func,name):
     """executes a predefined TDL job given by func""";
     try:
+      # log job 
+      TDLOptions.dump_log("running TDL job '%s'"%name);
       QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
       try:
         func(meqds.mqs(),self);

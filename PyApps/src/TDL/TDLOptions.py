@@ -7,6 +7,7 @@ import traceback
 import inspect
 import sys
 import os.path 
+import time
 import re
 import glob
 
@@ -21,8 +22,10 @@ _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-# current config section, this is set to the script name by init_options()
+# current config section, this is set to the script base filename by init_options()
 config_section = "default";
+# current script name
+current_scriptname = None;
 # config file
 config_file = ".tdl.conf";
 # flag: write failed (so that we only report it once)
@@ -90,6 +93,8 @@ def init_options (filename,save=True):
   config_save_enabled = save;
   # init stuff
   clear_options();
+  global current_scriptname;
+  current_scriptname = filename;
   global config_section;
   config_section = re.sub('\.py[co]?','',os.path.basename(filename));
   _dprint(1,"config section is now",config_section);
@@ -105,6 +110,43 @@ def init_options (filename,save=True):
       _dprint(1,"migrated",option,value);
     config.remove_section(filename);
     save_config();
+    
+    
+import time
+import pwd
+import socket
+
+def dump_log (message=None,filename='meqtree.log',filemode='a'):
+  fileobj = file(filename,filemode);
+  fileobj.write("\n###  %s\n"%time.asctime());
+  fileobj.write("### user %s on host %s\n"%(pwd.getpwuid(os.getuid())[0],socket.gethostname()));
+  fileobj.write("### script: %s\n"%current_scriptname);
+  fileobj.write("### cwd: %s\n"%os.getcwd());
+  if message:
+    fileobj.write("### %s\n"%message);
+  dump_options(fileobj);
+
+def dump_options (fileobj):
+  # dumps all current options into the file given by fileobj
+  fileobj.write("[%s]\n"%config_section);
+  fileobj.write('# compile-time options follow\n');
+  lines = [];
+  for item in compile_options:
+    item.collect_log(lines);
+  lines.sort();
+  for line in lines:
+    if line[-1] != "\n":
+      line += "\n";
+    fileobj.write(line);
+  fileobj.write('# runtime options follow\n');
+  lines = [];
+  for item in runtime_options:
+    item.collect_log(lines);
+  lines.sort();
+  for line in lines:
+    if line[-1] != "\n":
+      line += "\n";
+    fileobj.write(line);
   
 def get_compile_options ():
   return compile_options;
@@ -139,6 +181,10 @@ class _TDLBaseOption (object):
     _dprint(3,"item '%s' owner '%s' runtime %d"%(self.name,owner,int(runtime)));
     self.owner = owner;
     self.is_runtime = runtime;
+    
+  def collect_log (self,log):
+    """called to collect a recursive log of all options. Default version logs nothing.""";
+    pass;
     
   def set_qaction (self,qa):
     """sets the option's QAction. Makes it enabled or disabled as appropriate""";
@@ -249,6 +295,12 @@ class _TDLOptionItem(_TDLBaseOption):
     _TDLBaseOption.init(self,owner,runtime);
     if owner:
       self.config_name = '.'.join((owner,self.config_name));
+      
+  def collect_log (self,log):
+    """called to collect a recursive log of all options. This version adds an entry
+    for itself only if option is not disabled/hidden""";
+    if self.visible and self.enabled:
+      log.append("%s = %s"%(self.config_name,self.get_str()));
     
   def _set (self,value):
     """private method for changing the internal value of an option"""
@@ -723,6 +775,18 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           # now steal items from this namespace's runtime or compile-time options
           self._steal_items(runtime,lambda item0:item0.namespace is namespace);
       self._items0 = None;
+      
+  def collect_log (self,log):
+    """called to collect a recursive log of all options. This version adds an entry
+    for itself only if option is not disabled/hidden""";
+    if self._toggle:
+      _TDLBoolOptionItem.collect_log(self,log);
+      if not self.value:
+        return;
+    if self.visible and self.enabled:
+      for item in self._items:
+        if isinstance(item,_TDLBaseOption):
+          item.collect_log(log);
   
   def _steal_items (self,runtime,predicate):
     """helper function: steals items matching the given predicate""";
