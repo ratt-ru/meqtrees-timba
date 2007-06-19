@@ -49,7 +49,7 @@ class MeowLSM (object):
       self._compile_opts.append(format_opt);
       self._compile_opts.append(
         TDLOption("max_sources","Restrict to N brightest sources",
-                  [None,5,10,20],more=int)
+                  [5,10,20],more=int,namespace=self)
       );
       save_opt = TDLOption("save_native","Save LSM in native format",False,namespace=self);
       self._compile_opts.append(save_opt);
@@ -124,7 +124,7 @@ class MeowLSM (object):
   ### eX, eY : multiply by 2
   ### eP: change sign
   
-    plist = lsm.queryLSM(count=max_sources or self.max_sources);
+    plist = self.lsm.queryLSM(count=max_sources or self.max_sources);
     
     for pu in plist:
       src = {};
