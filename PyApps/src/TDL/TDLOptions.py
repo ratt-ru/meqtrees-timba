@@ -133,7 +133,7 @@ def dump_options (fileobj):
   lines = [];
   for item in compile_options:
     item.collect_log(lines);
-  lines.sort();
+#  lines.sort();
   for line in lines:
     if line[-1] != "\n":
       line += "\n";
@@ -142,7 +142,7 @@ def dump_options (fileobj):
   lines = [];
   for item in runtime_options:
     item.collect_log(lines);
-  lines.sort();
+#  lines.sort();
   for line in lines:
     if line[-1] != "\n":
       line += "\n";
