@@ -84,7 +84,6 @@ class PUnit:
 
   self.__sixpack=None
   self._nodes=None# buffer to store any nodes associated with this PUnit,
-                   # useful for dealing with ParmSet and NodeSet objects
  
  # change type (point: flag=POINT_TYPE, patch: flag=PATCH_TYPE)
  def setType(self,flag):
@@ -221,40 +220,7 @@ class PUnit:
   # instead of the Sixpack Object, we store the 
   # root node namse of the IQUV,Ra,Dec subtrees
   if self.__sixpack!=None:
-   newp.__sixpack={}
-   pset=self.__sixpack.ParmSet
-   nodes=pset.NodeSet.MeqNode()
-   # attach all nodes to the temp buffer
-   nset_nodenames=nodes.keys()
-   newp._nodes=[]
-   # strip subscope from node names
-   for nodename in nset_nodenames:
-    if subscope: newp._nodes.append(strip_subscope(nodename))
-    else: newp._nodes.append(nodename)
-
-   # copy ParmSet
-   newp.__sixpack['ParmSet']=pset.clone()
-   #print newp.__sixpack['ParmsSt']
-   if self.__sixpack.ispoint():
-    newp.__sixpack['I']=self.__sixpack.stokesI().name
-    if subscope: newp.__sixpack['I']=strip_subscope(newp.__sixpack['I'])
-    newp.__sixpack['Q']=self.__sixpack.stokesQ().name
-    if subscope: newp.__sixpack['Q']=strip_subscope(newp.__sixpack['Q'])
-    newp.__sixpack['U']=self.__sixpack.stokesQ().name
-    if subscope: newp.__sixpack['U']=strip_subscope(newp.__sixpack['U'])
-    newp.__sixpack['V']=self.__sixpack.stokesV().name
-    if subscope: newp.__sixpack['V']=strip_subscope(newp.__sixpack['V'])
-    newp.__sixpack['ra']=self.__sixpack.ra().name
-    if subscope: newp.__sixpack['ra']=strip_subscope(newp.__sixpack['ra'])
-    newp.__sixpack['dec']=self.__sixpack.dec().name
-    if subscope: newp.__sixpack['dec']=strip_subscope(newp.__sixpack['dec'])
-    newp.__sixpack['label']=self.__sixpack.label()
-    newp.__sixpack['pointroot']=self.__sixpack.sixpack().name
-    if subscope: newp.__sixpack['pointroot']=strip_subscope(newp.__sixpack['pointroot'])
-   else:
-    newp.__sixpack['patchroot']=self.__sixpack.root().name
-    if subscope: newp.__sixpack['patchroot']=strip_subscope(newp.__sixpack['patchroot'])
-    newp.__sixpack['label']=self.__sixpack.label()
+   newp.__sixpack=self.__sixpack
   else:
    newp.__sixpack=None
   newp.FOV_distance=self.FOV_distance
@@ -292,14 +258,6 @@ class PUnit:
    self.sp.set_staticRA(new_ra)
    self.sp.set_staticDec(new_dec)
 
- # Try to recreate a TDL_ParmSet from a given dict.
- # Assume all needed nodes exist in the ns
- # Assume also the sixpack is present in this PUnit
- def setParmSet(self,tmp_dict,ns):
-  #print tmp_dict
-  if self.__sixpack==None or ns==None:
-    print "WARNING: cannot reconstruct ParmSet"
-    return
 ###############################################
 class LSM:
  """LSM Object:
@@ -741,21 +699,8 @@ class LSM:
    for sname in self.p_table.keys(): 
     punit=self.p_table[sname]
     # this is just for testing, add a dummy node thats not in the LSM
-    ####punit.getSixpack().ParmSet.NodeSet.set_MeqNode(self.__ns<<Meq.Parm(-1))
     g.p_table[sname]=punit.clone(self.__ns._name)
     g.p_table[sname].setLSM(g)
-    # get the nodes of the NodeSet of the ParmSet of this PUnit
-    # because we may need to save them with the LSM too.
-    my_nodes=punit.getSixpack().ParmSet.NodeSet.MeqNode()
-    # store them if they are not already saved by the LSM subtree
-    for my_name in my_nodes.keys():
-      # get stripped name without subscope
-      last_name=my_name
-      if self.__ns._name: last_name=strip_subscope(my_name)
-      if not gdict.has_key(last_name):
-       # we need to save this node
-       traverse(my_nodes[my_name]['node'],gdict,self.__ns._name)
-       extra_node_list.append(last_name)
 
    g.__root=pickle.dumps(gdict)
    g._extra_node_list=extra_node_list
@@ -850,17 +795,7 @@ class LSM:
      # set the root node
      my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
     punit.setSP(my_sp)
-    # recreate ParmSet for this sixpack
-    punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
     # recreate the NodeSet nodes, if any
-    if hasattr(punit,"_nodes") and punit._nodes!=None:
-       my_sp=punit.getSixpack()
-       for nodename in punit._nodes:
-         my_sp.ParmSet.NodeSet.set_MeqNode(cname_node_stub(self.__ns,nodename))
-       punit._nodes=None
-    # set the root
-    punit.sp.setRoot(my_sp.sixpack())
-
 
    f.close()
 
@@ -1479,10 +1414,6 @@ class LSM:
        # set the root node
        my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
        punit.setSP(my_sp)
-       # recreate ParmSet for this sixpack
-       punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
-       # set the root
-       punit.sp.setRoot(my_sp.sixpack())
        # add the new PUnit to self
        self.insertPUnit(punit)
     else:
