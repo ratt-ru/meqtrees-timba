@@ -182,7 +182,7 @@ class MSContentSelector (object):
 class MSSelector (object):
   """An MSSelector implements TDL options for selecting an MS and a subset therein""";
   def __init__ (self,
-                filter="*.ms *.MS",
+                pattern="*.ms *.MS",
                 has_input=True,
                 has_output=True,
                 forbid_output=["DATA"],
@@ -214,7 +214,7 @@ class MSSelector (object):
     self._content_selectors = [];
     self.ms_antenna_names = [];
     self.ms_antenna_sel = self.antsel_option = None;
-    ms_option = TDLOption('msname',"MS",TDLDirSelect(filter),namespace=self);
+    ms_option = TDLOption('msname',"MS",TDLDirSelect(pattern,default=True),namespace=self);
     self._compile_opts = [ ms_option ];
     self._opts = [];
     # antenna selector

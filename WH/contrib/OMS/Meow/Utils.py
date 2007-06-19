@@ -205,10 +205,10 @@ source_table = "sources.mep";
 mep_table = "calib.mep";
 
 def get_source_table ():
-  return msname + "/" + source_table;
+  return (msname or '.') + "/" + source_table;
 
 def get_mep_table ():
-  return msname + "/" + mep_table;
+  return (msname or '.') + "/" + mep_table;
 
 _solver_opts = dict(
   debug_level  = 0,
