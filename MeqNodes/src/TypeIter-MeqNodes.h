@@ -120,7 +120,8 @@
         Do(Meq::RADec,arg) separator \
         Do(Meq::ObjectRADec,arg) separator \
         Do(Meq::CoordTransform,arg) separator \
-        Do(Meq::LST,arg)
+        Do(Meq::LST,arg) separator \
+        Do(Meq::StationBeam,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

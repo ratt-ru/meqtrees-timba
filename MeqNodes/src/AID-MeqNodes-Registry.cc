@@ -210,6 +210,8 @@ DMI::BObj * __construct_MeqObjectRADec (int n) { return n>0 ? new Meq::ObjectRAD
 DMI::BObj * __construct_MeqCoordTransform (int n) { return n>0 ? new Meq::CoordTransform [n] : new Meq::CoordTransform; }
 #include "LST.h"
 DMI::BObj * __construct_MeqLST (int n) { return n>0 ? new Meq::LST [n] : new Meq::LST; }
+#include "StationBeam.h"
+DMI::BObj * __construct_MeqStationBeam (int n) { return n>0 ? new Meq::StationBeam [n] : new Meq::StationBeam; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -651,6 +653,15 @@ DMI::BObj * __construct_MeqLST (int n) { return n>0 ? new Meq::LST [n] : new Meq
         AtomicID::registerId(-1726,"MeqLST")+
         TypeInfoReg::addToRegistry(-1726,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1726,__construct_MeqLST)+
+        AtomicID::registerId(-1727,"MeqStationBeam")+
+        TypeInfoReg::addToRegistry(-1727,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1727,__construct_MeqStationBeam)+
+        AtomicID::registerId(-1024,"X")+
+        AtomicID::registerId(-1005,"Y")+
+        AtomicID::registerId(-1021,"Z")+
+        AtomicID::registerId(-1728,"Phi0")+
+        AtomicID::registerId(-1154,"Ref")+
+        AtomicID::registerId(-1177,"Freq")+
     0;
     return res;
   }

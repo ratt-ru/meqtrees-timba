@@ -208,6 +208,11 @@ const int AidFlag_int = -1134;
 const DMI::AtomicID AidForce(-1498);              // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidForce_int = -1498;
 #endif
+#ifndef _defined_id_AidFreq
+#define _defined_id_AidFreq 1
+const DMI::AtomicID AidFreq(-1177);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
+const int AidFreq_int = -1177;
+#endif
 #ifndef _defined_id_AidGE
 #define _defined_id_AidGE 1
 const DMI::AtomicID AidGE(-1424);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
@@ -748,6 +753,11 @@ const int AidMeqSqr_int = -1458;
 const DMI::AtomicID AidMeqSqrt(-1408);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
 const int AidMeqSqrt_int = -1408;
 #endif
+#ifndef _defined_id_AidMeqStationBeam
+#define _defined_id_AidMeqStationBeam 1
+const DMI::AtomicID AidMeqStationBeam(-1727);     // from /home/sarod/Timba/MeqNodes/src/StationBeam.h:33
+const int AidMeqStationBeam_int = -1727;
+#endif
 #ifndef _defined_id_AidMeqStdDev
 #define _defined_id_AidMeqStdDev 1
 const DMI::AtomicID AidMeqStdDev(-1491);          // from /home/oms/LOFAR/Timba/MeqNodes/src/StdDev.h:29
@@ -908,6 +918,11 @@ const int AidOutput_int = -1241;
 const DMI::AtomicID AidPA(-1702);                 // from /home/twillis/Timba/MeqNodes/src/LMN.h:31
 const int AidPA_int = -1702;
 #endif
+#ifndef _defined_id_AidPhi0
+#define _defined_id_AidPhi0 1
+const DMI::AtomicID AidPhi0(-1728);               // from /home/sarod/Timba/MeqNodes/src/StationBeam.h:35
+const int AidPhi0_int = -1728;
+#endif
 #ifndef _defined_id_AidPlot
 #define _defined_id_AidPlot 1
 const DMI::AtomicID AidPlot(-1432);               // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
@@ -952,6 +967,11 @@ const int AidReady_int = -1669;
 #define _defined_id_AidReduction 1
 const DMI::AtomicID AidReduction(-1680);          // from /home/oms/LOFAR/Timba/MeqNodes/src/ReductionFunction.h:30
 const int AidReduction_int = -1680;
+#endif
+#ifndef _defined_id_AidRef
+#define _defined_id_AidRef 1
+const DMI::AtomicID AidRef(-1154);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
+const int AidRef_int = -1154;
 #endif
 #ifndef _defined_id_AidResult
 #define _defined_id_AidResult 1
@@ -1128,6 +1148,11 @@ const int AidVisu_int = -1440;
 const DMI::AtomicID AidWeights(-1285);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 const int AidWeights_int = -1285;
 #endif
+#ifndef _defined_id_AidX
+#define _defined_id_AidX 1
+const DMI::AtomicID AidX(-1024);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidX_int = -1024;
+#endif
 #ifndef _defined_id_AidXX
 #define _defined_id_AidXX 1
 const DMI::AtomicID AidXX(-1115);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
@@ -1143,6 +1168,11 @@ const int AidXY_int = -1170;
 const DMI::AtomicID AidXYZ(-1567);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
 const int AidXYZ_int = -1567;
 #endif
+#ifndef _defined_id_AidY
+#define _defined_id_AidY 1
+const DMI::AtomicID AidY(-1005);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidY_int = -1005;
+#endif
 #ifndef _defined_id_AidYX
 #define _defined_id_AidYX 1
 const DMI::AtomicID AidYX(-1175);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
@@ -1152,6 +1182,11 @@ const int AidYX_int = -1175;
 #define _defined_id_AidYY 1
 const DMI::AtomicID AidYY(-1118);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
 const int AidYY_int = -1118;
+#endif
+#ifndef _defined_id_AidZ
+#define _defined_id_AidZ 1
+const DMI::AtomicID AidZ(-1021);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidZ_int = -1021;
 #endif
 
 

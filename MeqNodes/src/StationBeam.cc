@@ -34,7 +34,7 @@
 #include <casa/Quanta/MVuvw.h>
 
 
-#define DEBUG
+//#define DEBUG
 using namespace casa;
 
 namespace Meq {
@@ -48,6 +48,7 @@ const HIID FZ= AidZ;
 const HIID FRA= AidRA;
 const HIID FDec= AidDec;
 const HIID FPhi0= AidPhi0;
+const HIID FRefF= AidRef|AidFreq;
 
 //The node should have no children
 StationBeam::StationBeam()
@@ -56,6 +57,7 @@ StationBeam::StationBeam()
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
   x_=y_=z_=ra_=dec_=phi0_=0;
+  f0_=60e6;
 }
 
 StationBeam::~StationBeam()
@@ -104,6 +106,12 @@ void StationBeam::setStateImpl (DMI::Record::Ref &rec,bool initializing)
    cout<<"phi0="<<phi0_<<endl;
 #endif
 	}
+	if(rec[FRefF].get(f0_),initializing) {
+#ifdef DEBUG
+   cout<<"f0="<<f0_<<endl;
+#endif
+	}
+
   //read file
   ifstream infd;
   string line;
@@ -185,7 +193,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
   Frame.set (mepoch);
   MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame));
   double theta0,phi0;
-  double c=3.0e8;
+  double c=2.99792e8;
   blitz::Array<dcomplex,1> wk;
   wk.resize(p_.extent(0));
   for( int ci=0; ci<ntime; ci++)  {
@@ -199,20 +207,16 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
    phi0 = az_el(0)+phi0_; // azimuth rotated by 45
    //find k_0
 	 double k0[3];
-   k0[0]=-sin(theta0)*cos(phi0)/c;
-   k0[1]=-sin(theta0)*sin(phi0)/c;
-   k0[2]=-cos(theta0)/c;
-   double omega0=2*M_PI*56.2496948; //reference freq
+   double omega0=2*M_PI*f0_; //reference freq
+   k0[0]=-sin(theta0)*cos(phi0)/c*omega0;
+   k0[1]=-sin(theta0)*sin(phi0)/c*omega0;
+   k0[2]=-cos(theta0)/c*omega0;
    for(int cj=0; cj<nfreq; cj++)  {
      double omega=2*M_PI*freq(cj);
      double tau;
-     double k00,k01,k02;
-     k00=k0[0]*omega0;
-     k01=k0[1]*omega0;
-     k02=k0[2]*omega0;
      //calculate delays and weights
      for (int nt=0; nt<wk.extent(0); nt++) {
-        tau=k00*p_(nt,0)+k01*p_(nt,1)+k02*p_(nt,2);
+        tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
         wk(nt)=make_dcomplex(cos(tau),sin(tau)); //conjugate
      }
      for( int ck=0; ck<naz; ck++)  {
@@ -226,6 +230,8 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
           kt[0]=-sin(theta)*cos(phi)/c*omega;
           kt[1]=-sin(theta)*sin(phi)/c*omega;
           kt[2]=-cos(theta)/c*omega;
+//std::cout<<"k0 ="<<k0[0]<<" "<<k0[1]<<" "<<k0[2]<<std::endl;
+//std::cout<<"k ="<<kt[0]<<" "<<kt[1]<<" "<<kt[2]<<std::endl;
           dcomplex vk;
           for (int nt=0; nt<wk.extent(0); nt++) {
            tau=kt[0]*p_(nt,0)+kt[1]*p_(nt,1)+kt[2]*p_(nt,2);

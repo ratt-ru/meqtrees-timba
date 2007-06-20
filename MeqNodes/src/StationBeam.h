@@ -32,8 +32,24 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::StationBeam
 #pragma aid RA Dec X Y Z
-#pragma aid Filename Phi0
+#pragma aid Filename Phi0 Ref Freq
 
+/*
+ RA=RA of phase centre
+ Dec=Dec of phase centre
+ X,Y,Z=ITRF coords of array centre
+ filename=text file with element coordinates, using array centre as origin. First row should give number of elements. The next rows should have 6 columns each.
+ columns 1,2,3: x,y,z coords of X elements
+ columns 4,5,6: x,y,z, coords of Y elements
+ e.g.
+ 48
+ 0.1 0.2 0 0.1 0.21 0
+ 0.3 -0.3 0 0.3 -0.3 0
+ ..
+ 
+ phi0: rotation of coordinates around the zenith
+ ref_freq: reference freq of narrowband beamformer
+*/
 namespace Meq {    
 
 
@@ -73,6 +89,7 @@ private:
   double ra_,dec_; //tracking centre 
   double x_,y_,z_;//coords of phase centre in ITRF
   double phi0_; //rotation around zenith
+  double f0_; //reference freq in Hz
 };
 
 

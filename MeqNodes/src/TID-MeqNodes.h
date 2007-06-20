@@ -1623,6 +1623,25 @@ namespace Meq { class Sqrt; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqStationBeam
+#define _defined_id_TpMeqStationBeam 1
+const DMI::TypeId TpMeqStationBeam(-1727);        // from /home/sarod/Timba/MeqNodes/src/StationBeam.h:33
+const int TpMeqStationBeam_int = -1727;
+namespace Meq { class StationBeam; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::StationBeam> : public TypeTraits<Meq::StationBeam>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqStationBeam_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::StationBeam & ContainerReturnType;
+                typedef const Meq::StationBeam & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqStdDev
 #define _defined_id_TpMeqStdDev 1
 const DMI::TypeId TpMeqStdDev(-1491);             // from /home/oms/LOFAR/Timba/MeqNodes/src/StdDev.h:29
