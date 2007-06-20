@@ -54,6 +54,8 @@ TDLOption('solver_maxiter',"Max iterations",[10,3,15],more=int),
 TDLOption('tile_size',"Tile size",[1,10,30,48,60,96,480],more=int),
 # solve for full J Jones or  diagonal J Jones
 TDLOption('full_J',"Full Jones",[False,True]),
+# create condeq residual plots
+TDLOption('residual_plots',"Residual Plots",[False,True]),
 );
 
 TDLRuntimeMenu("Calibration",
@@ -65,6 +67,7 @@ TDLOption('do_postprocess',"Postprocess",[True,False]),
 
 TDLRuntimeMenu("Imager",
 #### imaging options ####
+TDLOption('average_channels',"Average corrected data",[True,False],doc="Spectral averaging will speedup imaging"),
 TDLOption('full_images',"Full Images",[True,False]),
 ### uv distance #####
 TDLOption('min_uv',"Min uv distance squared",[3400,400],more=float)
@@ -500,12 +503,16 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
+  if average_channels:
+    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_small.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
+  else:
+    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
   # residual plots
-  for spwid in range(min_spwid-1,max_spwid):
-    for schan in range(start_channel,end_channel,channel_step):
-      debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
-      solver_plots.create_residual_plots(debug_filename)
+  if residual_plots:
+    for spwid in range(min_spwid-1,max_spwid):
+     for schan in range(start_channel,end_channel,channel_step):
+       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
+       solver_plots.create_residual_plots(debug_filename)
 
   # cleanup any crumbs left from glish
   # to be done
