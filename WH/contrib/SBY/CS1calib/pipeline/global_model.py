@@ -589,8 +589,8 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
   xyz=array.xyz();
 
   # station beam
-  Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4)
-  Ystatbeam=ns.Ystatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4)
+  Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4,ref_freq=48.7496948e6)
+  Ystatbeam=ns.Ystatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4,ref_freq=48.7496948e6)
 
   # create per-direction, per-station E Jones matrices
   for src in sources:
