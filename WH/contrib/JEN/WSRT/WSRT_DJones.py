@@ -25,10 +25,11 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 #=================================================================================================
 
 
-def DJones_parmgroups(full=False):
+def TDL_parmgroups(full=False):
     """Return the available groups of MeqParms"""
-    pg = ['DJones','Ddang','Ddell','Dpzd']
-    return pg
+    pg = [None,'DJones','Ddang','Ddell','Dpzd']
+    return TDLCompileOption('TDL_DJones_solvable', 'groups of solvable DJones parms',pg,
+                            doc='select group(s) of solvable DJones parms ...')
 
 
 #--------------------------------------------------------------------------------------------

@@ -409,15 +409,13 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
     #---------------------------------------------------------------------
 
-    def bundle(self, oper='Composer', quals=[]):
+    def bundle(self, oper='Composer', quals=[], accu=True):
         """Bundle its matrices, using an operation like Composer, Add,
         Multiply, WMean, etc."""
         nn = self.make_NodeList(quals=quals)
         bundle = nn.bundle(oper)
-        # if oper=='Composer':
-            # Append a reqseq of self._accumulist nodes (if any):
-        #    accuroot = self.p_bundle_accumulist(quals=quals)
-        #    if accuroot: cc.append(accuroot)
+        if accu:
+            self.p_accumulist(bundle)
         return bundle
 
     #---------------------------------------------------------------------
@@ -457,23 +455,29 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             return False
 
         # Make a NodeList object:
-        # print '** quals=',quals
         nn = self.make_NodeList(quals=quals)
-        # nn.display('after make_Nodelist() in visu')
 
         dcolls = []
         for visual in visu:
             if visual=='timetracks':
-                dc = nn.plot_timetracks(bookpage='M22_plot_timetracks',
-                                        quals=quals)
+                folder = 'M22_plot_timetracks'
+                bookpage = self.name+'_timetracks'
+                if isinstance(quals, str): bookpage += '_'+str(quals)
+                dc = nn.plot_timetracks(bookpage=bookpage, folder=folder, quals=quals)
                 dcolls.append(dc)
             elif visual=='straight':
                 nn.bookpage(4)
             elif visual=='spectra':
-                dc = nn.plot_spectra(bookpage='M22_plot_spectra', quals=quals)
+                folder = 'M22_plot_spectra'
+                bookpage = self.name+'_spectra'
+                # if isinstance(quals, str): bookpage += '_'+str(quals)
+                dc = nn.plot_spectra(bookpage=bookpage, folder=folder, quals=quals)
                 dcolls.append(dc)
             else:
-                dc = nn.plot_rvsi(bookpage='M22_plot_rvsi', quals=quals)
+                folder = 'M22_plot_rvsi'
+                bookpage = self.name+'_rvsi'
+                # if isinstance(quals, str): bookpage += '_'+str(quals)
+                dc = nn.plot_rvsi(bookpage=bookpage, folder=folder, quals=quals)
                 dcolls.append(dc)
                 
         # Return a single node (bundle if necessary):
@@ -485,7 +489,9 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             self._dcoll = dcolls[0]                  # for .display() only
             return dcolls[0]
         else:
-            bundle = self.ns['visu_bundle'] << Meq.Composer(children=dcolls)
+            quals = self.p_quals2list(quals)
+            quals.append(self._stage['stage'])
+            bundle = self.ns['visu_bundle'](*quals) << Meq.Composer(children=dcolls)
             if accu: self.p_accumulist(bundle)
             self._dcoll = bundle                     # for .display() only
             return bundle

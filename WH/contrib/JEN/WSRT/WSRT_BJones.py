@@ -21,15 +21,14 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 
 
 #=================================================================================================
-# Functions to streamline the use of WSRT Jones matrices: 
-#=================================================================================================
 
 
-
-def BJones_parmgroups(full=False):
+def TDL_parmgroups(full=False):
     """Return the available groups of MeqParms"""
-    pg = ['BJones'] 
-    return pg
+    pg = [None,'BJones'] 
+    return TDLCompileOption('TDL_BJones_solvable', 'groups of solvable BJones parms',pg,
+                            doc='select group(s) of solvable BJones parms ...')
+
 
 #--------------------------------------------------------------------------------------------
 

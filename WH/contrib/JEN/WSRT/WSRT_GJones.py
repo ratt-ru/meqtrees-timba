@@ -24,12 +24,15 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 # Functions to streamline the use of WSRT Jones matrices: 
 #=================================================================================================
 
-def GJones_parmgroups(full=False):
-    """Return the available groups of MeqParms"""
-    pg = ['GJones','Gphase','Ggain'] 
-    if full: pg.extend(['GphaseX','GgainX','GphaseY','GgainY']) 
-    return pg
 
+def TDL_parmgroups(full=False):
+    """Return the available groups of MeqParms"""
+    pg = [None,'GJones','Gphase','Ggain'] 
+    if full: pg.extend(['GphaseX','GgainX','GphaseY','GgainY']) 
+    return TDLCompileOption('TDL_GJones_solvable', 'groups of solvable GJones parms',pg,
+                            doc='select group(s) of solvable GJones parms ...')
+
+#----------------------------------------------------------------------------------------
 
 class GJones (Joneset22.GJones):
     """Class that represents a set of 2x2 WSRT GJones matrices,
@@ -68,6 +71,7 @@ def _define_forest(ns):
         
     ns.result << Meq.Composer(children=cc)
     return True
+
 
 #---------------------------------------------------------------
 

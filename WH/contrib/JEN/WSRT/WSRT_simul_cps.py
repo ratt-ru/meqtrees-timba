@@ -35,9 +35,7 @@ from Timba.Contrib.JEN.Grunt import PointSource22
 
 
 # MS options first
-TDLCompileOption('TDL_num_stations','Number of stations',[5,14], more=int);
 mssel = Meow.MSUtils.MSSelector(has_input=False,tile_sizes=[8,1,2,3,5,16,32,64,96]);
-#                                   tile_sizes=[30,48,96,20,10,5,2,1]);
 
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
@@ -51,16 +49,21 @@ TDLRuntimeOptions(*mssel.runtime_options());
 # Compile-time menu:
 PointSource22.include_TDL_options('cps model')  
 
+
+# WSRT_Joneseq.make_solv_option_menu()
 TDLCompileMenu('Corrupting Jones matrices', WSRT_Joneseq)
+               # toggle='TDL_Jones_matrices')
 
 TDLCompileOption('TDL_stddev_noise','Add gaussian noise: stddev (Jy)',
                  [0.0, 0.0001, 0.001, 0.01,0.1,1.0], more=float);
+
 TDLCompileMenu('Print extra information',
                TDLCompileOption('TDL_display_PointSource22',
                                 'Display PointSource22 object', [False, True]),
                TDLCompileOption('TDL_display_Visset22',
                                 'Display Visset22 object', [False, True]),
                );
+
 TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=int);
 
 
@@ -72,7 +75,7 @@ TDLCompileOption('TDL_cache_policy','Node result caching policy',[100,0], more=i
 def _define_forest (ns):
     """Define the MeqTree forest"""
 
-    ANTENNAS = mssel.get_antenna_set(range(1,TDL_num_stations+1));
+    ANTENNAS = mssel.get_antenna_set();
     array = Meow.IfrArray(ns, ANTENNAS)
     observation = Meow.Observation(ns)
     Meow.Context.set(array, observation)
@@ -86,7 +89,8 @@ def _define_forest (ns):
     # Make a user-defined point source, derived from the Meow.PointSource class,
     # with some extra functionality for predefined sources and solving etc.
     ps = PointSource22.PointSource22 (ns, direction=center)
-    if TDL_display_PointSource22: ps.display(full=True)
+    if TDL_display_PointSource22:
+        ps.display(full=True)
 
     # Create a Visset22 object, with nominal source coherencies:
     vis = ps.Visset22(array, observation, name='simvis', visu=True)
@@ -110,24 +114,27 @@ def _define_forest (ns):
         vis.restore_phase_centre(visu=True, last=False)
 
 
-    if True:
-        # Corrupt the data with a sequence of Jones matrices:
-        jones = WSRT_Joneseq.Joneseq22_uvp(ns, stations=array.stations(),
-                                           # override=dict(GJones=dict(Psec=500)),
-                                           simulate=True)
+    # Optional: Corrupt the uv-data with a sequence of Jones matrices:
+    jones = WSRT_Joneseq.Joneseq22_uvp(ns, stations=array.stations(),
+                                       # override=dict(GJones=dict(Psec=500)),
+                                       simulate=True)
+    if jones:
         jones.visualize('*')
         jones.p_plot_rvsi()
         jones.display(full=True)
         jones.p_bundle()
         jones.bundle()
         vis.corrupt(jones, visu='*')
+    # Test (temporary)
+    # WSRT_Joneseq.get_solvable_parmgroups(trace=True)
 
-    # Add gaussian noise, if required:
-    if False:
+    # Optional: Add gaussian noise, if required:
+    if TDL_stddev_noise>0.0:
         vis.addGaussianNoise(stddev=TDL_stddev_noise, visu='*')
 
     # Finished:
-    if TDL_display_Visset22: vis.display(full=True)
+    if TDL_display_Visset22:
+        vis.display(full=True)
     global vdm_nodename
     vdm_nodename = vis.make_sinks(vdm='vdm', visu=False)
     vis.history().display(full=True)
@@ -141,20 +148,11 @@ def _define_forest (ns):
 # Routines for the TDL execute menu:
 #========================================================================
 
-# def _tdl_job_1_WSRT_simul_cps (mqs,parent):
-#    mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
-#    # req = JEN_Meow_Utils.create_io_request(override_output_column='MODEL_DATA');
-#    req = JEN_Meow_Utils.create_io_request();
-#    mqs.execute(vdm_nodename, req, wait=False);
-#    return True
                                      
 def _tdl_job_1_simulate_MS (mqs, parent, wait=False):
+    mqs.meq('Set.Forest.State', record(state=record(cache_policy=TDL_cache_policy)))
     mqs.execute(vdm_nodename, mssel.create_io_request(), wait=wait);
-  
-  
-# def _tdl_job_2_make_image (mqs,parent):
-#    JEN_Meow_Utils.make_dirty_image(npix=256,cellsize='1arcsec',channels=[32,1,1]);
-#    return True
+    return True
 
 
 #========================================================================

@@ -152,6 +152,7 @@ def Joneseq22 (ns, joneslist=None, quals=None):
         qq = jones.p_get_quals(merge=qq, remove=[jones.name])
     qq.extend(first.p_quals2list(quals))
     jnew = Joneset22(ns, name=name+'Jones',
+                     polrep=first.polrep(),
                      quals=qq, stations=stations) 
 
     # Then create the new Jones matrices by matrix-multiplication:

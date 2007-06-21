@@ -37,22 +37,6 @@ def help ():
     return ss
 
 
-def parmgroups_uvp(full=False):
-    """Return the available groups of MeqParms from the (uv-plane) Jones matrices
-    in this Jones module"""
-    pg = ['*']
-    pg.extend(WSRT_GJones_parmgroups(full=full)) 
-    pg.extend(WSRT_DJones_parmgroups(full=full)) 
-    pg.extend(WSRT_FJones_parmgroups(full=full)) 
-    pg.extend(WSRT_JJones_parmgroups(full=full)) 
-    pg.extend(WSRT_BJones_parmgroups(full=full))
-    pg.append(['GJones','BJones'])
-    pg.append(['GJones','DJones'])
-    pg.append(['GJones','DJones','FJones'])
-    pg.append(['DJones','FJones'])
-    return pg
-
-
 
 #------------------------------------------------------------------------------------------
 
@@ -69,7 +53,10 @@ def Joneseq22_uvp(ns, stations, jseq=None, simulate=False, override=None):
 
     # If not specified, use the TDLOption value:
     if jseq==None: jseq = TDL_jseq
-    print '** jseq=',jseq,' simulate=',simulate,'\n'
+    # print '** jseq=',jseq,' simulate=',simulate,'\n'
+
+    # If jseq==None or [], do nothing (return unit matrix?)
+    if not jseq: return None
 
     # First make a sequence (list jj) of Joneset22 objects:
     jj = []
@@ -104,12 +91,16 @@ def Joneseq22_uvp(ns, stations, jseq=None, simulate=False, override=None):
 
 
 #============================================================================
+# TDL Options:
+#============================================================================
 
-_jseq_option = TDLCompileOption('TDL_jseq',"Jones matrix sequence",
-                                ['J','G','F','J','B','GD','GDF','GDFJB'],
+# TDLCompileOptionSeparator()
+
+_jseq_option = TDLCompileOption('TDL_jseq',"Selected Jones matrix sequence",
+                                ['J','G','F','J','B','GD','GDF','GDFJB',None],
                                 more=str);
 
-# Make a dict of named option-menu-objects for the various Jones matrices:
+# Make a dict of named option-menu-objects for the various Jones matrices: 
 rr = dict(G=TDLCompileMenu('Options for WSRT_GJones', WSRT_GJones),
           D=TDLCompileMenu('Options for WSRT_DJones', WSRT_DJones),
           F=TDLCompileMenu('Options for WSRT_FJones', WSRT_FJones),
@@ -124,17 +115,67 @@ _matrix_option_menu = TDLCompileMenu('Jones matrix options',
                                      rr['B'],
                                      );
 
+# Show/hide option menus based on selected Jones matrix sequence (jseq)
 
-# show/hide option menus based on selected Jones matrix sequence (jseq)
-def _show_option_menus (jseq):
-    # print '** jseq =',jseq
-    # Only show the relevant menu if the Jones matrix (jchar, e.g. G)
-    # is in the selected sequence (jseq):
+def _show_matrix_option_menus (jseq):
+    if jseq==None: jseq = []
     for jchar in rr.keys():
         rr[jchar].show(jchar in jseq)
-        # rr[jchar].hide(not jchar in jseq)
+_jseq_option.when_changed(_show_matrix_option_menus);
+
+
+
+
+#==========================================================================
+
+def get_solvable_parmgroups(trace=True):
+    """Return a list of selected solvable parmgroups."""
+    jseq = _jseq_option.value
+    if jseq==None: jseq = []
+    if trace: print '\n** get_solvable_parmgroups: jseq =',jseq
+    pg = []
+    for jchar in ss.keys():
+        if trace: print '  -',jchar,':',ss[jchar].value
+        if jchar in jseq:
+            pg.append(ss[jchar].value)
+    if trace: print '   -> pg =',pg 
+    return pg
             
-_jseq_option.when_changed(_show_option_menus);
+#--------------------------------------------------------------------------
+
+def make_solv_option_menu():
+    """Should be called before making the module submenu"""
+    
+    # Make a dict of TDLOption objects:
+    global ss
+    ss = dict(G=WSRT_GJones.TDL_parmgroups(),
+              D=WSRT_DJones.TDL_parmgroups(),
+              F=WSRT_FJones.TDL_parmgroups(),
+              J=WSRT_JJones.TDL_parmgroups(),
+              B=WSRT_BJones.TDL_parmgroups())
+
+    # Make TDL options for (groups of) solvable parms:
+    _solv_option_menu = TDLCompileMenu('Jones solvable parmgroups',
+                                       ss['G'],
+                                       ss['D'],
+                                       ss['F'],
+                                       ss['J'],
+                                       ss['B'],
+                                       # toggle='TDL_solve',
+                                       );
+
+    # Show/hide option menus based on selected Jones matrix sequence (jseq)
+    def _show_solv_option_menus (jseq):
+        if jseq==None: jseq = []
+        for jchar in ss.keys():
+            ss[jchar].show(jchar in jseq)
+            if jchar in jseq:
+                print '** jchar =',jchar,' current value =',ss[jchar].value
+    _jseq_option.when_changed(_show_solv_option_menus);
+
+    # Finished:
+    return _solv_option_menu
+
 
 
 

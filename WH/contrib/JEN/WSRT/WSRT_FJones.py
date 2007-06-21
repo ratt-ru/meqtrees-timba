@@ -21,16 +21,15 @@ from Timba.Contrib.JEN.Grunt import Joneset22
 
 
 #=================================================================================================
-# Functions to streamline the use of WSRT Jones matrices: 
-#=================================================================================================
 
-#--------------------------------------------------------------------------------------------
 
-def FJones_parmgroups(full=False):
+def TDL_parmgroups(full=False):
     """Return the available groups of MeqParms"""
-    pg = ['FJones','Frm']
-    return pg
+    pg = [None,'FJones','Frm']
+    return TDLCompileOption('TDL_FJones_solvable', 'groups of solvable FJones parms',pg,
+                            doc='select group(s) of solvable FJones parms ...')
 
+#-----------------------------------------------------------------------------------------
 
 
 class FJones (Joneset22.FJones):
@@ -49,6 +48,7 @@ class FJones (Joneset22.FJones):
                                   override=override,
                                   stations=stations, simulate=simulate)
         return None
+
 
 
      

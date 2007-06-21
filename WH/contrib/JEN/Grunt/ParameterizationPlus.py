@@ -415,7 +415,7 @@ class ParameterizationPlus (Meow.Parameterization):
                     newkey = other.name+'_'+key
                     self._parmdefs[newkey] = pd
                     rr['nodes'].append(self._parm(newkey))    # generate a node in self, not other!
-                    rr['solvable'].append(pd[2])              # boolean
+                    rr['solvable'].append(pd[2])              # 3rd element: solvable (boolean)
                     rr['plot_labels'].append(newkey)          # ....?
 
 

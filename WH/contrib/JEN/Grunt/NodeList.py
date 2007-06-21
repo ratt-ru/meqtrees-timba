@@ -685,7 +685,7 @@ class NodeList (object):
 
         else:
             # Scalar case:
-            kopie = kopie.unop('Mean', reduction_axes='time')  
+            kopie = kopie.unop('Mean', reduction_axes='freq')  
             qnode << Meq.Composer(children=kopie._nodes,
                                   plot_label=kopie._labels)
             JEN_bookmarks.create(qnode, 'plot_timetracks_'+kopie.name(),

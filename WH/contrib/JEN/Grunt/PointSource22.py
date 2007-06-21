@@ -252,6 +252,7 @@ class PointSource22 (Meow.PointSource):
             # is derived from Grunt.ParameterizationPlus, which has a
             # function that puts all the Meow.Parameterization parameters
             # into a separate parmgroup.
+
             self._Visset22.p_merge(self)
 
             if visu:
