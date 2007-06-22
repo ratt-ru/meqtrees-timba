@@ -155,8 +155,12 @@ def _define_forest(ns, parent=None, **kw):
      ordlist.append(sname);
 
 
+  if dosubtile:
+   def_tiling=record(time=1)
+  else:
+   def_tiling=None
+
   corrupt_list=sublist0;
-  def_tiling=record(time=1)
 
   for station in array.stations():
     ns.Jreal11(station,0)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
