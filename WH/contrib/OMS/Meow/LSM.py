@@ -41,7 +41,7 @@ class MeowLSM (object):
       self._compile_opts.append(
         TDLOption("filename","LSM file",
                    TDLFileSelect("*.lsm *.txt *.*",default=self.filename,exist=True),
-                   namespace=self)\
+                   namespace=self)
       );
       format_opt = TDLOption("format","File format",
                  [ NATIVE,NEWSTAR,NVSS,CLEAN,TEXT_RAD,TEXT_DMS,VIZIER ],
@@ -65,7 +65,7 @@ class MeowLSM (object):
       format_opt.when_changed(_select_format);
 
       self._compile_opts.append(
-        TDLOption("show_gui","Show LSM GUI",False)
+        TDLOption("show_gui","Show LSM GUI",False,namespace=self)
       );
     return self._compile_opts;
     

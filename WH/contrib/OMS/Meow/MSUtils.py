@@ -119,12 +119,15 @@ class MSContentSelector (object):
     object. Fills ddid/field/channel selectors from the MS. 
     """;
     # DDIDs
-    self.ms_spws = list(pycasatable.table(ms.getkeyword('DATA_DESCRIPTION')) \
-                              .getcol('SPECTRAL_WINDOW_ID'));
-    numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW')).getcol('NUM_CHAN');
+    self.ms_spws = list(pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'),
+                                            lockoptions='autonoread') \
+                                          .getcol('SPECTRAL_WINDOW_ID'));
+    numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW'),
+                                  lockoptions='autonoread').getcol('NUM_CHAN');
     self.ms_ddid_numchannels = [ numchans[spw] for spw in self.ms_spws ];
     # Fields
-    self.ms_field_names = list(pycasatable.table(ms.getkeyword('FIELD')).getcol('NAME'));
+    self.ms_field_names = list(pycasatable.table(ms.getkeyword('FIELD'),
+                                                 lockoptions='autonoread').getcol('NAME'));
     # update selectors
     self._update_ms_options();
   
@@ -339,14 +342,15 @@ class MSSelector (object):
     if msname == getattr(self,'_msname',None):
       return True;
     try:
-      ms = pycasatable.table(msname);
+      ms = pycasatable.table(msname,lockoptions='autonoread');
       # data columns
       self.ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
       self.input_col_option.set_option_list(self.ms_data_columns);
       outcols = [ col for col in self.ms_data_columns if col not in self._forbid_output ];
       self.output_col_option.set_option_list(outcols);
       # antennas
-      self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA')).getcol('NAME');
+      self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA'),
+                                                lockoptions='autonoread').getcol('NAME');
       if self.antsel_option:
         self.antsel_option.set_option_list(["1:%d"%len(self.ms_antenna_names)]);
         self.antsel_option.show();
@@ -508,12 +512,27 @@ class ImagingSelector (object):
       if not isinstance(arcmin,(list,tuple)):
         arcmin = [ arcmin ];
       self._opts.append(TDLOption('imaging_arcmin',
-                    "Image size, in arcmin",arcmin,more=float,namespace=self));
+                    "Image size, in arcmin",list(arcmin)+["all-sky"],more=float,namespace=self));
     elif cellsize:
       if not isinstance(cellsize,(list,tuple)):
         cellsize = [ cellsize ];
       self._opts.append(TDLOption('imaging_cellsize',
                         "Pixel size",cellsize,more=str,namespace=self));
+    self._opts.append(TDLOption('imaging_padding',
+                                "Image padding factor for FFTs",[1.0],more=float,namespace=self,
+      doc="""When gridding and transforming, the array may be padded 
+      by this factor in the image plane. This reduces aliasing, especially 
+      in wide-field cleaning."""));
+    # add w-projection option
+    self._opts.append(TDLMenu("Enable w-projection",
+        TDLOption('imaging_wprojplanes',"Number of convolution functions for w-projection",
+                  [128],more=int,namespace=self),
+      toggle='imaging_enable_wproj',namespace=self,
+      doc="""This option enables the w-projection algorithm. Imaging will
+      be <b>much</b> slower, but wide-field artefacts will be greately reduced or 
+      eliminated. Note that this option does not work right with all versions
+      of the aips++ imager, but the only way to find out is to give it a try.""",
+      ));
     # add MS subset selector, if needed
     if subset:
       self.subset_selector = mssel.make_subset_selector(namespace);
@@ -562,6 +581,9 @@ class ImagingSelector (object):
       cellsize = self.imaging_cellsize;
     # resolve to required cellsize, finally
     if arcmin is not None:
+      if arcmin == 'all-sky':
+        arcmin = 180*60;
+      print arcmin;
       cellsize = str(float(arcmin*60)/npix)+"arcsec";
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
@@ -577,7 +599,11 @@ class ImagingSelector (object):
       'cellsize='+cellsize,
       'spwid=%d'%(selector.get_spectral_window()+1),
       'field=%d'%(selector.get_field()+1),
+      'padding=%f'%self.imaging_padding,
     ];
+    # add w-proj arguments
+    if self.imaging_enable_wproj:
+      args.append("wprojplanes=%d"%self.imaging_wprojplanes);
     # add channel arguments
     chans = selector.get_channels();
     if chans:

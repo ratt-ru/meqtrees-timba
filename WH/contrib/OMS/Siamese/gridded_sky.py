@@ -5,14 +5,20 @@ import math
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
 
-def get_recommended_imagesize ():
+def estimate_image_size (**kw):
   """Returns current image size, based on grid size and step""";
   return grid_size*grid_step;
 
 def point_source (ns,name,l,m,I=1):
-  """shortcut for making a pointsource with a direction""";
-  srcdir = Meow.LMDirection(ns,name,l,m);
-  return Meow.PointSource(ns,name,srcdir,I=I);
+  """shortcut for making a pointsource with a direction. Returns None for sources out of the "sky"
+  (l^2+m^2>1)""";
+  l = math.sin(l);
+  m = math.sin(m);
+  if l*l + m*m <= 1:
+    srcdir = Meow.LMDirection(ns,name,l,m);
+    return Meow.PointSource(ns,name,srcdir,I=I);
+  else:
+    return None;
 
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc,I):
   """Returns sources arranged in a cross""";
@@ -70,19 +76,35 @@ def grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
         model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
   return model;
 
+def circ_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
+  """Returns sources arranged in a circular grid""";
+  # start with a cross model
+  model = cross_model(ns,basename,l0,m0,dl,dm,nsrc,I);
+  # fill in diagonals
+  dl /= math.sqrt(2);
+  dm /= math.sqrt(2);
+  for n in range(1,nsrc+1):
+    for dx in (-n,0,n):
+      for dy in (-n,0,n):
+        if dx or dy:
+          name = "%s%+d%+d" % (basename,dx,dy);
+          model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
+  return model;
+
 # NB: use lm0=1e-20 to avoid our nasty bug when there's only a single source
 # at the phase centre
-def make_model (ns,basename="S",l0=0,m0=0):
+def source_list (ns,basename="S",l0=0,m0=0):
   """Creates and returns selected model""";
   if grid_size == 1 and not l0 and not m0:
     l0 = m0 = 1e-20;
-  return model_func(ns,basename,l0,m0,
-                    grid_step*ARCMIN,grid_step*ARCMIN,
-                    (grid_size-1)/2,source_flux);
+  sources = model_func(ns,basename,l0,m0,
+                       grid_step*ARCMIN,grid_step*ARCMIN,
+                       (grid_size-1)/2,source_flux);
+  return filter(lambda x:x,sources);
 
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
-      [cross_model,grid_model,star8_model,lbar_model,mbar_model]);
+      [cross_model,grid_model,circ_grid_model,star8_model,lbar_model,mbar_model]);
 
 TDLCompileOption("grid_size","Number of sources in each direction",
       [1,3,5,7],more=int);

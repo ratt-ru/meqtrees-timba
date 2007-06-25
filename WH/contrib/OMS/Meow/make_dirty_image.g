@@ -17,6 +17,8 @@ chanmode := 'channel';
 nchan := 1;
 chanstart := 1;
 chanstep := 1;
+wprojplanes := 0;
+padding := 1.0;
 
 # parse command line
 for( a in argv )
@@ -48,6 +50,10 @@ for( a in argv )
     fieldid := as_integer(a);
   else if( a =~ s/^spwid=// )
     spwid := as_integer(a);
+  else if( a =~ s/^wprojplanes=// )
+    wprojplanes := as_integer(a);
+  else if( a =~ s/^padding=// )
+    padding := as_float(a);
   else if( a =~ s/^chanmode=// )
     chanmode := a;
   else if( a =~ s/^nchan=// )
@@ -87,7 +93,9 @@ else
   
 myimager.weight(weighting); 
   
-myimager.setoptions(cache=100000000);
+myimager.setoptions(cache=500000000,padding=padding);
+if( wprojplanes > 0 )
+  myimager.setoptions(ftmachine='wproject', wprojplanes=wprojplanes);
 
 imgname := msname
 imgname =~ s/\..*//;

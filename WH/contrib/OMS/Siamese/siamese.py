@@ -44,8 +44,24 @@ import iono_geometry
 import iono_model
 TDLCompileMenu("Include ionosphere",iono_geometry,iono_model,toggle='include_ionosphere');
 
-import beam_models
-TDLCompileMenu("Include beam",beam_models,toggle='include_beam');
+# add beam modules
+import wsrt_beams
+import sarod_cs1_beams
+import cormac_beams
+_beam_menus = [
+  TDLCompileMenu("Use WSRT beams",wsrt_beams,toggle='include_wsrt_beam'),
+  TDLCompileMenu("Use Sarod CS1 beams",sarod_cs1_beams,toggle='include_sarod_beam'),
+  TDLCompileMenu("Use Cormac beams",cormac_beams,toggle='include_sarod_beam'),
+];
+
+# make the beam menus exclusive
+def _toggle_beam_submenus (menu0,value):
+  if value:
+    for menu in _beam_menus:
+      if menu is not menu0:
+        menu.set(False);
+for menu in _beam_menus:
+  menu.when_changed(curry(_toggle_beam_submenus,menu));
 
 import gain_models
 TDLCompileMenu("Include gain/phase errors",gain_models,toggle='include_gains');

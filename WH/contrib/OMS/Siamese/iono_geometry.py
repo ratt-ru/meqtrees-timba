@@ -8,10 +8,10 @@ Lightspeed = 3e+8;
 
 TDLCompileOption("iono_rotate","Rotate ionosphere with sky",True);
 
-def compute_piercings (ns,source_list):
+def compute_piercings (ns,source_list,stations=None):
   """Creates nodes to compute the "piercing points" of each
   source in source_list, for each antenna in array.""";
-  stations = Context.array.stations();
+  stations = stations or Context.array.stations();
   xyz = Context.array.xyz();
   radec0 = Context.observation.phase_centre.radec();
   
@@ -58,22 +58,23 @@ def compute_piercings (ns,source_list):
         ns.pxy(src.name,p) << ns.xy1(p) + Meq.MatrixMultiply(ns.P(p),ns.dxy(src.name));
   return ns.pxy;
   
-def compute_za_cosines (ns,source_list):
+def compute_za_cosines (ns,source_list,stations=None):
   """Creates nodes to compute the zenith angle cosine of each
   source in source_list, for each antenna in array.""";
+  stations = stations or Context.array.stations();
   za_cos = ns.za_cos;
   for src in source_list:
-    for p in Context.array.stations():
+    for p in stations:
       za_cos(src.name,p) << Meq.Identity(src.direction.n(Context.observation.phase_centre));
       
   return za_cos;
 
-def compute_zeta_jones_from_tecs (ns,tecs,source_list):
+def compute_zeta_jones_from_tecs (zeta,tecs,source_list,stations):
   """Creates the Z Jones for ionospheric phase, given TECs (per source, 
   per station).""";
-  zeta = ns.Z;
+  stations = stations or Context.array.stations();
   for src in source_list:
-    for p in Context.array.stations():
+    for p in stations:
       zeta(src.name,p) << Meq.Polar(1,-25*Lightspeed*tecs(src.name,p)/Meq.Freq());
   return zeta;
 

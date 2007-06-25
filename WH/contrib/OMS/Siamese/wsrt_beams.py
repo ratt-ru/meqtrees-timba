@@ -23,40 +23,35 @@ def WSRT_cos3_beam (E,lm,*dum):
   E << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsq+ns.msq)*wsrt_beam_size_factor*Meq.Freq()),3);
   return E;
 # this beam model is not per-station
-WSRT_cos3_beam._per_station = False;
+WSRT_cos3_beam._not_per_station = True;
 
-
-def compute_E_jones(Ej,sources):
-  """Computes E Jones (beam gain) for a list of sources.
-  Ej is an output node, which will be qualified with either a source only,
-  or a source/station pair.
+def compute_jones (Jones,sources,stations=None,pointing_offsets=None,**kw):
+  """Computes beam gain for a list of sources.
+  The output node, will be qualified with either a source only, or a source/station pair
   """;
+  stations = stations or Context.array.stations();
+  ns = Jones.Subscope();
   # are pointing errors configured?
-  if _pe_errgen.has_errors():
-    node_maker = _pe_errgen.node_maker();
-    ns = Ej.Subscope("pe");
-    # create nodes to compute pointing errors per antenna
+  if pointing_offsets:
+    # create nodes to compute actual pointing per source, per antenna
     for p in Context.array.stations():
-      node_maker(ns.dl(p),station=p);
-      node_maker(ns.dm(p),station=p);
-      ns.dlm(p) << Meq.Composer(ns.dl(p),ns.dm(p));
-      # now work out "error" direction per source, 
-      # and compute the beam gain in that direction
       for src in sources:
-        lm = ns.lm(src.direction.name,p) << src.direction.lm() + ns.dlm(p);
-        beam_model(Ej(src.direction.name,p),lm,p);
+        lm = ns.lm(src.direction,p) << src.direction.lm() + pointing_offsets(p);
+        beam_model(Jones(src,p),lm,p);
   # no pointing errors
   else:
-    if beam_model._per_station:
+    # if not per-station, use same beam for every source
+    if beam_model._not_per_station:
       for src in sources:
+        beam_model(Jones(src),src.direction.lm());
         for p in Context.array.stations():
-          beam_model(Ej(src.direction.name,p),src.direction.lm(),p);
+          Jones(src,p) << Meq.Identity(Jones(src));
     else:
       for src in sources:
-        beam_model(Ej(src.direction.name),src.direction.lm());
-  # all done
-  pass;
-  
+        for p in Context.array.stations():
+          beam_model(Jones(src,p),src.direction.lm(),p);
+  return Jones;
+
 _model_option = TDLCompileOption('beam_model',"Beam model",
   [WSRT_cos3_beam]
 );
@@ -65,11 +60,6 @@ _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
   TDLOption('wsrt_beam_size_factor',"Beam size factor",[2e-6],more=float)
 );
 
-_pe_errgen = ErrorGens.Selector("pointing",0,10,label="pe",unit=("arcsec",ARCSEC));
-
-TDLCompileOptions(*_pe_errgen.options());
-
-# show/hide options based on selected model
 def _show_option_menus (model):
   _wsrt_option_menu.show(model==WSRT_cos3_beam);
 

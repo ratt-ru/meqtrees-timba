@@ -149,7 +149,37 @@ class SolveTree (ResidualTree):
       TDLMenu("Solver options",*Utils.solver_options(solver_opts)),
       TDLJob(run_solve_job,"Run solution")
     );
-    
+
+def define_inspector (nodeseries,qlist,*qualifier_lists,**kw):
+  """Defines an inspector node for a node series. Returns a definition record, so it should\
+  be <<'d into a node. E.g.:
+      ns.my_inspector << define_inspector(mynodes,sources,stations);
+  'nodeseries' should be an under-qualified node.
+  All remaining arguments are treated as lists of qualifiers to be looped over. Note that these
+  may also be objects with a "name" attribute (e.g. Meow.SkyComponent or Meow.Direction).
+  Optional keywords:
+    label (=None)     used to supply a base plot label; if not given, then nodeseries.name is used.
+    freqavg(=True)    if True, frequency averging is performed on each node in the series. Set to False
+                      if you know your nodes do not have a freq axis.
+  """;  
+  label = kw.get('label',None) or getattr(nodeseries,'name','');
+  freqavg = kw.get('freqavg',True);
+  plot_labels = [];
+  plot_children = [];
+  # generate list of all qualifier combinations
+  all_quals = [[getattr(q,'name',None) or str(q)] for q in qlist];
+  for ql in qualifier_lists:
+    all_quals = [ qq+[getattr(q,'name',None) or str(q)] for qq in all_quals for q in ql ];
+  # create list of plot labels
+  plot_labels = [ ":".join([label]+qq) for qq in all_quals ];
+  if freqavg:
+    children = [ nodeseries(*(qq+['freqavg'])) << Meq.Mean(nodeseries(*qq),reduction_axes=["freq"])
+                  for qq in all_quals ];
+  else:
+    children = [ nodeseries(*qq) for qq in all_quals ];
+  # now make a composer
+  return Meq.Composer(plot_label=plot_labels,dims=[0],*children);
+
 def inspector (outnode,nodes,bookmark=True):
   """Makes a generic inspector for a list of nodes. 
   'outnode' is an output node to which the inspector is assigned.
@@ -242,7 +272,10 @@ def make_sinks (ns,outputs,array=None,
   # check 'post' argument, if it's a list, make a ReqMux called vdm:post
   # to process these guys
   if isinstance(post,(list,tuple)):
-    post = vdm('post') << Meq.ReqMux(*post);
+    if post:
+      post = vdm('post') << Meq.ReqMux(*post);
+    else:
+      post = None;
   elif post and not is_node(post):
     raise TypeError,"'post' argument should be a node or a list of nodes";
 

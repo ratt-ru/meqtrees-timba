@@ -2,6 +2,7 @@ from Timba.TDL import *
 import math
 import iono_geometry
 from Meow import Context
+from Meow import StdTrees
 
 """This module now implements the various ionospheric models used for
 simulations. Each model is implemented by a function with the following
@@ -13,8 +14,9 @@ to get the TEC value for that source and station.
 """;
 
 
-def sine_tid_model (ns,piercings,za_cos,source_list):
+def sine_tid_model (ns,piercings,za_cos,source_list,stations=None):
   """This implements a 1D sine wave moving over the array""";
+  stations = stations or Context.array.stations;
   ns.delta_time = Meq.Time() - (ns.time0<<0);
   ns.tid_x_ampl << tid_x_ampl_0*TEC0 + (tid_x_ampl_1hr-tid_x_ampl_0)*TEC0/3600.*ns.delta_time;
   ns.tid_y_ampl << tid_y_ampl_0*TEC0 + (tid_y_ampl_1hr-tid_y_ampl_0)*TEC0/3600.*ns.delta_time;
@@ -22,7 +24,7 @@ def sine_tid_model (ns,piercings,za_cos,source_list):
   tid_y_rate = tid_y_speed_kmh/(2.*tid_y_size_km);   # number of periods per hour
   tecs = ns.tec;
   for src in source_list:
-    for p in Context.array.stations():
+    for p in stations:
       px = ns.px(src.name,p) << Meq.Selector(piercings(src.name,p),index=0); 
       py = ns.py(src.name,p) << Meq.Selector(piercings(src.name,p),index=1); 
       tecs(src.name,p) << (TEC0 +   \
@@ -34,33 +36,53 @@ def sine_tid_model (ns,piercings,za_cos,source_list):
       
   return tecs;
   
-def wedge_model (ns,piercings,za_cos,source_list):
+def wedge_model (ns,piercings,za_cos,source_list,stations=None):
   """This implements a simple wedge over the array""";
   
   # at time 0, the wedge over [-50km,50km] is [TEC0-wedge_min/2,TEC0+wedge_min/2]
   # at time T, the wedge over [-50km,50km] is [TEC0-wedge_max/2,TEC0+wedge_max/2];
+  stations = stations or Context.array.stations;
   ns.wedge_nt << (Meq.Time() - (ns.time0<<0))/(wedge_time*3600);
   ns.wedge_dist << (wedge_min + (wedge_max-wedge_min)*ns.wedge_nt)/100000.;
   tecs = ns.tec;
   for src in source_list:
-    for p in Context.array.stations():
+    for p in stations:
       px = ns.px(src.name,p) << Meq.Selector(piercings(src.name,p),index=0); 
       tecs(src.name,p) << (TEC0 + px*ns.wedge_dist)  \
             / za_cos(src.name,p); 
   return tecs;
 
-def compute_jones (Jones,sources,**kw):
+def compute_jones (Jones,sources,stations=None,inspectors=[],**kw):
   """Creates the Z Jones for ionospheric phase, given TECs (per source, 
   per station).""";
-  piercings = iono_geometry.compute_piercings(ns,sources);
-  za_cos = iono_geometry.compute_za_cosines(ns,sources);
-  tecs = iono_model(ns,piercings,za_cos,sources);
-  iono_geometry.compute_zeta_jones_from_tecs(Jones,tecs,sources);
+  stations = stations or Context.array.stations;
+  ns = Jones.Subscope();
+  piercings = iono_geometry.compute_piercings(ns,sources,stations);
+  za_cos = iono_geometry.compute_za_cosines(ns,sources,stations);
+  tecs = iono_model(ns,piercings,za_cos,sources,stations);
+  # make inspector for TECs
+  inspectors.append(
+    Jones.scope.inspector('TEC') << StdTrees.define_inspector(tecs,sources,stations,
+                                                   label='tec',freqavg=False)
+  );
+  iono_geometry.compute_zeta_jones_from_tecs(Jones,tecs,sources,stations);
+  # make inspector for ionospheric phases
+  Zphase = ns.Zphase;
+  for src in sources:
+    for p in stations:
+      Zphase(src,p) << Meq.Arg(Jones(src,p));
+  inspectors.append(
+    Jones.scope.inspector('iono_phase') << \
+        StdTrees.define_inspector(Zphase,sources,stations,label='z')
+  );
   return Jones;
 
-_model_option = TDLCompileOption('iono_model',"Ionospheric model",
+TDLCompileMenu("Ionosphere geometry",iono_geometry);
+
+_model_option = TDLCompileOption('iono_model',"TEC distribution model",
   [sine_tid_model,wedge_model]
 );
+
 
 TDLCompileOption('TEC0',"Base TEC value",[0,5,10],more=float);
 
