@@ -26,7 +26,6 @@ from qt import SIGNAL, Qt, QColorDialog
 import os
 import qt
 import re
-import sre
 import sys
 import types
 from dialog_window_config import *
@@ -192,7 +191,7 @@ class WidgetSettingsDialog:
     def _ensure_valid_float_strings(self, string):
         """Returns a string which is parseable by float() from the given string"""
         try:
-            return str(float(sre.match('[+|-]?[0-9]+[\.[0-9]*]?', string).group()))
+            return str(float(re.match('[+|-]?[0-9]+[\.[0-9]*]?', string).group()))
         except:
             return '0.0'
 
