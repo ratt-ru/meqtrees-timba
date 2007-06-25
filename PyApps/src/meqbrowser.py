@@ -2,7 +2,7 @@
 
 if __name__ == "__main__":
   print "Welcome to the MeqTree Browser!";
-  print "Please wait while the GUI starts up.";
+  print "Please wait a second while the GUI starts up.";
 
 import sys
 
@@ -28,8 +28,8 @@ def importPlugin (name):
   try:
     __import__(name,globals(),locals(),[]);
   except Exception,what:
-    print 'error importing',name,':',what;
-    print 'This plugin will not be available.';
+    print "\n WARNING: couldn't import plugin '%s' (%s)"%(name,what);
+    print '  This plugin will not be available.';
     
 ### import plug-ins
 importPlugin('node_execute');
@@ -64,7 +64,6 @@ app_defaults.args.update({'launch':None,'spawn':None,'threads':True,
 def meqbrowse (debug={},**kwargs):
   app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
-  print app_defaults.debuglevels;
   if debug is None:
     pass;
   else:

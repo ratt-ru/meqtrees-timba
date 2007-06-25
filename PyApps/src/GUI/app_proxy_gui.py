@@ -532,7 +532,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._change_current_page);
     maintab.setTabPosition(QTabWidget.Top);
     splitter.setResizeMode(self.maintab_panel,QSplitter.KeepSize);
-    _dprint(0,self.maintab_panel.parent());
+    _dprint(1,"parent is",self.maintab_panel.parent());
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",enable=None,limit=1000,

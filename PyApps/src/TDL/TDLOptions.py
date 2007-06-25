@@ -338,8 +338,9 @@ class _TDLOptionItem(_TDLBaseOption):
     callback(self.value);
 
 class _TDLBoolOptionItem (_TDLOptionItem):
-  def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
+  def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None,nonexclusive=False):
     _TDLOptionItem.__init__(self,namespace,symbol,value,config_name=config_name,name=name,doc=doc);
+    self.nonexclusive = nonexclusive;
     self._set(value);
   
   def init (self,owner,runtime):
@@ -707,6 +708,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
               the menu become exclusive. That is, checking one un-checks all
               the others. The name of the selected item is stored in the 'exclusive'
               symbol name. The controlled items are no longer saved to the config.
+      nonexclusive: setting this attribute to True exempts a toggle submenu from
+              the 'exclusivity' behaviour imposed by its parent
       name:   sets the name attribute -- if None, title is used.
       namespace: overrides the namespace passed to constructor -- only
               makes sense if toggle is set as well.
@@ -717,7 +720,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     self._toggle = kw.get('toggle',None);
     self._exclusive = kw.get('exclusive',None);
     namespace = kw.get('namespace');
-    # resolve 'exvlusive' symbol
+    nonexclusive = kw.get('nonexclusive',False);
+    # resolve 'exclusive' symbol
     if self._exclusive:
       _dprint(2,"menu",title,"exclusive, symbol is",self._exclusive);
       self.excl_namespace,self.excl_config_name = \
@@ -730,7 +734,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     # parent, else only init the TDLBaseOption parent
     if self._toggle:
       _TDLBoolOptionItem.__init__(self,namespace,self._toggle,self._is_open,
-                                  name=name,config_name=config_name,doc=doc);
+                                  name=name,config_name=config_name,doc=doc,nonexclusive=nonexclusive);
     else:
       _TDLBaseOption.__init__(self,name=name,namespace=namespace,doc=doc);
     self._title = title;
@@ -775,7 +779,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
             self._items.append(item);
           # if exclusive, register callback
           if self._exclusive:
-            if isinstance(item,_TDLBoolOptionItem) and not \
+            if isinstance(item,_TDLBoolOptionItem) and not item.nonexclusive and not \
                (isinstance(item,_TDLSubmenu) and not item._toggle):
               self._exclusive_items[item.name] = item; 
               item.config_name = None;
@@ -981,14 +985,14 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
   return namespace,symbol;
   
 def _make_option_item (namespace,symbol,name,value,default=None,
-                       inline=False,doc=None,more=None,runtime=None):
+                       inline=False,doc=None,more=None,runtime=None,nonexclusive=False):
   # resolve namespace based on caller
   # depth is 2 (this frame, TDLxxxOption frame, caller frame)
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
   _dprint(1,"option",symbol,", config name is",config_name);
   # boolean option
   if isinstance(value,bool):
-    item = _TDLBoolOptionItem(namespace,symbol,value,config_name=config_name);
+    item = _TDLBoolOptionItem(namespace,symbol,value,config_name=config_name,nonexclusive=nonexclusive);
   # single number -- convert to list
   elif isinstance(value,(int,float)):
     item = _TDLListOptionItem(namespace,symbol,[value],
@@ -1015,11 +1019,10 @@ def TDLMenu (title,*items,**kw):
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
   return _TDLSubmenu(title,*items,**kw);
 
-def TDLOption (symbol,name,value,default=None,
-               inline=False,doc=None,namespace=None,more=None):
+def TDLOption (symbol,name,value,namespace=None,**kw):
   """this creates and returns an option object, without adding it to
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
-  item = _make_option_item(namespace,symbol,name,value,default,inline,doc,more);
+  item = _make_option_item(namespace,symbol,name,value,**kw);
   return item;
 
 def TDLJob (function,name=None,doc=None):
@@ -1028,9 +1031,9 @@ def TDLJob (function,name=None,doc=None):
   namespace = sys._getframe(1).f_globals;
   return _TDLJobItem(function,name=name,namespace=namespace,doc=doc);
 
-def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None,namespace=None,more=None):
+def TDLCompileOption (symbol,name,value,namespace=None,**kw):
   """this creates an option object and adds it to the compile-time menu""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,runtime=False);
+  opt = _make_option_item(namespace,symbol,name,value,runtime=False,**kw);
   compile_options.append(opt);
   return opt;
 
@@ -1042,10 +1045,9 @@ def TDLCompileOptionSeparator ():
   compile_options.append(opt);
   return opt;
 
-def TDLRuntimeOption (symbol,name,value,default=None,
-                      inline=False,doc=None,namespace=None,more=None):
+def TDLRuntimeOption (symbol,name,value,namespace=None,**kw):
   """this creates an option object and adds it to the runtime menu""";
-  opt = _make_option_item(namespace,symbol,name,value,default,inline,doc,more,runtime=True);
+  opt = _make_option_item(namespace,symbol,name,value,runtime=True,**kw);
   runtime_options.append(opt);
   return opt;
 
