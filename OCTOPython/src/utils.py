@@ -127,7 +127,7 @@ def _print_curry_exception ():
   (et,ev,etb) = sys.exc_info();
   print "%s: %s" % (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
   if hasattr(ev,'args'):
-    print "  ",' '.join(ev.args);
+    print "  ",' '.join(map(str,ev.args));
   print '======== exception traceback follows:';
   traceback.print_tb(etb);
   
