@@ -168,7 +168,7 @@ class MSContentSelector (object):
     return isinstance(value,int) and \
           value >= 0 and \
           value < self.ms_ddid_numchannels[self.ddid_index] and \
-          value < self.channel_options[1].value;
+          value <= self.channel_options[1].value;
   
   def _validate_last_channel (self,value):
     """validator for channel selectors."""
@@ -582,9 +582,10 @@ class ImagingSelector (object):
     # resolve to required cellsize, finally
     if arcmin is not None:
       if arcmin == 'all-sky':
-        arcmin = 180*60;
-      print arcmin;
-      cellsize = str(float(arcmin*60)/npix)+"arcsec";
+       # for all-sky images, fudge: 120" cell gives full sky for 3200 pixels
+        cellsize = str(120*(3200./npix))+"arcsec";
+      else:  
+        cellsize = str(float(arcmin*60)/npix)+"arcsec";
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
     script_name = os.path.realpath(script_name);  # glish don't like symlinks...
