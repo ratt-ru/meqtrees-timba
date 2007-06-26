@@ -588,8 +588,9 @@ class ImagingSelector (object):
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
     script_name = os.path.realpath(script_name);  # glish don't like symlinks...
-    args = [ 'glish','-notk','-l',
+    args = [ 'glish','-l',
       script_name,
+      '-notk',
       col,
       'ms='+self.mssel.msname,
       'mode='+self.imaging_mode,
