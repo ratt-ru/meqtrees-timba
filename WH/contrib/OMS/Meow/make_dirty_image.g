@@ -90,8 +90,9 @@ else
     stokes=stokes,mode=mode,
     fieldid=fieldid,spwid=spwid,
     nchan=nchan,start=chanstart,step=chanstep);
-  
-myimager.weight(weighting); 
+
+if( weighting != 'default' )
+  myimager.weight(weighting); 
   
 myimager.setoptions(cache=500000000,padding=padding);
 if( wprojplanes > 0 )

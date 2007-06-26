@@ -496,7 +496,7 @@ class ImagingSelector (object):
       TDLOption('imaging_mode',"Imaging mode",
                 ["mfs","channel"],namespace=self),
       TDLOption('imaging_weight',"Imaging weights",
-                ["natural","uniform","briggs"],namespace=self),
+                ["default","natural","uniform","briggs"],namespace=self),
       TDLOption('imaging_stokes',"Stokes parameters to image",
                 ["I","IQUV"],namespace=self) 
     ];
@@ -588,7 +588,7 @@ class ImagingSelector (object):
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
     script_name = os.path.realpath(script_name);  # glish don't like symlinks...
-    args = [ 'glish','-l',
+    args = [ 'glish','-notk','-l',
       script_name,
       col,
       'ms='+self.mssel.msname,
