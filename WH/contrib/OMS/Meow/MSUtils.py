@@ -590,7 +590,6 @@ class ImagingSelector (object):
     script_name = os.path.realpath(script_name);  # glish don't like symlinks...
     args = [ 'glish','-l',
       script_name,
-      '-notk',
       col,
       'ms='+self.mssel.msname,
       'mode='+self.imaging_mode,
