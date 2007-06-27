@@ -1152,7 +1152,7 @@ int Solver::getResult (Result::Ref &resref,
     metrics[FFit]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FFit);
     metrics[FChi]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi);
     metrics[FChi0]   = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi0);
-    metrics[FCoVar]  = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
+    metrics[FCoVar]  = flattenArrayList<double,2>(*metricsList,AtomicID(i)|AidSlash|FCoVar);
     metrics[FErrors] = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
     metrics[FFlag]   = flattenScalarList<bool>(*metricsList,AtomicID(i)|AidSlash|FFlag);
     metrics[FMu]     = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FMu);
@@ -1310,10 +1310,14 @@ bool Solver::Subsolver::solve (int step)
 // object, and get it from there. Since this is potentially expensive,
 // only do it under the use_debug clause.
 //   // fill errors and covariance matrices
-//   DMI::NumArray &errors = mrec[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO); 
-//   DMI::NumArray &covar = mrec[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO); 
-//   solver.getCovariance(static_cast<double*>(covar.getDataPtr()));
-//   solver.getErrors(static_cast<double*>(errors.getDataPtr()));
+  if( use_debug )
+  {
+    LSQFit tmp(solver);
+    DMI::NumArray &errors = mrec[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO); 
+    DMI::NumArray &covar = mrec[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO); 
+    tmp.getCovariance(static_cast<double*>(covar.getDataPtr()));
+    tmp.getErrors(static_cast<double*>(errors.getDataPtr()));
+  }
   
   // check if converged;
 #ifdef USE_OLD_LSQFIT
