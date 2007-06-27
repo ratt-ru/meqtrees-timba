@@ -405,8 +405,8 @@ class _TDLFileOptionItem (_TDLOptionItem):
     if self.config_name:
       try:
         value = config.get(config_section,self.config_name);
-        if self._validator(value):
-          self._set(value);
+        # if self._validator(value):
+        self._set(value);
         _dprint(2,"read",self.config_name,"=",value,"from config");
       except:
         _dprint(2,"error reading",self.config_name,"from config");
