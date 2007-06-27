@@ -165,19 +165,25 @@ class MSContentSelector (object):
   
   def _validate_first_channel (self,value):
     """validator for channel selectors."""
+    if self.ms_ddid_numchannels is None:
+      return True;
     return isinstance(value,int) and \
-          value >= 0 and \
-          value < self.ms_ddid_numchannels[self.ddid_index] and \
-          value <= self.channel_options[1].value;
+           value >= 0 and \
+           value < self.ms_ddid_numchannels[self.ddid_index] and \
+           value <= self.channel_options[1].value;
   
   def _validate_last_channel (self,value):
     """validator for channel selectors."""
+    if self.ms_ddid_numchannels is None:
+      return True;
     return isinstance(value,int) and \
           value >= self.channel_options[0].value and \
           value < self.ms_ddid_numchannels[self.ddid_index];
   
   def _validate_channel_step (self,value):
     """validator for channel selectors."""
+    if self.ms_ddid_numchannels is None:
+      return True;
     return isinstance(value,int) and \
           value >= 1 and \
           value <= self.ms_ddid_numchannels[self.ddid_index];
@@ -582,7 +588,7 @@ class ImagingSelector (object):
     # resolve to required cellsize, finally
     if arcmin is not None:
       if arcmin == 'all-sky':
-       # for all-sky images, fudge: 120" cell gives full sky for 3200 pixels
+       # for all-sky images, fudge: 120" cell gives full sky in ~3200 pixels
         cellsize = str(120*(3200./npix))+"arcsec";
       else:  
         cellsize = str(float(arcmin*60)/npix)+"arcsec";
@@ -604,6 +610,10 @@ class ImagingSelector (object):
     ];
     # add w-proj arguments
     if self.imaging_enable_wproj:
+
+
+
+
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
     # add channel arguments
     chans = selector.get_channels();
