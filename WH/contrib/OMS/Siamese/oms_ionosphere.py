@@ -65,7 +65,15 @@ def compute_jones (Jones,sources,stations=None,inspectors=[],**kw):
     Jones.scope.inspector('TEC') << StdTrees.define_inspector(tecs,sources,stations,
                                                    label='tec',freqavg=False)
   );
-  iono_geometry.compute_zeta_jones_from_tecs(Jones,tecs,sources,stations);
+  if diff_mode:
+    absJones = Jones('abs');
+    iono_geometry.compute_zeta_jones_from_tecs(absJones,tecs,sources,stations);
+    for src in sources:
+      for p in stations:
+        Jones(src,p) << absJones(src,p)/absJones(sources[0],p);
+  else:
+    iono_geometry.compute_zeta_jones_from_tecs(Jones,tecs,sources,stations);
+  
   # make inspector for ionospheric phases
   Zphase = ns.Zphase;
   for src in sources:
@@ -83,6 +91,7 @@ _model_option = TDLCompileOption('iono_model',"TEC distribution model",
   [sine_tid_model,wedge_model]
 );
 
+TDLCompileOption('diff_mode',"Correct for central phase",True);
 
 TDLCompileOption('TEC0',"Base TEC value",[0,5,10],more=float);
 

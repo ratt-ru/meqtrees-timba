@@ -37,6 +37,10 @@ meqmaker.add_sky_models([gridded_sky,lsm]);
 # now add optional Jones terms
 # these will show up in the menu automatically
 
+# Ncorr - correct for N
+import oms_n_inverse
+meqmaker.add_sky_jones('Ncorr','n-term correction',oms_n_inverse);
+
 # Z - ionosphere
 import oms_ionosphere
 meqmaker.add_sky_jones('Z','ionosphere',oms_ionosphere);

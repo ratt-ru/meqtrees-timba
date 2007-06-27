@@ -86,7 +86,7 @@ def circ_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
   for n in range(1,nsrc+1):
     for dx in (-n,0,n):
       for dy in (-n,0,n):
-        if dx or dy:
+        if dx and dy:
           name = "%s%+d%+d" % (basename,dx,dy);
           model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
   return model;

@@ -139,6 +139,7 @@ class MeqMaker (object):
       if not module:
         raise RuntimeError,"No source list supplied and no sky model set up";
       sources = module.source_list(ns);
+      print [src.name for src in sources];
     
     # corrupt_sources will be replaced with a new source list every time
     # a Jones term is applied

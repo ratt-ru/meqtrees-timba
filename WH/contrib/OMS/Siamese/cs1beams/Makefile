@@ -1,4 +1,7 @@
-default: slib
+default: slib slib_cutoff beam_dr beam_dr_theta_real \
+	beam_dr_theta_imag beam_dr_phi_real beam_dr_phi_imag
+
+
 slib:beam.o
 	ld  -shared  beam.o -o beam.so
 beam.o:beam.c
