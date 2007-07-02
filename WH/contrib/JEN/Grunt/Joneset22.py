@@ -6,6 +6,7 @@
 # - 29jan2007: added BJones
 # - 30mar2007: adapted to QualScope etc
 # - 07jun2007: adapted to NodeList/ParameterizationPlus
+# - 02jul2007: adapted to Jones Contract
 
 # Description:
 
@@ -29,7 +30,8 @@ class Joneset22 (Matrixet22.Matrixet22):
     """Base class that represents a set of 2x2 Jones matrices.
     Derived from the class Matrixet22."""
 
-    def __init__(self, ns, name='<j>', quals=[], kwquals={},
+    def __init__(self, ns=None, name='<j>', quals=[], kwquals={},
+                 namespace=None,                                 # <---- !!
                  descr='<descr>',
                  stations=None, polrep=None,
                  telescope=None, band=None,
@@ -68,16 +70,139 @@ class Joneset22 (Matrixet22.Matrixet22):
         # self._matrix_elements['size'] = [10,10,10,10]
         # self._matrix_elements['pen'] = [2,2,2,2])
 
+        # TDL options:
+        self._TDLOptionMenu = dict()
+        self._TDLOption = dict()
+        self.tdloption_namespace = namespace
+        self._TDLOption_solvable = [None, 'A', 'B', ['A','B']] 
+
+        # Define the various parmgroups:
+        # self.TDLCompileOptionsMenu()
+        # self.define_parmgroups()
+        # self.make_jones_matrices()            # ....temporary....(for testing only)
+
         # Finished:
         return None
+
+    #-------------------------------------------------------------------
+    # The Jones Contract:
+    #-------------------------------------------------------------------
+
+    def __call__(self, index=None):
+        """Implementation of the Jones contract: J is a Station Jones if,
+        for a given station index p, J(p) returns a valid 2x2 matrix node.
+        The node/subtree is created if necessary."""
+        if index==None:
+            # print '** __call__(None) ->',str(self._matrixet)
+            return self._matrixet
+        j22 = self._matrixet([index])
+        # print '** __call__(',index,')',[index],'->',str(j22),j22.initialized()
+        if not j22.initialized(): 
+            j22 = self.make_jones_matrix(index)
+            # s1 = self.name+': Jones matrix for station '+str(index)+' not initialized'
+            # raise ValueError,s1
+        return j22
+
+    #----------------------------------------------------------------------
+
+    def make_jones_matrices (self):
+        """Make Jones matrices for all the stations"""
+        for station in self.stations():
+            self.make_jones_matrix (station)
+        return True
+
+    def make_jones_matrix (self, station):
+        """Make the Jones matrix for the specified station.
+        This is a place-holder, to be re-implemented by a derived class."""
+        qnode = self.ns[self.name]                   
+        if not qnode.must_define_here(self):
+            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
+            raise ValueError, s
+        self._matrixet = qnode
+        qnode(station) << Meq.Matrix22(1.0,0.0,0.0,1.0)
+        return qnode(station)
+
+    def define_parmgroups(self):
+        """Placeholder for specific function in derived classes."""
+        return True
+
+    #-------------------------------------------------------------------
+    # TDLOptions
+    #-------------------------------------------------------------------
+
+    def TDLCompileOptionsMenu (self, key='jones', show=True):
+        """Generic function for interaction with its TDLCompileOptions menu(s).
+        The latter are created (once), by calling the specific function(s)
+        .TDLCompileOptionsMenu_xxx(), which should be re-implemented by
+        derived classes. The 'show' argument may be used to show or hide the
+        menu. This can be done repeatedly, without duplicating the menu.
+        """
+        if not self._TDLOptionMenu.has_key(key):        # create menu only once
+            if key=='jones':
+                oolist = self.TDLCompileOptions_jones()
+                name = self.name
+                if self.tdloption_namespace:
+                    name += ' ('+str(self.tdloption_namespace)+')'
+                name += ' options'
+                self._TDLOptionMenu[key] = TDLCompileMenu(name, *oolist)
+            elif key=='solvable':
+                co = self.TDLCompileOption_solvable()
+                self._TDLOptionMenu[key] = co
+            else:
+                s = '** key not recognised: '+str(key)
+                raise ValueError, s
+        # Show/hide the menu as required (can be done repeatedly):
+        self._TDLOptionMenu[key].show(show)
+        return self._TDLOptionMenu[key]
+
+    #..................................................................
+
+    def TDLCompileOptions_jones (self):
+        """Define a list of TDL options that control the structure of the
+        Jones matrix.
+        This function should be re-implemented by derived classes."""
+        oolist = []
+
+        if True:                    # temporary, just for testing
+            key = 'xxx'
+            self._TDLOption[key] = TDLOption(key, 'prompt_xxx',
+                                             range(3), more=int,
+                                             doc='explanation for xxx....',
+                                             namespace=self)
+            oolist.append(self._TDLOption[key])
+        
+        # Finished: Return a list of options:
+        return oolist
+
+    #..................................................................
+
+    def TDLCompileOption_solvable (self):
+        """Generic function for making the menu of solvable parmgroups.
+        It uses the specific list in self._TDLOption_solvable, which must be
+        defined by derived classes.
+        """
+        # NB: The oolist could be made dependent on the value of other TDL_options.....
+        #     This would require a callback, and the possibility to change the menu
+        #     without duplicating it in the options-list in the browser......
+        key = 'solvable'
+        oolist = self._TDLOption_solvable   # specific, defined in derived classes
+        doc = 'the selected groups will be solved simultaneously'
+        prompt = self.name
+        if self.tdloption_namespace:
+            prompt += ' ('+str(self.tdloption_namespace)+')'
+        prompt += ' solvable'
+        self._TDLOption[key] = TDLOption(key, prompt,
+                                         oolist, more=str, doc=doc,
+                                         namespace=self)
+        # Return the option object:
+        return self._TDLOption[key]
+
 
     #-------------------------------------------------------------------
 
     def stations(self):
         """Return a list of (array) stations"""
         return self.indices()                        # kept in Matrixet22
-
-    #-------------------------------------------------------------------
 
     def telescope(self):
         """Return the name of the telescope (if any) for which this Jones matrix is valid"""
@@ -120,7 +245,15 @@ class Joneset22 (Matrixet22.Matrixet22):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
+        print '   - TDLOptions:'
+        for key in self._TDLOptionMenu.keys():
+            print '     - '+str(key)+': '+str(self._TDLOptionMenu[key])
+        for key in self._TDLOption.keys():
+            print '     - '+str(key)+' = '+str(self._TDLOption[key].value)
         return True
+
+
+
 
 
 
@@ -180,8 +313,7 @@ def Joneseq22 (ns, joneslist=None, quals=None):
 
 
 #=================================================================================================
-# Some generic (telescope-independent) Joneset22 objects
-# (for telescope-specific ones, see e.g. Grunting/WSRT_Jones.py)
+# Some generic Joneset22 classes (to separate modules?):
 #=================================================================================================
 
 class GJones (Joneset22):
@@ -197,67 +329,88 @@ class GJones (Joneset22):
     GJones is the same for linear and circular polarizations."""
 
 
-    def __init__(self, ns, name='GJones', quals=[], 
+    def __init__(self, ns=None, name='GJones', quals=[],
+                 namespace=None,
                  polrep=None,
                  telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
         
-        Joneset22.__init__(self, ns, quals=quals, name=name,
+        self._jname = 'GJones'
+        Joneset22.__init__(self, ns=ns, quals=quals, name=name,
+                           namespace=namespace,
                            polrep=polrep,
                            telescope=telescope, band=band,
-                           stations=stations, simulate=simulate)
+                           stations=stations,
+                           simulate=simulate)
 
+        # Define the list of (groups of) parmgroups to be used in the TDL menu: 
+        self._TDLOption_solvable = [None, self._jname, 'Gphase', 'Ggain'] 
+
+        # Finished:
         self.history(override)
-        pols = self.pols()                        # e.g. ['X','Y']
-        pname = 'Gphase'
-        gname = 'Ggain'
-        jname = 'GJones'
+        return None
 
-        # Define the various primary ParmGroups:
-        pg = dict()
-        for pol in pols:
-            pg[pol] = dict()
+    #------------------------------------------------------------------------------
+
+    def define_parmgroups(self):
+        """Define the various primary ParmGroups"""
+        self._pg = dict()
+        self._pname = 'Gphase'
+        self._gname = 'Ggain'
+        for pol in self.pols():                       # e.g. ['X','Y']
+            self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
 
             dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-            pg[pol][pname] = self.p_group_define(pname+pol,
-                                                 descr=pol+'-dipole phases',
-                                                 default=0.0, unit='rad',
-                                                 tiling=1, time_deg=0, freq_deg=0,
-                                                 constraint=dict(sum=0.0, first=0.0),
-                                                 simul=simulate, deviation=dev,
-                                                 override=override,
-                                                 rider=rider,
-                                                 tags=[pname,jname])
+            pg = self.p_group_define(self._pname+pol,
+                                     descr=pol+'-dipole phases',
+                                     default=0.0, unit='rad',
+                                     tiling=1, time_deg=0, freq_deg=0,
+                                     constraint=dict(sum=0.0, first=0.0),
+                                     simul=self._simulate, deviation=dev,
+                                     # override=override,
+                                     rider=rider,
+                                     tags=[self._pname,self._jname])
+            self._pg[pol][self._pname] = pg
 
             dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg[pol][gname]= self.p_group_define(gname+pol,
-                                                descr=pol+'-dipole gains',
-                                                default=1.0,
-                                                tiling=None, time_deg=2, freq_deg=0,
-                                                # constrain_min=0.1, constrain_max=10.0,
-                                                constraint=dict(product=1.0),
-                                                simul=simulate, deviation=dev,
-                                                override=override,
-                                                rider=rider,
-                                                tags=[gname,jname])
+            pg = self.p_group_define(self._gname+pol,
+                                     descr=pol+'-dipole gains',
+                                     default=1.0,
+                                     tiling=None, time_deg=2, freq_deg=0,
+                                     # constrain_min=0.1, constrain_max=10.0,
+                                     constraint=dict(product=1.0),
+                                     simul=self._simulate, deviation=dev,
+                                     # override=override,
+                                     rider=rider,
+                                     tags=[self._gname,self._jname])
+            self._pg[pol][self._gname] = pg
 
-        # Make the Jones matrices per station:
-        qnode = self.ns[jname]
+        return True
+
+    #------------------------------------------------------------------------------
+
+    def make_jones_matrix (self, station):
+        """Make the Jones matrix for the specified station"""
+        qnode = self.ns[self._jname]                   
         if not qnode.must_define_here(self):
-            raise ValueError,'** nodename clash'
-        for s in self.stations():
-            mm = dict()
-            for pol in pols:
-                phase = self.p_group_create_member (pg[pol][pname], quals=s)
-                gain = self.p_group_create_member (pg[pol][gname], quals=s)
-                mm[pol] = qnode(pol)(s) << Meq.Polar(gain,phase)
-            qnode(s) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
-        self.matrixet(new=qnode)
-        return None
+            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
+            raise ValueError, s
+        self._matrixet = qnode
+        pols = self.pols()
+        mm = dict()
+        for pol in pols:
+            phase = self.p_group_create_member (self._pg[pol][self._pname], quals=station)
+            gain = self.p_group_create_member (self._pg[pol][self._gname], quals=station)
+            mm[pol] = qnode(pol)(station) << Meq.Polar(gain,phase)
+        qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
+        return qnode(station)
 
 
+
+
+#--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
 
 class BJones (Joneset22):
@@ -274,67 +427,108 @@ class BJones (Joneset22):
     BJones is a uv-plane effect, i.e. it is valid for the entire FOV.
     BJones is the same for linear and circular polarizations."""
 
-    def __init__(self, ns, name='BJones', quals=[], 
+    def __init__(self, ns=None, name='BJones', quals=[], 
+                 namespace=None,
                  polrep=None, telescope=None, band=None,
                  tfdeg=[0,5],
                  override=None,
                  stations=None, simulate=False):
         
-        Joneset22.__init__(self, ns, quals=quals, name=name,
+        self._jname = 'BJones'
+        Joneset22.__init__(self, ns=ns, quals=quals, name=name,
+                           namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
-                           stations=stations, simulate=simulate)
+                           stations=stations,
+                           simulate=simulate)
+
+        # Define the list of (groups of) parmgroups to be used in the TDL menu: 
+        self._TDLOption_solvable = [None, self._jname, 'Breal', 'Bimag'] 
 
         self.history(override)
-        pols = self.pols()                                # e.g. ['X','Y']
-        iname = 'Bimag'
-        rname = 'Breal'
-        jname = 'BJones'
-
-        # Define the various primary ParmGroups:
-        pg = dict()
-        for pol in pols:
-            pg[pol] = dict()
-            rider = dict(use_matrix_element=self._pols_matrel()[pol])
-            dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
-
-            pg[pol][iname] = self.p_group_define(iname+pol,
-                                                 descr=pol+'-IF bandpass imag.part',
-                                                 default=0.0, unit='Jy',
-                                                 tiling=1, time_deg=tfdeg[0], freq_deg=tfdeg[1],
-                                                 simul=simulate, deviation=dev,
-                                                 override=override,
-                                                 rider=rider,
-                                                 tags=[iname,jname])
-
-            pg[pol][rname] = self.p_group_define(rname+pol,
-                                                 descr=pol+'-IF bandpass real.part',
-                                                 default=1.0, unit='Jy',
-                                                 tiling=None, time_deg=tfdeg[0], freq_deg=tfdeg[1],
-                                                 simul=simulate, deviation=dev,
-                                                 override=override,
-                                                 rider=rider,
-                                                 tags=[rname,jname])
-
-        # Make the Jones matrices per station:
-        qnode = self.ns[jname]                   
-        if not qnode.must_define_here(self):
-            raise ValueError,'** nodename clash'
-        for s in self.stations():
-            mm = dict()
-            for pol in pols:
-                real = self.p_group_create_member (pg[pol][rname], quals=s)
-                imag = self.p_group_create_member (pg[pol][iname], quals=s)
-                mm[pol] = qnode(pol)(s) << Meq.ToComplex(real,imag)
-            qnode(s) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
-        self.matrixet(new=qnode)
         return None
 
 
+    #------------------------------------------------------------------------------
+
+    def TDLCompileOptions_jones (self):
+        """Define a list of TDL options that control the structure of the
+        Jones matrix."""
+        oolist = []
+        key = 'tfdeg'
+        self._TDLOption[key] = TDLOption(key, 'tfdeg',
+                                         [[0,5],[0,4],[1,4]],
+                                         doc='rank of time/freq polynomial',
+                                         namespace=self)
+        oolist.append(self._TDLOption[key])
+        # Finished: Return a list of options:
+        return oolist
+
+
+    #------------------------------------------------------------------------------
+
+    def define_parmgroups(self):
+        """Define the various primary ParmGroups"""
+        self._pg = dict()
+        pols = self.pols()                                # e.g. ['X','Y']
+        self._iname = 'Bimag'
+        self._rname = 'Breal'
+        tfdeg = self._TDLOption['tfdeg'].value
+        for pol in pols:
+            self._pg[pol] = dict()
+            rider = dict(use_matrix_element=self._pols_matrel()[pol])
+            dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
+
+            pg = self.p_group_define(self._iname+pol,
+                                     descr=pol+'-IF bandpass imag.part',
+                                     default=0.0, unit='Jy',
+                                     tiling=1,
+                                     time_deg=tfdeg[0],
+                                     freq_deg=tfdeg[1],
+                                     simul=self._simulate, deviation=dev,
+                                     # override=override,
+                                     rider=rider,
+                                     tags=[self._iname,self._jname])
+            self._pg[pol][self._iname] = pg
+
+            pg = self.p_group_define(self._rname+pol,
+                                     descr=pol+'-IF bandpass real.part',
+                                     default=1.0, unit='Jy',
+                                     tiling=None,
+                                     time_deg=tfdeg[0],
+                                     freq_deg=tfdeg[1],
+                                     simul=self._simulate, deviation=dev,
+                                     # override=override,
+                                     rider=rider,
+                                     tags=[self._rname,self._jname])
+            self._pg[pol][self._rname] = pg
+
+        return True
+
+    #------------------------------------------------------------------------------
+
+    def make_jones_matrix (self, station):
+        """Make the Jones matrix for the specified station"""
+        qnode = self.ns[self._jname]                   
+        if not qnode.must_define_here(self): 
+            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
+            raise ValueError, s
+        self._matrixet = qnode
+        pols = self.pols()
+        mm = dict()
+        for pol in pols:
+            real = self.p_group_create_member (self._pg[pol][self._rname], quals=station)
+            imag = self.p_group_create_member (self._pg[pol][self._iname], quals=station)
+            mm[pol] = qnode(pol)(station) << Meq.ToComplex(real,imag)
+        qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
+        return qnode(station)
 
 
 
 
 
+
+
+#--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
 
 class JJones (Joneset22):
@@ -344,70 +538,106 @@ class JJones (Joneset22):
     and imaginary parts (i.e. 8 real parameters per station).
     JJones is the same for linear and circular polarizations."""
 
-    def __init__(self, ns, name='JJones', quals=[],
+    def __init__(self, ns=None, name='JJones', quals=[],
+                 namespace=None,
                  diagonal=False,
                  polrep=None, telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
 
-        Joneset22.__init__(self, ns, quals=quals, name=name,
+        self._jname = 'JJones'
+        Joneset22.__init__(self, ns=ns, quals=quals, name=name,
+                           namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
-                           stations=stations, simulate=simulate)
+                           stations=stations,
+                           simulate=simulate)
         
-        self.history(override)
-        jname = 'JJones'
-        enames = ['J11','J12','J21','J22']
+        # Define the list of (groups of) parmgroups to be used in the TDL menu: 
+        self._TDLOption_solvable = [None, self._jname, 'Jdiag'] 
 
-        # Define the various primary ParmGroups:
-        pg = dict()
+        self.history(override)
+        return None
+
+    #------------------------------------------------------------------------------
+
+    def TDLCompileOptions_jones (self):
+        """Define a list of TDL options that control the structure of the
+        Jones matrix."""
+        oolist = []
+        key = 'diagonal'
+        self._TDLOption[key] = TDLOption(key, 'diagonal elements only',
+                                         [True, False],
+                                         # doc='structure of Jones matrix',
+                                         namespace=self)
+        oolist.append(self._TDLOption[key])
+        return oolist
+
+
+    #------------------------------------------------------------------------------
+
+    def define_parmgroups(self):
+        """Define the various primary ParmGroups"""
+        self._pg = dict()
         dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
         for ename in ['J11','J22']:
-            pg[ename] = dict()
+            self._pg[ename] = dict()
             for rim in ['real','imag']:
                 default = 0.0
                 constraint = dict(sum=0.0)
                 if rim=='real':
                     default = 1.0
                     constraint = dict(product=1.0)
-                pg[ename][rim] = self.p_group_define(ename+rim,
-                                                     descr=rim+' part of matrix element '+ename,
-                                                     default=default, unit='Jy',
-                                                     tiling=None, time_deg=0, freq_deg=0,
-                                                     simul=simulate, deviation=dev,
-                                                     constraint=constraint,
-                                                     override=override,
-                                                     tags=[jname,'Jdiag'])
-        if not diagonal:
+                pg = self.p_group_define(ename+rim,
+                                         descr=rim+' part of matrix element '+ename,
+                                         default=default, unit='Jy',
+                                         tiling=None, time_deg=0, freq_deg=0,
+                                         simul=self._simulate, deviation=dev,
+                                         constraint=constraint,
+                                         # override=override,
+                                         tags=[self._jname,'Jdiag'])
+                self._pg[ename][rim] = pg
+
+        TDL_diagonal = self._TDLOption['diagonal'].value
+        if not TDL_diagonal:
             for ename in ['J12','J21']:
-                pg[ename] = dict()
+                self._pg[ename] = dict()
                 for rim in ['real','imag']:
-                    pg[ename][rim] = self.p_group_define(ename+rim, 
-                                                         descr=rim+' part of matrix element '+ename,
-                                                         default=0.0, unit='Jy',
-                                                         tiling=None, time_deg=0, freq_deg=0,
-                                                         simul=simulate, deviation=dev,
-                                                         constraint=dict(sum=0.0),
-                                                         override=override,
-                                                         tags=[jname,'Joffdiag'])
-            
-                    
-        # Make the Jones matrices per station:
-        qnode = self.ns[jname]                   
+                    pg = self.p_group_define(ename+rim, 
+                                             descr=rim+' part of matrix element '+ename,
+                                             default=0.0, unit='Jy',
+                                             tiling=None, time_deg=0, freq_deg=0,
+                                             simul=self._simulate, deviation=dev,
+                                             constraint=dict(sum=0.0),
+                                             # override=override,
+                                             tags=[self._jname,'Joffdiag'])
+                    self._pg[ename][rim] = pg 
+
+        return True
+
+    #------------------------------------------------------------------------------
+
+    def make_jones_matrix (self, station):
+        """Make the Jones matrix for the specified station"""
+        qnode = self.ns[self._jname]                   
         if not qnode.must_define_here(self):
-            raise ValueError,'** nodename clash'
-        for s in self.stations():
-            mm = dict(J12=0.0, J21=0.0)
-            for ename in pg.keys():
-                real = self.p_group_create_member (pg[ename]['real'], quals=s)
-                imag = self.p_group_create_member (pg[ename]['imag'], quals=s)
-                mm[ename] = self.ns[ename](s) << Meq.ToComplex(real,imag)
-            qnode(s) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
-                                     mm[enames[2]],mm[enames[3]])
-        self.matrixet(new=qnode)
-        return None
+            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
+            raise ValueError, s
+        self._matrixet = qnode
+        enames = ['J11','J12','J21','J22']
+        mm = dict(J12=0.0, J21=0.0)
+        for ename in self._pg.keys():
+            real = self.p_group_create_member (self._pg[ename]['real'], quals=station)
+            imag = self.p_group_create_member (self._pg[ename]['imag'], quals=station)
+            mm[ename] = self.ns[ename](station) << Meq.ToComplex(real,imag)
+        qnode(station) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
+                                 mm[enames[2]],mm[enames[3]])
+        return qnode(station)
 
 
 
+
+
+#--------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------
 
 class FJones (Joneset22):
@@ -417,60 +647,80 @@ class FJones (Joneset22):
     This FJones is assumed to be large-scale compared to the array size,
     i.e. it is the same for all stations, and the entire FOV."""
 
-    def __init__(self, ns, name='FJones', quals=[], 
+    def __init__(self, ns=None, name='FJones', quals=[], 
+                 namespace=None,
                  polrep='linear', telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
         
-        Joneset22.__init__(self, ns, quals=quals, name=name,
+        self._jname = 'FJones'
+        Joneset22.__init__(self, ns=ns, quals=quals, name=name,
+                           namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
-                           stations=stations, simulate=simulate)
+                           stations=stations,
+                           simulate=simulate)
         
+        # Define the list of (groups of) parmgroups to be used in the TDL menu: 
+        self._TDLOption_solvable = [None, self._jname, 'RM'] 
+
         self.history(override)
-        polrep = self.polrep()
-        rname = 'RM'       
-        jname = 'FJones'
-
-        # Define the primary ParmGroup:
-        pg = dict()
-        dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-        pg[rname] = self.p_group_define(rname,  
-                                        descr='Faraday Rotation Measure (rad/m2)',
-                                        default=0.0, unit='rad/m2',
-                                        simul=simulate, deviation=dev,
-                                        override=override,
-                                        tags=[rname,jname])
-
-        qnode = self.ns[jname](polrep)                   
-        if not qnode.must_define_here(self):
-            raise ValueError,'** nodename clash'
-            
-        RM = self.p_group_create_member (pg[rname])
-        # wvl = qnode('lambda') << Meq.Divide(3e8, qnode('freq') << Meq.Freq())
-        wvl = qnode('lambda') << Meq.Divide(3e8, Meq.Freq)
-        wvl2 = qnode('lambda2') << Meq.Sqr(wvl)               # lambda squared
-        farot = qnode('farot') << (RM * wvl2)                 # Faraday rotation angle
-        
-        # Make the (overall) 2x2 Fjones matrix:
-        if polrep=='circular':
-            # Circular pol: The Faraday rotation is just a phase effect:
-            farot2 = qnode('farot2') << farot/2
-            F11 = qnode('F11') << Meq.Polar(1.0, farot2)
-            F22 = qnode('F22') << Meq.Polar(1.0, qnode('negate') << Meq.Negate(farot2))
-            qnode << Meq.Matrix22(F11,0.0,0.0,F22)
-
-        else:
-            # Linear pol: The Faraday rotation is a (dipole) rotation:
-            cos = qnode('cos') << Meq.Cos(farot)
-            sin = qnode('sin') << Meq.Sin(farot)
-            sinneg = qnode('sinneg') << Meq.Negate(sin)
-            qnode << Meq.Matrix22(cos,sin,sinneg,cos)
-
-        # The station Jones matrices are all the same:  
-        for s in self.stations():
-            qnode(s) << Meq.Identity(qnode)
-        self.matrixet(new=qnode)
         return None
+
+    #------------------------------------------------------------------------------
+
+    def define_parmgroups(self):
+        """Define the various primary ParmGroups"""
+        self._pg = dict()
+        self._rname = 'RM'       
+        dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+        pg = self.p_group_define(self._rname,  
+                                 descr='Faraday Rotation Measure (rad/m2)',
+                                 default=0.0, unit='rad/m2',
+                                 simul=self._simulate, deviation=dev,
+                                 # override=override,
+                                 tags=[self._rname,self._jname])
+        self._pg[self._rname] = pg
+        return True
+
+    #------------------------------------------------------------------------------
+
+    def make_jones_matrix (self, station):
+        """Make the Jones matrix for the specified station"""
+        polrep = self.polrep()
+        qnode = self.ns[self._jname](polrep)                   
+
+        # Since FJones is assumed to be the same for all stations (...?),
+        # all station Jones matrices qnode(station) are the same (i.e. qnode).
+        # So, define the qnode subtree only once.
+        
+        if not qnode.initialized():
+            self._matrixet = qnode
+            
+            RM = self.p_group_create_member (self._pg[self._rname])
+            wvl = qnode('lambda') << Meq.Divide(3e8, Meq.Freq)
+            wvl2 = qnode('lambda2') << Meq.Sqr(wvl)               # lambda squared
+            farot = qnode('farot') << (RM * wvl2)                 # Faraday rotation angle
+        
+            # Make the (overall) 2x2 Fjones matrix:
+            if polrep=='circular':
+                # Circular pol: The Faraday rotation is just a phase effect:
+                farot2 = qnode('farot2') << farot/2
+                F11 = qnode('F11') << Meq.Polar(1.0, farot2)
+                F22 = qnode('F22') << Meq.Polar(1.0, qnode('negate') << Meq.Negate(farot2))
+                qnode << Meq.Matrix22(F11,0.0,0.0,F22)
+
+            else:
+                # Linear pol: The Faraday rotation is a (dipole) rotation:
+                cos = qnode('cos') << Meq.Cos(farot)
+                sin = qnode('sin') << Meq.Sin(farot)
+                sinneg = qnode('sinneg') << Meq.Negate(sin)
+                qnode << Meq.Matrix22(cos,sin,sinneg,cos)
+
+        qnode(station) << Meq.Identity(qnode)
+        return qnode(station)
+
+
+
 
 
 
@@ -480,28 +730,58 @@ class FJones (Joneset22):
 # Test routine (with meqbrowser):
 #===============================================================
 
+
+if False:
+    j22 = Joneset22(quals=[], simulate=True)
+    j22.TDLCompileOptionsMenu()
+    j22.TDLCompileOptionsMenu('solvable')
+    j22.display()
+    
+if False:
+    TDLCompileMenu('Jones options',
+                   GJones().TDLCompileOptionsMenu(),
+                   BJones().TDLCompileOptionsMenu(),
+                   JJones().TDLCompileOptionsMenu(),
+                   FJones().TDLCompileOptionsMenu(),
+                   );
+if True:
+    TDLCompileMenu('Jones options',
+                   BJones().TDLCompileOptionsMenu(),
+                   BJones(namespace='xxx').TDLCompileOptionsMenu(),
+                   JJones(namespace='yyy').TDLCompileOptionsMenu(),
+                   );
+if False:
+    TDLCompileMenu('solvable parmgroup(s)',
+                   GJones().TDLCompileOptionsMenu('solvable'),
+                   BJones().TDLCompileOptionsMenu('solvable'),
+                   JJones().TDLCompileOptionsMenu('solvable'),
+                   FJones().TDLCompileOptionsMenu('solvable'),
+                   );
+
+
 def _define_forest(ns):
 
     cc = []
     jj = []
     simulate = True
 
-    jones = GJones(ns, quals=[], simulate=simulate)
-    jj.append(jones)
-    # cc.append(jones.p_bundle(combine='Composer'))
-    # cc.append(jones.p_plot_rvsi())
-    # jones.bookpage(4)
-    # cc.append(jones.visualize('rvsi'))          # default is rvsi
-    # cc.append(jones.visualize('timetracks'))
-    # cc.append(jones.visualize('spectra'))
-    # jones.display(full=True)
+    if 0:
+        jones = GJones(ns, quals=[], simulate=simulate)
+        jj.append(jones)
+        # cc.append(jones.p_bundle(combine='Composer'))
+        # cc.append(jones.p_plot_rvsi())
+        # jones.bookpage(4)
+        # cc.append(jones.visualize('rvsi'))          # default is rvsi
+        # cc.append(jones.visualize('timetracks'))
+        # cc.append(jones.visualize('spectra'))
+        # jones.display(full=True)
 
     if 0:
         j2 = GJones(ns, quals=[], simulate=False)
         cc.append(j2.visualize())
         # j2.display(full=True)
 
-    if 1:
+    if 0:
         jones = BJones(ns, quals=[], simulate=simulate)
         jj.append(jones)
         # cc.append(jones.visualize())
@@ -527,7 +807,7 @@ def _define_forest(ns):
         # cc.append(jones.visualize())
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jseq = Joneseq22 (ns, jj, quals='mmm')
         cc.append(jseq.p_bundle())
         cc.append(jseq.p_compare('GphaseA','GphaseB'))
@@ -536,6 +816,7 @@ def _define_forest(ns):
         jseq.display(full=True)
         jseq.history().display(full=True)
 
+    if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -563,26 +844,32 @@ if __name__ == '__main__':
     if 1:
         jones = GJones(ns, quals='3c84', simulate=True)
         jj.append(jones)
-        jones.visualize()
+        # jones.visualize()
         jones.display(full=True, recurse=10)
 
     if 0:
+        j22 = jones()
+        j22 = jones(1)
+        j22 = jones([2])
+        j22 = jones(5)
+
+    if 1:
         jones = BJones(ns, quals=['3c84'], simulate=False, telescope='WSRT', band='21cm')
         jj.append(jones)
-        jones.visualize()
+        # jones.visualize()
         jones.display(full=True)
 
-    if 0:
-        jones = FJones(ns, polrep='linear',simulate=True )
-        # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
-        jj.append(jones)
-        jones.visualize()
-        jones.display(full=True, recurse=12)
-
-    if 0:
+    if 1:
         jones = JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
         jj.append(jones)
         jones.display(full=True)
+
+    if 1:
+        jones = FJones(ns, polrep='linear',simulate=True )
+        # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
+        jj.append(jones)
+        # jones.visualize()
+        jones.display(full=True, recurse=12)
 
     if 1:
         jones.history().display(full=True)

@@ -173,6 +173,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         """Put the current matrix nodes into a NodeList object.
         """
 
+        if not self._matrixet: return False
+
         # First make lists of nodes and labels:
         nodes = []
         labels = []
@@ -441,7 +443,9 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         visu==True means visu=='rvsi'
         visu may also be a list (of strings)
         """
-        
+
+        if not self._matrixet: return False
+
         # Decode visu:
         if isinstance(visu, bool):
             if visu==False: return False

@@ -50,8 +50,12 @@ class ParameterizationPlus (Meow.Parameterization):
         # Make a little more robust 
         quals = self.p_quals2list(quals)
 
+        # Make sure that there is a nodescope......!!?
+        if ns==None:
+            ns = NodeScope()
+
         # Avoid duplication of qualifiers:
-        if True:
+        if ns:
             qq = ns['dummy'].name.split(':')
             for q in qq:
                 if q in quals: quals.remove(q)
