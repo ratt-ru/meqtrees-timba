@@ -244,6 +244,7 @@ class QwtImageDisplay(QwtPlot):
         self.incr_soln_norm = None
         self.chi_zeros = None
         self.iteration_number = None
+        self.solver_labels = None
         self.scalar_display = False
         self.ampl_phase = None
         self.added_metrics_menu = False
@@ -886,6 +887,11 @@ class QwtImageDisplay(QwtPlot):
       """ set covariance matrix condition numbers """
       self.condition_numbers = numbers
 
+    def set_solver_labels(self, labels):
+      """ set solver labels for display reporting """
+      self.solver_labels = labels
+
+
     def update_spectrum_display(self, menuid):
       """ callback to handle signal from SpectrumContextMenu """
       if self.handle_basic_menu_id(menuid):
@@ -1355,6 +1361,11 @@ class QwtImageDisplay(QwtPlot):
             message = result + temp_str + '\nsource: ' + source
           else:
             message = result + temp_str
+
+        if self.solver_display:
+          if not self.solver_labels is None:
+            label = self.solver_labels[xpos]
+            message = label + ': ' + message
     
         return message
             
@@ -1492,7 +1503,8 @@ class QwtImageDisplay(QwtPlot):
                 message = self.reportCoordinates(xVal, yVal)
             else:
               message = self.formatCoordinates(e.pos().x(), e.pos().y())
-            self.infoDisplay(message, e.pos().x(), e.pos().y())
+            if not self.display_solution_distances:
+              self.infoDisplay(message, e.pos().x(), e.pos().y())
             if self.zooming:
               self.xpos = e.pos().x()
               self.ypos = e.pos().y()
