@@ -64,6 +64,7 @@ except:
   print 'libraries.'
   print ' '
 
+
 # compute standard deviation of a complex or real array
 # the std_dev given here was computed according to the
 # formula given by Oleg (It should work for real or complex array)
@@ -177,6 +178,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Comparison': 318,
         'Drag Amplitude Scale': 319,
         'Undo Last Zoom': 320,
+        'Show Covar Condition Numbers': 321,
         }
 
     _start_spectrum_menu_id = 0
@@ -236,6 +238,7 @@ class QwtImageDisplay(QwtPlot):
         self.array_parms = None
         self.metrics_rank = None
         self.solver_offsets = None
+        self.condition_numbers = None
         self.chi_vectors = None
         self.sum_incr_soln_norm = None
         self.incr_soln_norm = None
@@ -713,6 +716,8 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
+#         toggle_id = self.menu_table['Show Covar Condition Numbers']
+#         self._menu.setItemVisible(toggle_id, False)
         else:
           self.display_solution_distances = False
           QWhatsThis.remove(self)
@@ -724,12 +729,25 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
+#         toggle_id = self.menu_table['Show Covar Condition Numbers']
+#         self._menu.setItemVisible(toggle_id, True)
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
         if not self.display_solution_distances: 
           self.add_solver_metrics()
           self.toggleMetrics()
         self.replot()
+        return True
+
+      if menuid == self.menu_table['Show Covar Condition Numbers']:
+	message = 'Condition Numbers: ' + str(self.condition_numbers)
+        cond_msg = QMessageBox("condition numbers",
+                   message,
+                   QMessageBox.Information,
+                   QMessageBox.Ok | QMessageBox.Default,
+                   QMessageBox.NoButton,
+                   QMessageBox.NoButton)
+        cond_msg.exec_loop()
         return True
       
       if menuid == self.menu_table['Toggle Pause']:
@@ -863,6 +881,10 @@ class QwtImageDisplay(QwtPlot):
       self.first_axis_parm = axis_parms[0]
       self.second_axis_parm = axis_parms[1]
       _dprint(3, 'axis parms set to ', self.first_axis_parm, ' ', self.second_axis_parm)
+
+    def set_condition_numbers(self, numbers):
+      """ set covariance matrix condition numbers """
+      self.condition_numbers = numbers
 
     def update_spectrum_display(self, menuid):
       """ callback to handle signal from SpectrumContextMenu """
@@ -2348,8 +2370,13 @@ class QwtImageDisplay(QwtPlot):
 # do we have solver data?
       if self._window_title.find('Solver Incremental') >= 0:
         self.solver_display = True
+
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.setItemVisible(toggle_id, True)
+        if not self.condition_numbers is None:
+          toggle_id = self.menu_table['Show Covar Condition Numbers']
+          self._menu.setItemVisible(toggle_id, True)
+
         if self._window_title.find('Solver Incremental Solutions') >= 0:
             self._x_title = 'Solvable Coefficients'
             self._y_title = 'Iteration Nr'
@@ -3016,6 +3043,9 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.insertItem("Toggle Metrics Display", toggle_id)
         self._menu.changeItem(toggle_id, 'Hide Solver Metrics')
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Show Covar Condition Numbers']
+        self._menu.insertItem("Show Covariance Matrix Condition Numbers", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']

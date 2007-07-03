@@ -54,9 +54,6 @@ try:
 except:
   pass
 
-#set to false for the moment
-#has_vtk = False
-
 from QwtPlotImage import *
 from QwtColorBar import *
 from SpectrumData import *
@@ -864,7 +861,21 @@ class ResultPlotter(GriddedPlugin):
         self._solver_data = SolverData()
 # store the data
     self._solver_data.StoreSolverData(self._rec,self.label)
-# retrieve it
+
+# try calculating condition numbers
+    if self._solver_data.processCovarArray():
+      self._visu_plotter.set_condition_numbers(self._solver_data.getConditionNumbers())
+#   else:
+#     Message = "Failure to calculate Covariance Matrix condition number!\nIs the numpy package installed?"
+#     mb = QMessageBox("result_plotter.py",
+#          Message,
+#          QMessageBox.Warning,
+#          QMessageBox.Ok | QMessageBox.Default,
+#          QMessageBox.NoButton,
+#          QMessageBox.NoButton)
+#     mb.exec_loop()
+
+# retrieve solver data
     self._solver_array =  self._solver_data.getSolverData()
     self._visu_plotter.set_solver_metrics(self._solver_data.getSolverMetrics())
     shape = self._solver_array.shape

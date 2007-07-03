@@ -27,6 +27,16 @@
 import sys
 from numarray import *
 
+# is numpy available?
+global has_numpy
+has_numpy = False
+try:
+  import numpy
+  has_numpy = True
+except:
+  has_numpy = False
+has_numpy = False
+
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='SolverData');
 _dprint = _dbg.dprint;
@@ -40,6 +50,8 @@ class SolverData:
      self._data_label = data_label
      self._solver_array = None
      self.metrics_rank = None
+     self.metrics_covar = None
+     self.condition_numbers = None 
      self.metrics_chi_0 = None
      self.solver_offsets = None
      self.metrics_unknowns = None
@@ -57,6 +69,7 @@ class SolverData:
          arrays that describe the behaviour of the solver solutions
          as a function of iteration number
      """
+     self.metrics_covar = None
      self._data_label = data_label
      if incoming_data.solver_result.has_key("incremental_solutions"):
        self._solver_array = incoming_data.solver_result.incremental_solutions
@@ -72,6 +85,7 @@ class SolverData:
          self.solver_offsets = zeros((num_metrics_rec), Int32)
          self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
          self.metrics_unknowns = zeros((num_metrics,num_metrics_rec), Int32)
+         self.metrics_covar = []
          self.metrics_chi_0 = zeros((num_metrics,num_metrics_rec), Float64)
          self.metrics_chi = zeros((num_metrics,num_metrics_rec), Float64)
          self.metrics_fit = zeros((num_metrics,num_metrics_rec), Float64)
@@ -87,9 +101,11 @@ class SolverData:
              for j in range(shape[1]):
                self.chi_array[i,j] = self.chi_array[i,j] + self.chi_array[i-1,j]
            self.prev_unknowns = 0
+           covar_list = []
            for j in range(num_metrics_rec):
              metrics_rec =  metrics[i][j]
              try:
+               covar_list.append(metrics_rec.covar)
                self.metrics_chi_0[i,j] = metrics_rec.chi_0 
                self.metrics_fit[i,j] = metrics_rec.fit 
                self.metrics_chi[i,j] = metrics_rec.chi 
@@ -116,6 +132,7 @@ class SolverData:
              except:
                pass
            self.iteration_number[i] = i+1
+         self.metrics_covar.append(covar_list)
        if incoming_data.solver_result.has_key("debug_array"):
          debug_array = incoming_data.solver_result.debug_array
 # find out how many records in each metric field
@@ -127,6 +144,32 @@ class SolverData:
            nonlin = debug_rec.nonlin
            for i in range(num_nonlin):
              self.nonlin[i,j] = debug_rec.nonlin[i]
+
+   def processCovarArray(self):
+     """ get condition number information out of co-variance array """
+
+     if has_numpy:
+       self.condition_numbers = []
+       if not self.metrics_covar is None:
+         num_iter = len(self.metrics_covar)
+         # just process the final record
+         covar_list = self.metrics_covar[num_iter-1]
+         num_covar_matrices = len(covar_list)
+         for i in range(num_covar_matrices):
+           covar = covar_list[i]
+           if covar.min() == 0.0 and covar.max() == 0.0:
+             self.condition_numbers.append(None)
+           else:
+             # following equation provided by Sarod
+             cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
+             self.condition_numbers.append(cond_number)
+       return True
+     else:
+       return False
+
+   def getConditionNumbers(self):
+     """ return the covariance matrix condition numbers """
+     return self.condition_numbers
 
    def getSolverData(self):
      """ return the solver incremental solutions array """
