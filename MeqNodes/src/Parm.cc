@@ -561,10 +561,8 @@ namespace Meq {
 	  pfunklet->changeSolveDomain(solve_domain_);
 	}
       }
-    const LoShape shape=pfunklet->getCoeffShape();
     if(force_shape_)
       pfunklet->setCoeffShape(shape_);
-
 
     wstate()[FFunklet].replace() = pfunklet->getState();
     its_funklet_<<=pfunklet;
@@ -585,6 +583,7 @@ namespace Meq {
       }
     DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record; 
     for( uint i=0; i<spids.size(); i++ ){
+      defrec[FCoeffIndex] <<=pfunklet->getCoeffIndex(i);
       map[spids[i]] = defrec; 
       cdebug(2)<<"spid "<<i<<" = "<<spids[i]<<endl;
     }

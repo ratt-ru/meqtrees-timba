@@ -103,7 +103,8 @@ namespace Meq {
     FCacheFunklet = AidCache|AidFunklet,
     FConstrain = AidConstrain,
     FConstrainMin = AidConstrain|AidMin,
-    FConstrainMax = AidConstrain|AidMax;
+    FConstrainMax = AidConstrain|AidMax,
+    FCoeffIndex = AidCoeff|AidIndex;
   
   
   const double PI=3.14159265; 
