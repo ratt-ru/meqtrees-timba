@@ -325,6 +325,33 @@ void Funklet::clearSolvable()
   parm_perts_.clear();
 }
 
+DMI::Vec * Funklet::getCoeffIndex(int spidid) const
+{
+    int coeffidx[2];
+    coeffidx[0]=0;
+    coeffidx[1]=0;
+
+    int shape1(1),shape2(1);
+    const LoShape shape = getCoeffShape ();
+    if(shape.size()>1){
+      shape2=shape[1];
+    }
+    shape1=shape[0];
+    uint idx=0;
+    uint np = getNumParms();
+    for( uint i=spidid; i<np; i++){
+      if(spidInx_[i]==spidid){
+	idx = i;
+	break;
+      }
+      
+    }
+    
+    coeffidx[0] = idx/shape2;
+    coeffidx[1] = idx%shape2;
+    
+    return  new DMI::Vec(Tpint,2,coeffidx);
+}
 
 
   void Funklet::setRank(int rnk){

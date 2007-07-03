@@ -248,7 +248,9 @@ public:
   // There is one for each spid; thus its size is same as that of getSpids()
   const std::vector<double> & getSpidPerts() const
   { return spid_perts_; }
-  
+  // get vector (size = rank )giving the index of the coefficient belong to a spididx. 
+  DMI::Vec * getCoeffIndex(int spidid) const;
+
   //------------------ standard DMI-related methods ---------------------------------------
   virtual DMI::TypeId objectType () const
   { return TpMeqFunklet; }
