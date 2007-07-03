@@ -35,7 +35,6 @@ try:
   has_numpy = True
 except:
   has_numpy = False
-has_numpy = False
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='SolverData');
