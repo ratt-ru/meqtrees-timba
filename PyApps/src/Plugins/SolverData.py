@@ -53,6 +53,7 @@ class SolverData:
      self.condition_numbers = None 
      self.metrics_chi_0 = None
      self.solver_offsets = None
+     self.solver_labels = None
      self.metrics_unknowns = None
      self.chi_array = None
      self.vector_sum = None
@@ -144,6 +145,28 @@ class SolverData:
            for i in range(num_nonlin):
              self.nonlin[i,j] = debug_rec.nonlin[i]
 
+# get spid information
+       if incoming_data.solver_result.has_key("spid_map"):
+         spid_map = incoming_data.solver_result.spid_map
+         spid_keys = spid_map.keys()
+         spid_int_keys = []
+         for i in range(len(spid_keys)):
+           spid_int_keys.append(int(spid_keys[i]))
+         spid_int_keys.sort()
+#        print 'spid_map ', spid_map 
+#        print 'spid_keys', spid_int_keys
+         self.solver_labels = []
+         for i in range(len(spid_keys)):
+           spid_dict = spid_map[str(spid_int_keys[i])]
+           name = ''
+           if spid_dict.has_key("name"):
+             name = spid_dict["name"]
+           coeff_index = ''
+           if spid_dict.has_key("coeff_index"):
+             coeff_index = spid_dict["coeff_index"]
+           label = name + ' ' + str(coeff_index) + ' '
+           self.solver_labels.append(label)
+
    def processCovarArray(self):
      """ get condition number information out of co-variance array """
 
@@ -169,6 +192,10 @@ class SolverData:
    def getConditionNumbers(self):
      """ return the covariance matrix condition numbers """
      return self.condition_numbers
+
+   def getSolverLabels(self):
+     """ return the solver labels for the display """
+     return self.solver_labels
 
    def getSolverData(self):
      """ return the solver incremental solutions array """

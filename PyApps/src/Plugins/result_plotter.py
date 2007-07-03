@@ -878,6 +878,7 @@ class ResultPlotter(GriddedPlugin):
 # retrieve solver data
     self._solver_array =  self._solver_data.getSolverData()
     self._visu_plotter.set_solver_metrics(self._solver_data.getSolverMetrics())
+    self._visu_plotter.set_solver_labels(self._solver_data.getSolverLabels())
     shape = self._solver_array.shape
     title = ''
     if shape[1] > 1:
