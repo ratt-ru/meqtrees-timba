@@ -39,6 +39,11 @@ for( a in argv )
 #myphasecenter:=dm.direction('J2000', '19h57m42','40d35m54')
 # CasA
 myphasecenter:=dm.direction('J2000', '23h23m24','58d48m54')
+#transient
+#myphasecenter:=dm.direction('J2000', '20h10m00','40d30m00')
+
+# default
+#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100 and (TIME/(24*3600) <= MJD(28apr2007/08:49:00)) or TIME/(24*3600) >= MJD(28apr2007/20:29:00)",fid)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100)",fid)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100 and (TIME/(24*3600) <= MJD(19may2007/12:46:00)) or TIME/(24*3600) >= MJD(19may2007/18:02:00)",fid)
@@ -50,14 +55,18 @@ print spaste("Postprocessing:::",infile);
 
 ### split
 include 'ms.g'
-newms:=sprintf("S%s",infile);
+## append new name to middle
+newms:=infile;
+newms=~s/.MS//g;
+newms=~s/.ms//g;
+newms:=sprintf("%s_S.MS",newms);
 ## check if file already exists
 if (dos.fileexists(newms)) {
   print sprintf("Error: File  %s already present, quitting\n",newms);
   exit
 } else {
 mm:=ms(infile,readonly=F)
-mm.split(newms,nchan=[1],start=[32],step=[192],whichcol='CORRECTED_DATA');
+mm.split(newms,nchan=[1],start=[defstartch],step=[endch-defstartch+1],whichcol='CORRECTED_DATA');
 mm.done()
 }
 
