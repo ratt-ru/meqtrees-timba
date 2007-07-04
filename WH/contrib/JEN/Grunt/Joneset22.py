@@ -30,10 +30,12 @@ class Joneset22 (Matrixet22.Matrixet22):
     """Base class that represents a set of 2x2 Jones matrices.
     Derived from the class Matrixet22."""
 
-    def __init__(self, ns=None, name='<j>', quals=[], kwquals={},
+    def __init__(self, ns=None, name='<j>',
+                 quals=[], kwquals={},
                  namespace=None,                                 # <---- !!
                  descr='<descr>',
-                 stations=None, polrep=None,
+                 stations=None,
+                 polrep='linear',
                  telescope=None, band=None,
                  simulate=False):
 
@@ -74,7 +76,11 @@ class Joneset22 (Matrixet22.Matrixet22):
         self._TDLOptionMenu = dict()
         self._TDLOption = dict()
         self.tdloption_namespace = namespace
-        self._TDLOption_solvable = [None, 'A', 'B', ['A','B']] 
+        self._TDLOption_solvable = [None, 'A', 'B', ['A','B']]
+
+        # The parmgroup definitions are carried in a dict:
+        # (if self._pg==None, .define_parmgroups will be called)
+        self._pg = None
 
         # Define the various parmgroups:
         # self.TDLCompileOptionsMenu()
@@ -88,27 +94,37 @@ class Joneset22 (Matrixet22.Matrixet22):
     # The Jones Contract:
     #-------------------------------------------------------------------
 
-    def __call__(self, index=None):
+    def __call__(self, station=None):
         """Implementation of the Jones contract: J is a Station Jones if,
         for a given station index p, J(p) returns a valid 2x2 matrix node.
         The node/subtree is created if necessary."""
-        if index==None:
+        if station==None:
             # print '** __call__(None) ->',str(self._matrixet)
             return self._matrixet
-        j22 = self._matrixet([index])
-        # print '** __call__(',index,')',[index],'->',str(j22),j22.initialized()
-        if not j22.initialized(): 
-            j22 = self.make_jones_matrix(index)
-            # s1 = self.name+': Jones matrix for station '+str(index)+' not initialized'
-            # raise ValueError,s1
+        if not self._matrixet:
+            if not self._pg:
+                self.define_parmgroups()
+            j22 = self.make_jones_matrix(station)
+        else:
+            j22 = self._matrixet([station])
+            # print '** __call__(',station,')',[station],'->',str(j22),j22.initialized()
+            if not j22.initialized(): 
+                if not self._pg:
+                    self.define_parmgroups()
+                j22 = self.make_jones_matrix(station)
+                # s1 = self.name+': Jones matrix for station '+str(station)+' not initialized'
+                # raise ValueError,s1
         return j22
 
     #----------------------------------------------------------------------
 
-    def make_jones_matrices (self):
+    def make_jones_matrices (self, trace=False):
         """Make Jones matrices for all the stations"""
+        if trace: print '\n** .make_jones_matrices():',self.oneliner()
         for station in self.stations():
-            self.make_jones_matrix (station)
+            qnode = self.make_jones_matrix (station)
+            if trace: print ' -',station,'->',str(qnode)
+        if trace: return '**\n'
         return True
 
     def make_jones_matrix (self, station):
@@ -122,8 +138,11 @@ class Joneset22 (Matrixet22.Matrixet22):
         qnode(station) << Meq.Matrix22(1.0,0.0,0.0,1.0)
         return qnode(station)
 
+    #----------------------------------------------------------------------
+
     def define_parmgroups(self):
         """Placeholder for specific function in derived classes."""
+        self._pg = dict()
         return True
 
     #-------------------------------------------------------------------
@@ -202,7 +221,8 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     def stations(self):
         """Return a list of (array) stations"""
-        return self.indices()                        # kept in Matrixet22
+        self._stations = self.indices()                        # kept in Matrixet22
+        return self._stations
 
     def telescope(self):
         """Return the name of the telescope (if any) for which this Jones matrix is valid"""
@@ -250,6 +270,11 @@ class Joneset22 (Matrixet22.Matrixet22):
             print '     - '+str(key)+': '+str(self._TDLOptionMenu[key])
         for key in self._TDLOption.keys():
             print '     - '+str(key)+' = '+str(self._TDLOption[key].value)
+        s = 'parmgroups (pg.keys()):'
+        if isinstance(self._pg, dict):
+            print '   - '+str(self._pg.keys())
+        else:
+            print '   - '+str(self._pg)
         return True
 
 
@@ -331,7 +356,7 @@ class GJones (Joneset22):
 
     def __init__(self, ns=None, name='GJones', quals=[],
                  namespace=None,
-                 polrep=None,
+                 polrep='linear',
                  telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
@@ -429,7 +454,8 @@ class BJones (Joneset22):
 
     def __init__(self, ns=None, name='BJones', quals=[], 
                  namespace=None,
-                 polrep=None, telescope=None, band=None,
+                 polrep='linear',
+                 telescope=None, band=None,
                  tfdeg=[0,5],
                  override=None,
                  stations=None, simulate=False):
@@ -541,7 +567,8 @@ class JJones (Joneset22):
     def __init__(self, ns=None, name='JJones', quals=[],
                  namespace=None,
                  diagonal=False,
-                 polrep=None, telescope=None, band=None,
+                 polrep='linear',
+                 telescope=None, band=None,
                  override=None,
                  stations=None, simulate=False):
 
@@ -744,7 +771,7 @@ if False:
                    JJones().TDLCompileOptionsMenu(),
                    FJones().TDLCompileOptionsMenu(),
                    );
-if True:
+if False:
     TDLCompileMenu('Jones options',
                    BJones().TDLCompileOptionsMenu(),
                    BJones(namespace='xxx').TDLCompileOptionsMenu(),

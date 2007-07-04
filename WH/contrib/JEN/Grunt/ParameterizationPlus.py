@@ -5,6 +5,7 @@
 # - 07jun2007: allow {100~10%}
 # - 07jun2007: p_deviation_expr()
 # - 08jun2007: p_quals2list() and p_tags2list()
+# - 03jul2007: added .nodescope(new=None)
 
 # Description:
 
@@ -45,18 +46,22 @@ class ParameterizationPlus (Meow.Parameterization):
         if is_node(ns):
             ns = ns.QualScope()        
 
-        name = str(name)                   # just in case....
+        # Make sure that there is a nodescope (Required by Meow.Parameterization)
+        if ns==None:
+            ns = NodeScope()
+
+        # NB: What about dropping quals/kwquals completely, since these may be
+        #     introduced by passing ns as a node, rather than a nodescope.
+        #     See also the function .nodescope()
+
+        name = str(name)                           # just in case....
 
         # Make a little more robust 
         quals = self.p_quals2list(quals)
 
-        # Make sure that there is a nodescope......!!?
-        if ns==None:
-            ns = NodeScope()
-
         # Avoid duplication of qualifiers:
         if ns:
-            qq = ns['dummy'].name.split(':')
+            qq = ns['dummy'].name.split(':')       # make a list (qq) of qualifiers
             for q in qq:
                 if q in quals: quals.remove(q)
             if name in quals: quals.remove(name)
@@ -77,7 +82,17 @@ class ParameterizationPlus (Meow.Parameterization):
         
         return None
 
+    #---------------------------------------------------------------
 
+    def nodescope (self, new=None):
+        """Get/set the internal nodescope (can also be a node)"""
+        if is_node(new):
+            self.ns = new.QualScope()        
+        elif new:
+            self.ns = new
+        return self.ns
+
+    
     #===============================================================
     # Display of the contents of this object:
     #===============================================================
