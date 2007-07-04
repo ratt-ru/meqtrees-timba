@@ -105,7 +105,8 @@ class SolverData:
            for j in range(num_metrics_rec):
              metrics_rec =  metrics[i][j]
              try:
-               covar_list.append(metrics_rec.covar)
+               if metrics_rec.has_key("covar"):
+                 covar_list.append(metrics_rec.covar)
                self.metrics_chi_0[i,j] = metrics_rec.chi_0 
                self.metrics_fit[i,j] = metrics_rec.fit 
                self.metrics_chi[i,j] = metrics_rec.chi 
@@ -132,7 +133,8 @@ class SolverData:
              except:
                pass
            self.iteration_number[i] = i+1
-         self.metrics_covar.append(covar_list)
+         if len(covar_list) > 0:
+           self.metrics_covar.append(covar_list)
        if incoming_data.solver_result.has_key("debug_array"):
          debug_array = incoming_data.solver_result.debug_array
 # find out how many records in each metric field
@@ -170,22 +172,28 @@ class SolverData:
    def processCovarArray(self):
      """ get condition number information out of co-variance array """
 
+#    print 'self.metrics_covar ', self.metrics_covar
      if has_numpy:
        self.condition_numbers = []
-       if not self.metrics_covar is None:
-         num_iter = len(self.metrics_covar)
-         # just process the final record
-         covar_list = self.metrics_covar[num_iter-1]
-         num_covar_matrices = len(covar_list)
-         for i in range(num_covar_matrices):
-           covar = covar_list[i]
-           if covar.min() == 0.0 and covar.max() == 0.0:
-             self.condition_numbers.append(None)
-           else:
-             # following equation provided by Sarod
-             cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
-             self.condition_numbers.append(cond_number)
-       return True
+       if self.metrics_covar is None:
+         return False
+       else:
+         if len(self.metrics_covar)== 0:
+           return False
+         else:
+           num_iter = len(self.metrics_covar)
+           # just process the final record
+           covar_list = self.metrics_covar[num_iter-1]
+           num_covar_matrices = len(covar_list)
+           for i in range(num_covar_matrices):
+             covar = covar_list[i]
+             if covar.min() == 0.0 and covar.max() == 0.0:
+               self.condition_numbers.append(None)
+             else:
+               # following equation provided by Sarod
+               cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
+               self.condition_numbers.append(cond_number)
+           return True
      else:
        return False
 
