@@ -73,22 +73,30 @@ class Joneset22 (Matrixet22.Matrixet22):
         # self._matrix_elements['pen'] = [2,2,2,2])
 
         # TDL options:
-        self._TDLOptionMenu = dict()
+        self._TDLCompileOptionsMenu = None
         self._TDLOption = dict()
-        self.tdloption_namespace = namespace
+        self.tdloption_namespace = namespace                  # .....?
         self._TDLOption_solvable = [None, 'A', 'B', ['A','B']]
 
         # The parmgroup definitions are carried in a dict:
         # (if self._pg==None, .define_parmgroups will be called)
         self._pg = None
 
-        # Define the various parmgroups:
-        # self.TDLCompileOptionsMenu()
-        # self.define_parmgroups()
-        # self.make_jones_matrices()            # ....temporary....(for testing only)
-
         # Finished:
         return None
+
+    #-------------------------------------------------------------------
+
+    def compatible (self, jones, severe=True):
+        """Check whether the given jones matrix is compatible"""
+        s = 'jonesets not compatible: '
+        if not self.stations()==jones.stations():
+            s += 'stations = '+str(self.stations())+' '+str(jones.stations())
+            raise ValueError,s
+        if not self.polrep()==jones.polrep():
+            s += 'polrep = '+str(self.polrep())+' '+str(jones.polrep())
+            raise ValueError,s
+        return True
 
     #-------------------------------------------------------------------
     # The Jones Contract:
@@ -99,7 +107,6 @@ class Joneset22 (Matrixet22.Matrixet22):
         for a given station index p, J(p) returns a valid 2x2 matrix node.
         The node/subtree is created if necessary."""
         if station==None:
-            # print '** __call__(None) ->',str(self._matrixet)
             return self._matrixet
         if not self._matrixet:
             if not self._pg:
@@ -107,29 +114,29 @@ class Joneset22 (Matrixet22.Matrixet22):
             j22 = self.make_jones_matrix(station)
         else:
             j22 = self._matrixet([station])
-            # print '** __call__(',station,')',[station],'->',str(j22),j22.initialized()
             if not j22.initialized(): 
                 if not self._pg:
                     self.define_parmgroups()
                 j22 = self.make_jones_matrix(station)
-                # s1 = self.name+': Jones matrix for station '+str(station)+' not initialized'
-                # raise ValueError,s1
         return j22
 
     #----------------------------------------------------------------------
 
-    def make_jones_matrices (self, trace=False):
-        """Make Jones matrices for all the stations"""
+    def make_jones_matrices (self, ns=None, trace=False):
+        """Make Jones matrices for all the stations. The argument ns is either
+        a nodescope, or a node (which will be scopified)."""
         if trace: print '\n** .make_jones_matrices():',self.oneliner()
+        self.nodescope(ns)
         for station in self.stations():
-            qnode = self.make_jones_matrix (station)
+            qnode = self(station)
             if trace: print ' -',station,'->',str(qnode)
         if trace: return '**\n'
         return True
 
-    def make_jones_matrix (self, station):
+    def make_jones_matrix (self, station, ns=None):
         """Make the Jones matrix for the specified station.
         This is a place-holder, to be re-implemented by a derived class."""
+        self.nodescope(ns)
         qnode = self.ns[self.name]                   
         if not qnode.must_define_here(self):
             s = '** '+str(self.name)+': nodename clash: '+str(qnode)
@@ -149,34 +156,43 @@ class Joneset22 (Matrixet22.Matrixet22):
     # TDLOptions
     #-------------------------------------------------------------------
 
-    def TDLCompileOptionsMenu (self, key='jones', show=True):
+    def TDLCompileOptionsMenu (self, solving=True, show=True):
         """Generic function for interaction with its TDLCompileOptions menu(s).
         The latter are created (once), by calling the specific function(s)
         .TDLCompileOptionsMenu_xxx(), which should be re-implemented by
         derived classes. The 'show' argument may be used to show or hide the
         menu. This can be done repeatedly, without duplicating the menu.
         """
-        if not self._TDLOptionMenu.has_key(key):        # create menu only once
-            if key=='jones':
-                oolist = self.TDLCompileOptions_jones()
-                name = self.name
+        if not self._TDLCompileOptionsMenu:        # create menu only once
+            oolist = self.TDLCompileOptions()
+
+            if solving:
+                key = 'tobesolved'
+                solist = self._TDLOption_solvable  # specific, defined in derived classes
+                doc = 'the selected groups will be solved simultaneously'
+                prompt = self.name
                 if self.tdloption_namespace:
-                    name += ' ('+str(self.tdloption_namespace)+')'
-                name += ' options'
-                self._TDLOptionMenu[key] = TDLCompileMenu(name, *oolist)
-            elif key=='solvable':
-                co = self.TDLCompileOption_solvable()
-                self._TDLOptionMenu[key] = co
-            else:
-                s = '** key not recognised: '+str(key)
-                raise ValueError, s
+                    prompt += ' ('+str(self.tdloption_namespace)+')'
+                prompt += ' solvable'
+                self._TDLOption[key] = TDLOption(key, prompt,
+                                                 solist, more=str, doc=doc,
+                                                 namespace=self)
+                oolist.append(self._TDLOption[key])
+
+            # OK, make the menu object from the oolist:
+            name = self.name
+            if self.tdloption_namespace:
+                name += ' ('+str(self.tdloption_namespace)+')'
+            name += ' options'
+            self._TDLCompileOptionsMenu = TDLCompileMenu(name, *oolist)
+
         # Show/hide the menu as required (can be done repeatedly):
-        self._TDLOptionMenu[key].show(show)
-        return self._TDLOptionMenu[key]
+        self._TDLCompileOptionsMenu.show(show)
+        return self._TDLCompileOptionsMenu
 
     #..................................................................
 
-    def TDLCompileOptions_jones (self):
+    def TDLCompileOptions (self):
         """Define a list of TDL options that control the structure of the
         Jones matrix.
         This function should be re-implemented by derived classes."""
@@ -193,31 +209,11 @@ class Joneset22 (Matrixet22.Matrixet22):
         # Finished: Return a list of options:
         return oolist
 
-    #..................................................................
-
-    def TDLCompileOption_solvable (self):
-        """Generic function for making the menu of solvable parmgroups.
-        It uses the specific list in self._TDLOption_solvable, which must be
-        defined by derived classes.
-        """
-        # NB: The oolist could be made dependent on the value of other TDL_options.....
-        #     This would require a callback, and the possibility to change the menu
-        #     without duplicating it in the options-list in the browser......
-        key = 'solvable'
-        oolist = self._TDLOption_solvable   # specific, defined in derived classes
-        doc = 'the selected groups will be solved simultaneously'
-        prompt = self.name
-        if self.tdloption_namespace:
-            prompt += ' ('+str(self.tdloption_namespace)+')'
-        prompt += ' solvable'
-        self._TDLOption[key] = TDLOption(key, prompt,
-                                         oolist, more=str, doc=doc,
-                                         namespace=self)
-        # Return the option object:
-        return self._TDLOption[key]
-
-
     #-------------------------------------------------------------------
+
+    def namespace(self):
+        """Return the namespace (used for TDL options)"""
+        return self.tdloption_namespace
 
     def stations(self):
         """Return a list of (array) stations"""
@@ -266,15 +262,13 @@ class Joneset22 (Matrixet22.Matrixet22):
         """Print the specific part of the summary of this object"""
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
         print '   - TDLOptions:'
-        for key in self._TDLOptionMenu.keys():
-            print '     - '+str(key)+': '+str(self._TDLOptionMenu[key])
+        print '     - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
         for key in self._TDLOption.keys():
             print '     - '+str(key)+' = '+str(self._TDLOption[key].value)
-        s = 'parmgroups (pg.keys()):'
         if isinstance(self._pg, dict):
-            print '   - '+str(self._pg.keys())
+            print '   - parmgroups: '+str(self._pg.keys())
         else:
-            print '   - '+str(self._pg)
+            print '   - parmgroups (pg): '+str(self._pg)
         return True
 
 
@@ -476,7 +470,7 @@ class BJones (Joneset22):
 
     #------------------------------------------------------------------------------
 
-    def TDLCompileOptions_jones (self):
+    def TDLCompileOptions (self):
         """Define a list of TDL options that control the structure of the
         Jones matrix."""
         oolist = []
@@ -587,7 +581,7 @@ class JJones (Joneset22):
 
     #------------------------------------------------------------------------------
 
-    def TDLCompileOptions_jones (self):
+    def TDLCompileOptions (self):
         """Define a list of TDL options that control the structure of the
         Jones matrix."""
         oolist = []
@@ -869,9 +863,11 @@ if __name__ == '__main__':
     jj = []
 
     if 1:
-        jones = GJones(ns, quals='3c84', simulate=True)
+        jones = GJones(ns, quals='3c84', simulate=False)
+        jones.make_jones_matrices()
         jj.append(jones)
         # jones.visualize()
+        jones.TDLCompileOptionsMenu()
         jones.display(full=True, recurse=10)
 
     if 0:
@@ -880,18 +876,18 @@ if __name__ == '__main__':
         j22 = jones([2])
         j22 = jones(5)
 
-    if 1:
+    if 0:
         jones = BJones(ns, quals=['3c84'], simulate=False, telescope='WSRT', band='21cm')
         jj.append(jones)
         # jones.visualize()
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jones = JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
         jj.append(jones)
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jones = FJones(ns, polrep='linear',simulate=True )
         # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
         jj.append(jones)
@@ -900,6 +896,8 @@ if __name__ == '__main__':
 
     if 1:
         jones.history().display(full=True)
+
+    #..........................................................
 
     if 0:
         jseq = Joneseq22 (ns, jj, quals='mmm')

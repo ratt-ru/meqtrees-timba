@@ -50,9 +50,13 @@ class ParameterizationPlus (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
+        #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
         #     introduced by passing ns as a node, rather than a nodescope.
         #     See also the function .nodescope()
+        # Eventually.... (perverse coupling)? 
+        # self.tdloption_namespace = namespace     # just how standard is this name?
+        #------------------------------------
 
         name = str(name)                           # just in case....
 
@@ -74,6 +78,7 @@ class ParameterizationPlus (Meow.Parameterization):
         self._parmNodeList = dict()
         self._parmgogs = dict()
 
+        self._pmerged = []
         self._accumulist = dict()
 
         # Optional: Copy the parametrization of another object:
@@ -84,12 +89,12 @@ class ParameterizationPlus (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def nodescope (self, new=None):
+    def nodescope (self, ns=None):
         """Get/set the internal nodescope (can also be a node)"""
-        if is_node(new):
-            self.ns = new.QualScope()        
-        elif new:
-            self.ns = new
+        if is_node(ns):
+            self.ns = ns.QualScope()        
+        elif ns:
+            self.ns = ns
         return self.ns
 
     
@@ -396,10 +401,15 @@ class ParameterizationPlus (Meow.Parameterization):
             ff = getattr(other, 'p_display', None)
             if ff: other.p_display('other', full=True)
 
+        if other in self._pmerged:
+            # print '\n** p_merge(): skipped (merged before): ',str(other),'\n'
+            return True
+
         # Merging depends on the parameterization of 'other':
         rr = getattr(other, '_parmdefs', None)
         if isinstance(rr, dict):
             # The other object is derived from Meow.Parameterization
+            self._pmerged.append(other)               # avoid duplicate merging....
 
             # Check whether it is derived from Grunt.ParameterizationPlus
             rr = getattr(other, '_parmgroups', None)

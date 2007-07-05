@@ -22,12 +22,12 @@ from copy import deepcopy
 #======================================================================================
 
 class JonesSequence22 (Joneset22.Joneset22):
-    """A Joneset22 that is a station-by-station matrix multiplication of
-    one or more Joneset22 matrices."""
+    """A JonesSequence22 that is a station-by-station matrix multiplication of
+    one or more Joneset22 matrices (or other matrices that obey the Jones contract)."""
 
-    def __init__(self, ns=None, name='<j>',
+    def __init__(self, ns=None, name='',
                  quals=[], kwquals={},
-                 descr='<descr>',
+                 descr='Sequence (product) of Jones matrices',
                  simulate=False):
 
         # If simulate, use subtrees that simulate MeqParm behaviour:
@@ -58,9 +58,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             print '     - '+str(key)+':  '+str(jones.oneliner())
         print '   - jseq_options: '+str(self._jseq_options)
         print '   - selected joneseq: '+str(self._joneseq)
-        print '   - TDLOptionMenu(s):'
-        for key in self._TDLOptionMenu.keys():
-            print '     - '+str(key)+': '+str(self._TDLOptionMenu[key])
+        print '   - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
         print '   - TDLOption(s):'
         for key in self._TDLOption.keys():
             oo = self._TDLOption[key]
@@ -83,45 +81,34 @@ class JonesSequence22 (Joneset22.Joneset22):
             jchar = jones.name[0]                       # e.g. 'G'
         if jchar in self._jones.keys():
             raise ValueError,'** Duplicate Jones matrix in sequence'
-        self._jones[jchar] = jones
-        if True:
-            # Re-initialise the underlying Joneset object:
-            Joneset22.Joneset22.__init__(self, ns=jones.ns,
-                                         # ns=jones.nodescope(),
-                                         name='<placeholder>',
-                                         quals=[], kwquals={},
-                                         namespace=None,                                 # <---- !!
-                                         descr='<descr>',
+
+        if len(self._jones)==0:
+            # Initialise the underlying Joneset22 object with the
+            # essential information of the FIRST jones matrix
+            Joneset22.Joneset22.__init__(self, ns=self.ns, name=self.name,                 
+                                         namespace=self.namespace(),
+                                         descr=self.descr(), 
                                          stations=jones.stations(),
-                                         polrep=jones.polrep(),
-                                         telescope=jones._telescope,
-                                         band=jones._band,
-                                         simulate=False)
+                                         polrep=jones.polrep())
+
+        elif not self.compatible(jones, severe=True):
+            # Check whether subsequent jones matrices are compatible
+            raise ValueError,'jonesets not compatible'
+
+        # OK, accept and update: 
+        self._jones[jchar] = jones
         self._update_object_labels(jones)  
         self._update_jseq_options(jchar, recurse=True)  # used in TDL menu
+        self.history(subappend=jones.history())
         return True
 
 
     def _update_object_labels (self, new):
         """Helper function"""
-        self.name = ''                                  # NB: What about name-qualifier?
+        self.name = 'jseq_'              
         for jchar in self._jones.keys():
             self.name += jchar
-        # First create a new Jonset22 object with name/quals/descr that are
-        # suitable combinations of those of the contributing Joneset22 objects: 
-        name = new.name[0]
-        descr = new.name+': '+new.descr()
-        # self._stations = new.stations()
-        # self._polrep = new.polrep()
-        if False:
-            qq = new.p_get_quals(remove=[new.name])
-            for jones in joneslist[1:]:
-                name += jones.name[0]
-                descr += '\n '+jones.name+': '+jones.descr()
-                qq = jones.p_get_quals(merge=qq, remove=[jones.name])
-                qq.extend(new.p_quals2list(quals))
-                jnew = Joneset22(ns, name=name+'Jones',
-                                 quals=qq, stations=stations) 
+        self._descr = self.descr() + '\n  - '+str(new.descr())
         return True
 
 
@@ -158,41 +145,36 @@ class JonesSequence22 (Joneset22.Joneset22):
         return True
 
 
-    def TDLCompileOptionsMenu (self, key='jones', show=True):
+    def TDLCompileOptionsMenu (self, solving=True, show=True):
         """Re-implementetion of the Joneset22 function for interaction
         with its TDLCompileOptions menu(s).
         The 'show' argument may be used to show or hide the menu.
         This can be done repeatedly, without duplicating the menu.
         """
-        if not self._TDLOptionMenu.has_key(key):        # create menu only once
-            oolist = []
+        if not self._TDLCompileOptionsMenu:            # create menu only once
+            prompt = 'Selected Jones matrix sequence'
+            oo = TDLCompileOption('jseq', prompt, 
+                                  self._jseq_options, more=str,
+                                  namespace=self);
+            self._TDLOption['jseq'] = oo
+            self._TDLOption['jseq'].when_changed(self._callback_jseq)
+            oolist = [oo]
+
             for jchar in self._jones.keys():
-                oo = self._jones[jchar].TDLCompileOptionsMenu(key)
-                jkey = jchar+'_'+key
+                oo = self._jones[jchar].TDLCompileOptionsMenu(solving=solving)
+                jkey = jchar
                 self._TDLOption[jkey] = oo
                 oolist.append(oo)
 
             name = self.name
-            # if self.tdloption_namespace:
-            #     name += ' ('+str(self.tdloption_namespace)+')'
-
-            if key=='jones':
-                name += ' options'
-                prompt = 'Selected Jones matrix sequence'
-                oo = TDLCompileOption('jseq', prompt, 
-                                      self._jseq_options, more=str,
-                                      namespace=self);
-                self._TDLOption['jseq'] = oo
-                self._TDLOption['jseq'].when_changed(self._callback_jseq)
-
-            elif key=='solvable':
-                name += ' solvable'
-
-            self._TDLOptionMenu[key] = TDLCompileMenu(name, *oolist)
+            if self.tdloption_namespace:
+                name += ' ('+str(self.tdloption_namespace)+')'
+            name += ' options'
+            self._TDLCompileOptionsMenu = TDLCompileMenu(name, *oolist)
 
         # Show/hide the menu as required (can be done repeatedly):
-        self._TDLOptionMenu[key].show(show)
-        return self._TDLOptionMenu[key]
+        self._TDLCompileOptionsMenu.show(show)
+        return self._TDLCompileOptionsMenu
 
     #-------------------------------------------------------------------
 
@@ -217,7 +199,6 @@ class JonesSequence22 (Joneset22.Joneset22):
         if trace: print '** TDL_solvable(): jseq =',jseq,'->',slist
         return slist
 
-
     #------------------------------------------------------------------------
 
     def make_jones_matrix (self, station):
@@ -232,10 +213,10 @@ class JonesSequence22 (Joneset22.Joneset22):
         # If only one Jones matrix, multiplication is not necessary:
         if len(jj)==1:
             jones = self._jones[jj[0]]
+            jones.nodescope(self.ns)                        # ....!
             snode = jones(station)
-            if True:                     # Just to make th
-                self._matrixet = jones._matrixet 
-                # self._matrixet(station) << snode
+            self._matrixet = jones._matrixet 
+            self.p_merge(jones)                             # parmgroups
             return snode
 
         # Multiply two or more Jones matrices:
@@ -245,7 +226,10 @@ class JonesSequence22 (Joneset22.Joneset22):
             raise ValueError, s
         cc = []
         for j in jj:
-            cc.append(self._jones[j](station))
+            jones = self._jones[j]
+            jones.nodescope(self.ns)                        # ....!
+            cc.append(jones(station))
+            self.p_merge(jones)                             # parmgroups
         qnode(station) << Meq.MatrixMultiply(*cc)
         self._matrixet = qnode
         return qnode(station)
@@ -314,76 +298,33 @@ def Joneseq22 (ns, joneslist=None, quals=None):
 # Test routine (with meqbrowser):
 #===============================================================
 
-if 0:
+if 1:
+    simulate = True
     jseq = JonesSequence22()
-    jseq.add_jones(Joneset22.GJones())
-    jseq.add_jones(Joneset22.BJones())
+    GJones = Joneset22.GJones(simulate=simulate)
+    BJones = Joneset22.BJones(simulate=simulate)
+    FJones = Joneset22.FJones(simulate=simulate)
+    JJones = Joneset22.JJones(simulate=simulate)
+    jseq.add_jones(GJones)
+    jseq.add_jones(BJones)
     # jseq.display()
-    jseq.TDLCompileOptionsMenu()
-    jseq.TDLCompileOptionsMenu('solvable')
+    jseq.TDLCompileOptionsMenu(solving=True)
     jseq.display()
+
 
 
 def _define_forest(ns):
 
     cc = []
-    jj = []
-    simulate = True
 
-    if 0:
-        jones = GJones(ns, quals=[], simulate=simulate)
-        jj.append(jones)
-        # cc.append(jones.p_bundle(combine='Composer'))
-        # cc.append(jones.p_plot_rvsi())
-        # jones.bookpage(4)
-        # cc.append(jones.visualize('rvsi'))          # default is rvsi
-        # cc.append(jones.visualize('timetracks'))
-        # cc.append(jones.visualize('spectra'))
-        # jones.display(full=True)
-
-    if 0:
-        j2 = GJones(ns, quals=[], simulate=False)
-        cc.append(j2.visualize())
-        # j2.display(full=True)
-
-    if 0:
-        jones = BJones(ns, quals=[], simulate=simulate)
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        # cc.append(jones.visualize('spectra'))
-        # jones.display(full=True)
-
-    if 0:
-        jones = JJones(ns, quals=[], simulate=simulate)
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        # jones.display(full=True)
-
-    if 0:
-        jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        jones.display(full=True)
-        # jones.display_parmgroups(full=False)
-
-    if 0:
-        jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        jones.display(full=True)
-
-    if 0:
-        jseq = Joneseq22 (ns, jj, quals='mmm')
-        cc.append(jseq.p_bundle())
-        cc.append(jseq.p_compare('GphaseA','GphaseB'))
-        cc.append(jseq.p_plot_rvsi())
-        cc.append(jseq.visualize('*'))
-        jseq.display(full=True)
-        jseq.history().display(full=True)
+    jseq.make_jones_matrices(ns('3c567'))
+    jseq.display()
+    cc.append(jseq.bundle())
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
     return True
+
 
 #---------------------------------------------------------------
 
@@ -406,44 +347,39 @@ if __name__ == '__main__':
     jj = []
 
     if 1:
-        jseq = JonesSequence22(ns)
+        jseq = JonesSequence22()
         jseq.display()
 
     if 1:
-        jones = Joneset22.GJones(ns, quals='3c84', simulate=True)
+        jones = Joneset22.GJones(ns, quals='3c84', simulate=False)
         jseq.add_jones(jones)
         jones.display(full=True, recurse=10)
 
     if 1:
-        jones = Joneset22.BJones(ns, quals=['3c84'], simulate=False, telescope='WSRT', band='21cm')
+        jones = Joneset22.BJones(ns, quals=['3c84'], simulate=False,
+                                 telescope='WSRT', band='21cm')
         jseq.add_jones(jones)
         jones.display(full=True)
 
     if 0:
         jones = Joneset22.FJones(ns, polrep='linear',simulate=True )
         # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
-        jj.append(jones)
-        jones.visualize()
+        jseq.add_jones(jones)
         jones.display(full=True, recurse=12)
 
     if 0:
         jones = Joneset22.JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
-        jj.append(jones)
+        jseq.add_jones(jones)
         jones.display(full=True)
 
+    #...............................................................
+
     if 1:
-        jseq.make_jones_matrices(trace=True)
-        jseq.display()
-
-
-    if 0:
         jseq.TDLCompileOptionsMenu()
-        jseq.display()
-        jseq.history().display(full=True)
+        jseq.make_jones_matrices(ns('3c844')('repeel'), trace=True)
 
-    if 0:
-        jseq = Joneseq22 (ns, jj, quals='mmm')
-        jseq.display(full=True)
+    if 1:
+        jseq.display()
         jseq.history().display(full=True)
 
 
