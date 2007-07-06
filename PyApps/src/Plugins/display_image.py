@@ -178,7 +178,6 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Comparison': 318,
         'Drag Amplitude Scale': 319,
         'Undo Last Zoom': 320,
-        'Show Covar Condition Numbers': 321,
         }
 
     _start_spectrum_menu_id = 0
@@ -239,6 +238,7 @@ class QwtImageDisplay(QwtPlot):
         self.metrics_rank = None
         self.solver_offsets = None
         self.condition_numbers = None
+        self.CN_chi = None
         self.chi_vectors = None
         self.sum_incr_soln_norm = None
         self.incr_soln_norm = None
@@ -717,8 +717,6 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
-#         toggle_id = self.menu_table['Show Covar Condition Numbers']
-#         self._menu.setItemVisible(toggle_id, False)
         else:
           self.display_solution_distances = False
           QWhatsThis.remove(self)
@@ -730,8 +728,6 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
-#         toggle_id = self.menu_table['Show Covar Condition Numbers']
-#         self._menu.setItemVisible(toggle_id, True)
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
         if not self.display_solution_distances: 
@@ -740,17 +736,6 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
         return True
 
-      if menuid == self.menu_table['Show Covar Condition Numbers']:
-	message = 'Condition Numbers: ' + str(self.condition_numbers)
-        cond_msg = QMessageBox("condition numbers",
-                   message,
-                   QMessageBox.Information,
-                   QMessageBox.Ok | QMessageBox.Default,
-                   QMessageBox.NoButton,
-                   QMessageBox.NoButton)
-        cond_msg.exec_loop()
-        return True
-      
       if menuid == self.menu_table['Toggle Pause']:
         self.Pausing()
         return True
@@ -885,7 +870,8 @@ class QwtImageDisplay(QwtPlot):
 
     def set_condition_numbers(self, numbers):
       """ set covariance matrix condition numbers """
-      self.condition_numbers = numbers
+      self.condition_numbers = numbers[0]
+      self.CN_chi = numbers[1]
 
     def set_solver_labels(self, labels):
       """ set solver labels for display reporting """
@@ -2174,10 +2160,19 @@ class QwtImageDisplay(QwtPlot):
            self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
 
 # insert mean and standard deviation
+      text_string = ''
       if not self.array_parms is None:
+        text_string = self.array_parms
+# insert Condition Number Info if we have a solver with this information
+      if not self.condition_numbers is None:
+        cn_string = 'CN: ' + str(self.condition_numbers) + '\n' + 'CN * chi: ' + str(self.CN_chi)
+        if len(text_string) > 0:
+          text_string = text_string + '\n'+ cn_string
+        else:
+          text_string = cn_string
+      if len(text_string) > 0:
 # alias
         fn = self.fontInfo().family()
-
 # text marker giving mean and std deviation of array
         if not self.info_marker is None:
           self.removeMarker(self.info_marker)
@@ -2186,7 +2181,7 @@ class QwtImageDisplay(QwtPlot):
         xlb = self.axisScale(QwtPlot.xBottom).hBound()
         self.setMarkerPos(self.info_marker, xlb, ylb)
         self.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
-        self.setMarkerLabel( self.info_marker, self.array_parms,
+        self.setMarkerLabel( self.info_marker, text_string,
           QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
 
@@ -2385,9 +2380,6 @@ class QwtImageDisplay(QwtPlot):
 
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.setItemVisible(toggle_id, True)
-        if not self.condition_numbers is None:
-          toggle_id = self.menu_table['Show Covar Condition Numbers']
-          self._menu.setItemVisible(toggle_id, True)
 
         if self._window_title.find('Solver Incremental Solutions') >= 0:
             self._x_title = 'Solvable Coefficients'
@@ -3055,9 +3047,6 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.insertItem("Toggle Metrics Display", toggle_id)
         self._menu.changeItem(toggle_id, 'Hide Solver Metrics')
-        self._menu.setItemVisible(toggle_id, False)
-        toggle_id = self.menu_table['Show Covar Condition Numbers']
-        self._menu.insertItem("Show Covariance Matrix Condition Numbers", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']

@@ -51,6 +51,7 @@ class SolverData:
      self.metrics_rank = None
      self.metrics_covar = None
      self.condition_numbers = None 
+     self.cn_chi = None 
      self.metrics_chi_0 = None
      self.solver_offsets = None
      self.solver_labels = None
@@ -101,6 +102,8 @@ class SolverData:
              for j in range(shape[1]):
                self.chi_array[i,j] = self.chi_array[i,j] + self.chi_array[i-1,j]
            self.prev_unknowns = 0
+           # we just reset the following list for each iteration, so that
+           # only the last one is actually used
            covar_list = []
            for j in range(num_metrics_rec):
              metrics_rec =  metrics[i][j]
@@ -175,12 +178,14 @@ class SolverData:
 #    print 'self.metrics_covar ', self.metrics_covar
      if has_numpy:
        self.condition_numbers = []
+       self.cn_chi = []
        if self.metrics_covar is None:
          return False
        else:
          if len(self.metrics_covar)== 0:
            return False
          else:
+           shape=self.metrics_chi.shape
            num_iter = len(self.metrics_covar)
            # just process the final record
            covar_list = self.metrics_covar[num_iter-1]
@@ -189,17 +194,19 @@ class SolverData:
              covar = covar_list[i]
              if covar.min() == 0.0 and covar.max() == 0.0:
                self.condition_numbers.append(None)
+               self.cn_chi.append(None)
              else:
                # following equation provided by Sarod
                cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
                self.condition_numbers.append(cond_number)
+               self.cn_chi.append(cond_number * self.metrics_chi[shape[0]-1,i])
            return True
      else:
        return False
 
    def getConditionNumbers(self):
      """ return the covariance matrix condition numbers """
-     return self.condition_numbers
+     return (self.condition_numbers,self.cn_chi)
 
    def getSolverLabels(self):
      """ return the solver labels for the display """
