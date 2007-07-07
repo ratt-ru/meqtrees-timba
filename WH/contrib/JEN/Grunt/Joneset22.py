@@ -57,9 +57,20 @@ class Joneset22 (Matrixet22.Matrixet22):
         if self._telescope: quals.append(self._telescope)
         if self._band: quals.append(self._band)
 
+        # TDL options (move to ParameterizationPlus.py?):
+        self._TDLCompileOptionsMenu = None
+        self._TDLCompileOptionsMenu_callback = None
+        self._TDLCompileOption = dict()
+
+        self._TDLSolveOptionsMenu = None
+        self._TDLSolveOptionsMenu_callback = None
+        self._TDLSolveOption = dict()
+        self._TDLSolveOption_tobesolved = [None, 'A', 'B', ['A','B']]
+
         # Initialise its Matrixet22 object:
         Matrixet22.Matrixet22.__init__(self, ns, name,
                                        quals=quals, kwquals=kwquals,
+                                       namespace=namespace,
                                        descr=descr,
                                        polrep=polrep, indices=indices)
 
@@ -72,13 +83,6 @@ class Joneset22 (Matrixet22.Matrixet22):
         # self._matrix_elements['size'] = [10,10,10,10]
         # self._matrix_elements['pen'] = [2,2,2,2])
 
-        # TDL options:
-        self._TDLCompileOptionsMenu = None
-        self._TDLSolveOptionsMenu = None
-        self._TDLOption = dict()
-        self.tdloption_namespace = namespace                  # .....?
-        self._TDLOption_solvable = [None, 'A', 'B', ['A','B']]
-
         # The parmgroup definitions are carried in a dict:
         # (if self._pg==None, .define_parmgroups will be called)
         self._pg = None
@@ -87,18 +91,6 @@ class Joneset22 (Matrixet22.Matrixet22):
         return None
 
     #-------------------------------------------------------------------
-
-    def namespace(self, prepend=None, append=None):
-        """Return the namespace string (used for TDL options etc).
-        If either prepend or apendd strings are defined, attach them.
-        NB: Move to the ParameterizationPlus class?
-        """
-        ss = ''
-        if isinstance(prepend, str): ss = prepend+' '
-        if self.tdloption_namespace:
-            ss += str(self.tdloption_namespace)
-        if isinstance(append, str): ss += ' '+append
-        return ss
 
     def stations(self):
         """Return a list of (array) stations"""
@@ -162,11 +154,12 @@ class Joneset22 (Matrixet22.Matrixet22):
     def display_specific(self, full=False):
         """Print the specific part of the summary of this object"""
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
-        print '   - TDLOptions:'
-        print '     - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        print '     - TDLSolveOptionsMenu: '+str(self._TDLSolveOptionsMenu)
-        for key in self._TDLOption.keys():
-            print '     - '+str(key)+' = '+str(self._TDLOption[key].value)
+        print '   - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
+        for key in self._TDLCompileOption.keys():
+            print '     - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
+        print '   - TDLSolveOptionsMenu: '+str(self._TDLSolveOptionsMenu)
+        for key in self._TDLSolveOption.keys():
+            print '     - '+str(key)+' = '+str(self._TDLSolveOption[key].value)
         if isinstance(self._pg, dict):
             print '   - parmgroups: '+str(self._pg.keys())
         else:
@@ -233,7 +226,7 @@ class Joneset22 (Matrixet22.Matrixet22):
 
 
     #-------------------------------------------------------------------
-    # TDLOptions
+    # TDLOptions (move to ParameterizationPlus.py?)
     #-------------------------------------------------------------------
 
     def TDLCompileOptionsMenu (self, name='corrupting', show=True):
@@ -243,15 +236,20 @@ class Joneset22 (Matrixet22.Matrixet22):
         The 'show' argument may be used to show or hide the menu. This can be done
         repeatedly, without duplicating the menu.
         """
-        if not self._TDLCompileOptionsMenu:        # create menu only once
+        if not self._TDLCompileOptionsMenu:        # create the menu only once
             oolist = self.TDLCompileOptions()
             prompt = 'options for '
             if name:
                 prompt += '('+str(name)+') '
             prompt += self.name
-            if self.tdloption_namespace:
-                prompt += ' ('+str(self.tdloption_namespace)+')'
+            prompt = self.namespace(prepend=prompt)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+
+            if False:
+                # If a callback function has been defined (e.g. in a derived class):
+                if self._TDLCompileOptionsMenu_callback:
+                    print '\n** self._TDLCompileOptionsMenu_callback()\n'
+                    self._TDLCompileOptionsMenu_callback()
 
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLCompileOptionsMenu.show(show)
@@ -267,11 +265,11 @@ class Joneset22 (Matrixet22.Matrixet22):
 
         if False:                    # temporary, just for testing
             key = 'xxx'
-            self._TDLOption[key] = TDLOption(key, 'prompt_xxx',
+            self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
                                              range(3), more=int,
                                              doc='explanation for xxx....',
                                              namespace=self)
-            oolist.append(self._TDLOption[key])
+            oolist.append(self._TDLCompileOption[key])
         
         # Finished: Return a list of options:
         return oolist
@@ -281,23 +279,27 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     def TDLSolveOptionsMenu (self, name='corrupting', show=True):
         """Generic function for interaction with its TDLSolveOptions menu.
-        The latter is created (once), by calling the specific function(s)
+        The latter is created (once), by calling the specific function
         .TDLSolveOptions(), which should be re-implemented by derived classes.
         The 'show' argument may be used to show or hide the menu. This can be done
         repeatedly, without duplicating the menu.
         """
         if not self._TDLSolveOptionsMenu:           # create menu only once
-            oolist = []
-            oolist.append(self.TDLSolveOption())
-
+            oolist = self.TDLSolveOptions()
             prompt = 'solve for '
             if name:
                 prompt += '('+str(name)+') '
             prompt += self.name
-            if self.tdloption_namespace:
-                prompt += ' ('+str(self.tdloption_namespace)+')'
+            prompt = self.namespace(prepend=prompt)
             self._TDLSolveOptionsMenu = TDLCompileMenu(prompt, *oolist)
 
+            if False:
+                # If a callback function has been defined (e.g. in a derived class):
+                print '\n** self._TDLSolveOptionsMenu_callback =',str(self._TDLSolveOptionsMenu_callback),'\n'
+                if self._TDLSolveOptionsMenu_callback:
+                    print '\n** self._TDLSolveOptionsMenu_callback()\n'
+                    self._TDLSolveOptionsMenu_callback()
+                    
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLSolveOptionsMenu.show(show)
         return self._TDLSolveOptionsMenu
@@ -305,22 +307,25 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     #.....................................................................
 
-    def TDLSolveOption (self):
-        """Define the TDL option (object) that allows selection of
-        parmgroup(s) for solving."""
-        solist = self._TDLOption_solvable       # defined in derived classes
+    def TDLSolveOptions (self):
+        """Define a list of TDL option objects that control solving for
+        parmgroup(s) of the Jones matrix.
+        This function should be re-implemented by derived classes."""
+        oolist = []
+        solist = self._TDLSolveOption_tobesolved       # defined in derived classes
         if self._simulate:
             solist = [None]
         doc = 'the selected groups will be solved simultaneously'
         prompt = 'solve for '+self.name+' parmgroup(s)'
         key = 'tobesolved'
-        self._TDLOption[key] = TDLOption(key, prompt,
+        self._TDLSolveOption[key] = TDLOption(key, prompt,
                                          solist, more=str, doc=doc,
                                          namespace=self)
         if self._simulate:
-            self._TDLOption[key].set_value(None)
-        # Finished: Return a single option object:
-        return self._TDLOption[key]
+            self._TDLSolveOption[key].set_value(None, save=True)
+        oolist.append(self._TDLSolveOption[key])
+        # Finished: Return a list of option objects:
+        return oolist
 
 
 
@@ -416,7 +421,7 @@ class GJones (Joneset22):
                            simulate=simulate)
 
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLOption_solvable = [None, self._jname, 'Gphase', 'Ggain'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'Gphase', 'Ggain'] 
 
         # Finished:
         self.history(override)
@@ -514,7 +519,7 @@ class BJones (Joneset22):
                            simulate=simulate)
 
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLOption_solvable = [None, self._jname, 'Breal', 'Bimag'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'Breal', 'Bimag'] 
 
         self.history(override)
         return None
@@ -523,16 +528,16 @@ class BJones (Joneset22):
     #------------------------------------------------------------------------------
 
     def TDLCompileOptions (self):
-        """Define a list of TDL options that control the structure of the
-        Jones matrix."""
+        """Define a list of TDL option objects that control the structure
+        of the Jones matrix."""
         oolist = []
         key = 'tfdeg'
-        self._TDLOption[key] = TDLOption(key, 'tfdeg',
+        self._TDLCompileOption[key] = TDLOption(key, 'tfdeg',
                                          [[0,5],[0,4],[1,4]],
                                          doc='rank of time/freq polynomial',
                                          namespace=self)
-        oolist.append(self._TDLOption[key])
-        # Finished: Return a list of options:
+        oolist.append(self._TDLCompileOption[key])
+        # Finished: Return a list of option objects:
         return oolist
 
 
@@ -544,7 +549,7 @@ class BJones (Joneset22):
         pols = self.pols()                                # e.g. ['X','Y']
         self._iname = 'Bimag'
         self._rname = 'Breal'
-        tfdeg = self._TDLOption['tfdeg'].value
+        tfdeg = self._TDLCompileOption['tfdeg'].value
         for pol in pols:
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
@@ -626,7 +631,7 @@ class JJones (Joneset22):
                            simulate=simulate)
         
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLOption_solvable = [None, self._jname, 'Jdiag'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'Jdiag'] 
 
         self.history(override)
         return None
@@ -638,11 +643,11 @@ class JJones (Joneset22):
         Jones matrix."""
         oolist = []
         key = 'diagonal'
-        self._TDLOption[key] = TDLOption(key, 'diagonal elements only',
+        self._TDLCompileOption[key] = TDLOption(key, 'diagonal elements only',
                                          [True, False],
                                          # doc='structure of Jones matrix',
                                          namespace=self)
-        oolist.append(self._TDLOption[key])
+        oolist.append(self._TDLCompileOption[key])
         return oolist
 
 
@@ -670,7 +675,7 @@ class JJones (Joneset22):
                                          tags=[self._jname,'Jdiag'])
                 self._pg[ename][rim] = pg
 
-        TDL_diagonal = self._TDLOption['diagonal'].value
+        TDL_diagonal = self._TDLCompileOption['diagonal'].value
         if not TDL_diagonal:
             for ename in ['J12','J21']:
                 self._pg[ename] = dict()
@@ -734,7 +739,7 @@ class FJones (Joneset22):
                            simulate=simulate)
         
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLOption_solvable = [None, self._jname, 'RM'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'RM'] 
 
         self.history(override)
         return None

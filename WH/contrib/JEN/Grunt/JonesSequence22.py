@@ -27,6 +27,7 @@ class JonesSequence22 (Joneset22.Joneset22):
 
     def __init__(self, ns=None, name='',
                  quals=[], kwquals={},
+                 namespace=None,
                  descr='Sequence (product) of Jones matrices',
                  simulate=False):
 
@@ -34,14 +35,19 @@ class JonesSequence22 (Joneset22.Joneset22):
         self._simulate = simulate
 
         # Initialise its Matrixet22 object:
-        Joneset22.Joneset22.__init__(self, ns=ns, name=name)
+        Joneset22.Joneset22.__init__(self, ns=ns, name=name,
+                                     namespace=namespace)
 
         # The constituent Jones matrices are kept in a dict.
         # These may be objects that obeys the Jones contract.
-        self._jones = dict()
-        self._joneseq = []
-        self._jseq_options = [None]
-        self._locked = False
+        self._jones = dict()           # available jones objects
+        self._jorder = []              # order in which they are added
+        self._locked = False           # blocks further jones addition
+        self._selseq = []              # selected jones sequence
+        self._jseq_options = [None]    # used in TDLOption
+
+        # def _TDLSolveOptionsMenu_callback (self):
+        #     return self._callback_jseq()
 
         # Finished:
         return None
@@ -53,23 +59,33 @@ class JonesSequence22 (Joneset22.Joneset22):
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
         print '   - locked: '+str(self._locked)
         print '   - constituent jones objects:'
-        for key in self._jones.keys():
+        for key in self._jorder:
             jones = self._jones[key]
             print '     - '+str(key)+':  '+str(jones.oneliner())
+        print '   - jorder: '+str(self._jorder)
         print '   - jseq_options: '+str(self._jseq_options)
-        print '   - selected joneseq: '+str(self._joneseq)
+        print '   - selected joneseq: '+str(self._selseq)
         print '   - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        print '   - TDLOption(s):'
-        for key in self._TDLOption.keys():
-            oo = self._TDLOption[key]
+        print '   - TDLCompileOptionsMenu_callback: '+str(self._TDLCompileOptionsMenu_callback)
+        for key in self._TDLCompileOption.keys():
+            oo = self._TDLCompileOption[key]
             if getattr(oo, 'value', None):
-                print '     - '+str(key)+' = '+str(self._TDLOption[key].value)
+                print '     - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
             else:
-                print '     - '+str(key)+': '+str(self._TDLOption[key])
+                print '     - '+str(key)+': '+str(self._TDLCompileOption[key])
+        print '   - TDLSolveOptionsMenu: '+str(self._TDLCompileOptionsMenu)
+        print '   - TDLSolveOptionsMenu_callback: '+str(self._TDLCompileOptionsMenu_callback)
+        for key in self._TDLSolveOption.keys():
+            oo = self._TDLSolveOption[key]
+            if getattr(oo, 'value', None):
+                print '     - '+str(key)+' = '+str(self._TDLSolveOption[key].value)
+            else:
+                print '     - '+str(key)+': '+str(self._TDLSolveOption[key])
         return True
 
+
     #------------------------------------------------------------------------
-    # Add a new Jones matrix (object):
+    # Add a new Jones matrix object to the internal list:
     #------------------------------------------------------------------------
 
     def add_jones (self, jones, jchar=None):
@@ -79,7 +95,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             raise ValueError,'** JonesSequence22 is locked'
         if jchar==None:
             jchar = jones.name[0]                       # e.g. 'G'
-        if jchar in self._jones.keys():
+        if jchar in self._jorder:
             raise ValueError,'** Duplicate Jones matrix in sequence'
 
         if len(self._jones)==0:
@@ -96,13 +112,15 @@ class JonesSequence22 (Joneset22.Joneset22):
             raise ValueError,'jonesets not compatible'
 
         # OK, accept and update: 
-        self._jones[jchar] = jones
+        self._jones[jchar] = jones 
+        self._jorder.append(jchar)
         self._jseq_options.append(jchar)
         jjchar = ''
-        for jchar in self._jones.keys():
-            jjchar += jchar
+        for k,jchar in enumerate(self._jorder):
+            if k==0: jjchar = jchar
+            if k>0: jjchar += '*'+jchar
         self.name = 'jseq_'+jjchar              
-        if len(self._jones.keys())>1:
+        if len(self._jorder)>1:
             self._jseq_options.append(jjchar)
         self._descr = self.descr() + '\n  - '+str(jones.descr())
         self.history(subappend=jones.history())
@@ -110,119 +128,123 @@ class JonesSequence22 (Joneset22.Joneset22):
 
 
     #-------------------------------------------------------------------
-    # TDLOptions
+    # TDLOptions (re-implementations):
     #-------------------------------------------------------------------
 
-    def TDLCompileOptionsMenu (self, name='corrupting', show=True):
+    def TDLCompileOptions (self):
         """Re-implementation of the Joneset22 function for interaction
         with its TDLCompileOptions menu.
         The 'show' argument may be used to show or hide the menu.
         This can be done repeatedly, without duplicating the menu.
         """
-        if not self._TDLCompileOptionsMenu:            # create menu only once
-            prompt = 'Selected Jones matrix sequence'
-            oo = TDLCompileOption('jseq', prompt, 
-                                  self._jseq_options, more=str,
-                                  namespace=self);
-            self._TDLOption['jseq'] = oo
-            self._TDLOption['jseq'].when_changed(self._callback_jseq)
-            oolist = [oo]
-
-            for jchar in self._jones.keys():
-                jones = self._jones[jchar]
-                oo = jones.TDLCompileOptionsMenu(name='')
-                self._TDLOption[jchar] = oo
-                oolist.append(oo)
-
-            prompt = 'options for '
-            if name:
-                prompt += '('+str(name)+') '
-            prompt += self.name
-            if self.tdloption_namespace:
-                prompt += ' ('+str(self.tdloption_namespace)+')'
-            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-
-        # Show/hide the menu as required (can be done repeatedly):
-        self._TDLCompileOptionsMenu.show(show)
-        return self._TDLCompileOptionsMenu
+        oolist = []
+        prompt = 'Selected Jones matrix sequence'
+        oo = TDLCompileOption('jseq', prompt, 
+                              self._jseq_options, more=str,
+                              namespace=self);
+        self._TDLCompileOption['jseq'] = oo
+        self._TDLCompileOption['jseq'].when_changed(self._callback_jseq)
+        oolist.append(self._TDLCompileOption['jseq'])
+        
+        for jchar in self._jorder:
+            jones = self._jones[jchar]
+            oo = jones.TDLCompileOptionsMenu(name='')
+            self._TDLCompileOption[jchar] = oo
+            oolist.append(oo)
+        return oolist
 
     #..................................................................
 
-    def _callback_jseq (self, jseq):
-        """Callback function used whenever jseq is changed by the user"""
-        if jseq==None: jseq = ''
-        if not isinstance(jseq, str):
-            jseq = self._TDLOption['jseq'].value
-        self._joneseq = []
-        for jchar in self._jones.keys():
-            if jchar in jseq:
-                self._joneseq.append(jchar)      # list of selected jones matrices
-            for key in [jchar, 'solve_'+jchar]:
-                if self._TDLOption.has_key(key):
-                    self._TDLOption[key].show(jchar in jseq)
+    def _callback_jseq (self, jseq=False):
+        """Callback function used whenever jseq is changed by the user
+        """
+        print '\n** _callback_jseq(',jseq,'):',self.oneliner(),'\n'
+
+        # Convert jseq into a list jj:
+        jj = jseq
+        if isinstance(jj, bool):                 # bit of a kludge...
+            jj = self._TDLCompileOption['jseq'].value
+        if jj==None:
+            jj = [] 
+        else:
+            jj = jj.split('*')                   # e.g. G*D*F
+
+        # Renew some variables according to the selected jseq:
+        self._selseq = []
+        self.name = ''
+        for k,jchar in enumerate(jj):
+            if jchar in self._jorder:
+                self._selseq.append(jchar)       # list of selected jones matrices
+            else:
+                raise ValueError,'jones matrix not recognised'
+            if k==0: self.name = jchar       
+            if k>0: self.name += '*'+jchar  
+
+        # Show/hide TDLOptions according to the selected jseq:
+        print '-- CompileOptions:',self._TDLCompileOption.keys()
+        print '-- SolveOptions:',self._TDLSolveOption.keys()
+        for jchar in self._jorder:
+            if self._TDLCompileOption.has_key(jchar):
+                print '- CompileOption[',jchar,'].show(',jchar in jj,')'
+                self._TDLCompileOption[jchar].show(jchar in jj)
+            if self._TDLSolveOption.has_key(jchar):
+                print '- SolveOption[',jchar,'].show(',jchar in jj,')'
+                self._TDLSolveOption[jchar].show(jchar in jj)
         self.TDL_tobesolved (trace=True)         # ....temporary....?
         return True
 
-
     #-------------------------------------------------------------------
 
-    def TDLSolveOptionsMenu (self, name=None, show=True):
-        """Re-implementation of the Joneset22 function for interaction
-        with its TDLSolveOptions menu.
-        The 'show' argument may be used to show or hide the menu.
-        This can be done repeatedly, without duplicating the menu.
-        """
-        if not self._TDLSolveOptionsMenu:            # create menu only once
-            oolist = []
-            for jchar in self._jones.keys():
-                jones = self._jones[jchar]
-                oo = jones.TDLSolveOption()
-                key = 'solve_'+jchar
-                self._TDLOption[key] = oo
-                self._TDLOption[key].when_changed(self._callback_tobesolved)
-                oolist.append(oo)
-
-            prompt = 'solve for '
-            if name:
-                prompt += '('+str(name)+') '
-            prompt += self.name
-            if self.tdloption_namespace:
-                prompt += ' ('+str(self.tdloption_namespace)+')'
-            self._TDLSolveOptionsMenu = TDLCompileMenu(prompt, *oolist)
-            self._callback_jseq(0)
-
-        # Show/hide the menu as required (can be done repeatedly):
-        self._TDLSolveOptionsMenu.show(show)
-        return self._TDLSolveOptionsMenu
+    def TDLSolveOptions (self):
+        """Return a list of option objects that control solving."""
+        oolist = []
+        for jchar in self._jorder:
+            jones = self._jones[jchar]
+            oo = jones.TDLSolveOptions()         # a list of option objects
+            if len(oo)==1:
+                self._TDLSolveOption[jchar] = oo[0]
+                self._TDLSolveOption[jchar].when_changed(self._callback_tobesolved)
+                oolist.append(self._TDLSolveOption[jchar])
+            else:
+                # ....eventually, if >1, make a menu of the list....
+                # ....so, always return a single option object....
+                raise ValueError,'too many solve options....'     # temporary
+        return oolist
 
     #..................................................................
 
     def _callback_tobesolved (self, dummy):
         """Callback function for whenever a parmgroup selection is changed"""
         # print '\n** dummy =',dummy
+        self._callback_jseq()
         self.TDL_tobesolved (trace=True)
         
+    #..................................................................
 
     def TDL_tobesolved (self, trace=False):
         """Get a list of the selected parmgroups (or tags?) of MeqParms
         that have been selected for solving."""
-        jseq = self._TDLOption['jseq'].value
+        jseq = self._TDLCompileOption['jseq'].value
+        if trace:
+            print '\n** TDL_tobesolved(): jseq =',jseq
+            print '--',self.oneliner()
+            print '-- CompileOptions:',self._TDLCompileOption.keys()
+            print '-- SolveOptions:',self._TDLSolveOption.keys()
         if jseq==None: return []
         if not isinstance(jseq, str): return []
         slist = []
-        for jchar in self._jones.keys():
+        for jchar in self._jorder:
             if trace: print ' - jchar:',jchar,
             if jchar in jseq:
-                key = 'solve_'+jchar
-                if self._TDLOption.has_key(key):
-                    ss = self._TDLOption[key].value
+                if self._TDLSolveOption.has_key(jchar):
+                    ss = self._TDLSolveOption[jchar].value
                     if trace: print ': ss =',ss,'->',
                     if isinstance(ss, str):
                         slist.append(ss)
                     elif isinstance(ss, (list,tuple)):
                         slist.extend(ss)
             if trace: print '  slist =',slist
-        if trace: print '** TDL_tobesolved(): jseq =',jseq,'->',slist
+        if trace: print '** TDL_tobesolved(): jseq =',jseq,'->',slist,'\n'
         return slist
 
 
@@ -233,10 +255,10 @@ class JonesSequence22 (Joneset22.Joneset22):
 
     def make_jones_matrix (self, station):
         """Make the Jones matrix for the specified station, by multiplying
-        the corresponding matrices from the selected jonesets"""
+        the corresponding matrices from the selected jonesets, if necessary."""
         self._locked = True              # lock the object from here onwards...
-        jj = self._joneseq               # list of selected jones matrices
-        # jj = self._jones.keys()          # ....temporary.....
+        jj = self._selseq                # list of selected jones matrices
+        # jj = self._jorder                                 # ....temporary (for testing).....
         if len(jj)==0:
             raise ValueError, '** joneseq is empty'
 
@@ -273,67 +295,6 @@ class JonesSequence22 (Joneset22.Joneset22):
 
 
 
-
-
-
-#=================================================================================================
-# Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
-# Obsolete....
-#=================================================================================================
-
-def Joneseq22_obsolete (ns, joneslist=None, quals=None):
-    """Return a Jones22 object that contains an (item-by-item) matrix multiplication
-    of the matrices of the list (joneslist) of two or more Joneset22 objects."""
-
-
-    if len(joneslist)==0:
-        raise ValueError, 'joneslist should have at least one item'
-    
-    elif len(joneslist)==1:
-        jnew = joneslist[0]
-        return jnew
-    
-    # First create a new Jonset22 object with name/quals/descr that are
-    # suitable combinations of those of the contributing Joneset22 objects: 
-    first = joneslist[0]
-    name = first.name[0]
-    descr = first.name+': '+first.descr()
-    stations = first.stations()
-    qq = first.p_get_quals(remove=[first.name])
-    for jones in joneslist[1:]:
-        name += jones.name[0]
-        descr += '\n '+jones.name+': '+jones.descr()
-        qq = jones.p_get_quals(merge=qq, remove=[jones.name])
-    qq.extend(first.p_quals2list(quals))
-    jnew = Joneset22(ns, name=name+'Jones',
-                     polrep=first.polrep(),
-                     quals=qq, stations=stations) 
-
-    # Then create the new Jones matrices by matrix-multiplication:
-    jnew.history('.Joneseq22(): Matrix multiplication of '+str(len(joneslist))+' Jones matrices')
-    qnode = jnew.ns.Joneseq
-    for i in jnew.list_indices():
-        cc = []
-        for jones in joneslist:
-            cc.append(jones._matrixet(*i))
-        qnode(*i) << Meq.MatrixMultiply(*cc)
-    jnew.matrixet(new=qnode)
-    
-    # Merge the parmgroups of the various Jones matrices:
-    for jones in joneslist:
-        jnew.p_merge(jones)
-        jnew.history(subappend=jones.history())
-
-    # Return the new Joneset22 object:
-    return jnew
-
-
-
-
-
-
-
-
      
 #===============================================================
 # Test routine (with meqbrowser):
@@ -341,17 +302,14 @@ def Joneseq22_obsolete (ns, joneslist=None, quals=None):
 
 if 1:
     simulate = False
-    jseq = JonesSequence22()
-    GJones = Joneset22.GJones(simulate=simulate)
-    BJones = Joneset22.BJones(simulate=simulate)
-    FJones = Joneset22.FJones(simulate=simulate)
-    JJones = Joneset22.JJones(simulate=simulate)
-    jseq.add_jones(GJones)
-    jseq.add_jones(BJones)
-    jseq.add_jones(FJones)
-    jseq.add_jones(JJones)
-    # jseq.display()
+    jseq = JonesSequence22(namespace='bbb')
+    jseq.add_jones(Joneset22.GJones(simulate=simulate, namespace='fff'))
+    jseq.add_jones(Joneset22.BJones(simulate=simulate))
+    jseq.add_jones(Joneset22.FJones(simulate=simulate))
+    jseq.add_jones(Joneset22.JJones(simulate=simulate))
+    print ')))))))))))) compileoptionsmenu():'
     jseq.TDLCompileOptionsMenu()
+    print ')))))))))))) solveoptionsmenu():'
     jseq.TDLSolveOptionsMenu()
     jseq.display()
 

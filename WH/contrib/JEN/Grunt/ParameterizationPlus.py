@@ -40,7 +40,7 @@ class ParameterizationPlus (Meow.Parameterization):
     for groups of similar parms, which may find their way into the
     more official Meow system eventually."""
 
-    def __init__(self, ns, name, quals=[], kwquals={}, merge=None):
+    def __init__(self, ns, name, quals=[], kwquals={}, namespace=None, merge=None):
 
         # Scopify ns, if necessary:
         if is_node(ns):
@@ -50,12 +50,13 @@ class ParameterizationPlus (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
+        self.tdloption_namespace = namespace       # just how standard is this name?
+
         #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
         #     introduced by passing ns as a node, rather than a nodescope.
         #     See also the function .nodescope()
         # Eventually.... (perverse coupling)? 
-        # self.tdloption_namespace = namespace     # just how standard is this name?
         #------------------------------------
 
         name = str(name)                           # just in case....
@@ -97,6 +98,21 @@ class ParameterizationPlus (Meow.Parameterization):
             self.ns = ns
         return self.ns
 
+
+    def namespace(self, prepend=None, append=None):
+        """Return the namespace string (used for TDL options etc).
+        If either prepend or apendd strings are defined, attach them.
+        NB: Move to the ParameterizationPlus class?
+        """
+        if prepend==None and append==None:
+            return self.tdloption_namespace                    # just return the namespace
+        # Include the namespace in a string:
+        ss = ''
+        if isinstance(prepend, str): ss = prepend+' '
+        if self.tdloption_namespace:
+            ss += '{'+str(self.tdloption_namespace)+'}'
+        if isinstance(append, str): ss += ' '+append
+        return ss
     
     #===============================================================
     # Display of the contents of this object:

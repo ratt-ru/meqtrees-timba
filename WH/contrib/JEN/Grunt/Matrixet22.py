@@ -39,11 +39,13 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
     """
 
     def __init__(self, ns, name='M', quals=[], kwquals={},
+                 namespace=None,
                  descr='<descr>',
                  matrixet=None, indices=[],
                  polrep=None):
         
         ParameterizationPlus.ParameterizationPlus.__init__(self, ns, name,
+                                                           namespace=namespace,
                                                            quals=quals,
                                                            kwquals=kwquals)
 
