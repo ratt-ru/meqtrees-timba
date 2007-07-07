@@ -46,9 +46,6 @@ class JonesSequence22 (Joneset22.Joneset22):
         self._selseq = []              # selected jones sequence
         self._jseq_options = [None]    # used in TDLOption
 
-        # def _TDLSolveOptionsMenu_callback (self):
-        #     return self._callback_jseq()
-
         # Finished:
         return None
 
@@ -66,7 +63,6 @@ class JonesSequence22 (Joneset22.Joneset22):
         print '   - jseq_options: '+str(self._jseq_options)
         print '   - selected joneseq: '+str(self._selseq)
         print '   - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        print '   - TDLCompileOptionsMenu_callback: '+str(self._TDLCompileOptionsMenu_callback)
         for key in self._TDLCompileOption.keys():
             oo = self._TDLCompileOption[key]
             if getattr(oo, 'value', None):
@@ -74,7 +70,6 @@ class JonesSequence22 (Joneset22.Joneset22):
             else:
                 print '     - '+str(key)+': '+str(self._TDLCompileOption[key])
         print '   - TDLSolveOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        print '   - TDLSolveOptionsMenu_callback: '+str(self._TDLCompileOptionsMenu_callback)
         for key in self._TDLSolveOption.keys():
             oo = self._TDLSolveOption[key]
             if getattr(oo, 'value', None):
@@ -148,9 +143,11 @@ class JonesSequence22 (Joneset22.Joneset22):
         
         for jchar in self._jorder:
             jones = self._jones[jchar]
-            oo = jones.TDLCompileOptionsMenu(name='')
-            self._TDLCompileOption[jchar] = oo
-            oolist.append(oo)
+            oo = jones.TDLCompileOptions()
+            if len(oo)>0:
+                om = jones.TDLCompileOptionsMenu()
+                self._TDLCompileOption[jchar] = om
+                oolist.append(om)
         return oolist
 
     #..................................................................
@@ -158,11 +155,9 @@ class JonesSequence22 (Joneset22.Joneset22):
     def _callback_jseq (self, jseq=False):
         """Callback function used whenever jseq is changed by the user
         """
-        print '\n** _callback_jseq(',jseq,'):',self.oneliner(),'\n'
-
         # Convert jseq into a list jj:
         jj = jseq
-        if isinstance(jj, bool):                 # bit of a kludge...
+        if isinstance(jj, bool):                 # i.e. if called without argument ()
             jj = self._TDLCompileOption['jseq'].value
         if jj==None:
             jj = [] 
@@ -173,22 +168,17 @@ class JonesSequence22 (Joneset22.Joneset22):
         self._selseq = []
         self.name = ''
         for k,jchar in enumerate(jj):
-            if jchar in self._jorder:
-                self._selseq.append(jchar)       # list of selected jones matrices
-            else:
+            if not jchar in self._jorder:
                 raise ValueError,'jones matrix not recognised'
+            self._selseq.append(jchar)
             if k==0: self.name = jchar       
             if k>0: self.name += '*'+jchar  
 
         # Show/hide TDLOptions according to the selected jseq:
-        print '-- CompileOptions:',self._TDLCompileOption.keys()
-        print '-- SolveOptions:',self._TDLSolveOption.keys()
         for jchar in self._jorder:
             if self._TDLCompileOption.has_key(jchar):
-                print '- CompileOption[',jchar,'].show(',jchar in jj,')'
                 self._TDLCompileOption[jchar].show(jchar in jj)
             if self._TDLSolveOption.has_key(jchar):
-                print '- SolveOption[',jchar,'].show(',jchar in jj,')'
                 self._TDLSolveOption[jchar].show(jchar in jj)
         self.TDL_tobesolved (trace=True)         # ....temporary....?
         return True
@@ -200,51 +190,46 @@ class JonesSequence22 (Joneset22.Joneset22):
         oolist = []
         for jchar in self._jorder:
             jones = self._jones[jchar]
-            oo = jones.TDLSolveOptions()         # a list of option objects
-            if len(oo)==1:
-                self._TDLSolveOption[jchar] = oo[0]
-                self._TDLSolveOption[jchar].when_changed(self._callback_tobesolved)
-                oolist.append(self._TDLSolveOption[jchar])
-            else:
-                # ....eventually, if >1, make a menu of the list....
-                # ....so, always return a single option object....
-                raise ValueError,'too many solve options....'     # temporary
+            oo = jones.TDLSolveOptions()       
+            if len(oo)>0:
+                if len(oo)==1:
+                    self._TDLSolveOption[jchar] = oo[0]   # will be shown/hidden  
+                    oolist.append(oo[0])
+                else:
+                    om = jones.TDLSolveOptionsMenu()     
+                    self._TDLSolveOption[jchar] = om      # will be shown/hidden  
+                    oolist.append(om)
+                if jones._TDLSolveOption.has_key('tobesolved'):
+                    jones._TDLSolveOption['tobesolved'].when_changed(self._callback_tobesolved)
         return oolist
 
     #..................................................................
 
     def _callback_tobesolved (self, dummy):
         """Callback function for whenever a parmgroup selection is changed"""
-        # print '\n** dummy =',dummy
         self._callback_jseq()
-        self.TDL_tobesolved (trace=True)
+        self.TDL_tobesolved(trace=True)
         
     #..................................................................
 
     def TDL_tobesolved (self, trace=False):
         """Get a list of the selected parmgroups (or tags?) of MeqParms
         that have been selected for solving."""
-        jseq = self._TDLCompileOption['jseq'].value
         if trace:
-            print '\n** TDL_tobesolved(): jseq =',jseq
+            print '\n** TDL_tobesolved(): selseq =',self._selseq
             print '--',self.oneliner()
-            print '-- CompileOptions:',self._TDLCompileOption.keys()
-            print '-- SolveOptions:',self._TDLSolveOption.keys()
-        if jseq==None: return []
-        if not isinstance(jseq, str): return []
         slist = []
-        for jchar in self._jorder:
+        for jchar in self._selseq:
             if trace: print ' - jchar:',jchar,
-            if jchar in jseq:
-                if self._TDLSolveOption.has_key(jchar):
-                    ss = self._TDLSolveOption[jchar].value
-                    if trace: print ': ss =',ss,'->',
-                    if isinstance(ss, str):
-                        slist.append(ss)
-                    elif isinstance(ss, (list,tuple)):
-                        slist.extend(ss)
+            jones = self._jones[jchar]
+            ss = jones.TDL_tobesolved()
+            if trace: print ': ss =',ss,'->',
+            if isinstance(ss, str):
+                slist.append(ss)
+            elif isinstance(ss, (list,tuple)):
+                slist.extend(ss)
             if trace: print '  slist =',slist
-        if trace: print '** TDL_tobesolved(): jseq =',jseq,'->',slist,'\n'
+        if trace: print '** TDL_tobesolved(): selseq =',self._selseq,'->',slist,'\n'
         return slist
 
 

@@ -59,11 +59,9 @@ class Joneset22 (Matrixet22.Matrixet22):
 
         # TDL options (move to ParameterizationPlus.py?):
         self._TDLCompileOptionsMenu = None
-        self._TDLCompileOptionsMenu_callback = None
         self._TDLCompileOption = dict()
 
         self._TDLSolveOptionsMenu = None
-        self._TDLSolveOptionsMenu_callback = None
         self._TDLSolveOption = dict()
         self._TDLSolveOption_tobesolved = [None, 'A', 'B', ['A','B']]
 
@@ -229,7 +227,7 @@ class Joneset22 (Matrixet22.Matrixet22):
     # TDLOptions (move to ParameterizationPlus.py?)
     #-------------------------------------------------------------------
 
-    def TDLCompileOptionsMenu (self, name='corrupting', show=True):
+    def TDLCompileOptionsMenu (self, show=True):
         """Generic function for interaction with its TDLCompileOptions menu.
         The latter is created (once), by calling the specific function(s)
         .TDLCompileOptions(), which should be re-implemented by derived classes.
@@ -238,18 +236,8 @@ class Joneset22 (Matrixet22.Matrixet22):
         """
         if not self._TDLCompileOptionsMenu:        # create the menu only once
             oolist = self.TDLCompileOptions()
-            prompt = 'options for '
-            if name:
-                prompt += '('+str(name)+') '
-            prompt += self.name
-            prompt = self.namespace(prepend=prompt)
+            prompt = self.namespace(prepend='options for: '+self.name)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-
-            if False:
-                # If a callback function has been defined (e.g. in a derived class):
-                if self._TDLCompileOptionsMenu_callback:
-                    print '\n** self._TDLCompileOptionsMenu_callback()\n'
-                    self._TDLCompileOptionsMenu_callback()
 
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLCompileOptionsMenu.show(show)
@@ -270,14 +258,14 @@ class Joneset22 (Matrixet22.Matrixet22):
                                              doc='explanation for xxx....',
                                              namespace=self)
             oolist.append(self._TDLCompileOption[key])
-        
+
         # Finished: Return a list of options:
         return oolist
 
 
     #--------------------------------------------------------------------
 
-    def TDLSolveOptionsMenu (self, name='corrupting', show=True):
+    def TDLSolveOptionsMenu (self, show=True):
         """Generic function for interaction with its TDLSolveOptions menu.
         The latter is created (once), by calling the specific function
         .TDLSolveOptions(), which should be re-implemented by derived classes.
@@ -286,20 +274,9 @@ class Joneset22 (Matrixet22.Matrixet22):
         """
         if not self._TDLSolveOptionsMenu:           # create menu only once
             oolist = self.TDLSolveOptions()
-            prompt = 'solve for '
-            if name:
-                prompt += '('+str(name)+') '
-            prompt += self.name
-            prompt = self.namespace(prepend=prompt)
+            prompt = self.namespace(prepend='solve options for: '+self.name)
             self._TDLSolveOptionsMenu = TDLCompileMenu(prompt, *oolist)
 
-            if False:
-                # If a callback function has been defined (e.g. in a derived class):
-                print '\n** self._TDLSolveOptionsMenu_callback =',str(self._TDLSolveOptionsMenu_callback),'\n'
-                if self._TDLSolveOptionsMenu_callback:
-                    print '\n** self._TDLSolveOptionsMenu_callback()\n'
-                    self._TDLSolveOptionsMenu_callback()
-                    
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLSolveOptionsMenu.show(show)
         return self._TDLSolveOptionsMenu
@@ -308,10 +285,11 @@ class Joneset22 (Matrixet22.Matrixet22):
     #.....................................................................
 
     def TDLSolveOptions (self):
-        """Define a list of TDL option objects that control solving for
+        """Return a list of TDL option objects that control solving for
         parmgroup(s) of the Jones matrix.
         This function should be re-implemented by derived classes."""
         oolist = []
+
         solist = self._TDLSolveOption_tobesolved       # defined in derived classes
         if self._simulate:
             solist = [None]
@@ -319,15 +297,29 @@ class Joneset22 (Matrixet22.Matrixet22):
         prompt = 'solve for '+self.name+' parmgroup(s)'
         key = 'tobesolved'
         self._TDLSolveOption[key] = TDLOption(key, prompt,
-                                         solist, more=str, doc=doc,
-                                         namespace=self)
+                                              solist, more=str, doc=doc,
+                                              namespace=self)
         if self._simulate:
             self._TDLSolveOption[key].set_value(None, save=True)
         oolist.append(self._TDLSolveOption[key])
+
+        if False:
+            # For testing only...
+            oolist.append(TDLOption('dummy','another option',0))
+
         # Finished: Return a list of option objects:
         return oolist
 
+    #.....................................................................
 
+    def TDL_tobesolved (self, trace=False):
+        """Get a list of the selected parmgroups (or tags?) of MeqParms
+        that have been selected for solving."""
+        slist = []
+        key = 'tobesolved'
+        if self._TDLSolveOption.has_key(key):
+            slist = self._TDLSolveOption[key].value
+        return slist
 
 
 
