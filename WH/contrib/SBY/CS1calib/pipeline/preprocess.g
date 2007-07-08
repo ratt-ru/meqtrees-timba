@@ -16,11 +16,12 @@ for( a in argv )
   else if( a =~ s/minuv=// )
     limuv:=as_integer(a);
   else if( a =~ s/minclip=// )
-    limm:=as_integer(a);
+    limm:=as_float(a);
 
 }
 
 print spaste("Preprocessing:::",infile);
+
 
 af:=autoflag(infile)
 af.setdata()
