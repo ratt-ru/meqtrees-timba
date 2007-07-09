@@ -214,7 +214,7 @@ class ParmGroup (Meow.Parameterization):
         if self._NodeList:
             print '  * NodeList object: '+self._NodeList.oneliner()
         else:
-            print '  * NodeList object: '+str(self._NodeList)
+            print '  * NodeList object: '+str(self._NodeList) 
         #...............................................................
         print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
         for key in self._TDLCompileOption.keys():
@@ -223,7 +223,7 @@ class ParmGroup (Meow.Parameterization):
                 print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
             else:
                 print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
-        #...............................................................
+       #...............................................................
         print '**\n'
         return True
 
@@ -744,7 +744,7 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+if 0:
     pg = ParmGroup (name='Gphase', tiling=3, simul=True, namespace='fff')
     pg.TDLCompileOptionsMenu()
 

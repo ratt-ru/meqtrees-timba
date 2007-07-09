@@ -6,6 +6,7 @@
 # - 07jun2007: p_deviation_expr()
 # - 08jun2007: p_quals2list() and p_tags2list()
 # - 03jul2007: added .nodescope(new=None)
+# - 09jul2007: introduced ParmGroup class
 
 # Description:
 
@@ -26,6 +27,7 @@ from Timba.Meq import meq
 
 import Meow
 
+from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
@@ -40,7 +42,10 @@ class ParameterizationPlus (Meow.Parameterization):
     for groups of similar parms, which may find their way into the
     more official Meow system eventually."""
 
-    def __init__(self, ns, name, quals=[], kwquals={}, namespace=None, merge=None):
+    def __init__(self, ns=None, name=None,
+                 quals=[], kwquals={},
+                 namespace=None,
+                 merge=None):
 
         # Scopify ns, if necessary:
         if is_node(ns):
@@ -50,7 +55,11 @@ class ParameterizationPlus (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
-        self.tdloption_namespace = namespace       # just how standard is this name?
+        # TDL Options:
+        self.tdloption_namespace = namespace    
+        self._TDLCompileOptionsMenu = None   
+        self._TDLCompileOption = dict()
+        
 
         #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
@@ -76,7 +85,6 @@ class ParameterizationPlus (Meow.Parameterization):
                                        kwquals=kwquals)
         # Initialize local data:
         self._parmgroups = dict()
-        self._parmNodeList = dict()
         self._parmgogs = dict()
 
         self._pmerged = []
@@ -134,24 +142,26 @@ class ParameterizationPlus (Meow.Parameterization):
         #...............................................................
         print '  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._parmgroups:
-            rr = deepcopy(self._parmgroups[key])
-            rr['nodes'] = '<'+str(len(rr['nodes']))+'>'
-            rr['solvable'] = '<'+str(len(rr['solvable']))+'>'
-            rr['plot_labels'] = '<'+str(len(rr['plot_labels']))+'>'
-            rr['deviation'] = '<see below>'
-            if not rr['simul']:
-                rr['deviation'] = '<NA>'
-            print '    - ('+key+'): '+str(rr)
+            pg = self._parmgroups[key]
+            print '    - ('+key+'): '+str(pg.oneliner())
         #...............................................................
         print '  * Deviation expressions (simul only):'
         for key in self._parmgroups:
-            rr = deepcopy(self._parmgroups[key])
-            if rr['simul']:
-                print '    - ('+key+'): '+rr['deviation']
+            pg = self._parmgroups[key]
+            if pg._simul:
+                print '    - ('+key+'): '+pg._deviation
         #...............................................................
         print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.p_gogs():
             print '    - ('+key+'): '+str(self._parmgogs[key])
+        #...............................................................
+        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
+        for key in self._TDLCompileOption.keys():
+            oo = self._TDLCompileOption[key]
+            if getattr(oo, 'value', None):
+                print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
+            else:
+                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
         #...............................................................
         print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
         if full:
@@ -172,11 +182,6 @@ class ParameterizationPlus (Meow.Parameterization):
             for key in self._parmnodes:
                 rr = self._parmnodes[key]
                 print '    - ('+key+'): '+str(rr)
-        #...............................................................
-        print '  * NodeList objects ('+str(len(self._parmNodeList))+'):'
-        for key in self._parmNodeList:
-            s = self._parmNodeList[key].oneliner()
-            print '    - ('+key+'): '+s
         #...............................................................
         print '  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -235,44 +240,28 @@ class ParameterizationPlus (Meow.Parameterization):
             s = '** duplicate parmgroup definition: '+str(key)
             raise ValueError,s
 
-        # The node tags may be used for finding nodes in ns:
+        # Some added value:
         tags = self.p_tags2list(tags)
-        if not key in tags: tags.append(key)
-        if False:
-            if not self.name in tags: tags.append(self.name)      # <----- ??
-        # NB: What about a qualifier like '3c84'?
-        # qnode = self.ns0[key]
+        if True:
+            if not self.name in tags: tags.append(self.name)          # <----- ??
 
-        # If simul==True, the deviation from the default value
-        # (e.g. as a function of time [t] and/or freq [f]), is
-        # given by a math Expression:
-        if not isinstance(deviation, str):
-            # deviation = '{0.01~0.001}*sin(2*pi*([t]/{500~50}+{0~1}))'
-            deviation = self.p_deviation_expr(ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-
-        # It is possible to override values via this dict.....
-        # This requires a little thought....
-        if isinstance(override, dict):
-            pass
-
-        # Create the group definition:
-        rr = dict(default=default, tags=tags,
-                  simul=simul, deviation=deviation,
-                  constraint=constraint,
-                  descr=descr, unit=unit,
-                  tiling=tiling,
-                  time_deg=time_deg,
-                  freq_deg=freq_deg,
-                  rider=rider,
-                  nodes=[], solvable=[], plot_labels=[])
-        self._parmgroups[key] = rr
-        # return self._parmgroups[key]
+        # Create the ParmGroup:
+        pg = ParmGroup.ParmGroup (self.ns, key, tags=tags,
+                                  descr=descr, unit=unit,
+                                  default=default, constraint=constraint,
+                                  simul=simul, deviation=deviation,
+                                  tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
+                                  # constrain_min=0.1, constrain_max=10.0,
+                                  rider=rider, override=override,
+                                  **kw)
+        self._parmgroups[key] = pg
         return key
 
 
     #-----------------------------------------------------------------
 
-    def p_group_create_member (self, key, quals=[], kwquals={},
+    def p_group_create_member (self, key,
+                               quals=[], kwquals={},
                                value=None, tags=[], solvable=True,            # may override
                                simul=None, default=None, deviation=None,      # may override
                                tiling=None, time_deg=0, freq_deg=0):          # may override for Meow.Parm
@@ -283,75 +272,11 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Check whether the parmgroup (key) exists:
         self.p_has_group (key, severe=True)
-        rr = self._parmgroups[key]
-
-        # Make the qualified node (qnode) for the new group member,
-        # and check whether it already exists: 
-        quals = self.p_quals2list(quals)
-        if not isinstance(simul, bool):                # simul not explicitly specfied
-            simul = rr['simul']                        # use the group default
-
-        # Make qnode and nodename
-        if simul:
-            s = (self.ns.dummy).name.split(':')        # make a list of current qualifiers
-            if not 'simul' in s:                       #   if necessary
-                quals.append('simul')                  #     add 'simul' qualifier
-            qnode = self.ns[key](*quals)(**kwquals)    # qualified node (stub)       
-            nodename = qnode.name                      # used in ._add_parm()
-        else:
-            qnode = self.ns0[key](*quals)(**kwquals)   # qualified node (stub)       
-            nodename = self.ns[key](*quals)(**kwquals).name
-
-        if qnode.initialized():
-            s = '** parmgroup member already exists: '+str(qnode)
-            raise ValueError,s
-
-        # Make the plot_label:
-        plot_label = key
-        for q in quals: key += '_'+str(q)
-        # kwquals too?
-
-        # Any extra tags are appended to the default (rr) ones.....?!
-        ptags = self.p_tags2list(tags)
-        ptags.extend(rr['tags'])
-
-        # Use the Meow Parm/Parameterization mechanism as much as possible:
-        node = None
-        if simul:
-            # Return the root node of a subtree that simulates the MeqParm
-            # NB: The default (rr) default and deviation may be overridden here
-            rootnode = _simul_subtree(rr, qnode,
-                                      default=default, deviation=deviation,
-                                      tags=ptags)
-            solvable = False                           # used below also!
-            self._add_parm(nodename, rootnode, tags=['<NA>'], solvable=solvable)
-            node = self._parm(nodename)
-
-        elif isinstance(value, Meow.Parm):
-            self._add_parm(nodename, value, tags=ptags, solvable=solvable)
-            node = self._parm(nodename)
-
-        elif is_node(value):
-            self._add_parm(nodename, value, tags=ptags, solvable=solvable)
-            node = self._parm(nodename)
-
-        else:
-            # NB: Check the exact working of or/and etc on lists, dicts.......!!
-            mparm = Meow.Parm(value=(value or rr['default']),
-                              tiling=(tiling or rr['tiling']),
-                              time_deg=(time_deg or rr['time_deg']),
-                              freq_deg=(freq_deg or rr['freq_deg']),
-                              tags=[])
-            self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
-            node = self._parm(nodename, nodename=qnode.name)
-
-        # Update the parmgroup with the new member node:
-        rr['nodes'].append(node)
-        rr['plot_labels'].append(plot_label)
-        rr['solvable'].append(solvable)
-
-        # Return the new member node:
-        return node
+        pg = self._parmgroups[key]
+        return pg.create_member (quals=quals, kwquals=kwquals,
+                                 value=value, tags=tags, solvable=solvable,        
+                                 simul=simul, default=default, deviation=deviation,  
+                                 tiling=tiling, time_deg=time_deg, freq_deg=freq_deg)    
 
 
     #-------------------------------------------------------------------
@@ -369,32 +294,35 @@ class ParameterizationPlus (Meow.Parameterization):
         return s
 
 
+    #===================================================================
+    # TDLOptions:
+    #===================================================================
 
-    #===============================================================
-    # Meow.Parametrization methods
-    #===============================================================
+    def p_TDLCompileOptionsMenu (self, show=True):
+        """Generic function for interaction with its TDLCompileOptions menu.
+        The latter is created (once), by calling the specific function.
+        .TDLCompileOptions(), which may be re-implemented by derived classes.
+        The 'show' argument may be used to show or hide the menu. This can be done
+        repeatedly, without duplicating the menu.
+        """
+        if not self._TDLCompileOptionsMenu:        # create the menu only once
+            oolist = self.p_TDLCompileOptions()
+            prompt = self.namespace(prepend='ParmGroup options for: '+self.name)
+            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+        # Show/hide the menu as required (can be done repeatedly):
+        self._TDLCompileOptionsMenu.show(show)
+        return self._TDLCompileOptionsMenu
 
-    # def _add_parm (self,name,value,tags=[],solvable=True):
-    # """Adds an entry for parameter named 'name'. No nodes are created yet;
-    # they will only be created when self._parm(name) is called later. This
-    # is useful because a Meow component can pre-define all necessary 
-    # parameters at construction time with _add_parm(), but then make nodes
-    # only for the ones that are actually in use with _parm().
-    #     self._parmdefs[name] = (value,tags,solvable); 
 
-    # def _parm (self,name,value=None,tags=[],nodename=None,solvable=True):
-    # """Returns node representing parameter 'name'.
-    # If 'nodename' is None, node is named after parm, else
-    # another name may be given.
-    # If value is not supplied, then the parameter should have been previously
-    # defined via _add_parm(). Otherwise, you can define and create a parm 
-    # on-the-fly by suppying a value and tags as to _add_parm.
-    #    self._parmnodes[name] = resolve_parameter(name,self.ns[nodename],
-    #                                              value,tags,solvable);
-    #    return self._parmnodes[name];
-
-    # 
-    # Meow.Parm: (value=0,tags=[],tiling=None,time_deg=0,freq_deg=0,**kw):
+    def p_TDLCompileOptions (self):
+        """Define a list of TDL options that control the parameters
+        of the various ParmGroups"""
+        oolist = []
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            self._TDLCompileOption[key] = pg.TDLCompileOptionsMenu()
+            oolist.append(self._TDLCompileOption[key])
+        return oolist
 
 
     #===============================================================
@@ -455,14 +383,14 @@ class ParameterizationPlus (Meow.Parameterization):
                 # Copy the parmdefs with slightly different names
                 self.p_group_define (other.name, tags=None,
                                      descr='copied from Meow.Parameterization')
-                rr = self._parmgroups[other.name]
+                pg = self._parmgroups[other.name]
                 for key in other._parmdefs:
                     pd = other._parmdefs[key]                 # assume: (value, tags, solvable)
                     newkey = other.name+'_'+key
                     self._parmdefs[newkey] = pd
-                    rr['nodes'].append(self._parm(newkey))    # generate a node in self, not other!
-                    rr['solvable'].append(pd[2])              # 3rd element: solvable (boolean)
-                    rr['plot_labels'].append(newkey)          # ....?
+                    pg._nodes.append(self._parm(newkey))    # generate a node in self, not other!
+                    pg._solvable.append(pd[2])              # 3rd element: solvable (boolean)
+                    pg._plot_labels.append(newkey)          # ....?
 
 
 
@@ -519,7 +447,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
         elif groups:
             # Use the groups specification:
-            pg = self.p_find_parmgroups (groups, severe=True)
+            pgs = self.p_find_parmgroups (groups, severe=True)
             name = 'gogs'
             if isinstance(groups,str):
                 name += groups
@@ -527,17 +455,17 @@ class ParameterizationPlus (Meow.Parameterization):
                 for k,group in enumerate(groups):
                     name += str(group)
             if trace:
-                print ' -- groups =',groups,'(name=',name,') -> pg =',pg
-            for key in pg:
-                rr = self._parmgroups[key]              # convenience
-                if not isinstance(solvable, bool):      # solvable not speified
-                    nodes.extend(rr['nodes'])           # include all nodes
-                    labels.extend(rr['plot_labels'])    # include all 
+                print ' -- groups =',groups,'(name=',name,') -> pgs =',pgs
+            for key in pgs:
+                pg = self._parmgroups[key]              # convenience
+                if not isinstance(solvable, bool):      # solvable not specified
+                    nodes.extend(pg._nodes)             # include all nodes
+                    labels.extend(pg._plot_labels)      # include all 
                 else:
-                    for k,node in enumerate(rr['nodes']):
-                        if rr['solvable'][k]==solvable: # the specified kind
+                    for k,node in enumerate(pg._nodes):
+                        if pg._solvable[k]==solvable:   # the specified kind
                             nodes.append(node)          # selected nodes only
-                            labels.append(rr['plot_labels'][k])       
+                            labels.append(pg._plot_labels[k])       
 
         if trace:
             for k,node in enumerate(nodes):
@@ -595,7 +523,8 @@ class ParameterizationPlus (Meow.Parameterization):
         gg = dict()
         keys = self._parmgroups.keys()
         for key in keys:
-            tags = self._parmgroups[key]['tags']
+            pg = self._parmgroups[key]
+            tags = pg._tags
             for tag in tags:
                 gg.setdefault(tag,[])
                 if not key in gg[tag]:
@@ -609,22 +538,6 @@ class ParameterizationPlus (Meow.Parameterization):
     # Methods using NodeLists:
     #===============================================================
 
-    def p_NodeList (self, parmgroup, color='blue', style='diamond'):
-        """Helper function to get a NodeList object for the specified parmgroup.
-        In order to avoid duplication, any already created NodeList objects are
-        reused....(!?)"""
-        key = self.p_find_parmgroups (parmgroup, severe=True)[0]
-        if not self._parmNodeList.has_key(key):
-            nodes = self._parmgroups[key]['nodes']
-            labels = self._parmgroups[key]['plot_labels']
-            nn = NodeList.NodeList(self.ns, key, nodes=nodes, labels=labels,
-                                   color=color, style=style)
-            self._parmNodeList[key] = nn
-            # nn.display('inside p_NodeList()')
-        return self._parmNodeList[key]
-
-    #---------------------------------------------------------------
-
     def p_compare (self, parmgroup, other, show=False):
         """Compare the nodes of a parmgroup with the corresponding ones
         of the given (and assumedly commensurate) parmgroup (other).
@@ -633,10 +546,9 @@ class ParameterizationPlus (Meow.Parameterization):
         """
         self.p_has_group (parmgroup, severe=True)
         self.p_has_group (other, severe=True)
-        nn1 = self.p_NodeList(parmgroup)
-        nn2 = self.p_NodeList(other)
-        qnode = nn1.compare(nn2, bookpage=True, show=show)
-        return qnode
+        pg1 = self._parmgroups[parmgroup]
+        pg2 = self._parmgroups[other]
+        return pg1.compare(pg2, show=show)
 
 
     #---------------------------------------------------------------
@@ -647,15 +559,13 @@ class ParameterizationPlus (Meow.Parameterization):
         specified combine-operation (default='Add') to them. Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
         """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        pgs = self.p_find_parmgroups (parmgroup, severe=True)
         if folder==None:
-            if len(pg)>1: folder = 'p_bundle_'+self.name
+            if len(pgs)>1: folder = 'p_bundle_'+self.name
         bb = []
-        for key in pg:
-            nn = self.p_NodeList(key)
-            bundle = nn.bundle(combine=combine,
-                               bookpage=bookpage, folder=folder)
-            bb.append(bundle)
+        for key in pgs:
+            pg = self._parmgroups[key]
+            bb.append(pg.bundle(bookpage=bookpage, folder=folder))
         return self._p_bundle_of_bundles (bb, name='p_bundle',
                                           qual=parmgroup,
                                           accu=True, show=show)
@@ -667,16 +577,14 @@ class ParameterizationPlus (Meow.Parameterization):
         """Make separate rvsi plots of the specified parmgroup(s). Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
         """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        pgs = self.p_find_parmgroups (parmgroup, severe=True)
         if bookpage:
             if not isinstance(bookpage, str):
                 bookpage = 'p_plot_rvsi_'+self.name
         bb = []
-        for key in pg:
-            nn = self.p_NodeList(key)
-            rvsi = nn.plot_rvsi(bookpage=bookpage, folder=folder,
-                                xlabel=key, ylabel='stddev')
-            bb.append(rvsi)
+        for key in pgs:
+            pg = self._parmgroups[key]
+            bb.append(pg.plot_rvsi(bookpage=bookpage, folder=folder))
         return self._p_bundle_of_bundles (bb, name='p_plot_rvsi',
                                           qual=parmgroup,
                                           accu=True, show=show)
@@ -689,24 +597,39 @@ class ParameterizationPlus (Meow.Parameterization):
         'inspector' (time-tracks) per parmgroup. Return the root node of
         the resulting subtree. Make bookpages for each parmgroup.
         """
-        pg = self.p_find_parmgroups (parmgroup, severe=True)
+        pgs = self.p_find_parmgroups (parmgroup, severe=True)
         if bookpage:
             if not isinstance(bookpage, str):
                 bookpage = 'p_plot_timetracks_'+self.name
         bb = []
-        for key in pg:
-            nn = self.p_NodeList(key)
-            tt = nn.plot_timetracks (bookpage=bookpage, folder=folder)
-            bb.append(tt)
+        for key in pgs:
+            pg = self._parmgroups[key]
+            bb.append(pg.plot_timetracks (bookpage=bookpage, folder=folder))
         return self._p_bundle_of_bundles (bb, name='p_plot_timetracks',
                                           qual=parmgroup,
                                           accu=True, show=show)
 
 
-    #................................................................
-    def p_inspector_obsolete (self, parmgroup='*', show=False):
-        """Alternative function for p_plot_timetracks()"""
-        return self.p_plot_timetracks (parmgroup=parmgroup, show=show)
+    #---------------------------------------------------------------
+
+    def p_plot_spectra (self, parmgroup='*', 
+                           bookpage=True, folder=None, show=False):
+        """Visualize the nodes in the specified parmgroup(s) in a separate
+        'inspector' (time-tracks) per parmgroup. Return the root node of
+        the resulting subtree. Make bookpages for each parmgroup.
+        """
+        pgs = self.p_find_parmgroups (parmgroup, severe=True)
+        if bookpage:
+            if not isinstance(bookpage, str):
+                bookpage = 'p_plot_spectra_'+self.name
+        bb = []
+        for key in pgs:
+            pg = self._parmgroups[key]
+            bb.append(pg.plot_spectra (bookpage=bookpage, folder=folder))
+        return self._p_bundle_of_bundles (bb, name='p_plot_spectra',
+                                          qual=parmgroup,
+                                          accu=True, show=show)
+
 
     
     #---------------------------------------------------------------
@@ -850,47 +773,6 @@ class ParameterizationPlus (Meow.Parameterization):
 
 
 
-#=============================================================================
-#=============================================================================
-#=============================================================================
-# Some helper functions (standalone, so they do not clog up the object):
-#=============================================================================
-
-    
-def _simul_subtree(rr, qnode, default=None, deviation=None,
-                   tags=[], show=False, trace=False):
-    """Return the root node of a subtree that simulates the
-    behaviour of a MeqParm."""
-
-    if trace: print '\n** _simul_subtree(',str(qnode),'):'
-    
-    # The deviation from the default value is described by a math expression.
-    # The default (rr) values may be overridden.
-    simexpr = str(default or rr['default'])+'+'+(deviation or rr['deviation'])
-    if trace: print '    ',simexpr
-    
-    # Make a MeqFunctional node from the given expression
-    Ekey = Expression.Expression(qnode, qnode.basename, expr=simexpr)
-    node = Ekey.MeqFunctional()
-
-    if trace: print '  -> node =',str(node)
-
-    # Make a root node with the correct name (qnode) and tags:
-    ptags = deepcopy(tags)
-    if not 'simul' in ptags: ptags.append('simul')
-    qnode << Meq.Identity(node, tags=ptags)
-    if trace: print '  -> qnode =',str(qnode)
-    if show: display.subtree(qnode)
-    return qnode
-
-#----------------------------------------------------------------------------
-      
-    
-    
-
-
-
-
 
 #=============================================================================
 #=============================================================================
@@ -898,19 +780,22 @@ def _simul_subtree(rr, qnode, default=None, deviation=None,
 # Test routine (with meqbrowser):
 #=============================================================================
 
+
+if True:
+    pp1 = ParameterizationPlus(name='GJones', quals='3c84')
+    pp1.p_group_define('Gphase', tiling=3, simul=True)
+    pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
+    pp1.p_TDLCompileOptionsMenu()
+    pp1.p_display('initial')
+
+
+
 def _define_forest(ns):
 
     # cc = [ns.dummy<<45]
     cc = []
 
-    pp1 = ParameterizationPlus(ns, 'GJones',
-                               # kwquals=dict(tel='WSRT', band='21cm'),
-                               quals='3c84')
-    pp1.p_display('initial')
-
-    if 1:
-        pp1.p_group_define('Gphase', tiling=3, simul=True)
-        pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
+    pp1.nodescope(ns)
 
     if 1:
         pp1.p_group_create_member('Gphase', 1)
@@ -924,12 +809,9 @@ def _define_forest(ns):
         pp1.p_group_create_member('Ggain', 4, time_deg=3)
 
     if 0:
-        node = pp1.p_bundle(show=True)
-        cc.append(node)
-
-    if 1:
-        node = pp1.p_plot_timetracks()
-        cc.append(node)
+        cc.append(pp1.p_bundle(show=True))
+        cc.append(pp1.p_plot_timetracks())
+        cc.append(pp1.p_plot_spectra())
 
     if 1:
         nn = pp1.p_solvable(groups='GJones')
@@ -939,6 +821,7 @@ def _define_forest(ns):
 
     pp1.p_display('final', full=True)
 
+    if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
     return True
 
@@ -968,34 +851,41 @@ def _tdl_job_2D_tf (mqs, parent):
 # Test routine:
 #===============================================================
 
+
 if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pp1 = ParameterizationPlus(ns, 'GJones',
+        pp1 = ParameterizationPlus(ns, name='GJones',
                                    # kwquals=dict(tel='WSRT', band='21cm'),
                                    quals='3c84')
         pp1.p_display('initial')
 
-    if 1:
-        pp1.p_group_define('Gphase', tiling=3, simul=True)
-        pp1.p_group_define('Ggain', default=1.0, freq_deg=2, simul=False)
 
     if 1:
-        pp1.p_group_create_member('Gphase', 1)
-        pp1.p_group_create_member('Gphase', 2.1, value=(ns << -89))
-        pp1.p_group_create_member('Gphase', 2, value=34)
-        pp1.p_group_create_member('Gphase', 3, tiling=5, simul=False)
-        pp1.p_group_create_member('Gphase', 7, freq_deg=2)
+        pp1.create_member('Gphase', 1)
+        pp1.create_member('Gphase', 2.1, value=(ns << -89))
+        pp1.create_member('Gphase', 2, value=34)
+        pp1.create_member('Gphase', 3, tiling=5, simul=False)
+        pp1.create_member('Gphase', 7, freq_deg=2)
 
     if 1:
-        pp1.p_group_create_member('Ggain', 7, freq_deg=6)
-        pp1.p_group_create_member('Ggain', 4, time_deg=3)
+        pp1.create_member('Ggain', 7, freq_deg=6)
+        pp1.create_member('Ggain', 4, time_deg=3)
 
     if 0:
         pp1.p_bundle(show=True)
+    if 0:
+        pp1.p_plot_rvsi(show=True)
+    if 0:
+        pp1.p_plot_spectra(show=True)
+    if 0:
+        pp1.p_plot_timetracks(show=True)
 
     pp1.p_display('final', full=True)
+
+
+    #------------------------------------------------------------------
 
     if 0:
         print dir(pp1)
@@ -1004,7 +894,6 @@ if __name__ == '__main__':
     if 0:
         print 'ns.Search(tags=Gphase):',ns.Search(tags='Gphase')
         print 'pp1.ns.Search(tags=Gphase):',pp1.ns.Search(tags='Gphase')
-
 
     if 0:
         pp1.p_solvable()
@@ -1036,14 +925,19 @@ if __name__ == '__main__':
         pp2.p_display(full=True)
         if 1:
             pp1.p_merge(pp2, trace=True)
+            pp1.p_find_nodes(groups=['GJones','DJones'], solvable=True, trace=True)
+            pp1.p_find_nodes(groups=['GJones','DJones'], solvable=False, trace=True)
+        pp1.p_display('after merge', full=True)
 
     if 0:
         e0 = Expression.Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=False)
         e0.display()
-        if 1:
-            pp3 = ParameterizationPlus(ns, 'e0', merge=e0)
         if 0:
+            pp3 = ParameterizationPlus(ns, 'e0', merge=e0)
+            pp3.p_display('after merge', full=True)
+        if 1:
             pp1.p_merge(e0, trace=True)
+            pp1.p_display('after merge', full=True)
 
     if 0:
         pp1.p_accumulist('aa')
