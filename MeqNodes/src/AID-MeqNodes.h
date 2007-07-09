@@ -1148,11 +1148,6 @@ const int AidVisu_int = -1440;
 const DMI::AtomicID AidWeights(-1285);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 const int AidWeights_int = -1285;
 #endif
-#ifndef _defined_id_AidX
-#define _defined_id_AidX 1
-const DMI::AtomicID AidX(-1024);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-const int AidX_int = -1024;
-#endif
 #ifndef _defined_id_AidXX
 #define _defined_id_AidXX 1
 const DMI::AtomicID AidXX(-1115);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
@@ -1168,11 +1163,6 @@ const int AidXY_int = -1170;
 const DMI::AtomicID AidXYZ(-1567);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
 const int AidXYZ_int = -1567;
 #endif
-#ifndef _defined_id_AidY
-#define _defined_id_AidY 1
-const DMI::AtomicID AidY(-1005);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-const int AidY_int = -1005;
-#endif
 #ifndef _defined_id_AidYX
 #define _defined_id_AidYX 1
 const DMI::AtomicID AidYX(-1175);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
@@ -1182,11 +1172,6 @@ const int AidYX_int = -1175;
 #define _defined_id_AidYY 1
 const DMI::AtomicID AidYY(-1118);                 // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
 const int AidYY_int = -1118;
-#endif
-#ifndef _defined_id_AidZ
-#define _defined_id_AidZ 1
-const DMI::AtomicID AidZ(-1021);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-const int AidZ_int = -1021;
 #endif
 
 

@@ -31,7 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::StationBeam
-#pragma aid RA Dec X Y Z
+#pragma aid RA Dec XYZ
 #pragma aid Filename Phi0 Ref Freq
 
 /*
@@ -86,10 +86,6 @@ protected:
 private:
   string coordfile_name_; //file to store coordinates
   blitz::Array<double,2> p_;//array of coordinates
-  double ra_,dec_; //tracking centre 
-  double x_,y_,z_;//coords of phase centre in ITRF
-  double phi0_; //rotation around zenith
-  double f0_; //reference freq in Hz
 };
 
 

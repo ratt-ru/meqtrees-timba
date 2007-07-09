@@ -656,9 +656,6 @@ DMI::BObj * __construct_MeqStationBeam (int n) { return n>0 ? new Meq::StationBe
         AtomicID::registerId(-1727,"MeqStationBeam")+
         TypeInfoReg::addToRegistry(-1727,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1727,__construct_MeqStationBeam)+
-        AtomicID::registerId(-1024,"X")+
-        AtomicID::registerId(-1005,"Y")+
-        AtomicID::registerId(-1021,"Z")+
         AtomicID::registerId(-1728,"Phi0")+
         AtomicID::registerId(-1154,"Ref")+
         AtomicID::registerId(-1177,"Freq")+

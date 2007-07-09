@@ -35,6 +35,11 @@
 
 
 //#define DEBUG
+/*ra_,dec_; //tracking centre 
+x_,y_,z_;//coords of phase centre in ITRF
+phi0_; //rotation around zenith
+f0_; //reference freq in Hz */
+
 using namespace casa;
 
 namespace Meq {
@@ -42,22 +47,18 @@ namespace Meq {
 
 const HIID FDomain = AidDomain;
 const HIID FFilename= AidFilename;
-const HIID FX= AidX;
-const HIID FY= AidY;
-const HIID FZ= AidZ;
-const HIID FRA= AidRA;
-const HIID FDec= AidDec;
-const HIID FPhi0= AidPhi0;
-const HIID FRefF= AidRef|AidFreq;
+
+const HIID child_labels[] = { AidRADec,AidXYZ,AidPhi0,AidRef|AidFreq };
+const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
+
+
 
 //The node should have no children
 StationBeam::StationBeam()
-: TensorFunction(0)
+: TensorFunction(num_children,child_labels)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
-  x_=y_=z_=ra_=dec_=phi0_=0;
-  f0_=60e6;
 }
 
 StationBeam::~StationBeam()
@@ -75,42 +76,6 @@ void StationBeam::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 #ifdef DEBUG
   cout<<"File Name ="<<coordfile_name_<<endl;
 #endif
-
-	if(rec[FX].get(x_),initializing) {
-#ifdef DEBUG
-   cout<<"x="<<x_<<endl;
-#endif
-	}
-	if(rec[FY].get(y_),initializing) {
-#ifdef DEBUG
-   cout<<"y="<<y_<<endl;
-#endif
-	}
-	if(rec[FZ].get(z_),initializing) {
-#ifdef DEBUG
-   cout<<"z="<<z_<<endl;
-#endif
-	}
-	if(rec[FRA].get(ra_),initializing) {
-#ifdef DEBUG
-   cout<<"RA="<<ra_<<endl;
-#endif
-	}
-	if(rec[FDec].get(dec_),initializing) {
-#ifdef DEBUG
-   cout<<"Dec="<<dec_<<endl;
-#endif
-	}
-	if(rec[FPhi0].get(phi0_),initializing) {
-#ifdef DEBUG
-   cout<<"phi0="<<phi0_<<endl;
-#endif
-	}
-	if(rec[FRefF].get(f0_),initializing) {
-#ifdef DEBUG
-   cout<<"f0="<<f0_<<endl;
-#endif
-	}
 
   //read file
   ifstream infd;
@@ -162,6 +127,27 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
 {
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
+
+  const Vells& vra  = *(args[0][0]);
+  const Vells& vdec = *(args[0][1]);
+  const Vells& vx   = *(args[1][0]);
+  const Vells& vy   = *(args[1][1]);
+  const Vells& vz   = *(args[1][2]);
+  const Vells& vphi0   = *(args[2][0]);
+  const Vells& vf0 = *(args[3][0]);
+  // we only support scalars
+  Assert( vra.isScalar() && vdec.isScalar() &&
+    vx.isScalar() && vy.isScalar() && vz.isScalar() && 
+    vphi0.isScalar() && vf0.isScalar() );
+
+  double ra_ = vra.getScalar<double>();
+  double dec_ = vdec.getScalar<double>();
+  double x_ = vx.getScalar<double>();
+  double y_ = vy.getScalar<double>();
+  double z_ = vz.getScalar<double>();
+  double phi0_ =vphi0.getScalar<double>();
+  double f0_ =vf0.getScalar<double>();
+ 
 
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // thanks to checks in getResultDims(), we can expect all 
