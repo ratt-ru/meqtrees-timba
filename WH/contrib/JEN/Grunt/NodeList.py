@@ -563,7 +563,8 @@ class NodeList (object):
                    bookpage=True, folder=None,
                    xlabel='xx', ylabel='yy',
                    tag='', concat=False,
-                   mean_circle=False, errorbars=True):
+                   mean_circle=False, errorbars=True,
+                   show=False):
         """Visualize the (selected) nodes with a 'real-vs-imaginary' plot.
         If another (commensurate) NodeList is specified, make complex numbers with
         (real,imag) is (self,other). This misuses the rvsi plot to plot one agains
@@ -609,6 +610,7 @@ class NodeList (object):
             JEN_bookmarks.create(qnode, kopie.name(),
                                  page=bookpage, folder=folder)
         if concat: return rr
+        if show: display.subtree(qnode, show_initrec=True)
         return qnode
 
 
@@ -617,7 +619,8 @@ class NodeList (object):
     def plot_spectra (self, select='*', quals=None,
                       bookpage=True, folder=None,
                       xlabel='xx', ylabel='yy',
-                      tag='', concat=False):
+                      tag='', concat=False,
+                      show=False):
         """Visualize the (selected) nodes with a dataCollect 'spectra' plot.
         Return the root node of the resulting subtree. Make a bookmark, if required."""
 
@@ -650,6 +653,7 @@ class NodeList (object):
             JEN_bookmarks.create(qnode, kopie.name(),
                                  page=bookpage, folder=folder)
         if concat: return rr
+        if show: display.subtree(qnode, show_initrec=True)
         return qnode
 
 

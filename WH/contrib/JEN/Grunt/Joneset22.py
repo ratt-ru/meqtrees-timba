@@ -63,6 +63,7 @@ class Joneset22 (Matrixet22.Matrixet22):
 
         self._TDLSolveOptionsMenu = None
         self._TDLSolveOption = dict()
+
         self._TDLSolveOption_tobesolved = [None, 'A', 'B', ['A','B']]
 
         # Initialise its Matrixet22 object:
@@ -192,7 +193,15 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     def define_parmgroups(self):
         """Placeholder for specific function in derived classes."""
+        self.define_parmgroups_preamble()
         self._pg = dict()
+        return True
+
+    def define_parmgroups_preamble(self):
+        """Generic function that should be called at the start of a specific
+        re-implementation of .define_parmgroups() by a derived class."""
+        if self._TDLCompileOption.has_key('simul'):
+            self._simulate = self._TDLCompileOption['simul'].value
         return True
 
     #----------------------------------------------------------------------
@@ -249,7 +258,7 @@ class Joneset22 (Matrixet22.Matrixet22):
         """Define a list of TDL options that control the structure of the
         Jones matrix.
         This function should be re-implemented by derived classes."""
-        oolist = []
+        oolist = self.TDLCompileOptions_generic()
 
         if False:                    # temporary, just for testing
             key = 'xxx'
@@ -258,6 +267,24 @@ class Joneset22 (Matrixet22.Matrixet22):
                                              doc='explanation for xxx....',
                                              namespace=self)
             oolist.append(self._TDLCompileOption[key])
+
+        # Finished: Return a list of options:
+        return oolist
+
+    #..................................................................
+
+    def TDLCompileOptions_generic (self):
+        """Define a list of generic TDL compile options, which may be
+        included in the specific list returned by TDLCompileOptions()"""
+        oolist = []
+
+        doc = 'If True, replace the MeqParms with subtrees that simulate them'
+        key = 'simul'
+        opt = [self._simulate, not self._simulate]
+        self._TDLCompileOption[key] = TDLOption(key, 'simulate MeqParms',
+                                                opt, doc=doc,
+                                                namespace=self)
+        oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of options:
         return oolist
@@ -326,7 +353,7 @@ class Joneset22 (Matrixet22.Matrixet22):
 
 #=================================================================================================
 # Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
-# Semi-obsolete.....
+# Semi-obsolete..... certainly not uptodate, or consistent with TDLOptions....
 #=================================================================================================
 
 def Joneseq22 (ns, joneslist=None, quals=None):
@@ -423,6 +450,7 @@ class GJones (Joneset22):
 
     def define_parmgroups(self):
         """Define the various primary ParmGroups"""
+        self.define_parmgroups_preamble()
         self._pg = dict()
         self._pname = 'Gphase'
         self._gname = 'Ggain'
@@ -478,8 +506,9 @@ class GJones (Joneset22):
 
 
 
-#--------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------
+
+#============================================================================================
+#============================================================================================
 
 class BJones (Joneset22):
     """Class that represents a set of 2x2 BJones matrices,
@@ -522,12 +551,14 @@ class BJones (Joneset22):
     def TDLCompileOptions (self):
         """Define a list of TDL option objects that control the structure
         of the Jones matrix."""
-        oolist = []
+        oolist = self.TDLCompileOptions_generic()
+
         key = 'tfdeg'
         self._TDLCompileOption[key] = TDLOption(key, 'tfdeg',
                                          [[0,5],[0,4],[1,4]],
                                          doc='rank of time/freq polynomial',
                                          namespace=self)
+
         oolist.append(self._TDLCompileOption[key])
         # Finished: Return a list of option objects:
         return oolist
@@ -537,6 +568,7 @@ class BJones (Joneset22):
 
     def define_parmgroups(self):
         """Define the various primary ParmGroups"""
+        self.define_parmgroups_preamble()
         self._pg = dict()
         pols = self.pols()                                # e.g. ['X','Y']
         self._iname = 'Bimag'
@@ -597,8 +629,8 @@ class BJones (Joneset22):
 
 
 
-#--------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------
+#============================================================================================
+#============================================================================================
 
 class JJones (Joneset22):
     """Class that represents a set of 2x2 JJones matrices.
@@ -633,7 +665,8 @@ class JJones (Joneset22):
     def TDLCompileOptions (self):
         """Define a list of TDL options that control the structure of the
         Jones matrix."""
-        oolist = []
+        oolist = self.TDLCompileOptions_generic()
+
         key = 'diagonal'
         self._TDLCompileOption[key] = TDLOption(key, 'diagonal elements only',
                                          [True, False],
@@ -647,6 +680,7 @@ class JJones (Joneset22):
 
     def define_parmgroups(self):
         """Define the various primary ParmGroups"""
+        self.define_parmgroups_preamble()
         self._pg = dict()
         dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
         for ename in ['J11','J22']:
@@ -707,8 +741,8 @@ class JJones (Joneset22):
 
 
 
-#--------------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------
+#============================================================================================
+#============================================================================================
 
 class FJones (Joneset22):
     """Class that represents a set of 2x2 FJones matrices,
@@ -740,6 +774,7 @@ class FJones (Joneset22):
 
     def define_parmgroups(self):
         """Define the various primary ParmGroups"""
+        self.define_parmgroups_preamble()
         self._pg = dict()
         self._rname = 'RM'       
         dev = self.p_deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
@@ -788,6 +823,9 @@ class FJones (Joneset22):
 
         qnode(station) << Meq.Identity(qnode)
         return qnode(station)
+
+
+
 
 
 
