@@ -304,14 +304,15 @@ class _TDLOptionItem(_TDLBaseOption):
     if self.visible and self.enabled and self.config_name:
       log.append("%s = %s"%(self.config_name,self.get_str()));
     
-  def _set (self,value):
+  def _set (self,value,callback=True):
     """private method for changing the internal value of an option"""
     _dprint(2,"setting",self.name,"=",value);
     self.value = self.namespace[self.symbol] = value;
     # be anal about whether the _when_changed_callbacks attribute is initialized,
     # as _set may have been called before the constructor
-    for callback in getattr(self,'_when_changed_callbacks',[]):
-      callback(value);
+    if callback:
+      for cb in getattr(self,'_when_changed_callbacks',[]):
+        cb(value);
   
   def set (self,value,**kw):
     """public method for changing the internal value of an option. Must be implemented
@@ -357,11 +358,11 @@ class _TDLBoolOptionItem (_TDLOptionItem):
         if _dbg.verbose > 2:
           traceback.print_exc();
     
-  def set (self,value,save=True):
+  def set (self,value,save=True,callback=True):
     value = bool(value);
     if save and self.config_name:
       set_config(self.config_name,int(value));
-    self._set(value);
+    self._set(value,callback=callback);
 
   def make_listview_item (self,parent,after,executor=None):
     item = QCheckListItem(parent,after,self.name,QCheckListItem.CheckBox);
@@ -405,9 +406,12 @@ class _TDLFileOptionItem (_TDLOptionItem):
     if self.config_name:
       try:
         value = config.get(config_section,self.config_name);
-        # if self._validator(value):
-        self._set(value);
-        _dprint(2,"read",self.config_name,"=",value,"from config");
+        if self._validator(value):
+          _dprint(2,"read",self.config_name,"=",value,"from config");
+          self._set(value);
+        else:
+          _dprint(2,"read",self.config_name,"=",value,"from config, but validation failed");
+          self._set(None);
       except:
         _dprint(2,"error reading",self.config_name,"from config");
         if _dbg.verbose > 2:
@@ -428,11 +432,11 @@ class _TDLFileOptionItem (_TDLOptionItem):
     if self.value and not self._validator(self.value):
       self.set(None);
       
-  def set (self,value,save=True):
+  def set (self,value,save=True,callback=True):
     value = str(value);
     if save:
       set_config(self.config_name,value);
-    self._set(value);
+    self._set(value,callback=callback);
     
   def enable (self,enabled=True):
     _TDLOptionItem.enable(self,enabled);
@@ -493,6 +497,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       raise ValueError,"empty option list, and 'more=' not specified";
     self._more = more;
     self._custom_value = (None,'');
+    self._submenu = self._submenu_editor = None;
     self.set_option_list(value,conserve_selection=False);
     self.inline = False;
     # default validator accepts everything
@@ -579,6 +584,9 @@ class _TDLListOptionItem (_TDLOptionItem):
       self.option_list.append(self._custom_value[0]);
       self.option_list_str.append(self._custom_value[1]);
       self.option_list_desc.append(self._custom_value[1]);
+    # rebuild menus, if already instantiated
+    if self._submenu:
+      self._rebuild_submenu(self._lvitem.listView());
     # re-select previous value, or selected value
     if select is not None:
       self.set(select,save=False);
@@ -589,43 +597,47 @@ class _TDLListOptionItem (_TDLOptionItem):
       except:
         self.set(0);
         
-  def set_value (self,value,save=True):
+  def set_value (self,value,save=True,callback=True):
     """selects given value in list. If value is not in list, sets
     custom value if possible"""
     try:
       index = self.option_list.index(value);
-      self.set(index,save=save);
+      self.set(index,save=save,callback=callback);
     except:
       if self._more is None:
         raise ValueError,"%s is not a legal value for option '%s'"%(value,self.name);
-      self.set_custom_value(self._more(value),save=save,select=True);
+      self.set_custom_value(self._more(value),save=save,select=True,callback=callback);
   
-  def set (self,ivalue,save=True):
+  def set (self,ivalue,save=True,callback=True):
     """selects value #ivalue in list""";
     self.selected = value = int(ivalue);
-    self._set(self.get_option(value));
+    _dprint(1,"set %s, #%d (%s), save=%s"%(self.name,value,self.get_option_desc(value),save));
     if self._lvitem:
+      _dprint(1,"setting lvitem text");
       self._lvitem.setText(1,self.get_option_desc(value));
+    if self._submenu:
+      for ival in range(self.num_options()):
+        self._submenu.setItemChecked(ival,ival==value);
     if save:
       set_config(self.config_name,self.get_option_str(value));
+    self._set(self.get_option(value),callback=callback);
     
-  def set_custom_value (self,value,select=True,save=True):
+  def set_custom_value (self,value,select=True,save=True,callback=True):
     if self._more is None:
       raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
     self._custom_value = (value,str(value));
     self.option_list[-1] = value;
     self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
+    # copy to editor widget
+    if self._submenu_editor is not None:
+      self._submenu_editor.setText(str(value));
+    # select if needed
     if select:
-      self.set(len(self.option_list)-1,save=save);
+      self.set(len(self.option_list)-1,save=save,callback=callback);
     
-  def make_listview_item (self,parent,after,executor=None):
-    """makes a listview entry for the item""";
-    _dprint(3,"making listview item for",self.name);
-    item = QListViewItem(parent,after);
-    item.setText(0,self.name+":");
-    item.setText(1,self.get_option_desc(self.selected));
+  def _rebuild_submenu (self,parent):
     # create QPopupMenu for available options
-    self._submenu = submenu = QPopupMenu(item.listView());
+    self._submenu = submenu = QPopupMenu(parent);
     submenu.setCheckable(True);
     self._submenu_items = [];
     self._submenu_editor = None;
@@ -652,6 +664,15 @@ class _TDLListOptionItem (_TDLOptionItem):
         submenu.insertItem(self.get_option_desc(ival),ival);
       submenu.setItemChecked(ival,ival==self.selected);
     QObject.connect(submenu,SIGNAL("activated(int)"),self._activate_submenu_item);
+    
+  def make_listview_item (self,parent,after,executor=None):
+    """makes a listview entry for the item""";
+    _dprint(3,"making listview item for",self.name);
+    item = QListViewItem(parent,after);
+    item.setText(0,self.name+":");
+    item.setText(1,self.get_option_desc(self.selected));
+    # create QPopupMenu for available options
+    self._rebuild_submenu(item.listView());
     # make menu pop up when item is pressed
     item._on_click = self._popup_menu;
     parent._ends_with_separator = False;
@@ -671,9 +692,6 @@ class _TDLListOptionItem (_TDLOptionItem):
       if not self._validator(self._custom_value[0]):
         return;
     self.set(selected);
-    for ival in range(self.num_options()):
-      self._submenu.setItemChecked(ival,ival==selected);
-    self._lvitem.setText(1,self.get_option_desc(selected));
 
   def _set_submenu_custom_value (self):
     # get value from editor

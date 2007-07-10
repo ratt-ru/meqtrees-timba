@@ -236,9 +236,10 @@ class MSSelector (object):
         antsel = [None];
       self.antsel_option = TDLOption("ms_antenna_sel","Antenna subset",
                                      [None],more=str,namespace=self,
-        doc="""Selects a subset of antennas to use. You can specify individual indices (1-based) 
-        separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), or ":M" (1 to M),
-        or "N:" (N to last). Example subset: ":3 5 8 10:12 16:"."""
+        doc="""Selects a subset of antennas to use. You may specify individual indices 
+        (1-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), 
+        or ":M" (1 to M), or "N:" (N to last). 
+        Example subset: ":3 5 8 10:12 16:"."""
       );
       self.antsel_option.set_validator(self._antenna_sel_validator);
       # hide until an MS is selected
@@ -343,7 +344,7 @@ class MSSelector (object):
     
   def _select_new_ms (self,msname):
     """This callback is called whenever a new MS is selected. Returns False if
-    table is misformed""";
+    table is malformed or n/a""";
     # do nothing if already read this MS
     if msname == getattr(self,'_msname',None):
       return True;

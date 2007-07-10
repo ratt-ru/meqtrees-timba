@@ -23,7 +23,7 @@ ms_channel_step = None;
 ms_data_columns = None;
 ms_antenna_names = [];
 ms_field_names = None;
-ms_ddid_numchan = None;
+ms_ddid_numchannels = None;
 ms_write_flags = False;
 ms_input_flag_bit = 1;
 ms_has_output = False;
@@ -105,42 +105,48 @@ def ms_options (
   return opts;
   
 def _select_new_ms (msname):
-  ms = pycasatable.table(msname);
-  # data columns
-  global ms_data_columns;
-  ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
-  if input_col_option:
-    input_col_option.set_option_list(ms_data_columns);
-  # antennas
-  global ms_antenna_names;
-  ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA')).getcol('NAME');
-  # DDIDs
-  ddid_table = pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'));
-  spws = ddid_table.getcol('SPECTRAL_WINDOW_ID');
-  numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW')).getcol('NUM_CHAN');
-  global ms_ddid_numchannels;
-  ms_ddid_numchannels = [ numchans[spw] for spw in spws ];
-  ddid_option.set_option_list(range(len(ms_ddid_numchannels)));
-  if len(ms_ddid_numchannels) < 2:
-    ddid_option.hide();
-  # Fields
-  global ms_field_names;
-  ms_field_names = pycasatable.table(ms.getkeyword('FIELD')).getcol('NAME');
-  field_option.set_option_list(dict(enumerate(ms_field_names)));
-  if len(ms_field_names) < 2:
-    field_option.hide();
+  try:
+    ms = pycasatable.table(msname);
+    # data columns
+    global ms_data_columns;
+    ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
+    if input_col_option:
+      input_col_option.set_option_list(ms_data_columns);
+    # antennas
+    global ms_antenna_names;
+    ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA')).getcol('NAME');
+    # DDIDs
+    ddid_table = pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'));
+    spws = ddid_table.getcol('SPECTRAL_WINDOW_ID');
+    numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW')).getcol('NUM_CHAN');
+    global ms_ddid_numchannels;
+    ms_ddid_numchannels = [ numchans[spw] for spw in spws ];
+    ddid_option.set_option_list(range(len(ms_ddid_numchannels)));
+    if len(ms_ddid_numchannels) < 2:
+      ddid_option.hide();
+    # Fields
+    global ms_field_names;
+    ms_field_names = pycasatable.table(ms.getkeyword('FIELD')).getcol('NAME');
+    field_option.set_option_list(dict(enumerate(ms_field_names)));
+    if len(ms_field_names) < 2:
+      field_option.hide();
+  except:
+    print "error reading MS",msname;
+    traceback.print_exc();
+    return False;
   
 def _select_ddid (value):
-  nchan = ms_ddid_numchannels[value];
-  if channel_options:
-    channel_options[0].set_option_list([0,nchan-1]);
-    channel_options[0].set_value(0);
-    channel_options[0].set_doc("(max %d) select first channel"%(nchan-1));
-    channel_options[1].set_option_list([0,nchan-1]);
-    channel_options[1].set_value(nchan-1);
-    channel_options[1].set_doc("(max %d) select last channel"%(nchan-1));
-    channel_options[2].set_value(1);
-    channel_options[2].set_doc("(max %d) select channel steping"%nchan);
+  if ms_ddid_numchannels:
+    nchan = ms_ddid_numchannels[value];
+    if channel_options:
+      channel_options[0].set_option_list([0,nchan-1]);
+      channel_options[0].set_value(0);
+      channel_options[0].set_doc("(max %d) select first channel"%(nchan-1));
+      channel_options[1].set_option_list([0,nchan-1]);
+      channel_options[1].set_value(nchan-1);
+      channel_options[1].set_doc("(max %d) select last channel"%(nchan-1));
+      channel_options[2].set_value(1);
+      channel_options[2].set_doc("(max %d) select channel steping"%nchan);
 
 def _validate_first_channel (value):
   return isinstance(value,int) and \
