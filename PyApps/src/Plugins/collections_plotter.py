@@ -225,11 +225,13 @@ class CollectionsPlotter(GriddedPlugin):
       self._number_of_planes = len(self._rec["vellsets"])
       self.dims_per_group = 1
       if not self.dims is None:
-        dims_start = 0
-        if len(self.dims) == 3:
+        # in collections plotter, assume that first 'dims' 
+        # corresponds to tracks that are displayed , so determine
+        # size of group from second dimension and up
+        if len(self.dims) > 1:
           dims_start = 1
-        for i in range(dims_start,len(self.dims)):
-          self.dims_per_group = self.dims_per_group * self.dims[i]
+          for i in range(dims_start,len(self.dims)):
+            self.dims_per_group = self.dims_per_group * self.dims[i]
       if self._visu_plotter is None:
         self.create_layout_stuff()
       if new_plot: 
