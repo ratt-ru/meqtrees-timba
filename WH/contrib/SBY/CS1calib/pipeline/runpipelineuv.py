@@ -19,44 +19,76 @@ import global_model
 import solver_plots
 from Timba.LSM.LSM import LSM
 
+TDLRuntimeMenu("MS Selection",
 ### MS params ####
 # MS names - in a text file, line by line
-TDLRuntimeOption('msnames',"MS Names",["filelist.txt"],inline=True);
+TDLOption('msnames',"MS Names",["filelist.txt"],inline=True),
 # read data from
-TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0),
 # write data to
-TDLRuntimeOption('output_column',"Output MS column",[None,"MODEL_DATA","CORRECTED_DATA"],default=0);
+TDLOption('output_column',"Output MS column",[None,"MODEL_DATA","CORRECTED_DATA"],default=0),
 # number of spectral windows to process 
-TDLRuntimeOption('max_spwid',"No. of subbands",[1,2,3]);
+TDLOption('min_spwid',"Start subband",[1,2,3],more=int),
+TDLOption('max_spwid',"End subband",[1,2,3,4,5,6],more=int),
 # number of channels per job
-TDLRuntimeOption('channel_step',"channels per job",[8,2,10,20]);
+TDLOption('channel_step',"channels per job",[8,2,10,20],more=int),
 # start channel in subband (from 0)
-TDLRuntimeOption('start_channel',"start channel",[31,99]);
+TDLOption('start_channel',"start channel",[31,99],more=int),
 # end channel in subband (from 0)
-TDLRuntimeOption('end_channel',"end channel",[223,41,240]);
+TDLOption('end_channel',"end channel",[223,41,240],more=int),
+);
 
+TDLRuntimeMenu("Solver",
 #### solver params ####
 # how much to perturb starting values of solvables
-TDLRuntimeOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]);
+TDLOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]),
 # solver debug level
-TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
+TDLOption('solver_debug_level',"Solver debug level",[0,1,10]),
 # solver debug level
-TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
+TDLOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]),
 # max number of iterations
-TDLRuntimeOption('solver_maxiter',"Max iterations",[10,3,15]);
+TDLOption('solver_maxiter',"Max iterations",[10,3,15],more=int),
 # number of timeslots to use at once
-TDLRuntimeOption('tile_size',"Tile size",[1,6,10,30,48,60,96,480]);
+TDLOption('tile_size',"Tile size",[6,10,30,48,60,96,480],more=int),
 # solve for full J Jones or  diagonal J Jones
-TDLRuntimeOption('full_J',"Full Jones",[False,True]);
+TDLOption('full_J',"Full Jones",[False,True]),
+);
+
+TDLRuntimeMenu("Calibration",
+#### imaging options ####
+TDLOption('do_preprocess',"Preprocess",[True,False]),
+TDLOption('do_calibrate',"Calibrate",[True,False]),
+TDLOption('do_postprocess',"Postprocess",[True,False]),
+);
+
+TDLRuntimeMenu("Imager",
+#### imaging options ####
+TDLOption('average_channels',"Average corrected data",[True,False],doc="Spectral averaging will speedup imaging"),
+TDLOption('full_images',"Full Images",[True,False]),
+### uv distance #####
+TDLOption('min_uv',"Min uv distance squared",[3400,400],more=float)
+);
 
 
+
+TDLCompileMenu("Parms",
 # parm table name
-TDLCompileOption('mytable',"parmtable",[None,"peel0.mep"],default=None);
+TDLOption('mytable',"parmtable",[None,"peel0.mep"],default=None),
 # save nonconverged solutions
-TDLCompileOption('mysave',"save all",[False,True],default=False);
+TDLOption('mysave',"save all",[False,True],default=False),
 # subtile solutions
-TDLCompileOption('dosubtile',"subtile",[True,False],default=True);
+TDLOption('dosubtile',"subtile",[True,False],default=True),
+);
 
+TDLCompileMenu("Post-flags",
+TDLOption('mmse_sigma',"MMSE noise var",[2e-5,1e-5],more=float,doc="noise variance for MMSE correction"),
+TDLOption('rms_sigmas',"RMS sigmas",[5,10],more=float,doc="How many sigmas away to flag"),
+TDLOption('abs_clipval',"Abs Cutoff",[1e4,1e5],more=float,doc="Clipping value"),
+TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max condition number"),
+);
+
+# correct for all baselines
+TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
 
 
 # number of stations
@@ -64,7 +96,7 @@ TDLCompileOption('num_stations',"Number of stations",[16,14,15,3]);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
-    global_model.point_and_extended_sources_solvable, # absolute
+    global_model.point_and_extended_sources_abs, # absolute
   ],default=0);
   
  
@@ -72,10 +104,17 @@ TDLCompileOption('source_model',"Source model",[
 ms_queue_size = 500
 
 
+#### short baselines
+short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
+                 (5,6), (5,7), (5,8), (6,7), (6,8), (7,8),
+                 (9,10), (11,12), (13,14), (13,15), (13,16),
+                 (14,15), (14,16), (15,16)]
+
+
 def _define_forest(ns, parent=None, **kw):
   # create array model
   stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,mirror_uvw=False);
+  array = IfrArray(ns,stations,mirror_uvw=True);
   observation = Observation(ns);
   
   lsm=LSM()
@@ -85,12 +124,18 @@ def _define_forest(ns, parent=None, **kw):
   if parent:
     lsm.display()
 
+  if not include_short_base:
+    exclude_baselines=[]
+  else:
+    exclude_baselines=short_baselines
+
+
+
   source_list = source_model(ns,lsm,tablename=mytable);
   
   # add EJones
   beam_parms=[];
-  Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
-  #Ej = global_model.EJones_fits_P(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,infile_name="beam");
+  Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
   print beam_parms
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
@@ -104,7 +149,11 @@ def _define_forest(ns, parent=None, **kw):
   visibilities = allsky.visibilities(array,observation);
 
 
-  def_tiling=record(time=1)
+  if dosubtile:
+   def_tiling=record(time=1)
+  else:
+   def_tiling=None
+
   # Jones
   for station in array.stations():
     ns.Jreal11(station)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
@@ -129,21 +178,24 @@ def _define_forest(ns, parent=None, **kw):
   predict = allsky.visibilities(array,observation);
 
   # now create spigots, condeqs and residuals
+  solve_ce=[]
   for sta1,sta2 in array.ifrs():
     spigot = ns.spigot(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
                                                  station_2_index=sta2-1,
                                                  flag_bit=4,
                                                  input_col='DATA');
-    pred = predict(sta1,sta2);
-    ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
+    if (sta1,sta2) not in exclude_baselines:
+      pred = predict(sta1,sta2);
+      ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
+      solve_ce+=[ns.ce(sta1,sta2)]
 
   ###
   Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
 
   ## attach a clipper too as final flagging step
-  threshold_sigmas=5;
+  threshold_sigmas=rms_sigmas;
   ## also cutoff
-  abs_cutoff=1e8
+  abs_cutoff=abs_clipval
   for sta1,sta2 in array.ifrs():
     inp = ns.corrected(sta1,sta2);
     a = ns.flagged("abs",sta1,sta2) << Meq.Abs(inp);
@@ -158,12 +210,12 @@ def _define_forest(ns, parent=None, **kw):
   # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
   cpo = [];
-  for i in range(array.num_stations()/2):
-    (sta1,sta2) = array.stations()[i*2:(i+1)*2];
-    cpo.append(ns.ce(sta1,sta2).name);
+  #for i in range(array.num_stations()/2):
+  #  (sta1,sta2) = array.stations()[i*2:(i+1)*2];
+  #  cpo.append(ns.ce(sta1,sta2).name);
   # create solver node
-  ns.solver << Meq.Solver(children=[ns.ce(*ifr) for ifr in array.ifrs()],child_poll_order=cpo);
-  
+  ns.solver << Meq.Solver(children=solve_ce);
+ 
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
     reqseq = Meq.ReqSeq(ns.solver,ns.flagged(sta1,sta2),
@@ -215,7 +267,7 @@ def set_node_state (mqs,node,fields_record):
   else:
     raise TypeError,'illegal node argument';
   # pass command to kernel
-  mqs.meq('Node.Set.State',rec);
+  mqs.meq('Node.Set.State',rec,wait=True);
   pass
   
 
@@ -270,7 +322,6 @@ def _run_solve_job (mqs,solvables,_ms_selection,msname=None,wait=False,debug_fil
   solver_defaults = create_solver_defaults(solvable=solvables,debug_file=debug_file)
   set_node_state(mqs,'solver',solver_defaults)
 
-  # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
   mqs.execute('VisDataMux',req,wait=wait);
   pass
 
@@ -284,18 +335,20 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   infile.close()
   
   ### run each file through the pipeline
-  #for fname in filelist:
-  #  _do_preprocess(fname,mqs);
-  for fname in filelist:
-    _do_calibrate(fname,mqs);
-  for fname in filelist:
-    _do_postprocess(fname,mqs);
-
+  if do_preprocess:
+    for fname in filelist:
+      _do_preprocess(fname,mqs);
+  if do_calibrate:
+    for fname in filelist:
+      _do_calibrate(fname,mqs);
+  if do_postprocess:
+    for fname in filelist:
+      _do_postprocess(fname,mqs);
 
 def _do_preprocess(fname,mqs):
   if fname==None: return
   # add additional dummy 'arg' for glish to work properly
-  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname]);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
 
 
 def _do_calibrate(fname,mqs):
@@ -312,18 +365,14 @@ def _do_calibrate(fname,mqs):
   solvables += ['Jreal22:'+str(station) for station in range(1,num_stations+1)];
   solvables += ['Jimag22:'+str(station) for station in range(1,num_stations+1)];
 
-  ## also add SUN --- temp kludge
-  solvables +=['I:S5'];
-  set_node_state(mqs,'I:S5',record(tiling=record(time=1),auto_save=True,solvable=1,save_all=mysave)) 
-
     
-  for spwid in range(0,max_spwid):
+  for spwid in range(min_spwid-1,max_spwid):
     for schan in range(start_channel,end_channel,channel_step):
       ms_selection=record(channel_start_index=schan,
           channel_end_index=schan+channel_step-1,
           channel_increment=1,
           ddid_index=spwid,
-          selection_string='sumsqr(UVW[1:2]) > 100')
+          selection_string='sumsqr(UVW[1:2]) > 10')
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
       # update parmtablename - not needed yet
       if mytable !=None:

@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 # print png to standard out
-# usage: python print_stdout.py > somefile.png
+# usage: python solver_plots.py Logfile.log
 
 
-def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig_logplot=True,npages=4):
+def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig_logplot=True,sig_percent=0.7,npages=4):
+      """produce printable plots from solver log files
+         debug_file: solver log file
+         sig_zeromean: remove mean values befor plotting
+         sig_rescale: rescale by dividing by max abs value to fit paper
+         sig_percent: percentage of rescale
+         sig_logplot: plot in log scale
+         npages: number of pages to produce
+      """
       from pylab import figure, show, setp, connect, draw, savefig, rc
       from matplotlib.numerix import sin, cos, exp, pi, arange, log10
       from matplotlib.numerix.mlab import mean
@@ -67,11 +75,11 @@ def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig
         if sig_rescale:
            s_min=min(sig)
            s_max=max(sig)
-           s_scale=max(abs(s_min),abs(s_max))
+           s_scale=max(abs(s_min),abs(s_max))*sig_percent
            if s_scale!=0:
             sig=sig/s_scale
         signals+=[sig]
-      # select the first 50
+
       signals_orig=signals;
       
       pagenum=1;
@@ -86,7 +94,7 @@ def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig
        
       
         ##### default figure properties
-        rc('lines', lw=1)
+        rc('lines', lw=0.4)
         rc('font', size=10)
         rc('axes', titlesize=10)
         rc('axes', labelsize=7)
@@ -94,7 +102,7 @@ def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig
         rc('xtick', labelsize=7)
         rc('ytick', labelsize=7)
       
-        lineprops = dict(linewidth=1, color='black', linestyle='-')
+        lineprops = dict(linewidth=0.4, color='black', linestyle='-')
         fig = figure()
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
       
@@ -146,8 +154,8 @@ def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig
       
       
         ax.set_yticks(ticklocs)
-        #ax.set_yticklabels(['%s:%2.1e'%(names[num_low+i],sig_means[num_low+i]) for i in range(len(signals))])
-        ax.set_yticklabels(['%s:'%(names[num_low+i]) for i in range(len(signals))])
+        ax.set_yticklabels(['%s     %2.1e   %2.1e'%(names[num_low+i],sig_means[num_low+i],sig_scales[num_low+i]) for i in range(len(signals))])
+        #ax.set_yticklabels(['%s:'%(names[num_low+i]) for i in range(len(signals))])
       
         # place all the y tick attributes in axes coords  
         all = []
@@ -159,8 +167,8 @@ def create_residual_plots(debug_file=None,sig_zeromean=True,sig_rescale=True,sig
             labels.append(tick.label1)
         
         setp(all, transform=ax.transAxes)
-        #setp(labels, x=1)
-        setp(labels, x=-0.01)
+        #setp(labels, x=0.8)
+        setp(labels, x=0.14)
       
         ax.set_xlabel('Page ('+str(pagenum)+'/'+str(npages)+') date='+time.asctime()+' (Zero Mean:'+str(sig_zeromean)+' Rescale:'+str(sig_rescale)+' Log:'+str(sig_logplot)+')')
       

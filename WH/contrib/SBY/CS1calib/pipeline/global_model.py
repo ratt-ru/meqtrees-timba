@@ -332,8 +332,8 @@ def EJones (ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, n
         azelnode=ns.azel(dirname,station)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(station))
         Xediag = ns.Xediag(dirname,station) << Meq.Compounder(children=[azelnode,Bx[station]],common_axes=[hiid('l'),hiid('m')])
         Yediag = ns.Yediag(dirname,station) << Meq.Compounder(children=[azelnode,By[station]],common_axes=[hiid('l'),hiid('m')])
-        # create E matrix
-        Ej(station) << Meq.Matrix22(Xediag,0,0,Yediag);
+        # create E matrix, normalize for zenith at 60MHz
+        Ej(station) << Meq.Matrix22(Xediag,0,0,Yediag)/88.00;
   return Ej0;
 
 ### BEAM with projection only
@@ -590,7 +590,6 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
 
   # station beam
   #Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4,ref_freq=48.7496948e6)
-  import Meow.Context
   if not ns.freq0.initialized():
     ns.freq0<<Meq.Constant(59e6)
   if not ns.freq1.initialized():
@@ -614,12 +613,6 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
     azY=ns.azY(dirname)<<az-math.pi/4
     el=ns.el(dirname)<<Meq.Selector(azelnode,multi=True,index=[1])
    
-    # sin,cosines
-    #az_CX=ns.az_CX(dirname)<<Meq.Cos(az);
-    #az_SX=ns.az_SX(dirname)<<Meq.Sin(az);
-    #az_CY=ns.az_CY(dirname)<<Meq.Cos(az);
-    #az_SY=ns.az_SY(dirname)<<Meq.Sin(az);
-    #el_S=ns.el_S(dirname)<<Meq.Sin(el);
 
     for station in array.stations():
         azelX =ns.azelX(dirname,station)<<Meq.Composer(azX,el)
@@ -628,15 +621,15 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
         Xediag_theta= ns.Xediag_theta(dirname,station) << Meq.Compounder(children=[azelX,Bx_theta[station]],common_axes=[hiid('l'),hiid('m')])
         Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[azelY,By_phi[station]],common_axes=[hiid('l'),hiid('m')])
         Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[azelY,By_theta[station]],common_axes=[hiid('l'),hiid('m')])
-        # create E matrix
+        # create E matrix, normalize for zenith at 60MHz
         #Ej(station) <<Meq.Matrix22(el_S*az_CX*Xediag_theta,az_SX*Xediag_phi,Meq.Negate(el_S*az_SY)*Yediag_theta,az_CY*Yediag_phi)
         if station==1:
           Xstatgain=ns.Xstatgain(dirname,station)<<Meq.Compounder(children=[azelX,Xstatbeam],common_axes=[hiid('l'),hiid('m')])
           Ystatgain=ns.Ystatgain(dirname,station)<<Meq.Compounder(children=[azelY,Ystatbeam],common_axes=[hiid('l'),hiid('m')])
-          Ej(station) <<Meq.Matrix22(Xstatgain*Xediag_theta,Xstatgain*Xediag_phi,Ystatgain*Yediag_theta,Ystatgain*Yediag_phi)
+          Ej(station) <<Meq.Matrix22(Xstatgain*Xediag_theta,Xstatgain*Xediag_phi,Ystatgain*Yediag_theta,Ystatgain*Yediag_phi)/88.00
           #Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)
         else:
-          Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)
+          Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/88.00
         #Ej(station) <<Meq.Matrix22(el_S*az_S*Xediag_theta,az_C*Xediag_phi,Meq.Negate(el_S*az_S)*Yediag_theta,az_C*Yediag_phi)
 
   return Ej0;
