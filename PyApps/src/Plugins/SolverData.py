@@ -57,6 +57,7 @@ class SolverData:
      self.solver_labels = None
      self.metrics_unknowns = None
      self.chi_array = None
+     self.eigenvectors = None
      self.vector_sum = None
      self.incr_soln_norm = None
      self.sum_incr_soln_norm = None
@@ -204,9 +205,42 @@ class SolverData:
      else:
        return False
 
+   def calculateCovarEigenVectors(self):
+     """ calculate eigenvalues and eigenvectors of co-variance matrix """
+
+     import numarray.linear_algebra as la
+     if self.metrics_covar is None:
+       return False
+     else:
+       if len(self.metrics_covar)== 0:
+         return False
+       else:
+         num_iter = len(self.metrics_covar)
+         # just process the final record
+         covar_list = self.metrics_covar[num_iter-1]
+         num_covar_matrices = len(covar_list)
+         self.eigenvectors = []
+         for i in range(num_covar_matrices):
+           covar = covar_list[i]
+           shape = covar.shape
+           if covar.min() == 0.0 and covar.max() == 0.0:
+             self.eigenvectors.append(None)
+           elif shape[0] != shape[1]:
+             self.eigenvectors.append(None)
+           else:
+             # gets both eigenvalues and eigenvectors
+             self.eigenvectors.append(la.eigenvectors(covar))
+             # for moment, just get eigenvalues
+#            self.eigenvectors.append(la.eigenvalues(covar))
+         return True
+
    def getConditionNumbers(self):
      """ return the covariance matrix condition numbers """
      return (self.condition_numbers,self.cn_chi)
+
+   def getEigenVectors(self):
+     """ return the eigenvalues and eigenvectors of the covariance matrix """
+     return self.eigenvectors
 
    def getSolverLabels(self):
      """ return the solver labels for the display """

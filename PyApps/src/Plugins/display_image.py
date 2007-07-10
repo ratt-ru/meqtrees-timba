@@ -240,6 +240,7 @@ class QwtImageDisplay(QwtPlot):
         self.condition_numbers = None
         self.CN_chi = None
         self.chi_vectors = None
+        self.eigenvectors = None
         self.sum_incr_soln_norm = None
         self.incr_soln_norm = None
         self.chi_zeros = None
@@ -872,6 +873,10 @@ class QwtImageDisplay(QwtPlot):
       """ set covariance matrix condition numbers """
       self.condition_numbers = numbers[0]
       self.CN_chi = numbers[1]
+
+    def set_eigenvectors(self, eigens):
+      """ store eigenvalues and eigenvectors from the covariance matrix """
+      self.eigenvectors = eigens
 
     def set_solver_labels(self, labels):
       """ set solver labels for display reporting """
@@ -2127,6 +2132,48 @@ class QwtImageDisplay(QwtPlot):
                   symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                     QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
           curve.setSymbolList(symbolList)
+
+        # plot eigenvalues of the covariance matrix?
+        if not self.eigenvectors is None:
+          self.enableAxis(QwtPlot.yLeft, True)
+          self.enableAxis(QwtPlot.xBottom, True)
+        
+          self.setAxisTitle(QwtPlot.yLeft, 'Eigenvalue (black)')
+          self.setAxisTitle(QwtPlot.xBottom, 'Eigenvalue number')
+
+          for i in range (len(self.eigenvectors)):
+            eigens = self.eigenvectors[i]
+            eigenvalues = eigens[0]
+            # for the moment, we are just calculating the eigenvalues in
+            # SolverData.py
+#           eigenvalues = self.eigenvectors[i]
+            shape = eigenvalues.shape
+            x_data = arange(shape[0])
+            curve = QwtPlotCurveSizes(self)
+            curve.setPen(QPen(Qt.black, 2))
+            curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+               QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
+            curve.setStyle(Qt.SolidLine)
+            key = self.insertCurve(curve)
+            self.chis_plot.append(key)
+            if self.array_flip:
+              self.setCurveYAxis(key, QwtPlot.yLeft)
+              self.setCurveXAxis(key, QwtPlot.xBottom)
+              curve.setData(x_data,eigenvalues)
+            else:
+              self.setCurveYAxis(key, QwtPlot.xBottom)
+              self.setCurveXAxis(key, QwtPlot.yLeft)
+              curve.setData(eigenvalues,x_data)
+            symbolList=[]
+            for j in range(shape[0]):
+              if j == 0:
+                # first symbol is rectangle
+                symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.black),
+                   QPen(Qt.black),QSize(10,10)))
+              else:
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                   QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
+            curve.setSymbolList(symbolList)
 
     def insert_array_info(self):
       if self.is_vector:

@@ -875,6 +875,9 @@ class ResultPlotter(GriddedPlugin):
 #          QMessageBox.NoButton)
 #     mb.exec_loop()
 
+    if self._solver_data.calculateCovarEigenVectors():
+      self._visu_plotter.set_eigenvectors(self._solver_data.getEigenVectors())
+
 # retrieve solver data
     self._solver_array =  self._solver_data.getSolverData()
     self._visu_plotter.set_solver_metrics(self._solver_data.getSolverMetrics())
