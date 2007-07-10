@@ -1121,14 +1121,17 @@ class ChartPlot(QWidget):
                 tmp_max = cplx_chart.max()
                 tmp_min = cplx_chart.min()
               else:
-                self._amplitude = False
                 toggle_id = self.menu_table['Complex Data']
                 self._menu.setItemVisible(toggle_id, False)
                 tmp_max = test_chart.max()
                 tmp_min = test_chart.min()
               chart_range = abs(tmp_max - tmp_min)
-              # check if we break any highest or lowest limits
+              # Check if we break any highest or lowest limits
               # this is important for offset reasons.
+              # If a chart range is zero, we still need to create
+              # an offset so ...
+              if chart_range < 1.0e-6:
+                chart_range = 1.0e-6
               if chart_range > self._max_range:
                 self._max_range = chart_range
               self._start_offset_test[channel][self._data_index] = chart.shape[0]
