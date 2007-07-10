@@ -203,7 +203,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
      //calculate delays and weights
      for (int nt=0; nt<wk.extent(0); nt++) {
         tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
-        wk(nt)=make_dcomplex(cos(tau),sin(tau)); //conjugate
+        wk(nt)=make_dcomplex(cos(tau),sin(tau))/p_.extent(0); //conjugate, and normalize
      }
      for( int ck=0; ck<naz; ck++)  {
        double phi=azval(ck); //no rotation here, because already rotated
