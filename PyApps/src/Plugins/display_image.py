@@ -1582,7 +1582,13 @@ class QwtImageDisplay(QwtPlot):
                     self.curve_info = "sum of norms "
                   if array_curve_number == 2:
                     self.curve_info = "norms "
-                  self.reportCoordinates(xVal, yVal)
+                  if array_curve_number <= 2:
+                    self.reportCoordinates(xVal, yVal)
+                  else:
+                    temp_str = "nearest x=%-.3g" % xVal
+                    temp_str1 = " y=%-.3g" % yVal
+                    message = temp_str + temp_str1
+                    self.infoDisplay(message, xPos, yPos)
                 return
 
               self.setOutlineStyle(Qwt.Cross)
