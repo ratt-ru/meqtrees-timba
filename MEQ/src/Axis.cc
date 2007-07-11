@@ -122,24 +122,28 @@ void setAxisMap (const HIID names[],int num)
 
 DMI::Vec::Ref getAxisRecords ()
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   return axis_recs.copy();
 }
 
 DMI::Vec::Ref getAxisIds ()
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   return axis_ids.copy();
 }
 
 void getAxisRecords (ObjRef &ref)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   ref = axis_recs;
 }
 
 void getAxisIds (ObjRef &ref)
 {
+  Thread::Mutex::Lock lock(_mutex);
   _init();
   ref = axis_ids;
 }
