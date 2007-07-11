@@ -758,8 +758,7 @@ class LSM:
       my_dict[self.__root_name]=oldroot
 
     my_dict=reconstruct(my_dict,ns)
-    self.__root=my_dict[self.__root_name]
-    #self.__ns.Resolve()
+    #self.__root=my_dict[self.__root_name]
    else:
      self.__root=None
      print "WARNING: cannot find a root node in the LSM. load will fail!"
@@ -1847,19 +1846,19 @@ class LSM:
   pp=re.compile(r"""
    ^(?P<col1>[A-Za-z]\w+)  # column 1 name: must start with a character
    \s*             # skip white space
-   (?P<col2>(-)?\d+(\.\d+)?)   # RA angle - hours 
+   (?P<col2>[-+]?\d+(\.\d+)?)   # RA angle - hours 
    \s*             # skip white space
-   (?P<col3>(-)?\d+(\.\d+)?)   # RA angle - min 
+   (?P<col3>[-+]?\d+(\.\d+)?)   # RA angle - min 
    \s*             # skip white space
-   (?P<col4>(-)?\d+(\.\d+)?)   # RA angle - sec 
+   (?P<col4>[-+]?\d+(\.\d+)?)   # RA angle - sec 
    \s*             # skip white space
-   (?P<col5>(-)?\d+(\.\d+)?)   # Dec angle - degrees
+   (?P<col5>[-+]?\d+(\.\d+)?)   # Dec angle - degrees
    \s*             # skip white space
-   (?P<col6>(-)?\d+(\.\d+)?)   # Dec angle - min
+   (?P<col6>[-+]?\d+(\.\d+)?)   # Dec angle - min
    \s*             # skip white space
-   (?P<col7>(-)?\d+(\.\d+)?)   # Dec angle - sec 
+   (?P<col7>[-+]?\d+(\.\d+)?)   # Dec angle - sec 
    \s*             # skip white space
-   (?P<col8>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   (?P<col8>[-+]?\d+(\.\d+)?)   # Stokes I - Flux
    \s*             # skip white space
    (?P<col9>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes Q - Flux 
    \s*             # skip white space
