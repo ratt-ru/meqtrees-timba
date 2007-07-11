@@ -22,23 +22,25 @@ from Timba.LSM.LSM import LSM
 TDLRuntimeMenu("MS Selection",
 ### MS params ####
 # MS names - in a text file, line by line
-TDLOption('msnames',"MS Names",["filelist.txt"],inline=True),
+  TDLOption('msnames',"MS Names",["filelist.txt"],inline=True,doc="File List"),
 # read data from
-TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0),
+  TDLOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0),
 # write data to
-TDLOption('output_column',"Output MS column",[None,"MODEL_DATA","CORRECTED_DATA"],default=0),
+  TDLOption('output_column',"Output MS column",[None,"MODEL_DATA","CORRECTED_DATA"],default=0),
 # number of spectral windows to process 
-TDLOption('min_spwid',"Start subband",[1,2,3],more=int),
-TDLOption('max_spwid',"End subband",[1,2,3,4,5,6],more=int),
+  TDLOption('min_spwid',"Start subband",[1,2,3],more=int),
+  TDLOption('max_spwid',"End subband",[1,2,3,4,5,6],more=int),
 # number of channels per job
-TDLOption('channel_step',"channels per job",[8,2,10,20],more=int),
+  TDLOption('channel_step',"channels per job",[8,2,10,20],more=int),
 # start channel in subband (from 0)
-TDLOption('start_channel',"start channel",[31,99],more=int),
+  TDLOption('start_channel',"start channel",[31,99],more=int),
 # end channel in subband (from 0)
-TDLOption('end_channel',"end channel",[223,41,240],more=int),
+  TDLOption('end_channel',"end channel",[223,41,240],more=int)
 );
 
+
 TDLRuntimeMenu("Solver",
+### MS params ####
 #### solver params ####
 # how much to perturb starting values of solvables
 TDLOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]),
@@ -49,9 +51,11 @@ TDLOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]),
 # max number of iterations
 TDLOption('solver_maxiter',"Max iterations",[10,3,15],more=int),
 # number of timeslots to use at once
-TDLOption('tile_size',"Tile size",[6,10,30,48,60,96,480],more=int),
+TDLOption('tile_size',"Tile size",[1,10,30,48,60,96,480],more=int),
 # solve for full J Jones or  diagonal J Jones
 TDLOption('full_J',"Full Jones",[False,True]),
+# create condeq residual plots
+TDLOption('residual_plots',"Residual Plots",[False,True]),
 );
 
 TDLRuntimeMenu("Calibration",
@@ -70,7 +74,6 @@ TDLOption('min_uv',"Min uv distance squared",[3400,400],more=float)
 );
 
 
-
 TDLCompileMenu("Parms",
 # parm table name
 TDLOption('mytable',"parmtable",[None,"peel0.mep"],default=None),
@@ -78,6 +81,10 @@ TDLOption('mytable',"parmtable",[None,"peel0.mep"],default=None),
 TDLOption('mysave',"save all",[False,True],default=False),
 # subtile solutions
 TDLOption('dosubtile',"subtile",[True,False],default=True),
+# solve for real/imag or gain/phase
+TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
+# which solution used for correction?
+TDLOption('ph_center',"Phase Cen",["CasA","CygA"])
 );
 
 TDLCompileMenu("Post-flags",
@@ -89,8 +96,6 @@ TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max conditi
 
 # correct for all baselines
 TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
-
-
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[16,14,15,3]);
 
@@ -118,35 +123,32 @@ def _define_forest(ns, parent=None, **kw):
   observation = Observation(ns);
   
   lsm=LSM()
-  #for uv plane include all sources, including the SUN
-  lsm.build_from_extlist("global.txt",ns)
+  lsm.build_from_extlist("global_4.txt",ns)
 
   if parent:
     lsm.display()
 
+  # if not including short baselines, exclude list is empty because 
+  # they are flagged
   if not include_short_base:
     exclude_baselines=[]
   else:
     exclude_baselines=short_baselines
 
-
-
-  source_list = source_model(ns,lsm,tablename=mytable);
+  source_list = source_model(ns,lsm);
   
-  # add EJones
-  beam_parms=[];
-  Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
-  print beam_parms
-  corrupt_list = [
-      CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
-      for src in source_list
-  ];
+  # only add sources that you want to subtract here
+  sublist0=[];
+  sublist1=[];
+  ordlist=[]; # put with the beam
 
-  allsky = Patch(ns,'all',observation.phase_centre);
-  allsky.add(*corrupt_list);
-
-  # create simulated visibilities for sky
-  visibilities = allsky.visibilities(array,observation);
+  for sname in source_list:
+    if re.match("S0$",sname.name):
+     sublist0.append(sname);
+    elif re.match("S1$",sname.name):
+     sublist1.append(sname);
+    else:
+     ordlist.append(sname);
 
 
   if dosubtile:
@@ -154,28 +156,103 @@ def _define_forest(ns, parent=None, **kw):
   else:
    def_tiling=None
 
-  # Jones
+  corrupt_list=sublist0;
+
   for station in array.stations():
-    ns.Jreal11(station)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.Jimag11(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.J11(station)<<Meq.ToComplex(ns.Jreal11(station),ns.Jimag11(station))
-    ns.Jreal22(station)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.Jimag22(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.J22(station)<<Meq.ToComplex(ns.Jreal22(station),ns.Jimag22(station))
-    ns.Jreal12(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.Jimag12(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.J12(station)<<Meq.ToComplex(ns.Jreal12(station),ns.Jimag12(station))
-    ns.Jreal21(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.Jimag21(station)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2,save_all=mysave, tiling=def_tiling)
-    ns.J21(station)<<Meq.ToComplex(ns.Jreal21(station),ns.Jimag21(station))
+    ns.Jreal11(station,0)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag11(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J11(station,0)<<Meq.Polar(ns.Jreal11(station,0),ns.Jimag11(station,0))
+    else:
+      ns.J11(station,0)<<Meq.ToComplex(ns.Jreal11(station,0),ns.Jimag11(station,0))
+    ns.Jreal12(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag12(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J12(station,0)<<Meq.Polar(ns.Jreal12(station,0),ns.Jimag12(station,0))
+    else:
+      ns.J12(station,0)<<Meq.ToComplex(ns.Jreal12(station,0),ns.Jimag12(station,0))
 
-    ns.G(station)<<Meq.Matrix22(ns.J11(station), ns.J12(station), ns.J21(station), ns.J22(station))
+    ns.Jreal22(station,0)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag22(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J22(station,0)<<Meq.Polar(ns.Jreal22(station,0),ns.Jimag22(station,0))
+    else:
+      ns.J22(station,0)<<Meq.ToComplex(ns.Jreal22(station,0),ns.Jimag22(station,0))
+
+    ns.Jreal21(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag21(station,0)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J21(station,0)<<Meq.Polar(ns.Jreal21(station,0),ns.Jimag21(station,0))
+    else:
+      ns.J21(station,0)<<Meq.ToComplex(ns.Jreal21(station,0),ns.Jimag21(station,0))
 
 
-  allsky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
+    ns.G0(station)<<Meq.Matrix22(ns.J11(station,0), ns.J12(station,0), ns.J21(station,0), ns.J22(station,0))
+  # create all-sky patch for source model
+  allsky = Patch(ns,'all0',observation.phase_centre);
+  allsky.add(*corrupt_list);
+  allskyG0 = CorruptComponent(ns,allsky,label='G0',station_jones=ns.G0);
+
+  predictG0 = allskyG0.visibilities(array,observation);
+
+
+
+  corrupt_list=sublist1;
+  for station in array.stations():
+    ns.Jreal11(station,1)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag11(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J11(station,1)<<Meq.Polar(ns.Jreal11(station,1),ns.Jimag11(station,1))
+    else:
+      ns.J11(station,1)<<Meq.ToComplex(ns.Jreal11(station,1),ns.Jimag11(station,1))
+    ns.Jreal12(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag12(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J12(station,1)<<Meq.Polar(ns.Jreal12(station,1),ns.Jimag12(station,1))
+    else:
+      ns.J12(station,1)<<Meq.ToComplex(ns.Jreal12(station,1),ns.Jimag12(station,1))
+    ns.Jreal22(station,1)<<Meq.Parm(1,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag22(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J22(station,1)<<Meq.Polar(ns.Jreal22(station,1),ns.Jimag22(station,1))
+    else:
+      ns.J22(station,1)<<Meq.ToComplex(ns.Jreal22(station,1),ns.Jimag22(station,1))
+    ns.Jreal21(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    ns.Jimag21(station,1)<<Meq.Parm(0,node_groups='Parm',solvable=1,table_name=mytable, use_previous=2, save_all=mysave, tiling=def_tiling)
+    if gain_phase_solution:
+      ns.J21(station,1)<<Meq.Polar(ns.Jreal21(station,1),ns.Jimag21(station,1))
+    else:
+      ns.J21(station,1)<<Meq.ToComplex(ns.Jreal21(station,1),ns.Jimag21(station,1))
+
+
+    ns.G1(station)<<Meq.Matrix22(ns.J11(station,1), ns.J12(station,1), ns.J21(station,1), ns.J22(station,1))
+
+
+  # create all-sky patch for source model
+  allsky = Patch(ns,'all1',observation.phase_centre);
+  allsky.add(*corrupt_list);
+  allskyG1 = CorruptComponent(ns,allsky,label='G1',station_jones=ns.G1);
+
 
   # create simulated visibilities for sky
-  predict = allsky.visibilities(array,observation);
+  predictG1 = allskyG1.visibilities(array,observation);
+ 
+  # predict all other sources via beam
+  # add EJones
+  beam_parms=[];
+  Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  corrupt_list = [
+      CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
+      for src in ordlist
+  ];
+
+  allskyB = Patch(ns,'allB',observation.phase_centre);
+  allskyB.add(*corrupt_list);
+
+  predictB = allskyB.visibilities(array,observation);
+
+
+ 
 
   # now create spigots, condeqs and residuals
   solve_ce=[]
@@ -184,20 +261,23 @@ def _define_forest(ns, parent=None, **kw):
                                                  station_2_index=sta2-1,
                                                  flag_bit=4,
                                                  input_col='DATA');
-    if (sta1,sta2) not in exclude_baselines:
-      pred = predict(sta1,sta2);
-      ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
-      solve_ce+=[ns.ce(sta1,sta2)]
+    pred = predictG0(sta1,sta2)+predictG1(sta1,sta2);
+    if (sta1,sta2) not in exclude_baselines: 
+       predB=predictB(sta1,sta2);
+       ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred+predB);
+       solve_ce+=[ns.ce(sta1,sta2)]
+    ns.residual(sta1,sta2) << spigot - pred
+    #ns.residual(sta1,sta2) << spigot -predictG1(sta1,sta2)
+    #ns.residual(sta1,sta2) << spigot-0
 
-  ###
-  Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
+
 
   ## attach a clipper too as final flagging step
   threshold_sigmas=rms_sigmas;
   ## also cutoff
-  abs_cutoff=abs_clipval
+  abs_cutoff=abs_clipval;
   for sta1,sta2 in array.ifrs():
-    inp = ns.corrected(sta1,sta2);
+    inp = ns.residual(sta1,sta2);
     a = ns.flagged("abs",sta1,sta2) << Meq.Abs(inp);
     stddev_a = ns.flagged("stddev",sta1,sta2) << Meq.StdDev(a);
     delta = ns.flagged("delta",sta1,sta2) << Meq.Abs(a-Meq.Mean(a));
@@ -212,10 +292,12 @@ def _define_forest(ns, parent=None, **kw):
   cpo = [];
   #for i in range(array.num_stations()/2):
   #  (sta1,sta2) = array.stations()[i*2:(i+1)*2];
-  #  cpo.append(ns.ce(sta1,sta2).name);
+  #  if (sta1,sta2) not in exclude_baselines: 
+  #      cpo.append(ns.ce(sta1,sta2).name);
   # create solver node
+  #ns.solver << Meq.Solver(children=solve_ce,child_poll_order=cpo);
   ns.solver << Meq.Solver(children=solve_ce);
- 
+  
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
     reqseq = Meq.ReqSeq(ns.solver,ns.flagged(sta1,sta2),
@@ -267,7 +349,7 @@ def set_node_state (mqs,node,fields_record):
   else:
     raise TypeError,'illegal node argument';
   # pass command to kernel
-  mqs.meq('Node.Set.State',rec,wait=True);
+  mqs.meq('Node.Set.State',rec);
   pass
   
 
@@ -322,6 +404,7 @@ def _run_solve_job (mqs,solvables,_ms_selection,msname=None,wait=False,debug_fil
   solver_defaults = create_solver_defaults(solvable=solvables,debug_file=debug_file)
   set_node_state(mqs,'solver',solver_defaults)
 
+  # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
   mqs.execute('VisDataMux',req,wait=wait);
   pass
 
@@ -345,41 +428,57 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
     for fname in filelist:
       _do_postprocess(fname,mqs);
 
+
 def _do_preprocess(fname,mqs):
   if fname==None: return
-  # add additional dummy 'arg' for glish to work properly
-  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
+  if not include_short_base:
+    # add additional dummy 'arg' for glish to work properly
+    # default flagging by uv distance
+    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=70','minclip=1e5']);
+  else:
+    # no short baseline flagging
+    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
 
 
 def _do_calibrate(fname,mqs):
   if fname==None: return
 
   ### setup solvables #####
-  solvables = ['Jreal11:'+str(station) for station in range(1,num_stations+1)];
-  solvables += ['Jimag11:'+str(station) for station in range(1,num_stations+1)];
+  solvables = ['Jreal11:'+str(station)+':0' for station in range(1,num_stations+1)];
+  solvables += ['Jimag11:'+str(station)+':0' for station in range(1,num_stations+1)];
+  solvables += ['Jreal22:'+str(station)+':0' for station in range(1,num_stations+1)];
+  solvables += ['Jimag22:'+str(station)+':0' for station in range(1,num_stations+1)];
   if full_J:
-    solvables += ['Jreal12:'+str(station) for station in range(1,num_stations+1)];
-    solvables += ['Jimag12:'+str(station) for station in range(1,num_stations+1)];
-    solvables += ['Jreal21:'+str(station) for station in range(1,num_stations+1)];
-    solvables += ['Jimag21:'+str(station) for station in range(1,num_stations+1)];
-  solvables += ['Jreal22:'+str(station) for station in range(1,num_stations+1)];
-  solvables += ['Jimag22:'+str(station) for station in range(1,num_stations+1)];
+    solvables += ['Jreal12:'+str(station)+':0' for station in range(1,num_stations+1)];
+    solvables += ['Jimag12:'+str(station)+':0' for station in range(1,num_stations+1)];
+    solvables += ['Jreal21:'+str(station)+':0' for station in range(1,num_stations+1)];
+    solvables += ['Jimag21:'+str(station)+':0' for station in range(1,num_stations+1)];
 
-    
+  solvables += ['Jreal11:'+str(station)+':1' for station in range(1,num_stations+1)];
+  solvables += ['Jimag11:'+str(station)+':1' for station in range(1,num_stations+1)];
+  solvables += ['Jreal22:'+str(station)+':1' for station in range(1,num_stations+1)];
+  solvables += ['Jimag22:'+str(station)+':1' for station in range(1,num_stations+1)];
+  if full_J:
+    solvables += ['Jreal12:'+str(station)+':1' for station in range(1,num_stations+1)];
+    solvables += ['Jimag12:'+str(station)+':1' for station in range(1,num_stations+1)];
+    solvables += ['Jreal21:'+str(station)+':1' for station in range(1,num_stations+1)];
+    solvables += ['Jimag21:'+str(station)+':1' for station in range(1,num_stations+1)];
+
+
   for spwid in range(min_spwid-1,max_spwid):
     for schan in range(start_channel,end_channel,channel_step):
       ms_selection=record(channel_start_index=schan,
           channel_end_index=schan+channel_step-1,
           channel_increment=1,
           ddid_index=spwid,
-          selection_string='sumsqr(UVW[1:2]) > 10')
+          selection_string='sumsqr(UVW[1:2]) > 20') # exclude only autocorrelations
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
-      # update parmtablename - not needed yet
+      # update parmtablename 
       if mytable !=None:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
-      _run_solve_job(mqs,solvables,ms_selection,wait=True,msname=fname,debug_file=debug_filename);
+      _run_solve_job(mqs,solvables,ms_selection,wait=False,msname=fname,debug_file=debug_filename);
       #try:
       #  solver_plots.create_residual_plots(debug_filename)
       #except: pass
@@ -389,12 +488,16 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
+  if average_channels:
+    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_small.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
+  else:
+    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
   # residual plots
-  for spwid in range(0,max_spwid):
-    for schan in range(start_channel,end_channel,channel_step):
-      debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
-      solver_plots.create_residual_plots(debug_filename)
+  if residual_plots:
+    for spwid in range(min_spwid-1,max_spwid):
+     for schan in range(start_channel,end_channel,channel_step):
+       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
+       solver_plots.create_residual_plots(debug_filename)
 
   # cleanup any crumbs left from glish
   # to be done
