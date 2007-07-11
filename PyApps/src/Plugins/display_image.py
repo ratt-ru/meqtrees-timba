@@ -1376,18 +1376,18 @@ class QwtImageDisplay(QwtPlot):
           metrics_unknowns = "unknowns: " + str(self.metrics_unknowns[self.array_index,self.metrics_index])
           metrics_iteration = "iteration: " + str(self.array_index+1) + "\n"
 	  message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
-          mb_color = QMessageBox("metrics data",
-                      message,
-                      QMessageBox.Information,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-          mb_color.exec_loop()
+#         mb_color = QMessageBox("metrics data",
+#                     message,
+#                     QMessageBox.Information,
+#                     QMessageBox.Ok | QMessageBox.Default,
+#                     QMessageBox.NoButton,
+#                     QMessageBox.NoButton)
+#         mb_color.exec_loop()
         else:
           temp_str = "nearest x=%-.3g" % x
           temp_str1 = " y=%-.3g" % y
 	  message = temp_str + temp_str1 
-          return message
+        return message
 
     # reportCoordinates()
 
@@ -1455,18 +1455,23 @@ class QwtImageDisplay(QwtPlot):
       ylb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).lBound())
       xhb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).hBound())
       xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
+      # muck around with position of pop-up to make sure it does not
+      # disappear over edge of plot ...
       height = self._popup_text.height()
-#     if ypos + height > ylb:
-      ymove = ypos - 0.75 * height
+      ymove = ypos - 0.5 * height
+      if ymove - height < yhb:
+        ymove = yhb + height 
+      if ymove + height > ylb:
+        ymove = ylb - height 
       if ymove < yhb:
-        ymove = yhb + 1.5 * height
-#     else:
-#       ymove = ypos + 0.5 * height
+        ymove = yhb
       width = self._popup_text.width()
+
+      xmove = xpos
       if xpos + width > xhb:
         xmove = xhb - width
-      else:
-        xmove = xpos
+      if xpos - width < xlb:
+        xmove = xlb 
       self._popup_text.move(xmove, ymove)
       if not self._popup_text.isVisible():
         self._popup_text.show()
@@ -1479,8 +1484,38 @@ class QwtImageDisplay(QwtPlot):
         self.xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
 
         if Qt.LeftButton == e.button():
+            message = None
             if self.is_vector: 
-              if not self.display_solution_distances:
+              if self.display_solution_distances:
+            # Python semantics: self.pos = e.pos() does not work; force a copy
+                  xPos = e.pos().x()
+                  yPos = e.pos().y()
+                  _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+# We get information about the qwt plot curve that is
+# closest to the location of this mouse pressed event.
+# We are interested in the nearest curve_number and the index, or
+# sequence number of the nearest point in that curve.
+                  self.array_curve_number, distance, xVal, yVal, self.array_index = self.closestCurve(xPos, yPos)
+                  _dprint(2,' self.array_curve_number, distance, xVal, yVal, aelf.array_index ', self.array_curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', self.array_index);
+                  shape = self.metrics_rank.shape
+                  array_curve_number = self.array_curve_number - 1
+                  self.metrics_index = 0 
+                  if shape[1] > 1:
+                    self.metrics_index = array_curve_number % shape[1]
+                    array_curve_number = int(array_curve_number / shape[1])
+                  if array_curve_number == 0:
+                    self.curve_info = "vector sum " 
+                  if array_curve_number == 1:
+                    self.curve_info = "sum of norms "
+                  if array_curve_number == 2:
+                    self.curve_info = "norms "
+                  if array_curve_number <= 2:
+                    message = self.reportCoordinates(xVal, yVal)
+                  else:
+                    temp_str = "nearest x=%-.3g" % xVal
+                    temp_str1 = " y=%-.3g" % yVal
+                    message = temp_str + temp_str1
+              else:
             # Python semantics: self.pos = e.pos() does not work; force a copy
                 xPos = e.pos().x()
                 yPos = e.pos().y()
@@ -1494,7 +1529,7 @@ class QwtImageDisplay(QwtPlot):
                 message = self.reportCoordinates(xVal, yVal)
             else:
               message = self.formatCoordinates(e.pos().x(), e.pos().y())
-            if not self.display_solution_distances:
+            if not message is None:
               self.infoDisplay(message, e.pos().x(), e.pos().y())
             if self.zooming:
               self.xpos = e.pos().x()
@@ -1555,44 +1590,10 @@ class QwtImageDisplay(QwtPlot):
             if self._popup_text.isVisible():
               self._popup_text.hide()
             self.refresh_marker_display()
-            if self.zooming:
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for coordinate values
-              if abs(self.xpos - e.pos().x()) <=2 and abs(self.ypos - e.pos().y())<=2:
-                if self.is_vector and self.display_solution_distances:
-            # Python semantics: self.pos = e.pos() does not work; force a copy
-                  xPos = e.pos().x()
-                  yPos = e.pos().y()
-                  _dprint(2,'xPos yPos ', xPos, ' ', yPos);
-# We get information about the qwt plot curve that is
-# closest to the location of this mouse pressed event.
-# We are interested in the nearest curve_number and the index, or
-# sequence number of the nearest point in that curve.
-                  self.array_curve_number, distance, xVal, yVal, self.array_index = self.closestCurve(xPos, yPos)
-                  _dprint(2,' self.array_curve_number, distance, xVal, yVal, aelf.array_index ', self.array_curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', self.array_index);
-                  shape = self.metrics_rank.shape
-                  array_curve_number = self.array_curve_number - 1
-                  self.metrics_index = 0 
-                  if shape[1] > 1:
-                    self.metrics_index = array_curve_number % shape[1]
-                    array_curve_number = int(array_curve_number / shape[1])
-                  if array_curve_number == 0:
-                    self.curve_info = "vector sum " 
-                  if array_curve_number == 1:
-                    self.curve_info = "sum of norms "
-                  if array_curve_number == 2:
-                    self.curve_info = "norms "
-                  if array_curve_number <= 2:
-                    self.reportCoordinates(xVal, yVal)
-                  else:
-                    temp_str = "nearest x=%-.3g" % xVal
-                    temp_str1 = " y=%-.3g" % yVal
-                    message = temp_str + temp_str1
-                    self.infoDisplay(message, xPos, yPos)
-                return
-
+            if self.zooming and abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
               self.setOutlineStyle(Qwt.Cross)
-
               xmin = min(self.xpos, e.pos().x())
               xmax = max(self.xpos, e.pos().x())
               ymin = min(self.ypos, e.pos().y())
@@ -1620,19 +1621,16 @@ class QwtImageDisplay(QwtPlot):
 
                     xmax = self.vells_axis_parms[self.x_parm][0] + offset * self.first_axis_inc
 
-#           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
-#           self.second_axis_inc = delta_vells / plot_array.shape[1] 
                   if not self.second_axis_inc is None:
                     offset = int((ymin + (0.5 * self.second_axis_inc) - self.vells_axis_parms[self.y_parm][0])/self.second_axis_inc)
                     ymin = self.vells_axis_parms[self.y_parm][0] + offset * self.second_axis_inc
                     offset = int((ymax - self.vells_axis_parms[self.y_parm][0])//self.second_axis_inc)
                     ymax = self.vells_axis_parms[self.y_parm][0] + offset * self.second_axis_inc
                 else:
-                    ymax = int (ymax)
-                    ymin = int (ymin + 0.5)
-                    xmax = int (xmax + 0.5)
-                    xmin = int (xmin)
-              #print 'zoom: final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
+                  ymax = int (ymax)
+                  ymin = int (ymin + 0.5)
+                  xmax = int (xmax + 0.5)
+                  xmin = int (xmin)
               if xmin == xmax or ymin == ymax:
                 return
               if not self.zoomState is None:
@@ -2150,9 +2148,9 @@ class QwtImageDisplay(QwtPlot):
           for i in range (len(self.eigenvectors)):
             eigens = self.eigenvectors[i]
             eigenvalues = eigens[0]
-            # for the moment, we are just calculating the eigenvalues in
-            # SolverData.py
-#           eigenvalues = self.eigenvectors[i]
+            eigenlist = list(eigenvalues)
+            eigenlist.sort(reverse=True)
+            sorted_eigenvalues = array(eigenlist)
             shape = eigenvalues.shape
             x_data = arange(shape[0])
             curve = QwtPlotCurveSizes(self)
@@ -2165,11 +2163,11 @@ class QwtImageDisplay(QwtPlot):
             if self.array_flip:
               self.setCurveYAxis(key, QwtPlot.yLeft)
               self.setCurveXAxis(key, QwtPlot.xBottom)
-              curve.setData(x_data,eigenvalues)
+              curve.setData(x_data,sorted_eigenvalues)
             else:
               self.setCurveYAxis(key, QwtPlot.xBottom)
               self.setCurveXAxis(key, QwtPlot.yLeft)
-              curve.setData(eigenvalues,x_data)
+              curve.setData(sorted_eigenvalues,x_data)
             symbolList=[]
             for j in range(shape[0]):
               if j == 0:
