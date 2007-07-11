@@ -133,13 +133,15 @@ class JonesSequence22 (Joneset22.Joneset22):
         This can be done repeatedly, without duplicating the menu.
         """
         oolist = []
-        prompt = 'Selected Jones matrix sequence'
-        oo = TDLCompileOption('jseq', prompt, 
-                              self._jseq_options, more=str,
-                              namespace=self);
-        self._TDLCompileOption['jseq'] = oo
-        self._TDLCompileOption['jseq'].when_changed(self._callback_jseq)
-        oolist.append(self._TDLCompileOption['jseq'])
+
+        key = 'jseq'
+        if not self._TDLCompileOption.has_key(key):
+            oo = TDLCompileOption(key, 'Selected Jones matrix sequence', 
+                                  self._jseq_options, more=str,
+                                  namespace=self);
+            self._TDLCompileOption[key] = oo
+            oo.when_changed(self._callback_jseq)
+        oolist.append(self._TDLCompileOption[key])
         
         for jchar in self._jorder:
             jones = self._jones[jchar]
@@ -292,9 +294,7 @@ if 1:
     jseq.add_jones(Joneset22.BJones(simulate=simulate))
     jseq.add_jones(Joneset22.FJones(simulate=simulate))
     jseq.add_jones(Joneset22.JJones(simulate=simulate))
-    print ')))))))))))) compileoptionsmenu():'
     jseq.TDLCompileOptionsMenu()
-    print ')))))))))))) solveoptionsmenu():'
     jseq.TDLSolveOptionsMenu()
     jseq.display()
 
@@ -304,7 +304,9 @@ def _define_forest(ns):
 
     cc = []
 
-    jseq.make_jones_matrices(ns('3c567'))
+    jseq.nodescope(ns)
+
+    # jseq.make_jones_matrices(ns('3c567'))
     jseq.display()
     # cc.append(jseq.bundle())
 

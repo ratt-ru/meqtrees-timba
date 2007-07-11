@@ -294,8 +294,49 @@ class ParameterizationPlus (Meow.Parameterization):
         return s
 
 
+
     #===================================================================
-    # TDLOptions:
+    # TDLOptions (general):
+    #===================================================================
+
+    def _read_TDLCompileOptions(self, trace=True):
+        """Helper function to read TDLCompileOptions into local variables
+        with the same name: e.g. opt['_default'] -> self._default
+        """
+        if trace: print '\n** _read_TDLCompileOptions:'
+        noexist = -1.23456789
+        for key in self._TDLCompileOption.keys():
+            was = getattr(self, key, noexist)
+            if not was==noexist:
+                new = self._TDLCompileOption[key].value
+                setattr(self, key, new)
+                new = getattr(self,key)
+                if trace: print ' -',key,':',was,'->',new
+        if trace: print
+        return True
+        
+
+    #.....................................................................
+
+    def _reset_TDLCompileOptions(self, trace=True):
+        """Helper function to reset the saved TDLCompileOptions to
+        the current values of their local variable counterparts.
+        The latter are the values that the designer put in,
+        so this is a way to the saved values into a known state.
+        """
+        if trace: print '\n** _reset_TDLCompileOptions:'
+        for key in self._TDLCompileOption.keys():
+            was = self._TDLCompileOption[key].value
+            new = getattr(self,key)
+            self._TDLCompileOption[key].set_value(new, save=True)
+            new = self._TDLCompileOption[key].value
+            if trace: print ' -',key,':',was,'->',new
+        if trace: print
+        return True
+        
+
+    #===================================================================
+    # TDLOptions (ParmGroups):
     #===================================================================
 
     def p_TDLCompileOptionsMenu (self, show=True):
@@ -781,7 +822,7 @@ class ParameterizationPlus (Meow.Parameterization):
 #=============================================================================
 
 
-if True:
+if 0:
     pp1 = ParameterizationPlus(name='GJones', quals='3c84')
     pp1.p_group_define('Gphase', tiling=3, simul=True)
     pp1.p_group_define('Ggain', default=1.0, freq_deg=2)

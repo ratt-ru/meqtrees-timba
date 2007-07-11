@@ -86,6 +86,8 @@ class Joneset22 (Matrixet22.Matrixet22):
         # (if self._pg==None, .define_parmgroups will be called)
         self._pg = None
 
+        self.define_parmgroups()
+
         # Finished:
         return None
 
@@ -232,9 +234,11 @@ class Joneset22 (Matrixet22.Matrixet22):
         return qnode(station)
 
 
-    #-------------------------------------------------------------------
+
+
+    #===================================================================
     # TDLOptions (move to ParameterizationPlus.py?)
-    #-------------------------------------------------------------------
+    #===================================================================
 
     def TDLCompileOptionsMenu (self, show=True):
         """Generic function for interaction with its TDLCompileOptions menu.
@@ -245,7 +249,7 @@ class Joneset22 (Matrixet22.Matrixet22):
         """
         if not self._TDLCompileOptionsMenu:        # create the menu only once
             oolist = self.TDLCompileOptions()
-            prompt = self.namespace(prepend='options for: '+self.name)
+            prompt = self.namespace(prepend='options for Joneset22: '+self.name)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
 
         # Show/hide the menu as required (can be done repeatedly):
@@ -258,33 +262,34 @@ class Joneset22 (Matrixet22.Matrixet22):
         """Define a list of TDL options that control the structure of the
         Jones matrix.
         This function should be re-implemented by derived classes."""
-        oolist = self.TDLCompileOptions_generic()
+        oolist = []
 
         if False:                    # temporary, just for testing
             key = 'xxx'
-            self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
-                                             range(3), more=int,
-                                             doc='explanation for xxx....',
-                                             namespace=self)
+            if not self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
+                                                        range(3), more=int,
+                                                        doc='explanation for xxx....',
+                                                        namespace=self)
             oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of options:
+        oolist.extend(self.TDLCompileOptions_generic())
         return oolist
 
     #..................................................................
 
     def TDLCompileOptions_generic (self):
         """Define a list of generic TDL compile options, which may be
-        included in the specific list returned by TDLCompileOptions()"""
+        appended (at the end!) of the specific list returned by
+        TDLCompileOptions()"""
         oolist = []
 
-        doc = 'If True, replace the MeqParms with subtrees that simulate them'
-        key = 'simul'
-        opt = [self._simulate, not self._simulate]
-        self._TDLCompileOption[key] = TDLOption(key, 'simulate MeqParms',
-                                                opt, doc=doc,
-                                                namespace=self)
-        oolist.append(self._TDLCompileOption[key])
+        # Attach ParmGroup options menu (if any):
+        om = self.p_TDLCompileOptionsMenu()
+        oolist.append(om)
+
+        self._read_TDLCompileOptions(trace=True)
 
         # Finished: Return a list of options:
         return oolist
@@ -533,6 +538,7 @@ class BJones (Joneset22):
                  stations=None, simulate=False):
         
         self._jname = 'BJones'
+        self._tfdeg = tfdeg
         Joneset22.__init__(self, ns=ns, quals=quals, name=name,
                            namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
@@ -540,7 +546,7 @@ class BJones (Joneset22):
                            simulate=simulate)
 
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLSolveOption_tobesolved = [None, self._jname, 'Breal', 'Bimag'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'Breal', 'Bimag']
 
         self.history(override)
         return None
@@ -551,16 +557,18 @@ class BJones (Joneset22):
     def TDLCompileOptions (self):
         """Define a list of TDL option objects that control the structure
         of the Jones matrix."""
-        oolist = self.TDLCompileOptions_generic()
+        oolist = []
 
-        key = 'tfdeg'
-        self._TDLCompileOption[key] = TDLOption(key, 'tfdeg',
-                                         [[0,5],[0,4],[1,4]],
-                                         doc='rank of time/freq polynomial',
-                                         namespace=self)
-
+        key = '_tfdeg'
+        if not self._TDLCompileOption.has_key(key):
+            self._TDLCompileOption[key] = TDLOption(key, 'tfdeg',
+                                                    [[0,5],[0,4],[1,4]],
+                                                    doc='rank of time/freq polynomial',
+                                                    namespace=self)
         oolist.append(self._TDLCompileOption[key])
+
         # Finished: Return a list of option objects:
+        oolist.extend(self.TDLCompileOptions_generic())
         return oolist
 
 
@@ -573,7 +581,6 @@ class BJones (Joneset22):
         pols = self.pols()                                # e.g. ['X','Y']
         self._iname = 'Bimag'
         self._rname = 'Breal'
-        tfdeg = self._TDLCompileOption['tfdeg'].value
         for pol in pols:
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
@@ -583,8 +590,8 @@ class BJones (Joneset22):
                                      descr=pol+'-IF bandpass imag.part',
                                      default=0.0, unit='Jy',
                                      tiling=1,
-                                     time_deg=tfdeg[0],
-                                     freq_deg=tfdeg[1],
+                                     time_deg=self._tfdeg[0],
+                                     freq_deg=self._tfdeg[1],
                                      simul=self._simulate, deviation=dev,
                                      # override=override,
                                      rider=rider,
@@ -595,8 +602,8 @@ class BJones (Joneset22):
                                      descr=pol+'-IF bandpass real.part',
                                      default=1.0, unit='Jy',
                                      tiling=None,
-                                     time_deg=tfdeg[0],
-                                     freq_deg=tfdeg[1],
+                                     time_deg=self._tfdeg[0],
+                                     freq_deg=self._tfdeg[1],
                                      simul=self._simulate, deviation=dev,
                                      # override=override,
                                      rider=rider,
@@ -648,6 +655,7 @@ class JJones (Joneset22):
                  stations=None, simulate=False):
 
         self._jname = 'JJones'
+        self._diagonal = diagonal
         Joneset22.__init__(self, ns=ns, quals=quals, name=name,
                            namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
@@ -655,7 +663,7 @@ class JJones (Joneset22):
                            simulate=simulate)
         
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
-        self._TDLSolveOption_tobesolved = [None, self._jname, 'Jdiag'] 
+        self._TDLSolveOption_tobesolved = [None, self._jname, 'Jdiag']
 
         self.history(override)
         return None
@@ -665,14 +673,18 @@ class JJones (Joneset22):
     def TDLCompileOptions (self):
         """Define a list of TDL options that control the structure of the
         Jones matrix."""
-        oolist = self.TDLCompileOptions_generic()
+        oolist = []
 
-        key = 'diagonal'
-        self._TDLCompileOption[key] = TDLOption(key, 'diagonal elements only',
-                                         [True, False],
-                                         # doc='structure of Jones matrix',
-                                         namespace=self)
+        key = '_diagonal'
+        if not self._TDLCompileOption.has_key(key):
+            self._TDLCompileOption[key] = TDLOption(key, 'diagonal elements only',
+                                                    [True, False],
+                                                    # doc='structure of Jones matrix',
+                                                    namespace=self)
         oolist.append(self._TDLCompileOption[key])
+
+        # Finished: Return a list of option objects:
+        oolist.extend(self.TDLCompileOptions_generic())
         return oolist
 
 
@@ -701,8 +713,7 @@ class JJones (Joneset22):
                                          tags=[self._jname,'Jdiag'])
                 self._pg[ename][rim] = pg
 
-        TDL_diagonal = self._TDLCompileOption['diagonal'].value
-        if not TDL_diagonal:
+        if not self._diagonal:
             for ename in ['J12','J21']:
                 self._pg[ename] = dict()
                 for rim in ['real','imag']:
@@ -872,6 +883,8 @@ def _define_forest(ns):
     cc = []
     jj = []
     simulate = True
+
+    j22.nodescope(ns)
 
     if 0:
         jones = GJones(ns, quals=[], simulate=simulate)

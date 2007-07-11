@@ -52,7 +52,15 @@ class ParmGroup (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
-        self.tdloption_namespace = namespace       # just how standard is this name?
+        name = str(name)                           # just in case....
+
+        s = 'ParmGroup '+str(name)
+        if isinstance(namespace,str):
+            namespace += s
+        else:
+            namespace = s
+        self.tdloption_namespace = namespace
+        
         self._TDLCompileOptionsMenu = None   
         self._TDLCompileOption = dict()   
 
@@ -63,7 +71,6 @@ class ParmGroup (Meow.Parameterization):
         # Eventually.... (perverse coupling)? 
         #------------------------------------
 
-        name = str(name)                           # just in case....
 
         # Make a little more robust 
         quals = self.quals2list(quals)
@@ -393,7 +400,7 @@ class ParmGroup (Meow.Parameterization):
         """
         if not self._TDLCompileOptionsMenu:        # create the menu only once
             oolist = self.TDLCompileOptions()
-            prompt = self.namespace(prepend='options for ParmGroup: '+self.name)
+            prompt = self.namespace(prepend='options for: ')
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
 
         # Show/hide the menu as required (can be done repeatedly):
@@ -457,12 +464,16 @@ class ParmGroup (Meow.Parameterization):
 
         key = '_deviation'
         if not self._TDLCompileOption.has_key(key):
+            opt = [getattr(self, key)]
+            opt.append(self.deviation_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
+            opt.append(self.deviation_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
             doc = '(simul) deviation from default value'
-            self._TDLCompileOption[key] = TDLOption(key, 'deviation',
-                                                    [getattr(self, key)],
-                                                    more=str, doc=doc, namespace=self)
-            self._TDLCompileOption[key].set_custom_value(getattr(self, key),
-                                                         select=True, save=True)
+            oo = TDLOption(key, 'deviation', opt, more=str,
+                           doc=doc, namespace=self)
+            oo.set_custom_value(getattr(self, key),
+                                select=True, save=True)
+            oo.when_changed(self._callback_deviation)
+            self._TDLCompileOption[key] = oo
         oolist.append(self._TDLCompileOption[key])
 
         #---------------------------------
@@ -488,31 +499,64 @@ class ParmGroup (Meow.Parameterization):
 
     #.....................................................................
 
+    def _callback_deviation(self, dev):
+        """Function called whenever TDLOption _deviation changes"""
+        key = '_deviation'
+        if self._TDLCompileOption.has_key(key):
+            self._TDLCompileOption[key].set_custom_value(dev, callback=False,
+                                                         select=True, save=True)
+        return True
+
+    #.....................................................................
+
     def _callback_simul(self, simul):
-        """Function called whenever TDLOption simul changes"""
+        """Function called whenever TDLOption _simul changes"""
         # If simul, show the similation options
-        self._TDLCompileOption['_deviation'].show(simul)
+        keys = ['_deviation']
+        for key in keys:
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].show(simul)
         # If not simul, show the solving options:
-        self._TDLCompileOption['_default'].show(not simul)
-        self._TDLCompileOption['_tiling'].show(not simul)
-        self._TDLCompileOption['_time_deg'].show(not simul)
-        self._TDLCompileOption['_freq_deg'].show(not simul)
-        # self._TDLCompileOption['_constraint'].show(not simul)
+        keys = ['_default','_tiling','_time_deg','_freq_deg']
+        keys.extend(['_constraint'])
+        for key in keys:
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].show(not simul)
         return True
         
 
     #.....................................................................
 
     def _read_TDLCompileOptions(self, trace=True):
-        """Helper function to read TDLCompileOptions"""
-        if trace:
-            print '\n** _read_TDLCompileOptions:'
-        keys = self._TDLCompileOption.keys()
-        for key in keys:
+        """Helper function to read TDLCompileOptions into local variables
+        with the same name: e.g. opt['_default'] -> self._default
+        """
+        if trace: print '\n** _read_TDLCompileOptions:'
+        for key in self._TDLCompileOption.keys():
             was = getattr(self,key)
             new = self._TDLCompileOption[key].value
             setattr(self, key, new)
-            if trace: print ' -',key,':',was,'->',getattr(self,key)
+            new = getattr(self,key)
+            if trace: print ' -',key,':',was,'->',new
+        if trace: print
+        return True
+        
+
+    #.....................................................................
+
+    def _reset_TDLCompileOptions(self, trace=True):
+        """Helper function to reset the saved TDLCompileOptions to
+        the current values of their local variable counterparts.
+        The latter are the values that the designer put in,
+        so this is a way to the saved values into a known state.
+        """
+        if trace: print '\n** _reset_TDLCompileOptions:'
+        for key in self._TDLCompileOption.keys():
+            was = self._TDLCompileOption[key].value
+            new = getattr(self,key)
+            self._TDLCompileOption[key].set_value(new, save=True)
+            new = self._TDLCompileOption[key].value
+            if trace: print ' -',key,':',was,'->',new
         if trace: print
         return True
         
