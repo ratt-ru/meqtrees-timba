@@ -182,7 +182,7 @@ class JonesSequence22 (Joneset22.Joneset22):
                 self._TDLCompileOption[jchar].show(jchar in jj)
             if self._TDLSolveOption.has_key(jchar):
                 self._TDLSolveOption[jchar].show(jchar in jj)
-        self.TDL_tobesolved (trace=True)         # ....temporary....?
+        self.TDL_tobesolved (trace=False)         # ....temporary....?
         return True
 
     #-------------------------------------------------------------------
@@ -296,7 +296,7 @@ if 1:
     jseq.add_jones(Joneset22.JJones(simulate=simulate))
     jseq.TDLCompileOptionsMenu()
     jseq.TDLSolveOptionsMenu()
-    jseq.display()
+    jseq.display('outside _define_forest()')
 
 
 
@@ -306,8 +306,8 @@ def _define_forest(ns):
 
     jseq.nodescope(ns)
 
-    # jseq.make_jones_matrices(ns('3c567'))
-    jseq.display()
+    jseq.make_jones_matrices()
+    jseq.display('after make_jones_matrices')
     # cc.append(jseq.bundle())
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)

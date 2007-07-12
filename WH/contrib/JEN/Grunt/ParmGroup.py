@@ -491,7 +491,7 @@ class ParmGroup (Meow.Parameterization):
 
         #---------------------------------
         # Read the (saved) value from the .tdl.conf file: 
-        self._read_TDLCompileOptions(trace=True)
+        self._read_TDLCompileOptions(trace=False)
 
         # Finished: Return a list of options:
         return oolist
@@ -527,7 +527,7 @@ class ParmGroup (Meow.Parameterization):
 
     #.....................................................................
 
-    def _read_TDLCompileOptions(self, trace=True):
+    def _read_TDLCompileOptions(self, trace=False):
         """Helper function to read TDLCompileOptions into local variables
         with the same name: e.g. opt['_default'] -> self._default
         """
@@ -544,7 +544,7 @@ class ParmGroup (Meow.Parameterization):
 
     #.....................................................................
 
-    def _reset_TDLCompileOptions(self, trace=True):
+    def _reset_TDLCompileOptions(self, trace=False):
         """Helper function to reset the saved TDLCompileOptions to
         the current values of their local variable counterparts.
         The latter are the values that the designer put in,

@@ -247,10 +247,17 @@ class Joneset22 (Matrixet22.Matrixet22):
         The 'show' argument may be used to show or hide the menu. This can be done
         repeatedly, without duplicating the menu.
         """
-        if not self._TDLCompileOptionsMenu:        # create the menu only once
-            oolist = self.TDLCompileOptions()
+
+        # print '\n**',self.oneliner(),self._TDLCompileOptionsMenu,'\n'
+        
+        # if not self._TDLCompileOptionsMenu:        # create the menu only once
+        if True or not self._TDLCompileOptionsMenu:
             prompt = self.namespace(prepend='options for Joneset22: '+self.name)
+            oolist = self.TDLCompileOptions()
+            # print '\n** oolist(in menu):',self.oneliner(),'\n       ',oolist
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+        else:
+            print '\n** menu not recreated:',self.oneliner(),'\n'
 
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLCompileOptionsMenu.show(show)
@@ -286,10 +293,10 @@ class Joneset22 (Matrixet22.Matrixet22):
         oolist = []
 
         # Attach ParmGroup options menu (if any):
-        om = self.p_TDLCompileOptionsMenu()
-        oolist.append(om)
-
-        self._read_TDLCompileOptions(trace=True)
+        oolist = self.p_TDLCompileOptions()
+        # oolist = self.p_TDLCompileOptionsMenu()
+            
+        self._read_TDLCompileOptions(trace=False)
 
         # Finished: Return a list of options:
         return oolist
@@ -677,15 +684,24 @@ class JJones (Joneset22):
 
         key = '_diagonal'
         if not self._TDLCompileOption.has_key(key):
-            self._TDLCompileOption[key] = TDLOption(key, 'diagonal elements only',
-                                                    [True, False],
-                                                    # doc='structure of Jones matrix',
-                                                    namespace=self)
+            doc = 'If True, the JJones matrix is diagonal'
+            oo = TDLOption(key, 'diagonal elements only', [True, False],
+                           doc=doc, namespace=self)
+            self._TDLCompileOption[key] = oo
+            oo.when_changed(self._callback_diagonal)
         oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of option objects:
         oolist.extend(self.TDLCompileOptions_generic())
         return oolist
+    
+
+    def _callback_diagonal (self, diagonal):
+        """Called when TDLOPtion _diagonal is changed"""
+        pgs = ['J11real','J11imag','J22real','J22imag']
+        if not diagonal:
+            pgs.extend(['J12real','J12imag','J21real','J21imag']) 
+        return self.p_TDLShowOptions (pgs)
 
 
     #------------------------------------------------------------------------------

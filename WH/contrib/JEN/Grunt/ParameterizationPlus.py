@@ -350,6 +350,7 @@ class ParameterizationPlus (Meow.Parameterization):
             oolist = self.p_TDLCompileOptions()
             prompt = self.namespace(prepend='ParmGroup options for: '+self.name)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+
         # Show/hide the menu as required (can be done repeatedly):
         self._TDLCompileOptionsMenu.show(show)
         return self._TDLCompileOptionsMenu
@@ -364,6 +365,15 @@ class ParameterizationPlus (Meow.Parameterization):
             self._TDLCompileOption[key] = pg.TDLCompileOptionsMenu()
             oolist.append(self._TDLCompileOption[key])
         return oolist
+
+
+    def p_TDLShowOptions (self, parmgroup='*'):
+        """Show the TDL options for the specified parmgroup(s), and hide the rest"""
+        pgs = self.p_find_parmgroups (parmgroup, severe=True)
+        for key in self._parmgroups.keys():
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].show(key in pgs)
+        return True
 
 
     #===============================================================
