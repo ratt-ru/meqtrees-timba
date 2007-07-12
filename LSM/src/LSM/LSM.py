@@ -1882,16 +1882,19 @@ class LSM:
   for eachline in all:
    v=pp.search(eachline)
    if v!=None:
-    source_RA=eval(v.group('col2'))+(eval(v.group('col4'))/60.0+eval(v.group('col3')))/60.0
+    source_RA=float(v.group('col2'))+(float(v.group('col4'))/60.0+float(v.group('col3')))/60.0
     source_RA*=math.pi/12.0
     source_Dec=float(v.group('col5'))+(float(v.group('col7'))/60.0+float(v.group('col6')))/60.0
     source_Dec*=math.pi/180.0
 
-    sI=eval(v.group('col8'))
+    sI=float(v.group('col8'))
     #convert to percentages
-    sQ=eval(v.group('col9'))*100/sI
-    sU=eval(v.group('col10'))*100/sI
-    sV=eval(v.group('col11'))*100/sI
+    if (sI > 0):
+     sQ=float(v.group('col9'))*100/sI
+     sU=float(v.group('col10'))*100/sI
+     sV=float(v.group('col11'))*100/sI
+    else:
+     sQ=sU=sV=0
 
     SI=eval(v.group('col12'))
     RM=eval(v.group('col13'))
