@@ -203,11 +203,13 @@ class VellsData:
 # store data
      for i in range(self._number_of_planes):
        if vells_rec.vellsets[i].has_key("value"):
-         menu_label = "[" + str(i) + "] value" 
+#        menu_label = "[" + str(i) + "] value" 
+         menu_label = "[" + str(i) + "]" 
          if self.dims is None:
            text_display = menu_label
          else:
-           text_display = str(self.index) + " value" 
+#          text_display = str(self.index) + " value" 
+           text_display = str(self.index)
          id = id + 1
 #        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = text_display
@@ -357,7 +359,7 @@ class VellsData:
        tag = "] perturbed value "
        key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "[" + str(self._active_plane) + "] value" 
+       key = "[" + str(self._active_plane) + "]" 
      return self._plot_labels[key]
 
    def getActivePerturbData(self):
@@ -374,7 +376,7 @@ class VellsData:
        tag = "] perturbed value "
        key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "[" + str(self._active_plane) + "] value" 
+       key = "[" + str(self._active_plane) + "]" 
      rank = self._plot_vells_dict[key].rank
      shape = self._plot_vells_dict[key].shape
      if rank != self.rank or shape != self.shape:

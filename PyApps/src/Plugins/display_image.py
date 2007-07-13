@@ -1002,40 +1002,75 @@ class QwtImageDisplay(QwtPlot):
             perturbations_key = str(id) + ' perturbations'
             if perturbations.has_key(perturbations_key):
               perturbations_index = perturbations[perturbations_key]
-              submenu = QPopupMenu(self._vells_menu)
-              QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
-              for j in range(len(perturbations_index)):
-                id = perturbations_index[j]
-                submenu.insertItem(menu_labels[id], id)
+              submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index) 
               self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
         else:
-          num_sub_menus = 1 + int(num_planes/menu_step)
+          if int(num_planes/menu_step) * menu_step == num_planes:
+            num_sub_menus = int(num_planes/menu_step)
+          else:
+            num_sub_menus = 1 + int(num_planes/menu_step)
           start_range = 0
           end_range = menu_step
           for k in range(num_sub_menus):
             step_submenu = QPopupMenu(self._vells_menu)
             QObject.connect(step_submenu,SIGNAL("activated(int)"),self.update_vells_display);
-            start_str = str(start_range/menu_delta)
-            end_str = str(end_range/menu_delta - 1 )
-            menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
-            self._vells_menu.insertItem(menu_string,step_submenu)
+#           start_str = str(start_range/menu_delta)
+            start_str = None
+#           end_str = str(end_range/menu_delta - 1 )
+            end_str = None
+#           menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
+#           self._vells_menu.insertItem(menu_string,step_submenu)
             for i in range(start_range, end_range):
               id = planes_index[i]
+              if start_str is None:
+                start_str = menu_labels[id]
               step_submenu.insertItem(menu_labels[id], id)
               perturbations_key = str(id) + ' perturbations'
               if perturbations.has_key(perturbations_key):
                 perturbations_index = perturbations[perturbations_key]
-                submenu = QPopupMenu(self._vells_menu)
-                QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
-                for j in range(len(perturbations_index)):
-                  id = perturbations_index[j]
-                  submenu.insertItem(menu_labels[id], id)
+                submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index) 
                 step_submenu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+            end_str = menu_labels[id]
+            menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
+            self._vells_menu.insertItem(menu_string,step_submenu)
             start_range = start_range + menu_step
             end_range = end_range + menu_step
             if end_range > vells_menu_items:
               end_range = vells_menu_items
 # add Vells menu to context menu
+
+    def createPerturbationsMenu(self, parent_menu, menu_labels, perturbations_index):
+      """ create context menu for selection of perturbations """
+      num_perturbs = len(perturbations_index)
+      menu_step = 30
+      submenu = QPopupMenu(parent_menu)
+      if num_perturbs < menu_step:
+        QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
+        for j in range(len(perturbations_index)):
+          id = perturbations_index[j]
+          submenu.insertItem(menu_labels[id], id)
+      else:
+        if int(num_perturbs/menu_step) * menu_step == num_perturbs:
+          num_sub_menus = int(num_perturbs/menu_step)
+        else:
+          num_sub_menus = 1 + int(num_perturbs/menu_step)
+        start_range = 0
+        end_range = menu_step
+        for k in range(num_sub_menus):
+          start_str = str(start_range)
+          end_str = str(end_range - 1 )
+          menu_string = 'perturbations ' + start_str + ' to ' + end_str + '  '
+          perturb_submenu = QPopupMenu(submenu)
+          QObject.connect(perturb_submenu,SIGNAL("activated(int)"),self.update_vells_display);
+          for j in range(start_range, end_range):
+            id = perturbations_index[j]
+            perturb_submenu.insertItem(menu_labels[id], id)
+          submenu.insertItem(pixmaps.slick_redo.iconset(), menu_string, perturb_submenu)
+          start_range = start_range + menu_step
+          end_range = end_range + menu_step
+          if end_range > num_perturbs:
+            end_range = num_perturbs
+      return submenu
 
     def setSpectrumMenuItems(self, menu_labels):
       """ add items specific to selection of Spectra to context menu """
