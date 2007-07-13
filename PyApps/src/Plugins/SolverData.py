@@ -208,7 +208,10 @@ class SolverData:
    def calculateCovarEigenVectors(self):
      """ calculate eigenvalues and eigenvectors of co-variance matrix """
 
-     import numarray.linear_algebra as la
+     try:
+       import numarray.linear_algebra as la
+     except:
+       return False
      if self.metrics_covar is None:
        return False
      else:
