@@ -247,7 +247,7 @@ class meqserver_gui (app_proxy_gui):
     # --- MeqTimba menu
     connect = self._qa_connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
-    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",0,self);
+    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",Qt.CTRL+Qt.Key_S,self);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
     stopkern.setDisabled(True);
     stopkern.addTo(kernel_menu);

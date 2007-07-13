@@ -19,9 +19,11 @@ class ConnectMeqKernel(QDialog):
             self.setName("ConnectDialog")
 
         # self.setSizeGripEnabled(0)
+        lo_dialog = QVBoxLayout(self);
 
         LayoutWidget = QWidget(self,"lo_top")
-        LayoutWidget.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+        lo_dialog.addWidget(LayoutWidget);
+        LayoutWidget.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
         # LayoutWidget.setGeometry(QRect(10,10,472,400))
         lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
 
@@ -130,6 +132,8 @@ class ConnectMeqKernel(QDialog):
         self.btn_cancel.setMinimumSize(QSize(60,0))
         self.btn_cancel.setAutoDefault(1)
         lo_mainbtn.addWidget(self.btn_cancel)
+        lo_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Expanding);
+        lo_top.addItem(lo_space)
         lo_top.addLayout(lo_mainbtn)
 
         self.languageChange()
