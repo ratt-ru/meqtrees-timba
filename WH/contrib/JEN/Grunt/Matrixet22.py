@@ -350,13 +350,6 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                             skip_line_after=False,
                             recurse=1)
         #...............................................................
-        print ' * Accumulist entries (in ParameterizationPlus..): '
-        for key in self._accumulist.keys():
-            vv = self._accumulist[key]
-            print '  - '+str(key)+' ('+str(len(vv))+'):'
-            if full:
-                for v in vv: print '    - '+str(type(v))+' '+str(v)
-        #...............................................................
         print ' * Matrix_elements: '+str(self._matrix_elements)
         if self._counter:
             print ' * Counter(s): '+str(self._counter)

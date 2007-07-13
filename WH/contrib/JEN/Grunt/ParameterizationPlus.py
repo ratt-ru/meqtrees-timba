@@ -59,7 +59,10 @@ class ParameterizationPlus (Meow.Parameterization):
         self.tdloption_namespace = namespace    
         self._TDLCompileOptionsMenu = None   
         self._TDLCompileOption = dict()
-        
+
+        self._TDLCompileOption_tobesolved = [None, 'A', 'B', ['A','B']]
+
+
 
         #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
@@ -83,12 +86,9 @@ class ParameterizationPlus (Meow.Parameterization):
         Meow.Parameterization.__init__(self, ns, name,
                                        quals=quals,
                                        kwquals=kwquals)
-        # Initialize local data:
-        self._parmgroups = dict()
-        self._parmgogs = dict()
 
-        self._pmerged = []
-        self._accumulist = dict()
+        # Initialize local data:
+        self.p_clear()
 
         # Optional: Copy the parametrization of another object:
         if merge:
@@ -96,14 +96,47 @@ class ParameterizationPlus (Meow.Parameterization):
         
         return None
 
+
+    #---------------------------------------------------------------
+
+    def p_clear (self):
+        """Helper function to clear the parameter-part of the object"""
+        self._parmgroups = dict()
+        self._parmgogs = dict()
+        self._pmerged = []
+        self._accumulist = dict()
+        return True
+
+
+    def _p_active_groups (self, new=None):
+        """Get/set the list of (names of) 'active' parmgroups"""
+        active = []
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            if isinstance(new, (list,tuple)):
+                pg.active(key in new)
+            if pg.active():
+                active.append(key)
+        if new:
+            self.p_TDLShowActive()
+
+        # Make a new set of parmgogs (of active groups):
+        gogs = self.p_gogs()
+
+        # Finished:
+        return active
+
     #---------------------------------------------------------------
 
     def nodescope (self, ns=None):
         """Get/set the internal nodescope (can also be a node)"""
-        if is_node(ns):
-            self.ns = ns.QualScope()        
-        elif ns:
-            self.ns = ns
+        if ns:
+            if is_node(ns):
+                self.ns = ns.QualScope()        
+            else:
+                self.ns = ns
+            for key in self._parmgroups.keys():
+                self._parmgroups[key].ns = self.ns[key](key).QualScope()    # <---- !!
         return self.ns
 
 
@@ -122,6 +155,7 @@ class ParameterizationPlus (Meow.Parameterization):
         if isinstance(append, str): ss += ' '+append
         return ss
     
+
     #===============================================================
     # Display of the contents of this object:
     #===============================================================
@@ -143,7 +177,10 @@ class ParameterizationPlus (Meow.Parameterization):
         print '  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._parmgroups:
             pg = self._parmgroups[key]
-            print '    - ('+key+'): '+str(pg.oneliner())
+            if pg.active():
+                print '    - ('+key+'): '+str(pg.oneliner())
+            else:
+                print '    - ('+key+'):   ... not active ...'
         #...............................................................
         print '  * Deviation expressions (simul only):'
         for key in self._parmgroups:
@@ -154,14 +191,6 @@ class ParameterizationPlus (Meow.Parameterization):
         print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.p_gogs():
             print '    - ('+key+'): '+str(self._parmgogs[key])
-        #...............................................................
-        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLCompileOption.keys():
-            oo = self._TDLCompileOption[key]
-            if getattr(oo, 'value', None):
-                print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
-            else:
-                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
         #...............................................................
         print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
         if full:
@@ -182,6 +211,14 @@ class ParameterizationPlus (Meow.Parameterization):
             for key in self._parmnodes:
                 rr = self._parmnodes[key]
                 print '    - ('+key+'): '+str(rr)
+        #...............................................................
+        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
+        for key in self._TDLCompileOption.keys():
+            oo = self._TDLCompileOption[key]
+            if getattr(oo, 'value', None):
+                print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
+            else:
+                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
         #...............................................................
         print '  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -247,6 +284,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Create the ParmGroup:
         pg = ParmGroup.ParmGroup (self.ns, key, tags=tags,
+                                  namespace=self.name,
                                   descr=descr, unit=unit,
                                   default=default, constraint=constraint,
                                   simul=simul, deviation=deviation,
@@ -295,9 +333,57 @@ class ParameterizationPlus (Meow.Parameterization):
 
 
 
+
     #===================================================================
     # TDLOptions (general):
     #===================================================================
+
+    def TDLCompileOptionsMenu (self, show=True):
+        """Generic function for interaction with its TDLCompileOptions menu.
+        The latter is created (once), by calling the specific function(s)
+        .TDLCompileOptions(), which should be re-implemented by derived classes.
+        The 'show' argument may be used to show or hide the menu. This can be done
+        repeatedly, without duplicating the menu.
+        """
+
+        # print '\n**',self.oneliner(),self._TDLCompileOptionsMenu,'\n'
+        
+        # if not self._TDLCompileOptionsMenu:        # create the menu only once
+        if True or not self._TDLCompileOptionsMenu:
+            prompt = self.namespace(prepend='options for Joneset22: '+self.name)
+            oolist = self.TDLCompileOptions()
+            oolist.extend(self.p_TDLCompileOptions())
+            self._read_TDLCompileOptions(trace=False)
+            # print '\n** oolist(in menu):',self.oneliner(),'\n       ',oolist
+            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+        else:
+            print '\n** menu not recreated:',self.oneliner(),'\n'
+
+        # Show/hide the menu as required (can be done repeatedly):
+        self._TDLCompileOptionsMenu.show(show)
+        return self._TDLCompileOptionsMenu
+
+    #..................................................................
+
+    def TDLCompileOptions (self):
+        """Define a list of TDL options that control the structure of the
+        Jones matrix.
+        This function should be re-implemented by derived classes."""
+        oolist = []
+
+        if False:                    # temporary, just for testing
+            key = 'xxx'
+            if not self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
+                                                        range(3), more=int,
+                                                        doc='explanation for xxx....',
+                                                        namespace=self)
+            oolist.append(self._TDLCompileOption[key])
+
+        # Finished: Return a list of options:
+        return oolist
+
+    #.....................................................................
 
     def _read_TDLCompileOptions(self, trace=True):
         """Helper function to read TDLCompileOptions into local variables
@@ -335,6 +421,19 @@ class ParameterizationPlus (Meow.Parameterization):
         return True
         
 
+    #.........................................................................
+
+    def TDL_tobesolved (self, trace=False):
+        """Get a list of the selected parmgroups (or tags?) of MeqParms
+        that have been selected for solving."""
+        slist = []
+        key = '_tobesolved'
+        if self._TDLCompileOption.has_key(key):
+            slist = self._TDLCompileOption[key].value
+        return slist
+
+
+
     #===================================================================
     # TDLOptions (ParmGroups):
     #===================================================================
@@ -355,25 +454,90 @@ class ParameterizationPlus (Meow.Parameterization):
         self._TDLCompileOptionsMenu.show(show)
         return self._TDLCompileOptionsMenu
 
+    #.........................................................................
 
     def p_TDLCompileOptions (self):
         """Define a list of TDL options that control the parameters
         of the various ParmGroups"""
         oolist = []
+
+        # opt = self._TDLCompileOption_tobesolved       # defined in derived classes
+        opt = [None]
+        opt.extend(self._parmgogs.keys())
+        opt.extend(self._p_active_groups())
+        if self._simulate:
+            opt = [None]
+        doc = 'the selected groups will be solved simultaneously'
+        prompt = 'solve for parmgroup(s)/parmgog(s)'
+        key = '_tobesolved'
+        oo = TDLOption(key, prompt, opt, more=str,
+                       doc=doc, namespace=self)
+        self._TDLCompileOption[key] = oo
+        oo.when_changed(self._callback_tobesolved)
+        if self._simulate:
+            oo.set_value(None, save=True)
+        oolist.append(self._TDLCompileOption[key])
+
+        # Add the options menus of the various parmgroups:
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
             self._TDLCompileOption[key] = pg.TDLCompileOptionsMenu()
             oolist.append(self._TDLCompileOption[key])
+        self.p_TDLShowActive()
+
+        # Finished:
         return oolist
 
+    #.........................................................................
 
-    def p_TDLShowOptions (self, parmgroup='*'):
-        """Show the TDL options for the specified parmgroup(s), and hide the rest"""
-        pgs = self.p_find_parmgroups (parmgroup, severe=True)
+    def _callback_tobesolved (self, tobs):
+        """Called whenever option '_tobesolved' is changed"""
+        # print '\n** (callback) tobesolved =',tobs,'\n'
+        keys = self.p_find_parmgroups(tobs, severe=True)
+        # print '   keys =',keys
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            if pg.active():
+                if key in keys:
+                    pg.set_TDLOption('_mode', 'solve')
+                else:
+                    pg.set_TDLOption('_mode', 'nosolve')
+        return True
+
+    #.........................................................................
+
+    def p_TDLShowActive (self):
+        """Show the TDL options for the 'active' parmgroup(s), and hide the rest.
+        Also redefine the parmgogs, and update the relevant TDL options."""
+
+        # First show/hide the parmgroups:
         for key in self._parmgroups.keys():
             if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].show(key in pgs)
+                pg = self._parmgroups[key]
+                self._TDLCompileOption[key].show(pg.active())
+                
+        # Then update the option list of option '_tobesolved':
+        self._p_make_gogs()
+        key = '_tobesolved'
+        if self._TDLCompileOption.has_key(key):
+            oo = self._TDLCompileOption[key]
+            value = oo.value
+            newopt = [None]
+            newopt.extend(self._parmgogs.keys())
+            if False:
+                for key in self._parmgogs.keys():
+                    if len(self._parmgogs[key])>1:
+                        newopt.append(key)
+                newopt.extend(self._p_active_groups())
+            if value in newopt:
+                oo.set_option_list(newopt, conserve_selection=True)
+            else:
+                index = 0         # index of first value (None)
+                oo.set_option_list(newopt, select=index)
+
+        # Finished:
         return True
+
 
 
     #===============================================================
@@ -540,6 +704,8 @@ class ParameterizationPlus (Meow.Parameterization):
         into a list of existing parmgroup names. If severe==True, stop if error.
         """
         # First make sure that the selection is a list (of names):
+        if groups==None:
+            return []
         if isinstance(groups, str):
             groups = groups.split(' ')                 # make a list from string
         groups = list(groups)                          # make sure of list
@@ -567,19 +733,21 @@ class ParameterizationPlus (Meow.Parameterization):
         These are used in finding groups, e.g. for solving."""
         return self._p_make_gogs().keys()
 
+
     def _p_make_gogs (self):
-        """Derive a dict of named groups of parmgroups from the tags
-        of the various parmgroups. These may be used to select groups,
+        """Derive a dict of named groups of (active) parmgroups from the tags
+        of the various (active) parmgroups. These may be used to select groups,
         e.g. in .solvable()."""
         gg = dict()
         keys = self._parmgroups.keys()
         for key in keys:
             pg = self._parmgroups[key]
-            tags = pg._tags
-            for tag in tags:
-                gg.setdefault(tag,[])
-                if not key in gg[tag]:
-                    gg[tag].append(key)
+            if pg.active():                # active groups only!
+                tags = pg._tags
+                for tag in tags:
+                    gg.setdefault(tag,[])
+                    if not key in gg[tag]:
+                        gg[tag].append(key)
         self._parmgogs = gg
         return self._parmgogs
 

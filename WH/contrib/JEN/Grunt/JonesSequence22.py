@@ -62,20 +62,6 @@ class JonesSequence22 (Joneset22.Joneset22):
         print '   - jorder: '+str(self._jorder)
         print '   - jseq_options: '+str(self._jseq_options)
         print '   - selected joneseq: '+str(self._selseq)
-        print '   - TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLCompileOption.keys():
-            oo = self._TDLCompileOption[key]
-            if getattr(oo, 'value', None):
-                print '     - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
-            else:
-                print '     - '+str(key)+': '+str(self._TDLCompileOption[key])
-        print '   - TDLSolveOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLSolveOption.keys():
-            oo = self._TDLSolveOption[key]
-            if getattr(oo, 'value', None):
-                print '     - '+str(key)+' = '+str(self._TDLSolveOption[key].value)
-            else:
-                print '     - '+str(key)+': '+str(self._TDLSolveOption[key])
         return True
 
 
@@ -145,11 +131,9 @@ class JonesSequence22 (Joneset22.Joneset22):
         
         for jchar in self._jorder:
             jones = self._jones[jchar]
-            oo = jones.TDLCompileOptions()
-            if len(oo)>0:
-                om = jones.TDLCompileOptionsMenu()
-                self._TDLCompileOption[jchar] = om
-                oolist.append(om)
+            om = jones.TDLCompileOptionsMenu()
+            self._TDLCompileOption[jchar] = om
+            oolist.append(om)
         return oolist
 
     #..................................................................
@@ -180,38 +164,9 @@ class JonesSequence22 (Joneset22.Joneset22):
         for jchar in self._jorder:
             if self._TDLCompileOption.has_key(jchar):
                 self._TDLCompileOption[jchar].show(jchar in jj)
-            if self._TDLSolveOption.has_key(jchar):
-                self._TDLSolveOption[jchar].show(jchar in jj)
         self.TDL_tobesolved (trace=False)         # ....temporary....?
         return True
 
-    #-------------------------------------------------------------------
-
-    def TDLSolveOptions (self):
-        """Return a list of option objects that control solving."""
-        oolist = []
-        for jchar in self._jorder:
-            jones = self._jones[jchar]
-            oo = jones.TDLSolveOptions()       
-            if len(oo)>0:
-                if len(oo)==1:
-                    self._TDLSolveOption[jchar] = oo[0]   # will be shown/hidden  
-                    oolist.append(oo[0])
-                else:
-                    om = jones.TDLSolveOptionsMenu()     
-                    self._TDLSolveOption[jchar] = om      # will be shown/hidden  
-                    oolist.append(om)
-                if jones._TDLSolveOption.has_key('tobesolved'):
-                    jones._TDLSolveOption['tobesolved'].when_changed(self._callback_tobesolved)
-        return oolist
-
-    #..................................................................
-
-    def _callback_tobesolved (self, dummy):
-        """Callback function for whenever a parmgroup selection is changed"""
-        self._callback_jseq()
-        self.TDL_tobesolved(trace=True)
-        
     #..................................................................
 
     def TDL_tobesolved (self, trace=False):
@@ -295,7 +250,6 @@ if 1:
     jseq.add_jones(Joneset22.FJones(simulate=simulate))
     jseq.add_jones(Joneset22.JJones(simulate=simulate))
     jseq.TDLCompileOptionsMenu()
-    jseq.TDLSolveOptionsMenu()
     jseq.display('outside _define_forest()')
 
 
@@ -305,6 +259,7 @@ def _define_forest(ns):
     cc = []
 
     jseq.nodescope(ns)
+    # jseq.display('after .nodescope(ns)')
 
     jseq.make_jones_matrices()
     jseq.display('after make_jones_matrices')
@@ -365,7 +320,6 @@ if __name__ == '__main__':
 
     if 1:
         jseq.TDLCompileOptionsMenu()
-        jseq.TDLSolveOptionsMenu()
         jseq.make_jones_matrices(ns('3c844')('repeel'), trace=True)
 
     if 1:
