@@ -260,8 +260,20 @@ class _TDLJobItem (_TDLBaseOption):
     self.func = func;
     self.symbol = func.__name__;
     
+  class JobListViewItem (QListViewItem):
+    def paintCell (self,qp,cg,column,width,align):
+      # use bold font for jobs
+      oldfont = qp.font();
+      font = QFont(oldfont);
+      font.setBold(True);
+      qp.setFont(font);
+      QListViewItem.paintCell(self,qp,cg,column,width,align);
+      qp.setFont(oldfont);
+    def width (self,fm,lv,c):
+      return int(QListViewItem.width(self,fm,lv,c)*1.2);
+    
   def make_listview_item (self,parent,after,executor=None):
-    item = QListViewItem(parent,after);
+    item = self.JobListViewItem(parent,after);
     item.setText(0,self.name);
     item.setPixmap(0,pixmaps.gear.pm());
     item._on_click = curry(executor,self.func,self.name);
@@ -930,45 +942,17 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
     
-def populate_option_listview (menu,option_items,executor=None):
-  listview = QListView(menu);
-  listview.addColumn("name");
-  listview.addColumn("value");
-  listview.addColumn("description",100);
-  listview.setRootIsDecorated(True);
-  listview.setShowToolTips(True);
-  listview.setSorting(-1);
-  listview.header().hide();
-  listview.viewport().setBackgroundMode(Qt.PaletteMidlight);
+def populate_option_listview (listview,option_items,executor=None):
+  listview.clear();
   # populate listview
   previtem = None;
   for item in option_items:
     previtem = item.make_listview_item(listview,previtem,executor=executor);
   # add callbacks
-  QObject.connect(listview,SIGNAL("clicked(QListViewItem*)"),_process_listview_click);
-  QObject.connect(listview,SIGNAL("pressed(QListViewItem*)"),_process_listview_press);
-  QObject.connect(listview,SIGNAL("returnPressed(QListViewItem*)"),_process_listview_click);
-  QObject.connect(listview,SIGNAL("spacePressed(QListViewItem*)"),_process_listview_click);
-  QObject.connect(listview,SIGNAL("doubleClicked(QListViewItem*,const QPoint &, int)"),_process_listview_click);
   # add to menu
-  menu.insertItem(listview);
-
-def _process_listview_click (item,*dum):
-  """helper function to process a click on a listview item. Meant to be connected
-  to the clicked() signal of a QListView""";
-  on_click = getattr(item,'_on_click',None);
-  if on_click:
-    on_click();
-  if getattr(item,'_close_on_click',False):
-    item.listView().parent().close();
+  # menu.insertItem(listview);
+  return listview;
   
-def _process_listview_press (item,*dum):
-  """helper function to process a press on a listview item. Meant to be connected
-  to the pressed() signal of a QListView""";
-  on_click = getattr(item,'_on_press',None);
-  if on_click:
-    on_click();
-
 def _resolve_owner (calldepth=2):
   filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
   filename = os.path.basename(filename).split('.')[0];

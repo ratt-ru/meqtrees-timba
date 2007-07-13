@@ -81,11 +81,14 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setTextLabel("Exec");
     self._tb_jobs.setUsesTextLabel(True);
     self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_jobs,"Executes jobs predefined by this TDL script");
-    self._jobmenu = QPopupMenu(self);
-    self._tb_jobs.setPopup(self._jobmenu);
-    self._tb_jobs.setPopupDelay(1);
+    QToolTip.add(self._tb_jobs,"Access run-time options & jobs defined by this TDL script");
     self._tb_jobs.hide();
+    
+    jobs = self._jobmenu = TDLOptionsDialog(self);
+    jobs.setCaption("TDL Jobs & Runtime Options");
+    jobs.setIcon(pixmaps.gear.pm());
+    jobs.hide();
+    QObject.connect(self._tb_jobs,SIGNAL("clicked()"),jobs.exec_loop);
 
     # save menu and button
     self._tb_save = QToolButton(self._toolbar);
@@ -124,24 +127,32 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_runthis_as.addTo(self._tb_runmenu);
 
     # Compile-time options and menu
+    #self._tb_opts = QAction(pixmaps.wrench.iconset(),
+                            #"Options",Qt.ALT+Qt.Key_O,self);
+    #self._tb_opts.setToggleAction(True);
+    #self._tb_opts.setToolTip("Access compile-time options for this TDL script");
+    #self._tb_opts.addTo(self._toolbar);
+    # Compile-time options and menu
     self._tb_opts = QToolButton(self._toolbar);
     self._tb_opts.setIconSet(pixmaps.wrench.iconset());
     self._tb_opts.setTextLabel("Options");
     self._tb_opts.setUsesTextLabel(True);
     self._tb_opts.setTextPosition(QToolButton.BesideIcon);
     QToolTip.add(self._tb_opts,"Access compile-time options for this TDL script");
-    self._options_menu = QPopupMenu(self);
-    self._tb_opts.setPopup(self._options_menu);
-    self._tb_opts.setPopupDelay(1);
-    self._tb_opts.hide();
+    # self._tb_opts.hide();
 
+    opts = self._options_menu = TDLOptionsDialog(parent,
+            ok_label="Compile",ok_icon=pixmaps.blue_round_reload);
+    opts.setCaption("TDL Compile-time Options");
+    opts.setIcon(pixmaps.wrench.pm());
+    QObject.connect(opts,PYSIGNAL("accepted()"),self._run_main_file);
+    opts.hide();
+    QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
+    
     self._qa_recompile = qa_recomp = QAction(pixmaps.blue_round_reload.iconset(),"Re&compile script to apply new options",0,self);
     qa_recomp.setToolTip("You must recompile this script for new options to take effect");
     QObject.connect(qa_recomp,SIGNAL("activated()"),self._run_main_file);
 
-    # self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
-    # self._qa_run.addTo(self._toolbar);
-    # QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
     self._toolbar.addSeparator();
     self._poslabel = QLabel(self._toolbar);
     width = self._poslabel.fontMetrics().width("L:999 C:999");
@@ -227,6 +238,12 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def __del__ (self):
     self.has_focus(False);
+    
+  def show_compile_options (self):
+    self._options_menu.show();
+    
+  def show_runtime_options (self):
+    self._jobmenu.show();
   
   def _file_closed (self):
     self.emit(PYSIGNAL("fileClosed()"),(self,));
@@ -281,6 +298,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     return self._mainfile;
 
   def _run_main_file (self):
+    # self._tb_opts.setOn(False);
     self.clear_errors();
     if self._mainfile and self._editor.isModified():
       self._save_file();
@@ -327,11 +345,6 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._clear_transients();
       label = '[mod] ' + label;
     self._pathlabel.setText(label);
-
-#   def _show_jobs_menu (self):
-#     if self._jobmenu:
-#       pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
-#       self._jobmenu.popup(pos);
 
   def clear_message (self):
     # print "******* clear_message";
@@ -518,12 +531,20 @@ class TDLEditor (QFrame,PersistentCurrier):
     tlab.setFrameShape(QFrame.ToolBarPanel);
     tlab.setFrameShadow(QFrame.Sunken);
     menu.insertItem(tlab);
+    
+  def has_compile_options (self):
+    return self._options_menu.listView().childCount();
+  
+  def has_runtime_options (self):
+    return self._jobmenu.listView().childCount();
 
-  def import_content (self,force=False):
+  def import_content (self,force=False,show_options=False):
     """imports TDL module but does not run _define_forest().
     Depending on autosync/modified state, asks to save or revert.
     If module is already imported, does nothing, unless force=True,
     in which case it imports unconditionally.
+    If do_compile=True, proceeds to show compile-time options on success,
+    or to compile directly if there are no options
     Return value:
       True on successful import
       None if cancelled by user.
@@ -544,56 +565,51 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       if not self.sync_external_file(ask=False):
         return None;
-    # if we already have an imported module and sisk file hasn't changed, do
-    # nothing and return success.
-    if not force and self._tdlmod is not None and self._tdlmod_filetime == self._file_disktime:
-      return True;
-    # reset data members
-    self._tb_opts.hide();
-    _dprint(2,self._filename,"emitting signal for 0 compile-time options");
-    self.emit(PYSIGNAL("hasCompileOptions()"),(self,0,));
-    self._options_menu.clear();
-    self._tdlmod = None;
-    # get text from editor
-    tdltext = str(self._editor.text());
-    try:
-      tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
-    # catch import errors
-    except TDL.CumulativeError,value:
-      _dprint(0,"caught cumulative error, length",len(value.args));
-      self._error_window.set_errors(value.args,message="TDL import failed");
-      return None;
-    except Exception,value:
-      _dprint(0,"caught other error, traceback follows");
-      traceback.print_exc();
-      self._error_window.set_errors([value],message="TDL import failed");
-      return None;
-    # remember module and nodescope
-    self._tdlmod = tdlmod;
-    self._tdltext = tdltext;
-    self._tdlmod_filetime = self._file_disktime;
-    # build options menu from compile-time options
-    self._options_menu.clear();
-    opts = TDLOptions.get_compile_options();
-    if opts:
-      ## old style: self._options_menu.insertTearOffHandle();
-      self._add_menu_label(self._options_menu,"Compile-time options");
-      # add options
-      ## new style: make a listview
+    # if we already have an imported module and disk file hasn't changed, skip
+    #the importing step
+    if force or self._tdlmod is None or self._tdlmod_filetime == self._file_disktime:
+      # reset data members
+      _dprint(2,self._filename,"emitting signal for 0 compile-time options");
+      self.emit(PYSIGNAL("hasCompileOptions()"),(self,0,));
+      self._options_menu.hide();
+      self._options_menu.clear();
+      self._tdlmod = None;
+      # get text from editor
+      tdltext = str(self._editor.text());
       try:
-        TDLOptions.populate_option_listview(self._options_menu,opts);
-      except Exception,value:
-        _dprint(0,"error setting up TDL options GUI");
-        traceback.print_exc();
-        self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+        tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+      # catch import errors
+      except TDL.CumulativeError,value:
+        _dprint(0,"caught cumulative error, length",len(value.args));
+        self._error_window.set_errors(value.args,message="TDL import failed");
         return None;
-      ## old style: add as menu items
-      # TDLOptions.populate_option_menu(self._options_menu,opts);
-      # add re-run button
-      self._qa_recompile.addTo(self._options_menu);
-      self._tb_opts.show();
-      _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-      self.emit(PYSIGNAL("hasCompileOptions()"),(self,len(opts),));
+      except Exception,value:
+        _dprint(0,"caught other error, traceback follows");
+        traceback.print_exc();
+        self._error_window.set_errors([value],message="TDL import failed");
+        return None;
+      # remember module and nodescope
+      self._tdlmod = tdlmod;
+      self._tdltext = tdltext;
+      self._tdlmod_filetime = self._file_disktime;
+      # build options menu from compile-time options
+      opt_listview = self._options_menu.listView();
+      opts = TDLOptions.get_compile_options();
+      if opts:
+        # add options
+        try:
+          TDLOptions.populate_option_listview(opt_listview,opts);
+        except Exception,value:
+          _dprint(0,"error setting up TDL options GUI");
+          traceback.print_exc();
+          self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+          return None;
+        # self._tb_opts.show();
+        _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+        self.emit(PYSIGNAL("hasCompileOptions()"),(self,len(opts),));
+    # success, show options or compile
+    if show_options and self.has_compile_options():
+      self._options_menu.show();
     return True;
       
   def compile_content (self):
@@ -663,33 +679,28 @@ class TDLEditor (QFrame,PersistentCurrier):
     opts = TDLOptions.get_runtime_options();
     self._jobmenu.clear();
     if joblist or opts:
+      self._tb_jobs.setOn(False);
       self._tb_jobs.show();
-      ## old style: self._jobmenu.insertTearOffHandle();
       if opts:
         self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
-        self._add_menu_label(self._jobmenu,"Run-time options");
         ## new style:
         try:
-          TDLOptions.populate_option_listview(self._jobmenu,opts,executor=self._job_executor);
+          TDLOptions.populate_option_listview(self._jobmenu.listView(),opts,executor=self._job_executor);
         except Exception,value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");
           return None;
-        ## old style:
-        # TDLOptions.populate_option_menu(self._jobmenu,opts,executor=self._job_executor);
       if joblist:
-        self._add_menu_label(self._jobmenu,"Predefined jobs");
         for func in joblist:
           name = re.sub("^_tdl_job_","",func.__name__);
           name = name.replace('_',' ');
-          qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
-          if func.__doc__:
-            qa.setToolTip(func.__doc__);
-          qa._call = curry(self.execute_tdl_job,_tdlmod,ns,func,name);
-          QObject.connect(qa,SIGNAL("activated()"),qa._call);
-          qa.addTo(self._jobmenu);
+          self._jobmenu.addAction(name,
+              curry(self.execute_tdl_job,_tdlmod,ns,func,name),
+              icon=pixmaps.gear);
+      self.emit(PYSIGNAL("hasRuntimeOptions()"),(self,True));
     else:
+      self.emit(PYSIGNAL("hasCompileOptions()"),(self,False));
       self._tb_jobs.hide();
 
     if joblist:
@@ -700,6 +711,7 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def execute_tdl_job (self,_tdlmod,ns,func,name):
     """executes a predefined TDL job given by func""";
+    self._jobmenu.hide();
     try:
       # log job 
       TDLOptions.dump_log("running TDL job '%s'"%name);
@@ -805,6 +817,140 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       if TDLEditor.current_editor == self:
         TDLEditor.current_editor = None;
+
+        Form1Layout = QVBoxLayout(self,11,6,"Form1Layout")
+
+        self.listView1 = QListView(self,"listView1")
+        self.listView1.addColumn(self.__tr("Column 1"))
+        Form1Layout.addWidget(self.listView1)
+
+        layout1 = QHBoxLayout(None,0,6,"layout1")
+
+        self.pushButton2 = QPushButton(self,"pushButton2")
+        layout1.addWidget(self.pushButton2)
+        spacer1 = QSpacerItem(40,20,QSizePolicy.Expanding,QSizePolicy.Minimum)
+        layout1.addItem(spacer1)
+
+        self.pushButton3 = QPushButton(self,"pushButton3")
+        layout1.addWidget(self.pushButton3)
+        Form1Layout.addLayout(layout1)
+
+        self.languageChange()
+
+        self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
+        self.clearWState(Qt.WState_Polished)
+
+
+class TDLOptionsDialog (QDialog,PersistentCurrier):
+  """implements a floating window for TDL options""";
+  def __init__ (self,parent,ok_label=None,ok_icon=None):
+    QDialog.__init__(self,parent,"options",True);
+    self.setSizeGripEnabled(True);
+    
+    lo_main = QVBoxLayout(self,11,6);
+    # add option listview
+    self._listview = listview = QListView(self);
+    listview.addColumn("");
+    listview.addColumn("");
+    listview.addColumn("");
+    listview.setRootIsDecorated(True);
+    listview.setShowToolTips(True);
+    listview.setSorting(-1);
+    listview.setResizeMode(QListView.LastColumn);
+    # listview.header().hide();
+    # listview.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
+    # add signals
+    QObject.connect(listview,SIGNAL("clicked(QListViewItem*)"),self._process_listview_click);
+    QObject.connect(listview,SIGNAL("pressed(QListViewItem*)"),self._process_listview_press);
+    QObject.connect(listview,SIGNAL("returnPressed(QListViewItem*)"),self._process_listview_click);
+    QObject.connect(listview,SIGNAL("spacePressed(QListViewItem*)"),self._process_listview_click);
+    QObject.connect(listview,SIGNAL("doubleClicked(QListViewItem*,const QPoint &, int)"),
+                            self._process_listview_click);
+    # listview.setMinimumSize(QSize(200,100));
+    lo_main.addWidget(listview);
+    # set geometry
+    # self.setMinimumSize(QSize(200,100));
+    # self.setGeometry(0,0,200,60);
+    
+    # add buttons on bottom
+    lo_btn  = QHBoxLayout(None,0,6);
+    if ok_label:
+      if ok_icon:
+        tb = QPushButton(ok_icon.iconset(),ok_label,self);
+      else:
+        tb = QPushButton(ok_label,self);
+      lo_btn.addWidget(tb);
+      QObject.connect(tb,SIGNAL("clicked()"),self.accept);
+    # add cancel button
+    tb = QPushButton(pixmaps.red_round_cross.iconset(),"Cancel",self);
+    QObject.connect(tb,SIGNAL("clicked()"),self.hide);
+    spacer = QSpacerItem(40,20,QSizePolicy.Expanding,QSizePolicy.Minimum);
+    lo_btn.addItem(spacer)
+    lo_btn.addWidget(tb);
+    lo_main.addLayout(lo_btn);
+    self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
+    
+  def accept (self):
+    self.emit(PYSIGNAL("accepted()"),());
+    self.hide();
+    
+  def show (self):
+    self._listview.adjustColumn(0);
+    self._listview.adjustColumn(1);
+    return QDialog.show(self);
+  
+  def exec_loop (self):
+    self._listview.adjustColumn(0);
+    self._listview.adjustColumn(1);
+    return QDialog.exec_loop(self);
+  
+  def listView (self):
+    return self._listview;
+  
+  def clear (self):
+    self._listview.clear();
+    
+  class ActionListViewItem (QListViewItem):
+    def paintCell (self,qp,cg,column,width,align):
+      # use bold font for jobs
+      oldfont = qp.font();
+      font = QFont(oldfont);
+      font.setBold(True);
+      qp.setFont(font);
+      QListViewItem.paintCell(self,qp,cg,column,width,align);
+      qp.setFont(oldfont);
+    def width (self,fm,lv,c):
+      return int(QListViewItem.width(self,fm,lv,c)*1.2);
+    
+  def addAction (self,label,callback,icon=None):
+    # find last item
+    last = self._listview.firstChild();
+    while last and last.nextSibling():
+      last = last.nextSibling();
+    item = self.ActionListViewItem(self._listview,last);
+    item.setText(0,label);
+    if icon:
+      item.setPixmap(0,icon.pm());
+    item._on_click = callback;
+    item._close_on_click = True;
+    self._listview.adjustColumn(0);
+    self._listview.adjustColumn(1);
+    
+  def _process_listview_click (self,item,*dum):
+    """helper function to process a click on a listview item. Meant to be connected
+    to the clicked() signal of a QListView""";
+    on_click = getattr(item,'_on_click',None);
+    if on_click:
+      on_click();
+    if getattr(item,'_close_on_click',False):
+      self.hide();
+      
+  def _process_listview_press (self,item,*dum):
+    """helper function to process a press on a listview item. Meant to be connected
+    to the pressed() signal of a QListView""";
+    on_click = getattr(item,'_on_press',None);
+    if on_click:
+      on_click();
 
 class TDLErrorFloat (QMainWindow,PersistentCurrier):
   """implements a floating window for TDL error reports""";

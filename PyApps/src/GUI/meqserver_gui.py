@@ -136,9 +136,10 @@ class meqserver_gui (app_proxy_gui):
     self._tb_jobs.setTextLabel("TDL Exec");
     self._tb_jobs.setUsesTextLabel(True);
     self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_jobs,"Executes jobs predefined by TDL script");
-    self._tb_jobs.setPopupDelay(1);
+    QToolTip.add(self._tb_jobs,"Access run-time options & jobs defined by current TDL script");
     self._tb_jobs.hide();
+    QObject.connect(self._tb_jobs,SIGNAL("clicked()"),self._show_current_tdl_jobs);
+    
     # add TDL run button
     self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Recompile current TDL script",Qt.CTRL+Qt.Key_R,self);
     self._qa_runtdl.addTo(self.maintoolbar);
@@ -149,15 +150,16 @@ class meqserver_gui (app_proxy_gui):
     self._qa_runtdl.setVisible(False);
     self._qa_runtdl.setEnabled(False);
     self._main_tdlfile = None; # this is used by _run_current
+    
     # add TDL options button
     self._tb_opts = QToolButton(self.maintoolbar);
     self._tb_opts.setIconSet(pixmaps.wrench.iconset());
     self._tb_opts.setTextLabel("TDL Options");
     self._tb_opts.setUsesTextLabel(True);
     self._tb_opts.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_opts,"Access compile-time options for this TDL script");
-    self._tb_opts.setPopupDelay(1);
+    QToolTip.add(self._tb_opts,"Access compile-time options for current TDL script");
     self._tb_opts.hide();
+    QObject.connect(self._tb_opts,SIGNAL("clicked()"),self._show_current_tdl_opts);
     # disable TDL job controls while running
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._tb_jobs.setDisabled);
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
@@ -285,14 +287,11 @@ class meqserver_gui (app_proxy_gui):
     show = Config.getbool('tdl-show-line-numbers',True);
     showlnum.setOn(show);
     
-    loadtdl = QAction("&Load TDL script...",Qt.CTRL+Qt.Key_L,self);
-    loadtdl.addTo(tdl_menu);
-    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
-    loadruntdl = QAction("Load && &compile TDL script...",Qt.CTRL+Qt.Key_T,self);
+    loadruntdl = QAction("&Load TDL script...",Qt.CTRL+Qt.Key_T,self);
     loadruntdl.addTo(tdl_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
     loadruntdl.setEnabled(False);
-    QObject.connect(loadruntdl,SIGNAL("activated()"),self._run_tdl_script);
+    QObject.connect(loadruntdl,SIGNAL("activated()"),self._load_tdl_script);
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
     QObject.connect(showlnum,SIGNAL("toggled(bool)"),self._show_tdl_line_numbers);
@@ -634,13 +633,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       
   def _clear_tdl_jobs (self,dum=False):
     """removes the TDL Jobs submenu, if it exists""";
-    if self._mi_tdljobs is not None:
-      self._tdlmenu.removeItem(self._mi_tdljobs);
-      self._mi_tdljobs  = None;
+    self._tb_opts.hide();
     self._tb_jobs.hide();
-    
-  def _run_tdl_script (self,run=False):
-    self._load_tdl_script(True);
     
   def _enable_run_current (self,dum=False):
     """enables/disables the Run TDL QAction. If kernel is connected and a TDL script
@@ -663,6 +657,26 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
       return;
     self._tdltab_compile_file(None,self._main_tdlfile,show=False);
+    
+    
+  def _show_current_tdl_opts (self):
+    if self._main_tdlfile is None:
+      QMessageBox.warning(self,"No TDL script","No TDL script has been loaded.",QMessageBox.Ok);
+      return;
+    tab = self._tdl_tabs.get(self._main_tdlfile,None);
+    if tab:
+      tab.show_compile_options();
+  
+  def _show_current_tdl_jobs (self):
+    if self._main_tdlfile is None:
+      QMessageBox.warning(self,"No TDL script","No TDL script has been loaded.",QMessageBox.Ok);
+      return;
+    if not self._connected:
+      QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
+      return;
+    tab = self._tdl_tabs.get(self._main_tdlfile,None);
+    if tab:
+      tab.show_runtime_options();
   
   class LoadTDLDialog (QFileDialog):
     def __init__ (self,*args):
@@ -678,9 +692,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     def get_replace (self):
       return self._replace.isOn();
     
-  def _load_tdl_script (self,run=False):
-    # tdlgui.run_tdl_script('tdl_test.tdl',self);
-    # return;    
+  def _load_tdl_script (self):
     try: dialog = self._run_tdl_dialog;
     except AttributeError:
       self._run_tdl_dialog = dialog = self.LoadTDLDialog(self,"load tdl dialog",True);
@@ -688,10 +700,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     else:
       dialog.rereadDir();
     dialog.set_replace_visible(bool(self._tdl_tabs));
-    if run:
-      dialog.setCaption("Run TDL Script");
-    else:
-      dialog.setCaption("Load TDL Script");
+    dialog.setCaption("Load TDL Script");
     if dialog.exec_loop() == QDialog.Accepted:
       # close all TDL tabs if requested
       for (path,tab) in self._tdl_tabs.items():
@@ -701,7 +710,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           self.maintab.removePage(tab);
           tab.reparent(QWidget(),0,QPoint(0,0));
       # show this file
-      self.show_tdl_file(str(dialog.selectedFile()),run=run);
+      self.show_tdl_file(str(dialog.selectedFile()),run=True);
       
   def _show_tdl_line_numbers (self,show):
     Config.set('tdl-show-line-numbers',show);
@@ -762,31 +771,55 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(1,'we already have a tab for',pathname);
       if show:
         self._tdltab_show(tab);
-    # ok, we have a working tab now
-    # run if requested
+    # ok, we have a working tab now, run if requested
     if run:
-      self._tdl_compile_tab_contents(tab);
+      self._tdl_import_tab_contents(tab);
     self.splitter.refresh();
     return tab;
     
   def _tdltab_refresh_compile_options (self,tab,nopt=None):
     """called when a tab has a new TDL Options popup""";
     _dprint(2,"new compile options",nopt);
-    if self._mi_tdlopts is not None:
-      self._tdlmenu.removeItem(self._mi_tdlopts);
     if nopt:
-      popup = tab.get_options_popup();
-      basename = os.path.basename(tab.get_filename());
-      self._mi_tdlopts = self._tdlmenu.insertItem(pixmaps.wrench.iconset(),
-        "Change compile-time &options",popup);
-      self._tdlmenu.setWhatsThis(self._mi_tdlopts,"Access compile-time options for TDL script "+basename);
-      self._tb_opts.setPopup(popup);
-      QToolTip.add(self._tb_opts,"Access compile-time options for TDL script "+basename);
       self._tb_opts.show();
     else:
       self._tb_opts.hide();
-      self._mi_tdlopts = None;
     
+  def _tdl_import_tab_contents (self,tab):
+    self._main_tdlfile = tab.get_filename();
+    QApplication.flush();
+    try:
+      self._tb_opts.hide();
+      self._wait_cursor = self.wait_cursor();
+      if tab.import_content(show_options=True):
+        # if compile options are available, actual compile will
+        # proceed when user presses the recompile button, so we
+        # can let the other signal handlers take care of it
+        if tab.has_compile_options():
+          self._tb_opts.show();
+          self._wait_cursor = None;
+        # no options, initiate our own compile
+        else:  
+          if tab.compile_content():
+            # since we were successful, a nodelist will have been requested
+            # by compile_content(). We want to disable automatic nodelist requests
+            # which may have been generated by any other messages in the queue, so
+            # we disable the auto-request for the next second or so
+            self._autoreq_disable_timer.start(1000);
+            self.tb_panel.show();
+            # show/hide the jobs button
+            self._tb_jobs.setShown(tab.has_runtime_options());
+            # do not restore cursor: wait for nodelist
+            # jobs window will be shown when the nodelist arrives
+            if tab.has_runtime_options():
+              self._show_tdljobs_on_nodelist = True;
+      else:
+        self._wait_cursor = None;
+    # on any uncaught exception, restore cursor too
+    except:
+      self._wait_cursor = None;
+      raise;
+  
   def _tdl_compile_tab_contents (self,tab):
     self._main_tdlfile = tab.get_filename();
     basename = os.path.basename(self._main_tdlfile);
@@ -794,7 +827,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     QApplication.flush();
     try:
       self._wait_cursor = self.wait_cursor();
-      self._main_tdlfile = tab.get_filename();
       self._tb_jobs.hide();
       if tab.compile_content():
         # since we were successful, a nodelist will have been requested
@@ -803,19 +835,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         # we disable the auto-request for the next second or so
         self._autoreq_disable_timer.start(1000);
         self.tb_panel.show();
-        # populate the jobs menu
-        if self._mi_tdljobs is not None:
-          self._tdlmenu.removeItem(self._mi_tdljobs);
-        popup = tab.get_jobs_popup();
-        if popup.count():
-          self._mi_tdljobs = self._tdlmenu.insertItem(pixmaps.gear.iconset(),
-            "&Execute TDL job...",popup);
-          self._tdlmenu.setWhatsThis(self._mi_tdljobs,"Execute jobs predefined by TDL script "+basename);
-          self._tb_jobs.setPopup(popup);
-          QToolTip.add(self._tb_jobs,"Execute jobs predefined by TDL script "+basename);
-          self._tb_jobs.show();
-        else:
-          self._mi_tdljobs = None;
+        # show/hide the jobs button
+        self._tb_jobs.setShown(tab.has_runtime_options());
+        # jobs window will be shown when the nodelist arrives
+        if tab.has_runtime_options():
+          self._show_tdljobs_on_nodelist = True;
       else:
         # if compilation failed, restore the wait-cursor
         # (and if successful, wait for a node list to arrive -- it will
@@ -825,7 +849,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     except:
       self._wait_cursor = None;
       raise;
-    
     
   def _tdltab_compile_file (self,origin_tab,filename,show=True):
     # reset all tab icons
@@ -1199,6 +1222,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     else: self.treebrowser.update_forest_status(fst);
     # clear wait-cursor
     self._wait_cursor = None;
+    # if we have just compiled a script, show the jobs
+    if getattr(self,'_show_tdljobs_on_nodelist',False):
+      self._show_tdljobs_on_nodelist = False;
+      self._show_current_tdl_jobs();
+      
     
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
