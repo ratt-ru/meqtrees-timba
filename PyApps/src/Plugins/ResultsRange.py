@@ -100,8 +100,13 @@ class ResultsRange(QWidget):
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
         self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
       else:
-        self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right,
+        # There seems to be occasional problems with some PyQwt versions not
+        # handling the QwtSlider.BgSlot parameter
+        try:
+          self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right,
                           QwtSlider.BgSlot)
+        except:
+          self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right)
         self.slider.setRange(self.minVal, self.maxVal)
         self.slider.setStep(self.minVal)
         self.connect(self.slider, SIGNAL("valueChanged(double)"), self.update_slider)
