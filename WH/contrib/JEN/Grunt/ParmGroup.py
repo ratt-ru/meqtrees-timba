@@ -34,17 +34,22 @@ class ParmGroup (Meow.Parameterization):
     It adds some extra functionality for a group of similar parms, which may find
     their way into the more official Meow system eventually."""
 
-    def __init__(self, ns=None, name=None, quals=[], kwquals={}, namespace=None,
+    def __init__(self, ns=None, name=None,
+                 quals=[], kwquals={}, namespace=None,
                  tags=None,
-                 descr='<descr>', unit=None,
-                 default=0.0, constraint=None,
-                 simul=False, deviation=None,
-                 solve=False,
                  mode='nosolve',
-                 tiling=None, time_deg=0, freq_deg=0,
+                 descr='<descr>',
+                 unit=None,
+                 default=0.0,
+                 # constraint=dict(),
+                 constraint=dict(sum=1.1, prod=0.5, ignore=[1,4]),    # ...temporary...
+                 tiling=None,
+                 time_deg=0, freq_deg=0,
+                 deviation=None):
+    
                  # constrain_min=0.1, constrain_max=10.0,
-                 rider=None, override=None,
-                 **kw):
+                 # rider=None, override=None,
+                 # **kw):
 
         # Scopify ns, if necessary:
         if is_node(ns):
@@ -64,6 +69,7 @@ class ParmGroup (Meow.Parameterization):
         self.tdloption_namespace = namespace
         
         self._TDLCompileOptionsMenu = None   
+        self._TDLConstraintOptionsMenu = None   
         self._TDLCompileOption = dict()
 
         # A ParmGroup may be 'inactive'
@@ -102,36 +108,36 @@ class ParmGroup (Meow.Parameterization):
         # NB: What about a qualifier like '3c84'?
         # qnode = self.ns0[key]
 
-        # If simul==True, the deviation from the default value
+        # If mode=='simulate', the deviation from the default value
         # (e.g. as a function of time [t] and/or freq [f]), is
         # given by a math Expression:
         if not isinstance(deviation, str):
             # deviation = '{0.01~0.001}*sin(2*pi*([t]/{500~50}+{0~1}))'
             deviation = self.deviation_expr(ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
 
-        # It is possible to override values via this dict.....
-        # This requires a little thought....
-        if isinstance(override, dict):
-            pass
-
         # Create the group definition:
-        self._default = default
-        self._tags = tags
-        self._deviation = deviation
-        self._constraint = constraint
         self._descr = descr
         self._unit = unit
+        self._tags = tags
+
+        # Local values for compile options:
+        self._default = default
+        self._mode = mode
+        self._deviation = deviation
         self._tiling = tiling
         self._time_deg = time_deg
         self._freq_deg = freq_deg
-        self._rider = rider
+        if not isinstance(constraint, dict):
+            constraint = dict()
+        for key in constraint.keys():
+            setattr(self, '_'+key, constraint[key])
+        self._callback_mode(self._mode)       
+
+        # Initialise internal lists:
         self._nodes = []
         self._solvable = []
         self._plot_labels = []
 
-        self._simul = None                # <-----!
-        self._solve = None                # <-----!
-        self._callback_mode(mode)          # <-----!
 
         return None
 
@@ -141,6 +147,10 @@ class ParmGroup (Meow.Parameterization):
     def len(self):
         """Return the number of group members (nodes)"""
         return len(self._nodes)
+
+    def mode(self):
+        """Return the object 'mode' (e.g. solve, or simulate)"""
+        return self._mode
 
     def active (self, new=None):
         """Get/set its 'active' switch"""
@@ -152,12 +162,16 @@ class ParmGroup (Meow.Parameterization):
 
     def nodescope (self, ns=None):
         """Get/set the internal nodescope (can also be a node)"""
-        if is_node(ns):
-            self.ns = ns.QualScope()        
-        elif ns:
-            self.ns = ns
+        if ns:
+            if is_node(ns):
+                self.ns = ns.QualScope()        
+            else:
+                self.ns = ns
+            key = self.name
+            self.ns = self.ns[key](key).QualScope()            #.....!!?
         return self.ns
 
+    #---------------------------------------------------------------
 
     def namespace(self, prepend=None, append=None):
         """Return the namespace string (used for TDL options etc).
@@ -174,6 +188,8 @@ class ParmGroup (Meow.Parameterization):
         if isinstance(append, str): ss += ' '+append
         return ss
     
+
+
     #===============================================================
     # Display of the contents of this object:
     #===============================================================
@@ -183,7 +199,8 @@ class ParmGroup (Meow.Parameterization):
         ss = 'Grunt.ParmGroup:'
         ss += ' '+str(self.name)
         ss += '  ('+str(self.ns['<>'].name)+')'
-        ss += '  (n='+str(self.len())+')'
+        ss += '  len='+str(self.len())
+        ss += '  mode='+str(self.mode())
         if self._active:
             ss += '  (active)'
         else:
@@ -196,16 +213,13 @@ class ParmGroup (Meow.Parameterization):
         print ' '
         print '** '+self.oneliner()
         if txt: print '  * (txt='+str(txt)+')'
-        rr = dict(default=self._default,
-                  tags=self._tags,
-                  simul=self._simul,
-                  constraint=self._constraint,
-                  descr=self._descr,
-                  unit=self._unit,
-                  tiling=self._tiling,
-                  time_deg=self._time_deg,
-                  freq_deg=self._freq_deg)
-        print '  * '+str(rr)
+        print '  * Descr: '+str(self._descr)
+        if self.mode()=='simulate':
+            print '  * Deviation: '+str(self._deviation)
+        rr = dict(default=self._default, tiling=self._tiling)
+        print '  * options: '+str(rr)
+        rr = dict(tags=self._tags, unit=self._unit)
+        print '  * Misc: '+str(rr)
         #...............................................................
         print '  * group members ('+str(len(self._nodes))+'): (solvable, plot_label, node)'
         for k in range(self.len()):
@@ -214,7 +228,6 @@ class ParmGroup (Meow.Parameterization):
             s += '  '+str(self._plot_labels[k])
             s += '  '+str(self._nodes[k])
             print '    - '+s
-        print '  * Deviation: '+str(self._deviation)
         #...............................................................
         print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
         if full:
@@ -244,10 +257,17 @@ class ParmGroup (Meow.Parameterization):
         print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
         for key in self._TDLCompileOption.keys():
             oo = self._TDLCompileOption[key]
-            if getattr(oo, 'value', None):
-                print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
-            else:
+            noexist = -1.23456789
+            if getattr(oo, 'value', noexist)==noexist:
                 print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
+            else:
+                tdlvalue = self._TDLCompileOption[key].value
+                selfvalue = getattr(self, key, noexist)
+                if tdlvalue==selfvalue:
+                    print '    - '+str(key)+' = '+str(tdlvalue)
+                else:
+                    print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
+        print '  * TDLConstraintOptionsMenu: '+str(self._TDLConstraintOptionsMenu)
        #...............................................................
         print '**\n'
         return True
@@ -283,37 +303,36 @@ class ParmGroup (Meow.Parameterization):
 
     def create_member (self, quals=[], kwquals={},
                        value=None, tags=[], solvable=True,            # may override
-                       simul=None, default=None, deviation=None,      # may override
+                       mode=None, default=None, deviation=None,       # may override
                        tiling=None, time_deg=0, freq_deg=0):          # may override for Meow.Parm
         """Create the specified (quals, kwquals) member of the parmgroup.
         By default, the common attrbutes of the group will be used
         to create the relevant Meow.Parm or simulation subtree, but some of
         these attributes may be overridden here...."""
 
+        if not self.active():
+            s = '** parmgroup not active: '+self.name
+            # print s,'\n'
+            raise ValueError,s
+
         # Make the qualified node (qnode) for the new group member,
         # and check whether it already exists: 
         quals = self.quals2list(quals)
-        if not isinstance(simul, bool):                # simul not explicitly specfied
-             simul = self._simul                       # use the group default
+        if not isinstance(mode, str):                      # mode not explicitly specfied
+             mode = self._mode                      # use the group default
 
         # Make qnode and nodename
-        if simul:
-            # s = (self.ns.dummy).name.split(':')        # make a list of current qualifiers
-            # if not 'simul' in s:                       #   if necessary
-            #     quals.append('simul')                  #     add 'simul' qualifier
-            # qnode = self.ns[self.name](*quals)(**kwquals)    # qualified node (stub)       
+        if mode=='simulate':
             qnode = self.ns['simul'](*quals)(**kwquals)    # qualified node (stub)       
-            nodename = qnode.name                      # used in ._add_parm()
+            nodename = qnode.name                          # used in ._add_parm()
         else:
-            # qnode = self.ns0[self.name](*quals)(**kwquals)   # qualified node (stub)       
-            # nodename = self.ns[self.name](*quals)(**kwquals).name
-            qnode = self.ns0['parm'](*quals)(**kwquals)   # qualified node (stub)       
+            qnode = self.ns0['parm'](*quals)(**kwquals)    # qualified node (stub)       
             nodename = self.ns['parm'](*quals)(**kwquals).name
 
         if qnode.initialized():
             s = '** parmgroup member already exists: '+str(qnode)
-            print s,'\n'
-            # raise ValueError,s
+            # print s,'\n'
+            raise ValueError,s
 
         # Make the plot_label:
         plot_label = self.name
@@ -326,7 +345,7 @@ class ParmGroup (Meow.Parameterization):
 
         # Use the Meow Parm/Parameterization mechanism as much as possible:
         node = None
-        if simul:
+        if mode=='simulate':
             # Return the root node of a subtree that simulates the MeqParm
             # NB: The default (rr) default and deviation may be overridden here
             rootnode = self._simul_subtree(qnode, default=default,
@@ -398,10 +417,13 @@ class ParmGroup (Meow.Parameterization):
 
         # Make a root node with the correct name (qnode) and tags:
         ptags = deepcopy(tags)
-        if not 'simul' in ptags: ptags.append('simul')
+        if not 'simul' in ptags:
+            ptags.append('simul')
         qnode << Meq.Identity(node, tags=ptags)
-        if trace: print '  -> qnode =',str(qnode)
-        if show: display.subtree(qnode)
+        if trace:
+            print '  -> qnode =',str(qnode)
+        if show:
+            display.subtree(qnode)
         return qnode
 
 
@@ -426,6 +448,7 @@ class ParmGroup (Meow.Parameterization):
         self._TDLCompileOptionsMenu.show(show)
         return self._TDLCompileOptionsMenu
 
+
     #..................................................................
 
 
@@ -441,7 +464,7 @@ class ParmGroup (Meow.Parameterization):
         if not self._TDLCompileOption.has_key(key):
             doc = 'MeqParm default value'
             self._TDLCompileOption[key] = TDLOption(key, 'default value',
-                                                    [getattr(self, key)],
+                                                    [getattr(self,key)],
                                                     more=float, doc=doc, namespace=self)
         oolist.append(self._TDLCompileOption[key])
 
@@ -449,7 +472,7 @@ class ParmGroup (Meow.Parameterization):
         if not self._TDLCompileOption.has_key(key):
             doc = 'Nr of time-slots per subtile solution. None means all.'
             self._TDLCompileOption[key] = TDLOption(key, '(time) sub-tile size',
-                                                    [getattr(self, key),1,2,4,8,16,None],
+                                                    [getattr(self,key),1,2,4,8,16,None],
                                                     more=int, doc=doc, namespace=self)
         oolist.append(self._TDLCompileOption[key])
 
@@ -457,7 +480,7 @@ class ParmGroup (Meow.Parameterization):
         if not self._TDLCompileOption.has_key(key):
             doc = 'Degree of time-polynomial to be solved for.'
             self._TDLCompileOption[key] = TDLOption(key, 'time deg. of sol.',
-                                                    [getattr(self, key),0,1,2,3,4],
+                                                    [getattr(self,key),0,1,2,3,4],
                                                     more=int, doc=doc, namespace=self)
         oolist.append(self._TDLCompileOption[key])
 
@@ -465,25 +488,34 @@ class ParmGroup (Meow.Parameterization):
         if not self._TDLCompileOption.has_key(key):
             doc = 'Degree of freq-polynomial to be solved for.'
             self._TDLCompileOption[key] = TDLOption(key, 'freq deg. of sol.',
-                                                    [getattr(self, key),0,1,2,3,4],
+                                                    [getattr(self,key),0,1,2,3,4],
                                                     more=int, doc=doc, namespace=self)
         oolist.append(self._TDLCompileOption[key])
 
-        if False:
-            key = '_constraint'
-            if not self._TDLCompileOption.has_key(key):
-                doc = 'Constraint to be used for the solution.'
-                opt = [getattr(self, key), 'sum=0.0', 'prod=1.0', None],
-                self._TDLCompileOption[key] = TDLOption(key, 'sol. constraint', opt,
-                                                        more=str, doc=doc, namespace=self)
-            oolist.append(self._TDLCompileOption[key])
+        if True:
+            cclist = []
+            noexist = -1.23456789
+
+            key = '_sum'
+            if not getattr(self,key,noexist)==noexist:
+                if not self._TDLCompileOption.has_key(key):
+                    doc = 'The sum of the group members should be equal to the specified value.'
+                    opt = [getattr(self,key), 0.0, None]
+                    self._TDLCompileOption[key] = TDLOption(key, 'sum. constraint', opt,
+                                                            more=float, doc=doc, namespace=self)
+                    cclist.append(self._TDLCompileOption[key])
+
+            # Make the submenu:
+            om = TDLCompileMenu('sol. constraint', *cclist)
+            self._TDLConstraintOptionsMenu = om
+            oolist.append(om)
 
         #---------------------------------
         # Simulation options (simul=True):
 
         key = '_deviation'
         if not self._TDLCompileOption.has_key(key):
-            opt = [getattr(self, key)]
+            opt = [getattr(self,key)]
             opt.append(self.deviation_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
             opt.append(self.deviation_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
             doc = """Expression for simulated deviation(f,t) from the MeqParm default value.
@@ -491,10 +523,8 @@ class ParmGroup (Meow.Parameterization):
             - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
             - The notation between curly brackets allows random variation: {mean~stddev}"""
             oo = TDLOption(key, 'deviation from default',
-                           opt, more=str,
-                           doc=doc, namespace=self)
-            oo.set_custom_value(getattr(self, key),
-                                select=True, save=True)
+                           opt, more=str, doc=doc, namespace=self)
+            oo.set_custom_value(getattr(self,key), select=True, save=True)
             oo.when_changed(self._callback_deviation)
             self._TDLCompileOption[key] = oo
         oolist.append(self._TDLCompileOption[key])
@@ -511,7 +541,7 @@ class ParmGroup (Meow.Parameterization):
             Changing the mode will change the visible options.
             It may also affect some of the 'larger' options upstream..... 
             """
-            opt = ['solve','nosolve','simulate']
+            opt = [getattr(self,key),'solve','nosolve','simulate']
             self._TDLCompileOption[key] = TDLOption(key, 'mode (solve/simul)',
                                                     opt, doc=doc, namespace=self)
             self._TDLCompileOption[key].when_changed(self._callback_mode)
@@ -541,22 +571,20 @@ class ParmGroup (Meow.Parameterization):
         """Function called whenever TDLOption _mode changes"""
         # print '** _callback_mode(',mode,'):'
         simul_options = ['_deviation']
-        solve_options = ['_default','_tiling','_time_deg','_freq_deg','_constraint']
+        solve_options = ['_default','_tiling','_time_deg','_freq_deg']
+        noexist = -1.23456789
+        for key in ['_sum','_product','_ignore']:
+            if not getattr(self,key,noexist)==noexist:
+                solve_options.append(key)
         if mode=='solve':
             show = solve_options
             hide = simul_options
-            self._simul = False
-            self._solve = True
         elif mode=='nosolve':
             show = []
             hide = simul_options + solve_options
-            self._simul = False
-            self._solve = False
         elif mode=='simulate':
             show = simul_options
             hide = solve_options
-            self._simul = True
-            self._solve = False
         key = '_mode'
         if self._TDLCompileOption.has_key(key):
             self._TDLCompileOption[key].set_value(mode, callback=False)
@@ -566,6 +594,8 @@ class ParmGroup (Meow.Parameterization):
         for key in hide:
             if self._TDLCompileOption.has_key(key):
                 self._TDLCompileOption[key].show(False)
+        if self._TDLConstraintOptionsMenu:
+            self._TDLConstraintOptionsMenu.show(mode=='solve')
         return True
         
 
@@ -577,9 +607,10 @@ class ParmGroup (Meow.Parameterization):
         # print '** set_TDLOption(',key,value,'):'
         if self._TDLCompileOption.has_key(key):
             self._TDLCompileOption[key].set_value(value)
-            if key=='_mode':
+            setattr(key,value)
+            if key=='mode':
                 self._callback_mode(value)
-            elif key=='_deviation':
+            elif key=='deviation':
                 self._callback_deviation(value)
         return True
 
@@ -587,16 +618,15 @@ class ParmGroup (Meow.Parameterization):
 
     def _read_TDLCompileOptions(self, trace=False):
         """Helper function to read TDLCompileOptions into local variables
-        with the same name: e.g. opt['_default'] -> self._default
+        with the same name: e.g. opt['default'] -> self._default
         """
         if trace: print '\n** _read_TDLCompileOptions:'
         for key in self._TDLCompileOption.keys():
             was = getattr(self,key)
             new = self._TDLCompileOption[key].value
             setattr(self, key, new)
-            new = getattr(self,key)
             if trace: print ' -',key,':',was,'->',new
-            if key=='_mode':
+            if key=='mode':
                 self._callback_mode(new)
         if trace: print
         return True
@@ -613,7 +643,7 @@ class ParmGroup (Meow.Parameterization):
         if trace: print '\n** _reset_TDLCompileOptions:'
         for key in self._TDLCompileOption.keys():
             was = self._TDLCompileOption[key].value
-            new = getattr(self,key)
+            setattr(self,key,value)
             self._TDLCompileOption[key].set_value(new, save=True)
             new = self._TDLCompileOption[key].value
             if trace: print ' -',key,':',was,'->',new
@@ -637,7 +667,7 @@ class ParmGroup (Meow.Parameterization):
     #----------------------------------------------------------------
 
     def find_nodes (self, tags=None, solvable=None,
-                      return_NodeList=True, trace=False):
+                    return_NodeList=True, trace=False):
         """Return a list with the specified selection of the nodes (names)
         that are known to this parmgroup. The nodes may be specified by their
         tags (n.search) or by parmgroups. The defaults are
@@ -647,16 +677,10 @@ class ParmGroup (Meow.Parameterization):
             print '\n** find_nodes(tags=',tags,', solvable=',solvable,'):'
         nodes = []
         labels = []
-        name = 'parms'
 
         if tags:
             # A tags specification has precedence:
             tags = self.tags2list(tags)
-            name = 'tags'
-            for k,tag in enumerate(tags):
-                name += str(tag)
-            if trace:
-                print ' -- tags =',tags,' (name=',name,')'
             class_name = None
             if solvable:
                 tags.append('solvable')
@@ -668,15 +692,16 @@ class ParmGroup (Meow.Parameterization):
                 labels.append(node.name)
 
         elif not isinstance(solvable, bool):            # solvable not specified
-                nodes.extend(self._nodes)               # include all nodes
-                labels.extend(self._plot_labels)        # include all 
-
+            nodes.extend(self._nodes)                   # include all nodes
+            labels.extend(self._plot_labels)            # include all 
+                
         else:
             for k,node in enumerate(self._nodes):
                 if self._solvable[k]==solvable:         # the specified kind
                     nodes.append(node)                  # selected nodes only
                     labels.append(self._plot_labels[k])       
 
+        # Report the found nodes:
         if trace:
             for k,node in enumerate(nodes):
                 print '  - (',labels[k],'):',str(node)
@@ -684,9 +709,18 @@ class ParmGroup (Meow.Parameterization):
 
         # Optionally, return a NodeList object of the selected nodes and their labels
         if return_NodeList:
+            if tags:
+                name = 'tags'
+                for k,tag in enumerate(tags):
+                    name += str(tag)
+                if trace:
+                    print ' -- tags =',tags,' (name=',name,')'
+            else:
+                name = 'parms'
             nn = NodeList.NodeList(self.ns, name, nodes=nodes, labels=labels)
             if trace: print ' ->',nn.oneliner(),'\n'
             return nn
+
         else:
             # Otherwise, just return a list of nodes:
             return nodes
@@ -848,8 +882,8 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 0:
-    pg = ParmGroup (name='Gphase', tiling=3, simul=True, namespace='fff')
+if 1:
+    pg = ParmGroup (name='ParmGroup', tiling=3, mode='simulate', namespace='jjj')
     pg.TDLCompileOptionsMenu()
 
 
@@ -863,14 +897,15 @@ def _define_forest(ns):
         pg.create_member(1)
         pg.create_member(2.1, value=(ns << -89))
         pg.create_member(2, value=34)
-        pg.create_member(3, tiling=5, simul=False)
+        pg.create_member(3, tiling=5, mode='solve')
         pg.create_member(7, freq_deg=2)
 
-    if 1:
-        cc.append(pg.bundle(show=True))
-        cc.append(pg.plot_timetracks(show=True))
-        cc.append(pg.plot_rvsi(show=True))
-        cc.append(pg.plot_spectra(show=True))
+    if 0:
+        bookpage = 'test'
+        cc.append(pg.bundle(bookpage=bookpage, show=True))
+        cc.append(pg.plot_timetracks(bookpage=bookpage, show=True))
+        cc.append(pg.plot_rvsi(bookpage=bookpage, show=True))
+        cc.append(pg.plot_spectra(bookpage=bookpage, show=True))
 
     if 0:
         nn = pg.solvable(tags='GJones')
@@ -880,12 +915,8 @@ def _define_forest(ns):
 
     pg.display('final', full=True)
 
-    print '\n** cc =',cc
-    for c in cc:
-        print '  - ',str(c)
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    print '->',str(ns.result)
     return True
 
 
@@ -919,16 +950,22 @@ if __name__ == '__main__':
 
 
     if 1:
-        pg = ParmGroup(ns, 'Gphase', tiling=3, simul=False)
-        # pg = ParmGroup(ns, 'Ggain', default=1.0, freq_deg=2, simul=False)
+        mode = 'simulate'
+        mode = 'nosolve'
+        mode = 'solve'
+        pg = ParmGroup(ns, 'Gphase', tiling=3, mode=mode)
         pg.display('initial')
 
-    if 1:
+    if 0:
         pg.create_member(1)
         pg.create_member(2.1, value=(ns << -89))
-        pg.create_member(2, value=34)
-        pg.create_member(3, tiling=5, simul=False)
+        pg.create_member(2, value=34, mode='simulate')
+        pg.create_member(3, tiling=5, mode='nosolve')
+        pg.create_member(4, tiling=5, mode='solve')
         pg.create_member(7, freq_deg=2)
+
+    if 1:
+        pg.TDLCompileOptionsMenu()
 
     if 0:
         pg.bundle(show=True)
@@ -955,13 +992,16 @@ if __name__ == '__main__':
 
     if 0:
         pg.solvable(trace=True)
-        pg.find_nodes(trace=True)
-        pg.find_nodes(solvable=False, trace=True)
-        pg.find_nodes(solvable=True, trace=True)
 
     if 0:
         pg.solvable(tags='Gphase', trace=True)
         pg.solvable(tags=['Gphase','Ggain'], trace=True)
+
+    if 0:
+        pg.find_nodes(trace=True)
+        pg.find_nodes(solvable=False, trace=True)
+        pg.find_nodes(solvable=True, trace=True)
+
 
 
 

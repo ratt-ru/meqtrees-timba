@@ -7,6 +7,7 @@
 # - 30mar2007: adapted to QualScope etc
 # - 07jun2007: adapted to NodeList/ParameterizationPlus
 # - 02jul2007: adapted to Jones Contract
+# - 16jul2007: changed simul to mode
 
 # Description:
 
@@ -32,20 +33,20 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     def __init__(self, ns=None, name='<j>',
                  quals=[], kwquals={},
-                 namespace=None,                                 # <---- !!
+                 namespace=None,                               # <---- !!
                  descr='<descr>',
                  stations=None,
                  polrep='linear',
                  telescope=None, band=None,
-                 simulate=False):
+                 mode='nosolve'):
 
         # List of (array) station indices:
         indices = deepcopy(stations)
         if indices==None:
             indices = range(1,4)                               # for testing convenience....
 
-        # If simulate, use subtrees that simulate MeqParm behaviour:
-        self._simulate = simulate
+        # Modes can be solve, nosolve, simulate:
+        self._mode = mode                                      # passed on to parmgroups
 
         # Some telescope-specific information:
         self._telescope = telescope                            # e.g. WSRT or VLA
@@ -53,7 +54,7 @@ class Joneset22 (Matrixet22.Matrixet22):
 
         # Add some qualifiers, if necessary:
         quals = self.p_quals2list(quals)
-        if self._simulate: quals.append('simul')
+        ## if self._mode=='simulate': quals.append('simul')      # NOT a good idea...
         if self._telescope: quals.append(self._telescope)
         if self._band: quals.append(self._band)
 
@@ -187,8 +188,6 @@ class Joneset22 (Matrixet22.Matrixet22):
     def define_parmgroups_preamble(self):
         """Generic function that should be called at the start of a specific
         re-implementation of .define_parmgroups() by a derived class."""
-        if self._TDLCompileOption.has_key('simul'):
-            self._simulate = self._TDLCompileOption['simul'].value
         return True
 
     #----------------------------------------------------------------------
@@ -300,7 +299,8 @@ class GJones (Joneset22):
                  polrep='linear',
                  telescope=None, band=None,
                  override=None,
-                 stations=None, simulate=False):
+                 stations=None,
+                 mode='nosolve'):
         
         self._jname = 'GJones'
         Joneset22.__init__(self, ns=ns, quals=quals, name=name,
@@ -308,7 +308,7 @@ class GJones (Joneset22):
                            polrep=polrep,
                            telescope=telescope, band=band,
                            stations=stations,
-                           simulate=simulate)
+                           mode=mode)
 
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
         self._TDLCompileOption_tobesolved = [None, self._jname, 'Gphase', 'Ggain'] 
@@ -335,9 +335,10 @@ class GJones (Joneset22):
                                      default=0.0, unit='rad',
                                      tiling=1, time_deg=0, freq_deg=0,
                                      constraint=dict(sum=0.0, first=0.0),
-                                     simul=self._simulate, deviation=dev,
+                                     mode=self._mode,
+                                     deviation=dev,
                                      # override=override,
-                                     rider=rider,
+                                     # rider=rider,
                                      tags=[self._pname,self._jname])
             self._pg[pol][self._pname] = pg
 
@@ -348,9 +349,10 @@ class GJones (Joneset22):
                                      tiling=None, time_deg=2, freq_deg=0,
                                      # constrain_min=0.1, constrain_max=10.0,
                                      constraint=dict(product=1.0),
-                                     simul=self._simulate, deviation=dev,
+                                     mode=self._mode,
+                                     deviation=dev,
                                      # override=override,
-                                     rider=rider,
+                                     # rider=rider,
                                      tags=[self._gname,self._jname])
             self._pg[pol][self._gname] = pg
 
@@ -401,7 +403,8 @@ class BJones (Joneset22):
                  telescope=None, band=None,
                  tfdeg=[0,5],
                  override=None,
-                 stations=None, simulate=False):
+                 stations=None,
+                 mode='nosolve'):
         
         self._jname = 'BJones'
         self._tfdeg = tfdeg
@@ -409,7 +412,7 @@ class BJones (Joneset22):
                            namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations,
-                           simulate=simulate)
+                           mode=mode)
 
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
         self._TDLCompileOption_tobesolved = [None, self._jname, 'Breal', 'Bimag']
@@ -457,9 +460,10 @@ class BJones (Joneset22):
                                      tiling=1,
                                      time_deg=self._tfdeg[0],
                                      freq_deg=self._tfdeg[1],
-                                     simul=self._simulate, deviation=dev,
+                                     mode=self._mode,
+                                     deviation=dev,
                                      # override=override,
-                                     rider=rider,
+                                     # rider=rider,
                                      tags=[self._iname,self._jname])
             self._pg[pol][self._iname] = pg
 
@@ -469,9 +473,10 @@ class BJones (Joneset22):
                                      tiling=None,
                                      time_deg=self._tfdeg[0],
                                      freq_deg=self._tfdeg[1],
-                                     simul=self._simulate, deviation=dev,
+                                     mode=self._mode,
+                                     deviation=dev,
                                      # override=override,
-                                     rider=rider,
+                                     # rider=rider,
                                      tags=[self._rname,self._jname])
             self._pg[pol][self._rname] = pg
 
@@ -517,7 +522,8 @@ class JJones (Joneset22):
                  polrep='linear',
                  telescope=None, band=None,
                  override=None,
-                 stations=None, simulate=False):
+                 stations=None,
+                 mode='nosolve'):
 
         self._jname = 'JJones'
         self._diagonal = diagonal
@@ -525,7 +531,7 @@ class JJones (Joneset22):
                            namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations,
-                           simulate=simulate)
+                           mode=mode)
         
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
         self._TDLCompileOption_tobesolved = [None, self._jname, 'Jdiag']
@@ -583,7 +589,8 @@ class JJones (Joneset22):
                                          descr=rim+' part of matrix element '+ename,
                                          default=default, unit='Jy',
                                          tiling=None, time_deg=0, freq_deg=0,
-                                         simul=self._simulate, deviation=dev,
+                                         mode=self._mode,
+                                         deviation=dev,
                                          constraint=constraint,
                                          # override=override,
                                          tags=[self._jname,'Jdiag'])
@@ -598,7 +605,8 @@ class JJones (Joneset22):
                                              descr=rim+' part of matrix element '+ename,
                                              default=0.0, unit='Jy',
                                              tiling=None, time_deg=0, freq_deg=0,
-                                             simul=self._simulate, deviation=dev,
+                                             mode=self._mode,
+                                             deviation=dev,
                                              constraint=dict(sum=0.0),
                                              # override=override,
                                              tags=[self._jname,'Joffdiag'])
@@ -643,14 +651,15 @@ class FJones (Joneset22):
                  namespace=None,
                  polrep='linear', telescope=None, band=None,
                  override=None,
-                 stations=None, simulate=False):
+                 stations=None,
+                 mode='nosolve'):
         
         self._jname = 'FJones'
         Joneset22.__init__(self, ns=ns, quals=quals, name=name,
                            namespace=namespace,
                            polrep=polrep, telescope=telescope, band=band,
                            stations=stations,
-                           simulate=simulate)
+                           mode=mode)
         
         # Define the list of (groups of) parmgroups to be used in the TDL menu: 
         self._TDLCompileOption_tobesolved = [None, self._jname, 'RM'] 
@@ -669,7 +678,8 @@ class FJones (Joneset22):
         pg = self.p_group_define(self._rname,  
                                  descr='Faraday Rotation Measure (rad/m2)',
                                  default=0.0, unit='rad/m2',
-                                 simul=self._simulate, deviation=dev,
+                                 mode=self._mode,
+                                 deviation=dev,
                                  # override=override,
                                  tags=[self._rname,self._jname])
         self._pg[self._rname] = pg
@@ -728,7 +738,7 @@ class FJones (Joneset22):
 
 
 if False:
-    j22 = Joneset22(quals=[], simulate=True)
+    j22 = Joneset22(quals=[], mode='simulate')
     j22.TDLCompileOptionsMenu()
     j22.display()
     
@@ -750,12 +760,12 @@ def _define_forest(ns):
 
     cc = []
     jj = []
-    simulate = True
+    mode = 'simulate'
 
     j22.nodescope(ns)
 
     if 0:
-        jones = GJones(ns, quals=[], simulate=simulate)
+        jones = GJones(ns, quals=[], mode=mode)
         jj.append(jones)
         # cc.append(jones.p_bundle(combine='Composer'))
         # cc.append(jones.p_plot_rvsi())
@@ -766,7 +776,7 @@ def _define_forest(ns):
         # jones.display(full=True)
 
     if 0:
-        j2 = GJones(ns, quals=[], simulate=False)
+        j2 = GJones(ns, quals=[], mode='nosolve')
         cc.append(j2.visualize())
         # j2.display(full=True)
 
@@ -831,7 +841,7 @@ if __name__ == '__main__':
     jj = []
 
     if 1:
-        jones = GJones(ns, quals='3c84', simulate=False)
+        jones = GJones(ns, quals='3c84', mode='simulate')
         jones.make_jones_matrices()
         jj.append(jones)
         # jones.visualize()
@@ -845,19 +855,19 @@ if __name__ == '__main__':
         j22 = jones(5)
 
     if 0:
-        jones = BJones(ns, quals=['3c84'], simulate=False, telescope='WSRT', band='21cm')
+        jones = BJones(ns, quals=['3c84'], mode='nosolve', telescope='WSRT', band='21cm')
         jj.append(jones)
         # jones.visualize()
         jones.display(full=True)
 
     if 0:
-        jones = JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
+        jones = JJones(ns, quals=['3c84'], diagonal=True, mode='simulate')
         jj.append(jones)
         jones.display(full=True)
 
     if 0:
-        jones = FJones(ns, polrep='linear',simulate=True )
-        # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
+        jones = FJones(ns, polrep='linear',mode='simulate' )
+        # jones = FJones(ns, polrep='circular', quals='3c89', mode='simulate')
         jj.append(jones)
         # jones.visualize()
         jones.display(full=True, recurse=12)

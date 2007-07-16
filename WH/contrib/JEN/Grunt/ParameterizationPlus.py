@@ -60,8 +60,8 @@ class ParameterizationPlus (Meow.Parameterization):
         self._TDLCompileOptionsMenu = None   
         self._TDLCompileOption = dict()
 
-        self._TDLCompileOption_tobesolved = [None, 'A', 'B', ['A','B']]
-
+        # Local values for options (for use without TDLOptions)
+        self._opt = dict()
 
 
         #------------------------------------
@@ -135,8 +135,11 @@ class ParameterizationPlus (Meow.Parameterization):
                 self.ns = ns.QualScope()        
             else:
                 self.ns = ns
+            # Pass the new nodescope on to its parmgroup(s):
             for key in self._parmgroups.keys():
-                self._parmgroups[key].ns = self.ns[key](key).QualScope()    # <---- !!
+                # self._parmgroups[key].ns = self.ns[key](key).QualScope()    # <---- !!
+                self._parmgroups[key].nodescope(self.ns)                    # <---- !!
+        # Always return the current nodescope:
         return self.ns
 
 
@@ -182,43 +185,29 @@ class ParameterizationPlus (Meow.Parameterization):
             else:
                 print '    - ('+key+'):   ... not active ...'
         #...............................................................
-        print '  * Deviation expressions (simul only):'
+        print '  * Deviation expressions (mode==simulate only):'
         for key in self._parmgroups:
             pg = self._parmgroups[key]
-            if pg._simul:
+            if pg.get_mode()=='simulate':
                 print '    - ('+key+'): '+pg._deviation
         #...............................................................
         print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.p_gogs():
             print '    - ('+key+'): '+str(self._parmgogs[key])
         #...............................................................
-        print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
-        if full:
-            for key in self._parmdefs:
-                rr = list(deepcopy(self._parmdefs[key]))
-                rr[0] = str(rr[0])
-                print '    - ('+key+'): '+str(rr)
-        #...............................................................
-        print '  * Meow.Parm options (in _parmdefs):'
-        if full:
-            for key in self._parmdefs:
-                value = self._parmdefs[key][0]
-                if isinstance(value, Meow.Parm):
-                    print '    - ('+key+'): (='+str(value.value)+') '+str(value.options)
-        #...............................................................
-        print '  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
-        if full:
-            for key in self._parmnodes:
-                rr = self._parmnodes[key]
-                print '    - ('+key+'): '+str(rr)
-        #...............................................................
         print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
         for key in self._TDLCompileOption.keys():
             oo = self._TDLCompileOption[key]
-            if getattr(oo, 'value', None):
-                print '    - '+str(key)+' = '+str(self._TDLCompileOption[key].value)
-            else:
+            noexist = -1.23456789
+            if getattr(oo, 'value', noexist)==noexist:
                 print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
+            else:
+                tdlvalue = self._TDLCompileOption[key].value
+                selfvalue = getattr(self, key, noexist)
+                if tdlvalue==selfvalue:
+                    print '    - '+str(key)+' = '+str(tdlvalue)
+                else:
+                    print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
         #...............................................................
         print '  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -227,7 +216,34 @@ class ParameterizationPlus (Meow.Parameterization):
             if full:
                 for v in vv: print '    - '+str(type(v))+' '+str(v)
         #...............................................................
+        if self._parmdefs:
+            print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
+            if full:
+                for key in self._parmdefs:
+                    rr = list(deepcopy(self._parmdefs[key]))
+                    rr[0] = str(rr[0])
+                    print '    - ('+key+'): '+str(rr)
+            print '  * Meow.Parm options (in _parmdefs):'
+            if full:
+                for key in self._parmdefs:
+                    value = self._parmdefs[key][0]
+                    if isinstance(value, Meow.Parm):
+                        print '    - ('+key+'): (='+str(value.value)+') '+str(value.options)
+            print '  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
+            if full:
+                for key in self._parmnodes:
+                    rr = self._parmnodes[key]
+                    print '    - ('+key+'): '+str(rr)
+        #...............................................................
         print '**\n'
+        return True
+
+    #---------------------------------------------------------------
+
+    def pg_display(self, full=False):
+        """Display summaries of its parmgroups"""
+        for key in self._parmgroups.keys():
+            self._parmgroups[key].display(full=full)
         return True
 
 
@@ -265,11 +281,13 @@ class ParameterizationPlus (Meow.Parameterization):
     def p_group_define (self, key, tags=None,
                         descr='<descr>', unit=None,
                         default=0.0, constraint=None,
-                        simul=False, deviation=None,
+                        deviation=None,
                         tiling=None, time_deg=0, freq_deg=0,
+                        mode='nosolve'):
+        
                         # constrain_min=0.1, constrain_max=10.0,
-                        rider=None, override=None,
-                        **kw):
+                        # rider=None, override=None,
+                        # **kw):
         """Define a named (key) group of similar parameters"""
 
         # Check whether the group exists already:
@@ -287,11 +305,13 @@ class ParameterizationPlus (Meow.Parameterization):
                                   namespace=self.name,
                                   descr=descr, unit=unit,
                                   default=default, constraint=constraint,
-                                  simul=simul, deviation=deviation,
+                                  deviation=deviation,
                                   tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
+                                  mode=mode)
+        
                                   # constrain_min=0.1, constrain_max=10.0,
-                                  rider=rider, override=override,
-                                  **kw)
+                                  # rider=rider, override=override,
+                                  # **kw)
         self._parmgroups[key] = pg
         return key
 
@@ -301,7 +321,8 @@ class ParameterizationPlus (Meow.Parameterization):
     def p_group_create_member (self, key,
                                quals=[], kwquals={},
                                value=None, tags=[], solvable=True,            # may override
-                               simul=None, default=None, deviation=None,      # may override
+                               mode=None,
+                               default=None, deviation=None,      # may override
                                tiling=None, time_deg=0, freq_deg=0):          # may override for Meow.Parm
         """Create the specified (quals, kwquals) member of the specified (key)
         parmgroup. By default, the common attrbutes of the group will be used
@@ -313,7 +334,8 @@ class ParameterizationPlus (Meow.Parameterization):
         pg = self._parmgroups[key]
         return pg.create_member (quals=quals, kwquals=kwquals,
                                  value=value, tags=tags, solvable=solvable,        
-                                 simul=simul, default=default, deviation=deviation,  
+                                 mode=mode,
+                                 default=default, deviation=deviation,  
                                  tiling=tiling, time_deg=time_deg, freq_deg=freq_deg)    
 
 
@@ -421,18 +443,6 @@ class ParameterizationPlus (Meow.Parameterization):
         return True
         
 
-    #.........................................................................
-
-    def TDL_tobesolved (self, trace=False):
-        """Get a list of the selected parmgroups (or tags?) of MeqParms
-        that have been selected for solving."""
-        slist = []
-        key = '_tobesolved'
-        if self._TDLCompileOption.has_key(key):
-            slist = self._TDLCompileOption[key].value
-        return slist
-
-
 
     #===================================================================
     # TDLOptions (ParmGroups):
@@ -461,12 +471,9 @@ class ParameterizationPlus (Meow.Parameterization):
         of the various ParmGroups"""
         oolist = []
 
-        # opt = self._TDLCompileOption_tobesolved       # defined in derived classes
         opt = [None]
         opt.extend(self._parmgogs.keys())
         opt.extend(self._p_active_groups())
-        if self._simulate:
-            opt = [None]
         doc = 'the selected groups will be solved simultaneously'
         prompt = 'solve for parmgroup(s)/parmgog(s)'
         key = '_tobesolved'
@@ -474,8 +481,6 @@ class ParameterizationPlus (Meow.Parameterization):
                        doc=doc, namespace=self)
         self._TDLCompileOption[key] = oo
         oo.when_changed(self._callback_tobesolved)
-        if self._simulate:
-            oo.set_value(None, save=True)
         oolist.append(self._TDLCompileOption[key])
 
         # Add the options menus of the various parmgroups:
@@ -492,9 +497,9 @@ class ParameterizationPlus (Meow.Parameterization):
 
     def _callback_tobesolved (self, tobs):
         """Called whenever option '_tobesolved' is changed"""
-        # print '\n** (callback) tobesolved =',tobs,'\n'
         keys = self.p_find_parmgroups(tobs, severe=True)
-        # print '   keys =',keys
+
+        # Set the mode of selected groups (is this the desired behaviour...?)
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
             if pg.active():
@@ -502,6 +507,9 @@ class ParameterizationPlus (Meow.Parameterization):
                     pg.set_TDLOption('_mode', 'solve')
                 else:
                     pg.set_TDLOption('_mode', 'nosolve')
+
+        # NB: How does self._tobesolved get its value from TDL.....???
+        self.p_tobesolved(trace=True)                    # temporary, for testing only
         return True
 
     #.........................................................................
@@ -545,7 +553,7 @@ class ParameterizationPlus (Meow.Parameterization):
     #===============================================================
 
     # NB: One should be careful with this since it has merit to keep 
-    #     parameter sets with the same names but different qualifies apart.
+    #     parameter sets with the same names but different qualifiers apart.
     #     But it is useful for merging parametrizations in the same subtree.
     #     For instance, a JJones object, which is the multiplication of 
     #     multiple Jones matrices, with DIFFERENT parmgroup names.
@@ -583,7 +591,7 @@ class ParameterizationPlus (Meow.Parameterization):
                 qq = getattr(other, '_parmnodes', dict())
                 self._parmnodes.update(qq)
 
-                # Then copy the Grunt.ParameterizationPlus parmgroups:
+                # Then copy the Grunt.ParameterizationPlus parmgroups (objects):
                 # NB: Avoid duplicate parmgroups (solvable and simulated versions
                 # of the same Joneset should be compared, rather than merged!).
                 for key in rr:
@@ -596,14 +604,20 @@ class ParameterizationPlus (Meow.Parameterization):
                 # The other object is NOT derived from Grunt.ParameterizationPlus
                 # Make a single parmgroup from its parmnodes
                 # Copy the parmdefs with slightly different names
-                self.p_group_define (other.name, tags=None,
-                                     descr='copied from Meow.Parameterization')
+                descr = 'copied from Meow.Parameterization of: '
+                if getattr(other,'oneliner',None):
+                    descr += str(other.oneliner())
+                else:
+                    descr += str(other.name)
+                self.p_group_define (other.name, tags=None, descr=descr)
                 pg = self._parmgroups[other.name]
                 for key in other._parmdefs:
-                    pd = other._parmdefs[key]                 # assume: (value, tags, solvable)
+                    pd = other._parmdefs[key]               # assume: (value, tags, solvable)
                     newkey = other.name+'_'+key
-                    self._parmdefs[newkey] = pd
-                    pg._nodes.append(self._parm(newkey))    # generate a node in self, not other!
+                    # self._parmdefs[newkey] = pd
+                    pg._parmdefs[newkey] = pd
+                    # pg._nodes.append(self._parm(newkey))      # generate a node in self, not other!
+                    pg._nodes.append(pg._parm(newkey))      # generate a node in pg, not other!
                     pg._solvable.append(pd[2])              # 3rd element: solvable (boolean)
                     pg._plot_labels.append(newkey)          # ....?
 
@@ -619,7 +633,22 @@ class ParameterizationPlus (Meow.Parameterization):
     # Convenient access to a list of nodes/subtrees, e.g. for solving
     #===============================================================
 
-    def p_solvable (self, tags=None, groups='*', return_NodeList=True, trace=False):
+
+    def p_tobesolved (self, return_nodes=True, return_NodeList=False, trace=False):
+        """Get a list of the parmgroups (or tags?) that have been selected for solving.
+        If return_nodes or return_NodeList (object), do that."""
+        pgs = self._tobesolved
+        if return_nodes or return_NodeList:
+            return self.p_solvable(groups=pgs, trace=trace,
+                                    return_NodeList=return_NodeList)
+        elif trace:
+            print '\n** p_tobesolved: ',pgs,'\n'
+        return pgs
+
+
+    #----------------------------------------------------------------
+
+    def p_solvable (self, tags=None, groups='*', return_NodeList=False, trace=False):
         """Return a list with the specified selection of solvable MeqParm nodes.
         The nodes may be specified by their tags (n.search) or by parmgroups."""
         return self.p_find_nodes (tags=tags, groups=groups,
@@ -630,7 +659,7 @@ class ParameterizationPlus (Meow.Parameterization):
     #----------------------------------------------------------------
 
     def p_find_nodes (self, tags=None, groups='*', solvable=None,
-                      return_NodeList=True, trace=False):
+                      return_NodeList=False, trace=False):
         """Return a list with the specified selection of the nodes (names)
         that are known to this Parameterization object. The nodes may be
         specified by their tags (n.search) or by parmgroups. The defaults are
@@ -644,12 +673,9 @@ class ParameterizationPlus (Meow.Parameterization):
 
         if tags:
             # A tags specification has precedence:
+            # NB: Should we search the nodescopes of its parmgroups?
+            #     (assuming that those have been derived from self.ns...?)
             tags = self.p_tags2list(tags)
-            name = 'tags'
-            for k,tag in enumerate(tags):
-                name += str(tag)
-            if trace:
-                print ' -- tags =',tags,' (name=',name,')'
             class_name = None
             if solvable:
                 tags.append('solvable')
@@ -663,14 +689,6 @@ class ParameterizationPlus (Meow.Parameterization):
         elif groups:
             # Use the groups specification:
             pgs = self.p_find_parmgroups (groups, severe=True)
-            name = 'gogs'
-            if isinstance(groups,str):
-                name += groups
-            elif isinstance(groups,(list,tuple)):
-                for k,group in enumerate(groups):
-                    name += str(group)
-            if trace:
-                print ' -- groups =',groups,'(name=',name,') -> pgs =',pgs
             for key in pgs:
                 pg = self._parmgroups[key]              # convenience
                 if not isinstance(solvable, bool):      # solvable not specified
@@ -680,8 +698,9 @@ class ParameterizationPlus (Meow.Parameterization):
                     for k,node in enumerate(pg._nodes):
                         if pg._solvable[k]==solvable:   # the specified kind
                             nodes.append(node)          # selected nodes only
-                            labels.append(pg._plot_labels[k])       
+                            labels.append(pg._plot_labels[k])
 
+        # Report the found nodes (if any):
         if trace:
             for k,node in enumerate(nodes):
                 print '  - (',labels[k],'):',str(node)
@@ -689,9 +708,25 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # Optionally, return a NodeList object of the selected nodes and their labels
         if return_NodeList:
+            if tags:
+                name = 'tags'
+                for k,tag in enumerate(tags):
+                    name += str(tag)
+                if trace:
+                    print ' -- tags =',tags,' (name=',name,')'
+            else:
+                name = 'gogs'
+                if isinstance(groups,str):
+                    name += groups
+                elif isinstance(groups,(list,tuple)):
+                    for k,group in enumerate(groups):
+                        name += str(group)
+                if trace:
+                    print ' -- groups =',groups,'(name=',name,') -> pgs =',pgs
             nn = NodeList.NodeList(self.ns, name, nodes=nodes, labels=labels)
             if trace: print ' ->',nn.oneliner(),'\n'
             return nn
+
         else:
             # Otherwise, just return a list of nodes:
             return nodes
@@ -1000,9 +1035,9 @@ class ParameterizationPlus (Meow.Parameterization):
 #=============================================================================
 
 
-if 0:
+if 1:
     pp1 = ParameterizationPlus(name='GJones', quals='3c84')
-    pp1.p_group_define('Gphase', tiling=3, simul=True)
+    pp1.p_group_define('Gphase', tiling=3, mode='nosolve')
     pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
     pp1.p_TDLCompileOptionsMenu()
     pp1.p_display('initial')
@@ -1011,16 +1046,14 @@ if 0:
 
 def _define_forest(ns):
 
-    # cc = [ns.dummy<<45]
     cc = []
-
     pp1.nodescope(ns)
 
     if 1:
         pp1.p_group_create_member('Gphase', 1)
         pp1.p_group_create_member('Gphase', 2.1, value=(ns << -89))
         pp1.p_group_create_member('Gphase', 2, value=34)
-        pp1.p_group_create_member('Gphase', 3, tiling=5, simul=False)
+        pp1.p_group_create_member('Gphase', 3, tiling=5, mode='simulate')
         pp1.p_group_create_member('Gphase', 7, freq_deg=2)
 
     if 1:
@@ -1032,8 +1065,8 @@ def _define_forest(ns):
         cc.append(pp1.p_plot_timetracks())
         cc.append(pp1.p_plot_spectra())
 
-    if 1:
-        nn = pp1.p_solvable(groups='GJones')
+    if 0:
+        nn = pp1.p_solvable(groups='GJones', return_NodeList=True)
         nn.display('solvable')
         nn.bookpage(select=4)
         
@@ -1078,19 +1111,21 @@ if __name__ == '__main__':
         pp1 = ParameterizationPlus(ns, name='GJones',
                                    # kwquals=dict(tel='WSRT', band='21cm'),
                                    quals='3c84')
+        pp1.p_group_define('Gphase', tiling=3, mode='nosolve')
+        pp1.p_group_define('Ggain', default=1.0, freq_deg=2)
+        # pp1.p_TDLCompileOptionsMenu()
         pp1.p_display('initial')
 
+    if 1:
+        pp1.p_group_create_member('Gphase', 1)
+        pp1.p_group_create_member('Gphase', 2.1, value=(ns << -89))
+        pp1.p_group_create_member('Gphase', 2, value=34)
+        pp1.p_group_create_member('Gphase', 3, tiling=5, mode='solve')
+        pp1.p_group_create_member('Gphase', 7, freq_deg=2)
 
     if 1:
-        pp1.create_member('Gphase', 1)
-        pp1.create_member('Gphase', 2.1, value=(ns << -89))
-        pp1.create_member('Gphase', 2, value=34)
-        pp1.create_member('Gphase', 3, tiling=5, simul=False)
-        pp1.create_member('Gphase', 7, freq_deg=2)
-
-    if 1:
-        pp1.create_member('Ggain', 7, freq_deg=6)
-        pp1.create_member('Ggain', 4, time_deg=3)
+        pp1.p_group_create_member('Ggain', 7, freq_deg=6)
+        pp1.p_group_create_member('Ggain', 4, time_deg=3)
 
     if 0:
         pp1.p_bundle(show=True)
@@ -1148,7 +1183,7 @@ if __name__ == '__main__':
             pp1.p_find_nodes(groups=['GJones','DJones'], solvable=False, trace=True)
         pp1.p_display('after merge', full=True)
 
-    if 0:
+    if 1:
         e0 = Expression.Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=False)
         e0.display()
         if 0:
@@ -1157,6 +1192,7 @@ if __name__ == '__main__':
         if 1:
             pp1.p_merge(e0, trace=True)
             pp1.p_display('after merge', full=True)
+            pp1.pg_display(full=True)
 
     if 0:
         pp1.p_accumulist('aa')
