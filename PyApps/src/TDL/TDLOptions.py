@@ -729,6 +729,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     Note that an item may be specified as None, to get a separator.
     Optional keywords:
       doc: documentation string
+      summary: summary string (optional)
       open: if True, menu starts out open (this is only a hint)
       toggle: if set to a symbol name, the menu entry itself has an associated
               checkbox, and acts as a TDLBoolItem. Initial state is taken from
@@ -746,6 +747,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     """;
     doc = kw.get('doc');
     name = kw.get('name',None) or title;
+    self._summary = kw.get('summary',None);
     self._is_open = kw.get('open',False);
     self._toggle = kw.get('toggle',None);
     self._exclusive = kw.get('exclusive',None);
@@ -913,6 +915,11 @@ class _TDLSubmenu (_TDLBoolOptionItem):
         self._lvitem.setOn(value);
         if oldval != value:
           self._lvitem.setOpen(value);
+          
+  def set_summary (self,summary):
+    self._summary = summary;
+    if self._lvitem:
+      self._lvitem.setText(1,summary or '');
     
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
@@ -930,6 +937,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       item.setText(0,self._title);
       item.setExpandable(True);
       item.setOpen(self._is_open);
+    if self._summary:
+      item.setText(1,self._summary);
     # loop over items
     previtem = None;
     for subitem in self._items:
