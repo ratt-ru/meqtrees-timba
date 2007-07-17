@@ -4763,6 +4763,18 @@ will produce an error.
  or not can be a dicey process, so I'd rather not rely on this feature.
 \end_layout
 
+\begin_layout Subsubsection
+The 
+\begin_inset Quotes eld
+\end_inset
+
+**
+\begin_inset Quotes erd
+\end_inset
+
+ operator: one-time binding
+\end_layout
+
 \begin_layout Standard
 If you have a function for defining some part of the tree, and you call
  that function repeatedly, you probably want to initialize the nodes only
@@ -4849,8 +4861,147 @@ ns.foo
 ns.foo
 \family default
 .
- This is handy for one-line definitions, but what is you have to make a
- whole subtree for 
+ Note that a common gotcha with the 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+**
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operator is that it has very high precedence (unlike 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+<<
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+, which is very low).
+ For example, the statement
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << ns.bar + 1
+\end_layout
+
+\begin_layout Standard
+is (intuitively enough) equivalent to
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << (ns.bar + 1)
+\end_layout
+
+\begin_layout Standard
+due to 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+<<
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ having a lower precedence than 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
++
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ By contrast, 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo ** ns.bar + 1
+\end_layout
+
+\begin_layout Standard
+actually corresponds to
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+(ns.foo ** ns.bar) + 1
+\end_layout
+
+\begin_layout Standard
+and would probably result in an error! It's therefore a good practice to
+ always parenthesize the right-hand side of the 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+**
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo ** ( ns.bar + 1 )
+\end_layout
+
+\begin_layout Subsubsection
+The initialized() method
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+**
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ operator is handy for one-line definitions, but what is you want to make
+ a whole subtree for 
 \begin_inset Quotes eld
 \end_inset
 
@@ -4858,7 +5009,7 @@ foo
 \begin_inset Quotes erd
 \end_inset
 
-? The second mechanism is provided by the 
+, but only once? A useful mechanism is provided by the 
 \family typewriter
 initialized()
 \family default
@@ -5158,7 +5309,7 @@ a = ns.foo = Meq.Constant(value=0);
 
 \begin_layout Standard
 produces something entirely different (and dangerously, unintuitively so)
- from
+ as compared to
 \end_layout
 
 \begin_layout Standard
@@ -5192,12 +5343,12 @@ The hiding of information is one of the lesser appreciated virtues of good
 \end_layout
 
 \begin_layout Standard
-An design based on many small components (functions and classes) that reveal
- and share minimal information will usually prove to be superior --- in
- the sense of being easier to use and extend --- to a functionally equivalent
- one that is based on a few aggregate components that try to do and reveal
- too much.
- One reason for this is something I call 
+A design based on many small components (i.e.
+ functions and classes) that reveal and share minimal information will usually
+ prove to be superior --- in the sense of being easier to use and extend
+ --- to a functionally equivalent one that is based on a few larger aggregate
+ components that try to do and reveal too much.
+ One reason for this is something called 
 \emph on
 assumption creep
 \emph default
@@ -5252,7 +5403,8 @@ Striking the right balance between hiding and revealing information is a
  matter of judgement and hands-on experience.
  Nobody (that I know of) gets it right the first time anyway.
  My personal preference is to err on the side of caution --- expose minimal
- information at first, and reveal more in later iterations as required.
+ information in the initial versions, and reveal more in later iterations
+ as required.
 \end_layout
 
 \begin_layout Standard
@@ -5717,7 +5869,7 @@ define_tree_for_foo()
 \family default
 , this means anything that can be legally added together and bound to a
  node stub.
- So the first two times we call 
+ The first two times we call 
 \family typewriter
 define_tree_for_foo()
 \family default
@@ -5868,8 +6020,8 @@ That's no big deal in a short script like this, but imagine we were calling
  a function in somebody else's code, and got the parameter types wrong.
  We'd see a mysterious Python error within a completely unfamiliar piece
  of code.
- Only by looking through the call stack could we get to the ultimate cause
- of the error, which is in our own code.
+ Only by looking back through the call stack could we get to the ultimate
+ cause of the error, which is in our own code.
  Fortunately, the browser makes this easy --- every error message shows
  an associated call stack, which you can quickly click through to see where
  the error may have arisen.
@@ -5935,9 +6087,10 @@ end{verbatim}
 \end_layout
 
 \begin_layout Standard
-...but you can see this has the taste of a losing battle.
+...but you can see all the signs of a losing battle here.
  Not only is it ugly and error-prone, but you can easily throw out the baby
- with the water and reduce your functions to an inflexible, inelegant mess.
+ with the bathwater, reducing your functions to an inflexible, inelegant
+ mess.
  My recommendation is:
 \end_layout
 
@@ -6082,9 +6235,17 @@ ns.foo
 .
  As far as the rest of your code is concerned, the name is hidden behind
  the 
+\begin_inset Quotes eld
+\end_inset
+
+
 \family typewriter
 a
 \family default
+
+\begin_inset Quotes erd
+\end_inset
+
  variable.
 \end_layout
 
@@ -6184,7 +6345,7 @@ a
 \family default
  now refers to the node definition object, and not the node itself! I find
  this completely counterintuitive.
- 
+ The lesson here is to avoid multiple assignments in a single statement.
 \end_layout
 
 \begin_layout Standard
@@ -6192,7 +6353,12 @@ Another way to put the return value of
 \family typewriter
 <<
 \family default
- to good use is through nested node definitions:
+ to good use is through nested node definitions.
+ Since the return value of 
+\family typewriter
+<<
+\family default
+ is the node stub itself, we can immediately reuse it in another expression:
 \end_layout
 
 \begin_layout Standard
@@ -6662,6 +6828,248 @@ Classname
 .
 \end_layout
 
+\begin_layout Subsection
+Nested node definitions and automatic naming
+\end_layout
+
+\begin_layout Standard
+\begin_inset LatexCommand \label{sub:Nested-nodedefs}
+
+\end_inset
+
+Node definitions may also be nested to any depth.
+ For example, consider the following statement:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a = Meq.Add(Meq.Freq,Meq.Multiply(Meq.Time,ns.foo,2));
+\end_layout
+
+\begin_layout Standard
+By itself, this does not produce any actual nodes! Instead, it results in
+ the following node definition: 
+\emph on
+
+\begin_inset Quotes eld
+\end_inset
+
+a node of class MeqAdd, with one child of class MeqFreq, and a second child
+ of class MeqMultiply, itself having one child of class MeqTime, a second
+ child which is node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+, and a third child which is a MeqConstant with a value of 2.
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+ 
+\end_layout
+
+\begin_layout Standard
+To turn this into an actual tree, the definition must be bound to a node
+ stub:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.bar << a;
+\end_layout
+
+\begin_layout Standard
+When binding the definition, TDL creates all required intermediate nodes,
+ and automatically endows them with some [hopefully] reasonable names.
+ If you look at the resulting tree, you will see a bunch of auto-generated
+ nodes with names like 
+\begin_inset Quotes eld
+\end_inset
+
+freq
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+time
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+multiply(time,foo,2)
+\begin_inset Quotes erd
+\end_inset
+
+, etc.
+ 
+\end_layout
+
+\begin_layout Standard
+What happens if you reuse the definition, e.g.
+ say
+\end_layout
+
+\begin_layout Standard
+\InsetSpace ~
+\InsetSpace ~
+ns.bar2 << a;
+\end_layout
+
+\begin_layout Standard
+later on in the code? The same process occurs all over again.
+ In fact, some of the intermediate nodes may end up being reused.
+ TDL will usually do a reasonable job of this, but it's not always perfect.
+ I therefore recommend not overrelying on auto-naming, and have deliberately
+ left the exact rules unspecified (since they may be revised and/or refined
+ in future versions.) Note also that auto-naming may produce errors related
+ to name conflicts, when similar expressions are used in different contexts.
+ Should this occur, you're advised to split up the offending expression
+ and name the conflicting nodes explicitly.
+\end_layout
+
+\begin_layout Subsection
+Automatic constants
+\end_layout
+
+\begin_layout Standard
+TDL will also recognize a Python numeric value where it expects a node definitio
+n, and implicitly turn it into a definition like 
+\family typewriter
+MeqConstant(value=
+\emph on
+x
+\emph default
+)
+\family default
+.
+ Integer and float values result in real MeqConstants, complex values result
+ in complex 
+\family typewriter
+MeqConstants
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+If a constant node needs to be automatically named, the name is usually
+ derived from the value of the constant.
+ For example, the statement
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << Meq.Add(ns.bar,1.5)
+\end_layout
+
+\begin_layout Standard
+will implicitly create a 
+\family typewriter
+MeqConstant
+\family default
+ node named 
+\begin_inset Quotes eld
+\end_inset
+
+c1.5
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Constant nodes are reused if possible, so
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo2 << Meq.Add(ns.other_bar,1.5) 
+\end_layout
+
+\begin_layout Standard
+will not create another 
+\family typewriter
+MeqConstant
+\family default
+ node, but will instead reuse the previously created 
+\begin_inset Quotes eld
+\end_inset
+
+c1.5
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Values with many significant digits will produce correspondingly long node
+ names.
+ For example,
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << Meq.Add(ns.bar,math.sin(1))
+\end_layout
+
+\begin_layout Standard
+will probably implicitly create a node with the inscrutable name of 
+\begin_inset Quotes eld
+\end_inset
+
+c0.8414709...
+\begin_inset Quotes erd
+\end_inset
+
+.
+ It's usually a good idea to name such complicated constants explicitly:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.sin_1 << math.sin(1);
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << Meq.Add(ns.bar,ns.sin_1);
+\end_layout
+
+\begin_layout Standard
+This explicit naming also helps avoid potential name conflicts, which are
+ always possible if two constants have very close values.
+\end_layout
+
 \begin_layout Section
 Using qualifiers
 \end_layout
@@ -6795,7 +7203,12 @@ x
 \family default
 .
  For non-trivial types, this may be something unexpected.
- It's a good idea to stick to numbers and strings for your qualifiers.
+ One exception is if an object defines a 
+\family typewriter
+name
+\family default
+ attribute, then that name is used as the qualifier.
+ Otherwise, it's a good idea to stick to numbers and strings for your qualifiers.
 \end_layout
 
 \end_inset
@@ -6818,7 +7231,8 @@ x
 \family typewriter
 ns.f
 \family default
-, apart from a meaningless (for all the node stubs know...) similarity of names.
+, apart from a meaningless (as far as the node stubs know...) similarity of
+ names.
  The following three expressions all resolve to exactly the same node stub:
 \end_layout
 
@@ -7562,14 +7976,14 @@ Design by contract
 \begin_layout Standard
 You'd be right to wonder if we could somehow use the same function to sum
  over slices in the other direction, i.e.
- over 
+ over all 
 \begin_inset Formula $k$
 \end_inset
 
- for a given 
-\emph on
-l
-\emph default
+'s for a given 
+\begin_inset Formula $l$
+\end_inset
+
 .
  The qualifier syntax only allows us to append qualifiers; there's no easy
  prepend feature.
@@ -7747,8 +8161,479 @@ fnodes
 Built-in node arithmetic
 \end_layout
 
-\begin_layout Section
-Node tags and scope searches
+\begin_layout Standard
+Built-in arithmetic removes some of the tedium of putting together complicated
+ expressions.
+ A statement like:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.sum << (ns.foo + ns.bar)/2;
+\end_layout
+
+\begin_layout Standard
+is a lot easier on the eye than its verbose equivalent:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.sum << Meq.Divide(Meq.Add(ns.foo,ns.bar),Meq.Constant(2));
+\end_layout
+
+\begin_layout Standard
+Of course, the above statement doesn't really perform any arithmetic.
+ Remember, 
+\emph on
+TDL does not compute
+\emph default
+.
+ Instead, the statement 
+\begin_inset Quotes eld
+\end_inset
+
+unrolls
+\begin_inset Quotes erd
+\end_inset
+
+ into a little tree definition for computing the indicated expression.
+\end_layout
+
+\begin_layout Standard
+The advantages of built-in node arithmetic are obvious: they make TDL code
+ easier to write and more intuitive to read.
+ The dangers are somewhat more subtle:
+\end_layout
+
+\begin_layout Itemize
+the intermediate nodes of an expression will receive automatic names, which
+ can be hard to interpret for the user.
+\end_layout
+
+\begin_layout Itemize
+it is not always obvious which parts of an expression are 
+\begin_inset Quotes eld
+\end_inset
+
+true" arithmetic that is evaluated in Python, and which ones correspond
+ to tree declarations.
+\end_layout
+
+\begin_layout Itemize
+since intermediate objects are almost always involved, misuse of arithmetic
+ can lead to some pretty cryptic error messages.
+\end_layout
+
+\begin_layout Standard
+This section aims to provide a basic understanding of how node arithmetic
+ 
+\emph on
+really
+\emph default
+ works, which will (hopefully) help you to avoid the disadvantages listed
+ above.
+\end_layout
+
+\begin_layout Subsection
+Arithmetic recognized by TDL
+\end_layout
+
+\begin_layout Standard
+TDL recognizes the following Python operations, translating them into appropriat
+e node definitions: 
+\end_layout
+
+\begin_layout Itemize
+Standard binary arithmetic:
+\family typewriter
+ 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+
+\family typewriter
++ 
+\family default
+translates into a 
+\family typewriter
+MeqAdd
+\family default
+ node
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+-
+\family default
+ translates into a 
+\family typewriter
+MeqSubtract
+\family default
+ node
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+*
+\family default
+ translates into a 
+\family typewriter
+MeqMultiply
+\family default
+ node
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+/
+\family default
+\series medium
+\InsetSpace ~
+and\InsetSpace ~
+
+\family typewriter
+\series default
+//
+\family default
+ both translate into a 
+\family typewriter
+MeqDivide
+\family default
+ node.
+ Note that Python uses 
+\family typewriter
+//
+\family default
+ for 
+\begin_inset Quotes eld
+\end_inset
+
+floor division
+\begin_inset Quotes erd
+\end_inset
+
+; in TDL both version of the operator have the same meaning, that of regular
+ division.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+%
+\family default
+ (
+\begin_inset Quotes eld
+\end_inset
+
+modulo division
+\begin_inset Quotes erd
+\end_inset
+
+) translates into a 
+\family typewriter
+MeqFMod
+\family default
+ node
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Unary minus (
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+-
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+) translates intop a 
+\family typewriter
+MeqNegate
+\family default
+ node
+\end_layout
+
+\begin_layout Itemize
+The built-in 
+\family typewriter
+abs()
+\family default
+ function translates into a 
+\family typewriter
+MeqAbs
+\family default
+ node.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+No other built-ins are recognized!
+\bar default
+ A common beginner's mistake is to think that TDL is not just smart, but
+ omniscient:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+import math;
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo << math.sin(ns.bar);
+\end_layout
+
+\begin_layout Standard
+This fails with a somewhat mysterious error message.
+ Python's 
+\family typewriter
+math.sin()
+\family default
+ function has no clue what to do with node stub objects, and there's nothing
+ TDL can do about that.
+\end_layout
+
+\begin_layout Subsection
+When is TDL arithmetic invoked?
+\end_layout
+
+\begin_layout Standard
+In order for TDL to recognize an arithmetic expression as a tree declaration,
+ some component of that expression 
+\emph on
+must be either a node stub, or a node definition object
+\emph default
+.
+ For example, the expression
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo + 1
+\end_layout
+
+\begin_layout Standard
+invokes TDL arithmetic, because the object on the left-hand side of the
+ 
+\begin_inset Quotes eld
+\end_inset
+
++
+\begin_inset Quotes erd
+\end_inset
+
+ is a node stub.
+ Likewise,
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+2*Meq.Freq() 
+\end_layout
+
+\begin_layout Standard
+is recognized, because the right-hand side is a node definition.
+ On the other hand, something like
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+1+2
+\end_layout
+
+\begin_layout Standard
+is evaluated entirely in Python, since the expression contains no TDL objects.
+\end_layout
+
+\begin_layout Standard
+Of course, the same rules apply when TDL objects are assigned to Python
+ variables.
+ The first two expressions above are equivalent to:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a = ns.foo
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+a + 1
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+b = Meq.Freq()
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+2*b
+\end_layout
+
+\begin_layout Standard
+Where complicated expressions are involved, they're parsed by Python and
+ TDL is invoked in the appropriate places.
+ For example,
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo + 2*(Meq.Freq()+(1+2))
+\end_layout
+
+\begin_layout Standard
+translates into
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Meq.Add(ns.foo,Meq.Multiply(2,Meq.Add(Meq.Freq(),3)))
+\end_layout
+
+\begin_layout Standard
+...since 
+\begin_inset Quotes eld
+\end_inset
+
+1+2
+\begin_inset Quotes erd
+\end_inset
+
+ is immediately evaluated in Python, and the rest is turned into a tree
+ definition.
+\end_layout
+
+\begin_layout Standard
+Note also that binary arithmetic is always binary, and parsed left-to-right
+ (following the usual operator precedence rules).
+ An expression like
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo + ns.bar + ns.bar2 + 1
+\end_layout
+
+\begin_layout Standard
+translates into the rather inelegant:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Meq.Add(Meq.Add(Meq.Add(ns.foo,ns.bar),ns.bar2),Meq.Constant(1))
+\end_layout
+
+\begin_layout Standard
+With a long sum like this, you're better off doing all the addition within
+ a single node by explicitly invoking 
+\family typewriter
+Meq.Add()
+\family default
+, e.g.:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Meq.Add(ns.foo,ns.bar,ns.bar2,1);
+\end_layout
+
+\begin_layout Subsection
+Intermediate nodes
+\end_layout
+
+\begin_layout Standard
+Once arithmetic operators have been translated into appropriate node classes,
+ the result is no different from a nested node definition.
+ For example,
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.foo + 2*(Meq.Freq()+(1+2))
+\end_layout
+
+\begin_layout Standard
+translates into the following nested definition:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+Meq.Add(ns.foo,Meq.Multiply(2,Meq.Add(Meq.Freq(),3)))
+\end_layout
+
+\begin_layout Standard
+From that point on, these definitions are handled exactly as described in
+ section\InsetSpace ~
+
+\begin_inset LatexCommand \ref{sub:Nested-nodedefs}
+
+\end_inset
+
+, and are subject to exactly the same caveats.
 \end_layout
 
 \begin_layout Chapter
@@ -7934,7 +8819,8 @@ Of course, picking the right name is only part of the problem.
  The details of this scheme are hidden inside Bob's code, so you could very
  well end up using the same names for your own, compelely unrelated nodes.
  All sorts of confusion may ensue, all the worse if Bob (and/or you) is
- sloppy in his naming, or if he's fond of generic names like 
+ sloppy in his naming, or if both of you are fond of generic names like
+ 
 \begin_inset Quotes eld
 \end_inset
 
@@ -7951,10 +8837,11 @@ y
 \end_inset
 
 .
- Then you try to make use of another module, this one written by Alice,
- with its own naming scheme.
+ Then you get even more ambitious, and try to make use of another module,
+ this one written by Alice, with her own naming scheme.
  There's now three potential sources of conflicting names.
- Then you pull out all your hair and swear off other people's code for life...
+ Finally, you pull out all your hair and swear off other people's code for
+ life...
 \end_layout
 
 \begin_layout Standard
@@ -8003,10 +8890,6 @@ sky component
 \end_inset
 
 .
-\end_layout
-
-\begin_layout Standard
-aaa
 \end_layout
 
 \begin_layout Section
@@ -8626,7 +9509,7 @@ def make_useful_subtree (ns,node,a=1):
 
 \begin_layout Standard
 
-  ns.foo << a + 1;
+  ns.foo << a * Meq.Time();
 \end_layout
 
 \begin_layout Standard
@@ -8854,8 +9737,8 @@ bob::...
 
 \begin_layout Standard
 This is great, because it allows us to treat Alice and Bob's modules as
- a black box (which we should be entitled to), and not worry about how they
- name their nodes internally.
+ black boxes (which we ought to be entitled to), and not worry about how
+ they name their nodes internally.
  
 \end_layout
 
@@ -9137,7 +10020,7 @@ end{verbatim}
 Having too many nested scopes can look confusing, but you don't generally
  need to worry about it.
  The important thing to know is that you can always make a subscope or qualscope
- of any given scope object.
+ from any given scope object.
  Returning to our Alice/Bob example, if Alice's function were to look like
  this:
 \end_layout
@@ -9297,6 +10180,1253 @@ sandbox
 
 \begin_layout Subsection
 Scopifying nodes
+\end_layout
+
+\begin_layout Standard
+You can also derive a subscope or a qualscope from a node stub.
+ This is called 
+\emph on
+scopifying
+\emph default
+ 
+\emph on
+a node.
+
+\emph default
+ Calling 
+\family typewriter
+node.Subscope(*args,**kw)
+\family default
+ creates a subscope based on the full name of the node stub (including any
+ qualifiers), with optional extra qualifiers tacked on:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  nsf = ns.foo.Subscope();          # creates subscope "foo::"
+\end_layout
+
+\begin_layout Standard
+
+  nsf.bar(2) << 1;                  # creates "foo::bar:2"
+\end_layout
+
+\begin_layout Standard
+
+  nsf1 = ns.foo(1).Subscope();      # creates subscope "foo:1::"
+\end_layout
+
+\begin_layout Standard
+
+  nsf1.bar << 2;                    # creates "foo:1::bar"
+\end_layout
+
+\begin_layout Standard
+
+  nsf2 = ns.foo(1).Subscope(2,x=3); # creates subscope "foo:1:2:x=3::"
+\end_layout
+
+\begin_layout Standard
+
+  nsf2.bar << 3;                    # creates "foo:1:2:x=3::bar"
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Likewise, 
+\family typewriter
+node.QualScope()
+\family default
+ creates a qualscope using the node's qualifiers:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+nsf = ns.foo(1,2).QualScope();
+\end_layout
+
+\begin_layout Standard
+
+nsf.bar << 1;                   # creates "bar:1:2"
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Scopifying a node is an especially elegant way to avoid naming conflicts.
+ For example, Alice could rewrite her 
+\family typewriter
+make_useful_subtree()
+\family default
+ function as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+def make_useful_subtree (node,a=1):
+\end_layout
+
+\begin_layout Standard
+
+  ns = node.Subscope();
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << a * Meq.Time();
+\end_layout
+
+\begin_layout Standard
+
+  node << ns.foo + Meq.Freq();
+\end_layout
+
+\begin_layout Standard
+
+  return node;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note the difference with the previous version --- we no longer need to pass
+ in an 
+\family typewriter
+ns
+\family default
+ object.
+ Instead, the node scope for intermediate nodes is derived from the output
+ node.
+ If we invoke Alice's function as, e.g.:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+make_useful_subtree(ns.bar,a=2)
+\end_layout
+
+\begin_layout Standard
+her nodes will be named 
+\begin_inset Quotes eld
+\end_inset
+
+bar::foo
+\begin_inset Quotes erd
+\end_inset
+
+, etc.
+ This simplifies the interface (one less parameter to keep track of), while
+ effectively sandboxing Alice's nodenames.
+ 
+\end_layout
+
+\begin_layout Chapter
+Node tags and scope searches
+\end_layout
+
+\begin_layout Standard
+As you start building more and more complicated trees, you will run into
+ the problem of keeping track of the important nodes.
+ It's great that you can pass around a whole subtree just by referring to
+ its root node, and we use it all the time in patterns like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  foo = make_subtree_for_foo()
+\end_layout
+
+\begin_layout Standard
+
+  bar = make_subtree_for_bar()
+\end_layout
+
+\begin_layout Standard
+
+  ns.sum << foo + bar;
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This hides the structure of the subtree inside a function or a module, and
+ is normally a good thing, allowing us to change the functions without worrying
+ about the caller.
+ On the flip side, there may be some 
+\begin_inset Quotes eld
+\end_inset
+
+interesting
+\begin_inset Quotes erd
+\end_inset
+
+ nodes inside the subtree that we 
+\emph on
+do
+\emph default
+ want to know about on the caller side:
+\end_layout
+
+\begin_layout Itemize
+the subtrees may cointain solvable parameters, and we need to know what
+ these are if we want to make a solver tree.
+ Unfortunately, these can be anywhere in the subtree.
+\end_layout
+
+\begin_layout Itemize
+the subtrees may contain nodes of interest for the user, and we may want
+ to present them in a bookmark.
+ For example, the ionosphere trees that we looked at earlier return nodes
+ for applying ionospheric phase, which is all that's needed for most calculation
+s.
+ The user, on the other hand, may want to look at the TEC values from which
+ these phases are derived.
+ These latter are hidden away inside the subtree.
+\end_layout
+
+\begin_layout Standard
+Some of our early TDL code is littered with various more or less elegant
+ kludges designed to work around this problem.
+ For example, you can have your function build up a list of 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+ nodes, and return that to the caller.
+ These kludges do get the job done, but they complicate the interfaces and
+ make code less portable.
+ Subsequently, we came up with the idea of 
+\emph on
+node tags
+\emph default
+ to provide a more elegant solution to the problem.
+\end_layout
+
+\begin_layout Section
+Node tags
+\end_layout
+
+\begin_layout Standard
+A tag is just a short string that can be associated with a node.
+ A node can have multiple tags.
+ Tags are specified when defining a node, via a 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+tags
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ keyword:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo << Meq.Constant(0,tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << Meq.Constant(1,tags=["constant","my_tag"]);
+\end_layout
+
+\begin_layout Standard
+
+  ns.foobar << Meq.Constant(2,tags="my tag");
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first statement defines node 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ with the single tag 
+\begin_inset Quotes eld
+\end_inset
+
+constant
+\begin_inset Quotes erd
+\end_inset
+
+ .
+ The second statement defines node 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+, and tags it with 
+\begin_inset Quotes eld
+\end_inset
+
+constant
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+my_tag
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The third statement defines 
+\begin_inset Quotes eld
+\end_inset
+
+foobar
+\begin_inset Quotes erd
+\end_inset
+
+, and tags it with 
+\begin_inset Quotes eld
+\end_inset
+
+my
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+tag
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Do note this last example: tags cannot contain whitespace, so a single
+ 
+\family typewriter
+tags
+\family default
+ string will always be split up on whitespaces.
+ This is a handy way to assign multiple tags without the clutter of lists
+ (as in example 2).
+ 
+\end_layout
+
+\begin_layout Standard
+Apart from this automatic splitting on whitespace, TDL itself does nothing
+ else with tags.
+ If you look inside the state record of a tagged node, you will see a 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+tags
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ field containing the tags you supplied.
+ Tags are pretty much meaningless to TDL, they are just arbitrary identifiers
+ that you can use to find the nodes later.
+\end_layout
+
+\begin_layout Section
+Searching for tags
+\end_layout
+
+\begin_layout Standard
+To find nodes with a certain tag, you simply call the 
+\family typewriter
+Search()
+\family default
+ method of any node scope object:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(tags='constant');
+\end_layout
+
+\begin_layout Standard
+This returns a Python list (possibly empty) of all the node stubs that have
+ been defined with a 
+\begin_inset Quotes eld
+\end_inset
+
+constant
+\begin_inset Quotes erd
+\end_inset
+
+ tag.
+ If multiple tags are specified, the result is a logical 
+\begin_inset Quotes eld
+\end_inset
+
+AND
+\begin_inset Quotes erd
+\end_inset
+
+ operation:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(tags='jones solvable');
+\end_layout
+
+\begin_layout Standard
+returns a list of all node stubs having the tag 
+\begin_inset Quotes eld
+\end_inset
+
+jones
+\begin_inset Quotes erd
+\end_inset
+
+ AND 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+.
+ A more verbose version of the same statement would be:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(tags=['jones','solvable']);
+\end_layout
+
+\begin_layout Standard
+You can also use Python regular expressions when specifying a search tag:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(tags='jon.* solvable');
+\end_layout
+
+\begin_layout Standard
+This returns a list of all node stubs having a tag that begins with 
+\begin_inset Quotes eld
+\end_inset
+
+jon
+\begin_inset Quotes erd
+\end_inset
+
+, and the tag 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+.
+ You should refer to the Python Library Reference, module 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+re
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+ for details on regular expression syntax.
+ Regexes provide great flexibility in searches.
+ For example, the following will search for tags 
+\begin_inset Quotes eld
+\end_inset
+
+jones
+\begin_inset Quotes erd
+\end_inset
+
+ OR 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+: 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(tags='jones|solvable');
+\end_layout
+
+\begin_layout Standard
+Tags are away of revealing important information on a tree, while hiding
+ irrelevant details.
+ For example, imagine that Alice has given you a module for computing beam
+ patterns.
+ You want to use Alice's beams in your tree, and you want to solve for beam
+ parameters.
+ These parameters are sitting somewhere deep in Alice's trees, and you don't
+ really need to know where, you just want to know what they are, so you
+ can feed them to a solver.
+ If Alice has read this manual (and is endowed with a little foresight),
+ then she has probably seen fit to tag her parameters in some meaningful
+ way, e.g.
+ with 
+\begin_inset Quotes eld
+\end_inset
+
+beam
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+, and mentioned it in her documentation.
+ Knowing this, you can do a simple search to find all solvable beam parameters,
+ without knowing anything else about Alice's trees.
+\end_layout
+
+\begin_layout Section
+Searching within subtrees and families
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+ns.Search()
+\family default
+ by default searches the entire node scope.
+ A lot of the time this is NOT what you want to do --- after all, if you're
+ trying to find Alice's beam solvables, you only want to search within Alice's
+ subtrees, and not anywhere else.
+ You can use the 
+\family typewriter
+search()
+\family default
+ method of a node stub to limit the search to the subtree starting at a
+ particular node:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo0 << Meq.Constant(0,tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+  ns.foo1 << Meq.Constant(1,tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar << Meq.Constant(2);
+\end_layout
+
+\begin_layout Standard
+
+  ns.foobar << ns.foo0 + ns.bar;
+\end_layout
+
+\begin_layout Standard
+
+  ns.foobar.search(tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+search()
+\family default
+ method of a node stub behaves like the 
+\begin_inset Quotes eld
+\end_inset
+
+global
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\family typewriter
+ns.Search()
+\family default
+, but the search is limited to the subtree rooted at that node.
+ The search operation above will return 
+\begin_inset Quotes eld
+\end_inset
+
+foo0
+\begin_inset Quotes erd
+\end_inset
+
+, but not 
+\begin_inset Quotes eld
+\end_inset
+
+foo1
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Note that the starting node of a search may also be unqualified.
+ Consider this example:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Standard
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Standard
+
+  for k in range(10):
+\end_layout
+
+\begin_layout Standard
+
+    ns.foo(k) << Meq.Constant(k,tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+    ns.bar(k) << ns.foo(k) + 2;
+\end_layout
+
+\begin_layout Standard
+
+  ns.bar.search(tags="constant");
+\end_layout
+
+\begin_layout Standard
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This search will return 10 nodes, from 
+\begin_inset Quotes eld
+\end_inset
+
+foo:0
+\begin_inset Quotes erd
+\end_inset
+
+ to 
+\begin_inset Quotes eld
+\end_inset
+
+foo:9
+\begin_inset Quotes erd
+\end_inset
+
+.
+ None of these are actually in bar's subtree -- in fact, 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+ itself is not even a real node (remember, it's only an unqualified node
+ stub from which we derive 
+\begin_inset Quotes eld
+\end_inset
+
+bar:0
+\begin_inset Quotes erd
+\end_inset
+
+ through 
+\begin_inset Quotes eld
+\end_inset
+
+bar:9
+\begin_inset Quotes erd
+\end_inset
+
+.) A search on 
+\begin_inset Quotes eld
+\end_inset
+
+bar
+\begin_inset Quotes erd
+\end_inset
+
+, nonetheless, will include all subtrees rooted at all nodes belonging to
+ bar's 
+\emph on
+family
+\emph default
+.
+ The 
+\emph on
+family
+\emph default
+ of a node stub consists of all the actual, initialized node stubs that
+ are derived from it via the use of qualifiers.
+\begin_inset Foot
+status open
+
+\begin_layout Standard
+To be more precise, a family is recognized merely by name prefix.
+ For example, both 
+\family typewriter
+ns.foo(1,2)
+\family default
+ and 
+\family typewriter
+ns['foo:1:5']
+\family default
+ are considered to be in the 
+\begin_inset Quotes eld
+\end_inset
+
+foo:1
+\begin_inset Quotes erd
+\end_inset
+
+ family, even though neither is directly derived from 
+\family typewriter
+ns.foo(1)
+\family default
+.
+ Note also that 
+\family typewriter
+ns.foobar
+\family default
+ is not considered to be in the 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ family because 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+ must appear as a complete unqualified name, not as part of a name.
+\end_layout
+
+\end_inset
+
+ This is a very useful feature, since it is a common practice to pass around
+ a whole series of subtrees by referring to an unqualified root node.
+ 
+\end_layout
+
+\begin_layout Standard
+If, for whatever reason, you want to limit your search to just the one subtree
+ rooted at a the node, without involving the rest of its family, you can
+ pass the 
+\family typewriter
+no_family=True
+\family default
+ keyword to 
+\family typewriter
+search()
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+As a final note, the 
+\family typewriter
+family()
+\family default
+ method of a node stub will return a list of node stubs comprising that
+ node's family.
+\end_layout
+
+\begin_layout Section
+More complicated searches
+\end_layout
+
+\begin_layout Standard
+The node scope 
+\family typewriter
+Search()
+\family default
+ method, as well as the node stub 
+\family typewriter
+search()
+\family default
+, can also be used to find nodes with particular names and/or of a particular
+ class.
+ For example, the following will return a list of all nodes of class 
+\begin_inset Quotes eld
+\end_inset
+
+MeqConstant
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+MeqParm
+\begin_inset Quotes erd
+\end_inset
+
+, whose names begin with 
+\begin_inset Quotes eld
+\end_inset
+
+foo
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(name='foo.*',class_name='MeqConstant|MeqParm');
+\end_layout
+
+\begin_layout Standard
+As you can see, regexes are supported here as well.
+ When multiple search criteria (from among 
+\family typewriter
+name
+\family default
+, 
+\family typewriter
+class_name
+\family default
+ and 
+\family typewriter
+tags
+\family default
+) are specified, the result is a logical AND.
+ For example, this finds all MeqParms tagged as 
+\begin_inset Quotes eld
+\end_inset
+
+solvable
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+ns.Search(class_name='MeqParm',tags='solvable');
+\end_layout
+
+\begin_layout Standard
+As a final wrinkle, you may choose to get a list of node names (rather than
+ a list of node stubs) by passing in the 
+\family typewriter
+return_names=True
+\family default
+ keyword:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+names = ns.Search(tags='solvable',return_names=True);
+\end_layout
+
+\begin_layout Standard
+Of course, the same result can be achieved via a simple list comprehension:
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+names = [ node.name for node in ns.Search(tags='solvable') ];
+\end_layout
+
+\begin_layout Chapter
+TDLOptions: Get Your Free GUI Here
+\end_layout
+
+\begin_layout Standard
+Any even remotely useful TDL script must have some degree of flexibility.
+ Most programmers intuitively abhor hard-coded constants, preferring to
+ place them in a separate header, or at least at the top of the source file.
+ The code itself is then [hopefully] flexible enough that one can later
+ change the constants and have everything else 
+\begin_inset Quotes eld
+\end_inset
+
+just work
+\begin_inset Quotes erd
+\end_inset
+
+.
+ We use the term 
+\begin_inset Quotes eld
+\end_inset
+
+constants
+\begin_inset Quotes erd
+\end_inset
+
+ in a rather broad sense here, since beside actual numeric constants, these
+ can also manifest themselves as:
+\end_layout
+
+\begin_layout Itemize
+Input and output files and/or Measurement Sets
+\end_layout
+
+\begin_layout Itemize
+Options that influence repeated tree structures (number of stations, baselines,
+ sources, etc.)
+\end_layout
+
+\begin_layout Itemize
+Options that determine what particular operation a forest performs (in other
+ words, that effect conditional compilation of parts of a forest.)
+\end_layout
+
+\begin_layout Itemize
+etc.
+ etc.
+\end_layout
+
+\begin_layout Standard
+The term 
+\begin_inset Quotes eld
+\end_inset
+
+options
+\begin_inset Quotes erd
+\end_inset
+
+ is therefore preferred to 
+\begin_inset Quotes eld
+\end_inset
+
+constants
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+TDLOptions
+\emph default
+ mechanism provides a uniform and user-friendly way to make your script
+ expose various 
+\begin_inset Quotes eld
+\end_inset
+
+knobs
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+switches
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The example scripts that we have looked at perviously have already made
+ use of TDLOptions.
+ For example, a statement like
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\InsetSpace ~
+\InsetSpace ~
+TDLCompileOption('num_ant','Number of antennas',[2,3,4]);
+\end_layout
+
+\begin_layout Standard
+at the global level of your script creates a global Python variable named
+ '
+\family typewriter
+num_ant
+\family default
+' which can assume one of the specified values (2, 3 or 4).
+ When loading the script, the user sees a little GUI that allows him to
+ set the 
+\begin_inset Quotes eld
+\end_inset
+
+Number of antennas
+\begin_inset Quotes erd
+\end_inset
+
+ option to one of the allowed values.
+ Your script is then expected to adapt itself to whichever value was specified.
+\end_layout
+
+\begin_layout Standard
+All TDLOption settings are automatically saved to a file called 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+.tdl.conf
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+, which means that the next time a user loads your script, the previous
+ settings are restored.
+ In addition, every time the user executes a TDL job, a summary of current
+ settings is logged to a file named 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+meqtree.log
+\family default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ When using complicated scripts with many options, this log file provides
+ a convenient 
+\begin_inset Quotes eld
+\end_inset
+
+processing history
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Also, your script may be invoked in 
+\begin_inset Quotes eld
+\end_inset
+
+headless
+\begin_inset Quotes erd
+\end_inset
+
+ (noninteractive) mode, e.g.
+ as part of a pipeline, in which case its options may be set up by some
+ other means entirely.
+\end_layout
+
+\begin_layout Standard
+TDLOptions are simple to declare, but they provide all sorts of sophisticated
+ functionality that allows one to build up highly interactive and context-sensit
+ive GUIs.
+ This chapter discusses the subject in detail.
 \end_layout
 
 \begin_layout Chapter
