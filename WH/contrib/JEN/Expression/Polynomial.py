@@ -32,8 +32,12 @@ from Timba.Contrib.JEN.Grunt import display
 Settings.forest_state.cache_policy = 100
 
 from numarray import *
-import numarray.linear_algebra                # redefines numarray.rank....
-
+linear_algebra = True
+try:
+    import numarray.linear_algebra                # redefines numarray.rank....
+except:
+    linear_algebra = False
+    
 # import random
 from copy import deepcopy
 
@@ -352,7 +356,9 @@ class Polynomial (Expression.Expression):
 
         # Solve for the unknown polynomial terms by inverting the matrix aa:
         # NB:  numarray.linear_algebra not supported on birch......
-        if True:
+        if not linear_algebra:
+            return False
+        else:
             bb = numarray.linear_algebra.linear_least_squares(aa,vv)
             solvec = bb[0]                                 # solution vector
             for iuk,key in enumerate(self._term_order):    # for each term
@@ -522,10 +528,10 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Expression.py:\n'
     ns = NodeScope()
 
-    if 1:
+    if 0:
         _define_forest(ns)
 
-    if 0: 
+    if 1: 
         sex = dict()
         fiduc = []
         dims = ['dt^1','ff^1']
@@ -597,6 +603,7 @@ if __name__ == '__main__':
         # p0.solvable(trace=True)
 
     p0.display('final')
+    print '\n** linear_algebra =',linear_algebra
 
     print '\n*******************\n** End of local test of: Expression.py:\n'
 
