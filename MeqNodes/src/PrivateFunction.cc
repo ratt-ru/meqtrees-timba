@@ -224,8 +224,14 @@ Vells PrivateFunction::evaluateComplex(const std::vector<Vells::Ref>  &grid,cons
   //create iterators
   Vells::DimCounter counter(outshape);
   std::vector<Vells::ConstStridedIterator<dcomplex> > strided_iter(Ndim_);
+  Vells::Ref vref;
+  std::vector<Vells::Ref> ngrid;
+  ngrid.resize(Nx);
+  
   for(int i =0; i<Nx;i++){
-    strided_iter[i]= Vells::ConstStridedIterator<dcomplex>(tocomplex(grid[i],0),strides[i]);
+    vref <<= new Vells(tocomplex(grid[i],0.));
+    ngrid[i]=vref;
+    strided_iter[i]= Vells::ConstStridedIterator<dcomplex>(ngrid[i],strides[i]);
     
   }
   for(int i =Nx; i<Ndim_;i++){
