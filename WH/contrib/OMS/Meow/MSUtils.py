@@ -513,10 +513,12 @@ class ImagingSelector (object):
       self._opts.append(TDLOption('imaging_npix',
                         "Image size, in pixels",npix,more=int,namespace=self));
     self.imaging_arcmin = self.imaging_cellsize = None;
-    if arcmin:
+    if arcmin or not cellsize:
       if cellsize:
         raise ValueError,"ImagingSelector: specify either 'arcmin' or 'cellsize', not both";
-      if not isinstance(arcmin,(list,tuple)):
+      if not arcmin:
+        arcmin = [ 5 ];
+      elif not isinstance(arcmin,(list,tuple)):
         arcmin = [ arcmin ];
       self._opts.append(TDLOption('imaging_arcmin',
                     "Image size, in arcmin",list(arcmin)+["all-sky"],more=float,namespace=self));
