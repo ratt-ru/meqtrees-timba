@@ -110,15 +110,15 @@ Vells PrivateFunction::evaluate (const Request& request, const LoShape& ,
 			 const vector<const Vells*>& values)
 {
 
-  FailWhen(values.size() !=Npar,"Number of children not equal to Npar");
+  FailWhen(values.size() !=uint(Npar),"Number of children not equal to Npar");
 
   //get grid from request, as in MeqFreq
   vector<Vells::Ref> grid;
   grid.resize(Nx);
   const Cells& cells = request.cells();
-  int isComplex=0;
+  uint isComplex=0;
   std::vector<Vells::Ref>  out_args(Npar);
-  for(int i=0;i<values.size();i++)
+  for(uint i=0;i<values.size();i++)
     {
       if(values[i]->isComplex()) isComplex++;
       out_args[i]<<=values[i];
@@ -129,7 +129,7 @@ Vells PrivateFunction::evaluate (const Request& request, const LoShape& ,
   if(isComplex>0 && isComplex<values.size()){
     //loop once more to create pointers to the new vells
     Vells::Ref vref;
-    for(int i=0;i<out_args.size();i++)
+    for(uint i=0;i<out_args.size();i++)
       if(out_args[i]->isReal()){
 	vref <<= new Vells(tocomplex(out_args[i](),0.));
 	out_args[i]=vref;
@@ -225,7 +225,7 @@ Vells PrivateFunction::evaluateComplex(const std::vector<Vells::Ref>  &grid,cons
   Vells::DimCounter counter(outshape);
   std::vector<Vells::ConstStridedIterator<dcomplex> > strided_iter(Ndim_);
   for(int i =0; i<Nx;i++){
-    strided_iter[i]= Vells::ConstStridedIterator<dcomplex>(grid[i],strides[i]);
+    strided_iter[i]= Vells::ConstStridedIterator<dcomplex>(tocomplex(grid[i],0),strides[i]);
     
   }
   for(int i =Nx; i<Ndim_;i++){
