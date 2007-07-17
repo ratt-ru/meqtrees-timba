@@ -92,7 +92,7 @@ def _define_forest (ns):
         noise_x(p)+noise_x(q),noise_x(p)+noise_y(q),
         noise_y(p)+noise_x(q),noise_y(p)+noise_y(q)
       );
-      ns.noisy_predict(p,q) << predict(p,q) + noise;
+      ns.noisy_predict(p,q) << output(p,q) + noise;
     output = ns.noisy_predict;
     
   # in add or subtract sim mode, make some spigots and add/subtract visibilities
