@@ -29,10 +29,10 @@ class JonesSequence22 (Joneset22.Joneset22):
                  quals=[], kwquals={},
                  namespace=None,
                  descr='Sequence (product) of Jones matrices',
-                 simulate=False):
+                 mode='solve'):
 
-        # If simulate, use subtrees that simulate MeqParm behaviour:
-        self._simulate = simulate
+        # Mode can be solve, nosolve, simulate:
+        self._mode = mode
 
         # Initialise its Matrixet22 object:
         Joneset22.Joneset22.__init__(self, ns=ns, name=name,
@@ -210,7 +210,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             jones.nodescope(self.ns)                        # ....!
             snode = jones(station)
             self._matrixet = jones._matrixet 
-            self.p_merge(jones)                             # parmgroups
+            self._pgm.merge(jones)                             # parmgroups
             return snode
 
         # Multiply two or more Jones matrices:
@@ -223,7 +223,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             jones = self._jones[j]
             jones.nodescope(self.ns)                        # ....!
             cc.append(jones(station))
-            self.p_merge(jones)                             # parmgroups
+            self._pgm.merge(jones)                             # parmgroups
         qnode(station) << Meq.MatrixMultiply(*cc)
         self._matrixet = qnode
         return qnode(station)
@@ -243,12 +243,12 @@ class JonesSequence22 (Joneset22.Joneset22):
 #===============================================================
 
 if 1:
-    simulate = False
+    mode = 'solve'
     jseq = JonesSequence22(namespace='bbb')
-    jseq.add_jones(Joneset22.GJones(simulate=simulate, namespace='fff'))
-    jseq.add_jones(Joneset22.BJones(simulate=simulate))
-    jseq.add_jones(Joneset22.FJones(simulate=simulate))
-    jseq.add_jones(Joneset22.JJones(simulate=simulate))
+    jseq.add_jones(Joneset22.GJones(mode=mode, namespace='fff'))
+    jseq.add_jones(Joneset22.BJones(mode=mode))
+    jseq.add_jones(Joneset22.FJones(mode=mode))
+    jseq.add_jones(Joneset22.JJones(mode=mode))
     jseq.TDLCompileOptionsMenu()
     jseq.display('outside _define_forest()')
 
@@ -295,24 +295,24 @@ if __name__ == '__main__':
         jseq.display()
 
     if 1:
-        jones = Joneset22.GJones(ns, quals='3c84', simulate=False)
+        jones = Joneset22.GJones(ns, quals='3c84', mode='solve')
         jseq.add_jones(jones)
         jones.display(full=True, recurse=10)
 
     if 1:
-        jones = Joneset22.BJones(ns, quals=['3c84'], simulate=False,
+        jones = Joneset22.BJones(ns, quals=['3c84'], mode='solve',
                                  telescope='WSRT', band='21cm')
         jseq.add_jones(jones)
         jones.display(full=True)
 
     if 0:
-        jones = Joneset22.FJones(ns, polrep='linear',simulate=True )
-        # jones = FJones(ns, polrep='circular', quals='3c89', simulate=True)
+        jones = Joneset22.FJones(ns, polrep='linear',mode='simulate' )
+        # jones = FJones(ns, polrep='circular', quals='3c89', mode='simulate')
         jseq.add_jones(jones)
         jones.display(full=True, recurse=12)
 
     if 0:
-        jones = Joneset22.JJones(ns, quals=['3c84'], diagonal=True, simulate=True)
+        jones = Joneset22.JJones(ns, quals=['3c84'], diagonal=True, mode='simulate')
         jseq.add_jones(jones)
         jones.display(full=True)
 

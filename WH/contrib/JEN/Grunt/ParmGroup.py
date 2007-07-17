@@ -607,7 +607,7 @@ class ParmGroup (Meow.Parameterization):
         # print '** set_TDLOption(',key,value,'):'
         if self._TDLCompileOption.has_key(key):
             self._TDLCompileOption[key].set_value(value)
-            setattr(key,value)
+            setattr(self, key, value)
             if key=='mode':
                 self._callback_mode(value)
             elif key=='deviation':

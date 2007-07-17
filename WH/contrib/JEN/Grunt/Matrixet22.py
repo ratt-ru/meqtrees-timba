@@ -9,6 +9,7 @@
 # - 26mar2007: adapted for QualScope.py
 # - 04jun2007: adapt for NodeList.py
 # - 04jun2007: derive from ParameterizationPlus.py
+# - 17jul2007: adaptation to ._pgm.
 
 # Description:
 
@@ -292,7 +293,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
     def display_ParmGroupManager(self, full=False):
         """Print a summary of the ParmGroupManager of this object"""
-        self.p_display()
+        self._pgm.display()
         return True 
 
     def display_specific(self, full=False):
@@ -353,7 +354,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         print ' * Matrix_elements: '+str(self._matrix_elements)
         if self._counter:
             print ' * Counter(s): '+str(self._counter)
-        self.p_display(full=full)
+        self._pgm.display(full=full)
         #...............................................................
         print '**\n'
         return True
@@ -389,7 +390,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
                                             other._matrixet(*i))
         self.matrixet(new=qnode)                                     # replace
         # Transfer any parmgroups from other:
-        # self.p_merge(other)
+        # self._pgm.merge(other)
         if visu: self.visualize(['binop',binop], quals=quals, visu=visu)
         return True
 
@@ -412,7 +413,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         nn = self.make_NodeList(quals=quals)
         bundle = nn.bundle(oper)
         if accu:
-            self.p_accumulist(bundle)
+            self._pgm.accumulist(bundle)
         return bundle
 
     #---------------------------------------------------------------------
@@ -484,14 +485,16 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
             self._dcoll = None
             return False
         elif len(dcolls)==1:
-            if accu: self.p_accumulist(dcolls[0])
+            if accu:
+                self._pgm.accumulist(dcolls[0])
             self._dcoll = dcolls[0]                  # for .display() only
             return dcolls[0]
         else:
-            quals = self.p_quals2list(quals)
+            quals = self.quals2list(quals)
             quals.append(self._stage['stage'])
             bundle = self.ns['visu_bundle'](*quals) << Meq.Composer(children=dcolls)
-            if accu: self.p_accumulist(bundle)
+            if accu:
+                self._pgm.accumulist(bundle)
             self._dcoll = bundle                     # for .display() only
             return bundle
 
@@ -568,7 +571,7 @@ def _define_forest(ns):
     mat1.visualize(visu='straight')
     mat1.visualize(visu='timetracks', separate=False)
     mat1.display(full=True)
-    aa = mat1.p_accumulist()
+    aa = mat1._pgm.accumulist()
 
     if False:
         mat1.unop('Cos', visu=True)
@@ -583,7 +586,7 @@ def _define_forest(ns):
         mat2.test()
         mat2.visualize()
         mat2.display(full=True)
-        aa.extend(mat2.p_accumulist())
+        aa.extend(mat2._pgm.accumulist())
 
     node = ns.accu << Meq.Composer(children=aa)
     print 'node=',str(node)

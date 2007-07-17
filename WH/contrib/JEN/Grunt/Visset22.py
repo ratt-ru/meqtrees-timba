@@ -5,6 +5,7 @@
 # - 14mar2007: added MSSE support (sigma) to .corrupt()
 # - 26mar2007: adapted for QualScope
 # - 07jun2007: adapted to NodeList/ParameterizationPlus
+# - 17jul2007: adapted to ._pgm.
 
 # Description:
 
@@ -355,9 +356,9 @@ class Visset22 (Matrixet22.Matrixet22):
             qnode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = qnode              
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        self.p_merge_accumulist(joneset)
+        self._pgm.merge_accumulist(joneset)
         # Transfer any parmgroups (used by the solver downstream)
-        self.p_merge(joneset)                                    
+        self._pgm.merge(joneset)                                    
         if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
@@ -394,9 +395,9 @@ class Visset22 (Matrixet22.Matrixet22):
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
-            self.p_merge(joneset)
+            self._pgm.merge(joneset)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        self.p_merge_accumulist(joneset)
+        self._pgm.merge_accumulist(joneset)
         if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
@@ -414,7 +415,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # so that it will get the last request before the main-stream is addressed.
         if visu: self.visualize(visu, quals=self.stagename())
         
-        cc = self.p_accumulist(key=key, clear=False)
+        cc = self._pgm.accumulist(key=key, clear=False)
         n = len(cc)
         if n>0:
             cc.append('placeholder')
@@ -473,8 +474,8 @@ def _define_forest(ns):
         vis.display(recurse=5)
 
     if 1:
-        G = Joneset22.GJones(ns, stations=array.stations(), simulate=True)
-        # D = Joneset22.DJones(ns, stations=array.stations(), simulate=True)
+        G = Joneset22.GJones(ns, stations=array.stations(), mode='simulate')
+        # D = Joneset22.DJones(ns, stations=array.stations(), mode='simulate')
         jones = G
         # jones = D
         # jones = Joneset22.Joneseq22([G,D])
@@ -565,7 +566,8 @@ if __name__ == '__main__':
     if 1:
         G = Joneset22.GJones (ns, stations=array.stations(),
                               # telescope='WSRT', band='90cm',
-                              simulate=True)
+                              mode='simulate')
+                              # mode='simulate')
         if 1:
             vis.corrupt(G, visu=True)
             # vis.addGaussianNoise(stddev=0.05, visu=True)
@@ -583,8 +585,8 @@ if __name__ == '__main__':
         
 
     if 0:
-        G = Joneset22.GJones (ns, stations=array.stations(), simulate=True)
-        D = Joneset22.DJones (ns, stations=array.stations(), simulate=True)
+        G = Joneset22.GJones (ns, stations=array.stations(), mode='simulate')
+        D = Joneset22.DJones (ns, stations=array.stations(), mode='simulate')
         jones = Joneset22.Joneseq22([G,D])
         vis.corrupt(jones, visu=True)
         vis.display('after corruption')
