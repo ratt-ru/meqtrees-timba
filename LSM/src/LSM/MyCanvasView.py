@@ -206,9 +206,15 @@ class MyCanvasView(QCanvasView):
     ############ create p-unit list
     # table for all p-units plots on canvas
     self.p_tab={}
+    ## query only selected punits
+    if self.lsm.display_punits>0:
+      pulist=self.lsm.queryLSM(count=self.lsm.display_punits)
+    else:
+      pulist=self.lsm.queryLSM(all=1)
+
     # plot all p-units/sources
-    for sname in self.lsm.p_table.keys():
-     punit=self.lsm.p_table[sname]
+    for punit in pulist:
+     sname=punit.name
      mytype=punit.getType()
      if mytype==POINT_TYPE:
       #xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
@@ -574,19 +580,26 @@ class MyCanvasView(QCanvasView):
    #print self.parent.slider1.value()
    # rememeber the number of sources showing
    showcount=0;
-   for sname in self.lsm.p_table.keys():
-     punit=self.lsm.p_table[sname]
-     #if punit.getBrightness()/self.max_brightness*500 <self.parent.slider1.value():
-     if (self.min_brightness<0):
-         abs_min=1e-10
-     else: abs_min=self.min_brightness
-
-     if punit.getType()==POINT_TYPE and\
-       math.log(abs(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))/abs_min)/math.log(abs(self.max_brightness)/abs_min) <self.parent.sliderCut.value()/100.0: 
+   if (self.min_brightness<0):
+     abs_min=1e-10
+   else: abs_min=self.min_brightness
+   # hide all 
+   for sname in self.p_tab.keys():
       self.p_tab[sname].hide()
-     else:
-      self.p_tab[sname].show()
-      showcount+=1;
+
+   # check to see if need to limit display of sources
+   if self.lsm.display_punits>0:
+     pulist=self.lsm.queryLSM(count=self.lsm.display_punits)
+   else:
+     pulist=self.lsm.queryLSM(all=1)
+   for punit in pulist:
+       sname=punit.name
+       if punit.getType()==POINT_TYPE and\
+         math.log(abs(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))/abs_min)/math.log(abs(self.max_brightness)/abs_min) <self.parent.sliderCut.value()/100.0: 
+         pass
+       else:
+         self.p_tab[sname].show()
+         showcount+=1;
  
    tmpstr="%4.3f"%(math.pow(math.e,math.log(abs(self.max_brightness)/abs_min)*self.parent.sliderCut.value()/100.0)*abs_min)
    self.slabel.setText(tmpstr+"/"+str(showcount)) 

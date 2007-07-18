@@ -281,6 +281,9 @@ class LSM:
   self.m_table='thislsm.mep'
   self.tmpl_table={}
   self.p_table={}
+
+  # number of sources to display
+  self.display_punits=-1 # if -1, display all
   self.mqs=None
   # the request domain, just a cell right now
   self.cells=None
@@ -461,6 +464,15 @@ class LSM:
  # when NOT using MeqBrowser, use this option
  def display(self, **kw ):
   d=Dummy(self,sys.argv)
+  count=0
+  if kw.has_key('count'):
+    count=kw['count']
+  if count<0:
+   self.display_punits=-1 # all
+  else:
+   self.display_punits=count
+ 
+
   if kw.has_key('app') and (kw['app']=='create'):
     d.display(app='create')
   else:
