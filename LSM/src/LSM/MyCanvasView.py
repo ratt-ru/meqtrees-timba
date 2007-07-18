@@ -75,7 +75,7 @@ class MyCanvasView(QCanvasView):
     self.default_mode='A'
 
     # display coordinates in Radians (rad) or degrees (deg)
-    self.default_coords='rad' 
+    self.default_coords='deg' 
 
     # fonts 
     font=QFont(QApplication.font())
