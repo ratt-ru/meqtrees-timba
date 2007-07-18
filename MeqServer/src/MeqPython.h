@@ -27,8 +27,8 @@ namespace MeqPython
   // mutex acquired before calling any python. This is a bit of a kludge
   // for now, the proper way to do it is with the Global Interpreter Lock
   // and various thread structures, as described in the Python/C API
-  // gui chapter 8.
-  extern Thread::Mutex python_mutex;
+  // document chapter 8.
+  extern "C" Thread::Mutex python_mutex;
 
   // Inits Python if needed, attaches meqserver module to MeqServer object.
   void initMeqPython (MeqServer *pm);

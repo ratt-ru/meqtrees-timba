@@ -25,10 +25,11 @@ static PyObject
       *process_vis_footer,
       *force_module_reload;
 
-Thread::Mutex python_mutex;
-
 extern "C"
 {
+
+Thread::Mutex python_mutex;
+
 
 // -----------------------------------------------------------------------
 // mqexec ()
