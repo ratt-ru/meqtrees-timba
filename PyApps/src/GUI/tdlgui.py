@@ -844,7 +844,7 @@ class TDLEditor (QFrame,PersistentCurrier):
 class TDLOptionsDialog (QDialog,PersistentCurrier):
   """implements a floating window for TDL options""";
   def __init__ (self,parent,ok_label=None,ok_icon=None):
-    QDialog.__init__(self,parent,"options",True);
+    QDialog.__init__(self,parent,"options",False);
     self.setSizeGripEnabled(True);
     
     lo_main = QVBoxLayout(self,11,6);
