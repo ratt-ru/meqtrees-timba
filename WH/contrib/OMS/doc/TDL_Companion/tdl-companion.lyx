@@ -1,4 +1,4 @@
-#LyX 1.4.3 created this file. For more info see http://www.lyx.org/
+#LyX 1.4.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 245
 \begin_document
 \begin_header
@@ -11427,6 +11427,15 @@ TDLOptions are simple to declare, but they provide all sorts of sophisticated
  functionality that allows one to build up highly interactive and context-sensit
 ive GUIs.
  This chapter discusses the subject in detail.
+\end_layout
+
+\begin_layout Section
+Run-time vs.
+ compile-time options
+\end_layout
+
+\begin_layout Standard
+to be continued...
 \end_layout
 
 \begin_layout Chapter
