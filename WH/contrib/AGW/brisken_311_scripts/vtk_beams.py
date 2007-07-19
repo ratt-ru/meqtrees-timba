@@ -3,7 +3,7 @@
 #% $Id: vtk_qt_3d_display.py 4033 2006-09-28 20:17:14Z twillis $ 
 
 #
-# Copyright (C) 2006
+# Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl

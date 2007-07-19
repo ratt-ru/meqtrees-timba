@@ -1,7 +1,8 @@
 //# Grid.h: Give the values along specified grid axis
 //#
-//# Copyright (C) 2003
+//# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
+//# and The MeqTree Foundation
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
 //#
 //# This program is free software; you can redistribute it and/or modify

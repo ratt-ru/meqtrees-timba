@@ -1,5 +1,5 @@
 //# tMeqVells.cc: Test program for Meq::Vells classes
-//# Copyright (C) 2002
+//# Copyright (C) 2002-2007
 //# Associated Universities, Inc. Washington DC, USA.
 //#
 //# This library is free software; you can redistribute it and/or modify it

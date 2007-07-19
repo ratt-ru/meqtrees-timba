@@ -3,7 +3,7 @@
 #% $Id: MG_AGW_project2a.py 3929 2006-09-01 20:17:51Z twillis $ 
 
 #
-# Copyright (C) 2006
+# Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl

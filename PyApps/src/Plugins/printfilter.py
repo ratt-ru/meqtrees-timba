@@ -4,7 +4,7 @@
 #% $Id: printfilter.py 4329 2006-12-14 17:27:23Z twillis $ 
 
 #
-# Copyright (C) 2006
+# Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl

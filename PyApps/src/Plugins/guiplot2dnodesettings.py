@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 # SciCraft - An interactive graphics front end to advanced data mining
-# Copyright (C) 2002-2005 SciCraft Development Team
+# Copyright (C) 2002-2007 SciCraft Development Team
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

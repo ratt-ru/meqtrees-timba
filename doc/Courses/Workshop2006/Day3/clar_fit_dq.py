@@ -2,7 +2,7 @@
 #% $Id: clar_fit_dq.py 4096 2006-10-09 14:41:48Z oms $ 
 
 #
-# Copyright (C) 2006
+# Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
