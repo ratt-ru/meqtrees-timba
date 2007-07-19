@@ -21,7 +21,7 @@ def _define_forest (ns,**kwargs):
     else:
       ns.xy(p) << Meq.Composer(x,y);
     # define tec trees 
-    make_sine_tid(ns,ns.tec(p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10,angle=1);
+    make_sine_tid(ns,ns.tec(p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10,angle=0);
 
 Settings.forest_state.cache_policy = 100; # cache everything
 Settings.forest_state.bookmarks = [];

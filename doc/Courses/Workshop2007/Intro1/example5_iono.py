@@ -37,13 +37,7 @@ def _define_forest (ns,**kwargs):
   # loop over positions
   for p,(x,y) in enumerate(positions):
     ns.xy(p) << Meq.Composer(x,y);
-    # define tec trees 
-    print ns.tec(p).initialized();
     make_sine_tid(ns,ns.tec(p),ns.xy(p),ampl=.1,size_km=50,speed_kmh=200,tec0=10);
-    print ns.tec(p).initialized();
-    ns1 = ns.Subscope('foo',p);
-    ns1.xcoord(p) << ns.tec(p,'x') + 1;
-    ns1.xcoord1(p,12,2,3,'xxx')('yyy')('zzz') << ns.tec(p)('x')+1;   
 
 Settings.forest_state.cache_policy = 100; # cache everything
 Settings.forest_state.bookmarks = [];
