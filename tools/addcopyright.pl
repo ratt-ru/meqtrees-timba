@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#This script will add the ASTRON copyright to python/shell/perl script files
+#This script will add a copyright notice to python/shell/perl script files
 # $Id$
 
 # check for command line
@@ -15,7 +15,7 @@ $old_copyright='^# GNU General Public License .*$';
 $tmpfile_name="./.tmpfile";
 
 for ($argnum=0; $argnum<=$#ARGV; $argnum++) {
-printf "Adding ASTRON GPL to @ARGV[$argnum]\n";
+printf "Adding GPL to @ARGV[$argnum]\n";
 # open files
 open(IN,"< @ARGV[$argnum]") || die "can't open file @ARGV[$argnum] for reading\n";
 open(OUTFILE,"> $tmpfile_name") || die "cant' open file $tmpfile_name for writing\n";
@@ -83,10 +83,10 @@ sub print_copyright {
   print OUTFILE "\n";
 
   print OUTFILE "#
-# Copyright (C) 2006
+# Copyright (C) 2002-2007
+# The MeqTree Foundation & 
 # ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg\@astron.nl
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -99,8 +99,9 @@ sub print_copyright {
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with this program; if not, see <http://www.gnu.org/licenses/>,
+# or write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #\n";
 
   print OUTFILE "\n";
