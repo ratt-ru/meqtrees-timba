@@ -396,7 +396,7 @@ class ParmGroupManager (Meow.Parameterization):
                     pg.set_TDLOption('_mode', 'nosolve')
 
         # NB: How does self._tobesolved get its value from TDL.....???
-        self.tobesolved(trace=True)                    # temporary, for testing only
+        # self.tobesolved(trace=True)                    # temporary, for testing only
         return True
 
     #.........................................................................
@@ -927,8 +927,8 @@ class ParmGroupManager (Meow.Parameterization):
 #=============================================================================
 
 
-if 0:
-    pgm = ParmGroupManager(name='GJones')
+if 1:
+    pgm = ParmGroupManager(name='GJones', namespace='ParmGroupManager')
     pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
     pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
     pgm.TDLCompileOptionsMenu()
@@ -952,7 +952,7 @@ def _define_forest(ns):
         pgm['Ggain'].create_member(7, freq_deg=6)
         pgm['Ggain'].create_member(4, time_deg=3)
 
-    if 0:
+    if 1:
         cc.append(pgm.bundle(show=True))
         cc.append(pgm.plot_timetracks())
         cc.append(pgm.plot_spectra())

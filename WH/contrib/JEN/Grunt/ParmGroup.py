@@ -60,7 +60,8 @@ class ParmGroup (Meow.Parameterization):
     their way into the more official Meow system eventually."""
 
     def __init__(self, ns=None, name=None,
-                 quals=[], kwquals={}, namespace=None,
+                 quals=[], kwquals={},
+                 namespace=None,
                  tags=None,
                  mode='nosolve',
                  descr='<descr>',
@@ -86,9 +87,9 @@ class ParmGroup (Meow.Parameterization):
 
         name = str(name)                           # just in case....
 
-        s = ' ParmGroup:  '+str(name)
+        s = ' ParmGroup: '+str(name)
         if isinstance(namespace,str):
-            namespace += s
+            namespace += ' '+s
         else:
             namespace = s
         self.tdloption_namespace = namespace
@@ -574,7 +575,7 @@ class ParmGroup (Meow.Parameterization):
 
         #---------------------------------
         # Read the (saved) value from the .tdl.conf file: 
-        self._read_TDLCompileOptions(trace=False)
+        # self._read_TDLCompileOptions(trace=False)
 
         # Finished: Return a list of options:
         return oolist
@@ -645,6 +646,7 @@ class ParmGroup (Meow.Parameterization):
         """Helper function to read TDLCompileOptions into local variables
         with the same name: e.g. opt['default'] -> self._default
         """
+        trace = True
         if trace: print '\n** _read_TDLCompileOptions:'
         for key in self._TDLCompileOption.keys():
             was = getattr(self,key)
@@ -908,7 +910,7 @@ class ParmGroup (Meow.Parameterization):
 #=============================================================================
 
 if 1:
-    pg = ParmGroup (name='ParmGroup', tiling=3, mode='simulate', namespace='jjj')
+    pg = ParmGroup (name='test', tiling=3, mode='solve', namespace='ParmGroupNamespace')
     pg.TDLCompileOptionsMenu()
 
 
@@ -926,7 +928,7 @@ def _define_forest(ns):
         pg.create_member(7, freq_deg=2)
 
     if 0:
-        bookpage = 'test'
+        bookpage = 'bookpagge'
         cc.append(pg.bundle(bookpage=bookpage, show=True))
         cc.append(pg.plot_timetracks(bookpage=bookpage, show=True))
         cc.append(pg.plot_rvsi(bookpage=bookpage, show=True))
