@@ -1,7 +1,8 @@
-# file: ../Grunt/NodeList.py
+# file: ../JEN/NodeList/NodeList.py
 
 # History:
-# - 31may2007: creation 
+# - 31may2007: creation
+# - 20jul2007: improved .plot_xy()
 
 # Description:
 
@@ -48,7 +49,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# import Meow
 
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN import MG_JEN_dataCollect
@@ -74,7 +74,7 @@ class NodeList (object):
 
         # Scopify, if necessary:
         if is_node(ns):
-            self.ns = ns[self._name].QualScope()
+            self.ns = ns.QualScope()
             self.ns0 = ns.QualScope()
         else:
             qq = ns.dummy.name.split(':')
@@ -570,22 +570,38 @@ class NodeList (object):
 
     #--------------------------------------------------------------
 
-    def plot_xy (self, other, bookpage=True, folder=None):
+    def plot_xy (self, xx=None,
+                 xlabel=None, ylabel=None,
+                 color=None, style=None, size=None, pen=None,
+                 bookpage=True, folder=None):
         """Misuse the rvsi plotter to plot the node-values of this NodeList
-        against those of another (commensurate) one."""
-        xlabel = self.name()+'  (unit='+str(self._pp['unit'])+')'
-        ylabel = other.name()+'  (unit='+str(other._pp['unit'])+')'
+        as y-values against the x-values of another (commensurate) one (xx).
+        If xx is not specified, a commensurate one with integers will be
+        generated."""
+        if not xx:
+            qnode = self.ns['xx']
+            xx = NodeList(qnode, 'xaxis')
+            for x in range(self.len()):
+                label = str(x)
+                node = qnode(x) << Meq.Constant(x)
+                xx.append(node, label)
+        if not isinstance(xlabel, str):
+            xlabel = xx.name()+'  (unit='+str(xx._pp['unit'])+')'
+        if not isinstance(ylabel, str):
+            ylabel = self.name()+'  (unit='+str(self._pp['unit'])+')'
         if not isinstance(bookpage, str):
-            bookpage = 'plot_xy_'+kopie.name()
-        return self.plot_rvsi (other=other,
-                               bookpage=bookpage, folder=folder,
-                               mean_circle=False, errorbars=False,
-                               xlabel=xlabel, ylabel=ylabel)
+            bookpage = 'plot_xy_'+self.name()
+        return xx.plot_rvsi (other=self,
+                             color=color, style=style, size=size, pen=pen,
+                             bookpage=bookpage, folder=folder,
+                             mean_circle=False, errorbars=False,
+                             xlabel=xlabel, ylabel=ylabel)
         
     #--------------------------------------------------------------
 
     def plot_rvsi (self, select='*', other=None, quals=None,
                    bookpage=True, folder=None,
+                   color=None, style=None, size=None, pen=None,
                    xlabel='xx', ylabel='yy',
                    tag='', concat=False,
                    mean_circle=False, errorbars=True,
@@ -619,10 +635,10 @@ class NodeList (object):
             # Normal case: All nodes are plotted in the same color/style
             rr = MG_JEN_dataCollect.dcoll (kopie.ns, kopie._nodes, 
                                            scope='plot_rvsi', tag=tag,
-                                           color=kopie._pp['color'],
-                                           style=kopie._pp['style'],
-                                           size=kopie._pp['size'],
-                                           pen=kopie._pp['pen'],
+                                           color=(color or kopie._pp['color']),
+                                           style=(style or kopie._pp['style']),
+                                           size=(size or kopie._pp['size']),
+                                           pen=(pen or kopie._pp['pen']),
                                            xlabel=xlabel, ylabel=ylabel,
                                            errorbars=errorbars,
                                            mean_circle=mean_circle,
@@ -692,7 +708,7 @@ class NodeList (object):
 
         if bookpage:
             if not isinstance(bookpage, str):
-                bookpage = 'plot_timetracks_'+kopie.name()
+                bookpage = 'plot_timetracks_'+self.name()
 
         kopie = self.copy(select=select, quals=quals)
         tt = kopie._pp['tensor']
@@ -734,6 +750,19 @@ class NodeList (object):
 
     def test(self, n=8):
         """Fill the NodeList with n test-nodes"""
+        freq = self.ns << Meq.Freq()
+        time = self.ns << Meq.time()
+        for i in range(n):
+            label = 'T'+str(i)
+            node = self.ns['test'](i) << Meq.Cos((1+i/3)*(time+freq))
+            self.append(node, label)
+        return True
+
+
+    #----------------------------------------------------------------
+
+    def test22(self, n=8):
+        """Fill the NodeList with n 2x2 tensor-nodes"""
         freq = self.ns << Meq.Freq()
         time = self.ns << Meq.time()
         self.tensor_elements (['s','c','cs','cx'],
@@ -791,8 +820,10 @@ def _define_forest(ns):
     cc = []
 
     nn1 = NodeList(ns, 'nn1')
-    nn1.test(8)
+    nn1.test(8)                       # simple nodes
+    # nn1.test22(8)                   # tensor nodes
     nn1.display('initial')
+
 
     if 1:
         nn1.bookpage(4)
@@ -801,7 +832,7 @@ def _define_forest(ns):
         unop = None
         # unop = 'Cos Sin'
         node = nn1.bundle('WSum', select='*', unop=unop, show=True)
-        node = nn1.bundle('Composer', select='*', unop=unop, show=True)
+        # node = nn1.bundle('Composer', select='*', unop=unop, show=True)
         cc.append(node)
 
     if 0:
@@ -811,14 +842,18 @@ def _define_forest(ns):
         node = nn2.bundle(show=True)
         cc.append(node)
 
-    if 0:
+    if 1:
         node = nn1.plot_timetracks()
         cc.append(node)
 
-    if 0:
+    if 1:
         # node = nn1.plot_rvsi(other=nn1)
         # nn1.tensor_elements()      # reset
         node = nn1.plot_rvsi()
+        cc.append(node)
+
+    if 1:
+        node = nn1.plot_xy()
         cc.append(node)
 
     if 0:
@@ -829,12 +864,13 @@ def _define_forest(ns):
         node = nnc.plot_xy(nns)
         cc.append(node)
 
-    if 0:
+    if 1:
         node = nn1.compare(other=nn1)
         cc.append(node)
 
     nn1.display('final', full=True)
 
+    if len(cc)==0: cc.append(ns.dummy << 1.1)
     ns.result << Meq.Composer(children=cc)
     return True
 
