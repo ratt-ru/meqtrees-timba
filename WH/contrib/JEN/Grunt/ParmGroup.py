@@ -67,8 +67,8 @@ class ParmGroup (Meow.Parameterization):
                  descr='<descr>',
                  unit=None,
                  default=0.0,
-                 # constraint=dict(),
-                 constraint=dict(sum=1.1, prod=0.5, ignore=[1,4]),    # ...temporary...
+                 # constraint=dict(min=None, max=None),
+                 constraint=dict(sum=1.1, prod=0.5, ignore=[1,4], min=None, max=None),    # ...temporary...
                  tiling=None,
                  time_deg=0, freq_deg=0,
                  deviation=None):
@@ -77,6 +77,7 @@ class ParmGroup (Meow.Parameterization):
                  # rider=None, override=None,
                  # **kw):
 
+        #------------------------------------------------------------------
         # Scopify ns, if necessary:
         if is_node(ns):
             ns = ns.QualScope()        
@@ -87,27 +88,10 @@ class ParmGroup (Meow.Parameterization):
 
         name = str(name)                           # just in case....
 
-        s = ' ParmGroup: '+str(name)
-        if isinstance(namespace,str):
-            namespace += ' '+s
-        else:
-            namespace = s
-        self.tdloption_namespace = namespace
-        
-        self._TDLCompileOptionsMenu = None   
-        self._TDLConstraintOptionsMenu = None   
-        self._TDLCompileOption = dict()
-
-        # A ParmGroup may be 'inactive'
-        self._active = True
-
-        #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
         #     introduced by passing ns as a node, rather than a nodescope.
         #     See also the function .nodescope()
         # Eventually.... (perverse coupling)? 
-        #------------------------------------
-
 
         # Make a little more robust 
         quals = self.quals2list(quals)
@@ -122,8 +106,6 @@ class ParmGroup (Meow.Parameterization):
         Meow.Parameterization.__init__(self, ns, name,
                                        quals=quals,
                                        kwquals=kwquals)
-        # Initialize local data:
-        self._NodeList = None
 
         #------------------------------------------------------------------
 
@@ -142,29 +124,49 @@ class ParmGroup (Meow.Parameterization):
             deviation = self.deviation_expr(ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
 
         # Create the group definition:
+
         self._descr = descr
         self._unit = unit
         self._tags = tags
 
-        # Local values for compile options:
-        self._default = default
-        self._mode = mode
-        self._deviation = deviation
-        self._tiling = tiling
-        self._time_deg = time_deg
-        self._freq_deg = freq_deg
         if not isinstance(constraint, dict):
             constraint = dict()
-        for key in constraint.keys():
-            setattr(self, '_'+key, constraint[key])
-        self._callback_mode(self._mode)       
+        self._constraint = constraint 
 
-        # Initialise internal lists:
+        # A ParmGroup may be 'inactive'
+        self._active = True
+
+        # TDLOptions:
+        s = ' ParmGroup: '+str(name)
+        if isinstance(namespace,str):
+            namespace += ' '+s
+        else:
+            namespace = s
+        self.tdloption_namespace = namespace
+        self._TDLCompileOptionsMenu = None   
+        self._TDLConstraintOptionsMenu = None   
+        self._TDLCompileOption = dict()
+
+        # Deal with the specified values for TDLCompile options:
+        # They are kept in a separate dict (self._opt), to be used in 'reset()'
+        self._opt = dict(_default=default, _mode=mode, _deviation=deviation,
+                         _tiling=tiling, _time_deg=time_deg, _freq_deg=freq_deg)
+        for key in self._constraint.keys():
+            self._opt['_'+key] = self._constraint[key]
+        # Assign their values to the local variables that are used by TDLCompileOptions.
+        # These will be used when creating actual nodes. If the ParmGroup is used without
+        # TDLOptions interface, the input values will be used. 
+        for key in self._opt.keys():
+            setattr(self, key, self._opt[key])
+
+        # Initialise misc. internal variables:
         self._nodes = []
         self._solvable = []
         self._plot_labels = []
+        self._NodeList = None
+        self._condeq = dict()
 
-
+        # Finished:
         return None
 
 
@@ -242,8 +244,15 @@ class ParmGroup (Meow.Parameterization):
         print '  * Descr: '+str(self._descr)
         if self.mode()=='simulate':
             print '  * Deviation: '+str(self._deviation)
-        rr = dict(default=self._default, tiling=self._tiling)
-        print '  * options: '+str(rr)
+        #..............................................................
+        print '  * options (default): '+str(self._opt)
+        rr = dict()
+        for key in self._opt:
+            value = getattr(self, key)
+            if not value==self._opt[key]:
+                rr[key] = value
+        print '  * options (actual, if different from default): '+str(rr)
+        #..............................................................
         rr = dict(tags=self._tags, unit=self._unit)
         print '  * Misc: '+str(rr)
         #...............................................................
@@ -275,6 +284,11 @@ class ParmGroup (Meow.Parameterization):
                 rr = self._parmnodes[key]
                 print '    - ('+key+'): '+str(rr)
         #...............................................................
+        print '  * Constraints: '+str(self._constraint)
+        print '  * Constraint condeqs:'
+        for key in self._condeq:
+            print '   - '+key+': '+str(self._condeq[key])
+        #...............................................................
         if self._NodeList:
             print '  * NodeList object: '+self._NodeList.oneliner()
         else:
@@ -288,7 +302,8 @@ class ParmGroup (Meow.Parameterization):
                 print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
             else:
                 tdlvalue = self._TDLCompileOption[key].value
-                selfvalue = getattr(self, key, noexist)
+                # selfvalue = getattr(self, key, noexist)
+                selfvalue = getattr(self, key)
                 if tdlvalue==selfvalue:
                     print '    - '+str(key)+' = '+str(tdlvalue)
                 else:
@@ -385,6 +400,9 @@ class ParmGroup (Meow.Parameterization):
             node = self._parm(nodename)
 
         elif is_node(value):
+            print '\n** value.classname =',value.classname,'\n'
+            if not value.classname=='MeqParm':
+                solvable = False
             self._add_parm(nodename, value, tags=ptags, solvable=solvable)
             node = self._parm(nodename)
 
@@ -520,21 +538,24 @@ class ParmGroup (Meow.Parameterization):
 
         if True:
             cclist = []
-            noexist = -1.23456789
 
-            key = '_sum'
-            if not getattr(self,key,noexist)==noexist:
+            for key1 in self._constraint.keys():
+                key = '_'+key1
                 if not self._TDLCompileOption.has_key(key):
-                    doc = 'The sum of the group members should be equal to the specified value.'
-                    opt = [getattr(self,key), 0.0, None]
-                    self._TDLCompileOption[key] = TDLOption(key, 'sum. constraint', opt,
-                                                            more=float, doc=doc, namespace=self)
-                    cclist.append(self._TDLCompileOption[key])
+                    doc = 'The '+key1+' of the group members should be equal to the specified value.'
+                    opt = [getattr(self,key), 0.0, 1.0, None]
+                    oo = TDLOption(key, 'constrain the '+key1+' to:', opt,
+                                   more=float, doc=doc, namespace=self)
+                    oo.when_changed(self._callback_constraint)
+                    self._TDLCompileOption[key] = oo
+                    cclist.append(oo)
 
-            # Make the submenu:
-            om = TDLCompileMenu('sol. constraint', *cclist)
-            self._TDLConstraintOptionsMenu = om
-            oolist.append(om)
+            # Make the submenu (if required):
+            if len(cclist)>0:
+                om = TDLCompileMenu('solution constraint(s)', *cclist)
+                om.set_summary('summ')
+                self._TDLConstraintOptionsMenu = om
+                oolist.append(om)
 
         #---------------------------------
         # Simulation options (simul=True):
@@ -573,9 +594,17 @@ class ParmGroup (Meow.Parameterization):
             self._TDLCompileOption[key].when_changed(self._callback_mode)
         oolist.append(self._TDLCompileOption[key])
 
-        #---------------------------------
-        # Read the (saved) value from the .tdl.conf file: 
-        # self._read_TDLCompileOptions(trace=False)
+        # A special case:
+        key = '_reset'
+        if not self._TDLCompileOption.has_key(key):
+            doc = """If True, reset all options to their original default values.
+            (presumably these are sensible values, supplied by the module designer.)"""
+            self._TDLCompileOption[key] = TDLOption(key, 'reset to original',
+                                                    [False, True],
+                                                    doc=doc, namespace=self)
+            self._TDLCompileOption[key].when_changed(self._callback_reset)
+        oolist.append(self._TDLCompileOption[key])
+
 
         # Finished: Return a list of options:
         return oolist
@@ -583,8 +612,23 @@ class ParmGroup (Meow.Parameterization):
 
     #.....................................................................
 
+    def _callback_constraint(self, dev):
+        """Function called whenever any TDLOption in the constraint menu changes."""
+        summ = '**'
+        for key1 in self._constraint.keys():
+            key = '_'+key1
+            if self._TDLCompileOption.has_key(key):
+                value = self._TDLCompileOption[key].value
+                if not value==None: summ += key1
+        summ += '**'
+        if self._TDLConstraintOptionsMenu:
+            self._TDLConstraintOptionsMenu.set_summary(summ)
+        return True
+
+    #.....................................................................
+
     def _callback_deviation(self, dev):
-        """Function called whenever TDLOption _deviation changes"""
+        """Function called whenever TDLOption _deviation changes."""
         key = '_deviation'
         if self._TDLCompileOption.has_key(key):
             self._TDLCompileOption[key].set_custom_value(dev, callback=False,
@@ -594,8 +638,11 @@ class ParmGroup (Meow.Parameterization):
     #.....................................................................
 
     def _callback_mode (self, mode):
-        """Function called whenever TDLOption _mode changes"""
+        """Function called whenever TDLOption _mode changes.
+        It adjusts the hiding of options according to 'mode'."""
+
         # print '** _callback_mode(',mode,'):'
+
         simul_options = ['_deviation']
         solve_options = ['_default','_tiling','_time_deg','_freq_deg']
         noexist = -1.23456789
@@ -611,19 +658,28 @@ class ParmGroup (Meow.Parameterization):
         elif mode=='simulate':
             show = simul_options
             hide = solve_options
-        key = '_mode'
-        if self._TDLCompileOption.has_key(key):
-            self._TDLCompileOption[key].set_value(mode, callback=False)
+
         for key in show:
             if self._TDLCompileOption.has_key(key):
                 self._TDLCompileOption[key].show(True)
         for key in hide:
             if self._TDLCompileOption.has_key(key):
                 self._TDLCompileOption[key].show(False)
+
         if self._TDLConstraintOptionsMenu:
             self._TDLConstraintOptionsMenu.show(mode=='solve')
+
         return True
         
+    #.....................................................................
+
+    def _callback_reset(self, reset):
+        """Function called whenever TDLOption _reset changes."""
+        if reset and self._TDLCompileOptionsMenu:
+            self._reset_options(trace=True)
+            self._TDLCompileOption['_reset'].set_value(False, callback=False,
+                                                       save=True)
+        return True
 
     #.....................................................................
 
@@ -640,40 +696,30 @@ class ParmGroup (Meow.Parameterization):
                 self._callback_deviation(value)
         return True
 
+
     #.....................................................................
 
-    def _read_TDLCompileOptions(self, trace=False):
-        """Helper function to read TDLCompileOptions into local variables
-        with the same name: e.g. opt['default'] -> self._default
+    def _reset_options(self, trace=False):
+        """Helper function to reset the TDLCompileOptions and their local
+        counterparts to the original default values (kept in self._opt). 
         """
-        trace = True
-        if trace: print '\n** _read_TDLCompileOptions:'
-        for key in self._TDLCompileOption.keys():
+        if trace: print '\n** _reset_options():'
+        for key in self._opt.keys():
             was = getattr(self,key)
-            new = self._TDLCompileOption[key].value
+            new = self._opt[key]
             setattr(self, key, new)
-            if trace: print ' -',key,':',was,'->',new
-            if key=='mode':
-                self._callback_mode(new)
-        if trace: print
-        return True
-        
-
-    #.....................................................................
-
-    def _reset_TDLCompileOptions(self, trace=False):
-        """Helper function to reset the saved TDLCompileOptions to
-        the current values of their local variable counterparts.
-        The latter are the values that the designer put in,
-        so this is a way to the saved values into a known state.
-        """
-        if trace: print '\n** _reset_TDLCompileOptions:'
-        for key in self._TDLCompileOption.keys():
-            was = self._TDLCompileOption[key].value
-            setattr(self,key,value)
-            self._TDLCompileOption[key].set_value(new, save=True)
-            new = self._TDLCompileOption[key].value
-            if trace: print ' -',key,':',was,'->',new
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].set_value(new, save=True)
+                new = self._TDLCompileOption[key].value
+                if trace:
+                    print ' -',key,':',was,' -> ',getattr(self,key),
+                    if not new==getattr(self,key):
+                        print '** TDLOption =',new,'!?',
+            else:
+                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
+            if trace:
+                if not new==was: print '           ** changed **',
+                print
         if trace: print
         return True
         
@@ -753,6 +799,42 @@ class ParmGroup (Meow.Parameterization):
             return nodes
 
 
+
+    #===============================================================
+    # Constraint condeqs:
+    #===============================================================
+
+    def constraint_condeqs (self):
+        """Return a list of zero or more constraint condeq(s).
+        Make them if necessary."""
+        cc = []
+        for key in self._constraint.keys():
+            if self._condeq.has_key(key):
+                cc.append(self._condeq[key])
+            else:
+                condeq = self._make_constraint_condeq(key)
+                if is_node(condeq):
+                    self._condeq[key] = condeq
+                    cc.append(condeq)
+        return cc
+
+        
+    def _make_constraint_condeq(self, key, show=True):
+        """Make a condeq subtree for the specified constraint"""
+        rhs = getattr(self, '_'+key, None)
+        print '-- rhs =',str(rhs)
+        lhs = None
+        qnode = self.ns['constraint'](key)
+        cc = self.solvable(return_NodeList=False, trace=True)
+        keyn = 'n'+str(len(cc))
+        if key=='sum': lhs = qnode(keyn) << Meq.Add(*cc)
+        if key=='prod': lhs = qnode(keyn) << Meq.Multiply(*cc)
+        if lhs and rhs:
+            qnode << Meq.Condeq(lhs,rhs)
+            if show: display.subtree(qnode, show_initrec=False)
+            return qnode
+        return None
+            
 
     #===============================================================
     # Methods using NodeList objects:
@@ -918,7 +1000,7 @@ def _define_forest(ns):
 
     cc = []
 
-    pg.nodescope(ns)                          # <---------- !!
+    pg.nodescope(ns)                  
 
     if 1:
         pg.create_member(1)
@@ -929,15 +1011,16 @@ def _define_forest(ns):
 
     if 0:
         bookpage = 'bookpagge'
-        cc.append(pg.bundle(bookpage=bookpage, show=True))
-        cc.append(pg.plot_timetracks(bookpage=bookpage, show=True))
-        cc.append(pg.plot_rvsi(bookpage=bookpage, show=True))
-        cc.append(pg.plot_spectra(bookpage=bookpage, show=True))
+        show = False
+        cc.append(pg.bundle(bookpage=bookpage, show=show))
+        cc.append(pg.plot_timetracks(bookpage=bookpage, show=show))
+        cc.append(pg.plot_rvsi(bookpage=bookpage, show=show))
+        cc.append(pg.plot_spectra(bookpage=bookpage, show=show))
 
     if 0:
-        nn = pg.solvable(tags='GJones')
+        nn = pg.solvable(tags='test', return_NodeList=True)
         nn.display('solvable')
-        nn.bookpage(select=4)
+        cc.append(nn.bookpage())
         
 
     pg.display('final', full=True)
@@ -983,7 +1066,7 @@ if __name__ == '__main__':
         pg = ParmGroup(ns, 'Gphase', tiling=3, mode=mode)
         pg.display('initial')
 
-    if 0:
+    if 1:
         pg.create_member(1)
         pg.create_member(2.1, value=(ns << -89))
         pg.create_member(2, value=34, mode='simulate')
@@ -992,6 +1075,9 @@ if __name__ == '__main__':
         pg.create_member(7, freq_deg=2)
 
     if 1:
+        cc = pg.constraint_condeqs()
+
+    if 0:
         pg.TDLCompileOptionsMenu()
 
     if 0:
