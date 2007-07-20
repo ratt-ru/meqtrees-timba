@@ -213,10 +213,9 @@ Settings.orphans_are_roots = True
 if __name__ == '__main__':
 
 
-    Timba.TDL._dbg.set_verbose(5);
+#   Timba.TDL._dbg.set_verbose(5);
     ns = NodeScope();
     _define_forest(ns);
-
 
     ns.Resolve();
     pass
