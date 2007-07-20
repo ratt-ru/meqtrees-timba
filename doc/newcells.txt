@@ -1,7 +1,4 @@
 
-
-
-
     A proposal for a reorganized Domain/Cells class
     
       Motivation:
