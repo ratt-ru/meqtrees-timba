@@ -707,12 +707,7 @@ _define_forest()
 \family typewriter
 _define_forest()
 \family default
-, and observe the results.) In that sense it is exactly like the 
-\family typewriter
-main()
-\family default
- function of a C/C++ program --- it is supposed to be the entrypoint to
- your script that does all of the work.
+, and observe the results.) 
 \end_layout
 
 \begin_layout Standard
@@ -737,7 +732,7 @@ ns
 \family default
 
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Standard
 If you're not familiar with the Python 
@@ -904,7 +899,7 @@ Meq.Constant()
 MeqConstant
 \family default
 .
- As you'll see in the examples later on, in most simple cases the node class
+ As you'll see in the examples later on, in simple cases the node class
  by itself is sufficient.
  Sometimes, though, you want to pass some optional arguments to a node.
  A 
@@ -1121,7 +1116,7 @@ f
 f
 \emph default
  here happens to be a multiplication node.
- Note that we can choose to view any node as a 
+ Note also that we can choose to view any node as a 
 \begin_inset Quotes eld
 \end_inset
 
