@@ -127,7 +127,7 @@ def _define_forest(ns):
   source_list = source_model(ns);
   
   if add_e_jones:
-    Ej = clar_model.EJones(ns,array,source_list);
+    Ej = clar_model.EJones(ns,array,observation,source_list);
     corrupt_list = [ 
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in source_list
@@ -185,7 +185,7 @@ def _define_forest(ns):
 
 def _tdl_job_1_clar_predict(mqs,parent,write=True):
   req = Utils.create_io_request();
-  mqs.execute('VisDataMux',req,wait=(parent is None));
+  mqs.execute('VisDataMux',req,wait=False);
   pass
 
 def _tdl_job_2_make_image (mqs,parent):
