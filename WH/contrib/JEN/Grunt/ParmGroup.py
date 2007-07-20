@@ -46,7 +46,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grunt import NodeList
+from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
 

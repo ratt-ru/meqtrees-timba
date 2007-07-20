@@ -5,7 +5,7 @@
 # - 14jan2007: keep only generic G/J/FJones
 # - 29jan2007: added BJones
 # - 30mar2007: adapted to QualScope etc
-# - 07jun2007: adapted to NodeList/ParameterizationPlus
+# - 07jun2007: adapted to ParameterizationPlus
 # - 02jul2007: adapted to Jones Contract
 # - 16jul2007: changed simul to mode
 # - 17jul2007: adaptation to ._pgm.

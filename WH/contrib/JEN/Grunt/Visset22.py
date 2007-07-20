@@ -4,7 +4,7 @@
 # - 05jan2007: creation (from JEN_SolverChain.py)
 # - 14mar2007: added MSSE support (sigma) to .corrupt()
 # - 26mar2007: adapted for QualScope
-# - 07jun2007: adapted to NodeList/ParameterizationPlus
+# - 07jun2007: adapted to ParameterizationPlus
 # - 17jul2007: adapted to ._pgm.
 
 # Description:

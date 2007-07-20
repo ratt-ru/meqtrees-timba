@@ -1,7 +1,7 @@
 # file: ../Grunt/ParmGroupManager.py
 
 # History:
-# - 17jul2007: creation (from ParameterizationPlus.py
+# - 17jul2007: creation (from ParameterizationPlus.py)
 
 # Description:
 
@@ -41,7 +41,7 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import ParmGroup
-from Timba.Contrib.JEN.Grunt import NodeList
+from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
 

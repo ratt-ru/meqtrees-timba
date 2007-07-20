@@ -46,7 +46,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grunt import NodeList
+from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import ParameterizationPlus
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Grunt import ObjectHistory
