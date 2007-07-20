@@ -65,3 +65,7 @@ TDL MG_AGW_solve_veidt_fpa.py
 TDL MG_AGW_store_beam_weights.py
  
 TDL MG_AGW_tree.py
+
+TDL clar_fit_dq.py
+
+TDL clar_fast_predict.py
