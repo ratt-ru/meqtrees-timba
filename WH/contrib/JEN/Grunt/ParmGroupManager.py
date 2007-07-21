@@ -65,12 +65,16 @@ class ParmGroupManager (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
+        Meow.Parameterization.__init__(self, ns, name)
+
+
         # TDL Options:
         self.tdloption_namespace = namespace    
         self._TDLCompileOptionsMenu = None   
         self._TDLCompileOption = dict()
-
-        Meow.Parameterization.__init__(self, ns, name)
+        self.tdloption_reset = dict()
+        for key in self.tdloption_reset.keys():
+            setattr(self, key, self.tdloption_reset[key])
 
         # Initialize local data:
         self.clear()
@@ -176,11 +180,11 @@ class ParmGroupManager (Meow.Parameterization):
             else:
                 print '    - ('+key+'):   ... not active ...'
         #...............................................................
-        print '  * Deviation expressions (mode==simulate only):'
+        print '  * Simuldev expressions (mode==simulate only):'
         for key in self._parmgroups:
             pg = self._parmgroups[key]
             if pg.mode()=='simulate':
-                print '    - ('+key+'): '+pg._deviation
+                print '    - ('+key+'): '+pg._simuldev
         #...............................................................
         print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.gogs():
@@ -199,6 +203,14 @@ class ParmGroupManager (Meow.Parameterization):
                     print '    - '+str(key)+' = '+str(tdlvalue)
                 else:
                     print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
+        #..............................................................
+        print '  * options (default, reset): '+str(self.tdloption_reset)
+        rr = dict()
+        for key in self.tdloption_reset:
+            value = getattr(self, key)
+            if not value==self.tdloption_reset[key]:
+                rr[key] = value
+        print '  * options (actual, if different from default): '+str(rr)
         #...............................................................
         print '  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -279,14 +291,11 @@ class ParmGroupManager (Meow.Parameterization):
 
     def define_parmgroup (self, key, tags=None,
                           descr='<descr>', unit=None,
-                          default=0.0, constraint=None,
-                          deviation=None,
+                          default=0.0,
+                          constraint=dict(min=None, max=None),
+                          simuldev=None,
                           tiling=None, time_deg=0, freq_deg=0,
                           mode='nosolve'):
-        
-                          # constrain_min=0.1, constrain_max=10.0,
-                          # rider=None, override=None,
-                          # **kw):
         """Define a named (key) group of similar parameters"""
 
         # Check whether the group exists already:
@@ -303,8 +312,9 @@ class ParmGroupManager (Meow.Parameterization):
         pg = ParmGroup.ParmGroup (self.ns, key, tags=tags,
                                   namespace=self.name,
                                   descr=descr, unit=unit,
-                                  default=default, constraint=constraint,
-                                  deviation=deviation,
+                                  default=default,
+                                  constraint=constraint,
+                                  simuldev=simuldev,
                                   tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
                                   mode=mode)
         
@@ -317,8 +327,8 @@ class ParmGroupManager (Meow.Parameterization):
 
     #-------------------------------------------------------------------
 
-    def deviation_expr (self, ampl='{0.01~10%}', Psec='{500~10%}', PHz=None):
-        """Helper function to make a standard deviation expression.
+    def simuldev_expr (self, ampl='{0.01~10%}', Psec='{500~10%}', PHz=None):
+        """Helper function to make a standard simuldev expression.
         All arguments must be strings of the form {<value>~<stddev>}.
         The <stddev> is used to generate different values around <value>
         for each member of the group (see .group_create_member())."""
@@ -367,6 +377,7 @@ class ParmGroupManager (Meow.Parameterization):
         oo = TDLOption(key, prompt, opt, more=str,
                        doc=doc, namespace=self)
         self._TDLCompileOption[key] = oo
+        self.tdloption_reset[key] = opt[0]                 # <-------- !!
         oo.when_changed(self._callback_tobesolved)
         oolist.append(self._TDLCompileOption[key])
 
@@ -376,6 +387,17 @@ class ParmGroupManager (Meow.Parameterization):
             self._TDLCompileOption[key] = pg.TDLCompileOptionsMenu()
             oolist.append(self._TDLCompileOption[key])
         self.TDLShowActive()
+
+        # The reset-function:
+        key = '_reset'
+        if not self._TDLCompileOption.has_key(key):
+            doc = """If True, reset all options to their original default values.
+            (presumably these are sensible values, supplied by the module designer.)"""
+            self._TDLCompileOption[key] = TDLOption(key, 'reset to original',
+                                                    [False, True],
+                                                    doc=doc, namespace=self)
+            self._TDLCompileOption[key].when_changed(self._callback_reset)
+        oolist.append(self._TDLCompileOption[key])
 
         # Finished:
         return oolist
@@ -433,7 +455,47 @@ class ParmGroupManager (Meow.Parameterization):
         # Finished:
         return True
 
+    #.....................................................................
 
+    def _callback_reset(self, reset):
+        """Function called whenever TDLOption _reset changes."""
+        if reset and self._TDLCompileOptionsMenu:
+            self.reset_options(trace=True)
+            self._TDLCompileOption['_reset'].set_value(False, callback=False,
+                                                       save=True)
+        return True
+
+    #.....................................................................
+
+    def reset_options(self, trace=False):
+        """Helper function to reset the TDLCompileOptions and their local
+        counterparts to the original default values (in self.tdloption_reset).
+        Recursive: It calls the same function for its parmgroups.
+        """
+        if trace:
+            print '\n** _reset_options(): ',self.oneliner()
+        for key in self.tdloption_reset.keys():
+            was = getattr(self,key)
+            new = self.tdloption_reset[key]
+            setattr(self, key, new)
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].set_value(new, save=True)
+                new = self._TDLCompileOption[key].value
+                if trace:
+                    print ' -',key,':',was,' -> ',getattr(self,key),
+                    if not new==getattr(self,key):
+                        print '** TDLOption =',new,'!?',
+            else:
+                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
+            if trace:
+                if not new==was: print '           ** changed **',
+                print
+        if trace: print
+        # Recursive:
+        for key in self._parmgroups:
+            self._parmgroups[key].reset_options(trace=trace)
+        return True
+        
 
     #===============================================================
     # Merge the parametrization of another object in its own.
@@ -928,7 +990,8 @@ class ParmGroupManager (Meow.Parameterization):
 
 
 if 1:
-    pgm = ParmGroupManager(name='GJones', namespace='ParmGroupManager')
+    pgm = ParmGroupManager(name='GJones',
+                           namespace='ParmGroupManagerNamespace')
     pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
     pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
     pgm.TDLCompileOptionsMenu()
@@ -952,7 +1015,7 @@ def _define_forest(ns):
         pgm['Ggain'].create_member(7, freq_deg=6)
         pgm['Ggain'].create_member(4, time_deg=3)
 
-    if 1:
+    if 0:
         cc.append(pgm.bundle(show=True))
         cc.append(pgm.plot_timetracks())
         cc.append(pgm.plot_spectra())
@@ -964,6 +1027,8 @@ def _define_forest(ns):
         
 
     pgm.display('final', full=True)
+    if 1:
+        pgm.pg_display(full=True)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)

@@ -81,11 +81,6 @@ class ParameterizationPlus (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
-        # TDL Options:
-        self.tdloption_namespace = namespace    
-        self._TDLCompileOptionsMenu = None   
-        self._TDLCompileOption = dict()
-
         #------------------------------------
         # NB: What about dropping quals/kwquals completely, since these may be
         #     introduced by passing ns as a node, rather than a nodescope.
@@ -108,6 +103,14 @@ class ParameterizationPlus (Meow.Parameterization):
         Meow.Parameterization.__init__(self, ns, name,
                                        quals=quals,
                                        kwquals=kwquals)
+
+        # TDL Options:
+        self.tdloption_namespace = namespace    
+        self._TDLCompileOptionsMenu = None   
+        self._TDLCompileOption = dict()
+        self.tdloption_reset = dict()
+        for key in self.tdloption_reset.keys():
+            setattr(self, key, self.tdloption_reset[key])
 
         # The pgm has the qualified ns, and the same namespace.....
         self._pgm = ParmGroupManager.ParmGroupManager(self.ns,
@@ -228,8 +231,19 @@ class ParameterizationPlus (Meow.Parameterization):
             prompt = self.namespace(prepend='options for Joneset22: '+self.name)
             oolist = self.TDLCompileOptions()
             oolist.extend(self._pgm.TDLCompileOptions())
-            self._read_TDLCompileOptions(trace=False)
-            # print '\n** oolist(in menu):',self.oneliner(),'\n       ',oolist
+
+            if True:
+                key = '_reset'
+                if not self._TDLCompileOption.has_key(key):
+                    doc = """If True, reset all options to their original default values.
+                    (presumably these are sensible values, supplied by the module designer.)"""
+                    self._TDLCompileOption[key] = TDLOption(key, 'reset to original',
+                                                            [False, True],
+                                                            doc=doc, namespace=self)
+                    self._TDLCompileOption[key].when_changed(self._callback_reset)
+                oolist.append(self._TDLCompileOption[key])
+
+            ### self._read_TDLCompileOptions(trace=False)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
         else:
             print '\n** menu not recreated:',self.oneliner(),'\n'
@@ -248,53 +262,56 @@ class ParameterizationPlus (Meow.Parameterization):
 
         if False:                    # temporary, just for testing
             key = 'xxx'
+            opt = range(3)
             if not self._TDLCompileOption.has_key(key):
                 self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
-                                                        range(3), more=int,
+                                                        opt, more=int,
                                                         doc='explanation for xxx....',
                                                         namespace=self)
+                self.tdloption_reset[key] = opt[0]
             oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of options:
         return oolist
 
+    #---------------------------------------------------------------------
+
+    def _callback_reset(self, reset):
+        """Function called whenever TDLOption _reset changes."""
+        if reset and self._TDLCompileOptionsMenu:
+            self.reset_options(trace=True)
+            self._TDLCompileOption['_reset'].set_value(False, callback=False,
+                                                       save=True)
+        return True
+
     #.....................................................................
 
-    def _read_TDLCompileOptions(self, trace=True):
-        """Helper function to read TDLCompileOptions into local variables
-        with the same name: e.g. opt['_default'] -> self._default
+    def reset_options(self, trace=False):
+        """Helper function to reset the TDLCompileOptions and their local
+        counterparts to the original default values (in self.tdloption_reset). 
         """
-        if trace: print '\n** _read_TDLCompileOptions:'
-        noexist = -1.23456789
-        for key in self._TDLCompileOption.keys():
-            was = getattr(self, key, noexist)
-            if not was==noexist:
+        if trace:
+            print '\n** _reset_options(): ',self.oneliner()
+        for key in self.tdloption_reset.keys():
+            was = getattr(self,key)
+            new = self.tdloption_reset[key]
+            setattr(self, key, new)
+            if self._TDLCompileOption.has_key(key):
+                self._TDLCompileOption[key].set_value(new, save=True)
                 new = self._TDLCompileOption[key].value
-                setattr(self, key, new)
-                new = getattr(self,key)
-                if trace: print ' -',key,':',was,'->',new
+                if trace:
+                    print ' -',key,':',was,' -> ',getattr(self,key),
+                    if not new==getattr(self,key):
+                        print '** TDLOption =',new,'!?',
+            else:
+                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
+            if trace:
+                if not new==was: print '           ** changed **',
+                print
         if trace: print
         return True
         
 
-    #.....................................................................
-
-    def _reset_TDLCompileOptions(self, trace=True):
-        """Helper function to reset the saved TDLCompileOptions to
-        the current values of their local variable counterparts.
-        The latter are the values that the designer put in,
-        so this is a way to the saved values into a known state.
-        """
-        if trace: print '\n** _reset_TDLCompileOptions:'
-        for key in self._TDLCompileOption.keys():
-            was = self._TDLCompileOption[key].value
-            new = getattr(self,key)
-            self._TDLCompileOption[key].set_value(new, save=True)
-            new = self._TDLCompileOption[key].value
-            if trace: print ' -',key,':',was,'->',new
-        if trace: print
-        return True
-        
 
     #===============================================================
     # Some useful helper functions (available to all derived classes)

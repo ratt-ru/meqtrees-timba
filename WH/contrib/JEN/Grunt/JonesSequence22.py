@@ -147,11 +147,12 @@ class JonesSequence22 (Joneset22.Joneset22):
 
         key = 'jseq'
         if not self._TDLCompileOption.has_key(key):
+            opt = self._jseq_options
             oo = TDLCompileOption(key, 'Selected Jones matrix sequence', 
-                                  self._jseq_options, more=str,
-                                  namespace=self);
+                                  opt, more=str, namespace=self)
             self._TDLCompileOption[key] = oo
             oo.when_changed(self._callback_jseq)
+            self.tdloption_reset = opt[0]
         oolist.append(self._TDLCompileOption[key])
         
         for jchar in self._jorder:

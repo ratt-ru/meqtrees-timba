@@ -355,20 +355,20 @@ class GJones (Joneset22):
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
 
-            dev = self._pgm.deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
             pg = self._pgm.define_parmgroup(self._pname+pol,
                                             descr=pol+'-dipole phases',
                                             default=0.0, unit='rad',
                                             tiling=1, time_deg=0, freq_deg=0,
                                             constraint=dict(sum=0.0, first=0.0),
                                             mode=self._mode,
-                                            deviation=dev,
+                                            simuldev=dev,
                                             # override=override,
                                             # rider=rider,
                                             tags=[self._pname,self._jname])
             self._pg[pol][self._pname] = pg
 
-            dev = self._pgm.deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
+            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
             pg = self._pgm.define_parmgroup(self._gname+pol,
                                             descr=pol+'-dipole gains',
                                             default=1.0,
@@ -376,7 +376,7 @@ class GJones (Joneset22):
                                             # constrain_min=0.1, constrain_max=10.0,
                                             constraint=dict(product=1.0),
                                             mode=self._mode,
-                                            deviation=dev,
+                                            simuldev=dev,
                                             # override=override,
                                             # rider=rider,
                                             tags=[self._gname,self._jname])
@@ -456,10 +456,11 @@ class BJones (Joneset22):
 
         key = '_tfdeg'
         if not self._TDLCompileOption.has_key(key):
-            self._TDLCompileOption[key] = TDLOption(key, 'tfdeg',
-                                                    [[0,5],[0,4],[1,4]],
+            opt = [[0,5],[0,4],[1,4]]
+            self._TDLCompileOption[key] = TDLOption(key, 'tfdeg', opt,
                                                     doc='rank of time/freq polynomial',
                                                     namespace=self)
+            self.tdloption_reset[key] = opt[0]
         oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of option objects:
@@ -478,7 +479,7 @@ class BJones (Joneset22):
         for pol in pols:
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
-            dev = self._pgm.deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
+            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
 
             pg = self._pgm.define_parmgroup(self._iname+pol,
                                             descr=pol+'-IF bandpass imag.part',
@@ -487,7 +488,7 @@ class BJones (Joneset22):
                                             time_deg=self._tfdeg[0],
                                             freq_deg=self._tfdeg[1],
                                             mode=self._mode,
-                                            deviation=dev,
+                                            simuldev=dev,
                                             # override=override,
                                             # rider=rider,
                                             tags=[self._iname,self._jname])
@@ -500,7 +501,7 @@ class BJones (Joneset22):
                                             time_deg=self._tfdeg[0],
                                             freq_deg=self._tfdeg[1],
                                             mode=self._mode,
-                                            deviation=dev,
+                                            simuldev=dev,
                                             # override=override,
                                             # rider=rider,
                                             tags=[self._rname,self._jname])
@@ -575,12 +576,13 @@ class JJones (Joneset22):
         key = '_diagonal'
         if not self._TDLCompileOption.has_key(key):
             doc = 'If True, the JJones matrix is diagonal'
-            oo = TDLOption(key, 'diagonal elements only',
-                           [self._diagonal, not self._diagonal],
+            opt = [self._diagonal, not self._diagonal]
+            oo = TDLOption(key, 'diagonal elements only', opt,
                            doc=doc, namespace=self)
             self._TDLCompileOption[key] = oo
             oo.when_changed(self._callback_diagonal)
             self._callback_diagonal(self._diagonal)
+            self.tdloption_reset[key] = opt[0]
         oolist.append(self._TDLCompileOption[key])
         
         # Finished: Return a list of option objects:
@@ -601,7 +603,7 @@ class JJones (Joneset22):
         """Define the various primary ParmGroups"""
         self.define_parmgroups_preamble()
         self._pg = dict()
-        dev = self._pgm.deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
+        dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
 
         for ename in ['J11','J22']:
             self._pg[ename] = dict()
@@ -616,7 +618,7 @@ class JJones (Joneset22):
                                                 default=default, unit='Jy',
                                                 tiling=None, time_deg=0, freq_deg=0,
                                                 mode=self._mode,
-                                                deviation=dev,
+                                                simuldev=dev,
                                                 constraint=constraint,
                                                 # override=override,
                                                 tags=[self._jname,'Jdiag'])
@@ -632,7 +634,7 @@ class JJones (Joneset22):
                                                     default=0.0, unit='Jy',
                                                     tiling=None, time_deg=0, freq_deg=0,
                                                     mode=self._mode,
-                                                    deviation=dev,
+                                                    simuldev=dev,
                                                     constraint=dict(sum=0.0),
                                                     # override=override,
                                                     tags=[self._jname,'Joffdiag'])
@@ -700,12 +702,12 @@ class FJones (Joneset22):
         self.define_parmgroups_preamble()
         self._pg = dict()
         self._rname = 'RM'       
-        dev = self._pgm.deviation_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+        dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
         pg = self._pgm.define_parmgroup(self._rname,  
                                         descr='Faraday Rotation Measure (rad/m2)',
                                         default=0.0, unit='rad/m2',
                                         mode=self._mode,
-                                        deviation=dev,
+                                        simuldev=dev,
                                         # override=override,
                                         tags=[self._rname,self._jname])
         self._pg[self._rname] = pg
