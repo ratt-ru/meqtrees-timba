@@ -321,6 +321,8 @@ ms_selection = None;
 def create_inputrec (tiling=None):
   global tile_size;
   global ddid_index;
+  if msname is None:
+    raise RuntimeError,"MS not specified in options";
   boioname = "boio."+msname+".predict."+str(tiling or tile_size);
   # if boio dump for this tiling exists, use it to save time
   if not ms_selection and os.access(boioname,os.R_OK):
