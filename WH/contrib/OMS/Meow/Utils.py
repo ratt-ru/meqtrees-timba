@@ -130,6 +130,8 @@ def ms_options (
   return opts;
   
 def _select_new_ms (msname):
+  if not msname:
+    return;
   try:
     ms = pycasatable.table(msname);
     # data columns
