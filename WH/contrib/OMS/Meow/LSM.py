@@ -131,7 +131,7 @@ class MeowLSM (object):
       self.lsm.save(self.save_native_filename);
     
     if self.show_gui:
-      self.lsm.display()
+      self.lsm.display(count=self.max_sources)
     
   def source_list (self,ns,max_sources=None,**kw):
     """Reads LSM and returns a list of Meow objects.
