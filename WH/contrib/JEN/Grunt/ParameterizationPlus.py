@@ -71,6 +71,7 @@ class ParameterizationPlus (Meow.Parameterization):
     def __init__(self, ns=None, name=None,
                  quals=[], kwquals={},
                  namespace=None,
+                 framework='Grunt', classname=None,
                  merge=None):
 
         # Scopify ns, if necessary:
@@ -89,6 +90,17 @@ class ParameterizationPlus (Meow.Parameterization):
         #------------------------------------
 
         name = str(name)                           # just in case....
+
+        # Make a string for reporting:
+        self._frameclass = classname
+        if not isinstance(self._frameclass,str):
+            ss = str(type(self)).split('.')
+            ss = ss[len(ss)-1].split("'")
+            self._frameclass = ss[0]
+        if isinstance(framework,str):
+            self._frameclass = framework+'.'+self._frameclass
+        # print '\n** frameclass =',self._frameclass,'\n'
+            
 
         # Make a little more robust 
         quals = self.quals2list(quals)
@@ -114,6 +126,7 @@ class ParameterizationPlus (Meow.Parameterization):
 
         # The pgm has the qualified ns, and the same namespace.....
         self._pgm = ParmGroupManager.ParmGroupManager(self.ns,
+                                                      parent=self.name,
                                                       namespace=namespace)
                                                       
         # Optional: Copy the parameterization of another object:
@@ -186,6 +199,15 @@ class ParameterizationPlus (Meow.Parameterization):
                     print '    - '+str(key)+' = '+str(tdlvalue)
                 else:
                     print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
+        #..............................................................
+        print '  * options (default, reset): '+str(self.tdloption_reset)
+        if isinstance(self.tdloption_reset,dict):
+            rr = dict()
+            for key in self.tdloption_reset:
+                value = getattr(self, key)
+                if not value==self.tdloption_reset[key]:
+                    rr[key] = value
+            print '  * options (actual, if different from default): '+str(rr)
         #...............................................................
         if self._parmdefs:
             print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
@@ -206,7 +228,7 @@ class ParameterizationPlus (Meow.Parameterization):
                     rr = self._parmnodes[key]
                     print '    - ('+key+'): '+str(rr)
         #...............................................................
-        self._pgm.display(txt, full=full)
+        self._pgm.display(self.oneliner(), full=full)
         #...............................................................
         print '**\n'
         return True
@@ -216,7 +238,7 @@ class ParameterizationPlus (Meow.Parameterization):
     # TDLOptions:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, show=True):
+    def TDLCompileOptionsMenu (self, show=True, reset=True, solving=True):
         """Generic function for interaction with its TDLCompileOptions menu.
         The latter is created (once), by calling the specific function(s)
         .TDLCompileOptions(), which should be re-implemented by derived classes.
@@ -227,24 +249,26 @@ class ParameterizationPlus (Meow.Parameterization):
         # print '\n**',self.oneliner(),self._TDLCompileOptionsMenu,'\n'
         
         # if not self._TDLCompileOptionsMenu:        # create the menu only once
-        if True or not self._TDLCompileOptionsMenu:
-            prompt = self.namespace(prepend='options for Joneset22: '+self.name)
-            oolist = self.TDLCompileOptions()
-            oolist.extend(self._pgm.TDLCompileOptions())
+        if True and not self._TDLCompileOptionsMenu:
 
-            if True:
+            oolist = self.TDLCompileOptions()
+            oolist.extend(self._pgm.TDLCompileOptions(reset=False,
+                                                      solving=solving))
+            if reset:
                 key = '_reset'
                 if not self._TDLCompileOption.has_key(key):
                     doc = """If True, reset all options to their original default values.
-                    (presumably these are sensible values, supplied by the module designer.)"""
-                    self._TDLCompileOption[key] = TDLOption(key, 'reset to original',
-                                                            [False, True],
+                    (presumably these are sensible values, supplied by the module designer.)
+                    This is done recursively for all menus below this one."""
+                    prompt = self.name+':  reset to original defaults'
+                    self._TDLCompileOption[key] = TDLOption(key, prompt, [False, True],
                                                             doc=doc, namespace=self)
                     self._TDLCompileOption[key].when_changed(self._callback_reset)
                 oolist.append(self._TDLCompileOption[key])
 
-            ### self._read_TDLCompileOptions(trace=False)
+            prompt = self.namespace(prepend='options for '+self._frameclass+':  '+self.name)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
+
         else:
             print '\n** menu not recreated:',self.oneliner(),'\n'
 
@@ -260,15 +284,24 @@ class ParameterizationPlus (Meow.Parameterization):
         This function should be re-implemented by derived classes."""
         oolist = []
 
-        if False:                    # temporary, just for testing
+        # NB: Each call to TDLOption(key,...) (re)creates a local variable self.<key>,
+        #     which is used internally. If the module is to be used without TDLOptions,
+        #     these variables should be created by the constructor, and given the
+        #     ('design') values specified by constructor arguments.
+        #     These original values should also be kept in self.tdloption_reset[key],
+        #     to be used for resetting the option values to a known state. In the
+        #     future this original value should be held by the TDLOption object,
+        #     to be used with its function .reset(). For the moment, we will do it
+        #     externally, via self.tdloption_reset.
+
+        if False:                    # temporary, just for testing and example
             key = 'xxx'
+            doc = 'explanation for xxx....'
             opt = range(3)
             if not self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx',
-                                                        opt, more=int,
-                                                        doc='explanation for xxx....',
-                                                        namespace=self)
-                self.tdloption_reset[key] = opt[0]
+                self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx', opt, more=int,
+                                                        doc=doc, namespace=self)
+                self.tdloption_reset[key] = opt[0]           # .... temporary .....
             oolist.append(self._TDLCompileOption[key])
 
         # Finished: Return a list of options:
@@ -290,8 +323,10 @@ class ParameterizationPlus (Meow.Parameterization):
         """Helper function to reset the TDLCompileOptions and their local
         counterparts to the original default values (in self.tdloption_reset). 
         """
+        trace = True
         if trace:
             print '\n** _reset_options(): ',self.oneliner()
+        print  '** self.tdloption_reset =',self.tdloption_reset
         for key in self.tdloption_reset.keys():
             was = getattr(self,key)
             new = self.tdloption_reset[key]
@@ -309,6 +344,10 @@ class ParameterizationPlus (Meow.Parameterization):
                 if not new==was: print '           ** changed **',
                 print
         if trace: print
+
+        # Reset the pgm options also:
+        if self._pgm:
+            self._pgm.reset_options(trace=trace)
         return True
         
 

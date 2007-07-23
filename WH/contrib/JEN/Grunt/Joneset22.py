@@ -157,7 +157,8 @@ class Joneset22 (Matrixet22.Matrixet22):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = str(type(self))
+        # ss = str(type(self))
+        ss = str(self._frameclass)+':'
         ss += '  '+str(self.name)
         if self._telescope:
             ss += ' '+str(self._telescope)
@@ -247,57 +248,6 @@ class Joneset22 (Matrixet22.Matrixet22):
 
 
 
-#=================================================================================================
-# Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
-# Semi-obsolete..... certainly not uptodate, or consistent with TDLOptions....
-#=================================================================================================
-
-def Joneseq22 (ns, joneslist=None, quals=None):
-    """Return a Jones22 object that contains an (item-by-item) matrix multiplication
-    of the matrices of the list (joneslist) of two or more Joneset22 objects."""
-
-    if len(joneslist)==0:
-        raise ValueError, 'joneslist should have at least one item'
-    
-    elif len(joneslist)==1:
-        jnew = joneslist[0]
-        return jnew
-    
-    # First create a new Jonset22 object with name/quals/descr that are
-    # suitable combinations of those of the contributing Joneset22 objects: 
-    first = joneslist[0]
-    name = first.name[0]
-    descr = first.name+': '+first.descr()
-    stations = first.stations()
-    qq = first._pgm.get_quals(remove=[first.name])
-    for jones in joneslist[1:]:
-        name += jones.name[0]
-        descr += '\n '+jones.name+': '+jones.descr()
-        qq = jones._pgm.get_quals(merge=qq, remove=[jones.name])
-    qq.extend(first.quals2list(quals))
-    jnew = Joneset22(ns, name=name+'Jones',
-                     polrep=first.polrep(),
-                     quals=qq, stations=stations) 
-
-    # Then create the new Jones matrices by matrix-multiplication:
-    jnew.history('.Joneseq22(): Matrix multiplication of '+str(len(joneslist))+' Jones matrices')
-    qnode = jnew.ns.Joneseq
-    for i in jnew.list_indices():
-        cc = []
-        for jones in joneslist:
-            cc.append(jones._matrixet(*i))
-        qnode(*i) << Meq.MatrixMultiply(*cc)
-    jnew.matrixet(new=qnode)
-    
-    # Merge the parmgroups of the various Jones matrices:
-    for jones in joneslist:
-        jnew._pgm.merge(jones)
-        jnew.history(subappend=jones.history())
-
-    # Return the new Joneset22 object:
-    return jnew
-
-
 
 
 
@@ -360,11 +310,9 @@ class GJones (Joneset22):
                                             descr=pol+'-dipole phases',
                                             default=0.0, unit='rad',
                                             tiling=1, time_deg=0, freq_deg=0,
-                                            constraint=dict(sum=0.0, first=0.0),
+                                            constraint=dict(sum=None),
                                             mode=self._mode,
                                             simuldev=dev,
-                                            # override=override,
-                                            # rider=rider,
                                             tags=[self._pname,self._jname])
             self._pg[pol][self._pname] = pg
 
@@ -373,12 +321,9 @@ class GJones (Joneset22):
                                             descr=pol+'-dipole gains',
                                             default=1.0,
                                             tiling=None, time_deg=2, freq_deg=0,
-                                            # constrain_min=0.1, constrain_max=10.0,
-                                            constraint=dict(product=1.0),
+                                            constraint=dict(product=None),
                                             mode=self._mode,
                                             simuldev=dev,
-                                            # override=override,
-                                            # rider=rider,
                                             tags=[self._gname,self._jname])
             self._pg[pol][self._gname] = pg
 
@@ -609,10 +554,10 @@ class JJones (Joneset22):
             self._pg[ename] = dict()
             for rim in ['real','imag']:
                 default = 0.0
-                constraint = dict(sum=0.0)
+                constraint = dict(sum=None)
                 if rim=='real':
                     default = 1.0
-                    constraint = dict(product=1.0)
+                    constraint = dict(product=None)
                 pg = self._pgm.define_parmgroup(ename+rim,
                                                 descr=rim+' part of matrix element '+ename,
                                                 default=default, unit='Jy',
@@ -620,7 +565,6 @@ class JJones (Joneset22):
                                                 mode=self._mode,
                                                 simuldev=dev,
                                                 constraint=constraint,
-                                                # override=override,
                                                 tags=[self._jname,'Jdiag'])
                 self._pg[ename][rim] = pg
 
@@ -635,8 +579,7 @@ class JJones (Joneset22):
                                                     tiling=None, time_deg=0, freq_deg=0,
                                                     mode=self._mode,
                                                     simuldev=dev,
-                                                    constraint=dict(sum=0.0),
-                                                    # override=override,
+                                                    constraint=dict(sum=None),
                                                     tags=[self._jname,'Joffdiag'])
                     self._pg[ename][rim] = pg 
 
@@ -756,6 +699,58 @@ class FJones (Joneset22):
 
 
 
+#=================================================================================================
+# Make a Joneset22 object that is a sequence (matrix multiplication) of Jones matrices
+# Semi-obsolete..... certainly not uptodate, or consistent with TDLOptions....
+#=================================================================================================
+
+def Joneseq22 (ns, joneslist=None, quals=None):
+    """Return a Jones22 object that contains an (item-by-item) matrix multiplication
+    of the matrices of the list (joneslist) of two or more Joneset22 objects."""
+
+    if len(joneslist)==0:
+        raise ValueError, 'joneslist should have at least one item'
+    
+    elif len(joneslist)==1:
+        jnew = joneslist[0]
+        return jnew
+    
+    # First create a new Jonset22 object with name/quals/descr that are
+    # suitable combinations of those of the contributing Joneset22 objects: 
+    first = joneslist[0]
+    name = first.name[0]
+    descr = first.name+': '+first.descr()
+    stations = first.stations()
+    qq = first._pgm.get_quals(remove=[first.name])
+    for jones in joneslist[1:]:
+        name += jones.name[0]
+        descr += '\n '+jones.name+': '+jones.descr()
+        qq = jones._pgm.get_quals(merge=qq, remove=[jones.name])
+    qq.extend(first.quals2list(quals))
+    jnew = Joneset22(ns, name=name+'Jones',
+                     polrep=first.polrep(),
+                     quals=qq, stations=stations) 
+
+    # Then create the new Jones matrices by matrix-multiplication:
+    jnew.history('.Joneseq22(): Matrix multiplication of '+str(len(joneslist))+' Jones matrices')
+    qnode = jnew.ns.Joneseq
+    for i in jnew.list_indices():
+        cc = []
+        for jones in joneslist:
+            cc.append(jones._matrixet(*i))
+        qnode(*i) << Meq.MatrixMultiply(*cc)
+    jnew.matrixet(new=qnode)
+    
+    # Merge the parmgroups of the various Jones matrices:
+    for jones in joneslist:
+        jnew._pgm.merge(jones)
+        jnew.history(subappend=jones.history())
+
+    # Return the new Joneset22 object:
+    return jnew
+
+
+
 
 
 
@@ -765,83 +760,46 @@ class FJones (Joneset22):
 #===============================================================
 
 
-if False:
-    j22 = Joneset22(quals=[], mode='simulate')
-    j22.TDLCompileOptionsMenu()
-    j22.display()
+if 0:
+    jones = Joneset22(quals=[], mode='simulate')
+    jones.TDLCompileOptionsMenu()
+    jones.make_jones_matrices()
+    jones.display()
     
-if False:
-    TDLCompileMenu('Jones options',
-                   GJones().TDLCompileOptionsMenu(),
-                   BJones().TDLCompileOptionsMenu(),
-                   JJones().TDLCompileOptionsMenu(),
-                   FJones().TDLCompileOptionsMenu(),
-                   );
-if False:
-    TDLCompileMenu('Jones options',
-                   BJones().TDLCompileOptionsMenu(),
-                   BJones(namespace='xxx').TDLCompileOptionsMenu(),
-                   JJones(namespace='yyy').TDLCompileOptionsMenu(),
-                   );
+if 0:
+    mode = 'simulate'
+    jones = GJones(quals=[], mode=mode)
+    # jones = BJones(ns, quals=[], mode=mode)
+    # jones = FJones(ns, quals=['L'], mode=mode, polrep='linear')
+    # jones = FJones(ns, quals=['C'], mode=mode, polrep='circular')
+    # jones = JJones(ns, quals=[], mode=mode)
+    jones.TDLCompileOptionsMenu(solving=True)
+    jones.display()
+    
 
 def _define_forest(ns):
 
     cc = []
-    jj = []
-    mode = 'simulate'
+    jones.nodescope(ns)
 
-    j22.nodescope(ns)
-
-    if 0:
-        jones = GJones(ns, quals=[], mode=mode)
-        jj.append(jones)
-        # cc.append(jones._pgm.bundle(combine='Composer'))
-        # cc.append(jones._pgm.plot_rvsi())
-        # jones.bookpage(4)
-        # cc.append(jones.visualize('rvsi'))          # default is rvsi
-        # cc.append(jones.visualize('timetracks'))
-        # cc.append(jones.visualize('spectra'))
-        # jones.display(full=True)
+    if 1:
+        jones.make_jones_matrices()
+        cc.append(jones.bundle())
+        jones.bookpage()
 
     if 0:
-        j2 = GJones(ns, quals=[], mode='nosolve')
-        cc.append(j2.visualize())
-        # j2.display(full=True)
+        cc.append(jones.visualize('rvsi'))          # default is rvsi
+    if 0:
+        cc.append(jones.visualize('timetracks'))
+    if 0:
+        cc.append(jones.visualize('spectra'))
 
     if 0:
-        jones = BJones(ns, quals=[], simulate=simulate)
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        # cc.append(jones.visualize('spectra'))
-        # jones.display(full=True)
-
+        cc.append(jones._pgm.bundle(combine='Composer'))
     if 0:
-        jones = JJones(ns, quals=[], simulate=simulate)
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        # jones.display(full=True)
+        cc.append(jones._pgm.plot_rvsi())
 
-    if 0:
-        jones = FJones(ns, quals=['L'], simulate=simulate, polrep='linear')
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        jones.display(full=True)
-        # jones.display_parmgroups(full=False)
-
-    if 0:
-        jones = FJones(ns, quals=['C'], simulate=simulate, polrep='circular')
-        jj.append(jones)
-        # cc.append(jones.visualize())
-        jones.display(full=True)
-
-    if 0:
-        jseq = Joneseq22 (ns, jj, quals='mmm')
-        cc.append(jseq._pgm.bundle())
-        cc.append(jseq._pgm.compare('GphaseA','GphaseB'))
-        cc.append(jseq._pgm.plot_rvsi())
-        cc.append(jseq.visualize('*'))
-        jseq.display(full=True)
-        jseq.history().display(full=True)
+    jones.display('final', full=True)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
@@ -902,13 +860,6 @@ if __name__ == '__main__':
 
     if 1:
         jones.history().display(full=True)
-
-    #..........................................................
-
-    if 0:
-        jseq = Joneseq22 (ns, jj, quals='mmm')
-        jseq.display(full=True)
-        jseq.history().display(full=True)
 
 
 #===============================================================

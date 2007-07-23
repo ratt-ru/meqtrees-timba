@@ -310,7 +310,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = str(type(self))
+        # ss = str(type(self))
+        ss = str(self._frameclass)+':'
         ss += '  '+str(self.name)
         ss += '  n='+str(len(self.indices()))
         ss += '  ('+str(self.ns['<>'].name)+')'
@@ -379,7 +380,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         print ' * Matrix_elements: '+str(self._matrix_elements)
         if self._counter:
             print ' * Counter(s): '+str(self._counter)
-        self._pgm.display(full=full)
+        self.p_display(self.oneliner(), full=full)
+        # self._pgm.display(self.oneliner(), full=full)
         #...............................................................
         print '**\n'
         return True
