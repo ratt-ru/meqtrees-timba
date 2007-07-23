@@ -543,7 +543,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self._kernel_pid = self._kernel_pid0 = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
     _dprint(0,"started kernel process",self._kernel_pid);
     self._kernel_pathname = pathname;
-    self._connect_timer.start(5000,True);  # start a 5-second timer
+    self._connect_timer.start(8000,True);  # start an 8-second timer
     self._check_connection_status();
   
   def _connection_timeout (self):
