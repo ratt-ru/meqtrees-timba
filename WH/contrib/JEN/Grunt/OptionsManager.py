@@ -72,13 +72,15 @@ class OptionsManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def getval (self, key, trace=True):
+    def __getitem__ (self, key):
         """Get the current value of the specified option"""
+        if not key[0]=='_':
+            return getattr(self, '_'+key)
         return getattr(self, key)
 
     #-----------------------------------------------------------------------------
 
-    def setopt (self, key, value, submenu=None,
+    def defopt (self, key, value, submenu=None,
                 prompt=None, opt=None, more=None, doc=None,
                 callback=None, trace=True):
         """Helper function to deal with (TDL) options of this class
@@ -88,7 +90,7 @@ class OptionsManager (object):
         if isinstance(value, dict):
             if not isinstance(submenu, str): submenu = key
             for key in value.keys():
-                self.setopt(key, value[key], submenu=submenu)
+                self.defopt(key, value[key], submenu=submenu)
         
         else:
             key = '_'+key
@@ -104,7 +106,7 @@ class OptionsManager (object):
                 self._submenu.setdefault(submenu, [])
                 self._submenu[submenu].append(key)
             if trace:
-                print '** _setopt(',key,value,submenu,')'
+                print '  ** defopt(',key,value,submenu,')'
         return True
 
     #---------------------------------------------------------------
@@ -154,7 +156,7 @@ class OptionsManager (object):
         for key in self._optrec.keys():
             rr = self._optrec[key]
             ss = ' = '+str(getattr(self, key))
-            ss += ' ('+str(self.getval(key))+')'
+            ss += ' ('+str(self[key])+')'
             ss += '  reset='+str(rr['reset']) 
             if not self._TDLCompileOption.has_key(key):
                 ss += '   (-)'
@@ -399,14 +401,14 @@ class OptionsManager (object):
             constraint.setdefault('sum', 0.1)
             constraint.setdefault('product', -1.1)
             constraint.setdefault('ignore', 0)
-        self.setopt('mode', 'solve', opt=['nosolve','solve','simulate'], more=str,
+        self.defopt('mode', 'solve', opt=['nosolve','solve','simulate'], more=str,
                     doc='The rain in Spain....', callback=self._callback_mode)
-        self.setopt('default', 12.9, more=float)
-        self.setopt('simuldev', 'expr', more=str)
-        self.setopt('tiling', None, submenu='span', opt=[1,2,4,8], more=int)
-        self.setopt('time_deg', 1, submenu='span', more=int)
-        self.setopt('freq_deg', 2, submenu='span', more=int)
-        self.setopt('constraint', constraint, submenu='constraint')
+        self.defopt('default', 12.9, more=float)
+        self.defopt('simuldev', 'expr', more=str)
+        self.defopt('tiling', None, submenu='span', opt=[1,2,4,8], more=int)
+        self.defopt('time_deg', 1, submenu='span', more=int)
+        self.defopt('freq_deg', 2, submenu='span', more=int)
+        self.defopt('constraint', constraint, submenu='constraint')
         return True
         
     def _callback_mode (self, mode):
@@ -419,7 +421,7 @@ class OptionsManager (object):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+if 0:
     om = OptionsManager()
     om.test()
     om.TDLCompileOptionsMenu()

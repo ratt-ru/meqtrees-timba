@@ -2,6 +2,7 @@
 
 # History:
 # - 09jul2007: creation (from ParameterizationPlus.py)
+# - 24jul2007: split off OptionsManager.py
 
 # Description:
 
@@ -46,6 +47,7 @@ from Timba.Meq import meq
 
 import Meow
 
+from Timba.Contrib.JEN.Grunt import OptionsManager
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
@@ -74,28 +76,6 @@ class ParmGroup (Meow.Parameterization):
                  freq_deg=0,
                  simuldev=None):
 
-
-        # Deal with the (TDL) options in an organised way:
-        # The various solver constraint options are passed by dict():
-        if not isinstance(constraint, dict):
-            constraint = dict()
-        self._constraint = constraint
-        if True:
-            # Make sure that some constraint options are always there:
-            self._constraint.setdefault('min', None)
-            self._constraint.setdefault('max', None)
-        if True:
-            # Temporary: add some constraint options for testing
-            self._constraint.setdefault('sum', 0.1)
-            self._constraint.setdefault('product', -1.1)
-            self._constraint.setdefault('ignore', 0)
-        self._setopt('mode', mode)
-        self._setopt('default', default)
-        self._setopt('simuldev', simuldev)
-        self._setopt('tiling', tiling, submenu='span')
-        self._setopt('time_deg', time_deg, submenu='span')
-        self._setopt('freq_deg', freq_deg, submenu='span')
-        self._setopt('constraint', self._constraint, submenu='constraint')
 
         #------------------------------------------------------------------
         # Scopify ns, if necessary:
@@ -152,10 +132,10 @@ class ParmGroup (Meow.Parameterization):
         self._tags = tags
         if self._tags==None: self_tags = []
 
-
-
         # A ParmGroup may be 'inactive'
         self._active = True
+
+        #.............................................
 
         # TDLOptions:                               NB: Avoid colons (:)!!!
         s = '_ParmGroup_'+str(name)
@@ -163,23 +143,89 @@ class ParmGroup (Meow.Parameterization):
             namespace += '_'+s
         else:
             namespace = s
-        self.tdloption_namespace = namespace
-        self._TDLCompileOptionsMenu = None   
-        self._TDLConstraintOptionsMenu = None   
-        self._TDLSpanOptionsMenu = None   
-        self._TDLCompileOption = dict()
-        self.tdloption_reset = dict()
-        self.tdloption_reset = dict(_default=default, _mode=mode, _simuldev=simuldev,
-                                    _tiling=tiling, _time_deg=time_deg, _freq_deg=freq_deg)
-        for key in self._constraint.keys():
-            self.tdloption_reset['_'+key] = self._constraint[key]
+        self._om = OptionsManager.OptionsManager(parent=self.name,
+                                                 namespace=namespace)
 
-        # Assign their values to the local variables that are used by TDLCompileOptions.
-        # These will be used when creating actual nodes. If the ParmGroup is used without
-        # TDLOptions interface, the input values will be used. 
-        for key in self.tdloption_reset.keys():
-            setattr(self, key, self.tdloption_reset[key])
 
+        # The various solver constraint options are passed by dict():
+        cs = constraint
+        if not isinstance(cs, dict): cs = dict()
+        if True:
+            # Make sure that some constraint options are always there:
+            cs.setdefault('min', None)
+            cs.setdefault('max', None)
+        if True:
+            # Temporary: add some constraint options for testing
+            cs.setdefault('sum', 0.1)
+            cs.setdefault('product', -1.1)
+            cs.setdefault('ignore', 0)
+        for key in cs.keys():
+            submenu = 'constraint'
+            more = float
+            doc = 'The '+key+' of the group members should be equal to the specified value.'
+            prompt = 'constrain the '+key+' to:'
+            doc = 'doc'
+            prompt = key
+            opt = [cs[key]]
+            if key=='min':
+                pass
+            elif key=='max':
+                pass
+            elif key=='sum':
+                if not 0.0 in opt: opt.append(0.0)
+            elif key=='product':
+                if not 1.0 in opt: opt.append(1.0)
+            elif key=='ignore':
+                if not 0 in opt: opt.append(0)
+            if not None in opt: opt.append(None)
+            self._om.defopt(key, cs[key], submenu=submenu)
+
+        opt = ['nosolve','solve','simulate']
+        self._om.defopt('mode', mode, opt=opt, more=str,
+                        callback=self._callback_mode,
+                        doc = """The following ParmGroup modes are supported:
+                        - solve:    Create solvable MeqParm nodes. 
+                        - nosolve:  Create MeqParm nodes, but do not solve.
+                        - simulate: Use math expr(f,t) to generate subtrees that simulate MeqParm values.
+                        Changing the mode will change the visible options.
+                        It may also affect some of the 'larger' options upstream..... 
+                        """)
+            # if slave:
+            #     oo.hide()
+            #     oo.disable()              
+
+
+        opt = []
+        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
+        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
+        self._om.defopt('simuldev', simuldev, opt=opt, more=str,
+                        # oo.set_custom_value(getattr(self,key), select=True, save=True)
+                        prompt='deviation from default',
+                        callback=self._callback_simuldev,
+                        doc="""Expression for simulated deviation(f,t) from the MeqParm default value.
+                        It is just a Python expression, which may be edited in the custom box.
+                        - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
+                        - The notation between curly brackets allows random variation: {mean~stddev}""")
+
+        self._om.defopt('default', default, more=float,
+                        doc = 'MeqParm default value')
+        self._om.defopt('tiling', tiling, submenu='span',
+                        prompt='(time) sub-tile size',
+                        opt=[1,2,4,8,16,None], more=int,
+                        doc='Nr of time-slots per subtile solution. None means all.')
+        self._om.defopt('time_deg', 1, submenu='span',
+                        prompt='time deg. of sol.',
+                        opt=[0,1,2,3,4], more=int,
+                        doc='Degree of time-polynomial to be solved for.')
+        self._om.defopt('freq_deg', 2, submenu='span',
+                        prompt='freq deg. of sol.',
+                        opt=[0,1,2,3,4], more=int,
+                        doc='Degree of freq-polynomial to be solved for.')
+
+
+
+        #.....................................................................
+        
         # Initialise misc. internal variables:
         self._nodes = []
         self._solvable = []
@@ -190,38 +236,6 @@ class ParmGroup (Meow.Parameterization):
         # Finished:
         return None
 
-    #-----------------------------------------------------------------------------
-
-    def _setopt (self, key, value, submenu=None, trace=True):
-        """Helper function to deal with (TDL) options of this class
-        in an organized way. """
-
-        # Initialize the working arrays, if necessary:
-        if getattr (self, '_opt_submenu', None)==None:
-            self._opt_submenu = dict()
-            self._opt_reset = dict()
-
-        # A range of options may be specified by a dict:
-        if isinstance(value, dict):
-            if not isinstance(submenu, str): submenu = key
-            for key in value.keys():
-                self._setopt(key, value[key], submenu=submenu)
-        
-        else:
-            key = '_opt_'+key
-            noexist = -1.234567899
-            if not getattr(self, key, noexist)==noexist:
-                s = '** clash between attribute and option key: '+key
-                raise ValueError,s
-            setattr (self, key, value)                      # working values
-            self._opt_reset[key] = value                    # used in .reset_options()
-            if not isinstance(submenu, str): submenu = '*'
-            self._opt_submenu.setdefault(submenu, [])
-            self._opt_submenu[submenu].append(key)
-            if trace:
-                print '** _setopt(',key,value,submenu,'):',self._opt_submenu[submenu]
-        return True
-
     #---------------------------------------------------------------
 
     def len(self):
@@ -230,7 +244,7 @@ class ParmGroup (Meow.Parameterization):
 
     def mode(self):
         """Return the object 'mode' (e.g. solve, or simulate)"""
-        return self._mode
+        return self._om['mode']
 
     def active (self, new=None):
         """Get/set its 'active' switch"""
@@ -294,16 +308,6 @@ class ParmGroup (Meow.Parameterization):
         print '** '+self.oneliner()
         if txt: print '  * (txt='+str(txt)+')'
         print '  * Descr: '+str(self._descr)
-        if self.mode()=='simulate':
-            print '  * Simuldev: '+str(self._simuldev)
-        #..............................................................
-        print '  * options (default, reset): '+str(self.tdloption_reset)
-        rr = dict()
-        for key in self.tdloption_reset:
-            value = getattr(self, key)
-            if not value==self.tdloption_reset[key]:
-                rr[key] = value
-        print '  * options (actual, if different from default): '+str(rr)
         #..............................................................
         rr = dict(tags=self._tags, unit=self._unit)
         print '  * Misc: '+str(rr)
@@ -336,35 +340,12 @@ class ParmGroup (Meow.Parameterization):
                 rr = self._parmnodes[key]
                 print '    - ('+key+'): '+str(rr)
         #...............................................................
-        print '  * Constraints: '+str(self._constraint)
-        print '  * Constraint condeqs:'
-        for key in self._condeq:
-            print '   - '+key+': '+str(self._condeq[key])
-        #...............................................................
         if self._NodeList:
             print '  * NodeList object: '+self._NodeList.oneliner()
         else:
             print '  * NodeList object: '+str(self._NodeList) 
         #...............................................................
-        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLCompileOption.keys():
-            oo = self._TDLCompileOption[key]
-            noexist = -1.23456789
-            if getattr(oo, 'value', noexist)==noexist:
-                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
-            else:
-                tdlvalue = self._TDLCompileOption[key].value
-                # selfvalue = getattr(self, key, noexist)
-                selfvalue = getattr(self, key)
-                if tdlvalue==selfvalue:
-                    print '    - '+str(key)+' = '+str(tdlvalue)
-                else:
-                    print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
-        print '  * TDLConstraintOptionsMenu: '+str(self._TDLConstraintOptionsMenu)
-        print '  * TDLSpanOptionsMenu: '+str(self._TDLSpanOptionsMenu)
-        #...............................................................
-        print '  * opt_submenu(s): '+str(self._opt_submenu)
-        print '  * self._opt_reset: '+str(self._opt_reset)
+        self._om.display(full=full)
         #...............................................................
         print '**\n'
         return True
@@ -416,7 +397,7 @@ class ParmGroup (Meow.Parameterization):
         # and check whether it already exists: 
         quals = self.quals2list(quals)
         if not isinstance(mode, str):                      # mode not explicitly specfied
-             mode = self._mode                      # use the group default
+             mode = self._om['mode']                       # use the group default
 
         # Make qnode and nodename
         if mode=='simulate':
@@ -463,10 +444,10 @@ class ParmGroup (Meow.Parameterization):
 
         else:
             # NB: Check the exact working of or/and etc on lists, dicts.......!!
-            mparm = Meow.Parm(value=(value or self._default),
-                              tiling=(tiling or self._tiling),
-                              time_deg=(time_deg or self._time_deg),
-                              freq_deg=(freq_deg or self._freq_deg),
+            mparm = Meow.Parm(value=(value or self._om['default']),
+                              tiling=(tiling or self._om['tiling']),
+                              time_deg=(time_deg or self._om['time_deg']),
+                              freq_deg=(freq_deg or self._om['freq_deg']),
                               tags=[])
             self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
             node = self._parm(nodename, nodename=qnode.name)
@@ -504,8 +485,8 @@ class ParmGroup (Meow.Parameterization):
         if trace: print '\n** _simul_subtree(',str(qnode),'):'
         
         # The deviation from the default value is described by a math expression.
-        # The default (rr) values may be overridden.
-        simexpr = str(default or self._default)+'+'+(simuldev or self._simuldev)
+        # The default values may be overridden.
+        simexpr = str(default or self._om['default'])+'+'+(simuldev or self._om['simuldev'])
         if trace: print '    ',simexpr
     
         # Make a MeqFunctional node from the given expression
@@ -531,224 +512,13 @@ class ParmGroup (Meow.Parameterization):
     # TDLOptions:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, show=True, slave=False, solving=True):
-        """Generic function for interaction with its TDLCompileOptions menu.
-        The latter is created (once), by calling the specific function.
-        .TDLCompileOptions(), which may be re-implemented by derived classes.
-        The 'show' argument may be used to show or hide the menu. This can be done
-        repeatedly, without duplicating the menu.
-        """
-        if not self._TDLCompileOptionsMenu:        # create the menu only once
-            oolist = self.TDLCompileOptions(slave=slave, solving=solving)
-            prompt = self.namespace(prepend='options for: ')
-            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
 
-        # Show/hide the menu as required (can be done repeatedly):
-        self._TDLCompileOptionsMenu.show(show)
-        return self._TDLCompileOptionsMenu
-
-
-    def hide(self, hide=True):
-        """Hide/unhide the options menu"""
-        if self._TDLCompileOptionsMenu:
-            self._TDLCompileOptionsMenu.hide(hide)
-        return True
-        
-
-    #..................................................................
-
-
-    def TDLCompileOptions (self, slave=False, solving=True):
-        """Define a list of TDL options that control the group parameters.
-        """
-        oolist = []
-
-        #-----------------
-        # Solving options:
-
-        key = '_default'
-        if not self._TDLCompileOption.has_key(key):
-            doc = 'MeqParm default value'
-            opt = [getattr(self,key)]
-            self._TDLCompileOption[key] = TDLOption(key, 'default value', opt,
-                                                    more=float, doc=doc, namespace=self)
-            self.tdloption_reset[key] = opt[0]
-        oolist.append(self._TDLCompileOption[key])
-
-        if True:
-            cclist = []
-            keys = []
-            key = '_tiling'
-            keys.append(key)
-            if not self._TDLCompileOption.has_key(key):
-                doc = 'Nr of time-slots per subtile solution. None means all.'
-                opt = [getattr(self,key),1,2,4,8,16,None]
-                self._TDLCompileOption[key] = TDLOption(key, '(time) sub-tile size', opt,
-                                                        more=int, doc=doc, namespace=self)
-                self.tdloption_reset[key] = opt[0]
-            cclist.append(self._TDLCompileOption[key])
-
-            key = '_time_deg'
-            keys.append(key)
-            if not self._TDLCompileOption.has_key(key):
-                doc = 'Degree of time-polynomial to be solved for.'
-                opt = [getattr(self,key),0,1,2,3,4]
-                self._TDLCompileOption[key] = TDLOption(key, 'time deg. of sol.', opt,
-                                                        more=int, doc=doc, namespace=self)
-                self.tdloption_reset[key] = opt[0]
-            cclist.append(self._TDLCompileOption[key])
-
-            key = '_freq_deg'
-            keys.append(key)
-            if not self._TDLCompileOption.has_key(key):
-                doc = 'Degree of freq-polynomial to be solved for.'
-                opt = [getattr(self,key),0,1,2,3,4]
-                self._TDLCompileOption[key] = TDLOption(key, 'freq deg. of sol.', opt,
-                                                        more=int, doc=doc, namespace=self)
-                self.tdloption_reset[key] = opt[0]
-            cclist.append(self._TDLCompileOption[key])
-
-            # Make the submenu (if required):
-            if len(cclist)>0:
-                om = TDLCompileMenu('solution span', *cclist)
-                self._TDLSpanOptionsMenu = om
-                oolist.append(om)
-                self._callback_span()
-
-        if True:
-            cclist = []
-            for key1 in self._constraint.keys():
-                key = '_'+key1
-                if not self._TDLCompileOption.has_key(key):
-                    doc = 'The '+key1+' of the group members should be equal to the specified value.'
-                    opt = [getattr(self,key)]
-                    if key1=='sum':
-                        if not 0.0 in opt: opt.append(0.0)
-                    elif key1=='product':
-                        if not 1.0 in opt: opt.append(1.0)
-                    if not None in opt: opt.append(None)
-                    oo = TDLOption(key, 'constrain the '+key1+' to:', opt,
-                                   more=float, doc=doc, namespace=self)
-                    oo.when_changed(self._callback_constraint)
-                    self._TDLCompileOption[key] = oo
-                    self.tdloption_reset[key] = opt[0]
-                    cclist.append(oo)
-            # Make the submenu (if required):
-            if len(cclist)>0:
-                om = TDLCompileMenu('solution constraint(s)', *cclist)
-                self._TDLConstraintOptionsMenu = om
-                oolist.append(om)
-                self._callback_constraint()
-
-
-        #--------------------
-        # Simulation options:
-
-        key = '_simuldev'
-        if not self._TDLCompileOption.has_key(key):
-            opt = [getattr(self,key)]
-            opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
-            opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
-            doc = """Expression for simulated deviation(f,t) from the MeqParm default value.
-            It is just a Python expression, which may be edited in the custom box.
-            - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
-            - The notation between curly brackets allows random variation: {mean~stddev}"""
-            oo = TDLOption(key, 'deviation from default',
-                           opt, more=str, doc=doc, namespace=self)
-            oo.set_custom_value(getattr(self,key), select=True, save=True)
-            oo.when_changed(self._callback_simuldev)
-            self._TDLCompileOption[key] = oo
-            self.tdloption_reset[key] = opt[0]
-        oolist.append(self._TDLCompileOption[key])
-
-
-        #-----------------------------------------------------------
-        # Do this one last (because of the .when_changed() callback):
-
-        key = '_mode'
-        if not self._TDLCompileOption.has_key(key):
-            doc = """The following ParmGroup modes are supported:
-            - solve:    Create solvable MeqParm nodes. 
-            - nosolve:  Create MeqParm nodes, but do not solve.
-            - simulate: Use math expr(f,t) to generate subtrees that simulate MeqParm values.
-            Changing the mode will change the visible options.
-            It may also affect some of the 'larger' options upstream..... 
-            """
-            default = getattr(self,key)
-            opt = [default,'solve','nosolve','simulate']
-            if not solving:
-                opt = []
-                if not default=='solve': opt = [default]
-                opt.extend(['nosolve','simulate'])
-            oo = TDLOption(key, 'mode', opt, doc=doc, namespace=self)
-            self.tdloption_reset[key] = opt[0]
-            oo.when_changed(self._callback_mode)
-            if slave:
-                oo.hide()
-                oo.disable()              
-            self._TDLCompileOption[key] = oo
-        oolist.append(self._TDLCompileOption[key])
-
-        #--------------------
-        # The reset-function:
-        key = '_reset'
-        if not self._TDLCompileOption.has_key(key):
-            doc = """If True, reset all options to their original default values.
-            (presumably these are sensible values, supplied by the module designer.)"""
-            prompt = self.name+':  reset to original defaults'
-            oo = TDLOption(key, prompt, [False, True], doc=doc, namespace=self)
-            oo.when_changed(self._callback_reset)
-            if slave: oo.hide()
-            self._TDLCompileOption[key] = oo
-        oolist.append(self._TDLCompileOption[key])
-
-
-        # Finished: Return a list of options:
-        return oolist
-
-
-    #.....................................................................
-
-    def _callback_constraint(self, dummy=None):
-        """Function called whenever any TDLOption in the constraint menu changes."""
-        summ = '....'
-        first = True
-        for key1 in self._constraint.keys():
-            key = '_'+key1
-            if self._TDLCompileOption.has_key(key):
-                value = self._TDLCompileOption[key].value
-                if not value==None:
-                    if first: summ += key1
-                    if not first: summ += ' '+key1
-                    first = False
-        if first: summ += str(None)
-        summ += '..'
-        if self._TDLConstraintOptionsMenu:
-            self._TDLConstraintOptionsMenu.set_summary(summ)
-        return True
-
-    #.....................................................................
-
-    def _callback_span(self, dummy=None):
-        """Function called whenever any TDLOption in the span menu changes."""
-        summ = '....'
-        keys = ['_tiling','_time_deg','_freq_deg']
-        for key in keys:
-            if self._TDLCompileOption.has_key(key):
-                value = self._TDLCompileOption[key].value
-                summ += str(value)
-        summ += '..'
-        if self._TDLSpanOptionsMenu:
-            self._TDLSpanOptionsMenu.set_summary(summ)
-        return True
-
-    #.....................................................................
 
     def _callback_simuldev(self, dev):
         """Function called whenever TDLOption _simuldev changes."""
         key = '_simuldev'
-        if self._TDLCompileOption.has_key(key):
-            self._TDLCompileOption[key].set_custom_value(dev, callback=False,
+        if self._om._TDLCompileOption.has_key(key):
+            self._om._TDLCompileOption[key].set_custom_value(dev, callback=False,
                                                          select=True, save=True)
         return True
 
@@ -777,77 +547,22 @@ class ParmGroup (Meow.Parameterization):
             hide = solve_options
 
         for key in show:
-            if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].show(True)
+            if self._om._TDLCompileOption.has_key(key):
+                self._om._TDLCompileOption[key].show(True)
         for key in hide:
-            if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].show(False)
+            if self._om._TDLCompileOption.has_key(key):
+                self._om._TDLCompileOption[key].show(False)
 
-        if self._TDLConstraintOptionsMenu:
-            self._TDLConstraintOptionsMenu.show(mode=='solve')
+        for key in ['constraint','span']:
+            if self._om._TDLCompileOptionsSubmenu.has_key(key):
+                if self._om._TDLCompileOptionsSubmenu[key]:
+                    self._om._TDLCompileOptionsSubmenu[key].show(mode=='solve')
 
-        if self._TDLSpanOptionsMenu:
-            self._TDLSpanOptionsMenu.show(mode=='solve')
-
-        if self._TDLCompileOptionsMenu:
-            self._TDLCompileOptionsMenu.set_summary('..'+mode+'..')
+        if self._om._TDLCompileOptionsMenu:
+            self._om._TDLCompileOptionsMenu.set_summary('..'+mode+'..')
 
         return True
         
-    #.....................................................................
-
-    def set_TDLOption (self, key, value):
-        """Helper function to change the value of the specified option.
-        If necessary, it calls the relevant callback function."""
-        # print '** set_TDLOption(',key,value,'):'
-        if self._TDLCompileOption.has_key(key):
-            self._TDLCompileOption[key].set_value(value)
-            setattr(self, key, value)
-            if key=='mode':
-                self._callback_mode(value)
-            elif key=='simuldev':
-                self._callback_simuldev(value)
-        return True
-
-
-    #---------------------------------------------------------------------
-
-    def _callback_reset(self, reset):
-        """Function called whenever TDLOption _reset changes."""
-        if reset and self._TDLCompileOptionsMenu:
-            self.reset_options(trace=True)
-            self._TDLCompileOption['_reset'].set_value(False, callback=False,
-                                                       save=True)
-        return True
-
-    #.....................................................................
-
-    def reset_options(self, trace=False):
-        """Helper function to reset the TDLCompileOptions and their local
-        counterparts to the original default values (in self.tdloption_reset). 
-        """
-        if trace:
-            print '\n** _reset_options(): ',self.oneliner()
-        for key in self.tdloption_reset.keys():
-            was = getattr(self,key)
-            new = self.tdloption_reset[key]
-            setattr(self, key, new)
-            if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].set_value(new, save=True)
-                new = self._TDLCompileOption[key].value
-                if trace:
-                    print ' -',key,':',was,' -> ',getattr(self,key),
-                    if not new==getattr(self,key):
-                        print '** TDLOption =',new,'!?',
-            else:
-                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
-            if trace:
-                if not new==was: print '           ** changed **',
-                print
-        if trace: print
-        return True
-        
-
 
     #===============================================================
     # Convenient access to a list of nodes/subtrees, e.g. for solving
@@ -1115,10 +830,11 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 0:
+if 1:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
-    pg.TDLCompileOptionsMenu()
+    pg.display()
+    pg._om.TDLCompileOptionsMenu()
 
 
 def _define_forest(ns):
@@ -1127,7 +843,7 @@ def _define_forest(ns):
 
     pg.nodescope(ns)                  
 
-    if 1:
+    if 0:
         pg.create_member(1)
         pg.create_member(2.1, value=(ns << -89))
         pg.create_member(2, value=34)
@@ -1202,8 +918,8 @@ if __name__ == '__main__':
     if 0:
         cc = pg.constraint_condeqs()
 
-    if 0:
-        pg.TDLCompileOptionsMenu()
+    if 1:
+        pg._om.TDLCompileOptionsMenu()
 
     if 0:
         pg.bundle(show=True)
@@ -1218,7 +934,7 @@ if __name__ == '__main__':
         pg.plot_timetracks(show=True)
 
     if 1:
-        pg.display('final', full=True)
+        pg.display('final', full=False)
 
     if 0:
         print dir(pg)
