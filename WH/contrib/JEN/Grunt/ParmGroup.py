@@ -63,10 +63,10 @@ class ParmGroup (Meow.Parameterization):
                  quals=[], kwquals={},
                  namespace=None,
                  tags=[],
-                 mode='nosolve',
                  descr='<descr>',
                  unit=None,
 
+                 mode='nosolve',
                  default=0.0,
                  constraint=dict(),
                  tiling=None,
@@ -74,7 +74,28 @@ class ParmGroup (Meow.Parameterization):
                  freq_deg=0,
                  simuldev=None):
 
-                 # **kw):
+
+        # Deal with the (TDL) options in an organised way:
+        # The various solver constraint options are passed by dict():
+        if not isinstance(constraint, dict):
+            constraint = dict()
+        self._constraint = constraint
+        if True:
+            # Make sure that some constraint options are always there:
+            self._constraint.setdefault('min', None)
+            self._constraint.setdefault('max', None)
+        if True:
+            # Temporary: add some constraint options for testing
+            self._constraint.setdefault('sum', 0.1)
+            self._constraint.setdefault('product', -1.1)
+            self._constraint.setdefault('ignore', 0)
+        self._setopt('mode', mode)
+        self._setopt('default', default)
+        self._setopt('simuldev', simuldev)
+        self._setopt('tiling', tiling, submenu='span')
+        self._setopt('time_deg', time_deg, submenu='span')
+        self._setopt('freq_deg', freq_deg, submenu='span')
+        self._setopt('constraint', self._constraint, submenu='constraint')
 
         #------------------------------------------------------------------
         # Scopify ns, if necessary:
@@ -131,19 +152,7 @@ class ParmGroup (Meow.Parameterization):
         self._tags = tags
         if self._tags==None: self_tags = []
 
-        # The various solver constraint options are passed by dict():
-        if not isinstance(constraint, dict):
-            constraint = dict()
-        self._constraint = constraint
-        if True:
-            # Make sure that some constraint options are always there:
-            self._constraint.setdefault('min', None)
-            self._constraint.setdefault('max', None)
-        if False:
-            # Temporary: add some constraint options for testing
-            self._constraint.setdefault('sum', 0.1)
-            self._constraint.setdefault('product', -1.1)
-            self._constraint.setdefault('ignore', 0)
+
 
         # A ParmGroup may be 'inactive'
         self._active = True
@@ -181,6 +190,37 @@ class ParmGroup (Meow.Parameterization):
         # Finished:
         return None
 
+    #-----------------------------------------------------------------------------
+
+    def _setopt (self, key, value, submenu=None, trace=True):
+        """Helper function to deal with (TDL) options of this class
+        in an organized way. """
+
+        # Initialize the working arrays, if necessary:
+        if getattr (self, '_opt_submenu', None)==None:
+            self._opt_submenu = dict()
+            self._opt_reset = dict()
+
+        # A range of options may be specified by a dict:
+        if isinstance(value, dict):
+            if not isinstance(submenu, str): submenu = key
+            for key in value.keys():
+                self._setopt(key, value[key], submenu=submenu)
+        
+        else:
+            key = '_opt_'+key
+            noexist = -1.234567899
+            if not getattr(self, key, noexist)==noexist:
+                s = '** clash between attribute and option key: '+key
+                raise ValueError,s
+            setattr (self, key, value)                      # working values
+            self._opt_reset[key] = value                    # used in .reset_options()
+            if not isinstance(submenu, str): submenu = '*'
+            self._opt_submenu.setdefault(submenu, [])
+            self._opt_submenu[submenu].append(key)
+            if trace:
+                print '** _setopt(',key,value,submenu,'):',self._opt_submenu[submenu]
+        return True
 
     #---------------------------------------------------------------
 
@@ -322,7 +362,10 @@ class ParmGroup (Meow.Parameterization):
                     print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
         print '  * TDLConstraintOptionsMenu: '+str(self._TDLConstraintOptionsMenu)
         print '  * TDLSpanOptionsMenu: '+str(self._TDLSpanOptionsMenu)
-       #...............................................................
+        #...............................................................
+        print '  * opt_submenu(s): '+str(self._opt_submenu)
+        print '  * self._opt_reset: '+str(self._opt_reset)
+        #...............................................................
         print '**\n'
         return True
 
@@ -1156,7 +1199,7 @@ if __name__ == '__main__':
         pg.create_member(4, tiling=5, mode='solve')
         pg.create_member(7, freq_deg=2)
 
-    if 1:
+    if 0:
         cc = pg.constraint_condeqs()
 
     if 0:
