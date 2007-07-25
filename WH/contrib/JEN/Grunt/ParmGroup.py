@@ -61,13 +61,9 @@ class ParmGroup (Meow.Parameterization):
     It adds some extra functionality for a group of similar parms, which may find
     their way into the more official Meow system eventually."""
 
-    def __init__(self, ns=None, name=None,
-                 quals=[], kwquals={},
+    def __init__(self, ns=None, name=None, quals=[], kwquals={},
+                 tags=[], descr='<descr>', unit=None,
                  namespace=None,
-                 tags=[],
-                 descr='<descr>',
-                 unit=None,
-
                  mode='nosolve',
                  default=0.0,
                  constraint=dict(),
@@ -146,83 +142,9 @@ class ParmGroup (Meow.Parameterization):
         self._om = OptionsManager.OptionsManager(parent=self.name,
                                                  namespace=namespace)
 
-
-        # The various solver constraint options are passed by dict():
-        cs = constraint
-        if not isinstance(cs, dict): cs = dict()
-        if True:
-            # Make sure that some constraint options are always there:
-            cs.setdefault('min', None)
-            cs.setdefault('max', None)
-        if True:
-            # Temporary: add some constraint options for testing
-            cs.setdefault('sum', 0.1)
-            cs.setdefault('product', -1.1)
-            cs.setdefault('ignore', 0)
-        for key in cs.keys():
-            submenu = 'constraint'
-            more = float
-            doc = 'The '+key+' of the group members should be equal to the specified value.'
-            prompt = 'constrain the '+key+' to:'
-            doc = 'doc'
-            prompt = key
-            opt = [cs[key]]
-            if key=='min':
-                pass
-            elif key=='max':
-                pass
-            elif key=='sum':
-                if not 0.0 in opt: opt.append(0.0)
-            elif key=='product':
-                if not 1.0 in opt: opt.append(1.0)
-            elif key=='ignore':
-                if not 0 in opt: opt.append(0)
-            if not None in opt: opt.append(None)
-            self._om.defopt(key, cs[key], submenu=submenu)
-
-        opt = ['nosolve','solve','simulate']
-        self._om.defopt('mode', mode, opt=opt, more=str,
-                        callback=self._callback_mode,
-                        doc = """The following ParmGroup modes are supported:
-                        - solve:    Create solvable MeqParm nodes. 
-                        - nosolve:  Create MeqParm nodes, but do not solve.
-                        - simulate: Use math expr(f,t) to generate subtrees that simulate MeqParm values.
-                        Changing the mode will change the visible options.
-                        It may also affect some of the 'larger' options upstream..... 
-                        """)
-            # if slave:
-            #     oo.hide()
-            #     oo.disable()              
-
-
-        opt = []
-        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
-        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
-        self._om.defopt('simuldev', simuldev, opt=opt, more=str,
-                        # oo.set_custom_value(getattr(self,key), select=True, save=True)
-                        prompt='deviation from default',
-                        callback=self._callback_simuldev,
-                        doc="""Expression for simulated deviation(f,t) from the MeqParm default value.
-                        It is just a Python expression, which may be edited in the custom box.
-                        - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
-                        - The notation between curly brackets allows random variation: {mean~stddev}""")
-
-        self._om.defopt('default', default, more=float,
-                        doc = 'MeqParm default value')
-        self._om.defopt('tiling', tiling, submenu='span',
-                        prompt='(time) sub-tile size',
-                        opt=[1,2,4,8,16,None], more=int,
-                        doc='Nr of time-slots per subtile solution. None means all.')
-        self._om.defopt('time_deg', 1, submenu='span',
-                        prompt='time deg. of sol.',
-                        opt=[0,1,2,3,4], more=int,
-                        doc='Degree of time-polynomial to be solved for.')
-        self._om.defopt('freq_deg', 2, submenu='span',
-                        prompt='freq deg. of sol.',
-                        opt=[0,1,2,3,4], more=int,
-                        doc='Degree of freq-polynomial to be solved for.')
-
-
+        self.define_options(mode=mode, default=default, constraint=constraint,
+                            tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
+                            simuldev=simuldev)
 
         #.....................................................................
         
@@ -302,7 +224,7 @@ class ParmGroup (Meow.Parameterization):
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3):
+    def display(self, txt=None, full=False, recurse=3, om=True):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -345,7 +267,7 @@ class ParmGroup (Meow.Parameterization):
         else:
             print '  * NodeList object: '+str(self._NodeList) 
         #...............................................................
-        self._om.display(full=full)
+        if om: self._om.display(full=False)
         #...............................................................
         print '**\n'
         return True
@@ -508,18 +430,140 @@ class ParmGroup (Meow.Parameterization):
 
 
 
+
     #===================================================================
-    # TDLOptions:
+    # Options management:
     #===================================================================
 
+    def TDLCompileOptionsMenu (self, **kwargs):
+        """Make the TDL menu of Compile-time options"""
+        return self._om.TDLCompileOptionsMenu(**kwargs)
+    
+    #-------------------------------------------------------------------
 
+    def define_options(self, mode, default=0.0, constraint=dict(),
+                       tiling=None, time_deg=0, freq_deg=0, simuldev=None):
+        """Define the various options in its OptionsManager object"""
+
+        # Individual options in the main menu (i.e. submenu=None):
+        opt = ['nosolve','solve','simulate']
+        self._om.defopt('mode', mode, opt=opt, more=str,
+                        prompt='mode of parameter generation',
+                        callback=self._callback_mode,
+                        doc = """The following ParmGroup modes are supported:
+                        - solve:    Create solvable MeqParm nodes. 
+                        - nosolve:  Create MeqParm nodes, but do not solve.
+                        - simulate: Use math expr(f,t) to generate subtrees that simulate MeqParm values.
+                        Changing the mode will change the visible options.
+                        It may also affect some of the 'larger' options upstream..... 
+                        """)
+
+        self._om.defopt('default', default, more=float,
+                        prompt='MeqParm default value',
+                        doc = 'MeqParm default value')
+
+
+        # The simulation submenu: 
+        opt = []
+        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
+        opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
+        self._om.defopt('simuldev', simuldev, submenu='simulation',
+                        opt=opt, more=str,
+                        # oo.set_custom_value(getattr(self,key), select=True, save=True)
+                        prompt='deviation from default value',
+                        callback=self._callback_simuldev,
+                        doc="""Expression for simulated deviation(f,t) from the MeqParm default value.
+                        It is just a Python expression, which may be edited in the custom box.
+                        - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
+                        - The notation between curly brackets allows random variation: {mean~stddev}""")
+
+        # The 'domain span' submenu:
+        submenu = 'solving'
+        self._om.defopt('tiling', tiling, submenu=submenu,
+                        prompt='size of solution sub-tile',
+                        opt=[1,2,4,8,16,None], more=int,
+                        doc='Nr of time-slots per subtile solution. None means all.')
+        self._om.defopt('time_deg', 1, submenu=submenu,
+                        prompt='time-degree of solution polc',
+                        opt=[0,1,2,3,4], more=int,
+                        doc='Degree of time-polynomial to be solved for.')
+        self._om.defopt('freq_deg', 2, submenu=submenu,
+                        prompt='freq-degree of solution polc',
+                        opt=[0,1,2,3,4], more=int,
+                        doc='Degree of freq-polynomial to be solved for.')
+
+        # The constraint menu:
+        # The various solver constraint options are passed by dict():
+        cs = constraint
+        if not isinstance(cs, dict): cs = dict()
+        if True:
+            # Make sure that some constraint options are always there:
+            cs.setdefault('min', None)
+            cs.setdefault('max', None)
+        if True:
+            # Temporary: add some constraint options for testing
+            cs.setdefault('sum', 0.1)
+            cs.setdefault('product', -1.1)
+            cs.setdefault('ignore', 0)
+            
+        submenu = 'constraints'
+        if cs.has_key('min'):
+            key = 'min'
+            opt = [cs[key]]
+            if not None in opt: opt.append(None)
+            doc = """Do not allow the values of the MeqParms in this group
+            to be less than the specified value"""
+            self._om.defopt(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to:',
+                            opt=opt, more=float, doc=doc)
+        if cs.has_key('max'):
+            key = 'max'
+            opt = [cs[key]]
+            if not None in opt: opt.append(None)
+            doc = """Do not allow the values of the MeqParms in this group
+            to exceed the specified value"""
+            self._om.defopt(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to:',
+                            opt=opt, more=float, doc=doc)
+        if cs.has_key('sum'):
+            key = 'sum'
+            opt = [cs[key]]
+            if not 0.0 in opt: opt.append(0.0)
+            if not None in opt: opt.append(None)
+            doc = 'Constrain the sum of the values of the MeqParm in this group'
+            self._om.defopt(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to:',
+                            opt=opt, more=float, doc=doc)
+        if cs.has_key('product'):
+            key = 'product'
+            opt = [cs[key]]
+            if not 1.0 in opt: opt.append(1.0)
+            if not None in opt: opt.append(None)
+            doc = 'Constrain the product of value of the MeqParms in this group'
+            self._om.defopt(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to:',
+                            opt=opt, more=float, doc=doc)
+        if cs.has_key('ignore'):
+            key = 'ignore'
+            opt = [cs[key]]
+            if not 0 in opt: opt.append(0)
+            if not None in opt: opt.append(None)
+            doc = 'The ignored MeqParm(s) will keep their current value(s).'
+            self._om.defopt(key, cs[key], submenu=submenu,
+                            prompt='do not solve for MeqParm(s) with index:',
+                            opt=opt, more=int, doc=doc)
+
+        # Finished
+        return True
+
+    #.....................................................................
 
     def _callback_simuldev(self, dev):
         """Function called whenever TDLOption _simuldev changes."""
-        key = '_simuldev'
-        if self._om._TDLCompileOption.has_key(key):
-            self._om._TDLCompileOption[key].set_custom_value(dev, callback=False,
-                                                         select=True, save=True)
+        key = 'simuldev'
+        if self._om.TDLOption(key):
+            self._om.TDLOption(key).set_custom_value(dev, callback=False,
+                                                     select=True, save=True)
         return True
 
     #.....................................................................
@@ -528,41 +572,28 @@ class ParmGroup (Meow.Parameterization):
         """Function called whenever TDLOption _mode changes.
         It adjusts the hiding of options according to 'mode'."""
 
-        # print '** _callback_mode(',mode,'):'
-
-        simul_options = ['_simuldev']
-        solve_options = ['_default','_tiling','_time_deg','_freq_deg']
-        noexist = -1.23456789
-        for key in ['_sum','_product','_ignore']:
-            if not getattr(self,key,noexist)==noexist:
-                solve_options.append(key)
         if mode=='solve':
-            show = solve_options
-            hide = simul_options
+            self._om.show('default')
+            self._om.show('solving')
+            self._om.show('constraints')
+            self._om.hide('simulation')
         elif mode=='nosolve':
-            show = []
-            hide = simul_options + solve_options
+            self._om.show('default')
+            self._om.hide('solving')
+            self._om.hide('constraints')
+            self._om.hide('simulation')
         elif mode=='simulate':
-            show = simul_options
-            hide = solve_options
+            self._om.hide('default')
+            self._om.hide('solving')
+            self._om.hide('constraints')
+            self._om.show('simulation')
 
-        for key in show:
-            if self._om._TDLCompileOption.has_key(key):
-                self._om._TDLCompileOption[key].show(True)
-        for key in hide:
-            if self._om._TDLCompileOption.has_key(key):
-                self._om._TDLCompileOption[key].show(False)
-
-        for key in ['constraint','span']:
-            if self._om._TDLCompileOptionsSubmenu.has_key(key):
-                if self._om._TDLCompileOptionsSubmenu[key]:
-                    self._om._TDLCompileOptionsSubmenu[key].show(mode=='solve')
-
-        if self._om._TDLCompileOptionsMenu:
-            self._om._TDLCompileOptionsMenu.set_summary('..'+mode+'..')
+        if self._om.TDLMenu():
+            self._om.TDLMenu().set_summary('(mode='+mode+')')
 
         return True
         
+
 
     #===============================================================
     # Convenient access to a list of nodes/subtrees, e.g. for solving
@@ -834,7 +865,7 @@ if 1:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
     pg.display()
-    pg._om.TDLCompileOptionsMenu()
+    pg.TDLCompileOptionsMenu(trace=True)
 
 
 def _define_forest(ns):
@@ -864,7 +895,7 @@ def _define_forest(ns):
         cc.append(nn.bookpage())
         
 
-    pg.display('final', full=True)
+    pg.display('final', full=False)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
@@ -919,7 +950,7 @@ if __name__ == '__main__':
         cc = pg.constraint_condeqs()
 
     if 1:
-        pg._om.TDLCompileOptionsMenu()
+        pg.TDLCompileOptionsMenu(trace=True)
 
     if 0:
         pg.bundle(show=True)

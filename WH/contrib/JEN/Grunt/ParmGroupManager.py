@@ -2,6 +2,7 @@
 
 # History:
 # - 17jul2007: creation (from ParameterizationPlus.py)
+# - 24jul2007: adapted to OptionsManager
 
 # Description:
 
@@ -40,6 +41,7 @@ from Timba.Meq import meq
 
 import Meow
 
+from Timba.Contrib.JEN.Grunt import OptionsManager
 from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
@@ -55,7 +57,9 @@ class ParmGroupManager (Meow.Parameterization):
     for groups of similar parms, which may find their way into the
     more official Meow system eventually."""
 
-    def __init__(self, ns=None, name='', parent=None, namespace=None):
+    def __init__(self, ns=None, name='',
+                 parent=None, namespace=None,
+                 tobesolved=None):
 
         # Scopify ns, if necessary:
         if is_node(ns):
@@ -70,16 +74,13 @@ class ParmGroupManager (Meow.Parameterization):
         self._parent = parent
         self._frameclass = 'Grunt.ParmGroupManager'       # for reporting
 
-        # TDL Options:
-        self.tdloption_namespace = namespace    
-        self._TDLCompileOptionsMenu = None   
-        self._TDLCompileOption = dict()
-        self.tdloption_reset = dict()
-        for key in self.tdloption_reset.keys():
-            setattr(self, key, self.tdloption_reset[key])
-
         # Initialize local data:
         self.clear()
+
+        # Options management:
+        self._om = OptionsManager.OptionsManager(parent=self.name,
+                                                 namespace=namespace)
+        self.define_options(tobesolved=tobesolved)
 
         return None
 
@@ -126,7 +127,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def nodescope (self, ns=None):
+    def nodescope_obsolete (self, ns=None):
         """Get/set the internal nodescope (can also be a node)"""
         if ns:
             if is_node(ns):
@@ -140,7 +141,7 @@ class ParmGroupManager (Meow.Parameterization):
         return self.ns
 
 
-    def namespace(self, prepend=None, append=None):
+    def namespace_obsolete(self, prepend=None, append=None):
         """Return the namespace string (used for TDL options etc).
         If either prepend or apendd strings are defined, attach them.
         NB: Move to the ParmGroupManager class?
@@ -168,7 +169,7 @@ class ParmGroupManager (Meow.Parameterization):
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3):
+    def display(self, txt=None, full=False, recurse=3, om=True, pg=False):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -186,33 +187,11 @@ class ParmGroupManager (Meow.Parameterization):
         for key in self._parmgroups:
             pg = self._parmgroups[key]
             if pg.mode()=='simulate':
-                print '    - ('+key+'): '+pg._simuldev
+                print '    - ('+key+'): '+pg._om['simuldev']
         #...............................................................
         print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.gogs():
-            print '    - ('+key+'): '+str(self._parmgogs[key])
-        #...............................................................
-        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLCompileOption.keys():
-            oo = self._TDLCompileOption[key]
-            noexist = -1.23456789
-            if getattr(oo, 'value', noexist)==noexist:
-                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
-            else:
-                tdlvalue = self._TDLCompileOption[key].value
-                selfvalue = getattr(self, key, noexist)
-                if tdlvalue==selfvalue:
-                    print '    - '+str(key)+' = '+str(tdlvalue)
-                else:
-                    print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
-        #..............................................................
-        print '  * options (default, reset): '+str(self.tdloption_reset)
-        rr = dict()
-        for key in self.tdloption_reset:
-            value = getattr(self, key)
-            if not value==self.tdloption_reset[key]:
-                rr[key] = value
-        print '  * options (actual, if different from default): '+str(rr)
+            print '    - ('+str(key)+'): '+str(self._parmgogs[key])
         #...............................................................
         print '  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -240,17 +219,18 @@ class ParmGroupManager (Meow.Parameterization):
                     rr = self._parmnodes[key]
                     print '    - ('+key+'): '+str(rr)
         #...............................................................
-        # self.pg_display()
+        if pg: self.pg_display(om=om)
+        if om: self._om.display(full=False)
         #...............................................................
         print '**\n'
         return True
 
     #---------------------------------------------------------------
 
-    def pg_display(self, full=False):
+    def pg_display(self, full=False, om=False):
         """Display summaries of its parmgroups"""
         for key in self._parmgroups.keys():
-            self._parmgroups[key].display(full=full)
+            self._parmgroups[key].display(full=full, om=om)
         return True
 
 
@@ -310,8 +290,8 @@ class ParmGroupManager (Meow.Parameterization):
         # Some added value:
         tags = self.tags2list(tags)
         if True:
-            if not self._parent in tags: tags.append(self._parent)    
-
+            if self._parent:
+                if not self._parent in tags: tags.append(self._parent)    
 
         # Create the ParmGroup:
         pg = ParmGroup.ParmGroup (self.ns, key, tags=tags,
@@ -320,7 +300,9 @@ class ParmGroupManager (Meow.Parameterization):
                                   default=default,
                                   constraint=constraint,
                                   simuldev=simuldev,
-                                  tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
+                                  tiling=tiling,
+                                  time_deg=time_deg,
+                                  freq_deg=freq_deg,
                                   mode=mode)
         
         self._parmgroups[key] = pg
@@ -347,20 +329,27 @@ class ParmGroupManager (Meow.Parameterization):
     # TDLOptions:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, show=True, reset=True, solving=True):
+    def TDLCompileOptionsMenu (self, **kwargs):
+        """Make the TDL menu of Compile-time options"""
+        oolist = []
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            oolist.append(pg.TDLCompileOptionsMenu(reset=False))
+        self.TDLShowActive()
+        return self._om.TDLCompileOptionsMenu(insert=oolist, **kwargs)
+    
+    #-------------------------------------------------------------------
+
+
+    def TDLCompileOptionsMenu_obsolete (self, reset=True, solving=True):
         """Generic function for interaction with its TDLCompileOptions menu.
         The latter is created (once), by calling the specific function.
         .TDLCompileOptions(), which may be re-implemented by derived classes.
-        The 'show' argument may be used to show or hide the menu. This can be done
-        repeatedly, without duplicating the menu.
         """
         if not self._TDLCompileOptionsMenu:        # create the menu only once
             oolist = self.TDLCompileOptions(solving=solving, reset=reset)
             prompt = self.namespace(prepend='pgm: ParmGroup options for: '+self.name)
             self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-
-        # Show/hide the menu as required (can be done repeatedly):
-        self._TDLCompileOptionsMenu.show(show)
         return self._TDLCompileOptionsMenu
 
     #.........................................................................
@@ -371,13 +360,32 @@ class ParmGroupManager (Meow.Parameterization):
             self._TDLCompileOptionsMenu.hide(hide)
 
         for key in self._parmgroups.keys():
-            self._parmgroups[key].hide(hide)
+            self._parmgroups[key]._om.hide(hide)
         # self.TDLShowActive()
         return True
-        
+
     #.........................................................................
 
-    def TDLCompileOptions (self, solving=True, reset=True):
+    def define_options(self, tobesolved=None):
+        """Define the various options in its OptionsManager object"""
+        
+        key = 'tobesolved'
+        doc = 'the selected groups will be solved simultaneously'
+        opt = []
+        opt.extend(self._parmgogs.keys())
+        opt.extend(self.active_groups())
+        if not None in opt: opt.append(None)
+        self._om.defopt(key, tobesolved,
+                        prompt='pgm: solve for parmgroup(s)/parmgog(s)',
+                        callback=self._callback_tobesolved,
+                        opt=opt, more=str, doc=doc)
+        # if not solving: oo.disable()
+
+        return True
+    
+    #.........................................................................
+
+    def TDLCompileOptions_obsolete (self, solving=True, reset=True):
         """Define a list of TDL options that control the parameters
         of the various ParmGroups"""
         oolist = []
@@ -396,14 +404,6 @@ class ParmGroupManager (Meow.Parameterization):
         if not solving: oo.disable()
         oolist.append(self._TDLCompileOption[key])
 
-
-        # Add the options menus of the various parmgroups:
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            self._TDLCompileOption[key] = pg.TDLCompileOptionsMenu(slave=solving,
-                                                                   solving=solving)
-            oolist.append(self._TDLCompileOption[key])
-        self.TDLShowActive()
 
 
         # The reset-option (if required):
@@ -433,9 +433,9 @@ class ParmGroupManager (Meow.Parameterization):
             pg = self._parmgroups[key]
             if pg.active():
                 if key in keys:
-                    pg.set_TDLOption('_mode', 'solve')
+                    pg._om.set_TDLOption('_mode', 'solve')
                 else:
-                    pg.set_TDLOption('_mode', 'nosolve')
+                    pg._om.set_TDLOption('_mode', 'nosolve')
 
         # NB: How does self._tobesolved get its value from TDL.....???
         # self.tobesolved(trace=True)                    # temporary, for testing only
@@ -449,15 +449,14 @@ class ParmGroupManager (Meow.Parameterization):
 
         # First show/hide the parmgroups:
         for key in self._parmgroups.keys():
-            if self._TDLCompileOption.has_key(key):
-                pg = self._parmgroups[key]
-                self._TDLCompileOption[key].show(pg.active())
+            pg = self._parmgroups[key]
+            pg._om.show(pg.active())
                 
         # Then update the option list of option '_tobesolved':
         self._make_gogs()
-        key = '_tobesolved'
-        if self._TDLCompileOption.has_key(key):
-            oo = self._TDLCompileOption[key]
+        key = 'tobesolved'
+        if self._om.TDLOption(key):
+            oo = self._om.TDLOption(key)
             value = oo.value
             newopt = [None]
             newopt.extend(self._parmgogs.keys())
@@ -477,7 +476,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     #.....................................................................
 
-    def _callback_reset(self, reset):
+    def _callback_reset_obsolete(self, reset):
         """Function called whenever TDLOption _reset changes."""
         if reset and self._TDLCompileOptionsMenu:
             self.reset_options(trace=True)
@@ -492,30 +491,13 @@ class ParmGroupManager (Meow.Parameterization):
         counterparts to the original default values (in self.tdloption_reset).
         Recursive: It calls the same function for its parmgroups.
         """
-        if trace:
-            print '\n** _reset_options(): ',self.oneliner()
-        for key in self.tdloption_reset.keys():
-            was = getattr(self,key)
-            new = self.tdloption_reset[key]
-            setattr(self, key, new)
-            if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].set_value(new, save=True)
-                new = self._TDLCompileOption[key].value
-                if trace:
-                    print ' -',key,':',was,' -> ',getattr(self,key),
-                    if not new==getattr(self,key):
-                        print '** TDLOption =',new,'!?',
-            else:
-                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
-            if trace:
-                if not new==was: print '           ** changed **',
-                print
-        if trace: print
+        self._om.reset_options(trace=trace)
         # Recursive:
         for key in self._parmgroups:
-            self._parmgroups[key].reset_options(trace=trace)
+            self._parmgroups[key]._om.reset_options(trace=trace)
         return True
         
+
 
     #===============================================================
     # Merge the parametrization of another object in its own.
@@ -1168,21 +1150,23 @@ if __name__ == '__main__':
         pgm = ParmGroupManager(ns, name='GJones')
         pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
         pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
-        # pgm.TDLCompileOptionsMenu()
+        if 1:
+            pgm.TDLCompileOptionsMenu()
         pgm.display('initial')
 
-    if 1:
+
+    if 0:
         print pgm['Gphase'].oneliner()
         print pgm['Ggain'].oneliner()
 
-    if 1:
+    if 0:
         pgm['Gphase'].create_member(1)
         pgm['Gphase'].create_member(2.1, value=(ns << -89))
         pgm['Gphase'].create_member(2, value=34)
         pgm['Gphase'].create_member(3, tiling=5, mode='solve')
         pgm['Gphase'].create_member(7, freq_deg=2)
 
-    if 1:
+    if 0:
         pgm['Ggain'].create_member(7, freq_deg=6)
         pgm['Ggain'].create_member(4, time_deg=3)
 
@@ -1196,10 +1180,8 @@ if __name__ == '__main__':
     if 0:
         pgm.plot_timetracks(show=True)
 
-
-    if 1:
-        pgm.pg_display(full=True)
-    pgm.display('final', full=True)
+    if 0:
+        pgm.display('final', full=True, om=True)
 
 
     #------------------------------------------------------------------
