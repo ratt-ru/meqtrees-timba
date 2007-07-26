@@ -2,7 +2,7 @@
 
 # History:
 # - 09jul2007: creation (from ParameterizationPlus.py)
-# - 24jul2007: split off OptionsManager.py
+# - 24jul2007: split off OptionManager.py
 
 # Description:
 
@@ -47,7 +47,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grunt import OptionsManager
+from Timba.Contrib.JEN.Grunt import OptionManager
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
@@ -139,7 +139,7 @@ class ParmGroup (Meow.Parameterization):
             namespace += '_'+s
         else:
             namespace = s
-        self._om = OptionsManager.OptionsManager(parent=self.name,
+        self._om = OptionManager.OptionManager(parent=self.name,
                                                  namespace=namespace)
 
         self.define_options(mode=mode, default=default, constraint=constraint,
@@ -435,15 +435,15 @@ class ParmGroup (Meow.Parameterization):
     # Options management:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, **kwargs):
+    def TDLCompileOptionMenu (self, **kwargs):
         """Make the TDL menu of Compile-time options"""
-        return self._om.TDLCompileOptionsMenu(**kwargs)
+        return self._om.TDLCompileOptionMenu(**kwargs)
     
     #-------------------------------------------------------------------
 
     def define_options(self, mode, default=0.0, constraint=dict(),
                        tiling=None, time_deg=0, freq_deg=0, simuldev=None):
-        """Define the various options in its OptionsManager object"""
+        """Define the various options in its OptionManager object"""
 
         # Individual options in the main menu (i.e. submenu=None):
         opt = ['nosolve','solve','simulate']
@@ -865,7 +865,7 @@ if 1:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
     pg.display()
-    pg.TDLCompileOptionsMenu(trace=True)
+    pg.TDLCompileOptionMenu(trace=True)
 
 
 def _define_forest(ns):
@@ -950,7 +950,7 @@ if __name__ == '__main__':
         cc = pg.constraint_condeqs()
 
     if 1:
-        pg.TDLCompileOptionsMenu(trace=True)
+        pg.TDLCompileOptionMenu(trace=True)
 
     if 0:
         pg.bundle(show=True)

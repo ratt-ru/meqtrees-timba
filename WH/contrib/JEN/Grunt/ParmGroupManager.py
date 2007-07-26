@@ -2,7 +2,7 @@
 
 # History:
 # - 17jul2007: creation (from ParameterizationPlus.py)
-# - 24jul2007: adapted to OptionsManager
+# - 24jul2007: adapted to OptionManager
 
 # Description:
 
@@ -41,7 +41,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grunt import OptionsManager
+from Timba.Contrib.JEN.Grunt import OptionManager
 from Timba.Contrib.JEN.Grunt import ParmGroup
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
@@ -78,7 +78,7 @@ class ParmGroupManager (Meow.Parameterization):
         self.clear()
 
         # Options management:
-        self._om = OptionsManager.OptionsManager(parent=self.name,
+        self._om = OptionManager.OptionManager(parent=self.name,
                                                  namespace=namespace)
         self.define_options(tobesolved=tobesolved)
 
@@ -329,35 +329,35 @@ class ParmGroupManager (Meow.Parameterization):
     # TDLOptions:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, **kwargs):
+    def TDLCompileOptionMenu (self, **kwargs):
         """Make the TDL menu of Compile-time options"""
         oolist = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
-            oolist.append(pg.TDLCompileOptionsMenu(reset=False))
+            oolist.append(pg.TDLCompileOptionMenu(reset=False))
         self.TDLShowActive()
-        return self._om.TDLCompileOptionsMenu(insert=oolist, **kwargs)
+        return self._om.TDLCompileOptionMenu(insert=oolist, **kwargs)
     
     #-------------------------------------------------------------------
 
 
-    def TDLCompileOptionsMenu_obsolete (self, reset=True, solving=True):
+    def TDLCompileOptionMenu_obsolete (self, reset=True, solving=True):
         """Generic function for interaction with its TDLCompileOptions menu.
         The latter is created (once), by calling the specific function.
         .TDLCompileOptions(), which may be re-implemented by derived classes.
         """
-        if not self._TDLCompileOptionsMenu:        # create the menu only once
+        if not self._TDLCompileOptionMenu:        # create the menu only once
             oolist = self.TDLCompileOptions(solving=solving, reset=reset)
             prompt = self.namespace(prepend='pgm: ParmGroup options for: '+self.name)
-            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-        return self._TDLCompileOptionsMenu
+            self._TDLCompileOptionMenu = TDLCompileMenu(prompt, *oolist)
+        return self._TDLCompileOptionMenu
 
     #.........................................................................
 
     def hide(self, hide=True):
         """Hide/unhide the options"""
-        if self._TDLCompileOptionsMenu:
-            self._TDLCompileOptionsMenu.hide(hide)
+        if self._TDLCompileOptionMenu:
+            self._TDLCompileOptionMenu.hide(hide)
 
         for key in self._parmgroups.keys():
             self._parmgroups[key]._om.hide(hide)
@@ -367,7 +367,7 @@ class ParmGroupManager (Meow.Parameterization):
     #.........................................................................
 
     def define_options(self, tobesolved=None):
-        """Define the various options in its OptionsManager object"""
+        """Define the various options in its OptionManager object"""
         
         key = 'tobesolved'
         doc = 'the selected groups will be solved simultaneously'
@@ -478,7 +478,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     def _callback_reset_obsolete(self, reset):
         """Function called whenever TDLOption _reset changes."""
-        if reset and self._TDLCompileOptionsMenu:
+        if reset and self._TDLCompileOptionMenu:
             self.reset_options(trace=True)
             self._TDLCompileOption['_reset'].set_value(False, callback=False,
                                                        save=True)
@@ -1076,7 +1076,7 @@ if 0:
                            namespace='ParmGroupManagerNamespace')
     pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
     pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
-    pgm.TDLCompileOptionsMenu()
+    pgm.TDLCompileOptionMenu()
     pgm.display('initial')
 
 
@@ -1151,7 +1151,7 @@ if __name__ == '__main__':
         pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
         pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
         if 1:
-            pgm.TDLCompileOptionsMenu()
+            pgm.TDLCompileOptionMenu()
         pgm.display('initial')
 
 
