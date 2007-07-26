@@ -1,11 +1,11 @@
-# file: ../Grunt/OptionsManager.py
+# file: ../Grunt/OptionManager.py
 
 # History:
 # - 24jul2007: creation
 
 # Description:
 
-# The Grunt OptionsManager class manages the options of a module.
+# The Grunt OptionManager class manages the options of a module.
 
 
 #======================================================================================
@@ -42,19 +42,19 @@ from Timba.Meq import meq
 
 #======================================================================================
 
-class OptionsManager (object):
-    """The Grunt OptionsManager class manages the options of a module"""
+class OptionManager (object):
+    """The Grunt OptionManager class manages the options of a module"""
 
     def __init__(self, parent='<parent>', namespace=None):
 
 
         self._parent = parent
-        self._frameclass = 'Grunt.OptionsManager'
+        self._frameclass = 'Grunt.OptionManager'
 
         self.tdloption_namespace = namespace
 
-        self._TDLCompileOptionsMenu = None   
-        self._TDLCompileOptionsSubmenu = dict()   
+        self._TDLCompileOptionMenu = None   
+        self._TDLCompileOptionSubmenu = dict()   
         self._TDLCompileOption = dict()
 
         self._options_submenu = dict()
@@ -108,7 +108,7 @@ class OptionsManager (object):
     def namespace(self, prepend=None, append=None):
         """Return the namespace string (used for TDL options etc).
         If either prepend or apendd strings are defined, attach them.
-        NB: Move to the OptionsManager class?
+        NB: Move to the OptionManager class?
         """
         if prepend==None and append==None:
             return self.tdloption_namespace                    # just return the namespace
@@ -128,7 +128,7 @@ class OptionsManager (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = 'Grunt.OptionsManager:'
+        ss = 'Grunt.OptionManager:'
         ss = self._frameclass+':'
         ss += '  parent='+str(self._parent)
         ss += '  namespace='+str(self.tdloption_namespace)
@@ -168,10 +168,10 @@ class OptionsManager (object):
         for key in self._options_submenu.keys():
             print '    - '+key+': '+str(self._options_submenu[key])
         #..............................................................
-        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        print '  * TDLCompileOptionsSubmenu(s): '
-        for key in self._TDLCompileOptionsSubmenu.keys():
-            print '    - '+key+': '+str(self._TDLCompileOptionsSubmenu[key])
+        print '  * TDLCompileOptionMenu: '+str(self._TDLCompileOptionMenu)
+        print '  * TDLCompileOptionSubmenu(s): '
+        for key in self._TDLCompileOptionSubmenu.keys():
+            print '    - '+key+': '+str(self._TDLCompileOptionSubmenu[key])
         #...............................................................
         print '**\n'
         return True
@@ -186,9 +186,9 @@ class OptionsManager (object):
     def TDLMenu(self, key=None):
         """Return the specified TDL (sub) menu"""
         if not isinstance(key,str):
-            return self._TDLCompileOptionsMenu
-        elif self._TDLCompileOptionsSubmenu.has_key(key):
-            return self._TDLCompileOptionsSubmenu[key]
+            return self._TDLCompileOptionMenu
+        elif self._TDLCompileOptionSubmenu.has_key(key):
+            return self._TDLCompileOptionSubmenu[key]
         return None
         
     def TDLOption(self, key=None):
@@ -210,14 +210,14 @@ class OptionsManager (object):
     def hide(self, key=None, hide=True):
         """Hide/unhide the specified menu/option."""
         if isinstance(key,bool):
-            if self._TDLCompileOptionsMenu:
-                self._TDLCompileOptionsMenu.hide(key)
+            if self._TDLCompileOptionMenu:
+                self._TDLCompileOptionMenu.hide(key)
         elif not isinstance(key,str):
-            if self._TDLCompileOptionsMenu:
-                self._TDLCompileOptionsMenu.hide(hide)
-        elif self._TDLCompileOptionsSubmenu.has_key(key):
-            if self._TDLCompileOptionsSubmenu[key]:
-                self._TDLCompileOptionsSubmenu[key].hide(hide)
+            if self._TDLCompileOptionMenu:
+                self._TDLCompileOptionMenu.hide(hide)
+        elif self._TDLCompileOptionSubmenu.has_key(key):
+            if self._TDLCompileOptionSubmenu[key]:
+                self._TDLCompileOptionSubmenu[key].hide(hide)
         elif self._TDLCompileOption.has_key(key):
             if self._TDLCompileOption[key]:
                 self._TDLCompileOption[key].hide(hide)
@@ -232,14 +232,14 @@ class OptionsManager (object):
     def disable(self, key=None, disable=True):
         """Disable/enable the specified menu/option."""
         if isinstance(key,bool):
-            if self._TDLCompileOptionsMenu:
-                self._TDLCompileOptionsMenu.disable(key)
+            if self._TDLCompileOptionMenu:
+                self._TDLCompileOptionMenu.disable(key)
         elif not isinstance(key,str):
-            if self._TDLCompileOptionsMenu:
-                self._TDLCompileOptionsMenu.disable(disable)
-        elif self._TDLCompileOptionsSubmenu.has_key(key):
-            if self._TDLCompileOptionsSubmenu[key]:
-                self._TDLCompileOptionsSubmenu[key].disable(disable)
+            if self._TDLCompileOptionMenu:
+                self._TDLCompileOptionMenu.disable(disable)
+        elif self._TDLCompileOptionSubmenu.has_key(key):
+            if self._TDLCompileOptionSubmenu[key]:
+                self._TDLCompileOptionSubmenu[key].disable(disable)
         elif self._TDLCompileOption.has_key(key):
             if self._TDLCompileOption[key]:
                 self._TDLCompileOption[key].disable(disable)
@@ -251,11 +251,11 @@ class OptionsManager (object):
     # Option lists:
     #=================================================================
 
-    def TDLCompileOptionsMenu (self, insert=None, **kwargs):
+    def TDLCompileOptionMenu (self, insert=None, **kwargs):
         """Generic function for interaction with its TDLCompileOptions menu."""
         if not isinstance(kwargs, dict): kwargs = dict()
         kwargs.setdefault('trace', False)
-        if not self._TDLCompileOptionsMenu:        # create the menu only once
+        if not self._TDLCompileOptionMenu:        # create the menu only once
             # First the single items (if any) of the main menu: 
             oolist = self.TDLCompileOptions(**kwargs)
             # Then the various submenus (if any):
@@ -267,8 +267,8 @@ class OptionsManager (object):
             if kwargs['reset']:
                 oolist.append(self.make_reset_item())
             prompt = self.namespace(prepend='options for: ')
-            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-        return self._TDLCompileOptionsMenu
+            self._TDLCompileOptionMenu = TDLCompileMenu(prompt, *oolist)
+        return self._TDLCompileOptionMenu
 
     #---------------------------------------------------------------------
 
@@ -286,7 +286,7 @@ class OptionsManager (object):
     def make_submenu (self, submenu):
         """Automatic generation of an option submenu"""
         keys = self._options_submenu[submenu]
-        if not self._TDLCompileOptionsSubmenu.has_key(submenu):
+        if not self._TDLCompileOptionSubmenu.has_key(submenu):
             oolist = []
             for key in keys:
                 if not self._TDLCompileOption.has_key(key):
@@ -314,9 +314,9 @@ class OptionsManager (object):
             else:
                 prompt = 'submenu: '+submenu
                 om = TDLCompileMenu(prompt, *oolist)
-                self._TDLCompileOptionsSubmenu[submenu] = om
+                self._TDLCompileOptionSubmenu[submenu] = om
                 self._callback_submenu()
-        return self._TDLCompileOptionsSubmenu[submenu]
+        return self._TDLCompileOptionSubmenu[submenu]
             
             
     #.....................................................................
@@ -325,7 +325,7 @@ class OptionsManager (object):
         """Function called whenever any TDLOption in a submenu changes.
         It changes the summary string of the submenu header."""
         for submenu in self._options_submenu.keys():
-            if self._TDLCompileOptionsSubmenu.has_key(submenu):
+            if self._TDLCompileOptionSubmenu.has_key(submenu):
                 summ = '('
                 first = True
                 keys = self._options_submenu[submenu]
@@ -341,7 +341,7 @@ class OptionsManager (object):
                         else:
                             summ += str(value)
                 summ += ')'
-                self._TDLCompileOptionsSubmenu[submenu].set_summary(summ)
+                self._TDLCompileOptionSubmenu[submenu].set_summary(summ)
         return True
 
         
@@ -380,7 +380,7 @@ class OptionsManager (object):
 
     def _callback_reset(self, reset):
         """Function called whenever TDLOption _reset changes."""
-        if reset and self._TDLCompileOptionsMenu:
+        if reset and self._TDLCompileOptionMenu:
             self.reset_options(trace=True)
             key = 'opt_reset'
             self._TDLCompileOption[key].set_value(False, callback=False,
@@ -457,9 +457,9 @@ class OptionsManager (object):
 #=============================================================================
 
 if 0:
-    om = OptionsManager()
+    om = OptionManager()
     om.test()
-    om.TDLCompileOptionsMenu()
+    om.TDLCompileOptionMenu()
 
 
 def _define_forest(ns):
@@ -503,12 +503,12 @@ if __name__ == '__main__':
 
 
     if 1:
-        om = OptionsManager(parent='test')
+        om = OptionManager(parent='test')
         om.display('initial')
         om.test()
 
     if 1:
-        om.TDLCompileOptionsMenu(slave=False)
+        om.TDLCompileOptionMenu(slave=False)
 
     if 1:
         om.display('final')
