@@ -32,7 +32,7 @@ cliprec[3] := [expr='ABS XY',min=1e-6,max=limm]
 cliprec[4] := [expr='ABS YX',min=1e-6,max=limm]
 cliprec[5] := [expr='UVD',min=limuv]
 af.setselect(clip=cliprec)
-af.run()
+af.run(reset=T)
 af.done()
 
 ## median flag

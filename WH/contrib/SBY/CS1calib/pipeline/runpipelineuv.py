@@ -63,10 +63,10 @@ TDLOption('do_postprocess',"Postprocess",[True,False]),
 
 TDLRuntimeMenu("Imager",
 #### imaging options ####
-TDLOption('average_channels',"Average corrected data",[True,False],doc="Spectral averaging will speedup imaging"),
-TDLOption('full_images',"Full Images",[True,False]),
+#TDLOption('average_channels',"Average corrected data",[True,False],doc="Spectral averaging will speedup imaging"),
+#TDLOption('full_images',"Full Images",[True,False]),
 ### uv distance #####
-TDLOption('min_uv',"Min uv distance squared",[3400,400],more=float)
+#TDLOption('min_uv',"Min uv distance squared",[3400,400],more=float)
 );
 
 
@@ -78,6 +78,15 @@ TDLOption('mytable',"parmtable",[None,"peel0.mep"],default=None),
 TDLOption('mysave',"save all",[False,True],default=False),
 # subtile solutions
 TDLOption('dosubtile',"subtile",[True,False],default=True),
+# solve for real/imag or gain/phase
+TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
+# beams
+TDLOption('stationbeam',"Station Beam",[True,False],default=True),
+);
+
+
+TDLCompileMenu("Pre-flags",
+TDLOption('minclip',"Clip Value",[1e5,10],more=float,doc="Absolute value to clip"),
 );
 
 TDLCompileMenu("Post-flags",
@@ -135,8 +144,11 @@ def _define_forest(ns, parent=None, **kw):
   
   # add EJones
   beam_parms=[];
-  Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
-  print beam_parms
+  if stationbeam:
+    Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  else:
+    Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in source_list
@@ -189,8 +201,28 @@ def _define_forest(ns, parent=None, **kw):
       ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
       solve_ce+=[ns.ce(sta1,sta2)]
 
-  ###
-  Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
+  ### add MMSE equalization
+  sigma2=mmse_sigma;
+  ns.I0<<Meq.Matrix22(sigma2,0,0,sigma2)
+  # threshold for flagging - condition number
+  fthreshold=max_condnum;
+
+  for station in array.stations():
+    # get min value
+    ns.Jmin(station)<<Meq.Min(Meq.Abs(ns.J11(station)+sigma2),Meq.Abs(ns.J22(station)+sigma2))
+    ns.Jmax(station)<<Meq.Max(Meq.Abs(ns.J11(station)+sigma2),Meq.Abs(ns.J22(station)+sigma2))
+    # catch to ignore division by zero
+    ns.Jmin0(station)<<Meq.Max(ns.Jmin(station),1e-9)
+    # condition number
+    ns.Jcond(station)<<ns.Jmax(station)/ns.Jmin0(station)
+    ns.Gc(station)<<ns.G(station)+ns.I0
+    # flag
+    fc = ns.lim(station) << ns.Jcond(station) - fthreshold;
+    ns.Gflagged(station) << Meq.MergeFlags(ns.Gc(station),Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"))
+
+
+
+  Jones.apply_correction(ns.corrected,ns.spigot,ns.Gflagged,array.ifrs());
 
   ## attach a clipper too as final flagging step
   threshold_sigmas=rms_sigmas;
@@ -348,7 +380,7 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
 def _do_preprocess(fname,mqs):
   if fname==None: return
   # add additional dummy 'arg' for glish to work properly
-  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip='+str(minclip)]);
 
 
 def _do_calibrate(fname,mqs):
@@ -374,7 +406,6 @@ def _do_calibrate(fname,mqs):
           ddid_index=spwid,
           selection_string='sumsqr(UVW[1:2]) > 10')
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
-      # update parmtablename - not needed yet
       if mytable !=None:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
@@ -389,7 +420,7 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','postprocess_uv.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
   # residual plots
   for spwid in range(0,max_spwid):
     for schan in range(start_channel,end_channel,channel_step):

@@ -31,11 +31,11 @@ TDLRuntimeMenu("MS Selection",
   TDLOption('min_spwid',"Start subband",[1,2,3],more=int),
   TDLOption('max_spwid',"End subband",[1,2,3,4,5,6],more=int),
 # number of channels per job
-  TDLOption('channel_step',"channels per job",[8,2,10,20],more=int),
+  TDLOption('channel_step',"channels per job",[1],more=int),
 # start channel in subband (from 0)
-  TDLOption('start_channel',"start channel",[31,99],more=int),
+  TDLOption('start_channel',"start channel",[1],more=int),
 # end channel in subband (from 0)
-  TDLOption('end_channel',"end channel",[223,41,240],more=int)
+  TDLOption('end_channel',"end channel",[1],more=int)
 );
 
 
@@ -83,8 +83,8 @@ TDLOption('mysave',"save all",[False,True],default=False),
 TDLOption('dosubtile',"subtile",[True,False],default=True),
 # solve for real/imag or gain/phase
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
-# which solution used for correction?
-TDLOption('ph_center',"Phase Cen",["CasA","CygA"])
+# beams
+TDLOption('stationbeam',"Station Beam",[True,False],default=True),
 );
 
 TDLCompileMenu("Post-flags",
@@ -240,7 +240,10 @@ def _define_forest(ns, parent=None, **kw):
   # predict all other sources via beam
   # add EJones
   beam_parms=[];
-  Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  if stationbeam:
+    Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  else:
+    Ej = global_model.EJones_droopy_comp(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in ordlist
@@ -267,27 +270,9 @@ def _define_forest(ns, parent=None, **kw):
        ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred+predB);
        solve_ce+=[ns.ce(sta1,sta2)]
     ns.residual(sta1,sta2) << spigot - pred
-    #ns.residual(sta1,sta2) << spigot -predictG1(sta1,sta2)
-    #ns.residual(sta1,sta2) << spigot-0
 
 
 
-  ## attach a clipper too as final flagging step
-  threshold_sigmas=rms_sigmas;
-  ## also cutoff
-  abs_cutoff=abs_clipval;
-  for sta1,sta2 in array.ifrs():
-    inp = ns.residual(sta1,sta2);
-    a = ns.flagged("abs",sta1,sta2) << Meq.Abs(inp);
-    stddev_a = ns.flagged("stddev",sta1,sta2) << Meq.StdDev(a);
-    delta = ns.flagged("delta",sta1,sta2) << Meq.Abs(a-Meq.Mean(a));
-    fc = ns.flagged("fc",sta1,sta2) << delta - threshold_sigmas*stddev_a;
-    inp=ns.flagged0(sta1,sta2) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"))
-    fc = ns.flagged("abscutoff",sta1,sta2) << a - abs_cutoff;
-    ns.flagged(sta1,sta2) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"));
- 
-
-  # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
   cpo = [];
   #for i in range(array.num_stations()/2):
@@ -300,7 +285,7 @@ def _define_forest(ns, parent=None, **kw):
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.flagged(sta1,sta2),
+    reqseq = Meq.ReqSeq(ns.solver,ns.residual(sta1,sta2),
                   result_index=1,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
@@ -411,11 +396,21 @@ def _run_solve_job (mqs,solvables,_ms_selection,msname=None,wait=False,debug_fil
 
 def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   ########### read in the MS file list ########
+  import re
   infile=open(msnames,'r')
   filelist=[]
   for line in infile:
     filelist += line.strip().split()
   infile.close()
+
+  # change names to _S.MS
+  filelist1=[]
+  p=re.compile('.MS$')
+  for fname in filelist:
+    filelist1 += [p.sub('_S.MS',fname)]
+  
+  filelist=filelist1 
+  print filelist
   
   ### run each file through the pipeline
   if do_preprocess:
@@ -431,13 +426,13 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
 
 def _do_preprocess(fname,mqs):
   if fname==None: return
-  if not include_short_base:
+  #if not include_short_base:
     # add additional dummy 'arg' for glish to work properly
     # default flagging by uv distance
-    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=70','minclip=1e5']);
-  else:
+  #  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=70','minclip=1e5']);
+  #else:
     # no short baseline flagging
-    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
+  #  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
 
 
 def _do_calibrate(fname,mqs):
@@ -466,19 +461,14 @@ def _do_calibrate(fname,mqs):
 
 
   for spwid in range(min_spwid-1,max_spwid):
-    for schan in range(start_channel,end_channel,channel_step):
-      ms_selection=record(channel_start_index=schan,
-          channel_end_index=schan+channel_step-1,
+      ms_selection=record(channel_start_index=0,
+          channel_end_index=0,
           channel_increment=1,
           ddid_index=spwid,
           selection_string='sumsqr(UVW[1:2]) > 20') # exclude only autocorrelations
-      parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
       # update parmtablename 
-      if mytable !=None:
-        for sname in solvables:
-          set_node_state(mqs,sname,record(table_name=parmtablename))
-      debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
-      _run_solve_job(mqs,solvables,ms_selection,wait=False,msname=fname,debug_file=debug_filename);
+      debug_filename=fname+"__"+str(spwid)+".log"
+      _run_solve_job(mqs,solvables,ms_selection,wait=True,msname=fname,debug_file=debug_filename);
       #try:
       #  solver_plots.create_residual_plots(debug_filename)
       #except: pass
@@ -488,10 +478,7 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  if average_channels:
-    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_small.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
-  else:
-    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_again.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
   # residual plots
   if residual_plots:
     for spwid in range(min_spwid-1,max_spwid):

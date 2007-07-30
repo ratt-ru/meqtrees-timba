@@ -45,6 +45,8 @@ myphasecenter:=dm.direction('J2000', '19h57m42','40d35m54')
 msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(28may2007/16:11:00)) and  TIME/(24*3600) >= MJD(27may2007/19:06:00)",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(27may2007/15:21:00)) and  TIME/(24*3600) >= MJD(26may2007/19:06:00)",fid,limuv)
 
+####
+#msstr:=sprintf("FIELD_ID==%d AND ( sumsqr(UVW[1:2]) > 2800 or sumsqr(UVW[1:2]) < 45 ) and (TIME/(24*3600) <= MJD(28may2007/16:11:00)) and  TIME/(24*3600) >= MJD(27may2007/19:06:00)",fid)
 
 
 print spaste("Postprocessing:::",infile);
@@ -62,6 +64,7 @@ myimager.setdata(mode='channel', fieldid=fid, spwid=spid,
              start=startch, msselect=msstr,
              step=1, async=F);
 myimager.setimage(nx=2880, ny=2880, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=step)
+#myimager.setimage(nx=288, ny=288, cellx='1200arcsec', celly='1200arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=step)
 myimager.setoptions(ftmachine='wproject', wprojplanes=128, padding=1.2 , cache=500000000)
 myimager.makeimage(type="corrected",image=my_img,async=False);
 myimager.close()

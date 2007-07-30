@@ -246,64 +246,58 @@ def makebeam_droopy(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.7
 def makebeam_droopy_phi(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.706, station=0,solvable=False,solvables=[],meptable=None):
     p_L=ns.p_L(pol,station)
     if not p_L.initialized():
-       p_L<<Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True);
+       p_L<<Meq.ToComplex(Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True),0);
     p_phi=ns.p_phi(pol,station)
     if pol=='Y':
       # add extra pi/2 
       if not p_phi.initialized():
-        p_phi<<Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True);
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True),0);
     else:
       if not p_phi.initialized():
-        p_phi<<Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True);
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True),0);
     p_h=ns.p_h(pol,station)
     if not p_h.initialized():
-      p_h<<Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True);
+      p_h<<Meq.ToComplex(Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True),0);
     p_alpha=ns.p_alpha(pol,station)
     if not p_alpha.initialized():
-      p_alpha<<Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True);
+      p_alpha<<Meq.ToComplex(Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True),0);
 
     if solvable:
         solvables.append(p_L.name);
         solvables.append(p_phi.name);
         solvables.append(p_h.name);
         solvables.append(p_alpha.name);
-    beam_r = ns.beam_phi_real(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_phi_real.so",function_name="test");
-    beam_i = ns.beam_phi_imag(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_phi_imag.so",function_name="test");
-    beam = ns.beam_phi(pol,station) << Meq.ToComplex(beam_r,beam_i)
+    beam =  ns.beam_phi(pol,station)<< Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
+        lib_name="/home/sarod/beams/beam_dr_phi.so",function_name="test");
+
     return beam;
 
 def makebeam_droopy_theta(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.706, station=0,solvable=False,solvables=[],meptable=None):
     p_L=ns.p_L(pol,station)
     if not p_L.initialized():
-       p_L<<Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True);
+       p_L<<Meq.ToComplex(Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True));
     p_phi=ns.p_phi(pol,station)
     if pol=='Y':
       # add extra pi/2 
       if not p_phi.initialized():
-        p_phi<<Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True);
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True));
     else:
       if not p_phi.initialized():
-        p_phi<<Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True);
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True));
     p_h=ns.p_h(pol,station)
     if not p_h.initialized():
-      p_h<<Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True);
+      p_h<<Meq.ToComplex(Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True));
     p_alpha=ns.p_alpha(pol,station)
     if not p_alpha.initialized():
-      p_alpha<<Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True);
+      p_alpha<<Meq.ToComplex(Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True));
 
     if solvable:
         solvables.append(p_L.name);
         solvables.append(p_phi.name);
         solvables.append(p_h.name);
         solvables.append(p_alpha.name);
-    beam_r = ns.beam_theta_real(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_theta_real.so",function_name="test");
-    beam_i = ns.beam_theta_imag(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_theta_imag.so",function_name="test");
-  
-    beam = ns.beam_theta(pol,station) << Meq.ToComplex(beam_r,beam_i)
+    beam = ns.beam_theta(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
+        lib_name="/home/sarod/beams/beam_dr_theta.so",function_name="test");
     return beam;
 
 
@@ -563,9 +557,7 @@ def EJones_droopy_comp(ns,array,sources,radec0,meptable=None,solvables=[],solvab
         Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_phi[station]],common_axes=[hiid('l'),hiid('m')])
         Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_theta[station]],common_axes=[hiid('l'),hiid('m')])
         # create E matrix
-        #Ej(station) <<Meq.Matrix22(el_S*az_CX*Xediag_theta,az_SX*Xediag_phi,Meq.Negate(el_S*az_SY)*Yediag_theta,az_CY*Yediag_phi)
-        Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)
-        #Ej(station) <<Meq.Matrix22(el_S*az_S*Xediag_theta,az_C*Xediag_phi,Meq.Negate(el_S*az_S)*Yediag_theta,az_C*Yediag_phi)
+        Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/88.0
 
   return Ej0;
 
@@ -589,15 +581,20 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
   xyz=array.xyz();
 
   # station beam
-  #Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4,ref_freq=48.7496948e6)
   if not ns.freq0.initialized():
     ns.freq0<<Meq.Constant(59e6)
   if not ns.freq1.initialized():
     ns.freq1<<Meq.Constant(60e6)
 
-  Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",radec=radec0,xyz=array.xyz0(),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
-  #Ystatbeam=ns.Ystatbeam<<Meq.StationBeam(filename="AntennaCoords",RA=-0.159697626557,Dec=1.02651539956,x=3826815.56096,y=460986.585898,z=5064718.84237,phi0=-math.pi/4,ref_freq=48.7496948e6)
-  Ystatbeam=ns.Ystatbeam<<Meq.StationBeam(filename="AntennaCoords",radec=radec0,xyz=array.xyz0(),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+  if not ns.Xstatbeam.initialized():
+    Xstatbeam=ns.Xstatbeam<<Meq.StationBeam(filename="AntennaCoords",radec=radec0,xyz=array.xyz0(),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+  else:
+    Xstatbeam=ns.Xstatbeam;
+
+  if not ns.Ystatbeam.initialized():
+   Ystatbeam=ns.Ystatbeam<<Meq.StationBeam(filename="AntennaCoords",radec=radec0,xyz=array.xyz0(),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+  else:
+    Ystatbeam=ns.Ystatbeam;
 
   # create per-direction, per-station E Jones matrices
   for src in sources:
