@@ -102,7 +102,7 @@ def _define_forest(ns):
   global source_list;
   source_list = source_model(ns);
   
-  Ej = clar_model.EJones(ns,array,source_list);
+  Ej = clar_model.EJones(ns,array,observation,source_list);
   corrupt_list = [ 
     CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
     for src in source_list
@@ -204,10 +204,9 @@ Settings.orphans_are_roots = True
 if __name__ == '__main__':
 
 
-    Timba.TDL._dbg.set_verbose(5);
+#   Timba.TDL._dbg.set_verbose(5);
     ns = NodeScope();
     _define_forest(ns);
-
 
     ns.Resolve();
     pass
