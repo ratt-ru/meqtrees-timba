@@ -71,9 +71,9 @@ def _define_forest(ns):
   ns.XYZ <<Meq.Composer(ns.x_pos, ns.y_pos, ns.z_pos)
 
   # now define a field centre RA and DEC (in radians) which the boresight
-  # will track - we arbitrarily choose Ra = 0, Dec = 0
+  # will track - we arbitrarily choose Ra = 0, Dec = 28.6 deg (0.5 rad)
   ns.ra0 << Meq.Constant(0.0)
-  ns.dec0 << Meq.Constant(0.0)
+  ns.dec0 << Meq.Constant(0.5)
 # then create a MeqComposer containing the field centre RA and DEC as children
   ns.RADec0 <<Meq.Composer(ns.ra0, ns.dec0)
  
@@ -82,7 +82,8 @@ def _define_forest(ns):
 
 
   # now specify an LM beam position
-  BEAM_LM = [(-0.02, -0.02)]
+# BEAM_LM = [(-0.02, -0.02)]
+  BEAM_LM = [(-0.02, 0.0)]
   l_beam,m_beam = BEAM_LM[0]
   ns.l_beam_c << Meq.Constant(l_beam) # we want to change this in each request
                                       # and have this value changed in the
@@ -243,18 +244,18 @@ def _define_forest(ns):
 def _test_forest(mqs,parent):
 
 # any large time range will do: we observe the changes in the beam
-# pattern in timesteps of 600s, or 10 min
-  t0 = -600.0
-  delta_t = 600.0
+# pattern in timesteps of 1200s, or 20 min
+  t0 = -1200.0
+  delta_t = 1200.0
   t1 = t0 + delta_t
 
-  f0 = 0.5
-  f1 = 1.5
+  f0 = 800.0
+  f1 = 1300.0
 
   lm_range = [-0.15,0.15];
   lm_num = 50;
   counter = 0
-  for i in range(48):
+  for i in range(24):
       t0 = t0 + delta_t
       t1 = t0 + delta_t
       mqs.clearcache('Ins_pol',recursive=True)
