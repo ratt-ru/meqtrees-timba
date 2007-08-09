@@ -69,3 +69,5 @@ TDL MG_AGW_tree.py
 TDL clar_fit_dq.py
 
 TDL clar_fast_predict.py
+
+TDL clar_fast_solve.py
