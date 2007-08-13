@@ -50,6 +50,7 @@ class OptionManager (object):
         self.parent = parent
         self.frameclass = 'Grunt.OptionManager'
 
+        # This field is expected by OMS:
         self.tdloption_namespace = namespace
 
         self.TDLCompileOptionMenu = None   
@@ -60,9 +61,11 @@ class OptionManager (object):
         self.TDLRuntimeOptionSubmenu = dict()   
         self.TDLRuntimeOption = dict()
 
+        # Named submenus are defined by a list of option keys:
         self.submenu_compile = dict()
         self.submenu_runtime = dict()
 
+        # Option definition records:
         self.optrec_compile = dict()
         self.optrec_runtime = dict()
 
@@ -73,10 +76,38 @@ class OptionManager (object):
     #-----------------------------------------------------------------------------
 
     def __getitem__ (self, key):
-        """Get the current value of the specified option"""
-        if not key[0]=='_':
-            return getattr(self, '_'+key)
-        return getattr(self, key)
+        """Get the current value of the specified option (key).
+        Note that, internally, the keys are prepended with '_'.
+        This should be the ONLY way in which an option value is obtained
+        from the OptionManager. This makes sure that the module can also be
+        used standalone, i.e. without any TDLOptions/menus."""
+        ukey = '_'+key
+        if True:
+            # Make sure that the internal value is equal to the current value
+            # of the TDLOption.value (if it exists).
+            # For some reason, this does not happen automatically when the
+            # TDLOption value is modified by the user (it used too...).
+            if self.TDLCompileOption.has_key(key):
+                setattr(self, ukey, self.TDLCompileOption[key].value)
+        return getattr(self, ukey)
+
+    #-----------------------------------------------------------------------------
+
+    def modopt (self, key, time='compile', **pp):
+        """Helper function to modify field(s) of an existing (key) optrec,
+        which has been defined earlier with .defopt(key, ...)."""
+        if time=='runtime':
+            rr = self.optrec_runtime[key]
+        else:
+            rr = self.optrec_compile[key]
+        if not isinstance(pp, dict): pp = dict()
+        pp.setdefault('trace',False)
+        keys = ['value','opt','more','prompt','doc','callback']
+        for key in keys:
+            if pp.has_key(key):
+                rr[key] = pp[key]
+                # if key=='opt']: self.set_option_list(key, rr[key])
+        return True
 
     #-----------------------------------------------------------------------------
 
@@ -93,12 +124,13 @@ class OptionManager (object):
                 self.defopt(key, value[key], submenu=submenu, time=time)
         
         else:
-            key = '_'+key
+            ukey = '_'+key                                   # internal name
             noexist = -1.234567899
-            if not getattr(self, key, noexist)==noexist:
-                s = '** clash between attribute and option key: '+key
+            if not getattr(self, ukey, noexist)==noexist:
+                # NB: This should never happen....
+                s = '** clash between attribute and option key: '+ukey
                 raise ValueError,s
-            setattr (self, key, value)                      # working values
+            setattr (self, ukey, value)                      # working values
             rr = dict(reset=value, doc=doc, prompt=prompt,
                       opt=opt, more=more, callback=callback)
             if not isinstance(submenu, str): submenu = '*'
@@ -113,8 +145,9 @@ class OptionManager (object):
                 if isinstance(submenu, str): 
                     self.submenu_compile.setdefault(submenu, [])
                     self.submenu_compile[submenu].append(key)
+
             if trace:
-                print '  ** defopt(',key,value,submenu,time,')'
+                print '  ** defopt(',key,ukey,value,submenu,time,')'
         return True
 
 
@@ -167,9 +200,10 @@ class OptionManager (object):
         print '  * CompileOption value(s): '
         for key in self.optrec_compile.keys():
             rr = self.optrec_compile[key]
-            ss = ' = '+str(getattr(self, key))
-            ss += ' ('+str(self[key])+')'
-            ss += '  reset='+str(rr['reset']) 
+            value = self[key]
+            ss = ' = '+str(value)
+            if not value==rr['reset']:
+                ss += '    (reset='+str(rr['reset'])+'!)' 
             if not self.TDLCompileOption.has_key(key):
                 ss += '   (-)'
             else:
@@ -178,9 +212,30 @@ class OptionManager (object):
                 if getattr(oo, 'value', noexist)==noexist:
                     print '    - '+str(key)+': '+str(self.TDLCompileOption[key])
                 else:
-                    value = self.TDLCompileOption[key].value
-                    ss += '  TDLOption='+str(value)
-            print '    - '+key+': '+ss
+                    TDLvalue = self.TDLCompileOption[key].value
+                    if not value==TDLvalue:
+                        ss += '    (TDLOption.value='+str(TDLvalue)+'!)'
+            print '    - '+key+ss
+        #...............................................................
+        print '  * RuntimeOption value(s): '
+        for key in self.optrec_runtime.keys():
+            rr = self.optrec_runtime[key]
+            value = self[key]
+            ss = ' = '+str(value)
+            if not value==rr['reset']:
+                ss += '    (reset='+str(rr['reset'])+'!)'
+            if not self.TDLRuntimeOption.has_key(key):
+                ss += '   (-)'
+            else:
+                oo = self.TDLRuntimeOption[key]
+                noexist = -1.23456789
+                if getattr(oo, 'value', noexist)==noexist:
+                    print '    - '+str(key)+': '+str(self.TDLRuntimeOption[key])
+                else:
+                    TDLvalue = self.TDLRuntimeOption[key].value
+                    if not value==TDLvalue:
+                        ss += '    (TDLOption.value='+str(TDLvalue)+'!)'
+            print '    - '+key+ss
         #...............................................................
         print '  * submenu(s): '
         for key in self.submenu_compile.keys():
@@ -207,19 +262,27 @@ class OptionManager (object):
     #===================================================================
 
     def TDLMenu (self, key=None, time=None, severe=False, trace=False):
-        """Return the specified TDL (sub) menu"""
+        """Return the specified (key) TDL(sub)menu object (or None).
+        If time==None (i.e. not specified), check for a compile menu first,
+        and then for a runtime menu.
+        If the specified menu is not found, return False.
+        But if severe==True, raise an error and stop."""
+        
         s = '** TDLMenu('+str(key)+','+str(time)+'): '
         result = False
+
         if time=='runtime':
             if not isinstance(key,str):
                 result = self.TDLRuntimeOptionMenu
             elif self.TDLRuntimeOptionSubmenu.has_key(key):
                 result = self.TDLRuntimeOptionSubmenu[key]
+
         elif time=='compile':
             if not isinstance(key,str):
                 result = self.TDLCompileOptionMenu
             elif self.TDLCompileOptionSubmenu.has_key(key):
                 result = self.TDLCompileOptionSubmenu[key]
+
         else:
             if not isinstance(key,str):
                 result = self.TDLCompileOptionMenu
@@ -227,6 +290,7 @@ class OptionManager (object):
                 result = self.TDLCompileOptionSubmenu[key]
             elif self.TDLRuntimeOptionSubmenu.has_key(key):
                 result = self.TDLRuntimeOptionSubmenu[key]
+
         # Deal with the result:
         if trace:
             print s,'->',str(result)
@@ -250,7 +314,7 @@ class OptionManager (object):
     def TDLOption (self, key=None, time=None, severe=False, trace=False):
         """Return the specified TDL option"""
         s = '** TDLOption('+str(key)+','+str(time)+'):'
-        if not key[0]=='_': key = '_'+key
+        # if not key[0]=='_': key = '_'+key
         result = False
         if time=='runtime':
             if self.TDLRuntimeOption.has_key(key):
@@ -320,16 +384,25 @@ class OptionManager (object):
         
     #---------------------------------------------------------------------
 
-    def get_value (self, key, time=None, trace=False):
-        """Helper function to get the value of the specified option."""
-        option = self.TDLOption(key, time=time, severe=True, trace=trace)
-        if option: return option.value
-        return False
-
     def set_value (self, key, value, time=None, trace=False):
-        """Helper function to change the value of the specified option."""
+        """Helper function to change the value of the specified (key) option."""
         option = self.TDLOption(key, time=time, severe=True, trace=trace)
-        if option: option.set_value(value)
+        if not option: return False
+        print '** set_value(',key,value,')',self.parent
+        option.set_value(value)
+        return True
+
+    #---------------------------------------------------------------------
+
+    def set_option_list (self, key, olist,
+                         select=None, conserve_selection=True,
+                         time=None, trace=False):
+        """Helper function to change the option list of the specified (key) option."""
+        option = self.TDLOption(key, time=time, severe=True, trace=trace)
+        if not option: return False
+        option.set_option_list(olist, select=select,
+                               conserve_selection=conserve_selection)
+        print '** set_option_list(',key,olist,')'
         return True
 
 
@@ -354,7 +427,8 @@ class OptionManager (object):
             # Optional (but last): Include a 'reset' menuitem
             if kwargs['reset']:
                 oolist.append(self.make_reset_item())
-            prompt = self.namespace(prepend='options for: ')
+            prompt = self.namespace(prepend='options for: ', append=self.parent)
+            # prompt += self.parent
             self.TDLCompileOptionMenu = TDLCompileMenu(prompt, *oolist)
         return self.TDLCompileOptionMenu
 
@@ -380,10 +454,11 @@ class OptionManager (object):
         oolist = []
         for key in keys:
             if not self.TDLCompileOption.has_key(key):
+                ukey = '_'+key
                 rr = self.optrec_compile[key]
                 prompt = rr['prompt'] or key
                 doc = rr['doc'] or '<doc>'
-                opt = [getattr(self,key)]
+                opt = [getattr(self,ukey)]
                 if isinstance(rr['opt'],list):
                     opt.extend(rr['opt'])
                 more = rr['more'] or float                # type(opt[0])
@@ -476,18 +551,19 @@ class OptionManager (object):
         if trace:
             print '\n** _reset_options(): ',self.oneliner()
         for key in self.optrec_compile.keys():
-            was = getattr(self,key)
+            ukey = '_'+key
+            was = getattr(self,ukey)
             new = self.optrec_compile[key]['reset']
             setattr(self, key, new)
             if self.TDLCompileOption.has_key(key):
                 self.TDLCompileOption[key].set_value(new, save=True)
                 new = self.TDLCompileOption[key].value
                 if trace:
-                    print ' -',key,':',was,' -> ',getattr(self,key),
-                    if not new==getattr(self,key):
+                    print ' -',key,':',was,' -> ',getattr(self,ukey),
+                    if not new==getattr(self,ukey):
                         print '** TDLOption =',new,'!?',
             else:
-                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
+                if trace: print ' -',key,':',was,' -> ',getattr(self,ukey),
             if trace:
                 if not new==was: print '           ** changed **',
                 print

@@ -61,7 +61,8 @@ class ParmGroup (Meow.Parameterization):
     It adds some extra functionality for a group of similar parms, which may find
     their way into the more official Meow system eventually."""
 
-    def __init__(self, ns=None, name=None, quals=[], kwquals={},
+    def __init__(self, ns=None, name=None,
+                 quals=[], kwquals={},
                  tags=[], descr='<descr>', unit=None,
                  namespace=None,
                  mode='nosolve',
@@ -134,13 +135,13 @@ class ParmGroup (Meow.Parameterization):
         #.............................................
 
         # TDLOptions:                               NB: Avoid colons (:)!!!
-        s = '_ParmGroup_'+str(name)
+        s = 'ParmGroup'
         if isinstance(namespace,str):
             namespace += '_'+s
         else:
             namespace = s
         self._om = OptionManager.OptionManager(parent=self.name,
-                                                 namespace=namespace)
+                                               namespace=namespace)
 
         self.define_options(mode=mode, default=default, constraint=constraint,
                             tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
@@ -165,11 +166,11 @@ class ParmGroup (Meow.Parameterization):
         return len(self._nodes)
 
     def mode(self):
-        """Return the object 'mode' (e.g. solve, or simulate)"""
+        """Return the object 'mode' (e.g. solve, nosolve, or simulate)"""
         return self._om['mode']
 
     def active (self, new=None):
-        """Get/set its 'active' switch"""
+        """Get/set its 'active' switch."""
         if isinstance(new, bool):
             self._active = new
         return self._active
@@ -189,7 +190,7 @@ class ParmGroup (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def namespace(self, prepend=None, append=None):
+    def namespace_obsolete(self, prepend=None, append=None):
         """Return the namespace string (used for TDL options etc).
         If either prepend or apendd strings are defined, attach them.
         NB: Move to the ParmGroup class?
@@ -435,9 +436,9 @@ class ParmGroup (Meow.Parameterization):
     # Options management:
     #===================================================================
 
-    def TDLCompileOptionMenu (self, **kwargs):
+    def make_TDLCompileOptionMenu (self, **kwargs):
         """Make the TDL menu of Compile-time options"""
-        return self._om.TDLCompileOptionMenu(**kwargs)
+        return self._om.make_TDLCompileOptionMenu(**kwargs)
     
     #-------------------------------------------------------------------
 
@@ -678,21 +679,22 @@ class ParmGroup (Meow.Parameterization):
         """Return a list of zero or more constraint condeq(s).
         Make them if necessary."""
         cc = []
-        for key in self._constraint.keys():
+        for key in self._om.submenu_compile['constraints']:
             if self._condeq.has_key(key):
                 cc.append(self._condeq[key])
             else:
                 condeq = self._make_constraint_condeq(key)
                 if is_node(condeq):
                     self._condeq[key] = condeq
-                    cc.append(condeq)
+                    cc.append(self._condeq[key])
         return cc
 
         
-    def _make_constraint_condeq(self, key, show=True):
+    def _make_constraint_condeq(self, key, show=True, trace=True):
         """Make a condeq subtree for the specified constraint"""
-        rhs = getattr(self, '_'+key, None)
-        print '-- rhs =',str(rhs)
+        if trace: print '\n** _make_constraint_condeq(',key,'):'
+        rhs = self._om[key]
+        if trace: print '-- rhs =',str(rhs)
         lhs = None
         qnode = self.ns['constraint'](key)
         cc = self.solvable(return_NodeList=False, trace=True)
@@ -861,11 +863,11 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+if 0:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
     pg.display()
-    pg.TDLCompileOptionMenu(trace=True)
+    pg.make_TDLCompileOptionMenu(trace=True)
 
 
 def _define_forest(ns):
@@ -946,11 +948,12 @@ if __name__ == '__main__':
         pg.create_member(4, tiling=5, mode='solve')
         pg.create_member(7, freq_deg=2)
 
-    if 0:
-        cc = pg.constraint_condeqs()
-
     if 1:
-        pg.TDLCompileOptionMenu(trace=True)
+        cc = pg.constraint_condeqs()
+        print '** cc =',cc
+        
+    if 0:
+        pg.make_TDLCompileOptionMenu(trace=True)
 
     if 0:
         pg.bundle(show=True)
