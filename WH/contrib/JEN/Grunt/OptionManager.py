@@ -87,17 +87,17 @@ class OptionManager (object):
         self.tdloption_namespace = namespace
 
         # Option definition records:
-        self.optrec = dict(compile=None, runtime=None)
-
-        # Keep a list of option categories (e.g. ['compile','runtime']):
-        self.cats = self.optrec.keys()
+        self.optrec = dict()
 
         # Some useful lists of option names (keys):
         self.optrec_keys = dict(compile=[], runtime=[])   
         self.submenu_keys = dict(compile=dict(), runtime=dict())   
 
+        # Keep a list of option categories (e.g. ['compile','runtime']):
+        self.cats = self.optrec_keys.keys()
+
         # TDLOption objects:
-        self.TDLOptionObj = dict()   
+        self.TDLOptObj = dict()   
         self.TDLOptionMenu = dict(compile=None, runtime=None)   
         self.TDLOptionSubmenu = dict(compile=dict(), runtime=dict())   
 
@@ -155,18 +155,22 @@ class OptionManager (object):
         from the OptionManager. This makes sure that the module can also be
         used standalone, i.e. without any TDLOptions/menus.
         """
-        # The name of the internal variable is prepended with '_': self._<key>
-        # This is to avoid name clashes with any object attributes.
-        ukey = '_'+key
+        ukey = self.internal_name(key)
         if True:
             # Make sure that the internal value is equal to the current value
-            # of the TDLOptionObj.value (if it exists).
+            # of the TDLOptObj.value (if it exists).
             # For some reason, this does not happen automatically when the
-            # TDLOptionObj value is modified by the user (it used too...).
-            if self.TDLOptionObj.has_key(key):
-                setattr(self, ukey, self.TDLOptionObj[key].value)
+            # TDLOptObj value is modified by the user (it used too...).
+            if self.TDLOptObj.has_key(key):
+                setattr(self, ukey, self.TDLOptObj[key].value)
         return getattr(self, ukey)
 
+
+    def internal_name (self, key):
+        """Helper function to make the internal option name from the given key.
+        The name of the internal variable is prepended with '_': self._<key>
+        This is to avoid name clashes with any object attributes."""
+        return '_'+key
 
     #-----------------------------------------------------------------------------
     #-----------------------------------------------------------------------------
@@ -184,7 +188,7 @@ class OptionManager (object):
                 self.define(key, value[key], submenu=submenu, cat=cat)
         
         else:
-            ukey = '_'+key                                   # internal name
+            ukey = self.internal_name(key)
             setattr (self, ukey, value)                      # working values
             rr = dict(reset=value, doc=doc, prompt=prompt,
                       opt=opt, more=more, callback=callback)
@@ -201,20 +205,24 @@ class OptionManager (object):
 
     #-----------------------------------------------------------------------------
 
-    def modify (self, key, cat='compile', **pp):
+    def modify (self, key, **pp):
         """Helper function to modify field(s) of an existing (key) optrec,
         which has been defined earlier with .define(key, ...)."""
-        if cat=='runtime':
-            rr = self.optrec[key]
-        else:
-            rr = self.optrec[key]
+        if self.TDLOptObj.has_key(key):
+            s = '** .modify('+key+'): only possible BEFORE creating TDLOptionObject'
+            raise ValueError,s
+        rr = self.optrec[key]
         if not isinstance(pp, dict): pp = dict()
         pp.setdefault('trace',False)
         keys = ['value','opt','more','prompt','doc','callback']
         for key in keys:
             if pp.has_key(key):
-                rr[key] = pp[key]
-                # if key=='opt']: self.set_option_list(key, rr[key])
+                if key=='value':
+                    rr['reset'] = pp[key]
+                    ukey = self.internal_name(key)
+                    setattr (self, ukey, pp[key])           # working values
+                else:
+                    rr[key] = pp[key]
         return True
 
 
@@ -260,18 +268,18 @@ class OptionManager (object):
                 value = self[key]
                 ss = ' = '+str(value)
                 if not value==rr['reset']:
-                    ss += '    (reset='+str(rr['reset'])+'!)' 
-                if not self.TDLOptionObj.has_key(key):
-                    ss += '   (-)'
+                    ss += '     (reset='+str(rr['reset'])+')' 
+                if not self.TDLOptObj.has_key(key):
+                    ss += '     (-)'
                 else:
-                    oo = self.TDLOptionObj[key]
+                    oo = self.TDLOptObj[key]
                     noexist = -1.23456789
                     if getattr(oo, 'value', noexist)==noexist:
-                        print prefix,'    - '+str(key)+': '+str(self.TDLOptionObj[key])
+                        print prefix,'    - '+str(key)+': '+str(self.TDLOptObj[key])
                     else:
-                        TDLvalue = self.TDLOptionObj[key].value
+                        TDLvalue = self.TDLOptObj[key].value
                         if not value==TDLvalue:
-                            ss += '    (TDLOptionObj.value='+str(TDLvalue)+'!)'
+                            ss += '    (TDLOptObj.value='+str(TDLvalue)+'!)'
                 print prefix,'    - '+key+ss
         #...............................................................
         print prefix,'  * submenu keys: '
@@ -290,12 +298,12 @@ class OptionManager (object):
             keys = self.optrec_keys[cat]
             n = 0
             for key in keys:
-                if self.TDLOptionObj.has_key(key): n += 1
-            print prefix,'  * TDLOptionObj('+cat+') (n='+str(n)+'/'+str(len(keys))+'):'
+                if self.TDLOptObj.has_key(key): n += 1
+            print prefix,'  * TDLOptObj('+cat+') (n='+str(n)+'/'+str(len(keys))+'):'
             if full:
                 for key in keys:
-                    if self.TDLOptionObj.has_key(key):
-                        print prefix,'    - '+key+' = '+str(self.TDLOptionObj[key])
+                    if self.TDLOptObj.has_key(key):
+                        print prefix,'    - '+key+' = '+str(self.TDLOptObj[key])
                     else:
                         print prefix,'    - '+key+': (not yet created)'
         #...............................................................
@@ -352,13 +360,14 @@ class OptionManager (object):
         return self.TDLMenu (key=key, cat='runtime', severe=severe, trace=trace)
     
     #---------------------------------------------------------------------
+    #---------------------------------------------------------------------
 
     def TDLOption (self, key=None, severe=False, cat=None, trace=False):
         """Return the specified TDL option"""
         s = '** TDLOption('+str(key)+'):'
         result = False
-        if self.TDLOptionObj.has_key(key):
-            result = self.TDLOptionObj[key]
+        if self.TDLOptObj.has_key(key):
+            result = self.TDLOptObj[key]
         # Deal with the result:
         if trace:
             print s,'->',str(result)
@@ -471,7 +480,7 @@ class OptionManager (object):
             kwargs.setdefault('reset', True)
             # Optional (but last): Include a 'reset' menuitem
             if kwargs['reset']:
-                oolist.append(self.make_reset_item())
+                oolist.append(self.make_reset_option())
             prompt = self.namespace(prepend='options for: ', append=self.name)
             if len(oolist)==0:
                 return None
@@ -512,10 +521,10 @@ class OptionManager (object):
         oolist = []
         if not self.TDLOptionSubmenu[cat].has_key(submenu):
             for key in self.submenu_keys[cat][submenu]:
-                ukey = '_'+key
                 rr = self.optrec[key]
                 prompt = rr['prompt'] or key
                 doc = rr['doc'] or '<doc>'
+                ukey = self.internal_name(key)
                 opt = [getattr(self,ukey)]
                 if isinstance(rr['opt'],list):
                     opt.extend(rr['opt'])
@@ -526,7 +535,7 @@ class OptionManager (object):
                     oo.when_changed(self._callback_submenu)
                 if rr['callback']:
                     oo.when_changed(rr['callback'])
-                self.TDLOptionObj[key] = oo
+                self.TDLOptObj[key] = oo
                 oolist.append(oo)
         return oolist
 
@@ -534,30 +543,30 @@ class OptionManager (object):
     #.....................................................................
 
     def _callback_submenu(self, dummy=None):
-        """Function called whenever any TDLOptionObj in a submenu changes.
-        It changes the summary string of the submenu header."""
-
-        print '\n** _callback_submenu(',dummy,')\n'         # ...temporary...
-        return True
-    
-        for submenu in self.submenu_compile.keys():
-            if self.TDLCompileOptionSubmenu.has_key(submenu):
-                summ = '('
-                first = True
-                keys = self.submenu_compile[submenu]
-                for key in keys:
-                    if self.TDLOptionObj.has_key(key):
-                        value = self.TDLOptionObj[key].value
-                        if not first: summ += ','
-                        first = False
-                        if value==None:
-                            summ += '-' 
-                        elif isinstance(value,str):
-                            summ += 'str'
-                        else:
-                            summ += str(value)
-                summ += ')'
-                self.TDLCompileOptionSubmenu[submenu].set_summary(summ)
+        """Function called whenever any TDLOptObj in a submenu changes.
+        It remakes the summary string of all submenu headers."""
+        for cat in self.cats:
+            for submenu in self.submenu_keys[cat].keys():
+                if self.TDLOptionSubmenu[cat].has_key(submenu):
+                    summ = '('
+                    first = True
+                    keys = self.submenu_keys[cat][submenu]
+                    for key in keys:
+                        if self.TDLOptObj.has_key(key):
+                            value = self.TDLOptObj[key].value
+                            if True:
+                                ukey = self.internal_name(key)
+                                setattr(self, ukey, value)
+                            if not first: summ += ','
+                            first = False
+                            if value==None:
+                                summ += '-' 
+                            elif isinstance(value,str):
+                                summ += 'str'
+                            else:
+                                summ += str(value)
+                    summ += ')'
+                    self.TDLOptionSubmenu[cat][submenu].set_summary(summ)
         return True
 
 
@@ -566,28 +575,31 @@ class OptionManager (object):
     # Functions dealing with resetting option values:
     #---------------------------------------------------------------------
 
-    def make_reset_item (self, slave=False, cat='compile'):
-        """...."""
-        key = 'reset_'+str(cat)+'_options'
-        if not self.TDLOptionObj.has_key(key):
+    def make_reset_option (self, slave=False):
+        """Make the 'reset' option, that allows reset of ALL options to the
+        original values that were given by .define() or .modify()"""
+        self.key_of_reset_option = '_reset_all_options'
+        key = self.key_of_reset_option
+        if not self.TDLOptObj.has_key(key):
             doc = """If True, reset all options to their original default values.
-            (presumably these are sensible values, supplied by the module designer.)"""
-            prompt = self.name+':  reset to original defaults'
+            (presumably these are sensible values, supplied by the module designer.)
+            """
+            prompt = self.name+':  reset ALL options to original defaults'
             oo = TDLOption(key, prompt, [False, True], doc=doc, namespace=self)
             oo.when_changed(self._callback_reset)
             if slave: oo.hide()
-            self.TDLOptionObj[key] = oo
-        return self.TDLOptionObj[key]
+            self.TDLOptObj[key] = oo
+        return self.TDLOptObj[key]
 
 
     #.....................................................................
 
     def _callback_reset(self, reset):
-        """Function called whenever TDLOptionObj _reset changes."""
-        if reset and self.TDLOptionMenu['compile']:
+        """Function called whenever TDLOptObj _reset changes."""
+        if reset:
             self.reset_options(trace=True)
-            key = 'opt_reset'
-            self.TDLOptionObj[key].set_value(False, callback=False, save=True)
+            key = self.key_of_reset_option     # defined in .make_reset_option()
+            self.TDLOptObj[key].set_value(False, callback=False, save=True)
         return True
 
 
@@ -599,23 +611,20 @@ class OptionManager (object):
         """
         if trace:
             print '\n** _reset_options(): ',self.oneliner()
-        for key in self.optrec.keys():
-            ukey = '_'+key
-            was = getattr(self,ukey)
-            new = self.optrec[key]['reset']
-            setattr(self, key, new)
-            if self.TDLOptionObj.has_key(key):
-                self.TDLOptionObj[key].set_value(new, save=True)
-                new = self.TDLOptionObj[key].value
+
+        for cat in self.cats:
+            for key in self.optrec_keys[cat]:
+                ukey = self.internal_name(key)
+                was = getattr(self,ukey)
+                new = self.optrec[key]['reset']
+                setattr(self, ukey, new)
+                if self.TDLOptObj.has_key(key):
+                    self.TDLOptObj[key].set_value(new, save=True)
+                    new = self.TDLOptObj[key].value
                 if trace:
-                    print ' -',key,':',was,' -> ',getattr(self,ukey),
-                    if not new==getattr(self,ukey):
-                        print '** TDLOptionObj =',new,'!?',
-            else:
-                if trace: print ' -',key,':',was,' -> ',getattr(self,ukey),
-            if trace:
-                if not new==was: print '           ** changed **',
-                print
+                    print ' - ('+cat+') '+key+':  -> '+str(new),
+                    if not new==was: print '     (changed: was ',was,')',
+                    print
         if trace: print
         return True
         
@@ -719,7 +728,7 @@ if __name__ == '__main__':
     if 1:
         om.display('final')
 
-    if 1:
+    if 0:
         ss = [None]
         ss.extend(om.cats)
         for cat in om.cats:
