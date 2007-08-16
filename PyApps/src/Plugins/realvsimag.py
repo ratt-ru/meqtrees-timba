@@ -471,12 +471,12 @@ class realvsimag_plotter(object):
     self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
     self.plot.setAxisTitle(QwtPlot.yLeft, self._plot_y_axis_label)
 
-    self._x_auto_scale = plot_parms['x_axis_auto_scale']
+    self._x_auto_scale = plot_parms['x_auto_scale']
     if self._x_auto_scale == '1':
       self._x_auto_scale = True
     else:
       self._x_auto_scale = False
-    self._y_auto_scale = plot_parms['y_axis_auto_scale']
+    self._y_auto_scale = plot_parms['y_auto_scale']
     if self._y_auto_scale == '1':
       self._y_auto_scale = True
     else:
