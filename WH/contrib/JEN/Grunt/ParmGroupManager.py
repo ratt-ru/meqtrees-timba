@@ -56,7 +56,7 @@ class ParmGroupManager (Meow.Parameterization):
     for groups of similar parms, which may find their way into the
     more official Meow system eventually."""
 
-    def __init__(self, ns=None, parent='<parent>', namespace=None,
+    def __init__(self, ns=None, name='<parent>', namespace=None,
                  tobesolved=None):
 
         # Scopify ns, if necessary:
@@ -67,7 +67,7 @@ class ParmGroupManager (Meow.Parameterization):
         if ns==None:
             ns = NodeScope()
 
-        Meow.Parameterization.__init__(self, ns, parent)
+        Meow.Parameterization.__init__(self, ns, name)
 
         self._frameclass = 'Grunt.ParmGroupManager'       # for reporting
 
@@ -78,7 +78,7 @@ class ParmGroupManager (Meow.Parameterization):
         self._accumulist = dict()
 
         # Options management:
-        self._om = OptionManager.OptionManager(parent=parent,
+        self._om = OptionManager.OptionManager(name=self.name,
                                                namespace=namespace)
         self.define_options(tobesolved=tobesolved)
 
@@ -141,73 +141,76 @@ class ParmGroupManager (Meow.Parameterization):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = 'Grunt.ParmGroupManager:'
-        ss += '  (parent='+str(self.name)+')'
+        ss += '  (name='+str(self.name)+')'
         ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3, om=True, pg=False):
+    def display(self, txt=None, full=False, recurse=3, om=True, pg=False, level=0):
         """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print '  * (txt='+str(txt)+')'
+        prefix = '  '+(level*'  ')+'|'
+        print prefix,' '
+        print prefix,'** '+self.oneliner()
+        if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
-        print '  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
+        print prefix,'  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._parmgroups:
             pg = self._parmgroups[key]
             if pg.active():
-                print '    - ('+key+'): '+str(pg.oneliner())
+                print prefix,'    - ('+key+'): '+str(pg.oneliner())
             else:
-                print '    - ('+key+'):   ... not active ...'
+                print prefix,'    - ('+key+'):   ... not active ...'
         #...............................................................
-        print '  * Simuldev expressions (mode==simulate only):'
+        print prefix,'  * Simuldev expressions (mode==simulate only):'
         for key in self._parmgroups:
             pg = self._parmgroups[key]
             if pg.mode()=='simulate':
-                print '    - ('+key+'): '+pg._om['simuldev']
+                print prefix,'    - ('+key+'): '+pg._om['simuldev']
         #...............................................................
-        print '  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
+        print prefix,'  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.gogs():
-            print '    - ('+str(key)+'): '+str(self._parmgogs[key])
+            print prefix,'    - ('+str(key)+'): '+str(self._parmgogs[key])
         #...............................................................
-        print '  * Accumulist entries: '
+        print prefix,'  * Accumulist entries: '
         for key in self._accumulist.keys():
             vv = self._accumulist[key]
-            print '    - '+str(key)+' ('+str(len(vv))+'):'
+            print prefix,'    - '+str(key)+' ('+str(len(vv))+'):'
             if full:
-                for v in vv: print '    - '+str(type(v))+' '+str(v)
+                for v in vv: print prefix,'    - '+str(type(v))+' '+str(v)
         #...............................................................
         if self._parmdefs:
-            print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
+            print prefix,'  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
             if full:
                 for key in self._parmdefs:
                     rr = list(deepcopy(self._parmdefs[key]))
                     rr[0] = str(rr[0])
-                    print '    - ('+key+'): '+str(rr)
-            print '  * Meow.Parm options (in _parmdefs):'
+                    print prefix,'    - ('+key+'): '+str(rr)
+            print prefix,'  * Meow.Parm options (in _parmdefs):'
             if full:
                 for key in self._parmdefs:
                     value = self._parmdefs[key][0]
                     if isinstance(value, Meow.Parm):
-                        print '    - ('+key+'): (='+str(value.value)+') '+str(value.options)
-            print '  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
+                        print prefix,'    - ('+key+'): (='+str(value.value)+') '+str(value.options)
+            print prefix,'  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
             if full:
                 for key in self._parmnodes:
                     rr = self._parmnodes[key]
-                    print '    - ('+key+'): '+str(rr)
+                    print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
-        if pg: self.pg_display(om=om)
-        if om: self._om.display(full=False)
+        print prefix,'  * '+self._om.oneliner()
+        if om: self._om.display(full=False, level=level+1)
         #...............................................................
-        print '**\n'
+        if pg: self.pg_display(om=om, level=level+1)
+        #...............................................................
+        print prefix,'**\n'
         return True
 
     #---------------------------------------------------------------
 
-    def pg_display(self, full=False, om=False):
+    def pg_display(self, full=False, om=False, level=0):
         """Display summaries of its parmgroups"""
         for key in self._parmgroups.keys():
-            self._parmgroups[key].display(full=full, om=om)
+            self._parmgroups[key].display(full=full, om=om, level=level)
         return True
 
 
@@ -295,7 +298,7 @@ class ParmGroupManager (Meow.Parameterization):
         opt.extend(self._parmgogs.keys())
         # opt.extend(self.active_groups())
         if not None in opt: opt.append(None)
-        self._om.modopt ('tobesolved', opt=opt)
+        self._om.modify ('tobesolved', opt=opt)
 
         return key
 
@@ -341,7 +344,7 @@ class ParmGroupManager (Meow.Parameterization):
         """Define the various options in its OptionManager object"""
         key = 'tobesolved'
         doc = 'the selected groups will be solved simultaneously'
-        self._om.defopt(key, tobesolved,
+        self._om.define(key, tobesolved,
                         prompt='pgm: solve for parmgroup(s)/parmgog(s)',
                         callback=self._callback_tobesolved,
                         opt=[None], more=str, doc=doc)
@@ -909,7 +912,7 @@ class ParmGroupManager (Meow.Parameterization):
 
 
 if 1:
-    pgm = ParmGroupManager(parent='GJones',
+    pgm = ParmGroupManager(name='GJones',
                            namespace='ParmGroupManagerNamespace')
     pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
     pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
@@ -985,7 +988,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgm = ParmGroupManager(ns, parent='GJones')
+        pgm = ParmGroupManager(ns, 'GJones')
         pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
         pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
         if 1:

@@ -140,8 +140,7 @@ class ParmGroup (Meow.Parameterization):
             namespace += '_'+s
         else:
             namespace = s
-        self._om = OptionManager.OptionManager(parent=self.name,
-                                               namespace=namespace)
+        self._om = OptionManager.OptionManager(self.name, namespace=namespace)
 
         self.define_options(mode=mode, default=default, constraint=constraint,
                             tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
@@ -225,52 +224,54 @@ class ParmGroup (Meow.Parameterization):
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3, om=True):
+    def display(self, txt=None, full=False, recurse=3, om=True, level=0):
         """Print a summary of this object"""
-        print ' '
-        print '** '+self.oneliner()
-        if txt: print '  * (txt='+str(txt)+')'
-        print '  * Descr: '+str(self._descr)
+        prefix = '  '+(level*'  ')+'||'
+        print prefix,' '
+        print prefix,'** '+self.oneliner()
+        if txt: print prefix,'  * (txt='+str(txt)+')'
+        print prefix,'  * Descr: '+str(self._descr)
         #..............................................................
         rr = dict(tags=self._tags, unit=self._unit)
-        print '  * Misc: '+str(rr)
+        print prefix,'  * Misc: '+str(rr)
         #...............................................................
-        print '  * group members ('+str(len(self._nodes))+'): (solvable, plot_label, node)'
+        print prefix,'  * group members ('+str(len(self._nodes))+'): (solvable, plot_label, node)'
         for k in range(self.len()):
             s = ''
             s += '  '+str(self._solvable[k])
             s += '  '+str(self._plot_labels[k])
             s += '  '+str(self._nodes[k])
-            print '    - '+s
+            print prefix,'    - '+s
         #...............................................................
-        print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
+        print prefix,'  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
         if full:
             for key in self._parmdefs:
                 rr = list(deepcopy(self._parmdefs[key]))
                 rr[0] = str(rr[0])
-                print '    - ('+key+'): '+str(rr)
+                print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
-        print '  * Meow.Parm options (in _parmdefs):'
+        print prefix,'  * Meow.Parm options (in _parmdefs):'
         if full:
             for key in self._parmdefs:
                 value = self._parmdefs[key][0]
                 if isinstance(value, Meow.Parm):
-                    print '    - ('+key+'): (='+str(value.value)+') '+str(value.options)
+                    print prefix,'    - ('+key+'): (='+str(value.value)+') '+str(value.options)
         #...............................................................
-        print '  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
+        print prefix,'  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
         if full:
             for key in self._parmnodes:
                 rr = self._parmnodes[key]
-                print '    - ('+key+'): '+str(rr)
+                print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
         if self._NodeList:
-            print '  * NodeList object: '+self._NodeList.oneliner()
+            print prefix,'  * NodeList object: '+self._NodeList.oneliner()
         else:
-            print '  * NodeList object: '+str(self._NodeList) 
+            print prefix,'  * NodeList object: '+str(self._NodeList) 
         #...............................................................
-        if om: self._om.display(full=False)
+        print prefix,'  * '+self._om.oneliner()
+        if om: self._om.display(full=False, level=level+1)
         #...............................................................
-        print '**\n'
+        print prefix,'**\n'
         return True
 
 
@@ -448,7 +449,7 @@ class ParmGroup (Meow.Parameterization):
 
         # Individual options in the main menu (i.e. submenu=None):
         opt = ['nosolve','solve','simulate']
-        self._om.defopt('mode', mode, opt=opt, more=str,
+        self._om.define('mode', mode, opt=opt, more=str,
                         prompt='mode of parameter generation',
                         callback=self._callback_mode,
                         doc = """The following ParmGroup modes are supported:
@@ -459,7 +460,7 @@ class ParmGroup (Meow.Parameterization):
                         It may also affect some of the 'larger' options upstream..... 
                         """)
 
-        self._om.defopt('default', default, more=float,
+        self._om.define('default', default, more=float,
                         prompt='MeqParm default value',
                         doc = 'MeqParm default value')
 
@@ -468,7 +469,7 @@ class ParmGroup (Meow.Parameterization):
         opt = []
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
-        self._om.defopt('simuldev', simuldev, submenu='simulation',
+        self._om.define('simuldev', simuldev, submenu='simulation',
                         opt=opt, more=str,
                         # oo.set_custom_value(getattr(self,key), select=True, save=True)
                         prompt='deviation from default value',
@@ -480,15 +481,15 @@ class ParmGroup (Meow.Parameterization):
 
         # The 'domain span' submenu:
         submenu = 'solving'
-        self._om.defopt('tiling', tiling, submenu=submenu,
+        self._om.define('tiling', tiling, submenu=submenu,
                         prompt='size of solution sub-tile',
                         opt=[1,2,4,8,16,None], more=int,
                         doc='Nr of time-slots per subtile solution. None means all.')
-        self._om.defopt('time_deg', 1, submenu=submenu,
+        self._om.define('time_deg', 1, submenu=submenu,
                         prompt='time-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of time-polynomial to be solved for.')
-        self._om.defopt('freq_deg', 2, submenu=submenu,
+        self._om.define('freq_deg', 2, submenu=submenu,
                         prompt='freq-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of freq-polynomial to be solved for.')
@@ -514,8 +515,8 @@ class ParmGroup (Meow.Parameterization):
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to be less than the specified value"""
-            self._om.defopt(key, cs[key], submenu=submenu,
-                            prompt='constrain the '+key+' to:',
+            self._om.define(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('max'):
             key = 'max'
@@ -523,8 +524,8 @@ class ParmGroup (Meow.Parameterization):
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to exceed the specified value"""
-            self._om.defopt(key, cs[key], submenu=submenu,
-                            prompt='constrain the '+key+' to:',
+            self._om.define(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('sum'):
             key = 'sum'
@@ -532,8 +533,8 @@ class ParmGroup (Meow.Parameterization):
             if not 0.0 in opt: opt.append(0.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the sum of the values of the MeqParm in this group'
-            self._om.defopt(key, cs[key], submenu=submenu,
-                            prompt='constrain the '+key+' to:',
+            self._om.define(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('product'):
             key = 'product'
@@ -541,8 +542,8 @@ class ParmGroup (Meow.Parameterization):
             if not 1.0 in opt: opt.append(1.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the product of value of the MeqParms in this group'
-            self._om.defopt(key, cs[key], submenu=submenu,
-                            prompt='constrain the '+key+' to:',
+            self._om.define(key, cs[key], submenu=submenu,
+                            prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('ignore'):
             key = 'ignore'
@@ -550,8 +551,8 @@ class ParmGroup (Meow.Parameterization):
             if not 0 in opt: opt.append(0)
             if not None in opt: opt.append(None)
             doc = 'The ignored MeqParm(s) will keep their current value(s).'
-            self._om.defopt(key, cs[key], submenu=submenu,
-                            prompt='do not solve for MeqParm(s) with index:',
+            self._om.define(key, cs[key], submenu=submenu,
+                            prompt='do NOT solve for MeqParm(s) with index',
                             opt=opt, more=int, doc=doc)
 
         # Finished
@@ -679,7 +680,7 @@ class ParmGroup (Meow.Parameterization):
         """Return a list of zero or more constraint condeq(s).
         Make them if necessary."""
         cc = []
-        for key in self._om.submenu_compile['constraints']:
+        for key in self._om.keys('constraints'):
             if self._condeq.has_key(key):
                 cc.append(self._condeq[key])
             else:
@@ -863,7 +864,7 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 0:
+if 1:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
     pg.display()
