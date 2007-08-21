@@ -239,6 +239,8 @@ namespace Meq {
     const Cells &incells=request.cells();
     int intime=incells.ncells(Axis::TIME);
     int infreq=incells.ncells(Axis::FREQ);
+    //if we have a 4D request, recreate a 2D cells from it
+    blitz::TinyVector<int,2> inshape(incells.ncells(0),incells.ncells(1));
 
 
 
@@ -458,7 +460,7 @@ namespace Meq {
     //create new vellset
     //FIXME: if nspids==0, no need to have npsets>0, so adjust it
     if (!nspids) npsets=0;
-    VellSet &vs=ref <<=new VellSet(incells.shape(),nspids,npsets);
+    VellSet &vs=ref <<=new VellSet(inshape,nspids,npsets);
     vs.setSpids(newspids);
 #ifdef DEBUG
 		cout<<"creating vellset with spids, pertsets"<<nspids<<","<<npsets<<endl;
@@ -508,7 +510,7 @@ namespace Meq {
 		} else {
 		/////////////////////////////////////// real data
 		if (in.isReal()) {
-    Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
+    Vells &out=vs.setValue(new Vells(0.0,inshape));
     //now fill in the values only defined at the original grid points
     //imagine the axes are (t,f,a,b): then for each (t,f) grid point
     //find points a0,b0 in a and b axes respectively. this value will
@@ -546,7 +548,7 @@ namespace Meq {
           for (int ipset=0; ipset< childres[1]->vellSet(ivs).numPertSets(); ipset++) {
 	          const Vells pvl=childres[1]->vellSet(ivs).getPerturbedValue(value[2],ipset);
 	          Vells &pin=const_cast<Vells &>(pvl);
-	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,inshape),ipset);
 	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	          blitz::Array<double,4> pB=pin.getArray<double,4>();
 						if (value[0]==-1 && value[1]==-1) {
@@ -574,7 +576,7 @@ namespace Meq {
           cout<<"(Real) Pert sets ="<<npsets0<<endl;
 #endif
 					for (int ipset=0; ipset<npsets0; ipset++) {
-	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,incells.shape()),ipset);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,inshape),ipset);
 	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	
             apply_grid_map_2d4d(pA, B, spmapiter->first);
@@ -591,7 +593,7 @@ namespace Meq {
 	
 		} else {
 		/////////////////////////////////////// complex data
-	  Vells &out=vs.setValue(new Vells(make_dcomplex(0.0),incells.shape()));
+	  Vells &out=vs.setValue(new Vells(make_dcomplex(0.0),inshape));
     //now fill in the values only defined at the original grid points
     //imagine the axes are (t,f,a,b): then for each (t,f) grid point
     //find points a0,b0 in a and b axes respectively. this value will
@@ -618,7 +620,7 @@ namespace Meq {
           for (int ipset=0; ipset< childres[1]->vellSet(ivs).numPertSets(); ipset++) {
 	          const Vells pvl=childres[1]->vellSet(ivs).getPerturbedValue(value[2],ipset);
 	          Vells &pin=const_cast<Vells &>(pvl);
-	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(make_dcomplex(0.0),incells.shape()),ipset);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(make_dcomplex(0.0),inshape),ipset);
 	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
 	          blitz::Array<dcomplex,4> pB=pin.getArray<dcomplex,4>();
 						if (value[0]==-1 && value[1]==-1) {
@@ -646,7 +648,7 @@ namespace Meq {
           cout<<"(Complex ) Pert sets ="<<npsets0<<endl;
 #endif
 					for (int ipset=0; ipset<npsets0; ipset++) {
-	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(make_dcomplex(0.0),incells.shape()),ipset);
+	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(make_dcomplex(0.0),inshape),ipset);
 	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
 	
             apply_grid_map_2d4d(pA, B, spmapiter->first);
