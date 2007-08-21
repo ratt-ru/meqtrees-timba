@@ -56,14 +56,21 @@ class Dummy:
        self.app=Handle(self.myargs)
      else:
        self.app=qApp
+       # check validity of qApp
+       try:
+         self.app.name()
+       except:
+         print "LSM: Unable to  create display, call with display(app='create')"
+         return
 
      self.win=LSMWindow(self.lsm) 
      self.win.show()
+
      # stand alone mode
      if kw.has_key('app') and (kw['app']=='create'):
-      self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
-        self.app, SLOT("quit()"))
-      self.app.exec_loop()
+        self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
+          self.app, SLOT("quit()"))
+        self.app.exec_loop()
      else: # running under browser
       self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
         self.win, SLOT("close()"))
