@@ -2500,13 +2500,19 @@ class QwtImageDisplay(QwtPlot):
         plot_array = transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
-# check for NaNs
+# check for NaNs and Infs etc
 
       nan_test = ieee.isnan(plot_array)
       if nan_test.max() > 0:
         plot_array[ieee.isnan(plot_array)] = -0.0123456789
         self.set_flag_toggles_active(True)
         self.setFlagsData(nan_test,False)
+
+      inf_test = ieee.isinf(plot_array)
+      if inf_test.max() > 0:
+        plot_array[ieee.isinf(plot_array)] = -0.0123456789
+        self.set_flag_toggles_active(True)
+        self.setFlagsData(inf_test,False)
 
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
