@@ -249,19 +249,75 @@ namespace Meq {
     cout<<"Got "<<naxis<<" Vellsets"<<endl;
 #endif
 
-    FailWhen(naxis!=2,"We need 2 vellsets, but got "+__to_string(naxis));
-		build_axes_(childres[0],intime,infreq);
+    FailWhen(naxis<2,"We need at least 2 vellsets, but got "+__to_string(naxis));
     Cells::Ref outcells_ref;
     const Domain &old_dom=incells.domain();
     Domain::Ref domain(new Domain());
 
 
-    int ntime,nfreq,nplanes;
+    //switch to mode 4D when naxis> 2
+    if (naxis>2) {
+
+      build_axes_simple_(childres[0]);
+		  std::vector<blitz::Array<double,1> > space;
+      //calculate grid spacing and bounds
+		  space.resize(grid_.size());
+		  for (unsigned int ch=0; ch<grid_.size(); ch++) {
+       space[ch].resize(grid_[ch].extent(0));
+       //create a space grid
+       if (grid_[ch].extent(0)==1) {
+        //scalar case
+        space[ch](0)=def_cell_size_;
+       } else {
+        //vector case
+        for (int i=1;i<grid_[ch].extent(0);i++) 
+        	space[ch](i)=grid_[ch](i)-grid_[ch](i-1);
+        space[ch](0)=space[ch](1);
+       }
+       //calculate extents for domain 
+       double llimit=grid_[ch](0)-space[ch](0);
+       double ulimit=grid_[ch](grid_[ch].extent(0)-1)+space[ch](grid_[ch].extent(0)-1);
+       if (llimit==ulimit) ulimit=llimit+1; //catch scalar case
+       domain().defineAxis(ch,llimit,ulimit);
+		 }
+
+
+      Cells &outcells=outcells_ref<<=new Cells(*domain);
+		  for (unsigned int ch=0; ch<grid_.size(); ch++) {
+       outcells.setCells(ch,grid_[ch],space[ch]);
+#ifdef DEBUG
+    cout<<"4D Request "<<grid_[ch]<<" space "<<space[ch]<<endl;
+#endif
+		  }
+
+      newreq().setCells(outcells);
+      //increment request sub id
+      RequestId rqid=request.id();
+      RqId::incrSubId(rqid,seq_depmask_);
+      RqId::setSubId(rqid,res_depmask_,nodeIndex());
+      newreq().setId(rqid);
+#ifdef DEBUG
+    cout<<"********************* Req Id "<<rqid<<endl;
+#endif
+
+      unlockStateMutex();
+      code=children().getChild(1).execute(child_res,*newreq);
+      lockStateMutex();
+
+      result_code_|=code;
+
+      result_<<= child_res;
+
+      return code;
+    }
+		build_axes_(childres[0],intime,infreq);
+
+    int nplanes;
 
     // get first vellset
     Vells vl0=childres[0]->vellSet(0).getValue();
-    int nx=ntime=vl0.extent(0);
-    int ny=nfreq=vl0.extent(1);
+    int nx=vl0.extent(0);
+    int ny=vl0.extent(1);
     //check for perturbed values
     int ipert0=childres[0]->vellSet(0).numPertSets();
     int ispid0=childres[0]->vellSet(0).numSpids();
@@ -1054,6 +1110,33 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 	 return 0;
 
 }
+
+
+//IN: grid child result, request time,freq
+//OUT: vector of funklet request grids, NO map is constructed
+//NO handling of  perturbations
+int Compounder::build_axes_simple_(Result::Ref &childres) {
+
+   int naxes=childres->numVellSets();
+	 //resize grid
+	 grid_.resize(naxes);
+
+   for (int ch=0; ch<naxes; ch++) {
+    Vells vl0=childres->vellSet(ch).getValue();
+    int nx=vl0.nelements();
+    grid_[ch].resize(nx);
+    double *data_=vl0.getStorage<double>();
+    blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+#ifdef DEBUG
+      cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
+#endif
+      //cen0=vl0.as<double,1>();
+      grid_[ch]=data(blitz::Range::all(),0);
+  } 
+
+	 return 0;
+}
+
 
 template<class T>
 int Compounder::apply_grid_map_2d4d( blitz::Array<T,2> A, blitz::Array<T,4> B, int spid ) {

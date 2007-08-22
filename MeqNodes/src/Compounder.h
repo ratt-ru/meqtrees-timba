@@ -40,13 +40,15 @@
 
 //defrec begin MeqCompounder
 //  Child 0: defines the grid for interpolation
+//  This child should at least return 2 vellsets. If more than 2 vellstes are
+//  returned, a new request is created using each vellset as axes
 //  Child 1: defines the function for interpolation
 //  This nodes interpolates the result returned by child 1 according
 //  to the gride defined by child 0.
 //
 //field: mode
-//  mode 1 (sequential): passes the original requser to child 0, recreates a requset for child 1 according to the result returned by child 0.
-//  mode 2 (parallel): passes the same requset to both children (not yet implemented)
+//  mode 1 (sequential): passes the original request to child 0, recreates a requset for child 1 according to the result returned by child 0.
+//  mode 2 (parallel): passes the same request to both children (not yet implemented)
 //  mode 3 (simple): only handle 2D results in Time,Freq
 //field: common_axes []
 //  a vector which gives the axes returned by the grid child that is given to the function. Axes names can be characters like 'L','M' etc
@@ -137,6 +139,10 @@ private:
 
 	//build axes from the grid child result
 	int build_axes_(Result::Ref &childres, int ntime, int nfreq);
+  
+  //build axes vector from child result, no map created, no sorting, no handling
+  // of perturbed values
+  int build_axes_simple_(Result::Ref &childres);
 
 	//apply the grid to the funklet, for the main value, put spid=0
 	template<class T> int apply_grid_map_2d4d( blitz::Array<T,2> A, blitz::Array<T,4> B, int spid);
