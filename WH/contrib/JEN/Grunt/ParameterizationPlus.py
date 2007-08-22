@@ -53,6 +53,7 @@ from Timba.Meq import meq
 
 import Meow
 
+from Timba.Contrib.JEN.Grunt import OptionManager
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display
@@ -117,16 +118,19 @@ class ParameterizationPlus (Meow.Parameterization):
                                        kwquals=kwquals)
 
         # TDL Options:
-        self.tdloption_namespace = namespace    
-        self._TDLCompileOptionsMenu = None   
-        self._TDLCompileOption = dict()
-        self.tdloption_reset = dict()
-        for key in self.tdloption_reset.keys():
-            setattr(self, key, self.tdloption_reset[key])
+        # self.tdloption_namespace = namespace    
+        # self._TDLCompileOptionsMenu = None   
+        # self._TDLCompileOption = dict()
+        # self.tdloption_reset = dict()
+        # for key in self.tdloption_reset.keys():
+        #     setattr(self, key, self.tdloption_reset[key])
+
+        # Options management:
+        self._om = OptionManager.OptionManager(name=self.name,
+                                               namespace=namespace)
 
         # The pgm has the qualified ns, and the same namespace.....
-        self._pgm = ParmGroupManager.ParmGroupManager(self.ns,
-                                                      parent=self.name,
+        self._pgm = ParmGroupManager.ParmGroupManager(self.ns, self.name,
                                                       namespace=namespace)
                                                       
         # Optional: Copy the parameterization of another object:
@@ -180,57 +184,41 @@ class ParameterizationPlus (Meow.Parameterization):
         return ss
 
 
-    def p_display(self, txt=None, full=False, recurse=3):
+    def p_display(self, txt=None, full=False, level=0, recurse=3, om=True, pgm=True):
         """Print a summary of this object"""
-        print ' '
-        print '** '+self.p_oneliner()
-        if txt: print '  * (txt='+str(txt)+')'
-        #...............................................................
-        print '  * TDLCompileOptionsMenu: '+str(self._TDLCompileOptionsMenu)
-        for key in self._TDLCompileOption.keys():
-            oo = self._TDLCompileOption[key]
-            noexist = -1.23456789
-            if getattr(oo, 'value', noexist)==noexist:
-                print '    - '+str(key)+': '+str(self._TDLCompileOption[key])
-            else:
-                tdlvalue = self._TDLCompileOption[key].value
-                selfvalue = getattr(self, key, noexist)
-                if tdlvalue==selfvalue:
-                    print '    - '+str(key)+' = '+str(tdlvalue)
-                else:
-                    print '    - '+str(key)+' = '+str(tdlvalue)+' != '+str(selfvalue)
-        #..............................................................
-        print '  * options (default, reset): '+str(self.tdloption_reset)
-        if isinstance(self.tdloption_reset,dict):
-            rr = dict()
-            for key in self.tdloption_reset:
-                value = getattr(self, key)
-                if not value==self.tdloption_reset[key]:
-                    rr[key] = value
-            print '  * options (actual, if different from default): '+str(rr)
+        prefix = '  '+(level*'  ')+'p+'
+        if level==0: print
+        print prefix,' '
+        print prefix,'** '+self.p_oneliner()
+        if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
         if self._parmdefs:
-            print '  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
+            print prefix,'  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
             if full:
                 for key in self._parmdefs:
                     rr = list(deepcopy(self._parmdefs[key]))
                     rr[0] = str(rr[0])
-                    print '    - ('+key+'): '+str(rr)
-            print '  * Meow.Parm options (in _parmdefs):'
+                    print prefix,'    - ('+key+'): '+str(rr)
+            print prefix,'  * Meow.Parm options (in _parmdefs):'
             if full:
                 for key in self._parmdefs:
                     value = self._parmdefs[key][0]
                     if isinstance(value, Meow.Parm):
-                        print '    - ('+key+'): (='+str(value.value)+') '+str(value.options)
-            print '  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
+                        print prefix,'    - ('+key+'): (='+str(value.value)+') '+str(value.options)
+            print prefix,'  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
             if full:
                 for key in self._parmnodes:
                     rr = self._parmnodes[key]
-                    print '    - ('+key+'): '+str(rr)
+                    print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
-        self._pgm.display(self.oneliner(), full=full)
+        print prefix,'  * '+self._om.oneliner()
+        if om: self._om.display(full=False, level=level+1)
         #...............................................................
-        print '**\n'
+        print prefix,'  * '+self._pgm.oneliner()
+        if pgm: self._pgm.display(self.p_oneliner(), full=full, level=level+1)
+        #...............................................................
+        print prefix,'**'
+        if level==0: print
         return True
 
 
@@ -238,118 +226,32 @@ class ParameterizationPlus (Meow.Parameterization):
     # TDLOptions:
     #===================================================================
 
-    def TDLCompileOptionsMenu (self, show=True, reset=True, solving=True):
-        """Generic function for interaction with its TDLCompileOptions menu.
-        The latter is created (once), by calling the specific function(s)
-        .TDLCompileOptions(), which should be re-implemented by derived classes.
-        The 'show' argument may be used to show or hide the menu. This can be done
-        repeatedly, without duplicating the menu.
-        """
+    if False:
+        def make_TDLCompileOptionMenu (self, **kwargs):
+            """Return the TDLMenu of compile-time options. Create it if necessary.
+            NB: Every module that has an OptionManager, or objects that have one,
+            should implement a function with this name.
+            This function is usually called before _define_forest()."""
+            return self._om.make_TDLCompileOptionMenu (**kwargs)
 
-        # print '\n**',self.oneliner(),self._TDLCompileOptionsMenu,'\n'
-        
-        # if not self._TDLCompileOptionsMenu:        # create the menu only once
-        if True and not self._TDLCompileOptionsMenu:
+        def make_TDLRuntimeOptionMenu (self, **kwargs):
+            """Return the TDLMenu of run-time options. Create it if necessary.
+            NB: Every module that has an OptionManager, or objects that have one,
+            should implement a function with this name.
+            This function is usually called at the end of _define_forest()."""
+            return self._om.make_TDLRuntimeOptionMenu (**kwargs)
 
-            oolist = self.TDLCompileOptions()
-            oolist.extend(self._pgm.TDLCompileOptions(reset=False,
-                                                      solving=solving))
-            if reset:
-                key = '_reset'
-                if not self._TDLCompileOption.has_key(key):
-                    doc = """If True, reset all options to their original default values.
-                    (presumably these are sensible values, supplied by the module designer.)
-                    This is done recursively for all menus below this one."""
-                    prompt = self.name+':  reset to original defaults'
-                    self._TDLCompileOption[key] = TDLOption(key, prompt, [False, True],
-                                                            doc=doc, namespace=self)
-                    self._TDLCompileOption[key].when_changed(self._callback_reset)
-                oolist.append(self._TDLCompileOption[key])
 
-            prompt = self.namespace(prepend='options for '+self._frameclass+':  '+self.name)
-            self._TDLCompileOptionsMenu = TDLCompileMenu(prompt, *oolist)
-
-        else:
-            print '\n** menu not recreated:',self.oneliner(),'\n'
-
-        # Show/hide the menu as required (can be done repeatedly):
-        self._TDLCompileOptionsMenu.show(show)
-        return self._TDLCompileOptionsMenu
-
-    #..................................................................
-
-    def TDLCompileOptions (self):
-        """Define a list of TDL options that control the structure of the
-        Jones matrix.
-        This function should be re-implemented by derived classes."""
-        oolist = []
-
-        # NB: Each call to TDLOption(key,...) (re)creates a local variable self.<key>,
-        #     which is used internally. If the module is to be used without TDLOptions,
-        #     these variables should be created by the constructor, and given the
-        #     ('design') values specified by constructor arguments.
-        #     These original values should also be kept in self.tdloption_reset[key],
-        #     to be used for resetting the option values to a known state. In the
-        #     future this original value should be held by the TDLOption object,
-        #     to be used with its function .reset(). For the moment, we will do it
-        #     externally, via self.tdloption_reset.
-
-        if False:                    # temporary, just for testing and example
-            key = 'xxx'
-            doc = 'explanation for xxx....'
-            opt = range(3)
-            if not self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key] = TDLOption(key, 'prompt_xxx', opt, more=int,
-                                                        doc=doc, namespace=self)
-                self.tdloption_reset[key] = opt[0]           # .... temporary .....
-            oolist.append(self._TDLCompileOption[key])
-
-        # Finished: Return a list of options:
-        return oolist
-
-    #---------------------------------------------------------------------
-
-    def _callback_reset(self, reset):
-        """Function called whenever TDLOption _reset changes."""
-        if reset and self._TDLCompileOptionsMenu:
-            self.reset_options(trace=True)
-            self._TDLCompileOption['_reset'].set_value(False, callback=False,
-                                                       save=True)
-        return True
-
-    #.....................................................................
-
-    def reset_options(self, trace=False):
-        """Helper function to reset the TDLCompileOptions and their local
-        counterparts to the original default values (in self.tdloption_reset). 
-        """
-        trace = True
-        if trace:
-            print '\n** _reset_options(): ',self.oneliner()
-        print  '** self.tdloption_reset =',self.tdloption_reset
-        for key in self.tdloption_reset.keys():
-            was = getattr(self,key)
-            new = self.tdloption_reset[key]
-            setattr(self, key, new)
-            if self._TDLCompileOption.has_key(key):
-                self._TDLCompileOption[key].set_value(new, save=True)
-                new = self._TDLCompileOption[key].value
-                if trace:
-                    print ' -',key,':',was,' -> ',getattr(self,key),
-                    if not new==getattr(self,key):
-                        print '** TDLOption =',new,'!?',
-            else:
-                if trace: print ' -',key,':',was,' -> ',getattr(self,key),
-            if trace:
-                if not new==was: print '           ** changed **',
-                print
-        if trace: print
-
-        # Reset the pgm options also:
-        if self._pgm:
-            self._pgm.reset_options(trace=trace)
-        return True
-        
+    def make_TDLCompileOptionMenu (self, **kwargs):
+        """Make the TDLMenu of compile-time options"""
+        oolist = [self._pgm.make_TDLCompileOptionMenu(reset=False)]        
+        return self._om.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
+    
+    def make_TDLRuntimeOptionMenu (self, **kwargs):
+        """Make the TDLMenu of runtime-time options"""
+        oolist = [self._pgm.make_TDLRuntimeOptionMenu(reset=False)]        
+        return self._om.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
+    
 
 
     #===============================================================
@@ -398,12 +300,14 @@ class ParameterizationPlus (Meow.Parameterization):
 #=============================================================================
 
 
-if 0:
+if 1:
     pp1 = ParameterizationPlus(name='GJones', quals='3c84')
-    pp1._pgm.group_define('Gphase', tiling=3, mode='nosolve')
-    pp1._pgm.group_define('Ggain', default=1.0, freq_deg=2)
-    pp1._pgm.TDLCompileOptionsMenu()
     pp1._pgm.display('initial')
+    if 0:
+        pp1._pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
+        pp1._pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
+    pp1._pgm.make_TDLCompileOptionMenu()
+    pp1._pgm.display('TDL')
 
 
 
@@ -414,6 +318,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
+    pp1._pgm.make_TDLRuntimeOptionMenu()
     return True
 
 
@@ -450,12 +355,17 @@ if __name__ == '__main__':
         pp1 = ParameterizationPlus(ns, name='GJones',
                                    # kwquals=dict(tel='WSRT', band='21cm'),
                                    quals='3c84')
+        pp1.make_TDLCompileOptionMenu()
+        pp1.make_TDLRuntimeOptionMenu()
+        pp1.p_display('initial', full=True)
+
+    if 0:
         pp1._pgm.group_define('Gphase', tiling=3, mode='nosolve')
         pp1._pgm.group_define('Ggain', default=1.0, freq_deg=2)
-        pp1.TDLCompileOptionsMenu()
-        pp1._pgm.display('initial')
+        # pp1.make_TDLCompileOptionMenu()
+        pp1._pgm.display('pgm')
 
-    if 1:
+    if 0:
         e0 = Expression.Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=False)
         e0.display()
         if 0:

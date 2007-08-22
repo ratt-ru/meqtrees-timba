@@ -148,7 +148,8 @@ class ParmGroupManager (Meow.Parameterization):
 
     def display(self, txt=None, full=False, recurse=3, om=True, pg=False, level=0):
         """Print a summary of this object"""
-        prefix = '  '+(level*'  ')+'|'
+        prefix = '  '+(level*'  ')+'pgm'
+        if level==0: print
         print prefix,' '
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
@@ -202,7 +203,8 @@ class ParmGroupManager (Meow.Parameterization):
         #...............................................................
         if pg: self.pg_display(om=om, level=level+1)
         #...............................................................
-        print prefix,'**\n'
+        print prefix,'**'
+        if level==0: print
         return True
 
     #---------------------------------------------------------------
@@ -325,18 +327,20 @@ class ParmGroupManager (Meow.Parameterization):
     #===================================================================
 
     def make_TDLCompileOptionMenu (self, **kwargs):
-        """Make the TDL menu of Compile-time options"""
+        """Make the TDLMenu of compile-time options"""
         oolist = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
-            oolist.append(pg.make_TDLCompileOptionMenu(reset=False))
-
-        # ShowActive is NOT a good idea, since the menu is made before
-        # any ParmGroup members are defined, i.e. before the groups are active.
-        # So they will all be hidden....
-        ## self.TDLShowActive()
-        
+            oolist.append(pg.make_TDLCompileOptionMenu(reset=False))        
         return self._om.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
+    
+    def make_TDLRuntimeOptionMenu (self, **kwargs):
+        """Make the TDLMenu of runtime-time options"""
+        oolist = []
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            oolist.append(pg.make_TDLRuntimeOptionMenu(reset=False))        
+        return self._om.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
     
     #.........................................................................
 
@@ -356,9 +360,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     def _callback_tobesolved (self, tobs):
         """Called whenever option 'tobesolved' is changed"""
-        print '\n** _callback_tobesolved(',tobs,'):'
         keys = self.find_parmgroups(tobs, severe=True)
-        print '----- keys =',keys
         # Set the mode of selected groups (is this the desired behaviour...?)
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
@@ -954,6 +956,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
+    pgm.make_TDLRuntimeOptionMenu()
     return True
 
 

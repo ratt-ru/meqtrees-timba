@@ -226,7 +226,8 @@ class ParmGroup (Meow.Parameterization):
 
     def display(self, txt=None, full=False, recurse=3, om=True, level=0):
         """Print a summary of this object"""
-        prefix = '  '+(level*'  ')+'||'
+        prefix = '  '+(level*'  ')+'pg'
+        if level==0: print
         print prefix,' '
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
@@ -271,7 +272,8 @@ class ParmGroup (Meow.Parameterization):
         print prefix,'  * '+self._om.oneliner()
         if om: self._om.display(full=False, level=level+1)
         #...............................................................
-        print prefix,'**\n'
+        print prefix,'**'
+        if level==0: print
         return True
 
 
@@ -864,7 +866,7 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+if 0:
     pg = ParmGroup (name='test', tiling=3, mode='solve',
                     namespace='ParmGroupNamespace')
     pg.display()
@@ -902,6 +904,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
+    pg.make_TDLRuntimeOptionMenu()
     return True
 
 

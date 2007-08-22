@@ -58,7 +58,7 @@ class Joneset22 (Matrixet22.Matrixet22):
     Derived from the class Matrixet22."""
 
     def __init__(self, ns=None, name='<j>',
-                 quals=[], kwquals={},
+                 quals=[], kwquals={},                         # <---- ??
                  namespace=None,                               # <---- !!
                  descr='<descr>',
                  stations=None,
@@ -80,7 +80,6 @@ class Joneset22 (Matrixet22.Matrixet22):
 
         # Add some qualifiers, if necessary:
         quals = self.quals2list(quals)
-        ## if self._mode=='simulate': quals.append('simul')      # NOT a good idea...
         if self._telescope: quals.append(self._telescope)
         if self._band: quals.append(self._band)
 
@@ -100,11 +99,10 @@ class Joneset22 (Matrixet22.Matrixet22):
         # self._matrix_elements['size'] = [10,10,10,10]
         # self._matrix_elements['pen'] = [2,2,2,2])
 
-        # The parmgroup definitions are carried in a dict:
-        # (if self._pg==None, .define_parmgroups will be called)
+        # The control dict self._pg is defined in .define_parmgroups()
+        # If self._pg==None, .define_parmgroups will be called by .__call__()
         self._pg = None
-
-        self.define_parmgroups()
+        # self.define_parmgroups()                   # ...for testing only...
 
         # Finished:
         return None
@@ -171,7 +169,7 @@ class Joneset22 (Matrixet22.Matrixet22):
         return ss
 
 
-    def display_specific(self, full=False):
+    def display_specific(self, full=False, level=0):
         """Print the specific part of the summary of this object"""
         print '   - stations ('+str(len(self.stations()))+'): '+str(self.stations())
         if isinstance(self._pg, dict):
@@ -762,18 +760,18 @@ def Joneseq22 (ns, joneslist=None, quals=None):
 
 if 0:
     jones = Joneset22(quals=[], mode='simulate')
-    jones.TDLCompileOptionsMenu()
+    jones.make_TDLCompileOptionMenu()
     jones.make_jones_matrices()
     jones.display()
     
-if 0:
+if 1:
     mode = 'simulate'
     jones = GJones(quals=[], mode=mode)
     # jones = BJones(ns, quals=[], mode=mode)
     # jones = FJones(ns, quals=['L'], mode=mode, polrep='linear')
     # jones = FJones(ns, quals=['C'], mode=mode, polrep='circular')
     # jones = JJones(ns, quals=[], mode=mode)
-    jones.TDLCompileOptionsMenu(solving=True)
+    jones.make_TDLCompileOptionMenu(solving=True)
     jones.display()
     
 
@@ -803,7 +801,9 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
+    jones.make_TDLRuntimeOptionMenu()
     return True
+
 
 #---------------------------------------------------------------
 
@@ -831,7 +831,7 @@ if __name__ == '__main__':
         jones.make_jones_matrices()
         jj.append(jones)
         # jones.visualize()
-        jones.TDLCompileOptionsMenu()
+        jones.make_TDLCompileOptionMenu()
         jones.display(full=True, recurse=10)
 
     if 0:
@@ -840,18 +840,18 @@ if __name__ == '__main__':
         j22 = jones([2])
         j22 = jones(5)
 
-    if 1:
+    if 0:
         jones = BJones(ns, quals=['3c84'], mode='nosolve', telescope='WSRT', band='21cm')
         jj.append(jones)
         # jones.visualize()
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jones = JJones(ns, quals=['3c84'], diagonal=True, mode='simulate')
         jj.append(jones)
         jones.display(full=True)
 
-    if 1:
+    if 0:
         jones = FJones(ns, polrep='linear',mode='simulate' )
         # jones = FJones(ns, polrep='circular', quals='3c89', mode='simulate')
         jj.append(jones)

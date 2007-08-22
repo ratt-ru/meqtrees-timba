@@ -57,7 +57,7 @@ class JonesSequence22 (Joneset22.Joneset22):
                  mode='solve'):
 
         # Mode can be solve, nosolve, simulate:
-        self._mode = mode
+        self._mode = mode                                   # ........??
 
         # Initialise its Matrixet22 object:
         Joneset22.Joneset22.__init__(self, ns=ns, name=name,
@@ -69,6 +69,7 @@ class JonesSequence22 (Joneset22.Joneset22):
         self._jorder = []              # order in which they are added
         self._locked = False           # blocks further jones addition
         self._selseq = []              # selected jones sequence
+
         self._jseq_options = [None]    # used in TDLOption
 
         # Finished:
@@ -279,7 +280,7 @@ if 1:
     jseq.add_jones(Joneset22.BJones(mode=mode))
     # jseq.add_jones(Joneset22.FJones(mode=mode))
     # jseq.add_jones(Joneset22.JJones(mode=mode))
-    jseq.TDLCompileOptionsMenu(reset=True, solving=True)
+    jseq.make_TDLCompileOptionsMenu(solving=True)
     jseq.display('initial')
 
 
@@ -295,6 +296,7 @@ def _define_forest(ns):
     jseq.display('final')
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
+    jseq.make_TDLRuntimeOptionsMenu()
     return True
 
 
@@ -347,7 +349,7 @@ if __name__ == '__main__':
     #...............................................................
 
     if 0:
-        jseq.TDLCompileOptionsMenu()
+        jseq.make_TDLCompileOptionsMenu()
         jseq.make_jones_matrices(ns('3c844')('repeel'), trace=True)
 
     if 1:
