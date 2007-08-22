@@ -109,6 +109,8 @@ private:
   int             res_depmask_;
   vector<HIID>    seq_symdeps_;
   int             seq_depmask_;
+  vector<HIID>    dom_symdeps_;
+  int             dom_depmask_;
   
   // if =0, res depmask is incremented
   // if !=0, res depmask is assigned with this index directly

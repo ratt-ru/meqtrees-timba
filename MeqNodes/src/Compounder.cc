@@ -114,6 +114,10 @@ namespace Meq {
     rec[FResolutionSymdeps].get_vector(res_symdeps_,initializing);
     // get resolution index
     rec[FResolutionId].get(res_index_,initializing);
+    res_depmask_ = symdeps().getMask(res_symdeps_);
+    seq_depmask_ = symdeps().getMask(seq_symdeps_);
+    dom_depmask_ = symdeps().getMask(dom_symdeps_);
+
 
     //temporary backup
     std::vector<HIID> tmp=comm_axes_;
@@ -143,6 +147,10 @@ namespace Meq {
   {
     res_depmask_ = symdeps().getMask(res_symdeps_);
     seq_depmask_ = symdeps().getMask(seq_symdeps_);
+    dom_depmask_ = symdeps().getMask(dom_symdeps_);
+
+    int nodeidx=nodeIndex();
+
 
     //handle parm update the default way 
     if( request.requestType() ==RequestType::PARM_UPDATE )
@@ -212,7 +220,8 @@ namespace Meq {
       RequestId rqid=request.id();
       RqId::incrSubId(rqid,seq_depmask_);
       //set resolution sub id to node index of this node
-      RqId::setSubId(rqid,res_depmask_,nodeIndex());
+      RqId::setSubId(rqid,res_depmask_,nodeidx);
+      RqId::setSubId(rqid,dom_depmask_,nodeidx+1);
       newreq().setId(rqid);
 
 
@@ -294,7 +303,8 @@ namespace Meq {
       //increment request sub id
       RequestId rqid=request.id();
       RqId::incrSubId(rqid,seq_depmask_);
-      RqId::setSubId(rqid,res_depmask_,nodeIndex());
+      RqId::setSubId(rqid,res_depmask_,nodeidx);
+      RqId::setSubId(rqid,dom_depmask_,nodeidx+1);
       newreq().setId(rqid);
 #ifdef DEBUG
     cout<<"********************* Req Id "<<rqid<<endl;
@@ -423,7 +433,8 @@ namespace Meq {
     //increment request sub id
     RequestId rqid=request.id();
     RqId::incrSubId(rqid,seq_depmask_);
-    RqId::setSubId(rqid,res_depmask_,nodeIndex());
+    RqId::setSubId(rqid,res_depmask_,nodeidx);
+    RqId::setSubId(rqid,dom_depmask_,nodeidx+1);
     newreq().setId(rqid);
 #ifdef DEBUG
     cout<<"********************* Req Id "<<rqid<<endl;
