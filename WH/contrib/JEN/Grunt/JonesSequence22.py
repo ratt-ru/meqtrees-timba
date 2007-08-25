@@ -122,7 +122,7 @@ class JonesSequence22 (Joneset22.Joneset22):
         self._jones[jchar] = jones 
         self._jorder.append(jchar)
         self._jseq_options.append(jchar)
-        self._pgm.merge(jones)                          # parmgroups
+        self._PGM.merge(jones)                          # parmgroups
 
         jjchar = ''
         for k,jchar in enumerate(self._jorder):
@@ -194,7 +194,7 @@ class JonesSequence22 (Joneset22.Joneset22):
 
         # Show/hide TDLOptions according to the selected jseq:
         for jchar in self._jorder:
-            self._jones[jchar]._pgm.hide(not jchar in jj) 
+            self._jones[jchar]._PGM.hide(not jchar in jj) 
         return True
 
 
@@ -241,7 +241,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             jones.nodescope(self.ns)                        # ....!
             snode = jones(station)
             self._matrixet = jones._matrixet 
-            # self._pgm.merge(jones)                          # parmgroups
+            # self._PGM.merge(jones)                          # parmgroups
             return snode
 
         # Multiply two or more Jones matrices:
@@ -254,7 +254,7 @@ class JonesSequence22 (Joneset22.Joneset22):
             jones = self._jones[j]
             jones.nodescope(self.ns)                        # ....!
             cc.append(jones(station))
-            # self._pgm.merge(jones)                          # parmgroups
+            # self._PGM.merge(jones)                          # parmgroups
         qnode(station) << Meq.MatrixMultiply(*cc)
         self._matrixet = qnode
         return qnode(station)

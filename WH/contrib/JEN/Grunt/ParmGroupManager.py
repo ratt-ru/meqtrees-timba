@@ -78,7 +78,7 @@ class ParmGroupManager (Meow.Parameterization):
         self._accumulist = dict()
 
         # Options management:
-        self._om = OptionManager.OptionManager(name=self.name,
+        self._OM = OptionManager.OptionManager(name=self.name,
                                                namespace=namespace)
         self.define_options(tobesolved=tobesolved)
 
@@ -100,7 +100,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     def active_groups (self, new=None):
         """Get/set the list of (names of) 'active' parmgroups.
-        Reimplementation of the quare-brackets call: pg = pgm[key]"""
+        Reimplementation of the quare-brackets call: pg = PGM[key]"""
         active = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
@@ -146,9 +146,9 @@ class ParmGroupManager (Meow.Parameterization):
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3, om=True, pg=False, level=0):
+    def display(self, txt=None, full=False, recurse=3, OM=True, pg=False, level=0):
         """Print a summary of this object"""
-        prefix = '  '+(level*'  ')+'pgm'
+        prefix = '  '+(level*'  ')+'PGM'
         if level==0: print
         print prefix,' '
         print prefix,'** '+self.oneliner()
@@ -166,7 +166,7 @@ class ParmGroupManager (Meow.Parameterization):
         for key in self._parmgroups:
             pg = self._parmgroups[key]
             if pg.mode()=='simulate':
-                print prefix,'    - ('+key+'): '+pg._om['simuldev']
+                print prefix,'    - ('+key+'): '+pg._OM['simuldev']
         #...............................................................
         print prefix,'  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.gogs():
@@ -198,10 +198,10 @@ class ParmGroupManager (Meow.Parameterization):
                     rr = self._parmnodes[key]
                     print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
-        print prefix,'  * '+self._om.oneliner()
-        if om: self._om.display(full=False, level=level+1)
+        print prefix,'  * '+self._OM.oneliner()
+        if OM: self._OM.display(full=False, level=level+1)
         #...............................................................
-        if pg: self.pg_display(om=om, level=level+1)
+        if pg: self.pg_display(OM=OM, level=level+1)
         #...............................................................
         print prefix,'**'
         if level==0: print
@@ -209,10 +209,10 @@ class ParmGroupManager (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
-    def pg_display(self, full=False, om=False, level=0):
+    def pg_display(self, full=False, OM=False, level=0):
         """Display summaries of its parmgroups"""
         for key in self._parmgroups.keys():
-            self._parmgroups[key].display(full=full, om=om, level=level)
+            self._parmgroups[key].display(full=full, OM=OM, level=level)
         return True
 
 
@@ -300,7 +300,7 @@ class ParmGroupManager (Meow.Parameterization):
         opt.extend(self._parmgogs.keys())
         # opt.extend(self.active_groups())
         if not None in opt: opt.append(None)
-        self._om.modify ('tobesolved', opt=opt)
+        self._OM.modify ('tobesolved', opt=opt)
 
         return key
 
@@ -332,7 +332,7 @@ class ParmGroupManager (Meow.Parameterization):
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
             oolist.append(pg.make_TDLCompileOptionMenu(reset=False))        
-        return self._om.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
+        return self._OM.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
     
     def make_TDLRuntimeOptionMenu (self, **kwargs):
         """Make the TDLMenu of runtime-time options"""
@@ -340,7 +340,7 @@ class ParmGroupManager (Meow.Parameterization):
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
             oolist.append(pg.make_TDLRuntimeOptionMenu(reset=False))        
-        return self._om.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
+        return self._OM.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
     
     #.........................................................................
 
@@ -348,8 +348,8 @@ class ParmGroupManager (Meow.Parameterization):
         """Define the various options in its OptionManager object"""
         key = 'tobesolved'
         doc = 'the selected groups will be solved simultaneously'
-        self._om.define(key, tobesolved,
-                        prompt='pgm: solve for parmgroup(s)/parmgog(s)',
+        self._OM.define(key, tobesolved,
+                        prompt='PGM: solve for parmgroup(s)/parmgog(s)',
                         callback=self._callback_tobesolved,
                         opt=[None], more=str, doc=doc)
         # NB: The option-list of 'tobesolved' is updated after each
@@ -366,9 +366,9 @@ class ParmGroupManager (Meow.Parameterization):
             pg = self._parmgroups[key]
             if pg.active():
                 if key in keys:
-                    pg._om.set_value('mode', 'solve')
+                    pg._OM.set_value('mode', 'solve')
                 else:
-                    pg._om.set_value('mode', 'nosolve')
+                    pg._OM.set_value('mode', 'nosolve')
         return True
 
     #.........................................................................
@@ -380,13 +380,13 @@ class ParmGroupManager (Meow.Parameterization):
         # First show/hide the parmgroups:
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
-            pg._om.show(pg.active())
+            pg._OM.show(pg.active())
                 
         # Then update the option list of option 'tobesolved':
         self._make_gogs()
         key = 'tobesolved'
-        if self._om.TDLOption(key):
-            oo = self._om.TDLOption(key)
+        if self._OM.TDLOption(key):
+            oo = self._OM.TDLOption(key)
             value = oo.value
             newopt = [None]
             newopt.extend(self._parmgogs.keys())
@@ -411,10 +411,10 @@ class ParmGroupManager (Meow.Parameterization):
         counterparts to the original default values (in self.tdloption_reset).
         Recursive: It calls the same function for its parmgroups.
         """
-        self._om.reset_options(trace=trace)
+        self._OM.reset_options(trace=trace)
         # Recursive:
         for key in self._parmgroups:
-            self._parmgroups[key]._om.reset_options(trace=trace)
+            self._parmgroups[key]._OM.reset_options(trace=trace)
         return True
         
 
@@ -436,7 +436,7 @@ class ParmGroupManager (Meow.Parameterization):
         If not, it will copy the parmdefs, but not any parmgroups."""
         
         if trace:
-            self.display('before pgm.merge()', full=True)
+            self.display('before PGM.merge()', full=True)
             ff = getattr(other, 'display', None)
             if ff: other.display('other', full=True)
 
@@ -446,16 +446,16 @@ class ParmGroupManager (Meow.Parameterization):
 
 
         # Check whether the other object has a Grunt.ParmGroupManager
-        pgm = getattr(other, '_pgm', None)
-        print '\n** pgm =',type(pgm), isinstance(pgm, ParmGroupManager),'\n'
-        if isinstance(pgm, ParmGroupManager):
+        PGM = getattr(other, '_PGM', None)
+        print '\n** PGM =',type(PGM), isinstance(PGM, ParmGroupManager),'\n'
+        if isinstance(PGM, ParmGroupManager):
             # The other object DOES have a Grunt.ParmGroupManager
             self._pmerged.append(other)               # Avoid duplicate merging....
             
             # Copy its ParmGroup(s) (objects):
             # NB: Avoid duplicate parmgroups (solvable and simulated versions
             # of the same Joneset should be compared, rather than merged!).
-            pgs = pgm._parmgroups
+            pgs = PGM._parmgroups
             for key in pgs:
                 if not pgs[key].active():
                     print '** skipping inactive parmgroup:',key
@@ -499,7 +499,7 @@ class ParmGroupManager (Meow.Parameterization):
             pass
 
         if trace:
-            self.display('after pgm.merge()', full=True)
+            self.display('after PGM.merge()', full=True)
         return True
 
 
@@ -914,49 +914,49 @@ class ParmGroupManager (Meow.Parameterization):
 
 
 if 1:
-    pgm = ParmGroupManager(name='GJones',
+    PGM = ParmGroupManager(name='GJones',
                            namespace='ParmGroupManagerNamespace')
-    pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
-    pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
-    pgm.make_TDLCompileOptionMenu()
-    pgm.display('initial')
+    PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')
+    PGM.define_parmgroup('Ggain', default=1.0, freq_deg=2)
+    PGM.make_TDLCompileOptionMenu()
+    PGM.display('initial')
 
 
 
 def _define_forest(ns):
 
     cc = []
-    pgm.nodescope(ns)
+    PGM.nodescope(ns)
 
     if 1:
-        pgm['Gphase'].create_member(1)
-        pgm['Gphase'].create_member(2.1, value=(ns << -89))
-        pgm['Gphase'].create_member(2, value=34)
-        pgm['Gphase'].create_member(3, tiling=5, mode='simulate')
-        pgm['Gphase'].create_member(7, freq_deg=2)
+        PGM['Gphase'].create_member(1)
+        PGM['Gphase'].create_member(2.1, value=(ns << -89))
+        PGM['Gphase'].create_member(2, value=34)
+        PGM['Gphase'].create_member(3, tiling=5, mode='simulate')
+        PGM['Gphase'].create_member(7, freq_deg=2)
 
     if 1:
-        pgm['Ggain'].create_member(7, freq_deg=6)
-        pgm['Ggain'].create_member(4, time_deg=3)
+        PGM['Ggain'].create_member(7, freq_deg=6)
+        PGM['Ggain'].create_member(4, time_deg=3)
 
     if 0:
-        cc.append(pgm.bundle(show=True))
-        cc.append(pgm.plot_timetracks())
-        cc.append(pgm.plot_spectra())
+        cc.append(PGM.bundle(show=True))
+        cc.append(PGM.plot_timetracks())
+        cc.append(PGM.plot_spectra())
 
     if 0:
-        nn = pgm.solvable(groups='GJones', return_NodeList=True)
+        nn = PGM.solvable(groups='GJones', return_NodeList=True)
         nn.display('solvable')
         nn.bookpage(select=4)
         
 
-    pgm.display('final', full=True)
+    PGM.display('final', full=True)
     if 1:
-        pgm.pg_display(full=True)
+        PGM.pg_display(full=True)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    pgm.make_TDLRuntimeOptionMenu()
+    PGM.make_TDLRuntimeOptionMenu()
     return True
 
 
@@ -991,73 +991,73 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgm = ParmGroupManager(ns, 'GJones')
-        pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
-        pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
+        PGM = ParmGroupManager(ns, 'GJones')
+        PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')
+        PGM.define_parmgroup('Ggain', default=1.0, freq_deg=2)
         if 1:
-            pgm.make_TDLCompileOptionMenu()
-        pgm.display('initial')
+            PGM.make_TDLCompileOptionMenu()
+        PGM.display('initial')
 
 
     if 0:
-        print pgm['Gphase'].oneliner()
-        print pgm['Ggain'].oneliner()
+        print PGM['Gphase'].oneliner()
+        print PGM['Ggain'].oneliner()
 
     if 0:
-        pgm['Gphase'].create_member(1)
-        pgm['Gphase'].create_member(2.1, value=(ns << -89))
-        pgm['Gphase'].create_member(2, value=34)
-        pgm['Gphase'].create_member(3, tiling=5, mode='solve')
-        pgm['Gphase'].create_member(7, freq_deg=2)
+        PGM['Gphase'].create_member(1)
+        PGM['Gphase'].create_member(2.1, value=(ns << -89))
+        PGM['Gphase'].create_member(2, value=34)
+        PGM['Gphase'].create_member(3, tiling=5, mode='solve')
+        PGM['Gphase'].create_member(7, freq_deg=2)
 
     if 0:
-        pgm['Ggain'].create_member(7, freq_deg=6)
-        pgm['Ggain'].create_member(4, time_deg=3)
+        PGM['Ggain'].create_member(7, freq_deg=6)
+        PGM['Ggain'].create_member(4, time_deg=3)
 
 
     if 0:
-        pgm.bundle(show=True)
+        PGM.bundle(show=True)
     if 0:
-        pgm.plot_rvsi(show=True)
+        PGM.plot_rvsi(show=True)
     if 0:
-        pgm.plot_spectra(show=True)
+        PGM.plot_spectra(show=True)
     if 0:
-        pgm.plot_timetracks(show=True)
+        PGM.plot_timetracks(show=True)
 
     if 0:
-        pgm.display('final', full=True, om=True)
+        PGM.display('final', full=True, om=True)
 
 
     #------------------------------------------------------------------
 
     if 0:
-        print dir(pgm)
-        print getattr(pgm,'_parmgroup',None)
+        print dir(PGM)
+        print getattr(PGM,'_parmgroup',None)
 
     if 0:
         print 'ns.Search(tags=Gphase):',ns.Search(tags='Gphase')
-        print 'pgm.ns.Search(tags=Gphase):',pgm.ns.Search(tags='Gphase')
+        print 'PGM.ns.Search(tags=Gphase):',PGM.ns.Search(tags='Gphase')
 
     if 0:
-        pgm.solvable()
-        pgm.solvable(groups='Gphase', trace=True)
-        pgm.solvable(groups=['Ggain'], trace=True)
-        pgm.solvable(groups=['GJones'], trace=True)
-        pgm.solvable(groups=['Gphase','Ggain'], trace=True)
-        pgm.solvable(groups=pgm.groups(), trace=True)
-        pgm.solvable(groups=pgm.gogs(), trace=True)
-        # pgm.solvable(groups=['Gphase','xxx'], trace=True)
+        PGM.solvable()
+        PGM.solvable(groups='Gphase', trace=True)
+        PGM.solvable(groups=['Ggain'], trace=True)
+        PGM.solvable(groups=['GJones'], trace=True)
+        PGM.solvable(groups=['Gphase','Ggain'], trace=True)
+        PGM.solvable(groups=PGM.groups(), trace=True)
+        PGM.solvable(groups=PGM.gogs(), trace=True)
+        # PGM.solvable(groups=['Gphase','xxx'], trace=True)
 
     if 0:
-        pgm.solvable(tags='Gphase', trace=True)
-        pgm.solvable(tags=['Gphase','Ggain'], trace=True)
-        pgm.solvable(tags=['Gphase','GJones'], trace=True)
-        pgm.solvable(tags=['Gphase','Dgain'], trace=True)
+        PGM.solvable(tags='Gphase', trace=True)
+        PGM.solvable(tags=['Gphase','Ggain'], trace=True)
+        PGM.solvable(tags=['Gphase','GJones'], trace=True)
+        PGM.solvable(tags=['Gphase','Dgain'], trace=True)
 
     if 0:
         solvable = True
-        pgm.find_nodes(groups='GJones', solvable=solvable, trace=True)
-        pgm.find_nodes(groups=pgm.gogs(), solvable=solvable, trace=True)
+        PGM.find_nodes(groups='GJones', solvable=solvable, trace=True)
+        PGM.find_nodes(groups=PGM.gogs(), solvable=solvable, trace=True)
 
     if 0:
         pp2 = ParmGroupManager(ns, 'DJones')
@@ -1067,10 +1067,10 @@ if __name__ == '__main__':
         pp2.group_create_member('Ddell', 7)
         pp2.display(full=True)
         if 1:
-            pgm.merge(pp2, trace=True)
-            pgm.find_nodes(groups=['GJones','DJones'], solvable=True, trace=True)
-            pgm.find_nodes(groups=['GJones','DJones'], solvable=False, trace=True)
-        pgm.display('after merge', full=True)
+            PGM.merge(pp2, trace=True)
+            PGM.find_nodes(groups=['GJones','DJones'], solvable=True, trace=True)
+            PGM.find_nodes(groups=['GJones','DJones'], solvable=False, trace=True)
+        PGM.display('after merge', full=True)
 
     if 0:
         e0 = Expression.Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=False)
@@ -1079,20 +1079,20 @@ if __name__ == '__main__':
             pp3 = ParmGroupManager(ns, 'e0', merge=e0)
             pp3.display('after merge', full=True)
         if 1:
-            pgm.merge(e0, trace=True)
-            pgm.display('after merge', full=True)
-            pgm.pg_display(full=True)
+            PGM.merge(e0, trace=True)
+            PGM.display('after merge', full=True)
+            PGM.pg_display(full=True)
 
     if 0:
-        pgm.accumulist('aa')
-        pgm.accumulist('2')
-        pgm.accumulist(range(3), flat=True)
-        pgm.accumulist('bb', key='extra')
-        pgm.display(full=True)
-        print '1st time:',pgm.accumulist()
-        print '1st time*:',pgm.accumulist(key='*')
-        print '2nd time:',pgm.accumulist(clear=True)
-        print '3rd time:',pgm.accumulist()
+        PGM.accumulist('aa')
+        PGM.accumulist('2')
+        PGM.accumulist(range(3), flat=True)
+        PGM.accumulist('bb', key='extra')
+        PGM.display(full=True)
+        print '1st time:',PGM.accumulist()
+        print '1st time*:',PGM.accumulist(key='*')
+        print '2nd time:',PGM.accumulist(clear=True)
+        print '3rd time:',PGM.accumulist()
 
 
 #===============================================================

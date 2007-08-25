@@ -117,25 +117,17 @@ class ParameterizationPlus (Meow.Parameterization):
                                        quals=quals,
                                        kwquals=kwquals)
 
-        # TDL Options:
-        # self.tdloption_namespace = namespace    
-        # self._TDLCompileOptionsMenu = None   
-        # self._TDLCompileOption = dict()
-        # self.tdloption_reset = dict()
-        # for key in self.tdloption_reset.keys():
-        #     setattr(self, key, self.tdloption_reset[key])
-
-        # Options management:
-        self._om = OptionManager.OptionManager(name=self.name,
+        # Option management:
+        self._OM = OptionManager.OptionManager(name=self.name,
                                                namespace=namespace)
 
-        # The pgm has the qualified ns, and the same namespace.....
-        self._pgm = ParmGroupManager.ParmGroupManager(self.ns, self.name,
+        # The PGM has the qualified ns, and the same namespace.....
+        self._PGM = ParmGroupManager.ParmGroupManager(self.ns, self.name,
                                                       namespace=namespace)
                                                       
         # Optional: Copy the parameterization of another object:
         if merge:
-            self._pgm.merge(merge, trace=False)
+            self._PGM.merge(merge, trace=False)
         
         return None
 
@@ -151,7 +143,7 @@ class ParameterizationPlus (Meow.Parameterization):
             else:
                 self.ns = ns
             # Pass the new nodescope on to its parmgroup(s):
-            self._pgm.nodescope(self.ns)
+            self._PGM.nodescope(self.ns)
         # Always return the current nodescope:
         return self.ns
 
@@ -184,7 +176,7 @@ class ParameterizationPlus (Meow.Parameterization):
         return ss
 
 
-    def p_display(self, txt=None, full=False, level=0, recurse=3, om=True, pgm=True):
+    def p_display(self, txt=None, full=False, level=0, recurse=3, OM=True, PGM=True):
         """Print a summary of this object"""
         prefix = '  '+(level*'  ')+'p+'
         if level==0: print
@@ -211,11 +203,11 @@ class ParameterizationPlus (Meow.Parameterization):
                     rr = self._parmnodes[key]
                     print prefix,'    - ('+key+'): '+str(rr)
         #...............................................................
-        print prefix,'  * '+self._om.oneliner()
-        if om: self._om.display(full=False, level=level+1)
+        print prefix,'  * '+self._OM.oneliner()
+        if OM: self._OM.display(full=False, level=level+1)
         #...............................................................
-        print prefix,'  * '+self._pgm.oneliner()
-        if pgm: self._pgm.display(self.p_oneliner(), full=full, level=level+1)
+        print prefix,'  * '+self._PGM.oneliner()
+        if PGM: self._PGM.display(self.p_oneliner(), full=full, level=level+1)
         #...............................................................
         print prefix,'**'
         if level==0: print
@@ -232,25 +224,27 @@ class ParameterizationPlus (Meow.Parameterization):
             NB: Every module that has an OptionManager, or objects that have one,
             should implement a function with this name.
             This function is usually called before _define_forest()."""
-            return self._om.make_TDLCompileOptionMenu (**kwargs)
+            return self._OM.make_TDLCompileOptionMenu (**kwargs)
 
         def make_TDLRuntimeOptionMenu (self, **kwargs):
             """Return the TDLMenu of run-time options. Create it if necessary.
             NB: Every module that has an OptionManager, or objects that have one,
             should implement a function with this name.
             This function is usually called at the end of _define_forest()."""
-            return self._om.make_TDLRuntimeOptionMenu (**kwargs)
+            return self._OM.make_TDLRuntimeOptionMenu (**kwargs)
 
 
     def make_TDLCompileOptionMenu (self, **kwargs):
-        """Make the TDLMenu of compile-time options"""
-        oolist = [self._pgm.make_TDLCompileOptionMenu(reset=False)]        
-        return self._om.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
+        """Make its TDLMenu of compile-time options"""
+        menu = self._PGM.make_TDLCompileOptionMenu(reset=False)        
+        if menu==None: return None
+        return self._OM.make_TDLCompileOptionMenu(insert=[menu], **kwargs)
     
     def make_TDLRuntimeOptionMenu (self, **kwargs):
-        """Make the TDLMenu of runtime-time options"""
-        oolist = [self._pgm.make_TDLRuntimeOptionMenu(reset=False)]        
-        return self._om.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
+        """Make its TDLMenu of runtime-time options"""
+        menu = self._PGM.make_TDLRuntimeOptionMenu(reset=False)
+        if menu==None: return None
+        return self._OM.make_TDLRuntimeOptionMenu(insert=[menu], **kwargs)
     
 
 
@@ -302,12 +296,12 @@ class ParameterizationPlus (Meow.Parameterization):
 
 if 1:
     pp1 = ParameterizationPlus(name='GJones', quals='3c84')
-    pp1._pgm.display('initial')
+    pp1._PGM.display('initial')
     if 0:
-        pp1._pgm.define_parmgroup('Gphase', tiling=3, mode='nosolve')
-        pp1._pgm.define_parmgroup('Ggain', default=1.0, freq_deg=2)
-    pp1._pgm.make_TDLCompileOptionMenu()
-    pp1._pgm.display('TDL')
+        pp1._PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')
+        pp1._PGM.define_parmgroup('Ggain', default=1.0, freq_deg=2)
+    pp1._PGM.make_TDLCompileOptionMenu()
+    pp1._PGM.display('TDL')
 
 
 
@@ -318,7 +312,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    pp1._pgm.make_TDLRuntimeOptionMenu()
+    pp1._PGM.make_TDLRuntimeOptionMenu()
     return True
 
 
@@ -360,20 +354,20 @@ if __name__ == '__main__':
         pp1.p_display('initial', full=True)
 
     if 0:
-        pp1._pgm.group_define('Gphase', tiling=3, mode='nosolve')
-        pp1._pgm.group_define('Ggain', default=1.0, freq_deg=2)
+        pp1._PGM.group_define('Gphase', tiling=3, mode='nosolve')
+        pp1._PGM.group_define('Ggain', default=1.0, freq_deg=2)
         # pp1.make_TDLCompileOptionMenu()
-        pp1._pgm.display('pgm')
+        pp1._PGM.display('PGM')
 
     if 0:
         e0 = Expression.Expression(ns, 'e0', '{a}+{b}*[t]-{e}**{f}+{100~10}', simul=False)
         e0.display()
         if 0:
             pp3 = ParameterizationPlus(ns, 'e0', merge=e0)
-            pp3._pgm.display('after merge', full=True)
+            pp3._PGM.display('after merge', full=True)
         if 1:
-            pp1._pgm.merge(e0, trace=True)
-            pp1._pgm.display('after merge', full=True)
+            pp1._PGM.merge(e0, trace=True)
+            pp1._PGM.display('after merge', full=True)
             pp1.p_display(full=True)
 
 

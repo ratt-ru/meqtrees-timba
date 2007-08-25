@@ -14,12 +14,12 @@ TDLOption objects. And finally, by storing the option variables in
 a separate objects, name clashes with the module attributes are avoided. 
 
 An empty OptionManager object is created and attached to a module by:
-- self._om = OptionManager(self.name, [namespace])
+- self._OM = OptionManager(self.name, [namespace])
 
 A named (key) option with some (default) value is then defined by
 means of the function:
-- self._om.define(key1, value1)
-- self._om.define(key2, value2)
+- self._OM.define(key1, value1)
+- self._OM.define(key2, value2)
 -   ...
 
 The attributes (value etc, see below) are stored in a separate 'optrec'
@@ -27,12 +27,12 @@ record in the OptionManager, and an internal variable with its default
 value is created. The latter is identical to the 'working' value that
 is created by an eventual TDLOption object. It is the one that should
 be used by the module, which should ONLY(!) access it by:
-- x = self._om[key]
+- x = self._OM[key]
 
 The attributes in the 'optrec' record(s) may be used to make a TDLMenu
 of TDLOPtions in the meqbrowser by:
-- self._om.make_TDLCompileOptionMenu()
-- self._om.make_TDLRuntimeOptionMenu()
+- self._OM.make_TDLCompileOptionMenu()
+- self._OM.make_TDLRuntimeOptionMenu()
 
 Each object that has an OptionManager, or has objects that have them,
 should implement two functions with the above names, which call the
@@ -274,7 +274,7 @@ class OptionManager (object):
 
     def display(self, txt=None, full=False, level=0):
         """Print a summary of this object"""
-        prefix = '  '+(level*'  ')+'om'
+        prefix = '  '+(level*'  ')+'OM'
         if level==0: print
         print prefix,' '
         print prefix,'** '+self.oneliner()
@@ -495,6 +495,7 @@ class OptionManager (object):
             # Optional: insert a list of given TDLOption objects:
             if isinstance(insert, list):
                 oolist.extend(insert)
+                print 'oolist.extend() =',oolist,insert
 
             # Optional (but last): Include a 'reset' option (if required):
             # NB: This seems ONLY useful at compile-time. (But in its present
@@ -505,7 +506,10 @@ class OptionManager (object):
                     oolist.append(self.make_reset_option())
 
             # OK, make the TDLMenu:
-            prompt = self.namespace(prepend='options for: ', append=self.name)
+            prepend = cat+' options for: '
+            if cat=='compile':
+                prepend = cat+'-time options for: '
+            prompt = self.namespace(prepend=prepend, append=self.name)
             if len(oolist)==0:
                 return None
             elif cat=='runtime':
@@ -549,14 +553,19 @@ class OptionManager (object):
 
     #.....................................................................
 
-    def make_TDLOptionSubmenuList (self, submenu, cat='compile'):
+    def make_TDLOptionSubmenuList (self, submenu, cat='compile', trace=True):
         """Make a list of TDLOption objects for the specified submenu.
-        This is a helper function called by .make_TDLOptionList()."""
+        This is a helper function called by .make_TDLOptionList().
+        """
+        if trace:
+            print '** .make_TDLOptionSubmenuList(',submenu,cat,'):'
         oolist = []
         if not self.TDLOptionSubmenu[cat].has_key(submenu):
             if self.submenu_keys[cat].has_key(submenu):
                 for key in self.submenu_keys[cat][submenu]:
                     rr = self.optrec[key]
+                    if trace:
+                        print '-',key,str(rr)
                     prompt = rr['prompt'] or key
                     doc = rr['doc'] or '<doc>'
                     ukey = self.internal_name(key)
@@ -706,7 +715,7 @@ class OptionManager (object):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+if 0:
     om = OptionManager()
     om.test()
     om.make_TDLCompileOptionMenu()

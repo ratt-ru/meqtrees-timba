@@ -140,7 +140,7 @@ class ParmGroup (Meow.Parameterization):
             namespace += '_'+s
         else:
             namespace = s
-        self._om = OptionManager.OptionManager(self.name, namespace=namespace)
+        self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
 
         self.define_options(mode=mode, default=default, constraint=constraint,
                             tiling=tiling, time_deg=time_deg, freq_deg=freq_deg,
@@ -166,7 +166,7 @@ class ParmGroup (Meow.Parameterization):
 
     def mode(self):
         """Return the object 'mode' (e.g. solve, nosolve, or simulate)"""
-        return self._om['mode']
+        return self._OM['mode']
 
     def active (self, new=None):
         """Get/set its 'active' switch."""
@@ -224,7 +224,7 @@ class ParmGroup (Meow.Parameterization):
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3, om=True, level=0):
+    def display(self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
         prefix = '  '+(level*'  ')+'pg'
         if level==0: print
@@ -269,8 +269,8 @@ class ParmGroup (Meow.Parameterization):
         else:
             print prefix,'  * NodeList object: '+str(self._NodeList) 
         #...............................................................
-        print prefix,'  * '+self._om.oneliner()
-        if om: self._om.display(full=False, level=level+1)
+        print prefix,'  * '+self._OM.oneliner()
+        if OM: self._OM.display(full=False, level=level+1)
         #...............................................................
         print prefix,'**'
         if level==0: print
@@ -323,7 +323,7 @@ class ParmGroup (Meow.Parameterization):
         # and check whether it already exists: 
         quals = self.quals2list(quals)
         if not isinstance(mode, str):                      # mode not explicitly specfied
-             mode = self._om['mode']                       # use the group default
+             mode = self._OM['mode']                       # use the group default
 
         # Make qnode and nodename
         if mode=='simulate':
@@ -370,10 +370,10 @@ class ParmGroup (Meow.Parameterization):
 
         else:
             # NB: Check the exact working of or/and etc on lists, dicts.......!!
-            mparm = Meow.Parm(value=(value or self._om['default']),
-                              tiling=(tiling or self._om['tiling']),
-                              time_deg=(time_deg or self._om['time_deg']),
-                              freq_deg=(freq_deg or self._om['freq_deg']),
+            mparm = Meow.Parm(value=(value or self._OM['default']),
+                              tiling=(tiling or self._OM['tiling']),
+                              time_deg=(time_deg or self._OM['time_deg']),
+                              freq_deg=(freq_deg or self._OM['freq_deg']),
                               tags=[])
             self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
             node = self._parm(nodename, nodename=qnode.name)
@@ -412,7 +412,7 @@ class ParmGroup (Meow.Parameterization):
         
         # The deviation from the default value is described by a math expression.
         # The default values may be overridden.
-        simexpr = str(default or self._om['default'])+'+'+(simuldev or self._om['simuldev'])
+        simexpr = str(default or self._OM['default'])+'+'+(simuldev or self._OM['simuldev'])
         if trace: print '    ',simexpr
     
         # Make a MeqFunctional node from the given expression
@@ -441,7 +441,7 @@ class ParmGroup (Meow.Parameterization):
 
     def make_TDLCompileOptionMenu (self, **kwargs):
         """Make the TDL menu of Compile-time options"""
-        return self._om.make_TDLCompileOptionMenu(**kwargs)
+        return self._OM.make_TDLCompileOptionMenu(**kwargs)
     
     #-------------------------------------------------------------------
 
@@ -451,7 +451,7 @@ class ParmGroup (Meow.Parameterization):
 
         # Individual options in the main menu (i.e. submenu=None):
         opt = ['nosolve','solve','simulate']
-        self._om.define('mode', mode, opt=opt, more=str,
+        self._OM.define('mode', mode, opt=opt, more=str,
                         prompt='mode of parameter generation',
                         callback=self._callback_mode,
                         doc = """The following ParmGroup modes are supported:
@@ -462,7 +462,7 @@ class ParmGroup (Meow.Parameterization):
                         It may also affect some of the 'larger' options upstream..... 
                         """)
 
-        self._om.define('default', default, more=float,
+        self._OM.define('default', default, more=float,
                         prompt='MeqParm default value',
                         doc = 'MeqParm default value')
 
@@ -471,7 +471,7 @@ class ParmGroup (Meow.Parameterization):
         opt = []
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
-        self._om.define('simuldev', simuldev, submenu='simulation',
+        self._OM.define('simuldev', simuldev, submenu='simulation',
                         opt=opt, more=str,
                         # oo.set_custom_value(getattr(self,key), select=True, save=True)
                         prompt='deviation from default value',
@@ -483,15 +483,15 @@ class ParmGroup (Meow.Parameterization):
 
         # The 'domain span' submenu:
         submenu = 'solving'
-        self._om.define('tiling', tiling, submenu=submenu,
+        self._OM.define('tiling', tiling, submenu=submenu,
                         prompt='size of solution sub-tile',
                         opt=[1,2,4,8,16,None], more=int,
                         doc='Nr of time-slots per subtile solution. None means all.')
-        self._om.define('time_deg', 1, submenu=submenu,
+        self._OM.define('time_deg', 1, submenu=submenu,
                         prompt='time-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of time-polynomial to be solved for.')
-        self._om.define('freq_deg', 2, submenu=submenu,
+        self._OM.define('freq_deg', 2, submenu=submenu,
                         prompt='freq-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of freq-polynomial to be solved for.')
@@ -517,7 +517,7 @@ class ParmGroup (Meow.Parameterization):
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to be less than the specified value"""
-            self._om.define(key, cs[key], submenu=submenu,
+            self._OM.define(key, cs[key], submenu=submenu,
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('max'):
@@ -526,7 +526,7 @@ class ParmGroup (Meow.Parameterization):
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to exceed the specified value"""
-            self._om.define(key, cs[key], submenu=submenu,
+            self._OM.define(key, cs[key], submenu=submenu,
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('sum'):
@@ -535,7 +535,7 @@ class ParmGroup (Meow.Parameterization):
             if not 0.0 in opt: opt.append(0.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the sum of the values of the MeqParm in this group'
-            self._om.define(key, cs[key], submenu=submenu,
+            self._OM.define(key, cs[key], submenu=submenu,
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('product'):
@@ -544,7 +544,7 @@ class ParmGroup (Meow.Parameterization):
             if not 1.0 in opt: opt.append(1.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the product of value of the MeqParms in this group'
-            self._om.define(key, cs[key], submenu=submenu,
+            self._OM.define(key, cs[key], submenu=submenu,
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('ignore'):
@@ -553,7 +553,7 @@ class ParmGroup (Meow.Parameterization):
             if not 0 in opt: opt.append(0)
             if not None in opt: opt.append(None)
             doc = 'The ignored MeqParm(s) will keep their current value(s).'
-            self._om.define(key, cs[key], submenu=submenu,
+            self._OM.define(key, cs[key], submenu=submenu,
                             prompt='do NOT solve for MeqParm(s) with index',
                             opt=opt, more=int, doc=doc)
 
@@ -565,8 +565,8 @@ class ParmGroup (Meow.Parameterization):
     def _callback_simuldev(self, dev):
         """Function called whenever TDLOption _simuldev changes."""
         key = 'simuldev'
-        if self._om.TDLOption(key):
-            self._om.TDLOption(key).set_custom_value(dev, callback=False,
+        if self._OM.TDLOption(key):
+            self._OM.TDLOption(key).set_custom_value(dev, callback=False,
                                                      select=True, save=True)
         return True
 
@@ -577,23 +577,23 @@ class ParmGroup (Meow.Parameterization):
         It adjusts the hiding of options according to 'mode'."""
 
         if mode=='solve':
-            self._om.show('default')
-            self._om.show('solving')
-            self._om.show('constraints')
-            self._om.hide('simulation')
+            self._OM.show('default')
+            self._OM.show('solving')
+            self._OM.show('constraints')
+            self._OM.hide('simulation')
         elif mode=='nosolve':
-            self._om.show('default')
-            self._om.hide('solving')
-            self._om.hide('constraints')
-            self._om.hide('simulation')
+            self._OM.show('default')
+            self._OM.hide('solving')
+            self._OM.hide('constraints')
+            self._OM.hide('simulation')
         elif mode=='simulate':
-            self._om.hide('default')
-            self._om.hide('solving')
-            self._om.hide('constraints')
-            self._om.show('simulation')
+            self._OM.hide('default')
+            self._OM.hide('solving')
+            self._OM.hide('constraints')
+            self._OM.show('simulation')
 
-        if self._om.TDLMenu():
-            self._om.TDLMenu().set_summary('(mode='+mode+')')
+        if self._OM.TDLMenu():
+            self._OM.TDLMenu().set_summary('(mode='+mode+')')
 
         return True
         
@@ -682,7 +682,7 @@ class ParmGroup (Meow.Parameterization):
         """Return a list of zero or more constraint condeq(s).
         Make them if necessary."""
         cc = []
-        for key in self._om.keys('constraints'):
+        for key in self._OM.keys('constraints'):
             if self._condeq.has_key(key):
                 cc.append(self._condeq[key])
             else:
@@ -696,7 +696,7 @@ class ParmGroup (Meow.Parameterization):
     def _make_constraint_condeq(self, key, show=True, trace=True):
         """Make a condeq subtree for the specified constraint"""
         if trace: print '\n** _make_constraint_condeq(',key,'):'
-        rhs = self._om[key]
+        rhs = self._OM[key]
         if trace: print '-- rhs =',str(rhs)
         lhs = None
         qnode = self.ns['constraint'](key)

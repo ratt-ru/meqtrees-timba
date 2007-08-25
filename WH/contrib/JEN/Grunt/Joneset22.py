@@ -8,7 +8,7 @@
 # - 07jun2007: adapted to ParameterizationPlus
 # - 02jul2007: adapted to Jones Contract
 # - 16jul2007: changed simul to mode
-# - 17jul2007: adaptation to ._pgm.
+# - 17jul2007: adaptation to ._PGM.
 
 # Description:
 
@@ -303,8 +303,8 @@ class GJones (Joneset22):
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
 
-            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-            pg = self._pgm.define_parmgroup(self._pname+pol,
+            dev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+            pg = self._PGM.define_parmgroup(self._pname+pol,
                                             descr=pol+'-dipole phases',
                                             default=0.0, unit='rad',
                                             tiling=1, time_deg=0, freq_deg=0,
@@ -314,8 +314,8 @@ class GJones (Joneset22):
                                             tags=[self._pname,self._jname])
             self._pg[pol][self._pname] = pg
 
-            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._pgm.define_parmgroup(self._gname+pol,
+            dev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
+            pg = self._PGM.define_parmgroup(self._gname+pol,
                                             descr=pol+'-dipole gains',
                                             default=1.0,
                                             tiling=None, time_deg=2, freq_deg=0,
@@ -339,8 +339,8 @@ class GJones (Joneset22):
         pols = self.pols()
         mm = dict()
         for pol in pols:
-            phase = self._pgm[self._pg[pol][self._pname]].create_member (quals=station)
-            gain = self._pgm[self._pg[pol][self._gname]].create_member (quals=station)
+            phase = self._PGM[self._pg[pol][self._pname]].create_member (quals=station)
+            gain = self._PGM[self._pg[pol][self._gname]].create_member (quals=station)
             mm[pol] = qnode(pol)(station) << Meq.Polar(gain,phase)
         qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
         return qnode(station)
@@ -422,9 +422,9 @@ class BJones (Joneset22):
         for pol in pols:
             self._pg[pol] = dict()
             rider = dict(use_matrix_element=self._pols_matrel()[pol])
-            dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
+            dev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
 
-            pg = self._pgm.define_parmgroup(self._iname+pol,
+            pg = self._PGM.define_parmgroup(self._iname+pol,
                                             descr=pol+'-IF bandpass imag.part',
                                             default=0.0, unit='Jy',
                                             tiling=1,
@@ -437,7 +437,7 @@ class BJones (Joneset22):
                                             tags=[self._iname,self._jname])
             self._pg[pol][self._iname] = pg
 
-            pg = self._pgm.define_parmgroup(self._rname+pol,
+            pg = self._PGM.define_parmgroup(self._rname+pol,
                                             descr=pol+'-IF bandpass real.part',
                                             default=1.0, unit='Jy',
                                             tiling=None,
@@ -464,8 +464,8 @@ class BJones (Joneset22):
         pols = self.pols()
         mm = dict()
         for pol in pols:
-            real = self._pgm[self._pg[pol][self._rname]].create_member (quals=station)
-            imag = self._pgm[self._pg[pol][self._iname]].create_member (quals=station)
+            real = self._PGM[self._pg[pol][self._rname]].create_member (quals=station)
+            imag = self._PGM[self._pg[pol][self._iname]].create_member (quals=station)
             mm[pol] = qnode(pol)(station) << Meq.ToComplex(real,imag)
         qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
         return qnode(station)
@@ -537,7 +537,7 @@ class JJones (Joneset22):
         active = ['J11real','J11imag','J22real','J22imag']
         if not diagonal:
             active.extend(['J12real','J12imag','J21real','J21imag']) 
-        return self._pgm.active_groups(new=active)
+        return self._PGM.active_groups(new=active)
 
 
     #------------------------------------------------------------------------------
@@ -546,7 +546,7 @@ class JJones (Joneset22):
         """Define the various primary ParmGroups"""
         self.define_parmgroups_preamble()
         self._pg = dict()
-        dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
+        dev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{10e6~10%}')
 
         for ename in ['J11','J22']:
             self._pg[ename] = dict()
@@ -556,7 +556,7 @@ class JJones (Joneset22):
                 if rim=='real':
                     default = 1.0
                     constraint = dict(product=None)
-                pg = self._pgm.define_parmgroup(ename+rim,
+                pg = self._PGM.define_parmgroup(ename+rim,
                                                 descr=rim+' part of matrix element '+ename,
                                                 default=default, unit='Jy',
                                                 tiling=None, time_deg=0, freq_deg=0,
@@ -571,7 +571,7 @@ class JJones (Joneset22):
             for ename in ['J12','J21']:
                 self._pg[ename] = dict()
                 for rim in ['real','imag']:
-                    pg = self._pgm.define_parmgroup(ename+rim, 
+                    pg = self._PGM.define_parmgroup(ename+rim, 
                                                     descr=rim+' part of matrix element '+ename,
                                                     default=0.0, unit='Jy',
                                                     tiling=None, time_deg=0, freq_deg=0,
@@ -595,8 +595,8 @@ class JJones (Joneset22):
         enames = ['J11','J12','J21','J22']
         mm = dict(J12=0.0, J21=0.0)
         for ename in self._pg.keys():
-            real = self._pgm[self._pg[ename]['real']].create_member (quals=station)
-            imag = self._pgm[self._pg[ename]['imag']].create_member (quals=station)
+            real = self._PGM[self._pg[ename]['real']].create_member (quals=station)
+            imag = self._PGM[self._pg[ename]['imag']].create_member (quals=station)
             mm[ename] = self.ns[ename](station) << Meq.ToComplex(real,imag)
         qnode(station) << Meq.Matrix22(mm[enames[0]],mm[enames[1]],
                                  mm[enames[2]],mm[enames[3]])
@@ -643,8 +643,8 @@ class FJones (Joneset22):
         self.define_parmgroups_preamble()
         self._pg = dict()
         self._rname = 'RM'       
-        dev = self._pgm.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-        pg = self._pgm.define_parmgroup(self._rname,  
+        dev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+        pg = self._PGM.define_parmgroup(self._rname,  
                                         descr='Faraday Rotation Measure (rad/m2)',
                                         default=0.0, unit='rad/m2',
                                         mode=self._mode,
@@ -668,7 +668,7 @@ class FJones (Joneset22):
         if not qnode.initialized():
             self._matrixet = qnode
             
-            RM = self._pgm[self._pg[self._rname]].create_member()
+            RM = self._PGM[self._pg[self._rname]].create_member()
             wvl = qnode('lambda') << Meq.Divide(3e8, Meq.Freq)
             wvl2 = qnode('lambda2') << Meq.Sqr(wvl)               # lambda squared
             farot = qnode('farot') << (RM * wvl2)                 # Faraday rotation angle
@@ -719,11 +719,11 @@ def Joneseq22 (ns, joneslist=None, quals=None):
     name = first.name[0]
     descr = first.name+': '+first.descr()
     stations = first.stations()
-    qq = first._pgm.get_quals(remove=[first.name])
+    qq = first._PGM.get_quals(remove=[first.name])
     for jones in joneslist[1:]:
         name += jones.name[0]
         descr += '\n '+jones.name+': '+jones.descr()
-        qq = jones._pgm.get_quals(merge=qq, remove=[jones.name])
+        qq = jones._PGM.get_quals(merge=qq, remove=[jones.name])
     qq.extend(first.quals2list(quals))
     jnew = Joneset22(ns, name=name+'Jones',
                      polrep=first.polrep(),
@@ -741,7 +741,7 @@ def Joneseq22 (ns, joneslist=None, quals=None):
     
     # Merge the parmgroups of the various Jones matrices:
     for jones in joneslist:
-        jnew._pgm.merge(jones)
+        jnew._PGM.merge(jones)
         jnew.history(subappend=jones.history())
 
     # Return the new Joneset22 object:
@@ -793,9 +793,9 @@ def _define_forest(ns):
         cc.append(jones.visualize('spectra'))
 
     if 0:
-        cc.append(jones._pgm.bundle(combine='Composer'))
+        cc.append(jones._PGM.bundle(combine='Composer'))
     if 0:
-        cc.append(jones._pgm.plot_rvsi())
+        cc.append(jones._PGM.plot_rvsi())
 
     jones.display('final', full=True)
 
