@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #
-# Copyright (C) 2002-2007
+# Copyright (C) 2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # and The MeqTree Foundation
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
@@ -28,12 +28,8 @@
 # L,M location in the X (|| poln) beams and then
 # taking the conjugate transpose.
 
-# We use these weights as an initial starting guess for the
-# weights to be used to obtain a nice Gaussian beam. These weights
-# are given to the solver, which then proceeds to solve for
-# the optimum weights. This script finds the 'best' gaussian
-# beam at a single L,M. We store the weights for this beam in
-# a 'mep' table.
+# The resulting weights are stored in a mep table for possible
+# later use.
 
 # History:
 # - 27 Feb 2007: creation:
@@ -53,15 +49,10 @@ import os
 #setup a bookmark for display of results with a 'Collections Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='Results',page=[
-    record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/Ins_pol",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/gaussian",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/IQUV_complex",viewer="Result Plotter",pos=(2,0)),
-    record(udi="/node/solver",viewer="Result Plotter",pos=(2,1)),
-    record(udi="/node/condeq",viewer="Result Plotter",pos=(1,1))])]);
+    record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0))])])
 
 # to force caching put 100
-#Settings.forest_state.cache_policy = 100
+Settings.forest_state.cache_policy = 100
 
 mep_beam_weights = 'beam_weights.mep'
 # first, make sure that any previous version of the mep table is
@@ -87,17 +78,20 @@ def tpolc (tdeg,c00=0.0):
 def _define_forest(ns):  
 
   # define location for phase-up
-  BEAM_LM = [(0.0,0.0)]                # xntd_0
+# BEAM_LM = [(0.0,0.0)]                # xntd_0
 # BEAM_LM = [(0.00543675,0.0)]         # xntd_0_a
 # BEAM_LM = [(0.0108735,0.0)]          # xntd_1
 # BEAM_LM = [(0.01631025,0.0)]         # xntd_1_a
 # BEAM_LM = [(0.021747,0.0)]           # xntd_2
 # BEAM_LM = [(0.02718375,0.0)]         
 # BEAM_LM = [(0.032620,0.0)]           # xntd_3
-# BEAM_LM = [(0.038057,0.0)]           # xntd_3_a
+  BEAM_LM = [(0.038057,0.0)]           # xntd_3_a
 # BEAM_LM = [(0.043494,0.0)]           # xntd_4
+# BEAM_LM = [(0.04893075,0.0)]           # xntd_4
 # BEAM_LM = [(0.0543675,0.0)]           # xntd_4
+# BEAM_LM = [(0.05980425,0.0)]           # xntd_4
 # BEAM_LM = [(0.065241,0.0)]           # xntd_4
+# BEAM_LM = [(0.065241,0.065241)]           # xntd_4
 # BEAM_LM = [(0.0761145,0.0)]           # xntd_4
 # BEAM_LM = [(0.0, 0.0108735)]         # xntd_m_1
 # BEAM_LM = [(0.0, 0.021747)]          # xntd_m_2
@@ -120,20 +114,6 @@ def _define_forest(ns):
   ns.l_beam_c << Meq.Constant(l_beam) 
   ns.m_beam_c << Meq.Constant(m_beam)
 
-  # constant for half-intensity determination
-  ns.ln_16 << Meq.Constant(-2.7725887)
-
-  # define desired half-intensity width of power pattern (HPBW)
-  # as we are fitting total intensity I pattern (here 74.8 arcmin)
-  ns.width << Meq.Constant(0.021747)                 
-
-  laxis = ns.laxis << Meq.Grid(axis=2);
-  maxis = ns.maxis << Meq.Grid(axis=3);
-
-  # gaussian to which we want to optimize beams
-  ns.lm_x_sq << Meq.Sqr(laxis - ns.l_beam_c) + Meq.Sqr(maxis - ns.m_beam_c)
-  ns.gaussian << Meq.Exp((ns.lm_x_sq * ns.ln_16)/Meq.Sqr(ns.width));
-
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
 # read in beam images
@@ -153,7 +133,8 @@ def _define_forest(ns):
     ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
     ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
-    # normalize
+
+  # normalize
     ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
                   ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
     ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
@@ -175,7 +156,7 @@ def _define_forest(ns):
     # we need to assign the weights we've extracted as initial guesses
     # to the Parm - can only be done by solving
     ns.condeq_wt_re_y(k) << Meq.Condeq(children=(ns.sample_wt_re_y(k), ns.beam_wt_re_y(k)))
-    ns.condeq_wt_im_y(k) << Meq.Condeq(children=(-1.0 * ns.sample_wt_im_y(k), ns.beam_wt_im_y(k)))
+    ns.condeq_wt_im_y(k) << Meq.Condeq(children=(ns.sample_wt_im_y(k), ns.beam_wt_im_y(k)))
     ns.solver_wt_re_y(k)<<Meq.Solver(ns.condeq_wt_re_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_y(k),save_funklets=True,last_update=True)
     ns.solver_wt_im_y(k)<<Meq.Solver(ns.condeq_wt_im_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_y(k),save_funklets=True,last_update=True)
     parm_solvers.append(ns.solver_wt_re_y(k))
@@ -197,8 +178,7 @@ def _define_forest(ns):
     ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
     ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
     ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
-
-    # normalize
+  # normalize
     ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
                   ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
     ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
@@ -207,17 +187,19 @@ def _define_forest(ns):
     ns.norm_image_im_xx(k) << ns.image_im_xx(k) / ns.x_im_max(k)
     ns.norm_image_re_xy(k) << ns.image_re_xy(k) / ns.x_im_max(k)
     ns.norm_image_im_xy(k) << ns.image_im_xy(k) / ns.x_im_max(k)
+
+
     ns.resampler_image_re_xx(k) << Meq.Resampler(ns.norm_image_re_xx(k),dep_mask = 0xff)
     ns.resampler_image_im_xx(k) << Meq.Resampler(ns.norm_image_im_xx(k),dep_mask = 0xff)
     ns.sample_wt_re_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_xx(k)],common_axes=[hiid('l'),hiid('m')])
-    ns.sample_wt_im_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
+    ns.sample_wt_im_x(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
     # I want to solve for these parameters
     ns.beam_wt_re_x(k) << tpolc(0)
     ns.beam_wt_im_x(k) << tpolc(0)
     beam_solvables.append(ns.beam_wt_re_x(k))
     beam_solvables.append(ns.beam_wt_im_x(k))
     ns.condeq_wt_re_x(k) << Meq.Condeq(children=(ns.sample_wt_re_x(k), ns.beam_wt_re_x(k)))
-    ns.condeq_wt_im_x(k) << Meq.Condeq(children=(-1.0 * ns.sample_wt_im_x(k), ns.beam_wt_im_x(k)))
+    ns.condeq_wt_im_x(k) << Meq.Condeq(children=(ns.sample_wt_im_x(k), ns.beam_wt_im_x(k)))
     ns.solver_wt_re_x(k)<<Meq.Solver(ns.condeq_wt_re_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_x(k),save_funklets=True,last_update=True)
     ns.solver_wt_im_x(k)<<Meq.Solver(ns.condeq_wt_im_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_x(k),save_funklets=True,last_update=True)
     parm_solvers.append(ns.solver_wt_re_x(k))
@@ -234,38 +216,14 @@ def _define_forest(ns):
   # first guess
   ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
 
-  ns.voltage_sum_xx << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS])
-  ns.voltage_sum_xy << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS])
-  ns.voltage_sum_yx << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS])
-  ns.voltage_sum_yy << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS])
+  # sum the weights
+  ns.wt_sum_x << Meq.Add(*[ns.beam_weight_x(k) for k in BEAMS])
+  ns.wt_sum_y << Meq.Add(*[ns.beam_weight_y(k) for k in BEAMS])
 
-  # normalize beam to peak response
-  ns.voltage_sum_xx_r << Meq.Real(ns.voltage_sum_xx)
-  ns.voltage_sum_xx_i << Meq.Imag(ns.voltage_sum_xx)
-  ns.voltage_sum_xy_r << Meq.Real(ns.voltage_sum_xy)
-  ns.voltage_sum_xy_i << Meq.Imag(ns.voltage_sum_xy)
-
-  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i +\
-                  ns.voltage_sum_xy_r * ns.voltage_sum_xy_r + ns.voltage_sum_xy_i * ns.voltage_sum_xy_i
-  ns.im_x <<Meq.Sqrt(ns.im_sq_x)
-  ns.im_x_max <<Meq.Max(ns.im_x)
-  ns.im_x_norm << ns.im_x / ns.im_x_max
-
-  ns.voltage_sum_yy_r << Meq.Real(ns.voltage_sum_yy)
-  ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy)
-  ns.voltage_sum_yx_r << Meq.Real(ns.voltage_sum_yx)
-  ns.voltage_sum_yx_i << Meq.Imag(ns.voltage_sum_yx)
-  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i +\
-                  ns.voltage_sum_yx_r * ns.voltage_sum_yx_r + ns.voltage_sum_yx_i * ns.voltage_sum_yx_i
-  ns.im_y <<Meq.Sqrt(ns.im_sq_y)
-  ns.im_y_max <<Meq.Max(ns.im_y)
-  ns.im_y_norm << ns.im_y / ns.im_y_max
-
-  ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
-  ns.voltage_sum_yx_norm << ns.voltage_sum_yx / ns.im_y_max
-
-  ns.voltage_sum_xx_norm << ns.voltage_sum_xx / ns.im_x_max
-  ns.voltage_sum_xy_norm << ns.voltage_sum_xy / ns.im_x_max
+  ns.voltage_sum_xx_norm << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS]) / ns.wt_sum_x
+  ns.voltage_sum_xy_norm << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS]) / ns.wt_sum_x
+  ns.voltage_sum_yx_norm << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS]) / ns.wt_sum_y
+  ns.voltage_sum_yy_norm << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS]) / ns.wt_sum_y
 
 
   ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
@@ -281,39 +239,14 @@ def _define_forest(ns):
   ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
   ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
   ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
-  ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)                # Q = XX - YY
+  ns.I_select << Meq.Real(ns.I)
+  ns.I_max << Meq.Max(ns.I_select)
+  ns.I_real  << ns.I_select / ns.I_max
+  ns.I_parm_max << tpolc(0)
+  ns.condeq_I_max << Meq.Condeq(children=(ns.I_parm_max, ns.I_max))
+  ns.solver_I_max <<Meq.Solver(ns.condeq_I_max,num_iter=50,epsilon=1e-4,solvable=ns.I_parm_max,save_funklets=True,last_update=True)
 
-  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2
-  ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
-  ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX
-  ns.iV << Meq.Subtract(ns.UpV,ns.UmV)               # iV = XY - YX  <----!!
-  ns.V << ns.iV / 1j                                 # V = iV / i
-                                                     # (note: i => j in Python)
-
-  # join together into one node in order to make a single request
-  ns.IQUV_complex << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
-  ns.IQUV << Meq.Real(ns.IQUV_complex)
-  ns.I_real << Meq.Selector(ns.IQUV,index=0)
-  ns.Q_real << Meq.Selector(ns.IQUV,index=1)
-  ns.U_real << Meq.Selector(ns.IQUV,index=2)
-  ns.V_real << Meq.Selector(ns.IQUV,index=3)
-# ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
-  ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
-  ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
-
-  ns.resampler_I << Meq.Resampler(ns.I_real)
-
-  ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
-  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10,log_policy=100)
-
-  ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver, ns.Ins_pol)
-
-  # Note: we are observing with linearly-polarized dipoles. If we
-  # want the aips++ imager to generate images in the sequence I,Q,U,V
-  # make sure that the newsimulator setspwindow method uses
-  # stokes='XX XY YX YY' and not stokes='RR RL LR LL'. If you
-  # do the latter you will get the images rolled out in the
-  # order I,U,V,Q!
+  ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.I_real)
 
 ########################################################################
 def _test_forest(mqs,parent):
