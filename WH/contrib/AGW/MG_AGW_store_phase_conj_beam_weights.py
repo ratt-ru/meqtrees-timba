@@ -23,7 +23,8 @@
 
 # Short description:
 # We read in a group of focal plane array beams, 
-# and form a combined, weighted beam. The weights
+# and form a combined, weighted beam using the method of
+# phase conjugation. The weights
 # are found by getting complex values at specified
 # L,M location in the X (|| poln) beams and then
 # taking the conjugate transpose.
