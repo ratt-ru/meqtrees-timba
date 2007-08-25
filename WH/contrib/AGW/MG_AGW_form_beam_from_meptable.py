@@ -44,9 +44,11 @@ Settings.forest_state = record(bookmarks=[
   record(name='Results',page=[
     record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
     record(udi="/node/Ins_pol",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/IQUV_complex",viewer="Result Plotter",pos=(2,0))])])
+    record(udi="/node/Q_real",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/U_real",viewer="Result Plotter",pos=(1,1))])])
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
+
 
 # table with weights
 mep_beam_weights = 'beam_weights.mep'
@@ -54,23 +56,16 @@ mep_beam_weights = 'beam_weights.mep'
 ########################################################
 def _define_forest(ns):  
 
-  # define location for phase-up
-# BEAM_LM = [(0.0,0.0)]
-  offset = 0.01414214
-  BEAM_LM = [(offset,offset)]
-  l_beam,m_beam = BEAM_LM[0]
-  ns.l_beam_c << Meq.Constant(l_beam) 
-  ns.m_beam_c << Meq.Constant(m_beam)
-
 # read in beam images
-  BEAMS = range(0,30)
+  num_beams = 90
+  BEAMS = range(0,num_beams)
   home_dir = os.environ['HOME']
   for k in BEAMS:
   # read in beam data - y dipole
-    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) + '_Re_x.fits'
-    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_x.fits'
-    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Re_y.fits'
-    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_y.fits' 
+    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
+    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
+    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
+    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Im_y.fits' 
     ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
     ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
@@ -96,10 +91,10 @@ def _define_forest(ns):
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
   # read in beam data - x dipole
-    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_y.fits' 
+    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) + '_Re_x.fits'
+    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_x.fits'
+    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Re_y.fits'
+    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_y.fits' 
     ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
     ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
     ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
@@ -125,39 +120,20 @@ def _define_forest(ns):
     ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
     ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
 
-  ns.voltage_sum_xx << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS])
-  ns.voltage_sum_xy << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS])
-  ns.voltage_sum_yx << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS])
-  ns.voltage_sum_yy << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS])
+  # sum the weights
+  try:
+    ns.I_parm_max << Meq.Parm(table_name =  mep_beam_weights)
+    ns.I_parm_max_sqrt << Meq.Sqrt(ns.I_parm_max)
+  except:
+    ns.I_parm_max_sqrt << Meq.Constant(1.0)
+  
+  ns.wt_sum_x << Meq.Add(*[ns.beam_weight_x(k) for k in BEAMS]) * ns.I_parm_max_sqrt
+  ns.wt_sum_y << Meq.Add(*[ns.beam_weight_y(k) for k in BEAMS]) * ns.I_parm_max_sqrt
 
-  # normalize beam to peak response
-  ns.voltage_sum_xx_r << Meq.Real(ns.voltage_sum_xx)
-  ns.voltage_sum_xx_i << Meq.Imag(ns.voltage_sum_xx)
-  ns.voltage_sum_xy_r << Meq.Real(ns.voltage_sum_xy)
-  ns.voltage_sum_xy_i << Meq.Imag(ns.voltage_sum_xy)
-
-  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i +\
-                  ns.voltage_sum_xy_r * ns.voltage_sum_xy_r + ns.voltage_sum_xy_i * ns.voltage_sum_xy_i
-  ns.im_x <<Meq.Sqrt(ns.im_sq_x)
-  ns.im_x_max <<Meq.Max(ns.im_x)
-  ns.im_x_norm << ns.im_x / ns.im_x_max
-
-  ns.voltage_sum_yy_r << Meq.Real(ns.voltage_sum_yy)
-  ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy)
-  ns.voltage_sum_yx_r << Meq.Real(ns.voltage_sum_yx)
-  ns.voltage_sum_yx_i << Meq.Imag(ns.voltage_sum_yx)
-  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i +\
-                  ns.voltage_sum_yx_r * ns.voltage_sum_yx_r + ns.voltage_sum_yx_i * ns.voltage_sum_yx_i
-  ns.im_y <<Meq.Sqrt(ns.im_sq_y)
-  ns.im_y_max <<Meq.Max(ns.im_y)
-  ns.im_y_norm << ns.im_y / ns.im_y_max
-
-  ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
-  ns.voltage_sum_yx_norm << ns.voltage_sum_yx / ns.im_y_max
-
-  ns.voltage_sum_xx_norm << ns.voltage_sum_xx / ns.im_x_max
-  ns.voltage_sum_xy_norm << ns.voltage_sum_xy / ns.im_x_max
-
+  ns.voltage_sum_xx_norm << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS]) / ns.wt_sum_x
+  ns.voltage_sum_xy_norm << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS]) / ns.wt_sum_x
+  ns.voltage_sum_yx_norm << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS]) / ns.wt_sum_y
+  ns.voltage_sum_yy_norm << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS]) / ns.wt_sum_y
 
   ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
   ns.Et << Meq.ConjTranspose(ns.E)
@@ -168,7 +144,7 @@ def _define_forest(ns):
   # observe!
   ns.observed << Meq.MatrixMultiply(ns.E, ns.B0, ns.Et)
 
-  # extract I,Q,U,V etc
+# extract I,Q,U,V etc
   ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
   ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
   ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
@@ -191,6 +167,7 @@ def _define_forest(ns):
 # ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
   ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
   ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
+
 
 ########################################################################
 def _test_forest(mqs,parent):
