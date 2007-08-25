@@ -184,6 +184,7 @@ def _test_forest(mqs,parent):
   counter = 0
   request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
+  mqs.clearcache('Ins_pol',recursive=True)
   mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
 
 #####################################################################
