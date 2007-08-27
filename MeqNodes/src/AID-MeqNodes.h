@@ -1,28 +1,3 @@
-//
-//% $Id$ 
-//
-//
-// Copyright (C) 2002-2007
-// The MeqTree Foundation & 
-// ASTRON (Netherlands Foundation for Research in Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-
       #ifndef AID_MeqNodes_h
       #define AID_MeqNodes_h 1
       
@@ -753,6 +728,11 @@ const int AidMeqRms_int = -1718;
 const DMI::AtomicID AidMeqSelector(-1447);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 const int AidMeqSelector_int = -1447;
 #endif
+#ifndef _defined_id_AidMeqShapeletVisTf
+#define _defined_id_AidMeqShapeletVisTf 1
+const DMI::AtomicID AidMeqShapeletVisTf(-1694);   // from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
+const int AidMeqShapeletVisTf_int = -1694;
+#endif
 #ifndef _defined_id_AidMeqSin
 #define _defined_id_AidMeqSin 1
 const DMI::AtomicID AidMeqSin(-1430);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
@@ -882,6 +862,11 @@ const int AidMethod_int = -1550;
 #define _defined_id_AidMode 1
 const DMI::AtomicID AidMode(-1215);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
 const int AidMode_int = -1215;
+#endif
+#ifndef _defined_id_AidModes
+#define _defined_id_AidModes 1
+const DMI::AtomicID AidModes(-1729);              // from /home/sarod/Timba/MeqNodes/src/ShapeletVisTf.h:33
+const int AidModes_int = -1729;
 #endif
 #ifndef _defined_id_AidModulo
 #define _defined_id_AidModulo 1

@@ -1,28 +1,3 @@
-//
-//% $Id$ 
-//
-//
-// Copyright (C) 2002-2007
-// The MeqTree Foundation & 
-// ASTRON (Netherlands Foundation for Research in Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-
       #ifndef TID_MeqNodes_h
       #define TID_MeqNodes_h 1
       
@@ -1550,6 +1525,25 @@ namespace Meq { class Selector; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::Selector & ContainerReturnType;
                 typedef const Meq::Selector & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqShapeletVisTf
+#define _defined_id_TpMeqShapeletVisTf 1
+const DMI::TypeId TpMeqShapeletVisTf(-1694);      // from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
+const int TpMeqShapeletVisTf_int = -1694;
+namespace Meq { class ShapeletVisTf; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ShapeletVisTf> : public TypeTraits<Meq::ShapeletVisTf>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqShapeletVisTf_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ShapeletVisTf & ContainerReturnType;
+                typedef const Meq::ShapeletVisTf & ContainerParamType;
               };
             };
 #endif
