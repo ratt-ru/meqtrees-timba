@@ -96,7 +96,7 @@ CPU                              1539       ; from /home/oms/LOFAR/Timba/MEQ/src
 Create                           1312       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
 Critical                         1497       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 Current                          1635       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:11
-CutOff                           1648       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Dimage.h:33
+Cutoff                           1648       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Dimage.h:33
 Cwd                              1553       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 Cyclic                           1674       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
 D                                1003       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -405,7 +405,7 @@ MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqRms                          1718       ; from /home/oms/Timba/MeqNodes/src/Rms.h:29
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
-MeqShapeletVisTf                 1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
+#MeqShapeletVisTf                1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
 #MeqSin                          1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 #MeqSinh                         1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
 MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
@@ -447,6 +447,7 @@ Min                              1675       ; from /home/mevius/LOFAR/Timba/MEQ/
 Mismatch                         1257       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 Missing                          1657       ; from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
 Mode                             1215       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+Modes                            1729       ; from /home/sarod/Timba/MeqNodes/src/ShapeletVisTf.h:33
 Module                           1706       ; from /home/oms/Timba/MeqServer/src/PyNode.h:11
 Modulo                           1679       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Motion                           1167       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
