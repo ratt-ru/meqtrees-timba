@@ -111,8 +111,9 @@ class Executor (object):
         """Define the various options in its OptionManager object"""
 
         # Individual options in the main menu (i.e. submenu=None):
-        opt = ['single','time_sequence','freq_sequence']
-        self._OM.define('mode', mode, cat='runtime',
+        submenu = 'runtime.'
+        opt = ['single','time_sequence','freq_sequence','4D']
+        self._OM.define(submenu+'mode', mode,
                         opt=opt, more=str,
                         prompt='forest execution mode',
                         callback=self._callback_mode,
@@ -120,123 +121,110 @@ class Executor (object):
                         Changing the mode will change the visible options. 
                         """)
 
-        submenu = 'freq_domain'
-        self._OM.define('funit', 'MHz', submenu=submenu, cat='runtime',
-                        prompt='freq_unit',
-                        opt=['Hz','kHz','MHz','GHz'],
-                        doc='unit of frequency')
-        self._OM.define('fstart', 1.0, submenu=submenu, cat='runtime',
-                        prompt='domain start',
-                        opt=[1.0,10.0], more=float,
-                        doc='domain start freq')
-        self._OM.define('df', 10.0, submenu=submenu, cat='runtime',
-                        prompt='domain width',
-                        opt=[10.0,100.0], more=float,
-                        doc='domain size in the freq dimension')
-        self._OM.define('num_freq', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of freq cells',
-                        opt=[1,10,20,30,50,100], more=int,
-                        doc='nr of freq cells in the domain')
 
-        submenu = 'time_domain'
-        self._OM.define('tunit', 's', submenu=submenu, cat='runtime',
-                        prompt='time_unit',
-                        opt=['s','min','hr','day'],
-                        doc='unit of time')
-        self._OM.define('tstart', 0.0, submenu=submenu, cat='runtime',
-                        prompt='domain start',
-                        opt=[0.0,1.0,10.0], more=float,
-                        doc='domain start time')
-        self._OM.define('dt', 1.0, submenu=submenu, cat='runtime',
-                        prompt='domain length',
-                        opt=[1.0,10.0,100.0], more=float,
-                        doc='domain size in the time dimension')
-        self._OM.define('num_time', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of time cells',
-                        opt=[1,11,21,31,51,101], more=int,
-                        doc='nr of time cells in the domain')
+        self.submenu_dim (dim='time',
+                          unit=['s','min','hr','day'],
+                          start=[0.0,1.0,10.0],
+                          size=[1.0,10.0,100.0],
+                          num_cells=[11,1,2,5,21,31,51,101],
+                          step=[1.0,10.0,100.0],
+                          num_steps=[1,2,5,10,20,50,100])
 
-        submenu = 'x_domain'
-        self._OM.define('xunit', 'rad', submenu=submenu, cat='runtime',
-                        prompt='x_unit',
-                        opt=['rad','m'],
-                        doc='unit along x-axis')
-        self._OM.define('xstart', 0.0, submenu=submenu, cat='runtime',
-                        prompt='domain start',
-                        opt=[0.0,1.0,10.0,100.0], more=float,
-                        doc='domain x-start')
-        self._OM.define('dx', 1.0, submenu=submenu, cat='runtime',
-                        prompt='domain size',
-                        opt=[1.0,10.0,100.0], more=float,
-                        doc='domain size in the x dimension')
-        self._OM.define('num_x', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of x cells',
-                        opt=[1,11,21,31,51,101], more=int,
-                        doc='nr of x cells in the domain')
+        self.submenu_dim (dim='freq',
+                          unit=['MHz','Hz','kHz','GHz'],
+                          start=[0.0,1.0,10.0,100.0],
+                          size=[1.0,10.0,100.0],
+                          num_cells=[10,1,2,5,20,30,50,100],
+                          step=[1.0,10.0,100.0],
+                          num_steps=[1,2,5,10,20,50,100])
 
-        submenu = 'y_domain'
-        self._OM.define('yunit', 'rad', submenu=submenu, cat='runtime',
-                        prompt='y_unit',
-                        opt=['rad','m'],
-                        doc='unit along y-axis')
-        self._OM.define('ystart', 0.0, submenu=submenu, cat='runtime',
-                        prompt='domain start',
-                        opt=[0.0,1.0,10.0,100.0], more=float,
-                        doc='domain y-start')
-        self._OM.define('dy', 1.0, submenu=submenu, cat='runtime',
-                        prompt='domain size',
-                        opt=[1.0,10.0,100.0], more=float,
-                        doc='domain size in the y dimension')
-        self._OM.define('num_y', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of y cells',
-                        opt=[1,11,21,31,51,101], more=int,
-                        doc='nr of y cells in the domain')
+        self.submenu_dim (dim='l',
+                          unit=['rad','deg'],
+                          start=[0.0,1.0,10.0,100.0],
+                          size=[1.0,10.0,100.0],
+                          num_cells=[9,1,2,5,21,31,51,101],
+                          step=[1.0,10.0,100.0],
+                          num_steps=[1,2,5,10,20,50,100])
 
-        submenu = 'time_sequence'
-        self._OM.define('toff', 0.0, submenu=submenu, cat='runtime',
-                        prompt='start offset',
-                        opt=[0.0,1.0,10.0], more=float,
-                        doc='initial offset')
-        self._OM.define('tstep', 1.0, submenu=submenu, cat='runtime',
-                        prompt='step size',
-                        opt=[1.0,10.0,100.0], more=float,
-                        doc='size (units!) of a time step')
-        self._OM.define('num_time_steps', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of time steps',
-                        opt=[1,2,5,10,20,50,100], more=int,
-                        doc='nr of steps in the sequence')
-
-        submenu = 'freq_sequence'
-        self._OM.define('foff', 0.0, submenu=submenu, cat='runtime',
-                        prompt='start offset',
-                        opt=[0.0,1.0,10.0], more=float,
-                        doc='initial offset')
-        self._OM.define('fstep', 1.0, submenu=submenu, cat='runtime',
-                        prompt='step size',
-                        opt=[1.0,10.0,100.0], more=float,
-                        doc='size (units!) of a freq step')
-        self._OM.define('num_freq_steps', 10, submenu=submenu, cat='runtime',
-                        prompt='nr of freq steps',
-                        opt=[1,2,5,10,20,50,100], more=int,
-                        doc='nr of steps in the sequence')
+        self.submenu_dim (dim='m',
+                          unit=['rad','deg'],
+                          start=[0.0,1.0,10.0,100.0],
+                          size=[1.0,10.0,100.0],
+                          num_cells=[10,1,2,5,21,31,51,101],
+                          step=[1.0,10.0,100.0],
+                          num_steps=[1,2,5,10,20,50,100])
 
         # Finished
         return True
 
+    #-------------------------------------------------------------------
+
+    def submenu_dim (self, dim='x', unit=['m'],
+                     start=[0.0], size=[1.0],
+                     num_cells=[10,1,2,5,20,50,100],
+                     step=[1.0], num_steps=[1,2,5,10,100]):
+        """Generic function to make a dimension-menu"""
+        
+        submenu = 'runtime.'+dim+'.'
+        self._OM.define(submenu+'unit', unit[0],
+                        prompt=dim+'_unit',
+                        opt=unit,
+                        doc='unit along '+dim+'-axis')
+        self._OM.define(submenu+'start', start[0],
+                        prompt='domain start',
+                        opt=start, more=float,
+                        doc='"lower" edge of the domain')
+        self._OM.define(submenu+'size', size[0],
+                        prompt='domain size',
+                        opt=size, more=float,
+                        doc='domain size in '+dim+' dimension')
+        self._OM.define(submenu+'num_cells', num_cells[0],
+                        prompt='nr of cells',
+                        opt=num_cells, more=int,
+                        doc='nr of domain cells in '+dim+' dimension')
+
+        submenu += 'sequence.'
+        self._OM.define(submenu+'step', step[0],
+                        prompt='step size',
+                        opt=step, more=float,
+                        doc='size (units!) of a step')
+        self._OM.define(submenu+'num_steps', num_steps[0],
+                        prompt='nr of '+dim+' steps',
+                        opt=num_steps, more=int,
+                        doc='nr of steps in the sequence')
+        return True
+
+    #----------------------------------------------------------------
+
+    def tmult (self, trace=False):
+        """Helper function to calculate the time unit mult.factor"""
+        tunit = self._OM['time.unit']
+        if tunit=='s':
+            tmult = 1.0
+        elif tunit=='min':
+            tmult = 60.0
+        elif tunit=='hr':
+            tmult = 3600.0
+        elif tunit=='day':
+            tmult = 60.0*3600.0
+        return tmult
+
+    
+    def fmult (self, trace=False):
+        """Helper function to calculate the freq unit mult.factor"""
+        funit = self._OM['freq.unit']
+        if funit=='Hz':
+            fmult = 1.0
+        elif funit=='kHz':
+            fmult = 1e3
+        elif funit=='MHz':
+            fmult = 1e6
+        elif funit=='GHz':
+            fmult = 1e9
+        return fmult
 
     #-------------------------------------------------------------------
 
-    def _tdl_job_4D_tflm (mqs, parent):
-        """Execute the forest with a 4D request (freq,time,l,m).
-        NB: This does NOT work on a Compounder node!"""
-        domain = meq.gen_domain(time=(0.0,1.0),freq=(1,10),l=(-0.1,0.1),m=(-0.1,0.1))
-        cells = meq.gen_cells(domain=domain, num_time=4, num_freq=5, num_l=6, num_m=7)
-        request = meq.request(cells, rqtype='ev')
-        result = mqs.meq('Node.Execute',record(name='result', request=request))
-        return result
-       
-
-       
 
     #.....................................................................
 
@@ -254,8 +242,9 @@ class Executor (object):
             self._OM.hide('time_sequence')
             self._OM.show('freq_sequence')
 
-        if self._OM.TDLMenu():
-            self._OM.TDLMenu().set_summary('(dim='+dim+')')
+        menu = self._OM.TDLMenu('runtime')
+        if menu:
+            menu.set_summary('(dim='+dim+')')
 
         return True
         
@@ -266,17 +255,17 @@ class Executor (object):
         It adjusts the hiding of options according to 'mode'."""
 
         if mode=='single':
-            self._OM.hide('time_sequence')
-            self._OM.hide('freq_sequence')
+            self._OM.hide('.sequence')
         elif mode=='time_sequence':
-            self._OM.show('time_sequence')
-            self._OM.hide('freq_sequence')
+            self._OM.hide('.sequence')
+            self._OM.show('time.sequence')
         elif mode=='freq_sequence':
-            self._OM.hide('time_sequence')
-            self._OM.show('freq_sequence')
+            self._OM.hide('.sequence')
+            self._OM.show('freq.sequence')
 
-        if self._OM.TDLMenu():
-            self._OM.TDLMenu().set_summary('(mode='+mode+')')
+        menu = self._OM.TDLMenu('runtime')
+        if menu:
+            menu.set_summary('(mode='+mode+')')
 
         return True
         
@@ -297,32 +286,43 @@ class Executor (object):
             s = '\n** Execute: invalid nodename: '+str(nodename)
             raise ValueError,s
 
-        mode = self._OM['mode']
+        mode = self._OM['runtime.mode']
 
         if mode=='time_sequence':
             tmult = self.tmult()
-            toff = self._OM['toff']*tmult 
-            for i in range(self._OM['num_time_steps']):
-                toff += self._OM['tstep']*tmult
+            submenu = 'time.sequence.'
+            toff = 0.0 
+            for i in range(self._OM[submenu+'num_steps']):
                 if trace:
                     print '---',i,' toff =',toff,'s'
                 domain = self.domain (t0=toff, trace=trace)
                 cells = self.cells (domain=domain, trace=trace)
                 request = self.request (cells=cells, trace=trace)
                 result = mqs.meq('Node.Execute',record(name=nodename, request=request))
+                toff += self._OM[submenu+'step']*tmult
 
         elif mode=='freq_sequence':
             fmult = self.fmult()
-            foff = self._OM['foff']*fmult 
-            for i in range(self._OM['num_freq_steps']):
-                foff += self._OM['fstep']*fmult
+            submenu = 'freq.sequence.'
+            foff = 0.0
+            for i in range(self._OM[submenu+'num_steps']):
                 if trace:
                     print '---',i,' foff =',foff,'Hz'
                 domain = self.domain (f0=foff, trace=trace)
                 cells = self.cells (domain=domain, trace=trace)
                 request = self.request (cells=cells, trace=trace)
                 result = mqs.meq('Node.Execute',record(name=nodename, request=request))
+                foff += self._OM[submenu+'step']*fmult
 
+        elif mode=='4D':
+            """Execute the forest with a 4D request (freq,time,l,m).
+            NB: This does NOT work on a Compounder node!"""
+            domain = meq.gen_domain(time=(0.0,1.0),freq=(1,10),l=(-0.1,0.1),m=(-0.1,0.1))
+            cells = meq.gen_cells(domain=domain, num_time=4, num_freq=5, num_l=6, num_m=7)
+            # request = meq.request(cells, rqtype='ev')
+            request = self.request (cells=cells, trace=trace)
+            result = mqs.meq('Node.Execute',record(name='result', request=request))
+       
         else:
             # Assume mode=='single' (domain)
             domain = self.domain (trace=trace)
@@ -357,43 +357,16 @@ class Executor (object):
         """Helper function to make a cells"""
         if not domain:
             domain = self.domain(trace=trace)
-        cells = meq.cells(domain,
-                          num_freq=self._OM['num_freq'],
-                          num_time=self._OM['num_time'])
+        num_freq = self._OM['freq.num_cells']
+        num_time = self._OM['time.num_cells']
+        cells = meq.cells(domain, num_freq=num_freq, num_time=num_time)
         if trace:
-            print '** cells: num_freq/time=',self._OM['num_freq'],self._OM['num_time']
+            print '** cells: num_freq/time=', num_freq, num_time
             print '** domain(cells) =',str(domain)
         return cells
 
 
     #-------------------------------------------------------------------
-
-    def tmult (self, trace=False):
-        """Helper function to calculate the time unit mult.factor"""
-        tunit = self._OM['tunit']
-        if tunit=='s':
-            tmult = 1.0
-        elif tunit=='min':
-            tmult = 60.0
-        elif tunit=='hr':
-            tmult = 3600.0
-        elif tunit=='day':
-            tmult = 60.0*3600.0
-        return tmult
-
-    
-    def fmult (self, trace=False):
-        """Helper function to calculate the freq unit mult.factor"""
-        funit = self._OM['funit']
-        if funit=='Hz':
-            fmult = 1.0
-        elif funit=='kHz':
-            fmult = 1e3
-        elif funit=='MHz':
-            fmult = 1e6
-        elif funit=='GHz':
-            fmult = 1e9
-        return fmult
 
 
     def domain (self, f0=0.0, t0=0.0, trace=False):
@@ -401,12 +374,12 @@ class Executor (object):
         The offsets f0(Hz)=0 and t0(s)=0 are for making sequences.
         """
         fmult = self.fmult()
-        f1 = f0+self._OM['fstart']*fmult
-        f2 = f1+self._OM['df']*fmult
+        f1 = f0+self._OM['freq.start']*fmult
+        f2 = f1+self._OM['freq.size']*fmult
 
         tmult = self.tmult()
-        t1 = t0+self._OM['tstart']*tmult
-        t2 = t1+self._OM['dt']*tmult
+        t1 = t0+self._OM['time.start']*tmult
+        t2 = t1+self._OM['time.size']*tmult
         
         # domain = meq.domain(f1,f2,t1,t2)
         domain = meq.gen_domain(time=(t1,t2),freq=(f1,f2))
@@ -433,6 +406,8 @@ class Executor (object):
 
 if 1:
     xtor = Executor()
+    xtor._OM.define ('compile.mode', '2D', opt=['2D','4D'])
+    xtor._OM.make_TDLCompileOptionMenu()
     # xtor.display()
 
 def _define_forest(ns):
@@ -441,8 +416,14 @@ def _define_forest(ns):
 
     time = ns.time << Meq.Time()
     freq = ns.freq << Meq.Freq()
-    freqtime = ns.freqtime << Meq.Add(time, freq)
-    cc.append(freqtime)
+    if xtor._OM['compile.mode']=='4D':
+        L = ns.L << Meq.Grid(axis='l')
+        M = ns.M << Meq.Grid(axis='m')
+        ftlm = ns.ftlm << Meq.Add(time, freq, L, M)
+        cc.append(ftlm)
+    else:
+        freqtime = ns.freqtime << Meq.Add(time, freq)
+        cc.append(freqtime)
 
     xtor.display('final', full=False)
 
@@ -464,7 +445,11 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Executor object"""
-    xtor.display()
+    xtor.display('_tdl_job')
+       
+def _tdl_job_display_full (mqs, parent):
+    """Just display the current contents of the Executor object"""
+    xtor.display('_tdl_job', full=True)
        
 
 
