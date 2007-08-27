@@ -432,8 +432,8 @@ class Executor (object):
 #=============================================================================
 
 if 1:
-    exc = Executor()
-    # exc.display()
+    xtor = Executor()
+    # xtor.display()
 
 def _define_forest(ns):
 
@@ -444,11 +444,11 @@ def _define_forest(ns):
     freqtime = ns.freqtime << Meq.Add(time, freq)
     cc.append(freqtime)
 
-    exc.display('final', full=False)
+    xtor.display('final', full=False)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    exc.make_TDLRuntimeOptionMenu()
+    xtor.make_TDLRuntimeOptionMenu()
     return True
 
 
@@ -460,11 +460,11 @@ Settings.forest_state.cache_policy = 100
 def _tdl_job_execute (mqs, parent):
     """Execute the forest with the specified options (domain etc),
     starting at the named node"""
-    return exc.execute(mqs, parent, start='result')
+    return xtor.execute(mqs, parent, start='result')
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Executor object"""
-    exc.display()
+    xtor.display()
        
 
 
@@ -488,19 +488,19 @@ if __name__ == '__main__':
 
 
     if 1:
-        exc = Executor()
-        exc.display('initial')
+        xtor = Executor()
+        xtor.display('initial')
 
     if 1:
-        exc.make_TDLRuntimeOptionMenu()
+        xtor.make_TDLRuntimeOptionMenu()
 
     if 0:
-        exc.domain(trace=True)
-        # exc.cells(trace=True)
-        # exc.request(trace=True)
+        xtor.domain(trace=True)
+        # xtor.cells(trace=True)
+        # xtor.request(trace=True)
 
     if 1:
-        exc.display('final')
+        xtor.display('final')
 
 
 
