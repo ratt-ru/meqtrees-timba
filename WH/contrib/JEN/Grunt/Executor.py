@@ -59,6 +59,8 @@ class Executor (object):
 
         self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
 
+        self._dims = []                           # control variable
+
         self.define_options(mode)
 
         self.request_counter = 0                  # see .request()
@@ -75,6 +77,7 @@ class Executor (object):
         """Return a one-line summary of this object"""
         ss = 'Grunt.Executor:'
         ss += ' '+str(self.name)
+        ss += '  '+str(self._dims)
         return ss
 
 
@@ -121,7 +124,6 @@ class Executor (object):
                         Changing the mode will change the visible options. 
                         """)
 
-
         self.submenu_dim (dim='time',
                           unit=['s','min','hr','day'],
                           start=[0.0,1.0,10.0],
@@ -138,24 +140,40 @@ class Executor (object):
                           step=[1.0,10.0,100.0],
                           num_steps=[1,2,5,10,20,50,100])
 
-        self.submenu_dim (dim='l',
-                          unit=['rad','deg'],
-                          start=[0.0,1.0,10.0,100.0],
-                          size=[1.0,10.0,100.0],
-                          num_cells=[9,1,2,5,21,31,51,101],
-                          step=[1.0,10.0,100.0],
-                          num_steps=[1,2,5,10,20,50,100])
-
-        self.submenu_dim (dim='m',
-                          unit=['rad','deg'],
-                          start=[0.0,1.0,10.0,100.0],
-                          size=[1.0,10.0,100.0],
-                          num_cells=[10,1,2,5,21,31,51,101],
-                          step=[1.0,10.0,100.0],
-                          num_steps=[1,2,5,10,20,50,100])
-
         # Finished
         return True
+
+    #-------------------------------------------------------------------
+
+    def add_extra_dim (self, dim=None, unit=[None]):
+        """Convenience function to include standard dimensions"""
+
+        if dim in ['l','m']:
+            self.submenu_dim (dim=dim,
+                              unit=['rad','deg'],
+                              start=[0.0,1.0,10.0,100.0],
+                              size=[1.0,10.0,100.0],
+                              num_cells=[9,1,2,5,21,31,51,101],
+                              step=[1.0,10.0,100.0],
+                              num_steps=[1,2,5,10,20,50,100])
+
+        elif dim in ['x','y','z']:
+            self.submenu_dim (dim=dim,
+                              unit=['m'],
+                              start=[0.0,1.0,10.0,100.0],
+                              size=[1.0,10.0,100.0],
+                              num_cells=[9,1,2,5,21,31,51,101],
+                              step=[1.0,10.0,100.0],
+                              num_steps=[1,2,5,10,20,50,100])
+
+
+        elif isinstance(dim,str):
+            if not isinstance(unit,list):
+                unit = [unit]
+            self.submenu_dim (dim=dim, unit=unit)
+
+        return True
+
 
     #-------------------------------------------------------------------
 
@@ -164,6 +182,10 @@ class Executor (object):
                      num_cells=[10,1,2,5,20,50,100],
                      step=[1.0], num_steps=[1,2,5,10,100]):
         """Generic function to make a dimension-menu"""
+
+        if dim in self._dims:
+            raise ValueError, 'duplication of dims'
+        self._dims.append(dim)
         
         submenu = 'runtime.'+dim+'.'
         self._OM.define(submenu+'unit', unit[0],
@@ -225,8 +247,6 @@ class Executor (object):
 
     #-------------------------------------------------------------------
 
-
-    #.....................................................................
 
     def _callback_dim (self, dim):
         """Function called whenever TDLOption 'dim' changes.
@@ -353,16 +373,20 @@ class Executor (object):
     
     #-------------------------------------------------------------------
     
+
     def cells (self, domain=None, trace=False):
         """Helper function to make a cells"""
         if not domain:
             domain = self.domain(trace=trace)
-        num_freq = self._OM['freq.num_cells']
-        num_time = self._OM['time.num_cells']
-        cells = meq.cells(domain, num_freq=num_freq, num_time=num_time)
+        pp = dict()
+        for dim in self._dims:
+            pp['num_'+dim] = self._OM[dim+'.num_cells']
+        # cells = meq.cells(domain, num_freq=num_freq, num_time=num_time)
+        cells = meq.gen_cells(domain, **pp)
         if trace:
-            print '** cells: num_freq/time=', num_freq, num_time
+            print '** cells: ', pp
             print '** domain(cells) =',str(domain)
+            print '** cells =',cells,'\n'
         return cells
 
 
@@ -373,16 +397,21 @@ class Executor (object):
         """Make a domain from the internal information.
         The offsets f0(Hz)=0 and t0(s)=0 are for making sequences.
         """
-        fmult = self.fmult()
-        f1 = f0+self._OM['freq.start']*fmult
-        f2 = f1+self._OM['freq.size']*fmult
 
-        tmult = self.tmult()
-        t1 = t0+self._OM['time.start']*tmult
-        t2 = t1+self._OM['time.size']*tmult
-        
-        # domain = meq.domain(f1,f2,t1,t2)
-        domain = meq.gen_domain(time=(t1,t2),freq=(f1,f2))
+        offset = dict(freq=f0, time=t0)         # -> argument!
+
+        pp = dict()
+        for dim in self._dims:
+            mult = 1.0
+            if dim=='freq': mult = self.fmult()
+            if dim=='time': mult = self.tmult()
+            offset.setdefault(dim, 0.0)
+            v0 = offset[dim]
+            v1 = v0+self._OM[dim+'.start']*mult
+            v2 = v1+self._OM[dim+'.size']*mult
+            pp[dim] = (v1,v2)
+
+        domain = meq.gen_domain(**pp)
         # domain = meq.gen_domain(time=(0.0,1.0),freq=(1,10),l=(-0.1,0.1),m=(-0.1,0.1))
 
         if trace:
@@ -407,6 +436,10 @@ class Executor (object):
 if 1:
     xtor = Executor()
     xtor._OM.define ('compile.mode', '2D', opt=['2D','4D'])
+    xtor.add_extra_dim('l')
+    xtor.add_extra_dim('m')
+    # xtor.add_extra_dim('x')
+    # xtor.add_extra_dim('y')
     xtor._OM.make_TDLCompileOptionMenu()
     # xtor.display()
 

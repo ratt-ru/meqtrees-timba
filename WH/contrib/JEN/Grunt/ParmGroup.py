@@ -449,7 +449,7 @@ class ParmGroup (Meow.Parameterization):
                        tiling=None, time_deg=0, freq_deg=0, simuldev=None):
         """Define the various options in its OptionManager object"""
 
-        # Individual options in the main menu (i.e. submenu=None):
+        # Individual options in the main menu:
         opt = ['nosolve','solve','simulate']
         self._OM.define('mode', mode, opt=opt, more=str,
                         prompt='mode of parameter generation',
@@ -467,11 +467,12 @@ class ParmGroup (Meow.Parameterization):
                         doc = 'MeqParm default value')
 
 
-        # The simulation submenu: 
+        # The simulation submenu:
+        submenu = 'simulation.'
         opt = []
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec=None, PHz='{5e6~10%}'))
         opt.append(self.simuldev_expr (ampl='{0.01~10%}', Psec='{50~10%}', PHz='{5e6~10%}'))
-        self._OM.define('simuldev', simuldev, submenu='simulation',
+        self._OM.define(submenu+'simuldev', simuldev,
                         opt=opt, more=str,
                         # oo.set_custom_value(getattr(self,key), select=True, save=True)
                         prompt='deviation from default value',
@@ -482,16 +483,16 @@ class ParmGroup (Meow.Parameterization):
                         - The notation between curly brackets allows random variation: {mean~stddev}""")
 
         # The 'domain span' submenu:
-        submenu = 'solving'
-        self._OM.define('tiling', tiling, submenu=submenu,
+        submenu = 'solving.'
+        self._OM.define(submenu+'tiling', tiling,
                         prompt='size of solution sub-tile',
                         opt=[1,2,4,8,16,None], more=int,
                         doc='Nr of time-slots per subtile solution. None means all.')
-        self._OM.define('time_deg', 1, submenu=submenu,
+        self._OM.define(submenu+'time_deg', 1,
                         prompt='time-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of time-polynomial to be solved for.')
-        self._OM.define('freq_deg', 2, submenu=submenu,
+        self._OM.define(submenu+'freq_deg', 2,
                         prompt='freq-degree of solution polc',
                         opt=[0,1,2,3,4], more=int,
                         doc='Degree of freq-polynomial to be solved for.')
@@ -510,14 +511,14 @@ class ParmGroup (Meow.Parameterization):
             cs.setdefault('product', -1.1)
             cs.setdefault('ignore', 0)
             
-        submenu = 'constraints'
+        submenu = 'constraints.'
         if cs.has_key('min'):
             key = 'min'
             opt = [cs[key]]
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to be less than the specified value"""
-            self._OM.define(key, cs[key], submenu=submenu,
+            self._OM.define(submenu+key, cs[key],
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('max'):
@@ -526,7 +527,7 @@ class ParmGroup (Meow.Parameterization):
             if not None in opt: opt.append(None)
             doc = """Do not allow the values of the MeqParms in this group
             to exceed the specified value"""
-            self._OM.define(key, cs[key], submenu=submenu,
+            self._OM.define(submenu+key, cs[key],
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('sum'):
@@ -535,7 +536,7 @@ class ParmGroup (Meow.Parameterization):
             if not 0.0 in opt: opt.append(0.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the sum of the values of the MeqParm in this group'
-            self._OM.define(key, cs[key], submenu=submenu,
+            self._OM.define(submenu+key, cs[key],
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('product'):
@@ -544,7 +545,7 @@ class ParmGroup (Meow.Parameterization):
             if not 1.0 in opt: opt.append(1.0)
             if not None in opt: opt.append(None)
             doc = 'Constrain the product of value of the MeqParms in this group'
-            self._OM.define(key, cs[key], submenu=submenu,
+            self._OM.define(submenu+key, cs[key],
                             prompt='constrain the '+key+' to',
                             opt=opt, more=float, doc=doc)
         if cs.has_key('ignore'):
@@ -553,7 +554,7 @@ class ParmGroup (Meow.Parameterization):
             if not 0 in opt: opt.append(0)
             if not None in opt: opt.append(None)
             doc = 'The ignored MeqParm(s) will keep their current value(s).'
-            self._OM.define(key, cs[key], submenu=submenu,
+            self._OM.define(submenu+key, cs[key],
                             prompt='do NOT solve for MeqParm(s) with index',
                             opt=opt, more=int, doc=doc)
 
@@ -682,7 +683,9 @@ class ParmGroup (Meow.Parameterization):
         """Return a list of zero or more constraint condeq(s).
         Make them if necessary."""
         cc = []
-        for key in self._OM.keys('constraints'):
+        # for key in self._OM.keys('constraints'):
+        fkey = self._OM.find_menu_key('constraints') 
+        for key in self._OM.menu_option_keys[fkey]:
             if self._condeq.has_key(key):
                 cc.append(self._condeq[key])
             else:

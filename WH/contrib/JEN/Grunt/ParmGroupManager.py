@@ -331,7 +331,7 @@ class ParmGroupManager (Meow.Parameterization):
         oolist = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
-            oolist.append(pg.make_TDLCompileOptionMenu(reset=False))        
+            oolist.append(pg.make_TDLCompileOptionMenu(include_reset_option=False))        
         return self._OM.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
     
     def make_TDLRuntimeOptionMenu (self, **kwargs):
@@ -339,7 +339,7 @@ class ParmGroupManager (Meow.Parameterization):
         oolist = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
-            oolist.append(pg.make_TDLRuntimeOptionMenu(reset=False))        
+            oolist.append(pg.make_TDLRuntimeOptionMenu(include_reset_option=False))        
         return self._OM.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
     
     #.........................................................................

@@ -330,11 +330,11 @@ class OptionManager (object):
         for key in keys:
             if pp.has_key(key):
                 if key=='value':
-                    rr['default'] = pp[key]
-                    ukey = self.internal_name(key)
+                    optrec['default'] = pp[key]
+                    ukey = self.internal_name(fkey)
                     setattr (self, ukey, pp[key])    # modify the working value too
                 else:
-                    rr[key] = pp[key]
+                    optrec[key] = pp[key]
         return True
 
     #-----------------------------------------------------------------------------
@@ -751,6 +751,17 @@ class OptionManager (object):
     #-----------------------------------------------------------------------------
     # Helper functions:
     #-----------------------------------------------------------------------------
+
+    def find_menu_key (self, substring, one=True, trace=False):
+        """Convenience version of .findkey() for menus only"""
+        return self.findkey (substring, keys=self.menu_order,
+                             one=one, trace=trace)
+
+    def find_option_key (self, substring, one=True, trace=False):
+        """Convenience version of .findkey() for options only"""
+        return self.findkey (substring, keys=self.order,
+                             one=one, trace=trace)
+
 
     def findkey (self, substring, keys=[], one=True, trace=False):
         """Helper function to find the key(s) that contain the specified (sub)string
