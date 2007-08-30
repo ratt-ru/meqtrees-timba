@@ -180,7 +180,9 @@ class OptionManager (object):
         """Helper function to make the internal option name from the given key.
         The name of the internal variable is prepended with '_': self._<key>
         This is to avoid name clashes with any object attributes."""
-        return '_'+key
+        # name = key.replace('.','+')
+        name = '_'+name
+        return name
 
 
     #===============================================================
@@ -225,7 +227,7 @@ class OptionManager (object):
                     print prefix,'    - '+key+': '+str(self.option[key])
         #...............................................................
         keys = self.undo_last_reset.keys()
-        print prefix,'  * undo_last_reset ('+str(len(keys))+'): '
+        print prefix,'  * values for .undo_last_reset() ('+str(len(keys))+'): '
         #...............................................................
         print prefix,'  * option values ('+str(len(self.order))+'): '
         for key in self.order:
@@ -389,7 +391,7 @@ class OptionManager (object):
 
         # OK, create the new option entry:
         if self.option.has_key(optkey):
-            s = '** create('+str(optkey)+'): option already exists'
+            s = '** create('+str(optkey)+'): option definition already exists'
             raise ValueError,s
         self.option[optkey] = None
         self.optrec[optkey] = optrec                     # flat record of optrecs
@@ -451,7 +453,8 @@ class OptionManager (object):
     #---------------------------------------------------------------------
 
     def TDLOption_objects(self, substring,
-                          menus=True, options=True, trace=False):
+                          menus=True, options=True,
+                          trace=False):
         """Return a list of all (existing) TDLObjects (menus and options)
         whose keys contain the given substring
         """
@@ -475,35 +478,39 @@ class OptionManager (object):
 
     #----------------------------------------------------------------------
 
-    def show(self, key=None, show=True):
+    def show(self, key=None, show=True, trace=False):
         """Show/hide the specified (key) menu/option."""
-        return self.hide(key=key, hide=(not show))
+        return self.hide(key=key, hide=(not show), trace=trace)
 
 
-    def hide(self, key=None, hide=True):
+    def hide(self, key=None, hide=True, trace=False):
         """Hide/unhide the specified menu/option."""
         if isinstance(key,bool):
             hide = key
             key = None
+        if trace:
+            print '\n** .hide(',key,hide,'):'
         oolist = self.TDLOption_objects(key, menus=True,
-                                        options=True, trace=False)
+                                        options=True, trace=trace)
         for oo in oolist:
             oo.hide(hide)
         return True
         
     #---------------------------------------------------------------------
 
-    def enable(self, key=None, enable=True):
+    def enable(self, key=None, enable=True, trace=False):
         """Enable/disable the specified (key) menu/option."""
-        return self.disable (key=key, disable=(not enable))
+        return self.disable (key=key, disable=(not enable), trace=trace)
 
-    def disable(self, key=None, disable=True):
+    def disable(self, key=None, disable=True, trace=False):
         """Disable/enable the specified menu/option."""
         if isinstance(key,bool):
             disable = key
             key = None
+        if trace:
+            print '\n** .disable(',key,disable,'):'
         oolist = self.TDLOption_objects(key, menus=True,
-                                        options=True, trace=False)
+                                        options=True, trace=trace)
         for oo in oolist:
             oo.disable(disable)
         return True
@@ -585,7 +592,10 @@ class OptionManager (object):
             optrec = self.optrec[optkey]
             opt = [self[optkey]]                  # current working value
             if isinstance(optrec['opt'],list):
-                opt.extend(optrec['opt'])
+                optlist = optrec['opt']
+                if opt[0] in optlist:
+                    optlist.remove(opt[0])        # avoid duplication
+                opt.extend(optlist)
             oo = TDLOption(key, optrec['prompt'], opt,
                            more=optrec['more'],
                            doc=optrec['doc'],
@@ -620,6 +630,8 @@ class OptionManager (object):
             menukey = rr['_menukey_']
             if level==0:
                 prepend = ' options for: '
+                if cat=='runtime':
+                    prepend = 'Runtime'+prepend
                 prompt = self.namespace(prepend=prepend, append=self.name)
             else:
                 ss = menukey.split('.')
@@ -724,10 +736,10 @@ class OptionManager (object):
         # (i.e. NOT the 'reset' option itself (see .make_reset_option())
         for key in self.order:
             ss = key.split('.')
-            if ss[0] in ['compile','runtime']:
-            # if ss[0] in ['compile']:                 # .....?
+            # if ss[0] in ['compile','runtime']:
+            if ss[0]=='compile':                       # compile-time options ONLY!
                 ukey = self.internal_name(key)
-                was = getattr(self,ukey)
+                was = self[key]                        # current value
                 if not undo:
                     new = self.optrec[key]['default']
                 elif self.undo_last_reset.has_key(key):
@@ -735,10 +747,10 @@ class OptionManager (object):
                 else:
                     break                              # undo not possible
                 setattr(self, ukey, new)
-                if self.option.has_key(key):
+                if self.option[key]:
                     self.option[key].set_value(new, save=True)
-                    now = self.option[key].value
-                    self.undo_last_reset[key] = was    # see .undo_reset()
+                    self.undo_last_reset[key] = was    # keep for later undo
+                now = self[key]                        # new current value
                 if trace:
                     print ' - () '+key+':  -> '+str(now),
                     if not new==was: print '     (changed: was ',was,')',
