@@ -100,7 +100,7 @@ The attributes that may be defined with .define() are:
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from copy import deepcopy
+from copy import deepcopy
 
 #======================================================================================
 
@@ -182,8 +182,9 @@ class OptionManager (object):
         """Helper function to make the internal option name from the given key.
         The name of the internal variable is prepended with '_': self._<key>
         This is to avoid name clashes with any object attributes."""
-        name = key
-        # name = key.replace('.','+')
+        name = deepcopy(key)
+        # name = key.replace('.','_')
+        # name = key.replace('.','')
         name = '_'+name
         return name
 
@@ -239,7 +240,9 @@ class OptionManager (object):
             ss = '(-) '
             if self.option[key]:
                 ss = '(+) '
-            ss += key+' = '+str(value)
+            ss += key
+            ss += ' (ukey='+str(self.internal_name(key))+') '
+            ss += ' = '+str(value)
             if not value==rr['default']:
                 ss += '     (default value = '+str(rr['default'])+')' 
             if self.option[key]:
@@ -312,7 +315,7 @@ class OptionManager (object):
                           key=key, ukey=ukey, 
                           default=value, doc=doc, prompt=prompt,
                           opt=opt, more=more, callback=callback)
-            self.create(key, optrec, trace=True)
+            self.create(key, optrec, trace=trace)
             if trace:
                 print '  ** define(',key,ukey,value,submenu,cat,')'
         return True
@@ -461,7 +464,7 @@ class OptionManager (object):
         """Return a list of all (existing) TDLObjects (menus and options)
         whose keys contain the given substring
         """
-        trace = True
+        # trace = True
         if trace:
             print '** TDLOption_objects(',substring,menus,options,'): ',
         oolist = []
@@ -602,8 +605,10 @@ class OptionManager (object):
                 if opt[0] in optlist:
                     optlist.remove(opt[0])        # avoid duplication
                 opt.extend(optlist)
-            oo = TDLOption(key, optrec['prompt'], opt,
-                           more=optrec['more'],
+            # oo = TDLOption(key,
+            oo = TDLOption(optrec['ukey'],
+                           optrec['prompt'],
+                           opt, more=optrec['more'],
                            doc=optrec['doc'],
                            namespace=self)
             oo.when_changed(self.callback_submenu)
@@ -635,6 +640,8 @@ class OptionManager (object):
                 prepend = ' options for: '
                 if cat=='runtime':
                     prepend = 'Runtime'+prepend
+                elif cat=='compile':
+                    prepend = 'Compile-time'+prepend
                 prompt = self.namespace(prepend=prepend, append=self.name)
             else:
                 ss = menukey.split('.')
@@ -696,7 +703,7 @@ class OptionManager (object):
     # Functions dealing with resetting the option values:
     #---------------------------------------------------------------------
 
-    def make_reset_option (self, cat='compile', hide=False, trace=True):
+    def make_reset_option (self, cat='compile', hide=False, trace=False):
         """Make the 'reset' option, that allows reset of ALL compile-time
         options to the original values in their optrecs.
         """
@@ -718,7 +725,6 @@ class OptionManager (object):
             values, supplied by the module designer.)
             If undo, restore the option values BEFORE the last reset operation
             """
-            print doc
             oo = TDLOption(key, prompt, [False, True, 'undo'], doc=doc, namespace=self)
             self.option[key] = oo          # NB: Do NOT add this key to self.order!
             oo.when_changed(callback)
@@ -733,9 +739,9 @@ class OptionManager (object):
     def callback_reset_compile(self, reset):
         """Function called whenever the 'reset' menuitem changes."""
         if reset==True:
-            self.reset_options('compile', trace=True)
+            self.reset_options('compile')
         elif reset=='undo':
-            self.reset_options(undo=True, trace=True)
+            self.reset_options(undo=True)
         # Set the value of the 'reset' option back to False: 
         # The option key has been defined in .make_reset_option()
         key = self.key_of_reset_option['compile']
@@ -748,9 +754,9 @@ class OptionManager (object):
     def callback_reset_runtime(self, reset):
         """Function called whenever the 'reset' menuitem changes."""
         if reset==True:
-            self.reset_options('runtime', trace=True)
+            self.reset_options('runtime')
         elif reset=='undo':
-            self.reset_options(undo=True, trace=True)
+            self.reset_options(undo=True)
         # Set the value of the 'reset' option back to False: 
         # The option key has been defined in .make_reset_option()
         key = self.key_of_reset_option['runtime']
@@ -760,7 +766,7 @@ class OptionManager (object):
 
     #.....................................................................
 
-    def reset_options(self, cat='compile', undo=False, trace=False):
+    def reset_options(self, cat='compile', undo=False, trace=True):
         """Helper function to reset the TDLOptions and their local
         'working' counterparts to the original default values.
         If undo==True, undo the last reset operation.
@@ -787,7 +793,7 @@ class OptionManager (object):
                     self.undo_last_reset[key] = was    # keep for later undo
                 now = self[key]                        # new current value
                 if trace:
-                    print ' - () '+key+':  -> '+str(now),
+                    print ' - () '+key+'('+ukey+'):  -> '+str(now),
                     if not new==was: print '     (changed: was ',was,')',
                     print
         if trace: print

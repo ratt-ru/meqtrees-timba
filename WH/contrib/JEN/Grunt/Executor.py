@@ -44,6 +44,7 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grunt import OptionManager
 from Timba.Contrib.JEN.util import JEN_bookmarks
+from Timba.Contrib.JEN.Grunt import display
 
 # from copy import deepcopy
 import math
@@ -54,8 +55,7 @@ class Executor (object):
     """The Grunt Executor class makes it easy to execute trees in various ways"""
 
     def __init__(self, name='Executor',
-                 # mode='single',
-                 namespace='<namespace>'):
+                 namespace='xtor'):
 
         self.name = name
         self._frameclass = 'Grunt.Executor'       # for reporting
@@ -76,11 +76,11 @@ class Executor (object):
 
     #-----------------------------------------------------------------
 
-    def dims_compile(self):
+    def compile_dims(self):
         """Return a list of the 'active' compile dimensions"""
         return self.dims('compile')
     
-    def dims_runtime(self):
+    def runtime_dims(self):
         """Return a list of the 'active' runtime dimensions"""
         return self.dims('runtime')
         
@@ -116,8 +116,8 @@ class Executor (object):
         print prefix,'  * dimensions:'
         for dim in self._order:
             print prefix,'    - '+dim+': '+str(self._dims[dim])
-        print prefix,'  * dims_compile() -> '+str(self.dims_compile())
-        print prefix,'  * dims_runtime() -> '+str(self.dims_runtime())
+        print prefix,'  * compile_dims() -> '+str(self.compile_dims())
+        print prefix,'  * runtime_dims() -> '+str(self.runtime_dims())
         print prefix,'  * domain() -> '+str(self.domain())
         #...............................................................
         print prefix,'  * '+self._OM.oneliner()
@@ -178,11 +178,12 @@ class Executor (object):
         return self._callback_cat_dims ('runtime', dims)
 
 
-    def _callback_cat_dims (self, cat, dims):
+    def _callback_cat_dims (self, cat, dims, trace=False):
         """Function that does the work for ._callback_runtime/compile_dims().
         It adjusts the activation of options according to 'dims'."""
 
-        print '\n** ._callback_cat_dims(',cat,dims,'):'
+        if trace:
+            print '\n** ._callback_cat_dims(',cat,dims,'):'
 
         # First hide/inactivate all dimensions:
         alldims = ''
@@ -190,6 +191,7 @@ class Executor (object):
             alldims += dim[0]
             self._OM.hide(cat+'.'+dim)
             self._dims[dim][cat] = False
+            if trace: print '  --',dim,':',self._dims[dim]
         if dims=='*':
             dims = alldims
 
@@ -199,23 +201,26 @@ class Executor (object):
                 if self._dims.has_key(dim): 
                     self._OM.show(cat+'.'+dim)
                     self._dims[dim][cat] = True
+                    if trace: print '  ---',dim,':',self._dims[dim]
 
         elif dims in self.dims():            # e.g. dims='freq'
             self._OM.show(cat+'.'+dims)
-            self._dims[dim][cat] = True
+            self._dims[dims][cat] = True
+            if trace: print '  ----',dims,':',self._dims[dims]
 
         else:
             for dim in self.dims():          # e.g. dims='ftlm'
                 for char in dims:
-                    print dim,dim[0],char,dim[0]==char
                     if dim[0]==char:
                         self._OM.show(cat+'.'+dim)
-                        self._dims[dim][cat] = False
-    
+                        self._dims[dim][cat] = True
+                        if trace: print '  -----',dim,':',self._dims[dim]
+
         menu = self._OM.TDLMenu(cat)
         if menu:
-            menu.set_summary('(dims='+dims+')')
+            menu.set_summary('(dims='+str(dims)+')')
 
+        if trace: print
         return True
         
 
@@ -239,7 +244,7 @@ class Executor (object):
         # Make a control dict for this dimension:
         self._dims[dim] = dict(compile=True, runtime=True)
         self._order.append(dim)
-        
+
         submenu = 'runtime.'+dim+'.'
         self._OM.define(submenu+'unit', units[0],
                         prompt=dim+'_unit',
@@ -290,17 +295,17 @@ class Executor (object):
             s = '\n** Execute: invalid nodename: '+str(nodename)
             raise ValueError,s
 
-        # mode = self._OM['runtime.mode']
+        # mode = self._OM['runtime.'+'mode']
 
         # Set up the sequence control dict:
         ctrl = dict()
         offset = dict()
-        for dim in self.dims_runtime():
+        for dim in self.runtime_dims():
             rr = dict(count=0, finished=False)
-            rr['num_steps'] = self._OM[dim+'.num_steps']
-            domain_size = self._OM[dim+'.size']
-            rr['step'] = self._OM[dim+'.step']*domain_size
-            rr['offset0'] = self._OM[dim+'.offset']*domain_size
+            rr['num_steps'] = self._OM[dim+'.'+'num_steps']
+            domain_size = self._OM[dim+'.'+'size']
+            rr['step'] = self._OM[dim+'.'+'step']*domain_size
+            rr['offset0'] = self._OM[dim+'.'+'offset']*domain_size
             ctrl[dim] = rr
             offset[dim] = rr['offset0']
 
@@ -362,8 +367,8 @@ class Executor (object):
             domain = self.domain(trace=trace)
 
         pp = dict()
-        for dim in self.dims_runtime():
-            pp['num_'+dim] = self._OM[dim+'.num_cells']
+        for dim in self.runtime_dims():
+            pp['num_'+dim] = self._OM[dim+'.'+'num_cells']
         cells = meq.gen_cells(domain, **pp)
 
         if trace:
@@ -382,13 +387,13 @@ class Executor (object):
         """
 
         pp = dict()
-        for dim in self.dims_runtime():
-            mult = self.conversion_factor(self._OM[dim+'.unit']) 
+        for dim in self.runtime_dims():
+            mult = self.conversion_factor(self._OM[dim+'.'+'unit']) 
             v0 = 0.0
             if offset:
                 v0 = offset[dim]
-            v1 = v0+self._OM[dim+'.start']*mult
-            v2 = v1+self._OM[dim+'.size']*mult
+            v1 = v0+self._OM[dim+'.'+'start']*mult
+            v2 = v1+self._OM[dim+'.'+'size']*mult
             pp[dim] = (v1,v2)
         domain = meq.gen_domain(**pp)
 
@@ -482,7 +487,9 @@ class Executor (object):
     
 
     #===================================================================
+    #===================================================================
     # Compile-time options (for building trees):
+    #===================================================================
     #===================================================================
 
     def make_TDLCompileOptionMenu (self, **kwargs):
@@ -497,21 +504,35 @@ class Executor (object):
         """Define the various compile-time options in its OptionManager object"""
 
         submenu = 'compile.'
+
         opt = ['freq','time','ft','*']
         self._OM.define(submenu+'dims', ['freq','time'],
                         opt=opt, more=str,
                         prompt='compile-time dimension(s)',
                         callback=self._callback_compile_dims,
                         doc = """The selected dimensions will be used in
-                        the tree-generating function _define_forest().
-                        """)
+                        the tree-generating function _define_forest().""")
+
+        self._OM.define(submenu+'bookpage', 'xtor',
+                        opt=[None], more=str,
+                        prompt='meqbrowser bookpage',
+                        doc = """If specified, the leaf nodes generated with the
+                        xtor functions .leafnode() and .leafnodes() will be
+                        be bookmarked on the same bookpage.""")
 
         for dim in self.dims():
             submenu = 'compile.'+dim+'.'
-            self._OM.define(submenu+'leaf', 'linear',
-                            prompt=dim+' leaf',
-                            opt=['linear','quadratic','cubic'],
-                            doc='instructions for '+dim+' leaf subtree')
+
+            opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
+            opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
+            self._OM.define(submenu+'unop', None,
+                            prompt='unop('+dim+')', opt=opt,
+                            doc='apply unary operation on MeqGrid(axis='+dim+')')
+
+            self._OM.define(submenu+'stddev', 0.0,
+                            prompt='stddev noise',
+                            opt=[0.1,1.0], more=float,
+                            doc='add gaussian noise (if stddev>0)')
 
         return True
 
@@ -519,14 +540,97 @@ class Executor (object):
 
     def _callback_compile_dims (self, dims):
         """Function called whenever TDLOption compile.dims changes."""
-        return self._callback_cat_dims ('compile', dims)
+        return self._callback_cat_dims ('compile', dims, trace=False)
 
 
+    #====================================================================
+    # Functions to be used in _define_forest()
+    #====================================================================
     
+    def leafnodes (self, ns, return_list=False, 
+                  bookpage=None, folder=None, trace=True):
+        """Return a dict or list of 'leaf' nodes for the seleced compile-time
+        dimensions. The dict fields are named after the dimensions.
+        The leaves are usually MeqGrid nodes (like MeqTime), but they
+        an also be subtrees with unary operations and added noise etc.
+        """
+        if trace:
+            print '\n** .leafnodes(',type(ns),return_list,'):'
+            for dim in self._dims:
+                print ' - self._dims[',dim,'] =',self._dims[dim]
 
+        nn = dict()
+        dd = []
+        for dim in self.compile_dims():
+            qnode = ns[dim]
+            if not qnode.initialized():
+                qnode << Meq.Grid(axis=dim)
+            if trace:
+                print ' * ',dim,':',str(qnode)
+                
+            # Optional: add gaussian noise:
+            stddev = self._OM['compile.'+dim+'.'+'stddev']
+            if stddev:
+                noise = ns[dim+'_noise']
+                if not noise.initialized():
+                    noise << Meq.GaussNoise(stddev=stddev) 
+                qnode = ns << Meq.Add(qnode,noise)
+                if trace:
+                    print '    - stddev =',stddev,' ->',str(qnode)
 
+            # Optional: apply and unary operation
+            unop = self._OM['compile.'+dim+'.'+'unop']
+            if unop:
+                qnode = ns << getattr(Meq,unop)(qnode) 
+                if trace:
+                    print '    - unop =',unop,' ->',str(qnode)
+            
+            # Dispose of the finished leaf node/subtree for this dimension 
+            nn[dim] = qnode
+            dd.append(qnode)
+            self._create_bookmark(qnode, bookpage=bookpage, folder=folder)
 
+        # Return either a list or a dict:
+        if return_list:
+            return dd
+        return nn
 
+    #------------------------------------------------------------------------
+
+    def leafnode (self, ns, combine='Add', name=None,
+                  bookpage=None, folder=None, trace=True):
+        """Combine the node(s) resulting from .leafnodes() into
+        a single leaf node (subtree, really), using the specified
+        (combine) operation. Optionally, a nodename may be specified.
+        Optionally, a bookmark will be generated.
+        """
+        if trace:
+            print '\n** .leafnode(',combine,name,bookpage,'):'
+
+        # First get a list of the specified dimension leaf nodes/subtrees:
+        dd = self.leafnodes(ns, trace=trace, return_list=True,
+                            bookpage=bookpage, folder=folder)
+
+        # Then combine these with the specified operation(s):
+        node = None
+        if combine in ['Add','Multiply']:
+            node = ns << getattr(Meq,combine)(*dd)
+            
+        if not node:
+            return node
+        if trace:
+            display.subtree(node)
+        self._create_bookmark(node, bookpage=bookpage, folder=folder)
+        return node
+
+    #................................................................
+        
+    def _create_bookmark(self, node, bookpage=None, folder=None):
+        """Helper function, called by .leafnode(s)()"""
+        bookpage = self._OM['compile.'+'bookpage'] or bookpage
+        if node and bookpage:
+            JEN_bookmarks.create(node, page=str(bookpage), folder=folder)
+        return True
 
 #=============================================================================
 #=============================================================================
@@ -543,22 +647,18 @@ if 1:
     xtor.make_TDLCompileOptionMenu()
     # xtor.display()
 
+
 def _define_forest(ns):
 
     cc = []
 
-    dd = []
-    for dim in xtor.dims_compile():
-        if dim=='time':
-            time = ns[dim] << Meq.Time()
-        elif dim=='freq':
-            freq = ns[dim] << Meq.Freq()
-        else:
-            ns[dim] << Meq.Grid(axis=dim)
-        dd.append(ns[dim])
-    dimsum = ns['dimsum'] << Meq.Add(*dd)
+    if True:
+        dimsum = xtor.leafnode(ns, 'Add')
+    else:
+        dd = xtor.leafnodes(ns, return_list=True)
+        dimsum = ns['dimsum'] << Meq.Add(*dd)
+        JEN_bookmarks.create(dimsum)
     cc.append(dimsum)
-    JEN_bookmarks.create(dimsum)
 
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)

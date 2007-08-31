@@ -683,7 +683,6 @@ class ParmGroup (Meow.Parameterization):
         """Return a list of zero or more constraint condeq(s).
         Make them if necessary."""
         cc = []
-        # for key in self._OM.keys('constraints'):
         fkey = self._OM.find_menu_key('constraints') 
         for key in self._OM.menu_option_keys[fkey]:
             if self._condeq.has_key(key):
