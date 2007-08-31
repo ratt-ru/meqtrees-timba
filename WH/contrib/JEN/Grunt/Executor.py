@@ -86,11 +86,13 @@ class Executor (object):
         
     def dims(self, cat=None):
         """Return a list of the 'active' compile/runtime dimensions"""
+        if cat==None:
+            return self._order         # a list of all available dimensions        
         dims = []
         for dim in self._order:
-            if self._dims[dim][cat]:
+            if self._dims[dim][cat]:   # active for cat(egory) 'compile' or 'runtime'
                 dims.append(dim)
-        return dims
+        return dims                    # a selection of the available dims
 
     #===============================================================
     # Display of the contents of this object:
@@ -127,44 +129,6 @@ class Executor (object):
 
 
 
-    #===================================================================
-    # Compile-time options (for building trees):
-    #===================================================================
-
-    def make_TDLCompileOptionMenu (self, **kwargs):
-        """Make the TDL menu of run-time options"""
-        self.define_compile_options()
-        return self._OM.make_TDLCompileOptionMenu(**kwargs)
-    
-    
-    #-------------------------------------------------------------------
-
-    def define_compile_options(self):
-        """Define the various compile-time options in its OptionManager object"""
-
-        for dim in self.dims_compile():
-            self._OM.define('compile.'+dim,
-                            (dim in ['time','freq']),
-                            prompt='use '+dim,
-                            opt=[True,False],
-                            # toggle=True,
-                            callback=self.callback_compile_use,
-                            doc='build '+dim+'-dependence into the tree')
-
-        return True
-
-    #.....................................................................
-
-    def callback_compile_use (self, dummy):
-        """Callback function whenever compile 'use' option changes"""
-        for dim in self._order:
-            key = 'compile.'+dim
-            tf = self._OM[key]
-            self._dims[dim]['compile'] = tf
-            # print '---',dim,':',self._dims[dim]
-        return True
-        
-
 
     #===================================================================
     # Run-time options (for making requests, etc):
@@ -172,6 +136,8 @@ class Executor (object):
 
     def make_TDLRuntimeOptionMenu (self, **kwargs):
         """Make the TDL menu of run-time options"""
+        # if not isinstance(kwargs, dict): kwargs = dict()
+        kwargs.setdefault('include_reset_option', True)
         return self._OM.make_TDLRuntimeOptionMenu(**kwargs)
     
     #-----------------------------------------------------------------------
@@ -182,13 +148,13 @@ class Executor (object):
 
         # Individual options in the main menu (i.e. submenu=None):
         submenu = 'runtime.'
-        opt = [mode]
-        self._OM.define(submenu+'mode', mode,
+        opt = ['freq','time','ft','*']
+        self._OM.define(submenu+'dims', ['freq','time'],
                         opt=opt, more=str,
-                        prompt='forest execution mode',
-                        callback=self._callback_mode,
-                        doc = """The following Executor modes are supported:
-                        Changing the mode will change the visible options. 
+                        prompt='runtime dimension(s)',
+                        callback=self._callback_runtime_dims,
+                        doc = """The selecte dimensions will be used for
+                        generating (a sequence of) multi-dimenional requests. 
                         """)
 
         self.add_dimension (dim='time', unit='s',
@@ -207,22 +173,48 @@ class Executor (object):
         
     #.....................................................................
 
-    def _callback_mode (self, mode):
-        """Function called whenever TDLOption _mode changes.
-        It adjusts the hiding of options according to 'mode'."""
+    def _callback_runtime_dims (self, dims):
+        """Function called whenever TDLOption runtime.dims changes."""
+        return self._callback_cat_dims ('runtime', dims)
 
-        if mode=='single':
-            self._OM.hide('.sequence')
-        elif mode=='time_sequence':
-            self._OM.hide('.sequence')
-            self._OM.show('time.sequence')
-        elif mode=='freq_sequence':
-            self._OM.hide('.sequence')
-            self._OM.show('freq.sequence')
 
-        menu = self._OM.TDLMenu('runtime')
+    def _callback_cat_dims (self, cat, dims):
+        """Function that does the work for ._callback_runtime/compile_dims().
+        It adjusts the activation of options according to 'dims'."""
+
+        print '\n** ._callback_cat_dims(',cat,dims,'):'
+
+        # First hide/inactivate all dimensions:
+        alldims = ''
+        for dim in self.dims():
+            alldims += dim[0]
+            self._OM.hide(cat+'.'+dim)
+            self._dims[dim][cat] = False
+        if dims=='*':
+            dims = alldims
+
+        # Then show/activate the selected ones:
+        if isinstance(dims, list):           # e.g. dims=['freq','time']
+            for dim in dims:
+                if self._dims.has_key(dim): 
+                    self._OM.show(cat+'.'+dim)
+                    self._dims[dim][cat] = True
+
+        elif dims in self.dims():            # e.g. dims='freq'
+            self._OM.show(cat+'.'+dims)
+            self._dims[dim][cat] = True
+
+        else:
+            for dim in self.dims():          # e.g. dims='ftlm'
+                for char in dims:
+                    print dim,dim[0],char,dim[0]==char
+                    if dim[0]==char:
+                        self._OM.show(cat+'.'+dim)
+                        self._dims[dim][cat] = False
+    
+        menu = self._OM.TDLMenu(cat)
         if menu:
-            menu.set_summary('(mode='+mode+')')
+            menu.set_summary('(dims='+dims+')')
 
         return True
         
@@ -249,11 +241,6 @@ class Executor (object):
         self._order.append(dim)
         
         submenu = 'runtime.'+dim+'.'
-        self._OM.define(submenu+'use', (dim in ['freq','time']),
-                        prompt='use '+dim+' in request',
-                        opt=[True,False],
-                        callback=self.callback_runtime_use,
-                        doc='unit along '+dim+'-axis')
         self._OM.define(submenu+'unit', units[0],
                         prompt=dim+'_unit',
                         opt=units,
@@ -284,18 +271,6 @@ class Executor (object):
                         opt=offset, more=float,
                         doc='offset (fraction of domain-size)')
         return True
-
-    #.....................................................................
-
-    def callback_runtime_use (self, dummy):
-        """Callback function whenever runtime 'use' option changes"""
-        for dim in self._order:
-            key = 'runtime.'+dim+'.use'
-            tf = self._OM[key]
-            self._dims[dim]['runtime'] = tf
-            # print '---',dim,':',self._dims[dim]
-        return True
-        
 
 
 
@@ -502,7 +477,51 @@ class Executor (object):
         return mult
 
 
+
+
     
+
+    #===================================================================
+    # Compile-time options (for building trees):
+    #===================================================================
+
+    def make_TDLCompileOptionMenu (self, **kwargs):
+        """Make the TDL menu of run-time options"""
+        self.define_compile_options()
+        return self._OM.make_TDLCompileOptionMenu(**kwargs)
+    
+    
+    #-------------------------------------------------------------------
+
+    def define_compile_options(self):
+        """Define the various compile-time options in its OptionManager object"""
+
+        submenu = 'compile.'
+        opt = ['freq','time','ft','*']
+        self._OM.define(submenu+'dims', ['freq','time'],
+                        opt=opt, more=str,
+                        prompt='compile-time dimension(s)',
+                        callback=self._callback_compile_dims,
+                        doc = """The selected dimensions will be used in
+                        the tree-generating function _define_forest().
+                        """)
+
+        for dim in self.dims():
+            submenu = 'compile.'+dim+'.'
+            self._OM.define(submenu+'leaf', 'linear',
+                            prompt=dim+' leaf',
+                            opt=['linear','quadratic','cubic'],
+                            doc='instructions for '+dim+' leaf subtree')
+
+        return True
+
+    #....................................................................
+
+    def _callback_compile_dims (self, dims):
+        """Function called whenever TDLOption compile.dims changes."""
+        return self._callback_cat_dims ('compile', dims)
+
+
     
 
 

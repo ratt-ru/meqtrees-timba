@@ -125,13 +125,15 @@ class OptionManager (object):
         # Flat record with TDLOption objects (if defined):
         self.option = dict()
 
-        # Used to undo the last reset operation:
-        self.undo_last_reset = dict()
-
         # Flat record with TDLMenu objects (if defined):
         self.menu = dict()
         self.menu_order = []
         self.menu_option_keys = dict()
+        # self.menu_toggle_key = dict()
+
+        # Some reset control variables (see make_reset_option())
+        self.key_of_reset_option = dict()
+        self.undo_last_reset = dict()
 
         # Finished:
         return None
@@ -180,6 +182,7 @@ class OptionManager (object):
         """Helper function to make the internal option name from the given key.
         The name of the internal variable is prepended with '_': self._<key>
         This is to avoid name clashes with any object attributes."""
+        name = key
         # name = key.replace('.','+')
         name = '_'+name
         return name
@@ -411,13 +414,13 @@ class OptionManager (object):
     #===================================================================
 
 
-    def TDLMenu (self, key='compile', severe=False, trace=False):
+    def TDLMenu (self, key='compile', complete=False, severe=False, trace=False):
         """Return the specified (key) TDL(sub)menu object (or None).
         If the specified menu is not found, return False.
         But if severe==True, raise an error and stop.
         """
         s = '** TDLMenu('+str(key)+'): '
-        key = self.findkey(key, self.menu_order)
+        key = self.findkey(key, self.menu_order, complete=complete)
         menu = self.menu[key]
         if trace:
             print s,'->',str(menu)
@@ -432,12 +435,12 @@ class OptionManager (object):
 
     #---------------------------------------------------------------------
 
-    def TDLOption (self, key=None, severe=False, trace=False):
+    def TDLOption (self, key=None, complete=False, severe=False, trace=False):
         """Return the specified (key) TDL option object if it exists,
         otherwise return None (if severe==False) or raise an error.
         """
         s = '** TDLOption('+str(key)+'):'
-        key = self.findkey(key, self.order)
+        key = self.findkey(key, self.order, complete=complete)
         option = self.option[key]
         if trace:
             print s,'->',str(option)
@@ -560,7 +563,9 @@ class OptionManager (object):
 
     #----------------------------------------------------------------------------
 
-    def make_TDLRuntimeOptionMenu (self, insert=None, trace=False):
+    def make_TDLRuntimeOptionMenu (self, insert=None,
+                                   include_reset_option=False,
+                                   trace=False):
         """Return the TDLMenu of run-time options. Create it if necessary.
         NB: Every module that has an OptionManager, or has objects that have one,
         should implement a function with this name.
@@ -570,6 +575,7 @@ class OptionManager (object):
         if not self.tree.has_key(cat):            # No options specified 
             return None                           # do nothing...?
         return self.make_TDLOptionMenu (self.tree[cat], insert=insert,
+                                        include_reset_option=include_reset_option,
                                         cat=cat, trace=trace)
 
 
@@ -600,7 +606,7 @@ class OptionManager (object):
                            more=optrec['more'],
                            doc=optrec['doc'],
                            namespace=self)
-            oo.when_changed(self._callback_submenu)
+            oo.when_changed(self.callback_submenu)
             if optrec['callback']:
                 oo.when_changed(optrec['callback'])
             self.option[optkey] = oo
@@ -620,11 +626,8 @@ class OptionManager (object):
                 oolist.extend(insert)
 
             # Optional (but last): Include a 'reset' option (if required):
-            # NB: This seems ONLY useful at compile-time. (But in its present
-            #     implementation it ALSO resets the runtime option values.....)
-            if cat=='compile':
-                if include_reset_option:
-                    oolist.append(self.make_reset_option())
+            if include_reset_option:
+                oolist.append(self.make_reset_option(cat=cat))
 
             # OK, make the TDLMenu:
             menukey = rr['_menukey_']
@@ -637,12 +640,17 @@ class OptionManager (object):
                 ss = menukey.split('.')
                 # prompt = 'submenu: '+ss[len(ss)-1]
                 prompt = '... '+ss[len(ss)-1]
+            # toggle_key = None
+            # toggle_key = '_toggle_'+menukey
+            # self.menu_toggle_key[menukey] = toggle_key
             if len(oolist)==0:
                 return None
             elif cat=='runtime':
                 om = TDLRuntimeMenu(prompt, *oolist)
+                # om = TDLRuntimeMenu(prompt, *oolist, toggle=toggle_key)
             else:
                 om = TDLCompileMenu(prompt, *oolist)
+                # om = TDLCompileMenu(prompt, *oolist, toggle=toggle_key)
 
             # Update the entry in self.menu:
             self.menu[menukey] = om
@@ -653,7 +661,7 @@ class OptionManager (object):
 
     #.....................................................................
 
-    def _callback_submenu(self, dummy=None):
+    def callback_submenu(self, dummy=None):
         """Function called whenever any TDLOption in a submenu changes.
         It just remakes the summary string of all submenu headers."""
         for menukey in self.menu_order:
@@ -688,56 +696,83 @@ class OptionManager (object):
     # Functions dealing with resetting the option values:
     #---------------------------------------------------------------------
 
-    def make_reset_option (self, hide=False):
-        """Make the 'reset' option, that allows reset of ALL options to the
-        original values that were given by .define() or .modify()"""
-        self.key_of_reset_option = '_reset_all_options'
-        key = self.key_of_reset_option
-        if not self.option.has_key(key):
-            doc = """If True, reset all options to their original default values.
-            (presumably these are sensible values, supplied by the module designer.)
+    def make_reset_option (self, cat='compile', hide=False, trace=True):
+        """Make the 'reset' option, that allows reset of ALL compile-time
+        options to the original values in their optrecs.
+        """
+        if cat=='runtime':
+            prompt = self.name+':  reset to default values (!)'
+            callback = self.callback_reset_runtime
+        else:
+            prompt = self.name+':  reset to default values (!)'
+            callback = self.callback_reset_compile   
+
+        self.key_of_reset_option[cat] = '_key_of_reset_'+cat+'_option'
+        key = self.key_of_reset_option[cat]
+        if trace:
+            print '\n** make_reset_option(',cat,'): key=',key
+
+        if True or not self.option.has_key(key):
+            doc = """If True, reset all compile-time options (of this group)
+            to their original default values (presumably these are sensible
+            values, supplied by the module designer.)
             If undo, restore the option values BEFORE the last reset operation
             """
-            prompt = self.name+':  reset to defaults (!)'
+            print doc
             oo = TDLOption(key, prompt, [False, True, 'undo'], doc=doc, namespace=self)
-            oo.when_changed(self._callback_reset)
+            self.option[key] = oo          # NB: Do NOT add this key to self.order!
+            oo.when_changed(callback)
             if hide: oo.hide()
-            self.option[key] = oo          # NB: Do NOT update order....
+            if trace:
+                print '  -> self.option[',key,'] =',self.option[key],'\n'
         return self.option[key]
 
 
     #.....................................................................
 
-    def _callback_reset(self, reset):
+    def callback_reset_compile(self, reset):
         """Function called whenever the 'reset' menuitem changes."""
         if reset==True:
-            self.reset_options(trace=True)
+            self.reset_options('compile', trace=True)
         elif reset=='undo':
             self.reset_options(undo=True, trace=True)
-        else:
-            return True
-        key = self.key_of_reset_option     # defined in .make_reset_option()
         # Set the value of the 'reset' option back to False: 
+        # The option key has been defined in .make_reset_option()
+        key = self.key_of_reset_option['compile']
         self.option[key].set_value(False, callback=False, save=True)
         return True
 
 
     #.....................................................................
 
-    def reset_options(self, undo=False, trace=False):
+    def callback_reset_runtime(self, reset):
+        """Function called whenever the 'reset' menuitem changes."""
+        if reset==True:
+            self.reset_options('runtime', trace=True)
+        elif reset=='undo':
+            self.reset_options(undo=True, trace=True)
+        # Set the value of the 'reset' option back to False: 
+        # The option key has been defined in .make_reset_option()
+        key = self.key_of_reset_option['runtime']
+        self.option[key].set_value(False, callback=False, save=True)
+        return True
+
+
+    #.....................................................................
+
+    def reset_options(self, cat='compile', undo=False, trace=False):
         """Helper function to reset the TDLOptions and their local
         'working' counterparts to the original default values.
         If undo==True, undo the last reset operation.
         """
         if trace:
-            print '\n** reset_options(undo=',undo,'): ',self.oneliner()
+            print '\n** reset_options(',cat,', undo=',undo,'): ',self.oneliner()
 
         # Reset all options that have a regular optrec
         # (i.e. NOT the 'reset' option itself (see .make_reset_option())
         for key in self.order:
             ss = key.split('.')
-            # if ss[0] in ['compile','runtime']:
-            if ss[0]=='compile':                       # compile-time options ONLY!
+            if ss[0]==cat:                             # cat= 'compile' or 'runtime'
                 ukey = self.internal_name(key)
                 was = self[key]                        # current value
                 if not undo:
@@ -764,31 +799,36 @@ class OptionManager (object):
     # Helper functions:
     #-----------------------------------------------------------------------------
 
-    def find_menu_key (self, substring, one=True, trace=False):
+    def find_menu_key (self, substring, complete=False, one=True, trace=False):
         """Convenience version of .findkey() for menus only"""
         return self.findkey (substring, keys=self.menu_order,
-                             one=one, trace=trace)
+                             complete=complete, one=one, trace=trace)
 
-    def find_option_key (self, substring, one=True, trace=False):
+    def find_option_key (self, substring, complete=False, one=True, trace=False):
         """Convenience version of .findkey() for options only"""
         return self.findkey (substring, keys=self.order,
-                             one=one, trace=trace)
+                             complete=complete, one=one, trace=trace)
 
 
-    def findkey (self, substring, keys=[], one=True, trace=False):
+    def findkey (self, substring, keys=[], complete=False, one=True, trace=False):
         """Helper function to find the key(s) that contain the specified (sub)string
-        in the given list. If one==True, insist on one hit, and return this key.
-        If one==False, return a list of all the keys that contain the substring.
+        in the given list.
+        - If complete==True, assume that substring is a complete option key.
+        - If one==True, insist on one hit, and return this key.
+        - If one==False, return a list of all the keys that contain the substring.
         """
         s1 = '** .findkey('+str(substring)+','+str(len(keys))+'): '
         if trace:
             print s1,
+            
         found = []
-        if substring in keys:  
+        if substring in keys:     # first see whether substring matches an entire key
             found = [substring]
             if trace:
                 print 'found'
-        else:
+        elif complete:            # if complete==True, do not match substrings
+            pass
+        else:                     # see whether the option keys contain the substring
             for key in keys:
                 if substring in key:
                     found.append(key)
@@ -835,7 +875,7 @@ class OptionManager (object):
             order.extend(['sum','product','ignore'])
         self.define('compile.mode', 'solve',
                     opt=['nosolve','solve','simulate'], more=str,
-                    doc='The rain in Spain....', callback=self._callback_mode)
+                    doc='The rain in Spain....', callback=self.callback_mode)
         self.define('default', 12.9, more=float)
         self.define('simuldev', 'expr', more=str)
         self.define('compile.span.tiling', None, opt=[1,2,4,8], more=int)
@@ -845,7 +885,7 @@ class OptionManager (object):
         return True
 
         
-    def _callback_mode (self, mode):
+    def callback_mode (self, mode):
         print '** callback_mode(',mode,')'
         return True
 
