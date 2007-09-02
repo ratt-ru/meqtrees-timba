@@ -2,6 +2,7 @@
 
 # History:
 # - 24jul2007: creation
+# - 01sep2007: moved to ../JEN/control/
 
 # Description:
 
@@ -221,7 +222,10 @@ class OptionManager (object):
         for key in self.menu_order:
             if full or self.menu[key]:
                 print prefix,'    - '+key+': '+str(self.menu[key])
-            print prefix,'    - '+key+': '+str(self.menu_option_keys[key])
+            cc = []
+            for c in self.menu_option_keys[key]:
+                cc.append(c.replace(key,''))
+            print prefix,'    - '+key+': '+str(cc)
         #...............................................................
         if full:
             keys = self.option.keys()
@@ -671,8 +675,12 @@ class OptionManager (object):
     def callback_submenu(self, dummy=None):
         """Function called whenever any TDLOption in a submenu changes.
         It just remakes the summary string of all submenu headers."""
+
+        # First make all the menu summaries:
+        self.menu_summary = dict()
         for menukey in self.menu_order:
-            if self.menu[menukey] and not menukey in ['compile','runtime']:
+            if self.menu[menukey]:
+            # if self.menu[menukey] and not menukey in ['compile','runtime']:
                 summ = '... ('
                 first = True
                 for key in self.menu_option_keys[menukey]:
@@ -686,15 +694,20 @@ class OptionManager (object):
                         if value==None:
                             summ += '-' 
                         elif isinstance(value,str):
-                            if len(value)<5:
+                            if len(value)<10:
                                 summ += value
                             else:
                                 summ += 'str'
                         else:
                             summ += str(value)
                 summ += ')'
-                # if not first:                            # ignore if empty
-                self.menu[menukey].set_summary(summ)
+                if not first:                            # ignore if empty
+                    self.menu_summary[menukey] = summ
+
+        # Then update the TDLMenus:
+        for menukey in self.menu_summary.keys():
+            summ = self.menu_summary[menukey]
+            self.menu[menukey].set_summary(summ)
         return True
 
 
@@ -903,6 +916,7 @@ class OptionManager (object):
 # Test routine (with meqbrowser):
 #=============================================================================
 
+om = False
 if 0:
     om = OptionManager()
     om.test()
@@ -910,6 +924,12 @@ if 0:
 
 
 def _define_forest(ns):
+
+    global om
+    if not om:
+        om = OptionManager()
+        om.test()
+        om.make_TDLCompileOptionMenu()
 
     cc = []
 

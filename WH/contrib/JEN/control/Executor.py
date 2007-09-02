@@ -2,11 +2,32 @@
 
 # History:
 # - 25aug2007: creation
+# - 01sep2007: moved to ../JEN/control/
 
 # Description:
 
-# The Grunt Executor class makes it easier for the user to execute
-# trees in various ways. 
+"""The Executor class makes it easier for the user to execute trees in
+various ways:
+- On the runtime side, it allows the specification of multi-dimensional
+request(s), and to execute a tree with them.
+- On the compile side, it allows the generation of a list of MeqGrid nodes
+for (a subset of) the available dimensions (freq,time,etc). The latter
+may also be combined into a single node, which thus depends on all these
+dimensions.
+
+Everything is controlled via the TDL exec (runtime) and TDL options (compile)
+submenus of the meqbrowser. Bookmarks are generated for the result nodes.
+All this makes the Executor a powerful tool for studying the behaviour of
+all aspects of MeqTrees for various requests. This is useful for debugging
+and for learning. It is hoped that it will help to lower the threshold for
+learning and using MeqTrees considerably.
+
+The Executor will be built into all the JEN demo scripts, and into all the
+test-scripts in the modules of the Grunt framework.
+
+NB: Note that the Executor should not (yet?) be used for trees that have
+MeqSpigots and MeqSinks in them.
+"""
 
 
 
@@ -42,7 +63,7 @@ from Timba.Meq import meq
 
 # import Meow
 
-from Timba.Contrib.JEN.Grunt import OptionManager
+from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN.Grunt import display
 
@@ -79,11 +100,21 @@ class Executor (object):
     def compile_dims(self):
         """Return a list of the 'active' compile dimensions"""
         return self.dims('compile')
-    
+
     def runtime_dims(self):
         """Return a list of the 'active' runtime dimensions"""
         return self.dims('runtime')
-        
+
+    def hypercube_name (self, cat='compile'):
+        """Return a useful name for the hypercube of dimensions"""
+        dims = self.dims(cat)
+        name = '#'
+        if len(dims)==0: return name
+        if len(dims)==1: return name+dims[0]  # full name of only dim
+        for dim in dims:   
+            name += dim[0]                    # string of first dim letters
+        return name
+
     def dims(self, cat=None):
         """Return a list of the 'active' compile/runtime dimensions"""
         if cat==None:
@@ -100,7 +131,7 @@ class Executor (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = 'Grunt.Executor:'
+        ss = self._frameclass+':'
         ss += ' '+str(self.name)
         ss += '  '+str(self._order)
         return ss
@@ -108,7 +139,7 @@ class Executor (object):
 
     def display(self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
-        prefix = '  '+(level*'  ')+'Ex'
+        prefix = '  '+(level*'  ')+'xtor'
         if level==0: print
         print prefix,' '
         print prefix,'** '+self.oneliner()
@@ -148,8 +179,8 @@ class Executor (object):
 
         # Individual options in the main menu (i.e. submenu=None):
         submenu = 'runtime.'
-        opt = ['freq','time','ft','*']
-        self._OM.define(submenu+'dims', ['freq','time'],
+        opt = ['freq','time',['freq','time'],'ft','*']
+        self._OM.define(submenu+'dims', '*',
                         opt=opt, more=str,
                         prompt='runtime dimension(s)',
                         callback=self._callback_runtime_dims,
@@ -503,37 +534,39 @@ class Executor (object):
     def define_compile_options(self):
         """Define the various compile-time options in its OptionManager object"""
 
-        submenu = 'compile.'
 
-        opt = ['freq','time','ft','*']
-        self._OM.define(submenu+'dims', ['freq','time'],
+        # Selection of dimensions:
+        submenu = 'compile.'
+        opt = ['freq','time',['freq','time'],'ft','*']
+        self._OM.define(submenu+'dims', '*',
                         opt=opt, more=str,
                         prompt='compile-time dimension(s)',
                         callback=self._callback_compile_dims,
                         doc = """The selected dimensions will be used in
                         the tree-generating function _define_forest().""")
 
-        self._OM.define(submenu+'bookpage', 'xtor',
-                        opt=[None], more=str,
-                        prompt='meqbrowser bookpage',
-                        doc = """If specified, the leaf nodes generated with the
-                        xtor functions .leafnode() and .leafnodes() will be
-                        be bookmarked on the same bookpage.""")
-
+        # Submenus for all available dimensions:
         for dim in self.dims():
             submenu = 'compile.'+dim+'.'
 
             opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
             opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
             self._OM.define(submenu+'unop', None,
-                            prompt='unop('+dim+')', opt=opt,
-                            doc='apply unary operation on MeqGrid(axis='+dim+')')
+                            prompt='apply unary()', opt=opt,
+                            doc='apply unary operation')
 
-            self._OM.define(submenu+'stddev', 0.0,
-                            prompt='stddev noise',
+            self._OM.define(submenu+'stddev', None,
+                            prompt='add stddev noise',
                             opt=[0.1,1.0], more=float,
                             doc='add gaussian noise (if stddev>0)')
 
+        # Overall options:
+        submenu = 'compile.'
+        self._OM.define(submenu+'bookpage', 'xtor',
+                        opt=[None], more=str,
+                        prompt='meqbrowser bookpage',
+                        doc = """If specified, the leaf nodes for the various
+                        dimensions will be bookmarked on this bookpage.""")
         return True
 
     #....................................................................
@@ -638,7 +671,8 @@ class Executor (object):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
+xtor = None
+if 0:
     xtor = Executor()
     xtor.add_dimension('l', unit='rad')
     xtor.add_dimension('m', unit='rad')
@@ -649,6 +683,11 @@ if 1:
 
 
 def _define_forest(ns):
+
+    global xtor
+    if not xtor:
+        xtor = Executor()
+        xtor.make_TDLCompileOptionMenu()
 
     cc = []
 
