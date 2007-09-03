@@ -41,7 +41,7 @@ It is expected to be popular for testing.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# import Meow
+import Meow                     # for Meow.Parm
 
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
@@ -147,28 +147,32 @@ class Twig (object):
 
         # Selection of twig mode:
         submenu = 'compile.'
-        opt = ['constant','MeqGrids']
+        opt = ['MeqConstant','MeqParm','MeqGrids']
         # opt.extend(['PointSource22'])
         self._OM.define(submenu+'mode', 'MeqGrids',
                         opt=opt,
                         prompt='Twig mode (type)',
                         callback=self._callback_mode,
                         doc = """There are various kinds (modes) of twigs.
-                        - constant: just a Meq.Constant
+                        - MeqConstant: just a Meq.Constant
                         - MeqGrids: a hypercube of Meq.Grid nodes for the
                           selected (in xtor) compile-time dimensions.
                         """)
 
         # Submenus for the various twig modes:
-        self.submenu_mode_constant()
+        self.submenu_mode_MeqConstant()
+        self.submenu_mode_MeqParm()
         self.submenu_mode_MeqGrids()
 
         # Submenus for optional operations on the end result:
         self.submenu_extra_make_tensor()
+        # self.submenu_extra_make_list()
         self.submenu_extra_add_noise()
         self.submenu_extra_apply_unary()             # AFTER add_noise()
         self.submenu_extra_insert_flagger()
-        self.submenu_extra_do_visualize()
+        self.submenu_extra_insert_modres()
+        self.submenu_extra_insert_solver()
+        self.submenu_extra_visualize()
         self.submenu_extra_make_bookmark()
 
         # Select an inital mode:
@@ -213,28 +217,90 @@ class Twig (object):
     #====================================================================
     #====================================================================
 
-    def submenu_mode_constant(self):
+    def submenu_mode_MeqConstant(self):
         """Define the options for a twig mode"""
-        mode = 'constant'
+        mode = 'MeqConstant'
         submenu = 'compile.'+mode+'.'
         self._OM.define(submenu+'value', 0.0,
-                        prompt='constant value',
+                        prompt='value',
                         opt=[0.0,1.0,-1.0,(1+0j)], more=float,
                         doc="""set all domain cells to a constant value
+                        """)
+        self._modes[mode] = dict(hide=['insert_solver'])
+        return True
+
+    #--------------------------------------------------------------------
+
+    def make_twig_for_mode_MeqConstant (self, ns, trace=False):
+        """Create a MeqConstant node"""
+        submenu = 'compile.'+self._mode+'.'
+        value = self._OM[submenu+'value']
+        self._data['complex'] = isinstance(value,complex)  # used downstream
+        name = str(value)
+        node = ns[name] << Meq.Constant(value)
+        return self._check_node (node, submenu)
+
+
+    #====================================================================
+    #====================================================================
+
+    def submenu_mode_MeqParm(self):
+        """Define the options for a twig mode"""
+        mode = 'MeqParm'
+        submenu = 'compile.'+mode+'.'
+        self._OM.define(submenu+'default', 0.0,
+                        prompt='default value',
+                        opt=[0.0,1.0,-1.0], more=float,
+                        doc="""the default value of the MeqParm
+                        """)
+        self._OM.define(submenu+'freq_deg', 0,
+                        prompt='freq polc',
+                        opt=[0,1,2,3,4,5], more=int,
+                        doc="""Degree (order) of the freq polynonial that is
+                        to be solved for (constant in freq: freq_deg=0).
+                        """)
+        self._OM.define(submenu+'time_deg', 0,
+                        prompt='time polc',
+                        opt=[0,1,2,3,4,5], more=int,
+                        doc="""Degree (order) of the time polynonial that is
+                        to be solved for (constant in time: time_deg=0).
+                        """)
+        opt = [None,1,2,3,4,5,10]
+        # opt.append(dmi.record(time=0,freq=0, l=.., m=..))
+        self._OM.define(submenu+'tiling', None,
+                        prompt='subtile size',
+                        opt=opt,                    # more=str,
+                        doc="""The domain (tile) may be split up into subtiles,
+                        (for the moment, in the time-direction only)
+                        If specified, different solutions are made for each
+                        subtile, rather than a single one for the entire domain.
+                        """)
+        self._OM.define(submenu+'tags', [],
+                        prompt='MeqParm tag(s)',
+                        opt=[[],['solvable']],      # more=str,
+                        doc="""Node tags can be used to search for (groups of)
+                        nodes in the nodescope.
                         """)
         self._modes[mode] = dict(hide=['make_tensor'])
         return True
 
     #--------------------------------------------------------------------
 
-    def make_twig_for_mode_constant (self, ns, trace=False):
-        """Create a constant node"""
+    def make_twig_for_mode_MeqParm (self, ns, trace=False):
+        """Create a MeqParm node, using a Meow.Parm definition"""
         submenu = 'compile.'+self._mode+'.'
-        value = self._OM[submenu+'value']
-        self._data['complex'] = isinstance(value,complex)  # used downstream
-        name = str(value)
-        node = ns[name] << Meq.Constant(value)
-        return node
+        time_deg = self._OM[submenu+'time_deg']
+        freq_deg = self._OM[submenu+'freq_deg']
+        tags = self._OM[submenu+'tags']
+        mparm = Meow.Parm(value=self._OM[submenu+'default'],
+                          tiling=self._OM[submenu+'tiling'],
+                          time_deg=time_deg,
+                          freq_deg=freq_deg,
+                          tags=tags)
+        nodename = 'Meow.Parm[t'+str(time_deg)+',f'+str(freq_deg)+']'
+        node = ns[nodename] << mparm.make()
+        print '** node =',str(node)
+        return self._check_node (node, submenu)
 
 
 
@@ -251,7 +317,7 @@ class Twig (object):
                         doc="""the MeqGrid nodes of the various dimensions
                         must be combined to a single root node
                         """)
-        self._modes[mode] = dict(hide=[])
+        self._modes[mode] = dict(hide=['insert_solver'])
         return True
 
     #--------------------------------------------------------------------
@@ -260,17 +326,57 @@ class Twig (object):
         """Create a MeqGrids node"""
         submenu = 'compile.'+self._mode+'.'
         combine = self._OM[submenu+'combine']
+        node = self._make_xtor_hypercube(ns, combine=combine)
+        return self._check_node (node, submenu)
 
+
+    def _make_xtor_hypercube(self, ns, combine='Add', name=None, trace=False):
+        """Helper function to make a xtor hypercube"""
         # First get a list of the specified dimension leaf nodes/subtrees:
         dd = self._xtor.leafnodes(ns, trace=trace, return_list=True)
         if len(dd)==0:
             raise ValueError,'no compile-time dimensions'
         # Then combine these with the specified operation(s):
-        name = self._xtor.hypercube_name()
+        if not isinstance(name, str):
+            name = self._xtor.hypercube_name()
         node = ns[name] << getattr(Meq,combine)(*dd)
-        return node
+        return self._check_node (node, '_make_xtor_hypercube()')
 
 
+    #====================================================================
+    #====================================================================
+    # Some helper function for checking:
+    #====================================================================
+    #====================================================================
+
+    def _proceed_with_extra (self, ns, node, name, trace=True):
+        """Helper function to decide whether to proceed with 'extra' function"""
+        s = '\n** _proceed_with_extra('+str(node)+','+str(name)+'): '
+        if not is_node(node):
+            s += 'not a valid node'
+        elif name in self._modes[self._mode]['hide']:
+            s += 'not relevant for mode: '+self._mode
+        else:
+            return True                 # OK
+        # Deal with the problem
+        if trace:
+            print s,'\n'
+        return False
+
+    #--------------------------------------------------------------------
+
+    def _check_node (self, node, txt=None, severe=True, trace=True):
+        """Helper function to check the node produced by a function"""
+        s = '\n** _check_node('+str(node)+','+str(txt)+'): '
+        if not is_node(node):
+            s += 'not a valid node'
+        else:
+            return node                 # OK
+        # Deal with the problem:
+        print s,'\n'
+        if severe:
+            raise ValueError,s
+        return False
 
 
     #====================================================================
@@ -296,7 +402,9 @@ class Twig (object):
 
     def extra_make_tensor (self, ns, node, trace=False):
         """Optionally, make a tensor node from the given node"""
-        submenu = 'compile.extra.make_tensor.'
+        name = 'make_tensor'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
         dims = self._OM[submenu+'dims']
         if dims==None:                  # not required
             return node
@@ -326,7 +434,7 @@ class Twig (object):
             for i in range(nelem):
                 nodes.append(ns['elem_'+str(i)] << Meq.Identity(node))
             node = ns[nodename] << Meq.Composer(children=nodes, dims=dd) 
-        return node
+        return self._check_node (node, submenu)
 
 
     #====================================================================
@@ -350,11 +458,13 @@ class Twig (object):
 
     def extra_apply_unary (self, ns, node, trace=False):
         """Optionally, apply an unary operation on the given node"""
-        submenu = 'compile.extra.apply_unary.'
+        name = 'apply_unary'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
         unop = self._OM[submenu+'unop']
         if unop:
             node = ns << getattr(Meq,unop)(node)
-        return node
+        return self._check_node (node, submenu)
 
     #====================================================================
     #====================================================================
@@ -382,12 +492,14 @@ class Twig (object):
 
     def extra_make_bookmark (self, ns, node, trace=False):
         """Optionally, bookmark the given node"""
-        submenu = 'compile.extra.make_bookmark.'
+        name = 'make_bookmark'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
         bookpage = self._OM[submenu+'bookpage']
         folder = self._OM[submenu+'folder']
         if node and bookpage:
             JEN_bookmarks.create(node, page=bookpage, folder=folder)
-        return node
+        return self._check_node (node, submenu)
 
 
     #====================================================================
@@ -409,7 +521,9 @@ class Twig (object):
 
     def extra_add_noise (self, ns, node, trace=False):
         """Optionally, add noise to the given node"""
-        submenu = 'compile.extra.add_noise.'
+        name = 'add_noise'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
         stddev = self._OM[submenu+'stddev']
         if stddev and stddev>0.0:
             name = '~'+str(stddev)
@@ -418,7 +532,7 @@ class Twig (object):
                 noise << Meq.GaussNoise(stddev=stddev)
                 name = node.basename + name
                 node = ns[name] << Meq.Add(node,noise)
-        return node
+        return self._check_node (node, submenu)
 
 
     #====================================================================
@@ -455,7 +569,9 @@ class Twig (object):
 
     def extra_insert_flagger (self, ns, node, trace=False):
         """Optionally, insert a flagger to generate some flags"""
-        submenu = 'compile.extra.insert_flagger.'
+        name = 'insert_flagger'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
         flag_oper = self._OM[submenu+'flag_oper']
         if flag_oper==None:
             return node                               # not required
@@ -482,16 +598,116 @@ class Twig (object):
             folder = self._OM['compile.extra.make_bookmark.folder']
             cc.extend([diff,zflag,node])
             JEN_bookmarks.create(cc, page=bookpage, folder=folder)
-        return node
-
+        return self._check_node (node, submenu)
 
 
     #====================================================================
     #====================================================================
 
-    def submenu_extra_do_visualize(self):
+    def submenu_extra_insert_modres(self):
         """Define the options for an operation on the twig result"""
-        name = 'do_visualize'
+        name = 'insert_modres'
+        submenu = 'compile.extra.'+name+'.'
+        self._OM.define(submenu+'num_cells', None,
+                        prompt='nr of cells [nt,nf]',
+                        opt=[None,[2,3],[3,2]],
+                        doc="""Covert the REQUEST to a lower a resolution.
+                        """)
+        self._OM.define(submenu+'bookpage', None,
+                        prompt='local bookpage',
+                        opt=[None,'insert_modres'],
+                        doc="""Make a 'local bookpage' for the 'before'
+                        and 'after' results of the resampling operation.
+                        """)
+        self._extra.append(name)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def extra_insert_modres (self, ns, node, trace=False):
+        """Optionally, modify the cell resolution by resampling"""
+        name = 'insert_modres'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
+        
+        num_cells = self._OM[submenu+'num_cells']
+        if num_cells==None:
+            return node                               # not required
+        bookpage = self._OM[submenu+'bookpage']
+        cc = [node]                                   # keep for bookpage
+        qnode = ns['modres']
+        
+        highres = qnode('highres') << Meq.Identity(node) 
+        lowres = qnode('lowres') << Meq.ModRes(node, num_cells=num_cells) 
+
+        # The new flags are merged with those of the input node:
+        node = qnode('reqseq') << Meq.ReqSeq(highres,lowres,
+                                             result_index=0)
+   
+        # Optionally, show the intermediary results.
+        if bookpage:
+            folder = self._OM['compile.extra.make_bookmark.folder']
+            cc.extend([highres,lowres,node])
+            JEN_bookmarks.create(cc, page=bookpage, folder=folder)
+        return self._check_node (node, submenu)
+
+
+    #====================================================================
+    #====================================================================
+
+    def submenu_extra_insert_solver(self):
+        """Define the options for an operation on the twig result"""
+        name = 'insert_solver'
+        submenu = 'compile.extra.'+name+'.'
+        self._OM.define(submenu+'niter', None,
+                        prompt='nr of iterations',
+                        opt=[None,1,2,3,5,10,20,30,50,100],
+                        doc="""Nr of solver iterations.
+                        """)
+        self._OM.define(submenu+'bookpage', None,
+                        prompt='local bookpage',
+                        opt=[None,'insert_solver'],
+                        doc="""Make a 'local bookpage' for nodes that are relevant
+                        for the solving operation (condeq, solver, parm).
+                        """)
+        self._extra.append(name)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def extra_insert_solver (self, ns, node, trace=False):
+        """Optionally, insert a solver to generate some flags"""
+        name = 'insert_solver'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
+        niter = self._OM[submenu+'niter']
+        if niter==None or niter<1:
+            return node                               # not required
+
+        qnode = ns['solver']
+        lhs = self._make_xtor_hypercube(ns)           # left-hand side
+        condeq = qnode('condeq') << Meq.Condeq(lhs,node)
+        parm = ns.Search(tags='solvable', class_name='MeqParm')
+        print '** parm =',str(parm[0])
+        solver = qnode('solver') << Meq.Solver(condeq, num_iter=niter,
+                                               solvable=parm)
+        node = qnode('reqseq') << Meq.ReqSeq(children=[solver,node],
+                                             result_index=1)
+        
+        # Optionally, bookmark the various relevant nodes.
+        bookpage = self._OM[submenu+'bookpage']
+        if bookpage:
+            folder = self._OM['compile.extra.make_bookmark.folder']
+            cc = [parm[0], lhs, condeq, solver]
+            JEN_bookmarks.create(cc, page=bookpage, folder=folder)
+        return self._check_node (node, submenu)
+
+    #====================================================================
+    #====================================================================
+
+    def submenu_extra_visualize(self):
+        """Define the options for an operation on the twig result"""
+        name = 'visualize'
         submenu = 'compile.extra.'+name+'.'
         self._OM.define(submenu+'plot_type', None,
                         prompt='make a special plot',
@@ -503,10 +719,13 @@ class Twig (object):
 
     #--------------------------------------------------------------------
 
-    def extra_do_visualize (self, ns, node, trace=False):
+    def extra_visualize (self, ns, node, trace=False):
         """Optionally, visualize the given node"""
-        submenu = 'compile.extra.do_visualize.'
-        plot = self._OM[submenu+'plot']
+        name = 'visualize'
+        if not self._proceed_with_extra (ns, node, name): return node
+        submenu = 'compile.extra.'+name+'.'
+        plot = self._OM[submenu+'plot_type']
+        return self._check_node (node, submenu)
         return node
 
 
@@ -520,7 +739,7 @@ class Twig (object):
     #====================================================================
     
 
-    def make_twig (self, ns, qual=None, trace=True):
+    def make_twig (self, ns, qual='qual', trace=True):
         """Make the actual twig subtree, according to specifications."""
         if trace:
             print '\n** .make_twig(',qual,'):'
@@ -532,21 +751,26 @@ class Twig (object):
             ns = ns.Subscope('twig')
 
         # Make the twig subtree for the specified mode:
-        if self._mode=='constant':
-            node = self.make_twig_for_mode_constant(ns, trace=trace)
+        node = None
+        if self._mode=='MeqConstant':
+            node = self.make_twig_for_mode_MeqConstant(ns, trace=trace)
+        elif self._mode=='MeqParm':
+            node = self.make_twig_for_mode_MeqParm(ns, trace=trace)
         elif self._mode=='MeqGrids':
             node = self.make_twig_for_mode_MeqGrids(ns, trace=trace)
 
         # Apply optional operation(s) on the end result:
         node = self.extra_make_tensor (ns, node, trace=trace)
+        # node = self.extra_make_list (ns, node, trace=trace)
         node = self.extra_add_noise (ns, node, trace=trace)
         node = self.extra_apply_unary (ns, node, trace=trace)     # AFTER add_noise()
         node = self.extra_insert_flagger (ns, node, trace=trace)
-        node = self.extra_do_visualize (ns, node, trace=trace)
+        node = self.extra_insert_modres (ns, node, trace=trace)
+        node = self.extra_insert_solver (ns, node, trace=trace)
+        node = self.extra_visualize (ns, node, trace=trace)
 
         # Finished:
-        if not is_node(node):
-            raise ValueError, 'no valid twig node generated' 
+        node = self._check_node (node, '.make_twig()')
         if trace:
             display.subtree(node)
         node = self.extra_make_bookmark (ns, node, trace=trace)

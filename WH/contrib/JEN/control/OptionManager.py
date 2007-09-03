@@ -619,6 +619,7 @@ class OptionManager (object):
             if optrec['callback']:
                 oo.when_changed(optrec['callback'])
             self.option[optkey] = oo
+            self.callback_submenu()
             return oo
 
 
@@ -667,6 +668,7 @@ class OptionManager (object):
             self.menu[menukey] = om
 
             # Return the menu object to the user:
+            self.callback_submenu()
             return om
 
 
@@ -678,31 +680,31 @@ class OptionManager (object):
 
         # First make all the menu summaries:
         self.menu_summary = dict()
-        for menukey in self.menu_order:
-            if self.menu[menukey]:
-            # if self.menu[menukey] and not menukey in ['compile','runtime']:
-                summ = '... ('
-                first = True
-                for key in self.menu_option_keys[menukey]:
-                    if self.option[key]:
-                        value = self.option[key].value
-                        if True:
-                            ukey = self.internal_name(key)
-                            setattr(self, ukey, value)
-                        if not first: summ += ','
-                        first = False
-                        if value==None:
-                            summ += '-' 
-                        elif isinstance(value,str):
-                            if len(value)<10:
-                                summ += value
-                            else:
-                                summ += 'str'
-                        else:
-                            summ += str(value)
-                summ += ')'
-                if not first:                            # ignore if empty
-                    self.menu_summary[menukey] = summ
+        for menukey in self.menu_order:                       # for all (sub)menus
+            if self.menu[menukey]:                            # if TDLMenu exists
+                if not menukey in ['compile','runtime']:      # ignore top-menu(s)
+                    summ = '... ('
+                    first = True
+                    for key in self.menu_option_keys[menukey]:
+                        if self.option[key]:                  # if TDLOption exists
+                            value = self.option[key].value
+                            if True:
+                                ukey = self.internal_name(key)
+                                setattr(self, ukey, value)
+                            if not first: summ += ','         # separate by commas
+                            first = False
+                            if value==None:
+                                summ += '-' 
+                            elif isinstance(value,str):       # avoid long strings
+                                if len(value)<10:
+                                    summ += value
+                                else:
+                                    summ += 'str'
+                            else:                             # assume number
+                                summ += str(value)
+                    summ += ')'
+                    if not first:                             # ignore if empty
+                        self.menu_summary[menukey] = summ
 
         # Then update the TDLMenus:
         for menukey in self.menu_summary.keys():

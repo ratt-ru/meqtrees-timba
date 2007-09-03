@@ -193,7 +193,7 @@ class Executor (object):
                             size=[1.0,10.0,100.0],
                             num_cells=[11,1,2,5,21,31,51,101])
 
-        self.add_dimension (dim='freq', unit='MHz',
+        self.add_dimension (dim='freq', unit='Hz',
                             start=[0.0,1.0,10.0,100.0],
                             size=[1.0,10.0,100.0],
                             num_cells=[10,1,2,5,20,30,50,100])
