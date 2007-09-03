@@ -59,19 +59,19 @@ class Twig (object):
     (MeqLeaves)."""
 
     def __init__(self, name='Twig',
-                 mode=None,
                  namespace='twig'):
 
         self.name = name
         self._frameclass = 'Grunt.Twig'       # for reporting
 
+        self._user_levels = ['greenhorn','harmless','member','advanced','expert','smirnoff']
+
         self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
         self._xtor = Executor.Executor('xtor', namespace=namespace)
 
         # Define the required runtime options:
-        self._mode = None
-        self._modes = dict()
-        self._extra = []
+        self._twip = dict()
+        self._extra = dict()
         self.define_options()
 
         # Keep track of the data type and format
@@ -89,7 +89,8 @@ class Twig (object):
         """Return a one-line summary of this object"""
         ss = self._frameclass+':'
         ss += ' '+str(self.name)
-        ss += '  mode='+str(self._mode)
+        ss += '  twig_tip='+str(self._OM['twig_tip'])
+        ss += '  user_level='+str(self._OM['user_level'])
         return ss
 
 
@@ -102,17 +103,20 @@ class Twig (object):
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
-        print prefix,'  *  available twig modes:'
-        for mode in self._modes.keys():
-            print prefix,'    - '+mode+': '+str(self._modes[mode])
-        print prefix,'  *  extra: '+str(self._extra)
+        print prefix,'  *  user_levels: '+str(self._user_levels)
+        print prefix,'  *  available twig_tip types:'
+        for twip in self._twip.keys():
+            print prefix,'    - '+twip+': '+str(self._twip[twip])
+        print prefix,'  *  available extra options:'
+        for extra in self._extra.keys():
+            print prefix,'    - '+extra+': '+str(self._extra[extra])
         print prefix,'  *  data: '+str(self._data)
         #...............................................................
         print prefix,'  * '+self._OM.oneliner()
-        if OM: self._OM.display(full=False, level=level+1)
+        if OM and full: self._OM.display(full=False, level=level+1)
         #...............................................................
         print prefix,'  * '+self._xtor.oneliner()
-        if xtor: self._xtor.display(full=False, level=level+1)
+        if xtor and full: self._xtor.display(full=False, level=level+1)
         #...............................................................
         print prefix,'**'
         if level==0: print
@@ -144,25 +148,36 @@ class Twig (object):
 
     def define_options(self):
         """Define the various compile-time options in its OptionManager object"""
-
-        # Selection of twig mode:
         submenu = 'compile.'
+
+        opt = self._user_levels
+        self._OM.define(submenu+'user_level', opt[0],
+                        opt=opt,
+                        prompt='user_level',
+                        callback=self._callback_user_level,
+                        doc = """The Twig module can be used at various user_levels.
+                        The higher levels offer more options, which will only
+                        confuse those who are not ready for them.
+                        """)
+
         opt = ['MeqConstant','MeqParm','MeqGrids']
         # opt.extend(['PointSource22'])
-        self._OM.define(submenu+'mode', 'MeqGrids',
+        self._OM.define(submenu+'twig_tip', 'MeqConstant',
                         opt=opt,
-                        prompt='Twig mode (type)',
-                        callback=self._callback_mode,
-                        doc = """There are various kinds (modes) of twigs.
-                        - MeqConstant: just a Meq.Constant
+                        prompt='twig-tip',
+                        callback=self._callback_twip,
+                        doc = """A twig-tip is a node/subtree at the
+                        tip of a twig. There are various kinds:
+                        - MeqConstant: a MeqConstant node (may be a tensor)
+                        - MeqParm: a MeqParm node
                         - MeqGrids: a hypercube of Meq.Grid nodes for the
                           selected (in xtor) compile-time dimensions.
                         """)
 
-        # Submenus for the various twig modes:
-        self.submenu_mode_MeqConstant()
-        self.submenu_mode_MeqParm()
-        self.submenu_mode_MeqGrids()
+        # Submenus for the various twig_tips (twips):
+        self.submenu_twip_MeqConstant()
+        self.submenu_twip_MeqParm()
+        self.submenu_twip_MeqGrids()
 
         # Submenus for optional operations on the end result:
         self.submenu_extra_make_tensor()
@@ -175,37 +190,58 @@ class Twig (object):
         self.submenu_extra_visualize()
         self.submenu_extra_make_bookmark()
 
-        # Select an inital mode:
-        self._callback_mode('MeqGrids')
+        # Select an inital twig_tip:
+        self._callback_twip('MeqGrids')
         return True
 
     #...................................................................
 
-    def _callback_mode (self, mode):
-        """Called whenever the twig mode changes."""
+    def _callback_user_level (self, user_level):
+        """Called whenever the user_level changes."""
+        return self._callback_twip (self._OM['twig_tip'])
 
-        # print '\n** ._callback_mode(',mode,'):',self._modes.keys()
+    #...................................................................
 
-        # First hide/inactivate all mode submenus:
-        for key in self._modes.keys():
+    def _numeric_user_level (self):
+        user_level = self._OM['user_level']
+        if user_level in self._user_levels:
+            return self._user_levels.index(user_level)
+        return 0
+
+    #...................................................................
+
+    def _callback_twip (self, twip):
+        """Called whenever the twig_tip changes."""
+
+        user_level = self._numeric_user_level()
+        print '\n** ._callback_twip(',twip,'): user_level =',user_level
+
+        # First hide/inactivate all twig_tip submenus:
+        for key in self._twip.keys():
             self._OM.hide('compile.'+key)
+        self._OM.hide('compile.extra')
 
-        # And unhide all the extra options:
-        for key in self._extra:
-            self._OM.show('compile.extra.'+key)
+        # And unhide all the relevant extra options:
+        for key in self._extra.keys():
+            self._OM.hide('compile.extra.'+key)
 
-        # Then unhide the selected mode:
-        self._mode = '??'
-        if mode in self._modes.keys():
-            self._mode = mode
-            self._OM.show('compile.'+mode)          # Unhide the selected mode submenu
-            for key in self._modes[mode]['hide']:   # Hide the relevant extra options
-                self._OM.hide('compile.extra.'+key)
+        # Then unhide the selected twig_tip:
+        if twip in self._twip.keys():
+            if user_level>=self._twip[twip]['user_level']: 
+                self._OM.show('compile.'+twip)          
+                self._OM.show('compile.extra')
+                for key in self._extra.keys():
+                    if user_level>=self._extra[key]['user_level']:
+                        self._OM.show('compile.extra.'+key)
+                for key in self._twip[twip]['hide']:     
+                    self._OM.hide('compile.extra.'+key)
+        else:
+            twip = '??'
 
-        # Indicate the selected mode in the top menu:
+        # Indicate the selected twig_tip in the top menu:
         menu = self._OM.TDLMenu('compile')
         if menu:
-            menu.set_summary('(mode='+str(self._mode)+')')
+            menu.set_summary('(twig_tip='+str(twip)+')')
 
         return True
         
@@ -213,27 +249,27 @@ class Twig (object):
 
     #====================================================================
     #====================================================================
-    # Functions for twig modes:
+    # Functions for twips:
     #====================================================================
     #====================================================================
 
-    def submenu_mode_MeqConstant(self):
-        """Define the options for a twig mode"""
-        mode = 'MeqConstant'
-        submenu = 'compile.'+mode+'.'
+    def submenu_twip_MeqConstant(self):
+        """Define the options for a twip"""
+        name = 'MeqConstant'
+        submenu = 'compile.'+name+'.'
         self._OM.define(submenu+'value', 0.0,
                         prompt='value',
                         opt=[0.0,1.0,-1.0,(1+0j)], more=float,
                         doc="""set all domain cells to a constant value
                         """)
-        self._modes[mode] = dict(hide=['insert_solver'])
+        self._twip[name] = dict(user_level=0, hide=['insert_solver'])
         return True
 
     #--------------------------------------------------------------------
 
-    def make_twig_for_mode_MeqConstant (self, ns, trace=False):
+    def make_twig_for_twip_MeqConstant (self, ns, trace=False):
         """Create a MeqConstant node"""
-        submenu = 'compile.'+self._mode+'.'
+        submenu = 'compile.'+self._OM['twig_tip']+'.'
         value = self._OM[submenu+'value']
         self._data['complex'] = isinstance(value,complex)  # used downstream
         name = str(value)
@@ -244,10 +280,10 @@ class Twig (object):
     #====================================================================
     #====================================================================
 
-    def submenu_mode_MeqParm(self):
-        """Define the options for a twig mode"""
-        mode = 'MeqParm'
-        submenu = 'compile.'+mode+'.'
+    def submenu_twip_MeqParm(self):
+        """Define the options for a twip"""
+        name = 'MeqParm'
+        submenu = 'compile.'+name+'.'
         self._OM.define(submenu+'default', 0.0,
                         prompt='default value',
                         opt=[0.0,1.0,-1.0], more=float,
@@ -281,14 +317,14 @@ class Twig (object):
                         doc="""Node tags can be used to search for (groups of)
                         nodes in the nodescope.
                         """)
-        self._modes[mode] = dict(hide=['make_tensor'])
+        self._twip[name] = dict(user_level=2, hide=['make_tensor'])
         return True
 
     #--------------------------------------------------------------------
 
-    def make_twig_for_mode_MeqParm (self, ns, trace=False):
+    def make_twig_for_twip_MeqParm (self, ns, trace=False):
         """Create a MeqParm node, using a Meow.Parm definition"""
-        submenu = 'compile.'+self._mode+'.'
+        submenu = 'compile.'+self._OM['twig_tip']+'.'
         time_deg = self._OM[submenu+'time_deg']
         freq_deg = self._OM[submenu+'freq_deg']
         tags = self._OM[submenu+'tags']
@@ -307,24 +343,24 @@ class Twig (object):
     #====================================================================
     #====================================================================
 
-    def submenu_mode_MeqGrids(self):
-        """Define the options for a twig mode"""
-        mode = 'MeqGrids'
-        submenu = 'compile.'+mode+'.'
+    def submenu_twip_MeqGrids(self):
+        """Define the options for a twig-tip"""
+        name = 'MeqGrids'
+        submenu = 'compile.'+name+'.'
         self._OM.define(submenu+'combine', 'Add',
                         prompt='combine with',
                         opt=['Add','Multiply','Composer'],
                         doc="""the MeqGrid nodes of the various dimensions
                         must be combined to a single root node
                         """)
-        self._modes[mode] = dict(hide=['insert_solver'])
+        self._twip[name] = dict(user_level=1, hide=['insert_solver'])
         return True
 
     #--------------------------------------------------------------------
 
-    def make_twig_for_mode_MeqGrids (self, ns, trace=False):
-        """Create a MeqGrids node"""
-        submenu = 'compile.'+self._mode+'.'
+    def make_twig_for_twip_MeqGrids (self, ns, trace=False):
+        """Create a MeqGrids twig-tip"""
+        submenu = 'compile.'+self._OM['twig_tip']+'.'
         combine = self._OM[submenu+'combine']
         node = self._make_xtor_hypercube(ns, combine=combine)
         return self._check_node (node, submenu)
@@ -352,10 +388,11 @@ class Twig (object):
     def _proceed_with_extra (self, ns, node, name, trace=True):
         """Helper function to decide whether to proceed with 'extra' function"""
         s = '\n** _proceed_with_extra('+str(node)+','+str(name)+'): '
+        twip = self._OM['twig_tip']
         if not is_node(node):
             s += 'not a valid node'
-        elif name in self._modes[self._mode]['hide']:
-            s += 'not relevant for mode: '+self._mode
+        elif name in self._twip[twip]['hide']:
+            s += 'not relevant for twip: '+self._OM['twig_tip']
         else:
             return True                 # OK
         # Deal with the problem
@@ -395,7 +432,7 @@ class Twig (object):
                         opt=opt, more=str,
                         doc="""duplicate scalar into a tensor node
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=3)
         return True
 
     #--------------------------------------------------------------------
@@ -451,7 +488,7 @@ class Twig (object):
                         opt=opt, more=str,
                         doc="""apply an unary operation.
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=0)
         return True
 
     #--------------------------------------------------------------------
@@ -485,7 +522,7 @@ class Twig (object):
                         prompt='bookpage folder',
                         doc = """All bookpages may be put into a folder
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=0)
         return True
 
     #--------------------------------------------------------------------
@@ -514,7 +551,7 @@ class Twig (object):
                         opt=[0.1,1.0], more=float,
                         doc="""add gaussian noise (if stddev>0)
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=0)
         return True
 
     #--------------------------------------------------------------------
@@ -562,7 +599,7 @@ class Twig (object):
                         of the flagging operation. This is very convenient to see
                         what is going on when setting the clipping-level by hand.
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=3)
         return True
 
     #--------------------------------------------------------------------
@@ -619,7 +656,7 @@ class Twig (object):
                         doc="""Make a 'local bookpage' for the 'before'
                         and 'after' results of the resampling operation.
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=3)
         return True
 
     #--------------------------------------------------------------------
@@ -670,7 +707,7 @@ class Twig (object):
                         doc="""Make a 'local bookpage' for nodes that are relevant
                         for the solving operation (condeq, solver, parm).
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=2)
         return True
 
     #--------------------------------------------------------------------
@@ -714,7 +751,7 @@ class Twig (object):
                         opt=[None,'rvsi','time_tracks'], 
                         doc="""Special visualization
                         """)
-        self._extra.append(name)
+        self._extra[name] = dict(user_level=0)
         return True
 
     #--------------------------------------------------------------------
@@ -750,14 +787,21 @@ class Twig (object):
         else:
             ns = ns.Subscope('twig')
 
-        # Make the twig subtree for the specified mode:
+        # Make the twig subtree for the specified twip:
         node = None
-        if self._mode=='MeqConstant':
-            node = self.make_twig_for_mode_MeqConstant(ns, trace=trace)
-        elif self._mode=='MeqParm':
-            node = self.make_twig_for_mode_MeqParm(ns, trace=trace)
-        elif self._mode=='MeqGrids':
-            node = self.make_twig_for_mode_MeqGrids(ns, trace=trace)
+        twip = self._OM['twig_tip']
+        user_level = self._numeric_user_level()
+        if user_level<self._twip[twip]['user_level']:
+            s = '** user-level='+str(user_level)
+            s += ' ('+str(self._OM['user_level'])+')'
+            s += ': too low for twig_tip: '+twip
+            raise ValueError,s
+        elif twip=='MeqConstant':
+            node = self.make_twig_for_twip_MeqConstant(ns, trace=trace)
+        elif twip=='MeqParm':
+            node = self.make_twig_for_twip_MeqParm(ns, trace=trace)
+        elif twip=='MeqGrids':
+            node = self.make_twig_for_twip_MeqGrids(ns, trace=trace)
 
         # Apply optional operation(s) on the end result:
         node = self.extra_make_tensor (ns, node, trace=trace)

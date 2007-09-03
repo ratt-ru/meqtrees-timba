@@ -173,7 +173,7 @@ class Executor (object):
     
     #-----------------------------------------------------------------------
 
-    def define_runtime_options(self, mode='<mode>'):
+    def define_runtime_options(self):
         """Define the (basic) runtime options in its OptionManager object.
         More are added in each user call to .add_dimension()."""
 
