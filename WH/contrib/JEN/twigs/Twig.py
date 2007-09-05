@@ -65,8 +65,6 @@ class Twig (object):
         self.name = name
         self._frameclass = 'Grunt.Twig'       # for reporting
 
-        self._user_levels = ['greenhorn','harmless','member','advanced','expert','smirnoff']
-
         self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
                                                parentclass=self._frameclass)
         self._xtor = Executor.Executor('Executor', namespace=namespace,
@@ -191,7 +189,7 @@ class Twig (object):
         self.submenu_demo_solver()
 
         self._OM.set_menu_text ('compile.modify', 'modify the twig result')
-        self._OM.set_menu_text ('compile.demo', 'select (non-destructive) demoes')
+        self._OM.set_menu_text ('compile.demo', 'select demoes')
 
         self._define_misc_options()
 
@@ -205,7 +203,7 @@ class Twig (object):
         """Called whenever the twig_tip changes."""
 
         user_level = self._numeric_user_level()
-        print '\n** ._callback_twip(',twip,'): user_level =',user_level
+        # print '\n** ._callback_twip(',twip,'): user_level =',user_level
 
         # First hide/inactivate submenus...
         for key in self._twip.keys():
@@ -259,8 +257,9 @@ class Twig (object):
         """Define miscellaneous compile-time options in its OptionManager object"""
         submenu = 'compile.misc'
 
+        self._user_levels = ['greenhorn','harmless','member','advanced','expert','smirnoff']
         opt = self._user_levels
-        self._OM.define(submenu+'.user_level', opt[0],
+        self._OM.define(submenu+'.user_level', opt[4],
                         opt=opt,
                         prompt='user_level',
                         callback=self._callback_user_level,
@@ -268,19 +267,19 @@ class Twig (object):
                         The higher levels offer more options, which will only
                         confuse those who are not ready for them.
                         """)
-        self._OM.define(submenu+'.show_demoes', False,
-                        opt=[True, False],
-                        prompt='offer demoes',
-                        callback=self._callback_show_demoes,
-                        doc = """If True, show the demoes that are available
-                        at the current user_level.
-                        """)
         self._OM.define(submenu+'.show_modif', True,
                         opt=[True, False],
                         prompt='offer modification options',
                         callback=self._callback_show_modif,
                         doc = """If True, show the modification optionsthat
                         are available at the current user_level.
+                        """)
+        self._OM.define(submenu+'.show_demoes', True,
+                        opt=[True, False],
+                        prompt='offer demoes',
+                        callback=self._callback_show_demoes,
+                        doc = """If True, show the demoes that are available
+                        at the current user_level.
                         """)
 
         self.submenu_visualize_twig()
@@ -312,7 +311,7 @@ class Twig (object):
         user_level = self._OM['misc.user_level']
         if user_level in self._user_levels:
             return self._user_levels.index(user_level)
-        return 0
+        return 4
 
 
     #====================================================================
@@ -357,13 +356,13 @@ class Twig (object):
                         opt=[0.0,1.0,-1.0], more=float,
                         doc="""the default value of the MeqParm
                         """)
-        self._OM.define(submenu+'freq_deg', 0,
+        self._OM.define(submenu+'freq_deg', 2,
                         prompt='freq polc',
                         opt=[0,1,2,3,4,5], more=int,
                         doc="""Degree (order) of the freq polynonial that is
                         to be solved for (constant in freq: freq_deg=0).
                         """)
-        self._OM.define(submenu+'time_deg', 0,
+        self._OM.define(submenu+'time_deg', 2,
                         prompt='time polc',
                         opt=[0,1,2,3,4,5], more=int,
                         doc="""Degree (order) of the time polynonial that is
@@ -628,12 +627,10 @@ class Twig (object):
                         Suggestion: add some noise first, and then amplify
                         it non-linearly with the unary (Exp) operation.
                         """)
-        self._OM.define(submenu+'bookpage', name,
-                        prompt='local bookpage',
-                        opt=[None,name],
-                        doc="""Make a 'local bookpage' with intermediate results
-                        of the flagging operation. This is very convenient to see
-                        what is going on when setting the clipping-level by hand.
+        opt = [name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
                         """)
         self._modify[name] = dict(user_level=3)
         return True
@@ -696,10 +693,10 @@ class Twig (object):
                         opt=opt, more=str,
                         doc="""The reduction axes:
                         """)
-        self._OM.define(submenu+'.bookpage', name,
-                        prompt='local bookpage',
-                        opt=[None,name],
-                        doc="""Make a 'local bookpage' for the various results.
+        opt = ['demo_'+name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
                         """)
         self._OM.set_menu_text(submenu, 'reduce domain axes')
         self._demo[name] = dict(user_level=3)
@@ -718,14 +715,16 @@ class Twig (object):
             return node                               # not required
         axes = self._OM[submenu+'redaxes']
         bookpage = self._OM[submenu+'bookpage']
-        qnode = ns['redaxes']
 
-        node = qnode('reqseq') << Meq.ReqSeq(original,diff,
-                                             result_index=0)
+        qnode = ns[oper]
+        cc = [node]
+        cc.append(qnode('reduce_all') << getattr(Meq,oper)(node))
+        cc.append(qnode('reduce_time') << getattr(Meq,oper)(node, reduction_axes=['time']))
+        cc.append(qnode('reduce_freq') << getattr(Meq,oper)(node, reduction_axes=['freq']))
+        node = qnode('reqseq') << Meq.ReqSeq(children=cc, result_index=0)
    
         # Optionally, show the intermediary results.
         if bookpage:
-            cc = [original,redaxes,resampled,diff]
             JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
         return self._check_node (node, submenu)
 
@@ -747,11 +746,10 @@ class Twig (object):
                         opt=[1,2],
                         doc="""Mode 2 only works with time,freq domains.
                         """)
-        self._OM.define(submenu+'.bookpage', name,
-                        prompt='local bookpage',
-                        opt=[None,name],
-                        doc="""Make a 'local bookpage' for the 'before'
-                        and 'after' results of the resampling operation.
+        opt = ['demo_'+name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
                         """)
         self._OM.set_menu_text(submenu, 'change domain resolution')
         self._demo[name] = dict(user_level=3)
@@ -809,16 +807,18 @@ class Twig (object):
                         opt=[None,1,2,3,5,10,20,30,50,100],
                         doc="""Nr of solver iterations.
                         """)
-        self._OM.define(submenu+'.bookpage', name,
-                        prompt='local bookpage',
-                        opt=[None,name],
-                        doc="""Make a 'local bookpage' for nodes that are relevant
-                        for the solving operation (condeq, solver, parm).
+        opt = ['demo_'+name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
                         """)
         self._OM.set_menu_text(submenu, 'solve for MeqParm coeff')
         self._demo[name] = dict(user_level=2)
         return True
 
+    #--------------------------------------------------------------------
+    # NB: This does not work. The MeqParm should not be in the twig,
+    # but in the lhs....
     #--------------------------------------------------------------------
 
     def demo_solver (self, ns, node, trace=False):
