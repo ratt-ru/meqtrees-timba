@@ -41,7 +41,7 @@ defined with the full key 'compile.submenu.subsub.x' etc.
 The attributes in the 'optrec' record(s) may be used to make a TDLMenu
 of TDLOPtions in the meqbrowser by:
 - self._OM.make_TDLCompileOptionMenu()
-- self._OM.make_TDLRuntimeOptionMenu()
+- self._OM.make_TDLRuntimeOptionMenu(node='result')
 
 Each object that has an OptionManager, or has objects that have them,
 should implement two functions with the above names, which call the
@@ -108,9 +108,11 @@ from copy import deepcopy
 class OptionManager (object):
     """The Grunt OptionManager class manages the options of a module"""
 
-    def __init__(self, name='<parent>', namespace=None):
+    def __init__(self, name='<parentname>', namespace=None,
+                 parentclass='parentclass'):
 
         self.name = name
+        self.parentclass = parentclass
         self.frameclass = 'Grunt.OptionManager'
 
         # This field is expected by OMS:
@@ -127,10 +129,11 @@ class OptionManager (object):
         self.option = dict()
 
         # Flat record with TDLMenu objects (if defined):
+        self.menurec = dict()
         self.menu = dict()
         self.menu_order = []
         self.menu_option_keys = dict()
-        # self.menu_toggle_key = dict()
+        self.menu_toggle_key = dict()
 
         # Some reset control variables (see make_reset_option())
         self.key_of_reset_option = dict()
@@ -226,6 +229,10 @@ class OptionManager (object):
             for c in self.menu_option_keys[key]:
                 cc.append(c.replace(key,''))
             print prefix,'    - '+key+': '+str(cc)
+        #...............................................................
+        print prefix,'  * menu definition record(s) ('+str(len(self.menu_order))+'): '
+        for key in self.menu_order:
+            print prefix,'    - '+key+': '+str(self.menurec[key])
         #...............................................................
         if full:
             keys = self.option.keys()
@@ -382,6 +389,7 @@ class OptionManager (object):
                 if self.menu.has_key(menukey):
                     s = '** create('+str(menukey)+'): menu already exists'
                     raise ValueError,s
+                self.menurec[menukey] = dict(text=ss[0], option_keys=[])
                 self.menu[menukey] = None
                 self.menu_order.append(menukey)
                 self.menu_option_keys[menukey] = []
@@ -439,6 +447,13 @@ class OptionManager (object):
             raise ValueError,s
         return menu                     # return menu=None
 
+    #---------------------------------------------------------------------
+
+    def set_menu_text (self, key, text, trace=False):
+        """Helper function to change the (prompt) text of the specified menu."""
+        key = self.findkey(key, self.menu_order, complete=True)
+        self.menurec[key]['text'] = text 
+        return True
 
     #---------------------------------------------------------------------
 
@@ -488,12 +503,12 @@ class OptionManager (object):
 
     #----------------------------------------------------------------------
 
-    def show(self, key=None, show=True, trace=False):
+    def show (self, key=None, show=True, trace=False):
         """Show/hide the specified (key) menu/option."""
         return self.hide(key=key, hide=(not show), trace=trace)
 
 
-    def hide(self, key=None, hide=True, trace=False):
+    def hide (self, key=None, hide=True, trace=False):
         """Hide/unhide the specified menu/option."""
         if isinstance(key,bool):
             hide = key
@@ -555,7 +570,7 @@ class OptionManager (object):
 
     def make_TDLCompileOptionMenu (self, insert=None,
                                    include_reset_option=True,
-                                   trace=False):
+                                   trace=False, **kwargs):
         """Return the TDLMenu of compile-time options. Create it if necessary.
         NB: Every module that has an OptionManager, or has objects that have one,
         should implement a function with this name.
@@ -572,7 +587,7 @@ class OptionManager (object):
 
     def make_TDLRuntimeOptionMenu (self, insert=None,
                                    include_reset_option=False,
-                                   trace=False):
+                                   trace=False, **kwargs):
         """Return the TDLMenu of run-time options. Create it if necessary.
         NB: Every module that has an OptionManager, or has objects that have one,
         should implement a function with this name.
@@ -647,11 +662,13 @@ class OptionManager (object):
                     prepend = 'Runtime'+prepend
                 elif cat=='compile':
                     prepend = 'Compile-time'+prepend
-                prompt = self.namespace(prepend=prepend, append=self.name)
+                append = '<'+str(self.parentclass)+'> '+str(self.name)
+                prompt = self.namespace(prepend=prepend, append=append)
             else:
                 ss = menukey.split('.')
                 # prompt = 'submenu: '+ss[len(ss)-1]
-                prompt = '... '+ss[len(ss)-1]
+                # prompt = '... '+ss[len(ss)-1]
+                prompt = self.menurec[menukey]['text']
             # toggle_key = None
             # toggle_key = '_toggle_'+menukey
             # self.menu_toggle_key[menukey] = toggle_key
@@ -872,9 +889,53 @@ class OptionManager (object):
         return found[0]
     
 
+    #--------------------------------------------------------------------
+    # Convenience functions for interpreting option values:
+    # -> OptionManager.py
+    #--------------------------------------------------------------------
+
+    
+
+    def _convert_string (self, value, types=None, length=None, trace=False):
+        """Helper function to convert a string value any of the
+        specified types.
+        If length is specified, check whether any list has this length.
+        If not successful, return the input value."""
+        s = '._convert_string('+str(value)+','+str(length)+'):'
+        result = None
+        if isinstance(value, str):
+            pass
+        return True
+    
+
+    def _string2list (self, value, length=None, trace=False):
+        """Helper function to convert a string value to a list.
+        If length is specified, check whether the list has the correct length.
+        If not successful, return the input value."""
+        s = '._string2list('+str(value)+','+str(length)+'):'
+        result = None
+        if isinstance(value, str):
+            if ('[' in value) and (']' in value):
+                try:                  
+                    result = eval(value)
+                except:
+                    pass
+        if isinstance(result, list):
+            if length and (not len(result)==length):
+                s = 'list is the wrong length'
+                raise ValueError,s
+            if trace:
+                print s,'->',result
+            return result
+        # Return the input value:
+        if trace:
+            print s,'not a list (',type(value),')'
+        return value
+            
+
 
     #=====================================================================
-    # Test-routine(s)
+    # Fill the object, for testing:
     #=====================================================================
 
     def test(self):
@@ -903,6 +964,9 @@ class OptionManager (object):
         self.define('compile.span.time_deg', 1, more=int)
         self.define('compile.xxx.span.freq_deg', 2, more=int)
         self.define('compile.constraint', constraint, order=order)
+
+        self.set_menu_text ('compile.xxx', 'new text')
+
         return True
 
         
@@ -993,13 +1057,20 @@ if __name__ == '__main__':
             print om.TDLOption(key, trace=True)
             print om.TDLMenu(key, trace=True)
 
-    if 1:
+    if 0:
         om.make_TDLCompileOptionMenu()
 
     if 1:
         om.display('final')
 
     #---------------------------------------------------------------
+
+    if 0:
+        print om._string2list("['aa']", trace=True)
+        print om._string2list(6, trace=True)
+        print om._string2list([2,3], trace=True)
+        print om._string2list("[1,2,3,None,'a',[6,7]]", length=None, trace=True)
+        # print om._string2list('aa', trace=True)
 
     if 0:
         # rr = dict(aa=dict(cc=dict(orig=True)), bb=dict())

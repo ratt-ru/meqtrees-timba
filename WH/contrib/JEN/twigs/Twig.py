@@ -2,6 +2,7 @@
 
 # History:
 # - 01sep2007: creation (from Executor.py)
+# - 05sep2007: polished the user interface
 
 # Description:
 
@@ -66,8 +67,10 @@ class Twig (object):
 
         self._user_levels = ['greenhorn','harmless','member','advanced','expert','smirnoff']
 
-        self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
-        self._xtor = Executor.Executor('Twig_Executor', namespace=namespace)
+        self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
+                                               parentclass=self._frameclass)
+        self._xtor = Executor.Executor('Executor', namespace=namespace,
+                                       parentclass=self._frameclass)
 
         # Define the required runtime options:
         self._twip = dict()
@@ -154,21 +157,11 @@ class Twig (object):
         """Define the various compile-time options in its OptionManager object"""
         submenu = 'compile.'
 
-        opt = self._user_levels
-        self._OM.define(submenu+'user_level', opt[0],
-                        opt=opt,
-                        prompt='user_level',
-                        callback=self._callback_user_level,
-                        doc = """The Twig module can be used at various user_levels.
-                        The higher levels offer more options, which will only
-                        confuse those who are not ready for them.
-                        """)
-
         opt = ['MeqConstant','MeqParm','MeqGrids']
         # opt.extend(['PointSource22'])
         self._OM.define(submenu+'twig_tip', 'MeqConstant',
                         opt=opt,
-                        prompt='twig-tip',
+                        prompt='select a twig tip',
                         callback=self._callback_twip,
                         doc = """A twig-tip is a node/subtree at the
                         tip of a twig. There are various kinds:
@@ -182,23 +175,130 @@ class Twig (object):
         self.submenu_twig_tip_MeqConstant()
         self.submenu_twig_tip_MeqParm()
         self.submenu_twig_tip_MeqGrids()
+        for key in self._twip.keys():
+            self._OM.set_menu_text ('compile.'+key, 'customize the twig-tip: '+key)
 
-        # Submenus for optional operations on the end result:
+        # Submenus for optional operations on the twig_tip:
         self.submenu_modify_make_tensor()
         # self.submenu_modify_make_list()
         self.submenu_modify_add_noise()
         self.submenu_modify_apply_unary()             # AFTER add_noise()
         self.submenu_modify_insert_flagger()
-        self.submenu_demo_insert_modres()
-        self.submenu_demo_insert_solver()
-        self.submenu_modify_visualize()
 
-        # Finishing touches of the main menu:
-        self.submenu_make_twig_bookmark()
+        # Submenus for demonstration subtrees:
+        self.submenu_demo_redaxes()
+        self.submenu_demo_modres()
+        self.submenu_demo_solver()
+
+        self._OM.set_menu_text ('compile.modify', 'modify the twig result')
+        self._OM.set_menu_text ('compile.demo', 'select (non-destructive) demoes')
+
+        self._define_misc_options()
 
         # Select an inital twig_tip:
         self._callback_twip('MeqGrids')
         return True
+
+    #...................................................................
+
+    def _callback_twip (self, twip):
+        """Called whenever the twig_tip changes."""
+
+        user_level = self._numeric_user_level()
+        print '\n** ._callback_twip(',twip,'): user_level =',user_level
+
+        # First hide/inactivate submenus...
+        for key in self._twip.keys():
+            self._OM.hide('compile.'+key)
+        if self._OM['show_modif']:
+            self._OM.hide('compile.modify')
+        if self._OM['show_demoes']:
+            self._OM.hide('compile.demo')
+        
+        # ... and all the modify/demo options:
+        for key in self._modify.keys():
+            self._OM.hide('compile.modify.'+key)
+        for key in self._demo.keys():
+            self._OM.hide('compile.demo.'+key)
+
+        # Then unhide the selected relevant menus/options:
+        if twip in self._twip.keys():
+            if user_level>=self._twip[twip]['user_level']: 
+                self._OM.show('compile.'+twip)          
+
+                if self._OM['show_modif']:
+                    self._OM.show('compile.modify')
+                    for key in self._modify.keys():
+                        if user_level>=self._modify[key]['user_level']:
+                            self._OM.show('compile.modify.'+key)
+                    for key in self._twip[twip]['hide']:     
+                        self._OM.hide('compile.modify.'+key)
+
+                if self._OM['show_demoes']:
+                    self._OM.show('compile.demo')
+                    for key in self._demo.keys():
+                        if user_level>=self._demo[key]['user_level']:
+                            self._OM.show('compile.demo.'+key)
+                    for key in self._twip[twip]['hide']:     
+                        self._OM.hide('compile.demo.'+key)
+        else:
+            twip = '??'
+
+        # Indicate the selected twig_tip in the top menu:
+        menu = self._OM.TDLMenu('compile')
+        if menu:
+            menu.set_summary('(twig_tip='+str(twip)+')')
+        return True
+        
+
+
+    #---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+
+    def _define_misc_options(self):
+        """Define miscellaneous compile-time options in its OptionManager object"""
+        submenu = 'compile.misc'
+
+        opt = self._user_levels
+        self._OM.define(submenu+'.user_level', opt[0],
+                        opt=opt,
+                        prompt='user_level',
+                        callback=self._callback_user_level,
+                        doc = """The Twig module can be used at various user_levels.
+                        The higher levels offer more options, which will only
+                        confuse those who are not ready for them.
+                        """)
+        self._OM.define(submenu+'.show_demoes', False,
+                        opt=[True, False],
+                        prompt='offer demoes',
+                        callback=self._callback_show_demoes,
+                        doc = """If True, show the demoes that are available
+                        at the current user_level.
+                        """)
+        self._OM.define(submenu+'.show_modif', True,
+                        opt=[True, False],
+                        prompt='offer modification options',
+                        callback=self._callback_show_modif,
+                        doc = """If True, show the modification optionsthat
+                        are available at the current user_level.
+                        """)
+
+        self.submenu_visualize_twig()
+        self.submenu_twig_bookmark()
+        self._OM.set_menu_text (submenu, 'misc. settings')
+        return True
+    
+    #...................................................................
+
+    def _callback_show_modif (self, show_modif):
+        """Called whenever the show_modif switch changes."""
+        return self._OM.show('compile.modify', show_modif)
+
+    #...................................................................
+
+    def _callback_show_demoes (self, show_demoes):
+        """Called whenever the show_demoes switch changes."""
+        return self._OM.show('compile.demo', show_demoes)
 
     #...................................................................
 
@@ -209,48 +309,10 @@ class Twig (object):
     #...................................................................
 
     def _numeric_user_level (self):
-        user_level = self._OM['user_level']
+        user_level = self._OM['misc.user_level']
         if user_level in self._user_levels:
             return self._user_levels.index(user_level)
         return 0
-
-    #...................................................................
-
-    def _callback_twip (self, twip):
-        """Called whenever the twig_tip changes."""
-
-        user_level = self._numeric_user_level()
-        print '\n** ._callback_twip(',twip,'): user_level =',user_level
-
-        # First hide/inactivate all twig_tip submenus:
-        for key in self._twip.keys():
-            self._OM.hide('compile.'+key)
-        self._OM.hide('compile.modify')
-
-        # And unhide all the relevant modify options:
-        for key in self._modify.keys():
-            self._OM.hide('compile.modify.'+key)
-
-        # Then unhide the selected twig_tip:
-        if twip in self._twip.keys():
-            if user_level>=self._twip[twip]['user_level']: 
-                self._OM.show('compile.'+twip)          
-                self._OM.show('compile.modify')
-                for key in self._modify.keys():
-                    if user_level>=self._modify[key]['user_level']:
-                        self._OM.show('compile.modify.'+key)
-                for key in self._twip[twip]['hide']:     
-                    self._OM.hide('compile.modify.'+key)
-        else:
-            twip = '??'
-
-        # Indicate the selected twig_tip in the top menu:
-        menu = self._OM.TDLMenu('compile')
-        if menu:
-            menu.set_summary('(twig_tip='+str(twip)+')')
-
-        return True
-        
 
 
     #====================================================================
@@ -268,7 +330,7 @@ class Twig (object):
                         opt=[0.0,1.0,-1.0,(1+0j)], more=float,
                         doc="""set all domain cells to a constant value
                         """)
-        self._twip[name] = dict(user_level=0, hide=['insert_solver'])
+        self._twip[name] = dict(user_level=0, hide=['solver'])
         return True
 
     #--------------------------------------------------------------------
@@ -359,7 +421,7 @@ class Twig (object):
                         doc="""the MeqGrid nodes of the various dimensions
                         must be combined to a single root node
                         """)
-        self._twip[name] = dict(user_level=1, hide=['insert_solver'])
+        self._twip[name] = dict(user_level=1, hide=['solver'])
         return True
 
     #--------------------------------------------------------------------
@@ -444,49 +506,6 @@ class Twig (object):
         self._modify[name] = dict(user_level=3)
         return True
 
-    #--------------------------------------------------------------------
-    # Convenience functions for interpreting option values:
-    # -> OptionManager.py
-    #--------------------------------------------------------------------
-
-    
-
-    def _convert_string (self, value, types=None, length=None, trace=False):
-        """Helper function to convert a string value any of the
-        specified types.
-        If length is specified, check whether any list has this length.
-        If not successful, return the input value."""
-        s = '._convert_string('+str(value)+','+str(length)+'):'
-        result = None
-        if isinstance(value, str):
-            pass
-        
-
-
-    def _string2list (self, value, length=None, trace=False):
-        """Helper function to convert a string value to a list.
-        If length is specified, check whether the list has the correct length.
-        If not successful, return the input value."""
-        s = '._string2list('+str(value)+','+str(length)+'):'
-        result = None
-        if isinstance(value, str):
-            if ('[' in value) and (']' in value):
-                try:                  
-                    result = eval(value)
-                except:
-                    pass
-        if isinstance(result, list):
-            if length and (not len(result)==length):
-                s = 'list is the wrong length'
-                raise ValueError,s
-            if trace:
-                print s,'->',result
-            return result
-        # Return the input value:
-        if trace:
-            print s,'not a list (',type(value),')'
-        return value
-            
 
     #--------------------------------------------------------------------
 
@@ -649,47 +668,105 @@ class Twig (object):
         # Optionally, show the intermediary results. This is very useful
         # when trying to get useful clipping levels:
         if bookpage:
-            folder = self._OM['compile.make_bookmark.folder']
             cc.extend([diff,zflag,node])
-            JEN_bookmarks.create(cc, page=bookpage, folder=folder)
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
+        return self._check_node (node, submenu)
+
+
+
+    #====================================================================
+    #====================================================================
+    # Optional demonstrations:
+    #====================================================================
+    #====================================================================
+
+    def submenu_demo_redaxes(self):
+        """Define the options for an axes reduction demo in a side-branch"""
+        name = 'redaxes'
+        submenu = 'compile.demo.'+name
+        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*',None]
+        self._OM.define(submenu+'.oper', None,
+                        prompt='select a math operation',
+                        opt=opt, more=str,
+                        doc="""Select the math oper.
+                        """)
+        opt = ['*','time','freq',['time','freq'],None]
+        self._OM.define(submenu+'.redaxes', '*',
+                        prompt='reduction axes',
+                        opt=opt, more=str,
+                        doc="""The reduction axes:
+                        """)
+        self._OM.define(submenu+'.bookpage', name,
+                        prompt='local bookpage',
+                        opt=[None,name],
+                        doc="""Make a 'local bookpage' for the various results.
+                        """)
+        self._OM.set_menu_text(submenu, 'reduce domain axes')
+        self._demo[name] = dict(user_level=3)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def demo_redaxes (self, ns, node, trace=False):
+        """Optionally, demonstrate reducing the domain axes by resampling"""
+        name = 'redaxes'
+        if not self._proceed_with_modify (ns, node, name): return node
+        submenu = 'compile.demo.'+name+'.'
+        
+        oper = self._OM[submenu+'oper']
+        if oper==None:
+            return node                               # not required
+        axes = self._OM[submenu+'redaxes']
+        bookpage = self._OM[submenu+'bookpage']
+        qnode = ns['redaxes']
+
+        node = qnode('reqseq') << Meq.ReqSeq(original,diff,
+                                             result_index=0)
+   
+        # Optionally, show the intermediary results.
+        if bookpage:
+            cc = [original,redaxes,resampled,diff]
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
         return self._check_node (node, submenu)
 
 
     #====================================================================
     #====================================================================
 
-    def submenu_demo_insert_modres(self):
+    def submenu_demo_modres(self):
         """Define the options for a demo in a side-branch"""
-        name = 'insert_modres'
-        submenu = 'compile.demo.'+name+'.'
-        self._OM.define(submenu+'num_cells', None,
+        name = 'modres'
+        submenu = 'compile.demo.'+name
+        self._OM.define(submenu+'.num_cells', None,
                         prompt='nr of cells [nt,nf]',
-                        opt=[None,[2,3],[3,2]],
+                        opt=[None,[2,3],[3,2]], more=str,
                         doc="""Covert the REQUEST to a lower a resolution.
                         """)
-        self._OM.define(submenu+'resamp_mode', 1,
+        self._OM.define(submenu+'.resamp_mode', 1,
                         prompt='resampler mode',
                         opt=[1,2],
                         doc="""Mode 2 only works with time,freq domains.
                         """)
-        self._OM.define(submenu+'bookpage', name,
+        self._OM.define(submenu+'.bookpage', name,
                         prompt='local bookpage',
                         opt=[None,name],
                         doc="""Make a 'local bookpage' for the 'before'
                         and 'after' results of the resampling operation.
                         """)
+        self._OM.set_menu_text(submenu, 'change domain resolution')
         self._demo[name] = dict(user_level=3)
         return True
 
     #--------------------------------------------------------------------
 
-    def demo_insert_modres (self, ns, node, trace=False):
+    def demo_modres (self, ns, node, trace=False):
         """Optionally, demonstrate modifying the cell resolution by resampling"""
-        name = 'insert_modres'
+        name = 'modres'
         if not self._proceed_with_modify (ns, node, name): return node
         submenu = 'compile.demo.'+name+'.'
         
         num_cells = self._OM[submenu+'num_cells']
+        num_cells = self._OM._string2list(num_cells, length=None)
         if num_cells==None:
             return node                               # not required
         rmode = self._OM[submenu+'resamp_mode']
@@ -715,38 +792,38 @@ class Twig (object):
    
         # Optionally, show the intermediary results.
         if bookpage:
-            folder = self._OM['compile.make_bookmark.folder']
             cc = [original,modres,resampled,diff]
-            JEN_bookmarks.create(cc, page=bookpage, folder=folder)
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
         return self._check_node (node, submenu)
 
 
     #====================================================================
     #====================================================================
 
-    def submenu_demo_insert_solver(self):
+    def submenu_demo_solver(self):
         """Define the options for an operation on the twig result"""
-        name = 'insert_solver'
-        submenu = 'compile.demo.'+name+'.'
-        self._OM.define(submenu+'niter', None,
+        name = 'solver'
+        submenu = 'compile.demo.'+name
+        self._OM.define(submenu+'.niter', None,
                         prompt='nr of iterations',
                         opt=[None,1,2,3,5,10,20,30,50,100],
                         doc="""Nr of solver iterations.
                         """)
-        self._OM.define(submenu+'bookpage', name,
+        self._OM.define(submenu+'.bookpage', name,
                         prompt='local bookpage',
                         opt=[None,name],
                         doc="""Make a 'local bookpage' for nodes that are relevant
                         for the solving operation (condeq, solver, parm).
                         """)
+        self._OM.set_menu_text(submenu, 'solve for MeqParm coeff')
         self._demo[name] = dict(user_level=2)
         return True
 
     #--------------------------------------------------------------------
 
-    def demo_insert_solver (self, ns, node, trace=False):
+    def demo_solver (self, ns, node, trace=False):
         """Optionally, insert a solver to generate some flags"""
-        name = 'insert_solver'
+        name = 'solver'
         if not self._proceed_with_demo (ns, node, name): return node
         submenu = 'compile.demo.'+name+'.'
         niter = self._OM[submenu+'niter']
@@ -766,72 +843,82 @@ class Twig (object):
         # Optionally, bookmark the various relevant nodes.
         bookpage = self._OM[submenu+'bookpage']
         if bookpage:
-            folder = self._OM['compile.make_bookmark.folder']
             cc = [parm[0], lhs, condeq, solver]
-            JEN_bookmarks.create(cc, page=bookpage, folder=folder)
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
         return self._check_node (node, submenu)
 
 
+
+
+    #====================================================================
+    #====================================================================
+    # Finishing touches on the twig result:
     #====================================================================
     #====================================================================
 
-    def submenu_modify_visualize(self):
+    def submenu_visualize_twig(self):
         """Define the options for an operation on the twig result"""
-        name = 'visualize'
-        submenu = 'compile.modify.'+name+'.'
-        self._OM.define(submenu+'plot_type', None,
+        name = 'visualize_twig'
+        submenu = 'compile.misc.'+name
+        self._OM.define(submenu+'.plot_type', None,
                         prompt='make a special plot',
                         opt=[None,'rvsi','time_tracks'], 
                         doc="""Special visualization
                         """)
         self._modify[name] = dict(user_level=0)
+        self._OM.set_menu_text(submenu, 'visualize the twig rootnode')
         return True
 
     #--------------------------------------------------------------------
 
-    def modify_visualize (self, ns, node, trace=False):
+    def visualize_twig (self, ns, node, trace=False):
         """Optionally, visualize the given node"""
-        name = 'visualize'
+        name = 'visualize_twig'
         if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        plot = self._OM[submenu+'plot_type']
+        submenu = 'compile.misc.'+name
+        plot = self._OM[submenu+'.plot_type']
         return self._check_node (node, submenu)
         return node
 
 
 
     #====================================================================
-    # Make the final twig bookmark/folder:
     #====================================================================
 
-    def submenu_make_twig_bookmark(self):
+    def submenu_twig_bookmark(self):
         """Define the options for an operation on the twig result"""
-        name = 'make_bookmark'
-        submenu = 'compile.'+name+'.'
-        self._OM.define(submenu+'bookpage', 'twig',
+        name = 'twig_bookmark'
+        submenu = 'compile.misc.'+name
+        self._OM.define(submenu+'.bookpage', 'twig',
                         opt=[None], more=str,
                         prompt='meqbrowser bookpage',
                         doc = """If specified, the leaf nodes generated with the
                         twig functions .leafnode() will be
                         be bookmarked on the same bookpage.
                         """)
-        self._OM.define(submenu+'folder', None,
+        self._OM.define(submenu+'.folder', None,
                         opt=[None], more=str,
                         prompt='bookpage folder',
                         doc = """All bookpages may be put into a folder
                         """)
+        self._OM.set_menu_text(submenu, 'bookmark the twig rootnode')
         return True
 
     #--------------------------------------------------------------------
 
-    def make_twig_bookmark (self, ns, node, trace=False):
+    def _folder (self):
+        """Helper function to get the Twig bookmark folder"""
+        return self._OM['compile.misc.twig_bookmark.folder']
+        
+    #--------------------------------------------------------------------
+
+    def twig_bookmark (self, ns, node, trace=False):
         """Optionally, bookmark the given node"""
-        name = 'make_bookmark'
-        submenu = 'compile.'+name+'.'
+        name = 'twig_bookmark'
+        submenu = 'compile.misc.'+name+'.'
         bookpage = self._OM[submenu+'bookpage']
-        folder = self._OM[submenu+'folder']
         if node and bookpage:
-            JEN_bookmarks.create(node, page=bookpage, folder=folder)
+            JEN_bookmarks.create(node, page=bookpage, folder=self._folder())
         return self._check_node (node, submenu)
 
 
@@ -871,21 +958,26 @@ class Twig (object):
         elif twip=='MeqGrids':
             node = self.make_twig_tip_MeqGrids(ns, trace=trace)
 
-        # Apply optional operation(s) on the end result:
+        # Apply optional operation(s) on the twig result:
         node = self.modify_make_tensor (ns, node, trace=trace)
         # node = self.modify_make_list (ns, node, trace=trace)
         node = self.modify_add_noise (ns, node, trace=trace)
         node = self.modify_apply_unary (ns, node, trace=trace)     # AFTER add_noise()
         node = self.modify_insert_flagger (ns, node, trace=trace)
-        node = self.demo_insert_modres (ns, node, trace=trace)
-        node = self.demo_insert_solver (ns, node, trace=trace)
-        node = self.modify_visualize (ns, node, trace=trace)
+
+        # Insert optional demoes (using the twig result):
+        node = self.demo_redaxes (ns, node, trace=trace)
+        node = self.demo_modres (ns, node, trace=trace)
+        node = self.demo_solver (ns, node, trace=trace)
+
+        # Finsishing touches:
+        node = self.visualize_twig (ns, node, trace=trace)
+        node = self.twig_bookmark (ns, node, trace=trace)
 
         # Finished:
         node = self._check_node (node, '.make_twig()')
         if trace:
             display.subtree(node)
-        node = self.make_twig_bookmark (ns, node, trace=trace)
         return node
 
 
@@ -898,11 +990,11 @@ class Twig (object):
 
 twig = None
 if 1:
-    twig = Twig()
-    twig._xtor.add_dimension('l', unit='rad')
-    twig._xtor.add_dimension('m', unit='rad')
-    twig._xtor.add_dimension('long', unit='rad')
-    twig._xtor.add_dimension('s', unit='rad')
+    twig = Twig('twiggy')
+    # twig._xtor.add_dimension('l', unit='rad')
+    # twig._xtor.add_dimension('m', unit='rad')
+    # twig._xtor.add_dimension('long', unit='rad')
+    # twig._xtor.add_dimension('s', unit='rad')
     twig.make_TDLCompileOptionMenu()
     # twig.display()
 
@@ -921,7 +1013,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    twig.make_TDLRuntimeOptionMenu()
+    twig.make_TDLRuntimeOptionMenu(node=ns.result)
     # twig.display('final', full=False)
     return True
 
@@ -934,7 +1026,7 @@ Settings.forest_state.cache_policy = 100
 def _tdl_job_execute (mqs, parent):
     """Execute the forest with the specified options (domain etc),
     starting at the named node"""
-    return twig._xtor.execute(mqs, parent, start='result')
+    return twig._xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Twig object"""

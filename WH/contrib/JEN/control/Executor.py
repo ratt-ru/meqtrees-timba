@@ -75,13 +75,15 @@ import math
 class Executor (object):
     """The Grunt Executor class makes it easy to execute trees in various ways"""
 
-    def __init__(self, name='Executor',
-                 namespace='xtor'):
+    def __init__(self, name='xtor', namespace='xtor',
+                 parentclass='parentclass'):
 
         self.name = name
+        self._parentclass = parentclass
         self._frameclass = 'Grunt.Executor'       # for reporting
 
-        self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
+        self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
+                                               parentclass=self._parentclass)
 
         # Dimensions control-dict:
         self._dims = dict()
@@ -89,8 +91,8 @@ class Executor (object):
 
         # Define the required runtime options:
         self.define_runtime_options()
-
         self.request_counter = 0                  # see .request()
+        self.execute_node = None                  # see .execute()
         
         # Finished:
         return None
@@ -150,6 +152,7 @@ class Executor (object):
         print prefix,'  * compile_dims() -> '+str(self.compile_dims())
         print prefix,'  * runtime_dims() -> '+str(self.runtime_dims())
         print prefix,'  * domain() -> '+str(self.domain())
+        print prefix,'  * execute_node -> '+str(self.execute_node)
         #...............................................................
         print prefix,'  * '+self._OM.oneliner()
         if OM: self._OM.display(full=False, level=level+1)
@@ -167,10 +170,23 @@ class Executor (object):
 
     def make_TDLRuntimeOptionMenu (self, **kwargs):
         """Make the TDL menu of run-time options"""
-        # if not isinstance(kwargs, dict): kwargs = dict()
         kwargs.setdefault('include_reset_option', True)
-        return self._OM.make_TDLRuntimeOptionMenu(**kwargs)
-    
+        kwargs.setdefault('node', None)
+        menu = self._OM.make_TDLRuntimeOptionMenu(**kwargs)
+
+        # Deal with the specified default execute-node:
+        self.execute_node = kwargs['node']
+        if self.execute_node:
+            nodename = self.execute_node
+            if is_node(nodename):
+                nodename = nodename.name
+            if isinstance(nodename, str):
+                olist = [True, None, nodename]
+                self._OM.set_option_list ('runtime.execnode', olist)
+
+        # Return the menu
+        return menu
+
     #-----------------------------------------------------------------------
 
     def define_runtime_options(self):
@@ -179,6 +195,15 @@ class Executor (object):
 
         # Individual options in the main menu (i.e. submenu=None):
         submenu = 'runtime.'
+
+        self._OM.define(submenu+'execnode', True,
+                        opt=[True, None], more=str,    # see .make_TDLRuntimeOptionMenu()
+                        prompt='node to be executed',
+                        doc = """The specified (string) node will be executed.
+                        - If True, the default node will be used.
+                        - If None, only a request will be generated.
+                        """)
+
         opt = ['freq','time',['freq','time'],'ft','*']
         self._OM.define(submenu+'dims', '*',
                         opt=opt, more=str,
@@ -314,14 +339,24 @@ class Executor (object):
     # Forest execution:
     #=========================================================================
 
-    def execute (self, mqs, parent, start='result', trace=True):
-        """Execute the forest, starting at the named node (start)"""
+    def execute (self, mqs, parent, node=None, trace=True):
+        """Execute the forest, starting at the named node (node)"""
 
-        nodename = start
-        if is_node(start):
-            nodename = start.nodename
+        execnode = self._OM['execnode']
+        if isinstance(execnode, bool):
+            node = self.execute_node
+        elif execnode==None:
+            node = None
+        else:
+            node = execnode
+            
+        nodename = node
+        if is_node(node):
+            nodename = node.name
+
         if trace:
             print '\n** .execute():  (nodename =',str(nodename),')'
+
         if not isinstance(nodename,str):
             s = '\n** Execute: invalid nodename: '+str(nodename)
             raise ValueError,s
@@ -702,7 +737,7 @@ def _define_forest(ns):
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    xtor.make_TDLRuntimeOptionMenu()
+    xtor.make_TDLRuntimeOptionMenu(node='result')
     # xtor.display('final', full=False)
     return True
 
@@ -713,9 +748,8 @@ def _define_forest(ns):
 Settings.forest_state.cache_policy = 100
 
 def _tdl_job_execute (mqs, parent):
-    """Execute the forest with the specified options (domain etc),
-    starting at the named node"""
-    return xtor.execute(mqs, parent, start='result')
+    """Execute the forest with the specified options (domain etc)"""
+    return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Executor object"""
