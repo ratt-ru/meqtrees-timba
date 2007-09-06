@@ -324,6 +324,7 @@ class ChartPlot(QWidget):
       self._updated_data[channel] = True
       self._start_offset_test[channel][self._data_index] = 0
     self.reset_zoom()
+    self._refresh_flag = True
     self.refresh_event()
 
   def emit_complex_selector(self, menuid):
@@ -383,6 +384,7 @@ class ChartPlot(QWidget):
       self._updated_data[channel] = True
       self._start_offset_test[channel][self._data_index] = 0
     self.reset_zoom()
+    self._refresh_flag = True
     self.refresh_event()
     return True
 
@@ -404,7 +406,9 @@ class ChartPlot(QWidget):
         self._plotter.removeMarker(self._source_marker[channel]);
     # remove current curves
     self._plotter.removeCurves()
-    self._plotter.replot()
+    # undo any zooming
+    self.reset_zoom()
+#   self._plotter.replot()
     self._ArraySize = 6
     self._x_displacement = self._ArraySize / 6 
     self.set_x_axis_sizes()
@@ -762,6 +766,7 @@ class ChartPlot(QWidget):
     if not parameters is None:
       if parameters.haskey("default_offset"):
         self._offset = parameters.get("default_offset")
+        self._refresh_flag = True
         if self._offset < 0.0:
           self._auto_offset = True
           self._offset = 0
@@ -773,6 +778,7 @@ class ChartPlot(QWidget):
     """ Update the display offset.
     """
     self._offset = new_scale
+    self._refresh_flag = True
     if self._offset < 0.0:
       self._auto_offset = True
       self._offset = 0
@@ -790,6 +796,7 @@ class ChartPlot(QWidget):
     """
     self._auto_offset = True
     self._offset = 0
+    self._refresh_flag = True
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
@@ -920,6 +927,8 @@ class ChartPlot(QWidget):
       # skip rest of processing if incoming_data is non-existent
       if incoming_data is None:
         continue
+      else:
+        self._refresh_flag = True
 
       #print 'incoming flags ', incoming_flags
 # first, do we have a scalar?
@@ -1004,6 +1013,7 @@ class ChartPlot(QWidget):
       self._plotter.curve(self._crv_key[channel]).setEnabled(False)
       self._updated_data[channel] = True
     self.reset_zoom()
+    self._refresh_flag = True
     self.refresh_event()
 
   def change_scale_type(self):
@@ -1048,6 +1058,7 @@ class ChartPlot(QWidget):
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
       self._start_offset_test[channel][self._data_index] = 0
+    self._refresh_flag = True
     self.refresh_event()
 
 
@@ -1065,6 +1076,7 @@ class ChartPlot(QWidget):
 
   def set_offset_value(self, offset_value):
     self._offset = offset_value
+    self._refresh_flag = True
     if self._offset < 0.0:
       self._auto_offset = True
       self._offset = 0
@@ -1079,6 +1091,11 @@ class ChartPlot(QWidget):
         call replots
         set refresh flag False
     """
+
+    # if no changes have been made, just return
+    if not self._refresh_flag:
+      return
+
     # first determine offsets
     if self._auto_offset:
       for channel in range(self._nbcrv):
