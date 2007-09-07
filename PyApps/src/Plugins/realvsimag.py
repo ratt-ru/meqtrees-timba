@@ -474,23 +474,23 @@ class realvsimag_plotter(object):
     self._x_auto_scale = plot_parms['x_auto_scale']
     if self._x_auto_scale == '1':
       self._x_auto_scale = True
+      self.plot.setAxisAutoScale(QwtPlot.xBottom)
     else:
       self._x_auto_scale = False
     self._y_auto_scale = plot_parms['y_auto_scale']
     if self._y_auto_scale == '1':
       self._y_auto_scale = True
+      self.plot.setAxisAutoScale(QwtPlot.yLeft)
     else:
       self._y_auto_scale = False
     if not self._x_auto_scale: 
-      self.axis_xmin = plot_parms['x_axis_min']
-      self.axis_xmax = plot_parms['x_axis_max']
-#     self.plot.setAxisScale(QwtPlot.xBottom, float(self.axis_xmin), float(self.axis_xmax))
+      self.axis_xmin = float(plot_parms['axis_xmin'])
+      self.axis_xmax = float(plot_parms['axis_xmax'])
+      self.plot.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
     if not self._y_auto_scale: 
-      self.axis_ymin = plot_parms['y_axis_min']
-      self.axis_ymax = plot_parms['y_axis_max']
-#     self.plot.setAxisScale(QwtPlot.yLeft, float(self.axis_ymin), float(self.axis_ymax))
-    self.axis_ratio = plot_parms['ratio']
-    self.aspect_ratio = plot_parms['aspect_ratio']
+      self.axis_ymin = float(plot_parms['axis_ymin'])
+      self.axis_ymax = float(plot_parms['axis_ymax'])
+      self.plot.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
     self.plot.replot()
 
   def update_display(self, menuid):

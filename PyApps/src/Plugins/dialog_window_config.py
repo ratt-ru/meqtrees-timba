@@ -351,7 +351,6 @@ class dialog_window_config(QDialog):
         self.setTabOrder(self.line_edit_ratio,self.buttonOk)
         self.setTabOrder(self.buttonOk,self.buttonCancel)
 
-
     def languageChange(self):
         self.setCaption(self.__tr("Window Configuration"))
         self.group_box_window_labels.setTitle(self.__tr("Window labels"))
@@ -385,7 +384,7 @@ class dialog_window_config(QDialog):
         self.combo_box_min_grid_style.insertItem(self.__tr("Dotted Line"))
         self.combo_box_min_grid_style.insertItem(self.__tr("Dash Dot Line"))
         self.combo_box_min_grid_style.insertItem(self.__tr("Dash Dot Dot Line"))
-        self.tab_widget_categories.changeTab(self.TabPage,self.__tr("Grid"))
+        self.tab_widget_categories.changeTab(self.TabPage,self.__tr("Grid (presently ignored!)"))
         self.line_edit_ratio.setText(self.__tr("1.0"))
         self.group_box_x_axis_range.setTitle(self.__tr("X-axis range"))
         self.check_box_x_auto_scale.setText(self.__tr("Enable X-axis Auto Scale"))
