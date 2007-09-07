@@ -49,6 +49,8 @@ from Timba.Contrib.JEN.control import Executor
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN.Grunt import display
 
+# from Timba.Contrib.JEN.twigs import Plugin
+
 # from copy import deepcopy
 import math
 
@@ -70,11 +72,16 @@ class Twig (object):
         self._xtor = Executor.Executor('Executor', namespace=namespace,
                                        parentclass=self._frameclass)
 
-        # Define the required runtime options:
+        # Define the compile_time options:
         self._twip = dict()
         self._modify = dict()
         self._demo = dict()
-        self.define_options()
+        
+        self._plugin_order = []
+        self._plugin = dict()
+
+        self.define_compile_options()
+
 
         # Keep track of the data type and format
         self._data = dict(complex=False, tensor=False, nelem=1, dims=1)
@@ -106,6 +113,11 @@ class Twig (object):
         if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
         print prefix,'  *  user_levels: '+str(self._user_levels)
+        print prefix,'  *  available plugins:'
+        for key in self._plugin_order:
+            rr = self._plugin[key]
+            print prefix,'    - '+key+': '+str(rr['plugin'].oneliner())
+        #...............................................................
         print prefix,'  *  available twig_tip types:'
         for key in self._twip.keys():
             print prefix,'    - '+key+': '+str(self._twip[key])
@@ -151,7 +163,7 @@ class Twig (object):
 
     #-------------------------------------------------------------------
 
-    def define_options(self):
+    def define_compile_options(self):
         """Define the various compile-time options in its OptionManager object"""
         submenu = 'compile.'
 
@@ -174,24 +186,51 @@ class Twig (object):
         self.submenu_twig_tip_MeqParm()
         self.submenu_twig_tip_MeqGrids()
         for key in self._twip.keys():
-            self._OM.set_menu_text ('compile.'+key, 'customize the twig-tip: '+key)
+            self._OM.set_menu_prompt ('compile.'+key, 'customize the twig-tip: '+key)
 
         # Submenus for optional operations on the twig_tip:
-        self.submenu_modify_make_tensor()
+        # self.submenu_modify_make_tensor()
+        self.add_plugin('PluginMakeTensor', submenu='compile.modify',
+                        user_level=0, hide=[])     
         # self.submenu_modify_make_list()
-        self.submenu_modify_add_noise()
-        self.submenu_modify_apply_unary()             # AFTER add_noise()
-        self.submenu_modify_insert_flagger()
+        # self.submenu_modify_add_noise()
+        self.add_plugin('PluginAddNoise', submenu='compile.modify',
+                        user_level=0, hide=[])   
+        # self.submenu_modify_apply_unary()             # AFTER add_noise()
+        self.add_plugin('PluginUnary', submenu='compile.modify',
+                        user_level=0, hide=[])          # AFTER add_noise()
+        # self.submenu_modify_insert_flagger()
+        self.add_plugin('PluginFlagger', submenu='compile.modify',
+                        user_level=0, hide=[])    
 
+        # Add a sequence of Plugin modules:
+        if False:
+            self.add_plugin('PluginTemplate', submenu='compile.modify',
+                            user_level=0, hide=[])
+            if True:
+                self.add_plugin('PluginTest', submenu='compile.modify', quals='1st',
+                                user_level=0, hide=[])
+            if True:
+                self.add_plugin('PluginTest', submenu='compile.modify', quals='2nd',
+                                user_level=0, hide=[])
+
+
+        
         # Submenus for demonstration subtrees:
-        self.submenu_demo_redaxes()
-        self.submenu_demo_modres()
-        self.submenu_demo_solver()
+        # self.submenu_demo_redaxes()
+        self.add_plugin('PluginDemoRedaxes', submenu='compile.demo',
+                        user_level=0, hide=[])      
+        self.add_plugin('PluginDemoSolver', submenu='compile.demo',
+                        user_level=0, hide=[])    
+        self.add_plugin('PluginDemoModRes', submenu='compile.demo',
+                        user_level=0, hide=[])   
+        # self.submenu_demo_modres()
+        # self.submenu_demo_solver()
 
-        self._OM.set_menu_text ('compile.modify', 'modify the twig result')
-        self._OM.set_menu_text ('compile.demo', 'select demoes')
+        self._OM.set_menu_prompt ('compile.modify', 'modify the twig result')
+        self._OM.set_menu_prompt ('compile.demo', 'select demoes')
 
-        self._define_misc_options()
+        self._define_misc_compile_options()
 
         # Select an inital twig_tip:
         self._callback_twip('MeqGrids')
@@ -247,13 +286,98 @@ class Twig (object):
         if menu:
             menu.set_summary('(twig_tip='+str(twip)+')')
         return True
-        
+
+    
+    #---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+
+    def add_plugin(self, name, submenu='compile.modify', quals=[],
+                   user_level=0, hide=[]):
+        """Create the specified Plugin object, and add it to self._plugin.
+        """
+        plugin = None
+        if name=='PluginTest':
+            from Timba.Contrib.JEN.twigs import Plugin
+            plugin = Plugin.PluginTest(submenu=submenu, OM=self._OM,
+                                       quals=quals)
+        elif name=='PluginTemplate':
+            from Timba.Contrib.JEN.twigs import PluginTemplate
+            plugin = PluginTemplate.PluginTemplate(submenu=submenu, OM=self._OM,
+                                                   quals=quals)
+        elif name=='PluginUnary':
+            from Timba.Contrib.JEN.twigs import PluginUnary
+            plugin = PluginUnary.PluginUnary(submenu=submenu, OM=self._OM,
+                                             quals=quals)
+        elif name=='PluginFlagger':
+            from Timba.Contrib.JEN.twigs import PluginFlagger
+            plugin = PluginFlagger.PluginFlagger(submenu=submenu, OM=self._OM,
+                                                 quals=quals)
+        elif name=='PluginAddNoise':
+            from Timba.Contrib.JEN.twigs import PluginAddNoise
+            plugin = PluginAddNoise.PluginAddNoise(submenu=submenu, OM=self._OM,
+                                                   quals=quals)
+        elif name=='PluginMakeTensor':
+            from Timba.Contrib.JEN.twigs import PluginMakeTensor
+            plugin = PluginMakeTensor.PluginMakeTensor(submenu=submenu, OM=self._OM,
+                                                       quals=quals)
+
+        elif name=='PluginDemoSolver':
+            from Timba.Contrib.JEN.twigs import PluginDemoSolver
+            plugin = PluginDemoSolver.PluginDemoSolver(submenu=submenu, OM=self._OM,
+                                                       quals=quals)
+        elif name=='PluginDemoModRes':
+            from Timba.Contrib.JEN.twigs import PluginDemoModRes
+            plugin = PluginDemoModRes.PluginDemoModRes(submenu=submenu, OM=self._OM,
+                                                       quals=quals)
+        elif name=='PluginDemoRedaxes':
+            from Timba.Contrib.JEN.twigs import PluginDemoRedaxes
+            plugin = PluginDemoRedaxes.PluginDemoRedaxes(submenu=submenu, OM=self._OM,
+                                             quals=quals)
+
+        else:
+            s = 'plugin not recognised: '+name
+            raise ValueError,s
+
+        if isinstance(quals,str):
+            quals = [quals]
+        for qual in quals:
+            name += '_'+qual
+        self._plugin[name] = dict(plugin=plugin,
+                                  user_level=user_level, hide=hide) 
+        self._plugin_order.append(name)
+        return True
+
+    #---------------------------------------------------------------------------
+
+    def insert_plugin_chain (self, ns, node=None, trace=True):
+        """Make a chain of subtrees from the entries in self._plugin
+        """
+        trace = True
+        user_level = self._numeric_user_level()
+        # if user_level<self._twip[twip]['user_level']:
+        #     s = '** user-level='+str(user_level)
+        #     s += ' ('+str(self._OM['user_level'])+')'
+        #     s += ': too low for twig_tip: '+twip
+        #     raise ValueError,s
+        if trace:
+            print '\n** .insert_plugin_chain(',str(node),'):'
+
+        for key in self._plugin_order:
+            rr = self._plugin[key]
+            print '\n -',key,':',rr['plugin'].oneliner()
+            # if rr['user_level']<user_level:
+            node = rr['plugin'].make_subtree(ns, node, trace=trace)
+            print '    -> node =',str(node)
+
+        if trace:
+            print
+        return node
 
 
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
 
-    def _define_misc_options(self):
+    def _define_misc_compile_options(self):
         """Define miscellaneous compile-time options in its OptionManager object"""
         submenu = 'compile.misc'
 
@@ -284,7 +408,7 @@ class Twig (object):
 
         self.submenu_visualize_twig()
         self.submenu_twig_bookmark()
-        self._OM.set_menu_text (submenu, 'misc. settings')
+        self._OM.set_menu_prompt (submenu, 'misc. settings')
         return True
     
     #...................................................................
@@ -671,6 +795,8 @@ class Twig (object):
 
 
 
+
+
     #====================================================================
     #====================================================================
     # Optional demonstrations:
@@ -698,7 +824,7 @@ class Twig (object):
                         prompt='demo bookpage', opt=opt,
                         doc="""Make a 'local bookpage' for this demo.
                         """)
-        self._OM.set_menu_text(submenu, 'reduce domain axes')
+        self._OM.set_menu_prompt(submenu, 'reduce domain axes')
         self._demo[name] = dict(user_level=3)
         return True
 
@@ -751,7 +877,7 @@ class Twig (object):
                         prompt='demo bookpage', opt=opt,
                         doc="""Make a 'local bookpage' for this demo.
                         """)
-        self._OM.set_menu_text(submenu, 'change domain resolution')
+        self._OM.set_menu_prompt(submenu, 'change domain resolution')
         self._demo[name] = dict(user_level=3)
         return True
 
@@ -812,7 +938,7 @@ class Twig (object):
                         prompt='demo bookpage', opt=opt,
                         doc="""Make a 'local bookpage' for this demo.
                         """)
-        self._OM.set_menu_text(submenu, 'solve for MeqParm coeff')
+        self._OM.set_menu_prompt(submenu, 'solve for MeqParm coeff')
         self._demo[name] = dict(user_level=2)
         return True
 
@@ -866,7 +992,7 @@ class Twig (object):
                         doc="""Special visualization
                         """)
         self._modify[name] = dict(user_level=0)
-        self._OM.set_menu_text(submenu, 'visualize the twig rootnode')
+        self._OM.set_menu_prompt(submenu, 'visualize the twig rootnode')
         return True
 
     #--------------------------------------------------------------------
@@ -901,7 +1027,7 @@ class Twig (object):
                         prompt='bookpage folder',
                         doc = """All bookpages may be put into a folder
                         """)
-        self._OM.set_menu_text(submenu, 'bookmark the twig rootnode')
+        self._OM.set_menu_prompt(submenu, 'bookmark the twig rootnode')
         return True
 
     #--------------------------------------------------------------------
@@ -931,7 +1057,7 @@ class Twig (object):
     #====================================================================
     
 
-    def make_twig (self, ns, qual='qual', trace=True):
+    def make_twig (self, ns, qual=None, trace=True):
         """Make the actual twig subtree, according to specifications."""
         if trace:
             print '\n** .make_twig(',qual,'):'
@@ -959,16 +1085,19 @@ class Twig (object):
             node = self.make_twig_tip_MeqGrids(ns, trace=trace)
 
         # Apply optional operation(s) on the twig result:
-        node = self.modify_make_tensor (ns, node, trace=trace)
-        # node = self.modify_make_list (ns, node, trace=trace)
-        node = self.modify_add_noise (ns, node, trace=trace)
-        node = self.modify_apply_unary (ns, node, trace=trace)     # AFTER add_noise()
-        node = self.modify_insert_flagger (ns, node, trace=trace)
+        # node = self.modify_make_tensor (ns, node, trace=trace)
+        ## node = self.modify_make_list (ns, node, trace=trace)
+        # node = self.modify_add_noise (ns, node, trace=trace)
+        ## node = self.modify_apply_unary (ns, node, trace=trace)     # AFTER add_noise()
+        # node = self.modify_insert_flagger (ns, node, trace=trace)
+
+        # Insert the Plugins:
+        node = self.insert_plugin_chain (ns, node, trace=True)
 
         # Insert optional demoes (using the twig result):
-        node = self.demo_redaxes (ns, node, trace=trace)
-        node = self.demo_modres (ns, node, trace=trace)
-        node = self.demo_solver (ns, node, trace=trace)
+        # node = self.demo_redaxes (ns, node, trace=trace)
+        # node = self.demo_modres (ns, node, trace=trace)
+        # node = self.demo_solver (ns, node, trace=trace)
 
         # Finsishing touches:
         node = self.visualize_twig (ns, node, trace=trace)
