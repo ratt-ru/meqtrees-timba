@@ -109,6 +109,60 @@ class PluginDemoSolver(Plugin.Plugin):
         return self.on_output (node, trace=trace)
 
 
+    #====================================================================
+    #====================================================================
+
+    def submenu_demo_solver(self):
+        """Define the options for an operation on the twig result"""
+        name = 'solver'
+        submenu = 'compile.demo.'+name
+        self._OM.define(submenu+'.niter', None,
+                        prompt='nr of iterations',
+                        opt=[None,1,2,3,5,10,20,30,50,100],
+                        doc="""Nr of solver iterations.
+                        """)
+        opt = ['demo_'+name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
+                        """)
+        self._OM.set_menu_prompt(submenu, 'solve for MeqParm coeff')
+        self._demo[name] = dict(user_level=2)
+        return True
+
+    #--------------------------------------------------------------------
+    # NB: This does not work. The MeqParm should not be in the twig,
+    # but in the lhs....
+    #--------------------------------------------------------------------
+
+    def demo_solver (self, ns, node, trace=False):
+        """Optionally, insert a solver to generate some flags"""
+        name = 'solver'
+        if not self._proceed_with_demo (ns, node, name): return node
+        submenu = 'compile.demo.'+name+'.'
+        niter = self._OM[submenu+'niter']
+        if niter==None or niter<1:
+            return node                               # not required
+
+        qnode = ns['solver']
+        lhs = self._make_xtor_hypercube(ns)           # left-hand side
+        condeq = qnode('condeq') << Meq.Condeq(lhs,node)
+        parm = ns.Search(tags='solvable', class_name='MeqParm')
+        print '** parm =',str(parm[0])
+        solver = qnode('solver') << Meq.Solver(condeq, num_iter=niter,
+                                               solvable=parm)
+        node = qnode('reqseq') << Meq.ReqSeq(children=[solver,node],
+                                             result_index=1)
+        
+        # Optionally, bookmark the various relevant nodes.
+        bookpage = self._OM[submenu+'bookpage']
+        if bookpage:
+            cc = [parm[0], lhs, condeq, solver]
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
+        return self._check_node (node, submenu)
+
+
+
 
 #=============================================================================
 #=============================================================================

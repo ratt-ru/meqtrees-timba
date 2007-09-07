@@ -109,6 +109,59 @@ class PluginMakeTensor(Plugin.Plugin):
         return self.on_output (node, trace=trace)
 
 
+    def submenu_modify_make_tensor(self):
+        """Define the options for an operation on the twig result"""
+        name = 'make_tensor'
+        submenu = 'compile.modify.'+name+'.'
+        opt = [None,'2','3','4','2x2']
+        self._OM.define(submenu+'dims', None,
+                        prompt='dims',
+                        opt=opt, more=str,
+                        doc="""duplicate scalar into a tensor node
+                        """)
+        self._modify[name] = dict(user_level=3)
+        return True
+
+
+    #--------------------------------------------------------------------
+
+    def modify_make_tensor (self, ns, node, trace=False):
+        """Optionally, make a tensor node from the given node"""
+        name = 'make_tensor'
+        if not self._proceed_with_modify (ns, node, name): return node
+        submenu = 'compile.modify.'+name+'.'
+        dims = self._OM[submenu+'dims']
+        if dims==None:                  # not required
+            return node
+        try:                            # check for integer value
+            dd = eval(dims)
+        except:
+            if 'x' in dims:             # check for nxm (or more)
+                nelem = 1
+                dd = dims.split('x')
+                for i in range(len(dd)):
+                    dd[i] = eval(dd[i])
+                    nelem *= dd[i]
+                nodename = 'tensor'+str(dd)
+            else:                       # dims not recognised
+                print 'dims =',dims
+                raise ValueError,'invalid dims'
+        else:                           # dims is integer 
+            nelem = dd
+            nodename = 'tensor['+str(nelem)+']'
+
+        # OK, duplicate the input node and make the tensor:
+        if nelem>1:
+            self._data['tensor'] = (nelem>1)                     # used downstream
+            self._data['nelem'] = nelem                          # used downstream
+            self._data['dims'] = dims                            # used downstream
+            nodes = []
+            for i in range(nelem):
+                nodes.append(ns['elem_'+str(i)] << Meq.Identity(node))
+            node = ns[nodename] << Meq.Composer(children=nodes, dims=dd) 
+        return self._check_node (node, submenu)
+
+
 
 #=============================================================================
 #=============================================================================

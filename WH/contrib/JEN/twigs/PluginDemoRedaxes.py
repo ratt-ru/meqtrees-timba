@@ -108,6 +108,61 @@ class PluginDemoRedaxes(Plugin.Plugin):
         # Check the new rootnode:
         return self.on_output (node, trace=trace)
 
+    #====================================================================
+    #====================================================================
+
+    def submenu_demo_redaxes(self):
+        """Define the options for an axes reduction demo in a side-branch"""
+        name = 'redaxes'
+        submenu = 'compile.demo.'+name
+        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*',None]
+        self._OM.define(submenu+'.oper', None,
+                        prompt='select a math operation',
+                        opt=opt, more=str,
+                        doc="""Select the math oper.
+                        """)
+        opt = ['*','time','freq',['time','freq'],None]
+        self._OM.define(submenu+'.redaxes', '*',
+                        prompt='reduction axes',
+                        opt=opt, more=str,
+                        doc="""The reduction axes:
+                        """)
+        opt = ['demo_'+name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
+                        """)
+        self._OM.set_menu_prompt(submenu, 'reduce domain axes')
+        self._demo[name] = dict(user_level=3)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def demo_redaxes (self, ns, node, trace=False):
+        """Optionally, demonstrate reducing the domain axes by resampling"""
+        name = 'redaxes'
+        if not self._proceed_with_modify (ns, node, name): return node
+        submenu = 'compile.demo.'+name+'.'
+        
+        oper = self._OM[submenu+'oper']
+        if oper==None:
+            return node                               # not required
+        axes = self._OM[submenu+'redaxes']
+        bookpage = self._OM[submenu+'bookpage']
+
+        qnode = ns[oper]
+        cc = [node]
+        cc.append(qnode('reduce_all') << getattr(Meq,oper)(node))
+        cc.append(qnode('reduce_time') << getattr(Meq,oper)(node, reduction_axes=['time']))
+        cc.append(qnode('reduce_freq') << getattr(Meq,oper)(node, reduction_axes=['freq']))
+        node = qnode('reqseq') << Meq.ReqSeq(children=cc, result_index=0)
+   
+        # Optionally, show the intermediary results.
+        if bookpage:
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
+        return self._check_node (node, submenu)
+
+
 
 
 #=============================================================================

@@ -108,6 +108,68 @@ class PluginFlagger(Plugin.Plugin):
         # Check the new rootnode:
         return self.on_output (node, trace=trace)
 
+    #====================================================================
+    #====================================================================
+
+    def submenu_modify_insert_flagger(self):
+        """Define the options for an operation on the twig result"""
+        name = 'insert_flagger'
+        submenu = 'compile.modify.'+name+'.'
+        self._OM.define(submenu+'flag_oper', None,
+                        prompt='flag operation',
+                        opt=[None,'GT','GE','LE','LT'],
+                        doc="""Flag those cells whose values are 'oper' zero.
+                        """)
+        self._OM.define(submenu+'cliplevel', 1.0,
+                        prompt='clip level',
+                        opt=[0.0,0.1,0.3,1.0,3.0,10.0], more=float,
+                        doc="""Generate some flags by clipping.
+                        Suggestion: add some noise first, and then amplify
+                        it non-linearly with the unary (Exp) operation.
+                        """)
+        opt = [name, None]
+        self._OM.define(submenu+'.bookpage', opt[0],
+                        prompt='demo bookpage', opt=opt,
+                        doc="""Make a 'local bookpage' for this demo.
+                        """)
+        self._modify[name] = dict(user_level=3)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def modify_insert_flagger (self, ns, node, trace=False):
+        """Optionally, insert a flagger to generate some flags"""
+        name = 'insert_flagger'
+        if not self._proceed_with_modify (ns, node, name): return node
+        submenu = 'compile.modify.'+name+'.'
+        flag_oper = self._OM[submenu+'flag_oper']
+        if flag_oper==None:
+            return node                               # not required
+        clip_level = self._OM[submenu+'cliplevel']
+        bookpage = self._OM[submenu+'bookpage']
+        cc = [node]                                   # keep for bookpage
+        qnode = ns['flagger']
+        
+        # Flag the cells whose diff values are 'oper' zero (e.g. oper=GT)
+        # NB: Assume that ZeroFlagger can have multiple children
+        diff = qnode('diff') << Meq.Subtract(node, (ns.clip_level << clip_level)) 
+        oper = 'GT'
+        zflag = qnode('zflag') << Meq.ZeroFlagger(diff, oper=flag_oper)
+
+        # The new flags are merged with those of the input node:
+        node = qnode('mflag') << Meq.MergeFlags(children=[node,zflag])
+   
+        # Optional: merge the flags of multiple tensor elements of input/output:
+        ## if pp.merge: output = ns.Mflag << Meq.MergeFlags(output)
+
+        # Optionally, show the intermediary results. This is very useful
+        # when trying to get useful clipping levels:
+        if bookpage:
+            cc.extend([diff,zflag,node])
+            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
+        return self._check_node (node, submenu)
+
+
 
 
 #=============================================================================

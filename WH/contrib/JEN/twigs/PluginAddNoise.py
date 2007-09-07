@@ -77,10 +77,10 @@ class PluginAddNoise(Plugin.Plugin):
         if not self.on_entry (trace=trace):
             return node
         #..............................................
-        self._OM.define(self.optname('unop'), 'Cos',
-                        prompt='unary',
-                        opt=['Sin','Cos'], more=str,
-                        doc="""apply an unary operation.
+        self._OM.define(self.optname('stddev'), None,
+                        prompt='stddev',
+                        opt=[0.1,1.0], more=float,
+                        doc="""add gaussian noise (if stddev>0)
                         """)
         #..............................................
         return self.on_exit(trace=trace)
@@ -97,16 +97,54 @@ class PluginAddNoise(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        unop = self.optval('unop')
-        if not unop:
-            return node                           # do nothing
+        stddev = self.optval('stddev')
 
         # Make the subtree:
-        node = self.ns['result'] << getattr(Meq,unop)(node)
+        if stddev and stddev>0.0:
+            name = '~'+str(stddev)
+            noise = self.ns[name]
+            if not noise.initialized():
+                noise << Meq.GaussNoise(stddev=stddev)
+                name = node.basename + name
+                node = self.ns[name] << Meq.Add(node,noise)
 
         #..............................................
         # Check the new rootnode:
         return self.on_output (node, trace=trace)
+
+
+    #====================================================================
+    #====================================================================
+
+    def submenu_modify_add_noise(self):
+        """Define the options for an operation on the twig result"""
+        name = 'add_noise'
+        submenu = 'compile.modify.'+name+'.'
+        self._OM.define(submenu+'stddev', None,
+                        prompt='stddev',
+                        opt=[0.1,1.0], more=float,
+                        doc="""add gaussian noise (if stddev>0)
+                        """)
+        self._modify[name] = dict(user_level=0)
+        return True
+
+    #--------------------------------------------------------------------
+
+    def modify_add_noise (self, ns, node, trace=False):
+        """Optionally, add noise to the given node"""
+        name = 'add_noise'
+        if not self._proceed_with_modify (ns, node, name): return node
+        submenu = 'compile.modify.'+name+'.'
+        stddev = self._OM[submenu+'stddev']
+        if stddev and stddev>0.0:
+            name = '~'+str(stddev)
+            noise = ns[name]
+            if not noise.initialized():
+                noise << Meq.GaussNoise(stddev=stddev)
+                name = node.basename + name
+                node = ns[name] << Meq.Add(node,noise)
+        return self._check_node (node, submenu)
+
 
 
 

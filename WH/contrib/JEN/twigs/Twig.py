@@ -188,22 +188,17 @@ class Twig (object):
         for key in self._twip.keys():
             self._OM.set_menu_prompt ('compile.'+key, 'customize the twig-tip: '+key)
 
-        # Submenus for optional operations on the twig_tip:
-        # self.submenu_modify_make_tensor()
+        # Plugins for optional operations on the twig_tip:
         self.add_plugin('PluginMakeTensor', submenu='compile.modify',
                         user_level=0, hide=[])     
-        # self.submenu_modify_make_list()
-        # self.submenu_modify_add_noise()
         self.add_plugin('PluginAddNoise', submenu='compile.modify',
                         user_level=0, hide=[])   
-        # self.submenu_modify_apply_unary()             # AFTER add_noise()
-        self.add_plugin('PluginUnary', submenu='compile.modify',
+        self.add_plugin('PluginApplyUnary', submenu='compile.modify',
                         user_level=0, hide=[])          # AFTER add_noise()
-        # self.submenu_modify_insert_flagger()
         self.add_plugin('PluginFlagger', submenu='compile.modify',
                         user_level=0, hide=[])    
 
-        # Add a sequence of Plugin modules:
+        # Testing Plugins:
         if False:
             self.add_plugin('PluginTemplate', submenu='compile.modify',
                             user_level=0, hide=[])
@@ -214,18 +209,13 @@ class Twig (object):
                 self.add_plugin('PluginTest', submenu='compile.modify', quals='2nd',
                                 user_level=0, hide=[])
 
-
-        
-        # Submenus for demonstration subtrees:
-        # self.submenu_demo_redaxes()
+        # Plugins for demonstration subtrees:
         self.add_plugin('PluginDemoRedaxes', submenu='compile.demo',
                         user_level=0, hide=[])      
         self.add_plugin('PluginDemoSolver', submenu='compile.demo',
                         user_level=0, hide=[])    
         self.add_plugin('PluginDemoModRes', submenu='compile.demo',
                         user_level=0, hide=[])   
-        # self.submenu_demo_modres()
-        # self.submenu_demo_solver()
 
         self._OM.set_menu_prompt ('compile.modify', 'modify the twig result')
         self._OM.set_menu_prompt ('compile.demo', 'select demoes')
@@ -304,10 +294,10 @@ class Twig (object):
             from Timba.Contrib.JEN.twigs import PluginTemplate
             plugin = PluginTemplate.PluginTemplate(submenu=submenu, OM=self._OM,
                                                    quals=quals)
-        elif name=='PluginUnary':
-            from Timba.Contrib.JEN.twigs import PluginUnary
-            plugin = PluginUnary.PluginUnary(submenu=submenu, OM=self._OM,
-                                             quals=quals)
+        elif name=='PluginApplyUnary':
+            from Timba.Contrib.JEN.twigs import PluginApplyUnary
+            plugin = PluginApplyUnary.PluginApplyUnary(submenu=submenu, OM=self._OM,
+                                                       quals=quals)
         elif name=='PluginFlagger':
             from Timba.Contrib.JEN.twigs import PluginFlagger
             plugin = PluginFlagger.PluginFlagger(submenu=submenu, OM=self._OM,
@@ -576,8 +566,6 @@ class Twig (object):
     #====================================================================
     #====================================================================
 
-    def _proceed_with_demo (self, ns, node, name, trace=True):
-        return self._proceed_with_modify (ns, node, name, trace=trace)
 
     def _proceed_with_modify (self, ns, node, name, trace=True):
         """Helper function to decide whether to proceed with 'modify' function"""
@@ -608,371 +596,6 @@ class Twig (object):
         if severe:
             raise ValueError,s
         return False
-
-
-    #====================================================================
-    #====================================================================
-    # Functions for operations on the end result:
-    #====================================================================
-    #====================================================================
-
-    def submenu_modify_make_tensor(self):
-        """Define the options for an operation on the twig result"""
-        name = 'make_tensor'
-        submenu = 'compile.modify.'+name+'.'
-        opt = [None,'2','3','4','2x2']
-        self._OM.define(submenu+'dims', None,
-                        prompt='dims',
-                        opt=opt, more=str,
-                        doc="""duplicate scalar into a tensor node
-                        """)
-        self._modify[name] = dict(user_level=3)
-        return True
-
-
-    #--------------------------------------------------------------------
-
-    def modify_make_tensor (self, ns, node, trace=False):
-        """Optionally, make a tensor node from the given node"""
-        name = 'make_tensor'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        dims = self._OM[submenu+'dims']
-        if dims==None:                  # not required
-            return node
-        try:                            # check for integer value
-            dd = eval(dims)
-        except:
-            if 'x' in dims:             # check for nxm (or more)
-                nelem = 1
-                dd = dims.split('x')
-                for i in range(len(dd)):
-                    dd[i] = eval(dd[i])
-                    nelem *= dd[i]
-                nodename = 'tensor'+str(dd)
-            else:                       # dims not recognised
-                print 'dims =',dims
-                raise ValueError,'invalid dims'
-        else:                           # dims is integer 
-            nelem = dd
-            nodename = 'tensor['+str(nelem)+']'
-
-        # OK, duplicate the input node and make the tensor:
-        if nelem>1:
-            self._data['tensor'] = (nelem>1)                     # used downstream
-            self._data['nelem'] = nelem                          # used downstream
-            self._data['dims'] = dims                            # used downstream
-            nodes = []
-            for i in range(nelem):
-                nodes.append(ns['elem_'+str(i)] << Meq.Identity(node))
-            node = ns[nodename] << Meq.Composer(children=nodes, dims=dd) 
-        return self._check_node (node, submenu)
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_modify_apply_unary(self):
-        """Define the options for an operation on the twig result"""
-        name = 'apply_unary'
-        submenu = 'compile.modify.'+name+'.'
-        opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
-        opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
-        self._OM.define(submenu+'unop', None,
-                        prompt='unary',
-                        opt=opt, more=str,
-                        doc="""apply an unary operation.
-                        """)
-        self._modify[name] = dict(user_level=0)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def modify_apply_unary (self, ns, node, trace=False):
-        """Optionally, apply an unary operation on the given node"""
-        name = 'apply_unary'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        unop = self._OM[submenu+'unop']
-        if unop:
-            node = ns << getattr(Meq,unop)(node)
-        return self._check_node (node, submenu)
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_modify_add_noise(self):
-        """Define the options for an operation on the twig result"""
-        name = 'add_noise'
-        submenu = 'compile.modify.'+name+'.'
-        self._OM.define(submenu+'stddev', None,
-                        prompt='stddev',
-                        opt=[0.1,1.0], more=float,
-                        doc="""add gaussian noise (if stddev>0)
-                        """)
-        self._modify[name] = dict(user_level=0)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def modify_add_noise (self, ns, node, trace=False):
-        """Optionally, add noise to the given node"""
-        name = 'add_noise'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        stddev = self._OM[submenu+'stddev']
-        if stddev and stddev>0.0:
-            name = '~'+str(stddev)
-            noise = ns[name]
-            if not noise.initialized():
-                noise << Meq.GaussNoise(stddev=stddev)
-                name = node.basename + name
-                node = ns[name] << Meq.Add(node,noise)
-        return self._check_node (node, submenu)
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_modify_insert_flagger(self):
-        """Define the options for an operation on the twig result"""
-        name = 'insert_flagger'
-        submenu = 'compile.modify.'+name+'.'
-        self._OM.define(submenu+'flag_oper', None,
-                        prompt='flag operation',
-                        opt=[None,'GT','GE','LE','LT'],
-                        doc="""Flag those cells whose values are 'oper' zero.
-                        """)
-        self._OM.define(submenu+'cliplevel', 1.0,
-                        prompt='clip level',
-                        opt=[0.0,0.1,0.3,1.0,3.0,10.0], more=float,
-                        doc="""Generate some flags by clipping.
-                        Suggestion: add some noise first, and then amplify
-                        it non-linearly with the unary (Exp) operation.
-                        """)
-        opt = [name, None]
-        self._OM.define(submenu+'.bookpage', opt[0],
-                        prompt='demo bookpage', opt=opt,
-                        doc="""Make a 'local bookpage' for this demo.
-                        """)
-        self._modify[name] = dict(user_level=3)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def modify_insert_flagger (self, ns, node, trace=False):
-        """Optionally, insert a flagger to generate some flags"""
-        name = 'insert_flagger'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        flag_oper = self._OM[submenu+'flag_oper']
-        if flag_oper==None:
-            return node                               # not required
-        clip_level = self._OM[submenu+'cliplevel']
-        bookpage = self._OM[submenu+'bookpage']
-        cc = [node]                                   # keep for bookpage
-        qnode = ns['flagger']
-        
-        # Flag the cells whose diff values are 'oper' zero (e.g. oper=GT)
-        # NB: Assume that ZeroFlagger can have multiple children
-        diff = qnode('diff') << Meq.Subtract(node, (ns.clip_level << clip_level)) 
-        oper = 'GT'
-        zflag = qnode('zflag') << Meq.ZeroFlagger(diff, oper=flag_oper)
-
-        # The new flags are merged with those of the input node:
-        node = qnode('mflag') << Meq.MergeFlags(children=[node,zflag])
-   
-        # Optional: merge the flags of multiple tensor elements of input/output:
-        ## if pp.merge: output = ns.Mflag << Meq.MergeFlags(output)
-
-        # Optionally, show the intermediary results. This is very useful
-        # when trying to get useful clipping levels:
-        if bookpage:
-            cc.extend([diff,zflag,node])
-            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
-        return self._check_node (node, submenu)
-
-
-
-
-
-    #====================================================================
-    #====================================================================
-    # Optional demonstrations:
-    #====================================================================
-    #====================================================================
-
-    def submenu_demo_redaxes(self):
-        """Define the options for an axes reduction demo in a side-branch"""
-        name = 'redaxes'
-        submenu = 'compile.demo.'+name
-        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*',None]
-        self._OM.define(submenu+'.oper', None,
-                        prompt='select a math operation',
-                        opt=opt, more=str,
-                        doc="""Select the math oper.
-                        """)
-        opt = ['*','time','freq',['time','freq'],None]
-        self._OM.define(submenu+'.redaxes', '*',
-                        prompt='reduction axes',
-                        opt=opt, more=str,
-                        doc="""The reduction axes:
-                        """)
-        opt = ['demo_'+name, None]
-        self._OM.define(submenu+'.bookpage', opt[0],
-                        prompt='demo bookpage', opt=opt,
-                        doc="""Make a 'local bookpage' for this demo.
-                        """)
-        self._OM.set_menu_prompt(submenu, 'reduce domain axes')
-        self._demo[name] = dict(user_level=3)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def demo_redaxes (self, ns, node, trace=False):
-        """Optionally, demonstrate reducing the domain axes by resampling"""
-        name = 'redaxes'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.demo.'+name+'.'
-        
-        oper = self._OM[submenu+'oper']
-        if oper==None:
-            return node                               # not required
-        axes = self._OM[submenu+'redaxes']
-        bookpage = self._OM[submenu+'bookpage']
-
-        qnode = ns[oper]
-        cc = [node]
-        cc.append(qnode('reduce_all') << getattr(Meq,oper)(node))
-        cc.append(qnode('reduce_time') << getattr(Meq,oper)(node, reduction_axes=['time']))
-        cc.append(qnode('reduce_freq') << getattr(Meq,oper)(node, reduction_axes=['freq']))
-        node = qnode('reqseq') << Meq.ReqSeq(children=cc, result_index=0)
-   
-        # Optionally, show the intermediary results.
-        if bookpage:
-            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
-        return self._check_node (node, submenu)
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_demo_modres(self):
-        """Define the options for a demo in a side-branch"""
-        name = 'modres'
-        submenu = 'compile.demo.'+name
-        self._OM.define(submenu+'.num_cells', None,
-                        prompt='nr of cells [nt,nf]',
-                        opt=[None,[2,3],[3,2]], more=str,
-                        doc="""Covert the REQUEST to a lower a resolution.
-                        """)
-        self._OM.define(submenu+'.resamp_mode', 1,
-                        prompt='resampler mode',
-                        opt=[1,2],
-                        doc="""Mode 2 only works with time,freq domains.
-                        """)
-        opt = ['demo_'+name, None]
-        self._OM.define(submenu+'.bookpage', opt[0],
-                        prompt='demo bookpage', opt=opt,
-                        doc="""Make a 'local bookpage' for this demo.
-                        """)
-        self._OM.set_menu_prompt(submenu, 'change domain resolution')
-        self._demo[name] = dict(user_level=3)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def demo_modres (self, ns, node, trace=False):
-        """Optionally, demonstrate modifying the cell resolution by resampling"""
-        name = 'modres'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.demo.'+name+'.'
-        
-        num_cells = self._OM[submenu+'num_cells']
-        num_cells = self._OM._string2list(num_cells, length=None)
-        if num_cells==None:
-            return node                               # not required
-        rmode = self._OM[submenu+'resamp_mode']
-        bookpage = self._OM[submenu+'bookpage']
-        qnode = ns['modres']
-
-        # Make a side-branch that first lowers the resolution (modres),
-        # by simply lowering the resolution of the request
-        # then resamples the result to the the original resolution,
-        # and then takes the difference with the original input to
-        # check the quality of the two operations.
-        original = qnode('original') << Meq.Identity(node) 
-        modres = qnode('modres') << Meq.ModRes(node, num_cells=num_cells) 
-        resampled = qnode('resampled') << Meq.Resampler(modres, mode=rmode) 
-        diff = qnode('diff') << Meq.Subtract(resampled,original) 
-
-        # The reqseq issues a (full-resolution) request first to the
-        # branch that holds the original resolution, and than to the
-        # branch that changes the resolution back and forth. Since it
-        # is only a demonstration, the original result (0) is passed on.
-        node = qnode('reqseq') << Meq.ReqSeq(original,diff,
-                                             result_index=0)
-   
-        # Optionally, show the intermediary results.
-        if bookpage:
-            cc = [original,modres,resampled,diff]
-            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
-        return self._check_node (node, submenu)
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_demo_solver(self):
-        """Define the options for an operation on the twig result"""
-        name = 'solver'
-        submenu = 'compile.demo.'+name
-        self._OM.define(submenu+'.niter', None,
-                        prompt='nr of iterations',
-                        opt=[None,1,2,3,5,10,20,30,50,100],
-                        doc="""Nr of solver iterations.
-                        """)
-        opt = ['demo_'+name, None]
-        self._OM.define(submenu+'.bookpage', opt[0],
-                        prompt='demo bookpage', opt=opt,
-                        doc="""Make a 'local bookpage' for this demo.
-                        """)
-        self._OM.set_menu_prompt(submenu, 'solve for MeqParm coeff')
-        self._demo[name] = dict(user_level=2)
-        return True
-
-    #--------------------------------------------------------------------
-    # NB: This does not work. The MeqParm should not be in the twig,
-    # but in the lhs....
-    #--------------------------------------------------------------------
-
-    def demo_solver (self, ns, node, trace=False):
-        """Optionally, insert a solver to generate some flags"""
-        name = 'solver'
-        if not self._proceed_with_demo (ns, node, name): return node
-        submenu = 'compile.demo.'+name+'.'
-        niter = self._OM[submenu+'niter']
-        if niter==None or niter<1:
-            return node                               # not required
-
-        qnode = ns['solver']
-        lhs = self._make_xtor_hypercube(ns)           # left-hand side
-        condeq = qnode('condeq') << Meq.Condeq(lhs,node)
-        parm = ns.Search(tags='solvable', class_name='MeqParm')
-        print '** parm =',str(parm[0])
-        solver = qnode('solver') << Meq.Solver(condeq, num_iter=niter,
-                                               solvable=parm)
-        node = qnode('reqseq') << Meq.ReqSeq(children=[solver,node],
-                                             result_index=1)
-        
-        # Optionally, bookmark the various relevant nodes.
-        bookpage = self._OM[submenu+'bookpage']
-        if bookpage:
-            cc = [parm[0], lhs, condeq, solver]
-            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
-        return self._check_node (node, submenu)
-
 
 
 
@@ -1084,20 +707,8 @@ class Twig (object):
         elif twip=='MeqGrids':
             node = self.make_twig_tip_MeqGrids(ns, trace=trace)
 
-        # Apply optional operation(s) on the twig result:
-        # node = self.modify_make_tensor (ns, node, trace=trace)
-        ## node = self.modify_make_list (ns, node, trace=trace)
-        # node = self.modify_add_noise (ns, node, trace=trace)
-        ## node = self.modify_apply_unary (ns, node, trace=trace)     # AFTER add_noise()
-        # node = self.modify_insert_flagger (ns, node, trace=trace)
-
         # Insert the Plugins:
         node = self.insert_plugin_chain (ns, node, trace=True)
-
-        # Insert optional demoes (using the twig result):
-        # node = self.demo_redaxes (ns, node, trace=trace)
-        # node = self.demo_modres (ns, node, trace=trace)
-        # node = self.demo_solver (ns, node, trace=trace)
 
         # Finsishing touches:
         node = self.visualize_twig (ns, node, trace=trace)

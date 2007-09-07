@@ -1,11 +1,11 @@
-# file: ../twigs/PluginUnary.py
+# file: ../twigs/PluginApplyUnary.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The PluginUnary class makes makes a subtree that takes an input node and
+"""The PluginApplyUnary class makes makes a subtree that takes an input node and
 produces a new rootnode by .....
 """
 
@@ -51,7 +51,7 @@ import math
 #=============================================================================
 #=============================================================================
 
-class PluginUnary(Plugin.Plugin):
+class PluginApplyUnary(Plugin.Plugin):
     """Class derived from Plugin"""
 
     def __init__(self,
@@ -60,7 +60,7 @@ class PluginUnary(Plugin.Plugin):
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginUnary',
+        Plugin.Plugin.__init__(self, name='PluginApplyUnary',
                                quals=quals, kwquals=kwquals,
                                submenu=submenu,
                                OM=OM, namespace=namespace,
@@ -79,7 +79,7 @@ class PluginUnary(Plugin.Plugin):
         #..............................................
         opt = [None,'Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
         opt.extend(['Sqrt','Log','Invert'])                           # problems if <=0
-        self._OM.define(self.optname('unop'), 'Cos',
+        self._OM.define(self.optname('unop'), None,
                         prompt='unary operation',
                         opt=opt, more=str,
                         doc="""apply an unary operation.
@@ -126,7 +126,7 @@ if 0:
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     xtor.make_TDLCompileOptionMenu()
-    pgt = PluginUnary()
+    pgt = PluginApplyUnary()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
 
@@ -137,7 +137,7 @@ def _define_forest(ns):
     if not pgt:
         xtor = Executor.Executor()
         xtor.make_TDLCompileOptionMenu()
-        pgt = PluginUnary()
+        pgt = PluginApplyUnary()
         pgt.make_TDLCompileOptionMenu()
 
     cc = []
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = PluginUnary()
+        pgt = PluginApplyUnary()
         pgt.display('initial')
 
     if 1:
