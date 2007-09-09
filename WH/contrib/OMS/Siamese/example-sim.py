@@ -50,7 +50,7 @@ simmode_opt = TDLCompileOption("sim_mode","Simulation mode",[SIM_ONLY,ADD_MS,SUB
 simmode_opt.when_changed(lambda mode:mssel.enable_input_column(mode!=SIM_ONLY));
 
 # now load optional modules for the ME maker
-import MeqMaker
+from Meow import MeqMaker
 meqmaker = MeqMaker.MeqMaker();
 
 # specify available sky models
@@ -103,7 +103,7 @@ def _define_forest (ns):
   TDLRuntimeMenu("Imaging options",*imsel.option_list());
   
   # get a predict tree from the MeqMaker
-  output = meqmaker.make_tree(ns);
+  output = meqmaker.make_predict_tree(ns);
   
   # throw in a bit of noise
   if noise_stddev:

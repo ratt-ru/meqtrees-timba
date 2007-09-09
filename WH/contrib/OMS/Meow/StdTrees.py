@@ -302,7 +302,7 @@ def make_sinks (ns,outputs,array=None,
     else:
       post = None;
   elif post and not is_node(post):
-    raise TypeError,"'post' argument should be a node or a list of nodes";
+    raise TypeError,"'post' argument should be a node or a list of nodes, %s given"%type(post);
 
   # now make the vdm
   vdm << Meq.VisDataMux(post=post,*[sink(p,q) for p,q in array.ifrs()]);
