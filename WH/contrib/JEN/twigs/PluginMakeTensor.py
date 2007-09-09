@@ -75,7 +75,7 @@ class PluginMakeTensor(Plugin.Plugin):
         This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
         self._OM.define(self.optname('unop'), 'Cos',
                         prompt='unary',
@@ -93,13 +93,13 @@ class PluginMakeTensor(Plugin.Plugin):
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
         unop = self.optval('unop')
         if not unop:
-            return node                           # do nothing
+            return self.bypass (trace=trace)
 
         # Make the subtree:
         node = self.ns['result'] << getattr(Meq,unop)(node)
@@ -108,6 +108,8 @@ class PluginMakeTensor(Plugin.Plugin):
         # Check the new rootnode:
         return self.on_output (node, trace=trace)
 
+
+    #==================================================================================
 
     def submenu_modify_make_tensor(self):
         """Define the options for an operation on the twig result"""

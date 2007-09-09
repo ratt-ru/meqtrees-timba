@@ -63,6 +63,8 @@ class PluginTemplate(Plugin.Plugin):
         Plugin.Plugin.__init__(self, name='PluginTemplate',
                                quals=quals, kwquals=kwquals,
                                submenu=submenu,
+                               is_demo=False,
+                               is_leaf=False,
                                OM=OM, namespace=namespace,
                                **kwargs)
         return None
@@ -72,10 +74,9 @@ class PluginTemplate(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
         self._OM.define(self.optname('unop'), 'Cos',
                         prompt='unary',
@@ -89,23 +90,27 @@ class PluginTemplate(Plugin.Plugin):
 
     def make_subtree (self, ns, node, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
+        #..............................................
+
+
+        #..............................................
+        # Replace the function body below with your own:
         #..............................................
 
         # Read the specified options:
         unop = self.optval('unop')
         if not unop:
-            return node                           # do nothing
+            return self.bypass (trace=trace)
 
         # Make the subtree:
         node = self.ns['result'] << getattr(Meq,unop)(node)
 
         #..............................................
-        # Check the new rootnode:
+        # Finishing touches:
         return self.on_output (node, trace=trace)
 
 

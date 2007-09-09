@@ -55,6 +55,11 @@ def subtree (node, txt=None, level=1,
 
     if show_initrec:
         initrec = deepcopy(node.initrec())
+        if not isinstance(initrec,dict):
+            s0 = '** '+str(node)+': '
+            s1 = s0+'initrec not a dict, but '+str(type(initrec))
+            print s1
+            raise ValueError,s1
         # if len(initrec.keys()) > 1:
         hide = ['name','class','defined_at','children','stepchildren','step_children']
         for field in hide:

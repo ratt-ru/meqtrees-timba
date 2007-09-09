@@ -72,10 +72,9 @@ class PluginAddNoise(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
         self._OM.define(self.optname('stddev'), None,
                         prompt='stddev',
@@ -85,65 +84,35 @@ class PluginAddNoise(Plugin.Plugin):
         #..............................................
         return self.on_exit(trace=trace)
 
-    #--------------------------------------------------------------------
+
+
+    #====================================================================
 
     def make_subtree (self, ns, node, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
         stddev = self.optval('stddev')
+        if not stddev or stddev<=0.0:
+            return self.bypass (trace=trace)
 
         # Make the subtree:
-        if stddev and stddev>0.0:
-            name = '~'+str(stddev)
-            noise = self.ns[name]
-            if not noise.initialized():
-                noise << Meq.GaussNoise(stddev=stddev)
-                name = node.basename + name
-                node = self.ns[name] << Meq.Add(node,noise)
+        name = '~'+str(stddev)
+        noise = self.ns[name]
+        if not noise.initialized():
+            noise << Meq.GaussNoise(stddev=stddev)
+            name = node.basename + name
+            node = self.ns[name] << Meq.Add(node,noise)
 
         #..............................................
         # Check the new rootnode:
         return self.on_output (node, trace=trace)
 
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_modify_add_noise(self):
-        """Define the options for an operation on the twig result"""
-        name = 'add_noise'
-        submenu = 'compile.modify.'+name+'.'
-        self._OM.define(submenu+'stddev', None,
-                        prompt='stddev',
-                        opt=[0.1,1.0], more=float,
-                        doc="""add gaussian noise (if stddev>0)
-                        """)
-        self._modify[name] = dict(user_level=0)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def modify_add_noise (self, ns, node, trace=False):
-        """Optionally, add noise to the given node"""
-        name = 'add_noise'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        stddev = self._OM[submenu+'stddev']
-        if stddev and stddev>0.0:
-            name = '~'+str(stddev)
-            noise = ns[name]
-            if not noise.initialized():
-                noise << Meq.GaussNoise(stddev=stddev)
-                name = node.basename + name
-                node = ns[name] << Meq.Add(node,noise)
-        return self._check_node (node, submenu)
 
 
 

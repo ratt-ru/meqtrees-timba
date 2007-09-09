@@ -63,6 +63,7 @@ class PluginDemoModRes(Plugin.Plugin):
         Plugin.Plugin.__init__(self, name='PluginDemoModRes',
                                quals=quals, kwquals=kwquals,
                                submenu=submenu,
+                               is_demo=True,
                                OM=OM, namespace=namespace,
                                **kwargs)
         return None
@@ -72,15 +73,19 @@ class PluginDemoModRes(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('unop'), 'Cos',
-                        prompt='unary',
-                        opt=['Sin','Cos'], more=str,
-                        doc="""apply an unary operation.
+        self._OM.define(self.optname('num_cells'), None,
+                        prompt='nr of cells [nt,nf]',
+                        opt=[None,[2,3],[3,2]], more=str,
+                        doc="""Covert the REQUEST to a lower a resolution.
+                        """)
+        self._OM.define(self.optname('resamp_mode'), 1,
+                        prompt='resampler mode',
+                        opt=[1,2],
+                        doc="""Mode 2 only works with time,freq domains.
                         """)
         #..............................................
         return self.on_exit(trace=trace)
@@ -89,24 +94,41 @@ class PluginDemoModRes(Plugin.Plugin):
 
     def make_subtree (self, ns, node, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
-        unop = self.optval('unop')
-        if not unop:
-            return node                           # do nothing
+        num_cells = self.optval('num_cells')
+        num_cells = self._OM._string2list(num_cells, length=None)
+        if num_cells==None:
+            return self.bypass (trace=trace)
+        rmode = self.optval('resamp_mode')
 
-        # Make the subtree:
-        node = self.ns['result'] << getattr(Meq,unop)(node)
+        # Make a side-branch that first lowers the resolution (modres),
+        # by simply lowering the resolution of the request
+        # then resamples the result to the the original resolution,
+        # and then takes the difference with the original input to
+        # check the quality of the two operations.
+        original = self.ns['original'] << Meq.Identity(node) 
+        modres = self.ns['modres'] << Meq.ModRes(node, num_cells=num_cells) 
+        resampled = self.ns['resampled'] << Meq.Resampler(modres, mode=rmode) 
+        diff = self.ns['diff'] << Meq.Subtract(resampled,original) 
+
+        # The reqseq issues a (full-resolution) request first to the
+        # branch that changes the resolution back and forth, and then to the
+        # branch that holds the original resolution. Since it
+        # is only a demonstration, the original result (1) is passed on.
+        node = self.ns['reqseq'] << Meq.ReqSeq(diff,original,
+                                               result_index=1)
 
         #..............................................
-        # Check the new rootnode:
-        return self.on_output (node, trace=trace)
+        # Finishing touches:
+        return self.on_output (node, internodes=[modres,resampled,diff], trace=trace)
+
+
 
     #====================================================================
     #====================================================================

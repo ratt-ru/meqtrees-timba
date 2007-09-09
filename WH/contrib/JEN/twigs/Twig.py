@@ -189,8 +189,8 @@ class Twig (object):
             self._OM.set_menu_prompt ('compile.'+key, 'customize the twig-tip: '+key)
 
         # Plugins for optional operations on the twig_tip:
-        self.add_plugin('PluginMakeTensor', submenu='compile.modify',
-                        user_level=0, hide=[])     
+        # self.add_plugin('PluginMakeTensor', submenu='compile.modify',
+        #                 user_level=0, hide=[])     
         self.add_plugin('PluginAddNoise', submenu='compile.modify',
                         user_level=0, hide=[])   
         self.add_plugin('PluginApplyUnary', submenu='compile.modify',
@@ -200,8 +200,9 @@ class Twig (object):
 
         # Testing Plugins:
         if False:
-            self.add_plugin('PluginTemplate', submenu='compile.modify',
-                            user_level=0, hide=[])
+            if True:
+                self.add_plugin('PluginTemplate', submenu='compile.modify',
+                                user_level=0, hide=[])
             if True:
                 self.add_plugin('PluginTest', submenu='compile.modify', quals='1st',
                                 user_level=0, hide=[])
@@ -716,8 +717,7 @@ class Twig (object):
 
         # Finished:
         node = self._check_node (node, '.make_twig()')
-        if trace:
-            display.subtree(node)
+        # if trace: display.subtree(node)
         return node
 
 

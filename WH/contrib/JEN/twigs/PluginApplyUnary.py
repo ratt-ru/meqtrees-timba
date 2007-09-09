@@ -72,10 +72,9 @@ class PluginApplyUnary(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
         opt = [None,'Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
         opt.extend(['Sqrt','Log','Invert'])                           # problems if <=0
@@ -87,27 +86,28 @@ class PluginApplyUnary(Plugin.Plugin):
         #..............................................
         return self.on_exit(trace=trace)
 
+
+
     #--------------------------------------------------------------------
 
     def make_subtree (self, ns, node, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
         unop = self.optval('unop')
         if not unop:
-            return node                           # do nothing
+            return self.bypass (trace=trace)
 
         # Make the subtree:
         node = self.ns[unop] << getattr(Meq,unop)(node)
 
         #..............................................
-        # Check the new rootnode:
+        # Finishing touches:
         return self.on_output (node, trace=trace)
 
 

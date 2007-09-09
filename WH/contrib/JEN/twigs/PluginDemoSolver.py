@@ -40,6 +40,8 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
+import Meow
+
 from Timba.Contrib.JEN.twigs import Plugin
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
@@ -63,6 +65,7 @@ class PluginDemoSolver(Plugin.Plugin):
         Plugin.Plugin.__init__(self, name='PluginDemoSolver',
                                quals=quals, kwquals=kwquals,
                                submenu=submenu,
+                               is_demo=True,
                                OM=OM, namespace=namespace,
                                **kwargs)
         return None
@@ -72,15 +75,14 @@ class PluginDemoSolver(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('unop'), 'Cos',
-                        prompt='unary',
-                        opt=['Sin','Cos'], more=str,
-                        doc="""apply an unary operation.
+        self._OM.define(self.optname('niter'), None,
+                        prompt='nr of iterations',
+                        opt=[None,1,2,3,5,10,20,30,50,100],
+                        doc="""Nr of solver iterations.
                         """)
         #..............................................
         return self.on_exit(trace=trace)
@@ -89,24 +91,47 @@ class PluginDemoSolver(Plugin.Plugin):
 
     def make_subtree (self, ns, node, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
-            return node
+            return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
-        unop = self.optval('unop')
-        if not unop:
-            return node                           # do nothing
+        niter = self.optval('niter')
+        if niter==None or niter<1:
+            return self.bypass (trace=trace)
 
         # Make the subtree:
-        node = self.ns['result'] << getattr(Meq,unop)(node)
 
+        # Temporary:
+        if True:
+            time_deg = 2
+            freq_deg = 2
+            mparm = Meow.Parm(value=1.0,   
+                              tiling=None,  
+                              time_deg=time_deg,  
+                              freq_deg=freq_deg,  
+                              tags=['solvable'])   
+            nodename = 'Meow.Parm[t'+str(time_deg)+',f'+str(freq_deg)+']'
+            lhs = self.ns[nodename] << mparm.make()
+
+        
+        condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
+        parm = ns.Search(tags='solvable', class_name='MeqParm')
+        solver = self.ns['solver'] << Meq.Solver(condeq, num_iter=niter,
+                                                 solvable=parm)
+        node = self.ns['reqseq'] << Meq.ReqSeq(children=[solver,node],
+                                               result_index=1)
+ 
         #..............................................
         # Check the new rootnode:
-        return self.on_output (node, trace=trace)
+        return self.on_output (node, internodes=[parm[0], lhs, condeq, solver],
+                               trace=trace)
+
+
+
+
 
 
     #====================================================================
@@ -129,6 +154,7 @@ class PluginDemoSolver(Plugin.Plugin):
         self._OM.set_menu_prompt(submenu, 'solve for MeqParm coeff')
         self._demo[name] = dict(user_level=2)
         return True
+
 
     #--------------------------------------------------------------------
     # NB: This does not work. The MeqParm should not be in the twig,

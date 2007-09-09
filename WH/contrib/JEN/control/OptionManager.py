@@ -182,6 +182,15 @@ class OptionManager (object):
 
     #-------------------------------------------------------------------------
 
+    def has_option (self, key):
+        """Check whether the OptionManager has the specified (key) option.
+        """
+        fkey = self.find_option_key (key, complete=False, one=False, trace=False)
+        return len(fkey)>0
+
+
+    #-------------------------------------------------------------------------
+
     def internal_name (self, key):
         """Helper function to make the internal option name from the given key.
         The name of the internal variable is prepended with '_': self._<key>
@@ -252,7 +261,7 @@ class OptionManager (object):
             if self.option[key]:
                 ss = '(+) '
             ss += key
-            ss += ' (ukey='+str(self.internal_name(key))+') '
+            # ss += ' (ukey='+str(self.internal_name(key))+') '
             ss += ' = '+str(value)
             if not value==rr['default']:
                 ss += '     (default value = '+str(rr['default'])+')' 
@@ -449,7 +458,7 @@ class OptionManager (object):
 
     #---------------------------------------------------------------------
 
-    def set_menu_text (self, key, text, trace=False):
+    def set_menu_prompt (self, key, text, trace=False):
         """Helper function to change the (prompt) text of the specified menu."""
         key = self.findkey(key, self.menu_order, complete=True)
         self.menurec[key]['text'] = text 
@@ -669,17 +678,17 @@ class OptionManager (object):
                 # prompt = 'submenu: '+ss[len(ss)-1]
                 # prompt = '... '+ss[len(ss)-1]
                 prompt = self.menurec[menukey]['text']
-            # toggle_key = None
-            # toggle_key = '_toggle_'+menukey
-            # self.menu_toggle_key[menukey] = toggle_key
             if len(oolist)==0:
                 return None
             elif cat=='runtime':
                 om = TDLRuntimeMenu(prompt, *oolist)
-                # om = TDLRuntimeMenu(prompt, *oolist, toggle=toggle_key)
+                toggle_key = None
+                # om = TDLRuntimeMenu(prompt, toggle=toggle_key, *oolist)
             else:
                 om = TDLCompileMenu(prompt, *oolist)
-                # om = TDLCompileMenu(prompt, *oolist, toggle=toggle_key)
+                toggle_key = '_toggle_'+menukey
+                # self.menu_toggle_key[menukey] = toggle_key
+                # om = TDLCompileMenu(prompt, toggle=toggle_key, *oolist)
 
             # Update the entry in self.menu:
             self.menu[menukey] = om
@@ -965,7 +974,7 @@ class OptionManager (object):
         self.define('compile.xxx.span.freq_deg', 2, more=int)
         self.define('compile.constraint', constraint, order=order)
 
-        self.set_menu_text ('compile.xxx', 'new text')
+        self.set_menu_prompt ('compile.xxx', 'new text')
 
         return True
 
