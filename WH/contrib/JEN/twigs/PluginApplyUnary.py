@@ -55,13 +55,13 @@ class PluginApplyUnary(Plugin.Plugin):
     """Class derived from Plugin"""
 
     def __init__(self,
-                 quals=None, kwquals=None,
+                 quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
         Plugin.Plugin.__init__(self, name='PluginApplyUnary',
-                               quals=quals, kwquals=kwquals,
+                               quals=quals,
                                submenu=submenu,
                                OM=OM, namespace=namespace,
                                **kwargs)
@@ -90,7 +90,7 @@ class PluginApplyUnary(Plugin.Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -99,7 +99,7 @@ class PluginApplyUnary(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        unop = self.optval('unop')
+        unop = self.optval('unop', test=test)
         if not unop:
             return self.bypass (trace=trace)
 
@@ -121,11 +121,9 @@ class PluginApplyUnary(Plugin.Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     pgt = PluginApplyUnary()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
@@ -136,7 +134,6 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         pgt = PluginApplyUnary()
         pgt.make_TDLCompileOptionMenu()
 
@@ -193,7 +190,8 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        pgt.make_subtree(ns, node, trace=True)
+        test = dict(unop='Sin')
+        pgt.make_subtree(ns, node, test=test, trace=True)
 
     if 1:
         pgt.display('final', OM=True, full=True)

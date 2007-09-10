@@ -54,14 +54,13 @@ import math
 class PluginAddNoise(Plugin.Plugin):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginAddNoise',
-                               quals=quals, kwquals=kwquals,
+        Plugin.Plugin.__init__(self, quals=quals,
+                               name='PluginAddNoise',
                                submenu=submenu,
                                OM=OM, namespace=namespace,
                                **kwargs)
@@ -81,6 +80,15 @@ class PluginAddNoise(Plugin.Plugin):
                         opt=[0.1,1.0], more=float,
                         doc="""add gaussian noise (if stddev>0)
                         """)
+        self._OM.define(self.optname('datatype'), 'auto',
+                        prompt='noise data type',
+                        opt=['auto','real','complex','polar'], 
+                        doc="""specify the data-type of the added noise.
+                        - If 'auto', the type is determined by the type
+                        of the result to which the noise is added.
+                        - If 'complex', the real and imag parts are noisy.
+                        - If 'polar', the ampl and phase are noisy.
+                        """)
         #..............................................
         return self.on_exit(trace=trace)
 
@@ -88,7 +96,7 @@ class PluginAddNoise(Plugin.Plugin):
 
     #====================================================================
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -96,18 +104,34 @@ class PluginAddNoise(Plugin.Plugin):
             return self.bypass (trace=trace)
         #..............................................
 
+        if test==True:
+            test = dict(stddev=1.0)
+
         # Read the specified options:
-        stddev = self.optval('stddev')
+        stddev = self.optval('stddev', test=test)
         if not stddev or stddev<=0.0:
             return self.bypass (trace=trace)
+        datatype = self.optval('datatype', test=test)
+
+        if datatype=='auto':
+            if self.datadesc()['is_complex']:
+                datatype = 'complex'
+            else:
+                datatype = 'real'
 
         # Make the subtree:
-        name = '~'+str(stddev)
-        noise = self.ns[name]
-        if not noise.initialized():
-            noise << Meq.GaussNoise(stddev=stddev)
-            name = node.basename + name
-            node = self.ns[name] << Meq.Add(node,noise)
+        name = 'stddev~'+str(stddev)
+        if datatype=='complex':
+            real = self.ns['real'] << Meq.GaussNoise(stddev=stddev)
+            imag = self.ns['imag'] << Meq.GaussNoise(stddev=stddev)
+            noise = self.ns[name] << Meq.ToComplex(real,imag)
+        elif datatype=='polar':
+            ampl = self.ns['ampl'] << Meq.GaussNoise(stddev=stddev)
+            phase = self.ns['phase'] << Meq.GaussNoise(stddev=stddev)
+            noise = self.ns[name] << Meq.ToPolar(ampl,phase)
+        else:
+            noise = self.ns[name] << Meq.GaussNoise(stddev=stddev)
+        node = self.ns['+'+name] << Meq.Add(node,noise)
 
         #..............................................
         # Check the new rootnode:
@@ -126,11 +150,9 @@ class PluginAddNoise(Plugin.Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     pgt = PluginAddNoise()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
@@ -141,7 +163,6 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         pgt = PluginAddNoise()
         pgt.make_TDLCompileOptionMenu()
 
@@ -198,7 +219,8 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        pgt.make_subtree(ns, node, trace=True)
+        test = dict(stddev=1.0, datatype='polar')
+        pgt.make_subtree(ns, node, test=test, trace=True)
 
     if 1:
         pgt.display('final', OM=True, full=True)

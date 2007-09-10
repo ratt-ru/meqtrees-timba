@@ -54,14 +54,13 @@ import math
 class PluginTemplate(Plugin.Plugin):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginTemplate',
-                               quals=quals, kwquals=kwquals,
+        Plugin.Plugin.__init__(self, quals=quals,
+                               name='PluginTemplate',
                                submenu=submenu,
                                is_demo=False,
                                is_leaf=False,
@@ -88,7 +87,7 @@ class PluginTemplate(Plugin.Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -101,8 +100,11 @@ class PluginTemplate(Plugin.Plugin):
         # Replace the function body below with your own:
         #..............................................
 
+        if test==True:
+            test = dict(unop='Cos')
+
         # Read the specified options:
-        unop = self.optval('unop')
+        unop = self.optval('unop', test=test)
         if not unop:
             return self.bypass (trace=trace)
 
@@ -124,11 +126,9 @@ class PluginTemplate(Plugin.Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     pgt = PluginTemplate()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
@@ -139,7 +139,6 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         pgt = PluginTemplate()
         pgt.make_TDLCompileOptionMenu()
 

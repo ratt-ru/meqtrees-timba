@@ -58,15 +58,14 @@ from Timba.Contrib.JEN.control import Executor
 class LeafDimGrids(PluginLeaf.PluginLeaf):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        PluginLeaf.PluginLeaf.__init__(self, name='LeafDimGrids',
-                                       quals=quals, kwquals=kwquals,
+        PluginLeaf.PluginLeaf.__init__(self, quals=quals,
+                                       name='LeafDimGrids',
                                        submenu=submenu,
                                        xtor=xtor, dims=dims,
                                        OM=OM, namespace=namespace,
@@ -112,7 +111,7 @@ class LeafDimGrids(PluginLeaf.PluginLeaf):
         rr = self.make_MeqGrid_nodes (trace=trace)
         node = self.combine_MeqGrid_nodes (rr, trace=trace)
 
-        cc = self.extract_list_MeqGrid_nodes (rr, trace=trace)
+        cc = self.extract_list_of_MeqGrid_nodes (rr, trace=trace)
 
         #..............................................
         # Finishing touches:
@@ -133,8 +132,7 @@ class LeafDimGrids(PluginLeaf.PluginLeaf):
 
 plf = None
 if 1:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     xtor.add_dimension('l', unit='rad')
     xtor.add_dimension('m', unit='rad')
     plf = LeafDimGrids(xtor=xtor)

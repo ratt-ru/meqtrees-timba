@@ -42,12 +42,8 @@ LeafParm etc, and is itself derived from the Plugin base-class.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# import Meow
-
 from Timba.Contrib.JEN.twigs import Plugin
-# from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
-# from Timba.Contrib.JEN.Grunt import display
 
 # import math
 # import random
@@ -60,24 +56,29 @@ from Timba.Contrib.JEN.control import Executor
 class PluginLeaf(Plugin.Plugin):
     """Base-class for LeafSomething classes, itself derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
+                 name='PluginLeaf',
                  submenu='compile',
-                 xtor=None, dims=['freq','time'],  
+                 xtor=None, dims=None,  
                  OM=None, namespace=None,
                  **kwargs):
 
-        # The list of available dimensions may be obtained
-        # from an external Executor object (if supplied):
+        # The list of available dimensions may set externally:
         self._available_dims = dims                    # default dims
+
+        # The list of available dimensions may also be obtained
+        # from an external Executor object (if supplied):
         self._xtor = xtor
         if self._xtor:
             self._available_dims = self._xtor.dims()   # dims from xtor
-        self._dims = []
 
+        # But make sure that it is a list:
+        if not isinstance(self._available_dims, list):
+            self._available_dims = ['freq','time']
+        self._dims = []                                # selected dims
 
-        Plugin.Plugin.__init__(self, name='PluginLeaf',
-                               quals=quals, kwquals=kwquals,
+        Plugin.Plugin.__init__(self, quals=quals,
+                               name=name,
                                submenu=submenu,
                                is_leaf=True,
                                OM=OM, namespace=namespace,
@@ -105,11 +106,6 @@ class PluginLeaf(Plugin.Plugin):
 
         # Submenus for all available dimensions:
         for dim in self._available_dims:
-            self._OM.define(self.optname(dim+'.stddev'), None,
-                            prompt='add stddev noise',
-                            opt=[0.1,1.0], more=float,
-                            doc="""add gaussian noise (if stddev>0)
-                            """)
             opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
             opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
             self._OM.define(self.optname(dim+'.unop'), None,
@@ -177,13 +173,11 @@ class PluginLeaf(Plugin.Plugin):
         rr = dict()
         for dim in self._dims:
             node = self.ns[dim] << Meq.Grid(axis=dim)
-            stddev = self.optval(dim+'.stddev')
-            node = self.add_noise (node, stddev, trace=True)
             unop = self.optval(dim+'.unop')
             node = self.apply_unary (node, unop, trace=True)
-            rr[dim] = dict(node=node, stddev=stddev, unop=unop)
+            rr[dim] = dict(node=node, unop=unop)
             if trace:
-                print '--',dim,'(',stddev,unop,') ->',str(node)
+                print '--',dim,'(',unop,') ->',str(node)
         return rr
 
 
@@ -206,7 +200,7 @@ class PluginLeaf(Plugin.Plugin):
         
     #-------------------------------------------------------------------
 
-    def extract_list_of_MeqGrid_nodes (rr, trace=False):
+    def extract_list_of_MeqGrid_nodes (self, rr, trace=False):
         """Extract a list of MeqGrid nodes from the given dict rr
         (see .make_MeqGrid_nodes()):
         """
@@ -219,6 +213,7 @@ class PluginLeaf(Plugin.Plugin):
             cc.append(node)
         return cc
 
+    #-------------------------------------------------------------------
 
     def combine_MeqGrid_nodes (self, rr, trace=False):
         """Combine the given dict (rr) of MeqGrid nodes
@@ -295,7 +290,7 @@ class PluginLeaf(Plugin.Plugin):
         rr = self.make_MeqGrid_nodes (trace=trace)
         node = self.combine_MeqGrid_nodes (rr, trace=trace)
 
-        cc = self.extract_list_MeqGrid_nodes (rr, trace=trace)
+        cc = self.extract_list_of_MeqGrid_nodes (rr, trace=trace)
 
         #..............................................
         # Finishing touches:
@@ -315,13 +310,11 @@ class PluginLeaf(Plugin.Plugin):
 
 plf = None
 if 1:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    ## xtor.make_TDLCompileOptionMenu()      # NOT neede (just for testing)
 
     plf = PluginLeaf(xtor=xtor)
     plf.make_TDLCompileOptionMenu()

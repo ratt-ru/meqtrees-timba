@@ -55,13 +55,13 @@ class PluginDemoRedaxes(Plugin.Plugin):
     """Class derived from Plugin"""
 
     def __init__(self,
-                 quals=None, kwquals=None,
+                 quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
         Plugin.Plugin.__init__(self, name='PluginDemoRedaxes',
-                               quals=quals, kwquals=kwquals,
+                               quals=quals,
                                submenu=submenu,
                                is_demo=True,
                                OM=OM, namespace=namespace,
@@ -94,7 +94,7 @@ class PluginDemoRedaxes(Plugin.Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -103,10 +103,10 @@ class PluginDemoRedaxes(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        oper = self.optval('oper')
+        oper = self.optval('oper', test=test)
         if oper==None:
             return self.bypass (trace=trace)
-        redaxes = self.optval('redaxes')
+        redaxes = self.optval('redaxes', test=test)
 
         # Make the subtree:
         qnode = self.ns[oper]
@@ -135,11 +135,9 @@ class PluginDemoRedaxes(Plugin.Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     pgt = PluginDemoRedaxes()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
@@ -150,7 +148,6 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         pgt = PluginDemoRedaxes()
         pgt.make_TDLCompileOptionMenu()
 
@@ -207,7 +204,8 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        pgt.make_subtree(ns, node, trace=True)
+        test = dict(oper='Mean')
+        pgt.make_subtree(ns, node, test=test, trace=True)
 
     if 1:
         pgt.display('final', OM=True, full=True)

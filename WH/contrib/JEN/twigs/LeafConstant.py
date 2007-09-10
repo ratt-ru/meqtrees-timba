@@ -56,14 +56,13 @@ import random
 class LeafConstant(Plugin.Plugin):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='LeafConstant',
-                               quals=quals, kwquals=kwquals,
+        Plugin.Plugin.__init__(self, quals=quals,
+                               name='LeafConstant',
                                submenu=submenu,
                                is_demo=False,
                                is_leaf=True,
@@ -80,7 +79,7 @@ class LeafConstant(Plugin.Plugin):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = [0.0,1.0,1+0j,1+1j,'pi','pi/2','c','e','k','G']
+        opt = [0.0,1.0,1+0j,1+1j,'pi','pi/2','pi/4','clight','e','echarge','k','G','h']
         self._OM.define(self.optname('value'), 1.0,
                         prompt='value',
                         opt=opt, more=str,
@@ -109,9 +108,44 @@ class LeafConstant(Plugin.Plugin):
         return self.on_exit(trace=trace)
 
     #--------------------------------------------------------------------
+
+    def _read_value (self, test=None, trace=False):
+        """Make sure that value is a number (float or complex)
+        """
+        value = self.optval('value', test=test)
+        if isinstance(value,str):
+            if value=='e':
+                value = math.e
+            elif value=='pi':
+                value = math.pi
+            elif value=='pi/2':
+                value = math.pi/2.0
+            elif value=='pi/4':
+                value = math.pi/4.0
+            elif value=='clight':
+                value = math.floor(2.99725e8)
+                value = int(2.99725e8)
+            elif value=='kBoltzmann':
+                value = 1.38054e-23
+            elif value=='G':
+                value = 6.670e-11
+            elif value=='h':
+                value = 6.6256e-34
+            elif value=='hslash':
+                value = 1.05450e-34
+            elif value=='echarge':
+                value = 1.60210e-19
+            else:
+                s = '** value not recognised: '+str(value)
+                print s
+                raise ValueError,s
+        # Update the data-descriptor:
+        self.datadesc(is_complex=isinstance(value, complex))
+        return value
+
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, trace=True):
+    def make_subtree (self, ns, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -120,10 +154,10 @@ class LeafConstant(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        value = self._read_value(trace=trace)
-        dims = self._read_dims(trace=trace)
-        stddev = self.optval('stddev')
-        unop = self.optval('unop')
+        value = self._read_value(test=test, trace=trace)
+        dims = self._read_dims(test=test, trace=trace)
+        stddev = self.optval('stddev', test=test)
+        unop = self.optval('unop', test=test)
 
         # Determine the number of 'tensor' elements:
         nelem = 1
@@ -169,27 +203,13 @@ class LeafConstant(Plugin.Plugin):
         else:
             return random.gauss(value,stddev)
 
-    #------------------------------------------------------------------
-
-    def _read_value (self, trace=False):
-        """Make sure that value is a number (float or complex)
-        """
-        value = self.optval('value')
-        if isinstance(value,str):
-            if value=='c':
-                value = 3.0e8
-            else:
-                s = '** value not recognised: '+str(value)
-                print s
-                raise ValueError,s
-        return value
 
     #------------------------------------------------------------------
 
-    def _read_dims (self, trace=False):
+    def _read_dims (self, test=None, trace=False):
         """Make sure that dims is a list of integers
         """
-        dims = self.optval('dims')
+        dims = self.optval('dims', test=test)
         if isinstance(dims,int):
             dims = [dims]                 # e.g. [3]
         elif isinstance(dims,list):
@@ -200,6 +220,8 @@ class LeafConstant(Plugin.Plugin):
             s = '** dims type not recognised: '+str(type(dims))
             print s
             raise ValueError,s
+        # Update the data-descriptor record:
+        self.datadesc(dims=dims, trace=True)
         return dims
 
 
@@ -213,11 +235,9 @@ class LeafConstant(Plugin.Plugin):
 
 plf = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     plf = LeafConstant()
     plf.make_TDLCompileOptionMenu()
     # plf.display()
@@ -228,7 +248,6 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         plf = LeafConstant()
         plf.make_TDLCompileOptionMenu()
 
@@ -283,7 +302,9 @@ if __name__ == '__main__':
         plf.make_TDLCompileOptionMenu()
 
     if 1:
-        plf.make_subtree(ns, trace=True)
+        test = dict(value=1+1j)
+        test = dict(value='clight')
+        plf.make_subtree(ns, test=test, trace=True)
 
     if 1:
         plf.display('final', OM=True, full=True)

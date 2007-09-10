@@ -61,8 +61,8 @@ class Plugin (object):
     a MeqTree twig, i.e. a small subtree that ends in child-less nodes
     (MeqLeaves)."""
 
-    def __init__(self, name='Plugin',
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
+                 name='Plugin',
                  submenu='compile',
                  is_leaf=False,           # True for PluginLeaf classes
                  is_demo=False,           # True for PluginDemo classes
@@ -88,11 +88,6 @@ class Plugin (object):
             self._quals = [self._quals]
         elif not isinstance(self._quals, list):
             self._quals = []
-
-        # Keyword qualifiers are not supported for the moment...
-        self._kwquals = kwquals
-        if not isinstance(self._kwquals, dict):
-            self._kwquals = dict()
 
         # Append the qualifiers to self.name:
         for qual in self._quals:
@@ -133,8 +128,8 @@ class Plugin (object):
         # Define the required runtime options:
         self.define_compile_options()
         
-        # Keep track of the data type and format
-        # self._data = dict(complex=False, tensor=False, nelem=1, dims=1)
+        # Keep track of the (result) data type and format:
+        self._datadesc = dict(is_complex=False, nelem=1, dims=[1])
 
         # Finished:
         return None
@@ -185,7 +180,7 @@ class Plugin (object):
         print prefix,' '
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
-        # print prefix,'  * '
+        print prefix,'  * datadesc: '+str(self.datadesc(trace=False))
         #...............................................................
         print prefix,'  * '+self._OM.oneliner()
         print prefix,'  * external OM: '+str(self._external_OM)
@@ -197,7 +192,42 @@ class Plugin (object):
         return True
 
 
+    #====================================================================
+    # Some service(s) available to all classes derived from Plugin:
+    #====================================================================
 
+    def display_subtree(self, node, recurse=10, trace=True):
+        """Display the subtree behind the given node.
+        """
+        print '\n** ',self.name,': display_subtree(',str(node),'):'
+        display.subtree(node, recurse=recurse) 
+        return True
+
+
+    #========================================================================
+    # Interacion with the data-description record:
+    #========================================================================
+
+    def datadesc (self, merge=None, is_complex=None, dims=None, trace=True):
+        """Return the data-description record.
+        If another datadesc (merge) is specified, update the local one.
+        """
+        rr = self._datadesc                                 # convenience
+        if isinstance(merge, dict):
+            if merge['is_complex']: rr['is_complex'] = True
+        else:
+            if isinstance(is_complex, bool):
+                rr['is_complex'] = is_complex
+            if dims:
+                rr['dims'] = dims
+        # Always update the derived quantity nelem (nr of tensor elements):
+        rr['nelem'] = 1
+        for nd in rr['dims']:
+            rr['nelem'] *= nd
+        if trace:
+            print '** datadesc(',merge,is_complex,dims,'): ',str(self._datadesc)
+        return self._datadesc
+    
 
     #===================================================================
     # Generic functions dealing with options:
@@ -259,21 +289,28 @@ class Plugin (object):
 
     #.............................................................
 
-    def optval (self, name, trace=True):
-        """Get the value of the specified option,
-        after converting it to its OM name.
+    def optval (self, name, test=None, trace=True):
+        """Get the value of the specified option, after converting it to its OM name.
+        If test is specified, modify the value, if necessary.
         """
         OM_name = self.optname(name, trace=trace)
         value = self._OM[OM_name]
+        nominal = value
+        if isinstance(test, dict):
+            if test.has_key(name):
+                value = test[name]
+                trace = True
         if trace:
-            print '** optval(',name,'): -> ',OM_name,'=',value
+            print '** optval(',name,'): -> ',OM_name,'=',value,
+            if not value==nominal:
+                print ' (nominal=',nominal,')',
+            print
         return value
 
     #.............................................................
 
     def has_option (self, name):
-        """Check the existence of the specified option,
-        after converting it to its OM name.
+        """Check the existence of the specified option, after converting it to its OM name.
         """
         OM_name = self.optname(name)
         return self._OM.has_option(OM_name)
@@ -281,8 +318,7 @@ class Plugin (object):
     #.............................................................
 
     def setval (self, name, value):
-        """Set the value of the specified option,
-        after converting it to its OM name.
+        """Set the value of the specified option, after converting it to its OM name.
         """
         if self.has_option(name):
             OM_name = self.optname(name)
@@ -404,18 +440,6 @@ class Plugin (object):
 
 
     #====================================================================
-    # Service(s) to all classes derived from Plugin
-    #====================================================================
-
-
-    def display_subtree(self, node, trace=True):
-        """Display the subtree behind the given node.
-        """
-        print '\n** ',self.name,': display_subtree(',str(node),'):'
-        display.subtree(node) 
-        return True
-
-    #====================================================================
     # Miscellaneous settings
     #====================================================================
 
@@ -481,12 +505,6 @@ class Plugin (object):
     def define_modif_options(self):
         """Define a generic submenu of visualization option(s).
         """
-        self._OM.define(self.optname('misc.modif.stddev'), None,
-                        prompt='add stddev noise to result',
-                        opt=[0.1,1.0], more=float,
-                        doc="""add gaussian noise (if stddev>0)
-                        to the end result of this Plugin.
-                        """)
         opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
         opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
         self._OM.define(self.optname('misc.modif.unop'), None,
@@ -505,31 +523,11 @@ class Plugin (object):
     def modify (self, node, trace=False):
         """Execute the modification instructions (see .define_modif_options())
         """
-        stddev = self.optval('misc.modif.stddev')
-        node = self.add_noise (node, stddev, trace=trace)
 
         unop = self.optval('misc.modif.unop')
         node = self.apply_unary (node, unop, trace=trace)
 
         # Return the (possibly new) node:
-        return node
-
-    #---------------------------------------------------------------------
-
-    def add_noise (self, node, stddev, trace=False):
-        """Helper function to add (gaussian) noise to the given node.
-        """
-        if trace:
-            print '\n** .add_noise(',stddev,'):'
-        if stddev and stddev>0.0:
-            name = '~'+str(stddev)
-            noise = self.ns[name]
-            if not noise.initialized():
-                noise << Meq.GaussNoise(stddev=stddev)
-                name = node.basename + name
-                node = self.ns[name] << Meq.Add(node,noise)
-        if trace:
-            print '    -> ',str(node)
         return node
 
     #---------------------------------------------------------------------
@@ -629,13 +627,22 @@ class Plugin (object):
 
 
 
-    #====================================================================
-    #====================================================================
+
+
+
+
+
+
+
+
+    #=====================================================================================
+    #=====================================================================================
     # Specific part: Functions to be re-implemented by a derived class.
     # The following are placeholders that can serve as examples.
     # See also the derived class PluginTest below, and PluginTemplate.py
-    #====================================================================
-    #====================================================================
+    #=====================================================================================
+    #=====================================================================================
+
 
 
     def define_compile_options(self, trace=False):
@@ -652,7 +659,7 @@ class Plugin (object):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=False):
+    def make_subtree (self, ns, node, test=None, trace=False):
         """Specific: Make the plugin subtree.
         This placeholder function should be reimplemented by a derived class.
         """
@@ -681,14 +688,13 @@ class Plugin (object):
 class PluginTest(Plugin):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.__init__(self, name='PluginTest',
-                        quals=quals, kwquals=kwquals,
+        Plugin.__init__(self, quals=quals,
+                        name='PluginTest',
                         submenu=submenu,
                         OM=OM, namespace=namespace,
                         **kwargs)
@@ -716,7 +722,7 @@ class PluginTest(Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node=None, trace=True):
+    def make_subtree (self, ns, node=None, test=None, trace=True):
         """Specific: Make the plugin subtree.
         This placeholder function should be reimplemented by a derived class.
         """
@@ -725,8 +731,11 @@ class PluginTest(Plugin):
             return self.bypass (trace=trace)
         #..............................................
 
+        if test==True:
+            test = dict(unop='Cos')
+
         # Read the specified options:
-        unop = self.optval('unop')
+        unop = self.optval('unop', test=test)
         if not unop:
             return self.bypass (trace=trace)
 
@@ -748,8 +757,7 @@ class PluginTest(Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('long', unit='rad')
@@ -826,7 +834,7 @@ if __name__ == '__main__':
         OM = OptionManager.OptionManager()
 
     if 1:
-        pgt = PluginTest(OM=OM, quals='yui' )
+        pgt = PluginTest('bbb', OM=OM)
         pgt.display('initial')
 
     if 0:

@@ -57,14 +57,14 @@ import random
 class LeafParm(Plugin.Plugin):
     """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None, kwquals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='LeafParm',
-                               quals=quals, kwquals=kwquals,
+        Plugin.Plugin.__init__(self,
+                               quals=quals,
+                               name='LeafParm',
                                submenu=submenu,
                                is_demo=False,
                                is_leaf=True,
@@ -121,7 +121,7 @@ class LeafParm(Plugin.Plugin):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, trace=True):
+    def make_subtree (self, ns, test=None, trace=True):
         """Specific: Make the plugin subtree.
         """
         # Check the node, and make self.ns:
@@ -130,11 +130,11 @@ class LeafParm(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        value = self.optval('default')
-        tiling = self.optval('tiling')
-        time_deg = self.optval('time_deg')
-        freq_deg = self.optval('freq_deg')
-        tags = self.optval('tags')
+        value = self.optval('default', test=test)
+        tiling = self.optval('tiling', test=test)
+        time_deg = self.optval('time_deg', test=test)
+        freq_deg = self.optval('freq_deg', test=test)
+        tags = self.optval('tags', test=test)
 
         # Make the MeqParm node:
         mparm = Meow.Parm(value=value,
@@ -163,11 +163,9 @@ class LeafParm(Plugin.Plugin):
 
 plf = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     plf = LeafParm()
     plf.make_TDLCompileOptionMenu()
     plf.display('outside')
@@ -178,7 +176,6 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         plf = LeafParm()
         plf.make_TDLCompileOptionMenu()
 
@@ -233,7 +230,8 @@ if __name__ == '__main__':
         plf.make_TDLCompileOptionMenu()
 
     if 1:
-        plf.make_subtree(ns, trace=True)
+        test = dict(default=78)
+        plf.make_subtree(ns, test=test, trace=True)
 
     if 1:
         plf.display('final', OM=True, full=True)
