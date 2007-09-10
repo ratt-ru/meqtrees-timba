@@ -265,12 +265,23 @@ class Plugin (object):
     #.............................................................
 
     def has_option (self, name):
-        """Check the existence of the specified option.
+        """Check the existence of the specified option,
         after converting it to its OM name.
         """
         OM_name = self.optname(name)
         return self._OM.has_option(OM_name)
         
+    #.............................................................
+
+    def setval (self, name, value):
+        """Set the value of the specified option,
+        after converting it to its OM name.
+        """
+        if self.has_option(name):
+            OM_name = self.optname(name)
+            if self._OM.option[OM_name]:
+                self._OM.set_value(OM_name, value)
+        return True
 
 
     #--------------------------------------------------------------------
@@ -294,7 +305,7 @@ class Plugin (object):
     # Generic functions dealing with subtree generation:
     #====================================================================
 
-    def on_input (self, ns, node, trace=True):
+    def on_input (self, ns, node=None, trace=True):
         """Function that should be called at the start of the 
         .make_subtree() function in a derived class.
         It does various checks, and some common things.
@@ -377,7 +388,7 @@ class Plugin (object):
 
         # Progress message:
         if trace:
-            # display.subtree(node) 
+            display.subtree(node) 
             print s,'->',str(node),'\n'
         return node          
 
@@ -441,7 +452,7 @@ class Plugin (object):
         """Define a generic submenu of visualization option(s).
         """
         self._OM.define(self.optname('visu.bookpage'), self.name,
-                        prompt='bookpage',
+                        prompt='bookpage name',
                         opt=[None,self.name], more=str, 
                         doc="""Specify a bookpage for the various bookmarks
                         generated for this Plugin. If bookpage==None,
@@ -449,7 +460,7 @@ class Plugin (object):
                         """)
         if not self._is_leaf:
             self._OM.define(self.optname('visu.compare'), None,
-                            prompt='result vs input',
+                            prompt='show result vs input',
                             opt=[None,'Subtract','Divide'], more=str, 
                             doc="""Insert and bookmark a side-branch that
                             compares the result with the input. 
@@ -602,7 +613,7 @@ class PluginTest(Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node=None, trace=True):
         """Specific: Make the plugin subtree.
         This placeholder function should be reimplemented by a derived class.
         """

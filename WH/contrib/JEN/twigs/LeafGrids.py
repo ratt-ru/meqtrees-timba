@@ -1,12 +1,13 @@
-# file: ../twigs/PluginMakeTensor.py
+# file: ../twigs/LeafGrids.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The PluginMakeTensor class makes makes a subtree that takes an input node and
-produces a new rootnode by .....
+"""The LeafGrids class makes makes a subtree that represents a
+combination (e.g. sum) of MeqGrid nodes for the selected
+dimensions (e.g. freq. time, l, m, etc).
 """
 
 
@@ -40,31 +41,45 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
+# import Meow
+
 from Timba.Contrib.JEN.twigs import Plugin
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
-import math
+# import math
+# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class PluginMakeTensor(Plugin.Plugin):
+class LeafGrids(Plugin.Plugin):
     """Class derived from Plugin"""
 
     def __init__(self,
                  quals=None, kwquals=None,
                  submenu='compile',
+                 xtor=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginMakeTensor',
+        Plugin.Plugin.__init__(self, name='LeafGrids',
                                quals=quals, kwquals=kwquals,
                                submenu=submenu,
+                               is_demo=False,
+                               is_leaf=True,
                                OM=OM, namespace=namespace,
                                **kwargs)
+
+        # The list of available dimensions may be obtained
+        # from an external Executor object (if supplied):
+        self._xtor = xtor
+        self._available_dims = ['freq','time']         # default available dims
+        if self._xtor:
+            self._available_dims = self._xtor.dims()   # dims from xtor
+        self._dims = []
         return None
 
     
@@ -72,96 +87,98 @@ class PluginMakeTensor(Plugin.Plugin):
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This placeholder function should be reimplemented by a derived class.
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('unop'), 'Cos',
-                        prompt='unary',
-                        opt=['Sin','Cos'], more=str,
-                        doc="""apply an unary operation.
+
+        # Selection of dimensions:
+        opt = ['freq','time',['freq','time'],'ft','*']
+        self._OM.define(self.optname('dims'), '*',
+                        opt=opt, more=str,
+                        prompt='dimension(s)',
+                        callback=self._callback_dims,
+                        doc = """Select dimensions to be be used.
                         """)
+
+        # Submenus for all available dimensions:
+        if False:
+        # for dim in self._available_dims:
+            opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
+            opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
+            self._OM.define(self.optname(dim+'.unop'), None,
+                            prompt='apply unary()', opt=opt,
+                            doc="""apply unary operation
+                            """)
+            self._OM.define(self.optname(dim+'.stddev'), None,
+                            prompt='add stddev noise',
+                            opt=[0.1,1.0], more=float,
+                            doc="""add gaussian noise (if stddev>0)
+                            """)
+
+        # Node combination:
+        opt = ['Add','Multiply','ToComplex','ToPolar']
+        self._OM.define(self.optname('combine'), 'Add',
+                        opt=opt,                         # more=str,
+                        prompt='combine with',
+                        doc = """The various MeqGrid nodes must be
+                        combined to a single node with this operation.
+                        """)
+
         #..............................................
         return self.on_exit(trace=trace)
 
+
+    #....................................................................
+
+    def _callback_dims (self, dims):
+        """Called whenever 'dims' changes"""
+        print '** _callback_dims(',dims,type(dims),'):'
+        if dims=='*':
+            self._dims = self._available_dims
+        elif dims in self._available_dims:
+            self._dims = [dims]
+        elif isinstance(dims, list):
+            self._dims = dims
+        else:
+            s = '** dims not recognised: '+str(dims)
+            print s;
+            raise ValueError,s
+        return True
+    
+
+    #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, trace=True):
         """Specific: Make the plugin subtree.
-        This placeholder function should be reimplemented by a derived class.
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
         # Read the specified options:
-        unop = self.optval('unop')
-        if not unop:
-            return self.bypass (trace=trace)
+        # dims = self.optval('dims')          # use self._dims
+        combine = self.optval('combine')
 
         # Make the subtree:
-        node = self.ns['result'] << getattr(Meq,unop)(node)
+        cc = []
+        for dim in self._dims:
+            cc.append(self.ns[dim] << Meq.Grid(axis=dim))
+
+        if combine in ['ToComplex','ToPolar']:
+            # NB: Make provisions for len(cc)!=2.....!
+            node = self.ns[combine] << getattr(Meq,combine)(*cc)
+        else:
+            node = self.ns[combine] << getattr(Meq,combine)(*cc)
 
         #..............................................
-        # Check the new rootnode:
-        return self.on_output (node, trace=trace)
+        # Finishing touches:
+        return self.on_output (node, allnodes=cc, trace=trace)
 
 
-    #==================================================================================
-
-    def submenu_modify_make_tensor(self):
-        """Define the options for an operation on the twig result"""
-        name = 'make_tensor'
-        submenu = 'compile.modify.'+name+'.'
-        opt = [None,'2','3','4','2x2']
-        self._OM.define(submenu+'dims', None,
-                        prompt='dims',
-                        opt=opt, more=str,
-                        doc="""duplicate scalar into a tensor node
-                        """)
-        self._modify[name] = dict(user_level=3)
-        return True
-
-
-    #--------------------------------------------------------------------
-
-    def modify_make_tensor (self, ns, node, trace=False):
-        """Optionally, make a tensor node from the given node"""
-        name = 'make_tensor'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.modify.'+name+'.'
-        dims = self._OM[submenu+'dims']
-        if dims==None:                  # not required
-            return node
-        try:                            # check for integer value
-            dd = eval(dims)
-        except:
-            if 'x' in dims:             # check for nxm (or more)
-                nelem = 1
-                dd = dims.split('x')
-                for i in range(len(dd)):
-                    dd[i] = eval(dd[i])
-                    nelem *= dd[i]
-                nodename = 'tensor'+str(dd)
-            else:                       # dims not recognised
-                print 'dims =',dims
-                raise ValueError,'invalid dims'
-        else:                           # dims is integer 
-            nelem = dd
-            nodename = 'tensor['+str(nelem)+']'
-
-        # OK, duplicate the input node and make the tensor:
-        if nelem>1:
-            self._data['tensor'] = (nelem>1)                     # used downstream
-            self._data['nelem'] = nelem                          # used downstream
-            self._data['dims'] = dims                            # used downstream
-            nodes = []
-            for i in range(nelem):
-                nodes.append(ns['elem_'+str(i)] << Meq.Identity(node))
-            node = ns[nodename] << Meq.Composer(children=nodes, dims=dd) 
-        return self._check_node (node, submenu)
+    
 
 
 
@@ -172,31 +189,31 @@ class PluginMakeTensor(Plugin.Plugin):
 #=============================================================================
 
 
-pgt = None
-if 0:
+plf = None
+if 1:
     xtor = Executor.Executor('Executor', namespace='test',
                              parentclass='test')
-    # xtor.add_dimension('l', unit='rad')
-    # xtor.add_dimension('m', unit='rad')
+    xtor.add_dimension('l', unit='rad')
+    xtor.add_dimension('m', unit='rad')
     xtor.make_TDLCompileOptionMenu()
-    pgt = PluginMakeTensor()
-    pgt.make_TDLCompileOptionMenu()
-    # pgt.display()
+    plf = LeafGrids(xtor=xtor)
+    plf.make_TDLCompileOptionMenu()
+    # plf.display('outside')
 
 
 def _define_forest(ns):
 
-    global pgt,xtor
-    if not pgt:
+    global plf,xtor
+    if not plf:
         xtor = Executor.Executor()
         xtor.make_TDLCompileOptionMenu()
-        pgt = PluginMakeTensor()
-        pgt.make_TDLCompileOptionMenu()
+        plf = LeafGrids(xtor=xtor)
+        plf.make_TDLCompileOptionMenu()
 
     cc = []
 
-    node = xtor.leafnode(ns)
-    rootnode = pgt.make_subtree(ns, node)
+    # node = xtor.leafnode(ns)
+    rootnode = plf.make_subtree(ns)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -217,11 +234,11 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Plugin object"""
-    pgt.display('_tdl_job')
+    plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the Plugin object"""
-    pgt.display('_tdl_job', full=True)
+    plf.display('_tdl_job', full=True)
        
 
 
@@ -238,18 +255,17 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = PluginMakeTensor()
-        pgt.display('initial')
+        plf = LeafGrids()
+        plf.display('initial')
 
     if 1:
-        pgt.make_TDLCompileOptionMenu()
+        plf.make_TDLCompileOptionMenu()
 
     if 1:
-        node = ns << 1.0
-        pgt.make_subtree(ns, node, trace=True)
+        plf.make_subtree(ns, trace=True)
 
     if 1:
-        pgt.display('final', OM=True, full=True)
+        plf.display('final', OM=True, full=True)
 
 
 

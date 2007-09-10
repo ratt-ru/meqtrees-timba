@@ -189,8 +189,6 @@ class Twig (object):
             self._OM.set_menu_prompt ('compile.'+key, 'customize the twig-tip: '+key)
 
         # Plugins for optional operations on the twig_tip:
-        # self.add_plugin('PluginMakeTensor', submenu='compile.modify',
-        #                 user_level=0, hide=[])     
         self.add_plugin('PluginAddNoise', submenu='compile.modify',
                         user_level=0, hide=[])   
         self.add_plugin('PluginApplyUnary', submenu='compile.modify',
