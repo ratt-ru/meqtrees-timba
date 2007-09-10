@@ -6,7 +6,11 @@
 # Description:
 
 """The Plugin class makes makes a subtree that takes an input node and
-produces a new rootnode. It includes TDLOptions.
+produces a new rootnode. It conveniently takes care of TDLOption
+manipulation, input and output checking, visualization etc.
+Plugin is a base-class from which a veritable zoo of PluginDoSomething
+classes are derived, and also other base-clsses like PluginLeaf and
+PluginDemo.
 """
 
 
@@ -222,16 +226,19 @@ class Plugin (object):
         """
         s = '** '+self._submenu+': on_exit(): '
 
-        # Optionally, change the (automatic) prompt in the menu
-        self._OM.set_menu_prompt(self._submenu, '- plugin: '+str(self.name))
+        # Change the (automatic) prompt in the menu
+        prompt = '- plugin'
+        if self._is_leaf:
+            prompt += ' (leaf)'
+        if self._is_demo:
+            prompt += ' (demo)'
+        prompt += ': '+str(self.name)
+        self._OM.set_menu_prompt(self._submenu, prompt)
 
         # Progress message: 
         if trace:
             print s,'\n'
 
-        # Make a (sub)submenu of visualization options:
-        self.define_visu_options()
-        
         # Make a (sub)submenu of miscellaneous options:
         self.define_misc_options()
         
@@ -382,6 +389,9 @@ class Plugin (object):
                 raise ValueError,s
             return False
 
+        # Modify, as specified by the options:
+        node = self.modify (node, trace=trace)
+
         # Visualize, as specified by the options:
         node = self.visualize (node, internodes=internodes,
                                allnodes=allnodes, trace=trace)
@@ -407,16 +417,26 @@ class Plugin (object):
                         callback=self._callback_ignore,
                         doc="""this is used for testing
                         """)
+
         if len(self._mode.keys())>0:
             self._OM.define(self.optname('misc.mode'), None,
-                            prompt='select standard mode',
+                            prompt='select a standard mode',
                             opt=[None]+self._mode.keys(),
                             callback=self._callback_mode,
-                            doc="""The plugin values may be preset to certain values,
-                            according to a number of standard modes.
-                        """)
+                            doc="""The Plugin option values may be preset
+                            to the values of a number of standard modes.
+                            """)
+
+        # Modification of the end result:
+        self.define_modif_options()
+
+        # Visualization options:
+        self.define_visu_options()
+        
+        # Finished:
         self._OM.set_menu_prompt(self._submenu+'.misc', 'miscellaneous')
         return True
+
 
     #....................................................................
 
@@ -444,6 +464,53 @@ class Plugin (object):
 
 
     #====================================================================
+    # Generic Plugin modification (of the end result):
+    #====================================================================
+
+    def define_modif_options(self):
+        """Define a generic submenu of visualization option(s).
+        """
+        self._OM.define(self.optname('misc.modif.stddev'), None,
+                        prompt='add stddev noise to result',
+                        opt=[0.1,1.0], more=float,
+                        doc="""add gaussian noise (if stddev>0)
+                        to the end result of this Plugin.
+                        """)
+        opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
+        opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
+        self._OM.define(self.optname('misc.modif.unop'), None,
+                        prompt='apply unary() to result',
+                        opt=opt, more=str,
+                        doc="""apply an unary operation
+                        to the end result of this Plugin.
+                        """)
+        self._OM.set_menu_prompt(self._submenu+'.misc.modif',
+                                 'modify the end result')
+        return True
+
+
+    #---------------------------------------------------------------------
+
+    def modify (self, node, trace=False):
+        """Execute the modification instructions (see .define_modif_options())
+        """
+        stddev = self.optval('misc.modif.stddev')
+        if stddev and stddev>0.0:
+            name = '~'+str(stddev)
+            noise = self.ns[name]
+            if not noise.initialized():
+                noise << Meq.GaussNoise(stddev=stddev)
+                name = node.basename + name
+                node = self.ns[name] << Meq.Add(node,noise)
+
+        unop = self.optval('misc.modif.stddev')
+        if unop:
+            node = self.ns << getattr(Meq,unop)(node)
+
+        # Return the (possibly new) node:
+        return node
+
+    #====================================================================
     # Generic Plugin visualization:
     #====================================================================
 
@@ -451,7 +518,7 @@ class Plugin (object):
     def define_visu_options(self):
         """Define a generic submenu of visualization option(s).
         """
-        self._OM.define(self.optname('visu.bookpage'), self.name,
+        self._OM.define(self.optname('misc.visu.bookpage'), self.name,
                         prompt='bookpage name',
                         opt=[None,self.name], more=str, 
                         doc="""Specify a bookpage for the various bookmarks
@@ -459,19 +526,19 @@ class Plugin (object):
                         visualization for this Plugin is inhibited.
                         """)
         if not self._is_leaf:
-            self._OM.define(self.optname('visu.compare'), None,
+            self._OM.define(self.optname('misc.visu.compare'), None,
                             prompt='show result vs input',
                             opt=[None,'Subtract','Divide'], more=str, 
                             doc="""Insert and bookmark a side-branch that
                             compares the result with the input. 
                             """)
-        self._OM.define(self.optname('visu.allnodes'), False,
+        self._OM.define(self.optname('misc.visu.allnodes'), False,
                         prompt='boomark all nodes',
                         opt=[True, False],  
                         doc="""If True, bookmark all intermediate nodes
                         of this Plugin, e.g. for debugging.
                         """)
-        self._OM.set_menu_prompt(self._submenu+'.visu', 'visualization')
+        self._OM.set_menu_prompt(self._submenu+'.misc.visu', 'visualization')
         return True
 
 
@@ -480,9 +547,9 @@ class Plugin (object):
     def visualize (self, node, internodes=None, allnodes=None, trace=False):
         """Execute the visualization instructions (see .define_visu_options())
         """
-        if not self.has_option('visu.bookpage'):
+        if not self.has_option('misc.visu.bookpage'):
             return node                                 # no visualization options defined
-        page = self.optval('visu.bookpage')
+        page = self.optval('misc.visu.bookpage')
         if not page:
             return node                                 # no visualization required
         folder = None
@@ -495,7 +562,7 @@ class Plugin (object):
             bm.append(self._input_node)
 
         # Bookmark(s) for intermediate nodes (if any):
-        if self.optval('visu.allnodes'):                # e.g. for de-bugging 
+        if self.optval('misc.visu.allnodes'):                # e.g. for de-bugging 
             if isinstance(allnodes, list):
                 bm.extend(allnodes)                     # ALL intermediate nodes, if available
             elif isinstance(internodes, list):
@@ -509,7 +576,7 @@ class Plugin (object):
 
         # If required, insert a side-branch to compare the result with the input:  
         if not self._is_leaf:
-            binop = self.optval('visu.compare')
+            binop = self.optval('misc.visu.compare')
             if binop:
                 comp = self.ns['compare'] << getattr(Meq, binop)(node, self._input_node)
                 bm.append(comp)
@@ -651,7 +718,7 @@ if 0:
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('long', unit='rad')
     # xtor.add_dimension('s', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
+    ## xtor.make_TDLCompileOptionMenu()       # NOT needed (just for testing)
 
     pgt = PluginTest(quals='hjk')
     pgt.make_TDLCompileOptionMenu()
@@ -663,7 +730,7 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
+        # xtor.make_TDLCompileOptionMenu()
         pgt = PluginTest(quals=[1,2])
         pgt.make_TDLCompileOptionMenu()
 
