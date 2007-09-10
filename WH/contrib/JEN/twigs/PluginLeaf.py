@@ -45,8 +45,9 @@ from Timba.Meq import meq
 # import Meow
 
 from Timba.Contrib.JEN.twigs import Plugin
-from Timba.Contrib.JEN.control import OptionManager
+# from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
+# from Timba.Contrib.JEN.Grunt import display
 
 # import math
 # import random
@@ -90,7 +91,7 @@ class PluginLeaf(Plugin.Plugin):
     #=====================================================================
 
 
-    def _define_dims_options(self, trace=True):
+    def _define_dims_options(self):
         """Define the optional dims handling options
         """
         # Selection of dimensions:
@@ -164,25 +165,89 @@ class PluginLeaf(Plugin.Plugin):
         if trace: print ' -> self._dims =',self._dims
         return True
 
-    #....................................................................
 
-    def _callback_dims_obsolete (self, dims):
-        """Called whenever 'dims' changes"""
-        print '** _callback_dims(',dims,type(dims),'):'
-        if dims=='*':
-            self._dims = self._available_dims
-        elif dims in self._available_dims:
-            self._dims = [dims]
-        elif isinstance(dims, list):
-            self._dims = dims
-        else:
-            s = '** dims not recognised: '+str(dims)
-            print s;
-            raise ValueError,s
+    #==================================================================
+    # Make a record of MeqGrid nodes:
+    #==================================================================
+
+    def make_MeqGrid_nodes (self, trace=False):
+        """Make a dict with MeqGrid nodes for the selected dimensions.
+        Optionally, Modify the MeqGrid nodes as specified by the options.
+        """
+        rr = dict()
+        for dim in self._dims:
+            node = self.ns[dim] << Meq.Grid(axis=dim)
+            stddev = self.optval(dim+'.stddev')
+            node = self.add_noise (node, stddev, trace=True)
+            unop = self.optval(dim+'.unop')
+            node = self.apply_unary (node, unop, trace=True)
+            rr[dim] = dict(node=node, stddev=stddev, unop=unop)
+            if trace:
+                print '--',dim,'(',stddev,unop,') ->',str(node)
+        return rr
+
+
+    #==================================================================
+    # Combining the MeqGrid nodes to a single node:
+    #==================================================================
+
+
+    def _define_combine_options(self):
+        """Define the options for combining MeqGrid nodes
+        """
+        opt = ['Add','Multiply','ToComplex','ToPolar']
+        self._OM.define(self.optname('combine'), 'Add',
+                        opt=opt, more=str,
+                        prompt='combine the MeqGrid nodes with',
+                        doc = """The various MeqGrid nodes must be
+                        combined to a single node with this operation.
+                        """)
         return True
-    
+        
+    #-------------------------------------------------------------------
+
+    def extract_list_of_MeqGrid_nodes (rr, trace=False):
+        """Extract a list of MeqGrid nodes from the given dict rr
+        (see .make_MeqGrid_nodes()):
+        """
+        cc = []
+        # for dim in rr.keys():               # Do not use: The order of dict keys can vary! 
+        for dim in self._dims:                # This is the CORRECT order of dims      
+            node = rr[dim]['node']
+            if trace:
+                print '-',dim,':',str(node)
+            cc.append(node)
+        return cc
 
 
+    def combine_MeqGrid_nodes (self, rr, trace=False):
+        """Combine the given dict (rr) of MeqGrid nodes
+        """
+        if trace:
+            print '\n** combine_MeqGrid_nodes():'
+            
+        # First make a list of MeqGrid nodes
+        cc = self.extract_list_of_MeqGrid_nodes (rr, trace=trace)
+
+        # Then combine these to a single node:
+        combine = self.optval('combine')
+        name = combine+'_MeqGrids'
+        if len(cc)==1:                                   # one node only
+            node = cc[0]                                 # just pass it on
+        elif combine in ['ToComplex','ToPolar']:
+            if len(cc)==2:
+                node = self.ns[name] << getattr(Meq,combine)(*cc)
+            else:
+                s = '** nr of dims should be 2 for '+combine
+                print s
+                raise ValueError,s
+        else:
+            node = self.ns[name] << getattr(Meq,combine)(*cc)
+
+        # Return the single node:
+        if trace:
+            self.display_subtree(node)
+        return node
 
 
 
@@ -193,7 +258,7 @@ class PluginLeaf(Plugin.Plugin):
 
     
     #====================================================================
-    # Placeholders for specific functions:
+    # Specific part: Placeholders for specific functions:
     # (These must be re-implemented in derived Leaf classes) 
     #====================================================================
 
@@ -205,17 +270,9 @@ class PluginLeaf(Plugin.Plugin):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Optional: 
-        self._define_dims_options(trace=trace)
-
-        # Placeholder, to be replaced:
-        opt = ['Add','Multiply','ToComplex','ToPolar']
-        self._OM.define(self.optname('combine'), 'Add',
-                        opt=opt,                         # more=str,
-                        prompt='combine the MeqGrid nodes with',
-                        doc = """The various MeqGrid nodes must be
-                        combined to a single node with this operation.
-                        """)
+        # Optional (depends on the kind of Leaf): 
+        self._define_dims_options()
+        self._define_combine_options()
 
         #..............................................
         return self.on_exit(trace=trace)
@@ -235,18 +292,10 @@ class PluginLeaf(Plugin.Plugin):
         #..............................................
 
         # Placeholder, to be replaced:
-        combine = self.optval('combine')
-        cc = []
-        for dim in self._dims:
-            dimgrid = self.ns[dim] << Meq.Grid(axis=dim)
-            cc.append(dimgrid)
-            print '--',dim,'->',str(dimgrid)
+        rr = self.make_MeqGrid_nodes (trace=trace)
+        node = self.combine_MeqGrid_nodes (rr, trace=trace)
 
-        if combine in ['ToComplex','ToPolar']:
-            # NB: Make provisions for len(cc)!=2.....!
-            node = self.ns[combine] << getattr(Meq,combine)(*cc)
-        else:
-            node = self.ns[combine] << getattr(Meq,combine)(*cc)
+        cc = self.extract_list_MeqGrid_nodes (rr, trace=trace)
 
         #..............................................
         # Finishing touches:
@@ -268,10 +317,10 @@ plf = None
 if 1:
     xtor = Executor.Executor('Executor', namespace='test',
                              parentclass='test')
-    xtor.add_dimension('l', unit='rad')
-    xtor.add_dimension('m', unit='rad')
-    xtor.add_dimension('x', unit='m')
-    xtor.add_dimension('y', unit='m')
+    # xtor.add_dimension('l', unit='rad')
+    # xtor.add_dimension('m', unit='rad')
+    # xtor.add_dimension('x', unit='m')
+    # xtor.add_dimension('y', unit='m')
     ## xtor.make_TDLCompileOptionMenu()      # NOT neede (just for testing)
 
     plf = PluginLeaf(xtor=xtor)

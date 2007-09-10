@@ -1,11 +1,11 @@
-# file: ../twigs/LeafGrids.py
+# file: ../twigs/LeafDimGrids.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The LeafGrids class makes makes a subtree that represents a
+"""The LeafDimGrids class makes makes a subtree that represents a
 combination (e.g. sum) of MeqGrid nodes for the selected
 dimensions (e.g. freq. time, l, m, etc).
 """
@@ -43,7 +43,7 @@ from Timba.Meq import meq
 
 # import Meow
 
-from Timba.Contrib.JEN.twigs import Plugin
+from Timba.Contrib.JEN.twigs import PluginLeaf
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -55,127 +55,69 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 #=============================================================================
 
-class LeafGrids(Plugin.Plugin):
+class LeafDimGrids(PluginLeaf.PluginLeaf):
     """Class derived from Plugin"""
 
     def __init__(self,
                  quals=None, kwquals=None,
                  submenu='compile',
-                 xtor=None,
+                 xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='LeafGrids',
-                               quals=quals, kwquals=kwquals,
-                               submenu=submenu,
-                               is_demo=False,
-                               is_leaf=True,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        PluginLeaf.PluginLeaf.__init__(self, name='LeafDimGrids',
+                                       quals=quals, kwquals=kwquals,
+                                       submenu=submenu,
+                                       xtor=xtor, dims=dims,
+                                       OM=OM, namespace=namespace,
+                                       **kwargs)
 
-        # The list of available dimensions may be obtained
-        # from an external Executor object (if supplied):
-        self._xtor = xtor
-        self._available_dims = ['freq','time']         # default available dims
-        if self._xtor:
-            self._available_dims = self._xtor.dims()   # dims from xtor
-        self._dims = []
         return None
 
     
     #====================================================================
+    #====================================================================
+
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
+        This function must be re-implemented in derived Leaf classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Selection of dimensions:
-        opt = ['freq','time',['freq','time'],'ft','*']
-        self._OM.define(self.optname('dims'), '*',
-                        opt=opt, more=str,
-                        prompt='dimension(s)',
-                        callback=self._callback_dims,
-                        doc = """Select dimensions to be be used.
-                        """)
-
-        # Submenus for all available dimensions:
-        if False:
-        # for dim in self._available_dims:
-            opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
-            opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
-            self._OM.define(self.optname(dim+'.unop'), None,
-                            prompt='apply unary()', opt=opt,
-                            doc="""apply unary operation
-                            """)
-            self._OM.define(self.optname(dim+'.stddev'), None,
-                            prompt='add stddev noise',
-                            opt=[0.1,1.0], more=float,
-                            doc="""add gaussian noise (if stddev>0)
-                            """)
-
-        # Node combination:
-        opt = ['Add','Multiply','ToComplex','ToPolar']
-        self._OM.define(self.optname('combine'), 'Add',
-                        opt=opt,                         # more=str,
-                        prompt='combine with',
-                        doc = """The various MeqGrid nodes must be
-                        combined to a single node with this operation.
-                        """)
+        # Optional (depends on the kind of Leaf): 
+        self._define_dims_options()
+        self._define_combine_options()
 
         #..............................................
         return self.on_exit(trace=trace)
 
 
-    #....................................................................
-
-    def _callback_dims (self, dims):
-        """Called whenever 'dims' changes"""
-        print '** _callback_dims(',dims,type(dims),'):'
-        if dims=='*':
-            self._dims = self._available_dims
-        elif dims in self._available_dims:
-            self._dims = [dims]
-        elif isinstance(dims, list):
-            self._dims = dims
-        else:
-            s = '** dims not recognised: '+str(dims)
-            print s;
-            raise ValueError,s
-        return True
-    
 
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
     def make_subtree (self, ns, trace=True):
         """Specific: Make the plugin subtree.
+        This function must be re-implemented in derived Leaf classes. 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Read the specified options:
-        # dims = self.optval('dims')          # use self._dims
-        combine = self.optval('combine')
+        # Placeholder, to be replaced:
+        rr = self.make_MeqGrid_nodes (trace=trace)
+        node = self.combine_MeqGrid_nodes (rr, trace=trace)
 
-        # Make the subtree:
-        cc = []
-        for dim in self._dims:
-            cc.append(self.ns[dim] << Meq.Grid(axis=dim))
-
-        if combine in ['ToComplex','ToPolar']:
-            # NB: Make provisions for len(cc)!=2.....!
-            node = self.ns[combine] << getattr(Meq,combine)(*cc)
-        else:
-            node = self.ns[combine] << getattr(Meq,combine)(*cc)
+        cc = self.extract_list_MeqGrid_nodes (rr, trace=trace)
 
         #..............................................
         # Finishing touches:
         return self.on_output (node, allnodes=cc, trace=trace)
+
 
 
     
@@ -195,8 +137,7 @@ if 1:
                              parentclass='test')
     xtor.add_dimension('l', unit='rad')
     xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
-    plf = LeafGrids(xtor=xtor)
+    plf = LeafDimGrids(xtor=xtor)
     plf.make_TDLCompileOptionMenu()
     # plf.display('outside')
 
@@ -206,8 +147,7 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
-        plf = LeafGrids(xtor=xtor)
+        plf = LeafDimGrids(xtor=xtor)
         plf.make_TDLCompileOptionMenu()
 
     cc = []
@@ -255,7 +195,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = LeafGrids()
+        plf = LeafDimGrids()
         plf.display('initial')
 
     if 1:

@@ -398,15 +398,26 @@ class Plugin (object):
 
         # Progress message:
         if trace:
-            display.subtree(node) 
+            self.display_subtree(node) 
             print s,'->',str(node),'\n'
         return node          
 
 
     #====================================================================
-    # Miscellaneous settings
+    # Service(s) to all classes derived from Plugin
     #====================================================================
 
+
+    def display_subtree(self, node, trace=True):
+        """Display the subtree behind the given node.
+        """
+        print '\n** ',self.name,': display_subtree(',str(node),'):'
+        display.subtree(node) 
+        return True
+
+    #====================================================================
+    # Miscellaneous settings
+    #====================================================================
 
     def define_misc_options(self):
         """Define a generic submenu of visualization option(s).
@@ -464,7 +475,7 @@ class Plugin (object):
 
 
     #====================================================================
-    # Generic Plugin modification (of the end result):
+    # Generic modification (of the end result):
     #====================================================================
 
     def define_modif_options(self):
@@ -495,6 +506,21 @@ class Plugin (object):
         """Execute the modification instructions (see .define_modif_options())
         """
         stddev = self.optval('misc.modif.stddev')
+        node = self.add_noise (node, stddev, trace=trace)
+
+        unop = self.optval('misc.modif.unop')
+        node = self.apply_unary (node, unop, trace=trace)
+
+        # Return the (possibly new) node:
+        return node
+
+    #---------------------------------------------------------------------
+
+    def add_noise (self, node, stddev, trace=False):
+        """Helper function to add (gaussian) noise to the given node.
+        """
+        if trace:
+            print '\n** .add_noise(',stddev,'):'
         if stddev and stddev>0.0:
             name = '~'+str(stddev)
             noise = self.ns[name]
@@ -502,16 +528,26 @@ class Plugin (object):
                 noise << Meq.GaussNoise(stddev=stddev)
                 name = node.basename + name
                 node = self.ns[name] << Meq.Add(node,noise)
-
-        unop = self.optval('misc.modif.stddev')
-        if unop:
-            node = self.ns << getattr(Meq,unop)(node)
-
-        # Return the (possibly new) node:
+        if trace:
+            print '    -> ',str(node)
         return node
 
+    #---------------------------------------------------------------------
+
+    def apply_unary (self, node, unop, trace=False):
+        """Helper function to add (gaussian) noise to the given node.
+        """
+        if trace:
+            print '\n** .apply_unary(',unop,'):'
+        if unop:
+            node = self.ns << getattr(Meq,unop)(node)
+        if trace:
+            print '    -> ',str(node)
+        return node
+
+
     #====================================================================
-    # Generic Plugin visualization:
+    # Generic visualization:
     #====================================================================
 
 
@@ -595,9 +631,9 @@ class Plugin (object):
 
     #====================================================================
     #====================================================================
-    # Specific functions (to be re-implemented by a derived class).
+    # Specific part: Functions to be re-implemented by a derived class.
     # The following are placeholders that can serve as examples.
-    # See also the derived class PluginTest below.
+    # See also the derived class PluginTest below, and PluginTemplate.py
     #====================================================================
     #====================================================================
 
