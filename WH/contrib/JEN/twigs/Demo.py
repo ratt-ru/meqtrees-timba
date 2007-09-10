@@ -1,12 +1,15 @@
-# file: ../twigs/PluginDemoSolver.py
+# file: ../twigs/Demo.py
 
 # History:
-# - 07sep2007: creation (from Plugin.py)
+# - 10sep2007: creation (from LeafGrids.py)
 
 # Description:
 
-"""The PluginDemoSolver class makes makes a subtree that takes an input node and
-produces a new rootnode by .....
+"""The Demo class makes makes a node/subtree that demonstrates
+a particular feature of MeqTrees. It does this in a side-branch,
+so the output result is equal to the input.
+It is a base-class for specialised classes like DemoSolver,
+DemoModRes etc, and is itself derived from the Plugin base-class.
 """
 
 
@@ -40,93 +43,78 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
-
 from Timba.Contrib.JEN.twigs import Plugin
-from Timba.Contrib.JEN.twigs import LeafParm
-from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
-import math
+# import math
+# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class PluginDemoSolver(Plugin.Plugin):
-    """Class derived from Plugin"""
+class Demo(Plugin.Plugin):
+    """Base-class for DemoSomething classes, itself derived from Plugin"""
 
-    def __init__(self,
-                 quals=None,
+    def __init__(self, quals=None,
+                 name='Demo',
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginDemoSolver',
-                               quals=quals,
+        Plugin.Plugin.__init__(self, quals=quals,
+                               name=name,
                                submenu=submenu,
                                is_demo=True,
                                OM=OM, namespace=namespace,
                                **kwargs)
 
-        # Use the LeafParm Plugin as the 'left-hand-side' of the equation(s).
-        # It shares the OptionManager (OM), so the LeafParm menu is nested
-        # in the Demo menu by giving the correct subsub menu name.
-        subsubmenu = submenu+'.'+self.name
-        self._lhs = LeafParm.LeafParm (submenu=subsubmenu, OM=self._OM)
         return None
 
+
+
     
+    #====================================================================
+    # Specific part: Placeholders for specific functions:
+    # (These must be re-implemented in derived Demo classes) 
     #====================================================================
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
+        This function must be re-implemented in derived Demo classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('niter'), None,
-                        prompt='nr of iterations',
-                        opt=[None,1,2,3,5,10,20,30,50,100],
-                        doc="""Nr of solver iterations.
-                        """)
-        # self._lhs.define_compile_options(trace=trace)
+
+        # Placeholder:
+        self._OM.define(self.optname('xxx'), 45)
+
         #..............................................
         return self.on_exit(trace=trace)
 
 
+
+    #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, test=None, trace=True):
+    def make_subtree (self, ns, test=None, trace=True):
         """Specific: Make the plugin subtree.
+        This function must be re-implemented in derived Demo classes. 
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Read the specified options:
-        niter = self.optval('niter', test=test)
-        if niter==None or niter<1:
-            return self.bypass (trace=trace)
 
-        # Make the subtree:
-        lhs = self._lhs.make_subtree(self.ns, trace=trace)
-        condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
-        parm = ns.Search(tags='solvable', class_name='MeqParm')
-        solver = self.ns['solver'] << Meq.Solver(condeq,
-                                                 num_iter=niter,
-                                                 solvable=parm)
-        node = self.ns['reqseq'] << Meq.ReqSeq(children=[solver,node],
-                                               result_index=1)
- 
         #..............................................
-        # Check the new rootnode:
-        return self.on_output (node, internodes=[parm[0], lhs, condeq, solver],
-                               trace=trace)
+        # Finishing touches:
+        return self.on_output (node, allnodes=cc, trace=trace)
 
 
+    
 
 
 
@@ -137,29 +125,30 @@ class PluginDemoSolver(Plugin.Plugin):
 #=============================================================================
 
 
-pgt = None
+plf = None
 if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    pgt = PluginDemoSolver()
-    pgt.make_TDLCompileOptionMenu()
-    # pgt.display()
+    # xtor.add_dimension('x', unit='m')
+    # xtor.add_dimension('y', unit='m')
+
+    plf = Demo(xtor=xtor)
+    plf.make_TDLCompileOptionMenu()
+    # plf.display('outside')
 
 
 def _define_forest(ns):
 
-    global pgt,xtor
-    if not pgt:
+    global plf,xtor
+    if not plf:
         xtor = Executor.Executor()
-        pgt = PluginDemoSolver()
-        pgt.make_TDLCompileOptionMenu()
+        plf = Demo(xtor=xtor)
+        plf.make_TDLCompileOptionMenu()
 
     cc = []
 
-    # node = xtor.leafnode(ns)
-    node = ns << Meq.Time() + Meq.Freq()
-    rootnode = pgt.make_subtree(ns, node)
+    rootnode = plf.make_subtree(ns)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -180,11 +169,11 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Plugin object"""
-    pgt.display('_tdl_job')
+    plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the Plugin object"""
-    pgt.display('_tdl_job', full=True)
+    plf.display('_tdl_job', full=True)
        
 
 
@@ -201,19 +190,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = PluginDemoSolver()
-        pgt.display('initial')
-
-    if 0:
-        pgt.make_TDLCompileOptionMenu()
-
-    if 0:
-        node = ns << 1.0
-        test = dict(niter=3)
-        pgt.make_subtree(ns, node, test=test, trace=True)
+        plf = Demo()
+        plf.display('initial')
 
     if 1:
-        pgt.display('final', OM=True, full=True)
+        plf.make_TDLCompileOptionMenu()
+
+    if 1:
+        test = dict()
+        plf.make_subtree(ns, test=test, trace=True)
+
+    if 1:
+        plf.display('final', OM=True, full=True)
 
 
 

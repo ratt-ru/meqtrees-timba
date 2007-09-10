@@ -1,11 +1,11 @@
-# file: ../twigs/PluginDemoRedaxes.py
+# file: ../twigs/DemoRedaxes.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The PluginDemoRedaxes class makes makes a subtree that takes an input node and
+"""The DemoRedaxes class makes makes a subtree that takes an input node and
 produces a new rootnode by .....
 """
 
@@ -40,7 +40,7 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.twigs import Plugin
+from Timba.Contrib.JEN.twigs import Demo
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -51,8 +51,8 @@ import math
 #=============================================================================
 #=============================================================================
 
-class PluginDemoRedaxes(Plugin.Plugin):
-    """Class derived from Plugin"""
+class DemoRedaxes(Demo.Demo):
+    """Class derived from Demo"""
 
     def __init__(self,
                  quals=None,
@@ -60,12 +60,11 @@ class PluginDemoRedaxes(Plugin.Plugin):
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, name='PluginDemoRedaxes',
-                               quals=quals,
-                               submenu=submenu,
-                               is_demo=True,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        Demo.Demo.__init__(self, name='DemoRedaxes',
+                           quals=quals,
+                           submenu=submenu,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
         return None
 
     
@@ -138,7 +137,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    pgt = PluginDemoRedaxes()
+    pgt = DemoRedaxes()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
 
@@ -148,7 +147,7 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        pgt = PluginDemoRedaxes()
+        pgt = DemoRedaxes()
         pgt.make_TDLCompileOptionMenu()
 
     cc = []
@@ -174,11 +173,11 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Demo object"""
     pgt.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Demo object"""
     pgt.display('_tdl_job', full=True)
        
 
@@ -196,7 +195,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = PluginDemoRedaxes()
+        pgt = DemoRedaxes()
         pgt.display('initial')
 
     if 1:

@@ -69,8 +69,7 @@ class Twig (object):
 
         self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
                                                parentclass=self._frameclass)
-        self._xtor = Executor.Executor('Executor', namespace=namespace,
-                                       parentclass=self._frameclass)
+        self._xtor = Executor.Executor('Executor', namespace=namespace)
 
         # Define the compile_time options:
         self._twip = dict()
@@ -209,11 +208,11 @@ class Twig (object):
                                 user_level=0, hide=[])
 
         # Plugins for demonstration subtrees:
-        self.add_plugin('PluginDemoRedaxes', submenu='compile.demo',
+        self.add_plugin('DemoRedaxes', submenu='compile.demo',
                         user_level=0, hide=[])      
-        self.add_plugin('PluginDemoSolver', submenu='compile.demo',
+        self.add_plugin('DemoSolver', submenu='compile.demo',
                         user_level=0, hide=[])    
-        self.add_plugin('PluginDemoModRes', submenu='compile.demo',
+        self.add_plugin('DemoModRes', submenu='compile.demo',
                         user_level=0, hide=[])   
 
         self._OM.set_menu_prompt ('compile.modify', 'modify the twig result')
@@ -310,17 +309,17 @@ class Twig (object):
             plugin = PluginMakeTensor.PluginMakeTensor(submenu=submenu, OM=self._OM,
                                                        quals=quals)
 
-        elif name=='PluginDemoSolver':
-            from Timba.Contrib.JEN.twigs import PluginDemoSolver
-            plugin = PluginDemoSolver.PluginDemoSolver(submenu=submenu, OM=self._OM,
-                                                       quals=quals)
-        elif name=='PluginDemoModRes':
-            from Timba.Contrib.JEN.twigs import PluginDemoModRes
-            plugin = PluginDemoModRes.PluginDemoModRes(submenu=submenu, OM=self._OM,
-                                                       quals=quals)
-        elif name=='PluginDemoRedaxes':
-            from Timba.Contrib.JEN.twigs import PluginDemoRedaxes
-            plugin = PluginDemoRedaxes.PluginDemoRedaxes(submenu=submenu, OM=self._OM,
+        elif name=='DemoSolver':
+            from Timba.Contrib.JEN.twigs import DemoSolver
+            plugin = DemoSolver.DemoSolver(submenu=submenu, OM=self._OM,
+                                           quals=quals)
+        elif name=='DemoModRes':
+            from Timba.Contrib.JEN.twigs import DemoModRes
+            plugin = DemoModRes.DemoModRes(submenu=submenu, OM=self._OM,
+                                           quals=quals)
+        elif name=='DemoRedaxes':
+            from Timba.Contrib.JEN.twigs import DemoRedaxes
+            plugin = DemoRedaxes.DemoRedaxes(submenu=submenu, OM=self._OM,
                                              quals=quals)
 
         else:
@@ -799,7 +798,7 @@ if __name__ == '__main__':
         twig = Twig()
         twig.display('initial')
 
-    if 0:
+    if 1:
         twig.make_TDLRuntimeOptionMenu()
 
     if 1:

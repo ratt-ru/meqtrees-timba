@@ -42,7 +42,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.twigs import Plugin
+from Timba.Contrib.JEN.twigs import Leaf
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -54,22 +54,20 @@ import random
 #=============================================================================
 #=============================================================================
 
-class LeafParm(Plugin.Plugin):
-    """Class derived from Plugin"""
+class LeafParm(Leaf.Leaf):
+    """Class derived from Leaf"""
 
     def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self,
-                               quals=quals,
-                               name='LeafParm',
-                               submenu=submenu,
-                               is_demo=False,
-                               is_leaf=True,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        Leaf.Leaf.__init__(self,
+                           quals=quals,
+                           name='LeafParm',
+                           submenu=submenu,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
         return None
 
     
@@ -201,11 +199,11 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Leaf object"""
     plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Leaf object"""
     plf.display('_tdl_job', full=True)
        
 

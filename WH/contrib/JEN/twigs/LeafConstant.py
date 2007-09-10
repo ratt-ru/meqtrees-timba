@@ -41,7 +41,7 @@ values.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.twigs import Plugin
+from Timba.Contrib.JEN.twigs import Leaf
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -53,21 +53,19 @@ import random
 #=============================================================================
 #=============================================================================
 
-class LeafConstant(Plugin.Plugin):
-    """Class derived from Plugin"""
+class LeafConstant(Leaf.Leaf):
+    """Class derived from Leaf, which is derived from Plugin"""
 
     def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, quals=quals,
-                               name='LeafConstant',
-                               submenu=submenu,
-                               is_demo=False,
-                               is_leaf=True,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        Leaf.Leaf.__init__(self, quals=quals,
+                           name='LeafConstant',
+                           submenu=submenu,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
         return None
 
     

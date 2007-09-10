@@ -1,13 +1,12 @@
-# file: ../twigs/LeafDimGrids.py
+# file: ../twigs/DemoSolver.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The LeafDimGrids class makes makes a subtree that represents a
-combination (e.g. sum) of MeqGrid nodes for the selected
-dimensions (e.g. freq. time, l, m, etc).
+"""The DemoSolver class makes makes a subtree that takes an input node and
+produces a new rootnode by .....
 """
 
 
@@ -41,85 +40,92 @@ dimensions (e.g. freq. time, l, m, etc).
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# import Meow
+import Meow
 
-from Timba.Contrib.JEN.twigs import Leaf
+from Timba.Contrib.JEN.twigs import Demo
+from Timba.Contrib.JEN.twigs import LeafParm
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
-# import math
-# import random
+import math
 
 
 
 #=============================================================================
 #=============================================================================
 
-class LeafDimGrids(Leaf.Leaf):
-    """Class derived from Plugin"""
+class DemoSolver(Demo.Demo):
+    """Class derived from Demo"""
 
     def __init__(self, quals=None,
                  submenu='compile',
-                 xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Leaf.Leaf.__init__(self, quals=quals,
-                           name='LeafDimGrids',
+        Demo.Demo.__init__(self,
+                           quals=quals,
+                           name='DemoSolver',
                            submenu=submenu,
-                           xtor=xtor, dims=dims,
                            OM=OM, namespace=namespace,
                            **kwargs)
 
+        # Use the LeafParm Plugin as the 'left-hand-side' of the equation(s).
+        # It shares the OptionManager (OM), so the LeafParm menu is nested
+        # in the Demo menu by giving the correct subsub menu name.
+        subsubmenu = submenu+'.'+self.name
+        self._lhs = LeafParm.LeafParm (submenu=subsubmenu, OM=self._OM)
         return None
 
     
     #====================================================================
-    #====================================================================
-
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Leaf classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-
-        # Optional (depends on the kind of Leaf): 
-        self._define_dims_options()
-        self._define_combine_options()
-
+        self._OM.define(self.optname('niter'), None,
+                        prompt='nr of iterations',
+                        opt=[None,1,2,3,5,10,20,30,50,100],
+                        doc="""Nr of solver iterations.
+                        """)
+        # self._lhs.define_compile_options(trace=trace)
         #..............................................
         return self.on_exit(trace=trace)
 
 
-
-    #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Leaf classes. 
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, trace=trace):
+        if not self.on_input (ns, node, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Placeholder, to be replaced:
-        rr = self.make_MeqGrid_nodes (trace=trace)
-        node = self.combine_MeqGrid_nodes (rr, trace=trace)
+        # Read the specified options:
+        niter = self.optval('niter', test=test)
+        if niter==None or niter<1:
+            return self.bypass (trace=trace)
 
-        cc = self.extract_list_of_MeqGrid_nodes (rr, trace=trace)
-
+        # Make the subtree:
+        lhs = self._lhs.make_subtree(self.ns, trace=trace)
+        condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
+        parm = ns.Search(tags='solvable', class_name='MeqParm')
+        solver = self.ns['solver'] << Meq.Solver(condeq,
+                                                 num_iter=niter,
+                                                 solvable=parm)
+        node = self.ns['reqseq'] << Meq.ReqSeq(children=[solver,node],
+                                               result_index=1)
+ 
         #..............................................
-        # Finishing touches:
-        return self.on_output (node, allnodes=cc, trace=trace)
+        # Check the new rootnode:
+        return self.on_output (node, internodes=[parm[0], lhs, condeq, solver],
+                               trace=trace)
 
 
-
-    
 
 
 
@@ -130,28 +136,29 @@ class LeafDimGrids(Leaf.Leaf):
 #=============================================================================
 
 
-plf = None
+pgt = None
 if 1:
     xtor = Executor.Executor()
-    xtor.add_dimension('l', unit='rad')
-    xtor.add_dimension('m', unit='rad')
-    plf = LeafDimGrids(xtor=xtor)
-    plf.make_TDLCompileOptionMenu()
-    # plf.display('outside')
+    # xtor.add_dimension('l', unit='rad')
+    # xtor.add_dimension('m', unit='rad')
+    pgt = DemoSolver()
+    pgt.make_TDLCompileOptionMenu()
+    # pgt.display()
 
 
 def _define_forest(ns):
 
-    global plf,xtor
-    if not plf:
+    global pgt,xtor
+    if not pgt:
         xtor = Executor.Executor()
-        plf = LeafDimGrids(xtor=xtor)
-        plf.make_TDLCompileOptionMenu()
+        pgt = DemoSolver()
+        pgt.make_TDLCompileOptionMenu()
 
     cc = []
 
     # node = xtor.leafnode(ns)
-    rootnode = plf.make_subtree(ns)
+    node = ns << Meq.Time() + Meq.Freq()
+    rootnode = pgt.make_subtree(ns, node)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -171,12 +178,12 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Plugin object"""
-    plf.display('_tdl_job')
+    """Just display the current contents of the Demo object"""
+    pgt.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Plugin object"""
-    plf.display('_tdl_job', full=True)
+    """Just display the current contents of the Demo object"""
+    pgt.display('_tdl_job', full=True)
        
 
 
@@ -193,17 +200,19 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = LeafDimGrids()
-        plf.display('initial')
+        pgt = DemoSolver()
+        pgt.display('initial')
 
     if 1:
-        plf.make_TDLCompileOptionMenu()
+        pgt.make_TDLCompileOptionMenu()
 
     if 1:
-        plf.make_subtree(ns, trace=True)
+        node = ns << 1.0
+        test = dict(niter=3)
+        pgt.make_subtree(ns, node, test=test, trace=True)
 
     if 1:
-        plf.display('final', OM=True, full=True)
+        pgt.display('final', OM=True, full=True)
 
 
 

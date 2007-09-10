@@ -5,8 +5,7 @@
 
 # Description:
 
-"""The PluginFlagger class makes makes a subtree that takes an input node and
-produces a new rootnode by .....
+"""The PluginFlagger class inserts a (simple) flagger.
 """
 
 
@@ -55,13 +54,13 @@ class PluginFlagger(Plugin.Plugin):
     """Class derived from Plugin"""
 
     def __init__(self,
-                 quals=None, kwquals=None,
+                 quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
         Plugin.Plugin.__init__(self, name='PluginFlagger',
-                               quals=quals, kwquals=kwquals,
+                               quals=quals,
                                submenu=submenu,
                                OM=OM, namespace=namespace,
                                **kwargs)
@@ -94,7 +93,7 @@ class PluginFlagger(Plugin.Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node, trace=True):
+    def make_subtree (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
         This placeholder function should be reimplemented by a derived class.
         """
@@ -104,10 +103,10 @@ class PluginFlagger(Plugin.Plugin):
         #..............................................
 
         # Read the specified options:
-        flag_oper = self.optval('flag_oper')
+        flag_oper = self.optval('flag_oper', test=test)
         if flag_oper==None:
             return self.bypass (trace=trace)
-        sigma = self.optval('sigma')
+        sigma = self.optval('sigma', test=test)
 
         # Make the subtree: 
         mean = self.ns['mean'] << Meq.Mean(node)
@@ -144,11 +143,9 @@ class PluginFlagger(Plugin.Plugin):
 
 pgt = None
 if 0:
-    xtor = Executor.Executor('Executor', namespace='test',
-                             parentclass='test')
+    xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    xtor.make_TDLCompileOptionMenu()
     pgt = PluginFlagger()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
@@ -159,7 +156,6 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        xtor.make_TDLCompileOptionMenu()
         pgt = PluginFlagger()
         pgt.make_TDLCompileOptionMenu()
 
@@ -216,7 +212,8 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        pgt.make_subtree(ns, node, trace=True)
+        test = dict(flag_oper='GT')
+        pgt.make_subtree(ns, node, test=test, trace=True)
 
     if 1:
         pgt.display('final', OM=True, full=True)

@@ -75,15 +75,13 @@ import math
 class Executor (object):
     """The Grunt Executor class makes it easy to execute trees in various ways"""
 
-    def __init__(self, name='xtor', namespace='xtor',
-                 parentclass='parentclass'):
+    def __init__(self, name='Executor', namespace=None):
 
         self.name = name
-        self._parentclass = parentclass
         self._frameclass = 'Grunt.Executor'       # for reporting
 
         self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
-                                               parentclass=self._parentclass)
+                                               parentclass='')
 
         # Dimensions control-dict:
         self._dims = dict()
@@ -207,7 +205,7 @@ class Executor (object):
         opt = ['freq','time',['freq','time'],'ft','*']
         self._OM.define(submenu+'dims', '*',
                         opt=opt, more=str,
-                        prompt='runtime dimension(s)',
+                        prompt='dimension(s) of the request domain',
                         callback=self._callback_runtime_dims,
                         doc = """The selecte dimensions will be used for
                         generating (a sequence of) multi-dimenional requests. 
@@ -306,28 +304,28 @@ class Executor (object):
                         prompt=dim+'_unit',
                         opt=units,
                         doc='unit along '+dim+'-axis')
-        self._OM.define(submenu+'start', start[0],
+        self._OM.define(submenu+'domain.start', start[0],
                         prompt='domain start',
                         opt=start, more=float,
                         doc='"lower" edge ('+dim+'-unit) of the domain')
-        self._OM.define(submenu+'size', size[0],
+        self._OM.define(submenu+'domain.size', size[0],
                         prompt='domain size',
                         opt=size, more=float,
                         doc='domain size ('+dim+'-unit) in '+dim+' dimension')
-        self._OM.define(submenu+'num_cells', num_cells[0],
+        self._OM.define(submenu+'domain.num_cells', num_cells[0],
                         prompt='nr of cells',
                         opt=num_cells, more=int,
                         doc='nr of domain cells in '+dim+' dimension')
 
-        self._OM.define(submenu+'num_steps', num_steps[0],
+        self._OM.define(submenu+'sequence.num_steps', num_steps[0],
                         prompt='nr of '+dim+' steps',
                         opt=num_steps, more=int,
                         doc='nr of steps in the sequence')
-        self._OM.define(submenu+'step', step[0],
+        self._OM.define(submenu+'sequence.step', step[0],
                         prompt='step size',
                         opt=step, more=float,
                         doc='size (fraction of domain-size) of a step')
-        self._OM.define(submenu+'offset', offset[0],
+        self._OM.define(submenu+'sequence.offset', offset[0],
                         prompt='offset',
                         opt=offset, more=float,
                         doc='offset (fraction of domain-size)')
@@ -368,10 +366,10 @@ class Executor (object):
         offset = dict()
         for dim in self.runtime_dims():
             rr = dict(count=0, finished=False)
-            rr['num_steps'] = self._OM[dim+'.'+'num_steps']
-            domain_size = self._OM[dim+'.'+'size']
-            rr['step'] = self._OM[dim+'.'+'step']*domain_size
-            rr['offset0'] = self._OM[dim+'.'+'offset']*domain_size
+            rr['num_steps'] = self._OM[dim+'.sequence.'+'num_steps']
+            domain_size = self._OM[dim+'.domain.'+'size']
+            rr['step'] = self._OM[dim+'.sequence.'+'step']*domain_size
+            rr['offset0'] = self._OM[dim+'.sequence.'+'offset']*domain_size
             ctrl[dim] = rr
             offset[dim] = rr['offset0']
 
@@ -434,7 +432,7 @@ class Executor (object):
 
         pp = dict()
         for dim in self.runtime_dims():
-            pp['num_'+dim] = self._OM[dim+'.'+'num_cells']
+            pp['num_'+dim] = self._OM[dim+'.domain.'+'num_cells']
         cells = meq.gen_cells(domain, **pp)
 
         if trace:
@@ -458,8 +456,8 @@ class Executor (object):
             v0 = 0.0
             if offset:
                 v0 = offset[dim]
-            v1 = v0+self._OM[dim+'.'+'start']*mult
-            v2 = v1+self._OM[dim+'.'+'size']*mult
+            v1 = v0+self._OM[dim+'.domain.'+'start']*mult
+            v2 = v1+self._OM[dim+'.domain.'+'size']*mult
             pp[dim] = (v1,v2)
         domain = meq.gen_domain(**pp)
 
