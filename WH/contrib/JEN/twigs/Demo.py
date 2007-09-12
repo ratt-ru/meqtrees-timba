@@ -66,7 +66,7 @@ class Demo(Plugin.Plugin):
         Plugin.Plugin.__init__(self, quals=quals,
                                name=name,
                                submenu=submenu,
-                               is_demo=True,
+                               is_Demo=True,
                                OM=OM, namespace=namespace,
                                **kwargs)
 
@@ -126,7 +126,7 @@ class Demo(Plugin.Plugin):
 
 
 plf = None
-if 1:
+if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')

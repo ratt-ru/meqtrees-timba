@@ -84,7 +84,7 @@ class PluginFlagger(Plugin.Plugin):
                         """)
         self._OM.define(self.optname('sigma'), 5.0,
                         prompt='sigma',
-                        opt=[3.0,5.0,7.0,9.0], more=float,
+                        opt=[1.0,2.0,3.0,5.0,7.0,9.0], more=float,
                         doc="""Flag the cells whose values deviate 'flag_oper'
                         the specified nr of 'sigmas' from the domain mean.
                         """)

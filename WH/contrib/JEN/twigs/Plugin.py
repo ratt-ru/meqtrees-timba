@@ -64,20 +64,83 @@ class Plugin (object):
     def __init__(self, quals=None,
                  name='Plugin',
                  submenu='compile',
-                 is_leaf=False,           # True for PluginLeaf classes
-                 is_demo=False,           # True for PluginDemo classes
+                 is_Branch=False,         # True for Branch classes
+                 is_Leaf=False,           # True for Leaf classes
+                 is_Demo=False,           # True for Demo classes
                  ignore=False,
                  OM=None, namespace=None,
+                 defer_compile_options=False,
                  **kwargs):
 
+        # For reporting only:
+        self._frameclass = 'Grunt.'+name
+
         # Variables consistent with Meow.Parameterization:
-        self.name = name            # the Plugin type-name (qualified below!)
         self.ns = None              # see .on_input()
         self.ns0 = None             # see .on_input()
+        self.make_name_and_submenu (name, submenu, quals)
 
-        # For reporting only:
-        self._frameclass = 'Grunt.'+self.name
+        # The Plugin class is also used for 'Branch' nodes/subtrees.
+        self._is_Branch = is_Branch
 
+        # The Plugin class is also used for 'leaf' nodes/subtrees,
+        # which have no input node: 
+        self._is_Leaf = is_Leaf
+
+        # The Plugin class is also used for 'demoes', which do not
+        # change the input node (they use side-branches and reqseqs)
+        self._is_Demo = is_Demo
+
+        # Keep the input node for bookmarks/visualization
+        self._input_node = None
+        self._has_input_node = True
+        if self._is_Leaf or self._is_Branch:
+            self._has_input_node = False
+
+        # The plugin may be ignored/hidden:
+        self._ignore = ignore
+
+        #................................................................
+
+        # The OptionManager may be external:
+        if isinstance(OM, OptionManager.OptionManager):
+            self._OM = OM                          
+            self._external_OM = True
+        else:
+            self._external_OM = False
+            self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
+                                                   parentclass=self._frameclass)
+
+        # Initialize a control dict for keeping track of the (result) data type
+        # and format. It may be used by Plugins to do the correct thing.
+        # This dict should be updated when the data type or format changes,
+        # using self.datadesc(). It should be passed down a chain of Plugins.
+        self._datadesc = dict(is_complex=False, nelem=1, dims=[1])
+
+        # Optionally, the plugin options may be preset to the values
+        # belonging to a number of standard modes. See .preset_to_mode().
+        self._mode = dict()
+
+        # Define the required runtime options:
+        print '\n** defer_compile_options =',defer_compile_options
+        if not defer_compile_options:
+            self.define_compile_options()
+        
+        # Finished:
+        return None
+
+
+    #--------------------------------------------------------------------
+
+    def make_name_and_submenu (self, name=None, submenu=None, quals=None):
+        """
+        Helper function that is called from __init__().
+        Make self.name by appending any qualifiers to name.
+        Make self._submenu by appending self.name to submenu.
+        """
+        # The use of self.name is consistent with Meow/Parameterization...
+        self.name = name
+        
         # Qualifiers allow the same Plugin to be used multiple
         # times in the same tree. They allow the generation of
         # nodes (and option entries!) with different names.
@@ -95,46 +158,20 @@ class Plugin (object):
 
         # The OptionManager (sub)menu to be used:
         self._submenu = submenu+'.'+self.name
+        return True
 
-        # The Plugin class is also used for 'leaf' nodes/subtrees,
-        # which have no input node: 
-        self._is_leaf = is_leaf
+    #--------------------------------------------------------------------
 
-        # The Plugin class is also used for 'demoes', which do not
-        # change the input node (they use side-branches and reqseqs)
-        self._is_demo = is_demo
-
-        # Keep the input node for bookmarks/visualization
-        self._input_node = None
-
-        # The plugin may be ignored/hidden:
-        self._ignore = ignore
-
-        #................................................................
-
-        # The OptionManager may be external:
-        if isinstance(OM, OptionManager.OptionManager):
-            self._OM = OM                          
-            self._external_OM = True
-        else:
-            self._external_OM = False
-            self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
-                                                   parentclass=self._frameclass)
-
-        # Optionally, the plugin options may be preset to the values
-        # belonging to a number of standard modes. See .preset_to_mode().
-        self._mode = dict()
-
-        # Define the required runtime options:
+    def change_submenu(self, submenu, trace=True):
+        """Change the submenu, and redefine the options.
+        This is done when an existing Plugin object is attached to
+        another one."""
+        # NB: What about the options that have already been defined?
+        #     Should they be eradicated from the OM?
+        self._submenu = submenu+'.'+self.name
         self.define_compile_options()
-        
-        # Keep track of the (result) data type and format:
-        self._datadesc = dict(is_complex=False, nelem=1, dims=[1])
-
-        # Finished:
-        return None
-
-
+        # NB: What about options that are defined in other routines?
+        return True
 
     #====================================================================
     #====================================================================
@@ -163,10 +200,12 @@ class Plugin (object):
         """Return a one-line summary of this object"""
         ss = self._frameclass+':'
         ss += ' submenu='+str(self._submenu)
-        if self._is_leaf:
-            ss += ' (leaf)'
-        if self._is_demo:
-            ss += ' (demo)'
+        if self._is_Branch:
+            ss += ' (Branch)'
+        if self._is_Leaf:
+            ss += ' (Leaf)'
+        if self._is_Demo:
+            ss += ' (Demo)'
         if self._ignore:
             ss += ' (ignored)'
         return ss
@@ -258,9 +297,9 @@ class Plugin (object):
 
         # Change the (automatic) prompt in the menu
         prompt = '- plugin'
-        if self._is_leaf:
+        if self._is_Leaf:
             prompt += ' (leaf)'
-        if self._is_demo:
+        if self._is_Demo:
             prompt += ' (demo)'
         prompt += ': '+str(self.name)
         self._OM.set_menu_prompt(self._submenu, prompt)
@@ -367,7 +406,7 @@ class Plugin (object):
 
         # Check the input node:
         self._input_node = None
-        if not self._is_leaf:
+        if self._has_input_node:
             if not is_node(node):
                 s += 'not a node, but: '+str(type(node))
                 result = False                          
@@ -399,7 +438,7 @@ class Plugin (object):
         """
         if trace:
             print '** '+self._submenu+': bypass()'
-        if not self._is_leaf:
+        if self._has_input_node:
             return self._input_node
         return None
 
@@ -559,7 +598,7 @@ class Plugin (object):
                         generated for this Plugin. If bookpage==None,
                         visualization for this Plugin is inhibited.
                         """)
-        if not self._is_leaf:
+        if self._has_input_node:
             self._OM.define(self.optname('misc.visu.compare'), None,
                             prompt='show result vs input',
                             opt=[None,'Subtract','Divide'], more=str, 
@@ -592,7 +631,7 @@ class Plugin (object):
         bm = []
 
         # A bookmark for the input node, if required:
-        if not self._is_leaf:
+        if self._has_input_node:
             bm.append(self._input_node)
 
         # Bookmark(s) for intermediate nodes (if any):
@@ -605,11 +644,11 @@ class Plugin (object):
             bm.extend(internodes)                       # specific intermediate nodes, if any
 
         # A bookmark for the Plugin result node:
-        if not self._is_demo:                           # not for demoes (input not changed)
+        if not self._is_Demo:                           # not for demoes (input not changed)
             bm.append(node)
 
         # If required, insert a side-branch to compare the result with the input:  
-        if not self._is_leaf:
+        if self._has_input_node:
             binop = self.optval('misc.visu.compare')
             if binop:
                 comp = self.ns['compare'] << getattr(Meq, binop)(node, self._input_node)

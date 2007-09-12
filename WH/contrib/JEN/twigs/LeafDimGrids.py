@@ -98,7 +98,7 @@ class LeafDimGrids(Leaf.Leaf):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, trace=True):
+    def make_subtree (self, ns, test=None, trace=True):
         """Specific: Make the plugin subtree.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -131,7 +131,7 @@ class LeafDimGrids(Leaf.Leaf):
 
 
 plf = None
-if 1:
+if 0:
     xtor = Executor.Executor()
     xtor.add_dimension('l', unit='rad')
     xtor.add_dimension('m', unit='rad')
@@ -200,7 +200,8 @@ if __name__ == '__main__':
         plf.make_TDLCompileOptionMenu()
 
     if 1:
-        plf.make_subtree(ns, trace=True)
+        test = dict()
+        plf.make_subtree(ns, test=test, trace=True)
 
     if 1:
         plf.display('final', OM=True, full=True)

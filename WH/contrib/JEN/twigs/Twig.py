@@ -728,8 +728,8 @@ class Twig (object):
 twig = None
 if 1:
     twig = Twig('twiggy')
-    # twig._xtor.add_dimension('l', unit='rad')
-    # twig._xtor.add_dimension('m', unit='rad')
+    twig._xtor.add_dimension('l', unit='rad')
+    twig._xtor.add_dimension('m', unit='rad')
     # twig._xtor.add_dimension('long', unit='rad')
     # twig._xtor.add_dimension('s', unit='rad')
     twig.make_TDLCompileOptionMenu()
