@@ -1,17 +1,12 @@
-# file: ../twigs/Branch.py
+# file: ../twigs/BranchTemplate.py
 
 # History:
-# - 11sep2007: creation (from LeafDimGrids.py)
+# - 12sep2007: creation (from Branch.py)
 
 # Description:
 
-"""The Branch class is derived from the Plugin. It allows the user to construct
-a subtree that represents an entire branch, consisting an end-point (Leaf) and
-an arbitrary sequence of modiying subtrees (Plugins). It can also have side
-Branches, of course.
-By sharing the same OptionManager, a Branch in all its arbitray complexity of
-Plugins and side Branches, may be specified in full detail. Because of the large
-number of options involved, a hierarchical system of 'modes' is supported.
+"""The BranchTemplate class can be used as a starting point for quickly making
+classes that are derived from the Branch class.
 """
 
 
@@ -47,10 +42,10 @@ from Timba.Meq import meq
 
 # import Meow
 
+from Timba.Contrib.JEN.twigs import Branch
 from Timba.Contrib.JEN.twigs import Plugin
 from Timba.Contrib.JEN.twigs import Leaf
 from Timba.Contrib.JEN.twigs import Demo
-# from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
 # import math
@@ -61,167 +56,25 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 #=============================================================================
 
-class Branch(Plugin.Plugin):
-    """Class derived from Plugin"""
+class BranchTemplate(Branch.Branch):
+    """Class derived from Branch"""
 
     def __init__(self, quals=None,
-                 name='Branch',
                  submenu='compile',
                  xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Plugin.Plugin.__init__(self, quals=quals,
-                               name=name,
+        Branch.Branch.__init__(self, quals=quals,
+                               name='BranchTemplate',
                                submenu=submenu,
-                               is_Branch=True,
                                OM=OM, namespace=namespace,
-                               defer_compile_options=True,
                                **kwargs)
-
-        # Define the choice of Leaves:
-        self._leaf = dict()
-        self._dims = dims
-        self._xtor = xtor
-        submenu = self._submenu+'.Leaf'
-        self._optname_selected_Leaf = 'Leaf.selected_Leaf'
-        self.define_leaves (submenu, trace=True)
-        self._OM.set_menu_prompt(submenu, 'customize the selected Leaf')
-
-        # Define the Plugin sequence:
-        self._plugin_order = []
-        self._plugin = dict()
-        submenu = self._submenu+'.Plugin'
-        self.define_plugin_sequence (submenu, trace=True)
-        self._OM.set_menu_prompt(submenu, 'customize the Plugin sequence')
-
-        # This function needs self._leaf.keys() etc:
-        self._define_generic_compile_options()
-
-        # Execute the deferred function:
-        self.define_compile_options()
 
         return None
 
 
 
-
-    #====================================================================
-    # Generic part (base-class):
-    #====================================================================
-
-
-    def add_plugin(self, plugin, modes=None, trace=True):
-        """
-        Check the given Plugin object, and add it to self._plugin.
-        """
-        
-        if trace:
-            print '\n** .add_plugin(',type(plugin),modes,'):'
-            
-        print '** type Plugin: ',isinstance(plugin, Plugin.Plugin)
-        print '** type Demo: ',isinstance(plugin, Demo.Demo)
-            
-        # OK, add the valid plugin to the list:
-        name = plugin.name
-        self._plugin[name] = dict(plugin=plugin, modes=modes) 
-        self._plugin_order.append(name)
-
-        if trace:
-            print '   ->',plugin.oneliner()
-        return True
-
-
-    #---------------------------------------------------------------------------
-
-    def add_leaf(self, leaf, modes=None, trace=True):
-        """
-        Check the given Leaf object, and add it to self._leaf.
-        """
-        
-        if trace:
-            print '\n** .add_leaf(',type(leaf),modes,'):'
-            
-        print '** type Plugin: ',isinstance(leaf, Plugin.Plugin)
-        print '** type Leaf: ',isinstance(leaf, Leaf.Leaf)
-            
-        # OK, add the valid leaf to the list:
-        name = leaf.name
-        self._leaf[name] = dict(leaf=leaf, modes=modes) 
-
-        if trace:
-            print '   ->',leaf.oneliner()
-        return True
-
-
-    #---------------------------------------------------------------------------
-    #---------------------------------------------------------------------------
-
-    def _define_generic_compile_options(self, trace=True):
-        """Define some generic compile options for Branch.
-        """
-        opt = self._leaf.keys()
-        self._OM.define(self.optname(self._optname_selected_Leaf),
-                        opt[0], opt=opt,
-                        prompt='select a Leaf',
-                        callback=self._callback_leaf,
-                        doc="""The tip of the Branch is a Leaf subtree.
-                        """)
-        return True
-
-
-    #...................................................................
-
-    def _callback_leaf (self, leaf):
-        """Called whenever option 'Leaf' changes"""
-        for key in self._leaf.keys():
-            do_ignore = (not leaf==key)
-            print '-- ignore leaf',key,':',do_ignore
-            self._leaf[key]['leaf'].ignore(do_ignore)
-        return True
-
-
-    #---------------------------------------------------------------------------
-    #---------------------------------------------------------------------------
-
-    def make_leaf_subtree (self, ns, trace=False):
-        """Make the subtree for the specified (see .define_leaves()) Leaf.
-        """
-        if trace:
-            print '\n** .make_leaf_subtree():'
-
-        key = self.optval(self._optname_selected_Leaf)
-        rr = self._leaf[key]
-        print '\n -',key,':',rr['leaf'].oneliner()
-        node = rr['leaf'].make_subtree(ns, trace=trace)
-        print '    -> node =',str(node)
-
-        if trace:
-            print
-        return node
-
-
-    #---------------------------------------------------------------------------
-
-    def append_plugin_sequence (self, ns, node=None, trace=False):
-        """Append the specified (see .define_plugin_sequence()) sequence of Plugin
-        subtrees to the given node.
-        """
-        if trace:
-            print '\n** .insert_plugin_chain(',str(node),'):'
-
-        for key in self._plugin_order:
-            rr = self._plugin[key]
-            print '\n -',key,':',rr['plugin'].oneliner()
-            node = rr['plugin'].make_subtree(ns, node, trace=False)
-            print '    -> node =',str(node)
-
-        if trace:
-            print
-        return node
-
-
-    
 
     #====================================================================
     # Specific part (derived classes):
@@ -235,7 +88,6 @@ class Branch(Plugin.Plugin):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-
 
         #..............................................
         return self.on_exit(trace=trace)
@@ -266,8 +118,15 @@ class Branch(Plugin.Plugin):
         """
         Define a choice of Leaf classe, to be used at the tip of the Branch.
         """
+        if False:                                            # for testing only
+            from Timba.Contrib.JEN.twigs import LeafTemplate
+            self.add_leaf (LeafTemplate.LeafTemplate(submenu=submenu, OM=self._OM))
+
         from Timba.Contrib.JEN.twigs import LeafConstant
         self.add_leaf (LeafConstant.LeafConstant(submenu=submenu, OM=self._OM))
+
+        from Timba.Contrib.JEN.twigs import LeafParm
+        self.add_leaf (LeafParm.LeafParm(submenu=submenu, OM=self._OM))
 
         from Timba.Contrib.JEN.twigs import LeafDimGrids
         self.add_leaf (LeafDimGrids.LeafDimGrids(submenu=submenu, OM=self._OM,
@@ -281,11 +140,30 @@ class Branch(Plugin.Plugin):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
+        if False:                                       # for testing only
+            from Timba.Contrib.JEN.twigs import Plugin
+            self.add_plugin (Plugin.PluginTest(submenu=submenu, OM=self._OM))
+
+            from Timba.Contrib.JEN.twigs import PluginTemplate
+            self.add_plugin (PluginTemplate.PluginTemplate(submenu=submenu, OM=self._OM))
+
         from Timba.Contrib.JEN.twigs import PluginAddNoise
         self.add_plugin (PluginAddNoise.PluginAddNoise(submenu=submenu, OM=self._OM))
         
+        from Timba.Contrib.JEN.twigs import PluginApplyUnary
+        self.add_plugin (PluginApplyUnary.PluginApplyUnary(submenu=submenu, OM=self._OM))
+
+        from Timba.Contrib.JEN.twigs import PluginFlagger
+        self.add_plugin (PluginFlagger.PluginFlagger(submenu=submenu, OM=self._OM))
+
+        from Timba.Contrib.JEN.twigs import DemoSolver
+        self.add_plugin (DemoSolver.DemoSolver(submenu=submenu, OM=self._OM))
+
         from Timba.Contrib.JEN.twigs import DemoModRes
         self.add_plugin (DemoModRes.DemoModRes(submenu=submenu, OM=self._OM))
+
+        from Timba.Contrib.JEN.twigs import DemoRedaxes
+        self.add_plugin (DemoRedaxes.DemoRedaxes(submenu=submenu, OM=self._OM))
 
         return True
 
@@ -303,11 +181,11 @@ class Branch(Plugin.Plugin):
 
 
 brn = None
-if 0:
+if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    brn = Branch(xtor=xtor)
+    brn = BranchTemplate(xtor=xtor)
     brn.make_TDLCompileOptionMenu()
     # brn.display('outside')
 
@@ -317,7 +195,7 @@ def _define_forest(ns):
     global brn,xtor
     if not brn:
         xtor = Executor.Executor()
-        brn = Branch(xtor=xtor)
+        brn = BranchTemplate(xtor=xtor)
         brn.make_TDLCompileOptionMenu()
 
     cc = []
@@ -365,7 +243,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        brn = Branch()
+        brn = BranchTemplate()
         brn.display('initial')
 
     if 1:
