@@ -411,9 +411,18 @@ class QwtImageDisplay(QwtPlot):
     def getPlotParms(self):
         """ Obtain current plot parameters for modification """
         plot_parms = {}
-        plot_parms['window_title'] = self._window_title
-        plot_parms['x_title'] = self._x_title
-        plot_parms['y_title'] = self._y_title
+        if self._window_title is None:
+          plot_parms['window_title'] = 'window title'
+        else:
+          plot_parms['window_title'] = self._window_title
+        if self._x_title is None:
+          plot_parms['x_title'] = 'x_title'
+        else:
+          plot_parms['x_title'] = self._x_title
+        if self._y_title is None:
+          plot_parms['y_title'] = 'y_title'
+        else:
+          plot_parms['y_title'] = self._y_title
         plot_parms['x_auto_scale'] = self._x_auto_scale
         plot_parms['y_auto_scale'] = self._y_auto_scale
         plot_parms['axis_xmin'] = self.axis_xmin
@@ -444,25 +453,37 @@ class QwtImageDisplay(QwtPlot):
         self.zoomStack.append(self.zoomState)
         self._x_auto_scale = plot_parms['x_auto_scale']
         self._y_auto_scale = plot_parms['y_auto_scale']
+        if self._x_auto_scale == '0':
+          self._x_auto_scale = False
+        if self._x_auto_scale == '1':
+          self._x_auto_scale = True
+        if self._y_auto_scale == '0':
+          self._y_auto_scale = False
+        if self._y_auto_scale == '1':
+          self._y_auto_scale = True
         display_zoom_menu = False
         if not self._x_auto_scale: 
-          if plot_parms['axis_xmin'] > self.zoomStack[0][0] or plot_parms['axis_xmax'] < self.zoomStack[0][1]:
-            self.axis_xmin = plot_parms['axis_xmin']
-            self.axis_xmax = plot_parms['axis_xmax']
+          if float(plot_parms['axis_xmin']) > self.zoomStack[0][0] or float(plot_parms['axis_xmax']) < self.zoomStack[0][1]:
+            self.axis_xmin = float(plot_parms['axis_xmin'])
+            self.axis_xmax = float(plot_parms['axis_xmax'])
             display_zoom_menu = True
           else:
             self.axis_xmin =  self.zoomStack[0][0]
             self.axis_xmax =  self.zoomStack[0][1]
           self.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
+        else:
+          self.setAxisAutoScale(QwtPlot.xBottom)
         if not self._y_auto_scale: 
-          if plot_parms['axis_ymin'] > self.zoomStack[0][2] or plot_parms['axis_ymax'] < self.zoomStack[0][3]:
-            self.axis_ymin = plot_parms['axis_ymin']
-            self.axis_ymax = plot_parms['axis_ymax']
+          if float(plot_parms['axis_ymin']) > self.zoomStack[0][2] or float(plot_parms['axis_ymax']) < self.zoomStack[0][3]:
+            self.axis_ymin = float(plot_parms['axis_ymin'])
+            self.axis_ymax = float(plot_parms['axis_ymax'])
             display_zoom_menu = True
           else:
             self.axis_ymin =  self.zoomStack[0][2]
             self.axis_ymax =  self.zoomStack[0][3]
           self.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
+        else:
+          self.setAxisAutoScale(QwtPlot.yLeft)
         if display_zoom_menu:
           self.zoomState = (self.axis_xmin, self.axis_xmax, self.axis_ymin, self.axis_ymax, True)
           toggle_id = self.menu_table['Reset zoomer']
