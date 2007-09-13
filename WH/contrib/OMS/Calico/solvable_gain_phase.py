@@ -27,11 +27,19 @@ from Timba.TDL import *
 from Meow import Context
 from Meow import Jones
 
-def compute_jones (Jones,stations=None,tags=None,**kw):
+TDLRuntimeMenu(
+  TDLMenu("Calibrate phases",
+     ),
+  TDLMenu("Calibrate amplitudes",
+     ),
+  );  
+
+def compute_jones (nodes,stations=None,tags=None,**kw):
   stations = stations or Context.array.stations();
   
   # NB: how do we get the parm table names in here?
   g_ampl_def = Meow.Parm(1);
   g_phase_def = Meow.Parm(0);
   
-  return Jones.gain_ap_matrix(Jones,g_ampl_def,g_phase_def,tags=tags,series=array.stations());
+  return Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=array.stations());
+
