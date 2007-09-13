@@ -26,6 +26,8 @@
 
 array = None;
 observation = None;
+vdm = None;
+mssel = None;
 
 def set (array=None,observation=None):
   """Sets the global Meow context."""
@@ -60,7 +62,6 @@ def get_dir0 (dir0):
     raise ValueError,"'observation' must be set in global Meow.Context, or a 'dir0' supplied explicitly";
   return observation.phase_centre;
 
-vdm = None;
 
 
   

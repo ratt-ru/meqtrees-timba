@@ -293,6 +293,7 @@ def make_sinks (ns,outputs,array=None,
     vdm = ns.VisDataMux;
   elif not is_node(vdm):
     raise TypeError,"'vdm' argument should be a node";
+  Context.vdm = vdm;
 
   # check 'post' argument, if it's a list, make a ReqMux called vdm:post
   # to process these guys
