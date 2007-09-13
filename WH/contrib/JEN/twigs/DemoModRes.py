@@ -76,9 +76,10 @@ class DemoModRes(Demo.Demo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('num_cells'), None,
+        opt = [[2,3],[3,2],[3,4],[4,5]]
+        self._OM.define(self.optname('num_cells'), opt[0],
                         prompt='nr of cells [nt,nf]',
-                        opt=[None,[2,3],[3,2]], more=str,
+                        opt=opt, more=str,
                         doc="""Covert the REQUEST to a lower a resolution.
                         """)
         self._OM.define(self.optname('resamp_mode'), 1,
@@ -102,8 +103,6 @@ class DemoModRes(Demo.Demo):
         # Read the specified options:
         num_cells = self.optval('num_cells', test=test)
         num_cells = self._OM._string2list(num_cells, length=None)
-        if num_cells==None:
-            return self.bypass (trace=trace)
         rmode = self.optval('resamp_mode', test=test)
 
         # Make a side-branch that first lowers the resolution (modres),
@@ -126,73 +125,6 @@ class DemoModRes(Demo.Demo):
         #..............................................
         # Finishing touches:
         return self.on_output (node, internodes=[modres,resampled,diff], trace=trace)
-
-
-
-    #====================================================================
-    #====================================================================
-
-    def submenu_demo_modres(self):
-        """Define the options for a demo in a side-branch"""
-        name = 'modres'
-        submenu = 'compile.demo.'+name
-        self._OM.define(submenu+'.num_cells', None,
-                        prompt='nr of cells [nt,nf]',
-                        opt=[None,[2,3],[3,2]], more=str,
-                        doc="""Covert the REQUEST to a lower a resolution.
-                        """)
-        self._OM.define(submenu+'.resamp_mode', 1,
-                        prompt='resampler mode',
-                        opt=[1,2],
-                        doc="""Mode 2 only works with time,freq domains.
-                        """)
-        opt = ['demo_'+name, None]
-        self._OM.define(submenu+'.bookpage', opt[0],
-                        prompt='demo bookpage', opt=opt,
-                        doc="""Make a 'local bookpage' for this demo.
-                        """)
-        self._OM.set_menu_prompt(submenu, 'change domain resolution')
-        self._demo[name] = dict(user_level=3)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def demo_modres (self, ns, node, trace=False):
-        """Optionally, demonstrate modifying the cell resolution by resampling"""
-        name = 'modres'
-        if not self._proceed_with_modify (ns, node, name): return node
-        submenu = 'compile.demo.'+name+'.'
-        
-        num_cells = self._OM[submenu+'num_cells']
-        num_cells = self._OM._string2list(num_cells, length=None)
-        if num_cells==None:
-            return node                               # not required
-        rmode = self._OM[submenu+'resamp_mode']
-        bookpage = self._OM[submenu+'bookpage']
-        qnode = ns['modres']
-
-        # Make a side-branch that first lowers the resolution (modres),
-        # by simply lowering the resolution of the request
-        # then resamples the result to the the original resolution,
-        # and then takes the difference with the original input to
-        # check the quality of the two operations.
-        original = qnode('original') << Meq.Identity(node) 
-        modres = qnode('modres') << Meq.ModRes(node, num_cells=num_cells) 
-        resampled = qnode('resampled') << Meq.Resampler(modres, mode=rmode) 
-        diff = qnode('diff') << Meq.Subtract(resampled,original) 
-
-        # The reqseq issues a (full-resolution) request first to the
-        # branch that holds the original resolution, and than to the
-        # branch that changes the resolution back and forth. Since it
-        # is only a demonstration, the original result (0) is passed on.
-        node = qnode('reqseq') << Meq.ReqSeq(original,diff,
-                                             result_index=0)
-   
-        # Optionally, show the intermediary results.
-        if bookpage:
-            cc = [original,modres,resampled,diff]
-            JEN_bookmarks.create(cc, page=bookpage, folder=self._folder())
-        return self._check_node (node, submenu)
 
 
 

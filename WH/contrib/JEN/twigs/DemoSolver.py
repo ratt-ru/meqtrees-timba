@@ -85,9 +85,9 @@ class DemoSolver(Demo.Demo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('niter'), None,
+        self._OM.define(self.optname('niter'), 5,
                         prompt='nr of iterations',
-                        opt=[None,1,2,3,5,10,20,30,50,100],
+                        opt=[1,2,3,5,10,20,30,50,100],
                         doc="""Nr of solver iterations.
                         """)
         # self._lhs.define_compile_options(trace=trace)
@@ -107,8 +107,6 @@ class DemoSolver(Demo.Demo):
 
         # Read the specified options:
         niter = self.optval('niter', test=test)
-        if niter==None or niter<1:
-            return self.bypass (trace=trace)
 
         # Make the subtree:
         lhs = self._lhs.make_subtree(self.ns, trace=trace)

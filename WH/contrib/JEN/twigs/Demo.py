@@ -80,7 +80,7 @@ class Demo(Plugin.Plugin):
     # (These must be re-implemented in derived Demo classes) 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This function must be re-implemented in derived Demo classes. 
         """
@@ -99,7 +99,7 @@ class Demo(Plugin.Plugin):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, test=None, trace=True):
+    def make_subtree (self, ns, test=None, trace=False):
         """Specific: Make the plugin subtree.
         This function must be re-implemented in derived Demo classes. 
         """
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        plf.make_subtree(ns, test=test, trace=True)
+        plf.make_subtree(ns, test=test, trace=False)
 
     if 1:
         plf.display('final', OM=True, full=True)

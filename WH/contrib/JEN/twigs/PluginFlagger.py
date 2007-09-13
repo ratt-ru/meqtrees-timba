@@ -77,9 +77,9 @@ class PluginFlagger(Plugin.Plugin):
             return self.bypass (trace=trace)
         #..............................................
 
-        self._OM.define(self.optname('flag_oper)'), None,
+        self._OM.define(self.optname('flag_oper)'), 'GT',
                         prompt='flag operation',
-                        opt=[None,'GT','GE','LE','LT'],
+                        opt=['GT','GE','LE','LT'],
                         doc="""GT is Greater-Than, GE is Greater-or-Equal, etc
                         """)
         self._OM.define(self.optname('sigma'), 5.0,
@@ -104,8 +104,6 @@ class PluginFlagger(Plugin.Plugin):
 
         # Read the specified options:
         flag_oper = self.optval('flag_oper', test=test)
-        if flag_oper==None:
-            return self.bypass (trace=trace)
         sigma = self.optval('sigma', test=test)
 
         # Make the subtree: 

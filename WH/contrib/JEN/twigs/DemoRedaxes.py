@@ -76,8 +76,8 @@ class DemoRedaxes(Demo.Demo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*',None]
-        self._OM.define(self.optname('oper'), None,
+        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*']
+        self._OM.define(self.optname('oper'), opt[0],
                         prompt='select a math operation',
                         opt=opt, more=str,
                         doc="""Select the math oper.
@@ -103,8 +103,6 @@ class DemoRedaxes(Demo.Demo):
 
         # Read the specified options:
         oper = self.optval('oper', test=test)
-        if oper==None:
-            return self.bypass (trace=trace)
         redaxes = self.optval('redaxes', test=test)
 
         # Make the subtree:

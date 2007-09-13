@@ -373,7 +373,7 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        brn.make_subtree(ns, test=test, trace=True)
+        brn.make_subtree(ns, test=test, trace=False)
 
     if 1:
         brn.display('final', OM=True, full=True)

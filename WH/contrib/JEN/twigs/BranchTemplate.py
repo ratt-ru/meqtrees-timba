@@ -81,7 +81,7 @@ class BranchTemplate(Branch.Branch):
     #====================================================================
 
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -95,7 +95,7 @@ class BranchTemplate(Branch.Branch):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, test=None, trace=True):
+    def make_subtree (self, ns, test=None, trace=False):
         """Specific: Make the plugin subtree.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -114,7 +114,7 @@ class BranchTemplate(Branch.Branch):
 
     #---------------------------------------------------------------------------
 
-    def define_leaves (self, submenu, trace=True):
+    def define_leaves (self, submenu, trace=False):
         """
         Define a choice of Leaf classe, to be used at the tip of the Branch.
         """
@@ -136,7 +136,7 @@ class BranchTemplate(Branch.Branch):
 
     #---------------------------------------------------------------------------
 
-    def define_plugin_sequence (self, submenu, trace=True):
+    def define_plugin_sequence (self, submenu, trace=False):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
@@ -147,12 +147,12 @@ class BranchTemplate(Branch.Branch):
             from Timba.Contrib.JEN.twigs import PluginTemplate
             self.add_plugin (PluginTemplate.PluginTemplate(submenu=submenu, OM=self._OM))
 
-        from Timba.Contrib.JEN.twigs import PluginAddNoise
-        self.add_plugin (PluginAddNoise.PluginAddNoise(submenu=submenu, OM=self._OM))
-        
         from Timba.Contrib.JEN.twigs import PluginApplyUnary
         self.add_plugin (PluginApplyUnary.PluginApplyUnary(submenu=submenu, OM=self._OM))
 
+        from Timba.Contrib.JEN.twigs import PluginAddNoise
+        self.add_plugin (PluginAddNoise.PluginAddNoise(submenu=submenu, OM=self._OM))
+        
         from Timba.Contrib.JEN.twigs import PluginFlagger
         self.add_plugin (PluginFlagger.PluginFlagger(submenu=submenu, OM=self._OM))
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        brn.make_subtree(ns, test=test, trace=True)
+        brn.make_subtree(ns, test=test, trace=False)
 
     if 1:
         brn.display('final', OM=True, full=True)

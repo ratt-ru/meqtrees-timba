@@ -76,9 +76,9 @@ class PluginApplyUnary(Plugin.Plugin):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = [None,'Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
+        opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']         # safe always
         opt.extend(['Sqrt','Log','Invert'])                           # problems if <=0
-        self._OM.define(self.optname('unop'), None,
+        self._OM.define(self.optname('unop'), opt[0],
                         prompt='unary operation',
                         opt=opt, more=str,
                         doc="""apply an unary operation.
@@ -100,8 +100,6 @@ class PluginApplyUnary(Plugin.Plugin):
 
         # Read the specified options:
         unop = self.optval('unop', test=test)
-        if not unop:
-            return self.bypass (trace=trace)
 
         # Make the subtree:
         node = self.ns[unop] << getattr(Meq,unop)(node)

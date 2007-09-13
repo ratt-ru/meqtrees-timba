@@ -75,7 +75,7 @@ class PluginAddNoise(Plugin.Plugin):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('stddev'), None,
+        self._OM.define(self.optname('stddev'), 1.0,
                         prompt='stddev',
                         opt=[0.1,1.0], more=float,
                         doc="""add gaussian noise (if stddev>0)
@@ -116,8 +116,6 @@ class PluginAddNoise(Plugin.Plugin):
 
         # Read the specified options:
         stddev = self.optval('stddev', test=test)
-        if not stddev or stddev<=0.0:
-            return self.bypass (trace=trace)
         unop = self.optval('unop', test=test)
         datatype = self.optval('datatype', test=test)
 
@@ -128,7 +126,8 @@ class PluginAddNoise(Plugin.Plugin):
                 datatype = 'real'
 
         # Make the subtree:
-        name = 'stddev~'+str(stddev)
+        name = 'noise~'+str(stddev)
+        internodes = []
         if datatype=='complex':
             real = self.ns['real'] << Meq.GaussNoise(stddev=stddev)
             imag = self.ns['imag'] << Meq.GaussNoise(stddev=stddev)
@@ -139,19 +138,25 @@ class PluginAddNoise(Plugin.Plugin):
             noise = self.ns[name] << Meq.ToPolar(ampl,phase)
         else:
             noise = self.ns[name] << Meq.GaussNoise(stddev=stddev)
+        internodes.append(noise)
 
+        # Optionally, change the noise statistics, e.g. to make spikes:
         if unop:
             if unop=='ExpExp':
-                node = self.ns[unop+'_1'] << Meq.Exp(node)
-                node = self.ns[unop+'_2'] << Meq.Exp(node)
+                name = 'Exp('+name+')'
+                noise = self.ns[name] << Meq.Exp(noise)
+                name = 'Exp('+name+')'
+                noise = self.ns[name] << Meq.Exp(noise)
             else:
-                node = self.ns[unop] << getattr(Meq,unop)(node)
+                name = unop+'('+name+')'
+                noise = self.ns[name] << getattr(Meq,unop)(noise)
+            internodes.append(noise)
             
         node = self.ns['+'+name] << Meq.Add(node,noise)
 
         #..............................................
         # Check the new rootnode:
-        return self.on_output (node, trace=trace)
+        return self.on_output (node, internodes=internodes, trace=trace)
 
 
 

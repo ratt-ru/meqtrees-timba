@@ -123,7 +123,7 @@ class Leaf(Plugin.Plugin):
     def _callback_dims (self, dims):
         """Function called whenever option 'dims' changes."""
 
-        trace = True
+        trace = False
         if trace:
             print '\n** ._callback_dims(',dims,'):'
 
@@ -174,7 +174,7 @@ class Leaf(Plugin.Plugin):
         for dim in self._dims:
             node = self.ns[dim] << Meq.Grid(axis=dim)
             unop = self.optval(dim+'.unop')
-            node = self.apply_unary (node, unop, trace=True)
+            node = self.apply_unary (node, unop, trace=False)
             rr[dim] = dict(node=node, unop=unop)
             if trace:
                 print '--',dim,'(',unop,') ->',str(node)
@@ -257,7 +257,7 @@ class Leaf(Plugin.Plugin):
     # (These must be re-implemented in derived Leaf classes) 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -277,7 +277,7 @@ class Leaf(Plugin.Plugin):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, test=None, trace=True):
+    def make_subtree (self, ns, test=None, trace=False):
         """Specific: Make the plugin subtree.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -381,7 +381,7 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        plf.make_subtree(ns, test=test, trace=True)
+        plf.make_subtree(ns, test=test, trace=False)
 
     if 1:
         plf.display('final', OM=True, full=True)

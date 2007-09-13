@@ -168,7 +168,7 @@ class LeafConstant(Leaf.Leaf):
             s = '** invalid nelem ('+str(nelem)+')  dims='+str(dims)
             raise ValueError,s
         elif nelem==1:
-            scat == self._scatter_value(value,stddev)
+            scat = self._scatter_value(value,stddev)
             node = self.ns['scalar'] << Meq.Constant(scat)
         else:
             vv = []

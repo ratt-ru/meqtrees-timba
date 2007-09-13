@@ -64,11 +64,11 @@ class Plugin (object):
     def __init__(self, quals=None,
                  name='Plugin',
                  submenu='compile',
-                 is_Branch=False,         # True for Branch classes
-                 is_Leaf=False,           # True for Leaf classes
-                 is_Demo=False,           # True for Demo classes
-                 ignore=False,
+                 is_Branch=False,                   # True for Branch classes
+                 is_Leaf=False,                     # True for Leaf classes
+                 is_Demo=False,                     # True for Demo classes
                  OM=None, namespace=None,
+                 ignore=False,                    
                  defer_compile_options=False,
                  **kwargs):
 
@@ -76,19 +76,13 @@ class Plugin (object):
         self._frameclass = 'Grunt.'+name
 
         # Variables consistent with Meow.Parameterization:
-        self.ns = None              # see .on_input()
-        self.ns0 = None             # see .on_input()
+        self.ns = None                              # see .on_input()
+        self.ns0 = None                             # see .on_input()
         self.make_name_and_submenu (name, submenu, quals)
 
-        # The Plugin class is also used for 'Branch' nodes/subtrees.
+        # Switches that control the behaviour of some derived classes:
         self._is_Branch = is_Branch
-
-        # The Plugin class is also used for 'leaf' nodes/subtrees,
-        # which have no input node: 
         self._is_Leaf = is_Leaf
-
-        # The Plugin class is also used for 'demoes', which do not
-        # change the input node (they use side-branches and reqseqs)
         self._is_Demo = is_Demo
 
         # Keep the input node for bookmarks/visualization
@@ -122,7 +116,6 @@ class Plugin (object):
         self._mode = dict()
 
         # Define the required runtime options:
-        print '\n** defer_compile_options =',defer_compile_options
         if not defer_compile_options:
             self.define_compile_options()
         
@@ -235,7 +228,7 @@ class Plugin (object):
     # Some service(s) available to all classes derived from Plugin:
     #====================================================================
 
-    def display_subtree(self, node, recurse=10, trace=True):
+    def display_subtree(self, node, recurse=10, trace=False):
         """Display the subtree behind the given node.
         """
         print '\n** ',self.name,': display_subtree(',str(node),'):'
@@ -247,7 +240,7 @@ class Plugin (object):
     # Interacion with the data-description record:
     #========================================================================
 
-    def datadesc (self, merge=None, is_complex=None, dims=None, trace=True):
+    def datadesc (self, merge=None, is_complex=None, dims=None, trace=False):
         """Return the data-description record.
         If another datadesc (merge) is specified, update the local one.
         """
@@ -296,13 +289,17 @@ class Plugin (object):
         s = '** '+self._submenu+': on_exit(): '
 
         # Change the (automatic) prompt in the menu
-        prompt = '- plugin'
-        if self._is_Leaf:
-            prompt += ' (leaf)'
-        if self._is_Demo:
-            prompt += ' (demo)'
+        prompt = '- customize'
+        # if self._is_Leaf: prompt += ' (leaf)'
+        # if self._is_Demo: prompt += ' (demo)'
         prompt += ': '+str(self.name)
-        self._OM.set_menu_prompt(self._submenu, prompt)
+        self._OM.set_menurec(self._submenu, prompt=prompt)
+
+
+        # Add a toggle widget to the menu:
+        if self._has_input_node:
+            self._OM.set_menurec(self._submenu, toggle=True,
+                                 callback=self._callback_toggle)
 
         # Progress message: 
         if trace:
@@ -314,9 +311,21 @@ class Plugin (object):
         return True
 
 
-    #--------------------------------------------------------------------
+    #....................................................................
+
+    def _callback_toggle (self, selected='selected'):
+        """Called whenever the toggle widget before the menu is toggled"""
+        menurec = self._OM.set_menurec(self._submenu, selected=selected)
+        self._ignore = not selected
+        ## self._OM.enable(self._submenu, selected)  NOT a good idea!!
+        return True
+
+
+
+
+    #====================================================================
     # Helper functions for access to options:
-    #--------------------------------------------------------------------
+    #====================================================================
 
     def optname (self, name, trace=False):
         """Convert an option name to its OM name by prepending self._submenu.
@@ -328,7 +337,7 @@ class Plugin (object):
 
     #.............................................................
 
-    def optval (self, name, test=None, trace=True):
+    def optval (self, name, test=None, trace=False):
         """Get the value of the specified option, after converting it to its OM name.
         If test is specified, modify the value, if necessary.
         """
@@ -387,18 +396,12 @@ class Plugin (object):
     # Generic functions dealing with subtree generation:
     #====================================================================
 
-    def on_input (self, ns, node=None, trace=True):
+    def on_input (self, ns, node=None, trace=False):
         """Function that should be called at the start of the 
         .make_subtree() function in a derived class.
         It does various checks, and some common things.
         """
         s = '** '+self._submenu+': on_input('+str(type(ns))+','+str(node)+'): '
-
-        # If the ignore switch is set, do nothing (see also .ignore())
-        if self._ignore:
-            if trace:
-                print s,'ignored'
-            return False            # This will cause .make_subtree() to exit
 
         # Initialise the return value:
         # NB: The calling routine .make_subtree() will exit if result=False
@@ -411,6 +414,13 @@ class Plugin (object):
                 s += 'not a node, but: '+str(type(node))
                 result = False                          
             self._input_node = node
+
+        # If the ignore switch is set, do nothing (see also .ignore())
+        # NB: This should be AFTER setting self._input_node !!
+        if self._ignore:
+            if trace:
+                print s,'ignored'
+            return False            # This will cause .make_subtree() to exit
 
         # Check the nodescope, and make the self.ns/ns0 that will be used.
         self.ns0 = ns
@@ -436,16 +446,18 @@ class Plugin (object):
         """Function that should be called by .make_subtree() whenever
         no nodes are generated for some reason. 
         """
+        trace = True
+        result = None
+        # if self._has_input_node:
+        result = self._input_node
         if trace:
-            print '** '+self._submenu+': bypass()'
-        if self._has_input_node:
-            return self._input_node
-        return None
+            print '** '+self._submenu+': bypass() ->',str(self._input_node)
+        return result
 
     #--------------------------------------------------------------------
 
     def on_output (self, node, severe=True,
-                   internodes=None, allnodes=None, trace=True):
+                   internodes=None, allnodes=None, trace=False):
         """Function that should be called at the start of the .make_subtree()
         function in a derived class. It does checks and some common things.
         - If severe==True, an error is produced if the node is not valid.
@@ -516,21 +528,21 @@ class Plugin (object):
 
     def _callback_ignore (self, ignore):
         """Called whenever option 'misc.ignore' changes"""
-        print '\n** _callback_ignore(',ignore,'):',
+        # print '\n** _callback_ignore(',ignore,'):',
         was = self._ignore
         value = self.ignore(ignore)
-        print '   -> ',value,' (was',was,')'
+        # print '   -> ',value,' (was',was,')'
         return True
 
     #....................................................................
 
     def _callback_mode (self, mode):
         """Called whenever option 'misc.mode' changes"""
-        print '\n** _callback_mode(',mode,'):'
+        # print '\n** _callback_mode(',mode,'):'
         if mode:
             return self.preset_to_mode(mode)
 
-    def preset_to_mode(self, mode, trace=True):
+    def preset_to_mode(self, mode, trace=False):
         """Reset the option values according to the specified mode.
         Placeholder function, to be reimplemented by derived class
         """
@@ -544,16 +556,17 @@ class Plugin (object):
     def define_modif_options(self):
         """Define a generic submenu of visualization option(s).
         """
-        opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
-        opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
-        self._OM.define(self.optname('misc.modif.unop'), None,
-                        prompt='apply unary() to result',
-                        opt=opt, more=str,
-                        doc="""apply an unary operation
-                        to the end result of this Plugin.
-                        """)
-        self._OM.set_menu_prompt(self._submenu+'.misc.modif',
-                                 'modify the end result')
+        if False:
+            opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
+            opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
+            self._OM.define(self.optname('misc.modif.unop'), None,
+                            prompt='apply unary() to result',
+                            opt=opt, more=str,
+                            doc="""apply an unary operation
+                            to the end result of this Plugin.
+                            """)
+            self._OM.set_menu_prompt(self._submenu+'.misc.modif',
+                                     'modify the end result')
         return True
 
 
@@ -562,24 +575,25 @@ class Plugin (object):
     def modify (self, node, trace=False):
         """Execute the modification instructions (see .define_modif_options())
         """
-
-        unop = self.optval('misc.modif.unop')
-        node = self.apply_unary (node, unop, trace=trace)
+        if False:
+            unop = self.optval('misc.modif.unop')
+            if trace:
+                print '\n** .apply_unary(',unop,'):'
+            if unop:
+                node = self.ns << getattr(Meq,unop)(node)
+                if trace:
+                    print '    -> ',str(node)
 
         # Return the (possibly new) node:
         return node
 
+
     #---------------------------------------------------------------------
 
     def apply_unary (self, node, unop, trace=False):
-        """Helper function to add (gaussian) noise to the given node.
+        """Legacy, Being phased out
         """
-        if trace:
-            print '\n** .apply_unary(',unop,'):'
-        if unop:
-            node = self.ns << getattr(Meq,unop)(node)
-        if trace:
-            print '    -> ',str(node)
+        print '\n** Plugin.apply_unary(): Discouraged.....\n'
         return node
 
 
@@ -742,7 +756,7 @@ class PluginTest(Plugin):
     
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This placeholder function should be reimplemented by a derived class.
         """
@@ -761,7 +775,7 @@ class PluginTest(Plugin):
 
     #--------------------------------------------------------------------
 
-    def make_subtree (self, ns, node=None, test=None, trace=True):
+    def make_subtree (self, ns, node=None, test=None, trace=False):
         """Specific: Make the plugin subtree.
         This placeholder function should be reimplemented by a derived class.
         """
