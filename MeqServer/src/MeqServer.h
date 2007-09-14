@@ -96,7 +96,10 @@ class MeqServer : public DMI::EventRecepient
     //    Any errors will be thrown as exceptions.
     // If wait_for_async_queue is True and a sync command is being executed,
     // waits for the async queue to finish
-    DMI::Record::Ref executeCommand (const HIID &cmd,DMI::Record::Ref &args,bool post_results=false,bool wait_for_async_queue=true);
+    //  NB: I'm no longer sure why I added that option, or why the default was true --
+    //  this caused all async commands to block during request execution. Changed the
+    //  default to False as of 14/08/07.
+    DMI::Record::Ref executeCommand (const HIID &cmd,DMI::Record::Ref &args,bool post_results=false,bool wait_for_async_queue=false);
 
     // halts the meqserver
     void halt (DMI::Record::Ref &out,DMI::Record::Ref &in);
