@@ -731,9 +731,9 @@ DMI::ObjRef & DMI::Container::Hook::assign_objref ( ObjRef &ref,int flags ) cons
   void *targ = prepare_put(info,TpDMIObjRef);
   target.ptr = 0;
   if( flags&DMI::XFER )
-    return static_cast<ObjRef*>(targ)->unlock().xfer(ref,flags).lock();
+    return static_cast<ObjRef*>(targ)->unlock().xfer(ref,flags);
   else
-    return static_cast<ObjRef*>(targ)->unlock().copy(ref,flags).lock();
+    return static_cast<ObjRef*>(targ)->unlock().copy(ref,flags);
 }
 
 // This prepares the hook for assigning a Lorray.
