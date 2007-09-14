@@ -25,26 +25,38 @@
 
 from Timba.TDL import *
 import Meow
-from Meow import Context
-from Meow import Jones
 from ParmGroup import ParmGroup
+
+TDLCompileOption("spectral_index","Spectral index",[None,0.],more=float,
+    doc="""Spectral index of source, use None for a flat spectrum""");
+TDLCompileOption("ref_freq","SpI reference frequency, MHz",1421,more=float);
 
 options = [];
 
 def runtime_options ():
   return options;
 
-def compute_jones (nodes,stations=None,tags=None,label='',**kw):
-  stations = stations or Context.array.stations();
-  g_ampl_def = Meow.Parm(1);
-  g_phase_def = Meow.Parm(0);
-  nodes = Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=stations);
+def source_list (ns,name="cps"):
+  # figure out spectral index parameters
+  if spectral_index is not None:
+    spi_def = Meow.Parm(spectral_index);
+    freq0_def  = ref_freq;
+  else:
+    spi_def = freq0_def = None;
+  i_def = Meow.Parm(1,tags="solvable I");
+  quv_def = Meow.Parm(0);
   
-  # now make solvejobs for phases and gains
-  pg_phase = ParmGroup("phase",nodes.search(tags="solvable phase"));
-  options.append(pg_phase.make_solvejob_menu("Calibrate %s phases"%label));
-  pg_gain  = ParmGroup("ampl",nodes.search(tags="solvable ampl"));
-  options.append(pg_gain.make_solvejob_menu("Calibrate %s amplitudes"%label));
+  srcdir = Meow.LMDirection(ns,name,0,0);
+  src = Meow.PointSource(ns,name,srcdir,I=i_def,Q=quv_def,U=quv_def,V=quv_def,spi=spi_def,freq0=freq0_def);
   
-  return nodes
+  # define a parmgroup for source parameters
+  # now make a solvejobs for the source
+  pg_src = ParmGroup("source",
+              src.coherency().search(tags="solvable"),
+              individual=True,
+              bookmark=True);
+  # now make a solvejobs for the source
+  options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
+  
+  return [ src ];
 

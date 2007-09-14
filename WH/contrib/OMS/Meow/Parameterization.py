@@ -54,7 +54,7 @@ def resolve_parameter (name,node,value,tags=[],solvable=True):
       tags.append("solvable");
     return node << value.make(tags);
   else:
-    raise TypeError,"Pparameter '"+name+"' can only be defined as a constant, a node, or a Meow.Parm";
+    raise TypeError,"Parameter '"+name+"' can only be defined as a constant, a node, or a Meow.Parm";
   
 
 class Parameterization (object):

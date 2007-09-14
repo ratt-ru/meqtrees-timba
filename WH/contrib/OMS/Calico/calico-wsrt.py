@@ -33,19 +33,21 @@ import Meow.StdTrees
 from Meow import Context
 
 # MS options first
-mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=[8,16,32],flags=True);
+mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=True);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 # MS run-time options
-TDLRuntimeOptions(*mssel.runtime_options());
+TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
 ## also possible:
 
 # output mode menu
-TDLCompileMenu("What do we do with the data",
+TDLCompileMenu("What do we want to do",
   TDLOption('do_solve',"Calibrate",True),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
   TDLOption('do_correct',"Correct the data or residuals",True),
-  TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
+   );
+do_correct_sky = False;
+  #TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
@@ -57,7 +59,7 @@ import central_point_source
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
-meqmaker.add_sky_models([lsm,central_point_source]);
+meqmaker.add_sky_models([central_point_source,lsm]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
@@ -75,18 +77,18 @@ TDLCompileOptions(*meqmaker.compile_options());
 
 
 def _define_forest (ns):
-  ANTENNAS = mssel.get_antenna_set(range(1,28));
-  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=mirror_uvw);
+  ANTENNAS = mssel.get_antenna_set(range(1,15));
+  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
 
-  # setup imaging options 
-  imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
-  TDLRuntimeMenu("Imaging options",*imsel.option_list());
-  
   # make spigot nodes
   spigots = outputs = array.spigots();
+  # ...and an inspector for them
+  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots);
+  inspectors = [ ns.inspector('input') ];
+  
   # make a predict tree using the MeqMaker
   if do_solve or do_subtract:
     predict = meqmaker.make_tree(ns);
@@ -97,6 +99,15 @@ def _define_forest (ns):
     for p,q in array.ifrs():
       residuals(p,q) << spigots(p,q) - predict(p,q);
     outputs = residuals;
+    
+  # and now we may need to correct the outputs
+  if do_correct:
+    if do_correct_sky:
+      srcs = meqmaker.get_source_list(ns);
+      sky_correct = srcs and srcs[0];
+    else:
+      sky_correct = None;
+    outputs = meqmaker.correct_uv_data(ns,outputs,sky_correct=sky_correct);
 
   # make solve trees
   if do_solve:
@@ -105,18 +116,16 @@ def _define_forest (ns):
     # according to what has been set above 
     outputs = solve_tree.sequencers(inputs=spigots,outputs=outputs);
     
-  # and now we may need to correct the outputs
-  if do_correct:
-    if do_correct_sky:
-      sky_correct = meqmaker.get_source_list(ns)[0];
-    else:
-      sky_correct = None;
-    outputs = meqmaker.correct_uv_data(ns,outputs,sky_correct=sky_correct);
-    
   # make sinks and vdm.
-  # The list of inspectors comes in handy here
-  Meow.StdTrees.make_sinks(ns,outputs,spigots=spigots,post=meqmaker.get_inspectors());
+  # The list of inspectors must be supplied here
+  inspectors += meqmaker.get_inspectors();
+  Meow.StdTrees.make_sinks(ns,outputs,spigots=spigots,post=inspectors);
+
+  # very important -- insert meqmaker's runtime options properly
+  # this should come last, since runtime options may be built up during compilation.
+  TDLRuntimeOptions(*meqmaker.runtime_options(nest=False));
+  # finally, setup imaging options 
+  imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
+  TDLRuntimeMenu("Imaging options",*imsel.option_list());
 
 
-def _tdl_job_1_run_calibration (mqs,parent,wait=False):
-  mqs.execute('VisDataMux',mssel.create_io_request(),wait=wait);

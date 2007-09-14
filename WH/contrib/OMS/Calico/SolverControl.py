@@ -1,3 +1,5 @@
+from Timba.TDL import *
+
 
 def namify (arg):
   if isinstance(arg,str):
@@ -30,7 +32,7 @@ class SolverControl (object):
     ];
     
   def runtime_options (self):
-    return self._options_list;
+    return self._option_list;
 
   def set_solver_node (self,node):
     self.node = namify(node);
@@ -42,7 +44,7 @@ class SolverControl (object):
       solver_defaults[opt.symbol] = opt.value;
     # copy any extra options from functiohn invocation
     solver_defaults.update(kw);
-    solver_defaults.epsilon_deriv      = opts["epsilon"];
+    solver_defaults.epsilon_deriv      = solver_defaults["epsilon"];
     solver_defaults.save_funklets    = True;
     solver_defaults.last_update      = True;
     # add a solvable command
@@ -56,7 +58,7 @@ class SolverControl (object):
       if not isinstance(cmdlist,(list,tuple)):
         cmdlist = (cmdlist,record(state=record(solvable=False)));
       else:
-        cmdlist = list(cmdlist) + record(state=record(solvable=False));
+        cmdlist = list(cmdlist) + [ record(state=record(solvable=False)) ];
       solver_defaults.solvable = record(command_by_list=cmdlist);
     return solver_defaults;
 

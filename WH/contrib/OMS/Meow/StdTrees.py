@@ -95,6 +95,7 @@ class SolveTree (ResidualTree):
       for p,q in self.array.ifrs():
         inp  = self._inputs(p,q);
         pred = self._predict(p,q);
+        pred.initrec().cache_num_active_parents = 1;
         self.ns.ce(p,q) << Meq.Condeq(inp,pred);
       # create optimal poll order for condeqs, for efficient parallelization
       # (i.e. poll child 1:2, 3:4, 5:6, ..., 13:14,
@@ -227,23 +228,25 @@ def inspector (outnode,nodes,bookmark=True):
   return outnode;
   
     
-def vis_inspector (outnode,visnodes,array=None,bookmark=True):
+def vis_inspector (outnode,visnodes,ifrs=None,array=None,bookmark=True):
   """Makes an inspector for visibility nodes. 
   'outnode' is an output node to which the inspector is assigned.
   'visnodes' will be qualified with the ifrs pairs from the given array.
   If 'bookmark' is true, a single-page bookmark will automatically be added 
   for the inspector (use string to give it a non-default name.)
   """
-  array = array or Context.array;
-  if not array:
-    raise ValueError,"array not specified in global Meow.Context, or in this function call";
+  if ifrs is None:
+    array = array or Context.array;
+    if not array:
+      raise ValueError,"array or ifrs not specified in global Meow.Context, or in this function call";
+    ifrs = array.ifrs();
   outnode << \
     Meq.Composer(
       dims=[0],
-      plot_label=[ "%s-%s"%(p,q) for p,q in array.ifrs() ],
+      plot_label=[ "%s-%s"%(p,q) for p,q in ifrs ],
       mt_polling=True,
       *[ outnode(p,q) << Meq.Mean(visnodes(p,q),reduction_axes="freq")
-         for p,q in array.ifrs() ]
+         for p,q in ifrs ]
     );
   if bookmark is True:
     bookmark = outnode.name;

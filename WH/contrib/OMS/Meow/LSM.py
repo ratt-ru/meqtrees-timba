@@ -139,6 +139,8 @@ class MeowLSM (object):
     Keyword arguments may be used to indicate which of the source attributes are to be created
     as Parms, use e.g. I=Meow.Parm(tags="flux") for this.
     """;
+    if self.filename is None:
+      return [];
     if self.lsm is None:
       self.load(ns);
       

@@ -40,13 +40,23 @@ def _modname (obj):
   else:
     return obj.__class__.__name__;
 
+def _modopts (mod,opttype='compile'):
+  """for the given module, returns a list of compile/runtime options suitable for passing
+  to TDLMenu. If the module implements a compile/runtime_options() method, uses that,
+  else simply uses the module itself.""";
+  modopts = getattr(mod,opttype+'_options',None);
+  if callable(modopts):
+    return list(modopts());
+  else:
+    return [mod];
+
 class MeqMaker (object):
   def __init__ (self,namespace='me'):
     self.tdloption_namespace = namespace;
     self._uv_jones_list = [];
     self._sky_jones_list = [];
     self._compile_options = [];
-    self._runtime_options = [];
+    self._runtime_options = None;
     self._sky_models = None;
     self._source_list = None;
     self._inspectors = [];
@@ -54,8 +64,6 @@ class MeqMaker (object):
   def compile_options (self):
     return self._compile_options;
   
-  def runtime_options (self):
-    return self._runtime_options;
     
   def add_sky_models (self,modules):
     if self._sky_models:
@@ -117,17 +125,43 @@ class MeqMaker (object):
       self._uv_jones_list.append(self.JonesTerm(label,name,modules));
     else:
       self._sky_jones_list.append(self.SkyJonesTerm(label,name,modules,pointing));
+      
+  def runtime_options (self,nest=True):
+    if self._runtime_options is None:
+      self._runtime_options = [];
+      # build list of currently selected modules
+      mods = [];
+      mods.append((self._get_selected_module('sky',self._sky_models),'Sky model options',None,None));
+      for jt in self._sky_jones_list:
+        mod,name = self._get_selected_module(jt.label,jt.modules), \
+                   "%s Jones (%s) options"%(jt.label,jt.name);
+        if jt.pointing_modules:
+          pemod,pename = self._get_selected_module(jt.label+"pe",jt.pointing_modules), \
+                         "Pointing error options";
+        else:
+          pemod,pename = None,None;
+        mods.append((mod,name,pemod,pename));
+      for jt in self._uv_jones_list:
+        mod,name = self._get_selected_module(jt.label,jt.modules), \
+                   "%s Jones (%s) options"%(jt.label,jt.name);
+        mods.append((mod,name,None,None));
+      # now go through list and pull in options from each active module
+      for mod,name,submod,subname in mods:
+        if mod:
+          modopts = _modopts(mod,'runtime');
+          # add submenu for submodule
+          if submod:
+            modopts.append(TDLMenu(subname,_modopts(submod,'runtime')));
+          if nest:
+            self._runtime_options.append(TDLMenu(name,modopts));
+          else:
+            self._runtime_options += modopts;
+    return self._runtime_options;
         
   def _module_selector (self,menutext,label,modules,extra_opts=[],use_toggle=True,**kw):
     # Forms up a "module selector" submenu for the given module set.
     # for each module, we either take the options returned by module.compile_options(),
     # or pass in the module itself to let the menu "suck in" its options
-    def modopts (mod):
-      modopts = getattr(mod,'compile_options',None);
-      if callable(modopts):
-        return list(modopts());
-      else:
-        return [mod];
     toggle = self._make_attr(label,"enable");
     exclusive = self._make_attr(label,"module");
     if not use_toggle:
@@ -136,14 +170,14 @@ class MeqMaker (object):
     if len(modules) == 1:
       modname = _modname(modules[0]);
       mainmenu = TDLMenu(menutext,toggle=toggle,namespace=self,name=modname,
-                         *(modopts(modules[0])+list(extra_opts)),**kw);
+                         *(_modopts(modules[0],'compile')+list(extra_opts)),**kw);
       setattr(self,exclusive,modname);
     else:
       # note that toggle name is not really used, since we make an exclusive
       # parent menu
       submenus = [ TDLMenu("Use '%s' module"%_modname(mod),name=_modname(mod),
                             toggle='_enable_module',namespace=self,
-                            *modopts(mod)) 
+                            *_modopts(mod,'compile')) 
                     for mod in modules ];
       mainmenu = TDLMenu(menutext,toggle=toggle,exclusive=exclusive,namespace=self,
                           *(submenus+list(extra_opts)),**kw);
@@ -219,6 +253,7 @@ class MeqMaker (object):
             dlm = ns[jt.label]('dlm');
             inspectors = [];
             dlm = pointing_module.compute_pointings(dlm,stations=stations,tags=jt.label,
+                                                    label=jt.label,
                                                     inspectors=inspectors);
             if inspectors:
               jones_inspectors += inspectors;
@@ -235,7 +270,7 @@ class MeqMaker (object):
       inspectors = [];
       jt.base_node = Jj = module.compute_jones(Jj,sources=sources,stations=stations,
                                           pointing_offsets=dlm,
-                                          tags=jt.label,
+                                          tags=jt.label,label=jt.label,
                                           inspectors=inspectors);
       # if module does not make its own inspectors, add automatic ones
       if inspectors:
@@ -338,6 +373,7 @@ class MeqMaker (object):
     # products
     Jinv = outputs('Jinv');
     Jtinv = outputs('Jtinv');
+    ifrs = [ (p,q) for p in stations for q in stations if p<q ];
     if len(correction_chains[stations[0]]) > 1:
       Jprod = outputs('Jprod');
       for p in stations:
@@ -345,19 +381,21 @@ class MeqMaker (object):
         Jinv(p) << Meq.MatrixInvert22(Jprod(p));
         if p != stations[0]:
           Jtinv(p) << Meq.ConjTranspose(Jinv(p));
-    else:
+    elif correction_chains[stations[0]]:
       for p in stations:
         Jinv(p) << Meq.MatrixInvert22(correction_chains[p][0]);
         if p != stations[0]:
           Jtinv(p) << Meq.ConjTranspose(Jinv(p));
+    else:
+      for p,q in ifrs:
+        outputs(p,q) << Meq.Identity(inputs(p,q));
+      return outputs;
     # now apply the correction matrices
-    ifrs = [ (p,q) for p in stations for q in stations if p<q ];
     for p,q in ifrs:
       outputs(p,q) << Meq.MatrixMultiply(Jinv(p),inputs(p,q),Jtinv(q));
       
     # make an inspector for the results
-    self._add_inspector(
-      insp << StdTrees.define_inspector(outputs,ifrs),
-      name='Corrected data or residuals');
+    StdTrees.vis_inspector(ns.inspector('output'),outputs,ifrs=ifrs,bookmark=False);
+    self._add_inspector(ns.inspector('output'),name='Corrected data or residuals');
       
     return outputs;

@@ -248,7 +248,8 @@ class MSSelector (object):
     self._content_selectors = [];
     self.ms_antenna_names = [];
     self.ms_antenna_sel = self.antsel_option = None;
-    ms_option = TDLOption('msname',"MS",TDLDirSelect(pattern,default=True),namespace=self);
+    ms_option = self._ms_option = \
+      TDLOption('msname',"MS",TDLDirSelect(pattern,default=True),namespace=self);
     self._compile_opts = [ ms_option ];
     self._opts = [];
     # antenna selector
@@ -308,6 +309,8 @@ class MSSelector (object):
                                   False,namespace=self));
     else:
       self.ms_write_flags = False;
+    # add callbacks
+    self._when_changed_callbacks = [];
     # add a default content selector
     self._ddid,self._field,self._channels = ddid,field,channels;
     self.subset_selector = self.make_subset_selector(namespace);
@@ -315,6 +318,17 @@ class MSSelector (object):
     # if pycasatable exists, set up interactivity for MS options
     if pycasatable:
       ms_option.set_validator(self._select_new_ms);
+      
+  def when_changed (self,callback):
+    # if tables are available, callbacks will be called by _select_new_ms()
+    if pycasatable:
+      self._when_changed_callbacks.append(callback);
+      # and call it immediately if we already have an MS
+      if getattr(self,'_msname',None):
+        callback(self._msname);
+    # otherwise just register the callback with the ms_option itself
+    else:
+      self._ms_option.when_changed(callback);
   
   def enable_input_column (self,enable=True):
     self.ms_has_input = enable;
@@ -390,6 +404,9 @@ class MSSelector (object):
       for sel in self._content_selectors:
         sel._select_new_ms(ms);
       self._msname = msname;
+      # notify callbacks
+      for cb in self._when_changed_callbacks:
+        cb(msname);
       return True;
     except:
       print "error reading MS",msname;

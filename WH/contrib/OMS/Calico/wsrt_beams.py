@@ -29,8 +29,6 @@ from Meow import Context
 import random
 import math
 
-import ErrorGens
-
 
 DEG = math.pi/180.;
 ARCMIN = DEG/60;
