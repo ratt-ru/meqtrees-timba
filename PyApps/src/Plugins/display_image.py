@@ -37,6 +37,7 @@ from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotCurveSizes import *
 from QwtPlotImage import *
+from VellsTree import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 #from tabdialog import *
@@ -765,6 +766,9 @@ class QwtImageDisplay(QwtPlot):
         self.do_compare()
         return True
 
+      if menuid == self.menu_table['Change Vells']:
+        self._vells_menu.show()
+        return True
 
 # if we get here ...
       return False
@@ -988,24 +992,29 @@ class QwtImageDisplay(QwtPlot):
 
     def addVellsMenu(self):
       """ add vells options to context menu """
+
       if self._vells_menu_data is None:
         return
+      if not self._vells_menu is None:
+        self._vells_menu.reparent(QWidget(), 0, QPoint())
+        toggle_id = self.menu_table['Change Vells']
+        self._menu.setItemVisible(toggle_id, False)
+        self._vells_menu = None
 
       if self._vells_menu is None:
-        self._vells_menu = QPopupMenu(self._menu)
-        QObject.connect(self._vells_menu,SIGNAL("activated(int)"),self.update_vells_display);
+        self._vells_menu =  VellsView()
+        vells_root = VellsElement( self._vells_menu, "result" )
+        QObject.connect(self._vells_menu,PYSIGNAL("selected_vells_id"),self.update_vells_display);
+        self._vells_menu.hide()
         toggle_id = self.menu_table['Change Vells']
-        self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', self._vells_menu, toggle_id)
-      else:
-        # get rid of all menu items in the vells menu
-        self._vells_menu.clear()
-
+        self._menu.setItemVisible(toggle_id, True)
       menu_labels = self._vells_menu_data[0]
       perturbations = self._vells_menu_data[1]
       planes_index = self._vells_menu_data[2]
       menu_dims = self._vells_menu_data[3]
       vells_menu_items = len(menu_labels)
       num_planes = len(planes_index)
+      previous = None
       if vells_menu_items > 1:
         menu_step = 40
         menu_vells_inc = 10
@@ -1015,16 +1024,22 @@ class QwtImageDisplay(QwtPlot):
           if length > 2:
             menu_delta = menu_dims[length-2] * menu_dims[length-1] 
             menu_step = menu_vells_inc * menu_delta 
-#       if vells_menu_items < menu_step:
         if num_planes < menu_step:
+          previous = None
           for i in range(num_planes):
             id = planes_index[i]
-            self._vells_menu.insertItem(menu_labels[id], id)
+            if previous is None:
+              node = VellsElement(vells_root)
+            else:
+              node = VellsElement(vells_root, previous)
+            node.setText(0,menu_labels[id])
+            node.setKey(id)
+            previous = node
             perturbations_key = str(id) + ' perturbations'
             if perturbations.has_key(perturbations_key):
               perturbations_index = perturbations[perturbations_key]
-              submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index) 
-              self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+              submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,node) 
+#             self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
         else:
           if int(num_planes/menu_step) * menu_step == num_planes:
             num_sub_menus = int(num_planes/menu_step)
@@ -1033,43 +1048,65 @@ class QwtImageDisplay(QwtPlot):
           start_range = 0
           end_range = menu_step
           for k in range(num_sub_menus):
-            step_submenu = QPopupMenu(self._vells_menu)
-            QObject.connect(step_submenu,SIGNAL("activated(int)"),self.update_vells_display);
-#           start_str = str(start_range/menu_delta)
+#           step_submenu = QPopupMenu(self._vells_menu)
+#           QObject.connect(step_submenu,SIGNAL("activated(int)"),self.update_vells_display);
             start_str = None
-#           end_str = str(end_range/menu_delta - 1 )
             end_str = None
-#           menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
-#           self._vells_menu.insertItem(menu_string,step_submenu)
             for i in range(start_range, end_range):
               id = planes_index[i]
               if start_str is None:
                 start_str = menu_labels[id]
-              step_submenu.insertItem(menu_labels[id], id)
+            end_str = menu_labels[id]
+            menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
+#           self._vells_menu.insertItem(menu_string,step_submenu)
+            if previous is None:
+              node = VellsElement(vells_root)
+            else:
+              node = VellsElement(vells_root, previous)
+            node.setText(0,menu_string)
+            previous = node
+            previous_node = None
+            for i in range(start_range, end_range):
+              id = planes_index[i]
+              if previous_node is None:
+                sub_node = VellsElement(node)
+              else:
+                sub_node = VellsElement(node, previous_node)
+              sub_node.setText(0,menu_labels[id])
+              sub_node.setKey(id)
+              previous_node = sub_node
               perturbations_key = str(id) + ' perturbations'
               if perturbations.has_key(perturbations_key):
                 perturbations_index = perturbations[perturbations_key]
-                submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index) 
-                step_submenu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+                submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,sub_node) 
+#               step_submenu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
             end_str = menu_labels[id]
-            menu_string = 'Vells ' + start_str + ' to ' + end_str + '  '
-            self._vells_menu.insertItem(menu_string,step_submenu)
             start_range = start_range + menu_step
             end_range = end_range + menu_step
             if end_range > vells_menu_items:
               end_range = vells_menu_items
+
+#     self._vells_menu.show()
 # add Vells menu to context menu
 
-    def createPerturbationsMenu(self, parent_menu, menu_labels, perturbations_index):
+    def createPerturbationsMenu(self, parent_menu, menu_labels, perturbations_index,node):
       """ create context menu for selection of perturbations """
       num_perturbs = len(perturbations_index)
       menu_step = 30
-      submenu = QPopupMenu(parent_menu)
+      previous = None
+      submenu = None
       if num_perturbs < menu_step:
-        QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
+#       QObject.connect(submenu,SIGNAL("activated(int)"),self.update_vells_display);
         for j in range(len(perturbations_index)):
           id = perturbations_index[j]
-          submenu.insertItem(menu_labels[id], id)
+#         submenu.insertItem(menu_labels[id], id)
+          if previous is None:
+            pert_node = VellsElement(node)
+          else:
+            pert_node = VellsElement(node, previous)
+          pert_node.setText(0,menu_labels[id])
+          pert_node.setKey(id)
+          previous = pert_node
       else:
         if int(num_perturbs/menu_step) * menu_step == num_perturbs:
           num_sub_menus = int(num_perturbs/menu_step)
@@ -1081,12 +1118,25 @@ class QwtImageDisplay(QwtPlot):
           start_str = str(start_range)
           end_str = str(end_range - 1 )
           menu_string = 'perturbations ' + start_str + ' to ' + end_str + '  '
-          perturb_submenu = QPopupMenu(submenu)
-          QObject.connect(perturb_submenu,SIGNAL("activated(int)"),self.update_vells_display);
+#         print menu_string
+          if previous is None:
+            pert_node = VellsElement(node)
+          else:
+            pert_node = VellsElement(node, previous)
+          pert_node.setText(0,menu_string)
+          previous = pert_node
+#         perturb_submenu = QPopupMenu(submenu)
+#         QObject.connect(perturb_submenu,SIGNAL("activated(int)"),self.update_vells_display);
+          prev_node = None
           for j in range(start_range, end_range):
             id = perturbations_index[j]
-            perturb_submenu.insertItem(menu_labels[id], id)
-          submenu.insertItem(pixmaps.slick_redo.iconset(), menu_string, perturb_submenu)
+            if prev_node is None:
+              pert_subnode = VellsElement(pert_node)
+            else:
+              pert_subnode = VellsElement(pert_node, prev_node)
+            prev_node = pert_subnode
+            pert_subnode.setText(0,menu_labels[id])
+            pert_subnode.setKey(id)
           start_range = start_range + menu_step
           end_range = end_range + menu_step
           if end_range > num_perturbs:
@@ -3170,6 +3220,10 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle logarithmic range for data", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         self.log_switch_set = False
+
+        toggle_id = self.menu_table['Change Vells']
+        self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
 
 # add potential menu for flagged data
         self.set_flag_toggles()
