@@ -1,15 +1,12 @@
-# file: ../JEN/Grow/Demo.py
+# file: ../JEN/Grow/Twig.py
 
 # History:
-# - 14sep2007: creation (from Demo.py)
+# - 14sep2007: creation (from Twig.py)
 
 # Description:
 
-"""The Demo class makes makes a node/subtree that demonstrates
-a particular feature of MeqTrees. It does this in a side-branch,
-so the output result is equal to the input.
-It is a base-class for specialised classes like DemoSolver,
-DemoModRes etc, and is itself derived from the Plugin base-class.
+"""The Twig class is the base class for Growth classes that
+take a single node as input, and produce a single result node.
 """
 
 
@@ -54,11 +51,11 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 #=============================================================================
 
-class Demo(Growth.Growth):
-    """Base-class for DemoSomething classes, itself derived from Growth"""
+class Twig(Growth.Growth):
+    """Base-class for TwigSomething classes, itself derived from Growth"""
 
     def __init__(self, quals=None,
-                 name='Demo',
+                 name='Twig',
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
@@ -97,12 +94,12 @@ class Demo(Growth.Growth):
     
     #====================================================================
     # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived Demo classes) 
+    # (These must be re-implemented in derived Twig classes) 
     #====================================================================
 
     def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Demo classes. 
+        This function must be re-implemented in derived Twig classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
@@ -121,7 +118,7 @@ class Demo(Growth.Growth):
 
     def grow (self, ns, node, test=None, trace=False):
         """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Demo classes. 
+        This function must be re-implemented in derived Twig classes. 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
@@ -153,7 +150,8 @@ if 0:
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    plf = Demo()
+
+    plf = Twig()
     plf.make_TDLCompileOptionMenu()
     # plf.display('outside')
 
@@ -163,12 +161,11 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        plf = Demo()
+        plf = Twig()
         plf.make_TDLCompileOptionMenu()
 
     cc = []
-
-    node = ns << 1.2
+    node = ns << 1.0
     rootnode = plf.grow(ns, node)
     cc.append(rootnode)
 
@@ -211,7 +208,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = Demo()
+        plf = Twig()
         plf.display('initial')
 
     if 1:

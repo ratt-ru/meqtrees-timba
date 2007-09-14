@@ -1,14 +1,13 @@
 # file: ../JEN/Grow/Branch.py
 
 # History:
-# - 11sep2007: creation (from LeafDimGrids.py)
+# - 14sep2007: creation (from Branch.py)
 
 # Description:
 
-"""The Branch class is derived from the Plugin. It allows the user to construct
+"""The Branch class is derived from the Growth class. It allows the user to construct
 a subtree that represents an entire branch, consisting an end-point (Leaf) and
-an arbitrary sequence of modiying subtrees (Plugins). It can also have side
-Branches, of course.
+an arbitrary sequence of modiying subtrees. It can also have side Branches, of course.
 By sharing the same OptionManager, a Branch in all its arbitray complexity of
 Plugins and side Branches, may be specified in full detail. Because of the large
 number of options involved, a hierarchical system of 'modes' is supported.
@@ -48,9 +47,21 @@ from Timba.Meq import meq
 # import Meow
 
 from Timba.Contrib.JEN.Grow import Growth
-from Timba.Contrib.JEN.Grow import Leaf
+# from Timba.Contrib.JEN.Grow import Leaf
 # from Timba.Contrib.JEN.Grow import Demo
+# from Timba.Contrib.JEN.Grow import Twig
 from Timba.Contrib.JEN.control import Executor
+
+from Timba.Contrib.JEN.Grow import LeafConstant
+from Timba.Contrib.JEN.Grow import LeafDimGrids
+        
+from Timba.Contrib.JEN.Grow import TwigApplyUnary
+from Timba.Contrib.JEN.Grow import TwigAddNoise
+from Timba.Contrib.JEN.Grow import TwigFlagger
+
+from Timba.Contrib.JEN.Grow import DemoModRes
+from Timba.Contrib.JEN.Grow import DemoRedaxes
+from Timba.Contrib.JEN.Grow import DemoSolver
 
 # import math
 # import random
@@ -85,17 +96,17 @@ class Branch(Growth.Growth):
         submenu = self._submenu+'.Leaf'
         self._optname_selected_Leaf = 'Leaf.selected_Leaf'
         self.define_leaves (submenu, trace=True)
-        self._OM.set_menu_prompt(submenu, 'customize the selected Leaf')
+        self._OM.set_menurec(submenu, prompt='customize the selected Leaf')
 
         # Define the Growth sequence:
         self._plugin_order = []
         self._plugin = dict()
-        submenu = self._submenu+'.Growth'
-        # self.define_plugin_sequence (submenu, trace=True)
-        # self._OM.set_menu_prompt(submenu, 'customize the Growth sequence')
+        submenu = self._submenu+'.Twig'
+        self.define_plugin_sequence (submenu, trace=True)
+        self._OM.set_menurec(submenu, prompt='customize the Growth sequence')
 
         # This function needs self._leaf.keys() etc:
-        self._define_generic_compile_options()
+        self._define_Branch_compile_options()
 
         # Execute the deferred function:
         self.define_compile_options()
@@ -145,8 +156,8 @@ class Branch(Growth.Growth):
         if trace:
             print '\n** .add_plugin(',type(plugin),modes,'):'
             
-        print '** type Growth: ',isinstance(plugin, Growth.Growth)
-        print '** type Demo: ',isinstance(plugin, Demo.Demo)
+        # print '** type Growth: ',isinstance(plugin, Growth.Growth)
+        # print '** type Demo: ',isinstance(plugin, Demo.Demo)
             
         # OK, add the valid plugin to the list:
         name = plugin.name
@@ -168,8 +179,8 @@ class Branch(Growth.Growth):
         if trace:
             print '\n** .add_leaf(',type(leaf),modes,'):'
             
-        print '** type Growth: ',isinstance(leaf, Growth.Growth)
-        print '** type Leaf: ',isinstance(leaf, Leaf.Leaf)
+        # print '** type Growth: ',isinstance(leaf, Growth.Growth)
+        # print '** type Leaf: ',isinstance(leaf, Leaf.Leaf)
             
         # OK, add the valid leaf to the list:
         name = leaf.name
@@ -183,7 +194,7 @@ class Branch(Growth.Growth):
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
 
-    def _define_generic_compile_options(self, trace=True):
+    def _define_Branch_compile_options(self, trace=True):
         """Define some generic compile options for Branch.
         """
         opt = self._leaf.keys()
@@ -279,7 +290,7 @@ class Branch(Growth.Growth):
         #..............................................
 
         node = self.make_leaf_subtree (ns, trace=trace)
-        # node = self.append_plugin_sequence (ns, node, trace=trace)
+        node = self.append_plugin_sequence (ns, node, trace=trace)
 
         #..............................................
         # Finishing touches:
@@ -292,10 +303,8 @@ class Branch(Growth.Growth):
         """
         Define a choice of Leaf classe, to be used at the tip of the Branch.
         """
-        from Timba.Contrib.JEN.Grow import LeafConstant
         self.add_leaf (LeafConstant.LeafConstant(submenu=submenu, OM=self._OM))
 
-        from Timba.Contrib.JEN.Grow import LeafDimGrids
         self.add_leaf (LeafDimGrids.LeafDimGrids(submenu=submenu, OM=self._OM,
                                                  xtor=self._xtor, dims=self._dims))
         return True
@@ -307,11 +316,13 @@ class Branch(Growth.Growth):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
-        from Timba.Contrib.JEN.Grow import GrowthAddNoise
-        self.add_plugin (GrowthAddNoise.GrowthAddNoise(submenu=submenu, OM=self._OM))
+        self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu, OM=self._OM))
+        self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu, OM=self._OM))
+        self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu, OM=self._OM))
         
-        from Timba.Contrib.JEN.Grow import DemoModRes
         self.add_plugin (DemoModRes.DemoModRes(submenu=submenu, OM=self._OM))
+        self.add_plugin (DemoRedaxes.DemoRedaxes(submenu=submenu, OM=self._OM))
+        self.add_plugin (DemoSolver.DemoSolver(submenu=submenu, OM=self._OM))
 
         return True
 
@@ -329,7 +340,7 @@ class Branch(Growth.Growth):
 
 
 brn = None
-if 0:
+if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')

@@ -662,18 +662,21 @@ class Growth (object):
 
     #---------------------------------------------------------------------
 
-    def bookmark (self, node=None, trace=True):
+    def bookmark (self, node=None, prepend=False, trace=True):
         """Append the given node(s) to the list of nodes to be bookmarked.
         """
         if node:
             nn = node
             if not isinstance(node, (list,tuple)):
                 nn = [node]
-            for n in nn:
+            for n1 in nn:
                 if trace:
-                    print ' .bookmark(',str(n),')'
-                if is_node(n):
-                    self._bm.append(n)
+                    print ' .bookmark(',str(n1),')'
+                if is_node(n1) and (not n1 in self._bm):
+                    if prepend:
+                        self._bm.insert(0,n1)
+                    else:
+                        self._bm.append(n1)
         # Always return the internal list:
         return self._bm
 
@@ -698,7 +701,7 @@ class Growth (object):
         # Prepend a bookmark for the input node (if required):
         if is_node(self._input):
             if not result==self._input:
-                self._bm.insert(0, self._input)           # make it the first one
+                self.bookmark(self._input, prepend=True)  # make it the first one
 
         # Append a bookmark for the result node (if relevant):
         if is_node(result):

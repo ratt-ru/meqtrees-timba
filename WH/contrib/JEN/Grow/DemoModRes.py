@@ -1,15 +1,12 @@
-# file: ../JEN/Grow/Demo.py
+# file: ../Grow/DemoModRes.py
 
 # History:
-# - 14sep2007: creation (from Demo.py)
+# - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The Demo class makes makes a node/subtree that demonstrates
-a particular feature of MeqTrees. It does this in a side-branch,
-so the output result is equal to the input.
-It is a base-class for specialised classes like DemoSolver,
-DemoModRes etc, and is itself derived from the Plugin base-class.
+"""The DemoModRes class makes makes a subtree that takes an input node and
+produces a new rootnode by .....
 """
 
 
@@ -43,99 +40,92 @@ DemoModRes etc, and is itself derived from the Plugin base-class.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Growth
+from Timba.Contrib.JEN.Grow import Demo
+from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
-# import math
-# import random
+import math
 
 
 
 #=============================================================================
 #=============================================================================
 
-class Demo(Growth.Growth):
-    """Base-class for DemoSomething classes, itself derived from Growth"""
+class DemoModRes(Demo.Demo):
+    """Class derived from Demo"""
 
-    def __init__(self, quals=None,
-                 name='Demo',
+    def __init__(self,
+                 quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Growth.Growth.__init__(self, quals=quals,
-                               name=name,
-                               submenu=submenu,
-                               toggle=True,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
-
+        Demo.Demo.__init__(self, name='DemoModRes',
+                           quals=quals,
+                           submenu=submenu,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
         return None
 
-
-    #====================================================================
-
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = Growth.Growth.oneliner(self)
-        return ss
-    
-
-    def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
-        """Print a summary of this object"""
-        prefix = self.display_preamble(self.name, level=level, txt=txt)
-        #...............................................................
-        #...............................................................
-        Growth.Growth.display(self, full=full,
-                              recurse=recurse,
-                              OM=OM, level=level+1)
-        #...............................................................
-        return self.display_postamble(prefix, level=level)
-
-
-
     
     #====================================================================
-    # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived Demo classes) 
-    #====================================================================
 
-    def define_compile_options(self, trace=False):
+    def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Demo classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-
-        # Placeholder:
-        self._OM.define(self.optname('xxx'), 45)
-
+        opt = [[2,3],[3,2],[3,4],[4,5]]
+        self._OM.define(self.optname('num_cells'), opt[0],
+                        prompt='nr of cells [nt,nf]',
+                        opt=opt, more=str,
+                        doc="""Covert the REQUEST to a lower a resolution.
+                        """)
+        self._OM.define(self.optname('resamp_mode'), 1,
+                        prompt='resampler mode',
+                        opt=[1,2],
+                        doc="""Mode 2 only works with time,freq domains.
+                        """)
         #..............................................
         return self.on_exit(trace=trace)
 
-
-
-    #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=False):
+    def grow (self, ns, node, test=None, trace=True):
         """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Demo classes. 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        result = node
+        # Read the specified options:
+        num_cells = self.optval('num_cells', test=test)
+        num_cells = self._OM._string2list(num_cells, length=None)
+        rmode = self.optval('resamp_mode', test=test)
 
+        # Make a side-branch that first lowers the resolution (modres),
+        # by simply lowering the resolution of the request
+        # then resamples the result to the the original resolution,
+        # and then takes the difference with the original input to
+        # check the quality of the two operations.
+        original = self.ns['original'] << Meq.Identity(node) 
+        modres = self.ns['modres'] << Meq.ModRes(node, num_cells=num_cells) 
+        resampled = self.ns['resampled'] << Meq.Resampler(modres, mode=rmode) 
+        diff = self.ns['diff'] << Meq.Subtract(resampled,original) 
+
+        # The reqseq issues a (full-resolution) request first to the
+        # branch that changes the resolution back and forth, and then to the
+        # branch that holds the original resolution. Since it
+        # is only a demonstration, the original result (1) is passed on.
+        node = self.ns['reqseq'] << Meq.ReqSeq(diff,original,
+                                               result_index=1)
+        self.bookmark([modres,resampled,diff]) 
         #..............................................
         # Finishing touches:
-        return self.on_output (result, trace=trace)
+        return self.on_output (node, trace=trace)
 
-
-    
 
 
 
@@ -146,30 +136,28 @@ class Demo(Growth.Growth):
 #=============================================================================
 
 
-plf = None
+pgt = None
 if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    # xtor.add_dimension('x', unit='m')
-    # xtor.add_dimension('y', unit='m')
-    plf = Demo()
-    plf.make_TDLCompileOptionMenu()
-    # plf.display('outside')
+    pgt = DemoModRes()
+    pgt.make_TDLCompileOptionMenu()
+    # pgt.display()
 
 
 def _define_forest(ns):
 
-    global plf,xtor
-    if not plf:
+    global pgt,xtor
+    if not pgt:
         xtor = Executor.Executor()
-        plf = Demo()
-        plf.make_TDLCompileOptionMenu()
+        pgt = DemoModRes()
+        pgt.make_TDLCompileOptionMenu()
 
     cc = []
 
-    node = ns << 1.2
-    rootnode = plf.grow(ns, node)
+    node = ns << 1.0
+    rootnode = pgt.grow(ns, node)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -189,12 +177,12 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    plf.display('_tdl_job')
+    """Just display the current contents of the Demo object"""
+    pgt.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    plf.display('_tdl_job', full=True)
+    """Just display the current contents of the Demo object"""
+    pgt.display('_tdl_job', full=True)
        
 
 
@@ -211,19 +199,19 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = Demo()
-        plf.display('initial')
+        pgt = DemoModRes()
+        pgt.display('initial')
 
     if 1:
-        plf.make_TDLCompileOptionMenu()
+        pgt.make_TDLCompileOptionMenu()
 
     if 1:
-        node = ns << 1.2
-        test = dict()
-        plf.grow(ns, node, test=test, trace=False)
+        node = ns << 1.0
+        test = dict(num_cells=[2,4])
+        pgt.grow(ns, node, test=test, trace=True)
 
     if 1:
-        plf.display('final', OM=True, full=True)
+        pgt.display('final', OM=True, full=True)
 
 
 
