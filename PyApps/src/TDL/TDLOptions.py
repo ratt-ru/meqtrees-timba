@@ -1001,9 +1001,12 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
   if namespace is None:
     # figure out filename of caller frame -- skip frames in this file
     namespace = sys._getframe(calldepth+1).f_globals;
-  # else namespace is a dict
+  # else namespace is a dict -- check for tdloption_namespace
   elif isinstance(namespace,dict):
     namespace_name = None;
+    prefix = namespace.get('tdloption_namespace',None);
+    if prefix:
+      symbol = ".".join((prefix,symbol));
   # else namespace must have a __dict__ attribute
   else:
     # form options inside an explcit namespace (e.g. inside an object), prepend the 
