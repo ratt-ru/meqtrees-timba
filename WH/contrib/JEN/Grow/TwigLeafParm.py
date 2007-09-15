@@ -63,11 +63,11 @@ class TwigLeafParm(TwigLeaf.TwigLeaf):
                  **kwargs):
 
         TwigLeaf.TwigLeaf.__init__(self,
-                           quals=quals,
-                           name='TwigLeafParm',
-                           submenu=submenu,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
+                                   quals=quals,
+                                   name='TwigLeafParm',
+                                   submenu=submenu,
+                                   OM=OM, namespace=namespace,
+                                   **kwargs)
         return None
 
     

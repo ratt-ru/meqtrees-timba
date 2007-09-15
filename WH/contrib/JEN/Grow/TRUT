@@ -1,7 +1,5 @@
 TDL DemoModRes.py
  
-TDL Demo.py
- 
 TDL DemoRedaxes.py
  
 TDL DemoSolver.py
@@ -14,7 +12,11 @@ TDL TwigApplyUnary.py
  
 TDL TwigBranch.py
  
+TDL TwigDemo.py
+ 
 TDL TwigFlagger.py
+ 
+TDL TwigFork.py
  
 TDL TwigLeafConstant.py
  
