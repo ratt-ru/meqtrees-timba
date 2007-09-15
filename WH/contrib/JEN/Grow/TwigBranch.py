@@ -1,15 +1,15 @@
-# file: ../JEN/Grow/Branch.py
+# file: ../JEN/Grow/TwigBranch.py
 
 # History:
-# - 14sep2007: creation (from Branch.py)
+# - 15sep2007: creation (from TwigBranch.py)
 
 # Description:
 
-"""The Branch class is derived from the Growth class. It allows the user to construct
+"""The TwigBranch class is derived from the Twig class. It allows the user to construct
 a subtree that represents an entire branch, consisting an end-point (Leaf) and
-an arbitrary sequence of modiying subtrees. It can also have side Branches, of course.
-By sharing the same OptionManager, a Branch in all its arbitray complexity of
-Plugins and side Branches, may be specified in full detail. Because of the large
+an arbitrary sequence of modiying subtrees. It can also have side TwigBranches, of course.
+By sharing the same OptionManager, a TwigBranch in all its arbitray complexity of
+Plugins and side TwigBranches, may be specified in full detail. Because of the large
 number of options involved, a hierarchical system of 'modes' is supported.
 """
 
@@ -46,14 +46,14 @@ from Timba.Meq import meq
 
 # import Meow
 
-from Timba.Contrib.JEN.Grow import Growth
-# from Timba.Contrib.JEN.Grow import Leaf
-# from Timba.Contrib.JEN.Grow import Demo
-# from Timba.Contrib.JEN.Grow import Twig
+from Timba.Contrib.JEN.Grow import Twig
+# from Timba.Contrib.JEN.Grow import TwigLeaf
+# from Timba.Contrib.JEN.Grow import TwigDemo
 from Timba.Contrib.JEN.control import Executor
 
-from Timba.Contrib.JEN.Grow import LeafConstant
-from Timba.Contrib.JEN.Grow import LeafDimGrids
+from Timba.Contrib.JEN.Grow import TwigLeafParm
+from Timba.Contrib.JEN.Grow import TwigLeafConstant
+from Timba.Contrib.JEN.Grow import TwigLeafDimGrids
         
 from Timba.Contrib.JEN.Grow import TwigApplyUnary
 from Timba.Contrib.JEN.Grow import TwigAddNoise
@@ -71,17 +71,17 @@ from Timba.Contrib.JEN.Grow import DemoSolver
 #=============================================================================
 #=============================================================================
 
-class Branch(Growth.Growth):
-    """Class derived from Growth"""
+class TwigBranch(Twig.Twig):
+    """Class derived from Twig"""
 
     def __init__(self, quals=None,
-                 name='Branch',
+                 name='TwigBranch',
                  submenu='compile',
                  xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Growth.Growth.__init__(self, quals=quals,
+        Twig.Twig.__init__(self, quals=quals,
                                name=name,
                                submenu=submenu,
                                has_input=False,
@@ -98,15 +98,15 @@ class Branch(Growth.Growth):
         self.define_leaves (submenu, trace=True)
         self._OM.set_menurec(submenu, prompt='customize the selected Leaf')
 
-        # Define the Growth sequence:
+        # Define the Twig sequence:
         self._plugin_order = []
         self._plugin = dict()
         submenu = self._submenu+'.Twig'
         self.define_plugin_sequence (submenu, trace=True)
-        self._OM.set_menurec(submenu, prompt='customize the Growth sequence')
+        self._OM.set_menurec(submenu, prompt='customize the Twig sequence')
 
         # This function needs self._leaf.keys() etc:
-        self._define_Branch_compile_options()
+        self._define_TwigBranch_compile_options()
 
         # Execute the deferred function:
         self.define_compile_options()
@@ -118,7 +118,7 @@ class Branch(Growth.Growth):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Growth.Growth.oneliner(self)
+        ss = Twig.Twig.oneliner(self)
         return ss
     
 
@@ -136,7 +136,7 @@ class Branch(Growth.Growth):
             rr = self._plugin[key]
             print prefix,'    - '+key+': '+str(rr['plugin'].oneliner())
         #...............................................................
-        Growth.Growth.display(self, full=full,
+        Twig.Twig.display(self, full=full,
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
@@ -150,13 +150,13 @@ class Branch(Growth.Growth):
 
     def add_plugin(self, plugin, modes=None, trace=True):
         """
-        Check the given Growth object, and add it to self._plugin.
+        Check the given Twig object, and add it to self._plugin.
         """
         
         if trace:
             print '\n** .add_plugin(',type(plugin),modes,'):'
             
-        # print '** type Growth: ',isinstance(plugin, Growth.Growth)
+        # print '** type Twig: ',isinstance(plugin, Twig.Twig)
         # print '** type Demo: ',isinstance(plugin, Demo.Demo)
             
         # OK, add the valid plugin to the list:
@@ -179,7 +179,7 @@ class Branch(Growth.Growth):
         if trace:
             print '\n** .add_leaf(',type(leaf),modes,'):'
             
-        # print '** type Growth: ',isinstance(leaf, Growth.Growth)
+        # print '** type Twig: ',isinstance(leaf, Twig.Twig)
         # print '** type Leaf: ',isinstance(leaf, Leaf.Leaf)
             
         # OK, add the valid leaf to the list:
@@ -194,15 +194,15 @@ class Branch(Growth.Growth):
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
 
-    def _define_Branch_compile_options(self, trace=True):
-        """Define some generic compile options for Branch.
+    def _define_TwigBranch_compile_options(self, trace=True):
+        """Define some generic compile options for TwigBranch.
         """
         opt = self._leaf.keys()
         self._OM.define(self.optname(self._optname_selected_Leaf),
                         opt[0], opt=opt,
                         prompt='select a Leaf',
                         callback=self._callback_leaf,
-                        doc="""The tip of the Branch is a Leaf subtree.
+                        doc="""The tip of the TwigBranch is a Leaf subtree.
                         """)
         return True
 
@@ -241,7 +241,7 @@ class Branch(Growth.Growth):
     #---------------------------------------------------------------------------
 
     def append_plugin_sequence (self, ns, node=None, trace=False):
-        """Append the specified (see .define_plugin_sequence()) sequence of Growth
+        """Append the specified (see .define_plugin_sequence()) sequence of Twig
         subtrees to the given node.
         """
         if trace:
@@ -301,12 +301,12 @@ class Branch(Growth.Growth):
 
     def define_leaves (self, submenu, trace=True):
         """
-        Define a choice of Leaf classe, to be used at the tip of the Branch.
+        Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
-        self.add_leaf (LeafConstant.LeafConstant(submenu=submenu, OM=self._OM))
-
-        self.add_leaf (LeafDimGrids.LeafDimGrids(submenu=submenu, OM=self._OM,
-                                                 xtor=self._xtor, dims=self._dims))
+        self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu, OM=self._OM))
+        self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu, OM=self._OM))
+        self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu, OM=self._OM,
+                                                         xtor=self._xtor, dims=self._dims))
         return True
 
 
@@ -344,7 +344,7 @@ if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    brn = Branch(xtor=xtor)
+    brn = TwigBranch(xtor=xtor)
     brn.make_TDLCompileOptionMenu()
     # brn.display('outside')
 
@@ -354,7 +354,7 @@ def _define_forest(ns):
     global brn,xtor
     if not brn:
         xtor = Executor.Executor()
-        brn = Branch(xtor=xtor)
+        brn = TwigBranch(xtor=xtor)
         brn.make_TDLCompileOptionMenu()
 
     cc = []
@@ -380,13 +380,16 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Growth object"""
+    """Just display the current contents of the Twig object"""
     brn.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Growth object"""
+    """Just display the current contents of the Twig object"""
     brn.display('_tdl_job', full=True)
        
+def _tdl_job_print_tree (mqs, parent):
+    """Just display the current contents of the Twig object"""
+    brn.print_tree(recurse=3)
 
 
        
@@ -402,7 +405,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        brn = Branch()
+        brn = TwigBranch()
         brn.display('initial')
 
     if 1:

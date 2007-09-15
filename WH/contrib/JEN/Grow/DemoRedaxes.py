@@ -40,7 +40,7 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Demo
+from Timba.Contrib.JEN.Grow import TwigDemo
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -51,7 +51,7 @@ import math
 #=============================================================================
 #=============================================================================
 
-class DemoRedaxes(Demo.Demo):
+class DemoRedaxes(TwigDemo.TwigDemo):
     """Class derived from Demo"""
 
     def __init__(self,
@@ -60,11 +60,11 @@ class DemoRedaxes(Demo.Demo):
                  OM=None, namespace=None,
                  **kwargs):
 
-        Demo.Demo.__init__(self, name='DemoRedaxes',
-                           quals=quals,
-                           submenu=submenu,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
+        TwigDemo.TwigDemo.__init__(self, name='DemoRedaxes',
+                                   quals=quals,
+                                   submenu=submenu,
+                                   OM=OM, namespace=namespace,
+                                   **kwargs)
         return None
 
     

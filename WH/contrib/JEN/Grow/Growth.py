@@ -126,10 +126,29 @@ class Growth (object):
         """
         Helper function that is called from __init__().
         Make self.name by appending any qualifiers to name.
+        Make self._shortname from the capitals of self.name.
         Make self._submenu by appending self.name to submenu.
         """
         # The use of self.name is consistent with Meow/Parameterization...
         self.name = name
+
+        # Make a short name from all chars ubtil the 2nd capital,
+        # followed by the subsequent capitals and numbers.
+        # So the short name will look like: TApplyU or DemoR
+        capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        numbers = '01234567890'
+        ss = ''
+        capcount = 0
+        for char in name:
+            if (char in capitals):
+                capcount += 1
+                ss += char
+            elif (char in numbers):
+                ss += char
+            elif capcount==2:
+                ss += char
+            # print '-',char,capcount,'->',ss
+        self._shortname = ss
         
         # Qualifiers allow the same Growth to be used multiple
         # times in the same tree. They allow the generation of
@@ -145,9 +164,11 @@ class Growth (object):
         # Append the qualifiers to self.name:
         for qual in self._quals:
              self.name += '_'+str(qual)
+             self._shortname += '_'+str(qual)
 
         # The OptionManager (sub)menu to be used:
-        self._submenu = submenu+'.'+self.name
+        # self._submenu = submenu+'.'+self.name
+        self._submenu = submenu+'.'+self._shortname
         return True
 
     #--------------------------------------------------------------------
@@ -187,6 +208,8 @@ class Growth (object):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = self._frameclass+':'
+        if not self.name==self._shortname:
+            ss += ' ('+self._shortname+')'
         ss += ' submenu='+str(self._submenu)
         if self._ignore:
             ss += ' (ignored)'
@@ -244,6 +267,7 @@ class Growth (object):
         display.subtree(node, recurse=recurse) 
         return True
 
+
     def print_tree(self, recurse=10, trace=False):
         """Display the entire tree
         """
@@ -252,31 +276,6 @@ class Growth (object):
         print
         return True
 
-
-    #========================================================================
-    # Interacion with the data-description record:
-    #========================================================================
-
-    def datadesc (self, merge=None, is_complex=None, dims=None, trace=False):
-        """Return the data-description record.
-        If another datadesc (merge) is specified, update the local one.
-        """
-        rr = self._datadesc                                 # convenience
-        if isinstance(merge, dict):
-            if merge['is_complex']: rr['is_complex'] = True
-        else:
-            if isinstance(is_complex, bool):
-                rr['is_complex'] = is_complex
-            if dims:
-                rr['dims'] = dims
-        # Always update the derived quantity nelem (nr of tensor elements):
-        rr['nelem'] = 1
-        for nd in rr['dims']:
-            rr['nelem'] *= nd
-        if trace:
-            print '** datadesc(',merge,is_complex,dims,'): ',str(self._datadesc)
-        return self._datadesc
-    
 
     #===================================================================
     # Generic functions dealing with (compile) options:
@@ -315,6 +314,10 @@ class Growth (object):
         prompt = '- customize'
         prompt += ': '+str(self.name)
         self._OM.set_menurec(self._submenu, prompt=prompt)
+
+        # This is a menu 'of the first stare'.
+        # The stare number is used in OM.print_tree()
+        self._OM.set_menurec(self._submenu, stare=1)
 
         # Optional: add a toggle widget to the menu:
         if self._toggle:
@@ -453,7 +456,7 @@ class Growth (object):
             self.ns = ns.QualScope(self._quals)        
             self.ns0 = ns.QualScope() 
         else:
-            self.ns = ns.Subscope(self.name)
+            self.ns = ns.Subscope(self._shortname)
 
         # Progress message: 
         if trace:
@@ -464,24 +467,6 @@ class Growth (object):
         # NB: The calling routine .grow() aborts if return=False
         return result
 
-
-    #--------------------------------------------------------------------
-
-    def check_input (self, input, severe=True, trace=False):
-        """Specific function called by the generic function .on_input()
-        to check the input to .grow().
-        This default version checks whether self._input is a node.
-        It should be re-implemented by derived classes whose input is
-        expected to be something else (e.g. a Visset22 object, etc).
-        This routine should return True (OK) or False (not OK).
-        """
-        if not is_node(input):
-            s = 'input is not a node, but: '+str(type(input))
-            if severe:
-                raise ValueError,s
-            else:
-                return False                          
-        return True
 
     #--------------------------------------------------------------------
 
@@ -534,25 +519,6 @@ class Growth (object):
         return result          
 
 
-    #--------------------------------------------------------------------
-
-    def check_result (self, result, severe=True, trace=False):
-        """Specific function called by the generic function .on_result()
-        to check the result of .grow().
-        This default version checks whether the result is a node.
-        It should be re-implemented by derived classes whose result is
-        expected to be something else (e.g. a Visset22 object, etc).
-        """
-        if not is_node(result):
-            s = 'result is not a valid node'
-            print s,'\n'
-            if severe:
-                raise ValueError,s
-            else:
-                return False
-        # If OK, just pass on the valid result:
-        return result
-
 
     #====================================================================
     # Miscellaneous settings
@@ -585,14 +551,6 @@ class Growth (object):
         self.define_generic_visu_options()
         
         # Finished:
-        return True
-
-    #--------------------------------------------------------------------
-
-    def define_misc_options(self):
-        """Define class-specific options for the misc menu.
-        To be reimplemented by derived classes, if necessary.
-        """
         return True
 
     #....................................................................
@@ -716,58 +674,6 @@ class Growth (object):
 
 
 
-    #---------------------------------------------------------------------
-    # Class-specific visualization:
-    #--------------------------------------------------------------------
-
-    def define_visu_options(self):
-        """Specific function for adding visualization option(s) to the
-        visualisation submenu. This version is suitable for derived
-        classes that have nodes for input and result. It has to be
-        re-implemented for classes with other inputs/results.
-        """
-        if self._has_input:
-            self._OM.define(self.optname('misc.visu.compare'), None,
-                            prompt='show result vs input',
-                            opt=[None,'Subtract','Divide'], more=str, 
-                            doc="""Insert and bookmark a side-branch that
-                            compares the result with the input. 
-                            """)
-        if False:
-            # Perhaps it is possible to extract all new nodes from the tree....
-            self._OM.define(self.optname('misc.visu.allnodes'), False,
-                            prompt='bookmark all nodes',
-                            opt=[True, False],  
-                            doc="""If True, bookmark all new nodes
-                            of this Growth, e.g. for debugging.
-                            """)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def visualize (self, result, trace=False):
-        """Specific visualization, as specified in .define_visu_options().
-        This default version is suitable for those cases where the input
-        and the result are nodes. It has to be reimplemented by derived
-        classes that have other types of input/result.
-        Note that the result may be modified ('grown') in the process.
-        """
-        # If required, insert a side-branch to compare the result with the input:  
-        if is_node(self._input):
-            binop = self.optval('misc.visu.compare')
-            if binop:
-                comp = self.ns['compare'] << getattr(Meq, binop)(result, self._input)
-                self.bookmark(comp)
-                node = self.ns['compare_reqseq'] << Meq.ReqSeq(result, comp, result_index=0)
-        # Return the (possibly grown) result: 
-        return result
-
-
-
-
-
-
-
 
 
 
@@ -796,26 +702,92 @@ class Growth (object):
         return self.on_exit(trace=trace)
     
 
+
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=False):
-        """Specific: Generate ('grow') new nodes onto the input,
+    def grow (self, ns, input, test=None, trace=False):
+        """Specific: Generate ('grow') new inputs onto the input,
         using the given nodescope ns.
         This placeholder function should be reimplemented by a derived class.
         """
-        # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        # Check the input, and make self.ns:
+        if not self.on_input (ns, input, trace=trace):
             return self.bypass (trace=trace)
         #............................................
         # ... The specific body ...
-        result = node
+        result = input
         #............................................
         # Finishing touches:
         return self.on_output (result, trace=trace)
 
 
+    #--------------------------------------------------------------------
+
+    def check_input (self, input, severe=True, trace=False):
+        """Specific function called by the generic function .on_input()
+        to check the input to .grow().
+        It should be re-implemented by derived classes whose input is
+        expected to be something else (e.g. a Visset22 object, etc).
+        This routine should return True (OK) or False (not OK).
+        """
+        return True
 
 
+    #--------------------------------------------------------------------
+
+    def check_result (self, result, severe=True, trace=False):
+        """Specific function called by the generic function .on_result()
+        to check the result of .grow().
+        It should be re-implemented by derived classes whose result is
+        expected to be something else (e.g. a Visset22 object, etc).
+        """
+        # If OK, just pass on the valid result:
+        return result
+
+
+
+    #---------------------------------------------------------------------
+    # Class-specific visualization:
+    #--------------------------------------------------------------------
+
+    def define_visu_options(self):
+        """Specific function for adding visualization option(s) to the
+        visualisation submenu. This is a placeholder, which may be
+        re-implemented by classes with other inputs/results.
+        """
+        return True
+
+    #--------------------------------------------------------------------
+
+    def visualize (self, result, trace=False):
+        """Specific visualization, as specified in .define_visu_options().
+        This is a plceholder, which may be reimplemented by derived
+        classes that have other types of input/result.
+        """
+        return result
+
+
+    #--------------------------------------------------------------------
+    # Class-specific misc settings:
+    #--------------------------------------------------------------------
+
+    def define_misc_options(self):
+        """Define class-specific options for the misc menu.
+        To be reimplemented by derived classes, if necessary.
+        """
+        return True
+
+
+    #--------------------------------------------------------------------
+    # Interacion with the data-description record:
+    #--------------------------------------------------------------------
+
+    def datadesc (self, merge=None, trace=False, **kwargs):
+        """Return the data-description record.
+        If another datadesc (merge) is specified, update the local one.
+        """
+        return self._datadesc
+    
 
 
 
@@ -1013,7 +985,7 @@ if __name__ == '__main__':
     if 1:
         grt.display('final', OM=True, full=True)
 
-    if 0:
+    if 1:
         grt.print_tree(recurse=1)
         grt.print_tree(recurse=2)
         grt.print_tree(recurse=3)

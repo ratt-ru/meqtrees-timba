@@ -1,11 +1,11 @@
-# file: ../JEN/Grow/LeafConstant.py
+# file: ../JEN/Grow/TwigLeafConstant.py
 
 # History:
 # - 09sep2007: creation (from Growth.py)
 
 # Description:
 
-"""The LeafConstant class makes makes a subtree that represents either
+"""The TwigLeafConstant class makes makes a subtree that represents either
 a single MeqConstant (scalar node), or a 'tensor' node of constant
 values.
 """
@@ -41,7 +41,7 @@ values.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Leaf
+from Timba.Contrib.JEN.Grow import TwigLeaf
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -53,19 +53,19 @@ import random
 #=============================================================================
 #=============================================================================
 
-class LeafConstant(Leaf.Leaf):
-    """Class derived from Leaf, which is derived from Plugin"""
+class TwigLeafConstant(TwigLeaf.TwigLeaf):
+    """Class derived from TwigLeaf"""
 
     def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Leaf.Leaf.__init__(self, quals=quals,
-                           name='LeafConstant',
-                           submenu=submenu,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
+        TwigLeaf.TwigLeaf.__init__(self, quals=quals,
+                                   name='TwigLeafConstant',
+                                   submenu=submenu,
+                                   OM=OM, namespace=namespace,
+                                   **kwargs)
         return None
 
     
@@ -73,7 +73,7 @@ class LeafConstant(Leaf.Leaf):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Leaf.Leaf.oneliner(self)
+        ss = TwigLeaf.TwigLeaf.oneliner(self)
         return ss
     
 
@@ -83,7 +83,7 @@ class LeafConstant(Leaf.Leaf):
         #...............................................................
         print prefix,'  * xxx'
         #...............................................................
-        Leaf.Leaf.display(self, full=full,
+        TwigLeaf.TwigLeaf.display(self, full=full,
                           recurse=recurse,
                           OM=OM, level=level+1)
         #...............................................................
@@ -182,7 +182,7 @@ class LeafConstant(Leaf.Leaf):
         nelem = 1
         for dim in dims:
             nelem *= dim
-        print '** dims =',dims,' nelem=',nelem
+        # print '** dims =',dims,' nelem=',nelem
 
         # Make the scalar/tensor node:
         if nelem<=0:
@@ -195,7 +195,12 @@ class LeafConstant(Leaf.Leaf):
             vv = []
             for i in range(nelem):
                 vv.append(self._scatter_value(value,stddev))
-            node = ns['tensor'] << Meq.Composer(children=vv, dims=dims)
+            name = 'tensor'
+            if len(dims)==1:
+                name += str(dims)
+            else:
+                name += str(dims)
+            node = self.ns[name] << Meq.Composer(children=vv, dims=dims)
 
         # Optionally, apply a unary operation (e.g. Negate):
         if unop:
@@ -257,7 +262,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    plf = LeafConstant()
+    plf = TwigLeafConstant()
     plf.make_TDLCompileOptionMenu()
     # plf.display()
 
@@ -267,7 +272,7 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        plf = LeafConstant()
+        plf = TwigLeafConstant()
         plf.make_TDLCompileOptionMenu()
 
     cc = []
@@ -314,7 +319,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = LeafConstant()
+        plf = TwigLeafConstant()
         plf.display('initial')
 
     if 1:

@@ -1,12 +1,15 @@
-# file: ../JEN/Grow/LeafParm.py
+# file: ../JEN/Grow/TwigDemo.py
 
 # History:
-# - 14sep2007: creation (from Growth.py)
+# - 14sep2007: creation (from TwigDemo.py)
 
 # Description:
 
-"""The LeafParm class makes makes a subtree that represents a
-single MeqParm node.
+"""The TwigDemo class makes makes a node/subtree that demonstrates
+a particular feature of MeqTrees. It does this in a side-branch,
+so the output result is equal to the input.
+It is a base-class for specialised classes like TwigDemoSolver,
+TwigDemoModRes etc, and is itself derived from the Plugin base-class.
 """
 
 
@@ -40,42 +43,41 @@ single MeqParm node.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
-
-from Timba.Contrib.JEN.Grow import Leaf
-from Timba.Contrib.JEN.control import OptionManager
+from Timba.Contrib.JEN.Grow import Twig
 from Timba.Contrib.JEN.control import Executor
 
-import math
-import random
+# import math
+# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class LeafParm(Leaf.Leaf):
-    """Class derived from Leaf"""
+class TwigDemo(Twig.Twig):
+    """Base-class for TwigDemoSomething classes, itself derived from Twig"""
 
     def __init__(self, quals=None,
+                 name='TwigDemo',
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Leaf.Leaf.__init__(self,
-                           quals=quals,
-                           name='LeafParm',
+        Twig.Twig.__init__(self, quals=quals,
+                           name=name,
                            submenu=submenu,
+                           toggle=True,
                            OM=OM, namespace=namespace,
                            **kwargs)
+
         return None
 
-    
+
     #====================================================================
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Leaf.Leaf.oneliner(self)
+        ss = Twig.Twig.oneliner(self)
         return ss
     
 
@@ -83,90 +85,54 @@ class LeafParm(Leaf.Leaf):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
-        print prefix,'  * xxx'
         #...............................................................
-        Leaf.Leaf.display(self, full=full,
+        Twig.Twig.display(self, full=full,
                           recurse=recurse,
                           OM=OM, level=level+1)
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
 
+
+    
+    #====================================================================
+    # Specific part: Placeholders for specific functions:
+    # (These must be re-implemented in derived TwigDemo classes) 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
+        This function must be re-implemented in derived TwigDemo classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('default'), 0.0,
-                        prompt='default value',
-                        opt=[0.0,1.0,-1.0], more=float,
-                        doc="""the default value of the MeqParm
-                        """)
-        self._OM.define(self.optname('freq_deg'), 2,
-                        prompt='freq polc',
-                        opt=[0,1,2,3,4,5], more=int,
-                        doc="""Degree (order) of the freq polynonial that is
-                        to be solved for (constant in freq: freq_deg=0).
-                        """)
-        self._OM.define(self.optname('time_deg'), 2,
-                        prompt='time polc',
-                        opt=[0,1,2,3,4,5], more=int,
-                        doc="""Degree (order) of the time polynonial that is
-                        to be solved for (constant in time: time_deg=0).
-                        """)
-        opt = [None,1,2,3,4,5,10]
-        # opt.append(dmi.record(time=0,freq=0, l=.., m=..))
-        self._OM.define(self.optname('tiling'), None,
-                        prompt='subtile size',
-                        opt=opt,                    # more=str,
-                        doc="""The domain (tile) may be split up into subtiles,
-                        (for the moment, in the time-direction only)
-                        If specified, different solutions are made for each
-                        subtile, rather than a single one for the entire domain.
-                        """)
-        self._OM.define(self.optname('tags'), ['solvable'],
-                        prompt='MeqParm tag(s)',
-                        opt=[[],['solvable']],      # more=str,
-                        doc="""Node tags can be used to search for (groups of)
-                        nodes in the nodescope.
-                        """)
+
+        # Placeholder:
+        self._OM.define(self.optname('xxx'), 45)
+
         #..............................................
         return self.on_exit(trace=trace)
 
 
+
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
+    def grow (self, ns, node, test=None, trace=False):
         """Specific: Make the plugin subtree.
+        This function must be re-implemented in derived TwigDemo classes. 
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, trace=trace):
+        if not self.on_input (ns, node, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Read the specified options:
-        value = self.optval('default', test=test)
-        tiling = self.optval('tiling', test=test)
-        time_deg = self.optval('time_deg', test=test)
-        freq_deg = self.optval('freq_deg', test=test)
-        tags = self.optval('tags', test=test)
-
-        # Make the MeqParm node:
-        mparm = Meow.Parm(value=value,
-                          tiling=tiling,
-                          time_deg=time_deg,
-                          freq_deg=freq_deg,
-                          tags=tags)
-        nodename = 'Meow.Parm(t'+str(time_deg)+',f'+str(freq_deg)+')'
-        node = self.ns[nodename] << mparm.make()
+        result = node
 
         #..............................................
         # Finishing touches:
-        return self.on_output (node, trace=trace)
+        return self.on_output (result, trace=trace)
 
 
     
@@ -185,9 +151,11 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    plf = LeafParm()
+    # xtor.add_dimension('x', unit='m')
+    # xtor.add_dimension('y', unit='m')
+    plf = TwigDemo()
     plf.make_TDLCompileOptionMenu()
-    plf.display('outside')
+    # plf.display('outside')
 
 
 def _define_forest(ns):
@@ -195,12 +163,13 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        plf = LeafParm()
+        plf = TwigDemo()
         plf.make_TDLCompileOptionMenu()
 
     cc = []
 
-    rootnode = plf.grow(ns)
+    node = ns << 1.2
+    rootnode = plf.grow(ns, node)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -220,11 +189,11 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Leaf object"""
+    """Just display the current contents of the Twig object"""
     plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Leaf object"""
+    """Just display the current contents of the Twig object"""
     plf.display('_tdl_job', full=True)
        
 
@@ -242,15 +211,16 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = LeafParm()
+        plf = TwigDemo()
         plf.display('initial')
 
     if 1:
         plf.make_TDLCompileOptionMenu()
 
     if 1:
-        test = dict(default=78)
-        plf.grow(ns, test=test, trace=True)
+        node = ns << 1.2
+        test = dict()
+        plf.grow(ns, node, test=test, trace=False)
 
     if 1:
         plf.display('final', OM=True, full=True)

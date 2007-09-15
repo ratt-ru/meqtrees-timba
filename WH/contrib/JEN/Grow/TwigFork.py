@@ -1,13 +1,13 @@
-# file: ../JEN/Grow/LeafDimGrids.py
+# file: ../JEN/Grow/TwigFork.py
 
 # History:
-# - 14sep2007: creation (from Growth.py)
+# - 15sep2007: creation (from TwigDemo.py)
 
 # Description:
 
-"""The LeafDimGrids class makes a subtree that represents a
-combination (e.g. sum) of MeqGrid nodes for the selected
-dimensions (e.g. freq. time, l, m, etc).
+"""The TwigFork class combines the results of two (or more?) Twig
+classes into a single result (i.e. node). There are various combine
+operations, e.g. Subtract, Add, ReqSeq, Composer, etc
 """
 
 
@@ -41,10 +41,7 @@ dimensions (e.g. freq. time, l, m, etc).
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# import Meow
-
-from Timba.Contrib.JEN.Grow import Leaf
-from Timba.Contrib.JEN.control import OptionManager
+from Timba.Contrib.JEN.Grow import Twig
 from Timba.Contrib.JEN.control import Executor
 
 # import math
@@ -55,30 +52,32 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 #=============================================================================
 
-class LeafDimGrids(Leaf.Leaf):
-    """Class derived from Plugin"""
+class TwigFork(Twig.Twig):
+    """Class to combine the results of two Twig classes into one."""
 
     def __init__(self, quals=None,
+                 name='TwigFork',
                  submenu='compile',
-                 xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Leaf.Leaf.__init__(self, quals=quals,
-                           name='LeafDimGrids',
+        Twig.Twig.__init__(self, quals=quals,
+                           name=name,
                            submenu=submenu,
-                           xtor=xtor, dims=dims,
+                           toggle=False,
                            OM=OM, namespace=namespace,
                            **kwargs)
 
+        # The other input (node)
+        self._other = None
         return None
 
-    
+
     #====================================================================
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Leaf.Leaf.oneliner(self)
+        ss = Twig.Twig.oneliner(self)
         return ss
     
 
@@ -86,29 +85,38 @@ class LeafDimGrids(Leaf.Leaf):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
-        print prefix,'  * xxx'
+        print prefix,'   * other =',str(self._other)
         #...............................................................
-        Leaf.Leaf.display(self, full=full,
+        Twig.Twig.display(self, full=full,
                           recurse=recurse,
                           OM=OM, level=level+1)
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
+
+
     
     #====================================================================
+    # Specific part: Placeholders for specific functions:
+    # (These must be re-implemented in derived TwigFork classes) 
+    #====================================================================
 
-
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Leaf classes. 
+        This function must be re-implemented in derived TwigFork classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Optional (depends on the kind of Leaf): 
-        self._define_dims_options()
-        self._define_combine_options()
+        # Placeholder:
+        opt = ['Subtract','Add','Multiply','Divide',
+               'ReqSeq','Composer']
+        self._OM.define(self.optname('combine'), 'Subtract',
+                        opt=opt, more=str,
+                        prompt='comine operation',
+                        doc="""The input Twigs may be combined in various ways.
+                        """)
 
         #..............................................
         return self.on_exit(trace=trace)
@@ -118,23 +126,21 @@ class LeafDimGrids(Leaf.Leaf):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Leaf classes. 
+    def grow (self, ns, node, other, test=None, trace=False):
+        """Specific: Make the subtree.
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, trace=trace):
+        if not self.on_input (ns, node, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Placeholder, to be replaced:
-        rr = self.make_MeqGrid_nodes (trace=trace)
-        node = self.combine_MeqGrid_nodes (rr, trace=trace)
+        combine = self.optval('combine', test=test)
+        self._other = other
+        result = self.ns[combine] << getattr(Meq,combine)(node,other)
 
         #..............................................
         # Finishing touches:
-        return self.on_output (node, trace=trace)
-
+        return self.on_output (result, trace=trace)
 
 
     
@@ -151,9 +157,11 @@ class LeafDimGrids(Leaf.Leaf):
 plf = None
 if 0:
     xtor = Executor.Executor()
-    xtor.add_dimension('l', unit='rad')
-    xtor.add_dimension('m', unit='rad')
-    plf = LeafDimGrids(xtor=xtor)
+    # xtor.add_dimension('l', unit='rad')
+    # xtor.add_dimension('m', unit='rad')
+    # xtor.add_dimension('x', unit='m')
+    # xtor.add_dimension('y', unit='m')
+    plf = TwigFork()
     plf.make_TDLCompileOptionMenu()
     # plf.display('outside')
 
@@ -163,13 +171,14 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        plf = LeafDimGrids(xtor=xtor)
+        plf = TwigFork()
         plf.make_TDLCompileOptionMenu()
 
     cc = []
 
-    # node = xtor.leafnode(ns)
-    rootnode = plf.grow(ns)
+    node = ns << 1.2
+    other = ns['other'] << -1.2
+    rootnode = plf.grow(ns, node, other)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -189,11 +198,11 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Twig object"""
     plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Plugin object"""
+    """Just display the current contents of the Twig object"""
     plf.display('_tdl_job', full=True)
        
 
@@ -210,22 +219,18 @@ def _tdl_job_display_full (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
-    xtor = None
     if 1:
-        xtor = Executor.Executor()
-        xtor.add_dimension('l', unit='rad')
-        xtor.add_dimension('m', unit='rad')
-
-    if 1:
-        plf = LeafDimGrids(xtor=xtor)
+        plf = TwigFork()
         plf.display('initial')
 
     if 1:
         plf.make_TDLCompileOptionMenu()
 
     if 1:
+        node = ns << 1.2
+        other = ns['other'] << -1.2
         test = dict()
-        plf.grow(ns, test=test, trace=True)
+        plf.grow(ns, node, other, test=test, trace=False)
 
     if 1:
         plf.display('final', OM=True, full=True)

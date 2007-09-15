@@ -171,6 +171,10 @@ def _tdl_job_display (mqs, parent):
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the Twig object"""
     pgt.display('_tdl_job', full=True)
+
+def _tdl_job_print_tree (mqs, parent):
+    """Just display the current contents of the Twig object"""
+    pgt.print_tree(recurse=3)
        
 
 

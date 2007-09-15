@@ -42,8 +42,8 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grow import Demo
-from Timba.Contrib.JEN.Grow import LeafParm
+from Timba.Contrib.JEN.Grow import TwigDemo
+from Timba.Contrib.JEN.Grow import TwigLeafParm
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -54,26 +54,26 @@ import math
 #=============================================================================
 #=============================================================================
 
-class DemoSolver(Demo.Demo):
-    """Class derived from Demo"""
+class DemoSolver(TwigDemo.TwigDemo):
+    """Class derived from TwigDemo"""
 
     def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Demo.Demo.__init__(self,
+        TwigDemo.TwigDemo.__init__(self,
                            quals=quals,
                            name='DemoSolver',
                            submenu=submenu,
                            OM=OM, namespace=namespace,
                            **kwargs)
 
-        # Use the LeafParm Plugin as the 'left-hand-side' of the equation(s).
+        # Use the TwigLeafParm Plugin as the 'left-hand-side' of the equation(s).
         # It shares the OptionManager (OM), so the LeafParm menu is nested
-        # in the Demo menu by giving the correct subsub menu name.
+        # in the TwigDemo menu by giving the correct subsub menu name.
         subsubmenu = submenu+'.'+self.name
-        self._lhs = LeafParm.LeafParm (submenu=subsubmenu, OM=self._OM)
+        self._lhs = TwigLeafParm.TwigLeafParm (submenu=subsubmenu, OM=self._OM)
         return None
 
     

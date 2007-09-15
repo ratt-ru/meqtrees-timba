@@ -1,12 +1,13 @@
-# file: ../Grow/DemoModRes.py
+# file: ../JEN/Grow/TwigLeafDimGrids.py
 
 # History:
-# - 07sep2007: creation (from Plugin.py)
+# - 14sep2007: creation (from Growth.py)
 
 # Description:
 
-"""The DemoModRes class makes makes a subtree that takes an input node and
-produces a new rootnode by .....
+"""The TwigLeafDimGrids class makes a subtree that represents a
+combination (e.g. sum) of MeqGrid nodes for the selected
+dimensions (e.g. freq. time, l, m, etc).
 """
 
 
@@ -40,92 +41,103 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import TwigDemo
+# import Meow
+
+from Timba.Contrib.JEN.Grow import TwigLeaf
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
-import math
+# import math
+# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class DemoModRes(TwigDemo.TwigDemo):
-    """Class derived from TwigDemo"""
+class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
+    """Class derived from Plugin"""
 
-    def __init__(self,
-                 quals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
+                 xtor=None, dims=None,
                  OM=None, namespace=None,
                  **kwargs):
 
-        TwigDemo.TwigDemo.__init__(self, name='DemoModRes',
-                           quals=quals,
+        TwigLeaf.TwigLeaf.__init__(self, quals=quals,
+                           name='TwigLeafDimGrids',
                            submenu=submenu,
+                           xtor=xtor, dims=dims,
                            OM=OM, namespace=namespace,
                            **kwargs)
+
         return None
 
     
     #====================================================================
 
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = TwigLeaf.TwigLeaf.oneliner(self)
+        return ss
+    
+
+    def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
+        """Print a summary of this object"""
+        prefix = self.display_preamble(self.name, level=level, txt=txt)
+        #...............................................................
+        print prefix,'  * xxx'
+        #...............................................................
+        TwigLeaf.TwigLeaf.display(self, full=full,
+                          recurse=recurse,
+                          OM=OM, level=level+1)
+        #...............................................................
+        return self.display_postamble(prefix, level=level)
+
+    
+    #====================================================================
+
+
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
+        This function must be re-implemented in derived TwigLeaf classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = [[2,3],[3,2],[3,4],[4,5]]
-        self._OM.define(self.optname('num_cells'), opt[0],
-                        prompt='nr of cells [nt,nf]',
-                        opt=opt, more=str,
-                        doc="""Covert the REQUEST to a lower a resolution.
-                        """)
-        self._OM.define(self.optname('resamp_mode'), 1,
-                        prompt='resampler mode',
-                        opt=[1,2],
-                        doc="""Mode 2 only works with time,freq domains.
-                        """)
+
+        # Optional (depends on the kind of TwigLeaf): 
+        self._define_dims_options()
+        self._define_combine_options()
+
         #..............................................
         return self.on_exit(trace=trace)
 
+
+
+    #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=True):
+    def grow (self, ns, test=None, trace=True):
         """Specific: Make the plugin subtree.
+        This function must be re-implemented in derived TwigLeaf classes. 
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Read the specified options:
-        num_cells = self.optval('num_cells', test=test)
-        num_cells = self._OM._string2list(num_cells, length=None)
-        rmode = self.optval('resamp_mode', test=test)
+        # Placeholder, to be replaced:
+        rr = self.make_MeqGrid_nodes (trace=trace)
+        node = self.combine_MeqGrid_nodes (rr, trace=trace)
 
-        # Make a side-branch that first lowers the resolution (modres),
-        # by simply lowering the resolution of the request
-        # then resamples the result to the the original resolution,
-        # and then takes the difference with the original input to
-        # check the quality of the two operations.
-        original = self.ns['original'] << Meq.Identity(node) 
-        modres = self.ns['modres'] << Meq.ModRes(node, num_cells=num_cells) 
-        resampled = self.ns['resampled'] << Meq.Resampler(modres, mode=rmode) 
-        diff = self.ns['diff'] << Meq.Subtract(resampled,original) 
-
-        # The reqseq issues a (full-resolution) request first to the
-        # branch that changes the resolution back and forth, and then to the
-        # branch that holds the original resolution. Since it
-        # is only a demonstration, the original result (1) is passed on.
-        node = self.ns['reqseq'] << Meq.ReqSeq(diff,original,
-                                               result_index=1)
-        self.bookmark([modres,resampled,diff]) 
         #..............................................
         # Finishing touches:
         return self.on_output (node, trace=trace)
 
+
+
+    
 
 
 
@@ -136,28 +148,28 @@ class DemoModRes(TwigDemo.TwigDemo):
 #=============================================================================
 
 
-pgt = None
+plf = None
 if 0:
     xtor = Executor.Executor()
-    # xtor.add_dimension('l', unit='rad')
-    # xtor.add_dimension('m', unit='rad')
-    pgt = DemoModRes()
-    pgt.make_TDLCompileOptionMenu()
-    # pgt.display()
+    xtor.add_dimension('l', unit='rad')
+    xtor.add_dimension('m', unit='rad')
+    plf = TwigLeafDimGrids(xtor=xtor)
+    plf.make_TDLCompileOptionMenu()
+    # plf.display('outside')
 
 
 def _define_forest(ns):
 
-    global pgt,xtor
-    if not pgt:
+    global plf,xtor
+    if not plf:
         xtor = Executor.Executor()
-        pgt = DemoModRes()
-        pgt.make_TDLCompileOptionMenu()
+        plf = TwigLeafDimGrids(xtor=xtor)
+        plf.make_TDLCompileOptionMenu()
 
     cc = []
 
-    node = ns << 1.0
-    rootnode = pgt.grow(ns, node)
+    # node = xtor.leafnode(ns)
+    rootnode = plf.grow(ns)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -177,12 +189,12 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Demo object"""
-    pgt.display('_tdl_job')
+    """Just display the current contents of the Plugin object"""
+    plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Demo object"""
-    pgt.display('_tdl_job', full=True)
+    """Just display the current contents of the Plugin object"""
+    plf.display('_tdl_job', full=True)
        
 
 
@@ -198,20 +210,25 @@ def _tdl_job_display_full (mqs, parent):
 if __name__ == '__main__':
     ns = NodeScope()
 
+    xtor = None
     if 1:
-        pgt = DemoModRes()
-        pgt.display('initial')
+        xtor = Executor.Executor()
+        xtor.add_dimension('l', unit='rad')
+        xtor.add_dimension('m', unit='rad')
 
     if 1:
-        pgt.make_TDLCompileOptionMenu()
+        plf = TwigLeafDimGrids(xtor=xtor)
+        plf.display('initial')
 
     if 1:
-        node = ns << 1.0
-        test = dict(num_cells=[2,4])
-        pgt.grow(ns, node, test=test, trace=True)
+        plf.make_TDLCompileOptionMenu()
 
     if 1:
-        pgt.display('final', OM=True, full=True)
+        test = dict()
+        plf.grow(ns, test=test, trace=True)
+
+    if 1:
+        plf.display('final', OM=True, full=True)
 
 
 

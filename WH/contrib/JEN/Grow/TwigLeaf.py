@@ -1,14 +1,15 @@
-# file: ../JEN/Grow/Leaf.py
+# file: ../JEN/Grow/TwigLeaf.py
 
 # History:
-# - 10sep2007: creation (from LeafGrids.py)
+# - 15sep2007: creation (from Leaf.py)
 
 # Description:
 
-"""The Leaf class makes makes a node/subtree that has no
-children, i.e. it resides at the tip of a MeqTree branch.
-It is a base-class for specialised classes like LeafConstant,
-LeafParm etc, and is itself derived from the Growth base-class.
+"""The TwigLeaf class is derived from Twig, so it deals with
+single-node input/result. It makes makes a node/subtree that has no
+children, i.e. it resides at the tip of a branch.
+It is a base-class for specialised classes like TwigLeafConstant,
+TwigLeafParm etc, and is itself derived from the Twig base-class.
 """
 
 
@@ -42,7 +43,7 @@ LeafParm etc, and is itself derived from the Growth base-class.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Growth
+from Timba.Contrib.JEN.Grow import Twig
 from Timba.Contrib.JEN.control import Executor
 
 # import math
@@ -53,11 +54,11 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 #=============================================================================
 
-class Leaf(Growth.Growth):
-    """Base-class for LeafSomething classes, itself derived from Growth"""
+class TwigLeaf(Twig.Twig):
+    """Base-class for TwigLeafSomething classes, itself derived from Twig"""
 
     def __init__(self, quals=None,
-                 name='Leaf',
+                 name='TwigLeaf',
                  submenu='compile',
                  xtor=None, dims=None,  
                  OM=None, namespace=None,
@@ -77,12 +78,13 @@ class Leaf(Growth.Growth):
             self._available_dims = ['freq','time']
         self._dims = []                                # selected dims
 
-        Growth.Growth.__init__(self, quals=quals,
-                               name=name,
-                               submenu=submenu,
-                               has_input=False,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        Twig.Twig.__init__(self, quals=quals,
+                           name=name,
+                           submenu=submenu,
+                           has_input=False,
+                           toggle=False,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
 
         return None
 
@@ -90,14 +92,14 @@ class Leaf(Growth.Growth):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Growth.Growth.oneliner(self)
+        ss = Twig.Twig.oneliner(self)
         return ss
     
 
     def display(self, txt=None, full=False, recurse=3,
                 OM=True, level=0):
         """Print a summary of this object"""
-        prefix = self.display_preamble('Leaf', level=level, txt=txt)
+        prefix = self.display_preamble('TwigLeaf', level=level, txt=txt)
         #...............................................................
         if self._xtor:
             print prefix,'  * '+self._xtor.oneliner()
@@ -105,7 +107,7 @@ class Leaf(Growth.Growth):
         print prefix,'  * dims (selected)  ='+str(self._dims)
             
         #...............................................................
-        Growth.Growth.display(self, full=full,
+        Twig.Twig.display(self, full=full,
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
@@ -278,18 +280,18 @@ class Leaf(Growth.Growth):
 
     #====================================================================
     # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived Leaf classes) 
+    # (These must be re-implemented in derived TwigLeaf classes) 
     #====================================================================
 
     def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Leaf classes. 
+        This function must be re-implemented in derived TwigLeaf classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Optional (depends on the kind of Leaf): 
+        # Optional (depends on the kind of TwigLeaf): 
         self._define_dims_options()
         self._define_combine_options()
 
@@ -303,7 +305,7 @@ class Leaf(Growth.Growth):
 
     def grow (self, ns, test=None, trace=False):
         """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Leaf classes. 
+        This function must be re-implemented in derived TwigLeaf classes. 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
@@ -340,7 +342,7 @@ if 0:
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
 
-    plf = Leaf(xtor=xtor)
+    plf = TwigLeaf(xtor=xtor)
     plf.make_TDLCompileOptionMenu()
     # plf.display('outside')
 
@@ -350,7 +352,7 @@ def _define_forest(ns):
     global plf,xtor
     if not plf:
         xtor = Executor.Executor()
-        plf = Leaf(xtor=xtor)
+        plf = TwigLeaf(xtor=xtor)
         plf.make_TDLCompileOptionMenu()
 
     cc = []
@@ -375,11 +377,11 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Growth object"""
+    """Just display the current contents of the object"""
     plf.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Growth object"""
+    """Just display the current contents of the object"""
     plf.display('_tdl_job', full=True)
        
 
@@ -405,10 +407,10 @@ if __name__ == '__main__':
         # xtor.add_dimension('y', unit='m')
 
     if 1:
-        plf = Leaf(xtor=xtor)
+        plf = TwigLeaf(xtor=xtor)
     else:
         dims = ['x','y']
-        plf = Leaf(xtor=xtor, dims=dims)
+        plf = TwigLeaf(xtor=xtor, dims=dims)
     plf.display('initial')
 
     if 1:
