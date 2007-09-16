@@ -1,27 +1,3 @@
-
-#% $Id$ 
-
-#
-# Copyright (C) 2006
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
 from Timba.TDL import *
 from Timba.Meq import meq
 from numarray import *
@@ -109,6 +85,8 @@ TDLOption('dosubtile',"subtile",[True,False],default=True),
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
 # beams
 TDLOption('stationbeam',"Station Beam",[True,False],default=True),
+# HBA or LBA
+TDLOption('use_lba',"LBA Model",[True,False],default=True),
 );
 
 TDLCompileMenu("Post-flags",
@@ -176,7 +154,7 @@ def _define_forest(ns, parent=None, **kw):
 
 
   if dosubtile:
-   def_tiling=record(time=1)
+   def_tiling=record(time=3)
   else:
    def_tiling=None
 
@@ -264,10 +242,14 @@ def _define_forest(ns, parent=None, **kw):
   # predict all other sources via beam
   # add EJones
   beam_parms=[];
-  if stationbeam:
-    Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  if use_lba:
+    if stationbeam:
+      Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+    else:
+      Ej = global_model.EJones_droopy_comp(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
   else:
-    Ej = global_model.EJones_droopy_comp(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+      Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in ordlist
@@ -296,6 +278,17 @@ def _define_forest(ns, parent=None, **kw):
     ns.residual(sta1,sta2) << spigot - pred
 
 
+  ## attach a clipper too as final flagging step
+  ## also cutoff
+  abs_cutoff=abs_clipval;
+  for sta1,sta2 in array.ifrs():
+    inp = ns.residual(sta1,sta2);
+    a = ns.flagged("abs",sta1,sta2) << Meq.Abs(inp);
+    fc = ns.flagged("abscutoff",sta1,sta2) << a - abs_cutoff;
+    ns.flagged(sta1,sta2) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"));
+ 
+
+
 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
   cpo = [];
@@ -309,7 +302,7 @@ def _define_forest(ns, parent=None, **kw):
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.residual(sta1,sta2),
+    reqseq = Meq.ReqSeq(ns.solver,ns.flagged(sta1,sta2),
                   result_index=1,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
@@ -434,7 +427,6 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
     filelist1 += [p.sub('_S.MS',fname)]
   
   filelist=filelist1 
-  print filelist
   
   ### run each file through the pipeline
   if do_preprocess:

@@ -1,27 +1,3 @@
-
-#% $Id$ 
-
-#
-# Copyright (C) 2006
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
 from Timba.TDL import *
 from Timba.Meq import meq
 from numarray import *
@@ -76,6 +52,8 @@ TDLOption('solver_maxiter',"Max iterations",[10,3,15],more=int),
 TDLOption('tile_size',"Tile size",[6,10,30,48,60,96,480],more=int),
 # solve for full J Jones or  diagonal J Jones
 TDLOption('full_J',"Full Jones",[False,True]),
+# create condeq residual plots
+TDLOption('residual_plots',"Residual Plots",[False,True]),
 );
 
 TDLRuntimeMenu("Calibration",
@@ -106,6 +84,8 @@ TDLOption('dosubtile',"subtile",[True,False],default=True),
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
 # beams
 TDLOption('stationbeam',"Station Beam",[True,False],default=True),
+# HBA or LBA
+TDLOption('use_lba',"LBA Model",[True,False],default=True),
 );
 
 
@@ -168,11 +148,14 @@ def _define_forest(ns, parent=None, **kw):
   
   # add EJones
   beam_parms=[];
-  if stationbeam:
-    Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
-  else:
-    Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
-
+  if use_lba:
+    if stationbeam:
+      Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+    else:
+      Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+  else: # HBA
+      Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+    
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
       for src in source_list
@@ -301,10 +284,10 @@ def create_solver_defaults(num_iter=solver_maxiter,epsilon=1e-4,convergence_quot
   solver_defaults.convergence_quota = convergence_quota
   solver_defaults.balanced_equations = False
   solver_defaults.debug_level = solver_debug_level;
-  #solver_defaults.save_funklets= True
-  solver_defaults.save_funklets= False
-  #solver_defaults.last_update  = True
-  solver_defaults.last_update  = False
+  solver_defaults.save_funklets= mysave
+  #solver_defaults.save_funklets= False
+  solver_defaults.last_update  = mysave
+  #solver_defaults.last_update  = False
   solver_defaults.debug_file = debug_file
 #See example in TDL/MeqClasses.py
   solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
@@ -446,10 +429,11 @@ def _do_postprocess(fname,mqs):
   # because we will go on to the next MS
   os.spawnvp(os.P_WAIT,'glish',['glish','-l','postprocess_uv.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
   # residual plots
-  for spwid in range(0,max_spwid):
-    for schan in range(start_channel,end_channel,channel_step):
-      debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
-      solver_plots.create_residual_plots(debug_filename)
+  if residual_plots:
+   for spwid in range(min_spwid-1,max_spwid):
+     for schan in range(start_channel,end_channel,channel_step):
+       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
+       solver_plots.create_residual_plots(debug_filename)
 
   # cleanup any crumbs left from glish
   # to be done

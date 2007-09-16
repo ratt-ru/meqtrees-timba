@@ -1,38 +1,15 @@
-
-#% $Id$ 
-
-#
-# Copyright (C) 2006
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
 from Timba.TDL import *
 from Meow.Utils import *
 from Meow.Direction import *
 from Meow.PointSource import *
 from Meow.GaussianSource import *
 import Meow
-#from Meow.Shapelet import *
+from Meow.Shapelet import *
 
 from Timba.LSM.LSM import LSM
 
 
+beampath="/home/sarod/";
 ## for observations without phase tracking
 def point_and_extended_sources_nophasetrack(ns,lsm,tablename=''):
   """ define two extended sources: positions and flux densities """
@@ -112,11 +89,16 @@ def point_and_extended_sources_abs (ns,lsm,tablename=''):
      if f0==0:
        f0=150e6
      if eX!=0 or eY!=0 or eP!=0:
-         source_model.append( GaussianSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
-                  Iorder=0, direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
+         #source_model.append( GaussianSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+         #         Iorder=0, direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
+         #         spi=SIn,freq0=f0,
+         #         size=[eX,eY],phi=eP,
+         #         parm_options=parm_options));
+         source_model.append( Shapelet(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+                  direction=Direction(ns,pu.name,ra,dec),
                   spi=SIn,freq0=f0,
                   size=[eX,eY],phi=eP,
-                  parm_options=parm_options));
+                  modefile=beampath+"/Cas_A-4.model.FITS.modes"));
      else:
        # point sources
        if RM==0: 
@@ -126,9 +108,9 @@ def point_and_extended_sources_abs (ns,lsm,tablename=''):
 
        else:
          source_model.append( PointSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
-                  direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
+                  direction=Direction(ns,pu.name,ra,dec),
                   spi=SIn,freq0=f0, RM=RM,
-                  parm_options=parm_options));
+                  ));
 
 
 
@@ -205,7 +187,7 @@ def makebeam(ns=None,pol='X',scale=1.0, phi0=0, h0=1.4, station=0,solvable=False
         solvables.append(p_h.name);
 
     beam = ns.beam(pol,station) << Meq.PrivateFunction(children =(p_scale,p_phi,p_h),
-        lib_name="/home/sarod/beams/beam.so",function_name="test");
+        lib_name=beampath+"/beams/beam.so",function_name="test");
 
     return beam;
 
@@ -232,7 +214,7 @@ def makebeam_cutoff(ns=None,pol='X',scale=1.0, phi0=0, h0=1.4, station=0,solvabl
         solvables.append(p_h.name);
 
     beam = ns.beam_cutoff(pol,station) << Meq.PrivateFunction(children =(p_scale,p_phi,p_h),
-        lib_name="/home/sarod/beams/beam_cutoff.so",function_name="test");
+        lib_name=beampath+"/beams/beam_cutoff.so",function_name="test");
 
     return beam;
 
@@ -263,7 +245,7 @@ def makebeam_droopy(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.7
         solvables.append(p_alpha.name);
 
     beam = ns.beam_droopy(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr.so",function_name="test");
+        lib_name=beampath+"/beams/beam_dr.so",function_name="test");
  
     return beam;
 
@@ -292,7 +274,7 @@ def makebeam_droopy_phi(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h
         solvables.append(p_h.name);
         solvables.append(p_alpha.name);
     beam =  ns.beam_phi(pol,station)<< Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_phi.so",function_name="test");
+        lib_name=beampath+"/beams/beam_dr_phi.so",function_name="test");
 
     return beam;
 
@@ -321,7 +303,66 @@ def makebeam_droopy_theta(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001,
         solvables.append(p_h.name);
         solvables.append(p_alpha.name);
     beam = ns.beam_theta(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
-        lib_name="/home/sarod/beams/beam_dr_theta.so",function_name="test");
+        lib_name=beampath+"/beams/beam_dr_theta.so",function_name="test");
+    return beam;
+
+
+### the parms here are ignored
+def makebeam_hba_phi(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.706, station=0,solvable=False,solvables=[],meptable=None):
+    p_L=ns.p_L(pol,station)
+    if not p_L.initialized():
+       p_L<<Meq.ToComplex(Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True),0);
+    p_phi=ns.p_phi(pol,station)
+    if pol=='Y':
+      # add extra pi/2 
+      if not p_phi.initialized():
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True),0);
+    else:
+      if not p_phi.initialized():
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True),0);
+    p_h=ns.p_h(pol,station)
+    if not p_h.initialized():
+      p_h<<Meq.ToComplex(Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True),0);
+    p_alpha=ns.p_alpha(pol,station)
+    if not p_alpha.initialized():
+      p_alpha<<Meq.ToComplex(Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True),0);
+
+    if solvable:
+        solvables.append(p_L.name);
+        solvables.append(p_phi.name);
+        solvables.append(p_h.name);
+        solvables.append(p_alpha.name);
+    beam =  ns.beam_phi(pol,station)<< Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
+        lib_name=beampath+"/beams/hba_beam_phi.so",function_name="test");
+
+    return beam;
+
+def makebeam_hba_theta(ns=None,pol='X',L=0.9758, phi0=0, alpha=math.pi/4.001, h=1.706, station=0,solvable=False,solvables=[],meptable=None):
+    p_L=ns.p_L(pol,station)
+    if not p_L.initialized():
+       p_L<<Meq.ToComplex(Meq.Parm(L,node_groups='Parm', table_name=meptable,auto_save=True));
+    p_phi=ns.p_phi(pol,station)
+    if pol=='Y':
+      # add extra pi/2 
+      if not p_phi.initialized():
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0-math.pi/2,node_groups='Parm', table_name=meptable,auto_save=True));
+    else:
+      if not p_phi.initialized():
+        p_phi<<Meq.ToComplex(Meq.Parm(phi0,node_groups='Parm', table_name=meptable,auto_save=True));
+    p_h=ns.p_h(pol,station)
+    if not p_h.initialized():
+      p_h<<Meq.ToComplex(Meq.Parm(h,node_groups='Parm', table_name=meptable,auto_save=True));
+    p_alpha=ns.p_alpha(pol,station)
+    if not p_alpha.initialized():
+      p_alpha<<Meq.ToComplex(Meq.Parm(alpha,node_groups='Parm', table_name=meptable,auto_save=True));
+
+    if solvable:
+        solvables.append(p_L.name);
+        solvables.append(p_phi.name);
+        solvables.append(p_h.name);
+        solvables.append(p_alpha.name);
+    beam = ns.beam_theta(pol,station) << Meq.PrivateFunction(children =(p_h,p_L,p_alpha,p_phi),
+        lib_name=beampath+"/beams/hba_beam_theta.so",function_name="test");
     return beam;
 
 
@@ -652,6 +693,49 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
         else:
           Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/88.00
         #Ej(station) <<Meq.Matrix22(el_S*az_S*Xediag_theta,az_C*Xediag_phi,Meq.Negate(el_S*az_S)*Yediag_theta,az_C*Yediag_phi)
+
+  return Ej0;
+
+
+#### HBA
+def EJones_HBA(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
+  Bx_phi={}
+  Bx_theta={}
+  By_phi={}
+  By_theta={}
+  
+  for station in array.stations():
+   Bx_phi[station] = makebeam_hba_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   Bx_theta[station] = makebeam_hba_theta(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_phi[station] = makebeam_hba_phi(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_theta[station] = makebeam_hba_theta(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+
+  Ej0 = ns[name];
+
+  # get array xyz
+  xyz=array.xyz();
+
+  # create per-direction, per-station E Jones matrices
+  for src in sources:
+    dirname = src.direction.name;
+    radec=src.direction.radec()
+    Ej = Ej0(dirname);
+
+    # create Az,El per source, using station 1
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    # make shifts
+    az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
+    azX=ns.azX(dirname)<<az-math.pi/4
+    azY=ns.azY(dirname)<<az-math.pi/4
+    el=ns.el(dirname)<<Meq.Selector(azelnode,multi=True,index=[1])
+   
+    for station in array.stations():
+        Xediag_phi = ns.Xediag_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(azX,el),Bx_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Xediag_theta= ns.Xediag_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(azX,el),Bx_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        # create E matrix
+        Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/600
 
   return Ej0;
 

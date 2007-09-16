@@ -1,27 +1,3 @@
-
-#% $Id$ 
-
-#
-# Copyright (C) 2006
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
 include 'imager.g'
 include 'viewer.g'
 include 'image.g'
@@ -71,8 +47,9 @@ myphasecenter:=dm.direction('J2000', '00h00m00','90d00m00')
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100 and (TIME/(24*3600) <= MJD(19may2007/12:46:00)) or TIME/(24*3600) >= MJD(19may2007/18:02:00)",fid)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(28may2007/16:11:00)) and  TIME/(24*3600) >= MJD(27may2007/19:06:00)",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(27may2007/15:21:00)) and  TIME/(24*3600) >= MJD(26may2007/19:06:00)",fid,limuv)
-msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(21jul2007/06:25:00) or ( TIME/(24*3600) >= MJD(21jul2007/13:42:00) and  TIME/(24*3600) <= MJD(22jul2007/08:46:00))) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
-#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
+#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(20jul2007/17:24:00)) and  (TIME/(24*3600) <= MJD(21jul2007/09:17:00)) ) or ( TIME/(24*3600) >= MJD(21jul2007/17:28:00) and  TIME/(24*3600) <= MJD(22jul2007/09:43:00))) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
+#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(20jul2007/17:24:00)) and  (TIME/(24*3600) <= MJD(21jul2007/09:17:00)) ) ) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
+msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and sqrt(sumsqr(CORRECTED_DATA))/2<45000",fid,limuv)
 
 
 
@@ -90,7 +67,10 @@ myimager.setdata(mode='channel', fieldid=fid, spwid=spid,
              nchan=1,
              start=startch, msselect=msstr,
              step=1, async=F);
-myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+# LBA
+#myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+# HBA
+myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 myimager.setoptions(ftmachine='wproject', wprojplanes=128, padding=1.2 , cache=500000000)
 myimager.makeimage(type="corrected",image=my_img,async=False);
 myimager.close()
