@@ -84,6 +84,11 @@ class Growth (object):
         self._input = None
         self._has_input = has_input
 
+        # Switch that indicates whether the mandatory function
+        # self.create_Growth_objects() has been called already
+        self._created_Growth_objects = False
+        self._Growth_objects = dict()
+
         # If toggle=True, provide a toggle widget to its subenu
         self._toggle = toggle
 
@@ -198,6 +203,7 @@ class Growth (object):
         if isinstance(ignore,bool):
             self._ignore = ignore
         self._OM.hide(self._submenu, hide=self._ignore)
+        self._OM.set_menurec(self._submenu, selected=(not self._ignore))
         return self._ignore
 
 
@@ -221,6 +227,11 @@ class Growth (object):
         prefix = self.display_preamble('Growth', level=level, txt=txt)
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
+        print prefix,'  * created_Growth_objects: '+str(self._created_Growth_objects)
+        for key in self._Growth_objects.keys():
+            G = self._Growth_objects[key]
+            print prefix,'    - '+key+': '+str(G.oneliner())
+        #...............................................................
         print prefix,'  * datadesc: '+str(self.datadesc(trace=False))
         #...............................................................
         print prefix,'  * nodes to be bookmarked (visualize='+str(self._visualize)+'):'
@@ -252,7 +263,10 @@ class Growth (object):
         """Helper function called by .display(). Also used in reimplemented
         .display() in derived classes"""
         print prefix,'**'
-        if level==0: print
+        if level==0:
+            print
+            if self._OM:
+                self._OM.print_tree()
         return True
 
 
@@ -317,7 +331,7 @@ class Growth (object):
 
         # This is a menu 'of the first stare'.
         # The stare number is used in OM.print_tree()
-        self._OM.set_menurec(self._submenu, stare=1)
+        self._OM.set_menurec(self._submenu, stare=1, descr=self.name)
 
         # Optional: add a toggle widget to the menu:
         if self._toggle:
@@ -410,13 +424,13 @@ class Growth (object):
         NB: This call is not needed with an external OptionManager,
         since the menu will be part of that of the parent object.
         """
+        if not self._created_Growth_objects:
+            self.create_Growth_objects()
+            self._created_Growth_objects = True
         if not self._external_OM:
             self._OM.make_TDLCompileOptionMenu(**kwargs)
         return True
     
-
-
-
 
     #====================================================================
     # Generic functions dealing with subtree generation:
@@ -436,19 +450,26 @@ class Growth (object):
         self._done_on_input = True
 
         # Initialize the return value (see below)
-        result = True
+        proceed = True
 
         # Store and check the input, and initialise the return value
         if self._has_input:
             self._input = input         # keep for later use
-            result = self.check_input(self._input, severe=severe, trace=trace)
+            proceed = self.check_input(self._input, severe=severe, trace=trace)
 
         # If the ignore switch is set, do nothing (see also .ignore())
         # NB: This should be AFTER setting self._input !!
         if self._ignore:
-            result = False              # This will cause .grow() to exit
+            proceed = False              # This will cause .grow() to exit
             if trace:
                 print s,'ignored'
+
+        # If things are still OK (proceed==True), make sure that all the
+        # necessary Growth objects have been created: 
+        if proceed:
+            if not self._created_Growth_objects:     # not yet done
+                self.create_Growth_objects()         # call the function  
+                self._created_Growth_objects = True  # set the switch
 
         # Check the nodescope, and make the self.ns/ns0 that will be used.
         self.ns0 = ns
@@ -465,7 +486,7 @@ class Growth (object):
             print '    ',str(self.ns('dummy'))
 
         # NB: The calling routine .grow() aborts if return=False
-        return result
+        return proceed
 
 
     #--------------------------------------------------------------------
@@ -533,7 +554,9 @@ class Growth (object):
                         callback=self._callback_ignore,
                         doc="""this is used for testing
                         """)
-        self._OM.set_menurec(self._submenu+'.misc', prompt='miscellaneous')
+        self._OM.set_menurec(self._submenu+'.misc',
+                             prompt='miscellaneous',
+                             stare=2)
 
         if len(self._mode.keys())>0:
             self._OM.define(self.optname('misc.mode'), None,
@@ -701,7 +724,13 @@ class Growth (object):
         #............................................
         return self.on_exit(trace=trace)
     
+    #--------------------------------------------------------------------
 
+    def create_Growth_objects (self, trace=False):
+        """Specific: Create any Growth objects, sharing the OptionManager
+        This placeholder function should be reimplemented by a derived class.
+        """
+        return True
 
     #--------------------------------------------------------------------
 

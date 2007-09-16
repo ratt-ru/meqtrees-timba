@@ -230,7 +230,7 @@ class Twig(Growth.Growth):
         #..............................................
 
         # Placeholder:
-        self._OM.define(self.optname('xxx'), 45)
+        # self._OM.define(self.optname('xxx'), 45)
 
         #..............................................
         return self.on_exit(trace=trace)

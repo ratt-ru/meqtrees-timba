@@ -5,8 +5,7 @@
 
 # Description:
 
-"""The TwigAddNoise class makes makes a subtree that takes an input node and
-produces a new rootnode by .....
+"""The TwigAddNoise class adds (gaussian) noise to its input result.
 """
 
 

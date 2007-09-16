@@ -89,27 +89,14 @@ class TwigBranch(Twig.Twig):
                                defer_compile_options=True,
                                **kwargs)
 
-        # Define the choice of Leaves:
+        # Initialize the choice of Leaves:
         self._leaf = dict()
         self._dims = dims
         self._xtor = xtor
-        submenu = self._submenu+'.Leaf'
-        self._optname_selected_Leaf = 'Leaf.selected_Leaf'
-        self.define_leaves (submenu, trace=True)
-        self._OM.set_menurec(submenu, prompt='customize the selected Leaf')
 
-        # Define the Twig sequence:
+        # Initialize the Twig sequence:
         self._plugin_order = []
         self._plugin = dict()
-        submenu = self._submenu+'.Twig'
-        self.define_plugin_sequence (submenu, trace=True)
-        self._OM.set_menurec(submenu, prompt='customize the Twig sequence')
-
-        # This function needs self._leaf.keys() etc:
-        self._define_TwigBranch_compile_options()
-
-        # Execute the deferred function:
-        self.define_compile_options()
 
         return None
 
@@ -140,6 +127,7 @@ class TwigBranch(Twig.Twig):
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
+        #...............................................................
         return self.display_postamble(prefix, level=level)
 
 
@@ -157,7 +145,7 @@ class TwigBranch(Twig.Twig):
             print '\n** .add_plugin(',type(plugin),modes,'):'
             
         # print '** type Twig: ',isinstance(plugin, Twig.Twig)
-        # print '** type Demo: ',isinstance(plugin, Demo.Demo)
+        # print '** type Demo: ',isinstance(plugin, TwigDemo.TwigDemo)
             
         # OK, add the valid plugin to the list:
         name = plugin.name
@@ -180,7 +168,7 @@ class TwigBranch(Twig.Twig):
             print '\n** .add_leaf(',type(leaf),modes,'):'
             
         # print '** type Twig: ',isinstance(leaf, Twig.Twig)
-        # print '** type Leaf: ',isinstance(leaf, Leaf.Leaf)
+        # print '** type Leaf: ',isinstance(leaf, TwigLeaf.TwigLeaf)
             
         # OK, add the valid leaf to the list:
         name = leaf.name
@@ -296,7 +284,27 @@ class TwigBranch(Twig.Twig):
         # Finishing touches:
         return self.on_output (node, trace=trace)
 
+    #---------------------------------------------------------------------------
 
+    def create_Growth_objects (self, trace=False):
+        """Reimplementation of generic Growth function.
+        """
+        submenu = self._submenu+'.Leaf'
+        self._optname_selected_Leaf = 'Leaf.selected_Leaf'
+        self.define_leaves (submenu, trace=True)
+        self._OM.set_menurec(submenu, prompt='customize the selected Leaf')
+
+        submenu = self._submenu+'.Twig'
+        self.define_plugin_sequence (submenu, trace=True)
+        self._OM.set_menurec(submenu, prompt='customize the Twig sequence')
+
+        # This function needs self._leaf.keys() etc:
+        self._define_TwigBranch_compile_options()
+
+        # Execute the deferred function:
+        self.define_compile_options()
+        return True
+        
     #---------------------------------------------------------------------------
 
     def define_leaves (self, submenu, trace=True):

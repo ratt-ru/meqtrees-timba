@@ -73,7 +73,8 @@ class DemoSolver(TwigDemo.TwigDemo):
         # It shares the OptionManager (OM), so the LeafParm menu is nested
         # in the TwigDemo menu by giving the correct subsub menu name.
         subsubmenu = submenu+'.'+self.name
-        self._lhs = TwigLeafParm.TwigLeafParm (submenu=subsubmenu, OM=self._OM)
+        self._lhs = TwigLeafParm.TwigLeafParm (self._shortname,
+                                               submenu=subsubmenu, OM=self._OM)
         return None
 
     
