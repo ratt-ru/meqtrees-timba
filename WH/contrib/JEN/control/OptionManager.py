@@ -132,11 +132,9 @@ class OptionManager (object):
         self.menurec = dict()
         self.menu = dict()
         self.menu_order = []
-        self.menu_option_keys = dict()
-        self.menu_toggle_key = dict()
 
-        # Some reset control variables (see make_reset_option())
-        self.key_of_reset_option = dict()
+        # Some manip control variables (see make_manip_option())
+        self.key_of_manip_option = dict()
         self.undo_last_reset = dict()
 
         # Finished:
@@ -196,7 +194,7 @@ class OptionManager (object):
         The name of the internal variable is prepended with '_': self._<key>
         This is to avoid name clashes with any object attributes."""
         name = deepcopy(key)
-        # name = key.replace('.','_')
+        name = key.replace('.','_')
         # name = key.replace('.','')
         name = '_'+name
         return name
@@ -230,18 +228,30 @@ class OptionManager (object):
             for key in self.order:
                 print prefix,'    - '+key+': '+str(self.optrec[key])
         #...............................................................
-        print prefix,'  * TDLMenu object(s) ('+str(len(self.menu_order))+'): '
+        print prefix,'  * TDLMenu object(s) ('+str(len(self.menu_order))+') and their option keys: '
         for key in self.menu_order:
-            if full or self.menu[key]:
-                print prefix,'    - '+key+': '+str(self.menu[key])
             cc = []
-            for c in self.menu_option_keys[key]:
+            for c in self.menurec[key]['option_keys']:
                 cc.append(c.replace(key,''))
-            print prefix,'    - '+key+': '+str(cc)
+            ss = '(-)'
+            if self.menu[key]:
+                ss = '(+)'
+            print prefix,'    - '+ss+' '+key+': '+str(cc) 
         #...............................................................
         print prefix,'  * menu definition record(s) ('+str(len(self.menu_order))+'): '
         for key in self.menu_order:
-            print prefix,'    - '+key+': '+str(self.menurec[key])
+            mm = self.menurec[key]
+            rr = dict()
+            for key1 in mm.keys():
+                rr[key1] = mm[key1]
+            rr['option_keys'] = len(rr['option_keys'])
+            if rr['callback']:
+                rr['callback'] = True
+            if rr['prompt']:
+                rr['prompt'] = len(rr['prompt'])
+            if rr.has_key('tkey') and rr['tkey']:
+                rr['tkey'] = len(rr['tkey'])
+            print prefix,'    - '+key+': '+str(rr)
         #...............................................................
         if full:
             keys = self.option.keys()
@@ -279,24 +289,6 @@ class OptionManager (object):
         if level==0: print
         return True
 
-
-    #-----------------------------------------------------------------------------
-
-    def showtree (self, rr=None, key=None, full=False, level=0):
-        """Show self.tree"""
-        prefix = (level*'..')
-        if rr==None:
-            rr = self.tree
-            print '\n** showtree(',key,'):'
-        if isinstance(rr,dict):                  # a menu entry
-            print prefix,key,': menukey =',rr['_menukey_']
-            for key in rr['_order_']:
-                self.showtree (rr[key], key=key, level=level+1)
-        else:                                    # an option entry 
-            print prefix,key,': ',rr
-        if level==0:
-            print '\n'
-        return
 
 
     #-------------------------------------------------------------------------------    
@@ -398,10 +390,9 @@ class OptionManager (object):
                 if self.menu.has_key(menukey):
                     s = '** create('+str(menukey)+'): menu already exists'
                     raise ValueError,s
-                self.menurec[menukey] = dict(text=ss[0], option_keys=[])
+                self.set_menurec(menukey, create=True, prompt=ss[0])  
                 self.menu[menukey] = None
                 self.menu_order.append(menukey)
-                self.menu_option_keys[menukey] = []
                 rr.setdefault('_menukey_',None)          # just in case
                 rr.setdefault('_order_',[])              # just in case
                 rr['_order_'].append(ss[0])              # update the submenu order
@@ -423,7 +414,7 @@ class OptionManager (object):
         self.option[optkey] = None
         self.optrec[optkey] = optrec                     # flat record of optrecs
         self.order.append(optkey)                        # order of optrec entries
-        self.menu_option_keys[menukey].append(optkey)
+        self.menurec[menukey]['option_keys'].append(optkey)
         rr[ss[0]] = optkey
         rr.setdefault('_order_',[])                      # just in case
         rr['_order_'].append(ss[0])                      # update the submenu order
@@ -458,11 +449,47 @@ class OptionManager (object):
 
     #---------------------------------------------------------------------
 
+    def set_menurec (self, key, prompt=None, stare=None, descr=None,
+                     toggle=None, callback=None, selected=None,
+                     create=False, trace=False):
+        """Helper function to get the attribute record of the specified (key) menu.
+        If prompt, toggle or callback are specified, set them in this record first.
+        """
+
+        # Misuse this function to create/initialize a menu record
+        if create:
+            # Check existence first?
+            self.menurec[key] = dict(prompt=prompt,
+                                     stare=None, descr='<descr>',
+                                     option_keys=[], selected=None,
+                                     toggle=False, tkey=None, callback=None)
+            return self.menurec[key]
+        
+        # The regular use of this function: update existing (if any): 
+        key = self.findkey(key, self.menu_order, complete=True, one=False)
+        if not len(key)==1:
+            return False             # menu does not exist, just escape
+        key = key[0]
+        
+        if isinstance(prompt,str):
+            self.menurec[key]['prompt'] = prompt 
+        if isinstance(descr,str):
+            self.menurec[key]['descr'] = descr 
+        if isinstance(stare, int):
+            self.menurec[key]['stare'] = stare 
+        if isinstance(toggle,bool):
+            self.menurec[key]['toggle'] = toggle 
+        if callback:
+            self.menurec[key]['callback'] = callback 
+        if isinstance(selected,bool):
+            self.menurec[key]['selected'] = selected 
+        return self.menurec[key]
+        
+
     def set_menu_prompt (self, key, text, trace=False):
-        """Helper function to change the (prompt) text of the specified menu."""
-        key = self.findkey(key, self.menu_order, complete=True)
-        self.menurec[key]['text'] = text 
-        return True
+        """Legacy, being phased out"""
+        print '\n** .set_menu_prompt(',key,text,'):  use .set_menurec()!\n'
+        return self.set_menurec (key, prompt=text, trace=trace)
 
     #---------------------------------------------------------------------
 
@@ -578,7 +605,7 @@ class OptionManager (object):
     #=================================================================
 
     def make_TDLCompileOptionMenu (self, insert=None,
-                                   include_reset_option=True,
+                                   include_manip_option=True,
                                    trace=False, **kwargs):
         """Return the TDLMenu of compile-time options. Create it if necessary.
         NB: Every module that has an OptionManager, or has objects that have one,
@@ -589,13 +616,13 @@ class OptionManager (object):
         if not self.tree.has_key(cat):            # No options specified 
             return None                           # do nothing...?
         return self.make_TDLOptionMenu (self.tree[cat], insert=insert,
-                                        include_reset_option=include_reset_option,
+                                        include_manip_option=include_manip_option,
                                         cat=cat, trace=trace)
 
     #----------------------------------------------------------------------------
 
     def make_TDLRuntimeOptionMenu (self, insert=None,
-                                   include_reset_option=False,
+                                   include_manip_option=False,
                                    trace=False, **kwargs):
         """Return the TDLMenu of run-time options. Create it if necessary.
         NB: Every module that has an OptionManager, or has objects that have one,
@@ -606,15 +633,14 @@ class OptionManager (object):
         if not self.tree.has_key(cat):            # No options specified 
             return None                           # do nothing...?
         return self.make_TDLOptionMenu (self.tree[cat], insert=insert,
-                                        include_reset_option=include_reset_option,
+                                        include_manip_option=include_manip_option,
                                         cat=cat, trace=trace)
-
 
     #-----------------------------------------------------------------
 
     def make_TDLOptionMenu (self, rr, key=None, insert=None,
                             level=0, cat='compile',
-                            include_reset_option=False,
+                            include_manip_option=False,
                             trace=False):
         """Recursive function that does the work for .make_TDLCompile/RuntimeMenu().
         """
@@ -659,12 +685,16 @@ class OptionManager (object):
             if isinstance(insert, list):
                 oolist.extend(insert)
 
-            # Optional (but last): Include a 'reset' option (if required):
-            if include_reset_option:
-                oolist.append(self.make_reset_option(cat=cat))
+            # Optional (but last): Include a 'manip' option (if required):
+            if include_manip_option:
+                oolist.append(self.make_manip_option(cat=cat))
+
+            if len(oolist)==0:
+                return None
 
             # OK, make the TDLMenu:
             menukey = rr['_menukey_']
+            menurec = self.menurec[menukey]
             if level==0:
                 prepend = ' options for: '
                 if cat=='runtime':
@@ -675,20 +705,29 @@ class OptionManager (object):
                 prompt = self.namespace(prepend=prepend, append=append)
             else:
                 ss = menukey.split('.')
-                # prompt = 'submenu: '+ss[len(ss)-1]
-                # prompt = '... '+ss[len(ss)-1]
-                prompt = self.menurec[menukey]['text']
-            if len(oolist)==0:
-                return None
+                prompt = menurec['prompt']
+
+            # Menu with toggle widget:
+            if menurec['toggle']:
+                tkey = '_toggle_'+menukey
+                tkey = tkey.replace('.','_')     # avoid dots in keys....!
+                if cat=='runtime':
+                    om = TDLRuntimeMenu(prompt, toggle=tkey,
+                                        namespace=self, *oolist)
+                else:
+                    om = TDLCompileMenu(prompt, toggle=tkey,
+                                        namespace=self, *oolist)
+                menurec['tkey'] = tkey
+                if menurec['callback']:
+                    om.when_changed(menurec['callback'])
+                if menurec.has_key('selected'):
+                    om.set_value(menurec['selected'])
+
+            # Menu without toggle widget:
             elif cat=='runtime':
                 om = TDLRuntimeMenu(prompt, *oolist)
-                toggle_key = None
-                # om = TDLRuntimeMenu(prompt, toggle=toggle_key, *oolist)
             else:
                 om = TDLCompileMenu(prompt, *oolist)
-                toggle_key = '_toggle_'+menukey
-                # self.menu_toggle_key[menukey] = toggle_key
-                # om = TDLCompileMenu(prompt, toggle=toggle_key, *oolist)
 
             # Update the entry in self.menu:
             self.menu[menukey] = om
@@ -697,6 +736,12 @@ class OptionManager (object):
             self.callback_submenu()
             return om
 
+    #.....................................................................
+
+    def callback_toggle (self, toggle):
+        """Called whenever a menu is toggled"""
+        print '** callback_toggle(',toggle,'):'
+        return True
 
     #.....................................................................
 
@@ -711,7 +756,9 @@ class OptionManager (object):
                 if not menukey in ['compile','runtime']:      # ignore top-menu(s)
                     summ = '... ('
                     first = True
-                    for key in self.menu_option_keys[menukey]:
+                    keys = self.menurec[menukey]['option_keys']
+                    nchmax = max(5,20-4*len(keys))
+                    for key in keys:
                         if self.option[key]:                  # if TDLOption exists
                             value = self.option[key].value
                             if True:
@@ -722,10 +769,10 @@ class OptionManager (object):
                             if value==None:
                                 summ += '-' 
                             elif isinstance(value,str):       # avoid long strings
-                                if len(value)<10:
+                                if len(value)<nchmax:
                                     summ += value
                                 else:
-                                    summ += 'str'
+                                    summ += value[:nchmax]+'..'
                             else:                             # assume number
                                 summ += str(value)
                     summ += ')'
@@ -741,32 +788,38 @@ class OptionManager (object):
 
         
     #---------------------------------------------------------------------
-    # Functions dealing with resetting the option values:
+    # Functions dealing with overall menu manipulation:
     #---------------------------------------------------------------------
 
-    def make_reset_option (self, cat='compile', hide=False, trace=False):
-        """Make the 'reset' option, that allows reset of ALL compile-time
+    def make_manip_option (self, cat='compile', hide=False, trace=False):
+        """Make the 'manip' option, that allows reset of ALL compile-time
         options to the original values in their optrecs.
         """
         if cat=='runtime':
-            prompt = self.name+':  reset to default values (!)'
-            callback = self.callback_reset_runtime
+            prompt = self.name+':  manip to default values (!)'
+            callback = self.callback_manip_runtime
         else:
-            prompt = self.name+':  reset to default values (!)'
-            callback = self.callback_reset_compile   
+            prompt = self.name+':  manip to default values (!)'
+            callback = self.callback_manip_compile   
 
-        self.key_of_reset_option[cat] = '_key_of_reset_'+cat+'_option'
-        key = self.key_of_reset_option[cat]
+        self.key_of_manip_option[cat] = '_key_of_manip_'+cat+'_option'
+        key = self.key_of_manip_option[cat]
         if trace:
-            print '\n** make_reset_option(',cat,'): key=',key
+            print '\n** make_manip_option(',cat,'): key=',key
 
         if True or not self.option.has_key(key):
-            doc = """If True, reset all compile-time options (of this group)
+            doc = """Various overall manipulations of this menu.
+            - If 'reset':  reset all compile-time options (of this group)
             to their original default values (presumably these are sensible
             values, supplied by the module designer.)
-            If undo, restore the option values BEFORE the last reset operation
+            - If 'undo_reset':  restore the option values BEFORE the last
+            reset operation.
+            - If 'hide':  hide the secondary (stare=2) menus, to avoid clutter.
+            - If 'unhide':  unhide them again.
             """
-            oo = TDLOption(key, prompt, [False, True, 'undo'], doc=doc, namespace=self)
+            oo = TDLOption(key, prompt,
+                           [None, 'reset','undo_reset','hide','unhide'],
+                           doc=doc, namespace=self)
             self.option[key] = oo          # NB: Do NOT add this key to self.order!
             oo.when_changed(callback)
             if hide: oo.hide()
@@ -777,33 +830,54 @@ class OptionManager (object):
 
     #.....................................................................
 
-    def callback_reset_compile(self, reset):
-        """Function called whenever the 'reset' menuitem changes."""
-        if reset==True:
-            self.reset_options('compile')
-        elif reset=='undo':
-            self.reset_options(undo=True)
-        # Set the value of the 'reset' option back to False: 
-        # The option key has been defined in .make_reset_option()
-        key = self.key_of_reset_option['compile']
-        self.option[key].set_value(False, callback=False, save=True)
+    def callback_manip_compile(self, manip):
+        """Function called whenever the 'manip' menuitem changes."""
+        cat = 'compile'
+        if manip=='reset':
+            self.reset_options(cat=cat)
+        elif manip=='undo_reset':
+            self.reset_options(cat=cat, undo=True)
+        elif manip=='hide':
+            self.hide_stare2_menus(cat=cat, hide=True)
+        elif manip=='unhide':
+            self.hide_stare2_menus(cat=cat, hide=False)
+        # Set the value of the 'manip' option back to False: 
+        # The option key has been defined in .make_manip_option()
+        key = self.key_of_manip_option[cat]
+        self.option[key].set_value(None, callback=False, save=True)
         return True
 
 
     #.....................................................................
 
-    def callback_reset_runtime(self, reset):
-        """Function called whenever the 'reset' menuitem changes."""
-        if reset==True:
-            self.reset_options('runtime')
-        elif reset=='undo':
-            self.reset_options(undo=True)
-        # Set the value of the 'reset' option back to False: 
-        # The option key has been defined in .make_reset_option()
-        key = self.key_of_reset_option['runtime']
-        self.option[key].set_value(False, callback=False, save=True)
+    def callback_manip_runtime(self, manip):
+        """Function called whenever the 'manip' menuitem changes."""
+        cat = 'runtime'
+        if manip=='reset':
+            self.reset_options(cat=cat)
+        elif manip=='undo_reset':
+            self.reset_options(cat=cat, undo=True)
+        elif manip=='hide':
+             self.hide_stare2_menus(cat=cat, hide=True)
+        elif manip=='unhide':
+             self.hide_stare2_menus(cat=cat, hide=False)
+        # Set the value of the 'manip' option back to False: 
+        # The option key has been defined in .make_manip_option()
+        key = self.key_of_manip_option[cat]
+        self.option[key].set_value(None, callback=False, save=True)
         return True
 
+
+    #.....................................................................
+
+    def hide_stare2_menus(self, cat='compile', hide=False, trace=True):
+        """Hide/unhide the secondary menus (stare=2)
+        """
+        for key in self.menurec.keys():
+            stare = self.menurec[key]['stare']
+            if stare==2:
+                self.hide(key, hide=hide)
+        return True
 
     #.....................................................................
 
@@ -816,7 +890,7 @@ class OptionManager (object):
             print '\n** reset_options(',cat,', undo=',undo,'): ',self.oneliner()
 
         # Reset all options that have a regular optrec
-        # (i.e. NOT the 'reset' option itself (see .make_reset_option())
+        # (i.e. NOT the 'manip' option itself (see .make_manip_option())
         for key in self.order:
             ss = key.split('.')
             if ss[0]==cat:                             # cat= 'compile' or 'runtime'
@@ -898,6 +972,82 @@ class OptionManager (object):
         return found[0]
     
 
+
+    #-----------------------------------------------------------------
+    # Functions for printing an option tree summary:
+    #-----------------------------------------------------------------
+
+    def print_tree (self, rr=None, key=None, 
+                    level=0, recurse=None,
+                    cat='compile', trace=False):
+        """Recursive function that prints a summary of the tree structure.
+        """
+        prefix = '  '+(level*'..')
+        ignore = ['misc']
+
+        if rr==None:
+            rr = self.tree[cat]
+
+        # An option entry is a string (key into self.optrec):
+        if not isinstance(rr, dict):
+            optkey = rr
+            optrec = self.optrec[optkey]
+            opt = [self[optkey]]                  # current working value
+            # print prefix,'opt:',optkey,'=',opt    # ...temporary...
+
+        # A (sub)menu definition is a record:
+        else:
+            if recurse and level>recurse:
+                pass
+                # print prefix,'max recurse level reached: ',level,'>',recurse
+            else:
+
+                menukey = rr['_menukey_']
+                menurec = self.menurec[menukey]
+                stare = menurec['stare']         # '..being of the first stare..'
+                descr = menurec['descr']        
+                selected = menurec['selected']
+                if selected==None: selected = True
+                if selected and (not stare==None):
+                    print prefix,key,' (stare='+str(stare)+') (descr='+str(descr)+')'
+                # print '\n',menurec,'\n'
+                
+                done = []
+                for key in rr['_order_']:
+                    kbase = key.split('_')[0]    # e.g. XYZ_qual -> kbase = XYZ
+                    if key in ignore:
+                        pass
+                    elif not selected:
+                        pass
+                    elif kbase in done:
+                        pass
+                    else:
+                        self.print_tree (rr[key], key=key, cat=cat,
+                                         recurse=recurse, level=level+1)
+                        done.append(kbase)
+        return True
+
+
+    #-----------------------------------------------------------------------------
+
+    def showtree (self, rr=None, key=None, full=False, level=0):
+        """Show self.tree"""
+        prefix = (level*'..')
+        if rr==None:
+            rr = self.tree
+            print '\n** showtree(',key,'):'
+        if isinstance(rr,dict):                  # a menu entry
+            print prefix,key,': menukey =',rr['_menukey_']
+            for key in rr['_order_']:
+                self.showtree (rr[key], key=key, level=level+1)
+        else:                                    # an option entry 
+            print prefix,key,': ',rr
+        if level==0:
+            print '\n'
+        return
+
+
+
     #--------------------------------------------------------------------
     # Convenience functions for interpreting option values:
     # -> OptionManager.py
@@ -974,7 +1124,7 @@ class OptionManager (object):
         self.define('compile.xxx.span.freq_deg', 2, more=int)
         self.define('compile.constraint', constraint, order=order)
 
-        self.set_menu_prompt ('compile.xxx', 'new text')
+        self.set_menurec('compile.xxx', prompt='new text')
 
         return True
 
@@ -1071,6 +1221,9 @@ if __name__ == '__main__':
 
     if 1:
         om.display('final')
+
+    if 1:
+        om.print_tree(recurse=2)
 
     #---------------------------------------------------------------
 
