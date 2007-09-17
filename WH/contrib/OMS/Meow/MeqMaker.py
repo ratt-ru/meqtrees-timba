@@ -30,6 +30,7 @@ import math
 
 import Meow
 from Meow import StdTrees
+from Meow import ParmGroup
 
 
 def _modname (obj):
@@ -237,11 +238,13 @@ class MeqMaker (object):
     """Returns the Jones nodes associated with the given JonesTerm ('jt'). If
     the term has been disabled (through compile-time options), returns None.
     'stations' is a list of stations. 
-    'sources' is a list of source (for sky-Jones only).""";
+    'sources' is a list of source (for sky-Jones only).
+    """;
     if jt.base_node is None:
       module = self._get_selected_module(jt.label,jt.modules);
       if not module:
         return None;
+      prev_num_solvejobs = ParmGroup.num_solvejobs();  # to keep track of whether module creates its own
       jones_inspectors = [];
       # For sky-Jones terms, see if this module has pointing offsets enabled
       if isinstance(jt,self.SkyJonesTerm):
@@ -284,7 +287,12 @@ class MeqMaker (object):
       # add inspectors to internal list
       for insp in jones_inspectors:
         self._add_inspector(insp);
-        
+      # see if module has created any solvejobs; create one automatically if not
+      if ParmGroup.num_solvejobs() == prev_num_solvejobs:
+        parms = jt.base_node.search(tags="solvable");
+        if parms:
+          pg = ParmGroup(jt.label,parms);
+          ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
     return jt.base_node;
 
   def make_predict_tree (self,ns,sources=None,stations=None):

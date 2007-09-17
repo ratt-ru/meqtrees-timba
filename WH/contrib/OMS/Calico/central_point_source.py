@@ -25,7 +25,6 @@
 
 from Timba.TDL import *
 import Meow
-from ParmGroup import ParmGroup
 
 TDLCompileOption("spectral_index","Spectral index",[None,0.],more=float,
     doc="""Spectral index of source, use None for a flat spectrum""");

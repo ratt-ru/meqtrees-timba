@@ -27,7 +27,7 @@ from Timba.TDL import *
 import Meow
 from Meow import Context
 from Meow import Jones
-from ParmGroup import ParmGroup
+from Meow import ParmGroup
 
 class AmplPhaseJones (object):
   def __init__ (self):
@@ -42,10 +42,12 @@ class AmplPhaseJones (object):
     g_phase_def = Meow.Parm(0);
     nodes = Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=stations);
 
-    # now make solvejobs for phases and gains
-    self.pg_phase = ParmGroup(label+":phase",nodes.search(tags="solvable phase"));
-    self.options.append(self.pg_phase.make_solvejob_menu("Calibrate %s phases"%label));
-    self.pg_gain  = ParmGroup(label+":ampl",nodes.search(tags="solvable ampl"));
-    self.options.append(self.pg_gain.make_solvejob_menu("Calibrate %s amplitudes"%label));
-
+    # make parmgroups for phases and gains
+    self.pg_phase = ParmGroup.ParmGroup(label+"_phase",nodes.search(tags="solvable phase"));
+    self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",nodes.search(tags="solvable ampl"));
+    
+    # make solvejobs
+    ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
+    ParmGroup.SolveJob("cal_"+label+"_ampl","Calibrate %s amplitudes"%label,self.pg_ampl);
+    
     return nodes;

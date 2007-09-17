@@ -31,7 +31,7 @@ import math
 import Meow
 import Meow.StdTrees
 from Meow import Context
-from ParmGroup import ParmGroup
+from Meow import ParmGroup
 
 # MS options first
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=True);
@@ -87,6 +87,18 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
+  
+  # make a ParmGroup and solve jobs for source fluxes
+  srcs = meqmaker.get_source_list(ns);
+  if srcs:
+    parms = [];
+    for src in srcs:
+      parms += src.coherency().search(tags="solvable");
+    pg_src = ParmGroup.ParmGroup("source",parms,
+                table_name="sources.mep",
+                individual=True,bookmark=True);
+    # now make a solvejobs for the source
+    ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
 
   # make spigot nodes
   spigots = outputs = array.spigots();
@@ -116,18 +128,6 @@ def _define_forest (ns):
 
   # make solve trees
   if do_solve:
-    # make a ParmGroup and solve jobs for source fluxes
-    srcs = meqmaker.get_source_list(ns);
-    if srcs:
-      parms = [];
-      for src in srcs:
-        parms += src.coherency().search(tags="solvable");
-      pg_src = ParmGroup("source",parms,
-                  table_name="sources.mep",
-                  individual=True,
-                  bookmark=True);
-      # now make a solvejobs for the source
-      TDLRuntimeOptions(pg_src.make_solvejob_menu("Calibrate source fluxes"));
     # make a solve tree
     solve_tree = Meow.StdTrees.SolveTree(ns,predict);
     # the output of the sequencer is either the residuals or the spigots,
@@ -142,6 +142,8 @@ def _define_forest (ns):
   # very important -- insert meqmaker's runtime options properly
   # this should come last, since runtime options may be built up during compilation.
   TDLRuntimeOptions(*meqmaker.runtime_options(nest=False));
+  # and insert all solvejobs
+  TDLRuntimeOptions(*ParmGroup.get_solvejob_options());
   # finally, setup imaging options
   imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
   TDLRuntimeMenu("Imaging options",*imsel.option_list());
