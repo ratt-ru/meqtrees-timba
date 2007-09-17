@@ -87,13 +87,13 @@ class TwigApplyUnary(Twig.Twig):
         #..............................................
         opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']         # safe always
         opt.extend(['Sqrt','Log','Invert'])                           # problems if <=0
-        self._OM.define(self.optname('unop'), opt[0],
-                        prompt='unary operation',
-                        opt=opt, more=str,
-                        doc="""Apply one or more unary operations.
-                        A sequence of unary operations may be specified 
-                        by using parentheses, e.g. 'Sin(Cos(Abs'
-                        """)
+        self.defopt('unop', opt[0],
+                    prompt='unary operation',
+                    opt=opt, more=str,
+                    doc="""Apply one or more unary operations.
+                    A sequence of unary operations may be specified 
+                    by using parentheses, e.g. 'Sin(Cos(Abs'
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

@@ -99,30 +99,30 @@ class TwigLeafConstant(TwigLeaf.TwigLeaf):
             return self.bypass (trace=trace)
         #..............................................
         opt = [0.0,1.0,1+0j,1+1j,'pi','pi/2','pi/4','clight','e','echarge','k','G','h']
-        self._OM.define(self.optname('value'), 1.0,
-                        prompt='value',
-                        opt=opt, more=str,
-                        doc="""The value of the MeqConstant.
-                        """)
+        self.defopt('value', 1.0,
+                    prompt='value',
+                    opt=opt, more=str,
+                    doc="""The value of the MeqConstant.
+                    """)
         opt = [1,2,3,4,5,8,16,[2,2],[3,3],[4,4],[2,3],[1,2],[4,3,2]]
-        self._OM.define(self.optname('dims'), 3,
-                        prompt='(tensor) dims',
-                        opt=opt, more=str,
-                        doc="""Make a 'tensor' node with the specified
-                        dimensions, with all different elements.
-                        """)
-        self._OM.define(self.optname('stddev'), 0.1,
-                        prompt='scatter (stddev)',
-                        opt=[0.0,0.1,1.0], more=float,
-                        doc="""Add a random number (with gaussian distr) to
-                        each tensor element (even if there is only one!),
-                        around the nominal element value.
-                        """)
-        self._OM.define(self.optname('unop'), 'Negate',
-                        prompt='apply unary',
-                        opt=[None,'Negate'], more=str,
-                        doc="""Apply an unary operation to the result.
-                        """)
+        self.defopt('dims', 3,
+                    prompt='(tensor) dims',
+                    opt=opt, more=str,
+                    doc="""Make a 'tensor' node with the specified
+                    dimensions, with all different elements.
+                    """)
+        self.defopt('stddev', 0.1,
+                    prompt='scatter (stddev)',
+                    opt=[0.0,0.1,1.0], more=float,
+                    doc="""Add a random number (with gaussian distr) to
+                    each tensor element (even if there is only one!),
+                    around the nominal element value.
+                    """)
+        self.defopt('unop', 'Negate',
+                    prompt='apply unary',
+                    opt=[None,'Negate'], more=str,
+                    doc="""Apply an unary operation to the result.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

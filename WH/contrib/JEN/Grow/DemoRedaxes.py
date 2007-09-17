@@ -88,17 +88,17 @@ class DemoRedaxes(TwigDemo.TwigDemo):
             return self.bypass (trace=trace)
         #..............................................
         opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*']
-        self._OM.define(self.optname('oper'), opt[0],
-                        prompt='select a math operation',
-                        opt=opt, more=str,
-                        doc="""Select the math oper.
-                        """)
+        self.defopt('oper', opt[0],
+                    prompt='select a math operation',
+                    opt=opt, more=str,
+                    doc="""Select the math oper.
+                    """)
         opt = ['*','time','freq',['time','freq'],None]
-        self._OM.define(self.optname('redaxes'), '*',
-                        prompt='reduction axes',
-                        opt=opt, more=str,
-                        doc="""The reduction axes:
-                        """)
+        self.defopt('redaxes', '*',
+                    prompt='reduction axes',
+                    opt=opt, more=str,
+                    doc="""The reduction axes:
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

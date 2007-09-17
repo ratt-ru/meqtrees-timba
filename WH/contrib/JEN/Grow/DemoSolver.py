@@ -71,10 +71,11 @@ class DemoSolver(TwigDemo.TwigDemo):
 
         # Use the TwigLeafParm Plugin as the 'left-hand-side' of the equation(s).
         # It shares the OptionManager (OM), so the LeafParm menu is nested
-        # in the TwigDemo menu by giving the correct subsub menu name.
-        subsubmenu = submenu+'.'+self.name
-        self._lhs = TwigLeafParm.TwigLeafParm (self._shortname,
-                                               submenu=subsubmenu, OM=self._OM)
+        # in the TwigDemo menu by giving the correct submenu name:
+        self._lhs = TwigLeafParm.TwigLeafParm (quals=self._shortname,
+                                               # default=dict(tags=['solvable']),
+                                               insist=dict(tags=['solvable']),
+                                               submenu=self._submenu, OM=self._OM)
         return None
 
 
@@ -97,11 +98,11 @@ class DemoSolver(TwigDemo.TwigDemo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('niter'), 5,
-                        prompt='nr of iterations',
-                        opt=[1,2,3,5,10,20,30,50,100],
-                        doc="""Nr of solver iterations.
-                        """)
+        self.defopt('niter', 5,
+                    prompt='nr of iterations',
+                    opt=[1,2,3,5,10,20,30,50,100],
+                    doc="""Nr of solver iterations.
+                    """)
         # self._lhs.define_compile_options(trace=trace)
         #..............................................
         return self.on_exit(trace=trace)
@@ -134,6 +135,9 @@ class DemoSolver(TwigDemo.TwigDemo):
         lhs = self._lhs.grow(self.ns, trace=trace)
         condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
         parm = ns.Search(tags='solvable', class_name='MeqParm')
+        if len(parm)==0:
+            raise ValueError,'no solvable MeqParms found'
+        
         solver = self.ns['solver'] << Meq.Solver(condeq,
                                                  num_iter=niter,
                                                  solvable=parm)

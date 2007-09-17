@@ -101,6 +101,8 @@ class Growth (object):
         self._kwargs = kwargs
         if not isinstance(self._kwargs, dict):
             self._kwargs = dict()
+        self._kwargs.setdefault('default',dict())
+        self._kwargs.setdefault('insist',dict())
 
         #................................................................
 
@@ -232,9 +234,14 @@ class Growth (object):
         """Print a summary of this object"""
         prefix = self.display_preamble('Growth', level=level, txt=txt)
         #...............................................................
-        print prefix,'  * kwargs ('+str(len(self._kwargs))+'):'
+        print prefix,'  * kwargs ('+str(self._kwargs.keys())+'):'
         for key in self._kwargs.keys():
-            print prefix,'    - '+key+' = '+str(self._kwargs[key])            
+            rr = self._kwargs[key]
+            if not isinstance(rr, dict):
+                print prefix,'    - '+key+' = '+str(rr)            
+            else:
+                for key1 in rr.keys():
+                    print prefix,'      - '+key1+' = '+str(rr[key1])            
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
         print prefix,'  * created_Growth_objects: '+str(self._created_Growth_objects)
@@ -373,6 +380,31 @@ class Growth (object):
     #====================================================================
     # Helper functions for access to options:
     #====================================================================
+
+    def defopt (self, name, value, opt=None, more=None,
+                callback=None, prompt=None, doc=None,
+                trace=False):
+        """Encapsulation of self._OM.define(). It allows central completion
+        of the option name, and the interaction with constructor kwargs.
+        If the option name is a field in self._kwargs[default], the default
+        value will be changed. If it is a field in self._kwargs[insist], the
+        option value will be changed, and the option itself will be disabled.
+        """
+        disable = None
+        for key in self._kwargs.keys():              # ['default','insist']
+            if self._kwargs[key].has_key(name):
+                was = value
+                new = self._kwargs[key][name]
+                value = new
+                print '\n** .defopt(',name,'): =',was,'->',new,' (',key,')\n'
+                if key=='insist':
+                    disable = True
+        self._OM.define(self.optname(name), value, opt=opt, more=more,
+                        callback=callback, prompt=prompt, doc=doc,
+                        disable=disable)
+        return True
+
+    #.............................................................
 
     def optname (self, name, trace=False):
         """Convert an option name to its OM name by prepending self._submenu.
@@ -558,30 +590,30 @@ class Growth (object):
     def define_generic_misc_options(self):
         """Define a generic submenu of visualization option(s).
         """
-        self._OM.define(self.optname('misc.ignore'), False,
-                        prompt='ignore/hide this Growth',
-                        opt=[True,False,None],
-                        callback=self._callback_ignore,
-                        doc="""this is used for testing
-                        """)
+        self.defopt('misc.ignore', False,
+                    prompt='ignore/hide this Growth',
+                    opt=[True,False,None],
+                    callback=self._callback_ignore,
+                    doc="""this is used for testing
+                    """)
         self._OM.set_menurec(self._submenu+'.misc',
                              prompt='miscellaneous',
                              stare=2)
 
         if len(self._mode.keys())>0:
-            self._OM.define(self.optname('misc.mode'), None,
-                            prompt='select a standard mode',
-                            opt=[None]+self._mode.keys(),
-                            callback=self._callback_mode,
-                            doc="""The Growth option values may be preset
-                            to the values of a number of standard modes.
-                            """)
-        self._OM.define(self.optname('misc.help'), None,
-                        prompt='help on this object',
-                        opt=[None,'show','print','derivation_tree'],
-                        callback=self._callback_help,
-                        doc="""should be self-explanatory
+            self.defopt('misc.mode', None,
+                        prompt='select a standard mode',
+                        opt=[None]+self._mode.keys(),
+                        callback=self._callback_mode,
+                        doc="""The Growth option values may be preset
+                        to the values of a number of standard modes.
                         """)
+        self.defopt('misc.help', None,
+                    prompt='help on this object',
+                    opt=[None,'show','print','derivation_tree'],
+                    callback=self._callback_help,
+                    doc="""should be self-explanatory
+                    """)
 
         # Define specific options for this menu (if any):
         self.define_misc_options()
@@ -687,13 +719,13 @@ class Growth (object):
     def define_generic_visu_options(self):
         """Generic function to define the generic visualization option(s).
         """
-        self._OM.define(self.optname('misc.visu.bookpage'), self.name,
-                        prompt='bookpage name',
-                        opt=[None,self.name], more=str, 
-                        doc="""Specify a bookpage for the various bookmarks
-                        generated for this Growth. If bookpage==None,
-                        visualization for this Growth object is inhibited.
-                        """)
+        self.defopt('misc.visu.bookpage', self.name,
+                    prompt='bookpage name',
+                    opt=[None,self.name], more=str, 
+                    doc="""Specify a bookpage for the various bookmarks
+                    generated for this Growth. If bookpage==None,
+                    visualization for this Growth object is inhibited.
+                    """)
 
         # Change the default menu prompt to a more instructive one:
         self._OM.set_menurec(self._submenu+'.misc.visu',
@@ -968,11 +1000,11 @@ class GrowthTest(Growth):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('unop'), 'Cos',
-                        prompt='unary',
-                        opt=['Sin','Cos'], more=str,
-                        doc="""apply an unary operation.
-                        """)
+        self.defopt('unop', 'Cos',
+                    prompt='unary',
+                    opt=['Sin','Cos'], more=str,
+                    doc="""apply an unary operation.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

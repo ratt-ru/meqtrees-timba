@@ -86,17 +86,17 @@ class TwigFlagger(Twig.Twig):
             return self.bypass (trace=trace)
         #..............................................
 
-        self._OM.define(self.optname('flag_oper)'), 'GT',
-                        prompt='flag operation',
-                        opt=['GT','GE','LE','LT'],
-                        doc="""GT is Greater-Than, GE is Greater-or-Equal, etc
-                        """)
-        self._OM.define(self.optname('sigma'), 5.0,
-                        prompt='sigma',
-                        opt=[1.0,2.0,3.0,5.0,7.0,9.0], more=float,
-                        doc="""Flag the cells whose values deviate 'flag_oper'
-                        the specified nr of 'sigmas' from the domain mean.
-                        """)
+        self.defopt('flag_oper', 'GT',
+                    prompt='flag operation',
+                    opt=['GT','GE','LE','LT'],
+                    doc="""GT is Greater-Than, GE is Greater-or-Equal, etc
+                    """)
+        self.defopt('sigma', 5.0,
+                    prompt='sigma',
+                    opt=[1.0,2.0,3.0,5.0,7.0,9.0], more=float,
+                    doc="""Flag the cells whose values deviate 'flag_oper'
+                    the specified nr of 'sigmas' from the domain mean.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

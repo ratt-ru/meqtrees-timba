@@ -61,10 +61,10 @@ class DemoModRes(TwigDemo.TwigDemo):
                  **kwargs):
 
         TwigDemo.TwigDemo.__init__(self, name='DemoModRes',
-                           quals=quals,
-                           submenu=submenu,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
+                                   quals=quals,
+                                   submenu=submenu,
+                                   OM=OM, namespace=namespace,
+                                   **kwargs)
         return None
 
     #====================================================================
@@ -87,16 +87,16 @@ class DemoModRes(TwigDemo.TwigDemo):
             return self.bypass (trace=trace)
         #..............................................
         opt = [[2,3],[3,2],[3,4],[4,5]]
-        self._OM.define(self.optname('num_cells'), opt[0],
-                        prompt='nr of cells [nt,nf]',
-                        opt=opt, more=str,
-                        doc="""Covert the REQUEST to a lower a resolution.
-                        """)
-        self._OM.define(self.optname('resamp_mode'), 1,
-                        prompt='resampler mode',
-                        opt=[1,2],
-                        doc="""Mode 2 only works with time,freq domains.
-                        """)
+        self.defopt('num_cells', opt[0],
+                    prompt='nr of cells [nt,nf]',
+                    opt=opt, more=str,
+                    doc="""Covert the REQUEST to a lower a resolution.
+                    """)
+        self.defopt('resamp_mode', 1,
+                    prompt='resampler mode',
+                    opt=[1,2],
+                    doc="""Mode 2 only works with time,freq domains.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 

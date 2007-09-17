@@ -123,11 +123,11 @@ class TwigFork(Twig.Twig):
         # Placeholder:
         opt = ['Subtract','Add','Multiply','Divide',
                'ReqSeq','Composer']
-        self._OM.define(self.optname('combine'), 'Subtract',
-                        opt=opt, more=str,
-                        prompt='combine operation',
-                        doc="""The input Twigs may be combined in various ways.
-                        """)
+        self.defopt('combine', 'Subtract',
+                    opt=opt, more=str,
+                    prompt='combine operation',
+                    doc="""The input Twigs may be combined in various ways.
+                    """)
 
         #..............................................
         return self.on_exit(trace=trace)

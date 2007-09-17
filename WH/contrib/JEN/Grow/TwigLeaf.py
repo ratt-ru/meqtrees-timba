@@ -133,21 +133,21 @@ class TwigLeaf(Twig.Twig):
         """
         # Selection of dimensions:
         opt = ['freq','time',['freq','time'],'ft','*']
-        self._OM.define(self.optname('dims'), '*',
-                        opt=opt, more=str,
-                        prompt='select dimension(s)',
-                        callback=self._callback_dims,
-                        doc = """Select dimensions to be be used.
-                        """)
+        self.defopt('dims', '*',
+                    opt=opt, more=str,
+                    prompt='select dimension(s)',
+                    callback=self._callback_dims,
+                    doc = """Select dimensions to be be used.
+                    """)
 
         # Submenus for all available dimensions:
         for dim in self._available_dims:
             opt = ['Sqr','Sin','Cos','Exp','Abs','Negate','Pow3']    # safe always
             opt.extend(['Sqrt','Log','Invert'])                      # problems <=0
-            self._OM.define(self.optname(dim+'.unop'), None,
-                            prompt='apply unary()', opt=opt,
-                            doc="""apply unary operation
-                            """)
+            self.defopt(dim+'.unop', None,
+                        prompt='apply unary()', opt=opt,
+                        doc="""apply unary operation
+                        """)
             self._OM.set_menurec (self._submenu+'.'+dim,
                                   prompt='modif. of node: MeqGrid(axis='+dim+')') 
 
@@ -230,12 +230,11 @@ class TwigLeaf(Twig.Twig):
         """Define the options for combining MeqGrid nodes
         """
         opt = ['Add','Multiply','ToComplex','ToPolar']
-        self._OM.define(self.optname('combine'), 'Add',
-                        opt=opt, more=str,
-                        prompt='combine the MeqGrid nodes with',
-                        doc = """The various MeqGrid nodes must be
-                        combined to a single node with this operation.
-                        """)
+        self.defopt ('combine', 'Add', opt=opt, more=str,
+                     prompt='combine the MeqGrid nodes with',
+                     doc = """The various MeqGrid nodes must be
+                     combined to a single node with this operation.
+                     """)
         return True
         
     #-------------------------------------------------------------------

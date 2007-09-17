@@ -180,20 +180,20 @@ class Twig(Growth.Growth):
         re-implemented for classes with other inputs/results.
         """
         if self._has_input:
-            self._OM.define(self.optname('misc.visu.compare'), None,
-                            prompt='show result vs input',
-                            opt=[None,'Subtract','Divide'], more=str, 
-                            doc="""Insert and bookmark a side-branch that
-                            compares the result with the input. 
-                            """)
+            self.defopt('misc.visu.compare', None,
+                        prompt='show result vs input',
+                        opt=[None,'Subtract','Divide'], more=str, 
+                        doc="""Insert and bookmark a side-branch that
+                        compares the result with the input. 
+                        """)
         if False:
             # Perhaps it is possible to extract all new nodes from the tree....
-            self._OM.define(self.optname('misc.visu.allnodes'), False,
-                            prompt='bookmark all nodes',
-                            opt=[True, False],  
-                            doc="""If True, bookmark all new nodes
-                            of this Growth, e.g. for debugging.
-                            """)
+            self.defopt('misc.visu.allnodes', False,
+                        prompt='bookmark all nodes',
+                        opt=[True, False],  
+                        doc="""If True, bookmark all new nodes
+                        of this Growth, e.g. for debugging.
+                        """)
         return True
 
     #--------------------------------------------------------------------
@@ -235,8 +235,6 @@ class Twig(Growth.Growth):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Placeholder:
-        # self._OM.define(self.optname('xxx'), 45)
 
         #..............................................
         return self.on_exit(trace=trace)

@@ -295,7 +295,7 @@ class OptionManager (object):
 
     def define (self, key, value, order=None,
                 prompt=None, opt=None, more=None, doc=None,
-                callback=None, trace=False):
+                callback=None, disable=None, trace=False):
         """Helper function to define a named (key) option with its (default) value.
         The key defines the (sub)menu structure, e.g. 'compile.submenu.subsub.option'
         (if the first substring is not 'compile' or 'runtime', 'compile' is assumed).
@@ -324,7 +324,7 @@ class OptionManager (object):
                 ss = key.split('.')
                 prompt = ss[len(ss)-1]                       # the last substring
             optrec = dict(type='optrec', optobj=None,
-                          key=key, ukey=ukey, 
+                          key=key, ukey=ukey, disable=disable,
                           default=value, doc=doc, prompt=prompt,
                           opt=opt, more=more, callback=callback)
             self.create(key, optrec, trace=trace)
@@ -668,6 +668,10 @@ class OptionManager (object):
             oo.when_changed(self.callback_submenu)
             if optrec['callback']:
                 oo.when_changed(optrec['callback'])
+            print '** ',optkey,': optrec[disable] =',optrec['disable']
+            if optrec['disable']:
+                print '\n** ',optkey,'.disable(',optrec['disable'],')\n'
+                oo.disable(optrec['disable'])
             self.option[optkey] = oo
             self.callback_submenu()
             return oo

@@ -100,39 +100,39 @@ class TwigLeafParm(TwigLeaf.TwigLeaf):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self._OM.define(self.optname('default'), 0.0,
-                        prompt='default value',
-                        opt=[0.0,1.0,-1.0], more=float,
-                        doc="""the default value of the MeqParm
-                        """)
-        self._OM.define(self.optname('freq_deg'), 2,
-                        prompt='freq polc',
-                        opt=[0,1,2,3,4,5], more=int,
-                        doc="""Degree (order) of the freq polynonial that is
-                        to be solved for (constant in freq: freq_deg=0).
-                        """)
-        self._OM.define(self.optname('time_deg'), 2,
-                        prompt='time polc',
-                        opt=[0,1,2,3,4,5], more=int,
-                        doc="""Degree (order) of the time polynonial that is
-                        to be solved for (constant in time: time_deg=0).
-                        """)
+        self.defopt('default', 0.0,
+                    prompt='default value',
+                    opt=[0.0,1.0,-1.0], more=float,
+                    doc="""the default value of the MeqParm
+                    """)
+        self.defopt('freq_deg', 2,
+                    prompt='freq polc',
+                    opt=[0,1,2,3,4,5], more=int,
+                    doc="""Degree (order) of the freq polynonial that is
+                    to be solved for (constant in freq: freq_deg=0).
+                    """)
+        self.defopt('time_deg', 2,
+                    prompt='time polc',
+                    opt=[0,1,2,3,4,5], more=int,
+                    doc="""Degree (order) of the time polynonial that is
+                    to be solved for (constant in time: time_deg=0).
+                    """)
         opt = [None,1,2,3,4,5,10]
         # opt.append(dmi.record(time=0,freq=0, l=.., m=..))
-        self._OM.define(self.optname('tiling'), None,
-                        prompt='subtile size',
-                        opt=opt,                    # more=str,
-                        doc="""The domain (tile) may be split up into subtiles,
-                        (for the moment, in the time-direction only)
-                        If specified, different solutions are made for each
-                        subtile, rather than a single one for the entire domain.
-                        """)
-        self._OM.define(self.optname('tags'), ['solvable'],
-                        prompt='MeqParm tag(s)',
-                        opt=[[],['solvable']],      # more=str,
-                        doc="""Node tags can be used to search for (groups of)
-                        nodes in the nodescope.
-                        """)
+        self.defopt('tiling', None,
+                    prompt='subtile size',
+                    opt=opt,                    # more=str,
+                    doc="""The domain (tile) may be split up into subtiles,
+                    (for the moment, in the time-direction only)
+                    If specified, different solutions are made for each
+                    subtile, rather than a single one for the entire domain.
+                    """)
+        self.defopt('tags', [],
+                    prompt='MeqParm tag(s)',
+                    opt=[[],['solvable']],      # more=str,
+                    doc="""Node tags can be used to search for (groups of)
+                    nodes in the nodescope.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
 
@@ -186,7 +186,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    plf = TwigLeafParm()
+    plf = TwigLeafParm(insist=dict(tags=['aa','bb']))
     plf.make_TDLCompileOptionMenu()
     plf.display('outside')
 
@@ -243,7 +243,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = TwigLeafParm()
+        plf = TwigLeafParm(insist=dict(tags=[]))
         plf.display('initial')
 
     if 1:

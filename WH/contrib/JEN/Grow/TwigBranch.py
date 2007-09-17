@@ -193,12 +193,12 @@ class TwigBranch(Twig.Twig):
         """Define some generic compile options for TwigBranch.
         """
         opt = self._leaf.keys()
-        self._OM.define(self.optname(self._optname_selected_Leaf),
-                        opt[0], opt=opt,
-                        prompt='select a Leaf',
-                        callback=self._callback_leaf,
-                        doc="""The tip of the TwigBranch is a Leaf subtree.
-                        """)
+        self.defopt(self._optname_selected_Leaf,
+                    opt[0], opt=opt,
+                    prompt='select a Leaf',
+                    callback=self._callback_leaf,
+                    doc="""The tip of the TwigBranch is a Leaf subtree.
+                    """)
         return True
 
 
