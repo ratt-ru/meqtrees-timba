@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -31,6 +31,7 @@ import math
 import Meow
 import Meow.StdTrees
 from Meow import Context
+from ParmGroup import ParmGroup
 
 # MS options first
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=True);
@@ -56,10 +57,11 @@ meqmaker = MeqMaker.MeqMaker();
 # specify available sky models
 # these will show up in the menu automatically
 import central_point_source
+import model_3C343
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
-meqmaker.add_sky_models([central_point_source,lsm]);
+meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
@@ -69,8 +71,11 @@ import wsrt_beams
 meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
 
 # G - solvable gain/phases
-import solvable_gain_phase
-meqmaker.add_uv_jones('G','gains/phases',solvable_gain_phase);
+from solvable_gain_phase import AmplPhaseJones
+B = AmplPhaseJones();
+G = AmplPhaseJones();
+meqmaker.add_uv_jones('B','bandpass',B);
+meqmaker.add_uv_jones('G','receiver gains/phases',G);
 
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
@@ -88,18 +93,18 @@ def _define_forest (ns):
   # ...and an inspector for them
   Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots);
   inspectors = [ ns.inspector('input') ];
-  
+
   # make a predict tree using the MeqMaker
   if do_solve or do_subtract:
     predict = meqmaker.make_tree(ns);
-  
-  # make nodes to compute residuals 
+
+  # make nodes to compute residuals
   if do_subtract:
     residuals = ns.residuals;
     for p,q in array.ifrs():
       residuals(p,q) << spigots(p,q) - predict(p,q);
     outputs = residuals;
-    
+
   # and now we may need to correct the outputs
   if do_correct:
     if do_correct_sky:
@@ -111,11 +116,24 @@ def _define_forest (ns):
 
   # make solve trees
   if do_solve:
+    # make a ParmGroup and solve jobs for source fluxes
+    srcs = meqmaker.get_source_list(ns);
+    if srcs:
+      parms = [];
+      for src in srcs:
+        parms += src.coherency().search(tags="solvable");
+      pg_src = ParmGroup("source",parms,
+                  table_name="sources.mep",
+                  individual=True,
+                  bookmark=True);
+      # now make a solvejobs for the source
+      TDLRuntimeOptions(pg_src.make_solvejob_menu("Calibrate source fluxes"));
+    # make a solve tree
     solve_tree = Meow.StdTrees.SolveTree(ns,predict);
     # the output of the sequencer is either the residuals or the spigots,
-    # according to what has been set above 
+    # according to what has been set above
     outputs = solve_tree.sequencers(inputs=spigots,outputs=outputs);
-    
+
   # make sinks and vdm.
   # The list of inspectors must be supplied here
   inspectors += meqmaker.get_inspectors();
@@ -124,7 +142,7 @@ def _define_forest (ns):
   # very important -- insert meqmaker's runtime options properly
   # this should come last, since runtime options may be built up during compilation.
   TDLRuntimeOptions(*meqmaker.runtime_options(nest=False));
-  # finally, setup imaging options 
+  # finally, setup imaging options
   imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
   TDLRuntimeMenu("Imaging options",*imsel.option_list());
 

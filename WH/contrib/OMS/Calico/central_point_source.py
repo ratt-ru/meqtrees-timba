@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -43,20 +43,21 @@ def source_list (ns,name="cps"):
     freq0_def  = ref_freq;
   else:
     spi_def = freq0_def = None;
-  i_def = Meow.Parm(1,tags="solvable I");
+  i_def = Meow.Parm(1);
   quv_def = Meow.Parm(0);
-  
+
   srcdir = Meow.LMDirection(ns,name,0,0);
   src = Meow.PointSource(ns,name,srcdir,I=i_def,Q=quv_def,U=quv_def,V=quv_def,spi=spi_def,freq0=freq0_def);
-  
-  # define a parmgroup for source parameters
-  # now make a solvejobs for the source
-  pg_src = ParmGroup("source",
-              src.coherency().search(tags="solvable"),
-              individual=True,
-              bookmark=True);
-  # now make a solvejobs for the source
-  options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
-  
+
+  ## define a parmgroup for source parameters
+  ## now make a solvejobs for the source
+  #pg_src = ParmGroup("source",
+              #src.coherency().search(tags="solvable"),
+              #table_name="sources.mep",
+              #individual=True,
+              #bookmark=True);
+  ## now make a solvejobs for the source
+  #options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
+
   return [ src ];
 

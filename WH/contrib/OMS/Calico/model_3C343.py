@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -53,22 +53,23 @@ def source_list (ns):
   # and flux parameters
   i_def = Meow.Parm(1);
   quv_def = Meow.Parm(0);
-  
-  dir1 = Meow.LMDirection(ns,"3C343.1",4.356645791155902,1.092208429052697);
-  dir0 = Meow.LMDirection(ns,"3C343",4.3396003966265599,1.0953677174056471);
-  
+
+  dir1 = Meow.Direction(ns,"3C343.1",4.356645791155902,1.092208429052697);
+  dir0 = Meow.Direction(ns,"3C343",4.3396003966265599,1.0953677174056471);
+
   src1 = Meow.PointSource(ns,"3C343.1",dir1,I=i_def,Q=quv_def,U=quv_def,V=quv_def,
                           spi=spi_def1,freq0=freq0_def1);
   src0 = Meow.PointSource(ns,"3C343",dir0,I=i_def,Q=quv_def,U=quv_def,V=quv_def,
                           spi=spi_def1,freq0=freq0_def1);
-  
-  # define a parmgroup for source parameters
-  # now make a solvejobs for the source
-  pg_src = ParmGroup("source",
-              src1.coherency().search(tags="solvable") + src0.coherency().search(tags="solvable"),
-              individual=True,
-              bookmark=True);
-  # now make a solvejobs for the source
-  options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
-  
+
+  ## define a parmgroup for source parameters
+  ## now make a solvejobs for the source
+  #pg_src = ParmGroup("source",
+              #src1.coherency().search(tags="solvable") + src0.coherency().search(tags="solvable"),
+              #table_name="sources.mep",
+              #individual=True,
+              #bookmark=True);
+  ## now make a solvejobs for the source
+  #options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
+
   return [ src1,src0 ];
