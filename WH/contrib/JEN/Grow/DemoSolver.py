@@ -77,6 +77,17 @@ class DemoSolver(TwigDemo.TwigDemo):
                                                submenu=subsubmenu, OM=self._OM)
         return None
 
+
+    #====================================================================
+
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(TwigDemo.TwigDemo.grow.__doc__, level=level)
+        ss = TwigDemo.TwigDemo.derivation_tree(self, ss, level=level+1)
+        return ss
+
+
     
     #====================================================================
 
@@ -99,7 +110,17 @@ class DemoSolver(TwigDemo.TwigDemo):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=True):
-        """Specific: Make the plugin subtree.
+        """The DemoSolver class is derived from the TwigDemo class.
+        It demonstrates the use of the MeqSolver node. Such a node has
+        one or more MeqCondeq children, which generate condition equations
+        for it by comparing 'measured' and 'predicted' inputs. The Solver
+        then tries to minimise the differences (residuals) by varying the
+        coefficients of one or more MeqParm parameter nodes, which are
+        usually (but not necessarily) somewhere up the prediction branch.
+        In this demo, the Solver has a single Condeq node, which compares
+        the input node to a single MeqParm node.
+        Clicking on the DemoSolver bookmark produces a page that shows the
+        results of all the relevant nodes.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):

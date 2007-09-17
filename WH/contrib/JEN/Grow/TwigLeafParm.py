@@ -141,7 +141,8 @@ class TwigLeafParm(TwigLeaf.TwigLeaf):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=True):
-        """Specific: Make the plugin subtree.
+        """The TwigLeafParm class is derived from the TwigLeaf class.
+        It is just a (scalar) MeqParm node.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):

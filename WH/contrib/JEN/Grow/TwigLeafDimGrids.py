@@ -86,8 +86,6 @@ class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
-        print prefix,'  * xxx'
-        #...............................................................
         TwigLeaf.TwigLeaf.display(self, full=full,
                           recurse=recurse,
                           OM=OM, level=level+1)
@@ -106,7 +104,6 @@ class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Optional (depends on the kind of TwigLeaf): 
         self._define_dims_options()
         self._define_combine_options()
 
@@ -119,8 +116,10 @@ class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=True):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived TwigLeaf classes. 
+        """The TwigLeafDimG, rids class is derived from the TwigLeaf class.
+        It is a combination (Add, Multiply) of one or more MeqGrid nodes,
+        which provide variation of the result for the selected dimensions
+        (e.g. time, freq, l, m, etc).
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):

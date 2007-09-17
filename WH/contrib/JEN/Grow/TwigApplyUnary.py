@@ -69,6 +69,15 @@ class TwigApplyUnary(Twig.Twig):
 
     
     #====================================================================
+    
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
+
+    #====================================================================
 
     def define_compile_options(self, trace=True):
         """Specific: Define the compile options in the OptionManager.
@@ -93,7 +102,9 @@ class TwigApplyUnary(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=True):
-        """Specific: Make the plugin subtree.
+        """The TwigApplyUnary class is derived from the Twig class.
+        It can be used to apply a (sequence of) unary operations on its
+        input node (which may be a tensor node, of course).
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):

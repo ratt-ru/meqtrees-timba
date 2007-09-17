@@ -582,7 +582,7 @@ class OptionManager (object):
         """Helper function to change the value of the specified (key) option."""
         option = self.TDLOption(key, severe=True, trace=trace)
         if not option: return False
-        option.set_value(value)
+        option.set_value(value, callback=False)      # <---- note callback=False!
         return True
 
     #---------------------------------------------------------------------

@@ -80,6 +80,13 @@ class TwigFork(Twig.Twig):
 
     #====================================================================
 
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = Twig.Twig.oneliner(self)
@@ -129,7 +136,8 @@ class TwigFork(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, other, test=None, trace=False):
-        """Specific: Make the subtree.
+        """The TwigFork class is derived from the Twig class. Its function
+        is to combine the results of two Twigs.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):
@@ -176,6 +184,14 @@ class TestTwigFork(Twig.Twig):
 
     
     #====================================================================
+
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
+
     #====================================================================
 
     def create_Growth_objects (self, trace=False):
@@ -194,7 +210,7 @@ class TestTwigFork(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=False):
-        """Specific: Make the subtree.
+        """The TestTwigFork class is derived from the Twig class.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
@@ -311,6 +327,12 @@ if __name__ == '__main__':
 
     if 1:
         plf.display('final', OM=True, full=True)
+
+    if 1:
+        plf.help(trace=True)
+
+    if 1:
+        plf.show_derivation_tree(trace=True)
 
 
 

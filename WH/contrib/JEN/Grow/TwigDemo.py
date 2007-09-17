@@ -75,6 +75,13 @@ class TwigDemo(Twig.Twig):
 
     #====================================================================
 
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = Twig.Twig.oneliner(self)
@@ -108,8 +115,6 @@ class TwigDemo(Twig.Twig):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Placeholder:
-        self._OM.define(self.optname('xxx'), 45)
 
         #..............................................
         return self.on_exit(trace=trace)
@@ -120,8 +125,13 @@ class TwigDemo(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=False):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived TwigDemo classes. 
+        """The TwigDemo class is derived from the Twig class.
+        It is the baseclass for a family of classes that demonstrate the
+        working of some of the more advanced MeqTree node classes, like
+        the Solver, the ModRes and Resampler, the Compounder etc.
+        A TwigDemo is implemented as a side-branch, so it does NOT change
+        the input result (although the output node will have the name of
+        the ReqSeq node that is used to issue requests to the side-branch).
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):

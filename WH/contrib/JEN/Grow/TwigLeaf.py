@@ -90,6 +90,14 @@ class TwigLeaf(Twig.Twig):
 
     #====================================================================
 
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
+
+
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = Twig.Twig.oneliner(self)
@@ -304,19 +312,21 @@ class TwigLeaf(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=False):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived TwigLeaf classes. 
+        """The TwigLeaf class is derived from the Twig class. It is the
+        base-class for a family of 'twig-tips', i.e. nodes/subtrees that
+        have no children, like a MeqConstant, a MeqParm, or a litte subtree
+        of MeqGrid nodes. Since they are Twigs, the result is a single node.
+        (NB: The TwigLeaf class contains the interaction with dimensions,
+        which are used by the TwigLeafDimGrids class, but also by others.) 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Placeholder, to be replaced:
+        # Optional (depends on the kind of TwigLeaf): 
         rr = self.make_MeqGrid_nodes (trace=trace)
         node = self.combine_MeqGrid_nodes (rr, trace=trace)
-
-        cc = self.extract_list_of_MeqGrid_nodes (rr, trace=trace)
 
         #..............................................
         # Finishing touches:

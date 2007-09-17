@@ -96,6 +96,12 @@ class Growth (object):
         self._ignore = ignore
         self._visualize = True
 
+        # Extra keyword arguments may be supplied to the constructor.
+        # These are used for.....
+        self._kwargs = kwargs
+        if not isinstance(self._kwargs, dict):
+            self._kwargs = dict()
+
         #................................................................
 
         # The OptionManager may be external:
@@ -225,6 +231,10 @@ class Growth (object):
     def display(self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
         prefix = self.display_preamble('Growth', level=level, txt=txt)
+        #...............................................................
+        print prefix,'  * kwargs ('+str(len(self._kwargs))+'):'
+        for key in self._kwargs.keys():
+            print prefix,'    - '+key+' = '+str(self._kwargs[key])            
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
         print prefix,'  * created_Growth_objects: '+str(self._created_Growth_objects)
@@ -566,6 +576,12 @@ class Growth (object):
                             doc="""The Growth option values may be preset
                             to the values of a number of standard modes.
                             """)
+        self._OM.define(self.optname('misc.help'), None,
+                        prompt='help on this object',
+                        opt=[None,'show','print','derivation_tree'],
+                        callback=self._callback_help,
+                        doc="""should be self-explanatory
+                        """)
 
         # Define specific options for this menu (if any):
         self.define_misc_options()
@@ -599,6 +615,68 @@ class Growth (object):
         Placeholder function, to be reimplemented by derived class
         """
         return True
+
+    #--------------------------------------------------------------------
+
+    def _callback_help (self, help):
+        """Called whenever option 'misc.help' changes"""
+        if help=='derivation_tree':
+            print self.show_derivation_tree(trace=False)
+        elif help:
+            print self.help(specific=True, trace=True)
+        self.setval ('misc.help', None)
+        # self._OM.setval('misc.help', None)
+        return True
+
+
+    def help (self, level=0, specific=True, trace=True):
+        """Generic help function, calls reimplemented specific one.
+        """
+        prefix = self.help_prefix(level)
+        ss = '\n'+prefix
+        ss += '\n'+prefix+'================================'
+        ss += '\n'+prefix+'Help for: '+str(self.oneliner())
+        ss += '\n'+prefix+'================================'
+        ss += self.help_format(self.grow.__doc__, level=0)
+        if specific:
+            ss += self.help_format (self.help_specific(), level=level+1)
+        print '\n'+prefix+'\n'
+        if trace:
+            print ss
+        return ss
+
+    def help_prefix (self, level=0):
+        """Make a prefix string, to be used when formatting help strings."""
+        return '**'+(level*'..')+' '
+
+    def help_format (self, ss, level=0):
+        """Format the given string ss as a help-string. Split it into lines,
+        prefix each line accoring to level, and past them together again.
+        """
+        prefix = self.help_prefix(level)
+        sout = ''
+        if ss and len(ss)>0:
+            sout = '\n'+prefix
+            for s in ss.split('\n'):
+                sout += '\n'+prefix+s
+        return sout
+
+    #--------------------------------------------------------------------------
+
+    def show_derivation_tree(self, trace=True):
+        """Return a string that describes the derivation tree of this object.
+        """
+        prefix = self.help_prefix()
+        ss = '\n'+prefix
+        ss += '\n'+prefix+'==========================================='
+        ss += '\n'+prefix+'Derivation tree for: '+str(self.oneliner())
+        ss += '\n'+prefix+'==========================================='
+        ss += self.help_format(self.grow.__doc__, level=1)
+        ss = self.derivation_tree(ss, level=2)
+        if trace:
+            print ss
+        return ss
+
 
 
     #====================================================================
@@ -719,8 +797,6 @@ class Growth (object):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #............................................
-        # ... The specific body ...
-        self._OM.define(self.optname('xxx'), 67)
         #............................................
         return self.on_exit(trace=trace)
     
@@ -735,15 +811,15 @@ class Growth (object):
     #--------------------------------------------------------------------
 
     def grow (self, ns, input, test=None, trace=False):
-        """Specific: Generate ('grow') new inputs onto the input,
-        using the given nodescope ns.
-        This placeholder function should be reimplemented by a derived class.
+        """The Growth class is the base-class for an entire arboretum of derived
+        classes. Each Growth class has a mandatory .grow(ns, ...) function that
+        generates ('grows') new nodes onto its input, using the given nodescope ns.
+        The result may be passed on to other Growth objects, etc.
         """
         # Check the input, and make self.ns:
         if not self.on_input (ns, input, trace=trace):
             return self.bypass (trace=trace)
         #............................................
-        # ... The specific body ...
         result = input
         #............................................
         # Finishing touches:
@@ -773,6 +849,27 @@ class Growth (object):
         # If OK, just pass on the valid result:
         return result
 
+    #--------------------------------------------------------------------
+
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        This function may be re-implemented by a derived class, by un-commenting
+        the two lines below, and replacing Growth with the name of the class
+        from which it is derived. 
+        """
+        # ss += self.help_format(Growth.Growth.grow__doc__, level=level)
+        # ss = Growth.Growth.derivation_tree(self, ss, level=level+1)
+        return ss
+
+    #--------------------------------------------------------------------
+
+    def help_specific (self):
+        """Format a string with specific help for this object, if any.
+        This function is called by the generic function .help().
+        This placeholder may be re-implemented by derived classes.
+        """
+        ss = ''
+        return ss
 
 
     #---------------------------------------------------------------------

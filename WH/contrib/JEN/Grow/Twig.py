@@ -79,6 +79,12 @@ class Twig(Growth.Growth):
     # the base-class Growth.py
     #====================================================================
 
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Growth.Growth.grow.__doc__, level=level)
+        ss = Growth.Growth.derivation_tree(self, ss, level=level+1)
+        return ss
 
     def oneliner(self):
         """Return a one-line summary of this object"""
@@ -240,8 +246,8 @@ class Twig(Growth.Growth):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=False):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Twig classes. 
+        """The Twig class is derived from the Growth class. It deals with 'twigs',
+        i.e. its input(s) and result are single nodes (which may be tensor nodes).
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):

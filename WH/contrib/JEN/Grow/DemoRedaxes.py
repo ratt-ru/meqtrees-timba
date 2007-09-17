@@ -67,6 +67,17 @@ class DemoRedaxes(TwigDemo.TwigDemo):
                                    **kwargs)
         return None
 
+
+    #====================================================================
+
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(TwigDemo.TwigDemo.grow.__doc__, level=level)
+        ss = TwigDemo.TwigDemo.derivation_tree(self, ss, level=level+1)
+        return ss
+
+
     
     #====================================================================
 
@@ -94,7 +105,10 @@ class DemoRedaxes(TwigDemo.TwigDemo):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=True):
-        """Specific: Make the plugin subtree.
+        """The DemoRedaxes class is derived from the TwigDemo class.
+        It demonstrates ....
+        Clicking on the DemoRedaxes bookmark produces a page that shows the
+        results of all the relevant nodes.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, node, trace=trace):

@@ -82,12 +82,12 @@ class TwigBranch(Twig.Twig):
                  **kwargs):
 
         Twig.Twig.__init__(self, quals=quals,
-                               name=name,
-                               submenu=submenu,
-                               has_input=False,
-                               OM=OM, namespace=namespace,
-                               defer_compile_options=True,
-                               **kwargs)
+                           name=name,
+                           submenu=submenu,
+                           has_input=False,
+                           OM=OM, namespace=namespace,
+                           defer_compile_options=True,
+                           **kwargs)
 
         # Initialize the choice of Leaves:
         self._leaf = dict()
@@ -102,6 +102,13 @@ class TwigBranch(Twig.Twig):
 
 
     #====================================================================
+
+    def derivation_tree (self, ss, level=1):
+        """Append the formatted derivation tree of this object to the string ss. 
+        """
+        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
+        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        return ss
 
     def oneliner(self):
         """Return a one-line summary of this object"""
@@ -245,6 +252,14 @@ class TwigBranch(Twig.Twig):
             print
         return node
 
+    #---------------------------------------------------------------------------
+
+    def help_specific (self):
+        """Specific function to format a string with specific help for this
+        object, if any.
+        """
+        ss = 'Specific help for this TwigBranch object:'
+        return ss
 
     
 
@@ -269,8 +284,8 @@ class TwigBranch(Twig.Twig):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=True):
-        """Specific: Make the plugin subtree.
-        This function must be re-implemented in derived Leaf classes. 
+        """The TwigBranch class is derived from the Twig class. It deals with entire
+        branches, i.e. a TwigLeaf at the tip, and a sequence of Twig classes. 
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):

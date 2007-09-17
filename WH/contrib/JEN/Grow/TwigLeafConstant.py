@@ -165,7 +165,11 @@ class TwigLeafConstant(TwigLeaf.TwigLeaf):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=True):
-        """Specific: Make the plugin subtree.
+        """The TwigLeafConstant class is derived from the TwigLeaf class.
+        In principle, it is just a MeqConstant (scalar or tensor) node.
+        A number of mathematical and physical constants may be selected,
+        and also the stddev of a 'scatter' deviation from the nominal value.
+        Finally, a unary operation (e.g. Negate) may be applied to the result.
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
