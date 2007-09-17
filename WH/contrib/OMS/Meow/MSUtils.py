@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -39,14 +39,14 @@ try:
   import pycasatable
 except:
   pycasatable = None;
-  
+
 # queue size parameter for MS i/o record
 ms_queue_size = 500;
-  
+
 class MSContentSelector (object):
   def __init__ (self,ddid=[0],field=None,channels=True,namespace='ms_sel'):
     """Creates options for selecting a subset of an MS.
-    ddid:       list of suggested DDIDs, or false for no selector. 
+    ddid:       list of suggested DDIDs, or false for no selector.
     field:      list of suggested fields. or false for no selector.
       NB: if pycasatable is available, ddid/field is ignored, and selectors are always
       provided, based on the MS content.
@@ -97,19 +97,22 @@ class MSContentSelector (object):
         self.channel_options[1].set_validator(self._validate_last_channel);
         self.channel_options[2].set_validator(self._validate_channel_step);
       self.ddid_option.when_changed(self._select_ddid);
-        
+
   def option_list (self):
     """Returns list of all TDL options"""
     return self._opts;
-  
+
   def get_channels (self):
     """Returns start,end,step tuple for selected channels, or None
     if we were created without a channel selector""";
     if self.select_channels:
-      return self.ms_channel_start,self.ms_channel_end,self.ms_channel_step;
+      if self.ms_channel_start <= self.ms_channel_end:
+        return self.ms_channel_start,self.ms_channel_end,self.ms_channel_step;
+      else:
+        return self.ms_channel_end,self.ms_channel_start,self.ms_channel_step;
     else:
       return None;
-    
+
   def get_spectral_window (self):
     """Returns the spw corresponding to the selected DDID. If pycasatable is n/a,
     simply returns the ddid_index (kludgy kludgy)
@@ -119,29 +122,29 @@ class MSContentSelector (object):
       return self.ms_spws[ddid];
     else:
       return ddid;
-    
+
   def get_field (self):
     """Returns the field number""";
     return self.field_index or 0;
-  
+
   def create_selection_record (self):
     """Forms up a selection record that can be added to an MS input record""";
     selection = record();
     if self.select_channels:
-      selection.channel_start_index = self.ms_channel_start;
-      selection.channel_end_index = self.ms_channel_end;
+      selection.channel_start_index = min(self.ms_channel_start,self.ms_channel_end);
+      selection.channel_end_index = max(self.ms_channel_start,self.ms_channel_end);
       selection.channel_increment = self.ms_channel_step;
     if self.ddid_index is not None:
       selection.ddid_index = self.ddid_index;
     if self.field_index is not None:
       selection.field_index = self.field_index;
     if self.ms_taql_str:
-      selection.selection_string = ms_taql_str; 
+      selection.selection_string = ms_taql_str;
     return selection;
 
   def _select_new_ms (self,ms):
     """Called (from MSSelector) when a new MS is selected. ms is a pycasatable.table
-    object. Fills ddid/field/channel selectors from the MS. 
+    object. Fills ddid/field/channel selectors from the MS.
     """;
     # DDIDs
     self.ms_spws = list(pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'),
@@ -155,7 +158,7 @@ class MSContentSelector (object):
                                                  lockoptions='autonoread').getcol('NAME'));
     # update selectors
     self._update_ms_options();
-  
+
   def _update_ms_options (self):
     # DDID selector
     if self.ms_ddid_numchannels is not None:
@@ -168,13 +171,13 @@ class MSContentSelector (object):
       self.field_option.set_option_list(dict(enumerate(field_list)));
       if len(self.ms_field_names) < 2:
         self.field_option.hide();
-      
+
   def _update_from_other (self,other):
     self.ms_spws = other.ms_spws;
     self.ms_ddid_numchannels = other.ms_ddid_numchannels;
     self.ms_field_names = other.ms_field_names;
     self._update_ms_options();
-  
+
   def _select_ddid (self,value):
     """callback used when a new DDID is selected."""
     if self.ms_ddid_numchannels:
@@ -187,24 +190,23 @@ class MSContentSelector (object):
       self.channel_options[1].set_doc("(max %d) select last channel"%(nchan-1));
       self.channel_options[2].set_value(min(self.ms_channel_step,nchan),save=False);
       self.channel_options[2].set_doc("(max %d) select channel steping"%nchan);
-  
+
   def _validate_first_channel (self,value):
     """validator for channel selectors."""
     if self.ms_ddid_numchannels is None:
       return True;
     return isinstance(value,int) and \
            value >= 0 and \
-           value < self.ms_ddid_numchannels[self.ddid_index] and \
-           value <= self.channel_options[1].value;
-  
+           value < self.ms_ddid_numchannels[self.ddid_index];
+
   def _validate_last_channel (self,value):
     """validator for channel selectors."""
     if self.ms_ddid_numchannels is None:
       return True;
     return isinstance(value,int) and \
-          value >= self.channel_options[0].value and \
+          value >= 0 and \
           value < self.ms_ddid_numchannels[self.ddid_index];
-  
+
   def _validate_channel_step (self,value):
     """validator for channel selectors."""
     if self.ms_ddid_numchannels is None:
@@ -235,7 +237,7 @@ class MSSelector (object):
     forbid_output: a list of forbidden output columns. "DATA" by default.
     antsel:     if True, an antenna subset selector will be provided
     tile_sizes: list of suggested tile sizes. If false, no tile size selector is provided.
-    ddid:       list of suggested DDIDs, or false for no selector. 
+    ddid:       list of suggested DDIDs, or false for no selector.
     field:      list of suggested fields. or false for no selector.
       NB: if pycasatable is available, ddid/field is ignored, and selectors are always
       provided, based on the MS content.
@@ -262,9 +264,9 @@ class MSSelector (object):
         antsel = [None];
       self.antsel_option = TDLOption("ms_antenna_sel","Antenna subset",
                                      [None],more=str,namespace=self,
-        doc="""Selects a subset of antennas to use. You may specify individual indices 
-        (1-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), 
-        or ":M" (1 to M), or "N:" (N to last). 
+        doc="""Selects a subset of antennas to use. You may specify individual indices
+        (1-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive),
+        or ":M" (1 to M), or "N:" (N to last).
         Example subset: ":3 5 8 10:12 16:"."""
       );
       self.antsel_option.set_validator(self._antenna_sel_validator);
@@ -318,7 +320,7 @@ class MSSelector (object):
     # if pycasatable exists, set up interactivity for MS options
     if pycasatable:
       ms_option.set_validator(self._select_new_ms);
-      
+
   def when_changed (self,callback):
     # if tables are available, callbacks will be called by _select_new_ms()
     if pycasatable:
@@ -329,29 +331,29 @@ class MSSelector (object):
     # otherwise just register the callback with the ms_option itself
     else:
       self._ms_option.when_changed(callback);
-  
+
   def enable_input_column (self,enable=True):
     self.ms_has_input = enable;
     self.input_col_option.show(enable);
-    
+
   def enable_output_column (self,enable=True):
     self.ms_has_output = enable;
     self.output_col_option.show(enable);
-  
+
   def option_list (self):
     """Returns list of all TDL options. Note that the MS name is always
     the first option."""
     return self._compile_opts + self._opts;
-  
+
   def compile_options (self):
     """Returns MS name option."""
     return self._compile_opts;
-  
+
   def runtime_options (self):
     """Returns list of all TDL options. Note that the MS name is always
     the first option."""
     return self._opts;
-  
+
   def get_antenna_names (self):
     """Returns the list of antenna names from the current MS. If pycasatable
     is not available, this will be empty""";
@@ -359,7 +361,7 @@ class MSSelector (object):
       return self._parse_antenna_subset(self.ms_antenna_sel);
     else:
       return self.ms_antenna_names;
-  
+
   def get_antenna_set (self,default=None):
     """Returns the set of selected antenna indices from the current MS, or None
     if no selection info is available."""
@@ -369,7 +371,7 @@ class MSSelector (object):
       return range(1,len(self.ms_antenna_names)+1);
     else:
       return default;
-  
+
   def make_subset_selector (self,namespace):
     """Makes an MSContentSelector object connected to this MS selector."""
     sel = MSContentSelector(ddid=self._ddid,field=self._field,
@@ -380,7 +382,7 @@ class MSSelector (object):
       sel._select_ddid(self.subset_selector.ddid_index or 0);
     self._content_selectors.append(sel);
     return sel;
-    
+
   def _select_new_ms (self,msname):
     """This callback is called whenever a new MS is selected. Returns False if
     table is malformed or n/a""";
@@ -398,7 +400,7 @@ class MSSelector (object):
       self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA'),
                                                 lockoptions='autonoread').getcol('NAME');
       if self.antsel_option:
-        self.antsel_option.set_option_list(["1:%d"%len(self.ms_antenna_names)]);
+        self.antsel_option.set_option_list([None,"1:%d"%len(self.ms_antenna_names)]);
         self.antsel_option.show();
       # notify content selectors
       for sel in self._content_selectors:
@@ -412,7 +414,7 @@ class MSSelector (object):
       print "error reading MS",msname;
       traceback.print_exc();
       return False;
-  
+
   def _parse_antenna_subset (self,value):
     if not value:
       return None;
@@ -451,7 +453,7 @@ class MSSelector (object):
         # add to subset
         subset += range(index1,index2+1);
     return subset;
-        
+
   def _antenna_sel_validator (self,value):
     try:
       antenna_subset = self._parse_antenna_subset(value);
@@ -460,12 +462,12 @@ class MSSelector (object):
       print "error parsing antenna selection '%s'"%value;
       traceback.print_exc();
       return False;
-  
+
   def imaging_selector (self,*args,**kw):
     """Makes an ImagingSelector connected to this MS selector. All arguments
     are passed to the ImagingSelector constructor""";
     return ImagingSelector(self,*args,**kw);
-    
+
   def create_inputrec (self,tiling=None):
     """Creates an input record with the selected options""";
     if self.msname is None:
@@ -483,7 +485,7 @@ class MSSelector (object):
         rec.tile_segments    = tile_segments;
       if tile_size is not None:
         rec.tile_size        = tile_size;
-    else: 
+    else:
       rec.tile_size = tiling;
     rec.selection = self.subset_selector.create_selection_record();
     # form top-level record
@@ -491,7 +493,7 @@ class MSSelector (object):
     iorec.python_init = 'Meow.ReadVisHeader';
     iorec.mt_queue_size = ms_queue_size;
     return iorec;
-  
+
   def create_outputrec (self):
     """Creates an output record with the selected options""";
     rec = record();
@@ -499,7 +501,7 @@ class MSSelector (object):
     if self.output_column:
       rec.data_column = self.output_column;
     return record(ms=rec,mt_queue_size=ms_queue_size);
-      
+
   def create_io_request (self,tiling=None):
     """Creates an i/o record with the selected options, suitable for
     passing to a VisDataMux""";
@@ -508,7 +510,7 @@ class MSSelector (object):
     if self.ms_write_flags or self.output_column is not None:
       req.output = self.create_outputrec();
     return req;
-  
+
   def run_solve_job (self,mqs,solvables,tiling=None,
                      solver_node="solver",vdm_node="VisDataMux",options=None,
                      wait=False):
@@ -518,7 +520,7 @@ class MSSelector (object):
     mqs.setnodestate(mqs,solver_node,solver_defaults,sync=True,wait=wait)
     req = self.create_io_request(tiling);
     mqs.execute(vdm_node,req,wait=wait);
-  
+
 
 class ImagingSelector (object):
   """ImagingSelector provides a set of TDL options for imaging""";
@@ -527,7 +529,7 @@ class ImagingSelector (object):
     mssel: an MSSelector object
     npix:       default image size in pixels (or list of suggested sizes)
     arcmin:     default image size in arc minutes (or list of suggested sizes)
-    cellsize:   default cell size (as an aips++ quantity string), or list. Note 
+    cellsize:   default cell size (as an aips++ quantity string), or list. Note
                 that either arcmin or cellsize should be specified, not both.
     subset:     if True, a separate MSContentSelector will be provided, allowing
                 to image a different subset of the MS.
@@ -547,7 +549,7 @@ class ImagingSelector (object):
       TDLOption('imaging_weight',"Imaging weights",
                 ["default","natural","uniform","briggs"],namespace=self),
       TDLOption('imaging_stokes',"Stokes parameters to image",
-                ["I","IQUV"],namespace=self) 
+                ["I","IQUV"],namespace=self)
     ];
     if npix:
       if not isinstance(npix,(list,tuple)):
@@ -571,8 +573,8 @@ class ImagingSelector (object):
                         "Pixel size",cellsize,more=str,namespace=self));
     self._opts.append(TDLOption('imaging_padding',
                                 "Image padding factor for FFTs",[1.0],more=float,namespace=self,
-      doc="""When gridding and transforming, the array may be padded 
-      by this factor in the image plane. This reduces aliasing, especially 
+      doc="""When gridding and transforming, the array may be padded
+      by this factor in the image plane. This reduces aliasing, especially
       in wide-field cleaning."""));
     # add w-projection option
     self._opts.append(TDLMenu("Enable w-projection",
@@ -580,7 +582,7 @@ class ImagingSelector (object):
                   [128],more=int,namespace=self),
       toggle='imaging_enable_wproj',namespace=self,
       doc="""This option enables the w-projection algorithm. Imaging will
-      be <b>much</b> slower, but wide-field artefacts will be greately reduced or 
+      be <b>much</b> slower, but wide-field artefacts will be greately reduced or
       eliminated. Note that this option does not work right with all versions
       of the aips++ imager, but the only way to find out is to give it a try.""",
       ));
@@ -601,13 +603,13 @@ class ImagingSelector (object):
   def option_list (self):
     """Returns list of all TDL options"""
     return self._opts;
-  
+
   def make_dirty_image (self,npix=None,cellsize=None,arcmin=None):
     """Runs glish script to make an image.
     The following parameters, if supplied, will override the option settings:
-      npix:       image size in pixels 
+      npix:       image size in pixels
       arcmin:     image size in arc minutes
-      cellsize:   default cell size (as an aips++ quantity string). Note 
+      cellsize:   default cell size (as an aips++ quantity string). Note
                   that either arcmin or cellsize may be specified, not both.
     """;
     # choose selector based on custom MS select option
@@ -635,7 +637,7 @@ class ImagingSelector (object):
       if arcmin == 'all-sky':
        # for all-sky images, fudge: 120" cell gives full sky in ~3200 pixels
         cellsize = str(120*(3200./npix))+"arcsec";
-      else:  
+      else:
         cellsize = str(float(arcmin*60)/npix)+"arcsec";
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
@@ -655,10 +657,6 @@ class ImagingSelector (object):
     ];
     # add w-proj arguments
     if self.imaging_enable_wproj:
-
-
-
-
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
     # add channel arguments
     chans = selector.get_channels();
