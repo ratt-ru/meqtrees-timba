@@ -94,9 +94,11 @@ else
 if( weighting != 'default' )
   myimager.weight(weighting); 
   
-myimager.setoptions(cache=500000000,padding=padding);
 if( wprojplanes > 0 )
-  myimager.setoptions(ftmachine='wproject', wprojplanes=wprojplanes);
+  myimager.setoptions(ftmachine='wproject', wprojplanes=wprojplanes,cache=500000000,padding=padding);
+else
+  myimager.setoptions(cache=500000000,padding=padding);
+
 
 imgname := msname
 imgname =~ s/\..*//;
