@@ -8,6 +8,7 @@
 # - 03jul2007: added .nodescope(new=None)
 # - 09jul2007: introduced ParmGroup class
 # - 17jul2007: .quals2list() and .tags2list()
+# - 17sep2007: get OptionManager from /control/
 
 # Description:
 
@@ -53,7 +54,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grunt import OptionManager
+from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display

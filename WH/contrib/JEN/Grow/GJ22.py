@@ -1,15 +1,11 @@
-# file: ../JEN/Grow/TwigDemo.py
+# file: ../JEN/Grow/GJ22.py
 
 # History:
-# - 14sep2007: creation (from TwigDemo.py)
+# - 17sep2007: creation (from Twig.py)
 
 # Description:
 
-"""The TwigDemo class makes makes a node/subtree that demonstrates
-a particular feature of MeqTrees. It does this in a side-branch,
-so the output result is equal to the input.
-It is a base-class for specialised classes like TwigDemoSolver,
-TwigDemoModRes etc, and is itself derived from the Plugin base-class.
+"""The GJ22 class encapsulates the Grunt.Matrixt22 class.
 """
 
 
@@ -43,48 +39,52 @@ TwigDemoModRes etc, and is itself derived from the Plugin base-class.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Twig
+from Timba.Contrib.JEN.Grow import J22
+from Timba.Contrib.JEN.Grunt import Joneset22
 from Timba.Contrib.JEN.control import Executor
 
-# import math
-# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class TwigDemo(Twig.Twig):
-    """Base-class for TwigDemoSomething classes, itself derived from Twig"""
+class GJ22(J22.J22):
+    """Base-class for GJ22Something classes, itself derived from Growth"""
 
     def __init__(self, quals=None,
-                 name='TwigDemo',
+                 name='GJ22',
                  submenu='compile',
+                 has_input=False,
                  OM=None, namespace=None,
                  **kwargs):
 
-        Twig.Twig.__init__(self, quals=quals,
-                           name=name,
-                           submenu=submenu,
-                           # toggle=True,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
+        J22.J22.__init__(self, quals=quals,
+                         name=name,
+                         submenu=submenu,
+                         has_input=has_input,
+                         OM=OM, namespace=namespace,
+                         **kwargs)
 
+        self._j22 = Joneset22.GJones(mode='simulate')
         return None
 
 
+    #====================================================================
+    # GJ22-specific re-implementations of some generic functions in
+    # the base-class Growth.py
     #====================================================================
 
     def derivation_tree (self, ss, level=1):
         """Append the formatted derivation tree of this object to the string ss. 
         """
-        ss += self.help_format(Twig.Twig.grow.__doc__, level=level)
-        ss = Twig.Twig.derivation_tree(self, ss, level=level+1)
+        ss += self.help_format(J22.J22.grow.__doc__, level=level)
+        ss = J22.J22.derivation_tree(self, ss, level=level+1)
         return ss
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Twig.Twig.oneliner(self)
+        ss = J22.J22.oneliner(self)
         return ss
     
 
@@ -93,23 +93,26 @@ class TwigDemo(Twig.Twig):
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
         #...............................................................
-        Twig.Twig.display(self, full=full,
-                          recurse=recurse,
-                          OM=OM, level=level+1)
+        J22.J22.display(self, full=full,
+                              recurse=recurse,
+                              OM=OM, level=level+1)
+        #...............................................................
+        self._j22.display(full=False)
         #...............................................................
         return self.display_postamble(prefix, level=level)
+
 
 
 
     
     #====================================================================
     # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived TwigDemo classes) 
+    # (These must be re-implemented in derived GJ22 classes) 
     #====================================================================
 
     def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived TwigDemo classes. 
+        This function must be re-implemented in derived GJ22 classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
@@ -122,23 +125,18 @@ class TwigDemo(Twig.Twig):
 
 
     #--------------------------------------------------------------------
-    #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=False):
-        """The TwigDemo class is derived from the Twig class.
-        It is the baseclass for a family of classes that demonstrate the
-        working of some of the more advanced MeqTree node classes, like
-        the Solver, the ModRes and Resampler, the Compounder etc.
-        A TwigDemo is implemented as a side-branch, so it does NOT change
-        the input result (although the output node will have the name of
-        the ReqSeq node that is used to issue requests to the side-branch).
+    def grow (self, ns, test=None, trace=False):
+        """The GJ22 class is derived from the Growth class.
+        It encapsulates the Grunt.Matrixt22 class.
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        result = node
+        self._j22.make_jones_matrices(ns=ns)
+        result = self._j22
 
         #..............................................
         # Finishing touches:
@@ -156,32 +154,34 @@ class TwigDemo(Twig.Twig):
 #=============================================================================
 
 
-plf = None
-if 0:
+j22 = None
+if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    plf = TwigDemo()
-    plf.make_TDLCompileOptionMenu()
-    # plf.display('outside')
+    j22 = GJ22()
+    j22.make_TDLCompileOptionMenu()
+    # j22.display('outside')
 
 
 def _define_forest(ns):
 
-    global plf,xtor
-    if not plf:
+    global j22,xtor
+    if not j22:
         xtor = Executor.Executor()
-        plf = TwigDemo()
-        plf.make_TDLCompileOptionMenu()
+        j22 = GJ22()
+        j22.make_TDLCompileOptionMenu()
 
     cc = []
-
-    node = ns << 1.2
-    rootnode = plf.grow(ns, node)
+    mx = j22.grow(ns)
+    rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
     cc.append(rootnode)
 
+    aa = mx._PGM.accumulist()
+    cc.extend(aa)
+    
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
     xtor.make_TDLRuntimeOptionMenu(node=ns.result)
@@ -199,12 +199,12 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Twig object"""
-    plf.display('_tdl_job')
+    """Just display the current contents of the Growth object"""
+    j22.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Twig object"""
-    plf.display('_tdl_job', full=True)
+    """Just display the current contents of the Growth object"""
+    j22.display('_tdl_job', full=True)
        
 
 
@@ -221,19 +221,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        plf = TwigDemo()
-        plf.display('initial')
+        j22 = GJ22()
+        j22.display('initial')
 
     if 1:
-        plf.make_TDLCompileOptionMenu()
+        j22.make_TDLCompileOptionMenu()
 
     if 1:
-        node = ns << 1.2
         test = dict()
-        plf.grow(ns, node, test=test, trace=False)
+        j22.grow(ns, test=test, trace=False)
 
     if 1:
-        plf.display('final', OM=True, full=True)
+        j22.display('final', OM=True, full=True)
 
 
 

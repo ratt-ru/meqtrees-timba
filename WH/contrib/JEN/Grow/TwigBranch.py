@@ -179,7 +179,7 @@ class TwigBranch(Twig.Twig):
             
         # OK, add the valid leaf to the list:
         name = leaf.name
-        self._leaf[name] = dict(leaf=leaf, modes=modes) 
+        self._leaf[name] = dict(leaf=leaf, modes=modes)
 
         if trace:
             print '   ->',leaf.oneliner()
@@ -192,13 +192,6 @@ class TwigBranch(Twig.Twig):
     def _define_TwigBranch_compile_options(self, trace=True):
         """Define some generic compile options for TwigBranch.
         """
-        opt = self._leaf.keys()
-        self.defopt(self._optname_selected_Leaf,
-                    opt[0], opt=opt,
-                    prompt='select a Leaf',
-                    callback=self._callback_leaf,
-                    doc="""The tip of the TwigBranch is a Leaf subtree.
-                    """)
         return True
 
 
@@ -208,8 +201,8 @@ class TwigBranch(Twig.Twig):
         """Called whenever option 'Leaf' changes"""
         for key in self._leaf.keys():
             do_ignore = (not leaf==key)
-            print '-- ignore leaf',key,':',do_ignore
-            self._leaf[key]['leaf'].ignore(do_ignore)
+            print '-- ignore leaf',key,':',do_ignore,'   (...disabled...)'
+            # self._leaf[key]['leaf'].ignore(do_ignore)
         return True
 
 
@@ -222,11 +215,13 @@ class TwigBranch(Twig.Twig):
         if trace:
             print '\n** .make_leaf_subtree():'
 
-        key = self.optval(self._optname_selected_Leaf)
-        rr = self._leaf[key]
-        print '\n -',key,':',rr['leaf'].oneliner()
-        node = rr['leaf'].grow(ns, trace=trace)
-        print '    -> node =',str(node)
+        for key in self._leaf.keys():
+            rr = self._leaf[key]
+            print '\n -',key,':',rr['leaf'].oneliner()
+            node = rr['leaf'].grow(ns, trace=False)
+            print '    -> node =',str(node)
+            if is_node(node):
+                break
 
         if trace:
             print
@@ -258,7 +253,23 @@ class TwigBranch(Twig.Twig):
         """Specific function to format a string with specific help for this
         object, if any.
         """
-        ss = 'Specific help for this TwigBranch object:'
+        ss = ''
+        ss += '\n******************************'
+        ss += '\n** Choice of available leaves:'
+        ss += '\n******************************'
+
+        for key in self._leaf.keys():
+            rr = self._leaf[key]['leaf']
+            ss += rr.help(specific=False, trace=False)
+
+        ss += '\n*********************************'
+        ss += '\n** Sequence of available plugins:'
+        ss += '\n*********************************'
+
+        for key in self._plugin_order:
+            rr = self._plugin[key]['plugin']
+            ss += rr.help(specific=False, trace=False)
+
         return ss
 
     
@@ -307,11 +318,11 @@ class TwigBranch(Twig.Twig):
         submenu = self._submenu+'.Leaf'
         self._optname_selected_Leaf = 'Leaf.selected_Leaf'
         self.define_leaves (submenu, trace=True)
-        self._OM.set_menurec(submenu, prompt='customize the selected Leaf')
+        self._OM.set_menurec(submenu, prompt='select a Leaf')
 
         submenu = self._submenu+'.Twig'
         self.define_plugin_sequence (submenu, trace=True)
-        self._OM.set_menurec(submenu, prompt='customize the Twig sequence')
+        self._OM.set_menurec(submenu, prompt='select a plugin sequence')
 
         # This function needs self._leaf.keys() etc:
         self._define_TwigBranch_compile_options()
@@ -326,10 +337,20 @@ class TwigBranch(Twig.Twig):
         """
         Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
-        self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu, OM=self._OM))
-        self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu, OM=self._OM))
-        self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu, OM=self._OM,
+        self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu,
+                                                         OM=self._OM, toggle=True))
+        self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu,
+                                                 OM=self._OM, toggle=True))
+        self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu,
+                                                         OM=self._OM, toggle=True,
                                                          xtor=self._xtor, dims=self._dims))
+        # Make a toggle group for the leaves:
+        leaves = []
+        for key in self._leaf.keys():
+            leaves.append(self._leaf[key]['leaf'])
+        for key in self._leaf.keys():
+            self._leaf[key]['leaf'].toggle_group(append=leaves)
+
         return True
 
 
@@ -339,13 +360,19 @@ class TwigBranch(Twig.Twig):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
-        self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu, OM=self._OM))
-        self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu, OM=self._OM))
-        self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu, OM=self._OM))
+        self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu,
+                                                   OM=self._OM, toggle=True))
+        self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu,
+                                                 OM=self._OM, toggle=True))
+        self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu,
+                                                       OM=self._OM, toggle=True))
         
-        self.add_plugin (DemoModRes.DemoModRes(submenu=submenu, OM=self._OM))
-        self.add_plugin (DemoRedaxes.DemoRedaxes(submenu=submenu, OM=self._OM))
-        self.add_plugin (DemoSolver.DemoSolver(submenu=submenu, OM=self._OM))
+        self.add_plugin (DemoModRes.DemoModRes(submenu=submenu,
+                                               OM=self._OM, toggle=True))
+        self.add_plugin (DemoRedaxes.DemoRedaxes(submenu=submenu,
+                                                 OM=self._OM, toggle=True))
+        self.add_plugin (DemoSolver.DemoSolver(submenu=submenu,
+                                               OM=self._OM, toggle=True))
 
         return True
 
@@ -438,8 +465,11 @@ if __name__ == '__main__':
         test = dict()
         brn.grow(ns, test=test, trace=False)
 
-    if 1:
+    if 0:
         brn.display('final', OM=True, full=True)
+
+    if 0:
+        brn.help(trace=True)
 
 
 

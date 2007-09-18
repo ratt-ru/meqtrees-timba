@@ -1,13 +1,11 @@
-# file: ../JEN/Grow/Twig.py
+# file: ../JEN/Grow/J22.py
 
 # History:
-# - 14sep2007: creation (from Twig.py)
+# - 17sep2007: creation (from Twig.py)
 
 # Description:
 
-"""The Twig class is the base class for classes that
-take a single node as input, and produce a single result node.
-The single node may be a tensor-node, of course.
+"""The J22 class encapsulates the Grunt.Matrixt22 class.
 """
 
 
@@ -42,40 +40,39 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Grow import Growth
+from Timba.Contrib.JEN.Grunt import Joneset22
 from Timba.Contrib.JEN.control import Executor
 
-# import math
-# import random
 
 
 
 #=============================================================================
 #=============================================================================
 
-class Twig(Growth.Growth):
-    """Base-class for TwigSomething classes, itself derived from Growth"""
+class J22(Growth.Growth):
+    """Base-class for J22Something classes, itself derived from Growth"""
 
     def __init__(self, quals=None,
-                 name='Twig',
+                 name='J22',
                  submenu='compile',
-                 # toggle=True,
-                 # has_input=True,
+                 has_input=False,
                  OM=None, namespace=None,
                  **kwargs):
 
         Growth.Growth.__init__(self, quals=quals,
                                name=name,
                                submenu=submenu,
-                               # has_input=has_input,
-                               # toggle=toggle,          
+                               has_input=has_input,
                                OM=OM, namespace=namespace,
                                **kwargs)
 
+        self._j22 = Joneset22.Joneset22()
+        # self._j22 = Joneset22.Joneset22(mode='simulate')
         return None
 
 
     #====================================================================
-    # Twig-specific re-implementations of some generic functions in
+    # J22-specific re-implementations of some generic functions in
     # the base-class Growth.py
     #====================================================================
 
@@ -101,6 +98,8 @@ class Twig(Growth.Growth):
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
+        self._j22.display(full=False)
+        #...............................................................
         return self.display_postamble(prefix, level=level)
 
 
@@ -108,18 +107,18 @@ class Twig(Growth.Growth):
 
 
     #---------------------------------------------------------------------
-    # Twig-specific checking (assumes single-node input/result):
+    # J22-specific checking:
     #--------------------------------------------------------------------
 
     def check_input (self, input, severe=True, trace=False):
         """Function called by the generic function .on_input()
         (see Growth.py) to check the input to .grow().
-        It checks whether self._input is a node.
+        It checks whether self._input is a Joneset22 object.
         This routine should return True (OK) or False (not OK).
         """
-        # print '\n** .check_input(',type(input),')\n' 
-        if not is_node(input):
-            s = 'input is not a node, but: '+str(type(input))
+        print '\n** .check_input(',type(input),')'
+        if not isinstance(input, Joneset22.Joneset22):
+            s = 'input is not a Joneset22, but: '+str(type(input))
             if severe:
                 raise ValueError,s
             else:
@@ -131,11 +130,11 @@ class Twig(Growth.Growth):
     def check_result (self, result, severe=True, trace=False):
         """Function called by the generic function .on_result()
         (see Growth.py) to check the result of .grow().
-        It checks whether the result is a node.
+        It checks whether the result is a Joneset22 object.
         """
-        # print '\n** .check_result(',type(result),')\n' 
-        if not is_node(result):
-            s = 'result is not a valid node'
+        print '\n** .check_result(',type(result),')'
+        if not isinstance(result, Joneset22.Joneset22): 
+            s = 'result is not a valid Joneset22'
             print s,'\n'
             if severe:
                 raise ValueError,s
@@ -146,7 +145,7 @@ class Twig(Growth.Growth):
 
 
     #--------------------------------------------------------------------
-    # Twig-specific interaction with the data-description record:
+    # J22-specific interaction with the data-description record:
     #--------------------------------------------------------------------
 
     def datadesc (self, merge=None, is_complex=None, dims=None, trace=False):
@@ -172,7 +171,7 @@ class Twig(Growth.Growth):
 
 
     #---------------------------------------------------------------------
-    # Twig-specific visualization (assumes single-node input/result):
+    # J22-specific visualization (assumes single-node input/result):
     #--------------------------------------------------------------------
 
     def define_visu_options(self):
@@ -188,14 +187,13 @@ class Twig(Growth.Growth):
                         doc="""Insert and bookmark a side-branch that
                         compares the result with the input. 
                         """)
-        if False:
-            # Perhaps it is possible to extract all new nodes from the tree....
-            self.defopt('misc.visu.allnodes', False,
-                        prompt='bookmark all nodes',
-                        opt=[True, False],  
-                        doc="""If True, bookmark all new nodes
-                        of this Growth, e.g. for debugging.
-                        """)
+        self.defopt('misc.visu.rvsi', False,
+                    prompt='make rvsi plot',
+                    opt=[True, False],  
+                    doc="""If True, plot all matrix elements in a
+                    real-vs-imaginary plot, with different colors
+                    and styles for each of the 4 matrix elements.
+                    """)
         return True
 
     #--------------------------------------------------------------------
@@ -208,12 +206,18 @@ class Twig(Growth.Growth):
         Note that the result may be modified ('grown') in the process.
         """
         # If required, insert a side-branch to compare the result with the input:  
-        if is_node(self._input):
+        if False and is_node(self._input):
             binop = self.optval('misc.visu.compare')
             if binop:
                 comp = self.ns['compare'] << getattr(Meq, binop)(result, self._input)
                 self.bookmark(comp)
                 node = self.ns['compare_reqseq'] << Meq.ReqSeq(result, comp, result_index=0)
+
+        rvsi = self.optval('misc.visu.rvsi')
+        if rvsi:
+            result.visualize(visu='rvsi')
+        # self._j22.visualize(visu='straight')
+        # self._j22.visualize(visu='timetracks', separate=False)
         # Return the (possibly grown) result: 
         return result
 
@@ -226,12 +230,12 @@ class Twig(Growth.Growth):
     
     #====================================================================
     # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived Twig classes) 
+    # (These must be re-implemented in derived J22 classes) 
     #====================================================================
 
     def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived Twig classes. 
+        This function must be re-implemented in derived J22 classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
@@ -245,16 +249,17 @@ class Twig(Growth.Growth):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=False):
-        """The Twig class is derived from the Growth class. It deals with 'twigs',
-        i.e. its input(s) and result are single nodes (which may be tensor nodes).
+    def grow (self, ns, test=None, trace=False):
+        """The J22 class is derived from the Growth class.
+        It encapsulates the Grunt.Matrixt22 class.
         """
         # Check the node, and make self.ns:
-        if not self.on_input (ns, node, trace=trace):
+        if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        result = node
+        self._j22.make_jones_matrices(ns=ns)
+        result = self._j22
 
         #..............................................
         # Finishing touches:
@@ -272,32 +277,34 @@ class Twig(Growth.Growth):
 #=============================================================================
 
 
-twg = None
+j22 = None
 if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-
-    twg = Twig()
-    twg.make_TDLCompileOptionMenu()
-    # twg.display('outside')
+    j22 = J22()
+    j22.make_TDLCompileOptionMenu()
+    # j22.display('outside')
 
 
 def _define_forest(ns):
 
-    global twg,xtor
-    if not twg:
+    global j22,xtor
+    if not j22:
         xtor = Executor.Executor()
-        twg = Twig()
-        twg.make_TDLCompileOptionMenu()
+        j22 = J22()
+        j22.make_TDLCompileOptionMenu()
 
     cc = []
-    node = ns << 1.0
-    rootnode = twg.grow(ns, node)
+    mx = j22.grow(ns)
+    rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
     cc.append(rootnode)
 
+    aa = mx._PGM.accumulist()
+    cc.extend(aa)
+    
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
     xtor.make_TDLRuntimeOptionMenu(node=ns.result)
@@ -316,11 +323,11 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the Growth object"""
-    twg.display('_tdl_job')
+    j22.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the Growth object"""
-    twg.display('_tdl_job', full=True)
+    j22.display('_tdl_job', full=True)
        
 
 
@@ -337,19 +344,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        twg = Twig()
-        twg.display('initial')
+        j22 = J22()
+        j22.display('initial')
 
     if 1:
-        twg.make_TDLCompileOptionMenu()
+        j22.make_TDLCompileOptionMenu()
 
     if 1:
-        node = ns << 1.2
         test = dict()
-        twg.grow(ns, node, test=test, trace=False)
+        j22.grow(ns, test=test, trace=False)
 
     if 1:
-        twg.display('final', OM=True, full=True)
+        j22.display('final', OM=True, full=True)
 
 
 

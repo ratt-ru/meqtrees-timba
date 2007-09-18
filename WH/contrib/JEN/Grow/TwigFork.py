@@ -69,7 +69,7 @@ class TwigFork(Twig.Twig):
         Twig.Twig.__init__(self, quals=quals,
                            name=name,
                            submenu=submenu,
-                           toggle=False,
+                           # toggle=False,
                            OM=OM, namespace=namespace,
                            **kwargs)
 

@@ -3,6 +3,7 @@
 # History:
 # - 09jul2007: creation (from ParameterizationPlus.py)
 # - 24jul2007: split off OptionManager.py
+# - 17sep2007: get OptionManager from /control/
 
 # Description:
 
@@ -47,7 +48,7 @@ from Timba.Meq import meq
 
 import Meow
 
-from Timba.Contrib.JEN.Grunt import OptionManager
+from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression

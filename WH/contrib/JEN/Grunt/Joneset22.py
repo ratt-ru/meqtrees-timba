@@ -764,7 +764,7 @@ if 0:
     jones.make_jones_matrices()
     jones.display()
     
-if 1:
+if 0:
     mode = 'simulate'
     jones = GJones(quals=[], mode=mode)
     # jones = BJones(ns, quals=[], mode=mode)

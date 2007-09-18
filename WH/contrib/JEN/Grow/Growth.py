@@ -62,10 +62,6 @@ class Growth (object):
                  name='Growth',
                  submenu='compile',
                  OM=None, namespace=None,
-                 has_input=True,
-                 toggle=False,
-                 ignore=False,                    
-                 defer_compile_options=False,
                  **kwargs):
 
         # For reporting only:
@@ -76,33 +72,40 @@ class Growth (object):
         self.ns0 = None                             # see .on_input()
         self.make_name_and_submenu (name, submenu, quals)
 
-        # Keep an internal list of nodes to be bookmarked
-        # See .bookmark() and .visualize_generic()
-        self._bm = []
+        # Extra keyword arguments may be supplied to the constructor.
+        self._kwargs = kwargs
+        if not isinstance(self._kwargs, dict):
+            self._kwargs = dict()
+        self._kwargs.setdefault('default', dict())
+        self._kwargs.setdefault('insist', dict())
+        self._kwargs.setdefault('toggle', False)
+        self._kwargs.setdefault('ignore', False)
+        self._kwargs.setdefault('has_input', True)
+        self._kwargs.setdefault('defer_compile_options', False)
 
-        # Keep the input node for bookmarks/visualization
+        # If toggle=True, provide a toggle widget to its subenu
+        self._toggle = self._kwargs['toggle']
+        self._toggle_group = []
+
+        # The object may be ignored/hidden:
+        self._ignore = self._kwargs['ignore']
+        self._visualize = True
+
+        # Keep the input of .grow() for internal use
         self._input = None
-        self._has_input = has_input
+        self._has_input = self._kwargs['has_input']
+
+        # Keep the result (of .grow()) for internal use
+        self._result = None
 
         # Switch that indicates whether the mandatory function
         # self.create_Growth_objects() has been called already
         self._created_Growth_objects = False
         self._Growth_objects = dict()
 
-        # If toggle=True, provide a toggle widget to its subenu
-        self._toggle = toggle
-
-        # The object may be ignored/hidden:
-        self._ignore = ignore
-        self._visualize = True
-
-        # Extra keyword arguments may be supplied to the constructor.
-        # These are used for.....
-        self._kwargs = kwargs
-        if not isinstance(self._kwargs, dict):
-            self._kwargs = dict()
-        self._kwargs.setdefault('default',dict())
-        self._kwargs.setdefault('insist',dict())
+        # Keep an internal list of nodes to be bookmarked
+        # See .bookmark() and .visualize_generic()
+        self._bm = []
 
         #................................................................
 
@@ -126,7 +129,7 @@ class Growth (object):
         self._mode = dict()
 
         # Define the required runtime options:
-        if not defer_compile_options:
+        if not self._kwargs['defer_compile_options']:
             self.define_compile_options()
         
         # Finished:
@@ -244,6 +247,11 @@ class Growth (object):
                     print prefix,'      - '+key1+' = '+str(rr[key1])            
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
+        if self._has_input:
+            self.display_value(self._input, 'input', prefix=prefix)
+        #...............................................................
+        self.display_value(self._result, 'result', prefix=prefix)
+        #...............................................................
         print prefix,'  * created_Growth_objects: '+str(self._created_Growth_objects)
         for key in self._Growth_objects.keys():
             G = self._Growth_objects[key]
@@ -255,6 +263,11 @@ class Growth (object):
         for node in self._bm:
             print prefix,'     - '+str(node)
         #...............................................................
+        print prefix,'  * has toggle box = '+str(self._toggle)
+        if self._toggle:
+            for g in self._toggle_group:
+                print prefix,'     - '+str(g.oneliner())
+        #...............................................................
         print prefix,'  * '+self._OM.oneliner()
         print prefix,'  * external OptionManager: '+str(self._external_OM)
         if not self._external_OM:
@@ -262,7 +275,25 @@ class Growth (object):
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
+    #.........................................................................
 
+    def display_value(self, v, name='<name>', prefix='*'):
+        """Helper function"""
+        print prefix,'  * '+str(name)+' type = '+str(type(v))
+        midfix = '     -' 
+        if is_node(v):
+            print prefix,midfix,str(v)
+            # self.display_subtree(v) 
+        elif getattr(v, 'oneliner', None):
+            print prefix,midfix,v.oneliner()
+        elif isinstance(v, list):
+            print prefix,midfix,' list length ='+str(len(v))
+        elif isinstance(v, dict):
+            print prefix,midfix,' dict keys ='+str(v.keys())
+        else:
+            print prefix,midfix,'=',str(v)
+        return True
+    
     #-------------------------------------------------------------------------
 
     def display_preamble(self, prefix='Growth', level=0, txt=None):
@@ -320,6 +351,9 @@ class Growth (object):
         s = '** '+self._submenu+': on_entry(): '
         self._done_on_entry = True
 
+        # Define some compile-time options:
+        self.define_entry_options()
+
         # Progress message: 
         if trace:
             print '\n',s
@@ -355,27 +389,50 @@ class Growth (object):
             self._OM.set_menurec(self._submenu, toggle=True,
                                  callback=self._callback_toggle)
 
+        # Define some compile-time options:
+        self.define_exit_options()
+
         # Progress message: 
         if trace:
             print s,'\n'
 
-        # Make a (sub)submenu of miscellaneous options:
-        self.define_generic_misc_options()
-        
         return True
 
 
     #....................................................................
 
-    def _callback_toggle (self, selected='selected'):
+    def _callback_toggle (self, selected):
         """Called whenever the toggle widget before the menu is toggled"""
-        menurec = self._OM.set_menurec(self._submenu, selected=selected)
-        self._ignore = not selected
-        ## self._OM.enable(self._submenu, selected)  NOT a good idea!!
+        trace = True
+        self.select(selected, trace=trace)
+        if selected:
+            for g in self._toggle_group:
+                g.select(not selected, trace=trace)
         return True
 
+    def select(self, select, trace=False):
+        """Select/deselect this object (see _callback_toggle())"""
+        self._OM.set_menurec(self._submenu, selected=select)
+        self._ignore = not select
+        ## self._OM.enable(self._submenu, selected)  NOT a good idea!!
+        if trace:
+            print '\n** ',self.name,' .select(',select,') ignore =',self._ignore
+        return True
 
-
+    def toggle_group (self, append=None, reset=False, trace=False):
+        """Interaction with the toggle-group of this object. It contains
+        a list of other Growth objects, of which only one at a time may
+        be selected. See also _callback_toggle().
+        """
+        if reset:
+            self._toggle_group = []
+        if append:
+            if not isinstance(append, list): append = [append]
+            for g in append:
+                if not g==self:
+                    self._toggle_group.append(g)  
+                    g._toggle_group.append(self)     
+        return self._toggle_group
 
     #====================================================================
     # Helper functions for access to options:
@@ -391,12 +448,12 @@ class Growth (object):
         option value will be changed, and the option itself will be disabled.
         """
         disable = None
-        for key in self._kwargs.keys():              # ['default','insist']
+        for key in ['default','insist']:
             if self._kwargs[key].has_key(name):
                 was = value
                 new = self._kwargs[key][name]
                 value = new
-                print '\n** .defopt(',name,'): =',was,'->',new,' (',key,')\n'
+                # print '\n** .defopt(',name,'): =',was,'->',new,' (',key,')\n'
                 if key=='insist':
                     disable = True
         self._OM.define(self.optname(name), value, opt=opt, more=more,
@@ -567,19 +624,22 @@ class Growth (object):
         # Check the result node of this Growth:
         result = self.check_result (result, severe=severe, trace=trace)
 
+        # Keep the result for internal use (e.g. in visualize()):
+        self._result = result
+
         # Visualize, as specified by the options:
-        result = self.visualize_generic (result, trace=trace)
+        self.visualize_generic (trace=trace)
 
         # Progress message:
         if trace:
-            if is_node(result):
-                self.display_subtree(result) 
-                print s,'->',str(result),'\n'
-            elif gettattr(result, oneliner,None):
-                print s,'->',result.oneliner(),'\n'
+            if is_node(self._result):
+                self.display_subtree(self._result) 
+                print s,'->',str(self._result),'\n'
+            elif gettattr(self._result, oneliner,None):
+                print s,'->',self._result.oneliner(),'\n'
             else:
-                print s,'->',type(result),'\n'
-        return result          
+                print s,'->',type(self._result),'\n'
+        return self._result          
 
 
 
@@ -773,37 +833,51 @@ class Growth (object):
 
     #---------------------------------------------------------------------
 
-    def visualize_generic (self, result, trace=False):
-        """Generic function for visualization.
+    def visualize_generic (self, trace=False):
+        """The generic visualization function mainly makes bookmarks and
+        bookpages for interesting nodes (see also .bookmark()). The power
+        of this feature is under-valued at the moment, but this will change...
+        This function also call the class-specific function .visualize(),
+        which may be re-implemented by derived classes, to do more interesting
+        things.
         """
-        # First do some checks:
+        # First checks whether visualization is required, or possible at all:
         if not self._visualize:
-            return result
+            return True
         if not self.has_option('misc.visu.bookpage'):
-            return result                                 # no visualization options defined
+            return True                                   # no visualization options defined
         page = self.optval('misc.visu.bookpage')
         if not page:
-            return result                                 # no visualization required
+            return True                                   # no visualization required
         folder = None
 
-        # Do specific visualization (if any):
-        result = self.visualize (result, trace=False)
+        # Do specific visualization (if any). This requires self._result, since
+        # the result may be changed in the process, e.g. by inserting new nodes.
+        # Since the re-implementer may forget to do this, a check is provided.
+        before = self._result
+        self._result = self.visualize (self._result, trace=False)
+        if True:
+            print '\n** .on_output()  .visualize():'
+            print '   result type before: ',type(before)
+            print '   result type after : ',type(self._result)
+            print '   is the same type: ',isinstance(self._result, type(before))
+            print
 
         # Prepend a bookmark for the input node (if required):
         if is_node(self._input):
-            if not result==self._input:
+            if not self._result==self._input:
                 self.bookmark(self._input, prepend=True)  # make it the first one
 
         # Append a bookmark for the result node (if relevant):
-        if is_node(result):
-            self.bookmark(result)
+        if is_node(self._result):
+            self.bookmark(self._result)
 
         # Make the bookmark(s) for the nodes collected in self._bm:
         if len(self._bm)>0:
             JEN_bookmarks.create(self._bm, page=page, folder=folder)
 
-        # Always return the (possibly 'grown') result:
-        return result
+        # Finished
+        return True
 
 
 
@@ -831,7 +905,25 @@ class Growth (object):
         #............................................
         #............................................
         return self.on_exit(trace=trace)
-    
+
+    #....................................................................
+
+    def define_entry_options(self):
+        """Funcion called by .on_entry() in .define_compile_options().
+        May be reimplemented by a derived class
+        """
+        return True
+
+    #....................................................................
+
+    def define_exit_options(self):
+        """Funcion called by .on_exit() in .define_compile_options().
+        May be reimplemented by a derived class
+        """
+        self.define_generic_misc_options()
+        return True
+
+
     #--------------------------------------------------------------------
 
     def create_Growth_objects (self, trace=False):

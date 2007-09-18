@@ -82,10 +82,10 @@ class TwigLeaf(Twig.Twig):
                            name=name,
                            submenu=submenu,
                            has_input=False,
-                           toggle=False,
+                           # toggle=False,
                            OM=OM, namespace=namespace,
                            **kwargs)
-
+        self._has_input = False
         return None
 
     #====================================================================

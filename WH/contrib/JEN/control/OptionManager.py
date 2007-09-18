@@ -482,7 +482,9 @@ class OptionManager (object):
         if callback:
             self.menurec[key]['callback'] = callback 
         if isinstance(selected,bool):
-            self.menurec[key]['selected'] = selected 
+            self.menurec[key]['selected'] = selected
+            if self.menu[key]:
+                self.menu[key].set_value(selected, callback=False)
         return self.menurec[key]
         
 
@@ -668,9 +670,7 @@ class OptionManager (object):
             oo.when_changed(self.callback_submenu)
             if optrec['callback']:
                 oo.when_changed(optrec['callback'])
-            print '** ',optkey,': optrec[disable] =',optrec['disable']
             if optrec['disable']:
-                print '\n** ',optkey,'.disable(',optrec['disable'],')\n'
                 oo.disable(optrec['disable'])
             self.option[optkey] = oo
             self.callback_submenu()
@@ -796,14 +796,15 @@ class OptionManager (object):
     #---------------------------------------------------------------------
 
     def make_manip_option (self, cat='compile', hide=False, trace=False):
-        """Make the 'manip' option, that allows reset of ALL compile-time
-        options to the original values in their optrecs.
+        """Make the 'manip' option, that allows various manipulations of the
+        entire menu. For instance the reset of ALL compile-time options
+        to the original values in their optrecs. Etc.
         """
         if cat=='runtime':
-            prompt = self.name+':  manip to default values (!)'
+            prompt = self.name+':  overall manipulation (!)'
             callback = self.callback_manip_runtime
         else:
-            prompt = self.name+':  manip to default values (!)'
+            prompt = self.name+':  overall manipulation (!)'
             callback = self.callback_manip_compile   
 
         self.key_of_manip_option[cat] = '_key_of_manip_'+cat+'_option'
@@ -989,7 +990,10 @@ class OptionManager (object):
         prefix = '  '+(level*'..')
         ignore = ['misc']
 
+        # Make robust:
         if rr==None:
+            if not self.tree.has_key(cat):
+                return True
             rr = self.tree[cat]
 
         # An option entry is a string (key into self.optrec):
