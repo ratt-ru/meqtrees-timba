@@ -78,7 +78,7 @@ class TwigFlagger(Twig.Twig):
 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This placeholder function should be reimplemented by a derived class.
         """
@@ -102,7 +102,7 @@ class TwigFlagger(Twig.Twig):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=True):
+    def grow (self, ns, node, test=None, trace=False):
         """The TwigFlagger class is derived from the Twig class.
         It can be used for flagging those cells of its input result
         that exceed a specified criterion, e.g. 3 sigma.

@@ -92,7 +92,7 @@ class DemoSolver(TwigDemo.TwigDemo):
     
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         """
         if not self.on_entry (trace=trace):
@@ -110,7 +110,7 @@ class DemoSolver(TwigDemo.TwigDemo):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=True):
+    def grow (self, ns, node, test=None, trace=False):
         """The DemoSolver class is derived from the TwigDemo class.
         It demonstrates the use of the MeqSolver node. Such a node has
         one or more MeqCondeq children, which generate condition equations

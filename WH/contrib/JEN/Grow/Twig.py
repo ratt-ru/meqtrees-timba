@@ -58,16 +58,12 @@ class Twig(Growth.Growth):
     def __init__(self, quals=None,
                  name='Twig',
                  submenu='compile',
-                 # toggle=True,
-                 # has_input=True,
                  OM=None, namespace=None,
                  **kwargs):
 
         Growth.Growth.__init__(self, quals=quals,
                                name=name,
                                submenu=submenu,
-                               # has_input=has_input,
-                               # toggle=toggle,          
                                OM=OM, namespace=namespace,
                                **kwargs)
 

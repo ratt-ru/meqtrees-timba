@@ -94,7 +94,7 @@ class TwigLeafParm(TwigLeaf.TwigLeaf):
 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         """
         if not self.on_entry (trace=trace):
@@ -140,7 +140,7 @@ class TwigLeafParm(TwigLeaf.TwigLeaf):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
+    def grow (self, ns, test=None, trace=False):
         """The TwigLeafParm class is derived from the TwigLeaf class.
         It is just a (scalar) MeqParm node.
         """

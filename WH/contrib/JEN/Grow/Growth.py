@@ -389,8 +389,19 @@ class Growth (object):
             self._OM.set_menurec(self._submenu, toggle=True,
                                  callback=self._callback_toggle)
 
-        # Define some compile-time options:
-        self.define_exit_options()
+        # Define some exit compile-time options (if any) at the end of the
+        # class-specific function .define_compile_options().
+        # The class-specific functions may be re-implemented by derived classes.
+        self.define_exit_options()              # class-specific
+
+        # Miscellaneous options:
+        self.define_generic_misc_options()      # generic
+        self.define_misc_options()              # class-specific
+
+        # Visualization options (part of misc menu):
+        self.define_generic_visu_options()      # generic
+        self.define_visu_options()              # class-specific
+        
 
         # Progress message: 
         if trace:
@@ -403,7 +414,7 @@ class Growth (object):
 
     def _callback_toggle (self, selected):
         """Called whenever the toggle widget before the menu is toggled"""
-        trace = True
+        trace = False
         self.select(selected, trace=trace)
         if selected:
             for g in self._toggle_group:
@@ -624,10 +635,12 @@ class Growth (object):
         # Check the result node of this Growth:
         result = self.check_result (result, severe=severe, trace=trace)
 
-        # Keep the result for internal use (e.g. in visualize()):
+        # Keep the .grow() result for internal use (e.g. in .visualize()):
         self._result = result
 
-        # Visualize, as specified by the options:
+        # Visualize (generic AND class-specific), as specified by the options.
+        # This function calls the class-specific function .visualize(),
+        # which may be reimplemented by derived classes.  
         self.visualize_generic (trace=trace)
 
         # Progress message:
@@ -675,12 +688,6 @@ class Growth (object):
                     doc="""should be self-explanatory
                     """)
 
-        # Define specific options for this menu (if any):
-        self.define_misc_options()
-
-        # Visualization options (generic and specific):
-        self.define_generic_visu_options()
-        
         # Finished:
         return True
 
@@ -715,7 +722,7 @@ class Growth (object):
         if help=='derivation_tree':
             print self.show_derivation_tree(trace=False)
         elif help:
-            print self.help(specific=True, trace=True)
+            print self.help(specific=True, trace=False)
         self.setval ('misc.help', None)
         # self._OM.setval('misc.help', None)
         return True
@@ -796,8 +803,6 @@ class Growth (object):
                              selected=True,
                              callback=self._callback_toggle_visu)
 
-        # Define any specific visualisation options:
-        self.define_visu_options()
         return True
 
 
@@ -813,7 +818,7 @@ class Growth (object):
 
     #---------------------------------------------------------------------
 
-    def bookmark (self, node=None, prepend=False, trace=True):
+    def bookmark (self, node=None, prepend=False, trace=False):
         """Append the given node(s) to the list of nodes to be bookmarked.
         """
         if node:
@@ -920,7 +925,6 @@ class Growth (object):
         """Funcion called by .on_exit() in .define_compile_options().
         May be reimplemented by a derived class
         """
-        self.define_generic_misc_options()
         return True
 
 

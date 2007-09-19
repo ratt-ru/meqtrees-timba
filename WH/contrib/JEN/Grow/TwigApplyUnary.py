@@ -79,7 +79,7 @@ class TwigApplyUnary(Twig.Twig):
 
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         """
         if not self.on_entry (trace=trace):
@@ -101,7 +101,7 @@ class TwigApplyUnary(Twig.Twig):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=True):
+    def grow (self, ns, node, test=None, trace=False):
         """The TwigApplyUnary class is derived from the Twig class.
         It can be used to apply a (sequence of) unary operations on its
         input node (which may be a tensor node, of course).

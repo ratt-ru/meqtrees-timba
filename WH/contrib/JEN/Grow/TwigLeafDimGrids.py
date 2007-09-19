@@ -96,7 +96,7 @@ class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
     #====================================================================
 
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This function must be re-implemented in derived TwigLeaf classes. 
         """
@@ -115,7 +115,7 @@ class TwigLeafDimGrids(TwigLeaf.TwigLeaf):
     #--------------------------------------------------------------------
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
+    def grow (self, ns, test=None, trace=False):
         """The TwigLeafDimG, rids class is derived from the TwigLeaf class.
         It is a combination (Add, Multiply) of one or more MeqGrid nodes,
         which provide variation of the result for the selected dimensions

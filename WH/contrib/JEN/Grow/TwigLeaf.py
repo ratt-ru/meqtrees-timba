@@ -81,8 +81,6 @@ class TwigLeaf(Twig.Twig):
         Twig.Twig.__init__(self, quals=quals,
                            name=name,
                            submenu=submenu,
-                           has_input=False,
-                           # toggle=False,
                            OM=OM, namespace=namespace,
                            **kwargs)
         self._has_input = False

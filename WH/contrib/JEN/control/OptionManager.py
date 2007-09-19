@@ -875,7 +875,7 @@ class OptionManager (object):
 
     #.....................................................................
 
-    def hide_stare2_menus(self, cat='compile', hide=False, trace=True):
+    def hide_stare2_menus(self, cat='compile', hide=False, trace=False):
         """Hide/unhide the secondary menus (stare=2)
         """
         for key in self.menurec.keys():
@@ -913,7 +913,8 @@ class OptionManager (object):
                     self.undo_last_reset[key] = was    # keep for later undo
                 now = self[key]                        # new current value
                 if trace:
-                    print ' - () '+key+'('+ukey+'):  -> '+str(now),
+                    # print ' - () '+key+'('+ukey+'):  -> '+str(now),
+                    print '   -- '+key+':  -> '+str(now),
                     if not new==was: print '     (changed: was ',was,')',
                     print
         if trace: print
@@ -987,6 +988,8 @@ class OptionManager (object):
                     cat='compile', trace=False):
         """Recursive function that prints a summary of the tree structure.
         """
+        if level==0:
+            print
         prefix = '  '+(level*'..')
         ignore = ['misc']
 
@@ -1017,7 +1020,8 @@ class OptionManager (object):
                 selected = menurec['selected']
                 if selected==None: selected = True
                 if selected and (not stare==None):
-                    print prefix,key,' (stare='+str(stare)+') (descr='+str(descr)+')'
+                    # print prefix,key,' (stare='+str(stare)+') (descr='+str(descr)+')'
+                    print prefix,key,': '+str(descr)
                 # print '\n',menurec,'\n'
                 
                 done = []

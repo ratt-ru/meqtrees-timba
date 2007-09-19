@@ -92,7 +92,7 @@ class TwigLeafConstant(TwigLeaf.TwigLeaf):
     
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         """
         if not self.on_entry (trace=trace):
@@ -164,7 +164,7 @@ class TwigLeafConstant(TwigLeaf.TwigLeaf):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
+    def grow (self, ns, test=None, trace=False):
         """The TwigLeafConstant class is derived from the TwigLeaf class.
         In principle, it is just a MeqConstant (scalar or tensor) node.
         A number of mathematical and physical constants may be selected,
@@ -249,7 +249,7 @@ class TwigLeafConstant(TwigLeaf.TwigLeaf):
             print s
             raise ValueError,s
         # Update the data-descriptor record:
-        self.datadesc(dims=dims, trace=True)
+        self.datadesc(dims=dims, trace=False)
         return dims
 
 

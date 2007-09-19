@@ -81,7 +81,7 @@ class DemoRedaxes(TwigDemo.TwigDemo):
     
     #====================================================================
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         """
         if not self.on_entry (trace=trace):
@@ -104,7 +104,7 @@ class DemoRedaxes(TwigDemo.TwigDemo):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=True):
+    def grow (self, ns, node, test=None, trace=False):
         """The DemoRedaxes class is derived from the TwigDemo class.
         It demonstrates ....
         Clicking on the DemoRedaxes bookmark produces a page that shows the

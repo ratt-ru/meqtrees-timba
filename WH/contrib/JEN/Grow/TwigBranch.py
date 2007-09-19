@@ -143,7 +143,7 @@ class TwigBranch(Twig.Twig):
     #====================================================================
 
 
-    def add_plugin(self, plugin, modes=None, trace=True):
+    def add_plugin(self, plugin, modes=None, trace=False):
         """
         Check the given Twig object, and add it to self._plugin.
         """
@@ -166,7 +166,7 @@ class TwigBranch(Twig.Twig):
 
     #---------------------------------------------------------------------------
 
-    def add_leaf(self, leaf, modes=None, trace=True):
+    def add_leaf(self, leaf, modes=None, trace=False):
         """
         Check the given Leaf object, and add it to self._leaf.
         """
@@ -185,25 +185,6 @@ class TwigBranch(Twig.Twig):
             print '   ->',leaf.oneliner()
         return True
 
-
-    #---------------------------------------------------------------------------
-    #---------------------------------------------------------------------------
-
-    def _define_TwigBranch_compile_options(self, trace=True):
-        """Define some generic compile options for TwigBranch.
-        """
-        return True
-
-
-    #...................................................................
-
-    def _callback_leaf (self, leaf):
-        """Called whenever option 'Leaf' changes"""
-        for key in self._leaf.keys():
-            do_ignore = (not leaf==key)
-            print '-- ignore leaf',key,':',do_ignore,'   (...disabled...)'
-            # self._leaf[key]['leaf'].ignore(do_ignore)
-        return True
 
 
     #---------------------------------------------------------------------------
@@ -279,7 +260,7 @@ class TwigBranch(Twig.Twig):
     #====================================================================
 
 
-    def define_compile_options(self, trace=True):
+    def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
         This function must be re-implemented in derived Leaf classes. 
         """
@@ -294,7 +275,7 @@ class TwigBranch(Twig.Twig):
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=True):
+    def grow (self, ns, test=None, trace=False):
         """The TwigBranch class is derived from the Twig class. It deals with entire
         branches, i.e. a TwigLeaf at the tip, and a sequence of Twig classes. 
         """
@@ -317,15 +298,12 @@ class TwigBranch(Twig.Twig):
         """
         submenu = self._submenu+'.Leaf'
         self._optname_selected_Leaf = 'Leaf.selected_Leaf'
-        self.define_leaves (submenu, trace=True)
+        self.define_leaves (submenu, trace=False)
         self._OM.set_menurec(submenu, prompt='select a Leaf')
 
         submenu = self._submenu+'.Twig'
-        self.define_plugin_sequence (submenu, trace=True)
+        self.define_plugin_sequence (submenu, trace=False)
         self._OM.set_menurec(submenu, prompt='select a plugin sequence')
-
-        # This function needs self._leaf.keys() etc:
-        self._define_TwigBranch_compile_options()
 
         # Execute the deferred function:
         self.define_compile_options()
@@ -333,7 +311,7 @@ class TwigBranch(Twig.Twig):
         
     #---------------------------------------------------------------------------
 
-    def define_leaves (self, submenu, trace=True):
+    def define_leaves (self, submenu, trace=False):
         """
         Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
@@ -356,7 +334,7 @@ class TwigBranch(Twig.Twig):
 
     #---------------------------------------------------------------------------
 
-    def define_plugin_sequence (self, submenu, trace=True):
+    def define_plugin_sequence (self, submenu, trace=False):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
@@ -469,7 +447,7 @@ if __name__ == '__main__':
         brn.display('final', OM=True, full=True)
 
     if 0:
-        brn.help(trace=True)
+        brn.help()
 
 
 

@@ -66,7 +66,6 @@ class TwigDemo(Twig.Twig):
         Twig.Twig.__init__(self, quals=quals,
                            name=name,
                            submenu=submenu,
-                           # toggle=True,
                            OM=OM, namespace=namespace,
                            **kwargs)
 
