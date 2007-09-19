@@ -45,14 +45,14 @@ namespace Meq {
   InitDebugContext(Parm,"MeqParm");
 
   const HIID symdeps_all[]     = { FDataset,FDomain,FResolution,FState,FIteration };
-  const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution}; 
+  const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution};
   const HIID symdeps_solve[]   = { FIteration,FState };
   const HIID symdeps_resolution[]   = { FResolution};
   const HIID symdeps_default[] = { FDataset,FDomain,FResolution };
 
 
-  
-    
+
+
 
 
   Parm::Parm()
@@ -84,7 +84,7 @@ namespace Meq {
       integrated_(false)
   {
     // The default depmask includes Domain. This is done in such that the fuklet gets reinitialized in case of a Fail
-    //solve_depend_mask 
+    //solve_depend_mask
     // is added if the parm is solvable
     setActiveSymDeps(symdeps_default,3);
   }
@@ -100,7 +100,7 @@ namespace Meq {
 
   Funklet * Parm::findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain)
   {
- 
+
 
     cdebug(2)<<"looking for suitable funklets"<<endl;
     funkletref.detach();
@@ -109,15 +109,15 @@ namespace Meq {
 	Funklet *pfunklet = getFunkletFromDB(funkletref,domain);
 	if(pfunklet && ignore_time_ && pfunklet->objectType()==TpMeqComposedPolc)
 	  {
-	    //set time domain of all funklets to 0,inf 
+	    //set time domain of all funklets to 0,inf
 	    DMI::List & funklist =  (*pfunklet)[FFunkletList].as_wr<DMI::List>();
-	    
+
 	    int nr_funk = funklist.size();
-	    
+
 	    for(int funknr=0 ; funknr<nr_funk ; funknr++)
 	      {
 		Funklet::Ref partfunk = funklist.get(funknr);
-		
+
 		Domain dom = Domain(partfunk->domain());
 		dom.defineAxis(0,0,INFINITY);
 		partfunk().setDomain(dom);
@@ -126,8 +126,8 @@ namespace Meq {
 	      }
 	    (*pfunklet)[FFunkletList].replace()=funklist;
     	  }
-	
-	if (pfunklet && !reset_funklet_) 
+
+	if (pfunklet && !reset_funklet_)
 	  return pfunklet;
 
       }
@@ -146,7 +146,7 @@ namespace Meq {
 	  getDefaultFromDB(funkletref);
 	if( !funkletref.valid())
 	  {
-	    
+
 	    //use previous funklet, unless user really wants default??
 	    if( (_use_previous>1 ||( _use_previous&& converged_)) && its_funklet_.valid())
 	      {
@@ -161,7 +161,7 @@ namespace Meq {
 		    funkletref = funklist->get(0);  //better getlast
 		  }
 	      }
-	    
+
 	    else
 	      {
 		const Funklet *initfunklet = state()[FInitFunklet].as_po<Funklet>();
@@ -180,14 +180,14 @@ namespace Meq {
 		  }
 	      }
 	  }
-      }	
+      }
     //if not tiled, a solvable funklet cannot be a composedpolc
     if(isSolvable() && !tiled_ && funkletref->objectType()==TpMeqComposedPolc)
       {
 	//use first
 	const DMI::List *funklist = funkletref()[FFunkletList].as_po<DMI::List>();
 	funkletref = funklist->get(0);  //better getlast
-	
+
 
       }
     funkletref().clearSolvable();
@@ -197,8 +197,8 @@ namespace Meq {
     funkletref(). setDbId (dbid);
     return funkletref.dewr_p();
 
-    
-    
+
+
   }
 
 
@@ -207,8 +207,8 @@ namespace Meq {
     // copy current domain into solvable funklet
     // (once we start solving, it is only valid for the solve domain, even if it may
     // have been valid for a bigger/different domain before)
-  
-        
+
+
 
     cdebug(4)<<"init solvable "<<endl;
 
@@ -226,16 +226,16 @@ namespace Meq {
 	    cdebug(3)<<"warning: null funklet perturbation, using default 1e-6"<<endl;
 	    funklet.setPerturbation(1e-6);
 	  }
-      } 
+      }
     cdebug(4)<<"init solvable, nr:"<<nr<<endl;
 
     return nr;
   }
- 
+
   Funklet * Parm::initSplineFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){//divide domain, to get coeff shape + dx per axis
     //if splined funklet is also tiled, first get the size of the tiled domains, then the number of coeffs
     //if shape is 1,1 just use a polc...
-    
+
     LoShape shape;
     shape.resize(MaxSplineRank);
     shape.assign(MaxSplineRank,1);
@@ -251,7 +251,7 @@ namespace Meq {
       if(nr_cells <=splining_[axis]) //spline of 1 point is just a constant polc
 	continue;
       int nr_spline_points = nr_cells/splining_[axis];
-      if (nr_spline_points<=1) continue; 
+      if (nr_spline_points<=1) continue;
       if(rank_nr<0) rank_nr = axis+1;
       //dx = ((domain_size/splining_[axis] , can be calculated in Spline.cc?? yes because Cells are known)
       shape[axis]=nr_spline_points;
@@ -264,7 +264,7 @@ namespace Meq {
     cpolc->setCoeffShape(shape);
     funkletref<<=cpolc;
     return cpolc;
-    
+
   }
 
 
@@ -284,28 +284,28 @@ namespace Meq {
 
       int nr_tiles=(nr_cells+tiling_[axis]-1)/tiling_[axis]; //round to higher value
       vector<Domain::Ref> helpV;
- 
+
       for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++)
 	  {
-	    
+
 	    for(int i=0;i<nr_tiles;i++)
 	      {
 		(*domIt)().defineAxis(axis,cellStart(i*tiling_[axis]),cellEnd(std::min(nr_cells-1,(i+1)*tiling_[axis]-1)));
 		helpV.push_back(*domIt);
 	      }
-	    
-	    
+
+
 	  }
       domainV.clear();
 
       for(vector<Domain::Ref>::iterator domIt2=helpV.begin();domIt2<helpV.end();domIt2++)
 	{
 	  domainV.push_back(*domIt2);
-	  
+
 	}
       helpV.clear();
       cdebug(2)<<" total nr domains : "<<domainV.size()<<endl;
-      
+
     }
   }
 
@@ -313,7 +313,7 @@ namespace Meq {
   {
     //cehcks for solvable parms if te funkeltlist exactly matches the required tiling, reset the funklet otherwise
     bool match =false;
-    
+
     if (funkletref->objectType()==TpMeqComposedPolc)
 	{
 	  match=true;
@@ -321,14 +321,14 @@ namespace Meq {
 	  FailWhen(!funklist,"Composed Polc does not contain funklist");
 	  const Funklet::Ref & firstfunk = funklist->get(0);
 	  int ncoeff = firstfunk->ncoeff();
-	  
+
 	  if(!funklist  || (int(domainV.size())!=funklist->size())) match=false;
 	  else
 	    for(int axis=0;axis<Axis::MaxAxis;axis++){
 	      //if(!tiling_[axis]) continue;
 	      int funknr=0;
 	      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
-		const Funklet::Ref & partfunk = funklist->get(funknr++); 
+		const Funklet::Ref & partfunk = funklist->get(funknr++);
 
 		if(((*domIt)->start(axis)!= partfunk->domain().start(axis)) ||
 		   ((*domIt)->end(axis)!= partfunk->domain().end(axis))||
@@ -353,12 +353,12 @@ namespace Meq {
 
 
     return match;
-	  
-  }    
+
+  }
 
   Funklet * Parm::initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){
 
-    //now if tiling change to ComposedPolc, all initialized with the same funklet....(should we check on solvability here?) 
+    //now if tiling change to ComposedPolc, all initialized with the same funklet....(should we check on solvability here?)
     vector<Domain::Ref> domainV; //create vector of domains..1 per funklettile
     Domain::Ref domref;
     domref <<=new Domain(domain);
@@ -369,12 +369,12 @@ namespace Meq {
       {
 	return funkletref.dewr_p();
       }
-    if(checkTiledFunklet(funkletref,domainV))     
+    if(checkTiledFunklet(funkletref,domainV))
       return funkletref.dewr_p();
 
-      
+
     //now create funklet for every domain.
- 
+
     vector<Funklet::Ref> funklets;
     funklets.resize(domainV.size());
     int n=0;
@@ -388,7 +388,7 @@ namespace Meq {
     ComposedPolc * cpolc =new ComposedPolc(funklets);
     funkletref<<=cpolc;
     return funkletref.dewr_p();
-      
+
   }
 
 
@@ -421,7 +421,7 @@ namespace Meq {
     if(its_funklet_.valid())
       pfunklet= its_funklet_.dewr_p();
     // see if this can be reused
-    
+
     if( pfunklet )
       {
 	funkref<<=pfunklet;
@@ -449,7 +449,7 @@ namespace Meq {
 	      return its_funklet_.dewr_p();
 	    }
 	  }
- 
+
         // (b) no domain in funklet (i.e. effectively infinite domain of applicability)
 	 if( ! (tiled_ ||splined_)&& (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
           {
@@ -461,7 +461,7 @@ namespace Meq {
 	    const LoShape shape=pfunklet->getCoeffShape();
 	    if(force_shape_)
 	      pfunklet->setCoeffShape(shape_);
-	    
+
             return its_funklet_.dewr_p();
           }
         // (c) funklet domain is a superset of the requested domain
@@ -492,7 +492,7 @@ namespace Meq {
     Domain ndomain(domain);
     if(ignore_time_)
       {//set time domain to 0,inf
-	ndomain=Domain(0.,INFINITY,domain.start(1),domain.end(1)); 
+	ndomain=Domain(0.,INFINITY,domain.start(1),domain.end(1));
       }
     pfunklet = findRelevantFunklet(funkref,ndomain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
@@ -509,7 +509,7 @@ namespace Meq {
 	  pfunklet->setCoeffShape(shape_);
 	funkref<<=pfunklet;
       }
-    
+
     if(splined_ && isSolvable()){
 
         cdebug(3)<<"splining funklet, "<<endl;
@@ -535,8 +535,8 @@ namespace Meq {
     wstate()[FDomain].replace() <<= &domain;
     res_id_=rq_res_id;
     return its_funklet_.dewr_p();
-    
-   
+
+
   }
 
 
@@ -555,7 +555,7 @@ namespace Meq {
     Funklet * pfunklet = initFunklet(request,True);
     cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
     if( !pfunklet->isSolvable() )
-      {	
+      {
 	initSolvable(*pfunklet,request);
 	if(  isSolvable()){
 	  //set solve domain, default [0,1]
@@ -567,7 +567,7 @@ namespace Meq {
 
     wstate()[FFunklet].replace() = pfunklet->getState();
     its_funklet_<<=pfunklet;
-    
+
     // get spids from funklet
     const std::vector<int> & spids = pfunklet->getSpids();
     ref <<= new Result(0);
@@ -582,10 +582,10 @@ namespace Meq {
       {
 	DMI::Vec & tiles  = defrec[FTileSize] <<=new DMI::Vec(Tpint,Axis::MaxAxis,tiling_);
       }
-    DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record; 
+    DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record;
     for( uint i=0; i<spids.size(); i++ ){
       defrec[FCoeffIndex] <<=pfunklet->getCoeffIndex(i);
-      map[spids[i]] = defrec; 
+      map[spids[i]] = defrec;
       cdebug(2)<<"spid "<<i<<" = "<<spids[i]<<endl;
     }
     return domain_depend_mask_|solve_depend_mask_;
@@ -601,7 +601,7 @@ namespace Meq {
     domain_depend_mask_ = symdeps().getMask(domain_symdeps_);
     solve_depend_mask_ = symdeps().getMask(solve_symdeps_);
     res_depend_mask_ = symdeps().getMask(resolution_symdeps_);
-    
+
     // is request for solvable parm values?
     bool solve = isSolvable() && request.evalMode() > 0;
     // find a funklet to use
@@ -640,9 +640,9 @@ namespace Meq {
       }
 
 
-    // If we have a single constant funklet, and are not integrated, then there's no 
+    // If we have a single constant funklet, and are not integrated, then there's no
     // dependency on domain. Otherwise, add domain mask
-    //MM: Changed since even a constant MeqParm can depend on domain (eg. if its coeff in the meptable depend onthe domain)  
+    //MM: Changed since even a constant MeqParm can depend on domain (eg. if its coeff in the meptable depend onthe domain)
     // OMS: changed again: even without a parmtable as we iterate over successive
     // snippets, we don't want the previous solution to be cached anywhere
     //   if( !pfunklet->isConstant() || integrated_ )
@@ -651,17 +651,17 @@ namespace Meq {
 
     // set cells in result as needed
     result.setCells(request.cells());
- 
+
     // integrate over cell if so specified
     if( integrated_ )
       result.integrate();
-  
+
 
     //remove funklet from cache unless cahce_funklet
     if(!cache_funklet_ && !isSolvable()){
       its_funklet_.detach();
       wstate().remove(FFunklet);
-    } 
+    }
     return depend;
   }
 
@@ -689,7 +689,7 @@ namespace Meq {
     //default
     solve_domain_[0]=0.;
     solve_domain_[1]=1.;
-    
+
 
     rec[FSolveDomain].get_vector(solve_domain_,initializing);
 
@@ -698,7 +698,7 @@ namespace Meq {
       for(int i=0;i<Axis::MaxAxis;i++){
 	tiling_[i]=0;
 	(*tiling)[Axis::axisId(i)].get(tiling_[i],0);
-      
+
 	if(!tiled_&&tiling_[i]) tiled_=true;
       }
     }
@@ -707,9 +707,9 @@ namespace Meq {
       for(int i=0;i<Axis::MaxAxis;i++){
 	splining_[i]=0;
 	(*spline)[Axis::axisId(i)].get(splining_[i],0);
-      
+
 	if(!splined_&&splining_[i]) {splined_=true; force_shape_=false;}
-	
+
       }
     }
 
@@ -722,25 +722,25 @@ namespace Meq {
       {
 	cdebug(2)<<"solve_symdeps set via state\n";
       }
- 
-   
-    // Is a funklet specified? 
+
+
+    // Is a funklet specified?
     const Funklet * pfunklet = rec[FFunklet].as_po<Funklet>();
     if( pfunklet )
       {
-	
+
 	if(pfunklet->objectType()==TpMeqCompiledFunklet  || pfunklet->hasField(FFunction))
 	  {
 	    cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
 	    its_funklet_<<= new CompiledFunklet(*pfunklet);
-	    
+
 	  }
 	else
 	  if(pfunklet->hasField(FClass) && (*pfunklet)[FClass].as<string>()=="MeqPolcLog")
 	    its_funklet_<<= new PolcLog(*pfunklet);
 	  else
 	    its_funklet_<<= new Polc(*pfunklet);
-	
+
 
 	cdebug(2)<<"new funklet set via state\n";
 	// if a new funklet is set on the fly (i.e. not in node initialization),
@@ -750,7 +750,7 @@ namespace Meq {
 	if( !initializing )
 	  {
 	    cdebug(2)<<"resetting domainID"<<endl;
-	    wstate()[FDomain].remove(); 
+	    wstate()[FDomain].remove();
 	    wstate()[FDomainId] = domain_id_ = HIID();
 	    res_id_ = HIID();
 	  }
@@ -768,22 +768,26 @@ namespace Meq {
 
 
     if(rec->hasField(FShape)){
-	 std::vector<int> shape;    
+	 std::vector<int> shape;
 	 FailWhen( !rec[FShape].get_vector(shape,initializing),
 		   "shape should be a vector");
 
-	 if(!(shape.size())) return;
-	 if(shape.size()>1){
-	   if(shape[0]<=0) shape[0]=1;
-	   if(shape[1]<=0) shape[1]=1;
-	   shape_=LoShape(shape[0],shape[1]);
-	 }
-	 else{
-	   if(shape[0]<=0) shape[0]=1;
-	   shape_=LoShape(shape[0],1);
-	 }
-	 force_shape_=!splined_; //if splined, force_shape cannot be applied
-	 rec[FShape].replace() = shape;  
+         // OMS: added check for a shape of [] or [0], which removes the force_shape_ flag
+	 if( shape.empty() || (shape.size()==1 && !shape[0]) ) {
+           force_shape_ = false;
+         } else  {
+           if(shape.size()>1) {
+             if(shape[0]<=0) shape[0]=1;
+             if(shape[1]<=0) shape[1]=1;
+             shape_=LoShape(shape[0],shape[1]);
+           }
+           else{
+             if(shape[0]<=0) shape[0]=1;
+             shape_=LoShape(shape[0],1);
+           }
+           force_shape_=!splined_; //if splined, force_shape cannot be applied
+           rec[FShape].replace() = shape;
+         }
        }
 
     if(rec->hasField(FConstrain)){
@@ -804,11 +808,11 @@ namespace Meq {
 
 
 
-    // Get ParmTable name 
+    // Get ParmTable name
     HIID tableId;
     TypeId  TableType;
     if( rec->hasField(FTableName))
-      {  TableType= rec[FTableName].type();   
+      {  TableType= rec[FTableName].type();
 	//check wether tablename is a string or a hiid in which case one should look in the forest state for the name
 	if(TableType==Tpstring)
 	  rec[FTableName].get(parmtable_name_);
@@ -818,14 +822,14 @@ namespace Meq {
 	    rec[FTableName].get(tableId);
 	    cdebug(3)<<"looking for tablename in forest state, field: "<<tableId<<endl;
 	    const DMI::Record &Fstate=forest().state();
-	    if(Fstate.hasField(tableId) && Fstate[tableId].type()==Tpstring) 
+	    if(Fstate.hasField(tableId) && Fstate[tableId].type()==Tpstring)
 	      {
 		Fstate[tableId].get(parmtable_name_);
 	      }
 	  }
 	if (parmtable_name_.empty())
-	  cdebug(2)<<"TableName doesnot have  correct type, or not found in forest state"<<endl; 
-      
+	  cdebug(2)<<"TableName doesnot have  correct type, or not found in forest state"<<endl;
+
 	if( parmtable_name_.empty() ) { // no table
 	  parmtable_ = 0;
 	}
@@ -837,9 +841,9 @@ namespace Meq {
 
 	  }
       }//if rec[TableName]
-    
+
   }
-  
+
   void Parm::clearFunklets ()
   {
     // clear out relevant fields
@@ -857,7 +861,7 @@ namespace Meq {
   {
     // process parent class commands
     int retcode = Node::processCommand(resref,command,args,rqid,verbosity);
-    
+
     res_depend_mask_ = symdeps().getMask(resolution_symdeps_);
 
     //dont update if nothing but res_id changed.
@@ -879,7 +883,7 @@ namespace Meq {
       // check if Converged flag is raised
       if( args[FConverged].as<bool>(false) )
 	wstate()[FConverged] = converged_ = true;
-      
+
       // Are updated Values specified? use it to update solve funklets
       bool saved = false;
       DMI::Record::Hook hset(*args,FIncrUpdate);
@@ -888,7 +892,7 @@ namespace Meq {
 	if( isSolvable() )
 	{
           // OMS 27/02/2006: we used to pass in the Request and make this sanity check.
-          // Since we no longer pass in a request, I have commented out this 
+          // Since we no longer pass in a request, I have commented out this
           // check and the else clause below.
           // 	  HIID req_domain_id = RqId::maskSubId(req.id(),domain_depend_mask_);
           //           // check that the update refers to the same domain (if this is not true,
@@ -910,7 +914,7 @@ namespace Meq {
 		its_funklet_().update(values.data(),its_constraints_,force_positive_);
 	      else
 		its_funklet_().update(values.data(),its_constraints_min_,its_constraints_max_,force_positive_);
-		
+
 	    }
 	  else
 	    its_funklet_().update(values.data(),force_positive_);
@@ -939,7 +943,7 @@ namespace Meq {
           // cdebug(2)<<"ignoring the incremental update"<<endl;
 	}
       }
-      
+
       // if not already saved, then check for a Save.Funklets option
       cdebug(2)<<"saving funklets ? "<<args[FSaveFunklets].as<bool>(false)<<endl;
       if( !saved && args[FSaveFunklets].as<bool>(false) )
@@ -952,7 +956,7 @@ namespace Meq {
       }
       if( saved && verbosity>0 )
         postMessage("funklets have been saved");
-      
+
       // lastly, check for a Clear.Funklets option
       if( args[FClearFunklets].as<bool>(false) )
       {
@@ -975,7 +979,7 @@ namespace Meq {
         postMessage("clearing funklets");
       retcode |= RES_OK;
     }
-    
+
     // accumulated return code
     return retcode;
   }
