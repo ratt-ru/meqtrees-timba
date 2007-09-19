@@ -311,6 +311,8 @@ namespace Meq {
 #endif
 
       unlockStateMutex();
+      //clear cache first
+      children().getChild(1).clearCache();
       code=children().getChild(1).execute(child_res,*newreq);
       lockStateMutex();
 
@@ -338,7 +340,7 @@ namespace Meq {
       liter++;
     }
     maplist_.clear();
-    for (int nvec=0; nvec<mapvec_.size(); nvec++) mapvec_[nvec].clear();
+    for (unsigned int nvec=0; nvec<mapvec_.size(); nvec++) mapvec_[nvec].clear();
       return code;
     }
 		build_axes_(childres[0],intime,infreq);
@@ -462,6 +464,8 @@ namespace Meq {
 #endif
 
     unlockStateMutex();
+    //clear cache
+    children().getChild(1).clearCache();
     code=children().getChild(1).execute(child_res,*newreq);
     lockStateMutex();
 
