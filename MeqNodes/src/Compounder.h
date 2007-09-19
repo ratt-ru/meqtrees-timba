@@ -127,6 +127,10 @@ private:
 	//key=(time,freq,spid,perturbation), value=(axis1,axis2,...,axisn)
 	//
 	map<const std::vector<int>, int *, compare_vec> revmap_;
+
+  // vector of maps for 4D operation
+  std::vector<map<const std::vector<int>, int *, compare_vec> > mapvec_;
+
 	//list to keep track of all allocated memory
 	std::list<int *> maplist_;
 
@@ -144,10 +148,13 @@ private:
   
   //build axes vector from child result, no map created, no sorting, no handling
   // of perturbed values
-  int build_axes_simple_(Result::Ref &childres);
+  int build_axes_simple_(Result::Ref &childres,   const Cells & incells);
 
 	//apply the grid to the funklet, for the main value, put spid=0
 	template<class T> int apply_grid_map_2d4d( blitz::Array<T,2> A, blitz::Array<T,4> B, int spid);
+
+  //apply 4d to 4d map
+  template<class T> int apply_grid_map_4d4d( blitz::Array<T,4> A, blitz::Array<T,4> B);
 };
 
 

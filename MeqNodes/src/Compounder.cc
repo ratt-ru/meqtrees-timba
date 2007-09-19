@@ -267,7 +267,7 @@ namespace Meq {
     //switch to mode 4D when naxis> 2
     if (naxis>2) {
 
-      build_axes_simple_(childres[0]);
+      build_axes_simple_(childres[0],incells);
 		  std::vector<blitz::Array<double,1> > space;
       //calculate grid spacing and bounds
 		  space.resize(grid_.size());
@@ -316,8 +316,29 @@ namespace Meq {
 
       result_code_|=code;
 
-      result_<<= child_res;
+      VellSet::Ref vref;
+      // process result
+      Result &res1=result_<<= new Result(child_res->numVellSets(),child_res->isIntegrated());
+      Vells vl=child_res->vellSet(0).getValue();
+      blitz::Array<double,4> B=vl.as<double,4>()(blitz::Range::all(),blitz::Range::all(),blitz::Range::all(),blitz::Range::all());
+      //remove degenerate axes from result
+      VellSet &vs=vref <<=new VellSet(incells.shape());
+      Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
+      blitz::Array<double,4> A=out.as<double,4>()(blitz::Range::all(),blitz::Range::all(),blitz::Range::all(),blitz::Range::all());
+ 
+      apply_grid_map_4d4d(A,B);
+		  res1.setVellSet(0,vref);
+     
+		  res1.setCells(incells);
 
+    //clear memory
+    std::list<int*>::iterator liter=maplist_.begin();
+    while(liter!=maplist_.end()) {
+      delete [] *liter;
+      liter++;
+    }
+    maplist_.clear();
+    for (int nvec=0; nvec<mapvec_.size(); nvec++) mapvec_[nvec].clear();
       return code;
     }
 		build_axes_(childres[0],intime,infreq);
@@ -1124,28 +1145,206 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 
 
 //IN: grid child result, request time,freq
-//OUT: vector of funklet request grids, NO map is constructed
+//OUT: vector of funklet request grids, map is constructed
 //NO handling of  perturbations
-int Compounder::build_axes_simple_(Result::Ref &childres) {
+int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incells) {
 
    int naxes=childres->numVellSets();
+
+   FailWhen(naxes!=4,"Must have 4 axes t,f,l,m etc.");
 	 //resize grid
 	 grid_.resize(naxes);
 
-   for (int ch=0; ch<naxes; ch++) {
+   //array for sorting
+   blitz::Array<IdVal,1> sarray;
+   
+   //we use the revmap in a different way here
+   //key=(time,freq,l',m') value=(time,freq,l,m) or value is the true grid
+   std::vector<int> aa(4);
+
+   //first copy time,freq : no dependence
+   for (int ch=0; ch<2; ch++) {
     Vells vl0=childres->vellSet(ch).getValue();
     int nx=vl0.nelements();
+    int ny=incells.ncells(ch);
+    int rk=vl0.rank();
+    Vells::Shape shp=vl0.shape();
+    int ntime=vl0.extent(0);
+    int nfreq=vl0.extent(1);
+    int nl=vl0.extent(2);
+    int nm=vl0.extent(3);
+    //we must have same l,m sizes
+    FailWhen(nl!=nm,"the 3rd and 4th axesl must be equal");
     grid_[ch].resize(nx);
     double *data_=vl0.getStorage<double>();
     blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
-#ifdef DEBUG
-      cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
-#endif
-      //cen0=vl0.as<double,1>();
       grid_[ch]=data(blitz::Range::all(),0);
+   }
+
+   mapvec_.resize(2);
+   for (int ch=2; ch<naxes; ch++) {
+    map<const std::vector<int>, int *, compare_vec> &map0=mapvec_[ch-2];
+    Vells vl0=childres->vellSet(ch).getValue();
+    int nx=vl0.nelements();
+    int ny=incells.ncells(ch);
+    int rk=vl0.rank();
+    Vells::Shape shp=vl0.shape();
+    int ntime=vl0.extent(0);
+    int nfreq=vl0.extent(1);
+    int nl=vl0.extent(2);
+    int nm=vl0.extent(3);
+    //we must have same l,m sizes
+#ifdef DEBUG
+    cout<<"Shape "<<ny<<endl;
+    cout<<"Some (re/de)generacy rank:"<<rk<<" shape "<<shp<<" cells"<<ny<<endl;
+#endif
+     blitz::Array<double,4> A=vl0.as<double,4>()(blitz::Range::all(),blitz::Range::all(),blitz::Range::all(),blitz::Range::all());
+     blitz::Array<double,4> B(ntime,nfreq,nl,nm);
+    //sorting...sorting..
+    sarray.resize(A.numElements());
+    int k=0;
+    for (int i=0; i<ntime; i++) 
+      for (int j=0; j<nfreq; j++) 
+        for (int l=0; l<nl; l++) 
+         for (int m=0; m<nm; m++) {
+      	sarray(k).id=new int[4];
+	      sarray(k).id[0]=i;
+	      sarray(k).id[1]=j;
+	      sarray(k).id[2]=l;
+	      sarray(k).id[3]=m;
+	      sarray(k).val=A(i,j,l,m);
+        k++;
+        }
+#ifdef DEBUG
+    cout<<"Before sort"<<endl;
+    for (int i=0; i<sarray.extent(0);i++) {
+      cout<<i<<"="<<sarray(i).id[0]<<","<<sarray(i).id[1]<<","<<sarray(i).id[2]<<","<<sarray(i).id[3]<<","<<sarray(i).val<<endl;
+    }
+#endif
+    std::sort(sarray.data(), sarray.data()+sarray.extent(0));
+#ifdef DEBUG
+    cout<<"After sort"<<endl;
+    for (int i=0; i<sarray.extent(0);i++) {
+      cout<<i<<"="<<sarray(i).id[0]<<","<<sarray(i).id[1]<<","<<sarray(i).id[2]<<","<<sarray(i).id[3]<<","<<sarray(i).val<<endl;
+    }
+#endif
+
+   //find unique elements
+   k=1;
+   double tmp=sarray(0).val;
+   for (int i=1; i<sarray.extent(0);i++) {
+    double tmp1=sarray(i).val;
+    if (tmp!=tmp1) {
+     k++;
+     tmp=tmp1;
+    } 
+   }
+#ifdef DEBUG
+   cout<<"Found "<<k<<" unique"<<endl;
+#endif
+   grid_[ch].resize(k);
+   //fill the grid
+   k=0;
+   grid_[ch](k)=tmp=sarray(k).val;
+   aa[0]=sarray(k).id[0];
+   aa[1]=sarray(k).id[1];
+   aa[2]=sarray(k).id[2];
+   aa[3]=sarray(k).id[3];
+
+   if(map0.find(aa)==map0.end()) {
+     int *bb=new int[naxes];
+     for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+     bb[0]=aa[0]; bb[1]=aa[1];
+     bb[ch]=0;
+     map0[aa]=bb;
+     maplist_.push_front(bb);
+   } else {
+     int *bb=map0[aa];
+     bb[ch]=0;
+   }
+
+   for (int i=1; i<sarray.extent(0);i++) {
+      if (tmp!=sarray(i).val) {
+       k++;
+       grid_[ch](k)=tmp=sarray(i).val;
+      }
+      aa[0]=sarray(i).id[0];
+      aa[1]=sarray(i).id[1];
+      aa[2]=sarray(i).id[2];
+      aa[3]=sarray(i).id[3];
+      if(map0.find(aa)==map0.end()) {
+         int *bb=new int[naxes];
+         for (int jj=0; jj<naxes; jj++) bb[jj]=0;
+         bb[0]=aa[0]; bb[1]=aa[1];
+         bb[ch]=k;
+         map0[aa]=bb;
+         maplist_.push_front(bb);
+      } else {
+        int *bb=map0[aa];
+        bb[ch]=k;
+      }
+   }
+
+#ifdef DEBUG
+   map<const std::vector<int>, int *, compare_vec>::iterator mapiter=map0.begin();
+    while(mapiter!=map0.end()) {
+      std::vector<int> key=mapiter->first;
+      int *value=mapiter->second;
+      cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<","<<key[3]<<"] = ["<<value[0]<<","<<value[1]<<","<<value[2]<<","<<value[3]<<"]"<<endl;
+      mapiter++;
+    }
+#endif
+
+
+    for (int i=0; i<sarray.extent(0);i++) {
+      delete [] sarray(i).id;
+    }
+
   } 
 
 	 return 0;
+}
+
+template<class T>
+int Compounder::apply_grid_map_4d4d( blitz::Array<T,4> A, blitz::Array<T,4> B) {
+    int itime, ifreq, il, im;
+    map<const std::vector<int>, int *, compare_vec>::iterator mapiter0=mapvec_[0].begin();
+    map<const std::vector<int>, int *, compare_vec> map1=mapvec_[1];
+
+		int fktime=B.extent(0);
+		int fkfreq=B.extent(1);
+		int fl=B.extent(2);
+		int fm=B.extent(3);
+    while(mapiter0!=mapvec_[0].end()) {
+      std::vector<int> key=mapiter0->first;
+      int *value0=mapiter0->second;
+
+
+      itime=key[0];
+      ifreq=key[1];
+#ifdef DEBUG
+			cout<<"look for ["<<key[0]<<","<<key[1]<<","<<key[2]<<","<<key[3]<<"]"<<endl;
+#endif
+			 if (itime>=fktime) itime=0;
+			 if (ifreq>=fkfreq) ifreq=0;
+			 il=value0[2];
+			 if (value0[2]>=fl) il=0;
+       if(map1.find(key)!=map1.end()) {
+        int *value1=map1[key];
+			  im=value1[3];
+			  if (value1[3]>=fm) im=0;
+       } else {
+        im=0;
+       }
+       A(key[0],key[1],key[2],key[3])=B(itime,ifreq,il,im);
+#ifdef DEBUG
+			cout<<"look for ["<<value0[0]<<","<<value0[1]<<","<<il<<","<<im<<"]"<<endl;
+#endif
+      mapiter0++;
+    }
+
+
+			return 0;
 }
 
 
