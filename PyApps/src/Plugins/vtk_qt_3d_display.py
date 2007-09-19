@@ -688,10 +688,36 @@ class vtk_qt_3d_display(qt.QWidget):
           image_numarray[k,i,j] = random.random()
     self.array_plot(' ', image_numarray)
 
-  def array_plot(self, caption, incoming_array, dummy_parm=False):
+  def array_plot(self, caption, inc_array, dummy_parm=False):
     """ convert an incoming numarray into a format that can
         be plotted with VTK
     """
+    # first make sure that VTK can really show something useful for the
+    # array. Make sure all dimension shapes are 500 or less
+    shape = inc_array.shape
+    len_shape = len(shape)
+    incs = numarray.ones(len_shape)
+    resize_image = False
+    for i in range(len_shape):
+      if shape[i] > 500:
+        resize_image = True
+        incs[i] = 1 + (shape[i] / 500)
+    if resize_image:
+      if inc_array.rank == 2:
+        incoming_array = inc_array[::incs[0],::incs[1]]
+      else:
+        incoming_array = inc_array[::incs[0],::incs[1],::incs[2]]
+#     Message = "Array has been resampled to fit the 3D VTK display"
+#     mb_warn = QMessageBox("vtk_qt_3d_display.py",
+#                Message,
+#                QMessageBox.Warning,
+#                QMessageBox.Ok | QMessageBox.Default,
+#                QMessageBox.NoButton,
+#                QMessageBox.NoButton)
+#     mb_warn.exec_loop()
+    else:
+      incoming_array = inc_array
+    
     if incoming_array.rank == 2:
         temp_array = numarray.ones((1,incoming_array.shape[0],incoming_array.shape[1]),type=incoming_array.type()) 
         temp_array[0,:incoming_array.shape[0],:incoming_array.shape[1]] = incoming_array
