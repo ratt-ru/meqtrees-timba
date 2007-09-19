@@ -417,7 +417,15 @@ def _tdl_job_display_full (mqs, parent):
        
 def _tdl_job_print_tree (mqs, parent):
     """Just display the current contents of the Twig object"""
-    brn.print_tree(recurse=3)
+    brn.print_tree()
+
+def _tdl_job_derivation_tree (mqs, parent):
+    """Just display the current contents of the Twig object"""
+    brn.show_derivation_tree(trace=True)
+
+def _tdl_job_print_help (mqs, parent):
+    """Just display the current contents of the Twig object"""
+    brn.help(trace=True)
 
 
        
