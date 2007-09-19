@@ -43,7 +43,13 @@ TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
 
 # output mode menu
 TDLCompileMenu("What do we want to do",
-  TDLOption('do_solve',"Calibrate",True),
+  TDLMenu("Calibrate",
+     TDLOption('cal_vis',"Calibrate visibilities",True),
+     TDLOption('cal_ampl',"Calibrate amplitudes",False),
+     TDLOption('cal_log_ampl',"Calibrate log-amplitudes",False),
+     TDLOption('cal_phase',"Calibrate phases",False),
+     toggle='do_solve',open=True,exclusive='solve_type'
+  ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
   TDLOption('do_correct',"Correct the data or residuals",True),
    );
@@ -52,7 +58,7 @@ do_correct_sky = False;
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
-meqmaker = MeqMaker.MeqMaker();
+meqmaker = MeqMaker.MeqMaker(solvable=True);
 
 # specify available sky models
 # these will show up in the menu automatically
@@ -87,18 +93,19 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
-  
+
   # make a ParmGroup and solve jobs for source fluxes
   srcs = meqmaker.get_source_list(ns);
   if srcs:
     parms = [];
     for src in srcs:
       parms += src.coherency().search(tags="solvable");
-    pg_src = ParmGroup.ParmGroup("source",parms,
-                table_name="sources.mep",
-                individual=True,bookmark=True);
-    # now make a solvejobs for the source
-    ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
+    if parms:
+      pg_src = ParmGroup.ParmGroup("source",parms,
+                  table_name="sources.mep",
+                  individual=True,bookmark=True);
+      # now make a solvejobs for the source
+      ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
 
   # make spigot nodes
   spigots = outputs = array.spigots();
@@ -128,11 +135,35 @@ def _define_forest (ns):
 
   # make solve trees
   if do_solve:
+    # inputs to the solver are based on calibration type
+    # if calibrating visibilities, feed them to condeq directly
+    print solve_type;
+    if solve_type == 'cal_vis':
+      observed = spigots;
+      model    = predict;
+    # else take ampl/phase component
+    else:
+      model = ns.model;
+      observed = ns.observed;
+      if solve_type == 'cal_ampl':
+        for p,q in array.ifrs():
+          observed(p,q) << Meq.Abs(spigots(p,q));
+          model(p,q)  << Meq.Abs(predict(p,q));
+      elif solve_type == 'cal_log_ampl':
+        for p,q in array.ifrs():
+          observed(p,q) << Meq.Log(Meq.Abs(spigots(p,q)));
+          model(p,q)  << Meq.Log(Meq.Abs(predict(p,q)));
+      elif solve_type == 'cal_phase':
+        for p,q in array.ifrs():
+          observed(p,q) << 0;
+          model(p,q)  << Meq.Abs(predict(p,q))*Meq.FMod(Meq.Arg(spigots(p,q))-Meq.Arg(predict(p,q)),2*math.pi);
+      else:
+        raise ValueError,"unknown solve_type setting: "+solve_type;
     # make a solve tree
-    solve_tree = Meow.StdTrees.SolveTree(ns,predict);
+    solve_tree = Meow.StdTrees.SolveTree(ns,model);
     # the output of the sequencer is either the residuals or the spigots,
     # according to what has been set above
-    outputs = solve_tree.sequencers(inputs=spigots,outputs=outputs);
+    outputs = solve_tree.sequencers(inputs=observed,outputs=outputs);
 
   # make sinks and vdm.
   # The list of inspectors must be supplied here

@@ -20,7 +20,7 @@ class SolverControl (object):
     class OptionsHolder (object):
       pass;
     self._opts = OptionsHolder();
-    self._opts.tdloptions_namespace = label+'.solver';
+    self._opts.tdloption_namespace = label+'.solver';
     self._option_list = [
       TDLOption('debug_level',"Solver debug level",[0,1,10],namespace=self._opts),
       TDLOption('colin_factor',"Collinearity factor",[1e-8,1e-6,1e-3,1e-1],default=1,more=float,namespace=self._opts),
@@ -30,7 +30,7 @@ class SolverControl (object):
       TDLOption('num_iter',"Max iterations",[10,30,50,100,1000],default=1,more=int,namespace=self._opts),
       TDLOption('convergence_quota',"Subtiling convergence quota",[.8,.9,1.],namespace=self._opts) \
     ];
-    
+
   def runtime_options (self):
     return self._option_list;
 
@@ -65,5 +65,4 @@ class SolverControl (object):
   def update_state (self,mqs,solvables=None,cmdlist=None,wait=False,sync=True,**kw):
     state = self.make_state_record(solvables=solvables,cmdlist=cmdlist,**kw);
     mqs.setnodestate(self.node,state,wait=wait,sync=sync);
-  
-  
+

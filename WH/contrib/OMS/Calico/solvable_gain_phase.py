@@ -43,11 +43,15 @@ class AmplPhaseJones (object):
     nodes = Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=stations);
 
     # make parmgroups for phases and gains
-    self.pg_phase = ParmGroup.ParmGroup(label+"_phase",nodes.search(tags="solvable phase"));
-    self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",nodes.search(tags="solvable ampl"));
-    
+    self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
+                    nodes.search(tags="solvable phase"),
+                    table_name="%s_phase.mep"%label,bookmark=4);
+    self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
+                    nodes.search(tags="solvable ampl"),
+                    table_name="%s_ampl.mep"%label,bookmark=4);
+
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
     ParmGroup.SolveJob("cal_"+label+"_ampl","Calibrate %s amplitudes"%label,self.pg_ampl);
-    
+
     return nodes;

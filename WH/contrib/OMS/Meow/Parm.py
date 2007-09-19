@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -34,7 +34,7 @@ class Parm (object):
   A Meow.Parm is a parameter definition object. This is used in the Meow
   interfaces to specify that a given value is to be represented by a
   (potentially solvable) parameter. The rationale for this (as opposed to
-  using a plain Meq.Parm) is that Meow components can then add their own 
+  using a plain Meq.Parm) is that Meow components can then add their own
   options to a parm before actually instantiating the node. Also, the
   same definition can apply to many different parameters.
   """
@@ -42,7 +42,7 @@ class Parm (object):
     """Creates a parameter definition.
     'value' is an initial value for the parameter. This can be a numeric
     constant or a polc.
-    'tags' is a set of tags for the parameter, specified as a tuple/list, 
+    'tags' is a set of tags for the parameter, specified as a tuple/list,
     or as a string with space-separated tags.
     'tiling' specifies a subtiled parm. If an int is given, then subtiling
     in time is assumed, otherwise it must be a full tiling specification
@@ -66,18 +66,19 @@ class Parm (object):
         raise TypeError,"'tiling' argument should be an int or dmi.record";
     # set up dict of default options...
     self.options = dict(tiling=tiling,
-            shape=[time_deg+1,freq_deg+1],
             node_groups='Parm',
             use_previous=True);
+    if time_deg or freq_deg:
+      self.options.shape = [time_deg+1,freq_deg+1];
     # ...and override with any keywords
     self.options.update(kw);
-    
+
   def new (self,value):
     """Creates a new Meow.Parm based on this one, with a different value""";
     cp = copy.deepcopy(self);
     cp.value = value;
     return cp;
-    
+
   def make (self,tags=[]):
     """Returns a definition for the Parm node, suitable for assigning with <<.
     Extra tags will be added""";
@@ -99,4 +100,4 @@ class Parm (object):
     # cache if no extra tags
     if not tags:
       self._definition = definition;
-    return definition;  
+    return definition;

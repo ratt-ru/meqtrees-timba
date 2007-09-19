@@ -2,11 +2,11 @@
 # Meow interface to LSM files
 
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -59,7 +59,7 @@ class MeowLSM (object):
     if include_options:
       TDLCompileOptions(*self.compile_options());
       TDLRuntimeOptions(*self.runtime_options());
-    
+
   def compile_options (self):
     """Returns list of compile-time options""";
     if not self._compile_opts:
@@ -76,6 +76,8 @@ class MeowLSM (object):
         TDLOption("max_sources","Restrict to N brightest sources",
                   [5,10,20],more=int,namespace=self)
       );
+      self._compile_opts.append(TDLOption("use_parms","Make solvable source parameters",
+                         [None,"I","IQUV","IQUV,spi","IQUV,spi,shape"],namespace=self));
       save_opt = TDLOption("save_native","Save LSM in native format",False,namespace=self);
       self._compile_opts.append(save_opt);
       save_filename_opt = TDLOption("save_native_filename","Filename to save as",
@@ -93,7 +95,7 @@ class MeowLSM (object):
         TDLOption("show_gui","Show LSM GUI",False,namespace=self)
       );
     return self._compile_opts;
-    
+
   def runtime_options (self):
     """Makes and returns list of compile-time options""";
     # no runtime options, for now
@@ -104,9 +106,9 @@ class MeowLSM (object):
     specified in the constructor or via options""";
     filename = filename or self.filename;
     format = format or self.format;
-    
+
     self.lsm = LSM();
-    
+
     # set up table of format readers
     # all are expected to take an lsm object (e.g. self) as arg 1,
     # a filename as arg2, and a node scope as arg3
@@ -118,41 +120,51 @@ class MeowLSM (object):
     FORMAT_READERS[TEXT_RAD] = LSM.build_from_extlist_rad;
     FORMAT_READERS[TEXT_DMS] = LSM.build_from_extlist;
     FORMAT_READERS[VIZIER]   = LSM.build_from_vizier;
-    
+
     # read LSM using the selected format reader
     reader = FORMAT_READERS.get(format,None);
     if reader is None:
       raise TypeError,"Unknown LSM format '%s'"%format;
-      
+
     reader(self.lsm,filename,ns);
-    
+
     # save if needed
     if self.save_native and self.save_native_filename:
       self.lsm.save(self.save_native_filename);
-    
+
     if self.show_gui:
       self.lsm.display(count=self.max_sources)
-    
+
   def source_list (self,ns,max_sources=None,**kw):
     """Reads LSM and returns a list of Meow objects.
     ns is node scope in which they will be created.
     Keyword arguments may be used to indicate which of the source attributes are to be created
     as Parms, use e.g. I=Meow.Parm(tags="flux") for this.
+    The use_parms option may override this.
     """;
     if self.filename is None:
       return [];
     if self.lsm is None:
       self.load(ns);
-      
+
+    if self.use_parms:
+      for pname in ("I","Q","U","V","spi"):
+        if self.use_parms.find(pname) >= 0:
+          kw.setdefault(pname,Meow.Parm());
+      if self.use_parms.find("shape"):
+        kw.setdefault("sx",Meow.Parm());
+        kw.setdefault("sy",Meow.Parm());
+        kw.setdefault("phi",Meow.Parm());
+
     # make Meow list
     source_model = []
-  
+
   ## Note: conversion from AIPS++ componentlist Gaussians to Gaussian Nodes
   ### eX, eY : multiply by 2
   ### eP: change sign
-  
+
     plist = self.lsm.queryLSM(count=max_sources or self.max_sources);
-    
+
     for pu in plist:
       src = {};
       ( src['ra'],src['dec'],
@@ -175,12 +187,12 @@ class MeowLSM (object):
           src[key] = meowparm.new(value);
         elif meowparm is not None:
           src[key] = value;
-        
+
       direction = Meow.Direction(ns,pu.name,src['ra'],src['dec']);
-  
+
       if eX or eY or eP:
         # Gaussians
-        source_model.append( 
+        source_model.append(
           Meow.GaussianSource(ns,name=pu.name,
               I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
               direction=direction,
@@ -188,13 +200,12 @@ class MeowLSM (object):
               size=[src['sx'],src['sy']],phi=src['phi']));
       else:
         # point Sources
-        source_model.append( 
+        source_model.append(
           Meow.PointSource(ns,name=pu.name,
               I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
               direction=direction,
               spi=src['spi'],freq0=src['freq0'],RM=src['RM']));
-  
+
     return source_model
-    
-    
-    
+
+

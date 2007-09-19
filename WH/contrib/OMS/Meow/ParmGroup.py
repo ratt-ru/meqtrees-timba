@@ -57,19 +57,19 @@ class ParmGroup (object):
               )
           # hide solvables
           def show_hide_sopts (show):
-            print 'showing',show,parm_sopts;
+            # print 'showing',show,parm_sopts;
             for opt in parm_sopts:
               opt.show(show);
           parm_solv.when_changed(show_hide_sopts);
           self._option_list.append(parm_solv);
       # else provide a common equivalent applying to all parms
-      else:  
+      else:
         self._option_list.append(TDLOption('initial_value',
                                   'Override initial value',[None,0.],more=float,namespace=self));
         so = [  TDLOption('time_deg','Polynomial degree, time',[0,1,2,3],more=int,namespace=self),
                 TDLOption('freq_deg','Polynomial degree, freq',[0,1,2,3],more=int,namespace=self),
                 TDLOption('subtile_time','Solution subinterval (subtile), time',[None],more=int,namespace=self),
-                TDLOption('subtile_freq','Solution subinterval (subtile), freq',[None],more=int,namespace=self) 
+                TDLOption('subtile_freq','Solution subinterval (subtile), freq',[None],more=int,namespace=self)
         ];
         sopts += so;
         self._option_list += so;
@@ -108,15 +108,15 @@ class ParmGroup (object):
         for opt in sopts:
           opt.show(show);
       self._optmenu.when_changed(show_hide_sopts);
-        
+
     def runtime_options (self,submenu=True):
       return [ self._optmenu ];
-      
+
     def _select_new_ms (self,msname):
       if msname:
         self.table_name = os.path.join(msname,os.path.basename(self.table_name));
         self._table_name_option.set_value(self.table_name);
-      
+
     def _fill_state_record (self,state):
       """Fills a state record with common options""";
       state.table_name    = self.table_name;
@@ -124,7 +124,7 @@ class ParmGroup (object):
       state.ignore_time   = self.ignore_time;
       state.use_previous  = self.use_previous;
       state.save_all      = self.save_all;
-  
+
     def make_cmdlist (self,solvable=True):
       """Makes a record suitbale for inclusion in a request command_by_list entry.
       If 'solvable' is True, solvability is determined by parm options.
@@ -153,6 +153,7 @@ class ParmGroup (object):
           elif opts.initial_value is not None:
             state = record(solvable=False);
             state.default_value = opts.initial_value;
+            state.shape = [0];
             self._fill_state_record(state);
             cmdlist.append(record(name=[parm.name],state=state));
           # else include in list of other parms to be initialized with a single record later
@@ -160,7 +161,7 @@ class ParmGroup (object):
             deferred.append(parm);
         # and now make an entry for the non-solvables
         if deferred:
-          state = record(solvable=False);
+          state = record(solvable=False,shape=[0]);
           self._fill_state_record(state);
           cmdlist.append(record(name=[parm.name for parm in deferred],state=state));
         return cmdlist;
@@ -177,11 +178,13 @@ class ParmGroup (object):
             state.tiling.time = self.subtile_time;
           if self.subtile_freq:
             state.tiling.freq = self.subtile_freq;
+        else:
+          state.shape = [0];
         self._fill_state_record(state);
         return [ record(
           name=[node.name for node in self.pg.nodes],
           state=state) ];
-          
+
     def _clear_mep_tables (self,mqs,parent,**kw):
       if parent and QMessageBox:
         if QMessageBox.warning(parent,"Clearing solutions","This will clear out <b>all</b> previous solutions from table '%s'. Are you sure you want to do this?"%self.table_name,
@@ -189,7 +192,7 @@ class ParmGroup (object):
           return;
       try:    os.system("rm -fr "+self.table_name);
       except: pass;
-  
+
   def __init__ (self,label,nodes=[],name=None,
                      individual=False,bookmark=None,
                      table_name="calibration.mep",table_in_ms=True,
@@ -214,7 +217,7 @@ class ParmGroup (object):
 
   def add (self,*nodes):
     self.nodes += nodes;
-    
+
   def make_controller (self,label=None,**kw):
     return self.Controller(self,label,**kw);
 
@@ -230,7 +233,7 @@ class SolveJob (object):
     self._jobmenu = None;
     # add to global list
     _all_solvejobs.append(self);
-    
+
   def runtime_options (self):
     if self._jobmenu is None:
       opts = [ TDLOption('tile_size',"Solution interval (aka tile size), in timeslots",
@@ -238,11 +241,18 @@ class SolveJob (object):
       # add options from parmgroups
       global _all_parmgroups;
       self.pg_controllers = [];
+      other_opts = [];
       for pg in _all_parmgroups:
-        controller = pg.make_controller(self.label,solvable=(pg in self.active_parmgroups));
-        opts += controller.runtime_options();
+        solvable = pg in self.active_parmgroups;
+        controller = pg.make_controller(self.label,solvable=solvable);
+        if solvable:
+          opts += controller.runtime_options();
+        else:
+          other_opts += controller.runtime_options();
         self.pg_controllers.append(controller);
-      
+      if other_opts:
+        opts.append(TDLMenu("Simultaneously solve for other parameters",*other_opts));
+
       # add solver control
       self.solver_control = SolverControl(self.label);
       opts.append(TDLMenu("Solver options (for the brave)",*self.solver_control.runtime_options()));
@@ -251,7 +261,7 @@ class SolveJob (object):
       # now make a runtime menu
       self._jobmenu = TDLMenu(self.name or "Solve for %s"%self.label,*opts);
     return [ self._jobmenu ];
-    
+
   def run_solution (self,mqs,mssel=None,vdm=None,tiling=None,wait=False):
     """Helper function to put together TDL jobs.
     Starts a solution, setting the group to solvable""";
@@ -267,11 +277,11 @@ class SolveJob (object):
 
   def _run_solve_job (self,mqs,parent,wait=False,**kw):
     self.run_solution(mqs,tiling=self.tile_size,wait=wait);
-    
+
 def num_solvejobs ():
   global _all_solvejobs;
   return len(_all_solvejobs);
-  
+
 def get_solvejob_options ():
   global _all_solvejobs;
   opts = [];
