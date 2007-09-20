@@ -805,7 +805,9 @@ namespace Meq {
 		   "constrain_max should be a vector of doubles");
       constrained_ = true;
     }
-
+    //reset if all vectors are empty
+    if( its_constraints_.empty() && its_constraints_min_.empty() && its_constraints_max_.empty() )    
+      constrained_ = false; 
 
 
     // Get ParmTable name
