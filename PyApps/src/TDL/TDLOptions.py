@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -31,7 +31,7 @@ import ConfigParser
 import traceback
 import inspect
 import sys
-import os.path 
+import os.path
 import time
 import re
 import glob
@@ -88,7 +88,7 @@ def save_config ():
       _config_write_failed = True;
       _dprint(0,"WARNING: error writing to file",config_file);
       _dprint(0,"TDL options will not be saved");
-  
+
 def set_config (option,value):
   if not config.has_section(config_section):
     config.add_section(config_section);
@@ -104,11 +104,11 @@ def clear_options ():
   global runtime_options;
   compile_options = [];
   runtime_options = [];
-  
+
 def init_options (filename,save=True):
   """initializes option list for given script.
   If save=False, updated opotions will never be saved.
-  """ 
+  """
   # re-read config file
   global config;
   config.reread();
@@ -123,7 +123,7 @@ def init_options (filename,save=True):
   global config_section;
   config_section = re.sub('\.py[co]?','',os.path.basename(filename));
   _dprint(1,"config section is now",config_section);
-  # for the sake of backwards compatibility, check if there's no config section 
+  # for the sake of backwards compatibility, check if there's no config section
   # corresponding to the base name, but there is one for the full filename, and
   # copy it over if so
   if not config.has_section(config_section) and config.has_section(filename):
@@ -135,8 +135,8 @@ def init_options (filename,save=True):
       _dprint(1,"migrated",option,value);
     config.remove_section(filename);
     save_config();
-    
-    
+
+
 import time
 import pwd
 import socket
@@ -172,13 +172,13 @@ def dump_options (fileobj):
     if line[-1] != "\n":
       line += "\n";
     fileobj.write(line);
-  
+
 def get_compile_options ():
   return compile_options;
-  
+
 def get_runtime_options ():
   return runtime_options;
-  
+
 class _TDLBaseOption (object):
   """abstract base class for all option entries""";
   def __init__ (self,name,namespace=None,owner=None,doc=None):
@@ -197,7 +197,7 @@ class _TDLBaseOption (object):
     # most options have an associated widget or QAction. This is stored here.
     self._qa      = None;
     self._lvitem  = None;
-    
+
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu. owner is the name of a module to
@@ -206,11 +206,11 @@ class _TDLBaseOption (object):
     _dprint(2,"item '%s' owner '%s' runtime %d"%(self.name,owner,int(runtime)));
     self.owner = owner;
     self.is_runtime = runtime;
-    
+
   def collect_log (self,log):
     """called to collect a recursive log of all options. Default version logs nothing.""";
     pass;
-    
+
   def set_qaction (self,qa):
     """sets the option's QAction. Makes it enabled or disabled as appropriate""";
     self._qa = qa;
@@ -220,7 +220,7 @@ class _TDLBaseOption (object):
     qa.setEnabled(self.enabled);
     qa.setVisible(self.visible);
     return qa;
-    
+
   def set_listview_item (self,item):
     """sets the option's QListViewItem. Makes it enabled or disabled as appropriate""";
     self._lvitem = item;
@@ -229,7 +229,7 @@ class _TDLBaseOption (object):
     item.setEnabled(self.enabled);
     item.setVisible(self.visible);
     return item;
-    
+
   def enable (self,enabled=True):
     """enables/disables the option. Default behaviour enables/disables the QAction""";
     _dprint(3,"enable item",self.name,":",enabled);
@@ -237,11 +237,11 @@ class _TDLBaseOption (object):
     self._qa and self._qa.setEnabled(enabled);
     self._lvitem and self._lvitem.setEnabled(enabled);
     return enabled;
-    
+
   def disable (self,disabled=True):
     """disables/enables the option. Default behaviour calls enable() with opposite flag""";
     return self.enable(not disabled);
-  
+
   def show (self,visible=True):
     """shows/hides the option. Default behaviour shows/hides the QAction""";
     _dprint(3,"show item",self.name,":",visible);
@@ -249,15 +249,15 @@ class _TDLBaseOption (object):
     self._qa and self._qa.setVisible(visible);
     self._lvitem and self._lvitem.setVisible(visible);
     return visible;
-    
+
   def hide (self,hidden=True):
     """hides/shows the option. Default behaviour calls show() with opposite flag""";
     return self.show(not hidden);
-    
+
   def set_name (self,name):
     """Changes option name""";
     self.name = name;
-    
+
   def set_doc (self,doc):
     """Changes option documentation string""";
     self.doc = doc;
@@ -268,7 +268,7 @@ class _TDLOptionSeparator (_TDLBaseOption):
   """This option simply inserts a separator into a menu""";
   def __init__ (self,namespace=None):
     _TDLBaseOption.__init__(self,name=None,namespace=namespace,doc=None);
-    
+
   def make_listview_item (self,parent,after,executor=None):
     if not getattr(parent,'_ends_with_separator',True):
       item = QListViewItem(parent,after);
@@ -277,14 +277,14 @@ class _TDLOptionSeparator (_TDLBaseOption):
       parent._ends_with_separator = True;
       return item;
     return None;
-  
+
 class _TDLJobItem (_TDLBaseOption):
   def __init__ (self,func,name=None,namespace=None,doc=None):
     _TDLBaseOption.__init__(self,name or func.__name__.replace('_',' '),
                             namespace=namespace,doc=doc);
     self.func = func;
     self.symbol = func.__name__;
-    
+
   class JobListViewItem (QListViewItem):
     def paintCell (self,qp,cg,column,width,align):
       # use bold font for jobs
@@ -296,7 +296,7 @@ class _TDLJobItem (_TDLBaseOption):
       qp.setFont(oldfont);
     def width (self,fm,lv,c):
       return int(QListViewItem.width(self,fm,lv,c)*1.2);
-    
+
   def make_listview_item (self,parent,after,executor=None):
     item = self.JobListViewItem(parent,after);
     item.setText(0,self.name);
@@ -305,7 +305,7 @@ class _TDLJobItem (_TDLBaseOption):
     item._close_on_click = True;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-  
+
 class _TDLOptionItem(_TDLBaseOption):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
     _TDLBaseOption.__init__(self,name or symbol,namespace=namespace,doc=doc);
@@ -327,20 +327,20 @@ class _TDLOptionItem(_TDLBaseOption):
     self.symbol = symbol;
     self._set(value);
     self._when_changed_callbacks = [];
-    
+
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu.""";
     _TDLBaseOption.init(self,owner,runtime);
     if owner:
       self.config_name = '.'.join((owner,self.config_name));
-      
+
   def collect_log (self,log):
     """called to collect a recursive log of all options. This version adds an entry
     for itself only if option is not disabled/hidden""";
     if self.visible and self.enabled and self.config_name:
       log.append("%s = %s"%(self.config_name,self.get_str()));
-    
+
   def _set (self,value,callback=True):
     """private method for changing the internal value of an option"""
     _dprint(2,"setting",self.name,"=",value);
@@ -350,25 +350,25 @@ class _TDLOptionItem(_TDLBaseOption):
     if callback:
       for cb in getattr(self,'_when_changed_callbacks',[]):
         cb(value);
-  
+
   def set (self,value,**kw):
     """public method for changing the internal value of an option. Must be implemented
     in child classes""";
     raise TypeError,"set() not implemented in child class""";
-      
+
   def set_value (self,value,**kw):
     """set_value() is by default an alias for set()"""
     self.set(value,**kw);
-    
+
   def get_str (self):
     return self.item_str(self.value);
-      
+
   def item_str (item):
     """converts item to string representation.
     If item is a named symbol, uses the name, else uses str()""";
     return getattr(item,'__name__',None) or str(item);
   item_str = staticmethod(item_str);
-  
+
   def when_changed (self,callback):
     """registers a callback which will be called whenever the item is changed.
     Immediately calls the callback as well""";
@@ -380,7 +380,7 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     _TDLOptionItem.__init__(self,namespace,symbol,value,config_name=config_name,name=name,doc=doc);
     self.nonexclusive = nonexclusive;
     self._set(value);
-  
+
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu.""";
@@ -394,11 +394,13 @@ class _TDLBoolOptionItem (_TDLOptionItem):
         _dprint(2,"error reading",self.config_name,"from config");
         if _dbg.verbose > 2:
           traceback.print_exc();
-    
-  def set (self,value,save=True,callback=True):
+
+  def set (self,value,save=True,callback=True,set_lvitem=True):
     value = bool(value);
     if save and self.config_name:
       set_config(self.config_name,int(value));
+    if self._lvitem and set_lvitem:
+      self._lvitem.setOn(value);
     self._set(value,callback=callback);
 
   def make_listview_item (self,parent,after,executor=None):
@@ -408,20 +410,20 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     item._on_click = item._on_press = self._check_item;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-  
+
   def _check_item (self):
-    self.set(self._lvitem.isOn());
-    
+    self.set(self._lvitem.isOn(),set_lvitem=False);
+
 class TDLFileSelect (object):
   def __init__ (self,filenames="",default=None,exist=True):
     self.filenames  = str(filenames);
     self.exist      = exist;
     self.default    = default;
-    
+
 class TDLDirSelect (TDLFileSelect):
   def __init__ (self,filenames="",default=None):
     TDLFileSelect.__init__(self,filenames,default);
-    
+
 class _TDLFileOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,filespec,
                 default=None,config_name=None,name=None,doc=None):
@@ -435,7 +437,7 @@ class _TDLFileOptionItem (_TDLOptionItem):
       self._set(str(filespec.default));
     else:
       self._set(None);
-    
+
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu.""";
@@ -463,28 +465,28 @@ class _TDLFileOptionItem (_TDLOptionItem):
               if self._validator(filename):
                 self._set(filename);
                 return;
-    
+
   def set_validator (self,validator):
     self._validator = validator;
     if self.value and not self._validator(self.value):
       self.set(None);
-      
+
   def set (self,value,save=True,callback=True):
     value = str(value);
     if save:
       set_config(self.config_name,value);
     self._set(value,callback=callback);
-    
+
   def enable (self,enabled=True):
     _TDLOptionItem.enable(self,enabled);
     if not enabled and self._file_dialog:
       self._file_dialog.hide();
-  
+
   def show (self,visible=True):
     _TDLOptionItem.show(self,visible);
     if not visible and self._file_dialog:
       self._file_dialog.hide();
-      
+
   class FileDialog (QFileDialog):
     def done (self,result):
       if result:
@@ -513,17 +515,17 @@ class _TDLFileOptionItem (_TDLOptionItem):
     item._on_click = self._show_dialog;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-      
+
   def _show_dialog (self):
     self._file_dialog.rereadDir();
     self._file_dialog.show();
-    
+
   def _select_file (self,name):
     name = str(name);
     if self._validator(name):
       self._lvitem.setText(1,os.path.basename(name.rstrip("/")));
       self.set(name);
-    
+
 class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None,more=None,
                      config_name=None,name=None,doc=None):
@@ -554,7 +556,7 @@ class _TDLListOptionItem (_TDLOptionItem):
           raise ValueError,"'default': index out of range";
     # set the default value
     self.set(default,save=False);
-    
+
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu.""";
@@ -567,12 +569,14 @@ class _TDLListOptionItem (_TDLOptionItem):
       try:
         select = self.option_list_str.index(value);
       except:
-        if self._more is None or not self._validator(value):
-          _dprint(2,value,"is an illegal value for",self.name);
+        if self._more is None:
+          _dprint(2,value,"is not in the list of valid options for",self.name);
         # add configured symbol to list of values
         else:
           try:
             value = self._more(value);
+            if not self._validator(value):
+              raise ValueError;
           except:
             _dprint(2,value,"is an illegal value for",self.name);
           else:
@@ -585,27 +589,29 @@ class _TDLListOptionItem (_TDLOptionItem):
     # if select was set, we have a legal value
     if select is not None:
       self.set(select,save=False);
-    
+
   def set_validator (self,validator):
     self._validator = validator;
 
   def num_options (self):
     return len(self.option_list);
-    
+
   def get_option (self,num):
     return self.option_list[num];
-    
+
   def get_option_str (self,num):
     return self.option_list_str[num];
-    
+
   def get_option_desc (self,num):
     return self.option_list_desc[num];
-  
+
   def set_option_list (self,opts,select=None,conserve_selection=True):
     """changes the option list. If conserve_selection is True, attempts
     to preserve the current selection""";
+    _dprint(5,self.symbol,"set_option_list",opts);
     if select is None and conserve_selection:
       selection = self.get_option_str(self.selected);
+      _dprint(5,"trying to conserve previous selection",selection);
     if isinstance(opts,(list,tuple)):
       self.option_list = list(opts);
       self.option_list_str = map(lambda x:self.item_str(x),opts);
@@ -632,8 +638,13 @@ class _TDLListOptionItem (_TDLOptionItem):
         index = self.option_list_str.index(selection);
         self.set(index,save=False);
       except:
-        self.set(0);
-        
+        # old selection not found in list, so make it a custom value if possible
+        if self._more is not None:
+          self.set_custom_value(selection);
+        # else fall back to selection #0
+        else:
+          self.set(0);
+
   def set_value (self,value,save=True,callback=True):
     """selects given value in list. If value is not in list, sets
     custom value if possible"""
@@ -644,7 +655,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       if self._more is None:
         raise ValueError,"%s is not a legal value for option '%s'"%(value,self.name);
       self.set_custom_value(self._more(value),save=save,select=True,callback=callback);
-  
+
   def set (self,ivalue,save=True,callback=True):
     """selects value #ivalue in list""";
     self.selected = value = int(ivalue);
@@ -658,7 +669,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     if save:
       set_config(self.config_name,self.get_option_str(value));
     self._set(self.get_option(value),callback=callback);
-    
+
   def set_custom_value (self,value,select=True,save=True,callback=True):
     if self._more is None:
       raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
@@ -671,7 +682,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     # select if needed
     if select:
       self.set(len(self.option_list)-1,save=save,callback=callback);
-    
+
   def _rebuild_submenu (self,parent):
     # create QPopupMenu for available options
     self._submenu = submenu = QPopupMenu(parent);
@@ -701,7 +712,7 @@ class _TDLListOptionItem (_TDLOptionItem):
         submenu.insertItem(self.get_option_desc(ival),ival);
       submenu.setItemChecked(ival,ival==self.selected);
     QObject.connect(submenu,SIGNAL("activated(int)"),self._activate_submenu_item);
-    
+
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the item""";
     _dprint(3,"making listview item for",self.name);
@@ -714,7 +725,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     item._on_click = self._popup_menu;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-      
+
   def _popup_menu (self):
     # figure out where to pop up the menu
     listview = self._lvitem.listView();
@@ -722,7 +733,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     pos.setX(pos.x()+listview.columnWidth(0));    # position in listview
     # now map to global coordinates
     self._submenu.popup(listview.mapToGlobal(pos));
-    
+
   def _activate_submenu_item (self,selected):
     # validate custom value
     if self._more is not None and selected == self.num_options()-1:
@@ -798,7 +809,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     self._items0 = items;
     self._items  = None;
     self._exclusive_items = {};
-    
+
   def init (self,owner,runtime):
     _dprint(1,"menu",self._title,"owner",owner);
     # in toggle mode, init BoolItem parent to read value from config
@@ -806,6 +817,14 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       _TDLBoolOptionItem.init(self,owner,runtime);
     else:
       _TDLBaseOption.init(self,owner,runtime);
+    # in exclusive mode, read the exclusive setting from the config
+    if self._exclusive:
+      self.namespace[self._exclusive] = None;
+      try:
+        excl_value = config.get(config_section,self.excl_config_name);
+      except:
+        excl_value = None;
+      _dprint(2,"read",self.excl_config_name,"=",excl_value,"from config");
     # if option not previously initialized, then we need to process the items list
     if self._items is None:
       _dprint(1,"menu",self._title,"runtime is",runtime);
@@ -816,7 +835,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       #    from them, if found. This allows us to include items into a menu with
       #    TDLCompileOption or TDLRuntimeOption directly.
       # 3. check if item is a module or a dict. Encapsulate all options
-      #    from that module or dict if so. Here we need to know if it is runtime 
+      #    from that module or dict if so. Here we need to know if it is runtime
       #    or compile-time items that need to be encapsulated.
       self._items = [];
       for item in self._items0:
@@ -838,7 +857,12 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           if self._exclusive:
             if isinstance(item,_TDLBoolOptionItem) and not item.nonexclusive and not \
                (isinstance(item,_TDLSubmenu) and not item._toggle):
-              self._exclusive_items[item.name] = item; 
+              self._exclusive_items[item.symbol] = item;
+              if excl_value is None:
+                excl_value = item.symbol;
+                item.set(True);
+              else:
+                item.set(item.symbol == excl_value);
               item.config_name = None;
               item.when_changed(curry(self._exclusive_item_selected,item));
           # init the item
@@ -850,7 +874,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           # now steal items from this namespace's runtime or compile-time options
           self._steal_items(runtime,lambda item0:item0.owner == owner);
         # item is a namespace: steal items from that namespace
-        else:  
+        else:
           namespace = None;
           if isinstance(item,dict):
             _dprint(3,"menu: stealing items from ",item);
@@ -863,23 +887,13 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           # now steal items from this namespace's runtime or compile-time options
           self._steal_items(runtime,lambda item0:item0.namespace is namespace);
       self._items0 = None;
-      if self._exclusive:
-        self.namespace[self._exclusive] = None;
-        try:
-          value = config.get(config_section,self.excl_config_name);
-        except:
-          return;
-        _dprint(2,"read",self.excl_config_name,"=",value,"from config");
-        item = self._exclusive_items.get(value,None);
-        if item:
-          self.set_exclusive(item,save=False);
-      
+
   def set_exclusive (self,item,setitem=True,save=True):
     if isinstance(item,str):
       item = self._exclusive_items.get(item,None);
-      name = item and item.name;
+      name = item and item.symbol;
     else:
-      name = item.name;
+      name = item.symbol;
     _dprint(2,"setting exclusive menu item",name,item);
     self._excl_selected = self.excl_namespace[self._exclusive] = name;
     if item:
@@ -890,12 +904,12 @@ class _TDLSubmenu (_TDLBoolOptionItem):
           other.set(False,save=False);
     if save:
       set_config(self.excl_config_name,name or '');
-    
+
   def _exclusive_item_selected (self,item,value,save=True):
-    _dprint(3,"selected exclusive menu item",item,item.name,value);
+    _dprint(3,"selected exclusive menu item",item,item.symbol,value);
     if value:
       self.set_exclusive(item,setitem=False,save=save);
-      
+
   def collect_log (self,log):
     """called to collect a recursive log of all options. This version adds an entry
     for itself only if option is not disabled/hidden""";
@@ -909,7 +923,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       for item in self._items:
         if isinstance(item,_TDLBaseOption):
           item.collect_log(log);
-  
+
   def _steal_items (self,runtime,predicate):
     """helper function: steals items matching the given predicate""";
     if runtime:
@@ -925,12 +939,12 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     # delete stolen items
     for i in steal_items:
       del option_list[i];
-  
+
   def expand (self,expand=True):
     self._is_open = expand;
     if self._lvitem:
       self._lvitem.setOpen(expand);
-      
+
   def set (self,value,**kw):
     if self._toggle:
       oldval = self.value;
@@ -940,12 +954,12 @@ class _TDLSubmenu (_TDLBoolOptionItem):
         self._lvitem.setOn(value);
         if oldval != value:
           self._lvitem.setOpen(value);
-          
+
   def set_summary (self,summary):
     self._summary = summary;
     if self._lvitem:
       self._lvitem.setText(1,summary or '');
-    
+
   def make_listview_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
     if self._items is None:
@@ -975,7 +989,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     item._on_click = item._on_press = self._check_item;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
-    
+
 def populate_option_listview (listview,option_items,executor=None):
   listview.clear();
   # populate listview
@@ -986,7 +1000,7 @@ def populate_option_listview (listview,option_items,executor=None):
   # add to menu
   # menu.insertItem(listview);
   return listview;
-  
+
 def _resolve_owner (calldepth=2):
   filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
   filename = os.path.basename(filename).split('.')[0];
@@ -1009,7 +1023,7 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
       symbol = ".".join((prefix,symbol));
   # else namespace must have a __dict__ attribute
   else:
-    # form options inside an explcit namespace (e.g. inside an object), prepend the 
+    # form options inside an explcit namespace (e.g. inside an object), prepend the
     # name of the object to the config name
     prefix = getattr(namespace,'tdloption_namespace',None) or \
              getattr(namespace,'__name__',None) or \
@@ -1022,7 +1036,7 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
     if prefix:
       symbol = ".".join((prefix,symbol));
   return namespace,symbol;
-  
+
 def _make_option_item (namespace,symbol,name,value,default=None,
                        inline=False,doc=None,more=None,runtime=None,nonexclusive=False):
   # resolve namespace based on caller
@@ -1105,7 +1119,7 @@ def TDLRuntimeJob (function,name=None,doc=None):
   job.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(job);
   return job;
-  
+
 def TDLCompileOptions (*opts):
   """this adds a number of entries (created with TDLOption) to the
   compile-time menu""";
@@ -1125,7 +1139,7 @@ def TDLRuntimeOptions (*opts):
   for opt in opts:
     opt and opt.init(owner,True);
   runtime_options += opts;
-  
+
 def TDLCompileMenu (title,*items,**kw):
   """This creates a submenu inside the compile-time menu, and adds a number
   of entires (created with TDLOption) to it.""";
