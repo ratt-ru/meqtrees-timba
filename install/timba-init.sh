@@ -8,7 +8,7 @@ if [ -z "$TIMBA_PATH" ]; then
     if [ "${BASH_SOURCE[0]/Timba\//}" != "${BASH_SOURCE[0]}" ]; then
       export TIMBA_PATH="${BASH_SOURCE[0]/Timba\/*/Timba}"
       # if we end up with a relative path, make it absolute
-      if [ "${TIMBA_PATH#/}" == "$TIMBA_PATH" ]; then
+      if [ "${TIMBA_PATH#/}" = "$TIMBA_PATH" ]; then
         export TIMBA_PATH=`pwd`/$TIMBA_PATH
       fi
     fi
@@ -23,13 +23,13 @@ if [ ! -d $TIMBA_PATH/install ]; then
   echo "Warning: cannot find Timba install under $TIMBA_PATH"
   echo "If Timba is installed elsewhere, please set your TIMBA_PATH variable appropriately."
 else
-  if [ "$PRE_TIMBA_PATH" == "" ]; then
+  if [ "$PRE_TIMBA_PATH" = "" ]; then
     export PRE_TIMBA_PATH=$PATH
   fi
-  if [ "$PRE_TIMBA_LD_LIBRARY_PATH" == "" ]; then
+  if [ "$PRE_TIMBA_LD_LIBRARY_PATH" = "" ]; then
     export PRE_TIMBA_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
   fi
-  if [ "$PRE_TIMBA_PYTHONPATH" == "" ]; then
+  if [ "$PRE_TIMBA_PYTHONPATH" = "" ]; then
     export PRE_TIMBA_PYTHONPATH=$PYTHONPATH
   fi
 
