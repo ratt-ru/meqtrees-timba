@@ -347,7 +347,7 @@ def shape (arg0=None,*args,**kw):
     meq.shape(freq=nf,time=nt,...)   [nfreq,ntime,...] shape
   """;
   if isinstance(arg0,_cells_type):
-    return shape(**dict([(axis,len(grid)) for axis,grid in arg0.grid.iteritems()]));
+    return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in arg0.grid.iteritems()]));
   elif isinstance(arg0,dmi.array_class):
     return arg0.getshape();
   else:
