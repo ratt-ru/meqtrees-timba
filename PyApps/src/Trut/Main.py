@@ -28,6 +28,7 @@ import traceback
 import os
 import os.path
 import sets
+import time
 
 from Timba import dmi
 
@@ -170,17 +171,41 @@ class FileMultiplexer (object):
     for f in self.files:
       f.write(string);
 
-def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
+def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1,cache=True):
   errlog = TrutLogger(sys.stderr,verbosity,console=True);
   brieflog = TrutLogger('Trut.log',log_verbosity);
   full_log = TrutLogger('Trut.full.log',999999);
   # create a batch run unit
   batchrun = TrutBatchRun(persist=persist,loggers=[errlog,brieflog,full_log]);
   # get absolute name for all files
-  files = [ os.path.abspath(file) for file in files ];
+  files = [ os.path.abspath(filename) for filename in files ];
+  # read test cache. This is simply a list of all the trut files that were
+  # tested successfully. If a cache exists and is less than an hour old, the
+  # successful tests will not be rerun (unless we're called with cache=False) 
+  testcache = os.path.join(os.getcwd(),".trut.cache");
+  usecache = cache;
+  try:
+    cache = {};
+    for line in file(testcache).readlines():
+      filename,rtime = line.split(' ');
+      cache[filename] = int(rtime);
+  except:
+    if usecache:
+      errlog.log("No recent test results found in cache, all tests will be run",level=1);
+  else:
+    if usecache:
+      errlog.log("Cache contains %d successful test(s). Recently (<1 hour) successful tests will be skipped."%len(cache),level=1);
+      errlog.log("Use the '-c' option to rerun all tests regardless of cache.",level=1);
   # execute each file in turn, break out on error (unless persist=True)
   for filename in files:
     trutfile = Trut.File(filename,parent=batchrun,maxjobs=maxjobs);
+    # check cache, skip file if found (and recent)
+    if usecache and filename in cache:
+      if cache[filename] > time.time() - 3600:
+        trutfile.success("(skipped)");
+        continue;
+      else:
+        del cache[filename];
     # make loggers local to that directory
     dirname = os.path.dirname(os.path.abspath(filename));
     log1 = os.path.join(dirname,'trut.log');
@@ -199,10 +224,16 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1):
     batchrun.remove_loggers(local_brieflog,local_full_log);
     # check for fails
     if trutfile.failed:
+      if filename in cache:
+        del cache[filename];
       errlog.log("%s/trut[.full].log will contain more details of the failure"%dirname,level=1);
+    else:
+      cache[filename] = time.time();
     if batchrun.giveup():
       break;
-    
+  # cache successful tests
+  if cache:
+    file(testcache,'w').writelines(["%s %d\n"%cc for cc in cache.iteritems()]);
   # this will print a fail/success message
   result = batchrun.success();
   if not result:
