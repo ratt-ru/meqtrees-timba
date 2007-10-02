@@ -228,6 +228,7 @@ class MSSelector (object):
                 field=None,
                 channels=True,
                 flags=False,
+                hanning=False,
                 namespace='ms_sel'
                 ):
     """Creates an MSSelector object
@@ -243,6 +244,7 @@ class MSSelector (object):
       provided, based on the MS content.
     channels:   if True, channel selection will be provided
     flags:      if True, a "write flags" option will be provided
+    hanning:    if True, an apply Hanning tapering option will be provided
     namespace:  the TDLOption namespace name, used to qualify TDL options created here.
         If making multiple selectors, you must give them different namespace names.
     """;
@@ -306,6 +308,9 @@ class MSSelector (object):
                                   tile_sizes,more=int,namespace=self));
     else:
       self.tile_size = 1;
+    if hanning:
+      self._opts.append(TDLOption('ms_apply_hanning',"Apply Hanning taper to input",
+                                  False,namespace=self));
     if flags:
       self._opts.append(TDLOption('ms_write_flags',"Write flags to output",
                                   False,namespace=self));
@@ -488,6 +493,7 @@ class MSSelector (object):
     else:
       rec.tile_size = tiling;
     rec.selection = self.subset_selector.create_selection_record();
+    rec.apply_hanning = self.ms_apply_hanning;
     # form top-level record
     iorec = record(ms=rec);
     iorec.python_init = 'Meow.ReadVisHeader';
@@ -665,6 +671,7 @@ class ImagingSelector (object):
       chanstart = chans[0]+1;
       if len(chans) > 2:
         chanstep = chans[2];
+        nchan /= chanstep;
       else:
         chanstep = 1;
       args += [ 'chanmode=channel',

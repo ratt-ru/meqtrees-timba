@@ -28,6 +28,8 @@
 
 from Timba.TDL import *
 from Timba.LSM.LSM import LSM
+from Timba.utils import curry
+import traceback
 import Meow
 
 # constants for available LSM formats
@@ -76,8 +78,17 @@ class MeowLSM (object):
         TDLOption("max_sources","Restrict to N brightest sources",
                   [5,10,20],more=int,namespace=self)
       );
-      self._compile_opts.append(TDLOption("use_parms","Make solvable source parameters",
-                         [None,"I","IQUV","IQUV,spi","IQUV,spi,shape"],namespace=self));
+      self._compile_opts.append(
+        TDLMenu("Make solvable source parameters",
+          TDLOption("solve_I","I",False,namespace=self),
+          TDLOption("solve_Q","Q",False,namespace=self),
+          TDLOption("solve_U","U",False,namespace=self),
+          TDLOption("solve_V","V",False,namespace=self),
+          TDLOption("solve_spi","spectral index",False,namespace=self),
+          TDLOption("solve_pos","position",False,namespace=self),
+          TDLOption("solve_RM","rotation measure",False,namespace=self),
+          TDLOption("solve_shape","shape (for extended sources)",False,namespace=self),
+        ));
       save_opt = TDLOption("save_native","Save LSM in native format",False,namespace=self);
       self._compile_opts.append(save_opt);
       save_filename_opt = TDLOption("save_native_filename","Filename to save as",
@@ -94,6 +105,10 @@ class MeowLSM (object):
       self._compile_opts.append(
         TDLOption("show_gui","Show LSM GUI",False,namespace=self)
       );
+      self._compile_opts.append(TDLOption("export_karma","Export LSM as Karma annotations file",
+                                     TDLFileSelect("*.ann",exist=False,default=None),
+                                     namespace=self));
+      
     return self._compile_opts;
 
   def runtime_options (self):
@@ -131,6 +146,13 @@ class MeowLSM (object):
     # save if needed
     if self.save_native and self.save_native_filename:
       self.lsm.save(self.save_native_filename);
+      
+    if self.export_karma:
+      try:
+        self.lsm.export_karma_annotations(self.export_karma,ns,count=self.max_sources);
+      except:
+        traceback.print_exc();
+        pass;
 
     if self.show_gui:
       self.lsm.display(count=self.max_sources)
@@ -147,14 +169,26 @@ class MeowLSM (object):
     if self.lsm is None:
       self.load(ns);
 
-    if self.use_parms:
-      for pname in ("I","Q","U","V","spi"):
-        if self.use_parms.find(pname) >= 0:
-          kw.setdefault(pname,Meow.Parm());
-      if self.use_parms.find("shape"):
-        kw.setdefault("sx",Meow.Parm());
-        kw.setdefault("sy",Meow.Parm());
-        kw.setdefault("phi",Meow.Parm());
+    parm = Meow.Parm(tags="source solvable");
+    if self.solve_I:
+      kw.setdefault("I",parm);
+    if self.solve_Q:
+      kw.setdefault("Q",parm);
+    if self.solve_U:
+      kw.setdefault("U",parm);
+    if self.solve_V:
+      kw.setdefault("V",parm);
+    if self.solve_spi:
+      kw.setdefault("spi",parm);
+    if self.solve_RM:
+      kw.setdefault("RM",parm);
+    if self.solve_pos:
+      kw.setdefault("ra",parm);
+      kw.setdefault("dec",parm);
+    if self.solve_shape:
+      kw.setdefault("sx",parm);
+      kw.setdefault("sy",parm);
+      kw.setdefault("phi",parm);
 
     # make Meow list
     source_model = []

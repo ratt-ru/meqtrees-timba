@@ -410,6 +410,6 @@ class MeqMaker (object):
 
     # make an inspector for the results
     StdTrees.vis_inspector(ns.inspector('output'),outputs,ifrs=ifrs,bookmark=False);
-    self._add_inspector(ns.inspector('output'),name='Corrected data or residuals');
+    self._add_inspector(ns.inspector('output'),name='Inspect corrected data or residuals');
 
     return outputs;

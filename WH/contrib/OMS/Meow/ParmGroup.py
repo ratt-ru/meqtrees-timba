@@ -64,6 +64,17 @@ class ParmGroup (object):
           self._option_list.append(parm_solv);
       # else provide a common equivalent applying to all parms
       else:
+        # we do have individual solvability toggles
+        self._parm_opts = {};
+        parm_sopts = [];
+        for parm in self.pg.nodes:
+          opts = self._parm_opts[parm.name] = record();
+          opts.tdloption_namespace = (label+"."+parm.name).replace(":","_");
+          parm_sopts.append(TDLOption("solvable",
+                      "Solve for %s"%parm.name,True,namespace=opts));
+        somenu = TDLMenu('Toggle solvability of individual parms',*parm_sopts)
+        self._option_list.append(somenu);
+        sopts.append(somenu);
         self._option_list.append(TDLOption('initial_value',
                                   'Override initial value',[None,0.],more=float,namespace=self));
         so = [  TDLOption('time_deg','Polynomial degree, time',[0,1,2,3],more=int,namespace=self),
@@ -165,25 +176,37 @@ class ParmGroup (object):
           self._fill_state_record(state);
           cmdlist.append(record(name=[parm.name for parm in deferred],state=state));
         return cmdlist;
-      # else all parms are treated together, so make one state record for everything
+      # else all parms are treated together, so make one state record for all
+      # solvables
       else:
-        state = record();
-        if self.initial_value is not None:
-          state.default_value = self.initial_value;
-        state.solvable = solvable;
+        cmdlist = [];
         if solvable:
+          solvables = [ parm.name for parm in self.pg.nodes if self._parm_opts[parm.name].solvable ];
+          nonsolvables = [ parm.name for parm in self.pg.nodes if not self._parm_opts[parm.name].solvable ];
+        else:
+          solvables = [];
+          nonsolvables = [ parm.name for parm in self.pg.nodes ];
+        # command for solvables
+        if solvables:
+          state = record(solvable=True);
+          if self.initial_value is not None:
+            state.default_value = self.initial_value;
           state.shape         = [self.time_deg+1,self.freq_deg+1];
           state.tiling        = record();
           if self.subtile_time:
             state.tiling.time = self.subtile_time;
           if self.subtile_freq:
             state.tiling.freq = self.subtile_freq;
-        else:
+          self._fill_state_record(state);
+          cmdlist.append(record(name=solvables,state=state));
+        if nonsolvables:
+          state = record(solvable=False);
+          if self.initial_value is not None:
+            state.default_value = self.initial_value;
           state.shape = [0];
-        self._fill_state_record(state);
-        return [ record(
-          name=[node.name for node in self.pg.nodes],
-          state=state) ];
+          self._fill_state_record(state);
+          cmdlist.append(record(name=nonsolvables,state=state));
+        return cmdlist;
 
     def _clear_mep_tables (self,mqs,parent,**kw):
       if parent and QMessageBox:
@@ -199,7 +222,10 @@ class ParmGroup (object):
                      **kw):
     self.label = label;
     self.name  = name or label;
-    self.nodes = nodes;
+    # sort nodes by name
+    sorted_nodes = list(nodes);
+    sorted_nodes.sort(lambda x,y:cmp(x.name,y.name));
+    self.nodes = sorted_nodes;
     # various properties
     self.table_name = table_name;
     self._table_in_ms = table_in_ms;

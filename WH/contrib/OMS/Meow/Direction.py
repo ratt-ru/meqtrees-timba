@@ -37,8 +37,8 @@ class Direction (Parameterization):
                quals=[],kwquals={}):
     Parameterization.__init__(self,ns,name,
                               quals=quals,kwquals=kwquals);
-    self._add_parm('ra',ra,tags="direction");
-    self._add_parm('dec',dec,tags="direction");
+    self._add_parm('ra',ra,tags="direction solvable");
+    self._add_parm('dec',dec,tags="direction solvable");
     
   def radec (self):
     """Returns ra-dec 2-vector node for this direction.

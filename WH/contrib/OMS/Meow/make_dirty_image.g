@@ -84,7 +84,7 @@ if( mode == 'mfs' )
   myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
     stokes=stokes,mode=mode,
     fieldid=fieldid,spwid=spwid,
-    nchan=1);
+    nchan=1,start=chanstart);
 else
   myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
     stokes=stokes,mode=mode,

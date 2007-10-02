@@ -34,7 +34,7 @@ from Meow import Context
 from Meow import ParmGroup
 
 # MS options first
-mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=True);
+mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=False,hanning=True);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 # MS run-time options
@@ -48,6 +48,7 @@ TDLCompileMenu("What do we want to do",
      TDLOption('cal_ampl',"Calibrate amplitudes",False),
      TDLOption('cal_log_ampl',"Calibrate log-amplitudes",False),
      TDLOption('cal_phase',"Calibrate phases",False),
+     TDLOption('cal_corr',"Use correlations",["all","XX YY","XY YX"]),
      toggle='do_solve',open=True,exclusive='solve_type'
   ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
@@ -78,8 +79,11 @@ meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
 
 # G - solvable gain/phases
 from solvable_gain_phase import AmplPhaseJones
+from solvable_rotation import LeakageJones
+D = LeakageJones();
 B = AmplPhaseJones();
 G = AmplPhaseJones();
+meqmaker.add_uv_jones('D','dipole orientation',D);
 meqmaker.add_uv_jones('B','bandpass',B);
 meqmaker.add_uv_jones('G','receiver gains/phases',G);
 
@@ -97,20 +101,23 @@ def _define_forest (ns):
   # make a ParmGroup and solve jobs for source fluxes
   srcs = meqmaker.get_source_list(ns);
   if srcs:
-    parms = [];
+    # make dictionary of source parameters. Use a dict since
+    # sources may share paramaters, so we don't want them in the list twice
+    parms = {};
     for src in srcs:
-      parms += src.coherency().search(tags="solvable");
+      for p in src.visibilities().search(tags="source solvable"):
+        parms[p.name] = p;
     if parms:
-      pg_src = ParmGroup.ParmGroup("source",parms,
+      pg_src = ParmGroup.ParmGroup("source",parms.values(),
                   table_name="sources.mep",
                   individual=True,bookmark=True);
       # now make a solvejobs for the source
       ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
 
   # make spigot nodes
-  spigots = outputs = array.spigots();
+  spigots = spigots0 = outputs = array.spigots();
   # ...and an inspector for them
-  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots);
+  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,bookmark="Inspect input data");
   inspectors = [ ns.inspector('input') ];
 
   # make a predict tree using the MeqMaker
@@ -135,9 +142,19 @@ def _define_forest (ns):
 
   # make solve trees
   if do_solve:
+    # extract selected correlations
+    if cal_corr != "all":
+      if cal_corr == "XX YY":
+        index = [0,3];
+      else:
+        index = [1,2];
+      for p,q in array.ifrs():
+        ns.sel_predict(p,q) << Meq.Selector(predict(p,q),index=index,multi=True);
+        ns.sel_spigot(p,q)  << Meq.Selector(spigots(p,q),index=index,multi=True);
+      spigots = ns.sel_spigot;
+      predict = ns.sel_predict;
     # inputs to the solver are based on calibration type
     # if calibrating visibilities, feed them to condeq directly
-    print solve_type;
     if solve_type == 'cal_vis':
       observed = spigots;
       model    = predict;
@@ -158,7 +175,7 @@ def _define_forest (ns):
           observed(p,q) << 0;
           model(p,q)  << Meq.Abs(predict(p,q))*Meq.FMod(Meq.Arg(spigots(p,q))-Meq.Arg(predict(p,q)),2*math.pi);
       else:
-        raise ValueError,"unknown solve_type setting: "+solve_type;
+        raise ValueError,"unknown solve_type setting: "+str(solve_type);
     # make a solve tree
     solve_tree = Meow.StdTrees.SolveTree(ns,model);
     # the output of the sequencer is either the residuals or the spigots,
@@ -167,8 +184,8 @@ def _define_forest (ns):
 
   # make sinks and vdm.
   # The list of inspectors must be supplied here
-  inspectors += meqmaker.get_inspectors();
-  Meow.StdTrees.make_sinks(ns,outputs,spigots=spigots,post=inspectors);
+  inspectors += meqmaker.get_inspectors() or [];
+  Meow.StdTrees.make_sinks(ns,outputs,spigots=spigots0,post=inspectors);
 
   # very important -- insert meqmaker's runtime options properly
   # this should come last, since runtime options may be built up during compilation.

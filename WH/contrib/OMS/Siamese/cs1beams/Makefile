@@ -1,4 +1,4 @@
-default: slib
+default: slib beam_dr_phi beam_dr_theta
 slib:beam.o
 	ld  -shared  beam.o -o beam.so
 beam.o:beam.c

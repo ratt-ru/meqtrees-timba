@@ -58,7 +58,7 @@ def rms_clip (inputs,threshold_sigmas):
   return flagged;
 
 # MS options first
-mssel = Meow.Context.mssel = Meow.MSUtils.MSSelector(has_input=True,has_output=False,tile_sizes=[100,200,500],flags=True);
+mssel = Meow.Context.mssel = Meow.MSUtils.MSSelector(has_input=True,hanning=True,has_output=False,tile_sizes=[100,200,500],flags=True);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 # MS run-time options
@@ -66,6 +66,8 @@ TDLRuntimeOptions(*mssel.runtime_options());
 ## also possible:
 
 TDLCompileOption('clear_ms_flags',"Ignore flags already in MS",False);
+TDLCompileOption('flag_xx_yy',"Flag on XX/YY values only",True);
+TDLCompileOption('flag_all_corrs',"Merge flags across all four correlations",True);
 TDLCompileOption('flag_abs',"Flag on absolute value >=",[None,1.,2.],more=float);
 TDLCompileOption('flag_rms',"Flag on rms sigmas >= ",[None,3.,5.,10.],more=float);
 
@@ -81,6 +83,12 @@ def _define_forest(ns):
   else:
     flag_mask = -1;
   outputs = spigots = array.spigots(flag_mask=flag_mask,row_flag_mask=flag_mask);
+  # extract xx/yy if asked
+  if flag_xx_yy:
+    outputs = ns.xxyy;
+    for p,q in array.ifrs():
+      outputs(p,q) << Meq.Selector(spigots(p,q),index=[0,3],multi=True);
+  
   # make an inspector for spigots, we'll add more to this list
   inspectors = [
     Meow.StdTrees.vis_inspector(ns.inspect('spigots'),spigots,bookmark=False)
@@ -95,7 +103,22 @@ def _define_forest(ns):
   if flag_rms is not None:
     outputs = rms_clip(outputs,flag_rms);
     inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('rms'),outputs,bookmark=False));
-
+  # recreate 2x2 result (if only flagging on xx/yy)
+  if flag_xx_yy:
+    for p,q in array.ifrs():
+      out = outputs(p,q);
+      xx = ns.xx_out(p,q) << Meq.Selector(out,index=0);
+      yy = ns.yy_out(p,q) << Meq.Selector(out,index=1);
+      ns.make4corr(p,q) << Meq.Matrix22(xx,0,0,yy);
+    outputs = ns.make4corr;
+      
+  # merge flags if asked
+  if flag_all_corrs:
+    for p,q in array.ifrs():
+      ns.mergeflags(p,q) << Meq.MergeFlags(outputs(p,q));
+    outputs = ns.mergeflags;
+    inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('output'),outputs,bookmark=False));
+    
   # make sinks and vdm
   Meow.StdTrees.make_sinks(ns,outputs,post=inspectors);
 
@@ -115,8 +138,6 @@ def _tdl_job_run_flagging (mqs,parent,**kw):
 
 
 if __name__ == '__main__':
-
-
     Timba.TDL._dbg.set_verbose(5);
     ns = NodeScope();
     _define_forest(ns);

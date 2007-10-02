@@ -64,6 +64,50 @@ def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None):
     );
   return jones;
 
+def rotation_matrix (jones,rot=0.,tags=[],series=None):
+  """Creates a rotation matrix. 
+  'jones' should be a node stub.
+  'series' can be a list of qualifiers to make a series of matrices.
+  The rotation angle is created as a Meq.Parm by qualifying 'jones' with 
+  'angle'. These Parm nodes will be tagged with the given set
+  of 'tags', plus 'rotation'.
+  """
+  # create matrix per-station, or just a single matrix
+  if series:
+    for p in series:
+      angle = Parameterization.resolve_parameter("rotation",jones('angle',p),rot,tags=tags);
+      cosangle = jones("cosa",p) << Meq.Cos(angle);
+      sinangle = jones("sina",p) << Meq.Sin(angle);
+      jones(p) << Meq.Matrix22(cosangle,-sinangle,sinangle,cosangle);
+  else:
+    angle = Parameterization.resolve_parameter("rotation",jones('angle'),rot,tags=tags);
+    cosangle = jones("cosa") << Meq.Cos(angle);
+    sinangle = jones("sina") << Meq.Sin(angle);
+    jones << Meq.Matrix22(cosangle,-sinangle,sinangle,cosangle);
+  return jones;
+
+def ellipticity_matrix (jones,ell=0.,tags=[],series=None):
+  """Creates a rotation matrix. 
+  'jones' should be a node stub.
+  'series' can be a list of qualifiers to make a series of matrices.
+  The ellipticity angle is created as a Meq.Parm by qualifying 'jones' with 
+  'ell'. These Parm nodes will be tagged with the given set
+  of 'tags', plus 'ellipticity'.
+  """
+  # create matrix per-station, or just a single matrix
+  if series:
+    for p in series:
+      angle = Parameterization.resolve_parameter("ellipticity",jones('angle',p),ell,tags=tags);
+      cosangle = jones("cosa",p) << Meq.Cos(angle);
+      isinangle = jones("sina",p) << Meq.ToComplex(0,Meq.Sin(angle));
+      jones(p) << Meq.Matrix22(cosangle,isinangle,isinangle,cosangle);
+  else:
+    angle = Parameterization.resolve_parameter("ellipticity",jones('angle'),ell,tags=tags);
+    cosangle = jones("cosa") << Meq.Cos(angle);
+    isinangle = jones("sina",p) << Meq.ToComplex(0,Meq.Sin(angle));
+    jones << Meq.Matrix22(cosangle,isinangle,isinangle,cosangle);
+  return jones;
+
 
 def define_rotation_matrix (angle):
   """Returns node definition for a rotation matrix, given an 'angle' node
