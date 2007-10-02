@@ -293,10 +293,11 @@ class OptionManager (object):
 
     #-------------------------------------------------------------------------------    
 
-    def define (self, key, value, order=None,
+    def define (self, key, default, insist='<unset>', order=None,
                 prompt=None, opt=None, more=None, doc=None,
                 callback=None, disable=None, trace=False):
-        """Helper function to define a named (key) option with its (default) value.
+        """Helper function to define a named (key) option with its default value.
+        (If insist is specified, make sure that this IS the value always).
         The key defines the (sub)menu structure, e.g. 'compile.submenu.subsub.option'
         (if the first substring is not 'compile' or 'runtime', 'compile' is assumed).
         Som (optional) attributes may be defined that will be used for the creation
@@ -309,27 +310,33 @@ class OptionManager (object):
             key = 'compile.'+key
             ss = key.split('.')
 
-        # A submenu of options may be specified by a dict:    
-        if isinstance(value, dict):
-            keys = value.keys()
+        # If insist is specified, make sure that this is the value, both with
+        # and without .tdlconf file (see also .make_TDLOptionMenu())
+        if not insist=='<unset>':
+            default = insist
+
+        # A submenu of options may be specified by a dict (..obsolete..?):    
+        if isinstance(default, dict):
+            keys = default.keys()
             # It is recommended to impose an order on the submenu options:
             if isinstance(order,list): keys = order          # optional, but recommended
             for key1 in keys:
-                self.define(key+'.'+key1, value[key1])
+                self.define(key+'.'+key1, default[key1])
         
         else:
             ukey = self.internal_name(key)
-            setattr (self, ukey, value)                      # working values
+            setattr (self, ukey, default)                    # working values
             if not isinstance(prompt,str):
                 ss = key.split('.')
                 prompt = ss[len(ss)-1]                       # the last substring
             optrec = dict(type='optrec', optobj=None,
                           key=key, ukey=ukey, disable=disable,
-                          default=value, doc=doc, prompt=prompt,
+                          default=default, insist=insist,
+                          doc=doc, prompt=prompt,
                           opt=opt, more=more, callback=callback)
             self.create(key, optrec, trace=trace)
             if trace:
-                print '  ** define(',key,ukey,value,submenu,cat,')'
+                print '  ** define(',key,ukey,default,submenu,cat,')'
         return True
 
     #-----------------------------------------------------------------------------
@@ -346,10 +353,10 @@ class OptionManager (object):
 
         if not isinstance(pp, dict): pp = dict()
         pp.setdefault('trace',False)
-        keys = ['value','opt','more','prompt','doc','callback']
+        keys = ['default','insist','opt','more','prompt','doc','callback']
         for key in keys:
             if pp.has_key(key):
-                if key=='value':
+                if key=='default':
                     optrec['default'] = pp[key]
                     ukey = self.internal_name(fkey)
                     setattr (self, ukey, pp[key])    # modify the working value too
@@ -670,6 +677,8 @@ class OptionManager (object):
             oo.when_changed(self.callback_submenu)
             if optrec['callback']:
                 oo.when_changed(optrec['callback'])
+            if not optrec['insist']=='<unset>':   # ... does not work properly ...
+                oo.set_value(optrec['insist'], save=True)
             if optrec['disable']:
                 oo.disable(optrec['disable'])
             self.option[optkey] = oo
