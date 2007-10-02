@@ -28,7 +28,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Vector
+from Timba.Contrib.JEN.Vector import Vector
 
 from numarray import *
 
