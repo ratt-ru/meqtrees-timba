@@ -86,8 +86,29 @@ def rotation_matrix (jones,rot=0.,tags=[],series=None):
     jones << Meq.Matrix22(cosangle,-sinangle,sinangle,cosangle);
   return jones;
 
+def decoupled_rotation_matrix (jones,rot=0.,tags=[],series=None):
+  """Creates a decoupled rotation matrix (independent angles for x and y)
+  'jones' should be a node stub.
+  'series' can be a list of qualifiers to make a series of matrices.
+  The rotation angle is created as a Meq.Parm by qualifying 'jones' with 
+  'angle'. These Parm nodes will be tagged with the given set
+  of 'tags', plus 'rotation'.
+  """
+  # create matrix per-station, or just a single matrix
+  if series:
+    for p in series:
+      ax = Parameterization.resolve_parameter("rotation",jones('angle','x',p),rot,tags=tags);
+      ay = Parameterization.resolve_parameter("rotation",jones('angle','y',p),rot,tags=tags);
+      jones(p) << Meq.Matrix22(Meq.Cos(ax),-Meq.Sin(ax),Meq.Sin(ay),Meq.Cos(ay));
+  else:
+    ax = Parameterization.resolve_parameter("rotation",jones('angle','x'),rot,tags=tags);
+    ay = Parameterization.resolve_parameter("rotation",jones('angle','y'),rot,tags=tags);
+    jones << Meq.Matrix22(Meq.Cos(ax),-Meq.Sin(ax),Meq.Sin(ay),Meq.Cos(ay));
+  return jones;
+
+
 def ellipticity_matrix (jones,ell=0.,tags=[],series=None):
-  """Creates a rotation matrix. 
+  """Creates a dipole ellipticity matrix. 
   'jones' should be a node stub.
   'series' can be a list of qualifiers to make a series of matrices.
   The ellipticity angle is created as a Meq.Parm by qualifying 'jones' with 
@@ -106,6 +127,28 @@ def ellipticity_matrix (jones,ell=0.,tags=[],series=None):
     cosangle = jones("cosa") << Meq.Cos(angle);
     isinangle = jones("sina",p) << Meq.ToComplex(0,Meq.Sin(angle));
     jones << Meq.Matrix22(cosangle,isinangle,isinangle,cosangle);
+  return jones;
+
+def decoupled_ellipticity_matrix (jones,ell=0.,tags=[],series=None):
+  """Creates a decoupled ellipticity matrix (independent angles for x and y).
+  'jones' should be a node stub.
+  'series' can be a list of qualifiers to make a series of matrices.
+  The ellipticity angle is created as a Meq.Parm by qualifying 'jones' with 
+  'ell'. These Parm nodes will be tagged with the given set
+  of 'tags', plus 'ellipticity'.
+  """
+  # create matrix per-station, or just a single matrix
+  if series:
+    for p in series:
+      ax = Parameterization.resolve_parameter("ellipticity",jones('angle','x',p),ell,tags=tags);
+      ay = Parameterization.resolve_parameter("ellipticity",jones('angle','y',p),ell,tags=tags);
+      jones(p) << Meq.Matrix22(Meq.Cos(ax),Meq.ToComplex(0,Meq.Sin(ax)),
+                               Meq.ToComplex(0,Meq.Sin(ay)),Meq.Cos(ay));
+  else:
+    ax = Parameterization.resolve_parameter("ellipticity",jones('angle','x'),ell,tags=tags);
+    ay = Parameterization.resolve_parameter("ellipticity",jones('angle','y'),ell,tags=tags);
+    jones << Meq.Matrix22(Meq.Cos(ax),Meq.ToComplex(0,Meq.Sin(ax)),
+                          Meq.ToComplex(0,Meq.Sin(ay)),Meq.Cos(ay));
   return jones;
 
 
