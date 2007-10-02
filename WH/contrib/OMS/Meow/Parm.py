@@ -69,7 +69,7 @@ class Parm (object):
             node_groups='Parm',
             use_previous=True);
     if time_deg or freq_deg:
-      self.options.shape = [time_deg+1,freq_deg+1];
+      self.options['shape'] = [time_deg+1,freq_deg+1];
     # ...and override with any keywords
     self.options.update(kw);
 

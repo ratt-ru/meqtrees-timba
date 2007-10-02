@@ -5,11 +5,11 @@
 #  pass;
 
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -25,7 +25,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -581,6 +581,51 @@ class _NodeStub (object):
   def initialized (self):
     """Returns True if node stub is already initialized, False otherwise""";
     return self._initrec is not None;
+  def only_define_here (self,by=None):
+    """If node stub is already initialized, checks that the _defined_where and _defined_by
+    attributes match the caller and the 'by' argument, throws an exception on
+    mismatch, else returns False.
+    If node stub is not initialized, sets the _defined_where and _defined_by attributes to
+    from the caller and the 'by' argument, and returns True.
+    Used for patterns like:
+      node = ns.somename
+      if node.define_here(self):
+        node << ...
+    This skips initialization if node is already defined, but does check that someone else
+    doesn't try to use the same node name somewhere else.
+    """;
+    # get stack tracback for caller
+    def_tb    = Timba.utils.nonportable_extract_stack(None);
+    def_where = _identifyCaller(stack=def_tb,depth=2)[:2];
+    # not initialized -- store caller info
+    if self._initrec is None:
+      self._defined_where = def_where;
+      self._defined_tb    = def_tb;
+      self._defined_by    = by;
+      return True;
+    # initialized, check for match
+    else:
+      if self._defined_where is None:
+        where = NodeRedefinedError("node '%s' first mentioned here"%self.name,
+                  filename=self._caller[0],lineno=self._caller[1],tb=self._deftb,
+                  nested=self._get_definition_chain());
+      elif self._defined_where != def_where:
+        where = NodeRedefinedError("node '%s' first defined here"%self.name,
+                  filename=self._defined_where[0],lineno=self._defined_where[1],tb=self._defined_tb,nested=self._get_definition_chain());
+      else:
+        where = None;
+      if where:
+        raise NodeRedefinedError("node '%s' already defined elsewhere"%self.name,next=where);
+      if self._defined_by != by:
+        raise NodeRedefinedError("node '%s' already defined by '%s' (we are '%s')"%(self.name,str(self._defined_by),str(by)),next=where);
+      return False;
+      ##******** NB:
+      ## we should really have three tracebacks for a node:
+      ## * where it was first named
+      ## * where it was first defined
+      ## * optional: where only_define_here() was called
+      ## error messages should reflect all three
+
   def _make_redefinition_error (self,callstack,bindstack,message):
     """helper function to form up 'node redefined' errors. Called both by lshift()
     above, and must_define_here() below.
@@ -598,12 +643,12 @@ class _NodeStub (object):
                       "...node '%s' first named here"%self.name,
                       nested=self._get_definition_chain(),next=where);
     return callstack.make_error(NodeRedefinedError,message,next=where);
-    
+
   def must_define_here (self,*by_whom):
     """If node stub is already initialized, checks that the _defined_where and _defined_by
     attributes match the caller and the argument list. Throws an exception on
     mismatch, else returns False.
-    If node stub is not initialized, sets the _must_define_stack and _must_define_by attributes 
+    If node stub is not initialized, sets the _must_define_stack and _must_define_by attributes
     from the caller and arguments, and returns True.
     Used for patterns like:
       node = ns.somename
@@ -640,7 +685,7 @@ class _NodeStub (object):
       self._must_define_stack = this_stack;
       self._must_define_by = by_whom;
       return True;
-    
+
   def initrec (self):
     return self._initrec;
   def num_children (self):
