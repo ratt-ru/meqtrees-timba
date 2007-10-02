@@ -383,6 +383,8 @@ int MSInputChannel::init (const DMI::Record &params)
     tilesize_ = 1;
   // clear flags?
   clear_flags_ = params[FClearFlags].as<bool>(false);
+  // hanning tapering?
+  apply_hanning_ = params[FApplyHanning].as<bool>(false);
 
   openMS(header,*pselection);  
 
@@ -411,6 +413,11 @@ void MSInputChannel::close (const string &str)
   ms_ = MeasurementSet();
   tileformat_.detach();
 }
+
+// declare blitz stencil for Hanning tapering
+BZ_DECLARE_STENCIL2(hanning_stencil,A,B)
+  A = (.5*B(0,0,0) + .25*B(0,1,0) + .25*B(0,-1,0));
+BZ_END_STENCIL_WITH_SHAPE(blitz::shape(0,-1,0),blitz::shape(0,1,0))
 
 //##ModelId=3DF9FECD021B
 int MSInputChannel::refillStream ()
@@ -499,6 +506,31 @@ int MSInputChannel::refillStream ()
         LoCube_fcomplex datacube = B2A::refAipsToBlitzComplex<3>(datacube1);
         Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
         LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
+        // apply taper
+//        if( apply_hanning_ )
+//        {
+//          cdebug(0)<<"before: "<<abs(datacube(0,10,0));
+//          LoCube_fcomplex tapered_data(datacube.shape());
+//          blitz::applyStencil(hanning_stencil(),tapered_data,datacube);
+//          datacube.reference(tapered_data);
+//          cdebug(0)<<"after: "<<abs(datacube(0,10,0));
+//        }
+        if( apply_hanning_ )
+        {
+          LoShape shape = datacube.shape();
+          LoCube_fcomplex tapered_data(shape);
+          for( int i=0; i<shape[0]; i++ )
+            for( int j=0; j<shape[2]; j++ )
+            {
+              tapered_data(i,0,j) = datacube(i,0,j);
+              tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
+              for( int k=1; k<shape[1]-1; k++ )
+                tapered_data(i,k,j) = .50*datacube(i,k,j)+
+                                      .25*datacube(i,k-1,j)+
+                                      .25*datacube(i,k+1,j);
+            }
+          datacube.reference(tapered_data);
+        }
         // apply channel selection
         datacube.reference(datacube(ALL,CHANS,ALL));
         flagcube.reference(flagcube(ALL,CHANS,ALL));

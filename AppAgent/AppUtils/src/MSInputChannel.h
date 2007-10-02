@@ -52,6 +52,7 @@ using namespace VisVocabulary;
 //##                                           e.g., "MODEL_DATA")
 //##    +--[FTileSize]           (int)       tile size (default: 1 timeslot)
 //##    +--[FClearFlags]         (bool)      clear all input flags
+//##    +--[FApplyHanning]       (bool)      apply Hanning taper to input data
 //##    +--[FSelection]          (record)    determines MS selection:
 //##       +--[FDDID]              (int)     selects data description ID 
 //##       +--[FFieldIndex]        (int)     selects field  
@@ -156,6 +157,8 @@ class MSInputChannel : public FileChannel
       bool flip_freq_;
       
       bool clear_flags_;
+      
+      bool apply_hanning_;
       
       //## true is MS has a valid WEIGHT_SPECTRUM column
       bool has_weights_;
