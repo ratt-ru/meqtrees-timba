@@ -102,7 +102,7 @@ class OMInterface (object):
         else:
             self._external_OM = False
             self._OM = OptionManager.OptionManager(self.name, namespace=namespace)
-                                                   parentclass=self._frameclass)
+                                                   # parentclass=self._frameclass)
 
         # Finished:
         return None
@@ -121,22 +121,29 @@ class OMInterface (object):
         # The use of self.name is consistent with Meow/Parameterization...
         self.name = name
 
-        # Make a short name from all chars ubtil the 2nd capital,
-        # followed by the subsequent capitals and numbers.
-        # So the short name will look like: TApplyU or DemoR
-        capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        numbers = '01234567890'
+        # Make a short (but recognisable) menu-name, to avoid clutter:
         ss = ''
-        capcount = 0
-        for char in name:
-            if (char in capitals):
-                capcount += 1
-                ss += char
-            elif (char in numbers):
-                ss += char
-            elif capcount==2:
-                ss += char
-            # print '-',char,capcount,'->',ss
+        ncmax = 10
+        if len(name)<ncmax:
+            ss = name
+        else:
+            # Make the short name from all chars ubtil the 2nd capital,
+            # followed by the subsequent capitals and numbers.
+            # So the short name will look like: TApplyU or DemoR
+            capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            numbers = '01234567890'
+            capcount = 0
+            for char in name:
+                if (char in capitals):
+                    capcount += 1
+                    ss += char
+                elif (char in numbers):
+                    ss += char
+                elif capcount==2:
+                    ss += char
+                # print '-',char,capcount,'->',ss
+            if len(ss)==0:
+                ss = name[:ncmax]
         self._shortname = ss
         
         # Qualifiers allow the same OMInterface to be used multiple
@@ -321,16 +328,22 @@ class OMInterface (object):
         """Convert an option name to its OM name by prepending self._submenu.
         If slavemenu==True, use self._slavemenu, rather than self._submenu.
         """
-        if not slavemenu:
-            OM_name = self._submenu+'.'+name
-        elif not self._slavemenu:
-            raise ValueError,'** no slavemenu defined'
-        else:
-            OM_name = self._slavemenu+'.'+name
+        menu = self.menuname (slavemenu=slavemenu)
+        OM_name = menu+'.'+name
         if trace:
             print '** optname(',name,'): -> ',OM_name
         return OM_name
 
+
+    #.............................................................
+
+    def menuname (self, slavemenu=False):
+        """Get the specified menu name, if available"""
+        if not slavemenu:
+            return self._submenu
+        elif not self._slavemenu:
+            raise ValueError,'** no slavemenu defined'
+        return self._slavemenu
 
     #.............................................................
 
@@ -398,16 +411,45 @@ class OMInterface (object):
         
     #.............................................................
 
-    def setval (self, name, value, slavemenu=False):
+    def set_value (self, name, value, slavemenu=False):
         """Set the value of the specified option,
         after converting it to its OM name.
         """
         if self.has_option(name, slavemenu=slavemenu):
             OM_name = self.optname(name, slavemenu=slavemenu)
             if self._OM.option[OM_name]:
-                self._OM.set_value(OM_name, value, slavemenu=slavemenu)
+                self._OM.set_value(OM_name, value)
         return True
 
+    #.............................................................
+
+    def hide (self, hide=True, slavemenu=False):
+        """Hide/unhide the specified menu"""
+        menu = self.menuname (slavemenu=slavemenu)
+        self._OM.hide(menu, hide=hide)
+        return True
+
+    #.............................................................
+
+    def select (self, select=True, slavemenu=False):
+        """Select/deselect the specified menu"""
+        menu = self.menuname (slavemenu=slavemenu)
+        self._OM.set_menurec(menu, selected=select)
+        return True
+
+    #.............................................................
+
+    def set_menurec (self, prompt=None, stare=None, descr=None,
+                     toggle=None, callback=None, selected=None,
+                     slavemenu=False,
+                     create=False, trace=False):
+        """Set values in the specified menurec"""
+        menu = self.menuname (slavemenu=slavemenu)
+        return self._OM.set_menurec(menu, prompt=prompt,
+                                    stare=stare, descr=descr,
+                                    toggle=toggle, callback=callback,
+                                    selected=selected,
+                                    create=create, trace=trace)
 
 
 
@@ -431,7 +473,7 @@ class OMInterface (object):
 
 
 omi = None
-if 1:
+if 0:
     omi = OMInterface(quals='hjk',
                       name='Gphase',
                       submenu='compile.submenu',

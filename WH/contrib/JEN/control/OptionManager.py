@@ -592,6 +592,7 @@ class OptionManager (object):
         option = self.TDLOption(key, severe=True, trace=trace)
         if not option: return False
         option.set_value(value, callback=False)      # <---- note callback=False!
+        self.callback_submenu()                      # change menu summary
         return True
 
     #---------------------------------------------------------------------
@@ -714,7 +715,8 @@ class OptionManager (object):
                     prepend = 'Runtime'+prepend
                 elif cat=='compile':
                     prepend = 'Compile-time'+prepend
-                append = '<'+str(self.parentclass)+'> '+str(self.name)
+                append = str(self.name)
+                # append = '<'+str(self.parentclass)+'> '+str(self.name)
                 prompt = self.namespace(prepend=prepend, append=append)
             else:
                 ss = menukey.split('.')

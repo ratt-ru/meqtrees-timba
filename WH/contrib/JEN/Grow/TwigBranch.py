@@ -291,6 +291,7 @@ class TwigBranch(Twig.Twig):
         # Finishing touches:
         return self.on_output (node, trace=trace)
 
+
     #---------------------------------------------------------------------------
 
     def create_Growth_objects (self, trace=False):

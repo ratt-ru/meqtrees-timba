@@ -71,6 +71,8 @@ class ParmGroup (Meow.Parameterization):
                  submenu='compile',
                  solvermenu='compile.solver',
                  OM=None, namespace=None,
+                 **kwargs):
+
                  # mode='nosolve',
                  # default=0.0,
                  # constraint=dict(),
@@ -78,7 +80,6 @@ class ParmGroup (Meow.Parameterization):
                  # time_deg=0,
                  # freq_deg=0,
                  # simuldev=None,
-                 **kwargs):
 
 
         #------------------------------------------------------------------
@@ -195,24 +196,6 @@ class ParmGroup (Meow.Parameterization):
             self.ns = self.ns[key](key).QualScope()            #.....!!?
         return self.ns
 
-    #---------------------------------------------------------------
-
-    def namespace_obsolete(self, prepend=None, append=None):
-        """Return the namespace string (used for TDL options etc).
-        If either prepend or apendd strings are defined, attach them.
-        NB: Move to the ParmGroup class?
-        """
-        if prepend==None and append==None:
-            return self.tdloption_namespace                    # just return the namespace
-        # Include the namespace in a string:
-        ss = ''
-        if isinstance(prepend, str): ss = prepend+' '
-        if self.tdloption_namespace:
-            ss += '{'+str(self.tdloption_namespace)+'}'
-        if isinstance(append, str): ss += ' '+append
-        return ss
-    
-
 
     #===============================================================
     # Display of the contents of this object:
@@ -327,12 +310,13 @@ class ParmGroup (Meow.Parameterization):
             # print s,'\n'
             raise ValueError,s
 
+        if not isinstance(mode, str):                      # mode not explicitly specfied
+             mode = 'nosolve'                              # use the group default
+             # mode = self._OMI.optval('mode')               # use the group default
+
         # Make the qualified node (qnode) for the new group member,
         # and check whether it already exists: 
         quals = self.quals2list(quals)
-        if not isinstance(mode, str):                      # mode not explicitly specfied
-             mode = 'nosolve'                              # use the group default
-             # mode = self._OMI.optval('mode')                       # use the group default
 
         # Make qnode and nodename
         if mode=='simulate':
@@ -457,8 +441,6 @@ class ParmGroup (Meow.Parameterization):
     #-------------------------------------------------------------------
 
     def define_options(self, trace=False):
-        # mode, default=0.0, constraint=dict(),
-        # tiling=None, time_deg=0, freq_deg=0, simuldev=None):
         """Define the various options in its OptionManager object"""
 
         # Individual options in the main menu:
@@ -492,6 +474,8 @@ class ParmGroup (Meow.Parameterization):
                     It is just a Python expression, which may be edited in the custom box.
                     - The variables [t] and [f] are converted to MeqTime (sec) and MeqFreq (Hz).
                     - The notation between curly brackets allows random variation: {mean~stddev}""")
+
+
 
         # The 'domain span' submenu:
         self._OMI.defopt('tiling', None,
@@ -576,8 +560,45 @@ class ParmGroup (Meow.Parameterization):
                         prompt='do NOT solve for MeqParm(s) with index',
                         opt=opt, more=int, doc=doc)
 
+
+        # Change the menu prompts, and add toggle-boxes:
+        self._OMI.set_menurec(prompt='ParmGroup '+self.name)
+
+        self._OMI.set_menurec(slavemenu=True, prompt='solve for '+self.name,
+                              toggle=True, callback=self._callback_toggle_solve)
+
+
+
         # Finished
         return True
+
+    #.....................................................................
+
+    def _callback_mode (self, mode):
+        """Called whenever the mode is changed"""
+        if mode=='simulate':
+            self._OMI.hide(hide=True, slavemenu=True)
+        else:
+            self._OMI.hide(hide=False, slavemenu=True)
+            if mode=='solve':
+                self._OMI.select(True, slavemenu=True)
+            else:
+                self._OMI.select(False, slavemenu=True)
+        return True
+
+    #.....................................................................
+
+    def _callback_toggle_solve (self, selected):
+        """Called whenever the toggle widget before the menu is toggled"""
+        print '-- NB: This callback is called at key-down AND key-up!'
+        if selected:
+            self._OMI.set_value('mode', 'solve')
+        else:
+            self._OMI.set_value('mode', 'nosolve')
+        mode = self._OMI.optval('mode')
+        print '** _callback_toggle_solve(selected=',selected,') -> mode =',mode
+        return True
+
 
     #.....................................................................
 
@@ -586,36 +607,9 @@ class ParmGroup (Meow.Parameterization):
         key = 'simuldev'
         if self._OMI._OM.TDLOption(key):
             self._OMI._OM.TDLOption(key).set_custom_value(dev, callback=False,
-                                                     select=True, save=True)
+                                                          select=True, save=True)
         return True
 
-    #.....................................................................
-
-    def _callback_mode (self, mode):
-        """Function called whenever TDLOption _mode changes.
-        It adjusts the hiding of options according to 'mode'."""
-
-        if mode=='solve':
-            self._OMI._OM.show('default')
-            self._OMI._OM.show('solving')
-            self._OMI._OM.show('constraints')
-            self._OMI._OM.hide('simulation')
-        elif mode=='nosolve':
-            self._OMI._OM.show('default')
-            self._OMI._OM.hide('solving')
-            self._OMI._OM.hide('constraints')
-            self._OMI._OM.hide('simulation')
-        elif mode=='simulate':
-            self._OMI._OM.hide('default')
-            self._OMI._OM.hide('solving')
-            self._OMI._OM.hide('constraints')
-            self._OMI._OM.show('simulation')
-
-        if self._OMI._OM.TDLMenu():
-            self._OMI._OM.TDLMenu().set_summary('(mode='+mode+')')
-
-        return True
-        
 
 
     #===============================================================
@@ -886,10 +880,11 @@ class ParmGroup (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-if 1:
-    pg = ParmGroup (name='test', tiling=3,
-                    # mode='solve',
-                    namespace='PGN')
+if 0:
+    pg = ParmGroup (name='Gphase',
+                    # tiling=3,
+                    mode='solve',
+                    namespace='GJones')
     pg.display()
     pg.make_TDLCompileOptionMenu(trace=True)
 
@@ -962,7 +957,9 @@ if __name__ == '__main__':
         mode = 'simulate'
         mode = 'nosolve'
         mode = 'solve'
-        pg = ParmGroup(ns, 'Gphase', quals='quals', tiling=3, mode=mode)
+        pg = ParmGroup(ns=ns, name='Gphase', quals='quals')
+                       # tiling=3,
+                       # mode=mode)
         pg.display('initial')
 
     if 1:
