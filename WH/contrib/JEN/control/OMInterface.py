@@ -41,9 +41,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.control import OptionManager
-# from Timba.Contrib.JEN.control import Executor
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-# from Timba.Contrib.JEN.Grunt import display
 
 # from copy import deepcopy
 
@@ -59,7 +56,7 @@ class OMInterface (object):
                  submenu='compile',
                  slavemenu=None,
                  OM=None, namespace=None,
-                 default=None, constant=None):
+                 **kwargs):
 
         # For reporting only:
         self._frameclass = 'Grunt.'+name
@@ -68,6 +65,14 @@ class OMInterface (object):
         self.make_name_and_submenu (name, submenu, quals,
                                     slavemenu=slavemenu)
 
+        # Extra keyword arguments may be supplied to the constructor.
+        self._kwargs = kwargs
+        if not isinstance(self._kwargs, dict):
+            self._kwargs = dict()
+        self._kwargs.setdefault('default', dict())
+        self._kwargs.setdefault('constant', dict())
+        self._kwargs.setdefault('toggle_box', False)
+        
         #................................................................
 
         # Normally, an object like a ParmGroup will define a number of
@@ -80,7 +85,7 @@ class OMInterface (object):
         # the user, which is the value that stored in the .tdlconf file.
         # It is also the value that is used by the OM 'reset' operation.
 
-        self._default = default
+        self._default = self._kwargs['default']
         if not isinstance(self._default,dict):
             self._default = dict()
 
@@ -89,9 +94,15 @@ class OMInterface (object):
         # The constructor should then pass this to its self._OMInterface,
         # (i.e. this one) which will deal with it. See .defopt()
 
-        self._constant = constant
+        self._constant = self._kwargs['constant']
         if not isinstance(self._constant,dict):
             self._constant = dict()
+
+        #................................................................
+
+        # Control of toggle-box(es) before menu(s)
+        self._toggle_box = False
+        self._toggle_group = []
 
         #................................................................
 
@@ -107,6 +118,17 @@ class OMInterface (object):
         # Finished:
         return None
 
+    #--------------------------------------------------------------------
+
+    def make_TDLCompileOptionMenu (self, **kwargs):
+        """Make the actual TDL menu of compile-time options.
+        NB: This call is not needed with an external OptionManager,
+        since the menu will be part of that of the parent object.
+        """
+        if not self._external_OM:
+            self._OM.make_TDLCompileOptionMenu(**kwargs)
+        return True
+    
 
     #--------------------------------------------------------------------
 
@@ -198,7 +220,7 @@ class OMInterface (object):
             if submenu:
                 if self._submenu in name:
                     ss.append(name)
-            if slavemenu:
+            if slavemenu and self._slavemenu:
                 if self._slavemenu in name:
                     ss.append(name)
         # print '-> ss =',ss,'\n'
@@ -221,33 +243,45 @@ class OMInterface (object):
         return ss
 
 
+
     def display(self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
         prefix = self.display_preamble('OMI', level=level, txt=txt)
         #...............................................................
+        print prefix,'  * kwargs ('+str(len(self._kwargs.keys()))+'):'
+        for key in self._kwargs.keys():
+            print prefix,'    - '+key+' = '+str(self._kwargs[key])            
         print prefix,'  * external defaults ('+str(len(self._default.keys()))+'):'
         for key in self._default.keys():
             print prefix,'    - '+key+' = '+str(self._default[key])            
         print prefix,'  * external constants ('+str(len(self._constant.keys()))+'):'
         for key in self._constant.keys():
-            print prefix,'    - '+key+' = '+str(self._cosntant[key])            
+            print prefix,'    - '+key+' = '+str(self._constant[key])            
         #...............................................................
         keys = self.get_local_option_names(submenu=True, slavemenu=False)
         print prefix,'  * local submenu options ('+str(len(keys))+'):'
-        for key in keys:
-            rr = self._OM.optrec[key]
-            value = self._OM[key]
-            s = str(value)
-            if not rr['default']==value: s += '  (default='+str(rr['default'])+')'            
-            print prefix,'    - '+key+' = '+s
+        if full or len(keys)<20:
+            for key in keys:
+                rr = self._OM.optrec[key]
+                value = self._OM[key]
+                s = str(value)
+                if not rr['default']==value: s += '  (default='+str(rr['default'])+')'            
+                print prefix,'    - '+key+' = '+s
+        #...............................................................
         keys = self.get_local_option_names(submenu=False, slavemenu=True)
         print prefix,'  * local slavemenu options ('+str(len(keys))+'):'
-        for key in keys:
-            rr = self._OM.optrec[key]
-            value = self._OM[key]
-            s = str(value)
-            if not rr['default']==value: s += '  (default='+str(rr['default'])+')'            
-            print prefix,'    - '+key+' = '+s
+        if full or len(keys)<20:
+            for key in keys:
+                rr = self._OM.optrec[key]
+                value = self._OM[key]
+                s = str(value)
+                if not rr['default']==value: s += '  (default='+str(rr['default'])+')'            
+                print prefix,'    - '+key+' = '+s
+        #...............................................................
+        print prefix,'  * has toggle box = '+str(self._toggle_box)
+        print prefix,'  * toggle group ('+str(len(self._toggle_group))+')'
+        for g in self._toggle_group:
+            print prefix,'     - '+str(g.oneliner())
         #...............................................................
         print prefix,'  * '+self._OM.oneliner()
         print prefix,'  * external OptionManager: '+str(self._external_OM)
@@ -256,7 +290,9 @@ class OMInterface (object):
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
-    #.........................................................................
+
+
+    #--------------------------------------------------------------------------
 
     def display_value(self, v, name='<name>', prefix='*'):
         """Helper function"""
@@ -303,14 +339,6 @@ class OMInterface (object):
     # Some service(s) available to all classes derived from OMInterface:
     #====================================================================
 
-    def display_subtree(self, node, recurse=10, trace=False):
-        """Display the subtree behind the given node.
-        """
-        print '\n** ',self.name,': display_subtree(',str(node),'):'
-        display.subtree(node, recurse=recurse) 
-        return True
-
-
     def print_tree(self, recurse=10, trace=False):
         """Display the entire tree
         """
@@ -337,13 +365,20 @@ class OMInterface (object):
 
     #.............................................................
 
-    def menuname (self, slavemenu=False):
+    def menuname (self, postfix=None, slavemenu=False):
         """Get the specified menu name, if available"""
         if not slavemenu:
-            return self._submenu
+            menu = self._submenu
         elif not self._slavemenu:
             raise ValueError,'** no slavemenu defined'
-        return self._slavemenu
+        else:
+            menu = self._slavemenu
+        if isinstance(postfix,str):
+            if postfix[0]=='.':
+                menu += postfix
+            else:
+                menu += '.'+postfix
+        return menu
 
     #.............................................................
 
@@ -439,17 +474,74 @@ class OMInterface (object):
 
     #.............................................................
 
-    def set_menurec (self, prompt=None, stare=None, descr=None,
+    def is_selected (self, slavemenu=False):
+        """Check whether the specified menu is selected"""
+        menu = self.menuname (slavemenu=slavemenu)
+        return self._OM.is_selected(menu)
+
+    #.............................................................
+
+    def set_menurec (self, postfix=None,
+                     prompt=None, stare=None, descr=None,
                      toggle=None, callback=None, selected=None,
                      slavemenu=False,
                      create=False, trace=False):
         """Set values in the specified menurec"""
-        menu = self.menuname (slavemenu=slavemenu)
+        menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
         return self._OM.set_menurec(menu, prompt=prompt,
                                     stare=stare, descr=descr,
                                     toggle=toggle, callback=callback,
                                     selected=selected,
                                     create=create, trace=trace)
+
+    #--------------------------------------------------------------------
+
+    def make_toggle_box (self, postfix=None, slavemenu=False):
+        """Make a toggle box before the specified menu, if required.
+        """
+        menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
+        if not self._toggle_box:
+            if self._kwargs['toggle_box']:
+                self._toggle_box = True
+                return self._OM.set_menurec(menu, toggle=True,
+                                            # selected=selected,
+                                            callback=self._callback_toggle)
+
+    #....................................................................
+
+    def _callback_toggle (self, selected):
+        """Called whenever the toggle widget before the menu is toggled"""
+        trace = False
+        if trace:
+            print '\n** _callback_toggle(',selected,'):',self.name
+        if selected:
+            # NB: A toggle group contains OMI objects!
+            for OMI in self._toggle_group:
+                if trace: print ' --',OMI.oneliner()
+                OMI.select(False)                   # deselect all group members
+        self.select(selected)                       # (de)select itself
+        if trace: print '----'
+        return True
+
+    #.............................................................
+
+    def toggle_group (self, append=None, reset=False, trace=False):
+        """Interaction with the toggle-group of this object. It contains
+        a list of other Growth objects, of which only one at a time may
+        be selected. See also _callback_toggle().
+        """
+        if reset:
+            self._toggle_group = []
+        if append:
+            # Append one or more OMI objects (!) to the toggle group
+            if not isinstance(append, list): append = [append]
+            for g in append:                       # all member objects
+                if not g._OMI==self:
+                    if not g._OMI in self._toggle_group:     
+                        self._toggle_group.append(g._OMI)  
+                if not self in g._OMI._toggle_group:     
+                    g._OMI._toggle_group.append(self)     
+        return self._toggle_group
 
 
 

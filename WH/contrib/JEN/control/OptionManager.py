@@ -500,6 +500,12 @@ class OptionManager (object):
         print '\n** .set_menu_prompt(',key,text,'):  use .set_menurec()!\n'
         return self.set_menurec (key, prompt=text, trace=trace)
 
+    def is_selected (self, key, trace=False):
+        """Check whether the selected menu is selected"""
+        menurec = self.menurec[key]
+        return menurec['selected']
+        
+
     #---------------------------------------------------------------------
 
     def TDLOption (self, key=None, complete=False, severe=False, trace=False):

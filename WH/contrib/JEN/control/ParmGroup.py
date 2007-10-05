@@ -957,9 +957,9 @@ if __name__ == '__main__':
         mode = 'simulate'
         mode = 'nosolve'
         mode = 'solve'
-        pg = ParmGroup(ns=ns, name='Gphase', quals='quals')
+        pg = ParmGroup(ns=ns, name='Gphase', quals='quals',
                        # tiling=3,
-                       # mode=mode)
+                       mode=mode)
         pg.display('initial')
 
     if 1:
