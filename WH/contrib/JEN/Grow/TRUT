@@ -1,9 +1,3 @@
-TDL DemoModRes.py
- 
-TDL DemoRedaxes.py
- 
-TDL DemoSolver.py
- 
 TDL Growth.py
  
 TDL TwigAddNoise.py
@@ -12,7 +6,13 @@ TDL TwigApplyUnary.py
  
 TDL TwigBranch.py
  
+TDL TwigDemoModRes.py
+ 
 TDL TwigDemo.py
+ 
+TDL TwigDemoRedaxes.py
+ 
+TDL TwigDemoSolver.py
  
 TDL TwigFlagger.py
  
