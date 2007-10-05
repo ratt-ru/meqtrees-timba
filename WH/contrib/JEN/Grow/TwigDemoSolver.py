@@ -1,11 +1,11 @@
-# file: ../Grow/DemoRedaxes.py
+# file: ../Grow/TwigDemoSolver.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The DemoRedaxes class makes makes a subtree that takes an input node and
+"""The TwigDemoSolver class makes makes a subtree that takes an input node and
 produces a new rootnode by .....
 """
 
@@ -40,7 +40,10 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
+import Meow
+
 from Timba.Contrib.JEN.Grow import TwigDemo
+from Timba.Contrib.JEN.Grow import TwigLeafParm
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -51,20 +54,28 @@ import math
 #=============================================================================
 #=============================================================================
 
-class DemoRedaxes(TwigDemo.TwigDemo):
-    """Class derived from Demo"""
+class TwigDemoSolver(TwigDemo.TwigDemo):
+    """Class derived from TwigDemo"""
 
-    def __init__(self,
-                 quals=None,
+    def __init__(self, quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        TwigDemo.TwigDemo.__init__(self, name='DemoRedaxes',
-                                   quals=quals,
-                                   submenu=submenu,
-                                   OM=OM, namespace=namespace,
-                                   **kwargs)
+        TwigDemo.TwigDemo.__init__(self,
+                           quals=quals,
+                           name='TwigDemoSolver',
+                           submenu=submenu,
+                           OM=OM, namespace=namespace,
+                           **kwargs)
+
+        # Use the TwigLeafParm Plugin as the 'left-hand-side' of the equation(s).
+        # It shares the OptionManager (OM), so the LeafParm menu is nested
+        # in the TwigDemo menu by giving the correct submenu name:
+        self._lhs = TwigLeafParm.TwigLeafParm (quals=self._shortname,
+                                               # default=dict(tags=['solvable']),
+                                               constant=dict(tags=['solvable']),
+                                               submenu=self._submenu, OM=self._OM)
         return None
 
 
@@ -87,27 +98,29 @@ class DemoRedaxes(TwigDemo.TwigDemo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*']
-        self.defopt('oper', opt[0],
-                    prompt='select a math operation',
-                    opt=opt, more=str,
-                    doc="""Select the math oper.
+        self.defopt('niter', 5,
+                    prompt='nr of iterations',
+                    opt=[1,2,3,5,10,20,30,50,100],
+                    doc="""Nr of solver iterations.
                     """)
-        opt = ['*','time','freq',['time','freq'],None]
-        self.defopt('redaxes', '*',
-                    prompt='reduction axes',
-                    opt=opt, more=str,
-                    doc="""The reduction axes:
-                    """)
+        # self._lhs.define_compile_options(trace=trace)
         #..............................................
         return self.on_exit(trace=trace)
 
+
     #--------------------------------------------------------------------
 
-    def grow (self, ns, node, test=None, trace=False):
-        """The DemoRedaxes class is derived from the TwigDemo class.
-        It demonstrates ....
-        Clicking on the DemoRedaxes bookmark produces a page that shows the
+    def grow (self, ns, node, test=None, severe=False, trace=False):
+        """The TwigDemoSolver class is derived from the TwigDemo class.
+        It demonstrates the use of the MeqSolver node. Such a node has
+        one or more MeqCondeq children, which generate condition equations
+        for it by comparing 'measured' and 'predicted' inputs. The Solver
+        then tries to minimise the differences (residuals) by varying the
+        coefficients of one or more MeqParm parameter nodes, which are
+        usually (but not necessarily) somewhere up the prediction branch.
+        In this demo, the Solver has a single Condeq node, which compares
+        the input node to a single MeqParm node.
+        Clicking on the TwigDemoSolver bookmark produces a page that shows the
         results of all the relevant nodes.
         """
         # Check the node, and make self.ns:
@@ -116,23 +129,27 @@ class DemoRedaxes(TwigDemo.TwigDemo):
         #..............................................
 
         # Read the specified options:
-        oper = self.optval('oper', test=test)
-        redaxes = self.optval('redaxes', test=test)
+        niter = self.optval('niter', test=test)
 
         # Make the subtree:
-        qnode = self.ns[oper]
-        cc = []
-        cc.append(qnode('reduce_all') << getattr(Meq,oper)(node))
-        cc.append(qnode('reduce_time') << getattr(Meq,oper)(node, reduction_axes=['time']))
-        cc.append(qnode('reduce_freq') << getattr(Meq,oper)(node, reduction_axes=['freq']))
-        node = qnode('reqseq') << Meq.ReqSeq(children=[node]+cc, result_index=0)
+        lhs = self._lhs.grow(self.ns, trace=trace)
+        condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
+        parm = ns.Search(tags='solvable', class_name='MeqParm')
+        if severe and len(parm)==0:
+            raise ValueError,'no solvable MeqParms found'
+        
+        solver = self.ns['solver'] << Meq.Solver(condeq,
+                                                 num_iter=niter,
+                                                 solvable=parm)
+        node = self.ns['reqseq'] << Meq.ReqSeq(children=[solver,node],
+                                               result_index=1)
 
-        self.bookmark(cc)
+        if len(parm)>0:
+            self.bookmark([parm[0], lhs, condeq, solver])
+
         #..............................................
-        # Finishing touches:
+        # Check the new rootnode:
         return self.on_output (node, trace=trace)
-
-
 
 
 
@@ -150,7 +167,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    pgt = DemoRedaxes()
+    pgt = TwigDemoSolver()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
 
@@ -160,13 +177,14 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        pgt = DemoRedaxes()
+        pgt = TwigDemoSolver()
         pgt.make_TDLCompileOptionMenu()
 
     cc = []
 
-    node = ns << 1
-    rootnode = pgt.grow(ns, node)
+    # node = xtor.leafnode(ns)
+    node = ns << Meq.Time() + Meq.Freq()
+    rootnode = pgt.grow(ns, node, severe=False)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -208,15 +226,15 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = DemoRedaxes()
+        pgt = TwigDemoSolver()
         pgt.display('initial')
 
     if 1:
         pgt.make_TDLCompileOptionMenu()
 
-    if 1:
+    if 0:
         node = ns << 1.0
-        test = dict(oper='Mean')
+        test = dict(niter=3)
         pgt.grow(ns, node, test=test, trace=True)
 
     if 1:

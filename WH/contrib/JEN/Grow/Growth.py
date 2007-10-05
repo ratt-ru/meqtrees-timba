@@ -2,6 +2,7 @@
 
 # History:
 # - 14sep2007: creation (from Plugin.py)
+# - 05oct2007: change over to OMInterface (OMI)
 
 # Description:
 
@@ -44,7 +45,7 @@ input and output checking, visualization etc.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.control import OptionManager
+from Timba.Contrib.JEN.control import OMInterface
 from Timba.Contrib.JEN.control import Executor
 from Timba.Contrib.JEN.util import JEN_bookmarks
 from Timba.Contrib.JEN.Grunt import display
@@ -70,26 +71,36 @@ class Growth (object):
         # Variables consistent with Meow.Parameterization:
         self.ns = None                              # see .on_input()
         self.ns0 = None                             # see .on_input()
-        self.make_name_and_submenu (name, submenu, quals)
+
+        #------------------------------------------------------------------
 
         # Extra keyword arguments may be supplied to the constructor.
+        # NB: See also OMInterface.py
         self._kwargs = kwargs
         if not isinstance(self._kwargs, dict):
             self._kwargs = dict()
-        self._kwargs.setdefault('default', dict())
-        self._kwargs.setdefault('insist', dict())
-        self._kwargs.setdefault('toggle', False)
-        self._kwargs.setdefault('ignore', False)
         self._kwargs.setdefault('has_input', True)
+        # NB: This is used ONLY by TwigBranch.py, and perhaps not necessary....
         self._kwargs.setdefault('defer_compile_options', False)
 
-        # If toggle=True, provide a toggle widget to its subenu
-        self._toggle = self._kwargs['toggle']
-        self._toggle_group = []
+        #------------------------------------------------------------------
 
-        # The object may be ignored/hidden:
-        self._ignore = self._kwargs['ignore']
-        self._visualize = True
+        self._OMI = OMInterface.OMInterface(quals,
+                                            name=name,
+                                            submenu=submenu,
+                                            OM=OM, namespace=namespace,
+                                            **kwargs)
+
+        self._OMI.make_name_and_submenu (name, submenu, quals)
+
+        # Temporary (until all Twig classes have been updated)
+        self._OM = self._OMI._OM
+        self.name = self._OMI.name
+        self._shortname = self._OMI._shortname
+        self._quals = self._OMI._quals
+        self._submenu = self._OMI._submenu
+
+        #------------------------------------------------------------------
 
         # Keep the input of .grow() for internal use
         self._input = None
@@ -98,26 +109,19 @@ class Growth (object):
         # Keep the result (of .grow()) for internal use
         self._result = None
 
+        # Visualization control:
+        self._visualize = True
+        self._make_bookmark = dict(input=True, result=True)
+        # Keep an internal list of nodes to be bookmarked
+        # See .bookmark() and .visualize_generic()
+        self._bm = []
+
         # Switch that indicates whether the mandatory function
         # self.create_Growth_objects() has been called already
         self._created_Growth_objects = False
         self._Growth_objects = dict()
 
-        # Keep an internal list of nodes to be bookmarked
-        # See .bookmark() and .visualize_generic()
-        self._bm = []
-
-        #................................................................
-
-        # The OptionManager may be external:
-        if isinstance(OM, OptionManager.OptionManager):
-            self._OM = OM                          
-            self._external_OM = True
-        else:
-            self._external_OM = False
-            self._OM = OptionManager.OptionManager(self.name, namespace=namespace,
-                                                   parentclass=self._frameclass)
-
+        # self._rider....?
         # Initialize a control dict for keeping track of the (result) data type
         # and format. It may be used by Growths to do the correct thing.
         # This dict should be updated when the data type or format changes,
@@ -126,6 +130,7 @@ class Growth (object):
 
         # Optionally, the plugin options may be preset to the values
         # belonging to a number of standard modes. See .preset_to_mode().
+        # Move to OMInterface.py...?
         self._mode = dict()
 
         # Define the required runtime options:
@@ -136,87 +141,6 @@ class Growth (object):
         return None
 
 
-    #--------------------------------------------------------------------
-
-    def make_name_and_submenu (self, name=None, submenu=None, quals=None):
-        """
-        Helper function that is called from __init__().
-        Make self.name by appending any qualifiers to name.
-        Make self._shortname from the capitals of self.name.
-        Make self._submenu by appending self.name to submenu.
-        """
-        # The use of self.name is consistent with Meow/Parameterization...
-        self.name = name
-
-        # Make a short name from all chars ubtil the 2nd capital,
-        # followed by the subsequent capitals and numbers.
-        # So the short name will look like: TApplyU or DemoR
-        capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        numbers = '01234567890'
-        ss = ''
-        capcount = 0
-        for char in name:
-            if (char in capitals):
-                capcount += 1
-                ss += char
-            elif (char in numbers):
-                ss += char
-            elif capcount==2:
-                ss += char
-            # print '-',char,capcount,'->',ss
-        self._shortname = ss
-        
-        # Qualifiers allow the same Growth to be used multiple
-        # times in the same tree. They allow the generation of
-        # nodes (and option entries!) with different names.
-        self._quals = quals
-        if self._quals==None:
-            self._quals = []
-        elif isinstance(self._quals, str):
-            self._quals = [self._quals]
-        elif not isinstance(self._quals, list):
-            self._quals = []
-
-        # Append the qualifiers to self.name:
-        for qual in self._quals:
-             self.name += '_'+str(qual)
-             self._shortname += '_'+str(qual)
-
-        # The OptionManager (sub)menu to be used:
-        # self._submenu = submenu+'.'+self.name
-        self._submenu = submenu+'.'+self._shortname
-        return True
-
-    #--------------------------------------------------------------------
-
-    def change_submenu(self, submenu, trace=True):
-        """Not yet implemented: Change the submenu, and redefine the options.
-        This is done when an existing Growth object is attached to another one.
-        """
-        # NB: What about the options that have already been defined?
-        #     Should they be eradicated from the OM?
-        # self._submenu = submenu+'.'+self.name
-        # self.define_compile_options()
-        # NB: What about options that are defined in other routines?
-        return True
-
-    #====================================================================
-
-    def ignore (self, ignore=None):
-        """Get/set/reset the internal switch self._ignore.
-        - If ignore==None (default), just return the current value of
-        the internal switch self._ignore (True/False)
-        - If ignore==True, the Growth submenu will hidden, and .grow()
-        will just pass on the input.
-        - If ignore==False, the Growth submenu will become visible, and
-        .grow() will generate new nodes.
-        """
-        if isinstance(ignore,bool):
-            self._ignore = ignore
-        self._OM.hide(self._submenu, hide=self._ignore)
-        self._OM.set_menurec(self._submenu, selected=(not self._ignore))
-        return self._ignore
-
 
     #===============================================================
     # Display of the contents of this object:
@@ -225,11 +149,9 @@ class Growth (object):
     def oneliner(self):
         """Return a one-line summary of this object"""
         ss = self._frameclass+':'
-        if not self.name==self._shortname:
-            ss += ' ('+self._shortname+')'
-        ss += ' submenu='+str(self._submenu)
-        if self._ignore:
-            ss += ' (ignored)'
+        if not self._OMI.name==self._OMI._shortname:
+            ss += ' ('+self._OMI._shortname+')'
+        ss += ' submenu='+str(self._OMI._submenu)
         return ss
 
 
@@ -248,9 +170,9 @@ class Growth (object):
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
         if self._has_input:
-            self.display_value(self._input, 'input', prefix=prefix)
+            self._OMI.display_value(self._input, 'input', prefix=prefix)
         #...............................................................
-        self.display_value(self._result, 'result', prefix=prefix)
+        self._OMI.display_value(self._result, 'result', prefix=prefix)
         #...............................................................
         print prefix,'  * created_Growth_objects: '+str(self._created_Growth_objects)
         for key in self._Growth_objects.keys():
@@ -263,59 +185,24 @@ class Growth (object):
         for node in self._bm:
             print prefix,'     - '+str(node)
         #...............................................................
-        print prefix,'  * has toggle box = '+str(self._toggle)
-        if self._toggle:
-            for g in self._toggle_group:
-                print prefix,'     - '+str(g.oneliner())
-        #...............................................................
-        print prefix,'  * '+self._OM.oneliner()
-        print prefix,'  * external OptionManager: '+str(self._external_OM)
-        if not self._external_OM:
-            if OM and full: self._OM.display(full=False, level=level+1)
+        print prefix,'  * '+self._OMI.oneliner()
+        if OM: self._OMI.display(full=False, level=level+1)
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
-    #.........................................................................
 
-    def display_value(self, v, name='<name>', prefix='*'):
-        """Helper function"""
-        print prefix,'  * '+str(name)+' type = '+str(type(v))
-        midfix = '     -' 
-        if is_node(v):
-            print prefix,midfix,str(v)
-            # self.display_subtree(v) 
-        elif getattr(v, 'oneliner', None):
-            print prefix,midfix,v.oneliner()
-        elif isinstance(v, list):
-            print prefix,midfix,' list length ='+str(len(v))
-        elif isinstance(v, dict):
-            print prefix,midfix,' dict keys ='+str(v.keys())
-        else:
-            print prefix,midfix,'=',str(v)
-        return True
-    
     #-------------------------------------------------------------------------
 
     def display_preamble(self, prefix='Growth', level=0, txt=None):
         """Helper function called by .display(). Also used in reimplemented
         .display() in derived classes"""
-        prefix = '  '+(level*'  ')+str(prefix)
-        if level==0: print
-        print prefix,' '
-        print prefix,'** '+self.oneliner()
-        if txt: print prefix,'  * (txt='+str(txt)+')'
-        return prefix
+        return self._OMI.display_preamble(prefix=prefix, level=level, txt=txt)
 
 
     def display_postamble(self, prefix, level=0):
         """Helper function called by .display(). Also used in reimplemented
         .display() in derived classes"""
-        print prefix,'**'
-        if level==0:
-            print
-            if self._OM:
-                self._OM.print_tree()
-        return True
+        return self._OMI.display_postamble(prefix=prefix, level=level)
 
 
     #====================================================================
@@ -325,7 +212,7 @@ class Growth (object):
     def display_subtree(self, node, recurse=10, trace=False):
         """Display the subtree behind the given node.
         """
-        print '\n** ',self.name,': display_subtree(',str(node),'):'
+        print '\n** ',self._OMI.name,': display_subtree(',str(node),'):'
         display.subtree(node, recurse=recurse) 
         return True
 
@@ -333,10 +220,7 @@ class Growth (object):
     def print_tree(self, recurse=10, trace=False):
         """Display the entire tree
         """
-        print '\n** ',self.name,': print_tree(recurse=',recurse,'):'
-        self._OM.print_tree(recurse=recurse)
-        print
-        return True
+        return self._OMI.print_tree(recurse=recurse)
 
 
     #===================================================================
@@ -348,7 +232,7 @@ class Growth (object):
         specific function .define_compile_options() in a derived class.
         It does some generic initializing etc.
         """
-        s = '** '+self._submenu+': on_entry(): '
+        s = '** '+self._OMI._submenu+': on_entry(): '
         self._done_on_entry = True
 
         # Define some compile-time options:
@@ -368,7 +252,7 @@ class Growth (object):
         specific function .define_compile_options() in a derived class.
         It does some generic finishing touches.
         """
-        s = '** '+self._submenu+': on_exit(): '
+        s = '** '+self._OMI._submenu+': on_exit(): '
 
         # Check whether things have been done in the correct order:
         if not self._done_on_entry:
@@ -377,17 +261,16 @@ class Growth (object):
 
         # Change the (automatic) prompt in the menu
         prompt = '- customize'
-        prompt += ': '+str(self.name)
-        self._OM.set_menurec(self._submenu, prompt=prompt)
+        prompt += ': '+str(self._OMI.name)
+        self._OMI.set_menurec(prompt=prompt)
 
         # This is a menu 'of the first stare'.
         # The stare number is used in OM.print_tree()
-        self._OM.set_menurec(self._submenu, stare=1, descr=self.name)
+        self._OMI.set_menurec(stare=1, descr=self._OMI.name)
 
-        # Optional: add a toggle widget to the menu:
-        if self._toggle:
-            self._OM.set_menurec(self._submenu, toggle=True,
-                                 callback=self._callback_toggle)
+        # May be controlled by a 'toggle_box=True' in the constructor.
+        # This is picked up by OMInterface.py 
+        self._OMI.make_toggle_box()
 
         # Define some exit compile-time options (if any) at the end of the
         # class-specific function .define_compile_options().
@@ -410,123 +293,6 @@ class Growth (object):
         return True
 
 
-    #....................................................................
-
-    def _callback_toggle (self, selected):
-        """Called whenever the toggle widget before the menu is toggled"""
-        trace = False
-        self.select(selected, trace=trace)
-        if selected:
-            for g in self._toggle_group:
-                g.select(not selected, trace=trace)
-        return True
-
-    def select(self, select, trace=False):
-        """Select/deselect this object (see _callback_toggle())"""
-        self._OM.set_menurec(self._submenu, selected=select)
-        self._ignore = not select
-        ## self._OM.enable(self._submenu, selected)  NOT a good idea!!
-        if trace:
-            print '\n** ',self.name,' .select(',select,') ignore =',self._ignore
-        return True
-
-    def toggle_group (self, append=None, reset=False, trace=False):
-        """Interaction with the toggle-group of this object. It contains
-        a list of other Growth objects, of which only one at a time may
-        be selected. See also _callback_toggle().
-        """
-        if reset:
-            self._toggle_group = []
-        if append:
-            if not isinstance(append, list): append = [append]
-            for g in append:
-                if not g==self:
-                    self._toggle_group.append(g)  
-                    g._toggle_group.append(self)     
-        return self._toggle_group
-
-    #====================================================================
-    # Helper functions for access to options:
-    #====================================================================
-
-    def defopt (self, name, value, opt=None, more=None,
-                callback=None, prompt=None, doc=None,
-                trace=False):
-        """Encapsulation of self._OM.define(). It allows central completion
-        of the option name, and the interaction with constructor kwargs.
-        If the option name is a field in self._kwargs[default], the default
-        value will be changed. If it is a field in self._kwargs[insist], the
-        option value will be changed, and the option itself will be disabled.
-        """
-        disable = None
-        for key in ['default','insist']:
-            if self._kwargs[key].has_key(name):
-                was = value
-                new = self._kwargs[key][name]
-                value = new
-                # print '\n** .defopt(',name,'): =',was,'->',new,' (',key,')\n'
-                if key=='insist':
-                    disable = True
-        self._OM.define(self.optname(name), value, opt=opt, more=more,
-                        callback=callback, prompt=prompt, doc=doc,
-                        disable=disable)
-        return True
-
-    #.............................................................
-
-    def optname (self, name, trace=False):
-        """Convert an option name to its OM name by prepending self._submenu.
-        """ 
-        OM_name = self._submenu+'.'+name
-        if trace:
-            print '** optname(',name,'): -> ',OM_name
-        return OM_name
-
-    #.............................................................
-
-    def optval (self, name, test=None, trace=False):
-        """Get the value of the specified option, after converting it to its OM name.
-        If test is specified, modify the value, if necessary.
-        """
-        OM_name = self.optname(name, trace=trace)
-        value = self._OM[OM_name]
-
-        # The value may be changed for testing-purposes:
-        nominal = value
-        if isinstance(test, dict):
-            if test.has_key(name):
-                value = test[name]
-                trace = True
-                
-        if trace:
-            print '** optval(',name,'): -> ',OM_name,'=',value,
-            if not value==nominal:
-                print ' (nominal=',nominal,')',
-            print
-        return value
-
-    #.............................................................
-
-    def has_option (self, name):
-        """Check the existence of the specified option, after converting it to its OM name.
-        """
-        OM_name = self.optname(name)
-        return self._OM.has_option(OM_name)
-        
-    #.............................................................
-
-    def setval (self, name, value):
-        """Set the value of the specified option, after converting it to its OM name.
-        """
-        if self.has_option(name):
-            OM_name = self.optname(name)
-            if self._OM.option[OM_name]:
-                self._OM.set_value(OM_name, value)
-        return True
-
-
-    #--------------------------------------------------------------------
-    # TDLMenu generation:
     #--------------------------------------------------------------------
 
     def make_TDLCompileOptionMenu (self, **kwargs):
@@ -537,10 +303,10 @@ class Growth (object):
         if not self._created_Growth_objects:
             self.create_Growth_objects()
             self._created_Growth_objects = True
-        if not self._external_OM:
-            self._OM.make_TDLCompileOptionMenu(**kwargs)
+        self._OMI.make_TDLCompileOptionMenu(**kwargs)
         return True
     
+
 
     #====================================================================
     # Generic functions dealing with subtree generation:
@@ -552,7 +318,7 @@ class Growth (object):
         specific function .grow() in a derived class.
         It does various checks, and some common things.
         """
-        s = '** '+self._submenu+': on_input('+str(type(ns))+','+str(input)+'): '
+        s = '** '+self._OMI._submenu+': on_input('+str(type(ns))+','+str(input)+'): '
 
         # Check whether things have been done in the correct order:
         if not self._done_on_exit:
@@ -567,12 +333,12 @@ class Growth (object):
             self._input = input         # keep for later use
             proceed = self.check_input(self._input, severe=severe, trace=trace)
 
-        # If the ignore switch is set, do nothing (see also .ignore())
+        # If not selected, do nothing.
         # NB: This should be AFTER setting self._input !!
-        if self._ignore:
+        if not self._OMI.is_selected():
             proceed = False              # This will cause .grow() to exit
             if trace:
-                print s,'ignored'
+                print s,'not selected (ignored)'
 
         # If things are still OK (proceed==True), make sure that all the
         # necessary Growth objects have been created: 
@@ -584,10 +350,10 @@ class Growth (object):
         # Check the nodescope, and make the self.ns/ns0 that will be used.
         self.ns0 = ns
         if is_node(ns):
-            self.ns = ns.QualScope(self._quals)        
+            self.ns = ns.QualScope(self._OMI._quals)        
             self.ns0 = ns.QualScope() 
         else:
-            self.ns = ns.Subscope(self._shortname)
+            self.ns = ns.Subscope(self._OMI._shortname)
 
         # Progress message: 
         if trace:
@@ -614,7 +380,7 @@ class Growth (object):
 
         result = self._input
         if trace:
-            print '** '+self._submenu+': bypass() ->',str(result)
+            print '** '+self._OMI._submenu+': bypass() ->',str(result)
         return result
 
     #--------------------------------------------------------------------
@@ -625,7 +391,7 @@ class Growth (object):
         It does checks and some generic things.
         - If severe==True, an error is produced if the result is not valid.
         """
-        s = '\n** '+self._submenu+': on_output('+str(result)+'): '
+        s = '\n** '+self._OMI._submenu+': on_output('+str(result)+'): '
 
         # Check whether things have been done in the correct order:
         if not self._done_on_input:
@@ -663,42 +429,27 @@ class Growth (object):
     def define_generic_misc_options(self):
         """Define a generic submenu of visualization option(s).
         """
-        self.defopt('misc.ignore', False,
-                    prompt='ignore/hide this Growth',
-                    opt=[True,False,None],
-                    callback=self._callback_ignore,
-                    doc="""this is used for testing
-                    """)
-        self._OM.set_menurec(self._submenu+'.misc',
-                             prompt='miscellaneous',
-                             stare=2)
 
         if len(self._mode.keys())>0:
-            self.defopt('misc.mode', None,
-                        prompt='select a standard mode',
-                        opt=[None]+self._mode.keys(),
-                        callback=self._callback_mode,
-                        doc="""The Growth option values may be preset
-                        to the values of a number of standard modes.
-                        """)
-        self.defopt('misc.help', None,
-                    prompt='help on this object',
-                    opt=[None,'show','print','derivation_tree'],
-                    callback=self._callback_help,
-                    doc="""should be self-explanatory
-                    """)
+            self._OMI.defopt('misc.mode', None,
+                             prompt='select a standard mode',
+                             opt=[None]+self._mode.keys(),
+                             callback=self._callback_mode,
+                             doc="""The Growth option values may be preset
+                             to the values of a number of standard modes.
+                             """)
+        self._OMI.defopt('misc.help', None,
+                         prompt='help on this object',
+                         opt=[None,'show','print','derivation_tree'],
+                         callback=self._callback_help,
+                         doc="""should be self-explanatory
+                         """)
+
+        self._OMI.set_menurec('misc',
+                              prompt='miscellaneous',
+                              stare=2)
 
         # Finished:
-        return True
-
-    #....................................................................
-
-    def _callback_ignore (self, ignore):
-        """Called whenever option 'misc.ignore' changes"""
-        # print '\n** _callback_ignore(',ignore,'):',
-        was = self._ignore
-        value = self.ignore(ignore)
-        # print '   -> ',value,' (was',was,')'
         return True
 
     #....................................................................
@@ -723,8 +474,7 @@ class Growth (object):
             print self.show_derivation_tree(trace=False)
         elif help:
             print self.help(specific=True, trace=False)
-        self.setval ('misc.help', None)
-        # self._OM.setval('misc.help', None)
+        self.set_value ('misc.help', None)
         return True
 
 
@@ -786,22 +536,22 @@ class Growth (object):
     def define_generic_visu_options(self):
         """Generic function to define the generic visualization option(s).
         """
-        self.defopt('misc.visu.bookpage', self.name,
-                    prompt='bookpage name',
-                    opt=[None,self.name], more=str, 
-                    doc="""Specify a bookpage for the various bookmarks
-                    generated for this Growth. If bookpage==None,
-                    visualization for this Growth object is inhibited.
-                    """)
+        self._OMI.defopt('misc.visu.bookpage', self._OMI.name,
+                         prompt='bookpage name',
+                         opt=[None,self._OMI.name], more=str, 
+                         doc="""Specify a bookpage for the various bookmarks
+                         generated for this Growth. If bookpage==None,
+                         visualization for this Growth object is inhibited.
+                         """)
 
         # Change the default menu prompt to a more instructive one:
-        self._OM.set_menurec(self._submenu+'.misc.visu',
+        self._OMI.set_menurec('.misc.visu',
                              prompt='visualization')
 
         # Add a toggle widget to the visu menu:
-        self._OM.set_menurec(self._submenu+'.misc.visu', toggle=True,
-                             selected=True,
-                             callback=self._callback_toggle_visu)
+        self._OMI.set_menurec('.misc.visu', toggle=True,
+                              selected=True,
+                              callback=self._callback_toggle_visu)
 
         return True
 
@@ -810,9 +560,9 @@ class Growth (object):
 
     def _callback_toggle_visu (self, selected):
         """Called whenever the toggle widget before the visu menu is toggled"""
-        # print '\n** callback_toggle_visu(',selected,')'
-        menurec = self._OM.set_menurec(self._submenu, selected=selected)
+        menurec = self._OMI.set_menurec(selected=selected)
         self._visualize = selected
+        print '\n** callback_toggle_visu(',selected,') ->',self._visualize,'\n'
         return True
 
 
@@ -849,9 +599,9 @@ class Growth (object):
         # First checks whether visualization is required, or possible at all:
         if not self._visualize:
             return True
-        if not self.has_option('misc.visu.bookpage'):
+        if not self._OMI.has_option('misc.visu.bookpage'):
             return True                                   # no visualization options defined
-        page = self.optval('misc.visu.bookpage')
+        page = self._OMI.optval('misc.visu.bookpage')
         if not page:
             return True                                   # no visualization required
         folder = None
@@ -861,7 +611,7 @@ class Growth (object):
         # Since the re-implementer may forget to do this, a check is provided.
         before = self._result
         self._result = self.visualize (self._result, trace=False)
-        if True:
+        if False:
             print '\n** .on_output()  .visualize():'
             print '   result type before: ',type(before)
             print '   result type after : ',type(self._result)
@@ -869,13 +619,15 @@ class Growth (object):
             print
 
         # Prepend a bookmark for the input node (if required):
-        if is_node(self._input):
-            if not self._result==self._input:
-                self.bookmark(self._input, prepend=True)  # make it the first one
+        if self._make_bookmark['input']:
+            if is_node(self._input):
+                if not self._result==self._input:
+                    self.bookmark(self._input, prepend=True)  # make it the first one
 
         # Append a bookmark for the result node (if relevant):
-        if is_node(self._result):
-            self.bookmark(self._result)
+        if self._make_bookmark['result']:
+            if is_node(self._result):
+                self.bookmark(self._result)
 
         # Make the bookmark(s) for the nodes collected in self._bm:
         if len(self._bm)>0:
@@ -886,6 +638,53 @@ class Growth (object):
 
 
 
+
+    #====================================================================
+    # Interface functions (temporary) with its OptionManagerInterface (OMI)
+    #====================================================================
+
+    def defopt (self, name, value, opt=None, more=None,
+                callback=None, prompt=None, doc=None,
+                trace=False):
+        """
+        Encapsulation of self._OM.define(). It allows central completion
+        of the option name, and the interaction with constructor kwargs.
+        If the option name is a field in self._kwargs[default], the default
+        value will be changed. If it is a field in self._kwargs[insist], the
+        option value will be changed, and the option itself will be disabled.
+        """
+        return self._OMI.defopt (name, value, opt=opt, more=more,
+                                 callback=callback, prompt=prompt, doc=doc,
+                                 trace=trace)
+
+    #.............................................................
+
+    def optname (self, name, trace=False):
+        """Convert an option name to its OM name by prepending self._submenu.
+        """ 
+        return self._OMI.optname (name, trace=trace)
+
+    #.............................................................
+
+    def optval (self, name, test=None, trace=False):
+        """Get the value of the specified option, after converting it to its OM name.
+        If test is specified, modify the value, if necessary.
+        """
+        return self._OMI.optval (name, test=test, trace=trace)
+
+    #.............................................................
+
+    def has_option (self, name):
+        """Check the existence of the specified option, after converting it to its OM name.
+        """
+        return self._OMI.has_option (name)
+        
+    #.............................................................
+
+    def set_value (self, name, value):
+        """Set the value of the specified option, after converting it to its OM name.
+        """
+        return self._OMI.set_value (name, value)
 
 
 
@@ -1081,8 +880,8 @@ class GrowthTest(Growth):
         prefix = self.display_preamble('GrowthTest', level=level, txt=txt)
         #...............................................................
         Growth.display(self, full=full,
-                     recurse=recurse,
-                     OM=OM, level=level+1)
+                       recurse=recurse,
+                       OM=OM, level=level+1)
         #...............................................................
         return self.display_postamble(prefix, level=level)
 
@@ -1096,11 +895,11 @@ class GrowthTest(Growth):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self.defopt('unop', 'Cos',
-                    prompt='unary',
-                    opt=['Sin','Cos'], more=str,
-                    doc="""apply an unary operation.
-                    """)
+        self._OMI.defopt('unop', 'Cos',
+                         prompt='unary',
+                         opt=['Sin','Cos'], more=str,
+                         doc="""apply an unary operation.
+                         """)
         #..............................................
         return self.on_exit(trace=trace)
 
@@ -1120,7 +919,7 @@ class GrowthTest(Growth):
             test = dict(unop='Cos')
 
         # Read the specified options:
-        unop = self.optval('unop', test=test)
+        unop = self._OMI.optval('unop', test=test)
 
         # Make the subtree:
         node = self.ns['result'] << getattr(Meq,unop)(node)
@@ -1164,7 +963,7 @@ def _define_forest(ns):
     cc = []
 
     node = ns << 3.4
-    rootnode = grt.grow(ns, node)
+    rootnode = grt.grow(ns, node, trace=True)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -1221,11 +1020,11 @@ if __name__ == '__main__':
         OM = OptionManager.OptionManager()
 
     if 0:
-        grt = Growth('bbb', OM=OM)
+        grt = Growth('bbb', OM=OM, extra=56)
         grt.display('initial')
 
     if 1:
-        grt = GrowthTest('bbb', OM=OM)
+        grt = GrowthTest('bbb', OM=OM, extra=78)
         grt.display('initial')
 
     if 1:
@@ -1243,6 +1042,8 @@ if __name__ == '__main__':
         grt.print_tree(recurse=1)
         grt.print_tree(recurse=2)
         grt.print_tree(recurse=3)
+
+    if 0:
         grt._OM.showtree()
 
 #===============================================================

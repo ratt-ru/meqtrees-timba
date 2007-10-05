@@ -172,7 +172,7 @@ class TestTwigFork(Twig.Twig):
                            name=name,
                            submenu=submenu,
                            has_input=False,
-                           toggle=False,
+                           toggle_box=False,
                            OM=OM, namespace=namespace,
                            **kwargs)
 

@@ -69,6 +69,10 @@ class TwigDemo(Twig.Twig):
                            OM=OM, namespace=namespace,
                            **kwargs)
 
+        # Since TwigDemoes work do not affect the result,
+        # do not make a bookmark for it.
+        self._make_bookmark['result'] = False
+
         return None
 
 
@@ -90,7 +94,6 @@ class TwigDemo(Twig.Twig):
     def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
-        #...............................................................
         #...............................................................
         Twig.Twig.display(self, full=full,
                           recurse=recurse,

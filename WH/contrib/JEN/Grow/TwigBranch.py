@@ -59,9 +59,9 @@ from Timba.Contrib.JEN.Grow import TwigApplyUnary
 from Timba.Contrib.JEN.Grow import TwigAddNoise
 from Timba.Contrib.JEN.Grow import TwigFlagger
 
-from Timba.Contrib.JEN.Grow import DemoModRes
-from Timba.Contrib.JEN.Grow import DemoRedaxes
-from Timba.Contrib.JEN.Grow import DemoSolver
+from Timba.Contrib.JEN.Grow import TwigDemoModRes
+from Timba.Contrib.JEN.Grow import TwigDemoRedaxes
+from Timba.Contrib.JEN.Grow import TwigDemoSolver
 
 # import math
 # import random
@@ -120,15 +120,21 @@ class TwigBranch(Twig.Twig):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
-        print prefix,'  * Choice of Leaves:'
+        print prefix,'  * Choice of Leaves (+ is selected):'
         for key in self._leaf.keys():
             rr = self._leaf[key]
-            print prefix,'    - '+key+': '+str(rr['leaf'].oneliner())
+            if rr['leaf']._OMI.is_selected():
+                print prefix,'    + '+key+': '+str(rr['leaf'].oneliner())
+            else:
+                print prefix,'    - '+key+': '+str(rr['leaf'].oneliner())
         #...............................................................
-        print prefix,'  * Plugin sequence:'
+        print prefix,'  * Plugin sequence (+ is selected):'
         for key in self._plugin_order:
             rr = self._plugin[key]
-            print prefix,'    - '+key+': '+str(rr['plugin'].oneliner())
+            if rr['plugin']._OMI.is_selected():
+                print prefix,'    + '+key+': '+str(rr['plugin'].oneliner())
+            else:
+                print prefix,'    - '+key+': '+str(rr['plugin'].oneliner())
         #...............................................................
         Twig.Twig.display(self, full=full,
                               recurse=recurse,
@@ -152,7 +158,7 @@ class TwigBranch(Twig.Twig):
             print '\n** .add_plugin(',type(plugin),modes,'):'
             
         # print '** type Twig: ',isinstance(plugin, Twig.Twig)
-        # print '** type Demo: ',isinstance(plugin, TwigDemo.TwigDemo)
+        # print '** type TwigDemo: ',isinstance(plugin, TwigDemo.TwigDemo)
             
         # OK, add the valid plugin to the list:
         name = plugin.name
@@ -317,18 +323,18 @@ class TwigBranch(Twig.Twig):
         Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
         self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu,
-                                                         OM=self._OM, toggle=True))
+                                                         OM=self._OM, toggle_box=True))
         self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu,
-                                                 OM=self._OM, toggle=True))
+                                                 OM=self._OM, toggle_box=True))
         self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu,
-                                                         OM=self._OM, toggle=True,
+                                                         OM=self._OM, toggle_box=True,
                                                          xtor=self._xtor, dims=self._dims))
         # Make a toggle group for the leaves:
         leaves = []
         for key in self._leaf.keys():
             leaves.append(self._leaf[key]['leaf'])
         for key in self._leaf.keys():
-            self._leaf[key]['leaf'].toggle_group(append=leaves)
+            self._leaf[key]['leaf']._OMI.toggle_group(append=leaves)
 
         return True
 
@@ -340,18 +346,18 @@ class TwigBranch(Twig.Twig):
         Define a specific sequence of plugins, to be used (or ignored)
         """
         self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu,
-                                                   OM=self._OM, toggle=True))
+                                                   OM=self._OM, toggle_box=True))
         self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu,
-                                                 OM=self._OM, toggle=True))
+                                                 OM=self._OM, toggle_box=True))
         self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu,
-                                                       OM=self._OM, toggle=True))
+                                                       OM=self._OM, toggle_box=True))
         
-        self.add_plugin (DemoModRes.DemoModRes(submenu=submenu,
-                                               OM=self._OM, toggle=True))
-        self.add_plugin (DemoRedaxes.DemoRedaxes(submenu=submenu,
-                                                 OM=self._OM, toggle=True))
-        self.add_plugin (DemoSolver.DemoSolver(submenu=submenu,
-                                               OM=self._OM, toggle=True))
+        self.add_plugin (TwigDemoModRes.TwigDemoModRes(submenu=submenu,
+                                                       OM=self._OM, toggle_box=True))
+        self.add_plugin (TwigDemoRedaxes.TwigDemoRedaxes(submenu=submenu,
+                                                         OM=self._OM, toggle_box=True))
+        self.add_plugin (TwigDemoSolver.TwigDemoSolver(submenu=submenu,
+                                                       OM=self._OM, toggle_box=True))
 
         return True
 
@@ -388,11 +394,14 @@ def _define_forest(ns):
 
     cc = []
 
-    # node = xtor.leafnode(ns)
     rootnode = brn.grow(ns)
-    cc.append(rootnode)
+    print 'rootnode =',str(rootnode)
+    if is_node(rootnode):
+        cc.append(rootnode)
 
-    if len(cc)==0: cc.append(ns.dummy<<1.1)
+    if len(cc)==0:
+        cc.append(ns.dummy<<1.1)
+    print '** cc =',cc
     ns.result << Meq.Composer(children=cc)
     xtor.make_TDLRuntimeOptionMenu(node=ns.result)
     return True

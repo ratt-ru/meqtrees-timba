@@ -1,11 +1,11 @@
-# file: ../Grow/DemoModRes.py
+# file: ../Grow/TwigDemoRedaxes.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The DemoModRes class makes makes a subtree that takes an input node and
+"""The TwigDemoRedaxes class makes makes a subtree that takes an input node and
 produces a new rootnode by .....
 """
 
@@ -51,8 +51,8 @@ import math
 #=============================================================================
 #=============================================================================
 
-class DemoModRes(TwigDemo.TwigDemo):
-    """Class derived from TwigDemo"""
+class TwigDemoRedaxes(TwigDemo.TwigDemo):
+    """Class derived from Demo"""
 
     def __init__(self,
                  quals=None,
@@ -60,12 +60,13 @@ class DemoModRes(TwigDemo.TwigDemo):
                  OM=None, namespace=None,
                  **kwargs):
 
-        TwigDemo.TwigDemo.__init__(self, name='DemoModRes',
+        TwigDemo.TwigDemo.__init__(self, name='TwigDemoRedaxes',
                                    quals=quals,
                                    submenu=submenu,
                                    OM=OM, namespace=namespace,
                                    **kwargs)
         return None
+
 
     #====================================================================
 
@@ -86,16 +87,17 @@ class DemoModRes(TwigDemo.TwigDemo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        opt = [[2,3],[3,2],[3,4],[4,5]]
-        self.defopt('num_cells', opt[0],
-                    prompt='nr of cells [nt,nf]',
+        opt = ['Sum','Product','StdDev','Rms','Mean','Max','Min','*']
+        self.defopt('oper', opt[0],
+                    prompt='select a math operation',
                     opt=opt, more=str,
-                    doc="""Covert the REQUEST to a lower a resolution.
+                    doc="""Select the math oper.
                     """)
-        self.defopt('resamp_mode', 1,
-                    prompt='resampler mode',
-                    opt=[1,2],
-                    doc="""Mode 2 only works with time,freq domains.
+        opt = ['*','time','freq',['time','freq'],None]
+        self.defopt('redaxes', '*',
+                    prompt='reduction axes',
+                    opt=opt, more=str,
+                    doc="""The reduction axes:
                     """)
         #..............................................
         return self.on_exit(trace=trace)
@@ -103,9 +105,9 @@ class DemoModRes(TwigDemo.TwigDemo):
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=False):
-        """The DemoModRes class is derived from the TwigDemo class.
+        """The TwigDemoRedaxes class is derived from the TwigDemo class.
         It demonstrates ....
-        Clicking on the DemoModRes bookmark produces a page that shows the
+        Clicking on the TwigDemoRedaxes bookmark produces a page that shows the
         results of all the relevant nodes.
         """
         # Check the node, and make self.ns:
@@ -114,30 +116,24 @@ class DemoModRes(TwigDemo.TwigDemo):
         #..............................................
 
         # Read the specified options:
-        num_cells = self.optval('num_cells', test=test)
-        num_cells = self._OM._string2list(num_cells, length=None)
-        rmode = self.optval('resamp_mode', test=test)
+        oper = self.optval('oper', test=test)
+        redaxes = self.optval('redaxes', test=test)
 
-        # Make a side-branch that first lowers the resolution (modres),
-        # by simply lowering the resolution of the request
-        # then resamples the result to the the original resolution,
-        # and then takes the difference with the original input to
-        # check the quality of the two operations.
-        original = self.ns['original'] << Meq.Identity(node) 
-        modres = self.ns['modres'] << Meq.ModRes(node, num_cells=num_cells) 
-        resampled = self.ns['resampled'] << Meq.Resampler(modres, mode=rmode) 
-        diff = self.ns['diff'] << Meq.Subtract(resampled,original) 
+        # Make the subtree:
+        qnode = self.ns[oper]
+        cc = []
+        cc.append(qnode('reduce_all') << getattr(Meq,oper)(node))
+        cc.append(qnode('reduce_time') << getattr(Meq,oper)(node, reduction_axes=['time']))
+        cc.append(qnode('reduce_freq') << getattr(Meq,oper)(node, reduction_axes=['freq']))
+        node = qnode('reqseq') << Meq.ReqSeq(children=[node]+cc, result_index=0)
 
-        # The reqseq issues a (full-resolution) request first to the
-        # branch that changes the resolution back and forth, and then to the
-        # branch that holds the original resolution. Since it
-        # is only a demonstration, the original result (1) is passed on.
-        node = self.ns['reqseq'] << Meq.ReqSeq(diff,original,
-                                               result_index=1)
-        self.bookmark([modres,resampled,diff]) 
+        self.bookmark(cc)
         #..............................................
         # Finishing touches:
         return self.on_output (node, trace=trace)
+
+
+
 
 
 
@@ -154,7 +150,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    pgt = DemoModRes()
+    pgt = TwigDemoRedaxes()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
 
@@ -164,12 +160,12 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        pgt = DemoModRes()
+        pgt = TwigDemoRedaxes()
         pgt.make_TDLCompileOptionMenu()
 
     cc = []
 
-    node = ns << 1.0
+    node = ns << 1
     rootnode = pgt.grow(ns, node)
     cc.append(rootnode)
 
@@ -212,7 +208,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = DemoModRes()
+        pgt = TwigDemoRedaxes()
         pgt.display('initial')
 
     if 1:
@@ -220,7 +216,7 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        test = dict(num_cells=[2,4])
+        test = dict(oper='Mean')
         pgt.grow(ns, node, test=test, trace=True)
 
     if 1:

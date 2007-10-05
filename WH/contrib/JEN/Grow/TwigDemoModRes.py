@@ -1,11 +1,11 @@
-# file: ../Grow/DemoSolver.py
+# file: ../Grow/TwigDemoModRes.py
 
 # History:
 # - 07sep2007: creation (from Plugin.py)
 
 # Description:
 
-"""The DemoSolver class makes makes a subtree that takes an input node and
+"""The TwigDemoModRes class makes makes a subtree that takes an input node and
 produces a new rootnode by .....
 """
 
@@ -40,10 +40,7 @@ produces a new rootnode by .....
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
-
 from Timba.Contrib.JEN.Grow import TwigDemo
-from Timba.Contrib.JEN.Grow import TwigLeafParm
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.control import Executor
 
@@ -54,30 +51,21 @@ import math
 #=============================================================================
 #=============================================================================
 
-class DemoSolver(TwigDemo.TwigDemo):
+class TwigDemoModRes(TwigDemo.TwigDemo):
     """Class derived from TwigDemo"""
 
-    def __init__(self, quals=None,
+    def __init__(self,
+                 quals=None,
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        TwigDemo.TwigDemo.__init__(self,
-                           quals=quals,
-                           name='DemoSolver',
-                           submenu=submenu,
-                           OM=OM, namespace=namespace,
-                           **kwargs)
-
-        # Use the TwigLeafParm Plugin as the 'left-hand-side' of the equation(s).
-        # It shares the OptionManager (OM), so the LeafParm menu is nested
-        # in the TwigDemo menu by giving the correct submenu name:
-        self._lhs = TwigLeafParm.TwigLeafParm (quals=self._shortname,
-                                               # default=dict(tags=['solvable']),
-                                               insist=dict(tags=['solvable']),
-                                               submenu=self._submenu, OM=self._OM)
+        TwigDemo.TwigDemo.__init__(self, name='TwigDemoModRes',
+                                   quals=quals,
+                                   submenu=submenu,
+                                   OM=OM, namespace=namespace,
+                                   **kwargs)
         return None
-
 
     #====================================================================
 
@@ -98,29 +86,26 @@ class DemoSolver(TwigDemo.TwigDemo):
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
-        self.defopt('niter', 5,
-                    prompt='nr of iterations',
-                    opt=[1,2,3,5,10,20,30,50,100],
-                    doc="""Nr of solver iterations.
+        opt = [[2,3],[3,2],[3,4],[4,5]]
+        self.defopt('num_cells', opt[0],
+                    prompt='nr of cells [nt,nf]',
+                    opt=opt, more=str,
+                    doc="""Covert the REQUEST to a lower a resolution.
                     """)
-        # self._lhs.define_compile_options(trace=trace)
+        self.defopt('resamp_mode', 1,
+                    prompt='resampler mode',
+                    opt=[1,2],
+                    doc="""Mode 2 only works with time,freq domains.
+                    """)
         #..............................................
         return self.on_exit(trace=trace)
-
 
     #--------------------------------------------------------------------
 
     def grow (self, ns, node, test=None, trace=False):
-        """The DemoSolver class is derived from the TwigDemo class.
-        It demonstrates the use of the MeqSolver node. Such a node has
-        one or more MeqCondeq children, which generate condition equations
-        for it by comparing 'measured' and 'predicted' inputs. The Solver
-        then tries to minimise the differences (residuals) by varying the
-        coefficients of one or more MeqParm parameter nodes, which are
-        usually (but not necessarily) somewhere up the prediction branch.
-        In this demo, the Solver has a single Condeq node, which compares
-        the input node to a single MeqParm node.
-        Clicking on the DemoSolver bookmark produces a page that shows the
+        """The TwigDemoModRes class is derived from the TwigDemo class.
+        It demonstrates ....
+        Clicking on the TwigDemoModRes bookmark produces a page that shows the
         results of all the relevant nodes.
         """
         # Check the node, and make self.ns:
@@ -129,27 +114,30 @@ class DemoSolver(TwigDemo.TwigDemo):
         #..............................................
 
         # Read the specified options:
-        niter = self.optval('niter', test=test)
+        num_cells = self.optval('num_cells', test=test)
+        num_cells = self._OM._string2list(num_cells, length=None)
+        rmode = self.optval('resamp_mode', test=test)
 
-        # Make the subtree:
-        lhs = self._lhs.grow(self.ns, trace=trace)
-        condeq = self.ns['condeq'] << Meq.Condeq(lhs,node)
-        parm = ns.Search(tags='solvable', class_name='MeqParm')
-        if len(parm)==0:
-            raise ValueError,'no solvable MeqParms found'
-        
-        solver = self.ns['solver'] << Meq.Solver(condeq,
-                                                 num_iter=niter,
-                                                 solvable=parm)
-        node = self.ns['reqseq'] << Meq.ReqSeq(children=[solver,node],
+        # Make a side-branch that first lowers the resolution (modres),
+        # by simply lowering the resolution of the request
+        # then resamples the result to the the original resolution,
+        # and then takes the difference with the original input to
+        # check the quality of the two operations.
+        original = self.ns['original'] << Meq.Identity(node) 
+        modres = self.ns['modres'] << Meq.ModRes(node, num_cells=num_cells) 
+        resampled = self.ns['resampled'] << Meq.Resampler(modres, mode=rmode) 
+        diff = self.ns['diff'] << Meq.Subtract(resampled,original) 
+
+        # The reqseq issues a (full-resolution) request first to the
+        # branch that changes the resolution back and forth, and then to the
+        # branch that holds the original resolution. Since it
+        # is only a demonstration, the original result (1) is passed on.
+        node = self.ns['reqseq'] << Meq.ReqSeq(diff,original,
                                                result_index=1)
-
-        self.bookmark([parm[0], lhs, condeq, solver])
-
+        self.bookmark([modres,resampled,diff]) 
         #..............................................
-        # Check the new rootnode:
+        # Finishing touches:
         return self.on_output (node, trace=trace)
-
 
 
 
@@ -166,7 +154,7 @@ if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    pgt = DemoSolver()
+    pgt = TwigDemoModRes()
     pgt.make_TDLCompileOptionMenu()
     # pgt.display()
 
@@ -176,13 +164,12 @@ def _define_forest(ns):
     global pgt,xtor
     if not pgt:
         xtor = Executor.Executor()
-        pgt = DemoSolver()
+        pgt = TwigDemoModRes()
         pgt.make_TDLCompileOptionMenu()
 
     cc = []
 
-    # node = xtor.leafnode(ns)
-    node = ns << Meq.Time() + Meq.Freq()
+    node = ns << 1.0
     rootnode = pgt.grow(ns, node)
     cc.append(rootnode)
 
@@ -225,7 +212,7 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        pgt = DemoSolver()
+        pgt = TwigDemoModRes()
         pgt.display('initial')
 
     if 1:
@@ -233,7 +220,7 @@ if __name__ == '__main__':
 
     if 1:
         node = ns << 1.0
-        test = dict(niter=3)
+        test = dict(num_cells=[2,4])
         pgt.grow(ns, node, test=test, trace=True)
 
     if 1:
