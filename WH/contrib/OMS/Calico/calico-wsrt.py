@@ -77,15 +77,15 @@ meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 import wsrt_beams
 meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
 
-# G - solvable gain/phases
-from solvable_gain_phase import AmplPhaseJones
-from solvable_rotation import LeakageJones
-D = LeakageJones();
-B = AmplPhaseJones();
-G = AmplPhaseJones();
-meqmaker.add_uv_jones('D','dipole orientation',D);
-meqmaker.add_uv_jones('B','bandpass',B);
-meqmaker.add_uv_jones('G','receiver gains/phases',G);
+# D - leakage
+import polarization_jones
+meqmaker.add_uv_jones('D','polarization leakage',[polarization_jones.CoupledLeakage(),
+  polarization_jones.DecoupledLeakage()]);
+
+# B - bandpass, G - gain 
+import gain_jones
+meqmaker.add_uv_jones('B','bandpass',gain_jones.AmplPhase());
+meqmaker.add_uv_jones('G','receiver gains/phases',gain_jones.AmplPhase());
 
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
