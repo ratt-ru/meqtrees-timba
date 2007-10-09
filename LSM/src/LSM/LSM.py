@@ -2126,6 +2126,7 @@ class LSM:
   for eachline in all:
    v=pp.search(eachline)
    if v!=None:
+     s=Source(v.group('col1'))
      source_RA=float(v.group('col2'))+(float(v.group('col4'))/60.0+float(v.group('col3')))/60.0
      source_RA*=math.pi/12.0
      source_Dec=float(v.group('col6'))+(float(v.group('col8'))/60.0+float(v.group('col7')))/60.0
@@ -2144,7 +2145,7 @@ class LSM:
       freq0=1e6
      else:
       freq0=f0
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=freq0, RA=source_RA, Dec=source_Dec,trace=0)
  
      # first compose the sixpack before giving it to the LSM
      SourceRoot=my_sixpack.sixpack(ns)
@@ -2154,6 +2155,74 @@ class LSM:
  
   self.setNodeScope(ns)
   self.setFileName(infile_name)
+
+
+ ## build from Duchamp source extractor output
+ ## format:
+ ##  Obj#  Name X  Y  Z RA(h:min:sec.00) DEC(+deg:min:sec.00)    VEL     w_RA    w_DEC  w_VEL     F_int     F_tot    F_peak  and other fields, which are ignored
+ def build_from_duchamp(self,infile_name,ns,f0=None):
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^\s*(?P<col1>\d+)  # column 1 object number: integer
+   \s+             # skip white space
+   (?P<col2>[A-Za-z0-9]*(\+)?[A-Za-z0-9]+)  # column 2 name: a string
+   \s+             # skip white space
+   (?P<col3>\d+(\.\d+)?)   # X pixel, ignored
+   \s+             # skip white space
+   (?P<col4>\d+(\.\d+)?)   # Y pixel, ignored
+   \s+             # skip white space
+   (?P<col5>\d+(\.\d+)?)   # Z pixel, ignored
+   \s+             # skip white space
+   (?P<col6>\d+\:\d+\:\d+(\.\d+)?)   # RA angle 
+   \s+             # skip white space
+   (?P<col7>(\+)?\d+\:\d+\:\d+(\.\d+)?)   # Dec angle 
+   \s+             # skip white space
+   (?P<col8>\d+(\.\d+)?)   # Vel, ignored
+   \s+             # skip white space
+   (?P<col9>\d+(\.\d+)?)   # w_RA, ignored
+   \s+             # skip white space
+   (?P<col10>\d+(\.\d+)?)   # w_Dec, ignored
+   \s+             # skip white space
+   (?P<col11>\d+(\.\d+)?)   # w_Vel, ignored
+   \s+             # skip white space
+   (?P<col12>\d+(\.\d+)?)   # F_int, ignored
+   \s+             # skip white space
+   (?P<col13>\d+(\.\d+)?)   # F_tot, ignored
+   \s+             # skip white space
+   (?P<col14>\d+(\.\d+)?)   # F_peak
+   \s*.\s*""",re.VERBOSE) # ignore the rest
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+      s=Source(v.group('col2'))
+      # get RA,Dec
+      sl=string.split(v.group('col6'),':')
+      source_RA=float(sl[0])+(float(sl[1])/60.0+float(sl[2]))/60.0
+      source_RA*=math.pi/12.0
+      sl=string.split(v.group('col7'),':')
+      source_Dec=float(sl[0])+(float(sl[1])/60.0+float(sl[2]))/60.0
+      source_Dec*=math.pi/180.0
+
+      # use peak flux
+      sI=float(v.group('col14'))
+      SI=0;
+      if f0==None:
+        freq0=1e6
+      else:
+        freq0=f0
+
+      my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=freq0, RA=source_RA, Dec=source_Dec,trace=0)
+      self.add_source(s,brightness=sI,
+       sixpack=my_sixpack,
+       ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
 
 
 #########################################################################
