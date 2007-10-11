@@ -2201,10 +2201,10 @@ class LSM:
       s=Source(v.group('col2'))
       # get RA,Dec
       sl=string.split(v.group('col6'),':')
-      source_RA=float(sl[0])+(float(sl[1])/60.0+float(sl[2]))/60.0
+      source_RA=float(sl[0])+(float(sl[2])/60.0+float(sl[1]))/60.0
       source_RA*=math.pi/12.0
       sl=string.split(v.group('col7'),':')
-      source_Dec=float(sl[0])+(float(sl[1])/60.0+float(sl[2]))/60.0
+      source_Dec=float(sl[0])+(float(sl[2])/60.0+float(sl[1]))/60.0
       source_Dec*=math.pi/180.0
 
       # use peak flux
