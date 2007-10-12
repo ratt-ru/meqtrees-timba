@@ -30,9 +30,10 @@
 
 from qt import *
 from Timba.Meq import meq
-import sys
+import sys,string,math
 
 from SDialog import *
+import common_utils
 
 class OptionsDialog(QDialog):
     def __init__(self,parent = None,name = "Change Options",modal = 1,fl = 0):
@@ -57,7 +58,10 @@ class OptionsDialog(QDialog):
         self.patch_center=-1# 0: geometric, 1: centroid 
         self.patch_method=-1# 0,1
 
+        self.proj_changed=0
         self.proj_id=-1
+        self.proj_ra0=self.parentWidget().cview.ra0
+        self.proj_dec0=self.parentWidget().cview.dec0
 ################# Tab 1
         self.axisTab=QWidget(self.tabWidget,"axisTab")
 
@@ -416,6 +420,45 @@ class OptionsDialog(QDialog):
         bgLayout.addLayout(layoutbgV)
         projtabLayout.addWidget(self.projBG)
 
+        ######################
+        self.projRABG=QGroupBox(self.projTab,"projRABG")
+        self.projRABG.setColumnLayout(0,Qt.Vertical)
+        self.projRABG.layout().setSpacing(6)
+        self.projRABG.layout().setMargin(11)
+        projRALayout= QHBoxLayout(self.projRABG.layout())
+        self.textLabel_projRA = QLabel(self.projRABG,"textLabel_projRA")
+        projRALayout.setAlignment(Qt.AlignCenter)
+        projRALayout.addWidget(self.textLabel_projRA)
+
+        self.lineEdit_projRA = QLineEdit(self.projRABG,"lineEdit_projRA")
+        ll=common_utils.radToRA(self.parentWidget().cview.ra0)
+        tempstr='%d:%d:%f'%(ll[0],ll[1],ll[2])
+        self.lineEdit_projRA.setText(tempstr)
+        self.lineEdit_projRA.setReadOnly(0)
+        projRALayout.addWidget(self.lineEdit_projRA)
+        self.connect( self.lineEdit_projRA, SIGNAL("textChanged(const QString &)"), self.lineEditprojRA)
+
+        projtabLayout.addWidget(self.projRABG)
+        ######################
+        self.projDecBG=QGroupBox(self.projTab,"projDecBG")
+        self.projDecBG.setColumnLayout(0,Qt.Vertical)
+        self.projDecBG.layout().setSpacing(6)
+        self.projDecBG.layout().setMargin(11)
+        projDecLayout= QHBoxLayout(self.projDecBG.layout())
+        self.textLabel_projDec = QLabel(self.projDecBG,"textLabel_projDec")
+        projDecLayout.setAlignment(Qt.AlignCenter)
+        projDecLayout.addWidget(self.textLabel_projDec)
+
+        self.lineEdit_projDec = QLineEdit(self.projDecBG,"lineEdit_projDec")
+        ll=common_utils.radToDec(self.parentWidget().cview.dec0)
+        tempstr='%d:%d:%f'%(ll[0],ll[1],ll[2])
+        self.lineEdit_projDec.setText(tempstr)
+        self.lineEdit_projDec.setReadOnly(0)
+        projDecLayout.addWidget(self.lineEdit_projDec)
+        self.connect( self.lineEdit_projDec, SIGNAL("textChanged(const QString &)"), self.lineEditprojDec)
+
+        projtabLayout.addWidget(self.projDecBG)
+ 
         if self.parentWidget().cview.proj.isOn():
          self.proj_sin.setChecked(1)
         else:
@@ -523,6 +566,8 @@ class OptionsDialog(QDialog):
         self.projBG.setTitle(self.__tr("Projection Method"))
         self.proj_sin.setText(self.__tr("SIN"))
         self.proj_none.setText(self.__tr("None"))
+        self.projRABG.setTitle(self.__tr("Projection centre RA (hh:mm:ss)"))
+        self.projDecBG.setTitle(self.__tr("Projection centre Dec (dd:mm:ss)"))
 
         self.buttonHelp.setText(self.__tr("&Help"))
         self.buttonHelp.setAccel(self.__tr("F1"))
@@ -626,6 +671,7 @@ class OptionsDialog(QDialog):
      self.patch_method=id
 
     def projBGradioClick(self,id):
+     self.proj_changed=1
      self.proj_id=id
      #print "plot BG button %d clicked" %id
 
@@ -638,6 +684,34 @@ class OptionsDialog(QDialog):
       print dir(namelist)
       #self.karma_font0=namelist[0]+namelist[1];
       print self.karma_font0
+
+    ## parse RA hh:min:sec
+    def lineEditprojRA(self,newText):
+     if newText.length()>0:
+      try:
+       sl=string.split(newText.ascii(),':')
+       fval=float(sl[0])+(float(sl[2])/60.0+float(sl[1]))/60.0
+       fval*=math.pi/12
+       self.proj_ra0=fval
+       #print "Line edit xspace text: %f" % fval
+       self.proj_changed=1
+      except (TypeError,ValueError):
+       pass
+       #print "invalid number "+unicode(newText)
+
+    def lineEditprojDec(self,newText):
+     if newText.length()>0:
+      try:
+       sl=string.split(newText.ascii(),':')
+       fval=float(sl[0])+(float(sl[2])/60.0+float(sl[1]))/60.0
+       fval*=math.pi/180.0
+       self.proj_dec0=fval
+       #print "Line edit xspace text: %f" % fval
+       self.proj_changed=1
+      except (TypeError,ValueError):
+       pass
+       #print "invalid number "+unicode(newText)
+
 
 
     def accept(self):
@@ -702,12 +776,14 @@ class OptionsDialog(QDialog):
         self.parentWidget().cview.lsm.default_patch_method=self.patch_method+1
 
      
-     if self.proj_id!=-1:
+     if self.proj_changed!=0:
        if self.proj_id==0:
         self.parentWidget().cview.proj_on=0
        else:
         self.parentWidget().cview.proj_on=1
        
+       self.parentWidget().cview.ra0=self.proj_ra0
+       self.parentWidget().cview.dec0=self.proj_dec0
        self.parentWidget().cview.updateCanvas()
 
      self.parentWidget().canvas.update()

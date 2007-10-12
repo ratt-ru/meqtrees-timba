@@ -168,9 +168,9 @@ class MyCanvasView(QCanvasView):
     self.dec_max=self.dec_max+ymarg
 
     ############# create phase center and a projector
-    ra0=(self.ra_min+self.ra_max)*0.5
-    dec0=(self.dec_min+self.dec_max)*0.5
-    self.proj=transform.Projector(ra0,dec0,0)
+    self.ra0=(self.ra_min+self.ra_max)*0.5
+    self.dec0=(self.dec_min+self.dec_max)*0.5
+    self.proj=transform.Projector(self.ra0,self.dec0,0)
     if self.proj_on==0: self.proj.Off() # turn off projection
     ### now recalculate the bounds according to the projection params
     left_down=self.proj.give_limits(self.ra_min,self.ra_max,self.dec_min,self.dec_max)
@@ -869,9 +869,7 @@ class MyCanvasView(QCanvasView):
     self.dec_max=bounds['max_Dec']
 
     # projector
-    ra0=(self.ra_min+self.ra_max)*0.5
-    dec0=(self.dec_min+self.dec_max)*0.5
-    self.proj=transform.Projector(ra0,dec0,0)
+    self.proj=transform.Projector(self.ra0,self.dec0,0)
     if self.proj_on==0: self.proj.Off() # turn off projection
     ### now recalculate the bounds according to the projection params
     left_down=self.proj.give_limits(self.ra_min,self.ra_max,self.dec_min,self.dec_max)
