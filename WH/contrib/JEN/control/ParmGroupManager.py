@@ -5,6 +5,8 @@
 # - 24jul2007: adapted to OptionManager
 # - 17sep2007: get OptionManager from /control/
 # - 24sep2007: move to ../JEN/control/
+# - 05oct2007: adapt to OMInterface
+# - 11oct2007: remove ParameterizationPlus inheritance
 
 # Description:
 
@@ -41,51 +43,86 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import Meow
+# import Meow
 
-from Timba.Contrib.JEN.control import OptionManager
-from Timba.Contrib.JEN.Grunt import ParmGroup
+from Timba.Contrib.JEN.control import OMInterface
+from Timba.Contrib.JEN.control import ParmGroup
 from Timba.Contrib.JEN.NodeList import NodeList
 from Timba.Contrib.JEN.Grunt import display
 
-from copy import deepcopy
+# from copy import deepcopy
 
 #======================================================================================
 
-class ParmGroupManager (Meow.Parameterization):
-    """The Grunt ParmGroupManager class is derived from the
-    Meow Parameterization class. It adds some extra functionality
-    for groups of similar parms, which may find their way into the
-    more official Meow system eventually."""
+class ParmGroupManager (object):
+    """The Grunt ParmGroupManager class encapsulates a group of ParmGroups.
+    """
 
-    def __init__(self, ns=None, name='<parent>', namespace=None,
-                 tobesolved=None):
+    def __init__(self, ns=None,
+                 name='<PGM>',
+                 quals=None,
+                 # kwquals=None,
+                 OM=None, namespace=None,
+                 submenu='compile',
+                 solvermenu=None,
+                 **kwargs):
+
+        self.name = name
+        self.ns = ns
 
         # Scopify ns, if necessary:
         if is_node(ns):
-            ns = ns.QualScope()        
+            self.ns = ns.QualScope()        
 
         # Make sure that there is a nodescope (Required by Meow.Parameterization)
         if ns==None:
             ns = NodeScope()
+        
+        self._submenu = submenu
+        self._solvermenu = solvermenu
 
-        Meow.Parameterization.__init__(self, ns, name)
-
-        self._frameclass = 'Grunt.ParmGroupManager'       # for reporting
+        self._frameclass = 'control.ParmGroupManager'       # for reporting
 
         # Initialize local data:
         self._parmgroups = dict()
-        self._parmgogs = dict()
-        self._pmerged = []
-        self._accumulist = dict()
+        self._order = []
 
+        self._mode = None
+        self._modes = dict()
+        self._modes_order = []
+
+        self._parmgogs = dict()
+
+        self._pmerged = []
+
+        self._accumulist = dict()                           # ....?
+
+        #------------------------------------------------------------------
         # Options management:
-        self._OM = OptionManager.OptionManager(name=self.name,
-                                               namespace=namespace)
-        self.define_options(tobesolved=tobesolved)
+
+        self._solvermenu = solvermenu
+
+        self._OMI = OMInterface.OMInterface(quals,
+                                            name=self.name,
+                                            submenu=submenu,
+                                            OM=OM, namespace=namespace,
+                                            **kwargs)
 
         return None
 
+
+    #---------------------------------------------------------------
+
+    def nodescope (self, ns=None):
+        """Get/set the internal nodescope (can also be a node)"""
+        if ns:
+            if is_node(ns):
+                self.ns = ns.QualScope()        
+            else:
+                self.ns = ns
+            key = self.name
+            self.ns = self.ns[key](key).QualScope()            #.....!!?
+        return self.ns
 
     #---------------------------------------------------------------
 
@@ -102,7 +139,7 @@ class ParmGroupManager (Meow.Parameterization):
 
     def active_groups (self, new=None):
         """Get/set the list of (names of) 'active' parmgroups.
-        Reimplementation of the quare-brackets call: pg = PGM[key]"""
+        Reimplementation of the square-brackets call: pg = PGM[key]"""
         active = []
         for key in self._parmgroups.keys():
             pg = self._parmgroups[key]
@@ -119,21 +156,11 @@ class ParmGroupManager (Meow.Parameterization):
         # Finished:
         return active
 
-    #---------------------------------------------------------------
+    #-------------------------------------------------------------------
 
-    def nodescope (self, ns=None):
-        """Get/set the internal nodescope (can also be a node)"""
-        if ns:
-            if is_node(ns):
-                self.ns = ns.QualScope()        
-            else:
-                self.ns = ns
-            # Pass the new nodescope on to its parmgroup(s):
-            for key in self._parmgroups.keys():
-                self._parmgroups[key].nodescope(self.ns)         
-        # Always return the current nodescope:
-        return self.ns
-
+    def cleanup (self):
+        """Remove the inactive (unused) ParmGroups"""
+        return True
 
 
     #===============================================================
@@ -144,11 +171,13 @@ class ParmGroupManager (Meow.Parameterization):
         """Return a one-line summary of this object"""
         ss = 'Grunt.ParmGroupManager:'
         ss += '  (name='+str(self.name)+')'
-        ss += '  ('+str(self.ns['<>'].name)+')'
+        if self._solvermenu:
+            ss += '  (solvermenu='+str(self._solvermenu)+')'
+        # ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
-    def display(self, txt=None, full=False, recurse=3, OM=True, pg=False, level=0):
+    def display(self, txt=None, full=False, recurse=3, OM=False, pg=False, level=0):
         """Print a summary of this object"""
         prefix = '  '+(level*'  ')+'PGM'
         if level==0: print
@@ -156,19 +185,17 @@ class ParmGroupManager (Meow.Parameterization):
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
-        print prefix,'  * Grunt _parmgroups ('+str(len(self._parmgroups))+'):'
-        for key in self._parmgroups:
+        print prefix,'  * Grunt parmgroups ('+str(len(self._parmgroups))+'):'
+        for key in self._order:
             pg = self._parmgroups[key]
             if pg.active():
                 print prefix,'    - ('+key+'): '+str(pg.oneliner())
             else:
                 print prefix,'    - ('+key+'):   ... not active ...'
         #...............................................................
-        print prefix,'  * Simuldev expressions (mode==simulate only):'
-        for key in self._parmgroups:
-            pg = self._parmgroups[key]
-            if pg.mode()=='simulate':
-                print prefix,'    - ('+key+'): '+pg._OM['simuldev']
+        print prefix,'  * mode(s) (mode='+str(self._mode)+'):'
+        for key in self._modes_order:
+            print prefix,'    - ('+str(key)+'): '+str(self._modes[key])
         #...............................................................
         print prefix,'  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
         for key in self.gogs():
@@ -181,27 +208,8 @@ class ParmGroupManager (Meow.Parameterization):
             if full:
                 for v in vv: print prefix,'    - '+str(type(v))+' '+str(v)
         #...............................................................
-        if self._parmdefs:
-            print prefix,'  * Meow _parmdefs ('+str(len(self._parmdefs))+') (value,tags,solvable):'
-            if full:
-                for key in self._parmdefs:
-                    rr = list(deepcopy(self._parmdefs[key]))
-                    rr[0] = str(rr[0])
-                    print prefix,'    - ('+key+'): '+str(rr)
-            print prefix,'  * Meow.Parm options (in _parmdefs):'
-            if full:
-                for key in self._parmdefs:
-                    value = self._parmdefs[key][0]
-                    if isinstance(value, Meow.Parm):
-                        print prefix,'    - ('+key+'): (='+str(value.value)+') '+str(value.options)
-            print prefix,'  * Meow _parmnodes ('+str(len(self._parmnodes))+'):'
-            if full:
-                for key in self._parmnodes:
-                    rr = self._parmnodes[key]
-                    print prefix,'    - ('+key+'): '+str(rr)
-        #...............................................................
-        print prefix,'  * '+self._OM.oneliner()
-        if OM: self._OM.display(full=False, level=level+1)
+        print prefix,'  * '+self._OMI.oneliner()
+        if OM: self._OMI.display(full=False, level=level+1)
         #...............................................................
         if pg: self.pg_display(OM=OM, level=level+1)
         #...............................................................
@@ -218,22 +226,57 @@ class ParmGroupManager (Meow.Parameterization):
         return True
 
 
+
     #===============================================================
-    # - Parmgroups are designed for the common case of
-    # groups of similar parameters, like the station phases of a set
-    # of Jones matrices. The latter are encapsulated in a Joneset22
-    # object, which is derived (via the class Matrixett22) from
-    # ParmGroupManager.
-    # - A parmgroup (e.g. Gphase) must first be defined, together with
-    # the various attributes (tags, default value, etc) that its members
-    # have in common. Individual members (MeqParm nodes or subtrees that
-    # simulate their behaviour) of such a group are created with extra
-    # nodename qualifier(s).
-    # - The members (nodes/subtrees) of a parmgroup may be obtained
-    # (e.g. for solving) and/or manipulated (e.g. visualized) as a group.
+    # Its TDL options:
     #===============================================================
 
+    def make_TDLCompileOptionMenu (self, **kwargs):
+        """Make the TDL menu of Compile-time options.
+        NB: the ParmGroup options will be included automatically
+        """
+        return self._OMI._OM.make_TDLCompileOptionMenu(**kwargs)
+    
+    #---------------------------------------------------------------
 
+    def define_mode_option(self, doc='<no help available>',
+                           prompt='select parameterization mode'):
+        """Define TDL option that selects the parameterization mode (if any).
+        NB: This function should be called AFTER all ParmGroups
+        have been defined (see .add_ParmGroup())
+        """
+        modes = self._modes_order
+        if len(modes)>0:
+            self._OMI.defopt('mode', modes[0], opt=modes,
+                             callback=self._callback_mode,
+                             prompt=prompt, doc=doc)
+        return True
+
+    #...............................................................
+
+    def _callback_mode (self, mode):
+        """Called whenever option 'mode' changes"""
+        self._mode = mode
+        for key in self._order:
+            self._parmgroups[key].hide()
+        for key in self._modes[self._mode]:
+            self._parmgroups[key].hide(hide=False)
+        return True
+
+    #-------------------------------------------------------------------
+
+    def modes_order(self):
+        """Get an ordered list of the available modes"""
+        return self._modes_order
+
+    def mode(self):
+        """Get the current mode..."""
+        return self._mode
+
+
+    #===============================================================
+    # ParmGroups:
+    #===============================================================
 
     def parmgroups (self):
         """Return a list of names of the available parmgroups"""
@@ -248,65 +291,69 @@ class ParmGroupManager (Meow.Parameterization):
             raise ValueError, s
         return False
 
-    #...............................................................
-
-    def groups (self):
-        """Older call, not recommended (use .parmgroups())"""
-        return self.parmgroups()
-
-    def has_group (self, key, severe=False):
-        """Older call, not recommended (use .has_parmgroup())"""
-        return self.has_parmgroup(key=key, severe=severe)
-
 
     #---------------------------------------------------------------
 
-    def define_parmgroup (self, key, tags=None,
-                          descr='<descr>', unit=None,
-                          default=0.0,
-                          constraint=dict(min=None, max=None),
-                          simuldev=None,
-                          tiling=None, time_deg=0, freq_deg=0,
-                          mode='nosolve'):
-        """Define a named (key) group of similar parameters"""
+    def add_ParmGroup (self, key, mode=None,
+                       submenu=None, solvermenu=None,
+                       **kwargs):
+        """Create a ParmGroup with the specified arguments,
+        and add it to the internal repository"""
 
         # Check whether the group exists already:
         if self._parmgroups.has_key(key):
             s = '** duplicate parmgroup definition: '+str(key)
             raise ValueError,s
 
-        # Some added value:
-        tags = self.tags2list(tags)
+        # If not supplied explicitly, use the solvermenu that was
+        # specified by the constructor (which may also be None):
+        if not isinstance(solvermenu, str):
+            solvermenu = self._solvermenu
+
+        if not isinstance(kwargs, dict):
+            kwargs = dict()
+        kwargs.setdefault('tags', [])
+
         if True:
-            if self.name:
-                if not self.name in tags:
-                    tags.append(self.name)    
+            # Some added value:
+            tags = self.tags2list(kwargs['tags'])
+            if True:
+                if self.name:
+                    if not self.name in tags:
+                        tags.append(self.name)    
+            kwargs['tags'] = tags
 
         # Create the ParmGroup:
-        pg = ParmGroup.ParmGroup (self.ns, key, tags=tags,
-                                  namespace=self.name,
-                                  descr=descr, unit=unit,
-                                  default=default,
-                                  constraint=constraint,
-                                  simuldev=simuldev,
-                                  tiling=tiling,
-                                  time_deg=time_deg,
-                                  freq_deg=freq_deg,
-                                  mode=mode)
-        
+        pg = ParmGroup.ParmGroup (self.ns, key,
+                                  submenu=self._OMI._submenu,
+                                  solvermenu=self._solvermenu,
+                                  OM=self._OMI._OM,
+                                  namespace=None,
+                                  **kwargs)
+
+        # Add the new ParmGroup to the repository:
+        self._order.append(key)
         self._parmgroups[key] = pg
 
-        # Change the option list of the 'tobesolved' option:
-        opt = []
-        self._make_gogs()
-        opt.extend(self._parmgogs.keys())
-        # opt.extend(self.active_groups())
-        if not None in opt: opt.append(None)
-        self._OM.modify ('tobesolved', opt=opt)
+        # A ParmGroup may belong to one or more 'modes':
+        if isinstance(mode,str):
+            mode = [mode]
+        if isinstance(mode, (list,tuple)):
+            for m1 in mode:
+                if isinstance(m1,str):
+                    if not self._modes.has_key(m1):
+                        self._modes[m1] = []
+                        self._modes_order.append(m1)
+                    self._modes[m1].append(key)
 
+        # Finished:
         return key
 
+    #-------------------------------------------------------------------
 
+    def order(self, active=True):
+        """Get an ordered list of the available parmgroup keys"""
+        return self._order
 
     #-------------------------------------------------------------------
 
@@ -321,104 +368,6 @@ class ParmGroupManager (Meow.Parameterization):
         if isinstance(PHz,str):
             s += ' * sin(2*pi*([f]/'+PHz+'+{0~1}))'
         return s
-
-
-
-    #===================================================================
-    # TDLOptions:
-    #===================================================================
-
-    def make_TDLCompileOptionMenu (self, **kwargs):
-        """Make the TDLMenu of compile-time options"""
-        oolist = []
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            oolist.append(pg.make_TDLCompileOptionMenu(include_reset_option=False))        
-        return self._OM.make_TDLCompileOptionMenu(insert=oolist, **kwargs)
-    
-    def make_TDLRuntimeOptionMenu (self, **kwargs):
-        """Make the TDLMenu of runtime-time options"""
-        oolist = []
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            oolist.append(pg.make_TDLRuntimeOptionMenu(include_reset_option=False))        
-        return self._OM.make_TDLRuntimeOptionMenu(insert=oolist, **kwargs)
-    
-    #.........................................................................
-
-    def define_options(self, tobesolved=None):
-        """Define the various options in its OptionManager object"""
-        key = 'tobesolved'
-        doc = 'the selected groups will be solved simultaneously'
-        self._OM.define(key, tobesolved,
-                        prompt='PGM: solve for parmgroup(s)/parmgog(s)',
-                        callback=self._callback_tobesolved,
-                        opt=[None], more=str, doc=doc)
-        # NB: The option-list of 'tobesolved' is updated after each
-        #     ParmGroup definition. See .define_parmgroup()
-        return True
-    
-    #.........................................................................
-
-    def _callback_tobesolved (self, tobs):
-        """Called whenever option 'tobesolved' is changed"""
-        keys = self.find_parmgroups(tobs, severe=True)
-        # Set the mode of selected groups (is this the desired behaviour...?)
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            if pg.active():
-                if key in keys:
-                    pg._OM.set_value('mode', 'solve')
-                else:
-                    pg._OM.set_value('mode', 'nosolve')
-        return True
-
-    #.........................................................................
-
-    def TDLShowActive (self):
-        """Show the TDL options for the 'active' parmgroup(s), and hide the rest.
-        Also redefine the parmgogs, and update the relevant TDL options."""
-
-        # First show/hide the parmgroups:
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            pg._OM.show(pg.active())
-                
-        # Then update the option list of option 'tobesolved':
-        self._make_gogs()
-        key = 'tobesolved'
-        if self._OM.TDLOption(key):
-            oo = self._OM.TDLOption(key)
-            value = oo.value
-            newopt = [None]
-            newopt.extend(self._parmgogs.keys())
-            if False:
-                for key in self._parmgogs.keys():
-                    if len(self._parmgogs[key])>1:
-                        newopt.append(key)
-                newopt.extend(self.active_groups())
-            if value in newopt:
-                oo.set_option_list(newopt, conserve_selection=True)
-            else:
-                index = 0         # index of first value (None)
-                oo.set_option_list(newopt, select=index)
-
-        # Finished:
-        return True
-
-    #.....................................................................
-
-    def reset_options(self, trace=False):
-        """Helper function to reset the TDLCompileOptions and their local
-        counterparts to the original default values (in self.tdloption_reset).
-        Recursive: It calls the same function for its parmgroups.
-        """
-        self._OM.reset_options(trace=trace)
-        # Recursive:
-        for key in self._parmgroups:
-            self._parmgroups[key]._OM.reset_options(trace=trace)
-        return True
-        
 
 
     #===============================================================
@@ -612,7 +561,8 @@ class ParmGroupManager (Meow.Parameterization):
     #------------------------------------------------------------------------
 
     def find_parmgroups (self, groups, severe=True, trace=False):
-        """Helper function to covert the specified groups (parmgroups or gogs)
+        """
+        Helper function to covert the specified groups (parmgroups or gogs)
         into a list of existing parmgroup names. If severe==True, stop if error.
         """
         # First make sure that the selection is a list (of names):
@@ -825,16 +775,6 @@ class ParmGroupManager (Meow.Parameterization):
         return quals
 
 
-    #===============================================================
-    # Some extra functionality for Meow.Parameterization 
-    #===============================================================
-
-    def modify_default (self, key):
-        """Modify the default value of the specified (key) parm"""
-        # Not yet implemented..... See Expression.py
-        return False
-
-
 
 
 
@@ -914,19 +854,33 @@ class ParmGroupManager (Meow.Parameterization):
 # Test routine (with meqbrowser):
 #=============================================================================
 
-
-if 1:
+PGM = None
+if 0:
     PGM = ParmGroupManager(name='GJones',
-                           namespace='ParmGroupManagerNamespace')
-    PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')
-    PGM.define_parmgroup('Ggain', default=1.0, freq_deg=2)
+                           solvermenu='compile.something.solver',
+                           namespace='PGMN')
+    PGM.add_ParmGroup('Gphase', mode='amphas', time_tiling=3, freq_tiling=6, sum=0.1)
+    PGM.add_ParmGroup('Ggain', mode='amphas', default=1.0, freq_deg=2, product=0.9)
+    PGM.add_ParmGroup('Greal', mode=['realimag','special'], default=1.0)
+    PGM.add_ParmGroup('Gimag', mode='realimag')
+    PGM.define_mode_option()
     PGM.make_TDLCompileOptionMenu()
-    PGM.display('initial')
+    PGM.display('outside')
 
 
 
 def _define_forest(ns):
 
+
+    global PGM
+    if not PGM:
+        PGM = ParmGroupManager(name='GJones',
+                               namespace='PGMN')
+        PGM.add_ParmGroup('Gphase', time_tiling=3)
+        PGM.add_ParmGroup('Ggain', default=1.0, freq_deg=2)
+        PGM.make_TDLCompileOptionMenu()
+        PGM.display('initial')
+        
     cc = []
     PGM.nodescope(ns)
 
@@ -934,7 +888,7 @@ def _define_forest(ns):
         PGM['Gphase'].create_member(1)
         PGM['Gphase'].create_member(2.1, value=(ns << -89))
         PGM['Gphase'].create_member(2, value=34)
-        PGM['Gphase'].create_member(3, tiling=5, mode='simulate')
+        PGM['Gphase'].create_member(3, time_tiling=5)
         PGM['Gphase'].create_member(7, freq_deg=2)
 
     if 1:
@@ -952,20 +906,20 @@ def _define_forest(ns):
         nn.bookpage(select=4)
         
 
-    PGM.display('final', full=True)
-    if 1:
+    PGM.display('final', full=False)
+    if 0:
         PGM.pg_display(full=True)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
-    PGM.make_TDLRuntimeOptionMenu()
+    # PGM.make_TDLRuntimeOptionMenu()
     return True
 
 
 
 #---------------------------------------------------------------
 
-def _tdl_job_2D_tf (mqs, parent):
+def _tdl_job_execute (mqs, parent):
     """Execute the forest with a 2D request (freq,time), starting at the named node"""
     domain = meq.domain(1.0e8,1.1e8,0,2000)                            # (f1,f2,t1,t2)
     cells = meq.cells(domain, num_freq=10, num_time=100)
@@ -994,12 +948,16 @@ if __name__ == '__main__':
 
     if 1:
         PGM = ParmGroupManager(ns, 'GJones')
-        PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')
-        PGM.define_parmgroup('Ggain', default=1.0, freq_deg=2)
-        if 1:
-            PGM.make_TDLCompileOptionMenu()
+        PGM.add_ParmGroup('Gphase', mode='amphas')
+        PGM.add_ParmGroup('Ggain', mode='amphas')
+        PGM.add_ParmGroup('Greal', mode='realimag')
+        PGM.add_ParmGroup('Gimag', mode='realimag')
         PGM.display('initial')
 
+    if 1:
+        for mode in PGM.mode_order():
+            PGM.select_mode(mode, trace=True)
+        PGM.select_mode(trace=True)
 
     if 0:
         print PGM['Gphase'].oneliner()
@@ -1009,7 +967,7 @@ if __name__ == '__main__':
         PGM['Gphase'].create_member(1)
         PGM['Gphase'].create_member(2.1, value=(ns << -89))
         PGM['Gphase'].create_member(2, value=34)
-        PGM['Gphase'].create_member(3, tiling=5, mode='solve')
+        PGM['Gphase'].create_member(3, time_tiling=5)
         PGM['Gphase'].create_member(7, freq_deg=2)
 
     if 0:

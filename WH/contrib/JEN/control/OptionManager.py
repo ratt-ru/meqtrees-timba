@@ -397,7 +397,8 @@ class OptionManager (object):
                 if self.menu.has_key(menukey):
                     s = '** create('+str(menukey)+'): menu already exists'
                     raise ValueError,s
-                self.set_menurec(menukey, create=True, prompt=ss[0])  
+                # self.set_menurec(menukey, create=True, prompt=ss[0])  
+                self.create_menurec(menukey, prompt=ss[0])  
                 self.menu[menukey] = None
                 self.menu_order.append(menukey)
                 rr.setdefault('_menukey_',None)          # just in case
@@ -456,27 +457,39 @@ class OptionManager (object):
 
     #---------------------------------------------------------------------
 
+    def create_menurec (self, key, prompt=None, stare=None, descr=None,
+                        toggle=None, callback=None, selected=None,
+                        create=False, trace=False):
+        """Create a new menu definition record (menurec).
+        NB: Should be called ONLY from .create() above.
+        """
+        if self.menurec.has_key(key):           # exists already
+            pass                                # ...test...?   
+        self.menurec[key] = dict(prompt=prompt,
+                                 stare=None, descr='<descr>',
+                                 option_keys=[], selected=None,
+                                 toggle=False, tkey=None, callback=None)
+        return self.menurec[key]
+        
+    #----------------------------------------------------------------------------
+
     def set_menurec (self, key, prompt=None, stare=None, descr=None,
                      toggle=None, callback=None, selected=None,
-                     create=False, trace=False):
+                     trace=False):
         """Helper function to get the attribute record of the specified (key) menu.
         If prompt, toggle or callback are specified, set them in this record first.
         """
 
-        # Misuse this function to create/initialize a menu record
-        if create:
-            # Check existence first?
-            self.menurec[key] = dict(prompt=prompt,
-                                     stare=None, descr='<descr>',
-                                     option_keys=[], selected=None,
-                                     toggle=False, tkey=None, callback=None)
-            return self.menurec[key]
-        
-        # The regular use of this function: update existing (if any): 
+        # The regular use of this function: update existing (if any):
+        keyin = key
         key = self.findkey(key, self.menu_order, complete=True, one=False)
-        if not len(key)==1:
+        if len(key)==0:
+            print '\n** .set_menurec(',keyin,'): ignored(noexist): ',key
             return False             # menu does not exist, just escape
-        key = key[0]
+        elif not len(key)==1:
+            print '\n** .set_menurec(',keyin,'): ignored(multiple!): ',len(key),key
+            return False             # menu is not unambiguous, just escape
+        key = key[0]                 # .findkey() always returns a list
         
         if isinstance(prompt,str):
             self.menurec[key]['prompt'] = prompt 
@@ -492,6 +505,8 @@ class OptionManager (object):
             self.menurec[key]['selected'] = selected
             if self.menu[key]:
                 self.menu[key].set_value(selected, callback=False)
+        if False:
+            print '\n** .set_menurec(',key,'):\n    -> ',self.menurec[key],'\n'
         return self.menurec[key]
         
 
@@ -502,6 +517,9 @@ class OptionManager (object):
 
     def is_selected (self, key, trace=False):
         """Check whether the selected menu is selected"""
+        if not self.menurec.has_key(key):
+            print '\n** menurec[',key,'] does not exist....\n'
+            return False
         menurec = self.menurec[key]
         return menurec['selected']
         

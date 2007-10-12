@@ -69,38 +69,46 @@ class OMInterface (object):
         self._kwargs = kwargs
         if not isinstance(self._kwargs, dict):
             self._kwargs = dict()
-        self._kwargs.setdefault('default', dict())
-        self._kwargs.setdefault('constant', dict())
-        self._kwargs.setdefault('toggle_box', False)
         
         #................................................................
 
         # Normally, an object like a ParmGroup will define a number of
         # standard options, with standard defaults. When creating such
         # an object, the default values may be modified by providing
-        # a named field in the 'default' argument of the constructor.
+        # a named field in the 'default' argument of the constructor
+        # (or even as regular keyword arguments with the same name!).
         # The constructor should then pass this to its self._OMInterface,
         # (i.e. this one). This will then modify the 'standard' default
         # value given in .defopt(). This value may then be modified by
         # the user, which is the value that stored in the .tdlconf file.
         # It is also the value that is used by the OM 'reset' operation.
 
-        self._default = self._kwargs['default']
-        if not isinstance(self._default,dict):
-            self._default = dict()
+        self._default = dict()
+        if self._kwargs.has_key('default') and isinstance(self._kwargs['default'],dict):
+            self._default = self._kwargs['default']
+        else:
+            ignore = ['toggle_box']
+            for key in self._kwargs.keys():
+                if key in ignore:
+                    pass
+                elif isinstance(self._kwargs[key],dict):
+                    pass
+                else:
+                    self._default[key] = self._kwargs[key]
 
         # An option default value may be set to a constant by providing
         # a named field in the 'constant' argument of the constructor.
         # The constructor should then pass this to its self._OMInterface,
         # (i.e. this one) which will deal with it. See .defopt()
 
-        self._constant = self._kwargs['constant']
-        if not isinstance(self._constant,dict):
-            self._constant = dict()
+        self._constant = dict()
+        if self._kwargs.has_key('constant') and isinstance(self._kwargs['constant'],dict):
+            self._constant = self._kwargs['constant']
 
         #................................................................
 
         # Control of toggle-box(es) before menu(s)
+        self._kwargs.setdefault('toggle_box', False)
         self._toggle_box = False
         self._toggle_group = []
 
@@ -146,24 +154,30 @@ class OMInterface (object):
         # Make a short (but recognisable) menu-name, to avoid clutter:
         ss = ''
         ncmax = 10
-        if len(name)<ncmax:
-            ss = name
+        if len(name)<ncmax:          # name is short already
+            ss = name                # use it entirely
         else:
-            # Make the short name from all chars ubtil the 2nd capital,
+            # Make the short name from all chars until the 2nd capital,
             # followed by the subsequent capitals and numbers.
             # So the short name will look like: TApplyU or DemoR
             capitals = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             numbers = '01234567890'
             capcount = 0
+            subcount = 0
             for char in name:
                 if (char in capitals):
                     capcount += 1
                     ss += char
+                    subcount = 0
                 elif (char in numbers):
                     ss += char
+                    subcount = 0
                 elif capcount==2:
                     ss += char
-                # print '-',char,capcount,'->',ss
+                elif subcount==0:
+                    ss += char
+                    subcount += 1
+                # print '-',char,capcount,subcount,'->',ss
             if len(ss)==0:
                 ss = name[:ncmax]
         self._shortname = ss
@@ -295,22 +309,26 @@ class OMInterface (object):
     #--------------------------------------------------------------------------
 
     def display_value(self, v, name='<name>', prefix='*'):
-        """Helper function"""
-        print prefix,'  * '+str(name)+' type = '+str(type(v))
+        """Helper function to display a value in .display()"""
+        print prefix,'  * '+str(name)+' type = '+str(type(v)),
         midfix = '     -' 
         if is_node(v):
-            print prefix,midfix,str(v)
+            print str(v)
             # self.display_subtree(v) 
         elif getattr(v, 'oneliner', None):
+            print
             print prefix,midfix,v.oneliner()
-        elif isinstance(v, list):
-            print prefix,midfix,' list length ='+str(len(v))
+        elif isinstance(v, (list,tuple)):
+            print ' (len='+str(len(v))+')'
+            for (k,v1) in enumerate(v):
+                if getattr(v1, 'oneliner', None):
+                    print prefix,midfix,k,':',v1.oneliner()
         elif isinstance(v, dict):
-            print prefix,midfix,' dict keys ='+str(v.keys())
+            print ' keys: '+str(v.keys())
         else:
-            print prefix,midfix,'=',str(v)
+            print '=',str(v)
         return True
-    
+
     #-------------------------------------------------------------------------
 
     def display_preamble(self, prefix='OMI', level=0, txt=None):
@@ -389,21 +407,29 @@ class OMInterface (object):
                 trace=False):
         """Encapsulation of self._OM.define(). It allows central completion
         of the option name, and the interaction with constructor kwargs.
-        If the option name is a field in self._default, the default value
-        will be changed. If it is a field in self._cosntant, the option
-        value will be changed, and the option itself will be disabled.
+        - If the option name is a field in self._default, the default value
+        will be changed.
+        - If it is a field in self._constant, the default value will be changed,
+        and the option itself will be disabled (so it cannot be changed).
+        See the constructor for the provenance of self._default and self._constant.
         """
         was = default
         if name in self._default.keys():
-            default = self._default[name]
-            print '\n** .defopt(',name,'): =',was,'->',default,'\n'
-
+            new = self._default[name]
+            if isinstance(new, dict):
+                pass                        # issue a warning message...?
+            else:
+                default = new
+                if trace:
+                    print '\n** .defopt(',name,'): =',was,'->',default,'\n'
+            
         disable = None
         if name in self._constant.keys():
             disable = True
             default = self._constant[name]
             insist = default
-            print '\n** .defopt(',name,'): =',was,'->',default,'\n'
+            if trace:
+                print '\n** .defopt(',name,'): =',was,'->',default,'\n'
 
         self._OM.define(self.optname(name, slavemenu=slavemenu),
                         default, insist=insist, opt=opt, more=more,
@@ -485,26 +511,32 @@ class OMInterface (object):
                      prompt=None, stare=None, descr=None,
                      toggle=None, callback=None, selected=None,
                      slavemenu=False,
-                     create=False, trace=False):
+                     trace=False):
         """Set values in the specified menurec"""
         menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
         return self._OM.set_menurec(menu, prompt=prompt,
                                     stare=stare, descr=descr,
                                     toggle=toggle, callback=callback,
                                     selected=selected,
-                                    create=create, trace=trace)
+                                    trace=trace)
 
     #--------------------------------------------------------------------
 
-    def make_toggle_box (self, postfix=None, slavemenu=False):
-        """Make a toggle box before the specified menu, if required.
+    def make_toggle_box (self, postfix=None, slavemenu=False,
+                         select=False, create=True):
+        """
+        Make a toggle box in front of the specified menu, if required.
+        If create==True, make sure that the menurec exists first.
         """
         menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
+        # print '\n** .make_toggle_box(',postfix,slavemenu,'): menu =',menu, self._toggle_box, self._kwargs['toggle_box']
         if not self._toggle_box:
             if self._kwargs['toggle_box']:
                 self._toggle_box = True
+                if create and not self._OM.menurec.has_key(menu): 
+                    self.defopt('toggle_box_placeholder',-123)
                 return self._OM.set_menurec(menu, toggle=True,
-                                            # selected=selected,
+                                            selected=select,
                                             callback=self._callback_toggle)
 
     #....................................................................
@@ -514,7 +546,12 @@ class OMInterface (object):
         trace = False
         if trace:
             print '\n** _callback_toggle(',selected,'):',self.name
-        if selected:
+        # Special case: if the parent object is a member of a toggle group,
+        # one, and only one member of this group must be selected always.
+        # This means that it is not possible to deselect the currently
+        # selected one, so 'selected' must always be true:
+        if len(self._toggle_group)>0:
+            selected = True
             # NB: A toggle group contains OMI objects!
             for OMI in self._toggle_group:
                 if trace: print ' --',OMI.oneliner()
