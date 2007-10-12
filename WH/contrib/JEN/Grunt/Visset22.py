@@ -6,6 +6,7 @@
 # - 26mar2007: adapted for QualScope
 # - 07jun2007: adapted to ParameterizationPlus
 # - 17jul2007: adapted to ._pgm.
+# - 08oct2007: _pgm -> _PGM
 
 # Description:
 
@@ -381,9 +382,9 @@ class Visset22 (Matrixet22.Matrixet22):
             qnode(*ifr) << Meq.MatrixMultiply(j1,self._matrixet(*ifr),j2c)
         self._matrixet = qnode              
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        self._pgm.merge_accumulist(joneset)
+        self._PGM.merge_accumulist(joneset)
         # Transfer any parmgroups (used by the solver downstream)
-        self._pgm.merge(joneset)                                    
+        self._PGM.merge(joneset)                                    
         if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
@@ -420,9 +421,9 @@ class Visset22 (Matrixet22.Matrixet22):
         if pgm_merge:
             # Transfer any parmgroups (used by the solver downstream)
             # NB: Only True for redundancy-solution (see WSRT_redun.py)
-            self._pgm.merge(joneset)
+            self._PGM.merge(joneset)
         # Transfer any accumulist entries (e.g. visualisation dcolls etc)
-        self._pgm.merge_accumulist(joneset)
+        self._PGM.merge_accumulist(joneset)
         if visu: return self.visualize(visu, quals=self.stagename())
         return None
 
@@ -440,7 +441,7 @@ class Visset22 (Matrixet22.Matrixet22):
         # so that it will get the last request before the main-stream is addressed.
         if visu: self.visualize(visu, quals=self.stagename())
         
-        cc = self._pgm.accumulist(key=key, clear=False)
+        cc = self._PGM.accumulist(key=key, clear=False)
         n = len(cc)
         if n>0:
             cc.append('placeholder')

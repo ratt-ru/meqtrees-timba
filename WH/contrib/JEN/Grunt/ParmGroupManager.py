@@ -914,7 +914,7 @@ class ParmGroupManager (Meow.Parameterization):
 #=============================================================================
 
 
-if 1:
+if 0:
     PGM = ParmGroupManager(name='GJones',
                            namespace='ParmGroupManagerNamespace')
     PGM.define_parmgroup('Gphase', tiling=3, mode='nosolve')

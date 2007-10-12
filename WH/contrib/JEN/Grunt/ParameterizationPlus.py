@@ -295,7 +295,7 @@ class ParameterizationPlus (Meow.Parameterization):
 #=============================================================================
 
 
-if 1:
+if 0:
     pp1 = ParameterizationPlus(name='GJones', quals='3c84')
     pp1._PGM.display('initial')
     if 0:
