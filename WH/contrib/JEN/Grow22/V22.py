@@ -1,11 +1,11 @@
-# file: ../JEN/Grow/M22.py
+# file: ../JEN/Grow/V22.py
 
 # History:
-# - 17sep2007: creation (from Twig.py)
+# - 06oct2007: creation (from M22.py)
 
 # Description:
 
-"""The M22 class encapsulates the Grunt.Matrixt22 class.
+"""The V22 class encapsulates the Grunt.Matrixt22 class.
 """
 
 
@@ -39,49 +39,50 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import Growth
-from Timba.Contrib.JEN.Grunt import Matrixet22
+from Timba.Contrib.JEN.Grow22 import M22
+from Timba.Contrib.JEN.Grunt import Visset22
 from Timba.Contrib.JEN.control import Executor
 
+import Meow
 
 
 
 #=============================================================================
 #=============================================================================
 
-class M22(Growth.Growth):
-    """Base-class for M22Something classes, itself derived from Growth"""
+class V22(M22.M22):
+    """Base-class for V22Something classes, itself derived from M22"""
 
     def __init__(self, quals=None,
-                 name='M22',
+                 name='V22',
                  submenu='compile',
                  OM=None, namespace=None,
                  **kwargs):
 
-        Growth.Growth.__init__(self, quals=quals,
-                               name=name,
-                               submenu=submenu,
-                               OM=OM, namespace=namespace,
-                               **kwargs)
+        M22.M22.__init__(self, quals=quals,
+                         name=name,
+                         submenu=submenu,
+                         OM=OM, namespace=namespace,
+                         **kwargs)
 
         return None
 
 
     #====================================================================
-    # M22-specific re-implementations of some generic functions in
-    # the base-class Growth.py
+    # V22-specific re-implementations of some generic functions in
+    # the base-class M22.py
     #====================================================================
 
     def derivation_tree (self, ss, level=1):
         """Append the formatted derivation tree of this object to the string ss. 
         """
-        ss += self.help_format(Growth.Growth.grow.__doc__, level=level)
-        ss = Growth.Growth.derivation_tree(self, ss, level=level+1)
+        ss += self.help_format(M22.M22.grow.__doc__, level=level)
+        ss = M22.M22.derivation_tree(self, ss, level=level+1)
         return ss
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = Growth.Growth.oneliner(self)
+        ss = M22.M22.oneliner(self)
         return ss
     
 
@@ -89,7 +90,7 @@ class M22(Growth.Growth):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
-        Growth.Growth.display(self, full=full,
+        M22.M22.display(self, full=full,
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
@@ -100,17 +101,17 @@ class M22(Growth.Growth):
 
 
     #---------------------------------------------------------------------
-    # M22-specific checking (assumes single-node input/result):
+    # V22-specific checking (assumes single-node input/result):
     #--------------------------------------------------------------------
 
     def check_input (self, input, severe=True, trace=False):
         """Function called by the generic function .on_input()
-        (see Growth.py) to check the input to .grow().
-        It checks whether self._input is a Matrixet22 object.
+        (see M22.py) to check the input to .grow().
+        It checks whether self._input is a Visset22 object.
         This routine should return True (OK) or False (not OK).
         """
-        if not isinstance(input, Matrixet22.Matrixet22):
-            s = 'input is not a Matrixet22, but: '+str(type(input))
+        if not isinstance(input, Visset22.Visset22):
+            s = 'input is not a Visset22, but: '+str(type(input))
             if severe:
                 raise ValueError,s
             else:
@@ -121,18 +122,18 @@ class M22(Growth.Growth):
 
     def check_result (self, result=None, severe=True, trace=False):
         """Function called by the generic function .on_result()
-        (see Growth.py) to check the result of .grow().
-        It checks whether the result is a Matrixet22 object.
+        (see M22.py) to check the result of .grow().
+        It checks whether the result is a Visset22 object.
         """
 
-        # Default: the Matrixet22 object is passed on:
+        # Default: the Visset22 object is passed on:
         if result==None:
             result = self._input
             if isinstance(result, list):
                 result = result[0]
-
-        if not isinstance(result, Matrixet22.Matrixet22): 
-            s = 'result is not a valid Matrixet22'
+        
+        if not isinstance(result, Visset22.Visset22): 
+            s = 'result is not a valid Visset22'
             print s,'\n'
             if severe:
                 raise ValueError,s
@@ -142,98 +143,27 @@ class M22(Growth.Growth):
         return result
 
 
-    #--------------------------------------------------------------------
-    # M22-specific interaction with the data-description record:
-    #--------------------------------------------------------------------
-
-    def datadesc (self, merge=None, is_complex=None, dims=None, trace=False):
-        """Return the data-description record.
-        If another datadesc (merge) is specified, update the local one.
-        """
-        rr = self._datadesc                                 # convenience
-        if isinstance(merge, dict):
-            if merge['is_complex']: rr['is_complex'] = True
-        else:
-            if isinstance(is_complex, bool):
-                rr['is_complex'] = is_complex
-            if dims:
-                rr['dims'] = dims
-        # Always update the derived quantity nelem (nr of tensor elements):
-        rr['nelem'] = 1
-        for nd in rr['dims']:
-            rr['nelem'] *= nd
-        if trace:
-            print '** datadesc(',merge,is_complex,dims,'): ',str(self._datadesc)
-        return self._datadesc
-    
-
-    #---------------------------------------------------------------------
-    # M22-specific visualization:
-    #--------------------------------------------------------------------
-
-    def define_visu_options(self):
-        """Specific function for adding visualization option(s) to the
-        visualisation submenu. This version is suitable for derived
-        classes that have nodes for input and result. It has to be
-        re-implemented for classes with other inputs/results.
-        """
-        self.defopt('misc.visu.rvsi', False,
-                    prompt='make rvsi plot',
-                    opt=[True, False],  
-                    doc="""If True, plot all matrix elements in a
-                    real-vs-imaginary plot, with different colors
-                    and styles for each of the 4 matrix elements.
-                    """)
-        self.defopt('misc.visu.inspector', None,
-                    prompt='make inspector plot',
-                    opt=[None, 'together', 'separate'],  
-                    doc="""If not None, plot the visibilities as
-                    time-tracks (a.k.a an 'inspector' plot).
-                    If 'separate', make separate inspectors
-                    for the 4 correlations.
-                    """)
-        return True
-
-    #--------------------------------------------------------------------
-
-    def visualize (self, result, trace=False):
-        """Specific visualization, as specified in .define_visu_options().
-        This default version is suitable for those cases where the input
-        and the result are nodes. It has to be reimplemented by derived
-        classes that have other types of input/result.
-        Note that the result may be modified ('grown') in the process.
-        """
-        if getattr(result, 'visualize', None):
-            rvsi = self.optval('misc.visu.rvsi')
-            if rvsi:
-                result.visualize(visu='rvsi')
-            inspector = self.optval('misc.visu.inspector')
-            if inspector:
-                separate = (inspector=='separate')
-                result.visualize(visu='timetracks', separate=separate)
-            # result.visualize(visu='straight')
-
-        # Return the (possibly grown) result: 
-        return result
-
 
 
 
     
     #====================================================================
     # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived M22 classes) 
+    # (These must be re-implemented in derived V22 classes) 
     #====================================================================
 
     def define_compile_options(self, trace=False):
         """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived M22 classes. 
+        This function must be re-implemented in derived V22 classes. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-
+        self._OMI.defopt('num_stations', 3, opt=[3,4,5,8,14],
+                         prompt='nr of stations')
+        self._OMI.defopt('stddev', 0.1, opt=[0.1,0.0,1.0],
+                         prompt='stddev noise')
         #..............................................
         return self.on_exit(trace=trace)
 
@@ -242,20 +172,35 @@ class M22(Growth.Growth):
     #--------------------------------------------------------------------
 
     def grow (self, ns, test=None, trace=False):
-        """The M22 class is derived from the Growth class.
-        It is a layer around the Grunt.Matrixet22 class, which encapsulates
-        a set of 2x2 complex matrices (e.g. visibilities, or Jones matrices).
+        """The V22 class is derived from the M22 class.
+        It is a layer around the Grunt.Visset22 class, which encapsulates
+        a set of 2x2 complex cohaerency matrices (i.e. visibilities).
         """
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
-        # simulate = self.optval('simulate', test=test)
 
-        result = Matrixet22.Matrixet22(ns)
-        result.test(simulate=True)
+        num_stations = self._OMI.optval('num_stations', test=test)
+        stddev = self._OMI.optval('stddev', test=test)
+        
+        ANTENNAS = range(1,num_stations+1)
+        array = Meow.IfrArray(ns,ANTENNAS)
+        print '** array =',str(array)
+        observation = Meow.Observation(ns)
+        print '** observation =',str(observation)
+        Meow.Context.set(array, observation)
+        
+        result = Visset22.Visset22(ns, self._OMI.name,
+                                   # quals=self._OMI._quals,
+                                   polrep='linear',
+                                   array=array, cohset=None)
+        print '** result =',str(result)
 
+        result.fill_with_identical_matrices()
+        result.addGaussianNoise(stddev=stddev, visu=False)
+                   
         result.display(full=True)
 
         #..............................................
@@ -274,28 +219,30 @@ class M22(Growth.Growth):
 #=============================================================================
 
 
-m22 = None
+v22 = None
 if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    m22 = M22(has_input=False)
-    m22.make_TDLCompileOptionMenu()
-    # m22.display('outside')
+    v22 = V22(quals='xyv', has_input=False)
+    v22.make_TDLCompileOptionMenu()
+    # v22.display('outside')
 
 
 def _define_forest(ns):
 
-    global m22,xtor
-    if not m22:
+    global v22,xtor
+    if not v22:
         xtor = Executor.Executor()
-        m22 = M22(has_input=False)
-        m22.make_TDLCompileOptionMenu()
+        v22 = V22(has_input=False)
+        v22.make_TDLCompileOptionMenu()
 
     cc = []
-    mx = m22.grow(ns)
+    mx = v22.grow(ns)
+    print '** mx =',str(mx)
+    
     rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
     cc.append(rootnode)
 
@@ -319,15 +266,13 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    m22.display('_tdl_job')
+    """Just display the current contents of the V22 object"""
+    v22.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    m22.display('_tdl_job', full=True)
+    """Just display the current contents of the V22 object"""
+    v22.display('_tdl_job', full=True)
        
-
-
        
 
 
@@ -341,18 +286,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        m22 = M22(has_input=False)
-        m22.display('initial')
+        v22 = V22(has_input=False)
+        v22.display('initial')
 
     if 1:
-        m22.make_TDLCompileOptionMenu()
+        v22.make_TDLCompileOptionMenu()
 
     if 1:
         test = dict()
-        m22.grow(ns, test=test, trace=False)
+        v22.grow(ns, test=test, trace=False)
 
     if 1:
-        m22.display('final', OM=True, full=True)
+        v22.display('final', OM=True, full=True)
 
 
 
