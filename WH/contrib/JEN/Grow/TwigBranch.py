@@ -301,7 +301,7 @@ class TwigBranch(Twig.Twig):
     #---------------------------------------------------------------------------
 
     def create_Growth_objects (self, trace=False):
-        """Reimplementation of generic Growth function.
+        """Re-implementation of the generic Growth function.
         """
         submenu = self._submenu+'.Leaf'
         self._optname_selected_Leaf = 'Leaf.selected_Leaf'
@@ -323,12 +323,16 @@ class TwigBranch(Twig.Twig):
         Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
         self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu,
-                                                         OM=self._OM, toggle_box=True))
+                                                         OM=self._OM,
+                                                         toggle_box=True))
         self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu,
-                                                 OM=self._OM, toggle_box=True))
+                                                 OM=self._OM,
+                                                 toggle_box=True))
         self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu,
-                                                         OM=self._OM, toggle_box=True,
-                                                         xtor=self._xtor, dims=self._dims))
+                                                         OM=self._OM,
+                                                         toggle_box=True,
+                                                         xtor=self._xtor,
+                                                         dims=self._dims))
         # Make a toggle group for the leaves:
         leaves = []
         for key in self._leaf.keys():
@@ -346,18 +350,24 @@ class TwigBranch(Twig.Twig):
         Define a specific sequence of plugins, to be used (or ignored)
         """
         self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu,
-                                                   OM=self._OM, toggle_box=True))
+                                                   OM=self._OM,
+                                                   toggle_box=True))
         self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu,
-                                                 OM=self._OM, toggle_box=True))
+                                                 OM=self._OM,
+                                                 toggle_box=True))
         self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu,
-                                                       OM=self._OM, toggle_box=True))
+                                                       OM=self._OM,
+                                                       toggle_box=True))
         
         self.add_plugin (TwigDemoModRes.TwigDemoModRes(submenu=submenu,
-                                                       OM=self._OM, toggle_box=True))
+                                                       OM=self._OM,
+                                                       toggle_box=True))
         self.add_plugin (TwigDemoRedaxes.TwigDemoRedaxes(submenu=submenu,
-                                                         OM=self._OM, toggle_box=True))
+                                                         OM=self._OM,
+                                                         toggle_box=True))
         self.add_plugin (TwigDemoSolver.TwigDemoSolver(submenu=submenu,
-                                                       OM=self._OM, toggle_box=True))
+                                                       OM=self._OM,
+                                                       toggle_box=True))
 
         return True
 

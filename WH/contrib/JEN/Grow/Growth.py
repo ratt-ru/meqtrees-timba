@@ -79,9 +79,14 @@ class Growth (object):
         self._kwargs = kwargs
         if not isinstance(self._kwargs, dict):
             self._kwargs = dict()
+
+        # Leaf objects require no input, the others do:
         self._kwargs.setdefault('has_input', True)
+        self._has_input = self._kwargs['has_input']
+
         # NB: This is used ONLY by TwigBranch.py, and perhaps not necessary....
         self._kwargs.setdefault('defer_compile_options', False)
+
 
         #------------------------------------------------------------------
 
@@ -103,10 +108,11 @@ class Growth (object):
         #------------------------------------------------------------------
 
         # Keep the input of .grow() for internal use
+        # NB: For multiple inputs (objects), this may be a list.
         self._input = None
-        self._has_input = self._kwargs['has_input']
 
         # Keep the result (of .grow()) for internal use
+        # NB: For multiple results (objects), this may be a list.
         self._result = None
 
         # Visualization control:
@@ -117,7 +123,7 @@ class Growth (object):
         self._bm = []
 
         # Switch that indicates whether the mandatory function
-        # self.create_Growth_objects() has been called already
+        # .create_Growth_objects() has been called already
         self._created_Growth_objects = False
         self._Growth_objects = dict()
 
@@ -205,6 +211,40 @@ class Growth (object):
         return self._OMI.display_postamble(prefix=prefix, level=level)
 
 
+    #--------------------------------------------------------------------------
+
+    def display_IO(self, v, name='<name>', full=False, level=0):
+        """Helper function to display self._input or self._result.
+        """
+        prefix = level*'..'
+        if level==0:
+            print '\n\n'
+            print '******************************************'
+            print '** display_IO: '+str(name)+' (type= '+str(type(v))+'):'
+            print '******************************************'
+        if is_node(v):
+            self.display_subtree(v) 
+        elif getattr(v, 'display', None):
+            # v.display(name, full=full, level=level)
+            v.display(name, full=full)        # Visset22 has no level argument
+        elif isinstance(v, (list,tuple)):
+            for (k,v1) in enumerate(v):
+                name1 = name+'['+str(k)+']'
+                print '\n'+prefix,'----------- '+name1+':'
+                self.display_IO(v1, name=name1, full=full, level=level+1)
+        elif isinstance(v, dict):
+            for key in v.keys():
+                print prefix,' - '+str(key)+': '+str(type(v[key]))
+        else:
+            print prefix,' - '+str(name)+' = '+str(v)
+        if level==0:
+            print '********************************************'
+            print '** end of display_IO: '+str(name)
+            print '********************************************'
+            print
+        return True
+
+
     #====================================================================
     # Some service(s) available to all classes derived from Growth:
     #====================================================================
@@ -252,6 +292,7 @@ class Growth (object):
         specific function .define_compile_options() in a derived class.
         It does some generic finishing touches.
         """
+        # trace = True
         s = '** '+self._OMI._submenu+': on_exit(): '
 
         # Check whether things have been done in the correct order:
@@ -270,7 +311,7 @@ class Growth (object):
 
         # May be controlled by a 'toggle_box=True' in the constructor.
         # This is picked up by OMInterface.py 
-        self._OMI.make_toggle_box()
+        self._OMI.make_toggle_box(select=True)
 
         # Define some exit compile-time options (if any) at the end of the
         # class-specific function .define_compile_options().
@@ -312,18 +353,13 @@ class Growth (object):
     # Generic functions dealing with subtree generation:
     #====================================================================
 
-    def on_input (self, ns, input=None, severe=True,
-                  trace=False):
-        """Generic function that should be called at the start of the
+    def on_input (self, ns, input=None, severe=True, trace=False):
+        """
+        Generic function that should be called at the start of the
         specific function .grow() in a derived class.
         It does various checks, and some common things.
         """
         s = '** '+self._OMI._submenu+': on_input('+str(type(ns))+','+str(input)+'): '
-
-        # Check whether things have been done in the correct order:
-        if not self._done_on_exit:
-            raise ValueError
-        self._done_on_input = True
 
         # Initialize the return value (see below)
         proceed = True
@@ -340,26 +376,34 @@ class Growth (object):
             if trace:
                 print s,'not selected (ignored)'
 
-        # If things are still OK (proceed==True), make sure that all the
-        # necessary Growth objects have been created: 
+        # If things are still OK (proceed==True):
         if proceed:
+            # Make sure that all the necessary Growth objects have been created: 
             if not self._created_Growth_objects:     # not yet done
                 self.create_Growth_objects()         # call the function  
                 self._created_Growth_objects = True  # set the switch
 
-        # Check the nodescope, and make the self.ns/ns0 that will be used.
-        self.ns0 = ns
-        if is_node(ns):
-            self.ns = ns.QualScope(self._OMI._quals)        
-            self.ns0 = ns.QualScope() 
-        else:
-            self.ns = ns.Subscope(self._OMI._shortname)
+            # Check whether things have been done in the correct order:
+            # NB: Do this here to allow 'defer_compile_options'
+            if not self._done_on_exit:
+                raise ValueError
+            self._done_on_input = True
+
+            # Check the nodescope, and make the self.ns/ns0 that will be used.
+            self.ns0 = ns
+            if is_node(ns):
+                self.ns = ns.QualScope(self._OMI._quals)        
+                self.ns0 = ns.QualScope() 
+            else:
+                self.ns = ns.Subscope(self._OMI._shortname)
 
         # Progress message: 
         if trace:
             print '\n',s
-            print '    self.ns =',str(type(self.ns))
-            print '    ',str(self.ns('dummy'))
+            if proceed:
+                print '    self.ns =',str(type(self.ns))
+                print '    ',str(self.ns('dummy'))
+            print '   ',self.oneliner()
 
         # NB: The calling routine .grow() aborts if return=False
         return proceed
@@ -371,16 +415,18 @@ class Growth (object):
         """Generic function that should be called by .grow() whenever it
         exits prematurely for some reason.
         """
-        trace = True
+        # trace = True
 
         # Check whether things have been done in the correct order:
-        if not self._done_on_input:
-            raise ValueError
-        self._done_on_output = True
+        if False:
+            if not self._done_on_input:
+                raise ValueError
+            self._done_on_output = True
 
         result = self._input
         if trace:
             print '** '+self._OMI._submenu+': bypass() ->',str(result)
+            print '   ',self.oneliner()
         return result
 
     #--------------------------------------------------------------------
@@ -438,11 +484,31 @@ class Growth (object):
                              doc="""The Growth option values may be preset
                              to the values of a number of standard modes.
                              """)
-        self._OMI.defopt('misc.help', None,
+
+        self._OMI.defopt('misc.help_object', None,
                          prompt='help on this object',
-                         opt=[None,'show','print','derivation_tree'],
-                         callback=self._callback_help,
-                         doc="""should be self-explanatory
+                         opt=[None,'show','print',
+                              'derivation_tree',
+                              'oneliner',
+                              'display','display_full',
+                              'display_input','display_input_full',
+                              'display_result','display_result_full',
+                              ],
+                         callback=self._callback_help_object,
+                         doc="""Various explanations about this object.
+                         - show:  show the specific help.
+                         - print: print the specific help.
+                         - derivation_tree: class inheritance tree.
+                         - oneliner: show its one-line summary.
+                         - display[_full]: call its .display() function.
+                         """)
+
+        self._OMI.defopt('misc.help_tree', None,
+                         prompt='help on this tree',
+                         opt=[None,'show','print'],
+                         callback=self._callback_help_tree,
+                         doc="""Show/print a summary of the Growth tree that will
+                         result from the currently selected compile options.
                          """)
 
         self._OMI.set_menurec('misc',
@@ -468,14 +534,42 @@ class Growth (object):
 
     #--------------------------------------------------------------------
 
-    def _callback_help (self, help):
-        """Called whenever option 'misc.help' changes"""
+    def _callback_help_tree (self, help):
+        """Called whenever option 'misc.help_tree' changes.
+        It gives help on the Meq(sub)Tree resulting from this object.
+        """
+        if help:
+            self.print_tree()
+        self.set_value ('misc.help_tree', None)          # reset to None
+        return True
+
+    #--------------------------------------------------------------------
+
+    def _callback_help_object (self, help):
+        """Called whenever option 'misc.help_object' changes.
+        It gives all kinds of help on this Growth object.
+        """
         if help=='derivation_tree':
             print self.show_derivation_tree(trace=False)
+        elif help=='oneliner':
+            print self.oneliner()
+        elif help=='display':
+            self.display(full=False, OM=False)
+        elif help=='display_full':
+            self.display(full=True, OM=True)
+        elif help=='display_input':
+            self.display_IO(self._input, 'input', full=False)
+        elif help=='display_input_full':
+            self.display_IO(self._input, 'input', full=False)
+        elif help=='display_result':
+            self.display_IO(self._result, 'result', full=False)
+        elif help=='display_result_full':
+            self.display_IO(self._result, 'result', full=False)
         elif help:
             print self.help(specific=True, trace=False)
-        self.set_value ('misc.help', None)
+        self.set_value ('misc.help_object', None)        # reset to None
         return True
+
 
 
     def help (self, level=0, specific=True, trace=True):
@@ -494,9 +588,11 @@ class Growth (object):
             print ss
         return ss
 
+
     def help_prefix (self, level=0):
         """Make a prefix string, to be used when formatting help strings."""
         return '**'+(level*'..')+' '
+
 
     def help_format (self, ss, level=0):
         """Format the given string ss as a help-string. Split it into lines,
@@ -562,7 +658,7 @@ class Growth (object):
         """Called whenever the toggle widget before the visu menu is toggled"""
         menurec = self._OMI.set_menurec(selected=selected)
         self._visualize = selected
-        print '\n** callback_toggle_visu(',selected,') ->',self._visualize,'\n'
+        # print '\n** callback_toggle_visu(',selected,') ->',self._visualize,'\n'
         return True
 
 
@@ -640,7 +736,7 @@ class Growth (object):
 
 
     #====================================================================
-    # Interface functions (temporary) with its OptionManagerInterface (OMI)
+    # Interface functions (temporary?) with its OptionManagerInterface (OMI)
     #====================================================================
 
     def defopt (self, name, value, opt=None, more=None,
@@ -963,7 +1059,7 @@ def _define_forest(ns):
     cc = []
 
     node = ns << 3.4
-    rootnode = grt.grow(ns, node, trace=True)
+    rootnode = grt.grow(ns, node, trace=False)
     cc.append(rootnode)
 
     if len(cc)==0: cc.append(ns.dummy<<1.1)
@@ -1033,7 +1129,7 @@ if __name__ == '__main__':
     if 1:
         node = ns << 1.0
         test = dict()
-        grt.grow(ns, node, test=test, trace=True)
+        grt.grow(ns, node, test=test, trace=False)
 
     if 1:
         grt.display('final', OM=True, full=True)
