@@ -460,7 +460,7 @@ class Growth (object):
             if is_node(self._result):
                 self.display_subtree(self._result) 
                 print s,'->',str(self._result),'\n'
-            elif gettattr(self._result, oneliner,None):
+            elif getattr(self._result, 'oneliner', None):
                 print s,'->',self._result.oneliner(),'\n'
             else:
                 print s,'->',type(self._result),'\n'
