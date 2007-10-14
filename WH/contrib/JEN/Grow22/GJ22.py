@@ -1,11 +1,11 @@
 # file: ../JEN/Grow/GJ22.py
 
 # History:
-# - 17sep2007: creation (from Twig.py)
+# - 11oct2007: creation (from V22.py)
 
 # Description:
 
-"""The GJ22 class encapsulates the Grunt.Matrixt22 class.
+"""The GJ22 class encapsulates the Grunt.Joneset22 class.
 """
 
 
@@ -39,10 +39,12 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.Grow import J22
-from Timba.Contrib.JEN.Grunt import Joneset22
+from Timba.Contrib.JEN.Grow22 import J22
+# from Timba.Contrib.JEN.Grunt import Joneset22
+# from Timba.Contrib.JEN.control import ParmGroupManager
 from Timba.Contrib.JEN.control import Executor
 
+import Meow
 
 
 
@@ -50,29 +52,37 @@ from Timba.Contrib.JEN.control import Executor
 #=============================================================================
 
 class GJ22(J22.J22):
-    """Base-class for GJ22Something classes, itself derived from Growth"""
+    """
+    Deals with a set of GJones matrices.
+    """
 
     def __init__(self, quals=None,
                  name='GJ22',
                  submenu='compile',
-                 has_input=False,
+                 solvermenu=None,
                  OM=None, namespace=None,
+                 stations=None,
+                 polrep='linear',
+                 telescope=None,
+                 freqband=None,
                  **kwargs):
 
         J22.J22.__init__(self, quals=quals,
                          name=name,
                          submenu=submenu,
-                         has_input=has_input,
+                         solvermenu=solvermenu,
                          OM=OM, namespace=namespace,
+                         stations=stations,
+                         polrep=polrep,
+                         telescope=telescope,
+                         freqband=freqband,
                          **kwargs)
-
-        self._j22 = Joneset22.GJones(mode='simulate')
         return None
 
 
     #====================================================================
     # GJ22-specific re-implementations of some generic functions in
-    # the base-class Growth.py
+    # the base-class J22.py
     #====================================================================
 
     def derivation_tree (self, ss, level=1):
@@ -92,58 +102,117 @@ class GJ22(J22.J22):
         """Print a summary of this object"""
         prefix = self.display_preamble(self.name, level=level, txt=txt)
         #...............................................................
+        self._PGM.display(full=False, OM=False, level=level+1)
         #...............................................................
         J22.J22.display(self, full=full,
                               recurse=recurse,
                               OM=OM, level=level+1)
         #...............................................................
-        self._j22.display(full=False)
-        #...............................................................
         return self.display_postamble(prefix, level=level)
 
 
 
+#=============================================================================
+# Specific re-implementations of J22 placeholder functions:
+#=============================================================================
 
-    
-    #====================================================================
-    # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived GJ22 classes) 
-    #====================================================================
 
-    def define_compile_options(self, trace=False):
-        """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived GJ22 classes. 
+    def grow (self, ns, test=None, trace=False):
+        """The GJ22 class is derived from the J22 class.
+        It deals with GJones matrices.
         """
-        if not self.on_entry (trace=trace):
-            return self.bypass (trace=trace)
-        #..............................................
+        return J22.J22.grow(self, ns=ns, test=test, trace=trace)
 
 
-        #..............................................
-        return self.on_exit(trace=trace)
+    #------------------------------------------------------------------
 
+    def define_ParmGroups(self, trace=False):
+        """
+        Define all ParmGroup objects, for all parameterization modes.
+        Called by .define_compile_options().
+        Placeholder, to be re-implemented by classes derived from GJ22.
+        """
+        # self._jname = 'GJones'
+        self._jname = self.name
+        self._pname = 'Gphase'
+        self._gname = 'Ggain'
+        self._rname = 'Greal'
+        self._iname = 'Gimag'
+        for pol in self.pols():                       # e.g. ['X','Y']
+            # rider = dict(use_matrix_element=self._pols_matrel()[pol])
+
+            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
+            pg = self._PGM.add_ParmGroup(self._pname+pol, mode='amphas',
+                                         descr=pol+'-dipole phases',
+                                         default=0.0, unit='rad',
+                                         simuldev=simuldev,
+                                         time_tiling=1, freq_tiling=None,
+                                         time_deg=0, freq_deg=0,
+                                         tags=[self._pname,self._jname])
+
+
+            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
+            pg = self._PGM.add_ParmGroup(self._gname+pol, mode='amphas',
+                                         descr=pol+'-dipole gains (real)',
+                                         default=1.0,
+                                         simuldev=simuldev,
+                                         time_tiling=1, freq_tiling=None,
+                                         time_deg=2, freq_deg=0,
+                                         tags=[self._gname,self._jname])
+
+
+            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
+            pg = self._PGM.add_ParmGroup(self._rname+pol, mode='realimag',
+                                         descr=pol+'-dipole gain (real part)',
+                                         default=1.0,
+                                         simuldev=simuldev,
+                                         time_tiling=1, freq_tiling=None,
+                                         time_deg=2, freq_deg=0,
+                                         tags=[self._rname,self._jname])
+
+
+            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
+            pg = self._PGM.add_ParmGroup(self._iname+pol, mode='realimag',
+                                         descr=pol+'-dipole gain (imag.part)',
+                                         default=1.0,
+                                         simuldev=simuldev,
+                                         time_tiling=1, freq_tiling=None,
+                                         time_deg=2, freq_deg=0,
+                                         tags=[self._iname,self._jname])
+
+        # Finished:
+        doc = """The complex gains may have different parameterizations:
+        - mode=amphas:   parameters are the phases and gains
+        - mode=realimag: parameters are the real and imaginary parts
+        """
+        self._PGM.define_mode_option(doc)
+        return True
 
 
     #--------------------------------------------------------------------
 
-    def grow (self, ns, test=None, trace=False):
-        """The GJ22 class is derived from the Growth class.
-        It encapsulates the Grunt.Matrixt22 class.
+    def make_jones_matrix(self, qnode, station, pols=None, mode=None, trace=False):
+        """Make the Jones matrix (node) for the specified station.
+        Called from generic GJ22.grow().
+        Placeholder, to be re-implemented by classes derived from GJ22.
         """
-        # Check the node, and make self.ns:
-        if not self.on_input (ns, trace=trace):
-            return self.bypass (trace=trace)
-        #..............................................
+        mm = dict()
+        for pol in pols:
+            if mode=='amphas':
+                phase = self._PGM[self._pname+pol].create_member (quals=station)
+                gain = self._PGM[self._gname+pol].create_member (quals=station)
+                mm[pol] = qnode(pol)(station) << Meq.Polar(gain,phase)
+            elif mode=='realimag':
+                real = self._PGM[self._rname+pol].create_member (quals=station)
+                imag = self._PGM[self._iname+pol].create_member (quals=station)
+                mm[pol] = qnode(pol)(station) << Meq.ToComplex(real,imag)
+            else:
+                s = '** mode not recognised: '+str(mode)
+                raise ValueError,s
+        qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
+        return qnode(station) 
 
-        self._j22.make_jones_matrices(ns=ns)
-        result = self._j22
 
-        #..............................................
-        # Finishing touches:
-        return self.on_output (result, trace=trace)
-
-
-    
 
 
 
@@ -154,33 +223,37 @@ class GJ22(J22.J22):
 #=============================================================================
 
 
-j22 = None
+v22 = None
 if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    j22 = GJ22()
-    j22.make_TDLCompileOptionMenu()
-    # j22.display('outside')
+    v22 = GJ22(quals='xyv')
+    v22.make_TDLCompileOptionMenu()
+    # v22.display('outside')
 
 
 def _define_forest(ns):
 
-    global j22,xtor
-    if not j22:
+    global v22,xtor
+    if not v22:
         xtor = Executor.Executor()
-        j22 = GJ22()
-        j22.make_TDLCompileOptionMenu()
+        v22 = GJ22()
+        v22.make_TDLCompileOptionMenu()
 
     cc = []
-    mx = j22.grow(ns)
-    rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
-    cc.append(rootnode)
 
-    aa = mx._PGM.accumulist()
-    cc.extend(aa)
+    if False:
+        mx = v22.grow(ns)
+        print '** mx =',str(mx)
+    
+        rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
+        cc.append(rootnode)
+        
+        aa = mx._PGM.accumulist()
+        cc.extend(aa)
     
     if len(cc)==0: cc.append(ns.dummy<<1.1)
     ns.result << Meq.Composer(children=cc)
@@ -199,15 +272,13 @@ def _tdl_job_execute (mqs, parent):
     return xtor.execute(mqs, parent)
     
 def _tdl_job_display (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    j22.display('_tdl_job')
+    """Just display the current contents of the GJ22 object"""
+    v22.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
-    """Just display the current contents of the Growth object"""
-    j22.display('_tdl_job', full=True)
+    """Just display the current contents of the GJ22 object"""
+    v22.display('_tdl_job', full=True)
        
-
-
        
 
 
@@ -221,18 +292,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        j22 = GJ22()
-        j22.display('initial')
+        v22 = GJ22('qual')
+        v22.display('initial')
 
     if 1:
-        j22.make_TDLCompileOptionMenu()
+        v22.make_TDLCompileOptionMenu()
 
     if 1:
         test = dict()
-        j22.grow(ns, test=test, trace=False)
+        v22.grow(ns, test=test, trace=False)
 
-    if 1:
-        j22.display('final', OM=True, full=True)
+    if 0:
+        v22.display('final', OM=True, full=True)
 
 
 

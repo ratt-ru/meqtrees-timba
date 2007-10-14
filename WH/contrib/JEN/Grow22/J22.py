@@ -83,7 +83,7 @@ class J22(M22.M22):
 
         self._PGM = ParmGroupManager.ParmGroupManager(ns=None,
                                                       name=self._OMI.name,
-                                                      # quals=quals,
+                                                      quals=quals,
                                                       OM=self._OMI._OM,
                                                       namespace=namespace,
                                                       submenu=self._OMI._submenu,
@@ -124,8 +124,6 @@ class J22(M22.M22):
 
 
 
-
-
     #---------------------------------------------------------------------
     # J22-specific checking:
     #--------------------------------------------------------------------
@@ -155,26 +153,34 @@ class J22(M22.M22):
 
     #--------------------------------------------------------------------
 
-    def pols (self):
+    def stations (self, trace=True):
+        """Return the list of stations.
+        """
+        if not self._stations:
+            self._stations = self._OMI.optval('polrep', test=test)
+        if trace:
+            print '\n** stations =',self._stations,'\n'
+        return self._stations
+
+
+    def pols (self, trace=True):
         """Return the names of the two polairizations, depending on self._polrep
         """
         if not self._polrep:
             self._polrep = self._OMI.optval('polrep', test=test)
+        pols = ['X','Y']
         if self._polrep=='circular':
-            return ['R','L']
-        return ['X','Y']
-
+            pols = ['R','L']
+        if trace:
+            print '\n** pols =',pols,'  (polrep =',self._polrep,')\n'
+        return pols
 
 
     
     #====================================================================
-    # Specific part: Placeholders for specific functions:
-    # (These must be re-implemented in derived J22 classes) 
-    #====================================================================
 
     def define_compile_options(self, trace=False):
-        """Specific: Define the compile options in the OptionManager.
-        This function must be re-implemented in derived J22 classes. 
+        """Generic: Define the (generic) J22 compile options.
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
@@ -207,37 +213,56 @@ class J22(M22.M22):
     def grow (self, ns, test=None, trace=False):
         """The J22 class is derived from the M22 class.
         It is a layer around the Grunt.Joneset22 class, which encapsulates
-        a set of 2x2 complex cohaerency matrices (i.e. visibilities).
+        a set of 2x2 complex (station) Jones matrices (i.e. complex gains).
+        NB: This .grow() function is generic, and should be called from the
+        re-implemented .grow() function in classes derived from J22.
+        The specific __doc__ string of the latter is used for documentation.
         """
+
         # Check the node, and make self.ns:
         if not self.on_input (ns, trace=trace):
             return self.bypass (trace=trace)
         #..............................................
 
+        # Collect some information:
         if not self._stations:
             num_stations = self._OMI.optval('num_stations', test=test)
             self._stations = range(1,num_stations+1)
-
         if not self._polrep:
             self._polrep = self._OMI.optval('polrep', test=test)
-
         if not self._telescope:
             self._telescope = self._OMI.optval('telescope', test=test)
         if not self._freqband:
             self._freqband = self._OMI.optval('freqband', test=test)
 
-        
+
+        # Make Jones matrices (subtrees) for all the stations.
+        qnode = self.ns[self.name]                   
+        if not qnode.must_define_here(self):
+            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
+            raise ValueError, s
+        pols = self.pols()
+        mode = self._PGM.mode()
+        if True or trace:
+            print '** make_jones_matrices:',pols,mode,str(qnode)
+        for station in self.stations():
+            self.make_jones_matrix(qnode, station, pols=pols, mode=mode)
+            if True or trace:
+                print '  - make_jones_matrix(',station,pols,mode,'): -> ',str(qnode(station))
+                self.display_subtree(qnode(station))
+        if True or trace:
+            print
+
+        # Create a Joneset22 object, and fill it:
         result = Joneset22.Joneset22(ns, self._OMI.name,
                                      # quals=self._OMI._quals,
-                                     stations=self._stations,
+                                     stations=self.stations(),
                                      polrep=self._polrep,
                                      telescope=self._telescope,
                                      band=self._freqband)
-
-        # mm = self.make_jones_matrices(ns)
-        # result.set_parmgroups(self._PG)        # <---- !
-        # result.set_jones_matrices(mm)          # <---- !
-        result.display(full=True)
+        result.matrixet(new=qnode) 
+        result._PGM = self._PGM    # Just transfer the J22 ParmGroupManager....?
+        if trace: result.display(full=True)
 
         #..............................................
         # Finishing touches:
@@ -245,8 +270,9 @@ class J22(M22.M22):
 
 
 
+
 #=============================================================================
-# Really Specific part for classes derived from J22
+# Placeholders, to be reimplemented by specific classes derived from J22
 #=============================================================================
 
     def define_ParmGroups(self, trace=False):
@@ -255,101 +281,17 @@ class J22(M22.M22):
         Called by .define_compile_options().
         Placeholder, to be re-implemented by classes derived from J22.
         """
-        self._pg = dict()
-        self._jname = 'GJones'
-        self._pname = 'Gphase'
-        self._gname = 'Ggain'
-        self._rname = 'Greal'
-        self._iname = 'Gimag'
-        for pol in self.pols():                       # e.g. ['X','Y']
-            self._pg[pol] = dict()
-            # rider = dict(use_matrix_element=self._pols_matrel()[pol])
-
-            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-            pg = self._PGM.add_ParmGroup(self._pname+pol, mode='amphas',
-                                         descr=pol+'-dipole phases',
-                                         default=0.0, unit='rad',
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=0, freq_deg=0,
-                                         tags=[self._pname,self._jname])
-            self._pg[pol][self._pname] = pg
-
-
-            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._gname+pol, mode='amphas',
-                                         descr=pol+'-dipole gains (real)',
-                                         default=1.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._gname,self._jname])
-            self._pg[pol][self._gname] = pg
-
-
-            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._rname+pol, mode='realimag',
-                                         descr=pol+'-dipole gain (real part)',
-                                         default=1.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._rname,self._jname])
-            self._pg[pol][self._rname] = pg
-
-
-            simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._iname+pol, mode='realimag',
-                                         descr=pol+'-dipole gain (imag.part)',
-                                         default=1.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._iname,self._jname])
-            self._pg[pol][self._iname] = pg
-
-        # Finished:
-        doc = """The complex gains may have different parameterizations:
-        - mode=amphas:   parameters are the phases and gains
-        - mode=realimag: parameters are the real and imaginary parts
-        """
-        self._PGM.define_mode_option(doc)
         return True
 
 
     #--------------------------------------------------------------------
 
-    def make_jones_matrices(self, ns=None, trace=False):
-        """
-        Make the Jones matrices. Called by .grow().
+    def make_jones_matrix(self, qnode, station, pols=None, mode=None, trace=False):
+        """Make the Jones matrix (node) for the specified station.
+        Called from generic J22.grow().
         Placeholder, to be re-implemented by classes derived from J22.
         """
-        """Make Jones matrices for all the stations. The argument ns is either
-        a nodescope, or a node (which will be scopified)."""
-        if trace: print '\n** .make_jones_matrices():',self.oneliner()
-        self.nodescope(ns)
-        for station in self.stations():
-            qnode = self(station)
-            if trace: print ' -',station,'->',str(qnode)
-        if trace: return '**\n'
-        return True
-
-
-    def make_jones_matrix (self, station):
-        """Make the Jones matrix for the specified station"""
-        qnode = self.ns[self._jname]                   
-        if not qnode.must_define_here(self):
-            s = '** '+str(self.name)+': nodename clash: '+str(qnode)
-            raise ValueError, s
-        self._matrixet = qnode
-        pols = self.pols()
-        mm = dict()
-        for pol in pols:
-            phase = self._PGM[self._pg[pol][self._pname]].create_member (quals=station)
-            gain = self._PGM[self._pg[pol][self._gname]].create_member (quals=station)
-            mm[pol] = qnode(pol)(station) << Meq.Polar(gain,phase)
-        qnode(station) << Meq.Matrix22(mm[pols[0]],0.0, 0.0,mm[pols[1]])
-        return qnode(station)
+        return qnode(station) 
 
 
 
@@ -363,7 +305,7 @@ class J22(M22.M22):
 
 
 v22 = None
-if 1:
+if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
@@ -439,7 +381,7 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        v22.grow(ns, test=test, trace=False)
+        v22.grow(ns, test=test, trace=True)
 
     if 1:
         v22.display('final', OM=True, full=True)
