@@ -102,8 +102,9 @@ class OMInterface (object):
         # (i.e. this one) which will deal with it. See .defopt()
 
         self._constant = dict()
-        if self._kwargs.has_key('constant') and isinstance(self._kwargs['constant'],dict):
-            self._constant = self._kwargs['constant']
+        if self._kwargs.has_key('constant'):
+            if isinstance(self._kwargs['constant'],dict):
+                self._constant = self._kwargs['constant']
 
         #................................................................
 
@@ -335,9 +336,11 @@ class OMInterface (object):
         """Helper function called by .display(). Also used in reimplemented
         .display() in derived classes"""
         prefix = '  '+(level*'  ')+str(prefix)
-        if level==0: print
-        print prefix,' '
-        print prefix,'** '+self.oneliner()
+        if level==0:
+            print
+        print prefix,'<<'
+        if level==0:
+            print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
         return prefix
 
@@ -345,7 +348,7 @@ class OMInterface (object):
     def display_postamble(self, prefix, level=0):
         """Helper function called by .display(). Also used in reimplemented
         .display() in derived classes"""
-        print prefix,'**'
+        print prefix,'>>'
         if level==0:
             print
             if self._OM:
@@ -514,6 +517,7 @@ class OMInterface (object):
                      trace=False):
         """Set values in the specified menurec"""
         menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
+        # print '** OMI.set_menurec(): menu =',menu,' selected =',selected
         return self._OM.set_menurec(menu, prompt=prompt,
                                     stare=stare, descr=descr,
                                     toggle=toggle, callback=callback,
@@ -523,16 +527,16 @@ class OMInterface (object):
     #--------------------------------------------------------------------
 
     def make_toggle_box (self, postfix=None, slavemenu=False,
-                         select=False, create=True):
+                         select=True, create=True):
         """
         Make a toggle box in front of the specified menu, if required.
         If create==True, make sure that the menurec exists first.
         """
         menu = self.menuname (postfix=postfix, slavemenu=slavemenu)
-        # print '\n** .make_toggle_box(',postfix,slavemenu,'): menu =',menu, self._toggle_box, self._kwargs['toggle_box']
-        if not self._toggle_box:
+        # print '** make_toggle_box(): menu =',menu,' select =',select
+        if not self._toggle_box:                # not yet done
             if self._kwargs['toggle_box']:
-                self._toggle_box = True
+                self._toggle_box = True         # avoid duplication
                 if create and not self._OM.menurec.has_key(menu): 
                     self.defopt('toggle_box_placeholder',-123)
                 return self._OM.set_menurec(menu, toggle=True,

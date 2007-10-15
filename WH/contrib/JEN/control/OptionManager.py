@@ -397,7 +397,6 @@ class OptionManager (object):
                 if self.menu.has_key(menukey):
                     s = '** create('+str(menukey)+'): menu already exists'
                     raise ValueError,s
-                # self.set_menurec(menukey, create=True, prompt=ss[0])  
                 self.create_menurec(menukey, prompt=ss[0])  
                 self.menu[menukey] = None
                 self.menu_order.append(menukey)
@@ -505,10 +504,12 @@ class OptionManager (object):
             self.menurec[key]['selected'] = selected
             if self.menu[key]:
                 self.menu[key].set_value(selected, callback=False)
+            # print '\n** .set_menurec(',key,selected,prompt,toggle,callback,stare,descr,'):\n    -> ',self.menurec[key],'\n'
         if False:
             print '\n** .set_menurec(',key,'):\n    -> ',self.menurec[key],'\n'
         return self.menurec[key]
-        
+
+    #-------------------------------------------------------------------------
 
     def set_menu_prompt (self, key, text, trace=False):
         """Legacy, being phased out"""
@@ -518,8 +519,8 @@ class OptionManager (object):
     def is_selected (self, key, trace=False):
         """Check whether the selected menu is selected"""
         if not self.menurec.has_key(key):
-            print '\n** menurec[',key,'] does not exist....\n'
-            return False
+            print '\n** menurec[',key,'] does not exist .... assume selected\n'
+            return True                         
         menurec = self.menurec[key]
         return menurec['selected']
         
@@ -760,7 +761,9 @@ class OptionManager (object):
                 if menurec['callback']:
                     om.when_changed(menurec['callback'])
                 if menurec.has_key('selected'):
-                    om.set_value(menurec['selected'])
+                    # print '\n****',tkey,' selected =',menurec['selected'],'\n'
+                    om.set_value(menurec['selected'], callback=False)
+
 
             # Menu without toggle widget:
             elif cat=='runtime':

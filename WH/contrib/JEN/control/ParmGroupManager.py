@@ -120,8 +120,11 @@ class ParmGroupManager (object):
                 self.ns = ns.QualScope()        
             else:
                 self.ns = ns
-            key = self.name
-            self.ns = self.ns[key](key).QualScope()            #.....!!?
+            if True:
+                name = self.name
+                self.ns = self.ns[name](name).QualScope()            #.....!!?
+            for key in self._parmgroups.keys():
+                self._parmgroups[key].nodescope(self.ns)
         return self.ns
 
     #---------------------------------------------------------------

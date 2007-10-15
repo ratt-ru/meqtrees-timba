@@ -198,8 +198,10 @@ class ParmGroup (Meow.Parameterization):
                 self.ns = ns.QualScope()        
             else:
                 self.ns = ns
-            key = self.name
-            self.ns = self.ns[key](key).QualScope()            #.....!!?
+            if True:
+                name = self.name
+                self.ns = self.ns[name](name).QualScope()            #.....!!?
+                # self.ns = self.ns[name].QualScope()            # ..no good..
         return self.ns
 
 
@@ -560,12 +562,12 @@ class ParmGroup (Meow.Parameterization):
 
     def _callback_toggle_solve (self, selected):
         """Called whenever the toggle widget before the menu is toggled"""
-        print '-- NB: This callback is called at key-down AND key-up!?'
+        # print '-- NB: This callback is called at key-down AND key-up!?'
         if selected:
             self._mode = 'solve'
         else:
             self._mode = 'nosolve'
-        print '** _callback_toggle_solve(selected=',selected,') -> mode =',self._mode
+        # print '** _callback_toggle_solve(selected=',selected,') -> mode =',self._mode
         return True
 
 
@@ -598,12 +600,12 @@ class ParmGroup (Meow.Parameterization):
 
     def _callback_toggle_simul (self, selected):
         """Called whenever the toggle widget before the menu is toggled"""
-        print '-- NB: This callback is called at key-down AND key-up!?'
+        # print '-- NB: This callback is called at key-down AND key-up!?'
         if selected:
             self._mode = 'simulate'
         else:
             self._mode = 'nosolve'
-        print '** _callback_toggle_simul(selected=',selected,') -> mode =',self._mode
+        # print '** _callback_toggle_simul(selected=',selected,') -> mode =',self._mode
         return True
 
 
