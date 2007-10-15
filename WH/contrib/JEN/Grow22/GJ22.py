@@ -5,7 +5,7 @@
 
 # Description:
 
-"""The GJ22 class encapsulates the Grunt.Joneset22 class.
+"""The GJ22 class represents the GJones matrix.
 """
 
 
@@ -100,7 +100,7 @@ class GJ22(J22.J22):
 
     def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
-        prefix = self.display_preamble(self.name, level=level, txt=txt)
+        prefix = self.display_preamble('GJ22', level=level, txt=txt)
         #...............................................................
         self._PGM.display(full=False, OM=False, level=level+1)
         #...............................................................
@@ -112,19 +112,12 @@ class GJ22(J22.J22):
 
 
 
+
+
 #=============================================================================
 # Specific re-implementations of J22 placeholder functions:
 #=============================================================================
 
-
-    def grow (self, ns, test=None, trace=False):
-        """The GJ22 class is derived from the J22 class.
-        It deals with GJones matrices.
-        """
-        return J22.J22.grow(self, ns=ns, test=test, trace=trace)
-
-
-    #------------------------------------------------------------------
 
     def define_ParmGroups(self, trace=False):
         """
@@ -132,8 +125,7 @@ class GJ22(J22.J22):
         Called by .define_compile_options().
         Placeholder, to be re-implemented by classes derived from GJ22.
         """
-        # self._jname = 'GJones'
-        self._jname = self.name
+        self._jname = 'GJones'
         self._pname = 'Gphase'
         self._gname = 'Ggain'
         self._rname = 'Greal'
@@ -189,13 +181,25 @@ class GJ22(J22.J22):
         return True
 
 
+    #------------------------------------------------------------------
+    # NB: The important bit about this specific .grow() is its __doc__
+    # string, which is used in the auto-documentation process.....
+    #------------------------------------------------------------------
+
+    def grow (self, ns, test=None, trace=False):
+        """The GJ22 class is derived from the J22 class.
+        It deals with GJones matrices.
+        """
+        return J22.J22.grow(self, ns=ns, test=test, trace=trace)
+
     #--------------------------------------------------------------------
 
-    def make_jones_matrix(self, qnode, station, pols=None, mode=None, trace=False):
-        """Make the Jones matrix (node) for the specified station.
-        Called from generic GJ22.grow().
-        Placeholder, to be re-implemented by classes derived from GJ22.
+    def make_jones_matrix(self, qnode, station, mode=None, trace=False):
+        """Make the Jones matrix (node) for the specified station,
+        and the specified parameterization mode (if any).
+        Called from generic J22.grow(), which is called from GJ22.grow().
         """
+        pols = self.pols()                        # ['X','Y'] or ['R','L']
         mm = dict()
         for pol in pols:
             if mode=='amphas':
@@ -300,7 +304,8 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        v22.grow(ns, test=test, trace=False)
+        j22 = v22.grow(ns, test=test, trace=False)
+        print '  -> j22 =',type(j22)
 
     if 0:
         v22.display('final', OM=True, full=True)

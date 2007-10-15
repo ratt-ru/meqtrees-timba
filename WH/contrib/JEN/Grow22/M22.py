@@ -87,7 +87,7 @@ class M22(Growth.Growth):
 
     def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
-        prefix = self.display_preamble(self.name, level=level, txt=txt)
+        prefix = self.display_preamble('M22', level=level, txt=txt)
         #...............................................................
         Growth.Growth.display(self, full=full,
                               recurse=recurse,

@@ -112,7 +112,12 @@ class J22(M22.M22):
 
     def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
-        prefix = self.display_preamble(self.name, level=level, txt=txt)
+        prefix = self.display_preamble('J22', level=level, txt=txt)
+        print prefix,'  * stations:  '+str(self.stations())
+        print prefix,'  * polrep:    '+str(self.polrep())
+        print prefix,'  * pols:      '+str(self.pols())
+        print prefix,'  * telescope: '+str(self.telescope())
+        print prefix,'  * freqband:  '+str(self.freqband())
         #...............................................................
         self._PGM.display(full=False, OM=False, level=level+1)
         #...............................................................
@@ -124,9 +129,9 @@ class J22(M22.M22):
 
 
 
-    #---------------------------------------------------------------------
+    #====================================================================
     # J22-specific checking:
-    #--------------------------------------------------------------------
+    #====================================================================
 
 
     def check_result (self, result=None, severe=True, trace=False):
@@ -135,12 +140,6 @@ class J22(M22.M22):
         It checks whether the result is a Joneset22 object.
         """
 
-        # Default: the Joneset22 object is passed on:
-        if result==None:
-            result = self._input
-            if isinstance(result, list):
-                result = result[0]
-        
         if not isinstance(result, Joneset22.Joneset22): 
             s = 'result is not a valid Joneset22'
             print s,'\n'
@@ -151,36 +150,12 @@ class J22(M22.M22):
         # If OK, just pass on the valid result:
         return result
 
-    #--------------------------------------------------------------------
-
-    def stations (self, trace=True):
-        """Return the list of stations.
-        """
-        if not self._stations:
-            self._stations = self._OMI.optval('polrep', test=test)
-        if trace:
-            print '\n** stations =',self._stations,'\n'
-        return self._stations
-
-
-    def pols (self, trace=True):
-        """Return the names of the two polairizations, depending on self._polrep
-        """
-        if not self._polrep:
-            self._polrep = self._OMI.optval('polrep', test=test)
-        pols = ['X','Y']
-        if self._polrep=='circular':
-            pols = ['R','L']
-        if trace:
-            print '\n** pols =',pols,'  (polrep =',self._polrep,')\n'
-        return pols
-
-
     
     #====================================================================
 
     def define_compile_options(self, trace=False):
-        """Generic: Define the (generic) J22 compile options.
+        """Generic: Define some J22 compile options like polrep etc,
+        but only if they have not yet been defined in the constructor. 
         """
         if not self.on_entry (trace=trace):
             return self.bypass (trace=trace)
@@ -208,7 +183,64 @@ class J22(M22.M22):
         return self.on_exit(trace=trace)
 
 
-    #--------------------------------------------------------------------
+    #======================================================================
+    # Some useful J22 access functions:
+    #======================================================================
+
+    def stations (self, test=None, trace=False):
+        """Return the list of stations.
+        """
+        if not self._stations:
+            if self._OMI.has_option('num_stations'):
+                num_stations = self._OMI.optval('num_stations', test=test)
+                self._stations = range(1,1+num_stations)
+        if trace:
+            print '\n** stations =',self._stations,'\n'
+        return self._stations
+
+    #-----------------------------------------------------------------------
+
+    def pols (self, test=None, trace=False):
+        """Return the names of the two polairizations, depending on self._polrep
+        """
+        pols = ['X','Y']
+        if self.polrep()=='circular':
+            pols = ['R','L']
+        if trace:
+            print '\n** pols =',pols,'  (polrep =',self.polrep(),')\n'
+        return pols
+
+    #-----------------------------------------------------------------------
+
+    def polrep (self, test=None, trace=False):
+        """Return the polarization representation"""
+        if not self._polrep:
+            if self._OMI.has_option('polrep'):
+                self._polrep = self._OMI.optval('polrep', test=test)
+        return self._polrep
+
+    #-----------------------------------------------------------------------
+
+    def telescope (self, test=None, trace=False):
+        """Return the polarization representation"""
+        if not self._telescope:
+            if self._OMI.has_option('telescope'):
+                self._telescope = self._OMI.optval('telescope', test=test)
+        return self._telescope
+
+    #-----------------------------------------------------------------------
+
+    def freqband (self, test=None, trace=False):
+        """Return the polarization representation"""
+        if not self._freqband:
+            if self._OMI.has_option('freqband'):
+                self._freqband = self._OMI.optval('freqband', test=test)
+        return self._freqband
+
+
+    #=======================================================================
+    # Generate nodes:
+    #=======================================================================
 
     def grow (self, ns, test=None, trace=False):
         """The J22 class is derived from the M22 class.
@@ -224,44 +256,37 @@ class J22(M22.M22):
             return self.bypass (trace=trace)
         #..............................................
 
-        # Collect some information:
-        if not self._stations:
-            num_stations = self._OMI.optval('num_stations', test=test)
-            self._stations = range(1,num_stations+1)
-        if not self._polrep:
-            self._polrep = self._OMI.optval('polrep', test=test)
-        if not self._telescope:
-            self._telescope = self._OMI.optval('telescope', test=test)
-        if not self._freqband:
-            self._freqband = self._OMI.optval('freqband', test=test)
-
+        # Pass the nodescope to the ParmGroupManager.
+        # This affects the naming of all parameter nodes.
+        self._PGM.nodescope(self.ns)
 
         # Make Jones matrices (subtrees) for all the stations.
+        TRACE = True
         qnode = self.ns[self.name]                   
         if not qnode.must_define_here(self):
             s = '** '+str(self.name)+': nodename clash: '+str(qnode)
             raise ValueError, s
         pols = self.pols()
         mode = self._PGM.mode()
-        if True or trace:
+        if TRACE or trace:
             print '** make_jones_matrices:',pols,mode,str(qnode)
         for station in self.stations():
-            self.make_jones_matrix(qnode, station, pols=pols, mode=mode)
-            if True or trace:
-                print '  - make_jones_matrix(',station,pols,mode,'): -> ',str(qnode(station))
+            self.make_jones_matrix(qnode, station, mode)
+            if TRACE or trace:
+                print '  - make_jones_matrix(',station,mode,'): -> ',str(qnode(station))
                 self.display_subtree(qnode(station))
-        if True or trace:
+        if TRACE or trace:
             print
 
         # Create a Joneset22 object, and fill it:
-        result = Joneset22.Joneset22(ns, self._OMI.name,
+        result = Joneset22.Joneset22(self.ns, self._OMI.name,
                                      # quals=self._OMI._quals,
                                      stations=self.stations(),
-                                     polrep=self._polrep,
-                                     telescope=self._telescope,
-                                     band=self._freqband)
+                                     polrep=self.polrep(),
+                                     telescope=self.telescope(),
+                                     band=self.freqband())
         result.matrixet(new=qnode) 
-        result._PGM = self._PGM    # Just transfer the J22 ParmGroupManager....?
+        result._PGM = self._PGM             # Just transfer the J22 ParmGroupManager....?
         if trace: result.display(full=True)
 
         #..............................................
@@ -286,7 +311,7 @@ class J22(M22.M22):
 
     #--------------------------------------------------------------------
 
-    def make_jones_matrix(self, qnode, station, pols=None, mode=None, trace=False):
+    def make_jones_matrix(self, qnode, station, mode=None, trace=False):
         """Make the Jones matrix (node) for the specified station.
         Called from generic J22.grow().
         Placeholder, to be re-implemented by classes derived from J22.

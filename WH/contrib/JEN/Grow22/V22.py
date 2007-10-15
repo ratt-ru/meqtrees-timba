@@ -88,7 +88,7 @@ class V22(M22.M22):
 
     def display (self, txt=None, full=False, recurse=3, OM=True, level=0):
         """Print a summary of this object"""
-        prefix = self.display_preamble(self.name, level=level, txt=txt)
+        prefix = self.display_preamble('V22', level=level, txt=txt)
         #...............................................................
         M22.M22.display(self, full=full,
                               recurse=recurse,
