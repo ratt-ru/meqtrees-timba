@@ -366,14 +366,14 @@ class Growth (object):
 
         # Store and check the input, and initialise the return value
         if self._has_input:
-            self._input = input         # keep for later use
+            self._input = input                      # keep for later use
             proceed = self.check_input(self._input, severe=severe, trace=trace)
 
         # If not selected, do nothing.
         # NB: This should be AFTER setting self._input !!
         if not self._OMI.is_selected():
-            proceed = False              # This will cause .grow() to exit
-            if trace:
+            proceed = False                          # This will cause .grow() to exit
+            if True or trace:
                 print s,'not selected (ignored)'
 
         # If things are still OK (proceed==True):
@@ -656,7 +656,8 @@ class Growth (object):
 
     def _callback_toggle_visu (self, selected):
         """Called whenever the toggle widget before the visu menu is toggled"""
-        menurec = self._OMI.set_menurec(selected=selected)
+        # menurec = self._OMI.set_menurec(selected=selected)
+        menurec = self._OMI.set_menurec('misc.visu', selected=selected)
         self._visualize = selected
         # print '\n** callback_toggle_visu(',selected,') ->',self._visualize,'\n'
         return True
