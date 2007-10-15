@@ -311,6 +311,8 @@ class MSSelector (object):
     if hanning:
       self._opts.append(TDLOption('ms_apply_hanning',"Apply Hanning taper to input",
                                   False,namespace=self));
+    else:
+      self.ms_apply_hanning = None;
     if flags:
       self._opts.append(TDLOption('ms_write_flags',"Write flags to output",
                                   False,namespace=self));
@@ -493,7 +495,8 @@ class MSSelector (object):
     else:
       rec.tile_size = tiling;
     rec.selection = self.subset_selector.create_selection_record();
-    rec.apply_hanning = self.ms_apply_hanning;
+    if self.ms_apply_hanning is not None:
+      rec.apply_hanning = self.ms_apply_hanning;
     # form top-level record
     iorec = record(ms=rec);
     iorec.python_init = 'Meow.ReadVisHeader';

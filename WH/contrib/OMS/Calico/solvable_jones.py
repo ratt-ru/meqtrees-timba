@@ -26,10 +26,10 @@
 from Timba.TDL import *
 import Meow
 from Meow import Context
-from Meow import Jones
-from Meow import ParmGroup
+from Meow import Jones,ParmGroup,Bookmarks
+from Meow.Parameterization import resolve_parameter
 
-class DiagonalAmplPhase (object):
+class DiagAmplPhase (object):
   def __init__ (self):
     self.options = [];
 
@@ -70,14 +70,14 @@ class FullRealImag (object):
     diags = [];
     offdiags = [];
     for p in stations:
-      rxx = Parameterization.resolve_parameter("diag",jones(p,'rxx'),p1,tags=tags);
-      ixx = Parameterization.resolve_parameter("diag",jones(p,'ixx'),p0,tags=tags);
-      ryy = Parameterization.resolve_parameter("diag",jones(p,'ryy'),p1,tags=tags);
-      iyy = Parameterization.resolve_parameter("diag",jones(p,'iyy'),p0,tags=tags);
-      rxy = Parameterization.resolve_parameter("offdiag",jones(p,'rxy'),p0,tags=tags);
-      ixy = Parameterization.resolve_parameter("offdiag",jones(p,'ixy'),p0,tags=tags);
-      ryx = Parameterization.resolve_parameter("offdiag",jones(p,'ryx'),p0,tags=tags);
-      iyx = Parameterization.resolve_parameter("offdiag",jones(p,'iyx'),p0,tags=tags);
+      rxx = resolve_parameter("diag",jones(p,'rxx'),p1,tags=tags);
+      ixx = resolve_parameter("diag",jones(p,'ixx'),p0,tags=tags);
+      ryy = resolve_parameter("diag",jones(p,'ryy'),p1,tags=tags);
+      iyy = resolve_parameter("diag",jones(p,'iyy'),p0,tags=tags);
+      rxy = resolve_parameter("offdiag",jones(p,'rxy'),p0,tags=tags);
+      ixy = resolve_parameter("offdiag",jones(p,'ixy'),p0,tags=tags);
+      ryx = resolve_parameter("offdiag",jones(p,'ryx'),p0,tags=tags);
+      iyx = resolve_parameter("offdiag",jones(p,'iyx'),p0,tags=tags);
       diags += [ rxx,ixx,ryy,iyy ];
       offdiags += [rxy,ixy,ryx,iyx ];
       jones(p) << Meq.Matrix22(
@@ -93,12 +93,13 @@ class FullRealImag (object):
                           table_name="%s_offdiag.mep"%label,bookmark=False);
     
     # make bookmarks
-    pg = Bookmarks.Page("%s diagonal terms"%label);
-    for parm in diags:
-      pg.add(parm);
-    pg = Bookmarks.Page("%s off-diagonal terms"%label);
-    for parm in offdiags:
-      pg.add(parm);
+    pg1 = Bookmarks.Page("%s diagonal terms"%label);
+    pg2 = Bookmarks.Page("%s off-diagonal terms"%label);
+    for p in stations:
+      pg1.add(jones(p,"xx"));
+      pg1.add(jones(p,"yy"));
+      pg2.add(jones(p,"xy"));
+      pg2.add(jones(p,"yx"));
 
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_diag","Calibrate %s diagonal terms"%label,self.pg_diag);

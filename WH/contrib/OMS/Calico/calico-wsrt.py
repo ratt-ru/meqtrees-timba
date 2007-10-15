@@ -79,13 +79,16 @@ meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
 
 # D - leakage
 import polarization_jones
-meqmaker.add_uv_jones('D','polarization leakage',[polarization_jones.CoupledLeakage(),
-  polarization_jones.DecoupledLeakage()]);
+meqmaker.add_uv_jones('D','polarization leakage',
+  [ polarization_jones.CoupledLeakage(),
+    polarization_jones.DecoupledLeakage() ]);
 
 # B - bandpass, G - gain 
-import gain_jones
-meqmaker.add_uv_jones('B','bandpass',gain_jones.AmplPhase());
-meqmaker.add_uv_jones('G','receiver gains/phases',gain_jones.AmplPhase());
+import solvable_jones
+meqmaker.add_uv_jones('B','bandpass',
+  [ solvable_jones.DiagAmplPhase(),
+    solvable_jones.FullRealImag() ]);
+meqmaker.add_uv_jones('G','receiver gains/phases',solvable_jones.DiagAmplPhase());
 
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());

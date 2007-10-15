@@ -64,6 +64,7 @@ def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None):
     );
   return jones;
 
+
 def rotation_matrix (jones,rot=0.,tags=[],series=None):
   """Creates a rotation matrix. 
   'jones' should be a node stub.
