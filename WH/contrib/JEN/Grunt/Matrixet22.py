@@ -328,7 +328,7 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         #     It should be re-implemented in a derived class.
         return True
 
-    def display(self, txt=None, full=False, recurse=3):
+    def display(self, txt=None, full=False, recurse=3, level=0):
         """Print a summary of this object"""
         print ' '
         print '** '+self.oneliner()
@@ -440,6 +440,8 @@ class Matrixet22 (ParameterizationPlus.ParameterizationPlus):
         nn = self.make_NodeList(quals=quals)
         bundle = nn.bundle(oper)
         if accu:
+            print '\n mx.bundle(',oper,quals,accu,'):',str(bundle)
+            print '  self._PGM = ',type(self._PGM)
             self._PGM.accumulist(bundle)
         return bundle
 

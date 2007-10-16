@@ -56,6 +56,7 @@ import Meow
 
 from Timba.Contrib.JEN.control import OptionManager
 from Timba.Contrib.JEN.Grunt import ParmGroupManager
+# from Timba.Contrib.JEN.control import ParmGroupManager
 from Timba.Contrib.JEN.Grunt import NodeList
 from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Expression import Expression
