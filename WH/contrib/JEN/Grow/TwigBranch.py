@@ -47,21 +47,8 @@ from Timba.Meq import meq
 # import Meow
 
 from Timba.Contrib.JEN.Grow import Twig
-# from Timba.Contrib.JEN.Grow import TwigLeaf
-# from Timba.Contrib.JEN.Grow import TwigDemo
 from Timba.Contrib.JEN.control import Executor
 
-from Timba.Contrib.JEN.Grow import TwigLeafParm
-from Timba.Contrib.JEN.Grow import TwigLeafConstant
-from Timba.Contrib.JEN.Grow import TwigLeafDimGrids
-        
-from Timba.Contrib.JEN.Grow import TwigApplyUnary
-from Timba.Contrib.JEN.Grow import TwigAddNoise
-from Timba.Contrib.JEN.Grow import TwigFlagger
-
-from Timba.Contrib.JEN.Grow import TwigDemoModRes
-from Timba.Contrib.JEN.Grow import TwigDemoRedaxes
-from Timba.Contrib.JEN.Grow import TwigDemoSolver
 
 # import math
 # import random
@@ -149,13 +136,17 @@ class TwigBranch(Twig.Twig):
     #====================================================================
 
 
-    def add_plugin(self, plugin, modes=None, trace=False):
+    def add_plugin(self, module, submenu, modes=None, trace=False):
         """
         Check the given Twig object, and add it to self._plugin.
         """
         
         if trace:
-            print '\n** .add_plugin(',type(plugin),modes,'):'
+            print '\n** .add_plugin(',type(module),submenu, modes,'):'
+
+        plugin = module(submenu=submenu,
+                        OM=self._OM,
+                        toggle_box=True)
             
         # print '** type Twig: ',isinstance(plugin, Twig.Twig)
         # print '** type TwigDemo: ',isinstance(plugin, TwigDemo.TwigDemo)
@@ -172,13 +163,19 @@ class TwigBranch(Twig.Twig):
 
     #---------------------------------------------------------------------------
 
-    def add_leaf(self, leaf, modes=None, trace=False):
+    def add_leaf(self, module, submenu, xtor=False, modes=None, trace=False):
         """
         Check the given Leaf object, and add it to self._leaf.
         """
         
         if trace:
-            print '\n** .add_leaf(',type(leaf),modes,'):'
+            print '\n** .add_leaf(',type(module),submenu,modes,'):'
+
+        if xtor:
+            leaf = module(submenu=submenu, OM=self._OM, toggle_box=True,
+                          xtor=self._xtor, dims=self._dims)
+        else:
+            leaf = module(submenu=submenu, OM=self._OM, toggle_box=True)
             
         # print '** type Twig: ',isinstance(leaf, Twig.Twig)
         # print '** type Leaf: ',isinstance(leaf, TwigLeaf.TwigLeaf)
@@ -192,8 +189,18 @@ class TwigBranch(Twig.Twig):
         return True
 
 
-
     #---------------------------------------------------------------------------
+
+    def make_leaf_toggle_group (self, trace=False):
+        """Make a toggle group for the defined leaves.
+        This makes that only one of them may be selected."""
+        leaves = []
+        for key in self._leaf.keys():
+            leaves.append(self._leaf[key]['leaf'])
+        for key in self._leaf.keys():
+            self._leaf[key]['leaf']._OMI.toggle_group(append=leaves)
+        return True
+    
     #---------------------------------------------------------------------------
 
     def make_leaf_subtree (self, ns, trace=False):
@@ -322,26 +329,20 @@ class TwigBranch(Twig.Twig):
         """
         Define a choice of Leaf classe, to be used at the tip of the TwigBranch.
         """
-        self.add_leaf (TwigLeafConstant.TwigLeafConstant(submenu=submenu,
-                                                         OM=self._OM,
-                                                         toggle_box=True))
-        self.add_leaf (TwigLeafParm.TwigLeafParm(submenu=submenu,
-                                                 OM=self._OM,
-                                                 toggle_box=True))
-        self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids(submenu=submenu,
-                                                         OM=self._OM,
-                                                         toggle_box=True,
-                                                         xtor=self._xtor,
-                                                         dims=self._dims))
-        # Make a toggle group for the leaves:
-        leaves = []
-        for key in self._leaf.keys():
-            leaves.append(self._leaf[key]['leaf'])
-        for key in self._leaf.keys():
-            self._leaf[key]['leaf']._OMI.toggle_group(append=leaves)
 
+        from Timba.Contrib.JEN.Grow import TwigLeafParm
+        self.add_leaf (TwigLeafParm.TwigLeafParm, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigLeafConstant
+        self.add_leaf (TwigLeafConstant.TwigLeafConstant, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigLeafDimGrids
+        self.add_leaf (TwigLeafDimGrids.TwigLeafDimGrids, submenu=submenu,
+                       xtor=True)
+
+        # Finished:
+        self.make_leaf_toggle_group(trace=trace)
         return True
-
 
     #---------------------------------------------------------------------------
 
@@ -349,25 +350,24 @@ class TwigBranch(Twig.Twig):
         """
         Define a specific sequence of plugins, to be used (or ignored)
         """
-        self.add_plugin (TwigAddNoise.TwigAddNoise(submenu=submenu,
-                                                   OM=self._OM,
-                                                   toggle_box=True))
-        self.add_plugin (TwigFlagger.TwigFlagger(submenu=submenu,
-                                                 OM=self._OM,
-                                                 toggle_box=True))
-        self.add_plugin (TwigApplyUnary.TwigApplyUnary(submenu=submenu,
-                                                       OM=self._OM,
-                                                       toggle_box=True))
+
+        from Timba.Contrib.JEN.Grow import TwigApplyUnary
+        self.add_plugin (TwigApplyUnary.TwigApplyUnary, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigAddNoise
+        self.add_plugin (TwigAddNoise.TwigAddNoise, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigFlagger
+        self.add_plugin (TwigFlagger.TwigFlagger, submenu=submenu)
         
-        self.add_plugin (TwigDemoModRes.TwigDemoModRes(submenu=submenu,
-                                                       OM=self._OM,
-                                                       toggle_box=True))
-        self.add_plugin (TwigDemoRedaxes.TwigDemoRedaxes(submenu=submenu,
-                                                         OM=self._OM,
-                                                         toggle_box=True))
-        self.add_plugin (TwigDemoSolver.TwigDemoSolver(submenu=submenu,
-                                                       OM=self._OM,
-                                                       toggle_box=True))
+        from Timba.Contrib.JEN.Grow import TwigDemoModRes
+        self.add_plugin (TwigDemoModRes.TwigDemoModRes, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigDemoRedaxes
+        self.add_plugin (TwigDemoRedaxes.TwigDemoRedaxes, submenu=submenu)
+
+        from Timba.Contrib.JEN.Grow import TwigDemoSolver
+        self.add_plugin (TwigDemoSolver.TwigDemoSolver, submenu=submenu)
 
         return True
 

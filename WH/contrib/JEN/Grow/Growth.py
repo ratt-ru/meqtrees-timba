@@ -84,9 +84,9 @@ class Growth (object):
         self._kwargs.setdefault('has_input', True)
         self._has_input = self._kwargs['has_input']
 
-        # NB: This is used ONLY by TwigBranch.py, and perhaps not necessary....
+        # Some special keyword arguments:
         self._kwargs.setdefault('defer_compile_options', False)
-
+        self._kwargs.setdefault('inhibit_selection', False)
 
         #------------------------------------------------------------------
 
@@ -173,6 +173,8 @@ class Growth (object):
             else:
                 for key1 in rr.keys():
                     print prefix,'      - '+key1+' = '+str(rr[key1])            
+        #...............................................................
+        print prefix,'  * OMI.is_selected: '+str(self._OMI.is_selected())
         #...............................................................
         print prefix,'  * has_input = '+str(self._has_input)
         if self._has_input:
@@ -372,9 +374,13 @@ class Growth (object):
         # If not selected, do nothing.
         # NB: This should be AFTER setting self._input !!
         if not self._OMI.is_selected():
-            proceed = False                          # This will cause .grow() to exit
-            if True or trace:
-                print s,'not selected (ignored)'
+            if self._kwargs['inhibit_selection']:
+                print '\n',s,'NOT selected, but inhibit_selection=True...\n'
+            else:
+                proceed = False                      # This will cause .grow() to exit
+                self.display('not selected')
+                print '\n',s,'not selected (ignored)\n'
+                
 
         # If things are still OK (proceed==True):
         if proceed:
