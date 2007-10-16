@@ -42,9 +42,8 @@ from Timba.Meq import meq
 
 
 from Timba.Contrib.JEN.Grow22 import J22
+from Timba.Contrib.JEN.Grunt import Joneset22
 from Timba.Contrib.JEN.control import Executor
-
-from Timba.Contrib.JEN.Grow22 import GJ22
 
 
 
@@ -117,14 +116,24 @@ class Jseq22(J22.J22):
     #====================================================================
 
 
-    def add_jones(self, jones, modes=None, trace=False):
+    def add_jones(self, module, quals, submenu, modes=None, trace=False):
         """
         Check the given J22 object, and add it to self._jones.
         """
-        
+
         if trace:
-            print '\n** .add_jones(',type(jones),modes,'):'
+            print '\n** .add_jones(',type(module),quals,submenu,modes,'):'
                         
+
+        jones = module(quals, submenu=submenu,
+                       solvermenu=self._solvermenu,
+                       OM=self._OM,
+                       stations=self.stations(),
+                       polrep=self.polrep(),
+                       toggle_box=True)
+        print type(jones)
+        print jones.oneliner()
+
         # OK, add the valid jones to the list:
         name = jones.name
         self._jones[name] = dict(jones=jones, modes=modes) 
@@ -141,7 +150,7 @@ class Jseq22(J22.J22):
         """Re-implementation of the generic Growth function.
         """
         submenu = self._submenu+'.J22'
-        self.define_jones_sequence (submenu, trace=False)
+        self.define_jones_sequence (submenu, trace=trace)
         self._OM.set_menurec(submenu, prompt='select a jones sequence')
 
         # Execute the deferred function:
@@ -176,7 +185,7 @@ class Jseq22(J22.J22):
         jj = []
         for key in self._jones_order:
             rr = self._jones[key]
-            if True or rr['jones']._OMI.is_selected():            # <-------- temporary...
+            if rr['jones']._OMI.is_selected():                    # <-------- temporary...
                 if TRACE or trace:
                     print '--',key,':',rr['jones'].oneliner()
                 j22 = rr['jones'].grow(self.ns, trace=True)
@@ -214,7 +223,7 @@ class Jseq22(J22.J22):
                 qnode(station) << Meq.MatrixMultiply(*cc)
 
             # Make a merged ParmGroupManager:
-            PGM = jj[0]
+            PGM = jj[0]._PGM
             for k in range(1,len(jj)):
                 # PGM.merge(jj[k]._PGM)             
                 pass
@@ -223,12 +232,11 @@ class Jseq22(J22.J22):
             result = Joneset22.Joneset22(self.ns, self._OMI.name,
                                          # quals=self._OMI._quals,
                                          stations=self.stations(),
-                                         polrep=self.polrep(),
-                                         telescope=self.telescope(),
-                                         band=self.freqband())
+                                         polrep=self.polrep())
             result.matrixet(new=qnode) 
-            result._PGM = PGM                            # transfer the merged PGM
-            if trace: result.display(full=True)
+            # result._PGM = PGM                            # transfer the merged PGM
+            if TRACE or trace:
+                result.display(full=True)
 
 
         #..............................................
@@ -249,7 +257,7 @@ class Jseq22(J22.J22):
         """
 
         ss += '\n*****************************************'
-        ss += '\n** Sequence of available jones matricess:'
+        ss += '\n** Sequence of available jones matrices:'
         ss += '\n*****************************************'
 
         for key in self._jones_order:
@@ -267,6 +275,7 @@ class Jseq22(J22.J22):
         return Jseq22.Jseq22.grow(self, ns=ns, test=test, trace=trace)
 
 
+
     #---------------------------------------------------------------------------
 
     def define_jones_sequence (self, submenu, trace=False):
@@ -275,21 +284,19 @@ class Jseq22(J22.J22):
         For instance GJ22, and DJ22 and FJ22.
         Placeholder, to be re-implemented by classes derived from Jseq22.
         """
-        self.add_jones (GJ22.GJ22('first',
-                                  submenu=submenu,
-                                  solvermenu=self._solvermenu,
-                                  OM=self._OM,
-                                  toggle_box=True))
-        self.add_jones (GJ22.GJ22('second',
-                                  submenu=submenu,
-                                  solvermenu=self._solvermenu,
-                                  OM=self._OM,
-                                  toggle_box=True))
+
+        if trace:
+            print '\n** define_jones_sequence(',submenu,'):'
+            print '  stations = ',self.stations()
+
+        # Import the relevant modules:
+        from Timba.Contrib.JEN.Grow22 import GJ22
+
+        # Make the jones objects:
+        self.add_jones (GJ22.GJ22, 'first', submenu=submenu)
+        self.add_jones (GJ22.GJ22, 'second', submenu=submenu)
         return True
 
-
-
-    
 
 
 
@@ -300,27 +307,28 @@ class Jseq22(J22.J22):
 #=============================================================================
 
 
-brn = None
+jsq = None
 if 1:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
-    brn = Jseq22(xtor=xtor)
-    brn.make_TDLCompileOptionMenu()
-    # brn.display('outside')
+    jsq = Jseq22(stations=range(1,4))
+    jsq.make_TDLCompileOptionMenu()
+    # jsq.display('outside')
 
 
 def _define_forest(ns):
 
-    global brn,xtor
-    if not brn:
+    global jsq,xtor
+    if not jsq:
         xtor = Executor.Executor()
-        brn = Jseq22(xtor=xtor)
-        brn.make_TDLCompileOptionMenu()
+        jsq = Jseq22(stations=range(1,4))
+        jsq.make_TDLCompileOptionMenu()
 
     cc = []
 
-    rootnode = brn.grow(ns)
+    j22 = jsq.grow(ns)
+    rootnode = j22.bundle()
     print 'rootnode =',str(rootnode)
     if is_node(rootnode):
         cc.append(rootnode)
@@ -345,23 +353,23 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the J22 object"""
-    brn.display('_tdl_job')
+    jsq.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the J22 object"""
-    brn.display('_tdl_job', full=True)
+    jsq.display('_tdl_job', full=True)
        
 def _tdl_job_print_tree (mqs, parent):
     """Just display the current contents of the J22 object"""
-    brn.print_tree()
+    jsq.print_tree()
 
 def _tdl_job_derivation_tree (mqs, parent):
     """Just display the current contents of the J22 object"""
-    brn.show_derivation_tree(trace=True)
+    jsq.show_derivation_tree(trace=True)
 
 def _tdl_job_print_help (mqs, parent):
     """Just display the current contents of the J22 object"""
-    brn.help(trace=True)
+    jsq.help(trace=True)
 
 
        
@@ -377,21 +385,22 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        brn = Jseq22()
-        brn.display('initial')
+        jsq = Jseq22(stations=range(1,4),
+                     inhibit_selection=True)
+        jsq.display('initial')
 
     if 1:
-        brn.make_TDLCompileOptionMenu()
+        jsq.make_TDLCompileOptionMenu()
 
-    if 1:
+    if 0:
         test = dict()
-        brn.grow(ns, test=test, trace=False)
+        jsq.grow(ns, test=test, trace=False)
 
     if 0:
-        brn.display('final', OM=True, full=True)
+        jsq.display('final', OM=True, full=True)
 
     if 0:
-        brn.help()
+        jsq.help()
 
 
 

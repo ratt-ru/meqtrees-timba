@@ -61,18 +61,14 @@ class J22(M22.M22):
                  submenu='compile',
                  solvermenu=None,
                  OM=None, namespace=None,
-                 stations=None,
+                 stations=range(1,4),
                  polrep='linear',
-                 telescope=None,
-                 freqband=None,
                  **kwargs):
 
         self._solvermenu = solvermenu
         
         self._stations = stations
         self._polrep = polrep
-        self._telescope = telescope
-        self._freqband = freqband
 
         M22.M22.__init__(self, quals=quals,
                          name=name,
@@ -116,8 +112,6 @@ class J22(M22.M22):
         print prefix,'  * stations:  '+str(self.stations())
         print prefix,'  * polrep:    '+str(self.polrep())
         print prefix,'  * pols:      '+str(self.pols())
-        print prefix,'  * telescope: '+str(self.telescope())
-        print prefix,'  * freqband:  '+str(self.freqband())
         #...............................................................
         self._PGM.display(full=False, OM=False, level=level+1)
         #...............................................................
@@ -168,17 +162,8 @@ class J22(M22.M22):
 
         if not self._polrep:
             self._OMI.defopt('polrep', 'linear', opt=['linear','circular'],
-                             prompt='polarization representation to be used')
+                             prompt='polarization representation')
 
-        if not self._telescope:
-            self._OMI.defopt('telescope', None, opt=[None,'WSRT','VLA','CS1'],
-                             prompt='telescope')
-
-        if not self._freqband:
-            self._OMI.defopt('freqband', None, opt=[None,'21cm'],
-                             prompt='observing frequency band')
-
-            
         #..............................................
         return self.on_exit(trace=trace)
 
@@ -218,24 +203,6 @@ class J22(M22.M22):
             if self._OMI.has_option('polrep'):
                 self._polrep = self._OMI.optval('polrep', test=test)
         return self._polrep
-
-    #-----------------------------------------------------------------------
-
-    def telescope (self, test=None, trace=False):
-        """Return the polarization representation"""
-        if not self._telescope:
-            if self._OMI.has_option('telescope'):
-                self._telescope = self._OMI.optval('telescope', test=test)
-        return self._telescope
-
-    #-----------------------------------------------------------------------
-
-    def freqband (self, test=None, trace=False):
-        """Return the polarization representation"""
-        if not self._freqband:
-            if self._OMI.has_option('freqband'):
-                self._freqband = self._OMI.optval('freqband', test=test)
-        return self._freqband
 
 
     #=======================================================================
@@ -282,9 +249,7 @@ class J22(M22.M22):
         result = Joneset22.Joneset22(self.ns, self._OMI.name,
                                      # quals=self._OMI._quals,
                                      stations=self.stations(),
-                                     polrep=self.polrep(),
-                                     telescope=self.telescope(),
-                                     band=self.freqband())
+                                     polrep=self.polrep())
         result.matrixet(new=qnode) 
         result._PGM = self._PGM             # Just transfer the J22 ParmGroupManager....?
         if trace: result.display(full=True)

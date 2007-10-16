@@ -61,10 +61,8 @@ class GJ22(J22.J22):
                  submenu='compile',
                  solvermenu=None,
                  OM=None, namespace=None,
-                 stations=None,
+                 stations=range(1,4),
                  polrep='linear',
-                 telescope=None,
-                 freqband=None,
                  **kwargs):
 
         J22.J22.__init__(self, quals=quals,
@@ -74,8 +72,6 @@ class GJ22(J22.J22):
                          OM=OM, namespace=namespace,
                          stations=stations,
                          polrep=polrep,
-                         telescope=telescope,
-                         freqband=freqband,
                          **kwargs)
         return None
 
@@ -136,7 +132,7 @@ class GJ22(J22.J22):
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
             pg = self._PGM.add_ParmGroup(self._pname+pol, mode='amphas',
                                          descr=pol+'-dipole phases',
-                                         default=0.0, unit='rad',
+                                         default_value=0.0, unit='rad',
                                          simuldev=simuldev,
                                          time_tiling=1, freq_tiling=None,
                                          time_deg=0, freq_deg=0,
@@ -146,7 +142,7 @@ class GJ22(J22.J22):
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
             pg = self._PGM.add_ParmGroup(self._gname+pol, mode='amphas',
                                          descr=pol+'-dipole gains (real)',
-                                         default=1.0,
+                                         default_value=1.0,
                                          simuldev=simuldev,
                                          time_tiling=1, freq_tiling=None,
                                          time_deg=2, freq_deg=0,
@@ -156,7 +152,7 @@ class GJ22(J22.J22):
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
             pg = self._PGM.add_ParmGroup(self._rname+pol, mode='realimag',
                                          descr=pol+'-dipole gain (real part)',
-                                         default=1.0,
+                                         default_value=1.0,
                                          simuldev=simuldev,
                                          time_tiling=1, freq_tiling=None,
                                          time_deg=2, freq_deg=0,
@@ -166,7 +162,7 @@ class GJ22(J22.J22):
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
             pg = self._PGM.add_ParmGroup(self._iname+pol, mode='realimag',
                                          descr=pol+'-dipole gain (imag.part)',
-                                         default=1.0,
+                                         default_value=0.0,
                                          simuldev=simuldev,
                                          time_tiling=1, freq_tiling=None,
                                          time_deg=2, freq_deg=0,
@@ -228,7 +224,7 @@ class GJ22(J22.J22):
 
 
 v22 = None
-if 1:
+if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')

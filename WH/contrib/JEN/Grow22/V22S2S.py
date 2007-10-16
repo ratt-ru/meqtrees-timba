@@ -194,7 +194,7 @@ class V22S2S(V22.V22):
             return self.bypass (trace=trace)
         #..............................................
 
-        self._OMI.defopt('V22S2S_option', 56)
+        self._OMI.defopt('placeholder', 56)
 
         #..............................................
         return self.on_exit(trace=trace)
@@ -266,13 +266,13 @@ class V22S2S(V22.V22):
 
         # Make the Visset22 object and fill it with spigots:
         visset22 = Visset22.Visset22(ns, self._OMI.name,
-                                   # quals=self._OMI._quals,
+                                     # quals=self._OMI._quals,
                                      polrep='linear',
-                                   array=array, cohset=None)
+                                     array=array, cohset=None)
 
         visset22.make_spigots (input_col='DATA',
-                             # MS_corr_index=[0,1,2,3], flag_bit=4,
-                             visu=False)
+                               # MS_corr_index=[0,1,2,3], flag_bit=4,
+                               visu=False)
 
         # Plug in the selected plugin-sequence:
         for key in self._plugin_order:
@@ -354,6 +354,9 @@ def _define_forest(ns):
     if not s2s:
         s2s = V22S2S()
         s2s.make_TDLCompileOptionMenu()
+
+    global mssel
+    mssel = s2s._mssel            # used in _tdl_job_execute() below
 
     global vdm_nodename
     vdm_nodename = s2s.grow(ns)
