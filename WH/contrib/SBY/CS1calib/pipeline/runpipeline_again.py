@@ -81,12 +81,16 @@ TDLOption('mytable',"parmtable",[None,"peel0.mep"],default=None),
 TDLOption('mysave',"save all",[False,True],default=False),
 # subtile solutions
 TDLOption('dosubtile',"subtile",[True,False],default=True),
+#subtile size
+TDLOption('subtile_size',"tiles per subtile",[1,2,3],more=int),
 # solve for real/imag or gain/phase
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
 # beams
 TDLOption('stationbeam',"Station Beam",[True,False],default=True),
 # HBA or LBA
 TDLOption('use_lba',"LBA Model",[True,False],default=True),
+# rotate the dipoles?
+TDLOption('dorotate',"Rotate Dipoles",[True,False],default=False),
 );
 
 TDLCompileMenu("Post-flags",
@@ -154,7 +158,7 @@ def _define_forest(ns, parent=None, **kw):
 
 
   if dosubtile:
-   def_tiling=record(time=3)
+   def_tiling=record(time=subtile_size)
   else:
    def_tiling=None
 
@@ -246,9 +250,9 @@ def _define_forest(ns, parent=None, **kw):
     if stationbeam:
       Ej = global_model.EJones_droopy_comp_stat(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     else:
-      Ej = global_model.EJones_droopy_comp(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+      Ej = global_model.EJones_droopy_comp(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate);
   else:
-      Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+      Ej = global_model.EJones_HBA(ns,array,ordlist,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
 
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
@@ -330,9 +334,9 @@ def create_solver_defaults(num_iter=solver_maxiter,epsilon=1e-4,convergence_quot
   solver_defaults.balanced_equations = False
   solver_defaults.debug_level = solver_debug_level;
   #solver_defaults.save_funklets= True
-  solver_defaults.save_funklets= False
+  solver_defaults.save_funklets= mysave
   #solver_defaults.last_update  = True
-  solver_defaults.last_update  = False
+  solver_defaults.last_update  = mysave
   solver_defaults.debug_file = debug_file
 #See example in TDL/MeqClasses.py
   solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
@@ -424,19 +428,17 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   filelist1=[]
   p=re.compile('.MS$')
   for fname in filelist:
-    filelist1 += [p.sub('_S.MS',fname)]
-  
-  filelist=filelist1 
+    filelist1 += [p.sub('_M_S.MS',fname)]
   
   ### run each file through the pipeline
-  if do_preprocess:
-    for fname in filelist:
-      _do_preprocess(fname,mqs);
+#  if do_preprocess:
+#    for fname in filelist:
+#      _do_preprocess(fname,mqs);
   if do_calibrate:
-    for fname in filelist:
+    for fname in filelist1:
       _do_calibrate(fname,mqs);
   if do_postprocess:
-    for fname in filelist:
+    for fname in filelist1:
       _do_postprocess(fname,mqs);
 
 
@@ -481,7 +483,7 @@ def _do_calibrate(fname,mqs):
           channel_end_index=0,
           channel_increment=1,
           ddid_index=spwid,
-          selection_string='sumsqr(UVW[1:2]) > 20') # exclude only autocorrelations
+          selection_string='sumsqr(UVW[1:2]) > 10') # exclude only autocorrelations
       # update parmtablename 
       debug_filename=fname+"__"+str(spwid)+".log"
       _run_solve_job(mqs,solvables,ms_selection,wait=True,msname=fname,debug_file=debug_filename);

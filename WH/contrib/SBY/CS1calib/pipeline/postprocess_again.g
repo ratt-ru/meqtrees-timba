@@ -49,6 +49,7 @@ myphasecenter:=dm.direction('J2000', '00h00m00','90d00m00')
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(27may2007/15:21:00)) and  TIME/(24*3600) >= MJD(26may2007/19:06:00)",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(20jul2007/17:24:00)) and  (TIME/(24*3600) <= MJD(21jul2007/09:17:00)) ) or ( TIME/(24*3600) >= MJD(21jul2007/17:28:00) and  TIME/(24*3600) <= MJD(22jul2007/09:43:00))) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(20jul2007/17:24:00)) and  (TIME/(24*3600) <= MJD(21jul2007/09:17:00)) ) ) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
+#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(24aug2007/14:30:00)) and  (TIME/(24*3600) <= MJD(25aug2007/08:17:00)) ) ) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
 msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and sqrt(sumsqr(CORRECTED_DATA))/2<45000",fid,limuv)
 
 

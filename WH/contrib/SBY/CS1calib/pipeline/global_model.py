@@ -128,7 +128,7 @@ def point_and_extended_sources_solvable(ns,lsm,tablename=''):
   source_model = []
 
   #plist=lsm.queryLSM(all=1)
-  plist=lsm.queryLSM(count=1000)
+  plist=lsm.queryLSM(count=30)
 
   for pu in plist:
      (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
@@ -578,17 +578,27 @@ def EJones_droopy(ns,array,sources,radec0,meptable=None,solvables=[],solvable=Fa
   return Ej0;
 
 #### even more complex droopy dipole
-def EJones_droopy_comp(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
+def EJones_droopy_comp(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E",rotate=False):
   Bx_phi={}
   Bx_theta={}
   By_phi={}
   By_theta={}
   
+  # dipole rotations (in degrees)
+  diprot=[0,0,0,0,0,22.5,45,67.5,15,37.5,60,82.5,7.5,30,52.5,75];
+  dipnum=0;
+
   for station in array.stations():
-   Bx_phi[station] = makebeam_droopy_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
-   Bx_theta[station] = makebeam_droopy_theta(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
-   By_phi[station] = makebeam_droopy_phi(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
-   By_theta[station] = makebeam_droopy_theta(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   if rotate:
+    myphi0=diprot[dipnum]*math.pi/180;
+    dipnum=dipnum+1;
+   else:
+    myphi0=0
+
+   Bx_phi[station] = makebeam_droopy_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables,phi0=myphi0);
+   Bx_theta[station] = makebeam_droopy_theta(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables,phi0=myphi0);
+   By_phi[station] = makebeam_droopy_phi(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables,phi0=myphi0);
+   By_theta[station] = makebeam_droopy_theta(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables,phi0=myphi0);
 
   Ej0 = ns[name];
 

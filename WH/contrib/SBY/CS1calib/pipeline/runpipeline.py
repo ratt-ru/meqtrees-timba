@@ -490,7 +490,7 @@ def _do_calibrate(fname,mqs):
           channel_end_index=schan+channel_step-1,
           channel_increment=1,
           ddid_index=spwid,
-          selection_string='sumsqr(UVW[1:2]) > 20') # exclude only autocorrelations
+          selection_string='sumsqr(UVW[1:2]) > 10') # exclude only autocorrelations
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
       # update parmtablename 
       if mytable !=None:

@@ -86,6 +86,8 @@ TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
 TDLOption('stationbeam',"Station Beam",[True,False],default=True),
 # HBA or LBA
 TDLOption('use_lba',"LBA Model",[True,False],default=True),
+# rotate the dipoles?
+TDLOption('dorotate',"Rotate Dipoles",[True,False],default=False),
 );
 
 
@@ -152,7 +154,7 @@ def _define_forest(ns, parent=None, **kw):
     if stationbeam:
       Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     else:
-      Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+      Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate);
   else: # HBA
       Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     
@@ -372,22 +374,28 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   for line in infile:
     filelist += line.strip().split()
   infile.close()
+  # change names to _M.MS
+  filelist1=[]
+  p=re.compile('.MS$')
+  for fname in filelist:
+    filelist1 += [p.sub('_M.MS',fname)]
+
   
   ### run each file through the pipeline
   if do_preprocess:
     for fname in filelist:
       _do_preprocess(fname,mqs);
   if do_calibrate:
-    for fname in filelist:
+    for fname in filelist1:
       _do_calibrate(fname,mqs);
   if do_postprocess:
-    for fname in filelist:
+    for fname in filelist1:
       _do_postprocess(fname,mqs);
 
 def _do_preprocess(fname,mqs):
   if fname==None: return
   # add additional dummy 'arg' for glish to work properly
-  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip='+str(minclip)]);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess_small.g','args','ms='+fname,'minuv=1','minclip='+str(minclip)]);
 
 
 def _do_calibrate(fname,mqs):
@@ -427,7 +435,7 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  os.spawnvp(os.P_WAIT,'glish',['glish','-l','postprocess_uv.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step)]);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','postprocess_uv.g','args','ms='+fname,'spwids='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel),'step='+str(channel_step)]);
   # residual plots
   if residual_plots:
    for spwid in range(min_spwid-1,max_spwid):
