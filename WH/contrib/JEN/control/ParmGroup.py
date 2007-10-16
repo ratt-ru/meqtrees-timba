@@ -74,20 +74,7 @@ class ParmGroup (Meow.Parameterization):
                  OM=None, namespace=None,
                  **kwargs):
 
-        
-                 # Some **kwargs:
-                 # time_tiling=None,
-                 # freq_tiling=None,
-                 # time_deg=0,
-                 # freq_deg=0,
-                 # simuldev=None,
-                 # min=None,
-                 # max=None,
-                 # ignore=None,
-                 # sum=None,
-                 # product=None,
-
-
+    
         #------------------------------------------------------------------
         # Scopify ns, if necessary:
         if is_node(ns):

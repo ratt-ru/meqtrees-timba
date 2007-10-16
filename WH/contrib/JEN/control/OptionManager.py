@@ -456,17 +456,16 @@ class OptionManager (object):
 
     #---------------------------------------------------------------------
 
-    def create_menurec (self, key, prompt=None, stare=None, descr=None,
-                        toggle=None, callback=None, selected=None,
-                        create=False, trace=False):
+    def create_menurec (self, key, prompt=None, trace=False):
         """Create a new menu definition record (menurec).
         NB: Should be called ONLY from .create() above.
         """
-        if self.menurec.has_key(key):           # exists already
-            pass                                # ...test...?   
+        if self.menurec.has_key(key):                           # exists already
+            pass                                                # ...test...?   
         self.menurec[key] = dict(prompt=prompt,
                                  stare=None, descr='<descr>',
-                                 option_keys=[], selected=None,
+                                 option_keys=[],
+                                 selected=True,                 # <-------- !!
                                  toggle=False, tkey=None, callback=None)
         return self.menurec[key]
         
