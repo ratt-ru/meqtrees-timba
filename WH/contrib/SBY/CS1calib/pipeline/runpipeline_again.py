@@ -485,6 +485,11 @@ def _do_calibrate(fname,mqs):
           ddid_index=spwid,
           selection_string='sumsqr(UVW[1:2]) > 10') # exclude only autocorrelations
       # update parmtablename 
+      parmtablename=fname+"_1_"+str(spwid)+".mep";
+      if mytable !=None:
+        for sname in solvables:
+          set_node_state(mqs,sname,record(table_name=parmtablename))
+
       debug_filename=fname+"__"+str(spwid)+".log"
       _run_solve_job(mqs,solvables,ms_selection,wait=True,msname=fname,debug_file=debug_filename);
       #try:
