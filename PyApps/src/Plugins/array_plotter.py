@@ -103,7 +103,8 @@ class ArrayPlotter(GriddedPlugin):
       save_file = './meqbrowser' + png_str + '.png'
     else:
       save_file = title + png_str + '.png'
-    result = QPixmap.grabWidget(self.layout_parent).save(save_file, "PNG")
+    save_file_no_space= save_file.replace(' ','_')
+    result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
 
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """

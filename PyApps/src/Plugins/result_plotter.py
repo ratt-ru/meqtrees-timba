@@ -620,7 +620,9 @@ class ResultPlotter(GriddedPlugin):
       save_file = './meqbrowser' + png_str + '.png'
     else:
       save_file = title + png_str + '.png'
-    result = QPixmap.grabWidget(self.layout_parent).save(save_file, "PNG")
+    save_file_no_space= save_file.replace(' ','_')
+    result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
+
     
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
