@@ -164,6 +164,7 @@ class realvsimag_plotter(object):
         'Reset zoomer': 300,
         'Toggle Legend': 301,
         'Undo Last Zoom': 302,
+        'Save Display in PNG Format':303,
         }
     
   def __init__(self, plot_key="", parent=None):
@@ -242,7 +243,7 @@ class realvsimag_plotter(object):
         self.plot_symbol = None
         self.plot_symbol_size = None
         self.plot_line_style = None
-        self._plot_title = None
+        self._plot_title = 'realvsimag'
         self._legend_plot = None
         self._legend_popup = None
         self.label = ''
@@ -393,6 +394,9 @@ class realvsimag_plotter(object):
 
         menu_id = 301
         self._menu.insertItem("Toggle Legend", menu_id)
+
+        menu_id = 303
+        self._menu.insertItem("Save Display in PNG Format", menu_id)
         
         printer = QAction(self.plot);
         printer.setIconSet(pixmaps.fileprint.iconset());
@@ -515,6 +519,10 @@ class realvsimag_plotter(object):
     if menuid == self.menu_table['Toggle results history']:
       self.toggleResults()
       return
+
+    if menuid == self.menu_table['Save Display in PNG Format']:
+      self.plot.emit(PYSIGNAL("save_display"),(self._plot_title,))
+      return True
 
 # toggle flags display	
     if menuid == 200:
@@ -871,7 +879,7 @@ class realvsimag_plotter(object):
       self.plot_symbol = None
       self.plot_symbol_size = None
       self.plot_line_style = None
-      self._plot_title = None
+      self._plot_title = 'realvsimag'
       self._plot_type = None
       self.value_tag = None
       self.error_tag = None

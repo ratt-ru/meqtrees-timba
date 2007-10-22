@@ -79,6 +79,7 @@ class ArrayPlotter(GriddedPlugin):
     self.twoD_plotter = None
     self.ND_plotter = None
     self.ND_Controls = None
+    self.png_number = 0
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -92,7 +93,17 @@ class ArrayPlotter(GriddedPlugin):
     QObject.connect(self.twoD_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
     QObject.connect(self.twoD_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
     QObject.connect(self.twoD_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
+    QObject.connect(self.twoD_plotter, PYSIGNAL('save_display'), self.grab_display)
   # create_2D_plotter
+
+  def grab_display(self, title):
+    self.png_number = self.png_number + 1
+    png_str = str(self.png_number)
+    if title is None:
+      save_file = './meqbrowser' + png_str + '.png'
+    else:
+      save_file = title + png_str + '.png'
+    result = QPixmap.grabWidget(self.layout_parent).save(save_file, "PNG")
 
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """

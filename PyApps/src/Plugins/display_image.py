@@ -179,6 +179,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle Comparison': 318,
         'Drag Amplitude Scale': 319,
         'Undo Last Zoom': 320,
+        'Save Display in PNG Format': 321,
         }
 
     _start_spectrum_menu_id = 0
@@ -768,6 +769,10 @@ class QwtImageDisplay(QwtPlot):
 
       if menuid == self.menu_table['Change Vells']:
         self._vells_menu.show()
+        return True
+
+      if menuid == self.menu_table['Save Display in PNG Format']:
+        self.emit(PYSIGNAL("save_display"),(self._window_title,))
         return True
 
 # if we get here ...
@@ -3238,6 +3243,11 @@ class QwtImageDisplay(QwtPlot):
 
 # add the printer to the menu
         self.printer.addTo(self._menu);
+
+# add option to save in PNG format
+        toggle_id = self.menu_table['Save Display in PNG Format']
+        self._menu.insertItem("Save Display in PNG Format", toggle_id)
+        self._menu.setItemVisible(toggle_id, True)
 
 # do this here?
         if self.chi_zeros is None:

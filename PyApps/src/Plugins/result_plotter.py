@@ -154,6 +154,7 @@ class ResultPlotter(GriddedPlugin):
     self.num_possible_ND_axes = None
     self.active_image_index = None
     self._spectrum_data = None
+    self.png_number = 0
     self.data_list = []
     self.data_list_labels = []
     self.data_list_length = 0
@@ -377,6 +378,7 @@ class ResultPlotter(GriddedPlugin):
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
 
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
+        QObject.connect(self._visu_plotter.plot, PYSIGNAL('save_display'), self.grab_display) 
         self.layout.addWidget(self._visu_plotter.plot, 0, 1)
         self._visu_plotter.plot.show()
         _dprint(3, 'issued show call to realvsimag self._visu_plotter')
@@ -422,6 +424,7 @@ class ResultPlotter(GriddedPlugin):
       mb.exec_loop()
       self._plot_type = "realvsimag"
       self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
+      QObject.connect(self._visu_plotter.plot, PYSIGNAL('save_display'), self.grab_display) 
       self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -607,8 +610,18 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('save_display'), self.grab_display) 
   # create_2D_plotter
 
+  def grab_display(self, title):
+    self.png_number = self.png_number + 1
+    png_str = str(self.png_number)
+    if title is None:
+      save_file = './meqbrowser' + png_str + '.png'
+    else:
+      save_file = title + png_str + '.png'
+    result = QPixmap.grabWidget(self.layout_parent).save(save_file, "PNG")
+    
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
         user has requested a plot. It decides whether the data is
@@ -842,7 +855,7 @@ class ResultPlotter(GriddedPlugin):
       if self.actual_rank > 2 and self.ND_Controls is None:
          display_change = True
       if self.actual_rank <= 2 and not self.ND_Controls is None:
-         self.ND_Controls.hide()
+         self.ND_Controelf._visu_plotters.hide()
       _dprint(3, 'display_change ', display_change)
       if display_change and self.actual_rank > 2:
         _dprint(3, 'calling set_ND_controls')
