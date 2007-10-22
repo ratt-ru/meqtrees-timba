@@ -165,7 +165,7 @@ class Growth (object):
         """Print a summary of this object"""
         prefix = self.display_preamble('Growth', level=level, txt=txt)
         #...............................................................
-        print prefix,'  * kwargs ('+str(self._kwargs.keys())+'):'
+        print prefix,'  * kwargs ('+str(len(self._kwargs.keys()))+'):'
         for key in self._kwargs.keys():
             rr = self._kwargs[key]
             if not isinstance(rr, dict):
@@ -398,6 +398,7 @@ class Growth (object):
             # Check the nodescope, and make the self.ns/ns0 that will be used.
             self.ns0 = ns
             if is_node(ns):
+                print '\n** ns is a node:',str(ns),self.oneliner(),'\n'
                 self.ns = ns.QualScope(self._OMI._quals)        
                 self.ns0 = ns.QualScope() 
             else:

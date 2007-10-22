@@ -203,7 +203,7 @@ class TwigBranch(Twig.Twig):
     
     #---------------------------------------------------------------------------
 
-    def make_leaf_subtree (self, ns, trace=False):
+    def make_leaf_subtree (self, trace=False):
         """Make the subtree for the specified (see .define_leaves()) Leaf.
         """
         if trace:
@@ -212,7 +212,7 @@ class TwigBranch(Twig.Twig):
         for key in self._leaf.keys():
             rr = self._leaf[key]
             print '\n -',key,':',rr['leaf'].oneliner()
-            node = rr['leaf'].grow(ns, trace=False)
+            node = rr['leaf'].grow(self.ns, trace=False)
             print '    -> node =',str(node)
             if is_node(node):
                 break
@@ -224,7 +224,7 @@ class TwigBranch(Twig.Twig):
 
     #---------------------------------------------------------------------------
 
-    def append_plugin_sequence (self, ns, node=None, trace=False):
+    def append_plugin_sequence (self, node=None, trace=False):
         """Append the specified (see .define_plugin_sequence()) sequence of Twig
         subtrees to the given node.
         """
@@ -234,7 +234,7 @@ class TwigBranch(Twig.Twig):
         for key in self._plugin_order:
             rr = self._plugin[key]
             print '\n -',key,':',rr['plugin'].oneliner()
-            node = rr['plugin'].grow(ns, node, trace=False)
+            node = rr['plugin'].grow(self.ns, node, trace=False)
             print '    -> node =',str(node)
 
         if trace:
@@ -297,8 +297,8 @@ class TwigBranch(Twig.Twig):
             return self.bypass (trace=trace)
         #..............................................
 
-        node = self.make_leaf_subtree (ns, trace=trace)
-        node = self.append_plugin_sequence (ns, node, trace=trace)
+        node = self.make_leaf_subtree (trace=trace)
+        node = self.append_plugin_sequence (node, trace=trace)
 
         #..............................................
         # Finishing touches:
@@ -408,6 +408,7 @@ def _define_forest(ns):
     print 'rootnode =',str(rootnode)
     if is_node(rootnode):
         cc.append(rootnode)
+        brn.display_subtree(rootnode)
 
     if len(cc)==0:
         cc.append(ns.dummy<<1.1)
@@ -469,7 +470,8 @@ if __name__ == '__main__':
 
     if 1:
         test = dict()
-        brn.grow(ns, test=test, trace=False)
+        rootnode = brn.grow(ns, test=test, trace=False)
+        brn.display_subtree(rootnode)
 
     if 0:
         brn.display('final', OM=True, full=True)

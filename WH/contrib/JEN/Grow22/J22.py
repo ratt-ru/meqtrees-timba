@@ -230,6 +230,7 @@ class J22(M22.M22):
         # Make Jones matrices (subtrees) for all the stations.
         TRACE = True
         qnode = self.ns[self.name]                   
+        qnode = self.ns['Jones']                   
         if not qnode.must_define_here(self):
             s = '** '+str(self.name)+': nodename clash: '+str(qnode)
             raise ValueError, s
@@ -251,8 +252,11 @@ class J22(M22.M22):
                                      stations=self.stations(),
                                      polrep=self.polrep())
         result.matrixet(new=qnode) 
+        self._PGM.cleanup()                 # remove the unused ParmGroups
         result._PGM = self._PGM             # Just transfer the J22 ParmGroupManager....?
-        if trace: result.display(full=True)
+
+        if TRACE or trace:
+            result.display(full=True)
 
         #..............................................
         # Finishing touches:
@@ -294,30 +298,30 @@ class J22(M22.M22):
 #=============================================================================
 
 
-v22 = None
+j22 = None
 if 0:
     xtor = Executor.Executor()
     # xtor.add_dimension('l', unit='rad')
     # xtor.add_dimension('m', unit='rad')
     # xtor.add_dimension('x', unit='m')
     # xtor.add_dimension('y', unit='m')
-    v22 = J22(quals='xyv')
-    v22.make_TDLCompileOptionMenu()
-    # v22.display('outside')
+    j22 = J22(quals='xyv')
+    j22.make_TDLCompileOptionMenu()
+    # j22.display('outside')
 
 
 def _define_forest(ns):
 
-    global v22,xtor
-    if not v22:
+    global j22,xtor
+    if not j22:
         xtor = Executor.Executor()
-        v22 = J22()
-        v22.make_TDLCompileOptionMenu()
+        j22 = J22()
+        j22.make_TDLCompileOptionMenu()
 
     cc = []
 
     if False:
-        mx = v22.grow(ns)
+        mx = j22.grow(ns)
         print '** mx =',str(mx)
     
         rootnode = mx.bundle(oper='Composer', quals=[], accu=True)
@@ -344,11 +348,11 @@ def _tdl_job_execute (mqs, parent):
     
 def _tdl_job_display (mqs, parent):
     """Just display the current contents of the J22 object"""
-    v22.display('_tdl_job')
+    j22.display('_tdl_job')
        
 def _tdl_job_display_full (mqs, parent):
     """Just display the current contents of the J22 object"""
-    v22.display('_tdl_job', full=True)
+    j22.display('_tdl_job', full=True)
        
        
 
@@ -363,18 +367,18 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        v22 = J22()
-        v22.display('initial')
+        j22 = J22()
+        j22.display('initial')
 
     if 1:
-        v22.make_TDLCompileOptionMenu()
+        j22.make_TDLCompileOptionMenu()
 
     if 1:
         test = dict()
-        v22.grow(ns, test=test, trace=True)
+        j22.grow(ns, test=test, trace=False)
 
     if 1:
-        v22.display('final', OM=True, full=True)
+        j22.display('final', OM=False, full=True)
 
 
 

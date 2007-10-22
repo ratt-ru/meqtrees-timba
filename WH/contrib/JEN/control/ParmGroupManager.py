@@ -7,6 +7,7 @@
 # - 24sep2007: move to ../JEN/control/
 # - 05oct2007: adapt to OMInterface
 # - 11oct2007: remove ParameterizationPlus inheritance
+# - 19oct2007: clean up the .nodescope() mess
 
 # Description:
 
@@ -58,31 +59,19 @@ class ParmGroupManager (object):
     """The Grunt ParmGroupManager class encapsulates a group of ParmGroups.
     """
 
-    def __init__(self, ns=None,
-                 name='<PGM>',
-                 quals=None,
-                 # kwquals=None,
+    def __init__(self, name='<PGM>', quals=None, 
+                 ns=None, kwquals=None,
                  OM=None, namespace=None,
                  submenu='compile',
                  solvermenu=None,
                  **kwargs):
 
-        self.name = name
-        self.ns = ns
+        self._frameclass = 'Grow.ParmGroupManager'       # for reporting
 
-        # Scopify ns, if necessary:
-        if is_node(ns):
-            self.ns = ns.QualScope()        
-
-        # Make sure that there is a nodescope (Required by Meow.Parameterization)
-        if ns==None:
-            ns = NodeScope()
-        
         self._submenu = submenu
         self._solvermenu = solvermenu
 
-        self._frameclass = 'control.ParmGroupManager'       # for reporting
-
+        #------------------------------------------------------------------
         # Initialize local data:
         self._parmgroups = dict()
         self._order = []
@@ -91,41 +80,86 @@ class ParmGroupManager (object):
         self._modes = dict()
         self._modes_order = []
 
-        self._parmgogs = dict()
-
         self._pmerged = []
 
         self._accumulist = dict()                           # ....?
 
         #------------------------------------------------------------------
+        # nodescope management;
+
+        self.name = str(name)                     
+        self._quals = self.quals2list(quals)
+        self._kwquals = kwquals
+        if not isinstance(self._kwquals,dict):
+            self._kwquals = dict()
+        if ns==None:
+            ns = NodeScope()
+        self.nodescope(ns, quals=quals, kwquals=kwquals)
+        
+        #------------------------------------------------------------------
         # Options management:
 
         self._solvermenu = solvermenu
-
-        self._OMI = OMInterface.OMInterface(quals,
+        self._OMI = OMInterface.OMInterface(self._quals,
                                             name=self.name,
                                             submenu=submenu,
                                             OM=OM, namespace=namespace,
                                             **kwargs)
+        #------------------------------------------------------------------
 
         return None
 
 
     #---------------------------------------------------------------
 
-    def nodescope (self, ns=None):
-        """Get/set the internal nodescope (can also be a node)"""
+
+    def nodescope (self, ns=None, quals=None, kwquals=None, trace=True):
+        """Get/override the internal nodescope of the ParmGroupManager.
+        Any arguments are passed on to its ParmGroups (if any).
+        Any quals or kwquals are cumulative, i.e. they are added to the
+        ones that have been given before (including the constructor).
+        NB: If the new nodescope is a node, it is 'scopified'.
+        """
+
+        quals = self.quals2list(quals)
+        if not isinstance(self._kwquals,dict):
+            self._kwquals = dict()
+
+        if trace:
+            print '\n** .nodescope(',type(ns),quals,kwquals,'): ',self.name
+
+        # First, pass on the arguments (ns,quals,kwquals) to its ParmGroups.
+        # (The latter are semi-independent, since the PGM is just
+        #  a temporary organizing unit, and its ParmGroups may be
+        #  merged with other PGM's later...)
+        for key in self._parmgroups.keys():
+            self._parmgroups[key].nodescope(ns, quals=quals,
+                                            kwquals=kwquals)
+
+        # Append any new quals to the PGM self._quals
+        if quals:
+            for qual in quals:
+                if not qual in quals:
+                    self._quals.append(qual)
+            if trace: print '    -> quals =',self._quals
+
+        # Update the PGM self._kwquals with any new ones
+        if isinstance(kwquals, dict):
+            self._kwquals.update(kwquals)
+            if trace: print '    -> kwquals =',self._kwquals
+            
+        # Finally, deal with the PGM nodescope
         if ns:
-            if is_node(ns):
+            if is_node(ns):                    # does this ever happen?
                 self.ns = ns.QualScope()        
             else:
-                self.ns = ns
-            if True:
-                name = self.name
-                self.ns = self.ns[name](name).QualScope()            #.....!!?
-            for key in self._parmgroups.keys():
-                self._parmgroups[key].nodescope(self.ns)
+                self.ns = ns.QualScope(*self._quals, **self._kwquals)
+
+
+        # Always return the current nodescope:
+        if trace: print '    -> dummy =',str(self.ns.dummy)
         return self.ns
+
 
     #---------------------------------------------------------------
 
@@ -140,32 +174,6 @@ class ParmGroupManager (object):
         return self._parmgroups[key]
 
 
-    def active_groups (self, new=None):
-        """Get/set the list of (names of) 'active' parmgroups.
-        Reimplementation of the square-brackets call: pg = PGM[key]"""
-        active = []
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            if isinstance(new, (list,tuple)):
-                pg.active(key in new)
-            if pg.active():
-                active.append(key)
-        if new:
-            self.TDLShowActive()
-
-        # Make a new set of parmgogs (of active groups):
-        gogs = self.gogs()
-
-        # Finished:
-        return active
-
-    #-------------------------------------------------------------------
-
-    def cleanup (self):
-        """Remove the inactive (unused) ParmGroups"""
-        return True
-
-
     #===============================================================
     # Display of the contents of this object:
     #===============================================================
@@ -176,7 +184,7 @@ class ParmGroupManager (object):
         ss += '  (name='+str(self.name)+')'
         if self._solvermenu:
             ss += '  (solvermenu='+str(self._solvermenu)+')'
-        # ss += '  ('+str(self.ns['<>'].name)+')'
+        ss += '  ('+str(self.ns['<>'].name)+')'
         return ss
 
 
@@ -191,18 +199,11 @@ class ParmGroupManager (object):
         print prefix,'  * Grunt parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._order:
             pg = self._parmgroups[key]
-            if pg.active():
-                print prefix,'    - ('+key+'): '+str(pg.oneliner())
-            else:
-                print prefix,'    - ('+key+'):   ... not active ...'
+            print prefix,'    - ('+key+'): '+str(pg.oneliner())
         #...............................................................
         print prefix,'  * mode(s) (mode='+str(self._mode)+'):'
         for key in self._modes_order:
             print prefix,'    - ('+str(key)+'): '+str(self._modes[key])
-        #...............................................................
-        print prefix,'  * Grunt _parmgogs (groups of parmgroups, derived from their node tags):'
-        for key in self.gogs():
-            print prefix,'    - ('+str(key)+'): '+str(self._parmgogs[key])
         #...............................................................
         print prefix,'  * Accumulist entries: '
         for key in self._accumulist.keys():
@@ -258,12 +259,32 @@ class ParmGroupManager (object):
     #...............................................................
 
     def _callback_mode (self, mode):
-        """Called whenever option 'mode' changes"""
+        """Called whenever option 'mode' changes. It hides all parmgroups,
+        and then unhides only the ones that belong to the selected mode.
+        """
         self._mode = mode
         for key in self._order:
             self._parmgroups[key].hide()
         for key in self._modes[self._mode]:
             self._parmgroups[key].hide(hide=False)
+        return True
+
+    #-------------------------------------------------------------------
+
+    def cleanup (self, trace=True):
+        """Remove the unused ParmGroups (i.e. the ones without any members)"""
+        if trace:
+            print '\n** PGM.cleanup():',self.oneliner()
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            if pg.len()==0:
+                self._parmgroups.__delitem__(key)
+                self._order.remove(key)
+                if trace:
+                    print '-- removed ParmGroup: ',pg.oneliner()
+                pg.delete()
+            elif trace:
+                print '-- retained ParmGroup: ',pg.oneliner()
         return True
 
     #-------------------------------------------------------------------
@@ -327,7 +348,8 @@ class ParmGroupManager (object):
             kwargs['tags'] = tags
 
         # Create the ParmGroup:
-        pg = ParmGroup.ParmGroup (self.ns, key,
+        pg = ParmGroup.ParmGroup (key,
+                                  # ns=self.ns,
                                   submenu=self._OMI._submenu,
                                   solvermenu=self._solvermenu,
                                   OM=self._OMI._OM,
@@ -338,7 +360,7 @@ class ParmGroupManager (object):
         self._order.append(key)
         self._parmgroups[key] = pg
 
-        # A ParmGroup may belong to one or more 'modes':
+        # A ParmGroup may belong to one or more 'grow-modes':
         if isinstance(mode,str):
             mode = [mode]
         if isinstance(mode, (list,tuple)):
@@ -354,7 +376,7 @@ class ParmGroupManager (object):
 
     #-------------------------------------------------------------------
 
-    def order(self, active=True):
+    def order(self):
         """Get an ordered list of the available parmgroup keys"""
         return self._order
 
@@ -385,9 +407,10 @@ class ParmGroupManager (object):
 
     def merge (self, other, trace=False):
         """Merge the parm contents with those of another object.
-        The latter must be derived of Meow.Parametrization, but
-        it may or may not be derived from Grunt.ParmGroupManager.
-        If not, it will copy the parmdefs, but not any parmgroups."""
+        This is straightforward if it also has a ParmGroupManager. 
+        If the other object is derived from Meow.Parametrization,
+        this function will make a ParmGroup from its parameters.
+        """
         
         if trace:
             self.display('before PGM.merge()', full=True)
@@ -409,23 +432,15 @@ class ParmGroupManager (object):
             # Copy its ParmGroup(s) (objects):
             # NB: Avoid duplicate parmgroups (solvable and simulated versions
             # of the same Joneset should be compared, rather than merged!).
-            pgs = PGM._parmgroups
-            for key in pgs:
-                if not pgs[key].active():
-                    print '** skipping inactive parmgroup:',key
-                else:
-                    if self._parmgroups.has_key(key):
-                        if self._parmgroups[key].active():
-                            s = '** cannot merge duplicate parmgroups: '+key 
-                            raise ValueError, s
-                        print '** overwriting inactive parmgroup:',key
-                    self._parmgroups[key] = pgs[key]
+            other_pgs = PGM._parmgroups
+            for key in other_pgs:
+                self._parmgroups[key] = other_pgs[key]
 
 
         # Check whether the other object is derived from Meow.Parameterization
-        elif isinstance(rr, getattr(other, '_parmdefs', None)):
-            rr = getattr(other, '_parmdefs', None)
+        elif getattr(other, '_parmdefs', None):
             # The other object IS derived from Meow.Parameterization
+            rr = getattr(other, '_parmdefs')
             self._pmerged.append(other)               # avoid duplicate merging....
 
             # Make a single parmgroup from its parmnodes
@@ -565,8 +580,9 @@ class ParmGroupManager (object):
 
     def find_parmgroups (self, groups, severe=True, trace=False):
         """
-        Helper function to covert the specified groups (parmgroups or gogs)
-        into a list of existing parmgroup names. If severe==True, stop if error.
+        Helper function to convert the specified (parm)groups
+        into a list of existing parmgroup names.
+        If severe==True, stop if error.
         """
         # First make sure that the selection is a list (of names):
         if groups==None:
@@ -577,47 +593,16 @@ class ParmGroupManager (object):
         if groups[0]=='*':
             groups = self._parmgroups.keys()           # all parmgroups
 
-        # Make a (unique) list pg of valid parmgroups from the gogs: 
-        self._make_gogs()
-        pg = []
+        # Make a (unique) list pg of valid parmgroups: 
+        pglist = []
         for key in groups:
-            if self._parmgogs.has_key(key):
-                for g in self._parmgogs[key]:
-                    if not g in pg: pg.append(g)
+            if self._parmgroups.has_key(key):
+                pg = self._parmgroups[key]
+                if not key in pglist:
+                    pglist.append(key)
             elif severe:
                 raise ValueError,'** parmgroup not recognised: '+key
-        return pg
-
-
-    #===============================================================
-    # Parmgogs: Groups of parmgroups
-    #===============================================================
-
-    def gogs (self):
-        """Return the list of available groups of parmgroups (gogs).
-        These are used in finding groups, e.g. for solving."""
-        return self._make_gogs().keys()
-
-
-    def _make_gogs (self):
-        """Derive a dict of named groups of (active) parmgroups from the tags
-        of the various (active) parmgroups. These may be used to select groups,
-        e.g. in .solvable()."""
-        gg = dict()
-        gg.setdefault('*',[])
-        keys = self._parmgroups.keys()
-        for key in keys:
-            pg = self._parmgroups[key]
-            if pg.active():                # active groups only!
-                tags = pg._tags
-                for tag in tags:
-                    gg.setdefault(tag,[])
-                    if not key in gg[tag]:
-                        gg[tag].append(key)
-                if not key in gg['*']:     # all active groups (*)
-                    gg['*'].append(key)
-        self._parmgogs = gg
-        return self._parmgogs
+        return pglist
 
 
 
@@ -641,7 +626,7 @@ class ParmGroupManager (object):
     #---------------------------------------------------------------
 
     def bundle (self, parmgroup='*', combine='Composer',
-                  bookpage=True, folder=None, show=False):
+                bookpage=True, folder=None, show=False):
         """Bundle the nodes in the specified parmgroup(s) by applying the
         specified combine-operation (default='Add') to them. Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
@@ -660,7 +645,7 @@ class ParmGroupManager (object):
     #---------------------------------------------------------------
 
     def plot_rvsi (self, parmgroup='*',
-                     bookpage=True, folder=None, show=False):
+                   bookpage=True, folder=None, show=False):
         """Make separate rvsi plots of the specified parmgroup(s). Return the
         root node of the resulting subtree. Make bookpages for each parmgroup.
         """
@@ -679,7 +664,7 @@ class ParmGroupManager (object):
     #---------------------------------------------------------------
 
     def plot_timetracks (self, parmgroup='*', 
-                           bookpage=True, folder=None, show=False):
+                         bookpage=True, folder=None, show=False):
         """Visualize the nodes in the specified parmgroup(s) in a separate
         'inspector' (time-tracks) per parmgroup. Return the root node of
         the resulting subtree. Make bookpages for each parmgroup.
@@ -693,14 +678,14 @@ class ParmGroupManager (object):
             pg = self._parmgroups[key]
             bb.append(pg.plot_timetracks (bookpage=bookpage, folder=folder))
         return self._bundle_of_bundles (bb, name='plot_timetracks',
-                                          qual=parmgroup,
-                                          accu=True, show=show)
+                                        qual=parmgroup,
+                                        accu=True, show=show)
 
 
     #---------------------------------------------------------------
 
     def plot_spectra (self, parmgroup='*', 
-                           bookpage=True, folder=None, show=False):
+                      bookpage=True, folder=None, show=False):
         """Visualize the nodes in the specified parmgroup(s) in a separate
         'inspector' (time-tracks) per parmgroup. Return the root node of
         the resulting subtree. Make bookpages for each parmgroup.
@@ -714,8 +699,8 @@ class ParmGroupManager (object):
             pg = self._parmgroups[key]
             bb.append(pg.plot_spectra (bookpage=bookpage, folder=folder))
         return self._bundle_of_bundles (bb, name='plot_spectra',
-                                          qual=parmgroup,
-                                          accu=True, show=show)
+                                        qual=parmgroup,
+                                        accu=True, show=show)
 
 
     
@@ -742,8 +727,10 @@ class ParmGroupManager (object):
         return qnode
 
 
+
+
     #===============================================================
-    # Some useful helper functions (available to all derived classes)
+    # Some useful helper functions:
     #===============================================================
 
     def tags2list (self, tags):
@@ -763,9 +750,12 @@ class ParmGroupManager (object):
 
     #----------------------------------------------------------------
 
-    def get_quals (self, merge=None, remove=None):
-        """Helper function to get a list of the current nodescope qualifiers"""
-        quals = (self.ns.dummy).name.split(':')
+    def get_quals (self, ns=None, merge=None, remove=None):
+        """Helper function to get a list of the qualifiers of the
+        given nodescope (ns). If ns==None, use self.ns."""
+        if ns==None:
+            ns = self.ns
+        quals = (ns.dummy).name.split(':')
         quals.remove(quals[0])
         if isinstance(merge,list):
             for q in merge:
@@ -950,33 +940,33 @@ if __name__ == '__main__':
     ns = NodeScope()
 
     if 1:
-        PGM = ParmGroupManager(ns, 'GJones')
+        PGM = ParmGroupManager('GJones',
+                               solvermenu='SolVer')
         PGM.add_ParmGroup('Gphase', mode='amphas')
         PGM.add_ParmGroup('Ggain', mode='amphas')
         PGM.add_ParmGroup('Greal', mode='realimag')
         PGM.add_ParmGroup('Gimag', mode='realimag')
+        ns = ns.Subscope('Jones_3c84')
+        PGM.nodescope(ns)
         PGM.display('initial')
 
     if 1:
-        for mode in PGM.mode_order():
-            PGM.select_mode(mode, trace=True)
-        PGM.select_mode(trace=True)
-
-    if 0:
         print PGM['Gphase'].oneliner()
         print PGM['Ggain'].oneliner()
 
-    if 0:
+    if 1:
         PGM['Gphase'].create_member(1)
         PGM['Gphase'].create_member(2.1, value=(ns << -89))
         PGM['Gphase'].create_member(2, value=34)
         PGM['Gphase'].create_member(3, time_tiling=5)
         PGM['Gphase'].create_member(7, freq_deg=2)
 
-    if 0:
+    if 1:
         PGM['Ggain'].create_member(7, freq_deg=6)
         PGM['Ggain'].create_member(4, time_deg=3)
 
+    if 1:
+        PGM.cleanup(trace=True)
 
     if 0:
         PGM.bundle(show=True)
@@ -987,8 +977,8 @@ if __name__ == '__main__':
     if 0:
         PGM.plot_timetracks(show=True)
 
-    if 0:
-        PGM.display('final', full=True, om=True)
+    if 1:
+        PGM.display('final', full=True, OM=True)
 
 
     #------------------------------------------------------------------
@@ -1008,7 +998,6 @@ if __name__ == '__main__':
         PGM.solvable(groups=['GJones'], trace=True)
         PGM.solvable(groups=['Gphase','Ggain'], trace=True)
         PGM.solvable(groups=PGM.groups(), trace=True)
-        PGM.solvable(groups=PGM.gogs(), trace=True)
         # PGM.solvable(groups=['Gphase','xxx'], trace=True)
 
     if 0:
@@ -1020,7 +1009,6 @@ if __name__ == '__main__':
     if 0:
         solvable = True
         PGM.find_nodes(groups='GJones', solvable=solvable, trace=True)
-        PGM.find_nodes(groups=PGM.gogs(), solvable=solvable, trace=True)
 
     if 0:
         pp2 = ParmGroupManager(ns, 'DJones')

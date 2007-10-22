@@ -130,6 +130,7 @@ class Jseq22(J22.J22):
                        OM=self._OM,
                        stations=self.stations(),
                        polrep=self.polrep(),
+                       inhibit_selection=self._kwargs['inhibit_selection'],
                        toggle_box=True)
         print type(jones)
         print jones.oneliner()
@@ -149,7 +150,10 @@ class Jseq22(J22.J22):
     def create_Growth_objects (self, trace=False):
         """Re-implementation of the generic Growth function.
         """
+
         submenu = self._submenu+'.J22'
+        if trace:
+            print '\n** .create_Growth_objects(): submenu=',submenu
         self.define_jones_sequence (submenu, trace=trace)
         self._OM.set_menurec(submenu, prompt='select a jones sequence')
 
@@ -178,23 +182,23 @@ class Jseq22(J22.J22):
         if TRACE or trace:
             print '\n** Jseq22.grow():'
 
-        self.display('.grow()')
+        self.display('start of .grow()')
 
         # First make a list (jj) of Joneset22 objects from the selected
         # J22 objects in self._jones:
         jj = []
         for key in self._jones_order:
             rr = self._jones[key]
-            if rr['jones']._OMI.is_selected():                    # <-------- temporary...
-                if TRACE or trace:
-                    print '--',key,':',rr['jones'].oneliner()
-                j22 = rr['jones'].grow(self.ns, trace=True)
+            if TRACE or trace:
+                print '--',key,':',rr['jones'].oneliner()
+            j22 = rr['jones'].grow(self.ns, trace=trace)
+            if TRACE or trace:
+                print '   -> j22 =',type(j22)
+            if j22:                                       # None if not selected...
                 if TRACE or trace:
                     print '   ->',j22.oneliner()
-                jj.append(j22)                                    # Joneset object
-            else:
-                if TRACE or trace:
-                    print '- ignore: ',key
+                jj.append(j22)                            # Joneset object
+
         if TRACE or trace:
             print
 
@@ -225,8 +229,8 @@ class Jseq22(J22.J22):
             # Make a merged ParmGroupManager:
             PGM = jj[0]._PGM
             for k in range(1,len(jj)):
-                # PGM.merge(jj[k]._PGM)             
-                pass
+                PGM.merge(jj[k]._PGM)             
+                # pass
                     
             # Create a new Joneset22 object, and fill it:
             result = Joneset22.Joneset22(self.ns, self._OMI.name,
@@ -234,7 +238,7 @@ class Jseq22(J22.J22):
                                          stations=self.stations(),
                                          polrep=self.polrep())
             result.matrixet(new=qnode) 
-            # result._PGM = PGM                            # transfer the merged PGM
+            result._PGM = PGM                            # transfer the merged PGM
             if TRACE or trace:
                 result.display(full=True)
 
@@ -386,13 +390,14 @@ if __name__ == '__main__':
 
     if 1:
         jsq = Jseq22(stations=range(1,4),
+                     # insist=dict(mode='realimag'),
                      inhibit_selection=True)
         jsq.display('initial')
 
     if 1:
         jsq.make_TDLCompileOptionMenu()
 
-    if 0:
+    if 1:
         test = dict()
         jsq.grow(ns, test=test, trace=False)
 

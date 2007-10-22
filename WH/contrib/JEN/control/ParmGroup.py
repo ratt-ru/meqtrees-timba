@@ -5,6 +5,7 @@
 # - 24jul2007: split off OptionManager.py
 # - 17sep2007: get OptionManager from /control/
 # - 24sep2007: move to ../JEN/control/
+# - 19oct2007: clean up the .nodescope() mess
 
 # Description:
 
@@ -63,10 +64,8 @@ class ParmGroup (Meow.Parameterization):
     It adds some extra functionality for a group of similar parms, which may find
     their way into the more official Meow system eventually."""
 
-    def __init__(self, ns=None,
-                 name='<parmgroup>',
-                 quals=None,
-                 # kwquals=None,
+    def __init__(self, name='<parmgroup>', quals=None,
+                 ns=None, kwquals=None,
                  default_value=0.0,
                  tags=[], descr='<descr>', unit=None,
                  submenu='compile',
@@ -76,40 +75,44 @@ class ParmGroup (Meow.Parameterization):
 
     
         #------------------------------------------------------------------
-        # Scopify ns, if necessary:
-        if is_node(ns):
-            ns = ns.QualScope()        
 
-        # Make sure that there is a nodescope (Required by Meow.Parameterization)
-        if ns==None:
-            ns = NodeScope()
+        self._frameclass = 'Grow.ParmGroup'        # just for reporting
 
-        name = str(name)                           # just in case....
-
-        self._default_value = default_value
-
-        self._frameclass = 'Grow.ParmGroup'        # for reporting
+        #------------------------------------------------------------------
+        # Deal with qualifiers (less important in Grow...)
 
         # NB: What about dropping quals/kwquals completely, since these may be
         #     introduced by passing ns as a node, rather than a nodescope.
         #     See also the function .nodescope()
         # Eventually.... (perverse coupling)? 
 
-        # Make a little more robust 
-        quals = self.quals2list(quals)
 
-        # Avoid duplication of qualifiers:
-        if False:
-            if ns:
-                qq = ns['dummy'].name.split(':')       # make a list (qq) of qualifiers
-                for q in qq:
-                    if q in quals: quals.remove(q)
-                if name in quals: quals.remove(name)
+        #------------------------------------------------------------------
+        # The ParmGroup is derived from Meow.Parameterization
+        # It makes self.ns, self.ns0 and self.name
+        # There are two 'modes of operation':
+        # 1) The nodescope may be provided at construction. In this way, the ParmGroup
+        #    may be used in 'standalone' mode, i.e. outside the 'Grow' framework.
+        # 2) The nodescope may be provided/overridden later, via .nodescope()
+        #    The latter is the norm in the Grow framework, where the ParmGroups
+        #    must be defined to generate compile options, before the nodescope
+        #    is known (this is passed by the .grow() functions).
 
+        self.name = str(name)                                   # also set by Meow.P...
+        self._quals = self.quals2list(quals)
+        self._kwquals = kwquals
+        if not isinstance(self._kwquals,dict):
+            self._kwquals = dict()
+
+        # Make sure that there is a nodescope (Required by Meow.Parameterization)
+        if ns==None:
+            ns = NodeScope()
         Meow.Parameterization.__init__(self, ns, name,
-                                       # kwquals=kwquals,
-                                       quals=quals)
+                                       kwquals=self._kwquals,   
+                                       quals=self._quals)
 
+        # self.nodescope(ns=ns, quals=quals, kwquals=kwquals)
+        
         #------------------------------------------------------------------
 
         self._mode = 'nosolve'
@@ -136,17 +139,13 @@ class ParmGroup (Meow.Parameterization):
         tags = self.tags2list(tags)
         if False:
             if not self.name in tags: tags.append(self.name)      # <----- ??
-        # NB: What about a qualifier like '3c84'?
-        # qnode = self.ns0[key]
-
-        # Create the group definition...:
-        self._descr = descr
-        self._unit = unit
         self._tags = tags
         if self._tags==None: self_tags = []
 
-        # A ParmGroup may be 'inactive'
-        self._active = True
+        # Create the group definition...:
+        self._default_value = default_value
+        self._descr = descr
+        self._unit = unit
 
         #.....................................................................
         
@@ -162,34 +161,79 @@ class ParmGroup (Meow.Parameterization):
 
     #---------------------------------------------------------------
 
+    #---------------------------------------------------------------
+
+
+    def nodescope (self, ns=None, quals=None, kwquals=None, trace=True):
+        """Get/override the internal nodescope of the ParmGroupManager.
+        Any quals or kwquals are cumulative, i.e. they are added to the
+        ones that have been given before (including the constructor).
+        NB: If the new nodescope is a node, it is 'scopified'.
+        """
+
+        quals = self.quals2list(quals)
+        if not isinstance(self._kwquals,dict):
+            self._kwquals = dict()
+
+        if trace:
+            print '\n** .nodescope(',type(ns),quals,kwquals,'): ',self.name
+
+        # Append any new quals to self._quals
+        if quals:
+            for qual in quals:
+                if not qual in quals:
+                    self._quals.append(qual)
+            if trace: print '    -> quals =',self._quals
+
+        # Update self._kwquals with any new ones
+        if isinstance(kwquals, dict):
+            self._kwquals.update(kwquals)
+            if trace: print '    -> kwquals =',self._kwquals
+            
+        # Finally, deal with the nodescope self.ns
+        if ns:
+            if is_node(ns):                    # does this ever happen?
+                self.ns = ns.QualScope()        
+            else:
+                self.ns = ns.QualScope(*self._quals, **self._kwquals)
+
+
+        # Always return the current nodescope:
+        if trace: print '    -> dummy =',str(self.ns.dummy)
+        return self.ns
+
+
+
+    def nodescope_old (self, ns=None, quals=None, kwquals=None):
+        """Get/set the internal nodescope (can also be a node)"""
+        if ns:
+            if quals:
+                self._pg_quals = self.quals2list(quals)
+            if is_node(ns):
+                self.ns = ns.QualScope(self.name)        
+            else:
+                quals = self.get_quals(ns=ns)
+                if self.name in quals:
+                    self.ns = ns.QualScope()
+                else:
+                    self.ns = ns.QualScope(self.name)        
+        return self.ns
+
+
+    #---------------------------------------------------------------
+
     def len(self):
         """Return the number of group members (nodes)"""
         return len(self._nodes)
-
-    def active (self, new=None):
-        """Get/set its 'active' switch."""
-        if isinstance(new, bool):
-            self._active = new
-        return self._active
 
     def hide (self, hide=True):
         """Hide/unhide the (OMI menu) of this ParmGroup"""
         self._OMI.hide(hide=hide)
 
-    #---------------------------------------------------------------
-
-    def nodescope (self, ns=None):
-        """Get/set the internal nodescope (can also be a node)"""
-        if ns:
-            if is_node(ns):
-                self.ns = ns.QualScope()        
-            else:
-                self.ns = ns
-            if True:
-                name = self.name
-                self.ns = self.ns[name](name).QualScope()            #.....!!?
-                # self.ns = self.ns[name].QualScope()            # ..no good..
-        return self.ns
+    def delete (self, trace=False):
+        """Delete this ParmGroup (i.e. nodes and options.
+        Not implemented, requires a little more thought..."""
+        return True
 
 
     #===============================================================
@@ -202,10 +246,6 @@ class ParmGroup (Meow.Parameterization):
         ss += ' '+str(self.name)
         ss += '  ('+str(self.ns['<>'].name)+')'
         ss += '  len='+str(self.len())
-        if self._active:
-            ss += '  (active)'
-        else:
-            ss += '  (not active)'
         return ss
 
 
@@ -301,31 +341,34 @@ class ParmGroup (Meow.Parameterization):
         to create the relevant Meow.Parm or simulation subtree, but some of
         these attributes may be overridden here...."""
 
-        if not self.active():
-            s = '** parmgroup not active: '+self.name
-            # print s,'\n'
-            raise ValueError,s
-
         # Make the qualified node (qnode) for the new group member,
         # and check whether it already exists: 
         quals = self.quals2list(quals)
 
         # Make qnode and nodename
+        qnode = None
         if self._mode=='simulate':
             qnode = self.ns['simul'](*quals)(**kwquals)    # qualified node (stub)       
             nodename = qnode.name                          # used in ._add_parm()
         else:
-            qnode = self.ns0['parm'](*quals)(**kwquals)    # qualified node (stub)       
-            nodename = self.ns['parm'](*quals)(**kwquals).name
+            qnode = self.ns['parm'](*quals)(**kwquals)    # qualified node (stub)       
+            # self._add_parm (Meow.Parameterization) forms its own nodes,
+            # using self.ns, and with the default qualifier self.name.
+            # Therefore, make a 'reduced' nodename here:
+            nodename = 'parm'
+            for qual in quals:
+                nodename += ':'+qual
 
-        if qnode.initialized():
-            s = '** parmgroup member already exists: '+str(qnode)
-            # print s,'\n'
-            raise ValueError,s
+        if False:
+            if qnode.initialized():
+                s = '** parmgroup member already exists: '+str(qnode)
+                # print s,'\n'
+                raise ValueError,s
 
-        # Make the plot_label:
+        # Make the plot_label (to be used by 'inspectors'):
         plot_label = self.name
-        for q in quals: plot_label += '_'+str(q)
+        for q in quals:
+            plot_label += '_'+str(q)
         # kwquals too?
 
         # Any extra tags are appended to the default (rr) ones.....?!
@@ -348,15 +391,16 @@ class ParmGroup (Meow.Parameterization):
             # If a Meow.Parm is given, assume that the user knows best...
             # The TDL options will not apply to this case....
             self._add_parm(nodename, value, tags=ptags, solvable=solvable)
-            node = self._parm(nodename)
+            node = self._parm(nodename)           # make the actual node
 
         elif is_node(value):
             # If a node is given (e.g. a MeqParm, or the root of a simul subtree),
             # assume that the user knows what he is doing....
             if not value.classname=='MeqParm':
                 solvable = False
+            nodename += ':'+str(self.name)
             self._add_parm(nodename, value, tags=ptags, solvable=solvable)
-            node = self._parm(nodename)
+            node = self._parm(nodename)           # make the actual node
 
         elif self._mode=='solve':
             # The tiling is passed as a dmi record:
@@ -368,7 +412,7 @@ class ParmGroup (Meow.Parameterization):
                               freq_deg=(freq_deg or self._OMI.optval('freq_deg')),
                               tags=[])
             self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
-            node = self._parm(nodename, nodename=qnode.name)
+            node = self._parm(nodename)           # make the actual node
 
         else:
             # Assume self._mode=='nosolve'. Make a MeqParm, and use either the
@@ -376,7 +420,12 @@ class ParmGroup (Meow.Parameterization):
             mparm = Meow.Parm(value=(value or self._default_value),
                               tags=[])
             self._add_parm(nodename, mparm, tags=ptags, solvable=solvable)
-            node = self._parm(nodename, nodename=qnode.name)
+            node = self._parm(nodename)           # make the actual node
+
+        if True:
+            print '\n** create_member(quals=',quals,kwquals,'): nodename=',nodename,
+            print '   qnode=',str(qnode)
+            print ' -> node=',str(node)
 
 
         # Update the parmgroup with the new member node:
@@ -832,9 +881,13 @@ class ParmGroup (Meow.Parameterization):
 
     #----------------------------------------------------------------
 
-    def get_quals (self, merge=None, remove=None):
-        """Helper function to get a list of the current nodescope qualifiers"""
-        quals = (self.ns.dummy).name.split(':')
+    def get_quals (self, ns=None, merge=None, remove=None):
+        """Helper function to get a list of the qualifiers of the
+        given nodescope (ns). If ns==None, use self.ns.
+        """
+        if ns==None:
+            ns = self.ns
+        quals = (ns.dummy).name.split(':')
         quals.remove(quals[0])
         if isinstance(merge,list):
             for q in merge:
@@ -964,18 +1017,17 @@ if __name__ == '__main__':
 
 
     if 1:
-        mode = 'simulate'
-        mode = 'nosolve'
-        mode = 'solve'
-        pg = ParmGroup(ns=ns,
+        pg = ParmGroup(# ns=ns,
                        # quals='quals',
                        solvermenu='compile.solver',
                        name='Gphase')
+        ns = ns.Subscope('GJones_3c84')
+        pg.nodescope(ns)
         pg.display('initial')
 
     if 1:
         pg.create_member(1)
-        pg.create_member(2.1, value=(ns << -89))
+        pg.create_member(2.16, value=(ns << -89))
         pg.create_member(2, value=34)
         pg.create_member(3, time_tiling=5)
         pg.create_member(4, time_tiling=5)
