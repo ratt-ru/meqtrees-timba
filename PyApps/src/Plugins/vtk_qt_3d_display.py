@@ -95,6 +95,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.button_hide = None
     self.image_array = None
     self.iteration = 0
+    self.png_number = 0
     self.renwininter = None
     self.warped_surface = False
     self.scale_factor = 50
@@ -125,6 +126,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.index_selector.set_offset_index(offset_index)
 # create connections from spinbox / slider control GUI
 # context menu to callbacks
+    qt.QObject.connect(self.index_selector,PYSIGNAL("save_display"),self.grab_display)
     qt.QObject.connect(self.index_selector,PYSIGNAL("postscript_requested"),self.CaptureImage)
     qt.QObject.connect(self.index_selector,PYSIGNAL("update_requested"),self.testEvent)
     qt.QObject.connect(self.index_selector,PYSIGNAL("X_axis_selected"),self.AlignXaxis)
@@ -405,12 +407,32 @@ class vtk_qt_3d_display(qt.QWidget):
 # Capture the display to a Postscript file
   def CaptureImage(self):
     if not self.image_array is None:
+      self.png_number = self.png_number + 1
+      png_str = str(self.png_number)
+      save_file = './vtk_plot' + png_str + '.ps'
+      save_file_no_space= save_file.replace(' ','_')
       w2i = vtk.vtkWindowToImageFilter()
       writer = vtk.vtkPostScriptWriter()
       w2i.SetInput(self.renwin)
       w2i.Update()
       writer.SetInput(w2i.GetOutput())
-      writer.SetFileName("image.ps")
+      writer.SetFileName(save_file_no_space)
+      self.renwin.Render()
+      writer.Write()
+
+# Capture the display to a PNG file
+  def grab_display(self):
+    if not self.image_array is None:
+      self.png_number = self.png_number + 1
+      png_str = str(self.png_number)
+      save_file = './vtk_plot' + png_str + '.png'
+      save_file_no_space= save_file.replace(' ','_')
+      w2if = vtk.vtkWindowToImageFilter()
+      w2if.SetInput(self.renwin)
+      w2if.Update()
+      writer = vtk.vtkPNGWriter()
+      writer.SetInput(w2if.GetOutput())
+      writer.SetFileName(save_file_no_space)
       self.renwin.Render()
       writer.Write()
 
