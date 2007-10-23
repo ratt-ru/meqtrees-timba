@@ -98,8 +98,6 @@ class GJ22(J22.J22):
         """Print a summary of this object"""
         prefix = self.display_preamble('GJ22', level=level, txt=txt)
         #...............................................................
-        self._PGM.display(full=False, OM=False, level=level+1)
-        #...............................................................
         J22.J22.display(self, full=full,
                               recurse=recurse,
                               OM=OM, level=level+1)
@@ -130,43 +128,43 @@ class GJ22(J22.J22):
             # rider = dict(use_matrix_element=self._pols_matrel()[pol])
 
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz=None)
-            pg = self._PGM.add_ParmGroup(self._pname+pol, mode='amphas',
-                                         descr=pol+'-dipole phases',
-                                         default_value=0.0, unit='rad',
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=0, freq_deg=0,
-                                         tags=[self._pname,self._jname])
+            self._PGM.add_ParmGroup(self._pname+pol, mode='amphas',
+                                    descr=pol+'-dipole phases',
+                                    default_value=0.0, unit='rad',
+                                    simuldev=simuldev,
+                                    time_tiling=1, freq_tiling=None,
+                                    time_deg=0, freq_deg=0,
+                                    tags=[self._pname,self._jname])
 
 
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._gname+pol, mode='amphas',
-                                         descr=pol+'-dipole gains (real)',
-                                         default_value=1.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._gname,self._jname])
+            self._PGM.add_ParmGroup(self._gname+pol, mode='amphas',
+                                    descr=pol+'-dipole gains (real)',
+                                    default_value=1.0,
+                                    simuldev=simuldev,
+                                    time_tiling=1, freq_tiling=None,
+                                    time_deg=2, freq_deg=0,
+                                    tags=[self._gname,self._jname])
 
 
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._rname+pol, mode='realimag',
-                                         descr=pol+'-dipole gain (real part)',
-                                         default_value=1.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._rname,self._jname])
+            self._PGM.add_ParmGroup(self._rname+pol, mode='realimag',
+                                    descr=pol+'-dipole gain (real part)',
+                                    default_value=1.0,
+                                    simuldev=simuldev,
+                                    time_tiling=1, freq_tiling=None,
+                                    time_deg=2, freq_deg=0,
+                                    tags=[self._rname,self._jname])
 
 
             simuldev = self._PGM.simuldev_expr (ampl='{0.01~10%}', Psec='{500~10%}', PHz='{1000e6~10%}')
-            pg = self._PGM.add_ParmGroup(self._iname+pol, mode='realimag',
-                                         descr=pol+'-dipole gain (imag.part)',
-                                         default_value=0.0,
-                                         simuldev=simuldev,
-                                         time_tiling=1, freq_tiling=None,
-                                         time_deg=2, freq_deg=0,
-                                         tags=[self._iname,self._jname])
+            self._PGM.add_ParmGroup(self._iname+pol, mode='realimag',
+                                    descr=pol+'-dipole gain (imag.part)',
+                                    default_value=0.0,
+                                    simuldev=simuldev,
+                                    time_tiling=1, freq_tiling=None,
+                                    time_deg=2, freq_deg=0,
+                                    tags=[self._iname,self._jname])
 
         # Finished:
         doc = """The complex gains may have different parameterizations:

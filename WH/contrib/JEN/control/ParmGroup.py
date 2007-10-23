@@ -257,10 +257,12 @@ class ParmGroup (Meow.Parameterization):
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
         print prefix,'  * descr: '+str(self._descr)
-        print prefix,'  * default_value: '+str(self._default_value)
         #..............................................................
-        rr = dict(tags=self._tags, unit=self._unit)
-        print prefix,'  * misc: '+str(rr)
+        s1 = str(self._default_value)
+        s1 += '  (unit='+str(self._unit)+')'
+        print prefix,'  * default_value: '+s1
+        #..............................................................
+        print prefix,'  * tags: '+str(self._tags)
         #...............................................................
         print prefix,'  * group members ('+str(len(self._nodes))+'): (solvable, plot_label, node)'
         for k in range(self.len()):

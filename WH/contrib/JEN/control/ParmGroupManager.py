@@ -165,14 +165,24 @@ class ParmGroupManager (object):
 
     def __getitem__ (self, key):
         """Get (a reference to) the specified parmgroup"""
-        if not isinstance(key, str):
-            s = 'invalid key: '+str(key)
+        qkey = self.qkey(key)
+        if not isinstance(qkey, str):
+            s = 'invalid qkey: '+str(qkey)
             raise ValueError,s
-        elif not key in self._parmgroups:
-            s = 'key not recognized: '+str(key)
+        elif not qkey in self._parmgroups:
+            s = 'qkey not recognized: '+str(qkey)
             raise ValueError,s
-        return self._parmgroups[key]
+        return self._parmgroups[qkey]
 
+
+    def qkey (self, key):
+        """Helper function to make the qualified ParmGroup key,
+        by appending the PGM qualifiers to the given key.
+        This is used in .add_ParmGroup() and in .__getitem__()"""
+        qkey = key
+        for qual in self._quals:
+            qkey += '_'+str(qual)
+        return qkey
 
     #===============================================================
     # Display of the contents of this object:
@@ -240,7 +250,21 @@ class ParmGroupManager (object):
         NB: the ParmGroup options will be included automatically
         """
         return self._OMI._OM.make_TDLCompileOptionMenu(**kwargs)
-    
+
+    #---------------------------------------------------------------
+    # Functions dealing with the (parameterization) mode:
+    #---------------------------------------------------------------
+
+    def mode(self):
+        """Get the current parameterization mode."""
+        return self._mode
+
+    #-------------------------------------------------------------------
+
+    def modes_order(self):
+        """Get an ordered list of the available modes"""
+        return self._modes_order
+
     #---------------------------------------------------------------
 
     def define_mode_option(self, doc='<no help available>',
@@ -259,8 +283,9 @@ class ParmGroupManager (object):
     #...............................................................
 
     def _callback_mode (self, mode):
-        """Called whenever option 'mode' changes. It hides all parmgroups,
-        and then unhides only the ones that belong to the selected mode.
+        """Called whenever option 'mode' changes (see .define_mode_option()).
+        It hides all parmgroups, and then unhides only the ones that belong
+        to the selected parameterization mode.
         """
         self._mode = mode
         for key in self._order:
@@ -268,34 +293,6 @@ class ParmGroupManager (object):
         for key in self._modes[self._mode]:
             self._parmgroups[key].hide(hide=False)
         return True
-
-    #-------------------------------------------------------------------
-
-    def cleanup (self, trace=True):
-        """Remove the unused ParmGroups (i.e. the ones without any members)"""
-        if trace:
-            print '\n** PGM.cleanup():',self.oneliner()
-        for key in self._parmgroups.keys():
-            pg = self._parmgroups[key]
-            if pg.len()==0:
-                self._parmgroups.__delitem__(key)
-                self._order.remove(key)
-                if trace:
-                    print '-- removed ParmGroup: ',pg.oneliner()
-                pg.delete()
-            elif trace:
-                print '-- retained ParmGroup: ',pg.oneliner()
-        return True
-
-    #-------------------------------------------------------------------
-
-    def modes_order(self):
-        """Get an ordered list of the available modes"""
-        return self._modes_order
-
-    def mode(self):
-        """Get the current mode..."""
-        return self._mode
 
 
     #===============================================================
@@ -315,6 +312,25 @@ class ParmGroupManager (object):
             raise ValueError, s
         return False
 
+    #-------------------------------------------------------------------
+
+    def cleanup (self, trace=True):
+        """Remove the unused ParmGroups (i.e. the ones without any members)"""
+        if trace:
+            print '\n** PGM.cleanup():',self.oneliner()
+        for key in self._parmgroups.keys():
+            pg = self._parmgroups[key]
+            if pg.len()==0:
+                self._parmgroups.__delitem__(key)
+                self._order.remove(key)
+                if trace:
+                    print '-- removed ParmGroup: ',pg.oneliner()
+                pg.delete()
+            elif trace:
+                print '-- retained ParmGroup: ',pg.oneliner()
+        return True
+
+
 
     #---------------------------------------------------------------
 
@@ -324,9 +340,12 @@ class ParmGroupManager (object):
         """Create a ParmGroup with the specified arguments,
         and add it to the internal repository"""
 
+        # Add any PGM qualifiers to the key:
+        qkey = self.qkey(key)
+
         # Check whether the group exists already:
-        if self._parmgroups.has_key(key):
-            s = '** duplicate parmgroup definition: '+str(key)
+        if self._parmgroups.has_key(qkey):
+            s = '** duplicate parmgroup definition: '+str(qkey)
             raise ValueError,s
 
         # If not supplied explicitly, use the solvermenu that was
@@ -348,7 +367,7 @@ class ParmGroupManager (object):
             kwargs['tags'] = tags
 
         # Create the ParmGroup:
-        pg = ParmGroup.ParmGroup (key,
+        pg = ParmGroup.ParmGroup (qkey,
                                   # ns=self.ns,
                                   submenu=self._OMI._submenu,
                                   solvermenu=self._solvermenu,
@@ -357,8 +376,8 @@ class ParmGroupManager (object):
                                   **kwargs)
 
         # Add the new ParmGroup to the repository:
-        self._order.append(key)
-        self._parmgroups[key] = pg
+        self._order.append(qkey)
+        self._parmgroups[qkey] = pg
 
         # A ParmGroup may belong to one or more 'grow-modes':
         if isinstance(mode,str):
@@ -369,10 +388,10 @@ class ParmGroupManager (object):
                     if not self._modes.has_key(m1):
                         self._modes[m1] = []
                         self._modes_order.append(m1)
-                    self._modes[m1].append(key)
+                    self._modes[m1].append(qkey)
 
         # Finished:
-        return key
+        return qkey
 
     #-------------------------------------------------------------------
 
@@ -433,8 +452,9 @@ class ParmGroupManager (object):
             # NB: Avoid duplicate parmgroups (solvable and simulated versions
             # of the same Joneset should be compared, rather than merged!).
             other_pgs = PGM._parmgroups
-            for key in other_pgs:
+            for key in PGM._order:
                 self._parmgroups[key] = other_pgs[key]
+                self._order.append(key)
 
 
         # Check whether the other object is derived from Meow.Parameterization

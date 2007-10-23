@@ -107,7 +107,6 @@ class Jseq22(J22.J22):
                         recurse=recurse,
                         OM=OM, level=level+1)
         #...............................................................
-        #...............................................................
         return self.display_postamble(prefix, level=level)
 
 
@@ -178,7 +177,7 @@ class Jseq22(J22.J22):
             return self.bypass (trace=trace)
         #..............................................
 
-        TRACE = True
+        TRACE = False
         if TRACE or trace:
             print '\n** Jseq22.grow():'
 
@@ -220,17 +219,17 @@ class Jseq22(J22.J22):
             for station in self.stations():
                 cc = []
                 for k in range(len(jj)):
-                    print '----',k,str(jj[k])
                     node = jj[k](station)
-                    print '----',str(node)
                     cc.append(node)
                 qnode(station) << Meq.MatrixMultiply(*cc)
 
             # Make a merged ParmGroupManager:
+            # print '\n** merging PGM:'
             PGM = jj[0]._PGM
+            # PGM.display('merge: copied from jj[0]')
             for k in range(1,len(jj)):
-                PGM.merge(jj[k]._PGM)             
-                # pass
+                PGM.merge(jj[k])
+                PGM.display('after merging: k='+str(k))
                     
             # Create a new Joneset22 object, and fill it:
             result = Joneset22.Joneset22(self.ns, self._OMI.name,
@@ -297,8 +296,8 @@ class Jseq22(J22.J22):
         from Timba.Contrib.JEN.Grow22 import GJ22
 
         # Make the jones objects:
-        self.add_jones (GJ22.GJ22, 'first', submenu=submenu)
-        self.add_jones (GJ22.GJ22, 'second', submenu=submenu)
+        self.add_jones (GJ22.GJ22, '3c84', submenu=submenu)
+        self.add_jones (GJ22.GJ22, '3c10', submenu=submenu)
         return True
 
 
@@ -390,6 +389,7 @@ if __name__ == '__main__':
 
     if 1:
         jsq = Jseq22(stations=range(1,4),
+                     solvermenu='solver',
                      # insist=dict(mode='realimag'),
                      inhibit_selection=True)
         jsq.display('initial')
@@ -401,7 +401,7 @@ if __name__ == '__main__':
         test = dict()
         jsq.grow(ns, test=test, trace=False)
 
-    if 0:
+    if 1:
         jsq.display('final', OM=True, full=True)
 
     if 0:
