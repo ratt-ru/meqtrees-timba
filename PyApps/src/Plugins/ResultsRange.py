@@ -70,6 +70,7 @@ class ResultsRange(QWidget):
       'Align Camera': 310,
       'Toggle VTK Scale': 311,
       'Reset Auto Scaling': 312,
+      'Save Display in PNG Format': 313,
       }
 
       self.horizontal = horizontal
@@ -269,6 +270,11 @@ class ResultsRange(QWidget):
       if self.allow_emit:
         self.emit(PYSIGNAL("twoD_display_requested"),(True,))
 
+    def request_PNG_file(self):
+      """ emit signal to request PNG printout """
+      if self.allow_emit:
+        self.emit(PYSIGNAL("save_display"),(True,))
+
     def request_postscript(self):
       """ emit signal to request Postscript printout """
       if self.allow_emit:
@@ -350,6 +356,8 @@ class ResultsRange(QWidget):
         self.requestUpdate()
       elif menuid == self.menu_table['Print to Postscript file']:
         self.request_postscript()
+      elif menuid == self.menu_table['Save Display in PNG Format']:
+        self.request_PNG_file()
       elif menuid == self.menu_table['Toggle VTK Scale']:
         self.toggle_scale()
 
@@ -414,6 +422,9 @@ class ResultsRange(QWidget):
         toggle_id = self.menu_table['Print to Postscript file']
         self.menu.insertItem("Print to Postscript file", toggle_id)
         self.menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Save Display in PNG Format']
+        self.menu.insertItem("Save Display in PNG Format", toggle_id)
+        self.menu.setItemVisible(toggle_id, False)
 
     def hideNDControllerOption(self):
       """ do not allow the user to toggle ND Controller """
@@ -460,6 +471,8 @@ class ResultsRange(QWidget):
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Print to Postscript file']
       self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Save Display in PNG Format']
+      self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Toggle VTK Scale']
       self.menu.setItemVisible(toggle_id, True)
 
@@ -476,6 +489,8 @@ class ResultsRange(QWidget):
       toggle_id = self.menu_table['Toggle ND Controller']
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Print to Postscript file']
+      self.menu.setItemVisible(toggle_id, True)
+      toggle_id = self.menu_table['Save Display in PNG Format']
       self.menu.setItemVisible(toggle_id, True)
       toggle_id = self.menu_table['Toggle VTK Scale']
       self.menu.setItemVisible(toggle_id, True)
