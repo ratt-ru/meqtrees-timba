@@ -390,6 +390,11 @@ def sca_vells (value):
 
 def flagvells (shape,value=None):
   return _vells(shape,arr_int32,value); 
+
+def flags (shape):
+  """Creates a Meq::FlagVells of the given shape.""";
+  arr = array(typecode=arr_int32,shape=shape);
+  return dmi_coerce(arr,_vells_type);
   
 def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
