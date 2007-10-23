@@ -857,7 +857,7 @@ class ResultPlotter(GriddedPlugin):
       if self.actual_rank > 2 and self.ND_Controls is None:
          display_change = True
       if self.actual_rank <= 2 and not self.ND_Controls is None:
-         self.ND_Controelf._visu_plotters.hide()
+         self.ND_Controls.hide()
       _dprint(3, 'display_change ', display_change)
       if display_change and self.actual_rank > 2:
         _dprint(3, 'calling set_ND_controls')
