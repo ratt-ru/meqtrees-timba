@@ -31,6 +31,7 @@ except:
 from numarray import *
 import chartplot
 import random
+import traceback
 
 class DisplayMainWindow(QMainWindow):
   """ This class enables the display of a collection
@@ -45,6 +46,7 @@ class DisplayMainWindow(QMainWindow):
     self._num_curves = num_curves
     self._plot_label = plot_label
     self._result_range = None
+    self._png_number = 0
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
@@ -67,6 +69,7 @@ class DisplayMainWindow(QMainWindow):
       self.connect(self._ChartPlot[data_type], PYSIGNAL("complex_selector_command"), self.process_complex_selector)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("vells_selector"), self. update_vells_selector)
       self.connect(self._ChartPlot[data_type], PYSIGNAL("auto_offset_value"), self.report_auto_value)
+      self.connect(self._ChartPlot[data_type], PYSIGNAL("save_display"), self.grab_display)
       if not self._plot_label is None:
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
@@ -130,6 +133,18 @@ class DisplayMainWindow(QMainWindow):
         self._ChartPlot[keys[i]].clear_plot()
     except:
       pass
+
+  def grab_display(self, data_type):
+    self._png_number = self._png_number + 1
+    png_str = str(self._png_number)
+    save_file = data_type + png_str + '.png'
+    save_file_no_space= save_file.replace(' ','_')
+    try:
+      result = QPixmap.grabWidget(self._ChartPlot[data_type]).save(save_file_no_space, "PNG")
+    except:
+      print 'failure of QPixmap.grabWidget'
+ 
+
 
 #void IfDisplayMainWindow.set_data_flag(Int channel, Bool flag_value)
 #{

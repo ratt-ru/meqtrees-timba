@@ -52,6 +52,7 @@ class ChartPlot(QWidget):
         'Imaginary': 213,
         'Close Popups': 214,
         'Show Flags': 215,
+        'Save Display in PNG Format': 216,
         }
 
 
@@ -181,6 +182,8 @@ class ChartPlot(QWidget):
     self._menu.setItemVisible(toggle_id, False)
     toggle_id = self.menu_table['Print']
     self._menu.insertItem("Print", toggle_id)
+    toggle_id = self.menu_table["Save Display in PNG Format"]
+    self._menu.insertItem("Save Display in PNG Format", toggle_id)
     toggle_id = self.menu_table['Clear Plot']
     self._menu.insertItem("Clear Plot", toggle_id)
     toggle_id = self.menu_table['Close Popups']
@@ -263,7 +266,16 @@ class ChartPlot(QWidget):
 
   def emit_menu_signal(self, menuid):
     """ callback to handle events from the context menu """
-    self.emit(PYSIGNAL("menu_command"),(menuid,))
+    # If we request a screen save, we only save the contents of
+    # the current tab (at least for the moment)
+    if menuid == self.menu_table['Save Display in PNG Format']:
+      self.emit(PYSIGNAL("save_display"),(self._data_label,))
+
+    # otherwise send a signal up to the parent widget, which then
+    # distributes the menuid to all chartplotters; they handle
+    # the menuid in the process_menu callback
+    else:
+      self.emit(PYSIGNAL("menu_command"),(menuid,))
 
   def process_menu(self, menuid):
     """ callback to handle events from the context menu """
@@ -308,6 +320,7 @@ class ChartPlot(QWidget):
     if menuid == self.menu_table['Complex Data']:
 #     print 'in complex data callback'
       return True
+
 
   def change_flag_parms(self, menuid):
     if self._ignore_flagged_data:
@@ -745,20 +758,22 @@ class ChartPlot(QWidget):
           plot_label = None
         self._Zoom[crv].setDataLabel(self._data_label, plot_label, self._is_vector)
       self._pause[crv] = False
-      # what is all this marker stuff used for?
-#     self._mrk[crv] = self._Zoom[crv]._plotter.insertMarker()
-#     self._Zoom[crv]._plotter.setMarkerLineStyle(self._mrk[crv], QwtMarker.VLine)
-#     self._Zoom[crv]._plotter.setMarkerPos(self._mrk[crv], 10,20)
-#     self._Zoom[crv]._plotter.setMarkerLabelAlign(self._mrk[crv], Qt.AlignRight|Qt.AlignTop)
-#     self._Zoom[crv]._plotter.setMarkerPen(self._mrk[crv], QPen(self._zoom_pen[crv], 0, Qt.DashDotLine))
-#     self._Zoom[crv]._plotter.setMarkerLinePen(self._mrk[crv], QPen(Qt.black, 0, Qt.DashDotLine))
-#     self._Zoom[crv]._plotter.setMarkerFont(self._mrk[crv], QFont("Helvetica", 10, QFont.Bold))
       self.connect(self._Zoom[crv], PYSIGNAL("winclosed"), self.myindex)
       self.connect(self._Zoom[crv], PYSIGNAL("winpaused"), self.zoomPaused)
+      self.connect(self._Zoom[crv], PYSIGNAL('save_zoom_display'), self.grab_zoom_display)
 
       # make sure option to close all Popup windows is seen
       toggle_id = self.menu_table['Close Popups']
       self._menu.setItemVisible(toggle_id, True)
+
+
+  def grab_zoom_display(self, title, crvtemp):
+    if title is None:
+      save_file = './meqbrowser.png'
+    else:
+      save_file = title + '.png'
+    save_file_no_space= save_file.replace(' ','_')
+    result = QPixmap.grabWidget(self._Zoom[crvtemp-self._ref_chan]).save(save_file_no_space, "PNG")
 
   def set_offset(self,parameters=None):
     """ Update the display offset.
