@@ -88,12 +88,16 @@ class ZoomPopup(QWidget):
     self.connect(self._plotter,PYSIGNAL('winpaused'), self.Pausing)
     self.connect(self._plotter,PYSIGNAL('compare'), self.do_compare)
     self.connect(self._plotter,PYSIGNAL('do_print'), self.plotPrinter.do_print)
+    self.connect(self._plotter,PYSIGNAL('save_display'), self.handle_save_display)
 
     self._x_values = x_values
     # insert flags ?   
     self._plotter.initVellsContextMenu()
     self.update_plot(y_values, flags)
     self.show()
+
+  def handle_save_display(self, title):
+    self.emit(PYSIGNAL("save_zoom_display"),(self._zoom_plot_label, self._curve_number,))
 
   def do_compare_max(self, x_values):
     ### instantiate the envelop that will show min/max deviations
