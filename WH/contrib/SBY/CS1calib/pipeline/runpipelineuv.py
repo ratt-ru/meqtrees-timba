@@ -82,14 +82,18 @@ TDLOption('mysave',"save all",[False,True],default=False),
 TDLOption('dosubtile',"subtile",[True,False],default=True),
 # solve for real/imag or gain/phase
 TDLOption('gain_phase_solution',"Gain/Phase",[True,False],default=False),
+);
+
+TDLCompileMenu("Beams",
 # beams
 TDLOption('stationbeam',"Station Beam",[True,False],default=True),
 # HBA or LBA
 TDLOption('use_lba',"LBA Model",[True,False],default=True),
 # rotate the dipoles?
 TDLOption('dorotate',"Rotate Dipoles",[True,False],default=False),
+# use FITS file
+TDLOption('usefitsbeam',"Numerical Beam",[True,False],default=False),
 );
-
 
 TDLCompileMenu("Pre-flags",
 TDLOption('minclip',"Clip Value",[1e5,10],more=float,doc="Absolute value to clip"),
@@ -107,7 +111,7 @@ TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True)
 
 
 # number of stations
-TDLCompileOption('num_stations',"Number of stations",[16,14,15,3]);
+TDLCompileOption('num_stations',"Number of stations",[16,24,15,3]);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
@@ -124,6 +128,22 @@ short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
                  (5,6), (5,7), (5,8), (6,7), (6,8), (7,8),
                  (9,10), (11,12), (13,14), (13,15), (13,16),
                  (14,15), (14,16), (15,16)]
+
+short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
+                 (5,6), (5,7), (5,8), (6,7), (6,8), (7,8),
+                 (9,10), (9,11), (9,12), (10,11), (10,12),
+                 (11,12), 
+                 (13,14), (13,15), (13,16), (13,17), (13,18), (13,19), (13, 20), (13, 21), (13, 22), (13,23), (13,24), 
+                 (14,15), (14,16), (14,17), (14,18), (14,19), (14, 20), (14, 21), (14, 22), (14,23), (14,24),
+                 (15,16), (15,17), (15,18), (15,19), (15, 20), (15, 21), (15, 22), (15,23), (15,24),
+                 (16,17), (16,18), (16,19), (16, 20), (16, 21), (16, 22), (16,23), (16,24),
+                 (17,18), (17,19), (17, 20), (17, 21), (17, 22), (17,23), (17,24),
+                 (18,19), (18, 20), (18, 21), (18, 22), (18,23), (18,24),
+                 (19, 20), (19, 21), (19, 22), (19,23), (19,24),
+                 (20, 21), (20, 22), (20,23), (20,24),
+                 (21, 22), (21,23), (21,24),
+                 (22,23), (22,24),
+                 (23,24)]
 
 
 def _define_forest(ns, parent=None, **kw):
@@ -154,9 +174,15 @@ def _define_forest(ns, parent=None, **kw):
     if stationbeam:
       Ej = global_model.EJones_droopy_comp_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     else:
-      Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate);
+      if usefitsbeam:
+        Ej = global_model.EJones_fits(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate,lba=use_lba);
+      else:
+        Ej = global_model.EJones_droopy_comp(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate);
   else: # HBA
-      Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+      if usefitsbeam:
+        Ej = global_model.EJones_fits(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate,lba=use_lba);
+      else:
+        Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
