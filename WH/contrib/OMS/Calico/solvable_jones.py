@@ -91,7 +91,7 @@ class FullRealImag (object):
                           table_name="%s_diag.mep"%label,bookmark=False);
     self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",offdiags,
                           table_name="%s_offdiag.mep"%label,bookmark=False);
-    
+
     # make bookmarks
     pg1 = Bookmarks.Page("%s diagonal terms"%label);
     pg2 = Bookmarks.Page("%s off-diagonal terms"%label);
@@ -104,5 +104,5 @@ class FullRealImag (object):
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_diag","Calibrate %s diagonal terms"%label,self.pg_diag);
     ParmGroup.SolveJob("cal_"+label+"_offdiag","Calibrate %s off-diagonal terms"%label,self.pg_offdiag);
-    
+
     return jones;

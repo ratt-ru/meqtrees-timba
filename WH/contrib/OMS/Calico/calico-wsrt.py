@@ -32,6 +32,7 @@ import Meow
 import Meow.StdTrees
 from Meow import Context
 from Meow import ParmGroup
+from Meow.Parameterization import resolve_parameter
 
 # MS options first
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=False,hanning=True);
@@ -53,7 +54,10 @@ TDLCompileMenu("What do we want to do",
   ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
   TDLOption('do_correct',"Correct the data or residuals",True),
-   );
+  TDLOption('do_invert_phase',"Invert phases in input data",True,
+     doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
+  TDLOption('do_ifr_errors',"Include interferometer-based errors",False)
+);
 do_correct_sky = False;
   #TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
 
@@ -83,12 +87,15 @@ meqmaker.add_uv_jones('D','polarization leakage',
   [ polarization_jones.CoupledLeakage(),
     polarization_jones.DecoupledLeakage() ]);
 
-# B - bandpass, G - gain 
+# B - bandpass, G - gain
 import solvable_jones
 meqmaker.add_uv_jones('B','bandpass',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
-meqmaker.add_uv_jones('G','receiver gains/phases',solvable_jones.DiagAmplPhase());
+meqmaker.add_uv_jones('G','receiver gains/phases',
+  [ solvable_jones.DiagAmplPhase(),
+    solvable_jones.FullRealImag() ]);
+
 
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
@@ -100,6 +107,17 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
+
+  # make spigot nodes
+  spigots = spigots0 = outputs = array.spigots();
+  # ...and an inspector for them
+  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,bookmark="Inspect input data");
+  inspectors = [ ns.inspector('input') ];
+  # invert phases if necessary
+  if do_invert_phase:
+    for p,q in array.ifrs():
+      ns.conj_spigot(p,q) << Meq.Conj(spigots(p,q));
+    spigots = ns.conj_spigot;
 
   # make a ParmGroup and solve jobs for source fluxes
   srcs = meqmaker.get_source_list(ns);
@@ -117,15 +135,44 @@ def _define_forest (ns):
       # now make a solvejobs for the source
       ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
 
-  # make spigot nodes
-  spigots = spigots0 = outputs = array.spigots();
-  # ...and an inspector for them
-  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,bookmark="Inspect input data");
-  inspectors = [ ns.inspector('input') ];
-
   # make a predict tree using the MeqMaker
   if do_solve or do_subtract:
     predict = meqmaker.make_tree(ns);
+    # add ifr errors if necessary
+    if do_ifr_errors:
+      ifr_gains = ns.ifr_gains;
+      ifr_bias = ns.ifr_bias;
+      adef = Meow.Parm(1);
+      pdef = Meow.Parm(0);
+      for p,q in array.ifrs():
+        gxx = resolve_parameter("xx",ifr_gains(p,q,'xxg'),adef,tags="ifr ampl");
+        pxx = resolve_parameter("xx",ifr_gains(p,q,'xxp'),pdef,tags="ifr phase");
+        gyy = resolve_parameter("yy",ifr_gains(p,q,'yyg'),adef,tags="ifr ampl");
+        pyy = resolve_parameter("yy",ifr_gains(p,q,'yyp'),pdef,tags="ifr phase");
+        brxx = resolve_parameter("bxx",ifr_gains(p,q,'xxr'),pdef,tags="ifr bias real");
+        bixx = resolve_parameter("bxx",ifr_gains(p,q,'xxi'),pdef,tags="ifr bias imag");
+        bryy = resolve_parameter("byy",ifr_gains(p,q,'yyr'),pdef,tags="ifr bias real");
+        biyy = resolve_parameter("byy",ifr_gains(p,q,'yyi'),pdef,tags="ifr bias imag");
+        ifr_gains(p,q) << Meq.Matrix22(Meq.Polar(gxx,pxx),1,1,Meq.Polar(gyy,pyy));
+        ifr_bias(p,q) << Meq.Matrix22(Meq.ToComplex(brxx,bixx),1,1,Meq.Polar(bryy,biyy));
+        ns.predict_ifr(p,q) << predict(p,q)*ifr_gains(p,q) + ifr_bias(p,q);
+      predict = ns.predict_ifr;
+      # add parmgroups
+      pg_ifr_ampl = ParmGroup.ParmGroup("ifr_error_ampl",
+                       ifr_gains.search(tags="solvable ifr ampl"),
+                       table_name="ifr_error_ampl.mep",bookmark=6);
+      pg_ifr_phase = ParmGroup.ParmGroup("ifr_error_phase",
+                       ifr_gains.search(tags="solvable ifr phase"),
+                       table_name="ifr_error_phase.mep",bookmark=6);
+      pg_ifr_bias  = ParmGroup.ParmGroup("ifr_bias",
+                       ifr_gains.search(tags="solvable ifr bias"),
+                       table_name="ifr_error_bias.mep",bookmark=6);
+      ParmGroup.SolveJob("cal_ifr_ampl",
+                          "Calibrate inteferometer-based amplitude errors",pg_ifr_ampl);
+      ParmGroup.SolveJob("cal_ifr_phase",
+                          "Calibrate inteferometer-based phase errors",pg_ifr_phase);
+      ParmGroup.SolveJob("cal_ifr_bias",
+                          "Calibrate inteferometer-based additive bias",pg_ifr_bias);
 
   # make nodes to compute residuals
   if do_subtract:
@@ -142,6 +189,10 @@ def _define_forest (ns):
     else:
       sky_correct = None;
     outputs = meqmaker.correct_uv_data(ns,outputs,sky_correct=sky_correct);
+    if do_ifr_errors:
+      for p,q in array.ifrs():
+        ns.correct_ifr(p,q) << (outputs(p,q) - ns.ifr_bias(p,q))/ns.ifr_gains(p,q);
+      outputs = ns.correct_ifr;
 
   # make solve trees
   if do_solve:
