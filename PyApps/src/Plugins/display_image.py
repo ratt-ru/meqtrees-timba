@@ -180,6 +180,15 @@ class QwtImageDisplay(QwtPlot):
         'Drag Amplitude Scale': 319,
         'Undo Last Zoom': 320,
         'Save Display in PNG Format': 321,
+        'Select X-Section Display': 322,
+        }
+
+    xsection_menu_table = {
+        'Select imaginary cross-section': 200,
+        'Select real cross-section': 201,
+        'Select amplitude cross-section': 202,
+        'Select phase cross-section': 203,
+        'Select both cross-sections': 204,
         }
 
     _start_spectrum_menu_id = 0
@@ -236,6 +245,8 @@ class QwtImageDisplay(QwtPlot):
         self.y_marker_step = None
         self.imag_flag_vector = None
         self.real_flag_vector = None
+        self.real_xsection_selected = True
+        self.imag_xsection_selected = True
         self.array_parms = None
         self.metrics_rank = None
         self.solver_offsets = None
@@ -539,6 +550,8 @@ class QwtImageDisplay(QwtPlot):
         self.xsect_ypos = None
         toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Select X-Section Display']
         self._menu.setItemVisible(toggle_id, False)
 
         toggle_id = self.menu_table['Toggle Plot Legend']
@@ -1214,6 +1227,8 @@ class QwtImageDisplay(QwtPlot):
           self.ymin = None
           self.ymax = None
         self.test_plot_array_sizes()
+        if self.show_x_sections:
+          self.calculate_cross_sections()
         self.refresh_marker_display()
         if not len (self.zoomStack):
           toggle_id = self.menu_table['Reset zoomer']
@@ -1406,18 +1421,35 @@ class QwtImageDisplay(QwtPlot):
 	  if not self.split_axis is None:
 	    if xpos1 >  self.split_axis:
 	        xpos1 = xpos1 - self.delta_vells
-          temp_str = result + "x =%+.2g" % xpos1
-          result = temp_str
-          temp_str = result + " y =%+.2g" % ypos
-          result = temp_str
+          temp_str_x_rel = "x =%+.2g" % xpos1
+          temp_str_y_rel = "y =%+.2g" % ypos 
+          result = temp_str_x_rel + " " + temp_str_y_rel + " "
+          xpos_value = None
+          ypos_value = None
           if not self.first_axis_inc is None:
             xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+            if not self.vells_axis_grids[self.x_parm] is None:
+              xpos1 = int((xpos1 -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+              xpos_value = self.vells_axis_grids[self.x_parm][xpos1]
+              if self.vells_axis_parms[self.x_parm][2].find('MHz') >= 0:
+                xpos_value = xpos_value * 1.0e-6
+              if self.vells_axis_parms[self.x_parm][2].find('KHz') >= 0:
+                xpos_value = xpos_value * 1.0e-3
+              temp_str_x_abs = "x =%+.3g" % xpos_value
+              result = temp_str_x_abs + " " + temp_str_y_rel + " "
           else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
             xpos = self.plotImage.xMap.limTransform(xpos)
           if not self.second_axis_inc is None:
             ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
+            if not self.vells_axis_grids[self.y_parm] is None:
+              ypos_value = self.vells_axis_grids[self.y_parm][ypos]
+              if self.vells_axis_parms[self.y_parm][2].find('MHz') >= 0:
+                ypos_value = ypos_value * 1.0e-6
+              if self.vells_axis_parms[self.y_parm][2].find('KHz') >= 0:
+                ypos_value = ypos_value * 1.0e-3
+              temp_str_y_abs = "y =%+.3g" % ypos_value 
           else:
             ypos = self.plotImage.yMap.limTransform(ypos)
         else:
@@ -1426,7 +1458,7 @@ class QwtImageDisplay(QwtPlot):
 	  if not self.split_axis is None:
 	    if xpos1 >=  self.split_axis:
 	      xpos1 = xpos1 % self.split_axis
-          temp_str = result + "x =%+.2g" % xpos1
+          temp_str = "x =%+.2g" % xpos1
           result = temp_str
 	  ypos1 = ypos
           ypos = int(ypos1)
@@ -1437,11 +1469,11 @@ class QwtImageDisplay(QwtPlot):
 	      ypos2 = int(ypos1 % self.y_marker_step)
 	    else:
 	      marker_index = 0
-          temp_str = result + " y =%+.2g" % ypos2
+          temp_str = result + " y =%+.2g" % ypos2 + " "
           result = temp_str
         value = self.raw_array[xpos,ypos]
 	message = None
-        temp_str = " value: %-.3g" % value
+        temp_str = "value: %-.3g" % value
 	if not marker_index is None:  
           if self.is_combined_image:
             length = len(self.marker_labels)
@@ -1863,6 +1895,32 @@ class QwtImageDisplay(QwtPlot):
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,QBrush(Qt.white), 
                   QPen(Qt.white), QSize(q_symbol_size,q_symbol_size)))
 
+    def modify_xsection_display(self, signal_id):
+        """ select and display complex cross section display """
+        if self.show_x_sections:
+          print 'modify received signal ', signal_id
+          if signal_id == 201 or signal_id == 202:
+            self.removeCurve(self.xiCrossSection)
+            self.xiCrossSection = None
+            self.real_xsection_selected = True
+            self.imag_xsection_selected = False
+            if self.xrCrossSection is None:
+              self.calculate_cross_sections()
+          if signal_id == 200 or signal_id == 203:
+            self.removeCurve(self.xrCrossSection)
+            self.xrCrossSection = None
+            self.real_xsection_selected = False
+            self.imag_xsection_selected = True
+            if self.xiCrossSection is None:
+              self.calculate_cross_sections()
+          if signal_id == 204:
+            self.real_xsection_selected = True
+            self.imag_xsection_selected = True
+            if self.xrCrossSection is None or self.xiCrossSection is None:
+              self.calculate_cross_sections()
+          self.replot()
+        return
+
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
@@ -1912,7 +1970,7 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
         else:
           self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
-        if self.xrCrossSection is None:
+        if self.xrCrossSection is None and self.real_xsection_selected:
           if self.complex_type:
             self.xrCrossSection = self.insertCurve('xrCrossSection')
           else:
@@ -1923,9 +1981,10 @@ class QwtImageDisplay(QwtPlot):
              QBrush(Qt.black), QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
         self.enableAxis(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
-        self.setCurveYAxis(self.xrCrossSection, QwtPlot.yRight)
+        if self.real_xsection_selected:
+          self.setCurveYAxis(self.xrCrossSection, QwtPlot.yRight)
         if self.complex_type:
-          if self.xiCrossSection is None:
+          if self.xiCrossSection is None and self.imag_xsection_selected:
             self.xiCrossSection = self.insertCurve('xiCrossSection')
             self.setCurvePen(self.xiCrossSection, QPen(Qt.black, q_line_size))
             plot_curve=self.curve(self.xiCrossSection)
@@ -1961,8 +2020,10 @@ class QwtImageDisplay(QwtPlot):
           self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
           limit = shape[0] / 2
-          self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit] + self.log_offset)
-          self.setCurveData(self.xiCrossSection, self.x_index[limit:], self.x_array[limit:] + self.log_offset)
+          if not self.xrCrossSection is None:
+            self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit] + self.log_offset)
+          if not self.xiCrossSection is None:
+            self.setCurveData(self.xiCrossSection, self.x_index[limit:], self.x_array[limit:] + self.log_offset)
         else:
           self.setCurveData(self.xrCrossSection, self.x_index, self.x_array + self.log_offset)
         self.setCurveData(self.yCrossSection, self.y_array + self.log_offset, self.y_index)
@@ -1975,6 +2036,43 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, True)
         toggle_id = self.menu_table['Toggle Plot Legend']
         self._menu.setItemVisible(toggle_id, True)
+        if self.complex_type:
+          toggle_id = self.menu_table['Select X-Section Display']
+          self._menu.setItemVisible(toggle_id, True)
+
+          toggle_id = self.xsection_menu_table['Select both cross-sections']
+          self._xsection_menu.setItemVisible(toggle_id, True)
+          if self.ampl_phase:
+            toggle_id = self.xsection_menu_table['Select amplitude cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, True)
+            toggle_id = self.xsection_menu_table['Select phase cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, True)
+            toggle_id = self.xsection_menu_table['Select imaginary cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, False)
+            toggle_id = self.xsection_menu_table['Select real cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, False)
+          else:
+            toggle_id = self.xsection_menu_table['Select imaginary cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, True)
+            toggle_id = self.xsection_menu_table['Select real cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, True)
+            toggle_id = self.xsection_menu_table['Select amplitude cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, False)
+            toggle_id = self.xsection_menu_table['Select phase cross-section']
+            self._xsection_menu.setItemVisible(toggle_id, False)
+        else:
+          toggle_id = self.menu_table['Select X-Section Display']
+          self._menu.setItemVisible(toggle_id, False)
+          toggle_id = self.xsection_menu_table['Select both cross-sections']
+          self._xsection_menu.setItemVisible(toggle_id, False)
+          toggle_id = self.xsection_menu_table['Select amplitude cross-section']
+          self._xsection_menu.setItemVisible(toggle_id, False)
+          toggle_id = self.xsection_menu_table['Select phase cross-section']
+          self._xsection_menu.setItemVisible(toggle_id, False)
+          toggle_id = self.xsection_menu_table['Select imaginary cross-section']
+          self._xsection_menu.setItemVisible(toggle_id, False)
+          toggle_id = self.xsection_menu_table['Select real cross-section']
+          self._xsection_menu.setItemVisible(toggle_id, False)
 
     def toggleCurve(self, key):
       curve = self.curve(key)
@@ -2482,10 +2580,11 @@ class QwtImageDisplay(QwtPlot):
       self.source_marker  = None
       self.array_plot(data_label, data_array)
 
-    def setVellsParms(self, vells_axis_parms, axis_labels):
+    def setVellsParms(self, vells_axis_parms, axis_labels, vells_axis_grids):
       self.vells_axis_parms = vells_axis_parms
       _dprint(3, 'self.vells_axis_parms = ', self.vells_axis_parms)
       self.axis_labels = axis_labels
+      self.vells_axis_grids =  vells_axis_grids
 
     def reset_color_bar(self, reset_value=True):
       self.adjust_color_bar = reset_value
@@ -3169,6 +3268,27 @@ class QwtImageDisplay(QwtPlot):
 
     def add_basic_menu_items(self):
         """ add standard options to context menu """
+
+# first create sub-menu for cross-section displays
+        self._xsection_menu = QPopupMenu(self._mainwin);
+        QObject.connect(self._xsection_menu,SIGNAL("activated(int)"),self.modify_xsection_display)
+        toggle_id = self.xsection_menu_table['Select both cross-sections']
+        self._xsection_menu.insertItem("Select both cross-sections", toggle_id)
+        self._xsection_menu.setItemVisible(toggle_id, False)
+        toggle_id = self.xsection_menu_table['Select real cross-section']
+        self._xsection_menu.insertItem("Select real cross-section", toggle_id)
+        self._xsection_menu.setItemVisible(toggle_id, False)
+        toggle_id = self.xsection_menu_table['Select imaginary cross-section']
+        self._xsection_menu.insertItem("Select imaginary cross-section", toggle_id)
+        self._xsection_menu.setItemVisible(toggle_id, False)
+        toggle_id = self.xsection_menu_table['Select amplitude cross-section']
+        self._xsection_menu.insertItem("Select amplitude cross-section", toggle_id)
+        self._xsection_menu.setItemVisible(toggle_id, False)
+        toggle_id = self.xsection_menu_table['Select phase cross-section']
+        self._xsection_menu.insertItem("Select phase cross-section", toggle_id)
+        self._xsection_menu.setItemVisible(toggle_id, False)
+
+# now insert items into main menu
         toggle_id = self.menu_table['Modify Plot Parameters']
         self._menu.insertItem("Modify Plot Parameters", toggle_id)
         toggle_id = self.menu_table['Toggle Plot Legend']
@@ -3195,6 +3315,9 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle results history']
         self._menu.insertItem("Toggle results history", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Select X-Section Display']
+        self._menu.insertItem("Select Complex X-Section", self._xsection_menu, toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.insertItem("Delete X-Section Display", toggle_id)

@@ -73,6 +73,7 @@ class VellsData:
       """
       self.axis_labels = []
       self.vells_axis_parms = {}
+      self.vells_axis_grids = {}
       self.axis_shape = {}
       self.num_possible_ND_axes = 0
       try:
@@ -86,6 +87,7 @@ class VellsData:
           if current_label != '(null)':
             begin = 0
             end = 1
+            grid_array = None
             title = current_label
             if vells_rec.cells.grid.has_key(current_label):
               try:
@@ -131,6 +133,7 @@ class VellsData:
             _dprint(3,'assigning end ', end)
             _dprint(3,'assigning title ', title)
             self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
+            self.vells_axis_grids[current_label] = grid_array
             self.axis_labels.append(current_label)
       except:
       # we have no 'cells' field so need to create a fake one for
@@ -148,6 +151,7 @@ class VellsData:
             title = 'Frequency(MHz)'
           self.axis_shape[current_label] = 1
           self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
+          self.vells_axis_grids[current_label] = None
           self.axis_labels.append(current_label)
 
       # do we request a ND GUI?
@@ -164,7 +168,7 @@ class VellsData:
      """ returns vells parameters for use with the visualization display """
      _dprint(3,'received method call')
 
-     return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape]
+     return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape,self.vells_axis_grids]
 
    def StoreVellsData(self, vells_rec, rq_label = ''):
      """ converts vells record structure into a format that is

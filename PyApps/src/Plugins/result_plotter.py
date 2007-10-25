@@ -831,8 +831,9 @@ class ResultPlotter(GriddedPlugin):
       vells_data_parms = self._vells_data.getVellsDataParms()
       vells_axis_parms = vells_data_parms[0]
       axis_labels = vells_data_parms[1]
+      vells_grid_points = vells_data_parms[4]
       _dprint(3, 'vells_axis_parms ', vells_axis_parms)
-      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
+      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels, vells_grid_points)
       display_change = False
       if vells_data_parms[2] != self.num_possible_ND_axes:
         self.num_possible_ND_axes = vells_data_parms[2]
