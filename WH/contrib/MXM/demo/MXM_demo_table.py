@@ -41,11 +41,17 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from PyParmTable import *
 
+
+
+
+
+TDLCompileOption('old_table',"Mep table",TDLDirSelect("*.mep"));
+TDLCompileOption('parmname',"Name pattern for parms",["*"],more=str);
+TDLCompileOption('fit',"Create Solver",True);
+
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
-old_table='meps2/calib.mep'
-parmname = '*x*';
 global t;
 
 def _define_forest (ns, **kwargs):
@@ -54,7 +60,8 @@ def _define_forest (ns, **kwargs):
 
    # create a ParmTable, you have to do this in define_forest since the class creates some trees it needs for plotting etcetera.
    # parmname can be any pattern, if fit =True, also some solvertree will be created, this allows to fit lower ranked funklets.
-   t=ParmTable(name= old_table,ns = ns,parms = parmname,fit=True);
+   
+   t=ParmTable(name= old_table,ns = ns,parms = parmname,fit=fit);
    # after you have created the ParmTable some new root nodes and bookmarks are available.
    
    return True
@@ -66,7 +73,7 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 
-def _tdl_job_table1_inspector (mqs, parent):
+def _tdl_job_start_inspector (mqs, parent):
    #start the inspector, open the Inspector bookmarks to see the results of plotting and fitting
    result = t.Inspector(mqs,parent);
        

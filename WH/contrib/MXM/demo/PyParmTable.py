@@ -31,6 +31,7 @@ from Timba.Grid import DataItem
 from Timba.Grid import Services
 
 from pycasatable import *;
+from numarray import *;
 import os;
 import time;
 import qt;
@@ -52,7 +53,8 @@ class ParmTable:
         self._nr_funklets = self._n_t = self._n_f = 0;
         self._db=self.getNames(parms);
         self._rqid=0;
-
+        self._rank_f=1;
+        self._rank_t=1;
         if(ns):
             if(fit):
                 self.create_solver_trees(ns);
@@ -80,6 +82,7 @@ class ParmTable:
         parmname ="\'"+pattern+"\'";
         select = 'NAME='+"pattern("+parmname+")";
         newtab = self._db.query(select);
+
         names=set(newtab.getcol('NAME')); #unique list of names
         # sort
         self._parmnames=list(names);
@@ -106,7 +109,7 @@ class ParmTable:
             if self._end_f < end_f:
                 self._end_f = end_f;
             self._parms[parm]={'start_t':start_t,'end_t':end_t,
-                              'start_f':start_f,'end_f':end_f,
+                               'start_f':start_f,'end_f':end_f,
                                'nr_funklets':nr_funklets,'funklist':[]}
         return newtab;
 
@@ -144,9 +147,18 @@ class ParmTable:
                 co=coeff[key];
             else:
                 co=coeff[i];
+
+            # get max rank
+            rank_f = shape(co)[1];
+            rank_t = shape(co)[0];
+            if rank_f > self._rank_f:
+                self._rank_f = rank_f;
+            if rank_t > self._rank_t:
+                self._rank_t = rank_t;
             funklet={'ftype':types[i],'coeff':co,
                      'st_t':st_t[i],'end_t':e_t[i],
-                     'st_f':st_f[i],'end_f':e_f[i]};
+                     'st_f':st_f[i],'end_f':e_f[i],
+                     'rank_t':rank_t,'rank_f':rank_f};
             funklets.append(funklet);
         return funklets;
 
@@ -171,7 +183,7 @@ class ParmTable:
             if not ns[parm].initialized():
                 ns[parm]<<Meq.Parm(table_name=self._tablename);
             parms+=(ns[parm],);
-        ns.ParmInspector<<Meq.Composer(children = parms);
+        ns.ParmInspector(self._keyname)<<Meq.Composer(children = parms,plot_label=[ parm for parm in self._parmnames]);
 
     def create_solver_trees(self,ns):
         solvers = parms=solved_parms=subtracts=();
@@ -180,7 +192,7 @@ class ParmTable:
                 ns[parm]<<Meq.Parm(table_name=self._tablename);
             new_parm_name = parm +":NEW";
 
-            new_parm = ns[new_parm_name] << Meq.Parm();
+            new_parm = ns[new_parm_name] << Meq.Parm(parm_name=parm);
             condeq = ns.condeq(parm,'TI',self._keyname) << Meq.Condeq(ns[parm],new_parm);
             solver = ns.solver(parm,'TI',self._keyname)<< Meq.Solver(condeq,solvable = new_parm,
                                                                      epsilon=1e-4,
@@ -195,16 +207,16 @@ class ParmTable:
             solved_parms+=(new_parm,);
             parms+=(ns[parm],);
             
-        PI = ns.ParmInspector(self._keyname)<<Meq.Composer(children = parms);
-        RI = ns.ResidualInspector(self._keyname)<<Meq.Composer(children = subtracts);
-        SPI = ns.SolvedParmInspector(self._keyname)<<Meq.Composer(children = solved_parms);
+        PI = ns.ParmInspector(self._keyname)<<Meq.Composer(children = parms,plot_label=[ parm for parm in self._parmnames]);
+        RI = ns.ResidualInspector(self._keyname)<<Meq.Composer(children = subtracts,plot_label=[ "res:"+parm for parm in self._parmnames]);
+        SPI = ns.SolvedParmInspector(self._keyname)<<Meq.Composer(children = solved_parms,plot_label=[ parm.name for parm in solved_parms]);
         SI = ns.SolverInspector(self._keyname)<<Meq.ReqSeq(children = solvers + (RI,PI,SPI));
 
 
 
     def plot(self,mqs,domain=None):
         if not domain or len(domain)<6:
-            domain = [self._start_t,self._start_f,self._end_t,self._end_f,self._n_t,self._n_f];
+            domain = [self._start_t,self._start_f,self._end_t,self._end_f,self._n_t*self._rank_t,self._n_f*self._rank_f];
             
         dom  = meq.domain(domain[1],domain[3],
                              domain[0],domain[2]);    # (f1,f2,t1,t2)
@@ -222,7 +234,7 @@ class ParmTable:
         result = mqs.meq('Node.SetState',record(name=newparm, shape=shape));
         solver = "solver:"+parm+":TI";
         if not domain or len(domain)<6:
-            domain = [self._start_t,self._start_f,self._end_t,self._end_f,self._n_t,self._n_f];
+            domain = [self._start_t,self._start_f,self._end_t,self._end_f,self._n_t*self._rank_t,self._n_f*self._rank_f];
             
         dom  = meq.domain(domain[1],domain[3],
                              domain[0],domain[2]);    # (f1,f2,t1,t2)
@@ -273,6 +285,7 @@ class ParmTable:
         for name in parmlist:
             mqs.meq('Node.Set.State',
                       record(name=name,state=record(control_status=cs)));
+            # print "selected the state of parm",name
             # also select the solver
             if self._fit:
                 sname= "solver:"+name+':TI:'+self._keyname;
@@ -287,7 +300,14 @@ class ParmTable:
                 mqs.meq('Node.Set.State',
                         record(name=sname,state=record(control_status=cs)));
                 
-                      
+        # also reset node_list in inspectors for correct naming
+        mqs.meq('Node.Set.State',
+                record(name='ParmInspector:'+self._keyname,state=record(plot_label=[ parm for parm in parmlist])));
+        if self._fit:
+            mqs.meq('Node.Set.State',
+                    record(name='ResidualInspector:'+self._keyname,state=record(plot_label=[ "res:"+parm for parm in parmlist])));
+            
+
 
 
     def deselect_parms(self,mqs,parmlist='all'):
@@ -296,7 +316,7 @@ class ParmTable:
         cs = not(meqds.CS_ACTIVE);
         for name in parmlist:
             mqs.meq('Node.Set.State',
-                      record(name=name,state=record(control_status=cs)));
+                      record(name=str(name),state=record(control_status=cs)));
             
             # also deselect the solver
             if self._fit:
@@ -371,7 +391,7 @@ class Inspector(qt.QDialog):
         self.init_axes();
         self.v.addWidget(axis);
         
-        if self.parmTable.fit:
+        if self.parmTable._fit:
             self.rank=[];
             #create fit paramaeter screen
             fitparms = qt.QHGroupBox("Fit Parameters",self);
@@ -387,7 +407,7 @@ class Inspector(qt.QDialog):
         qt.QObject.connect(self.cmdPlotParms,qt.SIGNAL("clicked()"),self.plot);
         self.Bh.addWidget(self.cmdPlotParms)
 
-        if self.parmTable.fit:
+        if self.parmTable._fit:
             self.cmdFitParms = qt.QPushButton('Fit Selection', self)
             qt.QObject.connect(self.cmdFitParms,qt.SIGNAL("clicked()"),self.fit);
             self.Bh.addWidget(self.cmdFitParms)
@@ -457,13 +477,14 @@ class Inspector(qt.QDialog):
             if self.parms.isRowSelected(i):
                 self._selected.append( str(self.parms.text(i,0)));
 
+                # print "selected",i, str(self.parms.text(i,0));
     def init_axes(self):
         self.xto[0].setText(str(self.parmTable._start_t));
         self.xto[1].setText(str(self.parmTable._start_f));
         self.xfrom[0].setText(str(self.parmTable._end_t));
         self.xfrom[1].setText(str(self.parmTable._end_f));
-        self.nsteps[0].setText(str(self.parmTable._n_t));
-        self.nsteps[1].setText(str(self.parmTable._n_f));
+        self.nsteps[0].setText(str(self.parmTable._n_t*self.parmTable._rank_t));
+        self.nsteps[1].setText(str(self.parmTable._n_f*self.parmTable._rank_f));
 
 
     def getdomain(self):
