@@ -337,6 +337,7 @@ class QwtImageDisplay(QwtPlot):
         self.connect(self,
                      SIGNAL('plotMouseReleased(const QMouseEvent&)'),
                      self.onMouseReleased)
+        self.canvas().setMouseTracking(True)
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
         self.is_vector = False
@@ -1423,33 +1424,88 @@ class QwtImageDisplay(QwtPlot):
 	        xpos1 = xpos1 - self.delta_vells
           temp_str_x_rel = "x =%+.2g" % xpos1
           temp_str_y_rel = "y =%+.2g" % ypos 
+          temp_str_y_rel1 = " =%+.2g" % ypos 
           result = temp_str_x_rel + " " + temp_str_y_rel + " "
           xpos_value = None
           ypos_value = None
           if not self.first_axis_inc is None:
             xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
-            if not self.vells_axis_grids[self.x_parm] is None:
+            vells_axis_grids = self.vells_axis_parms[self.x_parm][4]
+            if not vells_axis_grids is None:
               xpos1 = int((xpos1 -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
-              xpos_value = self.vells_axis_grids[self.x_parm][xpos1]
-              if self.vells_axis_parms[self.x_parm][2].find('MHz') >= 0:
-                xpos_value = xpos_value * 1.0e-6
-              if self.vells_axis_parms[self.x_parm][2].find('KHz') >= 0:
-                xpos_value = xpos_value * 1.0e-3
-              temp_str_x_abs = "x =%+.3g" % xpos_value
-              result = temp_str_x_abs + " " + temp_str_y_rel + " "
+              try:
+                xpos_value = vells_axis_grids[xpos1]
+                units = ""
+                axis = "x "
+                if self.x_parm.find('u') >= 0:
+                  axis = "u "
+                  units = " lambda "
+                if self.x_parm.find('v') >= 0:
+                  axis = "v "
+                  units = " lambda "
+                if self.x_parm.find('l') >= 0:
+                  axis = "l "
+                  units = " rad "
+                if self.x_parm.find('time') >= 0:
+                  axis = "time "
+                  units = " sec "
+                else:
+                  if self.x_parm.find('m') >= 0:
+                    axis = "m "
+                    units = " rad "
+                if self.x_parm.find('freq') >= 0:
+                  axis = "freq "
+                  units = " Hz "
+                if self.vells_axis_parms[self.x_parm][2].find('MHz') >= 0:
+                  xpos_value = xpos_value * 1.0e-6
+                  units = " MHz "
+                if self.vells_axis_parms[self.x_parm][2].find('KHz') >= 0:
+                  xpos_value = xpos_value * 1.0e-3
+                  units = " KHz "
+                temp_str_x_abs = axis +" =%+.3g" % xpos_value + units
+              except:
+                temp_str_x_abs = temp_str_x_rel
           else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
             xpos = self.plotImage.xMap.limTransform(xpos)
           if not self.second_axis_inc is None:
             ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
-            if not self.vells_axis_grids[self.y_parm] is None:
-              ypos_value = self.vells_axis_grids[self.y_parm][ypos]
-              if self.vells_axis_parms[self.y_parm][2].find('MHz') >= 0:
-                ypos_value = ypos_value * 1.0e-6
-              if self.vells_axis_parms[self.y_parm][2].find('KHz') >= 0:
-                ypos_value = ypos_value * 1.0e-3
-              temp_str_y_abs = "y =%+.3g" % ypos_value 
+            vells_axis_grids = self.vells_axis_parms[self.y_parm][4]
+            if not vells_axis_grids is None:
+              try:
+                ypos_value = vells_axis_grids[ypos]
+                axis = "y "
+                units = ""
+                if self.y_parm.find('u') >= 0:
+                  axis = "u "
+                  units = " lambda "
+                if self.y_parm.find('v') >= 0:
+                  axis = "v "
+                  units = " lambda "
+                if self.y_parm.find('l') >= 0:
+                  axis = "l "
+                  units = " rad "
+                if self.y_parm.find('time') >= 0:
+                  axis = "time "
+                  units = " sec "
+                else:
+                  if self.y_parm.find('m') >= 0:
+                    axis = "m "
+                    units = " rad "
+                if self.y_parm.find('freq') >= 0:
+                  axis = "freq "
+                  units = " Hz "
+                if self.vells_axis_parms[self.y_parm][2].find('MHz') >= 0:
+                  ypos_value = ypos_value * 1.0e-6
+                  units = " MHz "
+                if self.vells_axis_parms[self.y_parm][2].find('KHz') >= 0:
+                  ypos_value = ypos_value * 1.0e-3
+                  units = " KHz "
+                temp_str_y_abs = "y =%+.3g" % ypos_value + units 
+                result = temp_str_x_abs + " " + axis + temp_str_y_rel1 + units
+              except:
+                result = temp_str_x_abs + " " + temp_str_y_rel + " "
           else:
             ypos = self.plotImage.yMap.limTransform(ypos)
         else:
@@ -1471,8 +1527,11 @@ class QwtImageDisplay(QwtPlot):
 	      marker_index = 0
           temp_str = result + " y =%+.2g" % ypos2 + " "
           result = temp_str
-        value = self.raw_array[xpos,ypos]
 	message = None
+        try:
+          value = self.raw_array[xpos,ypos]
+        except:
+          return message
         temp_str = "value: %-.3g" % value
 	if not marker_index is None:  
           if self.is_combined_image:
@@ -1527,7 +1586,33 @@ class QwtImageDisplay(QwtPlot):
 #                     QMessageBox.NoButton)
 #         mb_color.exec_loop()
         else:
-          temp_str = "nearest x=%-.3g" % x
+          if self._vells_plot:
+            units = ""
+            axis = "x "
+            if self.x_parm.find('l') >= 0:
+              print 'detected l in x_parm'
+              axis = "l "
+              units = " rad "
+            if self.x_parm.find('time') >= 0:
+              axis = "time "
+              units = " sec "
+            else:
+              if self.x_parm.find('m') >= 0:
+                print 'detected m in x_parm'
+                axis = "m "
+                units = " rad "
+            if self.x_parm.find('freq') >= 0:
+              axis = "freq "
+              units = " Hz "
+            if self.vells_axis_parms[self.x_parm][2].find('MHz') >= 0:
+              xpos_value = xpos_value * 1.0e-6
+              units = " MHz "
+            if self.vells_axis_parms[self.x_parm][2].find('KHz') >= 0:
+              xpos_value = xpos_value * 1.0e-3
+              units = " KHz "
+            temp_str = "nearest " + axis +" =%+.3g" % x + units
+          else:
+            temp_str = "nearest x=%-.3g" % x
           temp_str1 = " y=%-.3g" % y
 	  message = temp_str + temp_str1 
         return message
@@ -1572,10 +1657,20 @@ class QwtImageDisplay(QwtPlot):
 
       xPos = e.pos().x()
       yPos = e.pos().y()
-      if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
-        if not self.display_solution_distances:
-          self.enableOutline(0)
-          self.startDrag()
+      if self.is_vector: 
+        curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
+        message = self.reportCoordinates(xVal, yVal)
+      else:
+        message = self.formatCoordinates(xPos, yPos)
+      self.emit(PYSIGNAL("status_update"),(message,))
+
+      try:
+        if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
+          if not self.display_solution_distances:
+            self.enableOutline(0)
+            self.startDrag()
+          return
+      except:
         return
 
       # remove any 'source' descriptor if we are zooming
@@ -2580,11 +2675,10 @@ class QwtImageDisplay(QwtPlot):
       self.source_marker  = None
       self.array_plot(data_label, data_array)
 
-    def setVellsParms(self, vells_axis_parms, axis_labels, vells_axis_grids):
+    def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
       _dprint(3, 'self.vells_axis_parms = ', self.vells_axis_parms)
       self.axis_labels = axis_labels
-      self.vells_axis_grids =  vells_axis_grids
 
     def reset_color_bar(self, reset_value=True):
       self.adjust_color_bar = reset_value

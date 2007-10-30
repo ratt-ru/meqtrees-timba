@@ -73,7 +73,6 @@ class VellsData:
       """
       self.axis_labels = []
       self.vells_axis_parms = {}
-      self.vells_axis_grids = {}
       self.axis_shape = {}
       self.num_possible_ND_axes = 0
       try:
@@ -88,13 +87,12 @@ class VellsData:
             begin = 0
             end = 1
             grid_array = None
+            delta = None
             title = current_label
             if vells_rec.cells.grid.has_key(current_label):
               try:
                 grid_array = vells_rec.cells.grid.get(current_label)
                 delta = vells_rec.cells.cell_size.get(current_label)
-                # for the moment, assume all deltas are the same, 
-                # so use first one
                 try:
                   grid_step = 0.5 * delta[0]
                 except:
@@ -105,6 +103,7 @@ class VellsData:
                 _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
                 begin = grid_array[0] - grid_step
                 if self.axis_shape[current_label] > 1:
+                  grid_step = 0.5 * delta[self.axis_shape[current_label] -1]
                   end = grid_array[self.axis_shape[current_label] -1] + grid_step
                 else:
                   end = grid_array[0] + grid_step
@@ -132,8 +131,7 @@ class VellsData:
             _dprint(3,'assigning begin ', begin)
             _dprint(3,'assigning end ', end)
             _dprint(3,'assigning title ', title)
-            self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
-            self.vells_axis_grids[current_label] = grid_array
+            self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], grid_array, delta)
             self.axis_labels.append(current_label)
       except:
       # we have no 'cells' field so need to create a fake one for
@@ -150,8 +148,7 @@ class VellsData:
           if current_label == 'freq':
             title = 'Frequency(MHz)'
           self.axis_shape[current_label] = 1
-          self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
-          self.vells_axis_grids[current_label] = None
+          self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], None, None)
           self.axis_labels.append(current_label)
 
       # do we request a ND GUI?
@@ -167,8 +164,7 @@ class VellsData:
    def getVellsDataParms(self):
      """ returns vells parameters for use with the visualization display """
      _dprint(3,'received method call')
-
-     return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape,self.vells_axis_grids]
+     return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape]
 
    def StoreVellsData(self, vells_rec, rq_label = ''):
      """ converts vells record structure into a format that is
