@@ -1993,7 +1993,6 @@ class QwtImageDisplay(QwtPlot):
     def modify_xsection_display(self, signal_id):
         """ select and display complex cross section display """
         if self.show_x_sections:
-          print 'modify received signal ', signal_id
           if signal_id == 201 or signal_id == 202:
             self.removeCurve(self.xiCrossSection)
             self.xiCrossSection = None
