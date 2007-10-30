@@ -280,7 +280,7 @@ double Spline::get_value(const double *x,const int ipert,const int perturb,const
 	 if(idx_x<=0) idx_x =1;
 	 if(idx_x>=N[axis]-2) idx_x=N[axis]-3;
 	 delta_x = x[axis]- x0[axis] - idx_x*dx[axis] ;
-	 delta_x/=(N[axis]-1)*dx[axis]; //define dx=1/(N[axis]-1); needed because otherwise the A,B,C get to smallfor our large time freq domains
+	 delta_x/=(N[axis]-1)*dx[axis]; //define dx=1/(N[axis]-1); needed because otherwise the A,B,C get too smallfor our large time freq domains
 	 break;
        }
    }
