@@ -371,15 +371,22 @@ namespace Meq {
     if( n>1 )
       {
 	cdebug(3)<<"discarding multiple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
-	if(!reset_funklet_ && (tiled_ || !isSolvable()) ){
-	  funkletref <<=new ComposedPolc(funklets);
-	  cdebug(3)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
-	  funkletref().setDomain(domain);
-	  if(force_shape_)
-	    funkletref().setCoeffShape(shape_);
+	if(!reset_funklet_ && (tiled_ || !isSolvable()) )
+	  {
+	    funkletref <<=new ComposedPolc(funklets);
+	    cdebug(3)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
+	    funkletref().setDomain(domain);
+	    if(force_shape_)
+	      funkletref().setCoeffShape(shape_);
+	    
+	    return funkletref.dewr_p();
+	  }
+	else
+	  //Sort on domain time0,f0,time1,f1...
+	  {
+	    
 
-	  return funkletref.dewr_p();
-	}
+	  }
       }
     if( n )
       {

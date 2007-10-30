@@ -30,6 +30,7 @@
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
 #include <MEQ/PolcLog.h>
+#include <MEQ/Spline.h>
 #include <TimBase/Debug.h>
 #include <tables/Tables/TableLocker.h>
 #include <tables/Tables/TableDesc.h>
@@ -216,17 +217,25 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 	      funkref<<= new PolcLog(fromParmMatrix(valCol(i)),
 				    axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),scale_vector);
 	    }
-  
+	    else{
+	      if (ftypeCol(i)=="MeqSpline"||ftypeCol(i)=="Spline"){
+		Domain::Ref dom;
+		dom<<= new Domain(stCol(i),etCol(i),sfCol(i),efCol(i));
+		funkref<<= new Spline(fromParmMatrix(valCol(i)),dom,
+				      axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
+	      }
+	     
 	    else
 	      {
 		funkref<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
-					      ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
+					       ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
 	      }
 	    
+	    }
 	  }
 	  funkref().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
 	  funklets[i] = funkref;
-            
+	  
 	}
     }
   return funklets.size();
