@@ -132,7 +132,7 @@ def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plot
     ND_Controls.reparent(QWidget(), 0, QPoint())
     ND_Controls = None
   ND_Controls = ND_Controller(array_shape, labels, parms, num_axes,layout_parent)
-  layout.addMultiCellWidget(ND_Controls,1,1,0,2)
+  layout.addMultiCellWidget(ND_Controls,2,2,0,2)
   if ND_Controls.get_num_selectors() > num_axes:
     ND_Controls.showDisplay(1)
   else:

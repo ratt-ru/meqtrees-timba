@@ -77,6 +77,7 @@ class ArrayPlotter(GriddedPlugin):
     self.layout_parent = None
     self.layout_created = False
     self.twoD_plotter = None
+    self.status_label = None
     self.ND_plotter = None
     self.ND_Controls = None
     self.png_number = 0
@@ -94,7 +95,18 @@ class ArrayPlotter(GriddedPlugin):
     QObject.connect(self.twoD_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
     QObject.connect(self.twoD_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
     QObject.connect(self.twoD_plotter, PYSIGNAL('save_display'), self.grab_display)
+    # create status label display
+    self.status_label = QLabel(self.layout_parent)
+    self.layout.addWidget(self.status_label, 1, 1)
+    self.status_label.setText("Move the mouse within the plot canvas"
+                            " to show the cursor position.")
+    self.status_label.show()
+    QObject.connect(self.twoD_plotter, PYSIGNAL('status_update'), self.update_status)
   # create_2D_plotter
+
+  def update_status(self, status):
+     if not status is None:
+       self.status_label.setText(status)
 
   def grab_display(self, title):
     self.png_number = self.png_number + 1
@@ -297,6 +309,9 @@ class ArrayPlotter(GriddedPlugin):
     if not has_vtk:
       return
     self.twoD_plotter = delete_2D_Plotters(self.colorbar, self.twoD_plotter)
+    self.status_label.reparent(QWidget(), 0, QPoint())
+    self.status_label = None
+
     if self.ND_plotter is None:
       self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)

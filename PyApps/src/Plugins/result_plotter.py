@@ -183,6 +183,7 @@ class ResultPlotter(GriddedPlugin):
     self.colorbar = {}
     self.results_selector = None
     self.spectrum_node_selector = None
+    self.status_label = None
     self.ND_Controls = None
     self.ND_plotter = None
     self.layout_parent = None
@@ -611,7 +612,20 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
     QObject.connect(self._visu_plotter, PYSIGNAL('save_display'), self.grab_display) 
+    # create status label display
+    self.status_label = QLabel(self.layout_parent)
+    self.layout.addWidget(self.status_label, 1, 1)
+    self.status_label.setText("Move the mouse within the plot canvas"
+                            " to show the cursor position.")
+    self.status_label.show()
+    QObject.connect(self._visu_plotter, PYSIGNAL('status_update'), self.update_status)
+
   # create_2D_plotter
+
+  def update_status(self, status):
+     if not status is None:
+       self.status_label.setText(status)
+
 
   def grab_display(self, title):
     self.png_number = self.png_number + 1
@@ -770,6 +784,7 @@ class ResultPlotter(GriddedPlugin):
         self._vells_data.StoreVellsData(self._rec,self.label)
 
       if self._vells_data.isVellsScalar():
+        print 'we have scalar data'
         if not self._visu_plotter is None:
           self._visu_plotter.hide()
         Message =  self._vells_data.getScalarString()
@@ -831,9 +846,8 @@ class ResultPlotter(GriddedPlugin):
       vells_data_parms = self._vells_data.getVellsDataParms()
       vells_axis_parms = vells_data_parms[0]
       axis_labels = vells_data_parms[1]
-      vells_grid_points = vells_data_parms[4]
       _dprint(3, 'vells_axis_parms ', vells_axis_parms)
-      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels, vells_grid_points)
+      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
       display_change = False
       if vells_data_parms[2] != self.num_possible_ND_axes:
         self.num_possible_ND_axes = vells_data_parms[2]
@@ -1108,6 +1122,9 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
+    self.status_label.reparent(QWidget(), 0, QPoint())
+    self.status_label = None
+
     if self.ND_plotter is None:
       self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
