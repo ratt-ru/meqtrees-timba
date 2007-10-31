@@ -65,41 +65,45 @@ class FullRealImag (object):
 
   def compute_jones (self,jones,stations=None,tags=None,label='',**kw):
     stations = stations or Context.array.stations();
-    p1 = Meow.Parm(1);
-    p0 = Meow.Parm(0);
-    diags = [];
-    offdiags = [];
+    # create parm definitions for each jones element
+    tags = NodeTags(tags) + "solvable";
+    diag_real = Meq.Parm(1,tags=tags+"diag real");
+    diag_imag = Meq.Parm(0,tags=tags+"diag imag");
+    offdiag_real = Meq.Parm(0,tags=tags+"offdiag real");
+    offdiag_imag = Meq.Parm(0,tags=tags+"offdiag imag");
+    # now loop to create nodes
     for p in stations:
-      rxx = resolve_parameter("diag",jones(p,'rxx'),p1,tags=tags);
-      ixx = resolve_parameter("diag",jones(p,'ixx'),p0,tags=tags);
-      ryy = resolve_parameter("diag",jones(p,'ryy'),p1,tags=tags);
-      iyy = resolve_parameter("diag",jones(p,'iyy'),p0,tags=tags);
-      rxy = resolve_parameter("offdiag",jones(p,'rxy'),p0,tags=tags);
-      ixy = resolve_parameter("offdiag",jones(p,'ixy'),p0,tags=tags);
-      ryx = resolve_parameter("offdiag",jones(p,'ryx'),p0,tags=tags);
-      iyx = resolve_parameter("offdiag",jones(p,'iyx'),p0,tags=tags);
-      diags += [ rxx,ixx,ryy,iyy ];
-      offdiags += [rxy,ixy,ryx,iyx ];
       jones(p) << Meq.Matrix22(
-        jones(p,"xx") << Meq.ToComplex(rxx,ixx),
-        jones(p,"xy") << Meq.ToComplex(rxy,ixy),
-        jones(p,"yx") << Meq.ToComplex(ryx,iyx),
-        jones(p,"yy") << Meq.ToComplex(ryy,iyy),
+        jones(p,"xx") << Meq.ToComplex(
+            jones(p,"rxx") << diag_real,
+            jones(p,"ixx") << diag_imag
+        ),
+        jones(p,"xy") << Meq.ToComplex(
+            jones(p,"rxy") << offdiag_real,
+            jones(p,"ixy") << offdiag_imag
+        ),
+        jones(p,"yx") << Meq.ToComplex(
+            jones(p,"ryx") << offdiag_real,
+            jones(p,"iyx") << offdiag_imag
+        ),
+        jones(p,"yy") << Meq.ToComplex(
+            jones(p,"ryy") << diag_real,
+            jones(p,"iyy") << diag_imag
+        )
       );
     # make parmgroups for diagonal and off-diagonal terms
-    self.pg_diag     = ParmGroup.ParmGroup(label+"_diag",diags,
-                          table_name="%s_diag.mep"%label,bookmark=False);
-    self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",offdiags,
-                          table_name="%s_offdiag.mep"%label,bookmark=False);
+    self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",
+            [ jones(p,zz) for p in stations for zz in "rxx","ixx","ryy","iyy" ],
+            table_name="%s_diag.mep"%label,bookmark=False);
+    self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",
+            [ jones(p,zz) for p in stations for zz in "rxy","ixy","ryx","iyx" ],
+            table_name="%s_offdiag.mep"%label,bookmark=False);
 
     # make bookmarks
-    pg1 = Bookmarks.Page("%s diagonal terms"%label);
-    pg2 = Bookmarks.Page("%s off-diagonal terms"%label);
-    for p in stations:
-      pg1.add(jones(p,"xx"));
-      pg1.add(jones(p,"yy"));
-      pg2.add(jones(p,"xy"));
-      pg2.add(jones(p,"yx"));
+    Bookmarks.make_node_folder("%s diagonal terms"%label,
+      [ jones(p,zz) for p in stations for zz in "xx","yy" ],sorted=True);
+    Bookmarks.make_node_folder("%s off-diagonal terms"%label,
+      [ jones(p,zz) for p in stations for zz in "xy","yx" ],sorted=True);
 
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_diag","Calibrate %s diagonal terms"%label,self.pg_diag);

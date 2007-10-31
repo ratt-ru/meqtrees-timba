@@ -30,8 +30,7 @@ import math
 
 import Meow
 import Meow.StdTrees
-from Meow import Context
-from Meow import ParmGroup
+from Meow import Context,ParmGroup,Bookmarks
 from Meow.Parameterization import resolve_parameter
 
 # MS options first
@@ -56,7 +55,6 @@ TDLCompileMenu("What do we want to do",
   TDLOption('do_correct',"Correct the data or residuals",True),
   TDLOption('do_invert_phase',"Invert phases in input data",True,
      doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
-  TDLOption('do_ifr_errors',"Include interferometer-based errors",False)
 );
 do_correct_sky = False;
   #TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
@@ -100,6 +98,8 @@ meqmaker.add_uv_jones('G','receiver gains/phases',
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
+TDLCompileOption('do_ifr_errors',"Use interferometer-based errors",False);
+
 
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,15));
@@ -110,14 +110,18 @@ def _define_forest (ns):
 
   # make spigot nodes
   spigots = spigots0 = outputs = array.spigots();
-  # ...and an inspector for them
-  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,bookmark="Inspect input data");
-  inspectors = [ ns.inspector('input') ];
   # invert phases if necessary
   if do_invert_phase:
     for p,q in array.ifrs():
       ns.conj_spigot(p,q) << Meq.Conj(spigots(p,q));
     spigots = ns.conj_spigot;
+  
+  # ...and an inspector for them
+  Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,
+                              bookmark="Inspect input visibilities");
+  inspectors = [ ns.inspector('input') ];
+  Bookmarks.make_node_folder("Input visibilities by baseline",
+    [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
   # make a ParmGroup and solve jobs for source fluxes
   srcs = meqmaker.get_source_list(ns);
@@ -160,19 +164,24 @@ def _define_forest (ns):
       # add parmgroups
       pg_ifr_ampl = ParmGroup.ParmGroup("ifr_error_ampl",
                        ifr_gains.search(tags="solvable ifr ampl"),
-                       table_name="ifr_error_ampl.mep",bookmark=6);
+                       table_name="ifr_error_ampl.mep",bookmark=False);
       pg_ifr_phase = ParmGroup.ParmGroup("ifr_error_phase",
                        ifr_gains.search(tags="solvable ifr phase"),
-                       table_name="ifr_error_phase.mep",bookmark=6);
+                       table_name="ifr_error_phase.mep",bookmark=False);
       pg_ifr_bias  = ParmGroup.ParmGroup("ifr_bias",
                        ifr_gains.search(tags="solvable ifr bias"),
-                       table_name="ifr_error_bias.mep",bookmark=6);
+                       table_name="ifr_error_bias.mep",bookmark=False);
+      Bookmarks.make_node_folder("Interferometer-based gains",
+        [ ifr_gains(p,q) for p,q in array.ifrs() ],sorted=True,nrow=2,ncol=2);
+      Bookmarks.make_node_folder("Interferometer-based biases",
+        [ ifr_bias(p,q) for p,q in array.ifrs() ],sorted=True,nrow=2,ncol=2);
+
       ParmGroup.SolveJob("cal_ifr_ampl",
-                          "Calibrate inteferometer-based amplitude errors",pg_ifr_ampl);
+                          "Calibrate interferometer-based gain-amplitudes",pg_ifr_ampl);
       ParmGroup.SolveJob("cal_ifr_phase",
-                          "Calibrate inteferometer-based phase errors",pg_ifr_phase);
+                          "Calibrate interferometer-based gain-phases",pg_ifr_phase);
       ParmGroup.SolveJob("cal_ifr_bias",
-                          "Calibrate inteferometer-based additive bias",pg_ifr_bias);
+                          "Calibrate interferometer-based biases",pg_ifr_bias);
 
   # make nodes to compute residuals
   if do_subtract:
@@ -240,6 +249,15 @@ def _define_forest (ns):
   # The list of inspectors must be supplied here
   inspectors += meqmaker.get_inspectors() or [];
   Meow.StdTrees.make_sinks(ns,outputs,spigots=spigots0,post=inspectors);
+  Bookmarks.make_node_folder("Corrected/residual visibilities by baseline",
+    [ outputs(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
+    
+  if not do_solve:
+    global _run_tree;
+    if do_subtract:
+      TDLRuntimeJob(_run_tree,"Generate residuals");
+    elif do_correct:
+      TDLRuntimeJob(_run_tree,"Generate corrected data");
 
   # very important -- insert meqmaker's runtime options properly
   # this should come last, since runtime options may be built up during compilation.
@@ -250,4 +268,9 @@ def _define_forest (ns):
   imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
   TDLRuntimeMenu("Imaging options",*imsel.option_list());
 
+
+# runs the tree
+def _run_tree (mqs,parent,tiling=240,**kw):
+  mqs.execute(Context.vdm.name,mssel.create_io_request(tiling),wait=False);
+    
 

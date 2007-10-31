@@ -83,6 +83,9 @@ def _define_forest(ns):
   else:
     flag_mask = -1;
   outputs = spigots = array.spigots(flag_mask=flag_mask,row_flag_mask=flag_mask);
+  Meow.Bookmarks.make_node_folder("Input visibilities by baseline",
+    [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
+
   # extract xx/yy if asked
   if flag_xx_yy:
     outputs = ns.xxyy;
@@ -121,6 +124,8 @@ def _define_forest(ns):
     
   # make sinks and vdm
   Meow.StdTrees.make_sinks(ns,outputs,post=inspectors);
+  Meow.Bookmarks.make_node_folder("Output visibilities by baseline",
+    [ outputs(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
   # put all inspectors into bookmarks
   pg = Meow.Bookmarks.Page("Vis Inspectors",2,2);
