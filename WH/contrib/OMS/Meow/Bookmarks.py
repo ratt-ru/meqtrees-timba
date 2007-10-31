@@ -29,14 +29,17 @@ from Timba.TDL import *
 _pages = [];
 
 class Page (object):
-  def __init__ (self,name,hplots=2,vplots=3):
+  def __init__ (self,name,hplots=2,vplots=3,folder=None):
     self.name = name;
     self.hsize = hplots;
     self.vsize = vplots;
     # find bookmarks list in Settings, or create new one
-    self._bklist = Settings.forest_state.get('bookmarks',None);
-    if self._bklist is None:
-      self._bklist = Settings.forest_state.bookmarks = [];
+    if folder is None:
+      self._bklist = Settings.forest_state.get('bookmarks',None);
+      if self._bklist is None:
+        self._bklist = Settings.forest_state.bookmarks = [];
+    else:
+      self._bklist = folder;
     # page number, used when making multiple pages
     self._pagenum = 0;
     # make a new page record
@@ -87,8 +90,6 @@ class Page (object):
         
   def __lshift__ (self,node):
     return self.add(node);
-    
-    
 
 def PlotPage (name,*rows):
   bklist = [];
@@ -108,3 +109,51 @@ def PlotPage (name,*rows):
     return bklist;
   else:
     return record(name=name,page=bklist);
+
+class Folder (object):
+  def __init__ (self,name,folder=None):
+    self.name = name;
+    # find bookmarks list in Settings, or create new one
+    self._bklist = folder or Settings.forest_state.get('bookmarks',None);
+    if self._bklist is None:
+      self._bklist = Settings.forest_state.bookmarks = [];
+    self._folder_list = None;
+    
+  def _flist (self):
+    if self._folder_list is None:
+      self._folder_list = [];
+      self._bklist.append(record(name=self.name,folder=self._folder_list));
+    return self._folder_list;
+  
+  def page (self,*args,**kw):
+    return Page(folder=self._flist(),*args,**kw);
+  
+  def subfolder (self,*args,**kw):
+    return Folder(folder=self._flist(),*args,**kw);
+  
+def _int_or_str(x):
+  """helper function, converts string to integer if possible""";
+  try: return int(x);
+  except: return x;
+
+def make_node_folder (name,nodes,sorted=False,ncol=2,nrow=3,folder=None):
+  """Creates a sub-folder with bookmarks for a group of nodes.
+  """;
+  # sort nodes by name
+  if not sorted:
+    nodes = list(nodes);
+    nodes.sort(lambda a,b:
+      cmp(map(int_or_str,a.name.split(':')),map(int_or_str,b.name.split(':'))));
+  # place in top-level folder or in subfolder
+  if folder is None:
+    folder = Folder(name);
+  else:
+    folder = folder.subfolder(name);
+  # figure out # of plots per page
+  npp = ncol*nrow;
+  # create and populate pages
+  for i in range(len(nodes))[0::npp]:
+    i1 = min(i+npp,len(nodes));
+    pg = folder.page("%s - %s"%(nodes[i].name,nodes[i1-1].name));
+    for node in nodes[i:i1]:
+      pg.add(node);

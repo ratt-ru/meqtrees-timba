@@ -217,26 +217,32 @@ class ParmGroup (object):
       except: pass;
 
   def __init__ (self,label,nodes=[],name=None,
-                     individual=False,bookmark=None,
+                     individual=False,bookmark=True,
                      table_name="calibration.mep",table_in_ms=True,
                      **kw):
     self.label = label;
     self.name  = name or label;
     # sort nodes by name
     sorted_nodes = list(nodes);
-    sorted_nodes.sort(lambda x,y:cmp(x.name,y.name));
+    # define comparison function that sorts by qualifier as well
+    def int_or_str(x):
+      try: return int(x);
+      except: return x;
+    sorted_nodes.sort(lambda a,b:
+        cmp(map(int_or_str,a.name.split(':')),map(int_or_str,b.name.split(':'))));
     self.nodes = sorted_nodes;
     # various properties
     self.table_name = table_name;
     self._table_in_ms = table_in_ms;
     self._individual = individual;
-    # create bookmarks (if specified as an int, it gives the number of parms to bookmark)
+    # create bookmarks (if specified as a [W,H], it gives the number of parms to bookmark)
     if bookmark:
-      if isinstance(bookmark,bool):
-        bookmark = len(nodes);
-      pg = Bookmarks.Page("Parameters: %s"%label);
-      for parm in nodes[0:bookmark]:
-        pg.add(parm);
+      if isinstance(bookmark,tuple) and len(bookmark) == 2:
+        ncol,nrow = bookmark;
+      else:
+        ncol,nrow = 2,3;
+      Bookmarks.make_node_folder("Parameters: %s"%label,
+                        sorted_nodes,sorted=True,ncol=ncol,nrow=nrow);
     # add ourselves to global list of parmgroups
     global _all_parmgroups;
     _all_parmgroups.append(self);
