@@ -46,15 +46,18 @@ class Iono (object):
     stations = stations or Context.array.stations();
     #nodes is een nodestub en geen nodescope, de nodescope moet ik hier uit de nodestub halen
     ns = nodes.Subscope();
+    # Define four parameters to solve for. Can we make this an arbitrary number depending
+    # on the MIM-order? Eg FOR i = 0 to mimorder DO parm(i)=Meow.Parm(0) ?
     mim_0 = Meow.Parm(0); # dit is in feite TEC0
     mim_x = Meow.Parm(0);
     mim_y = Meow.Parm(0);
     mim_xy = Meow.Parm(0);
+
+    # Set the tagname 
     tags="mim"
-    
     # hier worden de parameters geinitialiseerd en benoemd en ge'tag'd als solvable
     # nodename nodes.source:station:c LETOP: nodescope hier is nodes, niet ns
-    # tags: zie boven
+    # tags: tagname as set above
     m0 = resolve_parameter("mim_0",nodes('m0'),mim_0,tags=tags);
     mx = resolve_parameter("mim_x",nodes('mx'),mim_x,tags=tags);
     my = resolve_parameter("mim_y",nodes('my'),mim_y,tags=tags);
@@ -88,7 +91,7 @@ class Iono (object):
                                       bookmark=4);
 
     # make solvejobs
-    # maak de TDL solve-job
+    # maak de TDL solve-job, is dit niet dezelfde als in calico-ivb?
     ParmGroup.SolveJob("cal_"+label,"Calibrate ionosphere",self.pg_mim);
 
     return nodes;
