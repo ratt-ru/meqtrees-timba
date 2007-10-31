@@ -162,6 +162,31 @@ class CumulativeError (RuntimeError):
       s += '\n [%3d] %s' % (n+1,str(err));
     return s;
 
+class NodeTags (object):
+  def __init__ (self,*args):
+    self.tags = [];
+    self.add(*args);
+    
+  def add (self,*args):
+    for tag in args:
+      if tag is None:
+        pass;
+      elif isinstance(tag,str):
+        self.tags += list(tag.split(" "));
+      elif isinstance(tag,NodeTags):
+        self.tags += tag.tags;
+      elif isinstance(tag,(list,tuple)):
+        self.add(*tag);
+      else:
+        raise TypeError,"'tags' must be a string or a sequence of strings";
+      
+  def __add__ (self,other):
+    return NodeTags(self,other);
+  
+  def __iadd__ (self,other):
+    self.add(other);
+    return self;
+
 class _NodeDef (object):
   """this represents a node definition, as returned by a node class call""";
   __slots__ = ("children","stepchildren","initrec","error","_class");
@@ -255,16 +280,10 @@ class _NodeDef (object):
       if isinstance(stepchildren,dict):
         raise ChildError,"'stepchildren' must be a list or a single node";
       self.stepchildren = self.ChildList(stepchildren);
-      # make sure tags is a list or tuple
+      # use the NodeTags class to convert tags into a list of strings
       tags = kw.get('tags',None);
       if tags is not None:
-        if isinstance(tags,str):
-          kw['tags'] = tags.split(" ");
-        elif isinstance(tags,(list,tuple)):
-          if filter(lambda tag:not isinstance(tag,str),tags):
-            raise TypeError,"'tags' must be a string or a sequence of strings";
-        else:
-          raise TypeError,"'tags' must be a string or a sequence of strings";
+        kw['tags'] = NodeTags(tags).tags;
       # create init-record
       initrec = dmi.record(**kw);
       initrec['class'] = ''.join((pkgname,classname));
