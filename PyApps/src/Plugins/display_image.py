@@ -339,6 +339,7 @@ class QwtImageDisplay(QwtPlot):
                      self.onMouseReleased)
         self.canvas().setMouseTracking(True)
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
+        self.mouse_pressed = False
         self.index = 1
         self.is_vector = False
         self.old_plot_data_rank = -1
@@ -1654,22 +1655,24 @@ class QwtImageDisplay(QwtPlot):
       """ callback to handle MouseMoved event """ 
       if self.scalar_display:
         return
-
+     
       xPos = e.pos().x()
       yPos = e.pos().y()
-      if self.is_vector: 
-        curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
-        message = self.reportCoordinates(xVal, yVal)
-      else:
-        message = self.formatCoordinates(xPos, yPos)
-      self.emit(PYSIGNAL("status_update"),(message,))
-
       try:
+        self.getBounds()
         if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
-          if not self.display_solution_distances:
+          if self.mouse_pressed and not self.display_solution_distances:
             self.enableOutline(0)
+            self.mouse_pressed = False
             self.startDrag()
           return
+        else:
+          if self.is_vector: 
+            curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
+            message = self.reportCoordinates(xVal, yVal)
+          else:
+            message = self.formatCoordinates(xPos, yPos)
+          self.emit(PYSIGNAL("status_update"),(message,))
       except:
         return
 
@@ -1714,15 +1717,17 @@ class QwtImageDisplay(QwtPlot):
       if not self._popup_text.isVisible():
         self._popup_text.show()
 
-    def onMousePressed(self, e):
-        """ callback to handle MousePressed event """ 
+    def getBounds(self):
         self.yhb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).hBound())
         self.ylb = self.transform(QwtPlot.yLeft, self.axisScale(QwtPlot.yLeft).lBound())
         self.xhb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).hBound())
         self.xlb = self.transform(QwtPlot.xBottom, self.axisScale(QwtPlot.xBottom).lBound())
 
+    def onMousePressed(self, e):
+        """ callback to handle MousePressed event """ 
         if Qt.LeftButton == e.button():
             message = None
+            self.mouse_pressed = True
             if self.is_vector: 
               if self.display_solution_distances:
             # Python semantics: self.pos = e.pos() does not work; force a copy
@@ -1825,6 +1830,7 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseReleased(self, e):
         if Qt.LeftButton == e.button():
+            self.mouse_pressed = False
             if self._popup_text.isVisible():
               self._popup_text.hide()
             self.refresh_marker_display()
