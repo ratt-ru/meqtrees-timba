@@ -45,10 +45,10 @@ TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
 TDLCompileMenu("What do we want to do",
   TDLMenu("Calibrate",
      TDLOption('cal_vis',"Calibrate visibilities",True),
-     TDLOption('cal_ampl',"Calibrate amplitudes",False),
-     TDLOption('cal_log_ampl',"Calibrate log-amplitudes",False),
-     TDLOption('cal_phase',"Calibrate phases",False),
-     TDLOption('cal_corr',"Use correlations",["all","XX YY","XY YX"]),
+     #TDLOption('cal_ampl',"Calibrate amplitudes",False),
+     #TDLOption('cal_log_ampl',"Calibrate log-amplitudes",False),
+     #TDLOption('cal_phase',"Calibrate phases",False),
+     #TDLOption('cal_corr',"Use correlations",["all","XX YY","XY YX"]),
      toggle='do_solve',open=True,exclusive='solve_type'
   ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
@@ -74,11 +74,6 @@ meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 # now add optional Jones terms
 # these will show up in the menu automatically
 
-#%# This can be removed
-# E - beam
-import wsrt_beams
-meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
-
 #%# This is the ionosphere bit
 # Z - iono
 import solvable_ionosphere
@@ -87,29 +82,13 @@ import solvable_ionosphere
 # module = solvable_ionosphere.Iono() (this is a list, needs the brackets!)
 meqmaker.add_sky_jones('Z','iono',[solvable_ionosphere.Iono()]);
 
-#%# This can be removed
-# D - leakage
-import polarization_jones
-meqmaker.add_uv_jones('D','polarization leakage',
-  [ polarization_jones.CoupledLeakage(),
-    polarization_jones.DecoupledLeakage() ]);
-
-#%# This can be removed
-# B - bandpass, G - gain 
-import solvable_jones
-meqmaker.add_uv_jones('B','bandpass',
-  [ solvable_jones.DiagAmplPhase(),
-    solvable_jones.FullRealImag() ]);
-meqmaker.add_uv_jones('G','receiver gains/phases',solvable_jones.DiagAmplPhase());
-
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
 #%# Now set-up the forest
 def _define_forest (ns):
-  #%# First define the array setup (we are now working with WSRT!)
-  #%# Need to adjust this for VLS MS, use all 27 antennas
-  ANTENNAS = mssel.get_antenna_set(range(1,15));
+  # First define the array setup (we are now working with VLA!)
+  ANTENNAS = mssel.get_antenna_set(range(1,28));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
@@ -166,39 +145,16 @@ def _define_forest (ns):
   # make solve trees
   if do_solve:
     # extract selected correlations
-    if cal_corr != "all":
-      if cal_corr == "XX YY":
-        index = [0,3];
-      else:
-        index = [1,2];
-      for p,q in array.ifrs():
-        ns.sel_predict(p,q) << Meq.Selector(predict(p,q),index=index,multi=True);
-        ns.sel_spigot(p,q)  << Meq.Selector(spigots(p,q),index=index,multi=True);
-      spigots = ns.sel_spigot;
-      predict = ns.sel_predict;
+    index=[0,3]
+    for p,q in array.ifrs():
+      ns.sel_predict(p,q) << Meq.Selector(predict(p,q),index=index,multi=True);
+      ns.sel_spigot(p,q)  << Meq.Selector(spigots(p,q),index=index,multi=True);
+    spigots = ns.sel_spigot;
+    predict = ns.sel_predict;
     # inputs to the solver are based on calibration type
     # if calibrating visibilities, feed them to condeq directly
-    if solve_type == 'cal_vis':
-      observed = spigots;
-      model    = predict;
-    # else take ampl/phase component
-    else:
-      model = ns.model;
-      observed = ns.observed;
-      if solve_type == 'cal_ampl':
-        for p,q in array.ifrs():
-          observed(p,q) << Meq.Abs(spigots(p,q));
-          model(p,q)  << Meq.Abs(predict(p,q));
-      elif solve_type == 'cal_log_ampl':
-        for p,q in array.ifrs():
-          observed(p,q) << Meq.Log(Meq.Abs(spigots(p,q)));
-          model(p,q)  << Meq.Log(Meq.Abs(predict(p,q)));
-      elif solve_type == 'cal_phase':
-        for p,q in array.ifrs():
-          observed(p,q) << 0;
-          model(p,q)  << Meq.Abs(predict(p,q))*Meq.FMod(Meq.Arg(spigots(p,q))-Meq.Arg(predict(p,q)),2*math.pi);
-      else:
-        raise ValueError,"unknown solve_type setting: "+str(solve_type);
+    observed = spigots;
+    model    = predict;
     # make a solve tree
     solve_tree = Meow.StdTrees.SolveTree(ns,model);
     # the output of the sequencer is either the residuals or the spigots,
