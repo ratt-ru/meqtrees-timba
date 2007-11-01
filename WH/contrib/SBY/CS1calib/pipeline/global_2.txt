@@ -2,6 +2,8 @@
 ### Name  | RA (hr,min,sec) | DEC (deg,min,sec) | I | Q | U | V | SI | RM | eX | eY | eP
 #for CS1 CasA - point
 S0  23 23 24 58 48 54 20000 0 0 0 0.00 0 0 0 0
+#for CS1 CasA - shapelet
+#S0  23 23 24 58 48 54 20000 0 0 0 0.00 0 0.001 0.001 0.001
 # CygA - point
 S1 19 59 28.3 40 44 02 20000 0 0 0 0 0 0 0 0
 # CygA - double

@@ -97,7 +97,7 @@ TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max conditi
 # correct for all baselines
 TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
 # number of stations
-TDLCompileOption('num_stations',"Number of stations",[16,14,15,3]);
+TDLCompileOption('num_stations',"Number of stations",[16,24,15,3],more=int);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
@@ -114,6 +114,23 @@ short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
                  (5,6), (5,7), (5,8), (6,7), (6,8), (7,8),
                  (9,10), (11,12), (13,14), (13,15), (13,16),
                  (14,15), (14,16), (15,16)]
+short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
+                 (5,6), (5,7), (5,8), (6,7), (6,8), (7,8),
+                 (9,10), (9,11), (9,12), (10,11), (10,12),
+                 (11,12), 
+                 (13,14), (13,15), (13,16), (13,17), (13,18), (13,19), (13, 20), (13, 21), (13, 22), (13,23), (13,24), 
+                 (14,15), (14,16), (14,17), (14,18), (14,19), (14, 20), (14, 21), (14, 22), (14,23), (14,24),
+                 (15,16), (15,17), (15,18), (15,19), (15, 20), (15, 21), (15, 22), (15,23), (15,24),
+                 (16,17), (16,18), (16,19), (16, 20), (16, 21), (16, 22), (16,23), (16,24),
+                 (17,18), (17,19), (17, 20), (17, 21), (17, 22), (17,23), (17,24),
+                 (18,19), (18, 20), (18, 21), (18, 22), (18,23), (18,24),
+                 (19, 20), (19, 21), (19, 22), (19,23), (19,24),
+                 (20, 21), (20, 22), (20,23), (20,24),
+                 (21, 22), (21,23), (21,24),
+                 (22,23), (22,24),
+                 (23,24)]
+
+
 
 
 def _define_forest(ns, parent=None, **kw):
@@ -435,28 +452,29 @@ def _tdl_job_0_run_pipeline(mqs,parent,**kw):
   for line in infile:
     filelist += line.strip().split()
   infile.close()
+
+  # change names to _M.MS
+  filelist1=[]
+  p=re.compile('.MS$')
+  for fname in filelist:
+    filelist1 += [p.sub('_M.MS',fname)]
+
   
   ### run each file through the pipeline
   if do_preprocess:
     for fname in filelist:
       _do_preprocess(fname,mqs);
   if do_calibrate:
-    for fname in filelist:
+    for fname in filelist1:
       _do_calibrate(fname,mqs);
   if do_postprocess:
-    for fname in filelist:
+    for fname in filelist1:
       _do_postprocess(fname,mqs);
 
 
 def _do_preprocess(fname,mqs):
   if fname==None: return
-  if not include_short_base:
-    # add additional dummy 'arg' for glish to work properly
-    # default flagging by uv distance
-    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=70','minclip=1e5']);
-  else:
-    # no short baseline flagging
-    os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess.g','args','ms='+fname,'minuv=1','minclip=1e5']);
+  os.spawnvp(os.P_WAIT,'glish',['glish','-l','preprocess_small.g','args','ms='+fname,'minuv=1','minclip=1e5']);
 
 
 def _do_calibrate(fname,mqs):
@@ -507,10 +525,7 @@ def _do_postprocess(fname,mqs):
   if fname==None: return
   # post processing will make images, and calculate mean image - dont wait here 
   # because we will go on to the next MS
-  if average_channels:
-    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_small.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
-  else:
-    os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel+1),'step='+str(channel_step),'minuv='+str(min_uv)]);
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','postprocess_small.g','args','ms='+fname,'minspwid='+str(min_spwid),'maxspwid='+str(max_spwid),'startch='+str(start_channel+1),'endch='+str(end_channel),'step='+str(channel_step),'minuv='+str(min_uv)]);
   # residual plots
   if residual_plots:
     for spwid in range(min_spwid-1,max_spwid):
