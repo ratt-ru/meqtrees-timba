@@ -9,13 +9,12 @@
 
 # Description:
 
-# The Grunt ParmGroup class is derived from the Meow Parameterization class.
+# The ParmGroup class is derived from the Meow Parameterization class.
 # It adds some extra functionality for a group of similar parms, which may
 # find their way into the more official Meow system eventually.
-# The ParmGroup class is used by the Grunt.ParameterizationPlus class.
 
 # Compatibility:
-# - The Grunt.ParmGroup class is derived from Meow.Parameterization
+# - The ParmGroup class is derived from Meow.Parameterization
 
 
 #======================================================================================
@@ -60,7 +59,7 @@ from copy import deepcopy
 #======================================================================================
 
 class ParmGroup (Meow.Parameterization):
-    """The Grunt ParmGroup class is derived from the Meow Parameterization class.
+    """The ParmGroup class is derived from the Meow Parameterization class.
     It adds some extra functionality for a group of similar parms, which may find
     their way into the more official Meow system eventually."""
 
@@ -124,6 +123,7 @@ class ParmGroup (Meow.Parameterization):
             self._mode = 'simulate'
 
         self._OMI = OMInterface.OMInterface(quals,
+                                            # name='pg',
                                             name=self.name,
                                             submenu=submenu,
                                             OM=OM, namespace=namespace,
@@ -242,7 +242,7 @@ class ParmGroup (Meow.Parameterization):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = 'Grunt.ParmGroup:'
+        ss = 'Grow.ParmGroup:'
         ss += ' '+str(self.name)
         ss += '  ('+str(self.ns['<>'].name)+')'
         ss += '  len='+str(self.len())

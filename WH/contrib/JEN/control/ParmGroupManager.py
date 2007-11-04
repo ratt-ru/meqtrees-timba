@@ -56,7 +56,7 @@ from Timba.Contrib.JEN.Grunt import display
 #======================================================================================
 
 class ParmGroupManager (object):
-    """The Grunt ParmGroupManager class encapsulates a group of ParmGroups.
+    """The ParmGroupManager class encapsulates a group of ParmGroups.
     """
 
     def __init__(self, name='<PGM>', quals=None, 
@@ -100,7 +100,7 @@ class ParmGroupManager (object):
         # Options management:
 
         self._solvermenu = solvermenu
-        self._OMI = OMInterface.OMInterface(self._quals,
+        self._OMI = OMInterface.OMInterface(# self._quals,
                                             name=self.name,
                                             submenu=submenu,
                                             OM=OM, namespace=namespace,
@@ -190,7 +190,7 @@ class ParmGroupManager (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = 'Grunt.ParmGroupManager:'
+        ss = 'Grow.ParmGroupManager:'
         ss += '  (name='+str(self.name)+')'
         if self._solvermenu:
             ss += '  (solvermenu='+str(self._solvermenu)+')'
@@ -206,7 +206,7 @@ class ParmGroupManager (object):
         print prefix,'** '+self.oneliner()
         if txt: print prefix,'  * (txt='+str(txt)+')'
         #...............................................................
-        print prefix,'  * Grunt parmgroups ('+str(len(self._parmgroups))+'):'
+        print prefix,'  * parmgroups ('+str(len(self._parmgroups))+'):'
         for key in self._order:
             pg = self._parmgroups[key]
             print prefix,'    - ('+key+'): '+str(pg.oneliner())
@@ -223,7 +223,7 @@ class ParmGroupManager (object):
                 for v in vv: print prefix,'    - '+str(type(v))+' '+str(v)
         #...............................................................
         print prefix,'  * '+self._OMI.oneliner()
-        if OM: self._OMI.display(full=False, level=level+1)
+        if True or OM: self._OMI.display(full=False, level=level+1)
         #...............................................................
         if pg: self.pg_display(OM=OM, level=level+1)
         #...............................................................
@@ -441,11 +441,11 @@ class ParmGroupManager (object):
             return True
 
 
-        # Check whether the other object has a Grunt.ParmGroupManager
+        # Check whether the other object has a ParmGroupManager
         PGM = getattr(other, '_PGM', None)
         print '\n** PGM =',type(PGM), isinstance(PGM, ParmGroupManager),'\n'
         if isinstance(PGM, ParmGroupManager):
-            # The other object DOES have a Grunt.ParmGroupManager
+            # The other object DOES have a ParmGroupManager
             self._pmerged.append(other)               # Avoid duplicate merging....
             
             # Copy its ParmGroup(s) (objects):

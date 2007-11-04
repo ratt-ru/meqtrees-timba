@@ -1,0 +1,2169 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\begin_preamble
+
+% \usepackage{astronrep}          % ~/.TeX/astronrep.sty
+\usepackage{lofar}          % ~/.TeX/lofar.sty
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end_preamble
+\language english
+\inputencoding default
+\fontscheme default
+\graphics default
+\paperfontsize 11
+\spacing single 
+\papersize a4paper
+\paperpackage a4
+\use_geometry 0
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Based on the lofar.sty file (see preamble)
+\layout Standard
+%
+\layout Standard
+% Define the information for the page header and footer:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAuthor} {J.E.
+\backslash 
+ Noordam et al} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDOIssue}{Version 0.9: 1 Nov 2007} % Date of Issue (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theKOIssue}{Public} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theScope}{Project Documentation} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDocNR} {LOFAR-ASTRON-DOC-00000} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theStatus} {Draft} % Alternatives:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theRevNR} {1.0} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theFile}{$lofar/$}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theProject} {LOFAR Project} % in the footer 
+\layout Standard
+%
+\layout Standard
+% Define the information for the Verified table
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVSigList}{o.p.v. 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVDateList}{
+\backslash 
+today}% Date of Verification (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVRevList}{0.9 
+\backslash 
+
+\backslash 
+ 0.9.5}
+\layout Standard
+%
+\layout Standard
+% Define the information in the Accepted Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeada}{Work Package Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadb}{System Engineering Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadc}{Program Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagera}{J.E.
+\backslash 
+ Noordam}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagerb}{C.M.
+\backslash 
+ de Vos}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagerc}{J.
+\backslash 
+ Reitsma}
+\layout Standard
+%
+\layout Standard
+% Define the first and second columns of the Distribution List:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dGList} {
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M.
+\backslash 
+ Mevius (ASTRON/RUG)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J.M.
+\backslash 
+ Anderson (MPIfR, Bonn)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} I.
+\backslash 
+ van Bemmel (RUL) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H.
+\backslash 
+ Intema (RUL) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} S.
+\backslash 
+ van der Tol (TUD) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M.
+\backslash 
+ Pandey (RUL) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} E.
+\backslash 
+ Noordam (KIM) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J.A.
+\backslash 
+ van Enst (LOFAR) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+ddGList} {}
+\layout Standard
+%
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dOList} {   
+\layout Standard
+
+\backslash 
+hspace{0.5cm} A.G. 
+\backslash 
+ de Bruyn (ASTRON)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} R.J. 
+\backslash 
+ Nijboer (ASTRON)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H.A.
+\backslash 
+ Rottgering (RUL)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} M.A. 
+\backslash 
+ van Haarlem (LOFAR)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} W.A.
+\backslash 
+ Baan (ASTRON) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} R.
+\backslash 
+ Beck (MPIfR, Bonn) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+% Define the Document Revision Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+revList} {0.5 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theRevNR}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dateList} {2004-Nov-25 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theDOIssue}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+sectionList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+ref{Sec2}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+pageList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+pageref{Sec2}-
+\backslash 
+pageref{Sec2e}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+changeList} {Creation 
+\backslash 
+
+\backslash 
+ Updated class description}
+\layout Standard
+%
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Make the front page: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theTitle} {A Minimum Ionospherical Model
+\backslash 
+
+\backslash 
+
+\layout Standard
+                          for use in Radio Astronomy
+\backslash 
+
+\backslash 
+
+\layout Standard
+                          and other applications
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\backslash 
+theAuthor 
+\backslash 
+
+\backslash 
+    
+\layout Standard
+
+\backslash 
+vspace{0.1cm}{
+\backslash 
+it(jnoordam@astron.nl)}
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.3cm}Dwingeloo
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.1cm}
+\backslash 
+theDOIssue 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+maketitle
+\layout Standard
+%
+\layout Standard
+% Make the second page: 
+\layout Standard
+
+\backslash 
+theDistributionList
+\layout Standard
+
+\backslash 
+vspace{1cm}
+\layout Standard
+
+\backslash 
+theDocumentRevision
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\end_inset 
+
+
+\layout Abstract
+
+An ionospheric model with the minimum number of parameters is investigated.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end_inset 
+
+
+\layout Section
+
+Introduction
+\begin_inset LatexCommand \label{sec:Introduction}
+
+\end_inset 
+
+
+\layout Standard
+
+The new LOFAR radio telescope operates at relatively low frequencies (20-240
+ MHz), and is thus more sensitive to ionospheric effects than telescopes
+ that operate at higher frequencies.
+ The ionosphere is an electrically charged 'layer' in the Earth atmosphere,
+ mostly located at an altitude of 200-500 km.
+\layout Standard
+
+The propagation velocity of radio waves is (slightly) reduced by the electric
+ charge of the free electrons in the ionosphere.
+ Since the latter varies with position and time, this affects the phase
+ differences measured by radio interferometers.
+ If not corrected, such phase errors may cause significant blurring and
+ distortions in the resulting image of the radio sky.
+ Since the propagation velocity is slightly different for right and left
+ circular polarization, the ionosphere also causes Faraday rotation, i.e.
+ a rotation of the plane of linear
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Linear and circular polarization are two representations of the same e.m.
+ wave.
+ One representation can simply be converted into the other.
+ They are used interchangeably here because Faraday rotation is usually
+ expressed as the rotation of a plane, while the difference in propagation
+ velocity is most easily described using the circular representation.
+\end_inset 
+
+ polarization.
+\layout Standard
+
+The relevant quantity is the integrated Total Electron Content (TEC) along
+ the propagation path.
+ There are various ways to measure the TEC along the line-of-sight between
+ a radio source and a receiver.
+ The two most promising ones use a GPS (or other) satellite (see..), or a
+ bright astronomical radion source (see...).
+ For LOFAR, a combination of the two will probably be used, with multiple
+ GPS ground-stations and satellites, and multiple astronomical sources both
+ inside and outside the field-of-view (FOV).
+\layout Standard
+
+Individual TEC measurements suffer from noise, which is greater for GPS
+ measurements than for astronomical ones.
+ More seriously, all have a different unknown offset (either GPS bias, or
+ interferometric phase zero).
+ Any technique based on a combination of more than one such measurement
+ will need a mechanism to eliminate, or at least harmonize, these offsets.
+ In addition, it has to interpolate to estimate the integrated TEC along
+ an arbitrary line-of-sight.
+ The Minimum Ionospheric Model (MIM) is such a mechanism.
+\layout Section
+
+The MIM idea
+\layout Standard
+
+The basic idea behind the MIM is that we 
+\emph on 
+postulate the existence
+\emph default 
+ of a smooth function 
+\begin_inset Formula $T(x,y,z,l,m,t)$
+\end_inset 
+
+ that gives us the integrated TEC along the line-of-sight from an arbitrary
+ position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+, in arbitrary direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+.
+ The position will usually be that of a GPS station or a radio telescope,
+ perhaps expressed in 
+\begin_inset Formula $(longitude,latitude)$
+\end_inset 
+
+.
+ The direction will be that of a GPS satellite or an astronomical source,
+ perhaps expressed in 
+\begin_inset Formula $(azimuth,elevation)$
+\end_inset 
+
+.
+ In both cases, the direction will be a function of time, of course.
+\layout Standard
+
+The MIM function 
+\begin_inset Formula $T$
+\end_inset 
+
+ is pheanomenological, i.e.
+ it is not concerned with the internal structure of the ionosphere, but
+ only with its effect on the observations, i.e.
+ the integrated TEC.
+ In practice, any set of smooth base functions will do, with more terms
+ being used for more complex (less smooth) ionospheric conditions.
+ Easy to use, but with some unpleasant properties, are simple polynomials.
+ Alternatives are Zernicke polynomials or KL functions (see section ...).
+ Whatever we use, the MIM function will have a number of parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+, which will usually (but not exclusively) be the coefficients of its base
+ functions:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+T(x,y,z,l,m,t)=T(p_{0},p_{1},p_{2},\ldots,p_{n})\label{eq: T(p)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The 'Minimum' in MIM indicates on the one hand that we make minimal assumptions
+ about (the structure of) the ionsphere, and on the other hand that we try
+ to minimize the number of its parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+ Obviously, a simple ionosphere like a thin uniform layer at a constant
+ altitude will require fewer terms than a more complex one.
+ The number of parameters may be dynamic, i.e.
+ it may be increased or decreased as the ionospheric conditions change.
+ This will of course only be feasible if we can somehow detect when the
+ number of parameters is no longer optimal.
+\layout Standard
+
+The proposed procedure is to use the various TEC measurements to solve (continuo
+usly) for the parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ of the MIM function 
+\begin_inset Formula $T$
+\end_inset 
+
+.
+ Because the latter is smooth, this automatically 
+\emph on 
+harmonizes
+\emph default 
+ (...) the various offsets.
+ If the resulting function is consistent with the measured values, i.e.
+ the residuals are smaller than the noise, we assume that it is also valid
+ for other values of the arguments 
+\begin_inset Formula $(x,y,z,l,m,t)$
+\end_inset 
+
+, i.e.
+ that it can be interpolated.
+ Obviously, we will have more confidence in this if the number of TEC measuremen
+ts is larger, and distributed more evenly.
+ This is illustrated in the MIM diagram of fig ...
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_diagram.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+\end_inset 
+
+
+\layout Section
+
+Solving for MIM parameters
+\layout Standard
+
+We solve for MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ by looking for those values that minimise the differences between TEC values
+ 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+ measured by GPS or astronomical means, and the values 
+\begin_inset Formula $T_{i}$
+\end_inset 
+
+ calculated by the MIM function.
+ This may be done by forming linear equations of the form:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta_{i}=T_{i}-M_{i}=\sum_{k}\frac{\partial T_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:normal}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Inversion of this system of linear equations is equivalent to a Least Squares
+ Fit (LSF).
+ If 
+\begin_inset Formula $T$
+\end_inset 
+
+ is non-linear, which will usually be the case, the solution is iterative.
+ Each iteration uses parameter values 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ that are modified by adding the increments 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ estimated in the iteration before.
+ This process continues until chi-squared 
+\begin_inset Formula $\chi^{2}=\sum\Delta_{i}^{2}$
+\end_inset 
+
+ has a reasonable value.
+\layout Standard
+
+Various non-linear solvers are available.
+ For intstance, MeqTrees uses the Levenberg-Marquardt (LM) approach.
+ The subject will not be discussed further here.
+ 
+\layout Standard
+
+...Constraints (derivatives, constancy), integration times (fainter sources),
+ etc
+\layout Section
+
+Measuring TEC using GPS (and other) satellites
+\layout Enumerate
+
+The signal from a satellite of one of the global positioning networks (GPS,
+ Galileo, Glonass, etc) may be picked up by a 
+\emph on 
+station
+\emph default 
+.
+ The latter will usually have a fixed and accurately known Earth position
+ (Long, Lat).
+ Using a 2-frequency technique, a virtually instantaneous estimate of the
+ TEC may be made with an ultimate accuracy of about 0.01 TEC Unit (TECU).
+ Unfortunately, this is complicated by an unknown bias, which slowly drifts
+ in time.
+ Fortunately, the drift is caused by the station only, and is the same for
+ all TEC measurements made between that station and different satellites
+ (see also section ...
+ below).
+\layout Section
+
+Measuring TEC using an astronomical source
+\layout Enumerate
+
+A bright radio source may be observed by an array of radio antennas, which
+ may be distributed over many km.
+ Using a technique called selfcal, the relative phase error of each antenna
+ may be determined with an accuracy corresponding to 0.001 TECU or even better.
+ Unfortunately, this is complicated by (at least one) unknown common phase
+ offset, or bias.
+ 
+\layout Standard
+
+Except for the simplest cases, any scheme to calibrate the ionosphere above
+ a large radio telescope will require the combination of multiple measurements,
+ with multiple unknown biases.
+ This is where the MIM comes in: it is a large-scale smooth function that
+ looks for the internal consistency between these multiple measurements.
+ This automatically takes care of the various offsets.
+ The procedure is to solve for those values of the MIM parameters that make
+ the measurements consistent with the MIM (zero residuals).
+ It is then assumed that the MIM can be interpolated to find the TEC in
+ an arbitrary direction (l,m), as seen from an arbitrary position (x,y).,
+ with a minimum number of parameters.
+ The sources will be widely separated, many of them outside the science
+ FOV.
+ This is both an avantage and a disadvantage.
+ 
+\layout Standard
+
+Simple cases: A bright calibrator in the field, and only a linear phase
+ gradient.
+ Selfcal with relative phase is enough, but will not give absolute TEC,
+ i.e.
+ no Faraday solution.
+ Simultaneous selfcal solution for multiple sources in the field will share
+ the same phase offset, so that may be OK to estimate a 2nd-order ionosphere
+ (MIM) over the entire field.
+ Peeling will produce different offsets, as will rapid repointing.
+ Cotton field-calibration has an implicit MIM (Zernicke polynomials), but
+ not enough degrees of freedom....
+ 
+\layout Standard
+
+Other applications...
+ Building sites.
+\layout Standard
+
+Atmosphere...
+ Refraction caused by....
+ Freq dependence (James).
+ Time dependence ....
+ In aperture plane, unlike MIM.
+ 
+\layout Standard
+
+----------------------------------------------
+\layout Standard
+
+With WSRT LFFFE observations, it is only possible to make a selfcal solution
+ for individual telescope phases when there is a 3C source (10-100 Jy) in
+ the field.
+ In general, the brightest source is only 5 Jy or less (give S/N calculations).
+ In those cases, the data must be corrected with the help of calibrator
+ observations before and after.
+ At 115 MHz, this would have led to a rather poor dynamic range, because
+ even the benign ionosphere of the fall of 2004 causes appreciable phase
+ gradients over the 3 km array.
+ Fortunately, there was usually enough flux in the available sources to
+ solve for this phase-gradient (one parameter).
+\layout Standard
+
+
+\emph on 
+This little anecdote contains the key to the reduction of observations with
+ LOFAR, and other low-frequency radio telescope.
+ The point is that we should try to find the ionospheric model with the
+ smallest number of parameters, which still describes the observed phases
+ with sufficient accuracy.
+ The latter means that the accuracy should be greatest in the direction
+ of the brightest sources, which after all have to be subtracted with the
+ greatest accuracy.
+\layout Standard
+
+In our original plans for LOFAR calibration, we were planning to solve for
+ separate 2D phase screens across the FOV (main lobe and inner side-lobes)
+ of individual stations.
+ Such screens are entirely sufficient to account for all phenomena, and
+ as a model they are superior to the Zernike polynomials (Cotton et al)
+ and clumsy concepts as refraction and apparent position.
+ 
+\layout Standard
+
+However, this approach would have required at least 3 parameters per station
+ for a flat screen, and more to describe any curvature.
+ This would need as many sources in the field, and our early calculations
+ wrongly assumed that they would all have to be bright enough to yield a
+ S/N>3 in 10 sec.
+ Not surprisingly, this led to a rather gloomy picture.
+ Other schemes based on calibrating 'patches' around bright sources lead
+ to similarly unattractive numbers.
+\layout Standard
+
+Fortunately, ionospheric phenomena are rather large-scale in space and time,
+ and usually smooth in all these dimnensions.
+ This means that we can get away with an ionospheric model with rather fewer
+ parameters, and consequently with fewer bright sources to estimate their
+ values.
+ It is important to realise that we are not interested in the structure
+ or the physics of the ionosphere, but just in the observables (phase, Faraday
+ rotation) that affect our observations.
+ Thus, we are interested in the simplest model that describes these observables
+ with sufficient accuracy.
+ This paper investigates what are the 
+\emph on 
+minimum number of parameters
+\emph default 
+ that are needed in various conditions.
+\layout Standard
+
+A minimum ionosphere model must meet the following criteria:
+\layout Enumerate
+
+It should be exact for the case of a 
+\emph on 
+uniform blanket
+\emph default 
+, i.e.
+ an ionosphere of uniform thickness and electron distribution, at a constant
+ altitude above the curved Earth surface.
+\layout Enumerate
+
+For increasingly complex situations, it should be possible to detect that
+ the model is incomplete, e.g.
+ by the increasing internal inconsistencies in the parameter solution.
+\layout Enumerate
+
+Depending on the nature of such inconsistencies, there must be algorithmic
+ recipes to automatically extend (or reduce!) the model with extra parameters.
+ 
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename ionos_blanket.eps
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Schematic-diagram-of}
+
+\end_inset 
+
+Schematic diagram of the ionosphere.
+ The main variation is caused by Travelling Ionospheric Disturbances (TID)
+ at an altitude of 250-300 km.
+ 
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\begin_inset Formula $ $
+\end_inset 
+
+
+\layout Section
+
+A large-scale (>100 km) ionospheric model
+\layout Standard
+
+The larger the scale of the phenomena (in space and time), the simpler the
+ model that we can get away with.
+ Since the ionosphere often only has large-scale structure, we bfirst build
+ a model for this case, and add complexity for dealing with more rapidly
+ varying smal-scale structure in a later section.
+\layout Subsection
+
+A curved blanket of uniform thickness
+\layout Standard
+
+The simplest usable model of the ionosphere is a thin blanket of uniform
+ thickness at an altitude of 
+\begin_inset Formula $h$
+\end_inset 
+
+ km.
+ The excess path 
+\begin_inset Formula $L_{0}$
+\end_inset 
+
+ in the zenith direction (
+\begin_inset Formula $z=0$
+\end_inset 
+
+) can be written (see 
+\begin_inset LatexCommand \cite{TMS}
+
+\end_inset 
+
+) as:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L_{0}=-40.3(\frac{100}{f_{MHz}})^{2}\times TEC\;\; m\label{eq: L0}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+where the Total Electron Content, i.e.
+ the integral of the electron density along the propagation path, is measured
+ in TEC units of 
+\begin_inset Formula $10^{16}\; m^{-2}$
+\end_inset 
+
+.
+ The excess path corresponds to a phase delay, and is 
+\emph on 
+negative
+\emph default 
+ for the ionosphere.
+ For an observing frequency of 
+\begin_inset Formula $f=100$
+\end_inset 
+
+MHz (
+\begin_inset Formula $\lambda=3m$
+\end_inset 
+
+), an a typical night-time value of 
+\begin_inset Formula $TEC=5$
+\end_inset 
+
+, the excess path length is about -200 m, or about -400 radians.
+ 
+\layout Standard
+
+For an arbitrary zenith angle, the excess path will be longer:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L(z)=L_{0}*S(z)\label{eq: L(z)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+where the factor 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+S(z)=1/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: S(z)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+describes the increase in the excess pathlength through a thin layer at
+ an altitude of 
+\begin_inset Formula $h$
+\end_inset 
+
+ km as a function of the zenith angle.
+ 
+\begin_inset Formula $R$
+\end_inset 
+
+ is the Earth radius, and 
+\begin_inset Formula $S(horizon)\approx3$
+\end_inset 
+
+ for 
+\begin_inset Formula $h=300$
+\end_inset 
+
+km.
+\layout Subsection
+
+Large-scale structure (>100 km)
+\layout Standard
+
+In practice, the ionosphere will always have some large-scale structure,
+ if only the 'egg' shape following the direction of the Sun.
+ This can be taken into account by adding some terms to 
+\begin_inset Formula $L_{0}$
+\end_inset 
+
+ that depend on ground position 
+\begin_inset Formula $x$
+\end_inset 
+
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+For simplicity, the problem will be discussed in one dimension.
+ It can easily be extended to the required 2 dimensions.
+\end_inset 
+
+.
+ So, in the zenith direction (
+\begin_inset Formula $z=0$
+\end_inset 
+
+), we get:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L_{0}(x)=L_{0}(1+p_{1}x+p_{2}x^{2}+p_{3}x^{3}+\ldots)\label{eq: L0(x)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Here we use a low-order polynomial for simplicity, but another smooth function
+ may do as well.
+ Its parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ vary as a function of time, and are to be determined (see section 
+\begin_inset LatexCommand \ref{sec:Solving-for-the}
+
+\end_inset 
+
+).
+ 
+\layout Standard
+
+Using equation 
+\begin_inset LatexCommand \ref{eq: L(z)}
+
+\end_inset 
+
+, and referreing to fig 
+\begin_inset LatexCommand \ref{cap:Schematic-diagram-of}
+
+\end_inset 
+
+, we get an expression for the excess path in the direction of zenith angle
+ 
+\begin_inset Formula $z$
+\end_inset 
+
+, as observed from a (station) position 
+\begin_inset Formula $x$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L(x,z)=L_{0}(x-h\tan z)\times S(z)\label{eq: L(x,z)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The 'altitude parameter' 
+\begin_inset Formula $h$
+\end_inset 
+
+ is of the order of 300 km.
+ Its precise value is not critical in most cases, i.e.
+ when 
+\begin_inset Formula $L_{0}$
+\end_inset 
+
+ has only a few terms.
+ Its main function is as a 'coupling constant' that introduces z-dependency.
+ A 'wrong' value of 
+\begin_inset Formula $h$
+\end_inset 
+
+ will be absorbed in different values of the parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+\layout Standard
+
+Note that equation 
+\begin_inset LatexCommand \ref{eq: L(x,z)}
+
+\end_inset 
+
+ also predicts the variation of the ionospheric phase over the field-of-view,
+ which will be different for different stations.
+ This approximation will be good enough (< 0.5 rad?) for most of the sources
+ in the field, but not for the brightest sources, which have to be subtracted
+ with the greatest accuracy.
+ Fortunately, these sources are bright enough to have their own 'private'
+ phase measurements, which do have the required accuracy.
+ 
+\layout Section
+
+Solving for the model parameters
+\begin_inset LatexCommand \label{sec:Solving-for-the}
+
+\end_inset 
+
+
+\layout Standard
+
+We use self-calibration on bright sources in the field to obtain 'puncture-point
+s' through the ionosphere at different positions.
+ These measurements are then used to estimate the parameters of our ionospheric
+ model.
+ 
+\layout Subsection
+
+The relation between z and source direction (RA, DEC)
+\layout Standard
+
+nn
+\layout Subsection
+
+Main lobe and side-lobes
+\layout Standard
+
+The station beam is complex.
+ For the sources in the main lobe of the station beam, we may assume (to
+ first order) that the phase-
+\series bold 
+differences
+\series default 
+ measured by the various interferometers are unaffected by the beam phase.
+ Since any deviations from this assumption will vary slowly and smoothly
+ over the field, we will assume that, in the main lobe, the beam-shape is
+ real (amplitude only), and any phases are subsumed in the much larger ionospher
+ic phase.
+\layout Standard
+
+However, the story is different for sources in the side-lobes of the station
+ beam.
+ First of all, the beam phase will jump by 
+\begin_inset Formula $\pi$
+\end_inset 
+
+ when passing from one sidelobe to another.
+ At the very least, his will cause problems with the selfcal phase solution.
+ Since the side-lobe patterns between stations will differ considerably,
+ a source may be in entirely different sidelobes for different stations.
+\layout Subsection
+
+Influence of the instrumental phase (GJones)
+\layout Standard
+
+Much less smooth than the ionosphere.
+ Subsumes any inconsistencies in the one-source solution, so a single source
+ 
+\series bold 
+does NOT constrain the ionosphere model
+\series default 
+.
+ 
+\layout Standard
+
+Unknown phase-reference of the selfcal phase solution.
+ PZD.
+\layout Subsection
+
+The brightest source in the field
+\layout Standard
+
+If the number of stations 
+\begin_inset Formula $N_{s}$
+\end_inset 
+
+ is greater than the number 
+\begin_inset Formula $n_{p}$
+\end_inset 
+
+ of parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ in the model a single phase solution on the brightest source will be sufficient
+ to solve for them.
+ 
+\series bold 
+Thus, usually, only ONE bright source is needed to track the ionosphere!
+\series default 
+ This is a startling conclusion indeed.
+\layout Standard
+
+Thus, the brightest source in the field plays an important role.
+ 
+\layout Standard
+
+Depending on the number of stations 
+\begin_inset Formula $N_{s}$
+\end_inset 
+
+, there are three possibilities:
+\layout Enumerate
+
+If 
+\begin_inset Formula $N_{s}=n_{p}$
+\end_inset 
+
+, the solution will be exact.
+ This means that the curved phase-screens across the various stations are
+ fully determined, and intersect the fat blobs associated with the brightest
+ (100 Jy) source in the figure.
+\layout Enumerate
+
+If 
+\begin_inset Formula $N_{s}>n_{p}$
+\end_inset 
+
+, the discrepancies between the selfcal solution and the model contain informati
+on about the incompleteness of the ionosphere model.
+ For instance, the differences may be used to solve for the optimal value
+ of the altitude parameter 
+\begin_inset Formula $h$
+\end_inset 
+
+.
+ If that is not sufficient, more terms may be added to equation 
+\begin_inset LatexCommand \ref{eq: L0(x)}
+
+\end_inset 
+
+.
+ Etc.
+ (
+\emph on 
+However, this is affected by the electronic GJones phase....
+\emph default 
+) 
+\layout Enumerate
+
+If 
+\begin_inset Formula $N_{s}<n_{p}$
+\end_inset 
+
+, more than one bright source will be needed to solve for the model parameters.
+ This will not often happen.
+\layout Subsection
+
+The other bright sources in the field
+\layout Standard
+
+S/N>3 in 10 sec(?).
+\layout Standard
+
+If the model is correct, their (separate) selfcal phase solution should
+ produce phase that are consistent with it.
+ In fact, the model may be used to choose the unknown phase bias of such
+ a solution (by adding suitable constraint equations to the solution).
+\layout Standard
+
+Any remaining discrepancies are an indication that the ionospheric model
+ is not (yet) correct.
+ This information can be used in various ways...
+ 
+\layout Subsection
+
+Combining the results from several beams
+\layout Standard
+
+An overall ionospheric model may play a useful role here...
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename ionos_fit.eps
+	scale 75
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Bright-calibrator-sources}
+
+\end_inset 
+
+Bright calibrator sources are used to solve for the 
+\begin_inset Formula $n_{p}$
+\end_inset 
+
+ parameters of the ionospheric phase model.
+ It is important to realise that, in most cases, only one bright source
+ is needed to constrain the ionospheric phase model.
+ On the contrary, the model is used to constrain the selfcal phase solutions
+ for the Tfainter sources.
+ The remaining discrepancies with the latter are merely used to determine
+ the completeness of the model.
+ Nevertheless, even an incomplete model may be entirely sufficient for the
+ subtraction of Cat II sources, as long as the brighter Cat I sources are
+ subtracted with their 'own' phases.
+\end_inset 
+
+
+\layout Section
+
+Small-scale structure (<100 km)
+\layout Standard
+
+In principle, one might add more terms to 
+\begin_inset Formula $L_{0}(x)$
+\end_inset 
+
+ in equation 
+\begin_inset LatexCommand \ref{eq: L0(x)}
+
+\end_inset 
+
+.
+ However it will probably be necessary to add cross-terms:
+\layout Subsection
+
+Ultra-small scale structure (<10 km)
+\layout Standard
+
+Stop observing...?
+\layout Standard
+
+
+\begin_inset Float table
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset  Tabular
+<lyxtabular version="3" rows="5" columns="10">
+<features>
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0in">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0in">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" width="0">
+<column alignment="center" valignment="top" leftline="true" rightline="true" width="0in">
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Formula $N_{s}$
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+size
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+order
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Formula $z_{max}$
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+blanket
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+h(km)
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+
+\begin_inset Formula $n_{p}$
+\end_inset 
+
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+remarks
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+WSRT
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+14
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+3 km
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+2nd
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+45
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+flat
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+300
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+4
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
++WHAT
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+15
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+3 km
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+2nd
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+45
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+flat
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+300
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+4
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+</row>
+<row topline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+LOFAR
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+50
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+100 km
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+3rd
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+45
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+curved
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+300
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+5
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+</row>
+<row topline="true" bottomline="true">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+LOFAR
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+100
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+400 km
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+3rd
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+45
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+curved
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+300
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+5
+\end_inset 
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\layout Standard
+
+\end_inset 
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset 
+
+
+\layout Caption
+
+N
+\emph on 
+umber 
+\begin_inset Formula $(n_{p})$
+\end_inset 
+
+ of parameters in the ionospheric phase model.
+\end_inset 
+
+
+\layout Section
+
+Use of the 'frozen' pattern
+\begin_inset LatexCommand \label{sec:Use-of-the}
+
+\end_inset 
+
+
+\layout Standard
+
+The ionospheric phase often manifests itself as a 'frozen' pattern, which
+ changes only slowly while travelling with a velocity of 500-1000 km/h (165-330
+ m/s).
+ Obviously, we should try to take advantage of this phenomenon, just like
+ we should try to use all 
+\emph on 
+a priori
+\emph default 
+ knowledge about the system.
+\layout Standard
+
+NB: There appear some doubts about the existence of a usefully frozen pattern.
+ Thus it is fortunate that it does not play a large roles in our calibration
+ scheme.
+\layout Standard
+
+Solving for the travel velocity 
+\begin_inset Formula $(v_{x},v_{y})$
+\end_inset 
+
+.
+ This is a byproduct of the time-behaviour of the station phase.
+\layout Section
+
+Faraday rotation
+\begin_inset LatexCommand \label{sec:Faraday-rotation}
+
+\end_inset 
+
+
+\layout Standard
+
+The Faraday rotation is related to the overall ionospheric phase via the
+ Total Electron Content (TEC).
+ However, it also depends on the angle between the line-of-sight and the
+ local Earth magnetic field.
+ We have the choice of treating the Faraday rotation separately (but similarly)
+ to the phase, or to connect them somehow....
+\layout Standard
+
+Total electron content:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+TEC=\int N_{e}dl\; m^{-2}\label{eq: TEC}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Faraday rotation angle:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\theta=RM\times\lambda^{2}\; rad\label{eq: farot}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which the Rotation Measure (RM):
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+RM=\int N_{e}\vec{B}.\vec{dl}\; rad/m^{2}\label{eq: RM}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The Earth ionosphere can cause a RM of up to 
+\begin_inset Formula $3-4\; rad/m^{2}$
+\end_inset 
+
+.
+\layout Section
+
+Frequency dependence
+\layout Standard
+
+We assume that the ionospheric phase is 
+\begin_inset Formula $\propto\lambda^{2}$
+\end_inset 
+
+.
+ This 
+\emph on 
+a priori
+\emph default 
+ knowledge can be used first of all to improve the S/N of the solution for
+ the parameters of the ionospheric delay function 
+\begin_inset Formula $L_{0}(x)$
+\end_inset 
+
+.
+ It can also be used to distinguish between the (large) ionospheric phase
+ and any (small) phase-factor in the shape of the station primary beams
+ (to first order we assumed that the beamshape is real, i.e.
+ a pure amplitude effect).
+ Any beamshape phase will probably be 
+\begin_inset Formula $\propto\lambda$
+\end_inset 
+
+.
+ Finally, we should consider the electronic phase (GJones), which will be
+ different for different stations, but the same for all sources in the field.
+ 
+\layout Section
+
+The full Measurement Equation
+\layout Standard
+
+Assume that all phases are the ionosphere, and all amplitudes the beam...?
+ Problem, since station electronbic phases may be arbitrary, this would
+ affect the all-sky smoothness of the ionospheric phase.
+ So, should we absorb these individual variations in a GJones matrix, i.e.
+ an uv-plane efffect that is valid for all sources?
+\layout Standard
+
+How do we relate the ionospheric phase (relative/absolute?) with the Faraday
+ rotation?
+\layout Standard
+
+
+\series bold 
+The important thing is, as always, to have a minimum-parameter model that
+ is used to subtract the Cat II sources, while we subtract the Cat I sources
+ with their own parameters, for maximum accuracy.
+ From the differences between these two sets we can estimate the error in
+ the residual image....
+\layout Section
+
+The WNB point: sidelobe gain effects...?
+\layout Standard
+
+The claim is that, for some reason, the phase and gain solutions may not
+ be separated.
+ If that might turn out to be the case, it is not clear whether this would
+ be a secondary effect (comparable to the difference made by the socalled
+ 'complex solution' in NEWSTAR.
+\layout Section
+
+The JPH point: matrix vs scalar selfcal
+\layout Standard
+
+Everything that is being discussed here is entirely consistent with the
+ full-polarisation Measurement Equation.
+ In particular, the instrumental and ionospheric effects are described with
+ direction-dependent Jones matrices.
+ 
+\layout Section
+
+The role of external ionosphere data
+\begin_inset LatexCommand \label{sec:The-role-of}
+
+\end_inset 
+
+
+\layout Standard
+
+PIM and other physical models.
+\layout Standard
+
+Reflection measurements (ionosonde, chirp sounder).
+\layout Standard
+
+Transmission measurements (two-frequency GPS).
+\layout Standard
+
+All these provide an accuracy of about a radian at best, in the absence
+ of TID's and other short-term phenomena.
+ They will be useful to get a better starting position for the LOFAR phase-locki
+ng procedure.
+\layout Standard
+
+The latter is a continuous selfcal phase solution on one or more bright
+ sources.
+ It starts with 3 stations in the core.
+ The other stations are included one by one, moving outwards from the centre.
+ The phase of this new station is varied by steps of 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+, until the solution is consistent (phase-lock).
+ Its phase will then be continuously tracked while the remaining stations
+ are included, and during the subsequent observations.
+\layout Section
+
+MeqTree implementation
+\begin_inset LatexCommand \label{sec:MeqTree-implementation}
+
+\end_inset 
+
+ 
+\layout Standard
+
+MeqTrees are remarkably suitable for the implementation of the kind of ionospher
+ic models described here, and for solving for their parameters.
+\layout Section
+
+Conclusions
+\begin_inset LatexCommand \label{sec:Conclusions}
+
+\end_inset 
+
+
+\layout Bibliography
+\bibitem {TMS}
+
+Thompson, Moran and Swenson, 
+\emph on 
+Interferometry and Synthesis in Radio Astronomy
+\emph default 
+ (1994)
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+ 
+\layout Standard
+
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\the_end

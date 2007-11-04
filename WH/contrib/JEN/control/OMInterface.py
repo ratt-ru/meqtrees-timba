@@ -59,7 +59,7 @@ class OMInterface (object):
                  **kwargs):
 
         # For reporting only:
-        self._frameclass = 'Grunt.'+name
+        self._frameclass = 'Grow.'+name
 
         # Make self.name and self._submenu:
         self.make_name_and_submenu (name, submenu, quals,

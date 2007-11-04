@@ -1,4 +1,4 @@
-# file: ../Grunt/OptionManager.py
+# file: ../control/OptionManager.py
 
 # History:
 # - 24jul2007: creation
@@ -6,7 +6,7 @@
 
 # Description:
 
-"""The Grunt OptionManager class manages the options of a module,
+"""The OptionManager class manages the options of a module,
 i.e. the values of the parameters that rule its compile-time and
 run-time behaviour. It makes use of Meow options (see ....), and
 provides some extra functionality to make things easy for the user.
@@ -106,14 +106,14 @@ from copy import deepcopy
 #======================================================================================
 
 class OptionManager (object):
-    """The Grunt OptionManager class manages the options of a module"""
+    """The OptionManager class manages the options of a module"""
 
     def __init__(self, name='<parentname>', namespace=None,
                  parentclass='parentclass'):
 
         self.name = name
         self.parentclass = parentclass
-        self.frameclass = 'Grunt.OptionManager'
+        self.frameclass = 'Grow.OptionManager'
 
         # This field is expected by OMS:
         self.tdloption_namespace = namespace

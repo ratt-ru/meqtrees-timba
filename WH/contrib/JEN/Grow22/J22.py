@@ -70,7 +70,9 @@ class J22(M22.M22):
         self._stations = stations
         self._polrep = polrep
 
-        M22.M22.__init__(self, quals=quals,
+
+        M22.M22.__init__(self,
+                         quals=quals,
                          name=name,
                          submenu=submenu,
                          has_input=False,
@@ -78,7 +80,8 @@ class J22(M22.M22):
                          **kwargs)
 
         self._PGM = ParmGroupManager.ParmGroupManager(ns=None,
-                                                      name=self._OMI.name,
+                                                      name='PGM',
+                                                      # name=self._OMI.name,
                                                       quals=quals,
                                                       OM=self._OMI._OM,
                                                       namespace=namespace,
