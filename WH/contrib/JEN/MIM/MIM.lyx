@@ -1310,16 +1310,43 @@ S_{i}=M_{i}+b+n_{i}\quad TECU\label{eq: Si_astro}\end{equation}
 
 \layout Standard
 
+Discuss the effects of GJones and EJones on MIM estimation...
+\layout Standard
+
 We now distinguish the following cases:
 \layout Enumerate
 
-One bright Cat I source, in the (main lobe of the) field-of-view (FOV)
+One bright Cat I source, in the (main lobe of the) field-of-view (FOV).
+ One offset.
+ Sufficient for estimating a MIM function if the size of the array is larger
+ than the 'footprint' of the FOV on the ionosphere.
+ 5 degrees = 0.1 rad -> 0.1x300km = 30 km.
+ 
+\series bold 
+So, for the full LOFAR, we get away with only ONE bright source, and a minimum
+ of parameters....
 \layout Enumerate
 
-Multiple sources in the FOV: simultanous or peeling
+Multiple sources in the FOV: simultanous or peeling (contamination).
+ Multiple independent offsets.
+ Requires MIM to harmonize them.
+ Works for arrays smaller than the fovprint if ...
+ 
 \layout Enumerate
 
-Adding GPS data
+Multiple sources inside and outside the FOV: need rapid repointing for sensitivi
+ty (and because the beam introduces phase-jumps in side-lobes).
+ Multiple independent offsets.
+ Requires MIM to harmonize them.
+\layout Enumerate
+
+Using GPS data as well.
+ Requires MIM to harmonize offsets.
+ Pivot? 
+\begin_inset Formula $\sqrt{n}$
+\end_inset 
+
+?
 \layout Standard
 
 It should be noted that this is a relative improvement only.
@@ -1329,14 +1356,9 @@ It should be noted that this is a relative improvement only.
  However, the relative accuracy between LOFAR station phases will be 100
  better than a degree, i.e.
  100-1000 times better than the GPS accuracies.
-\layout Standard
+\layout Subsection
 
-If the field contains more than one bright (Cat I) source, we must solve
- independently for phases in their directions.
- If this is done simultaneously, there will only be a single phase offset.
- But if it is done successively (peeling), each set of phases will have
- its own offset, which will be harmonized by the MIM (...discuss contamination...).
- The same is true for phases obtained from rapid repointing observations.
+Acquiring and maintaining phase-lock
 \layout Standard
 
 It should be noted that a selfcal solution only works if there are no 
@@ -1361,23 +1383,9 @@ It should be noted that a selfcal solution only works if there are no
 , until the solution is consistent (phase-lock).
  Its phase will then be continuously tracked while the remaining stations
  are included, and during the subsequent observations.
-\layout Standard
+\layout Subsection
 
-Except for the simplest cases, any scheme to calibrate the ionosphere above
- a large radio telescope will require the combination of multiple measurements,
- with multiple unknown biases.
- This is where the MIM comes in: it is a large-scale smooth function that
- looks for the internal consistency between these multiple measurements.
- This automatically takes care of the various offsets.
- The procedure is to solve for those values of the MIM parameters that make
- the measurements consistent with the MIM (zero residuals).
- It is then assumed that the MIM can be interpolated to find the TEC in
- an arbitrary direction (l,m), as seen from an arbitrary position (x,y).,
- with a minimum number of parameters.
- The sources will be widely separated, many of them outside the science
- FOV.
- This is both an avantage and a disadvantage.
- 
+....misc....
 \layout Standard
 
 Simple cases: A bright calibrator in the field, and only a linear phase
@@ -1404,85 +1412,6 @@ Atmosphere...
  Time dependence ....
  In aperture plane, unlike MIM.
  
-\layout Subsection
-
-The brightest source in the field (legacy)
-\layout Standard
-
-If the number of stations 
-\begin_inset Formula $N_{s}$
-\end_inset 
-
- is greater than the number 
-\begin_inset Formula $n_{p}$
-\end_inset 
-
- of parameters 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
- in the model a single phase solution on the brightest source will be sufficient
- to solve for them.
- 
-\series bold 
-Thus, usually, only ONE bright source is needed to track the ionosphere!
-\series default 
- This is a startling conclusion indeed.
-\layout Standard
-
-Thus, the brightest source in the field plays an important role.
- 
-\layout Standard
-
-Depending on the number of stations 
-\begin_inset Formula $N_{s}$
-\end_inset 
-
-, there are three possibilities:
-\layout Enumerate
-
-If 
-\begin_inset Formula $N_{s}=n_{p}$
-\end_inset 
-
-, the solution will be exact.
- This means that the curved phase-screens across the various stations are
- fully determined, and intersect the fat blobs associated with the brightest
- (100 Jy) source in the figure.
-\layout Enumerate
-
-If 
-\begin_inset Formula $N_{s}>n_{p}$
-\end_inset 
-
-, the discrepancies between the selfcal solution and the model contain informati
-on about the incompleteness of the ionosphere model.
- For instance, the differences may be used to solve for the optimal value
- of the altitude parameter 
-\begin_inset Formula $h$
-\end_inset 
-
-.
- If that is not sufficient, more terms may be added to equation 
-\begin_inset LatexCommand \ref{eq: L0(x)}
-
-\end_inset 
-
-.
- Etc.
- (
-\emph on 
-However, this is affected by the electronic GJones phase....
-\emph default 
-) 
-\layout Enumerate
-
-If 
-\begin_inset Formula $N_{s}<n_{p}$
-\end_inset 
-
-, more than one bright source will be needed to solve for the model parameters.
- This will not often happen.
 \layout Section
 
 Does the MIM exist?
@@ -1957,51 +1886,6 @@ For increasingly complex situations, it should be possible to detect that
 Depending on the nature of such inconsistencies, there must be algorithmic
  recipes to automatically extend (or reduce!) the model with extra parameters.
  
-\layout Section
-
-Main lobe and side-lobes
-\layout Standard
-
-The station beam is complex.
- For the sources in the main lobe of the station beam, we may assume (to
- first order) that the phase-
-\series bold 
-differences
-\series default 
- measured by the various interferometers are unaffected by the beam phase.
- Since any deviations from this assumption will vary slowly and smoothly
- over the field, we will assume that, in the main lobe, the beam-shape is
- real (amplitude only), and any phases are subsumed in the much larger ionospher
-ic phase.
-\layout Standard
-
-However, the story is different for sources in the side-lobes of the station
- beam.
- First of all, the beam phase will jump by 
-\begin_inset Formula $\pi$
-\end_inset 
-
- when passing from one sidelobe to another.
- At the very least, his will cause problems with the selfcal phase solution.
- Since the side-lobe patterns between stations will differ considerably,
- a source may be in entirely different sidelobes for different stations.
-\layout Section
-
-Influence of the instrumental phase (GJones)
-\layout Standard
-
-Much less smooth than the ionosphere.
- Subsumes any inconsistencies in the one-source solution, so a single source
- 
-\series bold 
-does NOT constrain the ionosphere model
-\series default 
-.
- 
-\layout Standard
-
-Unknown phase-reference of the selfcal phase solution.
- PZD.
 \layout Section
 
 Conclusions
