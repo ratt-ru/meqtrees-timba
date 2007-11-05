@@ -720,7 +720,7 @@ The basic idea behind the MIM is that we
 postulate the existence
 \emph default 
  of a smooth function 
-\begin_inset Formula $T(x,y,z,l,m,t)$
+\begin_inset Formula $M(x,y,z,l,m,t)$
 \end_inset 
 
  that gives us the integrated TEC along the line-of-sight from an arbitrary
@@ -758,10 +758,14 @@ For the moment, we will assume that such a function exists at all.
 \layout Standard
 
 The MIM function 
-\begin_inset Formula $T$
+\begin_inset Formula $M$
 \end_inset 
 
- is pheanomenological, i.e.
+ is 
+\emph on 
+pheanomenological
+\emph default 
+, i.e.
  it is not concerned with the internal structure of the ionosphere, but
  only with its effect on the observations, i.e.
  the integrated TEC.
@@ -783,7 +787,7 @@ The MIM function
 
 
 \begin_inset Formula \begin{equation}
-T(x,y,z,l,m,t)=T(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: T(p)}\end{equation}
+M(x,y,z,l,m,t)=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation}
 
 \end_inset 
 
@@ -811,7 +815,7 @@ The general procedure will be to use the various TEC measurements to solve
 \end_inset 
 
  of the MIM function 
-\begin_inset Formula $T$
+\begin_inset Formula $M$
 \end_inset 
 
 .
@@ -876,15 +880,44 @@ MIM diagram
 \end_inset 
 
  of a Minimum Ionospheric Model.
- The MIM function 
-\begin_inset Formula $T(p_{0},p_{1},\ldots,p_{n})$
+ Note that it represents a 5D function 
+\begin_inset Formula $M(x,y,z,l,m)$
 \end_inset 
 
- is sampled at the crossing points of red lines (GPS satellites and ground
- stations) and of blue lines (radio sources and radio telescopes/stations).
- Ideally, the function is sampled so densely that it can be interpolated
- with confidence.
- But while it is always possible to increase the horizontal sampling density
+ in a 2D diagram by collapsing the positions 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ into one axis, and the view directions 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ into the other one.
+ This is supposed to be done in such a way that proximity in either space
+ still translates into proximity along its axis.
+ Thus, stations that are close together, like in the LOFAR core, are close
+ together on the horizontal axis.
+ And sources that are close together, like in the LOFAR field-of-view, are
+ close together on the vertical axis.
+ 
+\layout Standard
+
+
+\emph on 
+The MIM function 
+\begin_inset Formula $M(x,y,z,l,m,t)$
+\end_inset 
+
+ is sampled at the crossing points of the red lines (GPS satellites and
+ ground stations), and of the blue lines (radio sources and radio telescopes/sta
+tions).
+ Ideally, the sampled function is so dense that 
+\begin_inset Formula $M$
+\end_inset 
+
+ can be interpolated with confidence.
+ Unfortunately, there are some largish gaps.
+ And while it is always possible to increase the horizontal sampling density
  by adding more stations, the vertical sampling density is limited by the
  availability of satellites and/or bright radio sources.
  
@@ -920,21 +953,7 @@ Then use selfcal on the bright Cat I source(s) in the field to obtain phases
 \end_inset 
 
 .
- It should be noted that this is a relative improvement only.
- It harmonizes the unknown phase offset by making it consistent with the
- GPS MIM, but it does NOT increase the absolute accuracy, which remains
- at the level of 0.01 TECU, or 1 rad @ 75 MHz.
- However, the relative accuracy between LOFAR station phases will be 100
- better than a degree, i.e.
- 100-1000 times better than the GPS accuracies.
-\layout Standard
-
-If the field contains more than one bright (Cat I) source, we must solve
- independently for phases in their directions.
- If this is done simultaneously, there will only be a single phase offset.
- But if it is done successively (peeling), each set of phases will have
- its own offset, which will be harmonized by the MIM (...discuss contamination...).
- The same is true for phases obtained from rapid repointing observations.
+ 
 \layout Standard
 
 If no GPS data are used....
@@ -991,11 +1010,11 @@ We solve for MIM parameters
 \end_inset 
 
 , between the measured TEC values 
-\begin_inset Formula $M_{i}$
+\begin_inset Formula $S_{i}$
 \end_inset 
 
 , and the values 
-\begin_inset Formula $T_{i}$
+\begin_inset Formula $M_{i}$
 \end_inset 
 
  calculated by the MIM function.
@@ -1004,7 +1023,7 @@ We solve for MIM parameters
 
 
 \begin_inset Formula \begin{equation}
-\Delta_{i}=T_{i}-M_{i}=\sum_{k}\frac{\partial T_{i}}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial M_{i}}{\partial q_{m}}\Delta q_{m}\label{eq:normal}\end{equation}
+\Delta_{i}=M_{i}-S_{i}=\sum_{k}\frac{\partial M_{i}}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{i}}{\partial q_{m}}\Delta q_{m}\label{eq:normal}\end{equation}
 
 \end_inset 
 
@@ -1048,7 +1067,7 @@ It is often possible to include other information in the form of extra equations
 Inversion of the resulting system of linear equations is equivalent to a
  Least Squares Fit (LSF).
  If 
-\begin_inset Formula $T$
+\begin_inset Formula $M$
 \end_inset 
 
  is non-linear, which will usually be the case, the solution is iterative.
@@ -1097,12 +1116,6 @@ NB: All the functionality discussed in this section is available in the
  the number of terms in the MIM function is no longer optimal, e.g.
  because the ionospheric conditions have changed.
  
-\layout Subsection
-
-Integrating longer
-\layout Standard
-
-.integration times (fainter sources), etc
 \layout Section
 
 Measuring TEC using GPS (and other) satellites
@@ -1113,25 +1126,24 @@ Measuring TEC using GPS (and other) satellites
 
 \layout Standard
 
-The signal from a satellite 
-\begin_inset Formula $n$
-\end_inset 
-
- of one of the global positioning networks (GPS, Galileo, Glonass, etc)
- may be picked up by station 
-\begin_inset Formula $m$
-\end_inset 
-
-.
+The signal from a satellite of one of the global positioning networks (GPS,
+ Galileo, Glonass, etc) is picked up by any number of ground station.
  The latter will usually have a fixed and accurately known Earth position
- (long, lat).
- Using a 2-frequency technique, a virtually instantaneous estimate of the
- TEC may be made with a fundamental measurement noise of about 0.01 TECU
- (or 1 rad @ 74 MHz).
- Unfortunately, this is complicated by an unknown bias, which slowly drifts
- in time.
- Fortunately, this drift is caused by the station only, and is the same
- for all TEC measurements made between that station and different satellites.
+ (x,y,z).
+ Using a 2-frequency technique, a virtually instantaneous estimate 
+\begin_inset Formula $S_{i}$
+\end_inset 
+
+ of the TEC may be made with a fundamental measurement noise 
+\begin_inset Formula $n_{i}$
+\end_inset 
+
+ of about 0.01 TECU (or 1 rad @ 74 MHz).
+ Unfortunately, this is complicated by an unknown bias 
+\begin_inset Formula $b_{i}$
+\end_inset 
+
+, which slowly drifts in time(!).
  Using the same notation as in equ 
 \begin_inset LatexCommand \ref{eq:normal}
 
@@ -1142,14 +1154,58 @@ The signal from a satellite
 
 
 \begin_inset Formula \begin{equation}
-M_{i}=T_{i}+b_{nm}+b_{m}t+n_{i}\label{eq: Mi_GPS}\end{equation}
+S_{i}=M_{i}+(b_{0i}+b_{1i}t+b_{2i}t^{2}+\cdots)+n_{i}\quad TECU\label{eq: Si_GPS}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-in which 
+The facts that the bias term is different for each station-satellite pair,
+ and also varies in time, are potentially deadly complications.
+ We are saved by the fact that the drift is caused 
+\emph on 
+only
+\emph default 
+ by the station, and is the same for all TEC measurements made between that
+ station and different satellites.
+ The 
+\begin_inset Formula $b$
+\end_inset 
+
+ are parameters, and should be solved for simultaneously with the MIM parameters.
+ In fact, they are examples of measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+in equ 
+\begin_inset LatexCommand \ref{eq:normal}
+
+\end_inset 
+
+.
+ The necessary derivatives like 
+\begin_inset Formula $\frac{\partial S}{\partial b}$
+\end_inset 
+
+ are readily calculated.
+ 
+\layout Standard
+
+The constant part 
+\begin_inset Formula $b_{0i}$
+\end_inset 
+
+ of the bias is only constant during the passage of a satellite, i.e.
+ a few hours.
+ However, that is much longer than the few minutes that we use for a solution.
+ 
+\series bold 
+Finding ways of imposing such long-term constraints on a 'running solution'
+ is one of the big challenges that we face in LOFAR.
+ We absolutely need it for integrating longer in order to derive instrumental
+ parameters from the fainter Cat I sources also.
+ Developing it for the GPS bias is an excellent spear-point! 
 \layout Subsection
 
 Preprocessing the Rhinex data (Jim)
@@ -1190,15 +1246,110 @@ Measuring TEC using an astronomical source
 
 \layout Standard
 
-A bright radio source may be observed by an array of radio antennas, which
- may be distributed over many km.
- Using a technique called selfcal, the relative phase error of each antenna
- may be determined with an accuracy corresponding to 0.001 TECU or even better.
+A bright radio source may be observed by an array of radio antennas (telescopes,
+ stations), which may be distributed over many km.
+ Using a technique called 
+\emph on 
+selfcal,
+\emph default 
+ the phase error of each antenna may be determined with a 
+\emph on 
+relative(!)
+\emph default 
+ accuracy 
+\begin_inset Formula $n_{i}$
+\end_inset 
+
+ of better than a degree, depending on the source brightness.
+ This accuracy is much greater than the GPS accuracy.
  Unfortunately, this is complicated by (at least one) unknown common phase
- offset, or bias.
+ offset, or bias 
+\begin_inset Formula $b$
+\end_inset 
+
+.
+ Fortunately, the same bias value 
+\begin_inset Formula $b$
+\end_inset 
+
+ is shared by all 
+\begin_inset Formula $N$
+\end_inset 
+
+ phases of the 
+\begin_inset Formula $N$
+\end_inset 
+
+ stations in the array.
 \layout Standard
 
-The LOFAR phase-locking procedure (...legacy...).
+Each station phase can now be converted to a TEC value 
+\begin_inset Formula $S_{i}$
+\end_inset 
+
+, and used in an equation to constrain the MIM.
+ Again following the notation of equ 
+\begin_inset LatexCommand \ref{eq:normal}
+
+\end_inset 
+
+, and with reference to equ 
+\begin_inset LatexCommand \ref{eq: Si_GPS}
+
+\end_inset 
+
+, we can write:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+S_{i}=M_{i}+b+n_{i}\quad TECU\label{eq: Si_astro}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+We now distinguish the following cases:
+\layout Enumerate
+
+One bright Cat I source, in the (main lobe of the) field-of-view (FOV)
+\layout Enumerate
+
+Multiple sources in the FOV: simultanous or peeling
+\layout Enumerate
+
+Adding GPS data
+\layout Standard
+
+It should be noted that this is a relative improvement only.
+ It harmonizes the unknown phase offset by making it consistent with the
+ GPS MIM, but it does NOT increase the absolute accuracy, which remains
+ at the level of 0.01 TECU, or 1 rad @ 75 MHz.
+ However, the relative accuracy between LOFAR station phases will be 100
+ better than a degree, i.e.
+ 100-1000 times better than the GPS accuracies.
+\layout Standard
+
+If the field contains more than one bright (Cat I) source, we must solve
+ independently for phases in their directions.
+ If this is done simultaneously, there will only be a single phase offset.
+ But if it is done successively (peeling), each set of phases will have
+ its own offset, which will be harmonized by the MIM (...discuss contamination...).
+ The same is true for phases obtained from rapid repointing observations.
+\layout Standard
+
+It should be noted that a selfcal solution only works if there are no 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ ambiguities, i.e.
+ if the station phase errors are within about a radian to begin with.
+ Since the ionospheric variations can be much larger than that, it must
+ be tracked all the time.
+ Also important for longer integrations on fainter sources, for LOFAR beamshape
+ determination.
+ The LOFAR phase-locking procedure (...legacy...).
  The latter is a continuous selfcal phase solution on one or more bright
  sources.
  It starts with 3 stations in the core.
@@ -1359,7 +1510,11 @@ Choice of MIM base-functions
 
 \layout Standard
 
-The MIM function is required to be 'smooth enough' in 
+The MIM function 
+\begin_inset Formula $M$
+\end_inset 
+
+ is required to be 'smooth enough' in 
 \begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
@@ -1490,19 +1645,19 @@ Referring to fig
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial T}{\partial l}=\frac{\partial T}{\partial x}\times S_{lx}\label{eq: deriv_lx}\end{equation}
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times Z_{lx}\label{eq: deriv_lx}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial T}{\partial m}=\frac{\partial T}{\partial y}\times S_{my}\label{eq: deriv_my}\end{equation}
+\frac{\partial M}{\partial m}=\frac{\partial M}{\partial y}\times Z_{my}\label{eq: deriv_my}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial^{2}T}{\partial l\partial m}=\frac{\partial^{2}T}{\partial x\partial y}\times S_{lmxy}\label{eq: deriv_lmxy}\end{equation}
+\frac{\partial^{2}M}{\partial l\partial m}=\frac{\partial^{2}M}{\partial x\partial y}\times Z_{lmxy}\label{eq: deriv_lmxy}\end{equation}
 
 \end_inset 
 
@@ -1510,7 +1665,7 @@ Referring to fig
 \layout Standard
 
 If the base-functions selected for the MIM function 
-\begin_inset Formula $T(p_{k})$
+\begin_inset Formula $M(p_{k})$
 \end_inset 
 
  can be differentiated, which they usually can, the above equations can
@@ -1526,7 +1681,7 @@ If the base-functions selected for the MIM function
 
 
 \begin_inset Formula \begin{equation}
-S(z)=1/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: S(z)}\end{equation}
+A(z)=1/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: S(z)}\end{equation}
 
 \end_inset 
 
@@ -1544,7 +1699,7 @@ describes the increase in the excess pathlength through a thin layer at
 \end_inset 
 
  is the Earth radius, and 
-\begin_inset Formula $S(horizon)\approx3$
+\begin_inset Formula $A(horizon)\approx3$
 \end_inset 
 
  for 
@@ -1578,8 +1733,12 @@ collapsed false
 
 
 \emph on 
-The MIM function is estimated from TEC measurements using GPS satellites
- and/or astronomical radio sources.
+The MIM function 
+\begin_inset Formula $M$
+\end_inset 
+
+ is estimated from TEC measurements using GPS satellites and/or astronomical
+ radio sources.
  In order to bridge the gaps in the sampling function, assumptions about
  the ionosphere may be used to generate extra contraint equations.
  One of these is illustrated here.
@@ -1590,7 +1749,7 @@ The MIM function is estimated from TEC measurements using GPS satellites
 
 
 \begin_inset Formula \[
-\frac{\partial T}{\partial l}=\frac{\partial T}{\partial x}\times S\]
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times Z\]
 
 \end_inset 
 
@@ -1601,7 +1760,7 @@ The MIM function is estimated from TEC measurements using GPS satellites
 \emph on 
 The assumptions about the ionosphere are in the 'proportionality function'
  
-\begin_inset Formula $S$
+\begin_inset Formula $Z$
 \end_inset 
 
 .
@@ -1611,14 +1770,14 @@ The assumptions about the ionosphere are in the 'proportionality function'
 \end_inset 
 
  above a flat Earth, we have 
-\begin_inset Formula $S=h/cos(z)$
+\begin_inset Formula $Z=h/sin(el)$
 \end_inset 
 
 , where 
-\begin_inset Formula $z$
+\begin_inset Formula $el$
 \end_inset 
 
- is the zenith angle.
+ is the elevation.
  See section 
 \begin_inset LatexCommand \ref{sec:Bridging-the-gaps}
 
