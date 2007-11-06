@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0,'')
+
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
@@ -13,36 +16,37 @@ WGS_a = 6378137
 WGS_e = sqrt(1-WGS_b*WGS_b/(WGS_a*WGS_a))
 # Earth secondary eccentricity
 WGS_ep = WGS_e*WGS_a/WGS_b
+# Hardcoded coordinates for VLA origin
+lamb = -1.8782943
+phi = 0.59478397
+# Hardcoded coordinates for WSRT origin (LOFAR MS)
+#lamb = 0.92353443
+#phi = 0.11524831
 
 #***************Conversion routines*******************************
 def ecef_2_enu (ns, X, Y, Z, src, s, ref):
     """ Calculate ENU coordinates from ECEF"""
+    x_refstation = Context.array.x_station(ref);
+    y_refstation = Context.array.y_station(ref);
+    z_refstation = Context.array.z_station(ref);
     if src < 0: # convert the array
-        ns.dX(s) << X - ns.x_station(ref)
-        ns.dY(s) << Y - ns.y_station(ref)
-        ns.dZ(s) << Z - ns.z_station(ref)
-        # Hardcoded coordinates for VLA origin (to test results)
-        lamb = -1.8782943
-        phi = 0.59478397
+        ns.dX(s) << X - x_refstation
+        ns.dY(s) << Y - y_refstation
+        ns.dZ(s) << Z - z_refstation
         # Rotate
         ns.x_trans(s) << -ns.dX(s)*Meq.Sin(ns.lamb(ref)) + ns.dY(s)*Meq.Cos(ns.lamb(ref))
         ns.y_trans(s) << -ns.dX(s)*Meq.Sin(ns.phi(ref))*Meq.Cos(ns.lamb(ref)) - ns.dY(s)*Meq.Sin(ns.phi(ref))*Meq.Sin(ns.lamb(ref)) + ns.dZ(s)*Meq.Cos(ns.phi(ref));
         ns.z_trans(s) << ns.dX(s)*Meq.Cos(ns.phi(ref))*Meq.Cos(ns.lamb(ref)) + ns.dY(s)*Meq.Cos(ns.phi(ref))*Meq.Sin(ns.lamb(ref)) + ns.dZ(s)*Meq.Sin(ns.phi(ref));
 
-        #ns.x1_trans(s) << -ns.dX(s)*math.sin(lamb) + ns.dY(s)*math.cos(lamb)
-        #ns.y1_trans(s) << -ns.dX(s)*math.sin(phi)*math.cos(lamb) - ns.dY(s)*math.sin(phi)*math.sin(lamb) + ns.dZ(s)*math.cos(phi)
-        #ns.z1_trans(s) << ns.dX(s)*math.cos(phi)*math.cos(lamb) + ns.dY(s)*math.cos(phi)*math.sin(lamb) + ns.dZ(s)*math.sin(phi);
+
     if src >= 0: # convert the pierce points
         ns.dX(src,s) << X - ns.x_station(ref)
         ns.dY(src,s) << Y - ns.y_station(ref)
         ns.dZ(src,s) << Z - ns.z_station(ref)
-        # Hardcoded coordinates for VLA origin
-        lamb = -1.8782943
-        phi = 0.59478397
+        # Rotate
         ns.x_trans(src,s) << -ns.dX(src,s)*math.sin(lamb) + ns.dY(src,s)*math.cos(lamb)
         ns.y_trans(src,s) << -ns.dX(src,s)*math.sin(phi)*math.cos(lamb) - ns.dY(src,s)*math.sin(phi)*math.sin(lamb) + ns.dZ(src,s)*math.cos(phi)
         ns.z_trans(src,s) << ns.dX(src,s)*math.cos(phi)*math.cos(lamb) + ns.dY(src,s)*math.cos(phi)*math.sin(lamb) + ns.dZ(src,s)*math.sin(phi);
-
 
 def ecef_2_llh (ns, X, Y, Z, src, s):
     """ Calculate longitude and latitude for each pierce point"""
@@ -97,14 +101,14 @@ def make_rot_matrix (ns):
     # Then we would only have to de one rotation, rather than 77, but the pierce-points need to be
     # calculated in another reference frame as well.
     stations = Context.array.stations();
+    x_station = Context.array.x_station();
+    y_station = Context.array.y_station();
+    z_station = Context.array.z_station();
     xyz = Context.array.xyz(); # station coordinates in ECEF
     # Define first antenna of the array as reference antenna
     for s in stations:
-        ns.x_station(s) << Meq.Selector(xyz(s),index=0)
-        ns.y_station(s) << Meq.Selector(xyz(s),index=1)
-        ns.z_station(s) << Meq.Selector(xyz(s),index=2)
         # longitude and latitude of the station (geocentric)
-        array_llh = ecef_2_llh(ns, ns.x_station(s), ns.y_station(s), ns.z_station(s), -1, s)
+        array_llh = ecef_2_llh(ns, x_station(s), y_station(s), z_station(s), -1, s)
         # for the stations use a negative source number
         # rotation matrix ENU to ECEF, this is done PER STATION!
         ns.rot_matrix_station(s) << Meq.Composer(
@@ -112,7 +116,7 @@ def make_rot_matrix (ns):
             Meq.Cos(ns.lamb(s)), -Meq.Sin(ns.phi(s))*Meq.Sin(ns.lamb(s)), Meq.Cos(ns.phi(s))*Meq.Sin(ns.lamb(s)),
             0, Meq.Cos(ns.phi(s)), Meq.Sin(ns.phi(s)), dims=[3,3])
         # Get the enu coordinates for the array
-        array_enu = ecef_2_enu(ns,ns.x_station(s),ns.y_station(s),ns.z_station(s), -1, s, 1)
+        array_enu = ecef_2_enu(ns,x_station(s),y_station(s),z_station(s), -1, s, 1)
     ns.rot_matrix << Meq.Composer(*[ns.rot_matrix_station(s) for s in stations])
 
 def get_radius (ns, lat):
@@ -198,6 +202,9 @@ def compress_nodes(ns,source_list):
     """Combine the nodes for the pierce points and array into nodelists for plotting"""
     # For the pp first combine per source
     stations = Context.array.stations();
+    x_station = Context.array.x_station();
+    y_station = Context.array.y_station();
+    z_station = Context.array.z_station();
     for s in stations:
         ns.pp_long_stat(s) << Meq.Composer(dims=[0], *[ns.lamb(src.name,s)*180.0/math.pi for src in source_list])
         ns.pp_lat_stat(s) << Meq.Composer(dims=[0], *[ns.phi(src.name,s)*180.0/math.pi for src in source_list])
@@ -234,9 +241,9 @@ def compress_nodes(ns,source_list):
     ns.long_all << Meq.Composer(dims=[0],*[ns.lamb(s)*180.0/math.pi for s in stations])
     ns.lat_all << Meq.Composer(dims=0,*[ns.phi(s)*180.0/math.pi for s in stations])
 
-    ns.arr_X_ecef << Meq.Composer(dims=[0], *[ns.x_station(s)/1E6 for s in stations])
-    ns.arr_Y_ecef << Meq.Composer(dims=[0], *[ns.y_station(s)/1E6 for s in stations])
-    ns.arr_Z_ecef << Meq.Composer(dims=[0], *[ns.z_station(s)/1E6 for s in stations])
+    ns.arr_X_ecef << Meq.Composer(dims=[0], *[x_station(s) for s in stations])
+    ns.arr_Y_ecef << Meq.Composer(dims=[0], *[y_station(s) for s in stations])
+    ns.arr_Z_ecef << Meq.Composer(dims=[0], *[z_station(s) for s in stations])
 
     ns.arr_east << Meq.Composer(dims=[0], *[ns.x_trans(s) for s in stations])
     ns.arr_north << Meq.Composer(dims=[0], *[ns.y_trans(s) for s in stations])
