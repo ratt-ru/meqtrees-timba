@@ -65,11 +65,10 @@ meqmaker = MeqMaker.MeqMaker(solvable=True);
 # specify available sky models
 # these will show up in the menu automatically
 import central_point_source
-import model_3C343
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
-meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
+meqmaker.add_sky_models([central_point_source,lsm]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
@@ -88,7 +87,7 @@ TDLCompileOptions(*meqmaker.compile_options());
 #%# Now set-up the forest
 def _define_forest (ns):
   # First define the array setup (we are now working with VLA!)
-  ANTENNAS = mssel.get_antenna_set(range(1,28));
+  ANTENNAS = mssel.get_antenna_set(range(1,24));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
