@@ -27,10 +27,12 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
+import inspect
 
 import Meow
 from Meow import StdTrees
 from Meow import ParmGroup
+
 
 
 def _modname (obj):
@@ -46,10 +48,15 @@ def _modopts (mod,opttype='compile'):
   to TDLMenu. If the module implements a compile/runtime_options() method, uses that,
   else simply uses the module itself.""";
   modopts = getattr(mod,opttype+'_options',None);
+  # if module defines an xx_options() callable, use that
   if callable(modopts):
     return list(modopts());
+  # else if this is a true module, it may have options to be stolen, so insert as is
+  elif inspect.ismodule(mod):
+    return [ mod ];
+  # else item is an object emulating a module, so insert nothing
   else:
-    return [mod];
+    return [];
 
 class MeqMaker (object):
   def __init__ (self,namespace='me',solvable=False):
@@ -323,8 +330,14 @@ class MeqMaker (object):
       Jj = self._get_jones_nodes(ns,jt,stations,sources=sources);
       # if this Jones is enabled (Jj not None), corrupt each source
       if Jj:
-        corrupt_sources = [ src.corrupt(Jj(src0.name))
-                              for src,src0 in zip(corrupt_sources,sources) ];
+        corr_sources = [];
+        for src,src0 in zip(corrupt_sources,sources):
+          jones = Jj(src.name);
+          # do not corrupt if Jones term is initialized
+          if jones(stations[0]).initialized():
+            src = src.corrupt(jones);
+          corr_sources.append(src);
+        corrupt_sources = corr_sources;
 
     # now form up patch
     allsky = Meow.Patch(ns,'sky',Meow.Context.observation.phase_centre);

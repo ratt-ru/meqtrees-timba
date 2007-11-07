@@ -196,6 +196,8 @@ def define_inspector (nodeseries,qlist,*qualifier_lists,**kw):
   all_quals = [[getattr(q,'name',None) or str(q)] for q in qlist];
   for ql in qualifier_lists:
     all_quals = [ qq+[getattr(q,'name',None) or str(q)] for qq in all_quals for q in ql ];
+  # filter list so that we only use nodes that are actually defined
+  all_quals = [ qq for qq in all_quals if nodeseries(*qq).initialized() ];
   # create list of plot labels
   plot_labels = [ ":".join([label]+qq) for qq in all_quals ];
   if freqavg:

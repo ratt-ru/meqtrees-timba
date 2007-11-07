@@ -25,6 +25,7 @@
 
 from Timba.TDL import *
 import Meow
+from Meow import ParmGroup
 
 TDLCompileOption("spectral_index","Spectral index, 3C343",[None,0.],more=float,
     doc="""Spectral index of source, use None for a flat spectrum""");
@@ -56,19 +57,20 @@ def source_list (ns):
   dir1 = Meow.Direction(ns,"3C343.1",4.356645791155902,1.092208429052697);
   dir0 = Meow.Direction(ns,"3C343",4.3396003966265599,1.0953677174056471);
 
-  src1 = Meow.PointSource(ns,"3C343.1",dir1,I=i_def,Q=quv_def,U=quv_def,V=quv_def,
-                          spi=spi_def1,freq0=freq0_def1);
-  src0 = Meow.PointSource(ns,"3C343",dir0,I=i_def,Q=quv_def,U=quv_def,V=quv_def,
-                          spi=spi_def1,freq0=freq0_def1);
+  src1 = Meow.PointSource(ns,"3C343.1",dir1,
+          I=Meow.Parm(6.02061051),Q=Meow.Parm(0.0179716185),
+          U=quv_def,V=quv_def,
+          spi=spi_def1,freq0=freq0_def1);
+  src0 = Meow.PointSource(ns,"3C343",dir0,
+          I=Meow.Parm(1.83336309),Q=Meow.Parm(0.0241450607),
+          U=quv_def,V=quv_def,
+          spi=spi_def1,freq0=freq0_def1);
 
   ## define a parmgroup for source parameters
-  ## now make a solvejobs for the source
-  #pg_src = ParmGroup("source",
-              #src1.coherency().search(tags="solvable") + src0.coherency().search(tags="solvable"),
-              #table_name="sources.mep",
-              #individual=True,
-              #bookmark=True);
-  ## now make a solvejobs for the source
-  #options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
+  pg_src = ParmGroup.ParmGroup("source",
+              src1.coherency().search(tags="solvable") + src0.coherency().search(tags="solvable"),
+              table_name="sources.mep");
+  
+  ParmGroup.SolveJob("cal_sources","Calibrate sources",pg_src);
 
   return [ src1,src0 ];

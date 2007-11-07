@@ -77,13 +77,16 @@ meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 
 # E - beam
 import wsrt_beams
-meqmaker.add_sky_jones('E','beam',[wsrt_beams]);
+import solvable_sky_jones
+meqmaker.add_sky_jones('E','beam',[
+    wsrt_beams,
+    solvable_sky_jones.FullRealImag('E')]);
 
 # D - leakage
-import polarization_jones
-meqmaker.add_uv_jones('D','polarization leakage',
-  [ polarization_jones.CoupledLeakage(),
-    polarization_jones.DecoupledLeakage() ]);
+#import polarization_jones
+#meqmaker.add_uv_jones('D','polarization leakage',
+# [ polarization_jones.CoupledLeakage(),
+# polarization_jones.DecoupledLeakage() ]);
 
 # B - bandpass, G - gain
 import solvable_jones
