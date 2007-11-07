@@ -86,6 +86,14 @@ VellsFlagType ReductionFunction::isAllFlagged (const Vells &flagvells,VellsFlagT
   return mask;
 }
 
+void ReductionFunction::makeVellsSlicer (Vells::Ref &out,ConstVellsSlicerWithFlags0 &slicer,const Vells &invells)
+{
+  // create slicer
+  slicer.init(invells,reduction_axes_);
+  // create output Vells, not initialized
+  out <<= new Vells(invells,slicer.nonSlicedShape(),false);
+}
+
 void ReductionFunction::makeVellsSlicer (Vells::Ref &out,ConstVellsSlicer0 &slicer,const Vells &invells)
 {
   // create slicer
@@ -98,7 +106,7 @@ Vells ReductionFunction::apply (VellsMath::UnaryRdFunc func,const Vells &invells
 {
   // make slicer and output vells
   Vells::Ref outref;
-  ConstVellsSlicer0 slicer;
+  ConstVellsSlicerWithFlags0 slicer;
   makeVellsSlicer(outref,slicer,invells);
   Vells &out = outref();
   // get pointers to output data
@@ -120,7 +128,7 @@ Vells ReductionFunction::apply (VellsMath::UnaryRdFuncWS func,const Vells &invel
 {
   // make slicer and output vells
   Vells::Ref outref;
-  ConstVellsSlicer0 slicer;
+  ConstVellsSlicerWithFlags0 slicer;
   makeVellsSlicer(outref,slicer,invells);
   Vells &out = outref();
   // adjust shape: it may be bigger than the slice shape (i.e. if taking

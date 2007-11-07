@@ -1,10 +1,10 @@
 SUBDIRS	= .
 
-LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h NodeFace.h
+LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h VellsSLicerWithFLags.h NodeFace.h
 
 LOCALSRCS = \
   Axis.cc Domain.cc   Cells.cc Request.cc RequestId.cc \
-  Vells.cc VellSet.cc VellsSlicer.cc Result.cc \
+  Vells.cc VellSet.cc VellsSlicer.cc VellsSlicerWithFlags.cc Result.cc \
   Funklet.cc Polc.cc ComposedPolc.cc PolcLog.cc \
   Node.cc NodeNursery.cc Function.cc TensorFunction.cc \
   Rider.cc SymdepMap.cc Forest.cc MTPool.cc Spline.cc

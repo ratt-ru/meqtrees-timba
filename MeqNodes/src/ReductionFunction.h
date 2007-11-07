@@ -24,6 +24,7 @@
 #define MEQNODES_REDUCTIONFUNCTION_H
     
 #include <MEQ/Function.h>
+#include <MEQ/VellsSlicerWithFlags.h>
 #include <MEQ/VellsSlicer.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
@@ -60,6 +61,7 @@ protected:
   // below, creates an output Vells containing the non-reduction axes,
   // and a const VellsSlicer for the reduction axes.
   void makeVellsSlicer (Vells::Ref &out,ConstVellsSlicer0 &slicer,const Vells &invells);
+  void makeVellsSlicer (Vells::Ref &out,ConstVellsSlicerWithFlags0 &slicer,const Vells &invells);
 
   // helper method: given an input Vells and the reduction_axes_ specified
   // below, creates an output Vells containing the non-reduction axes,
