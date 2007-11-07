@@ -1126,7 +1126,7 @@ def TDLCompileOptions (*opts):
   # owner is at depth 1 -- our caller
   owner = _resolve_owner(calldepth=1);
   for opt in opts:
-    opt and opt.init(owner,False);
+    isinstance(opt,_TDLBaseOption) and opt.init(owner,False);
   global compile_options;
   compile_options += opts;
 
@@ -1137,7 +1137,7 @@ def TDLRuntimeOptions (*opts):
   # owner is at depth 1 -- our caller
   owner = _resolve_owner(calldepth=1);
   for opt in opts:
-    opt and opt.init(owner,True);
+    isinstance(opt,_TDLBaseOption) and opt.init(owner,True);
   runtime_options += opts;
 
 def TDLCompileMenu (title,*items,**kw):
