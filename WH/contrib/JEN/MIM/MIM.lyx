@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.9: 6 Nov 2007} % Date of Issue (
+theDOIssue}{Version 0.91: 7 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -195,9 +195,19 @@ dGList} {
 \layout Standard
 
 \backslash 
+hspace{0.5cm} J.E.
+\backslash 
+ Noordam (JEN, ASTRON)
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
 hspace{0.5cm} M.
 \backslash 
- Mevius (ASTRON/RUG)
+ Mevius (MXM, ASTRON/RUG)
 \backslash 
 
 \backslash 
@@ -207,7 +217,7 @@ hspace{0.5cm} M.
 \backslash 
 hspace{0.5cm} J.M.
 \backslash 
- Anderson (MPIfR, Bonn)
+ Anderson (JMA, MPIfR, Bonn)
 \backslash 
 
 \backslash 
@@ -217,7 +227,7 @@ hspace{0.5cm} J.M.
 \backslash 
 hspace{0.5cm} I.
 \backslash 
- van Bemmel (RUL) 
+ van Bemmel (IVB, RUL) 
 \backslash 
 
 \backslash 
@@ -227,7 +237,7 @@ hspace{0.5cm} I.
 \backslash 
 hspace{0.5cm} H.
 \backslash 
- Intema (RUL) 
+ Intema (HXI, RUL) 
 \backslash 
 
 \backslash 
@@ -237,7 +247,7 @@ hspace{0.5cm} H.
 \backslash 
 hspace{0.5cm} S.
 \backslash 
- van der Tol (TUD) 
+ van der Tol (VDT, TUD) 
 \backslash 
 
 \backslash 
@@ -247,7 +257,7 @@ hspace{0.5cm} S.
 \backslash 
 hspace{0.5cm} M.
 \backslash 
- Pandey (RUL) 
+ Pandey (MXP, RUL) 
 \backslash 
 
 \backslash 
@@ -257,7 +267,7 @@ hspace{0.5cm} M.
 \backslash 
 hspace{0.5cm} E.
 \backslash 
- Noordam (KIM) 
+ Noordam (EXN, KIM) 
 \backslash 
 
 \backslash 
@@ -265,9 +275,9 @@ hspace{0.5cm} E.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} J.A.
+hspace{0.5cm} H.
 \backslash 
- van Enst (LOFAR) 
+ Glockner (HXG, Oxford) 
 \backslash 
 
 \backslash 
@@ -291,7 +301,17 @@ dOList} {
 \layout Standard
 
 \backslash 
-hspace{0.5cm} A.G. 
+hspace{0.5cm} J.A.
+\backslash 
+ van Enst (LOFAR) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} A.G.
 \backslash 
  de Bruyn (ASTRON)
 \backslash 
@@ -301,7 +321,7 @@ hspace{0.5cm} A.G.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} R.J. 
+hspace{0.5cm} R.J.
 \backslash 
  Nijboer (ASTRON)
 \backslash 
@@ -321,7 +341,7 @@ hspace{0.5cm} H.A.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} M.A. 
+hspace{0.5cm} M.A.
 \backslash 
  van Haarlem (LOFAR)
 \backslash 
@@ -349,6 +369,26 @@ hspace{0.5cm} R.
 \backslash 
 
 \layout Standard
+
+\backslash 
+hspace{0.5cm} A.J
+\backslash 
+ van der Veen (TUD) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} Prof A.
+\backslash 
+ van Ardenne (ASTRON) 
+\backslash 
+
+\backslash 
+
+\layout Standard
 }
 \layout Standard
 % Define the Document Revision Table:
@@ -369,7 +409,7 @@ theRevNR}
 \backslash 
 renewcommand{
 \backslash 
-dateList} {2007-Nov-06 
+dateList} {2007-Nov-07 
 \backslash 
 
 \backslash 
@@ -429,7 +469,7 @@ theTitle} {The MIM principle:
 \backslash 
 
 \layout Standard
-                        using a Minimum Ionospherical Model
+                        using a Minimum Ionosphere Model
 \backslash 
 
 \backslash 
@@ -525,8 +565,29 @@ status Collapsed
 
 \backslash 
 newpage
+\end_inset 
+
+ 
 \layout Standard
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\layout Standard
+
 \end_inset 
 
 
@@ -550,6 +611,38 @@ This document is very much a work in progress.
  (and other) observations, and other applications.
  In this stage, it still contains many blank spots, to be filled in by various
  members of our little MIM community.
+ 
+\layout Standard
+
+In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
+ planning to solve for separate 2D phase screens across the FOV (main lobe
+ and inner side-lobes) of individual stations.
+ Such screens are entirely sufficient to account for all phenomena, and
+ as a model they are superior to the Zernike polynomials (Cotton et al)
+ and clumsy concepts like refraction and apparent position.
+ 
+\layout Standard
+
+However, this approach would have required at least 3 parameters per station
+ for a flat screen, and more to describe any curvature.
+ This would need as many sources in the field, and our early calculations
+ wrongly assumed that they would all have to be bright enough to yield a
+ S/N>3 in 10 sec.
+ Not surprisingly, this led to a rather gloomy picture.
+ Other schemes based on calibrating 'patches' around bright sources lead
+ to similarly unattractive numbers.
+\layout Standard
+
+Fortunately, ionospheric phenomena are rather large-scale (i.e.
+ smooth) in space and time.
+ This means that we can get away with an ionospheric model with rather fewer
+ parameters, and consequently with fewer bright sources to estimate their
+ values.
+ It is important to realise that we are not interested in the structure
+ or the physics of the ionosphere, but just in the observables (relative
+ phase, Faraday rotation) that affect our observations.
+ Thus, we are interested in the simplest model that describes these observables
+ with sufficient accuracy.
  
 \layout Standard
 
@@ -1310,66 +1403,6 @@ Position estimation with closely spaced stations (Jim, Erik)
 
 This is the Bingley stuff, which has been verified by Jim.
  We should give it its proper place...
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_diagram_GPS2.eps
-	width 50col%
-
-\end_inset 
-
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_diagram_astro1.eps
-	width 50col%
-
-\end_inset 
-
-
-\layout Caption
-
-
-\emph on 
-
-\begin_inset LatexCommand \label{cap:Two-alternative-versions}
-
-\end_inset 
-
-Two alternative versions of the MIM diagram of fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
-
-\end_inset 
-
-.
- The top panel illustrates the case of 2 GPS satellites, far outside the
- LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
-
-\end_inset 
-
-).
- The bottom panel illustrates the case of a single bright radio source,
- inside the LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
-
-\end_inset 
-
-).
- 
-\end_inset 
-
-
 \layout Section
 
 Sampling the MIM function using an astronomical source
@@ -1632,6 +1665,9 @@ The fainter Cat II sources will be subtracted from the uv-data, using the
 The MIM function will also be used in imaging.
  Firsty to determine the optimum size of an imaging 'facet'.
  And secondly to correct the uv-residuals for the centre of each facet.
+ 
+\series bold 
+Question: Is it possible to apply the MIM image-plane effect during imaging?
 \layout Subsection
 
 Variation: No GPS data
@@ -1655,6 +1691,17 @@ Discuss the relation with field-based calibration (Cotton), and its development
 
 Discuss the other MIM-approaches, with piercing points (Maaijke, Ilse, JEN),
  and 2.5D ionospheres (James)....
+\layout Section
+
+The way forward
+\layout Standard
+
+MXM will make a series of MeqTree modules, based on the general framework
+ described in this document.
+ 
+\layout Subsection
+
+List of simulations (done and to be done)
 \layout Section
 
 Conclusions
@@ -1746,6 +1793,31 @@ In section
 
  we postulated the existence of a MIM function.
  This will be investigated in some more detail here.
+\layout Standard
+
+A minimum ionosphere model must meet the following criteria:
+\layout Enumerate
+
+It should be exact for the case of a 
+\emph on 
+uniform blanket
+\emph default 
+, i.e.
+ an ionosphere of uniform thickness and electron distribution, at a constant
+ altitude above the curved Earth surface.
+\layout Enumerate
+
+For increasingly complex situations, it should be possible to detect that
+ the model is incomplete, e.g.
+ by the increasing internal inconsistencies in the parameter solution.
+\layout Enumerate
+
+Depending on the nature of such inconsistencies, there must be algorithmic
+ recipes to automatically extend (or reduce!) the model with extra parameters.
+ 
+\layout Standard
+
+Use the Central Limit Theorem?
 \layout Section
 
 Choosing MIM base-functions
@@ -1791,24 +1863,70 @@ Easy to implement.
 ).
 \layout Subsection
 
-Zernicke polynomials
+Zernike polynomials
 \layout Standard
 
-Used for field-based calibration (Cotton) for some reason.
- Better behaved at the edges than polynomials (tend to zero?).
+Used in optics because some of the terms represent useful phaenomena like
+ tip-tilt etc.
+ Used by Cotton for field-based calibration (see section 
+\begin_inset LatexCommand \ref{sec:field-based-calibration-(Cotton,}
+
+\end_inset 
+
+).
+ 
 \layout Subsection
 
-KH polynomials
+Karhunen-Loeve (KL) functions
 \layout Standard
 
-Can be optimized for the given TEC sampling function (see fig 
+These can be optimized to be orthonormal for the given MIM sampling function
+ (see fig 
 \begin_inset LatexCommand \ref{cap:MIM diagram}
 
 \end_inset 
 
 ).
- Reduce to Zernicke polynomials for a regular sampling function.
- 
+ They reduce to Zernike polynomials for a dense sampling function within
+ a unit circle.
+ However, the KL functions are not polynomials, and are relatively expensive
+ to interpolate.
+ On the other hand, they behave rather well at points far from the sampling
+ points.
+ They are rather suitable (...) for matrix operations.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Various-MIM-base-functions.}
+
+\end_inset 
+
+Various MIM base-functions.
+\end_inset 
+
+
 \layout Section
 
 Coordinate systems
@@ -1870,7 +1988,7 @@ The purpose of the MIM function is to provide reasonably accurate values
  like.
 \layout Subsection
 
-Relations between derivatives
+Relations between MIM derivatives
 \begin_inset LatexCommand \label{sub:Relations-between-derivatives}
 
 \end_inset 
@@ -1922,37 +2040,49 @@ If the base-functions selected for the MIM function
 , and added to the solution (see section ).
 \layout Standard
 
-** Taken from the original MIM document ** 
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-A(z)=1/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: S(z)}\end{equation}
-
+The assumptions about the ionosphere are in the 'proportionality function'
+ 
+\begin_inset Formula $H$
 \end_inset 
 
-
-\layout Standard
-
-describes the increase in the excess pathlength through a thin layer at
- an altitude of 
+.
+ For instance, for the simple case of a thin, uniform layer at a constant
+ altitude 
 \begin_inset Formula $h$
 \end_inset 
 
- km as a function of the zenith angle.
+ above a flat Earth, we have 
+\begin_inset Formula $H=h/cos(z)$
+\end_inset 
+
+, where 
+\begin_inset Formula $z$
+\end_inset 
+
+ is the zenith angle (see fig 
+\begin_inset LatexCommand \ref{cap: MIM derivatives}
+
+\end_inset 
+
+).
  
-\begin_inset Formula $R$
+\layout Subsection
+
+Correlation functions (Bas)
+\begin_inset LatexCommand \label{sub:Correlation-functions}
+
 \end_inset 
 
- is the Earth radius, and 
-\begin_inset Formula $A(horizon)\approx3$
+
+\layout Standard
+
+Rather than using an analytical function 
+\begin_inset Formula $H$
 \end_inset 
 
- for 
-\begin_inset Formula $h=300$
-\end_inset 
-
-km.
+, one may also express assumptions about the ionosphere in terms of its
+ statistics, e.g.
+ its correlation function (..to be elaborated by Bas ..) 
 \layout Standard
 
 
@@ -1995,7 +2125,7 @@ The MIM function
 
 
 \begin_inset Formula \[
-\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times Z\]
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times H\]
 
 \end_inset 
 
@@ -2006,7 +2136,7 @@ The MIM function
 \emph on 
 The assumptions about the ionosphere are in the 'proportionality function'
  
-\begin_inset Formula $Z$
+\begin_inset Formula $H$
 \end_inset 
 
 .
@@ -2016,26 +2146,93 @@ The assumptions about the ionosphere are in the 'proportionality function'
 \end_inset 
 
  above a flat Earth, we have 
-\begin_inset Formula $Z=h/sin(el)$
+\begin_inset Formula $H=h/cos(z)$
 \end_inset 
 
 , where 
-\begin_inset Formula $el$
+\begin_inset Formula $z$
 \end_inset 
 
- is the elevation.
+ is the zenith angle.
  See section 
 \begin_inset LatexCommand \ref{sec:Bridging-the-gaps}
 
 \end_inset 
 
  for a more thorough treatment.
+
+\emph default 
+ 
+\emph on 
+For a curved Earth with radius 
+\begin_inset Formula $R$
+\end_inset 
+
+ we have to use 
+\begin_inset LatexCommand \cite{TMS}
+
+\end_inset 
+
+:
+\emph default 
+ 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+H(z)=h/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: H(z)}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset Formula $H(horizon)\approx3*H(zenith)$
+\end_inset 
+
+ for 
+\begin_inset Formula $h=300$
+\end_inset 
+
+km.
 \end_inset 
 
 
 \layout Subsection
 
-The 'frozen' pattern
+Triangulation (Jim)
+\begin_inset LatexCommand \label{sub:Triangulation}
+
+\end_inset 
+
+
+\layout Standard
+
+It is possible to use the MIM-function to predict the position of a particular
+ station.
+ Since we know this position 
+\emph on 
+a priori
+\emph default 
+, we might add an equation to the solution that minimizes the discrepancy.
+ 
+\layout Standard
+
+
+\emph on 
+NB: It is not clear (to me) in this stage whether this is a circular argument,
+ or whether we are using information that we are not used yet.
+ Jim will endeavour to investigate this further, also in the context of
+ the fact that the ionospheric bias drops from the equations when determining
+ relative positions close (within 100 m?) to another GPS receiver.
+\layout Standard
+
+In any case, even if this 'triangulation' works, it does not sample the
+ gaps in the MIM-function.
+\layout Subsection
+
+Travelling 'frozen' pattern
 \begin_inset LatexCommand \label{sub:The-'frozen'-pattern}
 
 \end_inset 
@@ -2043,11 +2240,24 @@ The 'frozen' pattern
 
 \layout Standard
 
-The ionospheric phase sometimes (often?) appears to manifests itself as
- a 'frozen' pattern, which changes only slowly while travelling with a velocity
- of 500-1000 km/h (165-330 m/s).
- Such a constraint can be most conveniently incorporated in the MIM, by
- rewriting it in terms of a velocity 
+The ionospheric phase 'screen' sometimes (?) appears to manifests itself
+ as a 'frozen' pattern, which changes only slowly while travelling with
+ a velocity of 500-1000 km/h (165-330 m/s), towards the South or the West
+ (?).
+ It has been suggested that we should use this as an additional constraint.
+ 
+\layout Standard
+
+The MIM approach deals automatically with changing patterns because we solve
+ for time-dependent MIM parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+.
+ We might impose further constraints by limiting the amount of change we
+ allow per unit time for each parameter.
+ A perhaps better approach is to by reformulate the MIM function in terms
+ of a velocity 
 \begin_inset Formula $\vec{v}=(v_{x},v_{y})$
 \end_inset 
 
@@ -2072,7 +2282,15 @@ Just like the phase, the ionospheric Faraday rotation is related to the
  integrated TEC.
  However, it also depends on the angle between the line-of-sight and the
  local Earth magnetic field.
- 
+ In addition, it require the 
+\series bold 
+absolute
+\series default 
+ TEC (an interferometer measures phase 
+\emph on 
+differences
+\emph default 
+).
 \layout Standard
 
 Total electron content:
@@ -2116,10 +2334,50 @@ The Earth ionosphere can cause a RM of up to
 \end_inset 
 
 .
+ Note that we do not discuss the intrinsic RM of an astronomical source,
+ which can have much higher values.
 \layout Section
 
-...
- some legacy, to be used for embellishment ....
+Special case: piercing point methods (JEN, MXM, IVB)
+\begin_inset LatexCommand \label{sec:Special-case:-piercing}
+
+\end_inset 
+
+
+\layout Standard
+
+The original MIM proposal (cite ...) was less general than the present approach.
+ In particular, it contained some assumtions about the ionosphere that have
+ now been relegated to the optional extra constraints (e.g.
+ involving 
+\begin_inset Formula $\partial M/\partial x$
+\end_inset 
+
+ etc, see section 
+\begin_inset LatexCommand \ref{sec:Bridging-the-gaps}
+
+\end_inset 
+
+) than may be used to bridge gaps in the MIM sampling function.
+\layout Section
+
+Special case: 2.5D MIM (JMA, VLBI)
+\begin_inset LatexCommand \label{sec:Special-case:-2.5D}
+
+\end_inset 
+
+
+\layout Standard
+
+James to fill in....
+\layout Section
+
+Special case: phase gradients (AGB, WSRT)
+\begin_inset LatexCommand \label{sec:phase-gradients-(AGB,}
+
+\end_inset 
+
+
 \layout Standard
 
 With WSRT LFFFE observations, it is only possible to make a selfcal solution
@@ -2145,82 +2403,128 @@ This little anecdote contains the key to the reduction of observations with
  The latter means that the accuracy should be greatest in the direction
  of the brightest sources, which after all have to be subtracted with the
  greatest accuracy.
-\layout Standard
+\layout Section
 
-In our original plans for LOFAR calibration, we were planning to solve for
- separate 2D phase screens across the FOV (main lobe and inner side-lobes)
- of individual stations.
- Such screens are entirely sufficient to account for all phenomena, and
- as a model they are superior to the Zernike polynomials (Cotton et al)
- and clumsy concepts as refraction and apparent position.
- 
-\layout Standard
+Relation to field-based calibration (Cotton, VLA)
+\begin_inset LatexCommand \label{sec:field-based-calibration-(Cotton,}
 
-However, this approach would have required at least 3 parameters per station
- for a flat screen, and more to describe any curvature.
- This would need as many sources in the field, and our early calculations
- wrongly assumed that they would all have to be bright enough to yield a
- S/N>3 in 10 sec.
- Not surprisingly, this led to a rather gloomy picture.
- Other schemes based on calibrating 'patches' around bright sources lead
- to similarly unattractive numbers.
-\layout Standard
-
-Fortunately, ionospheric phenomena are rather large-scale in space and time,
- and usually smooth in all these dimnensions.
- This means that we can get away with an ionospheric model with rather fewer
- parameters, and consequently with fewer bright sources to estimate their
- values.
- It is important to realise that we are not interested in the structure
- or the physics of the ionosphere, but just in the observables (phase, Faraday
- rotation) that affect our observations.
- Thus, we are interested in the simplest model that describes these observables
- with sufficient accuracy.
- This paper investigates what are the 
-\emph on 
-minimum number of parameters
-\emph default 
- that are needed in various conditions.
-\layout Standard
-
-A minimum ionosphere model must meet the following criteria:
-\layout Enumerate
-
-It should be exact for the case of a 
-\emph on 
-uniform blanket
-\emph default 
-, i.e.
- an ionosphere of uniform thickness and electron distribution, at a constant
- altitude above the curved Earth surface.
-\layout Enumerate
-
-For increasingly complex situations, it should be possible to detect that
- the model is incomplete, e.g.
- by the increasing internal inconsistencies in the parameter solution.
-\layout Enumerate
-
-Depending on the nature of such inconsistencies, there must be algorithmic
- recipes to automatically extend (or reduce!) the model with extra parameters.
- 
-\layout Standard
-
-
-\begin_inset ERT
-status Collapsed
-
-\layout Standard
-
-\backslash 
-newpage
 \end_inset 
 
+
+\layout Standard
+
+Field-based calibration (cite ...) has been used succesfully by Cotton, Lazio
+ and others to calibrate the ionosphere above the VLA.
+ Expecially @ 74 MHz (
+\begin_inset Formula $\lambda=4$
+\end_inset 
+
+m, 
+\begin_inset Formula $bw\approx1$
+\end_inset 
+
+MHz).
+ Make VLA snapshot images (~10 min) and determine the (relative!) positions
+ of the two or more sources in the field that are bright enough to be detected.
+ These are used to solve for the coefficients of a set of low-order Zernicke
+ polynomials.
+ The latter are then used to correct the uv-data (...how exactly...?) prior to
+ making the final image.
+ 
+\layout Standard
+
+The Zernicke polynomials are clearly a form of MIM.
+ The difference is that they are derived from position measurements, which
+ imply linear phase gradients.
+ This assumption can only be valid for baselines smaller than about 5-10
+ km.
+ This is readily verified by looking at the consistency of the Zernicke
+ solution per antenna.
+ It deteriorates for the outlying VLA antennas, i.e.
+ for the longer baselines.
+\layout Standard
+
+However, the technique has been quite succesful, but is limited by the VLA
+ sensitivity @ 74 MHz.
+\layout Standard
+
+Recently, Huib Intema has shown that a MIM-based approach gives better results
+ on the same data.
+ He 'peels' the brightest sources in the field, i.e.
+ he makes selfcal phase solutions in order of decreasing brightness.
+ He then uses the resulting antenna phases (x,y,z,l,m) to solve for MIM
+ parameters.
+ He then uses this MIM to ....?
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_diagram_GPS2.eps
+	width 50col%
+
+\end_inset 
+
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_diagram_astro1.eps
+	width 50col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Two-alternative-versions}
+
+\end_inset 
+
+Two extreme versions of the 
+\series bold 
+MIM diagram
+\series default 
+ of fig 
+\begin_inset LatexCommand \ref{cap:MIM diagram}
+
+\end_inset 
+
+ for the case of LOFAR.
+\layout Standard
+
+
+\emph on 
+The top panel illustrates the case of 2 GPS satellites, far outside the
+ LOFAR FOV (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+).
  
 \layout Standard
 
 
-\begin_inset LatexCommand \tableofcontents{}
+\emph on 
+The bottom panel illustrates the case of a single bright radio source, inside
+ the LOFAR FOV (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
 
+\end_inset 
+
+).
+ 
 \end_inset 
 
 
