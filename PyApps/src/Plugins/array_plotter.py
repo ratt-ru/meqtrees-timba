@@ -97,6 +97,8 @@ class ArrayPlotter(GriddedPlugin):
     QObject.connect(self.twoD_plotter, PYSIGNAL('save_display'), self.grab_display)
     # create status label display
     self.status_label = QLabel(self.layout_parent)
+    sansFont = QFont( "Helvetica [Cronyx]", 8 )
+    self.status_label.setFont(sansFont)
     self.layout.addMultiCellWidget(self.status_label,1,1,0,2)
     self.status_label.setText("Move the mouse within the plot canvas"
                             " to show the cursor position.")
