@@ -558,19 +558,6 @@ An ionospheric model with a minimum number of parameters, and a minimum
 \layout Standard
 
 
-\begin_inset ERT
-status Collapsed
-
-\layout Standard
-
-\backslash 
-newpage
-\end_inset 
-
- 
-\layout Standard
-
-
 \begin_inset LatexCommand \tableofcontents{}
 
 \end_inset 
@@ -586,8 +573,6 @@ status Collapsed
 
 \backslash 
 newpage
-\layout Standard
-
 \end_inset 
 
 
@@ -614,38 +599,6 @@ This document is very much a work in progress.
  
 \layout Standard
 
-In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
- planning to solve for separate 2D phase screens across the FOV (main lobe
- and inner side-lobes) of individual stations.
- Such screens are entirely sufficient to account for all phenomena, and
- as a model they are superior to the Zernike polynomials (Cotton et al)
- and clumsy concepts like refraction and apparent position.
- 
-\layout Standard
-
-However, this approach would have required at least 3 parameters per station
- for a flat screen, and more to describe any curvature.
- This would need as many sources in the field, and our early calculations
- wrongly assumed that they would all have to be bright enough to yield a
- S/N>3 in 10 sec.
- Not surprisingly, this led to a rather gloomy picture.
- Other schemes based on calibrating 'patches' around bright sources lead
- to similarly unattractive numbers.
-\layout Standard
-
-Fortunately, ionospheric phenomena are rather large-scale (i.e.
- smooth) in space and time.
- This means that we can get away with an ionospheric model with rather fewer
- parameters, and consequently with fewer bright sources to estimate their
- values.
- It is important to realise that we are not interested in the structure
- or the physics of the ionosphere, but just in the observables (relative
- phase, Faraday rotation) that affect our observations.
- Thus, we are interested in the simplest model that describes these observables
- with sufficient accuracy.
- 
-\layout Standard
-
 This document describes a set of procedures, all based on the socalled MIM-princ
 iple, to 'calibrate' the ionosphere for radio astronomy.
  These procedures may be used for any radio telescope.
@@ -665,106 +618,6 @@ ts of the iononsphere may be combined with measurements made with GPS (or
  Finally there is the possibility of symbiosis with the ionospheric community,
  by using their data as the first step of LOFAR calibration, in return for
  the improved values that are the byproduct of the final LOFAR calibration.
- 
-\layout Standard
-
-The ionosphere is an electrically charged 'layer' in the Earth atmosphere,
- located roughly between 200-500 km altitude.
- The propagation velocity of radio waves is (slightly) reduced by the electric
- charge of its free electrons.
- Since the density varies with position and time, this affects the phase
- differences measured by radio interferometers, which use arrays of widely
- spaced antennas.
- If not corrected, such phase errors may cause significant blurring and
- distortions in the resulting image of the radio sky.
- Moreover, since the propagation velocity is slightly different for right
- and left circular polarization, the ionosphere also causes Faraday rotation,
- i.e.
- a rotation of the plane of linear
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-Linear and circular polarization are two representations of the same e.m.
- wave.
- One representation can simply be converted into the other.
- They are used interchangeably here because Faraday rotation is usually
- expressed as the rotation of a plane, while the difference in propagation
- velocity is most easily described using the circular representation.
-\end_inset 
-
- polarization.
-\layout Standard
-
-The relevant quantity is 
-\begin_inset Formula $T$
-\end_inset 
-
-, the integrated Total Electron Content (TEC) along the propagation path,
- measured in TEC units (TECU) of 
-\begin_inset Formula $10^{16}$
-\end_inset 
-
- electrons per square meter.
- Typical values range from 5 TECU (nighttime) to 50 TECU (daytime).
- 
-\layout Standard
-
-The conversion formula from TEC to phase is:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\phi\approx-25\lambda T\quad rad\label{eq: TEC2rad}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-So a TECU corresponds to a phase of -100 rad @ 75 MHz (
-\begin_inset Formula $\lambda=4$
-\end_inset 
-
-m), or -5 rad @ 1400 MHz (21cm).
- It should be remembered here that the effect on a radio interferometer
- will be much less than this, because it measures phase 
-\emph on 
-differences
-\emph default 
-.
- 
-\layout Standard
-
-The conversion formula from TEC to delay length is:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-d=\lambda\frac{\phi}{2\pi}\approx-4\lambda^{2}T\quad m\label{eq: TEC2meter}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-So a TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm @ 1400 MHz.
- Since the latter is roughly the frequency of the GPS carrier wave, 16 cm
- is the position accuracy obtained with a single 2-frequency GPS receiver,
- which has an accuracy of about 1 TECU.
- 
-\layout Standard
-
-Finally, the conversion formula from TEC to Faraday rotation also depends
- on the strength of the Earth magnetic field, and its orientation w.r.t.
- to the propagation path.
- See section 
-\begin_inset LatexCommand \ref{sec:Faraday-rotation}
-
-\end_inset 
-
-.
  
 \layout Standard
 
@@ -814,6 +667,38 @@ The MIM idea
 \end_inset 
 
 
+\layout Standard
+
+In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
+ planning to solve for separate 2D phase screens across the FOV (main lobe
+ and inner side-lobes) of individual stations.
+ Such screens are entirely sufficient to account for all phenomena, and
+ as a model they are superior to the Zernike polynomials (Cotton et al)
+ and clumsy concepts like refraction and apparent position.
+ 
+\layout Standard
+
+However, this approach would have required at least 3 parameters per station
+ for a flat screen, and more to describe any curvature.
+ This would need as many sources in the field, and our early calculations
+ wrongly assumed that they would all have to be bright enough to yield a
+ S/N>3 in 10 sec.
+ Not surprisingly, this led to a rather gloomy picture.
+ Other schemes based on calibrating 'patches' around bright sources lead
+ to similarly unattractive numbers.
+\layout Standard
+
+Fortunately, ionospheric phenomena are rather large-scale (i.e.
+ smooth) in space and time.
+ This means that we can get away with an ionospheric model with rather fewer
+ parameters, and consequently with fewer bright sources to estimate their
+ values.
+ It is important to realise that we are not interested in the structure
+ or the physics of the ionosphere, but just in the observables (relative
+ phase, Faraday rotation) that affect our observations.
+ Thus, we are interested in the simplest model that describes these observables
+ with sufficient accuracy.
+ 
 \layout Standard
 
 The basic idea behind the MIM is that we 
@@ -870,7 +755,13 @@ pheanomenological
 , i.e.
  it is not concerned with the internal structure of the ionosphere, but
  only with its effect on the observations.
- In principle, any set of smooth base functions will do for the MIM.
+ However, in practice, it is often necessary to make more specific assumptions,
+ for instance about the ionosphere.
+ In order to emphasize the difference, their treatment has been relegated
+ to the appendix.
+\layout Standard
+
+In principle, any set of smooth base functions will do for the MIM.
  More higher-order terms may then be used for more complex (less smooth)
  ionospheric conditions.
  For the moment, we will assume simple polynomials, which are easy to use.
@@ -1047,8 +938,23 @@ vertical
 
 \layout Section
 
-Solving for MIM parameters
+Solving for MIM (and other) parameters
 \begin_inset LatexCommand \label{sec:Solving-for-MIM}
+
+\end_inset 
+
+
+\layout Standard
+
+In this section we define a generic framework that can be used to solve
+ for MIM parameters in any application based on the MIM principle.
+ In the next two sections we show how the samples taken with GPS and radio
+ astronomical measurements can be combined in this framework.
+ 
+\layout Subsection
+
+Generating equations
+\begin_inset LatexCommand \label{sub:Generating-equations}
 
 \end_inset 
 
@@ -1094,25 +1000,106 @@ measurement parameters
 
 
 \begin_inset Formula \begin{equation}
-\Delta_{i}=M_{i}-S_{i}=\sum_{k}\frac{\partial M_{i}}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{i}}{\partial q_{m}}\Delta q_{m}\label{eq:normal}\end{equation}
+\Delta_{i}=M_{i}(p_{k})-S_{i}(q_{m})=\sum_{k}\frac{\partial M_{i}}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{i}}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-Examples of measurement parameters 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
-are the satellite-station bias values, or the slow drifts in station bias
- values (see section 
+When sampling the MIM-function using GPS (see section 
 \begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
 
 \end_inset 
 
-).
- 
+) or astronomical means (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+), we measure the integrated TEC from the position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ of a station, in the direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ of a satellite or radio source.
+ Whichever method we use, the value 
+\begin_inset Formula $S_{i}$
+\end_inset 
+
+ (TECU) of this sample can be expressed as: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+S_{i}(q_{m})=T_{i}+Q_{i}(q_{m})\quad TECU\label{eq: Si_generic}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $T_{i}$
+\end_inset 
+
+ is the 
+\emph on 
+true
+\emph default 
+ integrated TEC, and 
+\begin_inset Formula $Q_{i}$
+\end_inset 
+
+ is an expression that contains any measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ Examples of the latter are the satellite/station bias values, or selfcal
+ phase-zeroes, or antenna phase errors introduced by the electronics or
+ the troposphere.
+ Obviously, since 
+\begin_inset Formula $T_{i}$
+\end_inset 
+
+ is just a value, we have 
+\begin_inset Formula $\frac{\partial S_{i}}{\partial q_{m}}=\frac{\partial Q_{i}}{\partial q_{m}}$
+\end_inset 
+
+.
+ In sections 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+ below, specific expressions for 
+\begin_inset Formula $Q_{i}(q_{m})$
+\end_inset 
+
+ are given.
+ If we replace 
+\begin_inset Formula $T_{i}$
+\end_inset 
+
+ by the model function 
+\begin_inset Formula $M_{i}(p_{k})$
+\end_inset 
+
+, we can construct a new equation of the form of equ 
+\begin_inset LatexCommand \ref{eq: normal}
+
+\end_inset 
+
+, to be used in our MIM solution.
 \layout Standard
 
 It is often possible to include other information in the form of extra equations
@@ -1126,13 +1113,23 @@ It is often possible to include other information in the form of extra equations
 \end_inset 
 
 .
- This is important for bridging the gaps in the TEC sampling function (see
- section 
+ This is important for bridging the gaps in the TEC sampling function.
+ But since such constraints are usually based on specific assumptions about
+ the ionosphere, their treatment has been resolutely relegated to the appendix
+ (see section 
 \begin_inset LatexCommand \ref{sec:Bridging-the-gaps}
 
 \end_inset 
 
 ).
+\layout Subsection
+
+Inverting the solution matrix
+\begin_inset LatexCommand \label{sub:Inverting-the-solution}
+
+\end_inset 
+
+
 \layout Standard
 
 Inversion of the resulting system of linear equations is equivalent to a
@@ -1156,10 +1153,21 @@ Inversion of the resulting system of linear equations is equivalent to a
  
 \layout Standard
 
+The relative quality of the data (e.g.
+ S/N) may be taken into account by assigning weights to their equations.
+ It is also possible to constrain the rate-of-change of a specific parameter
+ (see also 
+\begin_inset LatexCommand \ref{sub:Solving-for-time-dependence}
+
+\end_inset 
+
+), or to limit its range of possible values.
+\layout Standard
+
 NB: All the functionality discussed in this section is available in the
  MeqTree module.
  Its MeqCondeq nodes produce equations of the form of equ 
-\begin_inset LatexCommand \ref{eq:normal}
+\begin_inset LatexCommand \ref{eq: normal}
 
 \end_inset 
 
@@ -1187,6 +1195,35 @@ NB: All the functionality discussed in this section is available in the
  the number of terms in the MIM function is no longer optimal, e.g.
  because the ionospheric conditions have changed.
  
+\layout Subsection
+
+Solving for time-dependence
+\begin_inset LatexCommand \label{sub:Solving-for-time-dependence}
+
+\end_inset 
+
+
+\layout Standard
+
+Traditionally, in radio astronomy calibration, we deal in independent solutions
+ for each time-slot (1-100s).
+ This means that we do not make use of our 
+\emph on 
+a priori
+\emph default 
+ knowledge that the values of many parameters change only slowly in time.
+ An example is the GPS bias, which unfortunately is different for each station-s
+atellite pair, but which may be assumed to be constant during a satellite
+ passage (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+).
+ Using this information is vital, but before we can do this we have to solve
+ some tricky implementation issues.
+ Our MIM project is an excellent subject to adress this problem, the solution
+ of which will have much more general applications for LOFAR.
 \layout Section
 
 Sampling the MIM function using GPS (and other) satellites
@@ -1209,56 +1246,36 @@ GPS satellites have circular orbits around the Earth, with a radius of about
  
 \layout Standard
 
-The MIM-function is sampled continuously along the line-of-sight between
- a satellite and a (ground) station.
- The latter will have a fixed and accurately known Earth position (x,y,z),
+A sample 
+\begin_inset Formula $S_{i}$
+\end_inset 
+
+ represents the integrated TEC along the line-of-sight between a (ground)
+ station and a satellite.
+ The station will have a fixed and accurately known Earth position (x,y,z),
  while the viewing direction (l,m) changes.
  Using a 2-frequency technique, a virtually instantaneous estimate 
 \begin_inset Formula $S_{i}$
 \end_inset 
 
- of the TEC may be made with a fundamental measurement noise 
-\begin_inset Formula $n_{i}$
-\end_inset 
-
+ of the integrated TEC may be made with a fundamental measurement noise
  of about 0.01 TECU (or 1 rad @ 74 MHz).
  Unfortunately, this is complicated by an unknown bias 
 \begin_inset Formula $b$
 \end_inset 
 
 , which slowly drifts in time.
- Using the same notation as in equ 
-\begin_inset LatexCommand \ref{eq:normal}
+ Referring to equ 
+\begin_inset LatexCommand \ref{eq: Si_generic}
 
 \end_inset 
 
- above, we can write:
+ above, the Q-term for the case of a GPS sample is:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-S_{i}=T_{i}+(b_{0i}+b_{1i}t+b_{2i}t^{2}+\cdots)+n_{i}\quad TECU\label{eq: Si_GPS}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $T_{i}$
-\end_inset 
-
- is the true integrated TEC.
- If we replace it by the model function 
-\begin_inset Formula $M_{i}$
-\end_inset 
-
-, we have a new equation for to be used in our solution:
-\layout Standard
-
-
-\begin_inset Formula \[
-\Delta_{i}=S_{i}-M_{i}=\cdots\]
+Q_{i}=b_{0}+b_{1i}t+b_{2i}t^{2}+\cdots\label{eq: Qi_GPS}\end{equation}
 
 \end_inset 
 
@@ -1269,8 +1286,7 @@ The
 \begin_inset Formula $b$
 \end_inset 
 
- are parameters, and should be solved for simultaneously with the MIM parameters.
- In fact, they are examples of 
+ are examples of 
 \emph on 
 measurement parameters
 \emph default 
@@ -1279,21 +1295,16 @@ measurement parameters
 \end_inset 
 
 in equ 
-\begin_inset LatexCommand \ref{eq:normal}
+\begin_inset LatexCommand \ref{eq: normal}
 
 \end_inset 
 
 .
- The necessary derivatives like 
-\begin_inset Formula $\frac{\partial S}{\partial q}$
+ Expressions for the derivatives 
+\begin_inset Formula $\frac{\partial Q}{\partial b}$
 \end_inset 
 
- are readily determined from equ 
-\begin_inset LatexCommand \ref{eq: Si_GPS}
-
-\end_inset 
-
-.
+ are readily determined.
  
 \layout Standard
 
@@ -1356,26 +1367,7 @@ Two or more satellites and multiple ground-stations: This sorts out the
 Etc...
 \layout Subsection
 
-An important solver issue...
-\layout Standard
-
-The constant part 
-\begin_inset Formula $b_{0i}$
-\end_inset 
-
- of the bias is only constant during the passage of a satellite, i.e.
- a few hours.
- However, that is much longer than the few minutes that we use for a solution.
- 
-\series bold 
-Finding ways of imposing such long-term constraints on a 'running solution'
- is one of the big challenges that we face in LOFAR.
- We absolutely need it for integrating longer in order to derive instrumental
- parameters from the fainter Cat I sources also.
- Developing it for the GPS bias is an excellent spear-point! 
-\layout Subsection
-
-Preprocessing the Rhinex data (Jim)
+Preprocessing the Rinex data (Jim)
 \layout Standard
 
 A fair amount of pre-processing and re-organizing is done by Jim, before
@@ -1450,52 +1442,22 @@ relative(!)
  stations in the array.
 \layout Standard
 
-Each station phase can now be converted to a TEC value 
+Each station phase represents an integrated TEC value 
 \begin_inset Formula $S_{i}$
 \end_inset 
 
-, and used in an equation to constrain the MIM.
- Again following the notation of equ 
-\begin_inset LatexCommand \ref{eq:normal}
+ between a radio antenna (station) and a bright source.
+ Referring to equ 
+\begin_inset LatexCommand \ref{eq: Si_generic}
 
 \end_inset 
 
-, and with reference to equ 
-\begin_inset LatexCommand \ref{eq: Si_GPS}
-
-\end_inset 
-
-, we can write:
+ above, the Q-term for the case of a astronomical sample is:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-S_{i}=T_{i}+b+g+n_{i}\quad TECU\label{eq: Si_astro}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $T_{i}$
-\end_inset 
-
- is the true integrated TEC and 
-\begin_inset Formula $g$
-\end_inset 
-
- is the station gain (GJones).
- If we replace it by the model function 
-\begin_inset Formula $M_{i}$
-\end_inset 
-
-, we have a new equation for to be used in our solution:
-\layout Standard
-
-
-\begin_inset Formula \[
-\Delta_{i}=S_{i}-M_{i}=\cdots\]
+Q_{i}=b_{0}+p_{i}\label{eq: Qi_astro}\end{equation}
 
 \end_inset 
 
@@ -1613,6 +1575,85 @@ Atmosphere...
  
 \layout Section
 
+Applications of the MIM
+\layout Standard
+
+Our first concern is radio astronomy calibration.
+ See section 
+\begin_inset LatexCommand \ref{sec:LOFAR-procedure}
+
+\end_inset 
+
+.
+ The MIM is used for:
+\layout Itemize
+
+Tracking the ionosphere to within a radian of phase.
+\layout Itemize
+
+Combining astronomical and GPS measurements.
+\layout Itemize
+
+Faraday calibration (absolute TEC).
+\layout Itemize
+
+Source subtraction (Cat II).
+\layout Itemize
+
+Imaging (facet and otherwise).
+\layout Standard
+
+In addition, there are other applications of the MIM.
+ These will be discussed at a European conference in Sweden in 2008, which
+ might lead to a European collaboration, e.g.
+ for the exploitation of GPS/Galileo data.
+ 
+\layout Enumerate
+
+
+\series bold 
+Ionosphere research.
+
+\series default 
+ Methods are needed to 'invert' the MIM into a 3D ionosphere.
+ This is an interesting problem, but outside the scope of this document.
+ In any case, looking at what is available at present, we may safely say
+ that the use of any byproduct of LOFAR ionosphere calibration will vastly
+ increase the resolution (in space and time) of ionospheric data.
+ We may enter a symbiotic relationship, where they supply GPS data, and
+ get LOFAR calibration data in return.
+ 
+\layout Enumerate
+
+
+\series bold 
+Position determination.
+
+\series default 
+ Improve the 16 cm accuracy (1 TECU) that is available now.
+ First by using the MIM to combine the measurements from an array of GPS
+ stations to reach 0.01 TECU (1.6 mm).
+ This is already intersting for building contractors.
+ The accuracy may be improved even further by adding astronomical data.
+ Applications for navigation?
+\layout Enumerate
+
+
+\series bold 
+As a general principle
+\series default 
+.
+ The MIM principle endeavours to impose a 'harmonizing' constraint on a
+ (possibly heterogeneous) set of measurements, which maximizes internal
+ consistency with a minimum number of assumptions (or parameters).
+ Such a principle may be useful in many areas, especially if we can offer
+ a generic implementation (e.g.
+ in MeqTrees).
+\layout Standard
+
+Etc
+\layout Section
+
 Possible LOFAR procedure(s)
 \begin_inset LatexCommand \label{sec:LOFAR-procedure}
 
@@ -1693,12 +1734,23 @@ Discuss the other MIM-approaches, with piercing points (Maaijke, Ilse, JEN),
  and 2.5D ionospheres (James)....
 \layout Section
 
-The way forward
+Things to do
+\begin_inset LatexCommand \label{sec:Things-to-do}
+
+\end_inset 
+
+
+\layout Subsection
+
+Things to be implemented
 \layout Standard
 
 MXM will make a series of MeqTree modules, based on the general framework
  described in this document.
  
+\layout Subsection
+
+Questions to be answered
 \layout Subsection
 
 List of simulations (done and to be done)
@@ -1776,6 +1828,201 @@ appendix
 \end_inset 
 
 
+\layout Section
+
+Some background
+\begin_inset LatexCommand \label{sec:Some-background}
+
+\end_inset 
+
+
+\layout Standard
+
+The ionosphere is an electrically charged 'layer' in the Earth atmosphere,
+ located roughly between 200-500 km altitude.
+ The propagation velocity of radio waves is (slightly) reduced by the electric
+ charge of its free electrons.
+ Since the density varies with position and time, this affects the phase
+ differences measured by radio interferometers, which use arrays of widely
+ spaced antennas.
+ If not corrected, such phase errors may cause significant blurring and
+ distortions in the resulting image of the radio sky.
+ Moreover, since the propagation velocity is slightly different for right
+ and left circular polarization, the ionosphere also causes Faraday rotation,
+ i.e.
+ a rotation of the plane of linear
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Linear and circular polarization are two representations of the same e.m.
+ wave.
+ One representation can simply be converted into the other.
+ They are used interchangeably here because Faraday rotation is usually
+ expressed as the rotation of a plane, while the difference in propagation
+ velocity is most easily described using the circular representation.
+\end_inset 
+
+ polarization.
+\layout Standard
+
+The relevant quantity is 
+\begin_inset Formula $T$
+\end_inset 
+
+, the integrated Total Electron Content (TEC) along the propagation path,
+ measured in TEC units (TECU) of 
+\begin_inset Formula $10^{16}$
+\end_inset 
+
+ electrons per square meter.
+ Typical values range from 5 TECU (nighttime) to 50 TECU (daytime).
+ 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+TEC=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
+
+\end_inset 
+
+
+\layout Subsection
+
+Phase
+\begin_inset LatexCommand \label{sub:Phase}
+
+\end_inset 
+
+
+\layout Standard
+
+The conversion formula from TEC to phase is:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\phi\approx-25\lambda T\quad rad\label{eq: TEC2rad}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+So a TECU corresponds to a phase of -100 rad @ 75 MHz (
+\begin_inset Formula $\lambda=4$
+\end_inset 
+
+m), or -5 rad @ 1400 MHz (21cm).
+ It should be remembered here that the effect on a radio interferometer
+ will be much less than this, because it measures phase 
+\emph on 
+differences
+\emph default 
+.
+ 
+\layout Subsection
+
+Delay (position)
+\begin_inset LatexCommand \label{sub:Delay-(position)}
+
+\end_inset 
+
+
+\layout Standard
+
+The conversion formula from TEC to delay length is:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+d=\lambda\frac{\phi}{2\pi}\approx-4\lambda^{2}T\quad m\label{eq: TEC2meter}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+So a TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm @ 1400 MHz.
+ Since the latter is roughly the frequency of the GPS carrier wave, 16 cm
+ is the position accuracy obtained with a single 2-frequency GPS receiver,
+ which has an accuracy of about 1 TECU.
+ 
+\layout Standard
+
+Finally, the conversion formula from TEC to Faraday rotation also depends
+ on the strength of the Earth magnetic field, and its orientation w.r.t.
+ to the propagation path.
+ See section 
+\begin_inset LatexCommand \ref{sec:Faraday-rotation}
+
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Faraday rotation
+\begin_inset LatexCommand \label{sec:Faraday-rotation}
+
+\end_inset 
+
+
+\layout Standard
+
+Just like the phase, the ionospheric Faraday rotation is related to the
+ integrated TEC.
+ However, it also depends on the angle between the line-of-sight and the
+ local Earth magnetic field.
+ In addition, it require the 
+\series bold 
+absolute
+\series default 
+ TEC (an interferometer measures phase 
+\emph on 
+differences
+\emph default 
+).
+\layout Standard
+
+Faraday rotation angle:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\theta=RM\times\lambda^{2}\quad rad\label{eq: farot}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which the Rotation Measure (RM):
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+RM=\int N_{e}\vec{B}.\vec{dl}\quad rad/m^{2}\label{eq: RM}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The Earth ionosphere can cause a RM of up to 
+\begin_inset Formula $3-4\quad rad/m^{2}$
+\end_inset 
+
+.
+ Note that we do not discuss the intrinsic RM of an astronomical source,
+ which can have much higher values.
+ 
+\layout Standard
+
+Finally, all satellites use Lefthand Circular Polarization (LCP).
+ This is a pity, because a mix of LCP and RCP would allow us to measure
+ Faraday Rotation.
 \layout Section
 
 Does the MIM exist?
@@ -2009,19 +2256,19 @@ Referring to fig
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times Z_{lx}\label{eq: deriv_lx}\end{equation}
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times H_{lx}\label{eq: deriv_lx}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial M}{\partial m}=\frac{\partial M}{\partial y}\times Z_{my}\label{eq: deriv_my}\end{equation}
+\frac{\partial M}{\partial m}=\frac{\partial M}{\partial y}\times H_{my}\label{eq: deriv_my}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial^{2}M}{\partial l\partial m}=\frac{\partial^{2}M}{\partial x\partial y}\times Z_{lmxy}\label{eq: deriv_lmxy}\end{equation}
+\frac{\partial^{2}M}{\partial l\partial m}=\frac{\partial^{2}M}{\partial x\partial y}\times H_{lmxy}\label{eq: deriv_lmxy}\end{equation}
 
 \end_inset 
 
@@ -2037,10 +2284,15 @@ If the base-functions selected for the MIM function
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-, and added to the solution (see section ).
+, and added to the solution matrix (see section 
+\begin_inset LatexCommand \ref{sec:Solving-for-MIM}
+
+\end_inset 
+
+).
 \layout Standard
 
-The assumptions about the ionosphere are in the 'proportionality function'
+Any assumptions about the ionosphere are in the 'proportionality function'
  
 \begin_inset Formula $H$
 \end_inset 
@@ -2052,14 +2304,14 @@ The assumptions about the ionosphere are in the 'proportionality function'
 \end_inset 
 
  above a flat Earth, we have 
-\begin_inset Formula $H=h/cos(z)$
+\begin_inset Formula $H=H(h,z)=h/cos(z)$
 \end_inset 
 
 , where 
 \begin_inset Formula $z$
 \end_inset 
 
- is the zenith angle (see fig 
+ is the zenith angle (see aslo fig 
 \begin_inset LatexCommand \ref{cap: MIM derivatives}
 
 \end_inset 
@@ -2270,74 +2522,6 @@ The MIM approach deals automatically with changing patterns because we solve
 .
 \layout Section
 
-Faraday rotation
-\begin_inset LatexCommand \label{sec:Faraday-rotation}
-
-\end_inset 
-
-
-\layout Standard
-
-Just like the phase, the ionospheric Faraday rotation is related to the
- integrated TEC.
- However, it also depends on the angle between the line-of-sight and the
- local Earth magnetic field.
- In addition, it require the 
-\series bold 
-absolute
-\series default 
- TEC (an interferometer measures phase 
-\emph on 
-differences
-\emph default 
-).
-\layout Standard
-
-Total electron content:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-TEC=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-Faraday rotation angle:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\theta=RM\times\lambda^{2}\quad rad\label{eq: farot}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which the Rotation Measure (RM):
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-RM=\int N_{e}\vec{B}.\vec{dl}\quad rad/m^{2}\label{eq: RM}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-The Earth ionosphere can cause a RM of up to 
-\begin_inset Formula $3-4\quad rad/m^{2}$
-\end_inset 
-
-.
- Note that we do not discuss the intrinsic RM of an astronomical source,
- which can have much higher values.
-\layout Section
-
 Special case: piercing point methods (JEN, MXM, IVB)
 \begin_inset LatexCommand \label{sec:Special-case:-piercing}
 
@@ -2413,9 +2597,16 @@ Relation to field-based calibration (Cotton, VLA)
 
 \layout Standard
 
+
+\series bold 
+NB: This is an important section, because it describes the most succesful
+ technique to date for radio-astronomical ionosphere calibration.
+ Not surprisingly, it is not un-MIM-like, but a real MIM can do better.
+\layout Standard
+
 Field-based calibration (cite ...) has been used succesfully by Cotton, Lazio
  and others to calibrate the ionosphere above the VLA.
- Expecially @ 74 MHz (
+ Especially @ 74 MHz (
 \begin_inset Formula $\lambda=4$
 \end_inset 
 
@@ -2424,13 +2615,48 @@ m,
 \end_inset 
 
 MHz).
- Make VLA snapshot images (~10 min) and determine the (relative!) positions
- of the two or more sources in the field that are bright enough to be detected.
- These are used to solve for the coefficients of a set of low-order Zernicke
- polynomials.
- The latter are then used to correct the uv-data (...how exactly...?) prior to
- making the final image.
+ The procedure is as follows:
+\layout Enumerate
+
+Every hour (or so), an instrumental calibration is done using the bright
+ source Cas A.
+ This removes the antenna-based phase errors, e
+\emph on 
+xcept for a linear phase-gradient over the array
+\emph default 
+, which is assumed to be caused by the ionosphere.
+\layout Enumerate
+
+Snapshot images are made every minute (or so), and the positions of the
+ sources in the field that are bright enough to be detected are measured.
+ These are compared to their catalog positions (NVSS, LVSS).
  
+\layout Enumerate
+
+The measured source position differences are converted into phase gradients.
+ These are then used to fit an overall phase-function 
+\emph on 
+in the image-plane
+\emph default 
+ (e.g.
+ a set of Zernike polynomials).
+ Fitting entails finding values for the coefficients of the base-functions,
+ so that the gradient is the same as the measured phase gradients.
+\layout Enumerate
+
+The end result is a group of time-series, each of which represents a time-depend
+ent parameter of the ionospheric phase-function.
+ 
+\layout Enumerate
+
+The ionospheric phase function represents an image-plane effect.
+ It is applied in the usual way, i.e.
+ by facet imaging.
+ The total FOV is divided up into a number of facets (in this case centered
+ on the source used).
+ The uv-data are corrected for the centre of a facet, and then transformed
+ to a small facet image.
+ These are then stitched together.
 \layout Standard
 
 The Zernicke polynomials are clearly a form of MIM.
@@ -2442,19 +2668,61 @@ The Zernicke polynomials are clearly a form of MIM.
  solution per antenna.
  It deteriorates for the outlying VLA antennas, i.e.
  for the longer baselines.
+ However, the technique has been quite succesful, but is limited by the
+ VLA sensitivity @ 74 MHz.
 \layout Standard
 
-However, the technique has been quite succesful, but is limited by the VLA
- sensitivity @ 74 MHz.
+Recently, Huib Intema has shown that a MIM-based approach (SPAM) gives better
+ results on the same data:
+\layout Itemize
+
+He 'peels' the brightest sources in the field, i.e.
+ he makes selfcal phase solutions for each source, in order of decreasing
+ brightness.
+ Contamination from other sources is minimized by subtracting them as well
+ as possible, i.e.
+ in each stage the data are dominated by a single source.
+ The integration time varies from 10s to a maximum of 5 min.
+ 
+\layout Itemize
+
+He then uses the 27 VLA antenna phases (x,y,z,l,m) to solve for MIM parameters,
+ i.e.
+ the coefficients of a set of simple polynomials.
+ 
+\layout Itemize
+
+Correction is the same, i.e.
+ per facet.
 \layout Standard
 
-Recently, Huib Intema has shown that a MIM-based approach gives better results
- on the same data.
- He 'peels' the brightest sources in the field, i.e.
- he makes selfcal phase solutions in order of decreasing brightness.
- He then uses the resulting antenna phases (x,y,z,l,m) to solve for MIM
- parameters.
- He then uses this MIM to ....?
+The result is shown in fig ...
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Field-based-calibration}
+
+\end_inset 
+
+Field-based calibration.
+\end_inset 
+
+
 \layout Standard
 
 
