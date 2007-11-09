@@ -24,7 +24,7 @@
 # Short description:
 # We read in a group of focal plane array beams, 
 # and form a combined, weighted beam. The weights
-# are found by getting complex values at specified
+# are found by getting complex values at a specified
 # L,M location in the X (|| poln) beams and then
 # taking the conjugate transpose.
 
@@ -49,6 +49,18 @@ from Meow import Bookmarks,Utils
 
 from numarray import *
 import os
+
+# get position of phase up point in L and M
+TDLCompileMenu('L and M position of phased-up beam',
+  TDLOption('l_beam','L position of beam (in units of FWHM)',[0,1,2,3],more=float),
+  TDLOption('m_beam','M position of beam (in units of FWHM)',[0,1,2,3],more=float),
+);
+
+# get directory with GRASP focal plane array beams
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180'],more=str)
+
+# get number of GRASP beams to use in FPA simulation
+TDLCompileOption('num_beams','number of focal plane antennas',[30, 90])
 
 #setup a bookmark for display of results with a 'Collections Plotter'
 Settings.forest_state = record(bookmarks=[
@@ -84,48 +96,18 @@ def tpolc (tdeg,c00=0.0):
 ########################################################
 def _define_forest(ns):  
 
-  # define location for phase-up
-# BEAM_LM = [(0.0,0.0)]                # xntd_0
-# BEAM_LM = [(0.00543675,0.0)]         # xntd_0_a
-# BEAM_LM = [(0.0108735,0.0)]          # xntd_1
-# BEAM_LM = [(0.01631025,0.0)]         # xntd_1_a
-# BEAM_LM = [(0.021747,0.0)]           # xntd_2
-# BEAM_LM = [(0.02718375,0.0)]         
-# BEAM_LM = [(0.032620,0.0)]           # xntd_3
-# BEAM_LM = [(0.038057,0.0)]           # xntd_3_a
-# BEAM_LM = [(0.043494,0.0)]           # xntd_4
-# BEAM_LM = [(0.04893075,0.0)]           # xntd_4
-# BEAM_LM = [(0.0543675,0.0)]           # xntd_4
-# BEAM_LM = [(0.05980425,0.0)]           # xntd_4
-  BEAM_LM = [(0.065241,0.0)]           # xntd_4
-# BEAM_LM = [(0.0761145,0.0)]           # xntd_4
-# BEAM_LM = [(0.0, 0.0108735)]         # xntd_m_1
-# BEAM_LM = [(0.0, 0.021747)]          # xntd_m_2
-# BEAM_LM = [(0.0, 0.032620)]          # xntd_m_3
-# BEAM_LM = [(0.0, 0.043494)]          # xntd_m_4
-# BEAM_LM = [(0.0, 0.04893075)]          # xntd_m_4
-# BEAM_LM = [(-0.00543675,0.0)]         # xntd_0_a
-# BEAM_LM = [(-0.0108735,0.0)]          # xntd_1
-# BEAM_LM = [(-0.01631025,0.0)]         # xntd_1_a
-# BEAM_LM = [(-0.021747,0.0)]           # xntd_2
-# BEAM_LM = [(-0.02718375,0.0)]         
-# BEAM_LM = [(-0.032620,0.0)]           # xntd_3
-# BEAM_LM = [(-0.038057,0.0)]           # xntd_3_a
-# BEAM_LM = [(-0.043494,0.0)]           # xntd_4
-# BEAM_LM = [(-0.0543675,0.0)]           # xntd_4
-# BEAM_LM = [(-0.065241,0.0)]           # xntd_4
-# BEAM_LM = [(-0.0761145,0.0)]           # xntd_4
-# BEAM_LM = [(0.043494,0.043494)]           # xntd_3_a
-  l_beam,m_beam = BEAM_LM[0]
-  ns.l_beam_c << Meq.Constant(l_beam) 
-  ns.m_beam_c << Meq.Constant(m_beam)
-
   # constant for half-intensity determination
   ns.ln_16 << Meq.Constant(-2.7725887)
 
   # define desired half-intensity width of power pattern (HPBW)
-  # as we are fitting total intensity I pattern (here 74.8 arcmin)
-  ns.width << Meq.Constant(0.021747)                 
+  # as we are fitting total intensity I pattern (here .021 rad = 74.8 arcmin)
+  ns.fwhm << Meq.Constant(0.021747) # beam FWHM                 
+  ns.width_factor << Meq.Constant(1.0)
+  ns.width << ns.width_factor * ns.fwhm
+
+  # values for l_beam and m_beam are obtained from the TDLCompileMenu
+  ns.l_beam_c << ns.fwhm * l_beam
+  ns.m_beam_c << ns.fwhm * m_beam
 
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
@@ -137,34 +119,23 @@ def _define_forest(ns):
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
 # read in beam images
-  num_beams = 90
   BEAMS = range(0,num_beams)
-  home_dir = os.environ['HOME']
   # read in beam data
   beam_solvables = []
   parm_solvers = []
   for k in BEAMS:
   # read in beam data - y dipole
-    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
-    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
-    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
-    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+num_beams) +'_Im_y.fits' 
+    infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
+    infile_name_im_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
+    infile_name_re_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
+    infile_name_im_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_y.fits' 
     ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
     ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
     ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
-  # normalize
-    ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
-                  ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
-    ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
-    ns.y_im_max(k) <<Meq.Max(ns.y_im(k))
-    ns.norm_image_re_yy(k) << ns.image_re_yy(k) / ns.y_im_max(k)
-    ns.norm_image_im_yy(k) << ns.image_im_yy(k) / ns.y_im_max(k)
-    ns.norm_image_re_yx(k) << ns.image_re_yx(k) / ns.y_im_max(k)
-    ns.norm_image_im_yx(k) << ns.image_im_yx(k) / ns.y_im_max(k)
 
-    ns.resampler_image_re_yy(k) << Meq.Resampler(ns.norm_image_re_yy(k),dep_mask = 0xff)
-    ns.resampler_image_im_yy(k) << Meq.Resampler(ns.norm_image_im_yy(k),dep_mask = 0xff)
+    ns.resampler_image_re_yy(k) << Meq.Resampler(ns.image_re_yy(k),dep_mask = 0xff)
+    ns.resampler_image_im_yy(k) << Meq.Resampler(ns.image_im_yy(k),dep_mask = 0xff)
     ns.sample_wt_re_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_yy(k)],common_axes=[hiid('l'),hiid('m')])
     ns.sample_wt_im_y(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
     # I want to solve for these parameters
@@ -183,34 +154,23 @@ def _define_forest(ns):
 
     ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
 
-    ns.beam_yx(k) << Meq.ToComplex(ns.norm_image_re_yx(k), ns.norm_image_im_yx(k)) 
-    ns.beam_yy(k) << Meq.ToComplex(ns.norm_image_re_yy(k), ns.norm_image_im_yy(k))
+    ns.beam_yx(k) << Meq.ToComplex(ns.image_re_yx(k), ns.image_im_yx(k)) 
+    ns.beam_yy(k) << Meq.ToComplex(ns.image_re_yy(k), ns.image_im_yy(k))
     ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
   # read in beam data - x dipole
-    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_y.fits' 
+    infile_name_re_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Re_x.fits'
+    infile_name_im_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Im_x.fits'
+    infile_name_re_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Re_y.fits'
+    infile_name_im_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Im_y.fits' 
     ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
     ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
     ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
     ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
 
-  # normalize
-    ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
-                  ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
-    ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
-    ns.x_im_max(k) <<Meq.Max(ns.x_im(k))
-    ns.norm_image_re_xx(k) << ns.image_re_xx(k) / ns.x_im_max(k)
-    ns.norm_image_im_xx(k) << ns.image_im_xx(k) / ns.x_im_max(k)
-    ns.norm_image_re_xy(k) << ns.image_re_xy(k) / ns.x_im_max(k)
-    ns.norm_image_im_xy(k) << ns.image_im_xy(k) / ns.x_im_max(k)
-
-
-    ns.resampler_image_re_xx(k) << Meq.Resampler(ns.norm_image_re_xx(k),dep_mask = 0xff)
-    ns.resampler_image_im_xx(k) << Meq.Resampler(ns.norm_image_im_xx(k),dep_mask = 0xff)
+    ns.resampler_image_re_xx(k) << Meq.Resampler(ns.image_re_xx(k),dep_mask = 0xff)
+    ns.resampler_image_im_xx(k) << Meq.Resampler(ns.image_im_xx(k),dep_mask = 0xff)
     ns.sample_wt_re_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_xx(k)],common_axes=[hiid('l'),hiid('m')])
     ns.sample_wt_im_x(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
     # I want to solve for these parameters
@@ -227,8 +187,8 @@ def _define_forest(ns):
 
     ns.beam_weight_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
 
-    ns.beam_xy(k) << Meq.ToComplex(ns.norm_image_re_xy(k), ns.norm_image_im_xy(k)) 
-    ns.beam_xx(k) << Meq.ToComplex(ns.norm_image_re_xx(k), ns.norm_image_im_xx(k))
+    ns.beam_xy(k) << Meq.ToComplex(ns.image_re_xy(k), ns.image_im_xy(k)) 
+    ns.beam_xx(k) << Meq.ToComplex(ns.image_re_xx(k), ns.image_im_xx(k))
     ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
     ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
 
@@ -296,7 +256,7 @@ def _test_forest(mqs,parent):
   f1 = 5000.0e6
 
   lm_range = [-0.15,0.15];
-  lm_num = 50;
+  lm_num = 101;
   counter = 0
   request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
