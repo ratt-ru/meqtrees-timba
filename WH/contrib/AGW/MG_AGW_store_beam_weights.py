@@ -254,7 +254,7 @@ def _define_forest(ns):
 
   ns.resampler_I << Meq.Resampler(ns.I_real)
   ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
-  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10,log_policy=100)
+  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10)
 
   if do_fit:
     ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.solver, ns.Ins_pol)
