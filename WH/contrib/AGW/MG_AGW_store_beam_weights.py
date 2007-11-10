@@ -57,10 +57,10 @@ TDLCompileMenu('L and M position of phased-up beam',
 );
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
 
 # get number of GRASP beams to use in FPA simulation
-TDLCompileOption('num_beams','number of focal plane antennas',[30, 90])
+#TDLCompileOption('num_beams','number of focal plane antennas',[30, 90])
 
 # get number of GRASP beams to use in FPA simulation
 TDLCompileOption('do_fit','make gaussian fit',[True, False])
@@ -124,11 +124,16 @@ def _define_forest(ns):
 
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
+  # number of beams is 30 or 90
+  if fpa_directory.find('30') >= 0:
+    num_beams = 30
+  else:
+    num_beams = 90
 # read in beam images
   BEAMS = range(0,num_beams)
-  # read in beam data
   beam_solvables = []
   parm_solvers = []
+  # read in beam data
   for k in BEAMS:
   # read in beam data - y dipole
     infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
