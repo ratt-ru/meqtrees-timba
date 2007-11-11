@@ -58,7 +58,7 @@ Settings.forest_state = record(bookmarks=[
 ])
 
 # to force caching put 100
-Settings.forest_state.cache_policy = 100
+#Settings.forest_state.cache_policy = 100
 
 # get position of phase up point in L and M
 TDLCompileMenu('L and M position of phased-up beam',
