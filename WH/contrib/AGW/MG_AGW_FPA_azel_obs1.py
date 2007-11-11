@@ -59,7 +59,7 @@ Settings.forest_state = record(bookmarks=[
 ]);
 
 # to force caching put 100
-Settings.forest_state.cache_policy = 100
+#Settings.forest_state.cache_policy = 100
 
 # define pseudo-VLA antenna list
 ANTENNAS = range(1,28);
@@ -72,14 +72,18 @@ I = 1; Q = .0; U = .0; V = .0;
 
 # location of 'phased up' beam
 #BEAM_LM = [(0.032620,0.0)]           # 1.5 x FWHM offset in L, 0 in M
-BEAM_LM = [(0.021747,0.0)]
+#BEAM_LM = [(0.021747,0.0)]
+#BEAM_LM = [(0.0307549, 0.0307549)]
+#BEAM_LM = [(0.043494,0.0)]
+BEAM_LM = [(0.038061,0.0)]
 
 # we'll put the sources on a grid (positions relative to beam centre in radians)
-LM_OFF = [(-0.0108735,-0.0108735),(-0.0108735,0),(-0.0108735,0.0108735),
-      ( 0,-0.0108735),( 0,0),( 0,0.0108735),
-      ( 0.0108735,-0.0108735),( 0.0108735,0),( 0.0108735,0.0108735)];
+#LM_OFF = [(-0.0108735,-0.0108735),(-0.0108735,0),(-0.0108735,0.0108735),
+#      ( 0,-0.0108735),( 0,0),( 0,0.0108735),
+#      ( 0.0108735,-0.0108735),( 0.0108735,0),( 0.0108735,0.0108735)];
 
-# LM_OFF = [(-0.0108735,0.0)]      # add 0.5 FWHM
+LM_OFF = [(0.0108735,0.0)]      # add 0.5 FWHM offset to beam position
+#LM_OFF = [(0.0,0.0)]      # add 0.5 FWHM offset to beam position
 SOURCES = range(len(LM_OFF));       # 0...N-1
 
 
@@ -121,15 +125,15 @@ def _define_forest(ns):
 
 # read in beam images
  # fit all 180 beams
-  BEAMS = range(0,30)
+  BEAMS = range(0,90)
   home_dir = os.environ['HOME']
   # read in beam data
   for k in BEAMS:
   # read in beam data - y dipole
-    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) + '_Re_x.fits'
-    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_x.fits'
-    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Re_y.fits'
-    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_y.fits' 
+    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) + '_Re_x.fits'
+    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Im_x.fits'
+    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Re_y.fits'
+    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Im_y.fits' 
     ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
     ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
@@ -158,10 +162,10 @@ def _define_forest(ns):
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
   # read in beam data - x dipole
-    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_y.fits' 
+    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) + '_Re_x.fits'
+    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_x.fits'
+    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Re_y.fits'
+    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_y.fits' 
     ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
     ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
     ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
@@ -248,8 +252,6 @@ def _define_forest(ns):
     ns.lm_prime(src) << Meq.LMN(ns.radec0, ns.RaDec(src), ns.ParAngle)
     ns.l_prime(src) << Meq.Selector(ns.lm_prime(src), index=0)
     ns.m_prime(src) << Meq.Selector(ns.lm_prime(src), index=1)
-#   ns.l_mean_pos(src) << ns.l_prime(src) - ns.l_mean_prime_beam
-#   ns.m_mean_pos(src) << ns.m_prime(src) - ns.m_mean_prime_beam
     ns.lm_offset(src) << Meq.Composer(ns.l_prime(src), ns.m_prime(src))
  
     # now compute the E-Jones voltage gains
@@ -267,7 +269,11 @@ def _define_forest(ns):
   for p,q in IFRS:
     # make per-source predicted visibilities
     for src in SOURCES:
-      ns.predict(p,q,src) << \
+      if p == 1 and q == 2 and src == 0: 
+        ns.predict(p,q,src) << \
+          Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src),log_policy=100);
+      else:
+        ns.predict(p,q,src) << \
           Meq.MatrixMultiply(ns.E(src),ns.K(p,src),ns.B(src),ns.Kt(q,src),ns.Et(src));
     predict = ns.predict(p,q) << Meq.Add(*[ns.predict(p,q,src) for src in SOURCES]);
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
@@ -278,15 +284,16 @@ def _define_forest(ns):
 
 
 ########################################################################
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
 # now observe sources
   req = meq.request();
   req.input = record(
     ms = record(
 #     ms_name          = 'TEST_XNTD_30_960.MS',
-      ms_name          = 'TEST_CLAR_27-960.MS',
-      tile_size        = 5,
+#     ms_name          = 'TEST_CLAR_27-960.MS',
+      ms_name          = 'TEST_CLAR_27-1920.MS',
+      tile_size        = 1,
       selection = record(channel_start_index=0,
                              channel_end_index=0,
                              channel_increment=1,
@@ -300,11 +307,28 @@ def _test_forest(mqs,parent):
     )
   );
   # execute
-  mqs.execute('vdm',req,wait=False);
+  mqs.execute('vdm',req,wait=wait);
 
 #####################################################################
 
 if __name__=='__main__':
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # this starts a kernel.
+#  mqs = meqserver.default_mqs(wait_init=10);
+   mqs = meqserver.default_mqs(wait_init=10,extra=["-mt","2"])
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+
+ else:
   ns=NodeScope()
   _define_forest(ns)
   ns.Resolve()
