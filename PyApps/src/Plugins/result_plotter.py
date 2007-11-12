@@ -786,7 +786,6 @@ class ResultPlotter(GriddedPlugin):
         self._vells_data.StoreVellsData(self._rec,self.label)
 
       if self._vells_data.isVellsScalar():
-        print 'we have scalar data'
         if not self._visu_plotter is None:
           self._visu_plotter.hide()
         Message =  self._vells_data.getScalarString()
