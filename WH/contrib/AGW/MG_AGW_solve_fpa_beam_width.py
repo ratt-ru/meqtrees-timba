@@ -47,7 +47,7 @@ import os
 
 Settings.forest_state = record(bookmarks=[
   record(name='condeq',page=Bookmarks.PlotPage(
-      ["condeq"],
+      ["condeq"], ["width"],
   )),
 ])
 # to force caching put 100
