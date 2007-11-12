@@ -265,8 +265,6 @@ def _define_forest(ns):
     ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.solver, ns.Ins_pol)
   else:
     ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.Ins_pol)
- # ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver)
-
 
   # Note: we are observing with linearly-polarized dipoles. If we
   # want the aips++ imager to generate images in the sequence I,Q,U,V
@@ -292,7 +290,7 @@ def _test_forest(mqs,parent):
 # execute request
   mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=False);
 
-#####################################################################
+########################################################################
 def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
 
     """make multidimensional request, dom_range should have length 2 or be a list of
