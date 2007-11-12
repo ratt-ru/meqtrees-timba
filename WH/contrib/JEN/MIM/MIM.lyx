@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Collapsed
+status Open
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.91: 7 Nov 2007} % Date of Issue (
+theDOIssue}{Version 0.91: 12 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -389,6 +389,16 @@ hspace{0.5cm} A.
 \backslash 
 
 \layout Standard
+
+\backslash 
+hspace{0.5cm} O.M.
+\backslash 
+ Smirnov (ASTRON) 
+\backslash 
+
+\backslash 
+
+\layout Standard
 }
 \layout Standard
 % Define the Document Revision Table:
@@ -596,7 +606,6 @@ This document is very much a work in progress.
  (and other) observations, and other applications.
  In this stage, it still contains many blank spots, to be filled in by various
  members of our little MIM community.
- 
 \layout Standard
 
 We describe a scheme for the calibration of the ionosphere for radio astronomy.
@@ -746,20 +755,70 @@ postulate the existence
 \end_inset 
 
 .
- The position will usually be that of a GPS station or a radio telescope,
- perhaps expressed in 
-\begin_inset Formula $(longitude,latitude)$
+ The position will usually be that of a GPS station or a radio telescope/antenna
+/station 
+\begin_inset Formula $(r)$
 \end_inset 
 
-.
- The direction will often be that of a GPS satellite or an astronomical
- source, perhaps expressed in 
-\begin_inset Formula $(azimuth,elevation)$
+, defined in some coordinate system (see section 
+\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+
 \end_inset 
 
-.
+).
+ The direction 
+\begin_inset Formula $(rs)$
+\end_inset 
+
+ will often be from receiver 
+\begin_inset Formula $(r)$
+\end_inset 
+
+ towards a GPS satellite or an astronomical source 
+\begin_inset Formula $(s)$
+\end_inset 
+
+, defined in some coordinate system (section 
+\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+
+\end_inset 
+
+ again).
  Depending on the selected reference frame, the direction may change with
- time.
+ time
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+It is a bit unfortunate that all the relevant concepts (station, satellite,
+ source) start with an 's'.
+ Nevertheless, we will use an indexing scheme in which all receivers (stations,
+ antennas, telescopes) are indexed with 
+\begin_inset Formula $r$
+\end_inset 
+
+, and all sources (satellites, astronomical sources) with 
+\begin_inset Formula $s$
+\end_inset 
+
+.
+ A viewing direction from receiver 
+\begin_inset Formula $r$
+\end_inset 
+
+ toweards source 
+\begin_inset Formula $s$
+\end_inset 
+
+ will be indexed with 
+\begin_inset Formula $rs$
+\end_inset 
+
+.
+\end_inset 
+
+.
 \layout Standard
 
 For the moment, we will assume that such a function exists at all.
@@ -817,7 +876,7 @@ M=M(pp)=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation
 \layout Standard
 
 The requirement is that, for an arbitrary set of arguments 
-\begin_inset Formula $(x_{i},y_{i},z_{i},l_{i},m_{i},t)$
+\begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
 , the MIM function uses the current values of its parameters 
@@ -828,9 +887,13 @@ The requirement is that, for an arbitrary set of arguments
  
 \layout Standard
 
-The 'minimum' in MIM indicates on the one hand that we make minimal assumptions
- about (the structure of) the ionsphere, and on the other hand that we try
- to minimize the number of its parameters 
+The 
+\emph on 
+'minimum'
+\emph default 
+ in MIM indicates on the one hand that we make minimal assumptions about
+ (the structure of) the ionsphere, and on the other hand that we try to
+ minimize the number of its parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -953,13 +1016,19 @@ The MIM function
 
 
 \emph on 
-Ideally, the sampling function is so dense that 
+Ideally, the sampling function is sufficiently dense, so that 
 \begin_inset Formula $M$
 \end_inset 
 
- can be interpolated with confidence everywhere.
- Unfortunately, there are some largish gaps.
- And while it is always possible to increase the 
+ can be interpolated with confidence.
+ Unfortunately, there are some largish gaps, which will have to be bridged
+ somehow (see section 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+).
+ But while it is always possible to increase the 
 \series bold 
 horizontal
 \series default 
@@ -999,7 +1068,7 @@ Generating equations
 \layout Standard
 
 We solve for MIM parameters 
-\begin_inset Formula $p_{k}$
+\begin_inset Formula $p_{k}(t)$
 \end_inset 
 
 , and any 
@@ -1007,10 +1076,10 @@ We solve for MIM parameters
 measurement parameters
 \emph default 
  
-\begin_inset Formula $q_{m}$
+\begin_inset Formula $q_{m}(\lambda,t)$
 \end_inset 
 
-, by looking for those values of the 
+, by finding those values of the 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -1018,33 +1087,43 @@ measurement parameters
 \begin_inset Formula $q_{m}$
 \end_inset 
 
- that minimise the differences (residuals) at the sampling points 
-\begin_inset Formula $(x_{i},y_{i},z_{i},l_{i},m_{i})$
+ that minimize the differences (residuals) 
+\begin_inset Formula $\Delta_{rs}$
 \end_inset 
 
-, between the measured TEC values 
-\begin_inset Formula $S_{i}$
+ between measured and calculated TEC values at the sampling points 
+\begin_inset Formula $(x_{r},y_{r},z_{r},l_{rs},m_{rs})$
 \end_inset 
 
-, and the values 
-\begin_inset Formula $M_{i}$
+.
+ Samples are from receiver 
+\begin_inset Formula $r$
 \end_inset 
 
- calculated by the MIM function.
- Each sample of the MIM function, measured either with GPS or by astronomical
- means, is used to make a linear equation of the form:
+, in the direction of source 
+\begin_inset Formula $s$
+\end_inset 
+
+.
+ Each TEC sample, measured either with GPS or by astronomical means, is
+ used to make a linear equation of the form:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\Delta_{i}=M_{i}(pp)-S_{i}(qq)=\sum_{k}\frac{\partial M_{i}}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{i}}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
+\Delta_{rs}(\lambda,t)=M_{rs}(t)-S_{rs}(\lambda,t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{rs}(\lambda,t)}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-The variables in this equation are the incremental improvements 
+The 
+\emph on 
+variables
+\emph default 
+ in this equation, and thus the result of the solution, are the incremental
+ improvements 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
@@ -1053,63 +1132,37 @@ The variables in this equation are the incremental improvements
 \end_inset 
 
  of the parameters 
-\begin_inset Formula $p_{k}$
+\begin_inset Formula $p_{k}(t)$
 \end_inset 
 
  and 
+\begin_inset Formula $q_{m}(\lambda,t)$
+\end_inset 
+
+.
+ Note that all parameters depend on time 
+\begin_inset Formula $(t)$
+\end_inset 
+
+, but only the 
 \begin_inset Formula $q_{m}$
 \end_inset 
 
-.
- The notation 
-\begin_inset Formula $M(pp)$
-\end_inset 
-
- means that 
-\begin_inset Formula $M$
-\end_inset 
-
- is a function of zero or more parameters 
-\begin_inset Formula $p_{k}$
+ depend on 
+\begin_inset Formula $\lambda$
 \end_inset 
 
 .
- Similar for 
-\begin_inset Formula $S(qq)$
+ The measured sample value 
+\begin_inset Formula $S_{rs}$
 \end_inset 
 
-.
-\layout Standard
-
-When sampling the MIM-function using GPS (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
-
-\end_inset 
-
-) or astronomical means (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
-
-\end_inset 
-
-), we measure the integrated TEC from the position 
-\begin_inset Formula $(x,y,z)$
-\end_inset 
-
- of a station, in the direction 
-\begin_inset Formula $(l,m)$
-\end_inset 
-
- of a satellite or radio source.
- Whichever method we use, the value 
-\begin_inset Formula $S_{i}$
-\end_inset 
-
- (TECU) of this sample can be expressed as: 
+ can be expressed as: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-S_{i}(qq)=T_{i}+Q_{i}(qq)\quad TECU\label{eq: Si_generic}\end{equation}
+S_{rs}(\lambda,t)=T_{rs}(t)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
 
 \end_inset 
 
@@ -1117,7 +1170,7 @@ S_{i}(qq)=T_{i}+Q_{i}(qq)\quad TECU\label{eq: Si_generic}\end{equation}
 \layout Standard
 
 in which 
-\begin_inset Formula $T_{i}$
+\begin_inset Formula $T_{rs}(t)$
 \end_inset 
 
  is the 
@@ -1125,26 +1178,34 @@ in which
 true
 \emph default 
  integrated TEC, and 
-\begin_inset Formula $Q_{i}(qq)$
+\begin_inset Formula $Q_{rs}(\lambda,t,qq)$
 \end_inset 
 
- is an expression that contains any measurement parameters 
-\begin_inset Formula $q_{m}$
+ is an expression that contains 
+\emph on 
+measurement parameters
+\emph default 
+ 
+\begin_inset Formula $q_{m}(\lambda,t)$
 \end_inset 
 
 , and noise.
  Examples of 
+\begin_inset Formula $q$
+\end_inset 
+
+ are satellite-station bias values, or selfcal phase-zeroes, or antenna
+ phase errors introduced by the electronics or the troposphere.
+ Obviously, since 
+\begin_inset Formula $T_{rs}$
+\end_inset 
+
+ is just a value, which does not depend on the 
 \begin_inset Formula $q_{m}$
 \end_inset 
 
- are the satellite/station bias values, or selfcal phase-zeroes, or antenna
- phase errors introduced by the electronics or the troposphere.
- Obviously, since 
-\begin_inset Formula $T_{i}$
-\end_inset 
-
- is just a value, we have 
-\begin_inset Formula $\frac{\partial S_{i}}{\partial q_{m}}=\frac{\partial Q_{i}}{\partial q_{m}}$
+, we have 
+\begin_inset Formula $\frac{\partial S}{\partial q_{m}}=\frac{\partial Q}{\partial q_{m}}$
 \end_inset 
 
 .
@@ -1159,16 +1220,16 @@ true
 \end_inset 
 
  below, specific expressions for 
-\begin_inset Formula $Q_{i}(qq)$
+\begin_inset Formula $Q_{rs}$
 \end_inset 
 
  are given.
- If we replace 
-\begin_inset Formula $T_{i}$
+ If we replace the value 
+\begin_inset Formula $T_{rs}(t)$
 \end_inset 
 
- by the model function 
-\begin_inset Formula $M_{i}(pp)$
+ by the model expression 
+\begin_inset Formula $M_{rs}(t,pp)$
 \end_inset 
 
 , we can construct a new equation of the form of equ 
@@ -1179,9 +1240,12 @@ true
 , to be used in our MIM solution.
 \layout Standard
 
-It is often possible to include other information in the form of extra equations
-, provided such constraints can be expressed in terms of the parameters
- 
+It is often possible to include 
+\emph on 
+other information
+\emph default 
+ in the form of extra equations, provided such constraints can be expressed
+ in terms of the parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -1270,7 +1334,7 @@ NB: All the functionality discussed in this section is available in the
  solvers.
  e quality of the fit is expressed by chi-squared, i.e.
  the sum of the squares of the residuals: 
-\begin_inset Formula $\chi^{2}=\sum\Delta_{i}^{2}$
+\begin_inset Formula $\chi^{2}=\sum\Delta_{rs}^{2}$
 \end_inset 
 
  .
@@ -1333,19 +1397,30 @@ GPS satellites move in circular orbits around the Earth, with a radius of
 \layout Standard
 
 A sample 
-\begin_inset Formula $S_{i}$
+\begin_inset Formula $S_{rs}$
 \end_inset 
 
- represents the integrated TEC along the line-of-sight between a particual
- station-satellite pair 
-\begin_inset Formula $i$
+ represents the integrated TEC along the line-of-sight between a station
+ 
+\begin_inset Formula $r$
+\end_inset 
+
+ and satellite 
+\begin_inset Formula $s$
 \end_inset 
 
 .
- The station will have a fixed and accurately known Earth position (x,y,z),
- while the viewing direction (l,m) changes.
+ The station will have a fixed and accurately known Earth position 
+\begin_inset Formula $(x_{r},y_{r},z_{r})$
+\end_inset 
+
+, while the viewing direction 
+\begin_inset Formula $(l_{rs},m_{rs})$
+\end_inset 
+
+ changes with time.
  Using a 2-frequency technique, a virtually instantaneous estimate 
-\begin_inset Formula $S_{i}$
+\begin_inset Formula $S_{rs}$
 \end_inset 
 
  of the integrated TEC may be made with a fundamental measurement 
@@ -1356,16 +1431,20 @@ A sample
  Unfortunately, this is complicated by an unknown bias, which slowly drifts
  in time.
  Referring to equ 
-\begin_inset LatexCommand \ref{eq: Si_generic}
+\begin_inset LatexCommand \ref{eq: Srs_generic}
 
 \end_inset 
 
- above, the Q-term for the case of a GPS sample is:
+ above, the measured sample value 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+ for the GPS case can be expressed as: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-Q_{i}(qq)=q_{i}+q_{1j}t+q_{2j}t^{2}+\cdots+noise\label{eq: Qi_GPS}\end{equation}
+S_{rs}(t)=T_{rs}(t)+q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
 
 \end_inset 
 
@@ -1380,19 +1459,16 @@ Expressions for the derivatives
  Of course, the slow bias drift may be expressed by other functions than
  these low-order polynomials.
  Note that the constant 
-\begin_inset Formula $q_{i}$
+\begin_inset Formula $q_{rs}$
 \end_inset 
 
- is associated with the station-satellite pair 
-\begin_inset Formula $i$
-\end_inset 
-
-, while the drift parameters 
-\begin_inset Formula $q_{j}$
+ is associated with the station-satellite pair, while the drift parameters
+ 
+\begin_inset Formula $q_{ir}$
 \end_inset 
 
  are associated with station 
-\begin_inset Formula $j$
+\begin_inset Formula $r$
 \end_inset 
 
 .
@@ -1592,15 +1668,11 @@ ation
  Using a model of the source, with the correct flux, polarization, position
  and shape (usually a point source), the phase error of each antenna may
  be determined with a 
-\emph on 
-relative(!)
-\emph default 
- accuracy 
-\begin_inset Formula $n_{i}$
+\begin_inset Formula $noise$
 \end_inset 
 
  of better than a degree, depending on the source brightness.
- This accuracy is much greater than the GPS accuracy.
+ This noise is much smaller than the GPS noise.
  Unfortunately, this is complicated by (at least one) unknown common phase
  offset.
  Fortunately, the same bias value 
@@ -1619,29 +1691,70 @@ relative(!)
 \layout Standard
 
 Each station phase 
-\begin_inset Formula $i$
+\begin_inset Formula $\phi_{rs}$
 \end_inset 
 
  represents an integrated TEC value 
-\begin_inset Formula $S_{i}$
+\begin_inset Formula $S_{rs}$
 \end_inset 
 
- between a station and a bright radio source.
+ between a station 
+\begin_inset Formula $r$
+\end_inset 
+
+ and a bright radio source 
+\begin_inset Formula $s$
+\end_inset 
+
+.
  Referring to equ 
-\begin_inset LatexCommand \ref{eq: Si_generic}
+\begin_inset LatexCommand \ref{eq: Srs_generic}
 
 \end_inset 
 
- above, the Q-term for the case of a astronomical sample is:
+ above, and remembering that 
+\begin_inset Formula $\phi\approx-25\lambda T$
+\end_inset 
+
+ (see section 
+\begin_inset LatexCommand \ref{sub:Ionospheric-phase}
+
+\end_inset 
+
+), the measured sample value 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+ for the astronomical case can be expressed as: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-Q_{i}(qq)=b_{0}+p_{i}+noise\label{eq: Qi_astro}\end{equation}
+S_{rs}(\lambda,t)=\frac{\phi_{rs}}{-25\lambda}=T_{rs}(t)+\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq))+noise\quad TECU\label{eq: Srs_astro}\end{equation}
 
 \end_inset 
 
 
+\layout Standard
+
+in which 
+\begin_inset Formula $(qq)$
+\end_inset 
+
+ indicates that the various phase-expressions 
+\begin_inset Formula $\phi$
+\end_inset 
+
+ may have measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ Note that all the phases are station-based, except the phase-zero offset,
+ which is shared by all stations.
+ 
+\emph on 
+This requires a little more work.....
 \layout Standard
 
 Just like the GPS case, we sample the MIM along a horizontal line in the
@@ -1926,6 +2039,12 @@ Things to do
 \end_inset 
 
 
+\layout Standard
+
+
+\emph on 
+NB: This is not exactly the same as Ilse's LIONS planning, but should be
+ synchronized with it....
 \layout Subsection
 
 Modules (to be) implemented
@@ -2062,16 +2181,21 @@ Interferometry and Synthesis in Radio Astronomy
 \emph default 
  (1994)
 \layout Bibliography
-\bibitem {JEN-2004}
+\bibitem {JEN peeling}
+
+J.E.
+ Noordam, Peeling, LOFAR document (2002)
+\layout Bibliography
+\bibitem {JEN MIM}
 
 J.E.
  Noordam, 
 \emph on 
 MIM
 \emph default 
-, LOFAR document (may 2004)
+, LOFAR document (2004)
 \layout Bibliography
-\bibitem {JMA-2007}
+\bibitem {Anderson}
 
 J.M.
  Anderson, 
@@ -2080,14 +2204,14 @@ various MIM papers and presentations
 \emph default 
  (2004-2007)
 \layout Bibliography
-\bibitem {MXM-2007}
+\bibitem {Mevius 0.01 TECU}
 
 M.
  Mevius, 
 \emph on 
 getting to 0.01 TECU (2007)
 \layout Bibliography
-\bibitem {SVT-2007}
+\bibitem {SVT base functions}
 
 S.
  van der Tol, 
@@ -2100,7 +2224,7 @@ W.Cotton,
 \emph on 
 field-based calibration (2003)
 \layout Bibliography
-\bibitem {HXI-2007}
+\bibitem {Intema SPAM}
 
 H.
  Intema, 
@@ -2109,13 +2233,13 @@ SPAM
 \emph default 
 , (2007)
 \layout Bibliography
-\bibitem {IVB-2007}
+\bibitem {Bemmel LIONS}
 
 I.
  van Bemmel, H.A.
  Rottgering, 
 \emph on 
-Leiden simulation plan
+LIONS
 \emph default 
  (2007)
 \layout Bibliography
@@ -2128,7 +2252,7 @@ GPS position determination
 \emph default 
  (2007)
 \layout Bibliography
-\bibitem {JAE-2008}
+\bibitem {JAE GPS network NL}
 
 J.A.
  van Enst, 
@@ -2137,12 +2261,12 @@ Survey of GPS stations around LOFAR
 \emph default 
  (2008)
 \layout Bibliography
-\bibitem {WAB-2008}
+\bibitem {Baan conf2008}
 
 W.A.
  Baan, European collaboration in ionospheric research (2008)
 \layout Bibliography
-\bibitem {JEN-2006}
+\bibitem {JEN framework}
 
 J.E.
  Noordam, 
@@ -2150,6 +2274,18 @@ J.E.
 LOFAR Calibration Framework, LOFAR document
 \emph default 
  (oct 2006)
+\layout Bibliography
+\bibitem {key-15}
+
+..
+\layout Bibliography
+\bibitem {key-16}
+
+..
+\layout Bibliography
+\bibitem {key-17}
+
+..
 \layout Standard
 
 
@@ -2203,9 +2339,15 @@ The ionosphere is an electrically charged 'layer' in the Earth atmosphere,
  located roughly between 100-500 km altitude.
  The propagation velocity of radio waves is (slightly) reduced by the electric
  charge of its free electrons.
- Since the electron density varies with position and time, this affects
- the phase differences measured by radio interferometers, which consist
- of arrays of widely spaced antennas.
+ Since the electron density, and thus the r
+\emph on 
+efractive index
+\emph default 
+, varies with 3D position, this causes an error in the 
+\emph on 
+phase difference
+\emph default 
+ measured by the two widely spaced antennas of a radio interferometer.
  If not corrected, such phase errors may cause significant blurring and
  distortions in the resulting image of the radio sky.
  Moreover, since the propagation velocity is slightly different for right
@@ -2232,23 +2374,41 @@ The relevant quantity is
 \begin_inset Formula $T$
 \end_inset 
 
-, the integrated Total Electron Content (TEC) along the propagation path,
- measured in TEC units (TECU) of 
+, the integrated Total Electron Content (TEC), i.e.
+ the electron density 
+\begin_inset Formula $N_{e}\quad(m^{-3})$
+\end_inset 
+
+ integrated along the propagation path 
+\begin_inset Formula $dl$
+\end_inset 
+
+: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+T=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+It is measured in TEC units (TECU) of 
 \begin_inset Formula $10^{16}$
 \end_inset 
 
  electrons per square meter.
  Typical values range from 5 TECU (nighttime) to 50 TECU (daytime).
- 
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-TEC=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
-
+ Note that the propagation path (or 'line-of-sight') will usually be slightly
+ curved, because of refraction.
+ At low elevation and frequency, the total bending angle 
+\begin_inset Formula $(\propto\lambda^{2})$
 \end_inset 
 
-
+ can be more than a degree.
+ 
 \layout Subsection
 
 Ionospheric phase
@@ -2259,7 +2419,35 @@ Ionospheric phase
 
 \layout Standard
 
-The conversion formula from TEC to phase is:
+The conversion formula from TEC to ionospheric phase (change) is
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The formula derived from equ 13.128 in 
+\begin_inset LatexCommand \cite{TMS}
+
+\end_inset 
+
+.
+ Since T is in 
+\begin_inset Formula $m^{-2}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ is in 
+\begin_inset Formula $m$
+\end_inset 
+
+, the constant (-25) cannot be dimensionless, but must be a length (m).
+ This is a little puzzling, but it seems to be allright....
+\end_inset 
+
+:
 \layout Standard
 
 
@@ -2277,13 +2465,29 @@ So an integrated TEC of 1 TECU causes the phase of a signal to change by
 \end_inset 
 
 m), or -5 rad @ 1400 MHz (21cm).
- It should be noted that the effect on a radio interferometer will be much,
- because it measures phase 
+ It should be noted that the effect on the phase of a radio interferometer
+ will be much smaller, because it measures phase 
 \emph on 
 differences
 \emph default 
  between two points in the incoming wavefront.
- So the interferometric phase error will be: 
+ So the 
+\emph on 
+interferometric phase
+\emph default 
+ error will be proportional of the 
+\emph on 
+differential
+\emph default 
+ TEC 
+\begin_inset Formula $\Delta T(\Delta x)$
+\end_inset 
+
+ between the positions 
+\begin_inset Formula $(x)$
+\end_inset 
+
+ of its two stations: 
 \layout Standard
 
 
@@ -2296,22 +2500,27 @@ differences
 \layout Standard
 
 For the common case of large-scale ionospheric structure, i.e.
- 'blobs' that are much larger than the array, there will be a (roughly)
- linear phase gradient over the array, which slowly changes in time: 
+ travelling 'blobs' that are much larger than the array, there will be a
+ (roughly) linear phase gradient over the array, which slowly changes in
+ time: 
 \begin_inset Formula $T\approx p_{0}(t)+p_{1}(t)\, x$
 \end_inset 
 
 , so 
-\begin_inset Formula $\Delta\phi\approx-25\lambda p_{1}(t)\,\Delta x$
+\begin_inset Formula $\Delta T\approx p_{1}(x)\Delta x$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta\phi\approx-25\lambda p_{1}(t)\Delta x$
 \end_inset 
 
 .
- So, at any given time, the the interferometric phase error will increase
+ Thus, at any given time, the the interferometric phase error will increase
  roughly linearly with baseline length 
 \begin_inset Formula $\Delta x$
 \end_inset 
 
- (and with wavelength 
+ (and linearly with wavelength 
 \begin_inset Formula $\lambda$
 \end_inset 
 
@@ -2321,8 +2530,11 @@ For the common case of large-scale ionospheric structure, i.e.
 
  becomes comparable to the scale size of the blobs.
  Often, this will be several 100 km.
- For a Travelling Ionospheric Disturbance (TID), we may express the phase
- gradient parameter as 
+ For a 
+\series bold 
+Travelling Ionospheric Disturbance (TID)
+\series default 
+, we may express the phase gradient parameter as 
 \begin_inset Formula $p_{1}(t)=A\: sin(2\pi t/P)$
 \end_inset 
 
@@ -2359,7 +2571,15 @@ An ionospheric blob with a size of 250 km, and a travelling velocity of
 \end_inset 
 
  rad/s/km.
- 
+ Obviously, both 
+\begin_inset Formula $A$
+\end_inset 
+
+ and 
+\begin_inset Formula $P$
+\end_inset 
+
+ will change slowly in time.
 \layout Subsection
 
 Ionospheric delay
@@ -2370,7 +2590,13 @@ Ionospheric delay
 
 \layout Standard
 
-The conversion formula from TEC to delay length is:
+The conversion formula from TEC to ionospheric delay (length, not time)
+ is easily derived from equ 
+\begin_inset LatexCommand \ref{eq: TEC2rad}
+
+\end_inset 
+
+:
 \layout Standard
 
 
@@ -2382,28 +2608,33 @@ L=\lambda\frac{\phi}{2\pi}\approx-4\lambda^{2}T\quad m\label{eq: TEC2meter}\end{
 
 \layout Standard
 
-So a TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm @ 1400 MHz.
- Since the latter is roughly the frequency of the GPS carrier wave, 16 cm
- is the position accuracy obtained with a single 2-frequency GPS receiver,
- which has an accuracy of about 1 TECU.
- 
+So, a TEC of one TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm
+ @ 1400 MHz.
+ Since the latter is roughly the frequency of the GPS carrier wave, we can
+ also say that an error of one TECU in a TEC measurement would cause a position
+ error of 16 cm.
 \layout Standard
 
-Obviously, the error will be smaller for the determination of 
+Like the differential phase in section 
+\begin_inset LatexCommand \ref{sub:Ionospheric-phase}
+
+\end_inset 
+
+, the error will be smaller for the determination of 
 \emph on 
 relative
 \emph default 
  positions, i.e.
- w.r.t.
+ the position w.r.t.
  another station with an accurately known position.
- The magnitude of the error will increase with the distance to this reference
- station.
+ Obviously, the magnitude of this error will increase with the distance
+ to this reference station.
  For a large-scale ionosphere (see section 
 \begin_inset LatexCommand \ref{sub:Ionospheric-phase}
 
 \end_inset 
 
-) the error will be 
+ again) the error will be 
 \begin_inset Formula $\Delta L=-0.16\: p_{1}(t)\:\Delta x$
 \end_inset 
 
@@ -2416,9 +2647,26 @@ relative
 \begin_inset Formula $\Delta L=0.16$
 \end_inset 
 
- mm over 100m (ignoring non-ionospheric effects, like the troposphere!).
- This becomes interesting for building contractors.
- 
+ mm over 100m.
+ This becomes interesting for building contractors!
+\layout Standard
+
+
+\emph on 
+NB: We only talk here about the errors in position determination that are
+ caused by errors in TEC measurement (which may be also influenced by the
+ troposphere and station-satellite bias).
+ We do NOT discuss the effects of uncertainty in the position of GPS satellites,
+ which is about 30m (instantaneous).
+ But we assume (.?.) that this is corrected on-line in either the satellite
+ or the ground-station software, using a network of stations with well-known
+ positions.
+ Obviously, the accuracy of this correction will be limited by the ionosphere
+ and other effects, averaged out 
+\begin_inset Formula $(1/\sqrt{n})$
+\end_inset 
+
+ by using more stations.
 \layout Subsection
 
 Ionospheric Faraday rotation
@@ -2431,8 +2679,16 @@ Ionospheric Faraday rotation
 
 Just like the phase, the ionospheric Faraday rotation is related to the
  integrated TEC.
- However, it also depends on the angle between the line-of-sight and the
- local Earth magnetic field.
+ However, it also depends on the angle between the vecors of the line-of-sight
+ 
+\begin_inset Formula $\vec{dl}$
+\end_inset 
+
+ and the local Earth magnetic field 
+\begin_inset Formula $\vec{B}$
+\end_inset 
+
+.
  In addition, it require the 
 \series bold 
 absolute
@@ -2444,7 +2700,8 @@ differences
 ).
 \layout Standard
 
-Faraday rotation angle:
+The Faraday rotation angle (of the plane of linear polarization) is defined
+ as:
 \layout Standard
 
 
@@ -2468,19 +2725,66 @@ RM=\int N_{e}\vec{B}.\vec{dl}\quad rad/m^{2}\label{eq: RM}\end{equation}
 
 \layout Standard
 
-The Earth ionosphere can cause a RM of up to 
+Compare this to expresssion 
+\begin_inset LatexCommand \ref{eq: TEC}
+
+\end_inset 
+
+ for the TEC.
+ Note that the actual Earth magnetic field deviates significantly from the
+ simple dipole field of a bar magnet that is usually depicted.
+ The deviations in direction and strength vary as a position of Earth position
+ and altitude.
+ Fortunately the vector-field 
+\begin_inset Formula $\vec{B}$
+\end_inset 
+
+ is still smooth on the scale of LOFAR.
+ This means that, if the TEC is locally smooth (as we assume it to be most
+ of the time), the 
+\begin_inset Formula $RM$
+\end_inset 
+
+ will also be.
+ So we can use a MIM-like approach for its calibration, provided we can
+ find sufficient polarized sources to sample the 
+\emph on 
+MFM-function
+\emph default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Unfortunately, all satellites appear to use the same Lefthand Circular Polarizat
+ion (LCP).
+ This is a pity, because a mix of LCP and RCP would provide extra information
+ for measuring Faraday Rotation.
+\end_inset 
+
+.
+\layout Standard
+
+The Earth ionosphere can cause a 
+\begin_inset Formula $RM$
+\end_inset 
+
+ of up to 
 \begin_inset Formula $3-4\quad rad/m^{2}$
 \end_inset 
 
 .
- Note that we do not discuss the intrinsic RM of an astronomical source,
- which can have much higher values.
- 
-\layout Standard
+ Note that we do not discuss the 
+\emph on 
+intrinsic
+\emph default 
+ RM of an astronomical source, which can have much higher values.
+ The total (observed) quantity is simply the sum: 
+\begin_inset Formula $RM=RM_{intrinsic}+RM_{ionos}$
+\end_inset 
 
-Finally, all satellites use Lefthand Circular Polarization (LCP).
- This is a pity, because a mix of LCP and RCP would allow us to measure
- Faraday Rotation.
+.
 \layout Subsection
 
 Tropospheric effects
@@ -2727,6 +3031,7 @@ The purpose of the MIM function is to provide reasonably accurate values
  As we will see, this usually involves some assumptions about the 3D structure
  of the ionosphere, thereby making our MIM less 'minimal' than we would
  like.
+ That is why it is treated in this appendix.
 \layout Subsection
 
 Relations between MIM derivatives
@@ -3016,7 +3321,7 @@ The MIM approach deals automatically with changing patterns because we solve
 .
 \layout Section
 
-Special case: piercing point methods (JEN, MXM, IVB)
+Special case: piercing point methods (MXM, IVB)
 \begin_inset LatexCommand \label{sec: MIM variation: piercing points}
 
 \end_inset 
@@ -3059,14 +3364,14 @@ Special case: phase gradients (AGB, WSRT)
 \layout Standard
 
 With WSRT LFFFE observations, it is only possible to make a selfcal solution
- for individual telescope phases when there is a 3C source (10-100 Jy) in
- the field.
+ for 14 individual telescope phases when there is a 3C source (10-100 Jy)
+ in the field.
  In general, the brightest source is only 5 Jy or less (give S/N calculations).
  In those cases, the data must be corrected with the help of calibrator
  observations before and after.
  At 115 MHz, this would have led to a rather poor dynamic range, because
- even the benign ionosphere of the fall of 2004 causes appreciable phase
- gradients over the 3 km array.
+ even the benign ionosphere of the fall of 2004 causes appreciable and time-vari
+able phase gradients over the 3 km array.
  Fortunately, there was usually enough flux in the available sources to
  solve for this phase-gradient (one parameter).
 \layout Standard
@@ -3078,9 +3383,7 @@ This little anecdote contains the key to the reduction of observations with
  The point is that we should try to find the ionospheric model with the
  smallest number of parameters, which still describes the observed phases
  with sufficient accuracy.
- The latter means that the accuracy should be greatest in the direction
- of the brightest sources, which after all have to be subtracted with the
- greatest accuracy.
+ This is what the MIM endeavours to do.
 \layout Section
 
 Relation to field-based calibration (Cotton, VLA)
@@ -3098,8 +3401,13 @@ NB: This is an important section, because it describes the most succesful
  Not surprisingly, it is not un-MIM-like, but a real MIM can do better.
 \layout Standard
 
-Field-based calibration (cite ...) has been used succesfully by Cotton, Lazio
- and others to calibrate the ionosphere above the VLA.
+Field-based calibration 
+\begin_inset LatexCommand \cite{Cotton}
+
+\end_inset 
+
+ has been used succesfully by Cotton, Lazio and others to calibrate the
+ ionosphere above the VLA.
  Especially @ 74 MHz (
 \begin_inset Formula $\lambda=4$
 \end_inset 
@@ -3162,35 +3470,65 @@ The Zernicke polynomials are clearly a form of MIM.
  solution per antenna.
  It deteriorates for the outlying VLA antennas, i.e.
  for the longer baselines.
- However, the technique has been quite succesful, but is limited by the
- VLA sensitivity @ 74 MHz.
+ Nevertheless, field-based calibration has been quite succesful, but is
+ limited by the VLA sensitivity @ 74 MHz.
+ Recently, Cotton has been investigating alternative base-functions.
 \layout Standard
 
-Recently, Huib Intema has shown that a MIM-based approach (SPAM) gives better
- results on the same data:
+Recently, Huib Intema 
+\begin_inset LatexCommand \cite{Intema SPAM}
+
+\end_inset 
+
+ has shown that a MIM-based approach (SPAM) gives better results on the
+ same data:
 \layout Itemize
 
-He 'peels' the brightest sources in the field, i.e.
- he makes selfcal phase solutions for each source, in order of decreasing
- brightness.
- Contamination from other sources is minimized by subtracting them as well
- as possible, i.e.
- in each stage the data are dominated by a single source.
- The integration time varies from 10s to a maximum of 5 min.
+First, 27 antenna phases are obtained in the direction of each bright source.
+ This is done by peeling 
+\begin_inset LatexCommand \cite{JEN peeling}
+
+\end_inset 
+
+, i.e.
+ treating each source as though it is the only one in the field.
+ This is done in order of decreasing brightness.
+ Contamination from other sources is minimized by subtracting everything
+ but the 'peeling' source.
+ Depending on source brightness, the integration time of the solution is
+ varied from a minumin of 10s to a maximum of 5 min.
  
 \layout Itemize
 
-He then uses the 27 VLA antenna phases (x,y,z,l,m) to solve for MIM parameters,
- i.e.
+He then uses the 27 VLA antenna phases (x,y,z,l,m) in the direction of each
+ source (l,m) to solve for MIM parameters, i.e.
  the coefficients of a set of simple polynomials.
  
+\emph on 
+(..integration time..?)
 \layout Itemize
 
-Correction is the same, i.e.
+Correction is the same as in field-based calibration, i.e.
  per facet.
 \layout Standard
 
-The result is shown in fig ...
+The results of the two techniques are compared in fig 
+\begin_inset LatexCommand \ref{cap:Field-based-calibration}
+
+\end_inset 
+
+.
+ 
+\layout Standard
+
+SPAM has all the ingredients that concern us for LOFAR: peeling, choice
+ of MIM, solver integration times, visualization, etc.
+ It is a prime candidate for implementation in MeqTrees.
+ A possible improvement would be to express the antenna phases directly
+ in terms of the (much smaller number of) MIM parameters, and solving directly
+ for the latter.
+ However, this approach may clash with peeling.....
+ 
 \layout Standard
 
 
