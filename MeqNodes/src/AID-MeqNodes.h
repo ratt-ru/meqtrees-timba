@@ -543,6 +543,11 @@ const int AidMeqLST_int = -1726;
 const DMI::AtomicID AidMeqLog(-1397);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
 const int AidMeqLog_int = -1397;
 #endif
+#ifndef _defined_id_AidMeqLongLat
+#define _defined_id_AidMeqLongLat 1
+const DMI::AtomicID AidMeqLongLat(-1732);         // from /home/mevius/Timba/MeqNodes/src/LongLat.h:30
+const int AidMeqLongLat_int = -1732;
+#endif
 #ifndef _defined_id_AidMeqMatrixInvert22
 #define _defined_id_AidMeqMatrixInvert22 1
 const DMI::AtomicID AidMeqMatrixInvert22(-1522);  // from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30

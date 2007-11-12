@@ -140,6 +140,8 @@ DMI::BObj * __construct_MeqDataConcat (int n) { return n>0 ? new Meq::DataConcat
 DMI::BObj * __construct_MeqHistoryCollect (int n) { return n>0 ? new Meq::HistoryCollect [n] : new Meq::HistoryCollect; }
 #include "AzEl.h"
 DMI::BObj * __construct_MeqAzEl (int n) { return n>0 ? new Meq::AzEl [n] : new Meq::AzEl; }
+#include "LongLat.h"
+DMI::BObj * __construct_MeqLongLat (int n) { return n>0 ? new Meq::LongLat [n] : new Meq::LongLat; }
 #include "RandomNoise.h"
 DMI::BObj * __construct_MeqRandomNoise (int n) { return n>0 ? new Meq::RandomNoise [n] : new Meq::RandomNoise; }
 #include "GaussNoise.h"
@@ -508,6 +510,9 @@ DMI::BObj * __construct_MeqShapeletVisTf (int n) { return n>0 ? new Meq::Shapele
         AtomicID::registerId(-1551,"MeqAzEl")+
         TypeInfoReg::addToRegistry(-1551,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1551,__construct_MeqAzEl)+
+        AtomicID::registerId(-1732,"MeqLongLat")+
+        TypeInfoReg::addToRegistry(-1732,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1732,__construct_MeqLongLat)+
         AtomicID::registerId(-1384,"MeqRandomNoise")+
         TypeInfoReg::addToRegistry(-1384,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1384,__construct_MeqRandomNoise)+

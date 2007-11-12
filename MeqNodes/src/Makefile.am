@@ -13,7 +13,7 @@ LOCALSRCS = \
     MergeFlags.cc ReqSeq.cc ReqMux.cc LMRaDec.cc ParAngle.cc\
     ReductionFunction.cc Min.cc Max.cc Mean.cc \
     Sum.cc Product.cc NElements.cc Transpose.cc \
-    Stripper.cc DataCollect.cc DataConcat.cc HistoryCollect.cc AzEl.cc \
+    Stripper.cc DataCollect.cc DataConcat.cc HistoryCollect.cc AzEl.cc LongLat.cc\
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc Rms.cc \
     WSum.cc WMean.cc Negate.cc Invert.cc \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \

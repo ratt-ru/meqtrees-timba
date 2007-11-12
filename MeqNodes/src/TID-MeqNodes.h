@@ -825,6 +825,25 @@ namespace Meq { class Log; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqLongLat
+#define _defined_id_TpMeqLongLat 1
+const DMI::TypeId TpMeqLongLat(-1732);            // from /home/mevius/Timba/MeqNodes/src/LongLat.h:30
+const int TpMeqLongLat_int = -1732;
+namespace Meq { class LongLat; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::LongLat> : public TypeTraits<Meq::LongLat>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqLongLat_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::LongLat & ContainerReturnType;
+                typedef const Meq::LongLat & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqMatrixInvert22
 #define _defined_id_TpMeqMatrixInvert22 1
 const DMI::TypeId TpMeqMatrixInvert22(-1522);     // from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30

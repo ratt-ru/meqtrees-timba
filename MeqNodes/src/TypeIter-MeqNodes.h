@@ -86,6 +86,7 @@
         Do(Meq::DataConcat,arg) separator \
         Do(Meq::HistoryCollect,arg) separator \
         Do(Meq::AzEl,arg) separator \
+        Do(Meq::LongLat,arg) separator \
         Do(Meq::RandomNoise,arg) separator \
         Do(Meq::GaussNoise,arg) separator \
         Do(Meq::ZeroFlagger,arg) separator \
