@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 #
 # Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -33,8 +32,8 @@
 # shape as we track a specific off-boresight RA/DEC point over
 # an 8 hr 'VLA' observation. 
 
-# We use the phased up beam as the E-Jones to observe an array
-# of sources at specific L,M locations offset with respect to the
+# We use the phased up beam as the E-Jones to observe a source
+# at a specific L,M location offset with respect to the
 # centre of the phased-up beam.
 
 # History:
@@ -52,14 +51,33 @@ import Meow.Bookmarks
 
 import os
 import math
+Settings.forest_state.cache_policy = 100
+
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
   Meow.Bookmarks.PlotPage("Beams",["E_beam","resampler_E_beam"],["RaDec_beam","lm_offset:0"],["lmn_prime_beam","lmn_mean_beam"],["ParAngle","E:0"]),
   Meow.Bookmarks.PlotPage("Sinks",["sink:1:2","sink:2:4"],["sink:19:25","sink:20:27"])
 ]);
 
-# to force caching put 100
-#Settings.forest_state.cache_policy = 100
+# get position of phase up point in L and M
+TDLCompileMenu('L and M position of phased-up beam',
+  TDLOption('l_beam','L position of beam (in units of FWHM)',[0,1,2,3],more=float),
+  TDLOption('m_beam','M position of beam (in units of FWHM)',[0,1,2,3],more=float),
+);
+
+# get position of source with respect to beam in L and M
+TDLCompileMenu('L and M relative offset position of source',
+  TDLOption('l_off_beam','relative L position of source (in units of FWHM)',[0,0.25,0.5,0.75],more=float),
+  TDLOption('m_off_beam','relative M position of source (in units of FWHM)',[0,0.25,0.5,0.75],more=float),
+);
+
+
+# get directory with GRASP focal plane array beams
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+
+# define desired half-intensity width of power pattern (HPBW)
+# as we are fitting total intensity I pattern (here .021 rad = 74.8 arcmin)
+fwhm = 0.021747 # beam FWHM
 
 # define pseudo-VLA antenna list
 ANTENNAS = range(1,28);
@@ -70,35 +88,29 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 #I = 1; Q = .2; U = .2; V = .2;
 I = 1; Q = .0; U = .0; V = .0;
 
-# location of 'phased up' beam
-#BEAM_LM = [(0.032620,0.0)]           # 1.5 x FWHM offset in L, 0 in M
-#BEAM_LM = [(0.021747,0.0)]
-#BEAM_LM = [(0.0307549, 0.0307549)]
-#BEAM_LM = [(0.043494,0.0)]
-BEAM_LM = [(0.038061,0.0)]
-
 # we'll put the sources on a grid (positions relative to beam centre in radians)
 #LM_OFF = [(-0.0108735,-0.0108735),(-0.0108735,0),(-0.0108735,0.0108735),
 #      ( 0,-0.0108735),( 0,0),( 0,0.0108735),
 #      ( 0.0108735,-0.0108735),( 0.0108735,0),( 0.0108735,0.0108735)];
 
-LM_OFF = [(0.0108735,0.0)]      # add 0.5 FWHM offset to beam position
-#LM_OFF = [(0.0,0.0)]      # add 0.5 FWHM offset to beam position
+LM_OFF = [(l_off_beam,m_off_beam)]      # add 0.5 FWHM offset to beam position
 SOURCES = range(len(LM_OFF));       # 0...N-1
 
 
 ########################################################
 def _define_forest(ns):  
 
- # set up nodes for telescope array
- # first do phase center
+  # set up nodes for telescope array
+  # first do phase center
   ns.radec0 = Meq.Composer(ns.ra<<0,ns.dec<<0);
 
   # nodes for array reference position
   ns.xyz0 = Meq.Composer(ns.x0<<0,ns.y0<<0,ns.z0<<0);
 
   # parallactic angle node for boresight tracking position
-  ns.ParAngle << Meq.ParAngle(radec=ns.radec0, xyz=ns.xyz0)
+  # note: we multiply parallactic angle by -1 when applying
+  # rotation in LMN nodes below
+  ns.ParAngle << Meq.ParAngle(radec=ns.radec0, xyz=ns.xyz0) 
 
   # now define per-station stuff: XYZs and UVWs
   for p in ANTENNAS:
@@ -106,16 +118,16 @@ def _define_forest(ns):
     ns.xyz(p) << Meq.Composer(ns.x(p)<<0,ns.y(p)<<0,ns.z(p)<<0);
     ns.uvw(p) << Meq.Negate(Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p)));
 
-# obtain the RA, DEC of the beam at transit
-  l_beam,m_beam = BEAM_LM[0]
-  ns.l_beam  << Meq.Parm(l_beam,node_groups='Parm')
-  ns.m_beam  << Meq.Parm(m_beam,node_groups='Parm')
+  # compute RA, DEC of offset beam at transit
+  print 'transit beams l m ', l_beam * fwhm, ' ', m_beam * fwhm
+  ns.l_beam  << Meq.Parm(l_beam * fwhm,node_groups='Parm')
+  ns.m_beam  << Meq.Parm(m_beam * fwhm,node_groups='Parm')
   ns.lm_beam << Meq.Composer(ns.l_beam,ns.m_beam);
   ns.RaDec_beam << Meq.LMRaDec(radec_0=ns.radec0, lm=ns.lm_beam)
 
 # compute corresponding 'apparent' L,M position of feed in AzEl
 # system as function of parallactic angle
-  ns.lmn_prime_beam << Meq.LMN(ns.radec0, ns.RaDec_beam, ns.ParAngle)
+  ns.lmn_prime_beam << Meq.LMN(ns.radec0, ns.RaDec_beam, -1.0 * ns.ParAngle)
 
 # freeze beam position over 'tile' interval by getting the mean over interval
   ns.lmn_mean_beam << Meq.Mean(ns.lmn_prime_beam)
@@ -123,17 +135,19 @@ def _define_forest(ns):
   ns.m_mean_prime_beam << Meq.Selector(ns.lmn_mean_beam, index=1)
   ns.lm_mean_beam << Meq.Composer(ns.l_mean_prime_beam,ns.m_mean_prime_beam);
 
-# read in beam images
- # fit all 180 beams
-  BEAMS = range(0,90)
-  home_dir = os.environ['HOME']
+ # number of beams is 30 or 90
+  if fpa_directory.find('30') >= 0:
+    num_beams = 30
+  else:
+    num_beams = 90
+  BEAMS = range(0,num_beams)
   # read in beam data
   for k in BEAMS:
   # read in beam data - y dipole
-    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) + '_Re_x.fits'
-    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Im_x.fits'
-    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Re_y.fits'
-    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k+90) +'_Im_y.fits' 
+    infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
+    infile_name_im_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Im_x.fits'
+    infile_name_re_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_y.fits'
+    infile_name_im_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Im_y.fits' 
     ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
     ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
@@ -162,10 +176,10 @@ def _define_forest(ns):
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
   # read in beam data - x dipole
-    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa_180/fpa_pat_' + str(k) +'_Im_y.fits' 
+    infile_name_re_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Re_x.fits'
+    infile_name_im_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Im_x.fits'
+    infile_name_re_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Re_y.fits'
+    infile_name_im_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Im_y.fits' 
     ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
     ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
     ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
@@ -234,8 +248,8 @@ def _define_forest(ns):
  # location
   for src in SOURCES:
     l_off,m_off = LM_OFF[src];
-    l = l_beam + l_off
-    m = m_beam + m_off
+    l = fwhm * (l_beam + l_off)
+    m = fwhm * (m_beam + m_off)
     n = math.sqrt(1-l*l-m*m);
     ns.lmn_minus1(src) << Meq.Composer(l,m,n-1);
     # get intrinsic RA, DEC of sources
@@ -249,7 +263,7 @@ def _define_forest(ns):
 # compute corresponding 'apparent' L,M position of feed in AzEl
 # system as function of parallactic angle
 
-    ns.lm_prime(src) << Meq.LMN(ns.radec0, ns.RaDec(src), ns.ParAngle)
+    ns.lm_prime(src) << Meq.LMN(ns.radec0, ns.RaDec(src), -1.0 * ns.ParAngle)
     ns.l_prime(src) << Meq.Selector(ns.lm_prime(src), index=0)
     ns.m_prime(src) << Meq.Selector(ns.lm_prime(src), index=1)
     ns.lm_offset(src) << Meq.Composer(ns.l_prime(src), ns.m_prime(src))
@@ -281,8 +295,6 @@ def _define_forest(ns):
   # define VisDataMux
   ns.vdm << Meq.VisDataMux(*[ns.sink(p,q) for p,q in IFRS]);
 
-
-
 ########################################################################
 def _test_forest(mqs,parent,wait=False):
 
@@ -291,8 +303,10 @@ def _test_forest(mqs,parent,wait=False):
   req.input = record(
     ms = record(
 #     ms_name          = 'TEST_XNTD_30_960.MS',
-#     ms_name          = 'TEST_CLAR_27-960.MS',
-      ms_name          = 'TEST_CLAR_27-1920.MS',
+#     ms_name          = 'TEST_CLAR_27-1920.MS',
+#     ms_name          = 'TEST_CLAR_27-480.MS',
+      ms_name          = 'TEST_CLAR_27-240.MS',
+#     tile_size        = 120,
       tile_size        = 1,
       selection = record(channel_start_index=0,
                              channel_end_index=0,
