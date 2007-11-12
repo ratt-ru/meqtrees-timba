@@ -110,7 +110,7 @@ def _define_forest(ns):
 
 # compute corresponding 'apparent' L,M position of feed in AzEl
 # system as function of parallactic angle
-  ns.lm_prime_beam << Meq.LMN(ns.RADec0, ns.RaDec_beam, ns.ParAngle)
+  ns.lm_prime_beam << Meq.LMN(ns.RADec0, ns.RaDec_beam, -1.0 * ns.ParAngle)
   ns.l_prime_beam << Meq.Selector(ns.lm_prime_beam, index=0)
   ns.m_prime_beam << Meq.Selector(ns.lm_prime_beam, index=1)
   ns.l_m_beam << Meq.Composer(ns.l_prime_beam,ns.m_prime_beam);
@@ -249,7 +249,7 @@ def _define_forest(ns):
   ns.m << Meq.Grid(axis=3);     # returns m(m) = m
   ns.lm_pre_rot << Meq.Composer(ns.l,ns.m)    # returns an lm 2-vector
 
-  ns.P << Meq.Matrix22(Meq.Cos(pa),Meq.Sin(pa),-Meq.Sin(pa),Meq.Cos(pa)) 
+  ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa)) 
   ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
   ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
   ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
