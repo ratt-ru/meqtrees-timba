@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.91: 12 Nov 2007} % Date of Issue (
+theDOIssue}{Version 0.92: 15 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.0} 
+theRevNR} {0.92} 
 \layout Standard
 
 \backslash 
@@ -111,19 +111,13 @@ theProject} {LOFAR Project} % in the footer
 \backslash 
 renewcommand{
 \backslash 
-theVSigList}{o.p.v. 
-\backslash 
-
-\backslash 
-}
+theVSigList}{... }
 \layout Standard
 
 \backslash 
 renewcommand{
 \backslash 
-theVDateList}{
-\backslash 
-today}    % Date of Verification (
+theVDateList}{... }    % Date of Verification (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -131,11 +125,9 @@ today, 2004-Nov-25)
 \backslash 
 renewcommand{
 \backslash 
-theVRevList}{0.9 
+theVRevList}{
 \backslash 
-
-\backslash 
- 0.9.5}
+theRevNR}
 \layout Standard
 %
 \layout Standard
@@ -171,9 +163,7 @@ theAManagera}{J.E.
 \backslash 
 renewcommand{
 \backslash 
-theAManagerb}{C.M.
-\backslash 
- de Vos}
+theAManagerb}{??}
 \layout Standard
 
 \backslash 
@@ -225,7 +215,7 @@ hspace{0.5cm} J.M.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} I.
+hspace{0.5cm} I.M.
 \backslash 
  van Bemmel (IVB, RUL) 
 \backslash 
@@ -257,7 +247,7 @@ hspace{0.5cm} S.
 \backslash 
 hspace{0.5cm} M.
 \backslash 
- Pandey (MXP, RUL) 
+ Panday (MXP, RUL) 
 \backslash 
 
 \backslash 
@@ -267,7 +257,7 @@ hspace{0.5cm} M.
 \backslash 
 hspace{0.5cm} E.
 \backslash 
- Noordam (EXN, KIM) 
+ Noordam (EXN, NLDA) 
 \backslash 
 
 \backslash 
@@ -275,9 +265,9 @@ hspace{0.5cm} E.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} H.
+hspace{0.5cm} H.R.
 \backslash 
- Glockner (HXG, Oxford) 
+ Kloeckner (HRK, Oxford) 
 \backslash 
 
 \backslash 
@@ -407,11 +397,7 @@ hspace{0.5cm} O.M.
 \backslash 
 renewcommand{
 \backslash 
-revList} {0.9 
-\backslash 
-
-\backslash 
- 
+revList} {
 \backslash 
 theRevNR}
 \layout Standard
@@ -419,11 +405,7 @@ theRevNR}
 \backslash 
 renewcommand{
 \backslash 
-dateList} {2007-Nov-07 
-\backslash 
-
-\backslash 
- 
+dateList} {
 \backslash 
 theDOIssue}
 \layout Standard
@@ -431,27 +413,13 @@ theDOIssue}
 \backslash 
 renewcommand{
 \backslash 
-sectionList} {- 
-\backslash 
-
-\backslash 
- 
-\backslash 
-ref{Sec2}}
+sectionList} {- }
 \layout Standard
 
 \backslash 
 renewcommand{
 \backslash 
-pageList} {- 
-\backslash 
-
-\backslash 
- 
-\backslash 
-pageref{Sec2}-
-\backslash 
-pageref{Sec2e}}
+pageList} {- }
 \layout Standard
 
 \backslash 
@@ -461,7 +429,7 @@ changeList} {Creation
 \backslash 
 
 \backslash 
- Updated class description}
+ Improvement}
 \layout Standard
 %
 \layout Standard
@@ -565,6 +533,19 @@ vspace{2.0cm}
 
 An ionospheric model with a minimum number of parameters, and a minimum
  number of assumptions, is investigated.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
 \layout Standard
 
 
@@ -868,7 +849,7 @@ In principle, any set of smooth base functions will do for the MIM.
 
 
 \begin_inset Formula \begin{equation}
-M=M(pp)=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation}
+M=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation}
 
 \end_inset 
 
@@ -1105,64 +1086,16 @@ measurement parameters
 \end_inset 
 
 .
- Each TEC sample, measured either with GPS or by astronomical means, is
- used to make a linear equation of the form:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\Delta_{rs}(\lambda,t)=M_{rs}(t)-S_{rs}(\lambda,t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}-\sum_{m}\frac{\partial S_{rs}(\lambda,t)}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-The 
-\emph on 
-variables
-\emph default 
- in this equation, and thus the result of the solution, are the incremental
- improvements 
-\begin_inset Formula $\Delta p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $\Delta q_{m}$
-\end_inset 
-
- of the parameters 
-\begin_inset Formula $p_{k}(t)$
-\end_inset 
-
- and 
-\begin_inset Formula $q_{m}(\lambda,t)$
-\end_inset 
-
-.
- Note that all parameters depend on time 
-\begin_inset Formula $(t)$
-\end_inset 
-
-, but only the 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
- depend on 
-\begin_inset Formula $\lambda$
-\end_inset 
-
-.
- The measured sample value 
+ Each TEC sample 
 \begin_inset Formula $S_{rs}$
 \end_inset 
 
- can be expressed as: 
+, measured either with GPS or by astronomical means, can be expressed as:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-S_{rs}(\lambda,t)=T_{rs}(t)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
+S_{rs}(\lambda,t)=T_{rs}(t)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: STrs_generic}\end{equation}
 
 \end_inset 
 
@@ -1196,19 +1129,6 @@ measurement parameters
 
  are satellite-station bias values, or selfcal phase-zeroes, or antenna
  phase errors introduced by the electronics or the troposphere.
- Obviously, since 
-\begin_inset Formula $T_{rs}$
-\end_inset 
-
- is just a value, which does not depend on the 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
-, we have 
-\begin_inset Formula $\frac{\partial S}{\partial q_{m}}=\frac{\partial Q}{\partial q_{m}}$
-\end_inset 
-
-.
  In sections 
 \begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
 
@@ -1224,20 +1144,88 @@ measurement parameters
 \end_inset 
 
  are given.
- If we replace the value 
-\begin_inset Formula $T_{rs}(t)$
+ 
+\layout Standard
+
+If we now replace the true TEC 
+\begin_inset Formula $T_{rs}$
 \end_inset 
 
- by the model expression 
-\begin_inset Formula $M_{rs}(t,pp)$
+ with its model 
+\begin_inset Formula $M_{rs}$
 \end_inset 
 
-, we can construct a new equation of the form of equ 
-\begin_inset LatexCommand \ref{eq: normal}
+ (i.e.
+ the MIM), we get:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+S_{rs}(\lambda,t)=M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
 
 \end_inset 
 
-, to be used in our MIM solution.
+
+\layout Standard
+
+The residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ that are to be minimized can now be expressed as a linear equation of the
+ form:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta_{rs}(\lambda,t)=M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)-S_{rs}(\lambda,t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}(\lambda,t)}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The 
+\emph on 
+variables
+\emph default 
+ in this equation, and thus the result of the solution, are the incremental
+ improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+ of the parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ and 
+\begin_inset Formula $q_{m}(\lambda,t)$
+\end_inset 
+
+ (An improvement of a parameter value means that it leads to smaller residuals
+ 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+).
+ Note that all parameters depend on time 
+\begin_inset Formula $t$
+\end_inset 
+
+, but only the 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ depend on 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+.
+ 
 \layout Standard
 
 It is often possible to include 
@@ -1435,8 +1423,8 @@ A sample
 
 \end_inset 
 
- above, the measured sample value 
-\begin_inset Formula $S_{rs}$
+ above, the measurement function 
+\begin_inset Formula $Q_{rs}$
 \end_inset 
 
  for the GPS case can be expressed as: 
@@ -1444,7 +1432,7 @@ A sample
 
 
 \begin_inset Formula \begin{equation}
-S_{rs}(t)=T_{rs}(t)+q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
+Q_{rs}(t)=q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
 
 \end_inset 
 
@@ -1510,9 +1498,8 @@ The bias drift are probably caused by relatively cheap electonics, operating
  
 \end_inset 
 
-.
- Moreover, is the same for all TEC measurements made between that station
- and different satellites
+, so it is the same for all TEC measurements made between that station and
+ different satellites
 \begin_inset Foot
 collapsed true
 
@@ -1526,6 +1513,9 @@ This has been established on real data.
 .
  The problem is how to implement such long-term constraints.
  
+\series bold 
+(Brainwave: If we introduce deliberate station drifts, will that help to
+ separate real TECs from biases....?) 
 \layout Standard
 
 Note that, if we solve the bias problem, GPS measurements yield 
@@ -1721,8 +1711,8 @@ Each station phase
 
 \end_inset 
 
-), the measured sample value 
-\begin_inset Formula $S_{rs}$
+), the measurement function 
+\begin_inset Formula $Q_{rs}$
 \end_inset 
 
  for the astronomical case can be expressed as: 
@@ -1730,7 +1720,7 @@ Each station phase
 
 
 \begin_inset Formula \begin{equation}
-S_{rs}(\lambda,t)=\frac{\phi_{rs}}{-25\lambda}=T_{rs}(t)+\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq))+noise\quad TECU\label{eq: Srs_astro}\end{equation}
+Q_{rs}(\lambda,t)=\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq))+noise\quad TECU\label{eq: Srs_astro}\end{equation}
 
 \end_inset 
 
@@ -1754,7 +1744,7 @@ in which
  which is shared by all stations.
  
 \emph on 
-This requires a little more work.....
+(...This bit requires a little more work.....)
 \layout Standard
 
 Just like the GPS case, we sample the MIM along a horizontal line in the
@@ -1966,6 +1956,104 @@ Variation: Rapid re-pointing
 \layout Standard
 
 Still need MIM to harmonize the phase-offsets.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_simple_solver.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Simple-solver-diagram.}
+
+\end_inset 
+
+
+\emph on 
+Schematic, MIM solver diagram.
+ For each request (f,t), the solver collects a number of equations of the
+ general form of equ 
+\begin_inset LatexCommand \ref{eq: normal}
+
+\end_inset 
+
+.
+ It then solves (iteratively) for incremental improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+ of the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ and the measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+, until the residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ are minimized.
+ 
+\layout Standard
+
+
+\emph on 
+The solver gets three kinds of equations.
+ Two of them compare TEC measurements with their predicted values.
+ See equ 
+\begin_inset LatexCommand \ref{eq: Srs_GPS}
+
+\end_inset 
+
+ for GPS measurements, and equ 
+\begin_inset LatexCommand \ref{eq: Srs_astro}
+
+\end_inset 
+
+ for astronomical measurements.
+ Note that in the latter case we measure station phases, which are converted
+ to TEC using equ 
+\begin_inset LatexCommand \ref{eq: TEC2rad}
+
+\end_inset 
+
+.
+ The equations of the third kind (in the middle) represents constraints
+ like equs 
+\begin_inset LatexCommand \ref{eq: deriv_lx}
+
+\end_inset 
+
+, to bridge the gaps in the MIM sampling function.
+ They contain specific assumptions about ionospheric structure (see section
+ 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+).
+ 
+\end_inset 
+
+
 \layout Section
 
 Other applications of the MIM
@@ -2060,6 +2148,13 @@ MXM will make a series of MeqTree modules, based on the general framework
  In particular, there will be a strict separation of the generic parts,
  and the parts that require assumptions about the ionosphere.
  There will also be interfaces to both GPS data and uv-data.
+ 
+\layout Itemize
+
+If we want to exploit the frequency-dependence of the ionospheric phase
+ in astronomical TEC measurements (see fig ...), the LOFAR preprocessor must
+ be truly operational, i.e.
+ fast, reliable, and robust.
  
 \layout Itemize
 
@@ -3518,6 +3613,9 @@ The results of the two techniques are compared in fig
 \end_inset 
 
 .
+ Recently, Zernicke polynomials have been replaced with KL functions, giving
+ a much better (smoother) behaviour far from the sampling points.
+ Also, the noise in the final image was lower.
  
 \layout Standard
 
@@ -3556,13 +3654,17 @@ collapsed false
 
 \end_inset 
 
+
+\emph on 
 Comparison of the results of field-based calibration (Cotton, left) and
  the MIM-based SPAM method (Intema, right).
  In the latter, the two brightest sources have been subtracted better because
  ...
  Also, the final image is deeper, showing large-scale (short-baseline?)
  structure that is below the noise (or absent?) in the left image.
- For more details, see section 
+ For more details, see section
+\emph default 
+ 
 \begin_inset LatexCommand \ref{sec: Field-based-calibration}
 
 \end_inset 
