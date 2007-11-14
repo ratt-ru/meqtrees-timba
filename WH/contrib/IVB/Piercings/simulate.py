@@ -1,4 +1,6 @@
 # standard preamble
+#import sys
+#sys.path.insert(0,'')
 
 from Timba.TDL import *
 from Timba.Meq import meq
@@ -14,25 +16,35 @@ lsm = Meow.LSM.MeowLSM(include_options=False)
 meqmaker.add_sky_models([lsm])
 
 #import iono_model
-#import sky_models
+import sky_models
 import pierce_points
 import iono_model
 import NodeList
 
+# Oude versie
+# some GUI options
+Meow.Utils.include_ms_options(has_input=False,tile_sizes=[4,8,16,32]);
+# note how we set default image size based on grid size/step
+TDLRuntimeMenu("Imaging options",
+    *Meow.Utils.imaging_options(npix=512,arcmin=sky_models.imagesize(),channels=[[1,1,1]]));
+
+# Nieuwe versie
 # MS options first
-mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=False,hanning=True);
-# MS compile-time options
-TDLCompileOptions(*mssel.compile_options());
-# MS run-time options
-TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
-
+#mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,flags=False,hanning=True);
+## MS compile-time options
+#TDLCompileOptions(*mssel.compile_options());
+## MS run-time options
+#TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
 # very important -- insert meqmaker's options properly
-TDLCompileOptions(*meqmaker.compile_options());
+#TDLCompileOptions(*meqmaker.compile_options());
 
-channel_options = None
+##channel_options = [
+##        TDLOption('ms_channel_start',"First channel",[0],more=int),
+##        TDLOption('ms_channel_end',"Last channel",[0],more=int),
+##        TDLOption('ms_channel_step',"Channel stepping",[1,2],more=int)]
 
 # define antenna list
-ANTENNAS = mssel.get_antenna_set(range(1,28));
+ANTENNAS = range(1,25);
 
 def _define_forest (ns):
   # setup the objects for the simulated observation
@@ -42,7 +54,8 @@ def _define_forest (ns):
   Meow.Context.set(array=array,observation=observation);
     
   # create source list
-  sources = meqmaker.get_source_list(ns);
+  sources = sky_models.make_model(ns,"S0");
+  #sources = meqmaker.get_source_list(ns);
 
   # now that we have the stations and the sources, the piercing points can be calculated
   # this returns the pierce point coordinates in ECEF, each of class PointSource
@@ -63,17 +76,17 @@ def _define_forest (ns):
 
 
   #***************Make a bunch of plots***********************************
-  # All the nodes used here are defined in pierce_points.compress_nodes
-  # First for the array
+##  # All the nodes used here are defined in pierce_points.compress_nodes
+##  # First for the array
   array_long = NodeList.NodeList(ns, 'array_long', nodes=[ns.long_all])
   array_lat = NodeList.NodeList(ns, 'array_lat', nodes=[ns.lat_all])
   plot_array = array_lat.plot_xy(xx=array_long, bookpage='Array (longlat)')
 
-  # Plot the array ENU coordinates
+##  # Plot the array ENU coordinates
   array_east = NodeList.NodeList(ns, 'array_east', nodes=[ns.arr_east])
   array_north = NodeList.NodeList(ns, 'array_north', nodes=[ns.arr_north])
   array_up = NodeList.NodeList(ns, 'array_up', nodes=[ns.arr_up])
-  plot_array_en = array_north.plot_xy(xx=array_east, bookpage='Array (enu)')
+  plot_array_en = array_north.plot_xy(xx=array_east, bookpage='Array (enu)')  
   #plot_array_eu = array_up.plot_xy(xx=array_east, bookpage='Array (enu)')
   #plot_array_nu = array_up.plot_xy(xx=array_north, bookpage='Array (enu)')
 
@@ -91,10 +104,10 @@ def _define_forest (ns):
   plot_longlat = pp_lat.plot_xy(xx=pp_long, color='green', bookpage='PP (longlat)', style='diamond')
 
   # Plot the pierce points in ENU coordinates
-  pp_east = NodeList.NodeList(ns, 'pp_east', nodes=[ns.pp_east])
-  pp_north = NodeList.NodeList(ns, 'pp_north', nodes=[ns.pp_north])
-  pp_up = NodeList.NodeList(ns, 'pp_up', nodes=[ns.pp_up])
-  plot_en = pp_north.plot_xy(xx=pp_east, bookpage='PP (enu)', color='green', style='diamond')
+#  pp_east = NodeList.NodeList(ns, 'pp_east', nodes=[ns.pp_east])
+#  pp_north = NodeList.NodeList(ns, 'pp_north', nodes=[ns.pp_north])
+#  pp_up = NodeList.NodeList(ns, 'pp_up', nodes=[ns.pp_up])
+#  plot_en = pp_north.plot_xy(xx=pp_east, bookpage='PP (enu)', color='green', style='diamond')
   #plot_eu = pp_up.plot_xy(xx=pp_east, bookpage='PP (enu)', color='green', style='diamond')
   #plot_nu = pp_up.plot_xy(xx=pp_north, bookpage='PP (enu)', color='green', style='diamond')
 
@@ -119,7 +132,7 @@ def _define_forest (ns):
                 plot_array_XZecef,
                 plot_array_YZecef,
                 plot_longlat,
-                plot_en,
+  #              plot_en,
   #              plot_eu,
   #              plot_nu,
                 plot_ecef,
@@ -136,8 +149,8 @@ def _define_forest (ns):
                                        .add(ns.tec2) \
                                        .add(ns.tec);
 
-  imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
-  TDLRuntimeMenu("Imaging options",*imsel.option_list());
+#  imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
+#  TDLRuntimeMenu("Imaging options",*imsel.option_list());
 
 
 # cache everything for now

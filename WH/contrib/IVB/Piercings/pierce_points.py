@@ -1,5 +1,5 @@
-import sys
-sys.path.insert(0,'')
+#import sys
+#sys.path.insert(0,'')
 
 from Timba.TDL import *
 from Timba.Meq import meq
@@ -25,6 +25,33 @@ phi = 0.59478397
 
 #***************Conversion routines*******************************
 def ecef_2_enu (ns, X, Y, Z, src, s, ref):
+    """ Calculate ENU coordinates from ECEF"""
+    # Rot matrix voor referentie_station
+    sinl = ns.sinl(ref)
+    cosl = ns.cosl(ref)
+    sinphi = ns.sinphi(ref)
+    cosphi = ns.cosphi(ref)
+    if not (ns.inv_rot_matrix(ref)).initialized():
+        ns.inv_rot_matrix(ref) << Meq.Composer(-1*sinl,cosl,0,
+                                               -1*sinphi*cosl,-1*sinphi*sinl,cosphi,
+                                               cosphi*cosl,cosphi*sinl,sinphi,
+                                               dims=[3,3]);
+
+    ns.array_enu(s) << Meq.MatrixMultiply(ns.inv_rot_matrix(ref),Context.array.xyz(s) - Context.array.xyz(ref))
+    ns.x_trans(s) << Meq.Selector(ns.array_enu(s), index=0)
+    ns.y_trans(s) << Meq.Selector(ns.array_enu(s), index=1)
+    ns.z_trans(s) << Meq.Selector(ns.array_enu(s), index=2)
+
+    if src >= 0: # convert the pierce points
+        ns.dX(src,s) << X - ns.x_station(ref)
+        ns.dY(src,s) << Y - ns.y_station(ref)
+        ns.dZ(src,s) << Z - ns.z_station(ref)
+        # Rotate
+        ns.x_trans(src,s) << -ns.dX(src,s)*math.sin(lamb) + ns.dY(src,s)*math.cos(lamb)
+        ns.y_trans(src,s) << -ns.dX(src,s)*math.sin(phi)*math.cos(lamb) - ns.dY(src,s)*math.sin(phi)*math.sin(lamb) + ns.dZ(src,s)*math.cos(phi)
+        ns.z_trans(src,s) << ns.dX(src,s)*math.cos(phi)*math.cos(lamb) + ns.dY(src,s)*math.cos(phi)*math.sin(lamb) + ns.dZ(src,s)*math.sin(phi);
+
+def ecef_2_enu_old (ns, X, Y, Z, src, s, ref):
     """ Calculate ENU coordinates from ECEF"""
     x_refstation = Context.array.x_station(ref);
     y_refstation = Context.array.y_station(ref);
@@ -105,16 +132,27 @@ def make_rot_matrix (ns):
     y_station = Context.array.y_station();
     z_station = Context.array.z_station();
     xyz = Context.array.xyz(); # station coordinates in ECEF
+
     # Define first antenna of the array as reference antenna
     for s in stations:
+        array_llh = ns.array_llh(s) << Meq.LongLat(xyz(s), use_w=1)
+        lamb = ns.lamb(s) << Meq.Selector(array_llh, index=0)
+        phi = ns.phi(s) << Meq.Selector(array_llh, index=1)
+        cosl= ns.cosl(s) << Meq.Cos(ns.lamb(s));
+        sinl= ns.sinl(s) << Meq.Sin(ns.lamb(s));
+        cosphi= ns.cosphi(s) << Meq.Cos(ns.phi(s));
+        sinphi= ns.sinphi(s) << Meq.Sin(ns.phi(s));
         # longitude and latitude of the station (geocentric)
-        array_llh = ecef_2_llh(ns, x_station(s), y_station(s), z_station(s), -1, s)
+        # array_llh = ecef_2_llh(ns, x_station(s), y_station(s), z_station(s), -1, s)
         # for the stations use a negative source number
         # rotation matrix ENU to ECEF, this is done PER STATION!
         ns.rot_matrix_station(s) << Meq.Composer(
-            -Meq.Sin(ns.lamb(s)), -Meq.Sin(ns.phi(s))*Meq.Cos(ns.lamb(s)), Meq.Cos(ns.phi(s))*Meq.Cos(ns.lamb(s)),
-            Meq.Cos(ns.lamb(s)), -Meq.Sin(ns.phi(s))*Meq.Sin(ns.lamb(s)), Meq.Cos(ns.phi(s))*Meq.Sin(ns.lamb(s)),
-            0, Meq.Cos(ns.phi(s)), Meq.Sin(ns.phi(s)), dims=[3,3])
+            -sinl, -sinphi*cosl,cosl*cosphi,
+            cosl, -sinphi*sinl,cosphi*sinl,
+            0,cosphi,sinphi,dims=[3,3])
+##            -Meq.Sin(ns.lamb(s)), -Meq.Sin(ns.phi(s))*Meq.Cos(ns.lamb(s)), Meq.Cos(ns.phi(s))*Meq.Cos(ns.lamb(s)),
+##            Meq.Cos(ns.lamb(s)), -Meq.Sin(ns.phi(s))*Meq.Sin(ns.lamb(s)), Meq.Cos(ns.phi(s))*Meq.Sin(ns.lamb(s)),
+##            0, Meq.Cos(ns.phi(s)), Meq.Sin(ns.phi(s)), dims=[3,3])
         # Get the enu coordinates for the array
         array_enu = ecef_2_enu(ns,x_station(s),y_station(s),z_station(s), -1, s, 1)
     ns.rot_matrix << Meq.Composer(*[ns.rot_matrix_station(s) for s in stations])
