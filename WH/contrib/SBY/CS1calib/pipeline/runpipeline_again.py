@@ -98,6 +98,13 @@ TDLOption('dorotate',"Rotate Dipoles",[True,False],default=False),
 TDLOption('usefitsbeam',"Numerical Beam",[True,False],default=False),
 );
 
+TDLCompileMenu("LSM",
+# which sky model
+ TDLOption("lsm_filename","LSM file",
+                   TDLFileSelect("*.lsm *.txt *.*",default="global.txt",exist=True),)
+);
+
+
 TDLCompileMenu("Post-flags",
 TDLOption('mmse_sigma',"MMSE noise var",[2e-5,1e-5],more=float,doc="noise variance for MMSE correction"),
 TDLOption('rms_sigmas',"RMS sigmas",[5,10],more=float,doc="How many sigmas away to flag"),
@@ -150,7 +157,7 @@ def _define_forest(ns, parent=None, **kw):
   observation = Observation(ns);
   
   lsm=LSM()
-  lsm.build_from_extlist("global_4.txt",ns)
+  lsm.build_from_extlist(lsm_filename,ns)
 
   if parent:
     lsm.display()

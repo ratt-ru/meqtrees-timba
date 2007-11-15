@@ -47,12 +47,12 @@ af.done()
 
 
 ## special flags, depenging on the measurement set
-#af:=autoflag(infile)
-#af.setdata()
-#af.setselect(ant=1)
-#af.setselect(ant=4)
-#af.run()
-#af.done()
+af:=autoflag(infile)
+af.setdata()
+af.setselect(ant=2)
+af.setselect(ant=5)
+af.run()
+af.done()
 
 
 ###################### compress

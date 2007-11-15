@@ -140,7 +140,7 @@ def _define_forest(ns, parent=None, **kw):
   observation = Observation(ns);
   
   lsm=LSM()
-  lsm.build_from_extlist("global_2.txt",ns)
+  lsm.build_from_extlist("global_hba.txt",ns)
 
   if parent:
     lsm.display()

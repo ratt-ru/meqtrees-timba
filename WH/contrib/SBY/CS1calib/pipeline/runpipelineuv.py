@@ -95,6 +95,12 @@ TDLOption('dorotate',"Rotate Dipoles",[True,False],default=False),
 TDLOption('usefitsbeam',"Numerical Beam",[True,False],default=False),
 );
 
+TDLCompileMenu("LSM",
+# which sky model
+ TDLOption("lsm_filename","LSM file",
+                   TDLFileSelect("*.lsm *.txt *.*",default="global.txt",exist=True),)
+);
+
 TDLCompileMenu("Pre-flags",
 TDLOption('minclip',"Clip Value",[1e5,10],more=float,doc="Absolute value to clip"),
 );
@@ -154,7 +160,7 @@ def _define_forest(ns, parent=None, **kw):
   
   lsm=LSM()
   #for uv plane include all sources, including the SUN
-  lsm.build_from_extlist("global.txt",ns)
+  lsm.build_from_extlist(lsm_filename,ns)
 
   if parent:
     lsm.display()

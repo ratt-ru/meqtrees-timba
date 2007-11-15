@@ -53,6 +53,8 @@ myphasecenter:=dm.direction('J2000', '00h00m00','90d00m00')
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(28may2007/16:11:00)) and  TIME/(24*3600) >= MJD(27may2007/19:06:00)",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (TIME/(24*3600) <= MJD(27may2007/15:21:00)) and  TIME/(24*3600) >= MJD(26may2007/19:06:00)",fid,limuv)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(24aug2007/14:30:00)) and  (TIME/(24*3600) <= MJD(25aug2007/08:17:00)) ) ) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
+# HBA 4309
+#msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and (( (TIME/(24*3600) >= MJD(07nov2007/16:20:00)) and  (TIME/(24*3600) <= MJD(08nov2007/03:17:00)) ) ) and sqrt(sumsqr(CORRECTED_DATA))/2<15000",fid,limuv)
 msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and sqrt(sumsqr(CORRECTED_DATA))/2<45000",fid,limuv)
 
 
@@ -89,9 +91,9 @@ myimager.setdata(mode='channel', fieldid=fid, spwid=spid,
              start=startch, msselect=msstr,
              step=1, async=F);
 #HBA
-#myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 #LBA
-myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+#myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 myimager.setoptions(ftmachine='wproject', wprojplanes=128, padding=1.2 , cache=500000000)
 myimager.makeimage(type="corrected",image=my_img,async=False);
 myimager.close()
