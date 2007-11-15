@@ -25,8 +25,9 @@
 # We read in a group of focal plane array beams, 
 # and form a combined, weighted beam. The weights
 # are found by getting complex values at a specified
-# L,M location in the X (|| poln) beams and then
-# taking the conjugate transpose.
+# L,M location in the X  and Y (|| poln) beams and then
+# taking the conjugate transpose. This is called phase 
+# conjugate weighting.
 
 # We use these weights as an initial starting guess for the
 # weights to be used to obtain a nice Gaussian beam. These weights
@@ -57,12 +58,9 @@ TDLCompileMenu('L and M position of phased-up beam',
 );
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30'],more=str)
 
-# get number of GRASP beams to use in FPA simulation
-#TDLCompileOption('num_beams','number of focal plane antennas',[30, 90])
-
-# get number of GRASP beams to use in FPA simulation
+# Attempt to 'form' a Gaussian beam?
 TDLCompileOption('do_fit','make gaussian fit',[True, False])
 
 
@@ -133,9 +131,10 @@ def _define_forest(ns):
   BEAMS = range(0,num_beams)
   beam_solvables = []
   parm_solvers = []
-  # read in beam data
+  # read in beam data: in my tests we have beam data with 101 x 101 pixels
+  # covering -0.15 to 0.15 radians in L and M
   for k in BEAMS:
-  # read in beam data - y dipole
+    # read in beam data - y dipoles
     infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
     infile_name_im_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
     infile_name_re_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
@@ -145,24 +144,34 @@ def _define_forest(ns):
     ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
     ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
 
+    # it would be wonderful if a) the rationale for dep_masks was given and
+    # b) why on earth are we using hex values - very un-user friendly!
     ns.resampler_image_re_yy(k) << Meq.Resampler(ns.image_re_yy(k),dep_mask = 0xff)
     ns.resampler_image_im_yy(k) << Meq.Resampler(ns.image_im_yy(k),dep_mask = 0xff)
+    
+    # obtain the real and imaginary values of the beam in the direction where
+    # we want to phase up the beam. Note that we multiply the imaginary value
+    # by -1 in order to eventually use the phase conjugate as the weight for this
+    # beam
     ns.sample_wt_re_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_yy(k)],common_axes=[hiid('l'),hiid('m')])
     ns.sample_wt_im_y(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
+
     # I want to solve for these parameters
     ns.beam_wt_re_y(k) << tpolc(0)
     ns.beam_wt_im_y(k) << tpolc(0)
     beam_solvables.append(ns.beam_wt_re_y(k))
     beam_solvables.append(ns.beam_wt_im_y(k))
+
     # we need to assign the weights we've extracted as initial guesses
-    # to the Parm - can only be done by solving
+    # to the Parm - can only be done by solving according to Oleg
     ns.condeq_wt_re_y(k) << Meq.Condeq(children=(ns.sample_wt_re_y(k), ns.beam_wt_re_y(k)))
     ns.condeq_wt_im_y(k) << Meq.Condeq(children=(ns.sample_wt_im_y(k), ns.beam_wt_im_y(k)))
     ns.solver_wt_re_y(k)<<Meq.Solver(ns.condeq_wt_re_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_y(k),save_funklets=True,last_update=True)
     ns.solver_wt_im_y(k)<<Meq.Solver(ns.condeq_wt_im_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_y(k),save_funklets=True,last_update=True)
     parm_solvers.append(ns.solver_wt_re_y(k))
     parm_solvers.append(ns.solver_wt_im_y(k))
-
+    
+    # now form the weights for the beam and multiply the beam by its weight
     ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
 
     ns.beam_yx(k) << Meq.ToComplex(ns.image_re_yx(k), ns.image_im_yx(k)) 
@@ -170,7 +179,8 @@ def _define_forest(ns):
     ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
-  # read in beam data - x dipole
+    # read in beam data - x dipole and form weights in a manner similar to
+    # y dipoles
     infile_name_re_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Re_x.fits'
     infile_name_im_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Im_x.fits'
     infile_name_re_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Re_y.fits'
@@ -184,6 +194,7 @@ def _define_forest(ns):
     ns.resampler_image_im_xx(k) << Meq.Resampler(ns.image_im_xx(k),dep_mask = 0xff)
     ns.sample_wt_re_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_xx(k)],common_axes=[hiid('l'),hiid('m')])
     ns.sample_wt_im_x(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
+
     # I want to solve for these parameters
     ns.beam_wt_re_x(k) << tpolc(0)
     ns.beam_wt_im_x(k) << tpolc(0)
@@ -207,10 +218,11 @@ def _define_forest(ns):
   # first guess
   ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
 
- # sum things up
+  # sum up the weights
   ns.wt_sum_x << Meq.Add(*[ns.beam_weight_x(k) for k in BEAMS])
   ns.wt_sum_y << Meq.Add(*[ns.beam_weight_y(k) for k in BEAMS])
 
+  # sum beams up and normalize by the summed weights
   ns.voltage_sum_xx_norm << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS]) / ns.wt_sum_x
   ns.voltage_sum_xy_norm << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS]) / ns.wt_sum_x
   ns.voltage_sum_yx_norm << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS]) / ns.wt_sum_y
@@ -219,7 +231,7 @@ def _define_forest(ns):
   ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
   ns.Et << Meq.ConjTranspose(ns.E)
 
- # sky brightness
+  # sky brightness
   ns.B0 << 0.5 * Meq.Matrix22(1.0, 0.0, 0.0, 1.0)
 
   # observe!
@@ -241,6 +253,8 @@ def _define_forest(ns):
   # extract I,Q,U,V etc
   ns.I_select << Meq.Real(ns.I)
   ns.I_max << Meq.Max(ns.I_select)
+
+  # make sure that total intensity response is normalized to unity
   ns.I_parm_max << tpolc(0,1.0)
   ns.I_real  << ns.I_select / ns.I_parm_max
 
@@ -248,17 +262,21 @@ def _define_forest(ns):
   ns.U_real << Meq.Real(ns.U) / ns.I_parm_max
   ns.V_real << Meq.Real(ns.V) / ns.I_parm_max
 
-# ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
   ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
   ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
 
 
+  # solve for the normalization factor
   beam_solvables.append(ns.I_parm_max)
   ns.condeq_I_max << Meq.Condeq(children=(ns.I_parm_max, ns.I_max))
   ns.solver_I_max <<Meq.Solver(ns.condeq_I_max,num_iter=50,epsilon=1e-4,solvable=ns.I_parm_max,save_funklets=True,last_update=True)
 
+  # setup for fitting the phased up beam to a gaussian
   ns.resampler_I << Meq.Resampler(ns.I_real)
   ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
+  
+  # I tell the solver to go for 20 iterations. It usually doesn't converge
+  # but the results of the fits seem fairly reasonable.
   ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10)
 
   if do_fit:
@@ -276,7 +294,7 @@ def _define_forest(ns):
 ########################################################################
 def _test_forest(mqs,parent):
 
-# any large time range will do
+# any large time and frequency range will do
   t0 = 0.0;
   t1 = 1.5e70
 
