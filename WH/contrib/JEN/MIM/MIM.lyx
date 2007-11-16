@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -626,13 +626,19 @@ ts of the iononsphere may be combined with measurements made with GPS (or
  This is an important feature, since the inclusion of GPS information can
  make LOFAR calibration much easier, and arguably better.
  In some areas, like long baselines (>50 km), or polarization calibration,
- the extra GPS information may even be indispensible.
- The MIM allows us to eliminate, or at least 
+ the extra GPS information may even be indispensible (e.g.
+ by giving an absolute TEC, rather than a relative one).
+ At the very least, the GPS data provide a better (i.e.
+ more dense) sampling of the MIM-function, thereby constraining it better.
+ 
+\layout Standard
+
+The MIM allows us to eliminate, or at least 
 \emph on 
 harmonize
 \emph default 
 , the inevitable offsets in ionospheric measurements.
- The resulting MIM-function is smooth and analytic, and can be interpolated
+ The resulting MIM-function is smooth and analytic, so it can be interpolated
  to give a value for the integrated TEC along an arbitrary line-of-sight.
  It can therefore be used to subtract radio sources from the uv-data, or
  to make images that are corrected for ionospheric effects.
@@ -690,9 +696,21 @@ In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
  planning to solve for separate 2D phase screens across the FOV (main lobe
  and inner side-lobes) of individual stations.
  Such screens are entirely sufficient to account for all phenomena, and
- as a model they are superior to the Zernike polynomials (Cotton et al)
- and clumsy concepts like refraction and apparent position.
- 
+ as a model they are superior to the Zernike polynomials of field-based
+ calibration 
+\begin_inset LatexCommand \cite{Cotton}
+
+\end_inset 
+
+, and clumsy concepts like 
+\emph on 
+refraction
+\emph default 
+ and 
+\emph on 
+apparent position
+\emph default 
+.
 \layout Standard
 
 However, this approach would have required at least 3 parameters per station
@@ -1251,6 +1269,16 @@ other information
 \end_inset 
 
 ).
+\layout Standard
+
+Fig 
+\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+
+\end_inset 
+
+ shows a MeqTree diagram for solving for MIM (and other) parameters by using
+ GPS TEC measurements, radio astronomical phase measurements, and additional
+ constraints to bridge the gaps in the MIM sampling function.
 \layout Subsection
 
 Inverting the solution matrix
@@ -1294,33 +1322,14 @@ The relative quality of the data (e.g.
  S/N) may be taken into account by assigning weights to their equations.
  It is also possible to constrain the rate-of-change of a specific parameter
  (see also 
-\begin_inset LatexCommand \ref{sub:Solving-for-time-dependence}
+\begin_inset LatexCommand \ref{sub:Solving-for-long-range-parameters}
 
 \end_inset 
 
 ), or to limit its range of possible values.
 \layout Standard
 
-NB: All the functionality discussed in this section is available in the
- MeqTree module.
- Its MeqCondeq nodes produce equations of the form of equ 
-\begin_inset LatexCommand \ref{eq: normal}
-
-\end_inset 
-
-, i.e.
- they make equations with derivatives for both sets  
-\begin_inset Formula $p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $q_{k}$
-\end_inset 
-
- of parameters.
- Its MeqSolver uses the Levenberg-Marquardt (LM) approach for non-linear
- solvers.
- e quality of the fit is expressed by chi-squared, i.e.
+The quality of the fit is expressed by chi-squared, i.e.
  the sum of the squares of the residuals: 
 \begin_inset Formula $\chi^{2}=\sum\Delta_{rs}^{2}$
 \end_inset 
@@ -1334,8 +1343,8 @@ NB: All the functionality discussed in this section is available in the
  
 \layout Subsection
 
-Solving for time-dependence
-\begin_inset LatexCommand \label{sub:Solving-for-time-dependence}
+Solving for long-range parameters
+\begin_inset LatexCommand \label{sub:Solving-for-long-range-parameters}
 
 \end_inset 
 
@@ -1361,6 +1370,14 @@ atellite pair, but which may be assumed to be constant during a satellite
  some tricky implementation issues.
  Our MIM project is an excellent subject to adress this problem, the solution
  of which will have much more general applications for LOFAR.
+\layout Standard
+
+
+\emph on 
+Normally, a separate solution is made for each request(f,t).
+ In that case, the size of the domain, in both dimensions, determines its
+ capability to separate effects with different (time, freq) signatures.
+ 
 \layout Section
 
 Sampling the MIM function using GPS (and other) satellites
@@ -1982,7 +1999,7 @@ collapsed false
 
 
 \emph on 
-Schematic, MIM solver diagram.
+MeqTree solver diagram for the MIM, as discussed in the text.
  For each request (f,t), the solver collects a number of equations of the
  general form of equ 
 \begin_inset LatexCommand \ref{eq: normal}
@@ -2017,7 +2034,8 @@ Schematic, MIM solver diagram.
 
 \emph on 
 The solver gets three kinds of equations.
- Two of them compare TEC measurements with their predicted values.
+ Two of them compare the two kinds of TEC measurements with their predicted
+ values.
  See equ 
 \begin_inset LatexCommand \ref{eq: Srs_GPS}
 
@@ -2029,15 +2047,7 @@ The solver gets three kinds of equations.
 \end_inset 
 
  for astronomical measurements.
- Note that in the latter case we measure station phases, which are converted
- to TEC using equ 
-\begin_inset LatexCommand \ref{eq: TEC2rad}
-
-\end_inset 
-
-.
- The equations of the third kind (in the middle) represents constraints
- like equs 
+ The equations of the third kind represent constraints like equs 
 \begin_inset LatexCommand \ref{eq: deriv_lx}
 
 \end_inset 
@@ -2050,6 +2060,14 @@ The solver gets three kinds of equations.
 \end_inset 
 
 ).
+ 
+\layout Standard
+
+
+\emph on 
+Normally, a separate solution is made for each request.
+ In that case, the size of the domain, in both dimensions, determines its
+ capability to separate effects with different (time, freq) signatures.
  
 \end_inset 
 
@@ -2912,6 +2930,45 @@ ic from ionospheric phase.
  which occur under conditions that are so bad that it is better to stop
  observing.
  
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_TMS.eps
+	lyxscale 20
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap: TMS profiles}
+
+\end_inset 
+
+Just to set the scene: Some typical ionospheric profiles and numbers, taken
+ from
+\emph default 
+ 
+\begin_inset LatexCommand \cite{TMS}
+
+\end_inset 
+
+.
+\end_inset 
+
+
 \layout Section
 
 Does the MIM exist?
@@ -2982,6 +3039,28 @@ The MIM function
  The number of terms, and thus the smoothness, may be increased or decreased
  as the ionospheric conditions change.
  
+\layout Standard
+
+
+\emph on 
+An important requirement is that the MIM function can be differentiated,
+ and that derivatives like 
+\begin_inset Formula $\frac{\partial M}{\partial x}$
+\end_inset 
+
+ are analytical functions of the 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ also.
+ If not, we need another way to impose extra constraints to bridge the gaps
+ in the MIM sampling function (see section 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+).
+ 
 \layout Subsection
 
 Regular polynomials
@@ -3036,6 +3115,10 @@ and are relatively expensive to interpolate
  
 \layout Standard
 
+NB: Can the KL functions be differentiated to 'bridge the gaps' (see the
+ requirement above).
+\layout Standard
+
 
 \begin_inset Float figure
 wide false
@@ -3075,27 +3158,101 @@ Coordinate systems
 \end_inset 
 
 
+\layout Standard
+
+It does not really matter which coordinate system(s) we use for the MIM,
+ as long as we do it consistently.
 \layout Itemize
 
 
 \series bold 
 Station position (x,y,z):
 \series default 
- Not very critical.
  Perhaps easiest to use the system used for the GPS satellite positions.
+ In any case it seems wise to choose a system that is fixed to the Earth,
+ so that the positions of fixed GPS stations and radio telescopes are independen
+t of time.
+ If a station is movable for some reason, we have to use 
+\begin_inset Formula $(x(t),y(t),z(t))$
+\end_inset 
+
+.
+ 
 \layout Itemize
 
 
 \series bold 
-View direction (l,m):
+Viewing direction (l,m): 
 \series default 
- Both (ra,dec) and (alt,az) get into trouble in the direction of their poles
- (the North Celestial Pole and the zenith, respecively.
- Moreover, (alt,az) is local, so not very suitable for arrays larger than
- a few km.
- Since any system will have a pole, we should adopt one with a pole that
- is not often used, e.g.
- a little bit above 'the' northern horizon.
+We have the following choices:
+\begin_deeper 
+\layout Itemize
+
+
+\series bold 
+Attached to the sky
+\series default 
+ (RA,DEC): Convienient for astronomical sources.
+ Satellites will have a time-dependent direction 
+\begin_inset Formula $(l(t),m(t))$
+\end_inset 
+
+, which also depends on the viewing position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+.
+ 
+\layout Itemize
+
+
+\series bold 
+Attached to the Earth
+\series default 
+: Both astronomical sources and satellites will have a time-dependent direction
+ 
+\begin_inset Formula $(l(t),m(t))$
+\end_inset 
+
+, also depending on the viewing position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+.
+ The choice is between 
+\emph on 
+global
+\emph default 
+ (like IRTF?) and
+\emph on 
+ local
+\emph default 
+ systems (like (az-el)).
+ The latter may be the preferred option, for reasons explained below.
+\layout Itemize
+
+Other?
+\end_deeper 
+\layout Standard
+
+NB: All direction systems get into trouble in the direction of their poles,
+ i.e.
+ the North Celestial Pole for (RA,DEC), or the local zenith for (az,el).
+ So, if possible, we should adopt one with a pole in which direction we
+ do not have to look.
+ This argument favours the choice of an (az,el)-like system w.r.t.
+ to the 
+\emph on 
+local
+\emph default 
+ Earth, where we can define a pole at a few degrees above 'the' northern
+ horizon.
+ This would work for arrays smaller than a few hundred km (one degree in
+ Earth latitude corresponds to 
+\begin_inset Formula $42000/360\approx116$
+\end_inset 
+
+ km).
 \layout Section
 
 Bridging the gaps in the MIM sampling function
@@ -3150,19 +3307,19 @@ Referring to fig
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times H_{lx}\label{eq: deriv_lx}\end{equation}
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times\frac{\partial x}{\partial l}\label{eq: deriv_lx}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial M}{\partial m}=\frac{\partial M}{\partial y}\times H_{my}\label{eq: deriv_my}\end{equation}
+\frac{\partial M}{\partial m}=\frac{\partial M}{\partial y}\times\frac{\partial y}{\partial m}\label{eq: deriv_my}\end{equation}
 
 \end_inset 
 
 
 \begin_inset Formula \begin{equation}
-\frac{\partial^{2}M}{\partial l\partial m}=\frac{\partial^{2}M}{\partial x\partial y}\times H_{lmxy}\label{eq: deriv_lmxy}\end{equation}
+\frac{\partial^{2}M}{\partial l\partial m}=\cdots\label{eq: deriv_lmxy}\end{equation}
 
 \end_inset 
 
@@ -3186,32 +3343,63 @@ If the base-functions selected for the MIM function
 ).
 \layout Standard
 
-Any assumptions about the ionosphere are in the 'proportionality function'
- 
-\begin_inset Formula $H$
+Any assumptions about the ionosphere are in the functions 
+\begin_inset Formula $\frac{\partial x}{\partial l}$
 \end_inset 
 
-.
- For instance, for the simple case of a thin, uniform layer at a constant
- altitude 
+ etc.
+ For instance, for the 
+\emph on 
+simplest case
+\emph default 
+ of a thin, uniform layer at a constant altitude 
 \begin_inset Formula $h$
 \end_inset 
 
  above a flat Earth, we have 
-\begin_inset Formula $H=H(h,z)=h/cos(z)$
+\begin_inset Formula $\frac{\partial x}{\partial l}=h\: cos^{2}(z)$
 \end_inset 
 
 , where 
 \begin_inset Formula $z$
 \end_inset 
 
- is the zenith angle (see aslo fig 
+ is the zenith angle (see aslo the caption of fig 
 \begin_inset LatexCommand \ref{cap: MIM derivatives}
 
 \end_inset 
 
 ).
+ If the direction coordinates 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ depend on time, e.g.
+ for a fast-moving satellite, we may also use: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\frac{\partial M}{\partial t}=\frac{\partial M}{\partial l}\times\frac{\partial l}{\partial t}\label{eq: deriv_lt}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+An even simpler (and more universal?) assumption would be that the TEC is
+ minimal in the zenith direction.
+ This can be expressed as:
+\begin_inset Formula \[
+\frac{\partial M}{\partial l}=abs(z)\quad(or\, something\, like\, that)\]
+
+\end_inset 
+
  
+\layout Standard
+
+Etc, etc.
+ Other examples are left to the ardent student.
 \layout Subsection
 
 Correlation functions (Bas)
@@ -3271,7 +3459,7 @@ The MIM function
 
 
 \begin_inset Formula \[
-\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times H\]
+\frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times\frac{\partial x}{\partial l}\]
 
 \end_inset 
 
@@ -3280,9 +3468,8 @@ The MIM function
 
 
 \emph on 
-The assumptions about the ionosphere are in the 'proportionality function'
- 
-\begin_inset Formula $H$
+The assumptions about the ionosphere are in the function 
+\begin_inset Formula $\frac{\partial}{\partial}$
 \end_inset 
 
 .
@@ -3291,8 +3478,8 @@ The assumptions about the ionosphere are in the 'proportionality function'
 \begin_inset Formula $h$
 \end_inset 
 
- above a flat Earth, we have 
-\begin_inset Formula $H=h/cos(z)$
+ above a flat Earth, we may readily derive from the picture above that 
+\begin_inset Formula $\frac{\partial x}{\partial l}=h\: cos^{2}(z)$
 \end_inset 
 
 , where 
@@ -3314,7 +3501,11 @@ For a curved Earth with radius
 \begin_inset Formula $R$
 \end_inset 
 
- we have to use 
+ we have to replace 
+\begin_inset Formula $z$
+\end_inset 
+
+ with
 \begin_inset LatexCommand \cite{TMS}
 
 \end_inset 
@@ -3326,28 +3517,17 @@ For a curved Earth with radius
 
 
 \begin_inset Formula \begin{equation}
-H(z)=h/\cos(\arcsin(\frac{R\sin z}{R+h}))\label{eq: H(z)}\end{equation}
+z\Rightarrow\arcsin(\frac{R\sin(z)}{R+h})\label{eq: H(z)}\end{equation}
 
 \end_inset 
 
 
-\layout Standard
-
-
-\begin_inset Formula $H(horizon)\approx3*H(zenith)$
-\end_inset 
-
- for 
-\begin_inset Formula $h=300$
-\end_inset 
-
-km.
 \end_inset 
 
 
 \layout Subsection
 
-Triangulation (Jim)
+Triangulation
 \begin_inset LatexCommand \label{sub: Triangulation}
 
 \end_inset 
@@ -3362,20 +3542,26 @@ It is possible to use the MIM-function to predict the position of a particular
 a priori
 \emph default 
 , we might add an equation to the solution that minimizes the discrepancy.
- 
+ See also the discussion in section 
+\begin_inset LatexCommand \ref{sub:Ionospheric-delay}
+
+\end_inset 
+
+.
 \layout Standard
 
 
 \emph on 
 NB: It is not clear (to me) in this stage whether this is a circular argument,
- or whether we are using information that we are not used yet.
+ or whether we are using information that we are not using yet.
  Jim will endeavour to investigate this further, also in the context of
  the fact that the ionospheric bias drops from the equations when determining
  relative positions close (within 100 m?) to another GPS receiver.
 \layout Standard
 
 In any case, even if this 'triangulation' works, it does not sample the
- gaps in the MIM-function.
+ gaps in the MIM-function, between the horizontal lines in the MIM-diagram
+ that are sampled by the various sources.
 \layout Subsection
 
 Travelling 'frozen' pattern
@@ -3414,6 +3600,118 @@ The MIM approach deals automatically with changing patterns because we solve
 \end_inset 
 
 .
+\layout Section
+
+Long-range parameters
+\begin_inset LatexCommand \label{sec:Long-range-parameters}
+
+\end_inset 
+
+
+\layout Standard
+
+How do we solve for MIM (and other) parameters that have a validity-domain
+ that is longer in time than the solution-domain? 
+\layout Standard
+
+This is an important issue, since LOFAR can only be calibrated if we can
+ make full use of our 
+\emph on 
+a priori
+\emph default 
+ knowledge that certain parameters change only slowly, on a time-scale that
+ is much longer (hours) than the domian size (minutes) of a practical data-snipp
+et
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Even if the intermediate results are cached by the minimum number of nodes,
+ their total size in a big reduction tree would quickly overwhelm the available
+ memory if the request domain were greater than a few minutes.
+\end_inset 
+
+.
+ Examples are the parameters of the station beamshapes.
+ A proper estimation requires more sampling points than there are bright
+ Cat I sources.
+ We therefore have to promote some of the brighter Cat II sources to Cat
+ I status, but that requires longer integration.
+ Another example, which is more directly relevant here, is the GPS bias,
+ which is assumed to be 'constant' in time.
+ 
+\layout Standard
+
+First we attempt to separate various effects by taking the largest possible
+ domain.
+ If that fails, we have to resort to long-range parameters.
+\layout Standard
+
+The idea is for the MeqParm to remember the history of the values of its
+ polc coefficients....
+ Prediction, inertia, limitation, skipping of outliers, ...
+\layout Standard
+
+The limitations are that the new information cannot easiliy be translated
+ back, so that there is a switch-on effect, or lag-effect (This converges
+ to zero in a multi-pass scheme like the Major Cycle).
+\layout Standard
+
+Another problem is how to deal with (i.e.
+ detect, incorporate) legitimate jumps in the MeqParm values.
+ Etc.
+\layout Standard
+
+See fig 
+\begin_inset LatexCommand \ref{cap:Long-range-parameters.}
+
+\end_inset 
+
+.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+{
+\backslash 
+tiny NB: This used to be called the 'intelligent MeqParm'. I have been going on about it for some years in the MeqTree group, but the problem was not perceived to be important enough to overcome the limitations of the proposed solutions. The latter are real enough, and perhaps fundamental, but if the problem is big enough even a partial solution is better than nothing at all. Perhaps its time has come now.}
+\end_inset 
+
+
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:Long-range-parameters.}
+
+\end_inset 
+
+
+\emph on 
+Long-range parameters.
+ How do we solve for MIM (and other) parameters that have a validity-domain
+ that is longer in time than the solution-domain?
+\end_inset 
+
+
 \layout Section
 
 Special case: piercing point methods (MXM, IVB)
