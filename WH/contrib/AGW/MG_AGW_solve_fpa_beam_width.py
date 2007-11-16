@@ -30,6 +30,9 @@
 # L,M location in the X (|| poln) beams and then
 # taking the conjugate transpose.
 
+# We then fit a gaussian to the phased up beam at boresight to
+# get the FWHM
+
 # History:
 # - 07 Jan 2007: creation:
 
@@ -92,7 +95,6 @@ def _define_forest(ns):
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
   ns.ln_16 << Meq.Constant(-2.7725887)
-  # fits a Gaussian to each beam to locate its maximum
 
   ns.width << wpolc(tdeg=0,c00=0.01)
   ns.l << tpolc(tdeg=0,c00=0.0)
@@ -131,6 +133,8 @@ def _define_forest(ns):
     ns.beam_wt_im_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
 
     ns.beam_wt_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
+
+    # take transpose for phase conjugate weighting
     ns.beam_weight_y(k) << Meq.ConjTranspose(ns.beam_wt_y(k))
 
     ns.beam_yx(k) << Meq.ToComplex(ns.norm_image_re_yx(k), ns.norm_image_im_yx(k)) 
@@ -165,6 +169,8 @@ def _define_forest(ns):
     ns.beam_wt_im_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
 
     ns.beam_wt_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
+
+    # take transpose for phase conjugate weighting
     ns.beam_weight_x(k) << Meq.ConjTranspose(ns.beam_wt_x(k))
 
     ns.beam_xy(k) << Meq.ToComplex(ns.norm_image_re_xy(k), ns.norm_image_im_xy(k)) 
@@ -210,9 +216,9 @@ def _define_forest(ns):
   ns.observed << Meq.MatrixMultiply(ns.E, ns.B0, ns.Et)
 
   # extract I,Q,U,V etc
-  ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
-  ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
-  ns.I_complex << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
+  ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = I+Q
+  ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = I-Q
+  ns.I_complex << Meq.Add(ns.IpQ,ns.ImQ)             # I = XX + YY
   ns.I << Meq.Real(ns.I_complex)
 
 
