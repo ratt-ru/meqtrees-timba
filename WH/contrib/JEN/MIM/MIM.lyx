@@ -595,6 +595,12 @@ We describe a scheme for the calibration of the ionosphere for radio astronomy.
 MIM-principle
 \emph default 
 , which stands for Minimim Ionospheric Model.
+ It is explained in section 
+\begin_inset LatexCommand \ref{sec:The-MIM-principle}
+
+\end_inset 
+
+.
  The proposed method applies to any radio telescope, but particular attention
  is given to the case of LOFAR, which operates at relatively low frequencies
  (20-240 MHz), and is thus more sensitive to ionospheric effects.
@@ -620,16 +626,30 @@ minimum
  
 \layout Standard
 
-The MIM-principle allows a consistent framework in which astronomical measuremen
-ts of the iononsphere may be combined with measurements made with GPS (or
- other) satellites.
+The MIM-principle allows a consistent framework (section 
+\begin_inset LatexCommand \ref{sec:Solving-for-MIM}
+
+\end_inset 
+
+) in which astronomical measurements of the iononsphere (section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+) may be combined with measurements made with GPS or other satellites (section
+ 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+).
  This is an important feature, since the inclusion of GPS information can
  make LOFAR calibration much easier, and arguably better.
+ Easier because it may replace a rather cumbersome phase-locking procedure,
+ and better because the sampling of the ionosphere is both denser and wider.
  In some areas, like long baselines (>50 km), or polarization calibration,
  the extra GPS information may even be indispensible (e.g.
  by giving an absolute TEC, rather than a relative one).
- At the very least, the GPS data provide a better (i.e.
- more dense) sampling of the MIM-function, thereby constraining it better.
  
 \layout Standard
 
@@ -695,14 +715,8 @@ The MIM principle
 In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
  planning to solve for separate 2D phase screens across the FOV (main lobe
  and inner side-lobes) of individual stations.
- Such screens are entirely sufficient to account for all phenomena, and
- as a model they are superior to the Zernike polynomials of field-based
- calibration 
-\begin_inset LatexCommand \cite{Cotton}
-
-\end_inset 
-
-, and clumsy concepts like 
+ Such phase screens are able to account for all phenomena, much better than
+ clumsy concepts like 
 \emph on 
 refraction
 \emph default 
@@ -710,6 +724,13 @@ refraction
 \emph on 
 apparent position
 \emph default 
+.
+ As a model, 2D screens are superior to the Zernike polynomials of field-based
+ calibration 
+\begin_inset LatexCommand \cite{Cotton}
+
+\end_inset 
+
 .
 \layout Standard
 
@@ -753,31 +774,35 @@ postulate the existence
 \begin_inset Formula $(l,m)$
 \end_inset 
 
-.
- The position will usually be that of a GPS station or a radio telescope/antenna
-/station 
-\begin_inset Formula $(r)$
+, at a given time 
+\begin_inset Formula $(t)$
 \end_inset 
 
-, defined in some coordinate system (see section 
+.
+ The position will usually be that of a GPS station or a radio telescope/antenna
+/station (index 
+\begin_inset Formula $r$
+\end_inset 
+
+), defined in some coordinate system (see section 
 \begin_inset LatexCommand \ref{sec: Coordinate-systems}
 
 \end_inset 
 
 ).
- The direction 
-\begin_inset Formula $(rs)$
+ The direction (index 
+\begin_inset Formula $rs$
 \end_inset 
 
- will often be from receiver 
-\begin_inset Formula $(r)$
+) will often be from receiver 
+\begin_inset Formula $r$
 \end_inset 
 
- towards a GPS satellite or an astronomical source 
-\begin_inset Formula $(s)$
+ towards a GPS satellite or an astronomical source (index 
+\begin_inset Formula $s$
 \end_inset 
 
-, defined in some coordinate system (section 
+), defined in some coordinate system (section 
 \begin_inset LatexCommand \ref{sec: Coordinate-systems}
 
 \end_inset 
@@ -821,15 +846,14 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 \layout Standard
 
 For the moment, we will assume that such a function exists at all.
- This subject is discussed in more depth in section 
+ Few people doubt this assertion, but the subject is discussed in more depth
+ in section 
 \begin_inset LatexCommand \ref{sec: Does-the-MIM-exist?}
 
 \end_inset 
 
  below.
-\layout Standard
-
-The MIM function 
+ Although the MIM function 
 \begin_inset Formula $M$
 \end_inset 
 
@@ -837,13 +861,16 @@ The MIM function
 \emph on 
 pheanomenological
 \emph default 
-, i.e.
- it is not concerned with the internal structure of the ionosphere, but
- only with its effect on the observations.
- However, in practice, it is often necessary to make more specific assumptions,
- for instance about the ionosphere.
- In order to emphasize the difference, their treatment has been relegated
- to the appendix.
+, it is often necessary in practice to make more specific assumptions about
+ the ionosphere.
+ In order to emphasize the difference between the general and the specific,
+ all treatment of such assumptions has been relegated to the appendix (see
+ section 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+).
 \layout Standard
 
 In principle, any set of smooth base functions will do for the MIM.
@@ -1322,7 +1349,7 @@ The relative quality of the data (e.g.
  S/N) may be taken into account by assigning weights to their equations.
  It is also possible to constrain the rate-of-change of a specific parameter
  (see also 
-\begin_inset LatexCommand \ref{sub:Solving-for-long-range-parameters}
+\begin_inset LatexCommand \ref{sub: Smoothing in time}
 
 \end_inset 
 
@@ -1335,49 +1362,108 @@ The quality of the fit is expressed by chi-squared, i.e.
 \end_inset 
 
  .
- This should be smaller than a certain criterion, e.g.
+ It can be used to control the iterative process, by continuing until 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ is smaller than a certain criterion, e.g.
  the expected rms measurement noise.
- It can be used to control the iterative process, but also to detect when
- the number of terms in the MIM function is no longer optimal, e.g.
+ The value to which 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ converges may also be used to detect whether the number of terms in the
+ MIM function is smaller (or larger!) than optimal, e.g.
  because the ionospheric conditions have changed.
  
 \layout Subsection
 
-Solving for long-range parameters
-\begin_inset LatexCommand \label{sub:Solving-for-long-range-parameters}
+Smoothing in time
+\begin_inset LatexCommand \label{sub: Smoothing in time}
 
 \end_inset 
 
 
 \layout Standard
 
-Traditionally, in radio astronomy calibration, we deal in independent solutions
- for each time-slot (1-100s).
- This means that we do not make use of our 
+Since the MIM has a only a limited number of terms, and low-order ones at
+ that, it is guaranteed to be smooth in position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ and direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+.
+ This has a harmonizing effect on MIM samples that are taken 
+\emph on 
+at the same time
+\emph default 
+, because the parts that are not consistent with a smooth MIM are ascribed
+ to measurement errors.
+ It is vital to have a similar mechanism that exploits our 
 \emph on 
 a priori
 \emph default 
- knowledge that the values of many parameters change only slowly in time.
- An example is the GPS bias, which unfortunately is different for each station-s
-atellite pair, but which may be assumed to be constant during a satellite
- passage (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+ knowledge that the MIM is also smooth in time.
+ 
+\series bold 
+This turns our te be not so easy, and is perhaps the greatest practical
+ problem that is facing us.
+\layout Standard
+
+A data processing system like MeqTrees operates with a succession of requests,
+ each of which has a domain, i.e.
+ a rectangular area in freq-time space.
+ Usually, the freq-range is constant, while the time-range for successive
+ requests advances with the size of the domain (see fig ...).
+ 
+\layout Standard
+
+Normally, a separate solution for the MIM parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ is made for each request.
+ This leads to a succession of MIMs, each with its own limited validity-domain,
+ and possibly with continuity problems at the edges.
+ In addition, the size of the domain, in both dimensions, limits the capability
+ of the solver to separate effects with different (time, freq) signatures.
+ The larger the domain, the greater the differences will be between effects
+ that, for instance, behave linearly or quadratically in time.
+ As will be seen in the next sections, the ionospheric TEC can only be distingui
+shed from measurement effects (like GPS bias, or tropospheric phase) by
+ its different time/freq signature.
+ We have two options:
+\layout Itemize
+
+Use the largest practical domain size, determined by the available memory.
+ This will often be enough, and the solver has the capability of detecting
+ if we try to solve for more parameters than the available information allows.
+\layout Itemize
+
+Use the motion of GPS satellites, or the ionosphere itself, to impose constraint
+s that imply time-smoothness (section 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
 
 ).
- Using this information is vital, but before we can do this we have to solve
- some tricky implementation issues.
- Our MIM project is an excellent subject to adress this problem, the solution
- of which will have much more general applications for LOFAR.
-\layout Standard
-
-
-\emph on 
-Normally, a separate solution is made for each request(f,t).
- In that case, the size of the domain, in both dimensions, determines its
- capability to separate effects with different (time, freq) signatures.
  
+\layout Itemize
+
+Develop the capability for solving for long-range parameters, i.e.
+ parameters that have a larger/longer validity-domain (e.g.
+ hours) than the size of a practical request domain (minutes).
+ This is an essential capability, that has a wider importance for LOFAR
+ than just the ionosphere.
+ See section 
+\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+
+\end_inset 
+
+.
 \layout Section
 
 Sampling the MIM function using GPS (and other) satellites
@@ -1390,11 +1476,14 @@ Sampling the MIM function using GPS (and other) satellites
 
 GPS satellites move in circular orbits around the Earth, with a radius of
  about 30.000 km (21000+6378), and with an inclination of 52 degrees w.r.t.
- the equator.
- At an arbitrary position on Earth, at least 6 of them are visible at any
- time.
+ the equator, which optimizes the combination of world coverage and relative
+ velocity.
+ At an arbitrary position on Earth, at least 6 satellites are visible at
+ any time.
  A passage from horizon to horizon takes a few hours, depending on its maximum
  elevation.
+ They all move with the Earth rotation, to minimize the velocity w.r.t.
+ the Earth surface.
  Most satellites have low elevations, most of the time, and it is quite
  rare for one to be actually inside the LOFAR FOV (5-10 deg).
  In the future we also hope to use satellites of Galileo, Glonass etc.
@@ -1477,6 +1566,12 @@ Expressions for the derivatives
 \end_inset 
 
 .
+ Since GPS measurements are made at a single frequency, none of the measurement
+ effects depend on 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ (unlike the astronomical phase measurements in the next section).
 \layout Standard
 
 It would be nice if we could associate a bias value with each station, and
@@ -1498,8 +1593,8 @@ It would be nice if we could associate a bias value with each station, and
 \end_inset 
 
  samples.
- Unfortunately, this is not the case.
- But fortunately the bias drift is caused 
+ Unfortunately, all the pair biases are different.
+ But fortunately there is some commonality: the bias drifts are caused 
 \emph on 
 only
 \emph default 
@@ -1515,8 +1610,8 @@ The bias drift are probably caused by relatively cheap electonics, operating
  
 \end_inset 
 
-, so it is the same for all TEC measurements made between that station and
- different satellites
+, and they are the same for all TEC measurements made between a station
+ and different satellites
 \begin_inset Foot
 collapsed true
 
@@ -1528,20 +1623,14 @@ This has been established on real data.
 \end_inset 
 
 .
- The problem is how to implement such long-term constraints.
+ This is a typical example of long-term parameters as discussed in section
  
-\series bold 
-(Brainwave: If we introduce deliberate station drifts, will that help to
- separate real TECs from biases....?) 
-\layout Standard
+\begin_inset LatexCommand \ref{sub: Smoothing in time}
 
-Note that, if we solve the bias problem, GPS measurements yield 
-\emph on 
-absolute
-\emph default 
- TEC values.
- This is needed for the calibration of ionospheric Faraday rotation.
- (...to be elaborated...)
+\end_inset 
+
+.
+ 
 \layout Standard
 
 Referring to the MIM-diagrams in figs 
@@ -1553,32 +1642,66 @@ Referring to the MIM-diagrams in figs
 \begin_inset Formula $\ref{cap:MIMdiagram}$
 \end_inset 
 
-, may consider the following possibilities (...very incomplete...):
+, may consider the following possibilities:
 \layout Enumerate
 
-One satellite and multiple stations: This produces a group of samples along
- a horizontal line in the MIM-diagram, which slowly moves vertically because
- of the satellite motion.
- Because of the independent biases, the MIM will be relatively poorly constraine
-d along this line.
- For vertical constraints we have to rely on the kinds of constraints discussed
- in section 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
-\end_inset 
-
-, which require assumptions about the ionosphere.
- Biases need time to be separated....
+\series bold 
+One satellite-station pair:
+\series default 
+ Probably useless for our purpose, since we cannot distinguish TEC from
+ bias.
 \layout Enumerate
 
-Multiple satellites and one station: This sorts out the station drift.
+
+\series bold 
+One satellite and multiple stations:
+\series default 
+ Still not very good, since all stations will have different bias drifts.
+ However, the MIM will have a 
+\emph on 
+harmonizing
+\emph default 
+ effect on these biases.
+ MXM used this, together with the assumption of a thin layer, to separate
+ TECs and biases.
  
 \layout Enumerate
 
-Multiple satellites and multiple stations: 
+
+\series bold 
+One station and multiple satellites:
+\series default 
+ This sorts out the station drifts, better if we use large domains, or can
+ solve for long-term parameters.
 \layout Enumerate
 
-One satellite-station pair:
+
+\series bold 
+Multiple satellites and multiple stations:
+\series default 
+ The more, the better, because the harmonizing effect of the MIM will be
+ stronger.
+ Also, the MIM sampling is much wider.
+\layout Standard
+
+See also the MIM-diagram in figs 
+\begin_inset LatexCommand \ref{cap:Two-alternative-versions}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{cap:MIM diagram}
+
+\end_inset 
+
+.
+ Note that, if we solve the bias problem, GPS measurements yield 
+\emph on 
+absolute
+\emph default 
+ TEC values.
+ This is needed for the calibration of ionospheric Faraday rotation.
 \layout Subsection
 
 Preprocessing the Rinex data (JMA)
@@ -1780,7 +1903,11 @@ Freq-dependence: To find the absolute TEC, and to use HBA values for LBA
  Complicated by measurement errors like GJones....?
 \layout Standard
 
-We now distinguish the following cases (..very incomplete...):
+We now distinguish the following cases (.
+\emph on 
+.very incomplete...
+\emph default 
+):
 \layout Enumerate
 
 One bright Cat I source, in the (main lobe of the) field-of-view (FOV).
@@ -2150,7 +2277,7 @@ Things to do
 
 \emph on 
 NB: This is not exactly the same as Ilse's LIONS planning, but should be
- synchronized with it....
+ consistent with it....
 \layout Subsection
 
 Modules (to be) implemented
@@ -2170,19 +2297,34 @@ MXM will make a series of MeqTree modules, based on the general framework
 \layout Itemize
 
 If we want to exploit the frequency-dependence of the ionospheric phase
- in astronomical TEC measurements (see fig ...), the LOFAR preprocessor must
- be truly operational, i.e.
+ in astronomical TEC measurements (see fig 
+\begin_inset LatexCommand \ref{cap: Frequency dependence}
+
+\end_inset 
+
+), the LOFAR preprocessor must be truly operational, i.e.
  fast, reliable, and robust.
  
 \layout Itemize
 
 HXI will continue investigation of his SPAM scheme, and write it up in a
  paper.
- In a later stage he will implement it isn the MeqTrees framework mentioned
+ In a later stage he will implement it in the MeqTrees framework mentioned
  above.
 \layout Itemize
 
-JEN/MXM/OMS: Solving for time-dependence.
+JEN/MXM/OMS: Implement schemes for smoothing in time, e.g.
+ solving for long-term parameters (sections 
+\begin_inset LatexCommand \ref{sub: Smoothing in time}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+
+\end_inset 
+
+).
 \layout Itemize
 
 ..
@@ -3370,12 +3512,16 @@ simplest case
 \end_inset 
 
 ).
- If the direction coordinates 
+ 
+\layout Standard
+
+If the direction coordinates 
 \begin_inset Formula $(l,m)$
 \end_inset 
 
  depend on time, e.g.
- for a fast-moving satellite, we may also use: 
+ for a fast-moving satellite (or a fast-moving ionosphere!), we may also
+ use: 
 \layout Standard
 
 
@@ -3400,6 +3546,10 @@ An even simpler (and more universal?) assumption would be that the TEC is
 
 Etc, etc.
  Other examples are left to the ardent student.
+ 
+\emph on 
+NB: The expressions above are not to be fully trusted, but one gets the
+ idea.....
 \layout Subsection
 
 Correlation functions (Bas)
