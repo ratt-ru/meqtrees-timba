@@ -246,14 +246,13 @@ def read_parmtable(infile, dtype='float32'):
 
   # find parm names
   cl=tt.getcol('NAME');
-  bb=iter(set(chain(cl)));
+  bb=set(chain(cl))
   # find how many unique
   ncols=len(bb)
   data=[[] for dummy in xrange(ncols)]
   names=[]
   coln=0
-  while bb:
-   mname=bb.next()
+  for mname in bb:
    ff=tt.query('NAME=="'+mname+'"').getcol('VALUES')
    for nn in ff:
      data[coln].append(nn.mean())
