@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.92: 15 Nov 2007} % Date of Issue (
+theDOIssue}{Version 0.95: 20 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {0.92} 
+theRevNR} {0.95} 
 \layout Standard
 
 \backslash 
@@ -331,9 +331,9 @@ hspace{0.5cm} H.A.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} M.A.
+hspace{0.5cm} W.N.
 \backslash 
- van Haarlem (LOFAR)
+ Brouw (RUG/ASTRON)
 \backslash 
 
 \backslash 
@@ -533,6 +533,12 @@ vspace{2.0cm}
 
 An ionospheric model with a minimum number of parameters, and a minimum
  number of assumptions, is investigated.
+ It is the basis for a practical procedure for ionospheric calibration for
+ LOFAR.
+ In addition to astronomical measurements on bright sources, it also proposes
+ to use a network of GPS receivers.
+ The MIM approach has more applications.
+ 
 \layout Standard
 
 
@@ -587,6 +593,19 @@ This document is very much a work in progress.
  (and other) observations, and other applications.
  In this stage, it still contains many blank spots, to be filled in by various
  members of our little MIM community.
+\layout Standard
+
+
+\series bold 
+By its nature, this document is also a little complicated, with many ifs
+ and buts, and new ideas in various stages of maturity.
+ However, the many strands come together in section 
+\begin_inset LatexCommand \ref{sec:LOFAR-procedure}
+
+\end_inset 
+
+, which describes the proposed LOFAR procedure(s) for ionospheric calibration.
+ 
 \layout Standard
 
 We describe a scheme for the calibration of the ionosphere for radio astronomy.
@@ -1076,6 +1095,47 @@ Solving for MIM (and other) parameters
 \end_inset 
 
 
+\layout Standard
+
+Ultimately, solving for parameters is a question of 
+\series bold 
+equations and unknowns
+\series default 
+.
+ In particular, we need (many) more equations than unknown parameters, and
+ the parameters must be sufficiently orthogonal, i.e.
+ they must have signatures that are sufficiently distinct from each other.
+ The power of the MIM is that it reduces the number of parameters to an
+ absolute minimum.
+ The small number of terms in the MIM function minimizes the number of 
+\emph on 
+spatial
+\emph default 
+ parameters by making maximum use of our 
+\emph on 
+a priori
+\emph default 
+ knowledge that the ionosphere is smooth in those dimensions.
+ The same can be done for the 
+\emph on 
+time
+\emph default 
+ dimension by replacing the 'parameters' 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ (and 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+) by low-order polynomials (or other smooth functions) in time, and using
+ the coefficients of these functions as the real parameters, to be solved
+ for.
+ 
+\emph on 
+As will be argued below, the implementation of this time-smoothness constraint
+ will be one of the more difficult aspects.
+ 
 \layout Standard
 
 In this section we define a generic framework that can be used to solve
@@ -1802,14 +1862,14 @@ ation
 \end_inset 
 
  of better than a degree, depending on the source brightness.
+ The result is called 
+\series bold 
+a selfcal solution
+\series default 
+.
  This noise is much smaller than the GPS noise.
- Unfortunately, this is complicated by (at least one) unknown common phase
- offset.
- Fortunately, the same bias value 
-\begin_inset Formula $b$
-\end_inset 
-
- is shared by all 
+ Unfortunately, the phases have (at least one) unknown common phase offset.
+ Fortunately, this offset is shared by all 
 \begin_inset Formula $N$
 \end_inset 
 
@@ -1824,7 +1884,7 @@ Each station phase
 \begin_inset Formula $\phi_{rs}$
 \end_inset 
 
- represents an integrated TEC value 
+ in the selfcal solution represents an integrated TEC value 
 \begin_inset Formula $S_{rs}$
 \end_inset 
 
@@ -1860,7 +1920,7 @@ Each station phase
 
 
 \begin_inset Formula \begin{equation}
-Q_{rs}(\lambda,t)=\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq))+noise\quad TECU\label{eq: Srs_astro}\end{equation}
+Q_{rs}(\lambda,t,qq)=\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{Jones}(\lambda,t,qq))+noise\quad TECU\label{eq: Qrs_astro}\end{equation}
 
 \end_inset 
 
@@ -1880,98 +1940,212 @@ in which
 \end_inset 
 
 .
- Note that all the phases are station-based, except the phase-zero offset,
- which is shared by all stations.
- 
+ The phase-zero offset 
+\begin_inset Formula $\phi_{0}$
+\end_inset 
+
+ is a processing artifact, and is shared by all stations.
+ It is due to the fact that interferometers measure phase 
 \emph on 
-(...This bit requires a little more work.....)
+differences
+\emph default 
+ only.
+ The instrumental phase 
+\begin_inset Formula $\phi_{r}$
+\end_inset 
+
+ is 
+\emph on 
+station-based
+\emph default 
+.
+ It is a function (sum?) of the phases caused by troposphere (TJones), station
+ beam (EJones) and electronics (GJones).
+ Until we have a better expression, we will write: 
 \layout Standard
 
-Just like the GPS case, we sample the MIM along a horizontal line in the
- MIM-diagram (see fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+
+\begin_inset Formula \begin{equation}
+\phi_{r}^{Jones}(\lambda,t,qq)=\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq)\quad rad\label{eq: astro_Jones}\end{equation}
 
 \end_inset 
 
-).
- The difference is that the horizontal constraint is much stronger than
- in the GPS case, mainly because all stations share the same offset.
+
 \layout Standard
 
-Freq-dependence: To find the absolute TEC, and to use HBA values for LBA
- observations.
- Complicated by measurement errors like GJones....?
-\layout Standard
+An important help in distinguising effects from each other is the frequency
+ dependence.
+ The phase caused by the TEC is 
+\begin_inset Formula $\propto\lambda$
+\end_inset 
 
-We now distinguish the following cases (.
-\emph on 
-.very incomplete...
-\emph default 
-):
-\layout Enumerate
+, while both the tropospheric phase and the station beam phase are 
+\begin_inset Formula $\propto\lambda^{-1}$
+\end_inset 
 
-One bright Cat I source, in the (main lobe of the) field-of-view (FOV).
- One offset.
- Sufficient for estimating a MIM function if the size of the array is larger
- than the 'footprint' of the FOV on the ionosphere.
- 5 degrees = 0.1 rad -> 0.1x300km = 30 km.
+ .
+ GJones differs per station, but can probably be assumed to be 'stable'
+ over long periods of time.
+ I am not sure about the frequency-dependence of the common offset (..?..) In
+ any case, the separation of effects will improve linearly with fractional
+ bandwidth 
+\begin_inset Formula $\Delta\lambda/\lambda$
+\end_inset 
+
+, so we should endeavour to work with solve-domains that are as large as
+ possible in the frequency direction.
  
-\series bold 
-So, for the full LOFAR, we get away with only ONE bright source, and a minimum
- of parameters....
+\emph on 
+This means that we should process all (collapsed) LOFAR subbands simultaneously,
+ either by putting them together in a single spectral window, or by the
+ use of a 'super-solver'.
+ 
+\layout Standard
+
+The various effects differ in other aspects also.
+ Both TJones and GJones are valid for the entire field (i.e.
+ they are 
+\emph on 
+uv-plane effects
+\emph default 
+), while only EJones is direction-dependent.
+ 
+\layout Standard
+
+In terms of time-dependence: EJones and the TEC change only slowly, while
+ TJones varies rapidly.
+ At the very least, the solve-domains should be large enough in the time-directi
+on to filter out the troposphere.
+\layout Standard
+
+Being able to separate the phase caused by the TEC from other phase-effects
+ is very important.
+ First af all, its frequency-dependence will then give the absolute TEC
+ (see fig 
+\begin_inset LatexCommand \ref{cap: Frequency dependence}
+
+\end_inset 
+
+), which is needed for predicting Faraday rotation.
+ But it also opens the way to using observations taken at higher frequencies
+ (LOFAR HBA) to correct those at lower frequencies (LOFAR LBA).
+ 
+\layout Standard
+
+Referring to the MIM-diagrams in figs 
+\begin_inset LatexCommand \ref{cap:Two-alternative-versions}
+
+\end_inset 
+
+ and 
+\begin_inset Formula $\ref{cap:MIMdiagram}$
+\end_inset 
+
+, may consider the following possibilities (the FOV is the field-of-view,
+ i.e.
+ the main lobe of the effective station beam):
 \layout Enumerate
 
-Multiple sources in the FOV: simultanous or peeling (contamination).
- Multiple independent offsets.
- Requires MIM to harmonize them.
- Works for arrays smaller than the fovprint if ...
+
+\series bold 
+One bright Cat I source in the FOV:
+\series default 
+ This is sufficient for estimating a 'relative' MIM function if the size
+ of the array is larger than the 'footprint' of the FOV on the ionosphere
+ (5 degrees = 0.1 rad -> 0.1x300km = 30 km).
+ So, for the full LOFAR, we get away with only ONE bright Cat I source,
+ and a minimum of parameters.
+\layout Enumerate
+
+
+\series bold 
+One bright Cat I source in the FOV, and a network of GPS stations.
+
+\series default 
+ This might well be the preferred mode of operation for LOFAR.
+ For each station, the phase of the Cat I selfcal solution represents a
+ 'pivotal' point in its FOV.
+ The (curved) phase screen across the rest of its FOV is constrained via
+ the MIM by an arbitrarily dense pattern of GPS values outside the FOV.
+ Although the GPS values have an accuracy of only 0.01 TECU (1 rad @ 75 MHz),
+ they constrain the phases inside the FOV to a much greater accuracy.
+ This is partly due to the lever effect, and partly through a 
+\begin_inset Formula $\sqrt{n}$
+\end_inset 
+
+ effect.
+\layout Enumerate
+
+
+\series bold 
+Multiple sources inside the FOV:
+\series default 
+ Simultanous solution, or peeling (contamination).
+ The latter gives multiple independent offsets, which require a MIM to harmonize
+ them.
+ This works for arrays that are smaller than the fovprint if ...
  Simultaneous selfcal solution for multiple sources in the field will share
  the same phase offset, so that may be OK to estimate a 2nd-order ionosphere
  (MIM) over the entire field.
  
 \layout Enumerate
 
-Multiple sources inside and outside the FOV: need rapid repointing for sensitivi
-ty (and because the beam introduces phase-jumps in side-lobes).
- Multiple independent offsets.
- Requires MIM to harmonize them.
-\layout Enumerate
 
-Using GPS data as well.
- Requires MIM to harmonize offsets.
- Pivot? 
-\begin_inset Formula $\sqrt{n}$
-\end_inset 
-
-?
+\series bold 
+Multiple sources outside the FOV:
+\series default 
+ Rapid repointing of the LOFAR station beam is needed for sensitivity.
+ Since the selfcal solutions are independent, this introduces multiple independe
+nt offsets, which require a MIM to harmonize them.
 \layout Standard
 
-It should be noted that this is a relative improvement only.
- It harmonizes the unknown phase offset by making it consistent with the
- GPS MIM, but it does NOT increase the absolute accuracy, which remains
- at the level of 0.01 TECU, or 1 rad @ 75 MHz.
- However, the relative accuracy between LOFAR station phases will be 100
- better than a degree, i.e.
- 100-1000 times better than the GPS accuracies.
+NB: In discussions about dynamic range, it sould be kept in mind that the
+ bright Cat I sources are subtracted with their own selfcal phases.
+ The MIM is only used to subtract the fainter Cat II sources, where any
+ MIM errors will do less damage.
+ The same is true for the use of the MIM for (facet) imaging of the residuals,
+ which contain only the faintest (Cat III) sources.
 \layout Subsection
 
 Acquiring and maintaining phase-lock
+\begin_inset LatexCommand \label{sub: phase-locking}
+
+\end_inset 
+
+
 \layout Standard
 
-It should be noted that a selfcal solution only works if there are no 
+A selfcal solution is only possible if there are no 
 \begin_inset Formula $2\pi$
 \end_inset 
 
  ambiguities, i.e.
- if the station phase errors are within about a radian to begin with.
- Since the ionospheric variations can be much larger than that, it must
- be tracked all the time.
- Also important for longer integrations on fainter sources, for LOFAR beamshape
- determination.
- The LOFAR phase-locking procedure (...legacy...).
- The latter is a continuous selfcal phase solution on one or more bright
- sources.
- It starts with 3 stations in the core.
+ if the 
+\emph on 
+interferometer phase differences
+\emph default 
+ are within about a radian to begin with.
+ Since the differential (!) ionospheric variations can be much larger than
+ that, the ionosphere must be tracked all the time
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Phase tracking is also important for integrating longer (many minutes),
+ to measure LOFAR beamshape parameters in the direction of fainter sources.
+ 
+\end_inset 
+
+.
+\layout Standard
+
+It is expected that GPS measurements will easily produce the differential
+ accuracy that is needed for phase-locking.
+ As a backup alternative, the following more cumbersome and time-consuming
+ phase-locking procedure may be followed for LOFAR.
+ A continuous selfcal phase solution on one or more bright sources starts
+ with 3 stations in the core.
  The other stations are included one by one, moving outwards from the centre.
  The phase of this new station is varied by steps of 
 \begin_inset Formula $2\pi$
@@ -1980,12 +2154,77 @@ It should be noted that a selfcal solution only works if there are no
 , until the solution is consistent (phase-lock).
  Its phase will then be continuously tracked while the remaining stations
  are included, and during the subsequent observations.
+\layout Standard
+
+Note that phase-tracking takes the shape of an approximate MIM, i.e.
+ a MIM in which the values of its parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ are only accurate enough to give a phase accuracy better than a radian.
+ Obviously, the measurement parameters 
+\begin_inset Formula $q_{k}$
+\end_inset 
+
+ must also be 'accurate enough' in this stage.
+ The values of all parameter values are then improved in to the required
+ level the subsequent stages.
+ 
 \layout Subsection
 
 Peeling
+\begin_inset LatexCommand \label{sub:Peeling}
+
+\end_inset 
+
+
 \layout Standard
 
-Peeling will produce different offsets, as will rapid repointing.
+Only the bright Cat I sources are used to estimate instrumental parameters.
+ When there is more than one Cat I source in the field, one has the choice
+ between making a single simultanous selfcal solution for all the relevant
+ parameters.
+ This is OK if there are only uv-plane effects, or if the number of direction-de
+pendent parameters is small.
+ Otherwise, the solution may become unstable because the number of parameters
+ is too large.
+\layout Standard
+
+An alternative approach is 
+\emph on 
+peeling
+\emph default 
+
+\begin_inset LatexCommand \cite{JEN peeling}
+
+\end_inset 
+
+: A separate selfcal solution is made for each Cat I source, after which
+ it is subtracted from the uv-data.
+ Obviously, this must be done in order of decreasing apparent brightness.
+ In this way, the number of parameters per solution never exceeds that of
+ a classical selfcal with uv-plane effects only.
+ Other advantages are smaller solution matrices (fewer parameters) and the
+ possibility of shifting the phase centre of the uv-data to the position
+ of the peeling source.
+\layout Standard
+
+A potential problem with peeling is the contamination caused by the other
+ sources in the field.
+ This will 'skew' the selfcal solution, and cause incomplete subtraction
+ of the peeling source.
+ The solution is to include a few of the brightest contamination sources
+ in the selfcal predict.
+ The prediction does not have to be very accurate, since contamination is
+ non-linear.
+ Thus, at the cost of extra processing, contamination can be reduced to
+ an arbitrarily low level.
+ 
+\layout Standard
+
+Since each selfcal solution is independent, each solution will introduce
+ a different selfcal offset (just like rapid repointing).
+ These have to be harmonized by the MIM.
  
 \layout Standard
 
@@ -2015,6 +2254,13 @@ collapsed false
 
 Frequency-dependence of the station phase error in an astronomical observation
  of a radio source.
+ If we manage to separate the phase caused by the ionospheric TEC from the
+ phase caused by instrumental effects, the absolute TEC may be derived from
+ the linear slope as a function of frequency (
+\begin_inset Formula $\phi\approx25\lambda T$
+\end_inset 
+
+).
 \end_inset 
 
 
@@ -2028,78 +2274,266 @@ Possible LOFAR procedure(s)
 
 \layout Standard
 
-Using a mix of GPS and astronomical TEC measurements, LOFAR may adopt a
- range of MIM-based procedures.
- In some ways, this is the central section of this document.
+Using a mix of GPS and astronomical TEC measurements, and some judicial
+ extra constraints, LOFAR may adopt a range of MIM-based procedures.
  
+\emph on 
+This section is the heart of this document, since it brings all the strands
+ together.
+ I keep on agonizing over it....
+ 
+\layout Standard
+
+The proposed 
+\emph on 
+default
+\emph default 
+ procedure (see fig 
+\begin_inset LatexCommand \ref{cap:The-default-procedure}
+
+\end_inset 
+
+) uses a single Cat I source as a pivotal point for the MIM.
+ An array of GPS receivers is used to constrain the MIM further.
+ All kinds of variations on this theme are possible, of course.
 \layout Subsection
 
 Default procedure
-\layout Standard
+\layout Enumerate
 
-Use an array of GPS stations around the LOFAR array to get a MIM to an accuracy
- of 0.01 TECU (equivalent to a phase of 1 rad @ 75 MHz).
- This is sufficient for acquiring phase-lock.
-\layout Standard
 
-Then use selfcal on the brightest Cat I source in the field to obtain phases
- for all telescopes (stations) in the array.
- Use these phases to constrain the MIM further, i.e.
- to obtain better values for the MIM parameters 
-\begin_inset Formula $p_{k}$
+\series bold 
+Acquiring phase-lock:
+\series default 
+ Create the conditions for making selfcal solutions on bright sources, without
+ 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ ambiguities.
+ This means getting the 
+\emph on 
+interferometer phase errors
+\emph default 
+ (differential!) within a radian.
+ Use an array of GPS stations around the LOFAR array to get a MIM that has
+ the required 
+\emph on 
+differential
+\emph default 
+ accuracy.
+ 
+\begin_deeper 
+\layout Enumerate
+
+If GPS cannot be used for some reason, there is a backup alternative: The
+ brightest Cat I source may be used in a more cumbersome trial-and-error
+ procedure described in section 
+\begin_inset LatexCommand \ref{sub: phase-locking}
+
 \end_inset 
 
 .
- This is a strong 'horizontal' constraint on the MIM.
- It must also be used to phase-track, i.e.
- to keep the ionospheric errors below one radian.
-\layout Standard
+\end_deeper 
+\layout Enumerate
 
-The GPS samples provide a 'vertical' constraint on the MIM, because they
- have different directions.
- However ....
-\layout Standard
 
-The bright Cat I sources will be subtracted from the uv-data, using their
- 'own' phases, for maximum accuracy.
-\layout Standard
+\series bold 
+Phase-tracking:
+\series default 
+ Make sure that the differential phase errors stay within one radian at
+ all times.
+ It continuously extrapolates and updates the MIM parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
 
-The fainter Cat II sources will be subtracted from the uv-data, using the
- phases calculated with the MIM function.
+.
+ It is implicit in what follows.
+ It is mentioned separately here to emphasize the importance of solving
+ for 
+\emph on 
+long-range parameters
+\emph default 
+ (see section 
+\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+
+\end_inset 
+
+).
+ This is needed to distinguish the TEC from the GPS bias (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+), and from instrumental effects (see section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+).
  
+\layout Enumerate
+
+
+\series bold 
+Pivotal point:
+\series default 
+ A selfcal solution on the brightest Cat I source in the field produces
+ phases for all telescopes (stations) in the array.
+ Use the widest possible frequency domain to distinguish the contributions
+ of the TEC (
+\begin_inset Formula $\propto\lambda$
+\end_inset 
+
+) from instrumental contributions (some, but not all, are 
+\begin_inset Formula $\propto1/\lambda$
+\end_inset 
+
+).
+ If the TEC contribution can be separated, the 
+\emph on 
+absolute
+\emph default 
+ TEC may be calculated from its frequency slope.
+ 
+\begin_deeper 
+\layout Enumerate
+
+If the LOFAR array is larger than the footprint (~30km) of the FOV on the
+ ionosphere, the curvature of the MIM over the entire FOV may be constrained.
+ So, one Cat I is sufficient in this case.
+ If the LOFAR array is too small (e.g.
+ only the 3km core), extra constraints are needed.
+ 
+\layout Enumerate
+
+Selfcal on other bright Cat I sources in the field (NB: This may have to
+ be done in any case, to subtract them with maximum accuracy).
+ Use either a simultaneous solution, or peeling.
+ The extra samples constrain the MIM curvature, by simply adding extra equations
+ to the MIM solution matrix.
+ Limiting factors are the availability of sources, and the independent phase
+ offsets introduced by each selfcal solution.
+ 
+\layout Enumerate
+
+Use a (suitably dense) network of GPS stations around the array to constrain
+ the MIM curvature.
+ Again, by adding extra equations to the MIM solution matrix.
+ The limited accuracy (0.01 TEC, or 1 rad @ 75 MHz) is largely compensated
+ by the number of GPS stations (
+\begin_inset Formula $1/\sqrt{n}$
+\end_inset 
+
+), and by the presence of the pivot.
+ 
+\end_deeper 
+\layout Enumerate
+
+
+\series bold 
+Subtract Cat I sources from the uv-data.
+
+\series default 
+ For maximum accuracy, these (very) bright sources will be subtracted individual
+ly, using their 'own' instrumental parameters.
+ This is an important point, since it means that the requirements of accuracy
+ of the MIM may be relaxed considerably.
+\layout Enumerate
+
+
+\series bold 
+Subtract Cat II sources from the uv-data.
+
+\series default 
+ These fainter sources are subtracted in groups, using interpolated values
+ of the various instrumental effects.
+ The latter include the MIM, but also the station beamshapes etc.
+ By its nature, the MIM is easily interpolated, of course.
+\layout Enumerate
+
+Facet imaging.
+ First the MIM will be used to determine the optimum size of an imaging
+ 'facet'.
+ Then to correct the uv-residuals for the centre of each facet, prior to
+ integrating
+\begin_inset Foot
+collapsed true
+
 \layout Standard
 
-The MIM function will also be used in imaging.
- Firsty to determine the optimum size of an imaging 'facet'.
- And secondly to correct the uv-residuals for the centre of each facet.
+The uv-data may be integrated in freq and time to match the smaller size
+ of a facet image.
+ This reduces the effect of contaminating sources outside the field.
+\end_inset 
+
+ and transforming them.
  
 \series bold 
 Question: Is it possible to apply the MIM image-plane effect during imaging?
 \layout Subsection
 
-Variation: No GPS data
+Variation: Rapid repointing
 \layout Standard
 
-Need alternative phase-locking.
- Also: absolute TEC (Faraday rotation).
+It has been suggested that we should measure the ionosphere (MIM?) by using
+ a small part (10%?) of the integration time to rapidly repoint the station
+ beams to a few bright sources outside the FOV.
+ Personally, I hope that this will not be necessary.
+ But I support the (non-trivial) implementation of this capability, because
+ I am sure that the availability of such an unusual observational mode can
+ lead to unexpected discoveries.
+ 
+\layout Subsection
+
+Variation: Long baselines (> 100 km)
+\layout Standard
+
+Important for the European LOFAR, starting with the station in Effelsberg
+ (250 km from Exloo).
+\layout Subsection
+
+Variation: Faraday rotation
+\layout Standard
+
+Needs an absolute TEC.
+ Other methods?
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_default_proc.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-default-procedure}
+
+\end_inset 
+
+
+\emph on 
+The proposed default procedure for the ionospheric calibration of LOFAR
+\emph default 
  
 \emph on 
-Emphasize complementarity.
+uses a bright Cat I source in the FOV as the pivotal point of the MIM.
+ An array of GPS receivers is used to constrain the MIM further.
  
-\layout Subsection
+\end_inset 
 
-Variation: GPS data only
-\layout Standard
 
-Not accurate enough (noise is about a radian, and we need less than a degree).
- Also, the brightest sources need to be subtracted with their own corrections,
- not interpolated from the MIM.
-\layout Subsection
-
-Variation: Rapid re-pointing
-\layout Standard
-
-Still need MIM to harmonize the phase-offsets.
 \layout Standard
 
 
@@ -2169,7 +2603,7 @@ The solver gets three kinds of equations.
 \end_inset 
 
  for GPS measurements, and equ 
-\begin_inset LatexCommand \ref{eq: Srs_astro}
+\begin_inset LatexCommand \ref{eq: astro_Jones}
 
 \end_inset 
 
@@ -2403,7 +2837,7 @@ harmonize
  with each other.
 \layout Standard
 
-In radio astronomy calibration, the MIM is used for:
+In radio astronomy calibration, the MIM may be used for:
 \layout Itemize
 
 Tracking the ionosphere to within a radian of phase.
@@ -2412,7 +2846,7 @@ Tracking the ionosphere to within a radian of phase.
 Combining astronomical and GPS measurements.
 \layout Itemize
 
-Faraday calibration (absolute TEC).
+Faraday calibration (needs absolute TEC).
 \layout Itemize
 
 Source subtraction (Cat II).
@@ -2424,6 +2858,17 @@ Imaging (facet and otherwise).
 In addition, other applications for the MIM-principle are ionospheric research,
  improved position determination, and as a general harmonizing principle
  for all kinds of problems, in all kinds of fields.
+\layout Standard
+
+We propose to demonstrate the capabililties of the MIM in the context of
+ the MeqTree system, as a trail-blazer for the eventual LOFAR implementation
+ in BBS.
+ One of the most urgent tasks is to develop the capapility of solving for
+ long-range parameters, i.e.
+ parameters that have a validity domain that is greater (longer) than the
+ domain of a practical data-snippet.
+ This is needed to distinguish the ionospheric TEC from instrumental effects.
+ For the same reason, we must deal with the widest possible frequency-range.
 \layout Standard
 
 Let's get to work...
@@ -3843,6 +4288,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename MIM_longrange.eps
+	width 80col%
 
 \end_inset 
 
@@ -3858,7 +4305,28 @@ collapsed false
 \emph on 
 Long-range parameters.
  How do we solve for MIM (and other) parameters that have a validity-domain
- that is longer in time than the solution-domain?
+ that is longer in time than the solution-domain? One solution is to build
+ extra intelligence in the parameter object, so that it keeps track of its
+ own history, and can take intelligent decisions.
+ First of all it may extrapolate in time, giving a better starting value
+ for the next snippet.
+ This value may also be used to reject new values that are 'bad', i.e.
+ that differ too much from the expected value.
+\layout Standard
+
+
+\series bold 
+\emph on 
+The following is a jargon-laced placeholder:
+\series default 
+ The history that the object retains could be in the form of small solution
+ matrices, one for each coefficient of the MeqParm polc.
+ The matrices would solve for the coefficients of the time-function of each
+ polc coefficient, e.g.
+ a low-order polynomial.
+ Accepted new values (increments) may be accumulated, and the matrices may
+ be inverted each time a new expected value is needed.
+ 
 \end_inset 
 
 
