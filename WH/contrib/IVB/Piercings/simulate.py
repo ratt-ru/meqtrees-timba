@@ -69,33 +69,34 @@ def _define_forest (ns):
 
 #***************Make a bunch of plots***********************************
 ##  # All the nodes used here are defined in pierce_points.compress_nodes
-##  # First for the array
-  array_long = NodeList.NodeList(ns, 'array_long', nodes=[positions.arr_long,positions.pp_long])
-  array_lat = NodeList.NodeList(ns, 'array_lat', nodes=[positions.arr_lat,positions.pp_lat])
-  plot_array_ll = array_lat.plot_xy(xx=array_long, bookpage='Array and PP (longlat)')
+##  # First for the array: long-lat is obsolete for pierce-points
+  #array_long = NodeList.NodeList(ns, 'array_long', nodes=[positions.arr_long,positions.pp_long])
+  #array_lat = NodeList.NodeList(ns, 'array_lat', nodes=[positions.arr_lat,positions.pp_lat])
+  #plot_array_ll = array_lat.plot_xy(xx=array_long, bookpage='Array and PP (longlat)')
 
 ##  # Plot the array ENU coordinates
-  array_east = NodeList.NodeList(ns, 'array_east', nodes=[positions.arr_east])
-  array_north = NodeList.NodeList(ns, 'array_north', nodes=[positions.arr_north])
-  array_up = NodeList.NodeList(ns, 'array_up', nodes=[positions.arr_up])
-  plot_array_enu = array_north.plot_xy(xx=array_east, bookpage='Array (enu)')  
+  array_east = NodeList.NodeList(ns, 'array_east', nodes=[positions.arr_east,positions.pp_east])
+  array_north = NodeList.NodeList(ns, 'array_north', nodes=[positions.arr_north,positions.pp_north])
+  array_up = NodeList.NodeList(ns, 'array_up', nodes=[positions.arr_up,positions.pp_up])
+  plot_array_enu = array_north.plot_xy(xx=array_east, bookpage='Array and PP (enu)')  
 
   # Now for the pierce points
-  pp_long = NodeList.NodeList(ns, 'pp_long', nodes=[positions.pp_long])
-  pp_lat = NodeList.NodeList(ns, 'pp_lat', nodes=[positions.pp_lat])
-  plot_pp_ll = pp_lat.plot_xy(xx=pp_long, color='green', bookpage='PP (longlat)', style='diamond')
+  #pp_long = NodeList.NodeList(ns, 'pp_long', nodes=[positions.pp_long])
+  #pp_lat = NodeList.NodeList(ns, 'pp_lat', nodes=[positions.pp_lat])
+  #plot_pp_ll = pp_lat.plot_xy(xx=pp_long, color='green', bookpage='PP (longlat)', style='diamond')
 
   # Plot the pierce points in ENU coordinates
-  pp_east = NodeList.NodeList(ns, 'pp_east', nodes=[positions.pp_east])
-  pp_north = NodeList.NodeList(ns, 'pp_north', nodes=[positions.pp_north])
-  pp_up = NodeList.NodeList(ns, 'pp_up', nodes=[positions.pp_up])
-  plot_pp_enu = pp_north.plot_xy(xx=pp_east, bookpage='PP (enu)', color='green', style='diamond')
+  #pp_east = NodeList.NodeList(ns, 'pp_east', nodes=[positions.pp_east])
+  #pp_north = NodeList.NodeList(ns, 'pp_north', nodes=[positions.pp_north])
+  #pp_up = NodeList.NodeList(ns, 'pp_up', nodes=[positions.pp_up])
+  #plot_pp_enu = pp_north.plot_xy(xx=pp_east, bookpage='PP (enu)', color='green', style='diamond')
 
   # put the TEC nodes into the inspectors, otherwise they will not be executed.
-  inspectors = [plot_array_ll,
-                plot_array_enu,
-                plot_pp_ll,
-                plot_pp_enu]
+  inspectors = [#plot_array_ll,
+                plot_array_enu
+                #plot_pp_ll,
+                #plot_pp_enu
+                ]
   inspectors.append(
     Meow.StdTrees.vis_inspector(ns.inspect_predict,predict));
   # make sinks and vdm. Note that we don't want to make any spigots...

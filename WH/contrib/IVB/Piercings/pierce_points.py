@@ -115,12 +115,13 @@ def compute_pierce_points (ppscope, source_list):
             #multiply ppscope.enu with rot_matrix to get ECEF coordinates of pierce point
             ppscope.pp_ecef(src.name,s) << Meq.MatrixMultiply(ppscope.rot_matrix_station(s),ppscope.pp_sub(src.name,s))+xyz(s)
 
-            # From here it is basically a bunch of coordinate conversions
-            # Meq.LongLat converts ECEF into longitude latitude
-            ppscope.pp_ll(src.name,s) << Meq.LongLat(ppscope.pp_ecef(src.name,s), use_w=1)
-            ppscope.pp_long(src.name,s) << Meq.Selector(ppscope.pp_ll(src.name,s), index=0)
-            ppscope.pp_lat(src.name,s) << Meq.Selector(ppscope.pp_ll(src.name,s), index=1)
-            # Then rotate the long-lat into ENU with respect to reference antenna
+            # From here it is basically a bunch of coordinate conversions            
+            # Meq.LongLat converts ECEF into longitude latitude, this is only needed for plotting
+            # and doesn't work with tilesizes > 1. For speed leave it out.
+            #ppscope.pp_ll(src.name,s) << Meq.LongLat(ppscope.pp_ecef(src.name,s), use_w=1)
+            #ppscope.pp_long(src.name,s) << Meq.Selector(ppscope.pp_ll(src.name,s), index=0)
+            #ppscope.pp_lat(src.name,s) << Meq.Selector(ppscope.pp_ll(src.name,s), index=1)
+            # Rotate the long-lat into ENU with respect to reference antenna
             pp_enu = ecef_2_enu(ppscope,src,s,ref=refant)
     compress_nodes(ppscope,source_list)
     return ppscope
@@ -130,22 +131,22 @@ def compress_nodes(ppscope,source_list):
     # For the pp first combine per source
     stations = Context.array.stations();
     for s in stations:
-        ppscope.pp_long_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_long(src.name,s)*180/math.pi for src in source_list])
-        ppscope.pp_lat_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_lat(src.name,s)*180/math.pi for src in source_list])
+#        ppscope.pp_long_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_long(src.name,s)*180/math.pi for src in source_list])
+#        ppscope.pp_lat_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_lat(src.name,s)*180/math.pi for src in source_list])
 
         ppscope.pp_east_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_x_enu(src.name,s) for src in source_list])
         ppscope.pp_north_stat(s) << Meq.Composer(dims=[0], *[ppscope.pp_y_enu(src.name,s) for src in source_list])
     # Combine everything for all stations
     # First the pierce points
-    ppscope.pp_long << Meq.Composer(dims=[0], *[ppscope.pp_long_stat(s) for s in stations]) 
-    ppscope.pp_lat << Meq.Composer(dims=[0], *[ppscope.pp_lat_stat(s) for s in stations])
+    #ppscope.pp_long << Meq.Composer(dims=[0], *[ppscope.pp_long_stat(s) for s in stations]) 
+    #ppscope.pp_lat << Meq.Composer(dims=[0], *[ppscope.pp_lat_stat(s) for s in stations])
 
     ppscope.pp_east << Meq.Composer(dims=[0], *[ppscope.pp_east_stat(s) for s in stations])
     ppscope.pp_north << Meq.Composer(dims=[0], *[ppscope.pp_north_stat(s) for s in stations])
 
     # Then the array
-    ppscope.arr_long << Meq.Composer(dims=[0],*[ppscope.lamb(s)*180/math.pi for s in stations])
-    ppscope.arr_lat << Meq.Composer(dims=0,*[ppscope.phi(s)*180/math.pi for s in stations])
+    #ppscope.arr_long << Meq.Composer(dims=[0],*[ppscope.lamb(s)*180/math.pi for s in stations])
+    #ppscope.arr_lat << Meq.Composer(dims=0,*[ppscope.phi(s)*180/math.pi for s in stations])
 
     ppscope.arr_east << Meq.Composer(dims=[0], *[ppscope.array_x_enu(s) for s in stations])
     ppscope.arr_north << Meq.Composer(dims=[0], *[ppscope.array_y_enu(s) for s in stations])
