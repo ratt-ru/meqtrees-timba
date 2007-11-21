@@ -1,11 +1,6 @@
- Frequency_of_GSM_MHz =   60000000.
- Number_of_associations =  1577
- Number_of_surveys_used =  3
- File = 8c75bdeep
- File = nvss_cs1trial
- File = vlss_cs1trial
- #assoc flag     RA        eRA         Dec       eDec       Flux      eFlux 
-                (deg)     (deg)       (deg)      (deg)      (Jy)       (Jy)  
+#  assoc flag     RA        eRA         Dec       eDec       Flux      eFlux 
+#                (deg)     (deg)       (deg)      (deg)      (Jy)       (Jy)  
+#
     1    0   6.416E+00  1.800E-01  6.413E+01  2.215E+00  9.170E+01  3.371E-01
     2    0   2.805E+02  4.827E-01  7.977E+01  5.990E+00  9.122E+01  9.585E-01
     3    0   3.565E+01  3.316E-01  8.632E+01  3.798E+00  3.533E+01  4.084E-01
