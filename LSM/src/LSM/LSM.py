@@ -1256,7 +1256,7 @@ class LSM:
    print "WARNING: add_sixpack() called without giving a sixpack. Ignored!"
    pass
 
-
+ #****************************************************************************************
  # read in a text file to build the LSM
  # infile_name: file name, absolute path
  # ns: nodescope
@@ -1327,6 +1327,115 @@ class LSM:
   self.setNodeScope(ns)
   self.setFileName(infile_name)
 
+ #****************************************************************************************
+ # read in a OR_GSM file from Niruj to create sky components
+ # infile_name: file name, absolute path
+ # ns: nodescope
+ # The standard format of the file should be like this:
+ #
+ #  assoc flag     RA        eRA         Dec       eDec       Flux      eFlux 
+ #                (deg)     (deg)       (deg)      (deg)      (Jy)       (Jy)  
+ #    3    0   35.6500     0.33160     86.3200     3.798     35.33E     0.4084
+ #
+ def build_from_orgsm(self,infile_name,ns):
+
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>\d+)  # column 1: source number (integer)
+   \s*             # skip white space
+   (?P<col2>\d+)   # source flag (integer)
+   \s*             # skip white space
+   (?P<col3>\d+(\.\d+)?)   # RA angle - decimal degrees 
+   \s*                     # skip white space
+   (?P<col4>\d+(\.\d+)?)   # RA error - decimal degrees
+   \s*                     # skip white space
+   (?P<col5>\d+(\.\d+)?)   # DEC angle - decimal degrees
+   \s*                     # skip white space
+   (?P<col6>\d+(\.\d+)?)   # DEC error - decimal degrees
+   \s*                     # skip white space
+   (?P<col7>\d+(\.\d+)?)   # Flux - Jansky
+   \s*                     # skip white space
+   (?P<col8>\d+(\.\d+)?)   # Flux error - Jansky
+   \s*""",re.VERBOSE)
+ 
+  # read each source and insert to LSM
+  # give source a name and convert coordinates to radians
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    s=Source(v.group('col1'))
+    source_RA=float(v.group('col3'))
+    source_RA*=math.pi/180.0
+    source_Dec=float(v.group('col5'))
+    source_Dec*=math.pi/180.0
+
+    my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=eval(v.group('col7')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    my_sixpack.display()
+    self.add_source(s,brightness=eval(v.group('col7')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+ #****************************************************************************************
+ # read in a sky model from Matt Jarvis to create sky components
+ # infile_name: file name, absolute path
+ # ns: nodescope
+ # The standard format of the file should be like this:
+ #
+ #  assoc flag     RA        eRA         Dec       eDec       Flux      eFlux 
+ #                (deg)     (deg)       (deg)      (deg)      (Jy)       (Jy)  
+ #    3    0   35.6500     0.33160     86.3200     3.798     35.33E     0.4084
+ #
+ def build_from_ska(self,infile_name,ns):
+
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>\d+)  # column 1: source number (integer)
+   \s*             # skip white space
+   (?P<col2>[-]*\d+(\.\d+)?)   # RA angle - decimal degrees 
+   \s*                     # skip white space
+   (?P<col3>\d+(\.\d+)?)   # DEC angle - decimal degrees
+   \s*                     # skip white space
+   (?P<col4>\d+(\.\d+)?)   # Flux - Jansky
+   \s*
+   (?P<col5>\d+(\.\d+)?)   # Source ID (1=RQAGN, 2 = FRI, 3=FRII)
+   \s*""",re.VERBOSE)
+ 
+  # read each source and insert to LSM
+  # give source a name and convert coordinates to radians
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    s=Source(v.group('col1'))
+    source_RA=float(v.group('col2'))
+    source_RA*=math.pi/180.0
+    source_Dec=float(v.group('col3'))
+    source_Dec*=math.pi/180.0
+
+    my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=eval(v.group('col4')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    my_sixpack.display()
+    self.add_source(s,brightness=eval(v.group('col4')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+  self.setNodeScope(ns)
+  self.setFileName(infile_name)
+
+  #****************************************************************************************
 
  # moves the punit (if it is a point) given
  # by the 'pname' to new location given by new RA,Dec

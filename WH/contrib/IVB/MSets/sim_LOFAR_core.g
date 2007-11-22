@@ -2,8 +2,8 @@
 
 # The main input parameters
 # Phase center
-RA0          := '23h13m0.0';
-DEC0         := '59d54m00s';
+RA0          := '0h0m0.0';
+DEC0         := '55d00m00s';
 
 # Frequency and BW
 Frequency    := 60 #Central frequency in MHz
@@ -21,9 +21,9 @@ t_int	     := '120s'# integration time per scan (NB this is a string!)
 t_obs        := 2800  # total observing time in seconds
 
 # Basename for file and spectral window
-basename     := 'GSM_LOcore'
+basename     := 'SKA_LOcore'
 # Where the MS goes
-holderdir    := '/data/bemmel/MSets/';
+holderdir    := '/home/timba/data/MSets/';
 
 # Derived settings
 # Frequency
@@ -252,14 +252,14 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     mysim.done();
 }
 
-#print '*** deleting previous model ***'
-#comm :=spaste('rm -rf ',modelname)
-#shell(comm)
-#print '*** calling mkcomplist ***'
-#num_sources := 1
-#mkcomplist(num_sources,flux,ra,dec);
-#print '*** calling mkcomps ***'
-#mkcomps(modelname,flux,ra,dec);
+print '*** deleting previous model ***'
+comm :=spaste('rm -rf ',modelname)
+shell(comm)
+print '*** calling mkcomplist ***'
+num_sources := 1
+mkcomplist(num_sources,flux,ra,dec);
+print '*** calling mkcomps ***'
+mkcomps(modelname,flux,ra,dec);
 # first delete old MS, test images, etc
 print '*** deleting previous MS ***'
 comm :=spaste('rm -rf ',msoutname)

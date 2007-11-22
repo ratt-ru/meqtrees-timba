@@ -41,6 +41,8 @@ CLEAN = "clean components";
 TEXT_RAD  = "text file (rad)";
 TEXT_DMS  = "text file (hms/dms)";
 VIZIER = "VizieR file";
+OR_GSM = "OR_GSM file";
+SKA = "Jarvis SKA file";
 
 class MeowLSM (object):
   def __init__ (self,filename=None,format=NATIVE,include_options=True,option_namespace='lsm'):
@@ -71,7 +73,7 @@ class MeowLSM (object):
                    namespace=self)
       );
       format_opt = TDLOption("format","File format",
-                 [ NATIVE,NEWSTAR,NVSS,CLEAN,TEXT_RAD,TEXT_DMS,VIZIER ],
+                 [ NATIVE,NEWSTAR,NVSS,CLEAN,TEXT_RAD,TEXT_DMS,VIZIER,OR_GSM,SKA ],
                  namespace=self);
       self._compile_opts.append(format_opt);
       self._compile_opts.append(
@@ -135,6 +137,8 @@ class MeowLSM (object):
     FORMAT_READERS[TEXT_RAD] = LSM.build_from_extlist_rad;
     FORMAT_READERS[TEXT_DMS] = LSM.build_from_extlist;
     FORMAT_READERS[VIZIER]   = LSM.build_from_vizier;
+    FORMAT_READERS[OR_GSM]      = LSM.build_from_orgsm;
+    FORMAT_READERS[SKA]      = LSM.build_from_ska;
 
     # read LSM using the selected format reader
     reader = FORMAT_READERS.get(format,None);
