@@ -1849,11 +1849,16 @@ A lot of pre-processing and re-organizing is done by Jim, before it is fed
  This should be summarized here....
 \layout Subsection
 
-Using 3 frequencies (JMA)
+Using 3 frequencies (JMA, EXN)
 \layout Standard
 
-Jim has verified that the bias problem will be much less (or even absent?),
- even if the 3rd frequency is relatively close to one of the others.
+Jim has verified (see appendix 
+\begin_inset LatexCommand \ref{sec:Triple-frequency-GPS}
+
+\end_inset 
+
+) that the bias problem will be much less (or even absent?), even if the
+ 3rd frequency is relatively close to one of the others.
  Galileo will use 3 frequencies, and we should do tests with the WSRT station.
  GPS will probably have them earlier, so we should be ready to use them
  to maximum advantage at the earliest opportunity.
@@ -1868,7 +1873,31 @@ Double-differencing (EXN, JMA)
 \layout Standard
 
 This is the Bingley stuff, which has been verified by JMA.
+ EXN will provide information for a summary.
+ See also appendix 
+\begin_inset LatexCommand \ref{sub:Ionospheric-delay}
+
+\end_inset 
+
+.
  We should give it its proper place...
+\layout Subsection
+
+GPS Correlation (SVT)
+\begin_inset LatexCommand \label{sub:GPS-Correlation-(SVT)}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\emph on 
+Here is a suggestion by Bas van der Tol, which might have merit: Treat the
+ GPS signals from the same satellite, received at different stations, as
+ astronomical signals.
+ Mix them down, and feed them to the LOFAR or WSRT correlator....
+ 
 \layout Standard
 
 
@@ -1934,7 +1963,7 @@ ation
 , which may be distributed over many km.
  Using a model of the source, with the correct flux, polarization, position
  and shape (usually a point source), the phase error of each antenna may
- be determined with a 
+ be determined with an a 
 \begin_inset Formula $noise$
 \end_inset 
 
@@ -1943,6 +1972,35 @@ ation
 \series bold 
 a selfcal solution
 \series default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The socalled 
+\series bold 
+sefcal condition
+\series default 
+ is that all instrumental errors are associated with stations rather than
+ interferometers (station-pairs).
+ This means that there are only 
+\begin_inset Formula $N$
+\end_inset 
+
+ independent parameters in 
+\begin_inset Formula $N(N-1)/2$
+\end_inset 
+
+ data-points.
+ i.e.
+ there are many more equations than unknowns.
+ A well-designed radio telescope has very small ifr-based errors, and even
+ then they may often be assumed constant over the observation.
+ They will be ignored in this discussion.
+ 
+\end_inset 
+
 .
  This noise is much smaller than the GPS noise.
  Unfortunately, the phases have (at least one) unknown common phase offset.
@@ -2063,9 +2121,24 @@ An important help in distinguising effects from each other is the frequency
  .
  GJones differs per station, but can probably be assumed to be 'stable'
  over long periods of time.
- I am not sure about the frequency-dependence of the common offset (..?..) In
- any case, the separation of effects will improve linearly with fractional
- bandwidth 
+ The common offset 
+\begin_inset Formula $\phi_{0}$
+\end_inset 
+
+ is probably independent of frequency
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The argument being that SVD minimizes the sum of the values of those parameters
+ for whose estimation there is not sufficient information.
+ 
+\end_inset 
+
+.
+ In any case, the effectivness of the separation of effects will improve
+ linearly with fractional bandwidth 
 \begin_inset Formula $\Delta\lambda/\lambda$
 \end_inset 
 
@@ -2100,8 +2173,8 @@ uv-plane effects
  (Under some conditions, TJones may also be direction-dependent).
 \layout Standard
 
-In terms of time-dependence: EJones and the TEC change only slowly, while
- TJones varies rapidly.
+In terms of time-dependence: EJones and the TEC both change smoothly, while
+ TJones varies rapidly (minutes).
  At the very least, the solve-domains should be large enough in the time-directi
 on to filter out the troposphere.
 \layout Standard
@@ -2170,12 +2243,8 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 Multiple sources inside the FOV:
 \series default 
  Simultanous solution, or peeling (contamination).
- The latter gives multiple independent offsets, which require a MIM to harmonize
- them.
- This works for arrays that are smaller than the fovprint if ...
- Simultaneous selfcal solution for multiple sources in the field will share
- the same phase offset, so that may be OK to estimate a 2nd-order ionosphere
- (MIM) over the entire field.
+ Both approaches (!) give multiple independent offsets, which require a
+ MIM to harmonize them.
  
 \layout Enumerate
 
@@ -2189,11 +2258,10 @@ nt offsets, which require a MIM to harmonize them.
 \layout Standard
 
 NB: In discussions about dynamic range, it sould be kept in mind that the
- bright Cat I sources are subtracted with their own selfcal phases.
- The MIM is only used to subtract the fainter Cat II sources, where any
- MIM errors will do less damage.
- The same is true for the use of the MIM for (facet) imaging of the residuals,
- which contain only the faintest (Cat III) sources.
+ bright Cat I sources are subtracted with their 'own' instrumental parameters.
+ The MIM is only used (interpolated) to subtract the fainter Cat II sources,
+ where any MIM errors will do less damage.
+ 
 \layout Subsection
 
 Acquiring and maintaining phase-lock
@@ -2280,6 +2348,7 @@ Only the bright Cat I sources are used to estimate instrumental parameters
 pendent parameters is small.
  Otherwise, the solution may become unstable because the number of parameters
  is too large.
+ 
 \layout Standard
 
 An alternative approach is 
@@ -2295,7 +2364,8 @@ peeling
  it is subtracted from the uv-data.
  Obviously, this must be done in order of decreasing apparent brightness.
  In this way, the number of parameters per solution never exceeds that of
- a classical selfcal with uv-plane effects only.
+ a 'classical' selfcal, i.e.
+ with uv-plane effects only.
  Other advantages are smaller solution matrices (fewer parameters) and the
  possibility of shifting the phase centre of the uv-data to the position
  of the peeling source.
@@ -2309,15 +2379,34 @@ A potential problem with peeling is the contamination caused by the other
  in the selfcal predict.
  The prediction does not have to be very accurate, since contamination is
  non-linear.
- Thus, at the cost of extra processing, contamination can be reduced to
- an arbitrarily low level.
+ At the faint end, the 
+\emph on 
+collective
+\emph default 
+ contamination caused by the vector sum of many faint sources, that are
+ distributed more or less homogeneoulsy, may be compensated by a gain factor
+ (
+\series bold 
+called the Van der Tol factor, provided he comes up with an expression
+\series default 
+).
+ Thus, at the cost of extra processing, the contamination can be reduced
+ to an arbitrarily low level.
  
 \layout Standard
 
 Since each selfcal solution is independent, each solution will introduce
- a different selfcal offset (just like rapid repointing).
+ a different selfcal offset.
  These have to be harmonized by the MIM.
+ NB: A simultaneous solution for image-plane effects, i.e.
+ independent phases in the direction of different sources, will also produce
+ multiple independent offsets, just like peeling and rapid repointing.
+ The reason is that, for each source direction, one may add an arbitrary
+ phase offset to all the station phases.
+ These will all cancel out in the differential phase of the measured visibility.
  
+\series bold 
+...I admit that I lost a bottle of wine on this one....
 \layout Standard
 
 
@@ -2353,6 +2442,8 @@ Frequency-dependence of the station phase error in an astronomical observation
 \end_inset 
 
 ).
+ In this example, the LBA and HBA phase-slopes are both consistent with
+ 
 \end_inset 
 
 
@@ -2544,7 +2635,11 @@ Subtract Cat II sources from the uv-data.
  By its nature, the MIM is easily interpolated, of course.
 \layout Enumerate
 
+
+\series bold 
 Facet imaging.
+
+\series default 
  First the MIM will be used to determine the optimum size of an imaging
  'facet'.
  Then to correct the uv-residuals for the centre of each facet, prior to
@@ -2561,8 +2656,12 @@ The uv-data may be integrated in freq and time to match the smaller size
 
  and transforming them.
  
-\series bold 
-Question: Is it possible to apply the MIM image-plane effect during imaging?
+\begin_deeper 
+\layout Enumerate
+
+Question: Is it possible to apply the MIM image-plane effect during imaging,
+ using a technique similar to w-projection?
+\end_deeper 
 \layout Subsection
 
 Variation: Rapid repointing
@@ -2590,6 +2689,13 @@ NB: Personally, I hope that this will not be necessary.
  I am sure that the availability of such an unusual observational mode can
  lead to unexpected discoveries.
  
+\layout Standard
+
+NB: Note that rapid repointing cannot be used to subtract the A-team, since
+ the EJones gains will be (very) different.
+ 
+\emph on 
+Strictly, this this also true for the EJones phases....
 \layout Subsection
 
 Variation: Long baselines (> 100 km)
@@ -2634,9 +2740,18 @@ The proposed default procedure for the ionospheric calibration of LOFAR
 \emph default 
  
 \emph on 
-uses a bright Cat I source in the FOV as the pivotal point of the MIM.
- An array of GPS receivers is used to constrain the MIM further.
- 
+uses a bright Cat I source in the FOV to 'pin down' a pivotal (high-accuracy)
+ point of the MIM.
+ Ideally, this point has absolute TEC, derived from the phase-slope as a
+ function of frequency.
+ At the very least, the TEC slope is accurately known at the pivotal point.
+\layout Standard
+
+
+\emph on 
+An array of GPS receivers is used to constrain the MIM further.
+ In particular, it constrains the higher-order shape (i.e.
+ curvature) of the MIM over the FOV.
 \end_inset 
 
 
@@ -2735,7 +2850,17 @@ The solver gets three kinds of equations.
 Normally, a separate solution is made for each request.
  In that case, the size of the domain, in both dimensions, determines its
  capability to separate effects with different (time, freq) signatures.
- 
+ Ideally, the domain should span the entire frequency range (easy), and
+ a time-range that is much longer than the few minutes of a practical data-snipp
+et.
+ Therefore, techniques must be developed to solve for long-range parameters,
+ whose validity-domain is much longer than that of a data-snippet.
+\layout Standard
+
+
+\emph on 
+Note that this diagram does not show the trees for peeling, or source subtractio
+n, or preparing for facet imaging.
 \end_inset 
 
 
@@ -2847,10 +2972,10 @@ If we want to exploit the frequency-dependence of the ionospheric phase
  
 \layout Itemize
 
-HXI will continue investigation of his SPAM scheme, and write it up in a
+HTI will continue investigation of his SPAM scheme, and write it up in a
  paper.
- In a later stage he will implement it in the MeqTrees framework mentioned
- above.
+ In a later stage he will help MXM to implement it in the MeqTrees framework
+ mentioned above.
 \layout Itemize
 
 JEN/MXM/OMS: Implement schemes for smoothing in time, e.g.
@@ -2884,10 +3009,9 @@ Questions (to be) answered
 
 \layout Enumerate
 
-What is the extent of the GPS network around WSRT/LOFAR? (JAE)
-\layout Enumerate
-
-How do GPS and astronomical measurements complement each other?
+What is the extent of the GPS network around WSRT/LOFAR, now and in the
+ future? KNMI, ESA, conditions of collaboration.
+ (JAE)
 \layout Enumerate
 
 Is triangulation circular?
@@ -3207,6 +3331,12 @@ It is measured in TEC units (TECU) of
 
  electrons per square meter.
  Typical values range from 5 TECU (nighttime) to 50 TECU (daytime).
+ See fig 
+\begin_inset LatexCommand \ref{cap: TMS profiles}
+
+\end_inset 
+
+.
  Note that the propagation path (or 'line-of-sight') will usually be slightly
  curved, because of refraction.
  At low elevation and frequency, the total bending angle 
@@ -3521,7 +3651,10 @@ relative
 \end_inset 
 
  mm over 100m.
- This becomes interesting for building contractors!
+ This becomes interesting for building contractors! 
+\series bold 
+(...
+ refer to double-differencing....)
 \layout Standard
 
 
@@ -3785,6 +3918,11 @@ In section
 
  we postulated the existence of a MIM function.
  This will be investigated in some more detail here.
+ 
+\series bold 
+(...
+ to be filled in later, but everyone has a gut-feeling that the answer is
+ yes ....)
 \layout Standard
 
 A minimum ionosphere model must meet the following criteria:
@@ -3902,8 +4040,16 @@ These can be optimized to be orthonormal for the given MIM sampling function,
 \end_inset 
 
 ).
- They reduce to Zernike polynomials for a dense sampling function within
- a unit circle.
+ This is a bit of a problem, since the base-functions change in time, rather
+ than just their coefficients.
+ The solution is to use the same set of base-functions for a longer period,
+ e.g.
+ an hour.
+ 
+\layout Standard
+
+KL functions reduce to Zernike polynomials for a dense sampling function
+ within a unit circle.
  However, the KL functions are not polynomials, 
 \emph on 
 and are relatively expensive to interpolate
@@ -3916,6 +4062,14 @@ and are relatively expensive to interpolate
 
 NB: Can the KL functions be differentiated to 'bridge the gaps' (see the
  requirement above).
+ The answer is yes.
+ 
+\layout Standard
+
+
+\series bold 
+NB: Bas will write a short summary paragraph, which refers to a short paper,
+ to be attached.
 \layout Standard
 
 
@@ -4034,8 +4188,12 @@ Other?
 \end_deeper 
 \layout Standard
 
-NB: All direction systems get into trouble in the direction of their poles,
- i.e.
+NB: All direction systems get into trouble, in the sense that they are no
+ longer differentiable, in the direction of their 
+\emph on 
+poles
+\emph default 
+, i.e.
  the North Celestial Pole for (RA,DEC), or the local zenith for (az,el).
  So, if possible, we should adopt one with a pole in which direction we
  do not have to look.
@@ -4259,13 +4417,19 @@ Correlation functions (Bas)
 
 \layout Standard
 
-Rather than using an analytical function 
-\begin_inset Formula $H$
+Rather than using an analytical function , one may also express assumptions
+ about the ionosphere in terms of its statistics, e.g.
+ its correlation function 
+\series bold 
+(..to be elaborated by Bas ..) 
+\series default 
+\emph on 
+The important thing is that such assumptions may still be expressed as equations
+ in the 
+\begin_inset Formula $p_{k}$
 \end_inset 
 
-, one may also express assumptions about the ionosphere in terms of its
- statistics, e.g.
- its correlation function (..to be elaborated by Bas ..) 
+, so that they may be added to the solution matrix in the normal way.
 \layout Standard
 
 
@@ -4584,6 +4748,188 @@ The following is a jargon-laced placeholder:
 \end_inset 
 
 
+\layout Section
+
+Triple-frequency GPS
+\begin_inset LatexCommand \label{sec:Triple-frequency-GPS}
+
+\end_inset 
+
+
+\layout Standard
+
+For a particular receiver-satellite pair, we have three expressions for
+ the phase-based observation of the receiver-satellite distance with the
+ three frequencies 
+\begin_inset Formula $f_{i}$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L_{i}=D+B_{i}+T\times C\times f_{i}^{-2}+\epsilon_{i}\label{eq: Li}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+where 
+\begin_inset Formula $L_{i}$
+\end_inset 
+
+ is the observed distance (m) at frequency 
+\begin_inset Formula $f_{i}$
+\end_inset 
+
+, D is the true distance, 
+\begin_inset Formula $B_{i}$
+\end_inset 
+
+ is a bias term (
+\begin_inset Formula $B_{rsf}=A_{rsf}+B_{rf}-B_{sf}$
+\end_inset 
+
+, where 
+\begin_inset Formula $A$
+\end_inset 
+
+ is the phase ambiguity, and the other 
+\begin_inset Formula $B's$
+\end_inset 
+
+ are receiver and satellite biases), T is the TEC, 
+\begin_inset Formula $C$
+\end_inset 
+
+ is an appropriate conversion constant, and 
+\begin_inset Formula $\epsilon_{i}$
+\end_inset 
+
+ is the measurement error.
+ Forming the three possible differences, we get three new equations:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+L_{ij}=L_{i}-L_{j}=(B_{i}-B_{j})+(\epsilon_{i}-\epsilon_{j})+T\times C\times(f_{i}^{-2}-f_{j}^{-2})\label{eq: Lij}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Without loss of generality, we can write 
+\begin_inset Formula $B_{1}-B_{3}=(B_{1}-B_{2})+(B_{2}-B_{3})$
+\end_inset 
+
+.
+ So then there are three equations, with three measurement values 
+\begin_inset Formula $(L_{i}-L_{j})$
+\end_inset 
+
+, and three unknowns 
+\begin_inset Formula $(B_{1}-B_{2})$
+\end_inset 
+
+, 
+\begin_inset Formula $(B_{2}-B_{3})$
+\end_inset 
+
+ and 
+\begin_inset Formula $T$
+\end_inset 
+
+.
+ The measurement errors 
+\begin_inset Formula $\epsilon_{i}$
+\end_inset 
+
+ just contribute to the noise.
+ 
+\series bold 
+Therefore, we can directly determine the absolute TEC 
+\begin_inset Formula $T$
+\end_inset 
+
+.
+ 
+\series default 
+(Of course we also get the relative 
+\begin_inset Formula $B's$
+\end_inset 
+
+, which may be used as an extra check on the solution, for instance by verifying
+ that they are indeed 'constant' in time.)
+\layout Standard
+
+If we have only 
+\begin_inset Formula $L_{1}$
+\end_inset 
+
+ and 
+\begin_inset Formula $L_{2}$
+\end_inset 
+
+ (i.e.
+ if we only have two frequencies), then we have more unknowns than equations
+ (either 3 unknowns from the 2 equations 
+\begin_inset Formula $L_{1}$
+\end_inset 
+
+ and 
+\begin_inset Formula $L_{2}$
+\end_inset 
+
+ of the form 
+\begin_inset LatexCommand \ref{eq: Li}
+
+\end_inset 
+
+, or 2 unknowns from equation 
+\begin_inset Formula $L_{12}$
+\end_inset 
+
+ of the form 
+\begin_inset LatexCommand \ref{eq: Lij}
+
+\end_inset 
+
+).
+\layout Standard
+
+Unfortunately, the accuracy of the estimated TEC is very sensitive to the
+ 
+\begin_inset Formula $(f_{i}^{-2}-f_{j}^{-2})$
+\end_inset 
+
+ terms.
+ The proposed 3rd frequency for Galileo is between the two regular frequencies,
+ and (if I remember correctly), the absolute TEC measurement from Galileo
+ (and probably GPS) would only be accurate to ~0.035 TECU, based on the current
+ 
+\begin_inset Formula $\epsilon_{i}$
+\end_inset 
+
+ values.
+ But this is a 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+{
+\backslash 
+huge HUGE}
+\end_inset 
+
+ improvement over what we have with the present dual-frequency system, and
+ it can always be beaten down further by 
+\begin_inset Formula $\sqrt{n}$
+\end_inset 
+
+.
 \layout Section
 
 Special case: piercing point methods (MXM, IVB)
