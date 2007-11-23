@@ -311,8 +311,12 @@ def cells(domain=None,num_freq=None,num_time=None,
   # resolve grids
   (freq_grid,freq_cell_size,fs) = _resolve_grid(
         'freq',df,num_freq,freq_grid,freq_cell_size);
+  if df is None:
+    df = freq_grid[0]-freq_cell_size[0]/2,freq_grid[-1]+freq_cell_size[-1]/2;
   (time_grid,time_cell_size,ts) = _resolve_grid(
         'time',dt,num_time,time_grid,time_cell_size);
+  if dt is None:
+    dt = time_grid[0]-time_cell_size[0]/2,time_grid[-1]+time_cell_size[-1]/2;
   # create record
   rec = _cells_type(domain    = _make_domain(df[0],df[1],dt[0],dt[1]),
                  grid      = record(freq=freq_grid,time=time_grid),
@@ -335,7 +339,30 @@ def gen_cells (domain,**kw):
     grid[axis],cell_size[axis],segments[axis] = \
         _resolve_grid(axis,dom,nc,[],[]);
   return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);
-  
+
+def add_cells_axis (cells,axis,rng=None,num=None,grid=[],cell_size=[]):
+  # Adds a named axis to the given cells object
+  # The new axis may be specified in one of two ways (similar to meq.cells above):
+  # 1. add_cells_axis (cells,'axis',[x0,x1],n)
+  #    to make a regularly-gridded axis of n points, from x0 to x1
+  # 2. add_cells_axis (cells,'axis',grid=[x0,x1,...][,cell_size=[dx0,dx1,...]])
+  #    to specify an explicit grid
+  # Modifies the cells object in-place and returns it.
+  if rng:
+    rng = float(rng[0]),float(rng[1]);
+  grid = asarray(grid,arr_double);
+  cell_size = asarray(cell_size,arr_double);
+  # resolve grids
+  (grid,cell_size,segments) = _resolve_grid(
+        'axis',rng,num,grid,cell_size);
+  if rng is None:
+    rng = grid[0]-cell_size[0]/2,grid[-1]+cell_size[-1]/2;
+  axis = hiid(axis);
+  cells.domain[axis] = rng;
+  cells.grid[axis] = grid;
+  cells.cell_size[axis] = cell_size;
+  cells.segments[axis] = segments;
+  return cells;
 
 def shape (arg0=None,*args,**kw):
   """Returns a shape object -- basically just a tuple of dimensions. Can

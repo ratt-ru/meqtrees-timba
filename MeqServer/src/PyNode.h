@@ -84,6 +84,8 @@ class PyNodeImpl
                         DMI::Record::Ref &args,
                         const RequestId &rqid = RequestId(),
                         int verbosity=0);
+                        
+    const Request & modifyChildRequest (Request::Ref &newreq,const Request &req);
       
     //##ModelId=3F9FF6AA03D2
     void setStateImpl (DMI::Record::Ref &rec,bool initializing);
@@ -98,6 +100,8 @@ class PyNodeImpl
     OctoPython::PyObjectRef pynode_getresult_;
     OctoPython::PyObjectRef pynode_discoverspids_;
     OctoPython::PyObjectRef pynode_processcommand_;
+    OctoPython::PyObjectRef pynode_modifychildreq_;
+    
     
   protected:
     // converts request to python (with caching), returns 
@@ -140,6 +144,10 @@ class PyNode : public Node
                                 int verbosity=0);
     
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    
+    virtual int pollChildren (Result::Ref &resref,
+                              std::vector<Result::Ref> &childres,
+                              const Request &req);
     
     PyNodeImpl impl_;
 };

@@ -83,6 +83,8 @@ void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     PyErr_Clear();
     pynode_processcommand_ = PyObject_GetAttrString(*pynode_obj_,"process_command");
     PyErr_Clear();
+    pynode_modifychildreq_ = PyObject_GetAttrString(*pynode_obj_,"modify_child_request");
+    PyErr_Clear();
   }
   else
   {
@@ -162,7 +164,7 @@ int PyNodeImpl::discoverSpids (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request)
 {
-  FailWhen(!pynode_getresult_,"no Python-side discover_spids() method defined");
+  FailWhen(!pynode_discoverspids_,"no Python-side discover_spids() method defined");
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
@@ -174,7 +176,7 @@ int PyNodeImpl::discoverSpids (Result::Ref &resref,
     PyObjectRef chres = OctoPython::pyFromDMI(*childres[i]);
     PyTuple_SET_ITEM(*args_tuple,i+1,chres.steal()); // SET_ITEM steals our ref
   }
-  // call get_result() method
+  // call discover_spids() method
   PyObjectRef retval = PyObject_CallObject(*pynode_discoverspids_,*args_tuple);
   PyFailWhen(!retval,"Python-side discover_spids() method failed");
   // else extract return value
@@ -260,6 +262,31 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
   return retcode;
 }
 
+const Request & PyNodeImpl::modifyChildRequest (Request::Ref &newreq,const Request &req)
+{
+  FailWhen(!pynode_modifychildreq_,"no Python-side modify_child_request() method defined");
+  Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  // form up Python tuple of arguments
+  PyObjectRef args_tuple = PyTuple_New(1);
+  // convert request
+  PyTuple_SET_ITEM(*args_tuple,0,convertRequest(req)); // SET_ITEM steals the new ref
+  // call modify_child_request() method
+  PyObjectRef retval = PyObject_CallObject(*pynode_modifychildreq_,*args_tuple);
+  PyFailWhen(!retval,"Python-side modify_child_request() method failed");
+  // extract return value
+  // if None, then return the old request
+  PyObject * pyobj_result = *retval;
+  if( pyobj_result == Py_None )
+    return req;
+  // else treat retval as a Request object
+  ObjRef objref;
+  OctoPython::pyToDMI(objref,pyobj_result);
+  FailWhen(!objref || objref->objectType() != TpMeqRequest,
+      "Python-side modify_child_request() did not return a valid Request object");
+  newreq.xfer(objref);
+  return *newreq;
+}
+
 
 PyObject * PyNodeImpl::convertRequest (const Request &req)
 {
@@ -318,6 +345,19 @@ int PyNode::processCommand (Result::Ref &resref,
 {
   return impl_.processCommand(resref,command,args,rqid,verbosity) |
          Node::processCommand(resref,command,args,rqid,verbosity);
+}
+
+int PyNode::pollChildren (Result::Ref &resref,
+                          std::vector<Result::Ref> &childres,
+                          const Request &req)
+{
+  if( impl_.pynode_modifychildreq_ )
+  {
+    Request::Ref newreq;
+    return Node::pollChildren(resref,childres,impl_.modifyChildRequest(newreq,req));
+  }
+  else
+    return Node::pollChildren(resref,childres,req);
 }
 
 
