@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.95: 20 Nov 2007} % Date of Issue (
+theDOIssue}{Version 1.0: 25 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {0.95} 
+theRevNR} {1.0} 
 \layout Standard
 
 \backslash 
@@ -608,6 +608,22 @@ By its nature, this document is also a little complicated, with many ifs
  
 \layout Standard
 
+
+\series bold 
+Note: Throughout, we use 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ for wavelength in the equations, while the text frequently refers to frequency.
+ Perhaps this should be changed, also because the frequency is independent
+ of the propagation medium.
+ In any case, the relationship (in vacuum) is 
+\begin_inset Formula $\lambda=300/f_{MHz}$
+\end_inset 
+
+.
+\layout Standard
+
 We describe a scheme for the calibration of the ionosphere for radio astronomy.
  It is based on the so-called 
 \emph on 
@@ -635,7 +651,7 @@ minimum
  The latter may be adapted dynamically as conditions change.
  The former is often difficult to maintain in practice.
  In order to emphasize the generality of the approach, the inclusion of
- any assumptions about the ionosphere is treated in an appendix (see section
+ any assumptions about the ionosphere is treated in an appendix (see appendix
  
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
@@ -690,7 +706,7 @@ The MIM represents an improvement over earlier methods to calibrate the
 \emph on 
 field-based calibration
 \emph default 
- by Cotton et al (see section 
+ by Cotton et al (see appendix 
 \begin_inset LatexCommand \ref{sec: Field-based-calibration}
 
 \end_inset 
@@ -803,7 +819,7 @@ postulate the existence
 \begin_inset Formula $r$
 \end_inset 
 
-), defined in some coordinate system (see section 
+), defined in some coordinate system (see appendix 
 \begin_inset LatexCommand \ref{sec: Coordinate-systems}
 
 \end_inset 
@@ -821,7 +837,7 @@ postulate the existence
 \begin_inset Formula $s$
 \end_inset 
 
-), defined in some coordinate system (section 
+), defined in some coordinate system (appendix 
 \begin_inset LatexCommand \ref{sec: Coordinate-systems}
 
 \end_inset 
@@ -866,7 +882,7 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 
 For the moment, we will assume that such a function exists at all.
  Few people doubt this assertion, but the subject is discussed in more depth
- in section 
+ in appendix 
 \begin_inset LatexCommand \ref{sec: Does-the-MIM-exist?}
 
 \end_inset 
@@ -884,7 +900,7 @@ pheanomenological
  the ionosphere.
  In order to emphasize the difference between the general and the specific,
  all treatment of such assumptions has been relegated to the appendix (see
- section 
+ appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -896,7 +912,7 @@ In principle, any set of smooth base functions will do for the MIM.
  More higher-order terms may then be used for more complex (less smooth)
  ionospheric conditions.
  For the moment, we will assume simple polynomials, which are easy to use.
- But there are alternatives with more desirable properties (see section
+ But there are alternatives with more desirable properties (see appendix
  
 \begin_inset LatexCommand \ref{sec: MIM-base-functions}
 
@@ -920,11 +936,11 @@ M=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation}
 
 \layout Standard
 
-The requirement is that, for an arbitrary set of arguments 
+For an arbitrary set of arguments 
 \begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
-, the MIM function uses the current values of its parameters 
+, the MIM function uses the available values of its parameters 
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
@@ -965,8 +981,8 @@ harmonizes
 \emph default 
  (...) the various offsets.
  If the resulting function is consistent with the measured values, i.e.
- the residuals are smaller than the noise, we assume that it is also valid
- for other values of the arguments 
+ the residuals are consistent with the expected noise level, we assume that
+ it is also valid for other values of the arguments 
 \begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
@@ -1054,8 +1070,18 @@ The MIM function
  stations), and of blue lines (radio sources and radio telescopes/stations).
  Note that, for a particular source or satellite, all instantaneous sampling
  points lie on a horizontal line.
- The latter will be straight for astronomical arrays, but slightly curved
- for large arrays of GPS stations.
+ The latter will be straight if the direction of the source is the same
+ for all receivers, and curved otherwise.
+ Obviously, this depends on the coordinate frame that is selected for directions
+ (see appendix 
+\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+
+\end_inset 
+
+).
+ The curvature will be slight if the receivers are relatively close together,
+ i.e.
+ within 100 km or so (see also fig ..).
  
 \layout Standard
 
@@ -1067,7 +1093,7 @@ Ideally, the sampling function is sufficiently dense, so that
 
  can be interpolated with confidence.
  Unfortunately, there are some largish gaps, which will have to be bridged
- somehow (see section 
+ somehow (see appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -1095,6 +1121,38 @@ Solving for MIM (and other) parameters
 \end_inset 
 
 
+\layout Standard
+
+A 
+\emph on 
+Measurement Equation
+\emph default 
+ (M.E.) is a mathematical description (model) of an observational istrument
+ and the thing it observes.
+ It usually has parameters, whose correct values may be estimated from the
+ differences (residuals) between the actually measured data, and the values
+ predicted by the M.E.
+ Thus, each measurement generates an equation (see below).
+ An ensemble of such equations is then 'inverted' to yield better values
+ for the M.E.
+ paramaters.
+ Note that the M.E.
+ contains two classes of parameters: MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and 
+\emph on 
+measurement parameters
+\emph default 
+ 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ The latter have nothing to do with the ionosphere, but they do influence
+ the TEC measurements.
+ 
 \layout Standard
 
 Ultimately, solving for parameters is a question of 
@@ -1153,11 +1211,15 @@ Generating equations
 
 \layout Standard
 
-We solve for MIM parameters 
+We solve for 
+\emph on 
+MIM parameters
+\emph default 
+ 
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
-, and any 
+, and 
 \emph on 
 measurement parameters
 \emph default 
@@ -1178,7 +1240,7 @@ measurement parameters
 \end_inset 
 
  between measured and calculated TEC values at the sampling points 
-\begin_inset Formula $(x_{r},y_{r},z_{r},l_{rs},m_{rs})$
+\begin_inset Formula $(x_{r},y_{r},z_{r},l_{rs},m_{rs},t)$
 \end_inset 
 
 .
@@ -1266,7 +1328,7 @@ If we now replace the true TEC
 
 
 \begin_inset Formula \begin{equation}
-S_{rs}(\lambda,t)=M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
+S_{rs}(\lambda,t)\approx M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
 
 \end_inset 
 
@@ -1350,7 +1412,7 @@ other information
  This is important for bridging the gaps in the TEC sampling function.
  But since such constraints are usually based on specific assumptions about
  the ionosphere, their treatment has been resolutely relegated to the appendix
- (see section 
+ (see appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -1504,7 +1566,7 @@ Use the largest practical domain size, determined by the available memory.
 \layout Itemize
 
 Use the motion of GPS satellites, or the ionosphere itself, to impose constraint
-s that imply time-smoothness (section 
+s that imply time-smoothness (appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -1518,7 +1580,7 @@ Develop the capability for solving for long-range parameters, i.e.
  hours) than the size of a practical request domain (minutes).
  This is an essential capability, that has a wider importance for LOFAR
  than just the ionosphere.
- See section 
+ See appendix 
 \begin_inset LatexCommand \ref{sec:Long-range-parameters}
 
 \end_inset 
@@ -1534,10 +1596,16 @@ Sampling the MIM function using GPS (and other) satellites
 
 \layout Standard
 
-GPS satellites move in circular orbits around the Earth, with a radius of
- about 30.000 km (21000+6378), and with an inclination of 52 degrees w.r.t.
+GPS satellites move in roughly circular orbits around the Earth, with a
+ radius of about 30.000 km (21000+6378), and with an inclination of 52 degrees
+ w.r.t.
  the equator, which optimizes the combination of world coverage and relative
- velocity.
+ velocity (see fig 
+\begin_inset LatexCommand \ref{cap:The-orbits-of}
+
+\end_inset 
+
+).
  At an arbitrary position on Earth, at least 6 satellites are visible at
  any time.
  A passage from horizon to horizon takes a few hours, depending on its maximum
@@ -1598,7 +1666,7 @@ A sample
 
 
 \begin_inset Formula \begin{equation}
-Q_{rs}(t)=q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
+Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
 
 \end_inset 
 
@@ -1626,12 +1694,19 @@ Expressions for the derivatives
 \end_inset 
 
 .
- Since GPS measurements are made at a single frequency, none of the measurement
- effects depend on 
-\begin_inset Formula $\lambda$
+ The tropospheric phase 
+\begin_inset Formula $\phi_{r}^{tropos}$
 \end_inset 
 
- (unlike the astronomical phase measurements in the next section).
+ is right above station 
+\begin_inset Formula $r$
+\end_inset 
+
+, and easily distinguishable from the TEC since 
+\begin_inset Formula $\phi_{r}\propto1/\lambda$
+\end_inset 
+
+.
 \layout Standard
 
 It would be nice if we could associate a bias value with each station, and
@@ -1699,7 +1774,8 @@ Referring to the MIM-diagrams in figs
 \end_inset 
 
  and 
-\begin_inset Formula $\ref{cap:MIMdiagram}$
+\begin_inset LatexCommand \ref{cap:MIM diagram}
+
 \end_inset 
 
 , may consider the following possibilities:
@@ -1710,7 +1786,8 @@ Referring to the MIM-diagrams in figs
 One satellite-station pair:
 \series default 
  Probably useless for our purpose, since we cannot distinguish TEC from
- bias.
+ bias (unless 3-freq or double-differencing works).
+ Troposphere?
 \layout Enumerate
 
 
@@ -1742,7 +1819,7 @@ Multiple satellites and multiple stations:
 \series default 
  The more, the better, because the harmonizing effect of the MIM will be
  stronger.
- Also, the MIM sampling is much wider.
+ Also, the MIM sampling function is much wider.
 \layout Standard
 
 See also the MIM-diagram in figs 
@@ -1787,7 +1864,7 @@ Jim has verified that the bias problem will be much less (or even absent?),
  
 \layout Subsection
 
-Position estimation with closely spaced stations (JMA, EXN)
+Double-differencing (EXN, JMA)
 \layout Standard
 
 This is the Bingley stuff, which has been verified by JMA.
@@ -1906,7 +1983,7 @@ Each station phase
 \begin_inset Formula $\phi\approx-25\lambda T$
 \end_inset 
 
- (see section 
+ (see appendix 
 \begin_inset LatexCommand \ref{sub:Ionospheric-phase}
 
 \end_inset 
@@ -1944,7 +2021,7 @@ in which
 \begin_inset Formula $\phi_{0}$
 \end_inset 
 
- is a processing artifact, and is shared by all stations.
+ is a processing artifact, and is identical for all stations.
  It is due to the fact that interferometers measure phase 
 \emph on 
 differences
@@ -1999,7 +2076,18 @@ An important help in distinguising effects from each other is the frequency
 This means that we should process all (collapsed) LOFAR subbands simultaneously,
  either by putting them together in a single spectral window, or by the
  use of a 'super-solver'.
- 
+ In addition, we might make additional measurements at 'outlier' frequencies
+ for calibration purposes only
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+This should be compared to the plan to use some extra 'calibration' dipoles
+ a little bit outside a regular LOFAR LBA station.
+\end_inset 
+
+.
 \layout Standard
 
 The various effects differ in other aspects also.
@@ -2009,7 +2097,7 @@ The various effects differ in other aspects also.
 uv-plane effects
 \emph default 
 ), while only EJones is direction-dependent.
- 
+ (Under some conditions, TJones may also be direction-dependent).
 \layout Standard
 
 In terms of time-dependence: EJones and the TEC change only slowly, while
@@ -2053,7 +2141,8 @@ One bright Cat I source in the FOV:
  This is sufficient for estimating a 'relative' MIM function if the size
  of the array is larger than the 'footprint' of the FOV on the ionosphere
  (5 degrees = 0.1 rad -> 0.1x300km = 30 km).
- So, for the full LOFAR, we get away with only ONE bright Cat I source,
+ This will not be the case for the LOFAR core (3 km).
+ But if the condition is met, we get away with only ONE bright Cat I source,
  and a minimum of parameters.
 \layout Enumerate
 
@@ -2180,9 +2269,12 @@ Peeling
 
 \layout Standard
 
-Only the bright Cat I sources are used to estimate instrumental parameters.
+Only the bright Cat I sources are used to estimate instrumental parameters
+ (because, by definition, they are the only ones that give sufficient S/N
+ in the available integration time).
  When there is more than one Cat I source in the field, one has the choice
- between making a single simultanous selfcal solution for all the relevant
+ between two approaches.
+ The first is making a single simultanous selfcal solution for all the relevant
  parameters.
  This is OK if there are only uv-plane effects, or if the number of direction-de
 pendent parameters is small.
@@ -2354,7 +2446,7 @@ Phase-tracking:
 \emph on 
 long-range parameters
 \emph default 
- (see section 
+ (see appendix 
 \begin_inset LatexCommand \ref{sec:Long-range-parameters}
 
 \end_inset 
@@ -2477,9 +2569,23 @@ Variation: Rapid repointing
 \layout Standard
 
 It has been suggested that we should measure the ionosphere (MIM?) by using
- a small part (10%?) of the integration time to rapidly repoint the station
+ a small part (10-20%?) of the integration time to rapidly repoint the station
  beams to a few bright sources outside the FOV.
- Personally, I hope that this will not be necessary.
+ This involves rapidly changing the beamformer weights, maximizing the sensitivi
+ty in the direction of these sources.
+ This has the additional advantage of sampling the MIM-function more widely,
+ and making the parameter space for instrumental effects 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ more orthogonal.
+ But it will quite a burden on the LOFAR observation system.
+ 
+\layout Standard
+
+
+\emph on 
+NB: Personally, I hope that this will not be necessary.
  But I support the (non-trivial) implementation of this capability, because
  I am sure that the availability of such an unusual observational mode can
  lead to unexpected discoveries.
@@ -2614,7 +2720,7 @@ The solver gets three kinds of equations.
 \end_inset 
 
 , to bridge the gaps in the MIM sampling function.
- They contain specific assumptions about ionospheric structure (see section
+ They contain specific assumptions about ionospheric structure (see appendix
  
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
@@ -3280,6 +3386,73 @@ An ionospheric blob with a size of 250 km, and a travelling velocity of
 \end_inset 
 
  will change slowly in time.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename sin_in_noise.eps
+	width 60col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-statistics-of}
+
+\end_inset 
+
+
+\emph on 
+The statistics of ionospheric phase variations.
+ This is a schematic version of the (differential!) phase that was actually
+ measured with a baseline of 10 km, in an observation of Virgo A by the
+ VLA @ 74 Mhz.
+ It should be noted that the ionospheric conditions were somewhat unusual.
+ The variations shows a Kolmogorov-like bahaviour, in which larger ones
+ (of hundreds of radians) have longer time-scales.
+ So, somewhat paradoxically, we should worry more about the smaller phase
+ variations, because they are too rapid to track.
+ Large, smooth variations can (and must) be tracked, keeping in mind that
+ a linear change of phase of one radian during the integration time causes
+ a decorrelation (decrease in amplitude) of the signal of 4%.
+ The LOFAR calibration scheme assumes that phases will change by less than
+ 1 radian in 10 s.
+ This limit is exceeded only rarely, and mostly at low frequencies (<30
+ MHz).
+ 
+\layout Standard
+
+
+\emph on 
+The largest phase variations are caused by Travelling Ionospheric Disturbances
+ (TID), which usually occur at sunrise.
+ This is illustrated on the right.
+ The left shows the quiescent ionosphere, which has small variations that
+ mostly average out, and cause no systematic effects in the image (but they
+ do increase the noise).
+ Note that the quiescent variations are still present on top of the TID.
+ 
+\layout Standard
+
+
+\emph on 
+Finally, scintillation causes rapid variations with an abnormally large
+ amplitude.
+ When that happens, observations should either be stopped, or shifted to
+ higher frequencies (>100 MHz).
+ 
+\end_inset 
+
+
 \layout Subsection
 
 Ionospheric delay
@@ -3315,7 +3488,7 @@ So, a TEC of one TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm
  error of 16 cm.
 \layout Standard
 
-Like the differential phase in section 
+Like the differential phase in appendix 
 \begin_inset LatexCommand \ref{sub:Ionospheric-phase}
 
 \end_inset 
@@ -3329,7 +3502,7 @@ relative
  another station with an accurately known position.
  Obviously, the magnitude of this error will increase with the distance
  to this reference station.
- For a large-scale ionosphere (see section 
+ For a large-scale ionosphere (see appendix 
 \begin_inset LatexCommand \ref{sub:Ionospheric-phase}
 
 \end_inset 
@@ -3487,6 +3660,49 @@ intrinsic
 .
 \layout Subsection
 
+Ionospheric amplitude effects
+\begin_inset LatexCommand \label{sub:Ionospheric-amplitude-effects}
+
+\end_inset 
+
+
+\layout Standard
+
+The ionosphere mostly affects the phase, but there are some amplitude effects
+ also.
+ They tend to become important under conditions that are so bad that it
+ is better to stop observing.
+ 
+\layout Itemize
+
+
+\series bold 
+Decorrelation
+\series default 
+ reduces the amplitude of the signal.
+ A linear phase variation of 1 radian during the integration time causes
+ a decrease of 4%.
+ It is a quadratic (cosine) effect.
+\layout Itemize
+
+
+\series bold 
+Focussing
+\series default 
+ is caused by smallish ionospheric blobs...
+\layout Itemize
+
+
+\series bold 
+Ionospheric absorption
+\series default 
+ depends on the conditions, but becomes increasingly important below 50
+ MHz.
+ Since this is proportional to the pathlength through the ionosphere, the
+ effect will be larger for lower elevations.
+ So a smaller part of the sky may be observed.
+\layout Subsection
+
 Tropospheric effects
 \begin_inset LatexCommand \label{sub: Tropospheric-effects}
 
@@ -3510,12 +3726,8 @@ The tropospheric phase is very local in the aperture-plane, i.e.
 
 All this is rather fortunate, because its makes it easy to distinguish troposfer
 ic from ionospheric phase.
- The same goes for tropospheric extinction (e.g.
- due to low elevation, or massive clouds), which does not have an ionospheric
- counterpart.
- The only amplitude effects of the ionosphere are focussing and decorrelation,
- which occur under conditions that are so bad that it is better to stop
- observing.
+ The same goes for tropospheric absorption/extinction (e.g.
+ due to low elevation, or massive clouds).
  
 \layout Standard
 
@@ -3641,7 +3853,7 @@ An important requirement is that the MIM function can be differentiated,
 
  also.
  If not, we need another way to impose extra constraints to bridge the gaps
- in the MIM sampling function (see section 
+ in the MIM sampling function (see appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -3657,7 +3869,7 @@ Easy to implement.
  Efficient to calculate (and store).
  The higher order have poor interpolation properties, especially outside
  the sampling domain.
- They have easily calculated analytic derivatives (see section 
+ They have easily calculated analytic derivatives (see appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -3670,7 +3882,7 @@ Zernike polynomials
 
 Used in optics because some of the terms represent useful phaenomena like
  tip-tilt etc.
- Used by Cotton for field-based calibration (see section 
+ Used by Cotton for field-based calibration (see appendix 
 \begin_inset LatexCommand \ref{sec: Field-based-calibration}
 
 \end_inset 
@@ -3840,6 +4052,48 @@ local
 \end_inset 
 
  km).
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_GPS_orbit.eps
+	width 60col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap:The-orbits-of}
+
+\end_inset 
+
+
+\emph on 
+A little bit of perspective.
+ The orbits of GPS satellites have a radius of about 30000 km (21000+6378).
+ Thus, in any reference frame we choose, they will be seen in a different
+ direction (l,m) from the locations (x,y,z) of different ground stations.
+ However, since a distance of 100 km on the Earth surface corresponds to
+ 
+\begin_inset Formula $(100/42000)\times360=0.85$
+\end_inset 
+
+ degree, the differences are usually not very large.
+ A satellite passage across the sky takes a few hours, depending on the
+ maximum elevation it reaches.
+ 
+\end_inset 
+
+
 \layout Section
 
 Bridging the gaps in the MIM sampling function
@@ -4082,7 +4336,7 @@ The assumptions about the ionosphere are in the function
 \end_inset 
 
  is the zenith angle.
- See section 
+ See appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -4137,7 +4391,7 @@ It is possible to use the MIM-function to predict the position of a particular
 a priori
 \emph default 
 , we might add an equation to the solution that minimizes the discrepancy.
- See also the discussion in section 
+ See also the discussion in appendix 
 \begin_inset LatexCommand \ref{sub:Ionospheric-delay}
 
 \end_inset 
@@ -4347,7 +4601,7 @@ The original MIM proposal (cite ...) was less general than the present approach.
 \begin_inset Formula $\partial M/\partial x$
 \end_inset 
 
- etc, see section 
+ etc, see appendix 
 \begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
 
 \end_inset 
@@ -4578,7 +4832,7 @@ Comparison of the results of field-based calibration (Cotton, left) and
  ...
  Also, the final image is deeper, showing large-scale (short-baseline?)
  structure that is below the noise (or absent?) in the left image.
- For more details, see section
+ For more details, see appendix
 \emph default 
  
 \begin_inset LatexCommand \ref{sec: Field-based-calibration}
