@@ -41,6 +41,13 @@ TDLCompileOptions(*mssel.compile_options());
 TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
 ## also possible:
 
+CORRELATIONS = [ "XX","XY","YX","YY" ];
+CORR_INDICES = dict([(corr,index) for index,corr in enumerate(CORRELATIONS)]);
+ALL_CORRS = "XX XY YX YY";
+DIAG_CORRS = "XX YY";
+CROSS_CORRS = "YX XY";
+SINGLE_CORR = "XX";
+
 # output mode menu
 TDLCompileMenu("What do we want to do",
   TDLMenu("Calibrate",
@@ -48,7 +55,8 @@ TDLCompileMenu("What do we want to do",
      TDLOption('cal_ampl',"Calibrate amplitudes",False),
      TDLOption('cal_log_ampl',"Calibrate log-amplitudes",False),
      TDLOption('cal_phase',"Calibrate phases",False),
-     TDLOption('cal_corr',"Use correlations",["all","XX YY","XY YX"]),
+     TDLOption('cal_corr',"Use correlations",
+                [ALL_CORRS,DIAG_CORRS,CROSS_CORRS,SINGLE_CORR]),
      toggle='do_solve',open=True,exclusive='solve_type'
   ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
@@ -142,47 +150,48 @@ def _define_forest (ns):
       # now make a solvejobs for the source
       ParmGroup.SolveJob("cal_source","Calibrate source model",pg_src);
 
+  # make list of selected correlations
+  selected_corrs = cal_corr.split(" ");
   # make a predict tree using the MeqMaker
   if do_solve or do_subtract:
     predict = meqmaker.make_tree(ns);
     # add ifr errors if necessary
     if do_ifr_errors:
-      ifr_gains = ns.ifr_gains;
+      ifr_gain = ns.ifr_gain;
       ifr_bias = ns.ifr_bias;
-      adef = Meow.Parm(1);
-      pdef = Meow.Parm(0);
+      def1 = Meow.Parm(1);
+      def0 = Meow.Parm(0);
       for p,q in array.ifrs():
-        gxx = resolve_parameter("xx",ifr_gains(p,q,'xxg'),adef,tags="ifr ampl");
-        pxx = resolve_parameter("xx",ifr_gains(p,q,'xxp'),pdef,tags="ifr phase");
-        gyy = resolve_parameter("yy",ifr_gains(p,q,'yyg'),adef,tags="ifr ampl");
-        pyy = resolve_parameter("yy",ifr_gains(p,q,'yyp'),pdef,tags="ifr phase");
-        brxx = resolve_parameter("bxx",ifr_gains(p,q,'xxr'),pdef,tags="ifr bias real");
-        bixx = resolve_parameter("bxx",ifr_gains(p,q,'xxi'),pdef,tags="ifr bias imag");
-        bryy = resolve_parameter("byy",ifr_gains(p,q,'yyr'),pdef,tags="ifr bias real");
-        biyy = resolve_parameter("byy",ifr_gains(p,q,'yyi'),pdef,tags="ifr bias imag");
-        ifr_gains(p,q) << Meq.Matrix22(Meq.Polar(gxx,pxx),1,1,Meq.Polar(gyy,pyy));
-        ifr_bias(p,q) << Meq.Matrix22(Meq.ToComplex(brxx,bixx),1,1,Meq.Polar(bryy,biyy));
-        ns.predict_ifr(p,q) << predict(p,q)*ifr_gains(p,q) + ifr_bias(p,q);
+        for corr in CORRELATIONS:
+          if corr in selected_corrs:
+            ifr_gain(p,q,corr) << Meq.ToComplex(
+                resolve_parameter(corr,ifr_gain(p,q,corr,'r'),def1,tags="ifr gain real"),
+                resolve_parameter(corr,ifr_gain(p,q,corr,'i'),def0,tags="ifr gain imag"));
+            ifr_bias(p,q,corr) << Meq.ToComplex(
+                resolve_parameter(corr,ifr_bias(p,q,corr,'r'),def0,tags="ifr bias real"),
+                resolve_parameter(corr,ifr_bias(p,q,corr,'i'),def0,tags="ifr bias imag"));
+          else:
+            ifr_gain(p,q,corr) << 1;
+            ifr_bias(p,q,corr) << 0;
+        ifr_gain(p,q) << \
+            Meq.Matrix22(*[ifr_gain(p,q,corr) for corr in CORRELATIONS]);
+        ifr_bias(p,q) << \
+            Meq.Matrix22(*[ifr_bias(p,q,corr) for corr in CORRELATIONS]);
+        ns.predict_ifr(p,q) << predict(p,q)*ifr_gain(p,q) + ifr_bias(p,q);
       predict = ns.predict_ifr;
       # add parmgroups
-      pg_ifr_ampl = ParmGroup.ParmGroup("ifr_error_ampl",
-                       ifr_gains.search(tags="solvable ifr ampl"),
-                       table_name="ifr_error_ampl.mep",bookmark=False);
-      pg_ifr_phase = ParmGroup.ParmGroup("ifr_error_phase",
-                       ifr_gains.search(tags="solvable ifr phase"),
-                       table_name="ifr_error_phase.mep",bookmark=False);
+      pg_ifr_ampl = ParmGroup.ParmGroup("ifr_gain",
+                       ifr_gain.search(tags="solvable ifr gain"),
+                       table_name="ifr_error_gain.mep",bookmark=False);
       pg_ifr_bias  = ParmGroup.ParmGroup("ifr_bias",
-                       ifr_gains.search(tags="solvable ifr bias"),
+                       ifr_bias.search(tags="solvable ifr bias"),
                        table_name="ifr_error_bias.mep",bookmark=False);
       Bookmarks.make_node_folder("Interferometer-based gains",
-        [ ifr_gains(p,q) for p,q in array.ifrs() ],sorted=True,nrow=2,ncol=2);
+        [ ifr_gain(p,q) for p,q in array.ifrs() ],sorted=True,nrow=2,ncol=2);
       Bookmarks.make_node_folder("Interferometer-based biases",
         [ ifr_bias(p,q) for p,q in array.ifrs() ],sorted=True,nrow=2,ncol=2);
-
       ParmGroup.SolveJob("cal_ifr_ampl",
-                          "Calibrate interferometer-based gain-amplitudes",pg_ifr_ampl);
-      ParmGroup.SolveJob("cal_ifr_phase",
-                          "Calibrate interferometer-based gain-phases",pg_ifr_phase);
+                          "Calibrate interferometer-based gains",pg_ifr_ampl);
       ParmGroup.SolveJob("cal_ifr_bias",
                           "Calibrate interferometer-based biases",pg_ifr_bias);
 
@@ -203,17 +212,14 @@ def _define_forest (ns):
     outputs = meqmaker.correct_uv_data(ns,outputs,sky_correct=sky_correct);
     if do_ifr_errors:
       for p,q in array.ifrs():
-        ns.correct_ifr(p,q) << (outputs(p,q) - ns.ifr_bias(p,q))/ns.ifr_gains(p,q);
+        ns.correct_ifr(p,q) << (outputs(p,q) - ns.ifr_bias(p,q))/ns.ifr_gain(p,q);
       outputs = ns.correct_ifr;
 
   # make solve trees
   if do_solve:
     # extract selected correlations
-    if cal_corr != "all":
-      if cal_corr == "XX YY":
-        index = [0,3];
-      else:
-        index = [1,2];
+    if cal_corr != ALL_CORRS:
+      index = [ CORR_INDICES[c] for c in selected_corrs ];
       for p,q in array.ifrs():
         ns.sel_predict(p,q) << Meq.Selector(predict(p,q),index=index,multi=True);
         ns.sel_spigot(p,q)  << Meq.Selector(spigots(p,q),index=index,multi=True);
