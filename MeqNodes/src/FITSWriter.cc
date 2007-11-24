@@ -29,6 +29,7 @@
 #include <MEQ/VellsSlicer.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
+#include <unistd.h>
 
 //#define DEBUG
 namespace Meq {
@@ -149,6 +150,7 @@ int FITSWriter::getResult (Result::Ref &resref,
     }
 	  memcpy(data[ci],const_cast<double *>(invells.realStorage()),sizeof(double)*(size_t)invells.nelements());
    }
+   unlink(filename_.c_str());
    flag=write_fits_file(filename_.c_str(), data,  nvs, cells, naxis, naxes, 0);
    for (int ci=0; ci<nvs; ci++) {
     free(data[ci]);
@@ -176,6 +178,7 @@ int FITSWriter::getResult (Result::Ref &resref,
     }
 	  memcpy(data[2*ci+1],(invsi.realStorage()),sizeof(double)*(size_t)invsi.nelements());
    }
+   unlink(filename_.c_str());
    flag=write_fits_file(filename_.c_str(), data,  nvs, cells, naxis, naxes, 1);
    for (int ci=0; ci<nvs; ci++) {
     free(data[2*ci]);
