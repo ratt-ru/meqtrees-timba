@@ -106,7 +106,8 @@ void Domain::validateContent (bool)
       const HIID &id = iter.id();
       if( id == FAxisMap ) // skip this one
         continue;
-      FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
+// NB: not sure what I was thinking of here, why can't we have longer axis IDs?
+//      FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
       const BObj *pobj = iter.ref().deref_p();
       const Container *pcont = dynamic_cast<const Container*>(pobj);
       FailWhen(!pcont,"illegal content of type "+pobj->objectType().toString()+" for axis "+id.toString());

@@ -414,7 +414,8 @@ void Cells::validateContent (bool)
       for( ConstIterator iter = rgrid.begin(); iter != rgrid.end(); iter++ )
       { 
         const HIID &id = iter.id();
-        FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
+// NB: not sure what I was thinking of here, why can't we have longer axis IDs?
+//        FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
         int iaxis = id[0].index();
         if( iaxis<0 || id.size()>1 )
           iaxis = Axis::axis(id);
