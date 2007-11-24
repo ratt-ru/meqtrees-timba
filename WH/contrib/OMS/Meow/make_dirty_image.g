@@ -17,6 +17,9 @@ chanmode := 'channel';
 nchan := 1;
 chanstart := 1;
 chanstep := 1;
+img_nchan := 1;
+img_chanstart := 1;
+img_chanstep := 1;
 wprojplanes := 0;
 padding := 1.0;
 
@@ -62,6 +65,12 @@ for( a in argv )
     chanstart := as_integer(a);
   else if( a =~ s/^chanstep=// )
     chanstep := as_integer(a);
+  else if( a =~ s/^img_nchan=// )
+    img_nchan := as_integer(a);
+  else if( a =~ s/^img_chanstart=// )
+    img_chanstart := as_integer(a);
+  else if( a =~ s/^img_chanstep=// )
+    img_chanstep := as_integer(a);
 }
 if( select != '' )
   select := spaste('( ',select,' ) && ANTENNA1 != ANTENNA2');
@@ -80,16 +89,10 @@ myimager.setdata(mode=chanmode,
              msselect=select,
              async=F);
 
-if( mode == 'mfs' )
-  myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
-    stokes=stokes,mode=mode,
-    fieldid=fieldid,spwid=spwid,
-    nchan=1,start=chanstart);
-else
-  myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
-    stokes=stokes,mode=mode,
-    fieldid=fieldid,spwid=spwid,
-    nchan=nchan,start=chanstart,step=chanstep);
+myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
+  stokes=stokes,mode=mode,
+  fieldid=fieldid,spwid=spwid,
+  nchan=img_nchan,start=img_chanstart,step=img_chanstep);
 
 if( weighting != 'default' )
   myimager.weight(weighting); 
@@ -103,7 +106,7 @@ else
 imgname := msname
 imgname =~ s/\..*//;
 imgname =~ s/.*\///;
-imgname := spaste(imgname,".",imagetype,"-",stokes,"-",mode);
+imgname := spaste(imgname,".",imagetype,"-",stokes,"-",mode,spaste(img_nchan));
 imgfile := spaste(imgname,".img");
 
 # make the image

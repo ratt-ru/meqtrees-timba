@@ -142,8 +142,9 @@ def make_node_folder (name,nodes,sorted=False,ncol=2,nrow=3,folder=None):
   # sort nodes by name
   if not sorted:
     nodes = list(nodes);
+    global _int_or_str;
     nodes.sort(lambda a,b:
-      cmp(map(int_or_str,a.name.split(':')),map(int_or_str,b.name.split(':'))));
+      cmp(map(_int_or_str,a.name.split(':')),map(_int_or_str,b.name.split(':'))));
   # place in top-level folder or in subfolder
   if folder is None:
     folder = Folder(name);

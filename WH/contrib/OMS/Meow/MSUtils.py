@@ -530,6 +530,10 @@ class MSSelector (object):
     req = self.create_io_request(tiling);
     mqs.execute(vdm_node,req,wait=wait);
 
+CHANMODE_NOAVG = "all (no averaging)";
+CHANMODE_ALL   = "1 (average all)";
+CHANMODE_MFS   = "1 (multi-freq synthesis)";
+CHANMODE_MANUAL = "select manually";
 
 class ImagingSelector (object):
   """ImagingSelector provides a set of TDL options for imaging""";
@@ -552,9 +556,40 @@ class ImagingSelector (object):
                           mssel.ms_data_columns,more=str,namespace=self);
     mssel.output_col_option.when_changed(curry(self.img_col_option.set_value,save=False));
     self._opts = [ self.img_col_option ];
+    
+    chan_menu = TDLMenu("Output channel selection",
+        TDLOption('imaging_nchan',"Number of output channels",[1],more=int,namespace=self),
+        TDLOption('imaging_chanstart',"Starting at channel",[0],more=int,namespace=self),
+        TDLOption('imaging_chanstep',"Stepped by",[1],more=int,namespace=self),
+    );
+    if pycasatable:
+      chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
+                    [CHANMODE_NOAVG,CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
+                    more=int,namespace=self,
+                    doc="""This selects the number of frequency channels in the output
+                    image. If "all" is used, then every selected channel in the
+                    MS is imaged independently. If "multi-freq synth" is selected, then
+                    all channels are averaged together in MFS mode. Otherwise, supply a
+                    number of output channels, the input channels will be averaged down
+                    to this number.""");
+    else:
+      chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
+                    [CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
+                    namespace=self,
+                    doc="""This selects the number of frequency channels in the output
+                    image. If "all" is used, then every selected channel in the
+                    MS is imaged independently. If "multi-freq synth" is selected, then
+                    all channels are averaged together in MFS mode. Otherwise, supply a
+                    number of output channels, the input channels will be averaged down
+                    to this number.""");
+    # manual selection menu only shown in manual mode
+    def show_chansel_menu (value):
+      chan_menu.show(value == CHANMODE_MANUAL);
+    chan_opt.when_changed(show_chansel_menu);
+    # 
     self._opts += [
-      TDLOption('imaging_mode',"Imaging mode",
-                ["mfs","channel"],namespace=self),
+      chan_opt,
+      chan_menu,
       TDLOption('imaging_weight',"Imaging weights",
                 ["default","natural","uniform","briggs"],namespace=self),
       TDLOption('imaging_stokes',"Stokes parameters to image",
@@ -648,6 +683,10 @@ class ImagingSelector (object):
         cellsize = str(120*(3200./npix))+"arcsec";
       else:
         cellsize = str(float(arcmin*60)/npix)+"arcsec";
+    if self.imaging_chanmode == CHANMODE_MFS:
+      imgmode = "mfs";
+    else:
+      imgmode = "channel";
     # form up initial argument list to run imaging script
     script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
     script_name = os.path.realpath(script_name);  # glish don't like symlinks...
@@ -655,7 +694,7 @@ class ImagingSelector (object):
       script_name,
       col,
       'ms='+self.mssel.msname,
-      'mode='+self.imaging_mode,
+      'mode='+imgmode,
       'weight='+self.imaging_weight,
       'stokes='+self.imaging_stokes,
       'npix=%d'%npix,
@@ -667,7 +706,7 @@ class ImagingSelector (object):
     # add w-proj arguments
     if self.imaging_enable_wproj:
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
-    # add channel arguments
+    # add channel arguments for setdata
     chans = selector.get_channels();
     if chans:
       nchan = chans[1]-chans[0]+1;
@@ -683,6 +722,31 @@ class ImagingSelector (object):
                 'chanstep='+str(chanstep) ];
     else:
       args.append("chanmode=none");
+      chanstart,nchan,chanstep = 1,1,1;
+    # add channel arguments for setimage
+    if self.imaging_chanmode == CHANMODE_MANUAL:
+      img_nchan     = self.imaging_nchan;
+      img_chanstart = self.imaging_chanstart+1;
+      img_chanstep  = self.imaging_chanstep;
+    elif self.imaging_chanmode == CHANMODE_NOAVG:
+      img_nchan     = nchan;
+      img_chanstart = chanstart;
+      img_chanstep  = chanstep;
+    elif self.imaging_chanmode == CHANMODE_ALL:
+      img_nchan     = 1;
+      img_chanstart = chanstart;
+      img_chanstep  = nchan;
+    elif self.imaging_chanmode == CHANMODE_MFS:
+      img_nchan     = 1;
+      img_chanstart = chanstart;
+      img_chanstep  = 1;
+    elif isinstance(self.imaging_chanmode,int):
+      img_nchan     = self.imaging_chanmode;
+      img_chanstart = chanstart;
+      img_chanstep  = nchan/self.imaging_chanmode;
+    args += [ 'img_nchan='+str(img_nchan),
+              'img_chanstart='+str(img_chanstart),
+              'img_chanstep='+str(img_chanstep) ];
     # run script
     print "imaging args",args;
     os.spawnvp(os.P_NOWAIT,'glish',args);
