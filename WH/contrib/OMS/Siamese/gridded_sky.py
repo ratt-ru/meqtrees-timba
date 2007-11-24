@@ -41,7 +41,11 @@ def point_source (ns,name,l,m,I=1):
   m = math.sin(m);
   if l*l + m*m <= 1:
     srcdir = Meow.LMDirection(ns,name,l,m);
-    return Meow.PointSource(ns,name,srcdir,I=I);
+    if source_spi is not None:
+      freq0 = source_freq0 or Meow.Context.observation.freq0();
+    else:
+      freq0 = None;
+    return Meow.PointSource(ns,name,srcdir,I=I,spi=source_spi,freq0=freq0);
   else:
     return None;
 
@@ -118,8 +122,10 @@ def circ_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
 
 # NB: use lm0=1e-20 to avoid our nasty bug when there's only a single source
 # at the phase centre
-def source_list (ns,basename="S",l0=0,m0=0):
+def source_list (ns,basename="S",l0=None,m0=None):
   """Creates and returns selected model""";
+  l0 = l0 or grid_l0*ARCMIN;
+  m0 = m0 or grid_m0*ARCMIN;
   if grid_size == 1 and not l0 and not m0:
     l0 = m0 = 1e-20;
   sources = model_func(ns,basename,l0,m0,
@@ -137,4 +143,10 @@ TDLCompileOption("grid_step","Grid step, in arcmin",
       [.1,.5,1,2,5,10,15,20,30],more=float);
 TDLCompileOption("source_flux","Source flux, Jy",
       [1e-6,1e-3,1],more=float);
+TDLCompileOption("grid_l0","Offset w.r.t. phase center (l), in arcmin",
+      [0],more=float);
+TDLCompileOption("grid_m0","Offset w.r.t. phase center (m), in arcmin",
+      [0],more=float);
+TDLCompileOption("source_spi","Spectral index",[None],more=float);
+TDLCompileOption("source_freq0","Reference frequency, MHz",[None],more=float);
 
