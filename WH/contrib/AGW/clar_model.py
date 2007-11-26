@@ -61,6 +61,12 @@ _directions = dict(
 
 direction = None;  # record of Directions, populated below
 
+def P (val):
+  """Returns a Meow.Parm definition with the given value for polc and
+  real_polc. Used as a shortcut here""";
+  polc = meq.polc(numarray.array(val,shape=(1,1)));
+  return Meow.Parm(polc,real_polc=polc);
+
 def init_directions (ns,tablename=''):
   """Inits global direction record of all Directions in all models""";
       
@@ -82,14 +88,14 @@ def combined_extended_source (ns,tablename=''):
 
 # extended sources at positions of radio_galaxy S4 and S5
 
-  source_model.append( GaussianSource(ns,name="S4",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S4",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S4,
-                  spi=0.0,freq0=ref_frequency,
+                  spi=P(0.0),freq0=ref_frequency,
                   size=.00008, symmetric=True));
 
-  source_model.append( GaussianSource(ns,name="S5",I=60.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S5",I=P(60.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S5,
-                  spi=-0.75,freq0=ref_frequency,
+                  spi=P(-0.75),freq0=ref_frequency,
                   size=0.0005, symmetric=True));
 
   return source_model
@@ -134,25 +140,25 @@ def radio_galaxy_point_sources (ns,tablename=''):
   
   source_model = []
 ######## point sources at radio galaxy positions ########
-  source_model.append( PointSource(ns,name="S1",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S1",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S1,
-                  spi=-1.5,freq0=ref_frequency));
+                  spi=P(-1.5),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S2",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S2",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S2,
-                  spi=-1.0,freq0=ref_frequency));
+                  spi=P(-1.0),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S3",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S3",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S3,
-                  spi=0.0,freq0=ref_frequency));
+                  spi=P(0.0),freq0=ref_frequency));
   
-  source_model.append( PointSource(ns,name="S4",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S4",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S4,
-                  spi=1.0,freq0=ref_frequency));
+                  spi=P(1.0),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S5",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S5",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S5,
-                  spi=1.5,freq0=ref_frequency));
+                  spi=P(1.5),freq0=ref_frequency));
   return source_model
 
 def radio_galaxy (ns,tablename=''):
@@ -163,32 +169,32 @@ def radio_galaxy (ns,tablename=''):
   # 1" ~ 4.8e-6 rad
 
   # NE 'hot spot' 4 x 3 arcsec in PA 135 deg 
-  source_model.append( GaussianSource(ns,name="S1",I=3.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S1",I=P(3.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S1,
-                  spi=-0.55,freq0=ref_frequency,
+                  spi=P(-0.55),freq0=ref_frequency,
                   size=[1.9e-5,1.44e-5],phi=0.785));
 
   # NE extended lobe 30 x 10 arcsec in PA 45 deg
-  source_model.append( GaussianSource(ns,name="S2",I=20.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S2",I=P(20.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S2,
-                  spi=-0.8,freq0=ref_frequency,
+                  spi=P(-0.8),freq0=ref_frequency,
                   size=[0.000144,4.8e-5],phi=2.3561945));
 
   # central 'nuclear' point source with flat spectrum
-  source_model.append( PointSource(ns,name="S3",I=1.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S3",I=P(1.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S3,
-                  spi=0.0,freq0=ref_frequency));
+                  spi=P(0.0),freq0=ref_frequency));
   
   # SW extended lobe 21 x 15 srcsec in PA 33 deg
-  source_model.append( GaussianSource(ns,name="S4",I=15.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S4",I=P(15.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S4,
-                  spi=-0.75,freq0=ref_frequency,
+                  spi=P(-0.75),freq0=ref_frequency,
                   size=[0.0001,7.2e-5],phi=2.15));
 
   # SW 'hot spot' 2 x 2 arc sec symmetric
-  source_model.append( GaussianSource(ns,name="S5",I=5.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( GaussianSource(ns,name="S5",I=P(5.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S5,
-                  spi=-0.4,freq0=ref_frequency,
+                  spi=P(-0.4),freq0=ref_frequency,
                   size=9.6e-6, symmetric=True));
   return source_model
 
@@ -197,25 +203,25 @@ def additional_point_sources (ns,tablename=''):
 
 # define five simple point sources
   source_model = []
-  source_model.append( PointSource(ns,name="S6",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S6",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S6,
-                  spi=-1.5,freq0=ref_frequency));
+                  spi=P(-1.5),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S7",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S7",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S7,
-                  spi=-1.0,freq0=ref_frequency));
+                  spi=P(-1.0),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S8",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S8",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S8,
-                  spi=1.0,freq0=ref_frequency));
+                  spi=P(1.0),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S9",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S9",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S9,
-                  spi=1.5,freq0=ref_frequency));
+                  spi=P(1.5),freq0=ref_frequency));
 
-  source_model.append( PointSource(ns,name="S10",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S10",I=P(2.0), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S10,
-                  spi=2.0,freq0=ref_frequency));
+                  spi=P(2.0),freq0=ref_frequency));
 
   return source_model
 
@@ -225,9 +231,9 @@ def faint_source (ns,tablename=''):
   source_model = []
 # note - with 16 channels and sample step of 60 sec a source of 0.01
 # turns out to be ~ 5 sigma with 600 MHz BW if we use test noise units of 1
-  source_model.append( PointSource(ns,name="S11",I=0.01, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S11",I=P(0.01), Q=0.0, U=0.0, V=0.0,
                    direction=direction.S11,
-                  spi=0.0,freq0=ref_frequency));
+                  spi=P(0.0),freq0=ref_frequency));
   return source_model
 
 def EJones_pretab (ns,array,sources,name="E"):

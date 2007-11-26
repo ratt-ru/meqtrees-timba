@@ -159,14 +159,14 @@ def _define_forest(ns):
   
   
 def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,**kw):
-  solvables = Utils.perturb_parameters(mqs,['I0:'+src.name for src in source_list]);
+  solvables = Utils.perturb_parameters(mqs,['I:'+src.name for src in source_list]);
   solvables += Utils.reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
   solvables += Utils.reset_parameters(mqs,["hpbw0"],7);
   Utils.run_solve_job(mqs,solvables);
   
 
 def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,**kw):
-  solvables = Utils.perturb_parameters(mqs,['I0:'+src.name for src in source_list]);
+  solvables = Utils.perturb_parameters(mqs,['I:'+src.name for src in source_list]);
   solvables += Utils.reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
   Utils.run_solve_job(mqs,solvables);
   
@@ -177,16 +177,16 @@ def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,**kw):
   
 
 def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
-  Utils.reset_parameters(mqs,['I0:'+src.name for src in source_list]);
+  Utils.reset_parameters(mqs,['I:'+src.name for src in source_list]);
   Utils.reset_parameters(mqs,[ 'spi:'+src.name for src in source_list]);
   Utils.reset_parameters(mqs,["hpbw0"]);
 
 def _tdl_job_5_solve_for_gaussian_parameters (mqs,parent,**kw):
-  solvables = Utils.reset_parameters(mqs,["I0:S1"],1.36)
-  solvables += Utils.reset_parameters(mqs,["I0:S2"],1.77)
-  solvables += Utils.reset_parameters(mqs,["I0:S3"],0.35)
-  solvables += Utils.reset_parameters(mqs,["I0:S4"],1.12)
-  solvables += Utils.reset_parameters(mqs,["I0:S5"],3.66)
+  solvables = Utils.reset_parameters(mqs,["I:S1"],1.36)
+  solvables += Utils.reset_parameters(mqs,["I:S2"],1.77)
+  solvables += Utils.reset_parameters(mqs,["I:S3"],0.35)
+  solvables += Utils.reset_parameters(mqs,["I:S4"],1.12)
+  solvables += Utils.reset_parameters(mqs,["I:S5"],3.66)
   solvables += Utils.reset_parameters(mqs,["sigma1:S1"],0.0001)
   solvables += Utils.reset_parameters(mqs,["sigma2:S1"],0.0001)
   solvables += Utils.reset_parameters(mqs,["sigma1:S2"],0.0001)
