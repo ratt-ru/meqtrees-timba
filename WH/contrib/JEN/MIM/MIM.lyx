@@ -1127,32 +1127,221 @@ A
 \emph on 
 Measurement Equation
 \emph default 
- (M.E.) is a mathematical description (model) of an observational istrument
- and the thing it observes.
- It usually has parameters, whose correct values may be estimated from the
- differences (residuals) between the actually measured data, and the values
- predicted by the M.E.
- Thus, each measurement generates an equation (see below).
- An ensemble of such equations is then 'inverted' to yield better values
- for the M.E.
- paramaters.
- Note that the M.E.
- contains two classes of parameters: MIM parameters 
+ (M.E.) is a mathematical description (model) of the combination of an observing
+ istrument and the thing it observes.
+ We will use two different instruments to measure the ionospheric TEC: an
+ array of gound stations and satellites, and an array of LOFAR stations
+ and astronomical radio sources.
+ But although they are quite different, they both have an M.E.
+ with the same generic form.
+ If we 
+\emph on 
+measure
+\emph default 
+ a TEC sample 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+, as seen from the position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ receiver 
+\begin_inset Formula $r$
+\end_inset 
+
+, in the direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ of source 
+\begin_inset Formula $s$
+\end_inset 
+
+, its 
+\emph on 
+predicted
+\emph default 
+ value 
+\begin_inset Formula $P_{rs}$
+\end_inset 
+
+ is given by the M.E.: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+P_{rs}(t)=M_{rs}(t,pp)+Q_{rs}(t,qq)\quad TECU\label{eq: ME_generic}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $M_{rs}$
+\end_inset 
+
+ is the MIM-function (with MIM parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-, and 
-\emph on 
-measurement parameters
-\emph default 
- 
+), and 
+\begin_inset Formula $Q_{rs}$
+\end_inset 
+
+ is an expression that contains measurement parameters 
 \begin_inset Formula $q_{m}$
 \end_inset 
 
-.
- The latter have nothing to do with the ionosphere, but they do influence
- the TEC measurements.
+, i.e.
+ the parameters of various error mechanisms.
+ The latter have nothing to do with the ionosphere, but they do affect the
+ TEC measurements.
+ Examples of 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ are satellite-station bias values, or selfcal phase-zeroes, or antenna
+ phase errors introduced by the electronics or the troposphere.
+ In sections 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+ below, specific expressions for 
+\begin_inset Formula $Q_{rs}$
+\end_inset 
+
+ are given.
  
+\layout Standard
+
+The parameters of the M.E.
+ (i.e.
+ the 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ and the 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+) may be estimated from the differences (residuals) 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ between measured predicted values.
+ Thus, each sample generates a (linear) equation of the form:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta_{rs}(t)=P_{rs}(pp,qq,t)-S_{rs}(t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}(t)}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Fig 
+\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+
+\end_inset 
+
+ shows a MeqTree diagram for solving for MIM (and other) parameters.
+ Note that it has separate branches to produce the three kinds of equations:
+ for GPS TEC measurements, for radio astronomical phase measurements, and
+ for additional constraints to bridge the gaps in the MIM sampling function
+ (see appendix 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+).
+\layout Standard
+
+The 
+\emph on 
+variables
+\emph default 
+ in all equations are the 
+\emph on 
+incremental
+\emph default 
+ improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+ of the parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ and 
+\begin_inset Formula $q_{m}(t)$
+\end_inset 
+
+.
+ The relevant equations are collected in a solution matrix, which is then
+ 'inverted' to yield the 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+ that lead to smaller residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+.
+ Since the M.E.
+ is usually non-linear, this procedure is repeated for a number of iterations,
+ until 
+\begin_inset Formula $\chi^{2}=\sum\Delta_{rs}^{2}$
+\end_inset 
+
+ is minimized.
+ The value of 
+\emph on 
+chi-squared
+\emph default 
+ 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ can be used to control the iterative process, by continuing until 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ is smaller than a certain criterion, e.g.
+ the expected rms measurement noise.
+ The value to which 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ converges may also be used to detect whether the number of terms in the
+ MIM function is smaller (or larger!) than optimal, e.g.
+ because the ionospheric conditions have changed.
+ 
+\layout Subsection
+
+Equations and unknowns
+\begin_inset LatexCommand \label{sub:Equations-and-unknowns}
+
+\end_inset 
+
+
 \layout Standard
 
 Ultimately, solving for parameters is a question of 
@@ -1193,310 +1382,6 @@ time
 \emph on 
 As will be argued below, the implementation of this time-smoothness constraint
  will be one of the more difficult aspects.
- 
-\layout Standard
-
-In this section we define a generic framework that can be used to solve
- for MIM parameters in any application based on the MIM principle.
- In the next two sections we show how the samples taken with GPS and radio
- astronomical measurements can be combined in this framework.
- 
-\layout Subsection
-
-Generating equations
-\begin_inset LatexCommand \label{sub:Generating-equations}
-
-\end_inset 
-
-
-\layout Standard
-
-We solve for 
-\emph on 
-MIM parameters
-\emph default 
- 
-\begin_inset Formula $p_{k}(t)$
-\end_inset 
-
-, and 
-\emph on 
-measurement parameters
-\emph default 
- 
-\begin_inset Formula $q_{m}(\lambda,t)$
-\end_inset 
-
-, by finding those values of the 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
- that minimize the differences (residuals) 
-\begin_inset Formula $\Delta_{rs}$
-\end_inset 
-
- between measured and calculated TEC values at the sampling points 
-\begin_inset Formula $(x_{r},y_{r},z_{r},l_{rs},m_{rs},t)$
-\end_inset 
-
-.
- Samples are from receiver 
-\begin_inset Formula $r$
-\end_inset 
-
-, in the direction of source 
-\begin_inset Formula $s$
-\end_inset 
-
-.
- Each TEC sample 
-\begin_inset Formula $S_{rs}$
-\end_inset 
-
-, measured either with GPS or by astronomical means, can be expressed as:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-S_{rs}(\lambda,t)=T_{rs}(t)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: STrs_generic}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $T_{rs}(t)$
-\end_inset 
-
- is the 
-\emph on 
-true
-\emph default 
- integrated TEC, and 
-\begin_inset Formula $Q_{rs}(\lambda,t,qq)$
-\end_inset 
-
- is an expression that contains 
-\emph on 
-measurement parameters
-\emph default 
- 
-\begin_inset Formula $q_{m}(\lambda,t)$
-\end_inset 
-
-, and noise.
- Examples of 
-\begin_inset Formula $q$
-\end_inset 
-
- are satellite-station bias values, or selfcal phase-zeroes, or antenna
- phase errors introduced by the electronics or the troposphere.
- In sections 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
-
-\end_inset 
-
- below, specific expressions for 
-\begin_inset Formula $Q_{rs}$
-\end_inset 
-
- are given.
- 
-\layout Standard
-
-If we now replace the true TEC 
-\begin_inset Formula $T_{rs}$
-\end_inset 
-
- with its model 
-\begin_inset Formula $M_{rs}$
-\end_inset 
-
- (i.e.
- the MIM), we get:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-S_{rs}(\lambda,t)\approx M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)\quad TECU\label{eq: Srs_generic}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-The residuals 
-\begin_inset Formula $\Delta_{rs}$
-\end_inset 
-
- that are to be minimized can now be expressed as a linear equation of the
- form:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\Delta_{rs}(\lambda,t)=M_{rs}(t,pp)+Q_{rs}(\lambda,t,qq)-S_{rs}(\lambda,t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}(\lambda,t)}{\partial q_{m}}\Delta q_{m}\label{eq: normal}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-The 
-\emph on 
-variables
-\emph default 
- in this equation, and thus the result of the solution, are the incremental
- improvements 
-\begin_inset Formula $\Delta p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $\Delta q_{m}$
-\end_inset 
-
- of the parameters 
-\begin_inset Formula $p_{k}(t)$
-\end_inset 
-
- and 
-\begin_inset Formula $q_{m}(\lambda,t)$
-\end_inset 
-
- (An improvement of a parameter value means that it leads to smaller residuals
- 
-\begin_inset Formula $\Delta_{rs}$
-\end_inset 
-
-).
- Note that all parameters depend on time 
-\begin_inset Formula $t$
-\end_inset 
-
-, but only the 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
- depend on 
-\begin_inset Formula $\lambda$
-\end_inset 
-
-.
- 
-\layout Standard
-
-It is often possible to include 
-\emph on 
-other information
-\emph default 
- in the form of extra equations, provided such constraints can be expressed
- in terms of the parameters 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
- or 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
-.
- This is important for bridging the gaps in the TEC sampling function.
- But since such constraints are usually based on specific assumptions about
- the ionosphere, their treatment has been resolutely relegated to the appendix
- (see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
-
-\end_inset 
-
-).
-\layout Standard
-
-Fig 
-\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
-
-\end_inset 
-
- shows a MeqTree diagram for solving for MIM (and other) parameters by using
- GPS TEC measurements, radio astronomical phase measurements, and additional
- constraints to bridge the gaps in the MIM sampling function.
-\layout Subsection
-
-Inverting the solution matrix
-\begin_inset LatexCommand \label{sub:Inverting-the-solution}
-
-\end_inset 
-
-
-\layout Standard
-
-Inversion of the resulting system of linear equations is equivalent to a
- Least Squares Fit (LSF).
- If 
-\begin_inset Formula $M$
-\end_inset 
-
- is non-linear, which will usually be the case, the solution is iterative.
- Each iteration uses parameter values 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
- that are modified by adding the increments 
-\begin_inset Formula $\Delta p_{k}$
-\end_inset 
-
- and 
-\begin_inset Formula $\Delta q_{m}$
-\end_inset 
-
- that were estimated in the iteration before.
- Various non-linear solvers are available.
- This subject will not be discussed further here.
- 
-\layout Standard
-
-The relative quality of the data (e.g.
- S/N) may be taken into account by assigning weights to their equations.
- It is also possible to constrain the rate-of-change of a specific parameter
- (see also 
-\begin_inset LatexCommand \ref{sub: Smoothing in time}
-
-\end_inset 
-
-), or to limit its range of possible values.
-\layout Standard
-
-The quality of the fit is expressed by chi-squared, i.e.
- the sum of the squares of the residuals: 
-\begin_inset Formula $\chi^{2}=\sum\Delta_{rs}^{2}$
-\end_inset 
-
- .
- It can be used to control the iterative process, by continuing until 
-\begin_inset Formula $\chi^{2}$
-\end_inset 
-
- is smaller than a certain criterion, e.g.
- the expected rms measurement noise.
- The value to which 
-\begin_inset Formula $\chi^{2}$
-\end_inset 
-
- converges may also be used to detect whether the number of terms in the
- MIM function is smaller (or larger!) than optimal, e.g.
- because the ionospheric conditions have changed.
  
 \layout Subsection
 
@@ -1616,6 +1501,29 @@ GPS satellites move in roughly circular orbits around the Earth, with a
  rare for one to be actually inside the LOFAR FOV (5-10 deg).
  In the future we also hope to use satellites of Galileo, Glonass etc.
  
+\layout Subsection
+
+Preprocessing the Rinex data
+\begin_inset LatexCommand \label{sub:Preprocessing-Rinex-data}
+
+\end_inset 
+
+
+\layout Standard
+
+The GPS TEC measurements (usually) reach us in the form of so-called Rinex
+ files.
+ These are pre-processed and re-organized (by JMA), before being fed into
+ Meqtrees.
+ This should be summarized here....
+\layout Subsection
+
+The GPS TEC Measurement Equation 
+\begin_inset LatexCommand \label{sub:The-GPS-TEC-ME}
+
+\end_inset 
+
+
 \layout Standard
 
 A sample 
@@ -1653,20 +1561,21 @@ A sample
  Unfortunately, this is complicated by an unknown bias, which slowly drifts
  in time.
  Referring to equ 
-\begin_inset LatexCommand \ref{eq: Srs_generic}
+\begin_inset LatexCommand \ref{eq: ME_generic}
 
 \end_inset 
 
- above, the measurement function 
+ above, the function 
 \begin_inset Formula $Q_{rs}$
 \end_inset 
 
- for the GPS case can be expressed as: 
+ for the GPS M.E.
+ can be expressed as: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
+Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{-25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
 
 \end_inset 
 
@@ -1841,14 +1750,6 @@ absolute
  This is needed for the calibration of ionospheric Faraday rotation.
 \layout Subsection
 
-Preprocessing the Rinex data (JMA)
-\layout Standard
-
-A lot of pre-processing and re-organizing is done by Jim, before it is fed
- into Meqtrees to be processed by Maaijke.
- This should be summarized here....
-\layout Subsection
-
 Using 3 frequencies (JMA, EXN)
 \layout Standard
 
@@ -1857,8 +1758,8 @@ Jim has verified (see appendix
 
 \end_inset 
 
-) that the bias problem will be much less (or even absent?), even if the
- 3rd frequency is relatively close to one of the others.
+) that the bias problem will be much less (~ 0.035 TECU), even if the 3rd
+ frequency is relatively close to one of the others.
  Galileo will use 3 frequencies, and we should do tests with the WSRT station.
  GPS will probably have them earlier, so we should be ready to use them
  to maximum advantage at the earliest opportunity.
@@ -1941,7 +1842,7 @@ Sampling the MIM function using astronomical source(s)
 
 \layout Standard
 
-A bright radio source may be observed by an array of radio stations
+A bright radio source may be observed by an array of radio telescopes (stations)
 \begin_inset Foot
 collapsed true
 
@@ -1960,10 +1861,11 @@ ation
  LOFAR station, 
 \end_inset 
 
-, which may be distributed over many km.
- Using a model of the source, with the correct flux, polarization, position
- and shape (usually a point source), the phase error of each antenna may
- be determined with an a 
+.
+ The Measurement Equation of this system has an instrumental part, Using
+ a model of the source, with the correct flux, polarization, position and
+ shape (usually a point source), the phase error of each antenna may be
+ determined with an a 
 \begin_inset Formula $noise$
 \end_inset 
 
@@ -1980,7 +1882,7 @@ collapsed true
 
 The socalled 
 \series bold 
-sefcal condition
+selfcal condition
 \series default 
  is that all instrumental errors are associated with stations rather than
  interferometers (station-pairs).
@@ -2002,141 +1904,100 @@ sefcal condition
 \end_inset 
 
 .
- This noise is much smaller than the GPS noise.
- Unfortunately, the phases have (at least one) unknown common phase offset.
- Fortunately, this offset is shared by all 
-\begin_inset Formula $N$
+ 
+\layout Subsection
+
+Selfcal preprocessing
+\begin_inset LatexCommand \label{sub:Selfcal-preprocessing}
+
 \end_inset 
 
- phases of the 
-\begin_inset Formula $N$
-\end_inset 
 
- stations in the array.
 \layout Standard
 
-Each station phase 
-\begin_inset Formula $\phi_{rs}$
+As illustrated in fig 
+\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+
 \end_inset 
 
- in the selfcal solution represents an integrated TEC value 
-\begin_inset Formula $S_{rs}$
+, selfcal is a pre-processing step that produces a 
+\emph on 
+highly related
+\emph default 
+ group of TEC measurements, from the position 
+\begin_inset Formula $(x,y,z)$
 \end_inset 
 
- between a station 
+ of each LOFAR station 
 \begin_inset Formula $r$
 \end_inset 
 
- and a bright radio source 
+, in the direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ of the bright source 
 \begin_inset Formula $s$
 \end_inset 
 
 .
- Referring to equ 
-\begin_inset LatexCommand \ref{eq: Srs_generic}
-
+ For each visibility 
+\begin_inset Formula $V_{ij}(\lambda,t)$
 \end_inset 
 
- above, and remembering that 
-\begin_inset Formula $\phi\approx-25\lambda T$
+ between stations 
+\begin_inset Formula $i$
 \end_inset 
 
- (see appendix 
-\begin_inset LatexCommand \ref{sub:Ionospheric-phase}
-
+ and 
+\begin_inset Formula $j$
 \end_inset 
 
-), the measurement function 
-\begin_inset Formula $Q_{rs}$
-\end_inset 
-
- for the astronomical case can be expressed as: 
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-Q_{rs}(\lambda,t,qq)=\frac{1}{-25\lambda}(\phi_{0}^{offset}(t)+\phi_{r}^{Jones}(\lambda,t,qq))+noise\quad TECU\label{eq: Qrs_astro}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $(qq)$
-\end_inset 
-
- indicates that the various phase-expressions 
-\begin_inset Formula $\phi$
-\end_inset 
-
- may have measurement parameters 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
-.
- The phase-zero offset 
-\begin_inset Formula $\phi_{0}$
-\end_inset 
-
- is a processing artifact, and is identical for all stations.
- It is due to the fact that interferometers measure phase 
+, we may compare its predicted and measured 
 \emph on 
-differences
-\emph default 
- only.
- The instrumental phase 
-\begin_inset Formula $\phi_{r}$
-\end_inset 
-
- is 
-\emph on 
-station-based
-\emph default 
-.
- It is a function (sum?) of the phases caused by troposphere (TJones), station
- beam (EJones) and electronics (GJones).
- Until we have a better expression, we will write: 
+phases:
 \layout Standard
 
 
-\begin_inset Formula \begin{equation}
-\phi_{r}^{Jones}(\lambda,t,qq)=\phi_{r}^{TJones}(\lambda,t,qq)+\phi_{r}^{GJones}(\lambda,t,qq)+\phi_{r}^{EJones}(\lambda,t,qq)\quad rad\label{eq: astro_Jones}\end{equation}
+\begin_inset Formula \[
+\Delta_{ij}=arg(V_{ij}^{pred})-arg(V_{ij}^{meas})=\phi_{ij}^{pred}-\phi_{ij}^{meas}=-25\lambda(\Delta T_{i}-\Delta T_{j})+\frac{\Delta O_{ij}}{\lambda}\]
+
+\end_inset 
+
+and form equations like equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \[
+\frac{\phi_{ij}^{pred}-\phi_{ij}^{meas}}{-25\lambda}=\Delta T_{i}-\Delta T_{j}\]
 
 \end_inset 
 
 
 \layout Standard
 
-An important help in distinguising effects from each other is the frequency
- dependence.
- The phase caused by the TEC is 
-\begin_inset Formula $\propto\lambda$
+The term 
+\begin_inset Formula $\Delta O_{ij}/\lambda^{2}$
 \end_inset 
 
-, while both the tropospheric phase and the station beam phase are 
-\begin_inset Formula $\propto\lambda^{-1}$
+ represents contamination by the Jones terms of the LOFAR M.E.
+ It may be ignored for a number of reasons.
+ Its 
+\begin_inset Formula $\lambda-signature$
 \end_inset 
 
- .
- GJones differs per station, but can probably be assumed to be 'stable'
- over long periods of time.
- The common offset 
-\begin_inset Formula $\phi_{0}$
-\end_inset 
-
- is probably independent of frequency
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-The argument being that SVD minimizes the sum of the values of those parameters
- for whose estimation there is not sufficient information.
- 
+ is very different, since most instrumental effects are 
+\begin_inset Formula $\propto(1/\lambda)$
 \end_inset 
 
 .
+ It is kept small by phase-tracking, i.e.
+ by keeping the predicted visibilities close to the measured visibilities.
  In any case, the effectivness of the separation of effects will improve
  linearly with fractional bandwidth 
 \begin_inset Formula $\Delta\lambda/\lambda$
@@ -2163,33 +2024,85 @@ This should be compared to the plan to use some extra 'calibration' dipoles
 .
 \layout Standard
 
-The various effects differ in other aspects also.
- Both TJones and GJones are valid for the entire field (i.e.
- they are 
-\emph on 
-uv-plane effects
-\emph default 
-), while only EJones is direction-dependent.
- (Under some conditions, TJones may also be direction-dependent).
-\layout Standard
+The equations for all visibilities and all wavelengths 
+\begin_inset Formula $\lambda$
+\end_inset 
 
-In terms of time-dependence: EJones and the TEC both change smoothly, while
- TJones varies rapidly (minutes).
- At the very least, the solve-domains should be large enough in the time-directi
-on to filter out the troposphere.
-\layout Standard
+ are collected in a solution matrix, which is then inverted to produce increment
+al improvements 
+\begin_inset Formula $\Delta T_{i}=S_{rs}$
+\end_inset 
 
-Being able to separate the phase caused by the TEC from other phase-effects
- is very important.
- First af all, its frequency-dependence will then give the absolute TEC
- (see fig 
-\begin_inset LatexCommand \ref{cap: Frequency dependence}
+ for the TEC sample from station 
+\begin_inset Formula $r=i$
+\end_inset 
+
+, etc.
+ The incremental 
+\begin_inset Formula $\Delta T$
+\end_inset 
+
+ are converted into incremental MIM parameters 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ by solving a set of equations of the sort: 
+\begin_inset Formula \[
+\Delta_{rs}=\Delta T_{rs}=\sum_{k}\frac{\partial M}{\partial p_{k}}\Delta p_{k}\]
 
 \end_inset 
 
-), which is needed for predicting Faraday rotation.
- But it also opens the way to using observations taken at higher frequencies
- (LOFAR HBA) to correct those at lower frequencies (LOFAR LBA).
+
+\layout Standard
+
+i.e.
+ minimizing the 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ .Not that this is just equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
+\end_inset 
+
+, but without an expression 
+\begin_inset Formula $Q_{rs}$
+\end_inset 
+
+ for measurement errors.
+\layout Standard
+
+Because of the unknown offset 
+\begin_inset Formula $\Delta T_{0}$
+\end_inset 
+
+, the TECs that are measured in this way are 'intergated', i.e.
+ they all have an unknown offset 
+\begin_inset Formula $T_{0}$
+\end_inset 
+
+.
+ However, the offset is the same for all LOFAR stations.
+ This is why this group of TEC measurements, for all LOFAR stations, in
+ the direction of a particular source, is called 
+\emph on 
+highly related
+\emph default 
+.
+ Unlike a similar group that is produced by GPS measurements, which all
+ have a different offset.
+\layout Standard
+
+The phase-zero offset 
+\begin_inset Formula $\phi_{0}^{offset}(\lambda,t)$
+\end_inset 
+
+ is a artifact of the selfcal solution(s), caused by the fact that interferomete
+rs measure phase 
+\emph on 
+differences
+\emph default 
+ only.
  
 \layout Standard
 
@@ -2225,12 +2138,16 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 
 \series default 
  This might well be the preferred mode of operation for LOFAR.
- For each station, the phase of the Cat I selfcal solution represents a
- 'pivotal' point in its FOV.
+ For each station, the 
+\emph on 
+highly related
+\emph default 
+ group of astro TEC's represents a 'pivotal' group in its FOV.
  The (curved) phase screen across the rest of its FOV is constrained via
  the MIM by an arbitrarily dense pattern of GPS values outside the FOV.
- Although the GPS values have an accuracy of only 0.01 TECU (1 rad @ 75 MHz),
- they constrain the phases inside the FOV to a much greater accuracy.
+ Although the GPS values have an (absolute!) accuracy of only 0.01 TECU (1
+ rad @ 75 MHz), they constrain the phases inside the FOV to a much greater
+ accuracy.
  This is partly due to the lever effect, and partly through a 
 \begin_inset Formula $\sqrt{n}$
 \end_inset 
@@ -2243,8 +2160,11 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 Multiple sources inside the FOV:
 \series default 
  Simultanous solution, or peeling (contamination).
- Both approaches (!) give multiple independent offsets, which require a
- MIM to harmonize them.
+ Both approaches (!) give multiple 
+\emph on 
+highly related
+\emph default 
+ groups, with independent offsets, which require a MIM to harmonize them.
  
 \layout Enumerate
 
@@ -2433,17 +2353,26 @@ collapsed false
 
 \end_inset 
 
-Frequency-dependence of the station phase error in an astronomical observation
- of a radio source.
- If we manage to separate the phase caused by the ionospheric TEC from the
- phase caused by instrumental effects, the absolute TEC may be derived from
- the linear slope as a function of frequency (
-\begin_inset Formula $\phi\approx25\lambda T$
+Frequency-dependence of the interferometer phase error in an astronomical
+ observation of a radio source.
+ If we manage to separate the phase error caused by the ionospheric TEC
+ difference 
+\begin_inset Formula $\Delta T$
+\end_inset 
+
+ between the two stations from the phase error caused by instrumental effects,
+ the relative (...?) TEC may be derived from the linear slope as a function
+ of frequency (
+\begin_inset Formula $\Delta\phi\approx25\lambda\Delta T$
 \end_inset 
 
 ).
  In this example, the LBA and HBA phase-slopes are both consistent with
  
+\begin_inset Formula $\Delta T=0.01$
+\end_inset 
+
+.
 \end_inset 
 
 
@@ -2467,7 +2396,7 @@ This section is the heart of this document, since it brings all the strands
  
 \layout Standard
 
-The proposed 
+We propose a preferred 
 \emph on 
 default
 \emph default 
@@ -2476,12 +2405,43 @@ default
 
 \end_inset 
 
-) uses a single Cat I source as a pivotal point for the MIM.
+) and some variations on this theme.
+ It uses selfcal on a single bright astronomical (Cat I) source as a pivotal
+ point for the MIM.
  An array of GPS receivers is used to constrain the MIM further.
- All kinds of variations on this theme are possible, of course.
+ The reasons for this choice are:
+\layout Itemize
+
+It requires only one Cat I source in the FOV.
+ This is especially important for the smaller station sensitivity after
+ re-scoping.
+\layout Itemize
+
+It maximizes the chance of measuring absolute TEC.
+ This is not likely with selfcal, even wideband.
+ More likely with 'levered' GPS, especially triple-frequency GPS.
+ 
+\layout Itemize
+
+It works for a LOFAR with an array smaller than the FOV-footprint (~30km)
+ on the ionosphere.
+\layout Itemize
+
+It avoids the need for rapid repointing.
+\layout Itemize
+
+It requires minimum processing...
 \layout Subsection
 
 Default procedure
+\layout Standard
+
+The proposed default procedure has the following steps (see fig 
+\begin_inset LatexCommand \ref{cap:The-default-procedure}
+
+\end_inset 
+
+):
 \layout Enumerate
 
 
@@ -2505,19 +2465,15 @@ interferometer phase errors
 differential
 \emph default 
  accuracy.
+ Alternatively, if GPS cannot be used for some reason, use a brightest Cat
+ I source, in a more cumbersome trial-and-error procedure described in section
  
-\begin_deeper 
-\layout Enumerate
-
-If GPS cannot be used for some reason, there is a backup alternative: The
- brightest Cat I source may be used in a more cumbersome trial-and-error
- procedure described in section 
 \begin_inset LatexCommand \ref{sub: phase-locking}
 
 \end_inset 
 
 .
-\end_deeper 
+ Note that this source does NOT have to be in the FOV.
 \layout Enumerate
 
 
@@ -2559,10 +2515,14 @@ long-range parameters
 
 
 \series bold 
-Pivotal point:
+Obtain selfcal phases
 \series default 
- A selfcal solution on the brightest Cat I source in the field produces
- phases for all telescopes (stations) in the array.
+ for all LOFAR stations, in the direction of the 
+\emph on 
+pivotal
+\emph default 
+ source, i.e.
+ the brightest astronomical (Cat I) source in the FOV.
  Use the widest possible frequency domain to distinguish the contributions
  of the TEC (
 \begin_inset Formula $\propto\lambda$
@@ -2573,35 +2533,15 @@ Pivotal point:
 \end_inset 
 
 ).
- If the TEC contribution can be separated, the 
-\emph on 
-absolute
-\emph default 
- TEC may be calculated from its frequency slope.
- 
-\begin_deeper 
+ It is not clear (yet) whether this produces an absolute TEC.
 \layout Enumerate
 
-If the LOFAR array is larger than the footprint (~30km) of the FOV on the
- ionosphere, the curvature of the MIM over the entire FOV may be constrained.
- So, one Cat I is sufficient in this case.
- If the LOFAR array is too small (e.g.
- only the 3km core), extra constraints are needed.
- 
-\layout Enumerate
 
-Selfcal on other bright Cat I sources in the field (NB: This may have to
- be done in any case, to subtract them with maximum accuracy).
- Use either a simultaneous solution, or peeling.
- The extra samples constrain the MIM curvature, by simply adding extra equations
- to the MIM solution matrix.
- Limiting factors are the availability of sources, and the independent phase
- offsets introduced by each selfcal solution.
- 
-\layout Enumerate
-
-Use a (suitably dense) network of GPS stations around the array to constrain
- the MIM curvature.
+\series bold 
+Obtain GPS TEC measurements
+\series default 
+ from a network of GPS stations around the LOFAR array, to constrain the
+ MIM curvature.
  Again, by adding extra equations to the MIM solution matrix.
  The limited accuracy (0.01 TEC, or 1 rad @ 75 MHz) is largely compensated
  by the number of GPS stations (
@@ -2610,7 +2550,27 @@ Use a (suitably dense) network of GPS stations around the array to constrain
 
 ), and by the presence of the pivot.
  
-\end_deeper 
+\layout Enumerate
+
+
+\series bold 
+Solve for the MIM function,
+\series default 
+ using the station phases of the pivotal source, the GPS TEC measurements,
+ and a number of extra 
+\emph on 
+constraint
+\emph default 
+ equations derived from specific assumptions about the ionosphere.
+ Solve/update the parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ and the measurement errors 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
 \layout Enumerate
 
 
@@ -2662,6 +2622,26 @@ The uv-data may be integrated in freq and time to match the smaller size
 Question: Is it possible to apply the MIM image-plane effect during imaging,
  using a technique similar to w-projection?
 \end_deeper 
+\layout Subsection
+
+Variation: Use multiple sources in the FOV
+\layout Standard
+
+If the LOFAR array is larger than the footprint (~30km) of the FOV on the
+ ionosphere, the curvature of the MIM over the entire FOV may be constrained.
+ So, one Cat I is sufficient in this case.
+ If the LOFAR array is too small (e.g.
+ only the 3km core), extra constraints are needed.
+\layout Standard
+
+Selfcal on other bright Cat I sources in the field (NB: This may have to
+ be done in any case, to subtract them with maximum accuracy).
+ Use either a simultaneous solution, or peeling.
+ The extra samples constrain the MIM curvature, by simply adding extra equations
+ to the MIM solution matrix.
+ Limiting factors are the availability of sources, and the independent phase
+ offsets introduced by each selfcal solution.
+ 
 \layout Subsection
 
 Variation: Rapid repointing
@@ -3051,49 +3031,33 @@ Conclusions
 
 \layout Standard
 
-The MIM-principle, i.e.
- the use of a smooth MIM function to describe 
+We have outlined the MIM 
 \emph on 
-the effects of
+principle
 \emph default 
- the ionosphere above a radio synthesis array like LOFAR, has many advantages.
- Apart from providing an accurate value for the integrated TEC along an
- arbitrary line of sight, the MIM function may be used to 
-\emph on 
-harmonize
-\emph default 
- the various TEC measurements from which the MIM is estimated.
- In practice this means that their various unknown offsets are made consistent
- with each other.
+, and proposed a procedure to use it to calibrate ionospheric observations
+ of LOFAR (and other radio telescopes).
+ The 6D MIM-function 
+\begin_inset Formula $M(x,y,z,l,m,t)$
+\end_inset 
+
+ is used as a smoothing agent to combine astronomical and GPS measurements
+ of the ionospheric TEC , and to separate them from instrumental effects.
+ The MIM function is then interpolated to subtract Cat II radio sources
+ from the uv-data, and to correct the residuals before (facet) imaging.
+ The MIM principle is quite general, so it has other applications as well.
 \layout Standard
 
-In radio astronomy calibration, the MIM may be used for:
-\layout Itemize
-
-Tracking the ionosphere to within a radian of phase.
-\layout Itemize
-
-Combining astronomical and GPS measurements.
-\layout Itemize
-
-Faraday calibration (needs absolute TEC).
-\layout Itemize
-
-Source subtraction (Cat II).
-\layout Itemize
-
-Imaging (facet and otherwise).
-\layout Standard
-
-In addition, other applications for the MIM-principle are ionospheric research,
- improved position determination, and as a general harmonizing principle
- for all kinds of problems, in all kinds of fields.
-\layout Standard
-
-We propose to demonstrate the capabililties of the MIM in the context of
+In this document we have tried to identify the possibilities and limitations
+ of the MIM method.
+ Now is the time to descend into the arena of actual experiments.
+ We propose to demonstrate the capabilities of the MIM in the context of
  the MeqTree system, as a trail-blazer for the eventual LOFAR implementation
  in BBS.
- One of the most urgent tasks is to develop the capapility of solving for
+ 
+\layout Standard
+
+One of the most urgent tasks is to develop the capability of solving for
  long-range parameters, i.e.
  parameters that have a validity domain that is greater (longer) than the
  domain of a practical data-snippet.
