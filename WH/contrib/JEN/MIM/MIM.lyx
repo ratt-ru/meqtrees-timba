@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.0: 25 Nov 2007} % Date of Issue (
+theDOIssue}{Version 0.99: 27 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.0} 
+theRevNR} {0.99} 
 \layout Standard
 
 \backslash 
@@ -1171,7 +1171,7 @@ predicted
 
 
 \begin_inset Formula \begin{equation}
-P_{rs}(t)=M_{rs}(t,pp)+Q_{rs}(t,qq)\quad TECU\label{eq: ME_generic}\end{equation}
+P_{rs}(pp,qq)=M_{rs}(pp)+Q_{rs}(qq)\quad TECU\label{eq: ME_generic}\end{equation}
 
 \end_inset 
 
@@ -1242,11 +1242,38 @@ The parameters of the M.E.
 
 
 \begin_inset Formula \begin{equation}
-\Delta_{rs}(t)=P_{rs}(pp,qq,t)-S_{rs}(t)=\sum_{k}\frac{\partial M_{rs}(t)}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}(t)}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal}\end{equation}
+\Delta_{rs}=P_{rs}(pp,qq)-S_{rs}=\sum_{k}\frac{\partial M_{rs}}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal}\end{equation}
 
 \end_inset 
 
 
+\layout Standard
+
+Note that we can construct the residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ in different ways:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta_{rs}=(M_{rs}+Q_{rs})-S_{rs}=Q_{rs}-(S_{rs}-M_{rs})\label{eq: ME_resid}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+so instead of 'corrupting' the predicted value, we can also 'correct' the
+ measured value with the inverse of (part of) the M.E.
+ This is used in section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+, where the measured visibilities are corrected for the ionospheric phase,
+ so they can be integrated without decorrelation.
 \layout Standard
 
 Fig 
@@ -1270,7 +1297,7 @@ The
 \emph on 
 variables
 \emph default 
- in all equations are the 
+ these equations are the 
 \emph on 
 incremental
 \emph default 
@@ -1291,8 +1318,8 @@ incremental
 \end_inset 
 
 .
- The relevant equations are collected in a solution matrix, which is then
- 'inverted' to yield the 
+ The equations are collected in a solution matrix, which is then 'inverted'
+ to yield the 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
@@ -1300,7 +1327,7 @@ incremental
 \begin_inset Formula $\Delta q_{m}$
 \end_inset 
 
- that lead to smaller residuals 
+ that should lead to smaller residuals 
 \begin_inset Formula $\Delta_{rs}$
 \end_inset 
 
@@ -1823,7 +1850,7 @@ collapsed false
 
 \end_inset 
 
-TEC measurements with one GPS satellite and multiple gound stations.
+TEC measurements with one GPS satellite and multiple ground stations.
  The accuracy is limited to the measurement noise of 0.01 TECU, which corresponds
  to 1 rad @ 75 MHz.
  
@@ -1904,7 +1931,116 @@ selfcal condition
 \end_inset 
 
 .
+ The M.E.
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+For clarity, we use the 4-vector form of the M.E.
+ here, because the equations have fewer elements.
+ MeqTrees uses the equivalent form, which only has 2x2 matrices.
+\end_inset 
+
+ of a radio interferometer
+\begin_inset LatexCommand \cite{JEN framework}
+
+\end_inset 
+
+ describes how the values of a 
+\emph on 
+visibility
+\emph default 
+ vector 
+\begin_inset Formula $\vec{V_{ij}}$
+\end_inset 
+
+ come about when an interferometer between stations 
+\begin_inset Formula $r=i$
+\end_inset 
+
+ and 
+\begin_inset Formula $r=j$
+\end_inset 
+
+ observes a collection of sources 
+\begin_inset Formula $s$
+\end_inset 
+
+ with source parameters 
+\begin_inset Formula $\vec{I_{s}}$
+\end_inset 
+
+:
+\begin_inset Formula \begin{equation}
+\vec{V}_{ij}=\sum_{s}(J_{is}\bigotimes J_{js})\: S\:\vec{I_{s}}\label{eq: ME_vis}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The constant 4x4 Stokes matrix 
+\begin_inset Formula $S$
+\end_inset 
+
+ 'converts' the 4 Stokes parameters of the source into the 4 elements (e.g.
+ XX,XY,YX,YY) of the visibility vector.
+ The instrumental effects of station 
+\begin_inset Formula $i$
+\end_inset 
+
+, in the direction of source 
+\begin_inset Formula $s$
+\end_inset 
+
+, are described by its 2x2 Jones matrix 
+\begin_inset Formula $J_{is}$
+\end_inset 
+
+, which is itself the multiplication of a sequence of 2x2 matrices that
+ each represent an instrumental effect.
+ In our case, we will use 
+\begin_inset Formula $J_{is}=G_{i}E_{is}T_{i}Z_{is}$
+\end_inset 
+
+, in which GJones represents the (complex) electronic gain of the station,
+ TJones represents the tropospheric phase, EJones represents the station
+ beam response, and ZJones represents the ionosphere.
  
+\layout Standard
+
+The LOFAR design parameters have been chosen in such a way that there is
+ always at least one Cat I source in the FOV, i.e.
+ a source that gives a 
+\begin_inset Formula $S/N>3$
+\end_inset 
+
+ , for each visibility, in 10 s, for a bandwidth of 4 MHz (!).
+ Therefore, we cannot do a separate selfcal solution per subband of 150
+ kHz, because the S/N will be too low for the non-linear conversion to phase.
+ So we must find a way to do a selfcal solution for the entire collection
+ of subbands, keeping in mind that the phase difference between predicted
+ and measured values is proportional to 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+.
+ (If that is not possible, we should confine ourselves to sources that are
+ so bright that separate solutions are possible).
+ Perhaps we can calculate a correction factor for the (known!?) decorrelation,
+ so that we still get a good average value for the 
+\begin_inset Formula $\Delta T$
+\end_inset 
+
+.
+ In any case, we must 
+\emph on 
+phase-track
+\emph default 
+ well enough, to make sure that the phase-difference between the predicted
+ and measured values are (much) smaller than a radian for the entire frequency
+ range.
 \layout Subsection
 
 Selfcal preprocessing
@@ -2338,8 +2474,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
-	filename MIM_astro_freq.eps
-	width 60col%
+	filename MIM_pred_meas.eps
+	width 80col%
 
 \end_inset 
 
@@ -2349,12 +2485,12 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap: Frequency dependence}
+\begin_inset LatexCommand \label{cap: AstroPredMeas}
 
 \end_inset 
 
-Frequency-dependence of the interferometer phase error in an astronomical
- observation of a radio source.
+AstroPredMeas Frequency-dependence of the interferometer phase error in
+ an astronomical observation of a radio source.
  If we manage to separate the phase error caused by the ionospheric TEC
  difference 
 \begin_inset Formula $\Delta T$
@@ -2406,8 +2542,12 @@ default
 \end_inset 
 
 ) and some variations on this theme.
- It uses selfcal on a single bright astronomical (Cat I) source as a pivotal
- point for the MIM.
+ It uses selfcal on a single bright astronomical (Cat I) source, to produce
+ a pivotal group of 
+\emph on 
+highly related
+\emph default 
+ group of astroTECs for the MIM.
  An array of GPS receivers is used to constrain the MIM further.
  The reasons for this choice are:
 \layout Itemize
@@ -2418,7 +2558,7 @@ It requires only one Cat I source in the FOV.
 \layout Itemize
 
 It maximizes the chance of measuring absolute TEC.
- This is not likely with selfcal, even wideband.
+ This is not possible with selfcal, even wideband.
  More likely with 'levered' GPS, especially triple-frequency GPS.
  
 \layout Itemize
@@ -2515,7 +2655,7 @@ long-range parameters
 
 
 \series bold 
-Obtain selfcal phases
+Obtain astroTECs
 \series default 
  for all LOFAR stations, in the direction of the 
 \emph on 
@@ -2523,8 +2663,8 @@ pivotal
 \emph default 
  source, i.e.
  the brightest astronomical (Cat I) source in the FOV.
- Use the widest possible frequency domain to distinguish the contributions
- of the TEC (
+ Use the widest possible frequency domain to get enough S/N, and to distinguish
+ the contributions of the TEC (
 \begin_inset Formula $\propto\lambda$
 \end_inset 
 
@@ -2533,7 +2673,14 @@ pivotal
 \end_inset 
 
 ).
- It is not clear (yet) whether this produces an absolute TEC.
+ This produces a group of highly related TEC measurements, i.e.
+ they have the same offset, but the correct relative values.
+ This is called a 
+\emph on 
+pivotal group
+\emph default 
+, since it is a strong constraint on the MIM.
+ 
 \layout Enumerate
 
 
