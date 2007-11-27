@@ -1,4 +1,3 @@
-
 //# Includes
 //
 //% $Id$ 
@@ -145,8 +144,7 @@ void ComposedPolc::validateContent (bool recursive)
 	FailWhen(!(*funkIt).valid(),"this is not a valid funkIt");
 	//check on shape
 	const LoShape fshape= (*funkIt)->getCoeffShape ();
-	  const int rank=(*funkIt)->rank();
-	  for(uint axisi= 0; axisi<uint(rank);axisi++){
+	  for(uint axisi= 0; axisi<Axis::MaxAxis;axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape.size()>axisi && fshape[axisi]>1 )
@@ -193,6 +191,7 @@ void ComposedPolc::validateContent (bool recursive)
     int nr_spids = getNrSpids();
 
     const int nr_axis=cells.rank();
+    const Domain cell_dom = cells.domain();
 
     LoVec_double startgrid[nr_axis],endgrid[nr_axis],sizegrid[nr_axis],centergrid[nr_axis];
     for(int i=0;i<nr_axis;i++){
@@ -267,10 +266,12 @@ void ComposedPolc::validateContent (bool recursive)
 
       const Domain & polcdom(partfunk.domain());
       for(int axisi=0;axisi<nr_axis;axisi++){
+	if (!cell_dom.isDefined(axisi)){
+	  starti[axisi]=0;endi[axisi]=0;continue;
+	}
 	int maxk=std::min(res_shape[axisi],startgrid[axisi].size());
 	int k=0;
 	while(k<maxk  && centergrid[axisi](k)<polcdom.start(axisi)) k++;
-
 	starti[axisi] = k;
 	k=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);
 	while(k>0 && (centergrid[axisi](k)>polcdom.end(axisi))) k--;
@@ -342,14 +343,25 @@ void ComposedPolc::validateContent (bool recursive)
 
 
       //now fill result in array..
+      //here we make assumptions about the rank of the array, generalize!!
+      if(isConstant)
+	{
+	  int val[8];
+	  fill_const_value(nr_axis,starti,endi,res_shape,val,0,value,constpart);
+	  if( makePerturbed )
+	    for( int ipert=0; ipert<makePerturbed; ipert++ )
+	      fill_const_value(nr_axis,starti,endi,res_shape,val,0, pertValPtr[ipert][0],constpert[ipert]);
+	}
+      else
+	{// not constant assume freq,time polc for now
+	
       int nx(0),ny(0);
+
+
       for(int valx = starti[0];valx<=endi[0];valx++){
 	ny=0;
 	for(int valy = starti[1];valy<=endi[1];valy++){
 	  int idx = valy + valx*res_shape[1];
-	  if(isConstant)
-	    value[idx] = constpart ;
-	  else
 	    {
 	      cdebug(3)<<"nx "<<nx<<" ny "<<ny<<" val "<<ny+nx*maxny<<" "<<valx*res_shape[1]+valy<<endl;
 	      cdebug(3)<<parts[ny+nx*maxny]<<endl;
@@ -373,34 +385,56 @@ void ComposedPolc::validateContent (bool recursive)
 		ny=0;
 		for(int valy = starti[1];valy<=endi[1];valy++){
 		  int idx = valx*res_shape[1]+valy;
-		  if(isConstant)
-		    pertValPtr[ipert][0][idx]= constpert[ipert] ;
-		  else
+		  
+		  for(int ispid=0;ispid<nr_spids;ispid++)
 		    {
-
-		      for(int ispid=0;ispid<nr_spids;ispid++)
-			{
-			  pertValPtr[ipert][ispid][idx] = (perts[ipert][ispid])[ny+nx*maxny] ;
-			}
+		      pertValPtr[ipert][ispid][idx] = (perts[ipert][ispid])[ny+nx*maxny] ;
 		    }
+		  
 		  ny=std::min(ny+1,maxny-1);//put check on y shape b4
 		}
 		nx=std::min(nx+1,maxnx-1);//put check on x shape b4
 	      }
-
+	      
 
 
 	    }//loop over perturbations
 	}//if makeperturbed
+	}//if not constant
 
 
 
     }//end loop over funklets
-
+ 
   }
 
 
+ const  void ComposedPolc::fill_const_value(const int nr_axis,const int starti[],const int endi[],const Vells::Shape res_shape,int val[],int axisi,double *value,const double constpart) const {
+       //recursive filling to allow for more than 2 axis, only for constant value for now
+       if (axisi>=nr_axis){
+	 //fill value
+	 int idx = val[0];
+	 for(int ai = 1;ai<nr_axis;ai++){
+	   idx*=res_shape[ai-1];
+	   idx+=val[ai];
+	 }
+	 value[idx] = constpart ;
+       }
+       else
+	 {//loop over this axis
+	   for (val[axisi]= starti[axisi];val[axisi]<=endi[axisi];val[axisi]++){
+	     //recursive call
+	     fill_const_value(nr_axis,starti,endi,res_shape,val,axisi+1,value,constpart);
+	     
+	     
+	   }
+	   
 
+
+
+	 }
+	
+  }
 
 
 
@@ -448,6 +482,7 @@ void ComposedPolc::validateContent (bool recursive)
 
 
   }
+
 
 
   void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive)

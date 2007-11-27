@@ -141,7 +141,9 @@ namespace Meq
   private:
   int nr_funklets_;
   int axisHasShape_[Axis::MaxAxis];
+  const void fill_const_value(const int nr_axis,const int starti[],const int endi[],const Vells::Shape res_shape,int val[],int axisi,double *value,const double constpart) const ;
   };
+
 
   
   //define  compare functions, for sorting
@@ -149,16 +151,22 @@ namespace Meq
   static bool compareDomain(const Funklet::Ref & f1, const Funklet::Ref & f2)
   {
     if(f1 == f2) return 0;
-    
-    //first sort on time
-    if(f1->domain().start(0) != f2->domain().start(0)) return (f1->domain().start(0) < f2->domain().start(0));
-    //then freq
-    if(f1->domain().start(1) != f2->domain().start(1)) return (f1->domain().start(1) < f2->domain().start(1));
+    for (int ai=0;ai<Axis::MaxAxis;ai++){
+      if (f1->domain().isDefined(ai) && f2->domain().isDefined(ai))
+	{
+	  if(f1->domain().start(ai) != f2->domain().start(ai)) return (f1->domain().start(ai) < f2->domain().start(ai));
+
+
+
+	}
+    }
     //domains fully overlap now for sure
-    //use the one with largest domain
-    if(f1->domain().end(0) != f2->domain().end(0))  return (f1->domain().end(0) < f2->domain().end(0)) ;
-    if(f1->domain().end(1) != f2->domain().end(1))  return (f1->domain().end(1) < f2->domain().end(1)) ;
-  
+    for (int ai=0;ai<Axis::MaxAxis;ai++){
+      if (f1->domain().isDefined(ai) && f2->domain().isDefined(ai)){
+	//use the one with largest domain
+	if(f1->domain().end(ai) != f2->domain().end(ai))  return (f1->domain().end(ai) < f2->domain().end(ai)) ;
+      }  
+    }
     //all the same...hmmm, let's return somtehing for the moment
     return f1->ncoeff()<f2->ncoeff();
   

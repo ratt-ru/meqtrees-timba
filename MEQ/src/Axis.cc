@@ -231,7 +231,7 @@ void resetDefaultMap ()
     _name_map[i] = axis;
     axis_ids[i] = axis;
   }
-  const HIID defmap[] = { AidTime,AidFreq };
+  const HIID defmap[] = { AidTime,AidFreq, AidL,AidM };
   setAxisMap(defmap,sizeof(defmap)/sizeof(defmap[0]));
   // reset default_mapping flag again since it was cleared by setAxisMap()
   _default_mapping = true;
