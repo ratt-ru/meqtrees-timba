@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Collapsed
+status Open
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.99: 27 Nov 2007} % Date of Issue (
+theDOIssue}{Version 1.0: 3 Dec 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {0.99} 
+theRevNR} {1.0} 
 \layout Standard
 
 \backslash 
@@ -1947,7 +1947,7 @@ For clarity, we use the 4-vector form of the M.E.
 
 \end_inset 
 
- describes how the values of a 
+ describes how predict the values of the 4 elements of a 
 \emph on 
 visibility
 \emph default 
@@ -1955,7 +1955,7 @@ visibility
 \begin_inset Formula $\vec{V_{ij}}$
 \end_inset 
 
- come about when an interferometer between stations 
+ when an interferometer between stations 
 \begin_inset Formula $r=i$
 \end_inset 
 
@@ -2001,62 +2001,160 @@ The constant 4x4 Stokes matrix
 , which is itself the multiplication of a sequence of 2x2 matrices that
  each represent an instrumental effect.
  In our case, we will use 
-\begin_inset Formula $J_{is}=G_{i}E_{is}T_{i}Z_{is}$
+\begin_inset Formula $J_{is}=G_{i}E_{is}T_{i}F_{is}Z_{is}K_{ijs}$
 \end_inset 
 
 , in which GJones represents the (complex) electronic gain of the station,
- TJones represents the tropospheric phase, EJones represents the station
- beam response, and ZJones represents the ionosphere.
- 
+ KJones represents the source position w.r.t.
+ the phase centre, TJones represents the tropospheric phase, EJones represents
+ the station beam response, FJones represents the ionospheric Faraday rotation,
+ and ZJones represents the ionospheric 
+\emph on 
+phase
+\emph default 
+.
+ The symbol 
+\begin_inset Formula $\bigotimes$
+\end_inset 
+
+ represents the Kronecker product, which multiplies two 2x2 matrices into
+ a 4x4 matrix:
 \layout Standard
 
-The LOFAR design parameters have been chosen in such a way that there is
- always at least one Cat I source in the FOV, i.e.
+
+\begin_inset Formula \begin{equation}
+J_{is}\bigotimes J_{js}=J_{ijs}=G_{ij}E_{ijs}T_{ij}F_{ijs}Z_{ijs}K_{ijs}=G_{ij}E_{ijs}F_{ijs}K_{ijs}\; e^{i\phi_{ij}^{TJones}}e^{i\phi_{ijs}^{ZJones}}\label{eq: Jij}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+In general, Jones matrices do not commute, so their order is important.
+ The exception is a diagonal matrix with equal elements, which is equivalent
+ to a (usually complex) scalar factor that can be placed anywhere in the
+ Jones chain.
+ This is the case for the TJones and ZJones, which also happen to be pure
+ phase factors (to first order).
+ For a single dominating source 
+\begin_inset Formula $s$
+\end_inset 
+
+ in the field centre (see section 
+\begin_inset LatexCommand \ref{sub:Peeling}
+
+\end_inset 
+
+ for multiple sources), the M.E.
+ for the 
+\emph on 
+phase
+\emph default 
+ of a single visibility sample 
+\begin_inset Formula $V_{ijs}$
+\end_inset 
+
+ is (see also fig 
+\begin_inset LatexCommand \ref{cap: AstroPredMeas}
+
+\end_inset 
+
+):
+\begin_inset Formula \begin{equation}
+\phi_{ijs}(\lambda)=arg(V_{ijs}(\lambda))=-25\lambda(M_{is}-M_{js})+(\phi_{i}-\phi_{j})^{TJones}+\phi_{ijs}^{other}\label{eq: argV}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+where 
+\begin_inset Formula $M_{is}$
+\end_inset 
+
+ is the MIM (TEC) value as seen from the position (x,y,z) of station (receiver)
+ 
+\begin_inset Formula $i$
+\end_inset 
+
+ in the direction (l,m) of source 
+\begin_inset Formula $s$
+\end_inset 
+
+, 
+\begin_inset Formula $\phi_{i}^{TJones}$
+\end_inset 
+
+ is the tropospheric phase above station 
+\begin_inset Formula $i$
+\end_inset 
+
+, and 
+\begin_inset Formula $\phi_{ijs}^{other}$
+\end_inset 
+
+ is the total phase caused by the chain of the other Jones matrices and
+ the observed source.
+ Note that the frequency dependence of the various terms is quite different:
+ Only the ionospheric phase is 
+\begin_inset Formula $\propto\lambda$
+\end_inset 
+
+, while the other phases are 
+\begin_inset Formula $\propto\frac{1}{\lambda}$
+\end_inset 
+
+ (with the possible exception of the ionospheric Faraday rotation, but that
+ is a second-order effect).
+ This 'orthogonality' will be important when we try to solve for the ionosphere
+ and other parameters simultaneously.
+\layout Standard
+
+The sensitivity and size of the LOFAR stations guarantees (even after the
+ recent re-scope) that there is always at least one Cat I source in the
+ FOV, i.e.
  a source that gives a 
 \begin_inset Formula $S/N>3$
 \end_inset 
 
- , for each visibility, in 10 s, for a bandwidth of 4 MHz (!).
- Therefore, we cannot do a separate selfcal solution per subband of 150
- kHz, because the S/N will be too low for the non-linear conversion to phase.
- So we must find a way to do a selfcal solution for the entire collection
- of subbands, keeping in mind that the phase difference between predicted
- and measured values is proportional to 
-\begin_inset Formula $\lambda$
+ for each visibility sample in 10 s, provided we can use a bandwidth of
+ at least 4 MHz.
+ The latter condition means that, in order to get sufficient S/N for the
+ non-linear conversion to phase, we usually have to integrate the visibilities
+ of a number of 150 kHz subbands.
+ This may be a problem if 
+\begin_inset Formula $(M_{is}-M_{js})$
 \end_inset 
 
-.
- (If that is not possible, we should confine ourselves to sources that are
- so bright that separate solutions are possible).
- Perhaps we can calculate a correction factor for the (known!?) decorrelation,
- so that we still get a good average value for the 
-\begin_inset Formula $\Delta T$
-\end_inset 
-
-.
- In any case, we must 
-\emph on 
-phase-track
-\emph default 
- well enough, to make sure that the phase-difference between the predicted
- and measured values are (much) smaller than a radian for the entire frequency
- range.
-\layout Subsection
-
-Selfcal preprocessing
-\begin_inset LatexCommand \label{sub:Selfcal-preprocessing}
+ is large, because the ionospheric phases for each subband will be quite
+ different (see fig 
+\begin_inset LatexCommand \ref{cap: AstroPredMeas}
 
 \end_inset 
 
+), so adding them causes decorrelation.
+ Fortunately, because the ZJones matrix reduces to a scalar phase factor,
+ we are allowed to 'lign up' the subband visibilities prior to adding them,
+ by multiplying with the inverse factor:
+\begin_inset Formula \begin{equation}
+\phi_{ijs}=arg(\sum_{subbands}V_{ijs}(\lambda)\; e^{25\lambda i(M_{is}-M_{js})})\label{eq: argsumV}\end{equation}
 
+\end_inset 
+
+ 
 \layout Standard
 
-As illustrated in fig 
-\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+Such a correction of the visibilities for ionospheric phases is also important
+ 
+\emph on 
+phase-tracking
+\emph default 
+ well enough, to make sure that the phase-difference between the predicted
+ and measured values are smaller than 1-2 radians for all visibilities.
+\layout Standard
 
-\end_inset 
-
-, selfcal is a pre-processing step that produces a 
+...
+ produces a 
 \emph on 
 highly related
 \emph default 
@@ -2077,65 +2175,107 @@ highly related
 \end_inset 
 
 .
- For each visibility 
-\begin_inset Formula $V_{ij}(\lambda,t)$
+ 
+\layout Standard
+
+We are now ready to form equations like equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
 \end_inset 
 
- between stations 
-\begin_inset Formula $i$
+: For each visibility sample 
+\begin_inset Formula $V_{ijs}(t)$
 \end_inset 
 
- and 
-\begin_inset Formula $j$
-\end_inset 
-
-, we may compare its predicted and measured 
+ we may compare its predicted and measured 
 \emph on 
 phases:
 \layout Standard
 
 
 \begin_inset Formula \[
-\Delta_{ij}=arg(V_{ij}^{pred})-arg(V_{ij}^{meas})=\phi_{ij}^{pred}-\phi_{ij}^{meas}=-25\lambda(\Delta T_{i}-\Delta T_{j})+\frac{\Delta O_{ij}}{\lambda}\]
-
-\end_inset 
-
-and form equations like equ 
-\begin_inset LatexCommand \ref{eq: ME_normal}
-
-\end_inset 
-
-:
-\layout Standard
-
-
-\begin_inset Formula \[
-\frac{\phi_{ij}^{pred}-\phi_{ij}^{meas}}{-25\lambda}=\Delta T_{i}-\Delta T_{j}\]
+\Delta_{ijs}=\phi_{ijs}^{halfpred}-\phi_{ijs}^{corrmeas}=\sum_{k}\frac{\partial\phi_{ijs}^{corrmeas}}{\partial M}\frac{\partial M}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial\phi_{ijs}^{halfpred}}{\partial q_{m}}\Delta q_{m}\]
 
 \end_inset 
 
 
 \layout Standard
 
-The term 
-\begin_inset Formula $\Delta O_{ij}/\lambda^{2}$
+in which 
+\begin_inset Formula $\phi_{ijs}^{halfpred}$
 \end_inset 
 
- represents contamination by the Jones terms of the LOFAR M.E.
- It may be ignored for a number of reasons.
- Its 
-\begin_inset Formula $\lambda-signature$
+ is the 'half-predicted' phase, i.e.
+ without the ionospheric phase, and 
+\begin_inset Formula $\phi_{ijs}^{corrmeas}$
 \end_inset 
 
- is very different, since most instrumental effects are 
-\begin_inset Formula $\propto(1/\lambda)$
+ is the measured phase of equ 
+\begin_inset LatexCommand \ref{eq: argsumV}
+
 \end_inset 
 
+, i.e.
+ corrected for the ionospheric phase, and integrated over all subbands.
+ Example of a measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ are the tropospheric phases.
+ This equation looks a little more daunting than before, but it is just
+ the chain-rule.
+ The important thing is that we have again an equation in the 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and the 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+, which can be added to the solution matrix.
+\layout Standard
+
+Note that there is no longer a preprocessing step to get selfcal phases,
+ like in SPAM (see appendix 
+\begin_inset LatexCommand \ref{sec: Field-based-calibration}
+
+\end_inset 
+
+).
+ We solve for the MIM parameters straight from the visibilities, as is the
+ plan in SPAM.....
+ 
+\layout Standard
+
+We propose to call the group of TEC samples obtained from an astronomical
+ source a 
+\series bold 
+Rigid Floating Group (RFG)
+\series default 
 .
- It is kept small by phase-tracking, i.e.
- by keeping the predicted visibilities close to the measured visibilities.
- In any case, the effectivness of the separation of effects will improve
- linearly with fractional bandwidth 
+ Because visibilities measure phase differences, all the station TEC values
+ 
+\begin_inset Formula $M_{is}$
+\end_inset 
+
+ in the direction of source 
+\begin_inset Formula $s$
+\end_inset 
+
+ will have an identical offset 
+\begin_inset Formula $M_{0s}$
+\end_inset 
+
+, but they will otherwise be quite accurate relative to each other.
+ This means that they represent a strong constraint on the MIM, especially
+ if the LOFAR array is large.
+ In combination with GPS TEC measurements, which provide the absolute TEC,
+ and more constraints.....
+ 
+\layout Standard
+
+Finally, The effectiveness of the separation of effects will improve linearly
+ with fractional bandwidth 
 \begin_inset Formula $\Delta\lambda/\lambda$
 \end_inset 
 
@@ -2160,88 +2300,6 @@ This should be compared to the plan to use some extra 'calibration' dipoles
 .
 \layout Standard
 
-The equations for all visibilities and all wavelengths 
-\begin_inset Formula $\lambda$
-\end_inset 
-
- are collected in a solution matrix, which is then inverted to produce increment
-al improvements 
-\begin_inset Formula $\Delta T_{i}=S_{rs}$
-\end_inset 
-
- for the TEC sample from station 
-\begin_inset Formula $r=i$
-\end_inset 
-
-, etc.
- The incremental 
-\begin_inset Formula $\Delta T$
-\end_inset 
-
- are converted into incremental MIM parameters 
-\begin_inset Formula $\Delta p_{k}$
-\end_inset 
-
- by solving a set of equations of the sort: 
-\begin_inset Formula \[
-\Delta_{rs}=\Delta T_{rs}=\sum_{k}\frac{\partial M}{\partial p_{k}}\Delta p_{k}\]
-
-\end_inset 
-
-
-\layout Standard
-
-i.e.
- minimizing the 
-\begin_inset Formula $\Delta_{rs}$
-\end_inset 
-
- .Not that this is just equ 
-\begin_inset LatexCommand \ref{eq: ME_normal}
-
-\end_inset 
-
-, but without an expression 
-\begin_inset Formula $Q_{rs}$
-\end_inset 
-
- for measurement errors.
-\layout Standard
-
-Because of the unknown offset 
-\begin_inset Formula $\Delta T_{0}$
-\end_inset 
-
-, the TECs that are measured in this way are 'intergated', i.e.
- they all have an unknown offset 
-\begin_inset Formula $T_{0}$
-\end_inset 
-
-.
- However, the offset is the same for all LOFAR stations.
- This is why this group of TEC measurements, for all LOFAR stations, in
- the direction of a particular source, is called 
-\emph on 
-highly related
-\emph default 
-.
- Unlike a similar group that is produced by GPS measurements, which all
- have a different offset.
-\layout Standard
-
-The phase-zero offset 
-\begin_inset Formula $\phi_{0}^{offset}(\lambda,t)$
-\end_inset 
-
- is a artifact of the selfcal solution(s), caused by the fact that interferomete
-rs measure phase 
-\emph on 
-differences
-\emph default 
- only.
- 
-\layout Standard
-
 Referring to the MIM-diagrams in figs 
 \begin_inset LatexCommand \ref{cap:Two-alternative-versions}
 
@@ -2264,8 +2322,8 @@ One bright Cat I source in the FOV:
  of the array is larger than the 'footprint' of the FOV on the ionosphere
  (5 degrees = 0.1 rad -> 0.1x300km = 30 km).
  This will not be the case for the LOFAR core (3 km).
- But if the condition is met, we get away with only ONE bright Cat I source,
- and a minimum of parameters.
+ But if it is met, we get away with only ONE bright Cat I source, and a
+ minimum of parameters.
 \layout Enumerate
 
 
@@ -2274,11 +2332,8 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 
 \series default 
  This might well be the preferred mode of operation for LOFAR.
- For each station, the 
-\emph on 
-highly related
-\emph default 
- group of astro TEC's represents a 'pivotal' group in its FOV.
+ For each station, the rigid floating group (RFG) of astro TEC's represents
+ a 'pivotal point' in its FOV.
  The (curved) phase screen across the rest of its FOV is constrained via
  the MIM by an arbitrarily dense pattern of GPS values outside the FOV.
  Although the GPS values have an (absolute!) accuracy of only 0.01 TECU (1
@@ -2393,6 +2448,14 @@ Peeling
 
 \layout Standard
 
+
+\series bold 
+NB: Simultaneous solutions are not possible, because we cannot pre-correct
+ the visibilities for ionospheric phase.
+ So, peeling is indispensible, once again.....
+ 
+\layout Standard
+
 Only the bright Cat I sources are used to estimate instrumental parameters
  (because, by definition, they are the only ones that give sufficient S/N
  in the available integration time).
@@ -2489,26 +2552,26 @@ collapsed false
 
 \end_inset 
 
-AstroPredMeas Frequency-dependence of the interferometer phase error in
- an astronomical observation of a radio source.
- If we manage to separate the phase error caused by the ionospheric TEC
- difference 
-\begin_inset Formula $\Delta T$
+ Because the ionospheric contribution to the phase for an interferometer
+ is 
+\begin_inset Formula $\phi_{ijs}=-25\lambda(M_{is}-M_{js})$
 \end_inset 
 
- between the two stations from the phase error caused by instrumental effects,
- the relative (...?) TEC may be derived from the linear slope as a function
- of frequency (
-\begin_inset Formula $\Delta\phi\approx25\lambda\Delta T$
+, the phases of the visibilities for different subbands (
+\begin_inset Formula $\lambda$
 \end_inset 
 
-).
- In this example, the LBA and HBA phase-slopes are both consistent with
+) will be quite different if the TEC difference 
+\begin_inset Formula $(M_{is}-M_{js})$
+\end_inset 
+
+ is large.
+ If we want to integrate the subband visibilities to get sufficient S/N
+ before converting to phase, we have to correct them for the ionospheric
+ phase before adding them.
+ Fortunately, this is allowed since the ZJones matrix reduces to a scalar
+ phase factor, and can be placed anywhere in the Jones chain.
  
-\begin_inset Formula $\Delta T=0.01$
-\end_inset 
-
-.
 \end_inset 
 
 
@@ -2528,7 +2591,6 @@ Using a mix of GPS and astronomical TEC measurements, and some judicial
 \emph on 
 This section is the heart of this document, since it brings all the strands
  together.
- I keep on agonizing over it....
  
 \layout Standard
 
@@ -2542,12 +2604,8 @@ default
 \end_inset 
 
 ) and some variations on this theme.
- It uses selfcal on a single bright astronomical (Cat I) source, to produce
- a pivotal group of 
-\emph on 
-highly related
-\emph default 
- group of astroTECs for the MIM.
+ It use a single bright astronomical (Cat I) source, to produce a Rigid
+ Floating Group (RFG) of MIM samples.
  An array of GPS receivers is used to constrain the MIM further.
  The reasons for this choice are:
 \layout Itemize
@@ -2558,9 +2616,7 @@ It requires only one Cat I source in the FOV.
 \layout Itemize
 
 It maximizes the chance of measuring absolute TEC.
- This is not possible with selfcal, even wideband.
- More likely with 'levered' GPS, especially triple-frequency GPS.
- 
+ This is not possible with astroTECs, even wideband.
 \layout Itemize
 
 It works for a LOFAR with an array smaller than the FOV-footprint (~30km)
@@ -2599,21 +2655,19 @@ Acquiring phase-lock:
 interferometer phase errors
 \emph default 
  (differential!) within a radian.
- Use an array of GPS stations around the LOFAR array to get a MIM that has
- the required 
-\emph on 
-differential
-\emph default 
- accuracy.
- Alternatively, if GPS cannot be used for some reason, use a brightest Cat
- I source, in a more cumbersome trial-and-error procedure described in section
- 
+ A good first step is the use of the calibration dipoles that are associated
+ with every station, which always 'see' Cas A.
+ This requires the somewhat cumbersome trial-and-error procedure described
+ in section 
 \begin_inset LatexCommand \ref{sub: phase-locking}
 
 \end_inset 
 
 .
- Note that this source does NOT have to be in the FOV.
+ This might be speeded with the help of GPS stations around the LOFAR array.
+ The last step must always be the inclusion of the brightest Cat I source
+ inside the FOV, since that is the only way to check whether the MIM is
+ sufficently accurate for phase-tracking inside the FOV.
 \layout Enumerate
 
 
@@ -2627,9 +2681,8 @@ Phase-tracking:
 \end_inset 
 
 .
- It is implicit in what follows.
- It is mentioned separately here to emphasize the importance of solving
- for 
+ It is implicit in what follows, but it is mentioned separately here to
+ emphasize the importance of solving for 
 \emph on 
 long-range parameters
 \emph default 
@@ -2655,9 +2708,14 @@ long-range parameters
 
 
 \series bold 
-Obtain astroTECs
+Obtain astroTEC equations
 \series default 
- for all LOFAR stations, in the direction of the 
+ (section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+
+\end_inset 
+
+) for all LOFAR interferometers, in the direction of the 
 \emph on 
 pivotal
 \emph default 
@@ -2673,8 +2731,8 @@ pivotal
 \end_inset 
 
 ).
- This produces a group of highly related TEC measurements, i.e.
- they have the same offset, but the correct relative values.
+ This produces a Rigid Floating Group (RFG) of TEC measurements, i.e.
+ they have an the same unknown offset, but the correct relative values.
  This is called a 
 \emph on 
 pivotal group
@@ -2685,11 +2743,15 @@ pivotal group
 
 
 \series bold 
-Obtain GPS TEC measurements
+Obtain gpsTEC equations
 \series default 
- from a network of GPS stations around the LOFAR array, to constrain the
+ (section 
+\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+
+\end_inset 
+
+) from a network of GPS stations around the LOFAR array, to constrain the
  MIM curvature.
- Again, by adding extra equations to the MIM solution matrix.
  The limited accuracy (0.01 TEC, or 1 rad @ 75 MHz) is largely compensated
  by the number of GPS stations (
 \begin_inset Formula $1/\sqrt{n}$
@@ -2701,14 +2763,26 @@ Obtain GPS TEC measurements
 
 
 \series bold 
+Add constraint equations
+\series default 
+ (appendix 
+\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+
+\end_inset 
+
+), some of which may have assumptions about ionospheric structure.
+\layout Enumerate
+
+
+\series bold 
 Solve for the MIM function,
 \series default 
- using the station phases of the pivotal source, the GPS TEC measurements,
- and a number of extra 
-\emph on 
-constraint
-\emph default 
- equations derived from specific assumptions about the ionosphere.
+ using the three kinds of equations (fig 
+\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+
+\end_inset 
+
+).
  Solve/update the parameters 
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
@@ -2744,7 +2818,7 @@ Subtract Cat II sources from the uv-data.
 
 
 \series bold 
-Facet imaging.
+Make facet images.
 
 \series default 
  First the MIM will be used to determine the optimum size of an imaging
