@@ -34,7 +34,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -453,7 +453,7 @@ theTitle} {The MIM principle:
 \backslash 
 
 \layout Standard
-                          in radio astronomy calibration
+                          in radio astronomy calibration (especially LOFAR)
 \backslash 
 
 \backslash 
@@ -576,7 +576,7 @@ newpage
 \layout Section
 
 Introduction
-\begin_inset LatexCommand \label{sec:Introduction}
+\begin_inset LatexCommand \label{sec: Introduction}
 
 \end_inset 
 
@@ -600,7 +600,7 @@ This document is very much a work in progress.
 By its nature, this document is also a little complicated, with many ifs
  and buts, and new ideas in various stages of maturity.
  However, the many strands come together in section 
-\begin_inset LatexCommand \ref{sec:LOFAR-procedure}
+\begin_inset LatexCommand \ref{sec: LOFAR procedures}
 
 \end_inset 
 
@@ -631,7 +631,7 @@ MIM-principle
 \emph default 
 , which stands for Minimim Ionospheric Model.
  It is explained in section 
-\begin_inset LatexCommand \ref{sec:The-MIM-principle}
+\begin_inset LatexCommand \ref{sec: The MIM principle}
 
 \end_inset 
 
@@ -653,7 +653,7 @@ minimum
  In order to emphasize the generality of the approach, the inclusion of
  any assumptions about the ionosphere is treated in an appendix (see appendix
  
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -662,18 +662,18 @@ minimum
 \layout Standard
 
 The MIM-principle allows a consistent framework (section 
-\begin_inset LatexCommand \ref{sec:Solving-for-MIM}
+\begin_inset LatexCommand \ref{sec: Solving-for-MIM}
 
 \end_inset 
 
 ) in which astronomical measurements of the iononsphere (section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
 ) may be combined with measurements made with GPS or other satellites (section
  
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
 \end_inset 
 
@@ -707,7 +707,7 @@ The MIM represents an improvement over earlier methods to calibrate the
 field-based calibration
 \emph default 
  by Cotton et al (see appendix 
-\begin_inset LatexCommand \ref{sec: Field-based-calibration}
+\begin_inset LatexCommand \ref{sec: Field-based calibration}
 
 \end_inset 
 
@@ -727,7 +727,7 @@ Finally, there are other applications of the MIM principle as well.
 \layout Standard
 
 Since this is a working document, section 
-\begin_inset LatexCommand \ref{sec:Things-to-do}
+\begin_inset LatexCommand \ref{sec: Things-to-do}
 
 \end_inset 
 
@@ -740,7 +740,7 @@ Since this is a working document, section
 \layout Section
 
 The MIM principle
-\begin_inset LatexCommand \label{sec:The-MIM-principle}
+\begin_inset LatexCommand \label{sec: The MIM principle}
 
 \end_inset 
 
@@ -820,7 +820,7 @@ postulate the existence
 \end_inset 
 
 ), defined in some coordinate system (see appendix 
-\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+\begin_inset LatexCommand \ref{sec: Coordinate systems}
 
 \end_inset 
 
@@ -838,7 +838,7 @@ postulate the existence
 \end_inset 
 
 ), defined in some coordinate system (appendix 
-\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+\begin_inset LatexCommand \ref{sec: Coordinate systems}
 
 \end_inset 
 
@@ -883,7 +883,7 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 For the moment, we will assume that such a function exists at all.
  Few people doubt this assertion, but the subject is discussed in more depth
  in appendix 
-\begin_inset LatexCommand \ref{sec: Does-the-MIM-exist?}
+\begin_inset LatexCommand \ref{sec: Does the MIM exist?}
 
 \end_inset 
 
@@ -901,7 +901,7 @@ pheanomenological
  In order to emphasize the difference between the general and the specific,
  all treatment of such assumptions has been relegated to the appendix (see
  appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -914,7 +914,7 @@ In principle, any set of smooth base functions will do for the MIM.
  For the moment, we will assume simple polynomials, which are easy to use.
  But there are alternatives with more desirable properties (see appendix
  
-\begin_inset LatexCommand \ref{sec: MIM-base-functions}
+\begin_inset LatexCommand \ref{sec: MIM base functions}
 
 \end_inset 
 
@@ -995,7 +995,7 @@ ts is larger, and distributed more evenly.
 MIM diagram
 \series default 
  of fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -1022,7 +1022,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap:MIM diagram}
+\begin_inset LatexCommand \label{cap: MIM diagram}
 
 \end_inset 
 
@@ -1074,7 +1074,7 @@ The MIM function
  for all receivers, and curved otherwise.
  Obviously, this depends on the coordinate frame that is selected for directions
  (see appendix 
-\begin_inset LatexCommand \ref{sec: Coordinate-systems}
+\begin_inset LatexCommand \ref{sec: Coordinate systems}
 
 \end_inset 
 
@@ -1094,7 +1094,7 @@ Ideally, the sampling function is sufficiently dense, so that
  can be interpolated with confidence.
  Unfortunately, there are some largish gaps, which will have to be bridged
  somehow (see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -1116,7 +1116,7 @@ vertical
 \layout Section
 
 Solving for MIM (and other) parameters
-\begin_inset LatexCommand \label{sec:Solving-for-MIM}
+\begin_inset LatexCommand \label{sec: Solving-for-MIM}
 
 \end_inset 
 
@@ -1205,12 +1205,12 @@ in which
  are satellite-station bias values, or selfcal phase-zeroes, or antenna
  phase errors introduced by the electronics or the troposphere.
  In sections 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
 \end_inset 
 
  and 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
@@ -1268,7 +1268,7 @@ Note that we can construct the residuals
 so instead of 'corrupting' the predicted value, we can also 'correct' the
  measured value with the inverse of (part of) the M.E.
  This is used in section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
@@ -1277,7 +1277,7 @@ so instead of 'corrupting' the predicted value, we can also 'correct' the
 \layout Standard
 
 Fig 
-\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+\begin_inset LatexCommand \ref{cap: solve: MeqTree diagram}
 
 \end_inset 
 
@@ -1286,7 +1286,7 @@ Fig
  for GPS TEC measurements, for radio astronomical phase measurements, and
  for additional constraints to bridge the gaps in the MIM sampling function
  (see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -1361,10 +1361,120 @@ chi-squared
  MIM function is smaller (or larger!) than optimal, e.g.
  because the ionospheric conditions have changed.
  
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_solmat.eps
+	width 60col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap: MIM solmat}
+
+\end_inset 
+
+
+\emph on 
+A pictorial view of the least-squares fitting of MIM (and other) parameters.
+ The solution matrix 
+\begin_inset Formula $A$
+\end_inset 
+
+ consists of three sets of linear equations of the form of equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
+\end_inset 
+
+: gpsTEC equations, astroVis equations and constraint equations.
+ The vector 
+\begin_inset Formula $\vec{D}$
+\end_inset 
+
+ contains the corresponding driving terms: Residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+between predicted and measured GPS TEC values, idem between predicted and
+ measured visibilities, and expected constraint values.
+ The variables of all equations are incremental improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ of the MIM parameters, and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+ of the measurement parameters.
+ All variables are collected in the vector 
+\begin_inset Formula $\vec{U}$
+\end_inset 
+
+ (of unknowns).
+
+\emph default 
+ 
+\emph on 
+The matrix expression for this collection of equations is 
+\begin_inset Formula $\vec{D}=A\times\vec{U}$
+\end_inset 
+
+.
+\layout Standard
+
+
+\emph on 
+If 
+\begin_inset Formula $A$
+\end_inset 
+
+ is a rectangular matrix (more equations than unknowns), its generalized
+ inverse is equivalent to a least-squares fit (LSF).
+ So 
+\begin_inset Formula $\vec{U}=(A^{T}A)^{-1}A^{T}\times\vec{D}$
+\end_inset 
+
+ produces a vector of LSF estimates for the increments
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+, which are used to update the current values of the parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+and 
+\begin_inset Formula $q_{k}$
+\end_inset 
+
+.
+ This should produce smaller residuals 
+\begin_inset Formula $\Delta_{rs}$
+\end_inset 
+
+ in the next iteration, i.e.
+ the predicted values should be closer to the measured values.
+\end_inset 
+
+
 \layout Subsection
 
 Equations and unknowns
-\begin_inset LatexCommand \label{sub:Equations-and-unknowns}
+\begin_inset LatexCommand \label{sub: solve: equations and unknowns}
 
 \end_inset 
 
@@ -1413,7 +1523,7 @@ As will be argued below, the implementation of this time-smoothness constraint
 \layout Subsection
 
 Smoothing in time
-\begin_inset LatexCommand \label{sub: Smoothing in time}
+\begin_inset LatexCommand \label{sub: solve: smoothing in time}
 
 \end_inset 
 
@@ -1479,7 +1589,7 @@ Use the largest practical domain size, determined by the available memory.
 
 Use the motion of GPS satellites, or the ionosphere itself, to impose constraint
 s that imply time-smoothness (appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -1493,15 +1603,15 @@ Develop the capability for solving for long-range parameters, i.e.
  This is an essential capability, that has a wider importance for LOFAR
  than just the ionosphere.
  See appendix 
-\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+\begin_inset LatexCommand \ref{sec: Long-range parameters}
 
 \end_inset 
 
 .
 \layout Section
 
-Sampling the MIM function using GPS (and other) satellites
-\begin_inset LatexCommand \label{sec:Measuring-TEC-GPS}
+Making gpsTEC equations
+\begin_inset LatexCommand \label{sec: Making gpsTEC equations}
 
 \end_inset 
 
@@ -1513,7 +1623,7 @@ GPS satellites move in roughly circular orbits around the Earth, with a
  w.r.t.
  the equator, which optimizes the combination of world coverage and relative
  velocity (see fig 
-\begin_inset LatexCommand \ref{cap:The-orbits-of}
+\begin_inset LatexCommand \ref{cap: coord: GPS orbit}
 
 \end_inset 
 
@@ -1531,7 +1641,7 @@ GPS satellites move in roughly circular orbits around the Earth, with a
 \layout Subsection
 
 Preprocessing the Rinex data
-\begin_inset LatexCommand \label{sub:Preprocessing-Rinex-data}
+\begin_inset LatexCommand \label{sub: gpsTEC: preprocessing-Rinex-data}
 
 \end_inset 
 
@@ -1546,7 +1656,7 @@ The GPS TEC measurements (usually) reach us in the form of so-called Rinex
 \layout Subsection
 
 The GPS TEC Measurement Equation 
-\begin_inset LatexCommand \label{sub:The-GPS-TEC-ME}
+\begin_inset LatexCommand \label{sub: gpsTEC M.E.}
 
 \end_inset 
 
@@ -1696,7 +1806,7 @@ This has been established on real data.
 .
  This is a typical example of long-term parameters as discussed in section
  
-\begin_inset LatexCommand \ref{sub: Smoothing in time}
+\begin_inset LatexCommand \ref{sub: solve: smoothing in time}
 
 \end_inset 
 
@@ -1705,12 +1815,12 @@ This has been established on real data.
 \layout Standard
 
 Referring to the MIM-diagrams in figs 
-\begin_inset LatexCommand \ref{cap:Two-alternative-versions}
+\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
 
 \end_inset 
 
  and 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -1759,12 +1869,12 @@ Multiple satellites and multiple stations:
 \layout Standard
 
 See also the MIM-diagram in figs 
-\begin_inset LatexCommand \ref{cap:Two-alternative-versions}
+\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
 
 \end_inset 
 
  and 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -1778,10 +1888,15 @@ absolute
 \layout Subsection
 
 Using 3 frequencies (JMA, EXN)
+\begin_inset LatexCommand \label{sub: gpsTEC: using-3-frequencies}
+
+\end_inset 
+
+
 \layout Standard
 
 Jim has verified (see appendix 
-\begin_inset LatexCommand \ref{sec:Triple-frequency-GPS}
+\begin_inset LatexCommand \ref{sec: Triple-frequency GPS}
 
 \end_inset 
 
@@ -1798,12 +1913,17 @@ Jim has verified (see appendix
 \layout Subsection
 
 Double-differencing (EXN, JMA)
+\begin_inset LatexCommand \label{sub: gpsTEC: double-differencing}
+
+\end_inset 
+
+
 \layout Standard
 
 This is the Bingley stuff, which has been verified by JMA.
  EXN will provide information for a summary.
  See also appendix 
-\begin_inset LatexCommand \ref{sub:Ionospheric-delay}
+\begin_inset LatexCommand \ref{sub: background: ionospheric delay}
 
 \end_inset 
 
@@ -1812,7 +1932,7 @@ This is the Bingley stuff, which has been verified by JMA.
 \layout Subsection
 
 GPS Correlation (SVT)
-\begin_inset LatexCommand \label{sub:GPS-Correlation-(SVT)}
+\begin_inset LatexCommand \label{sub: gpsTEC: correlation}
 
 \end_inset 
 
@@ -1846,7 +1966,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap: GPS TEC measurements}
+\begin_inset LatexCommand \label{cap: gpsTEC measurements}
 
 \end_inset 
 
@@ -1861,8 +1981,8 @@ TEC measurements with one GPS satellite and multiple ground stations.
 
 \layout Section
 
-Sampling the MIM function using astronomical source(s)
-\begin_inset LatexCommand \label{sec:Measuring-TEC-astro}
+Making astroVis equations
+\begin_inset LatexCommand \label{sec: Making astroVis equations}
 
 \end_inset 
 
@@ -2041,7 +2161,7 @@ In general, Jones matrices do not commute, so their order is important.
 \end_inset 
 
  in the field centre (see section 
-\begin_inset LatexCommand \ref{sub:Peeling}
+\begin_inset LatexCommand \ref{sub: astroVis: multipe sources}
 
 \end_inset 
 
@@ -2055,7 +2175,7 @@ phase
 \end_inset 
 
  is (see also fig 
-\begin_inset LatexCommand \ref{cap: AstroPredMeas}
+\begin_inset LatexCommand \ref{cap: astroVis prediction}
 
 \end_inset 
 
@@ -2128,7 +2248,7 @@ The sensitivity and size of the LOFAR stations guarantees (even after the
 
  is large, because the ionospheric phases for each subband will be quite
  different (see fig 
-\begin_inset LatexCommand \ref{cap: AstroPredMeas}
+\begin_inset LatexCommand \ref{cap: astroVis prediction}
 
 \end_inset 
 
@@ -2237,7 +2357,7 @@ in which
 
 Note that there is no longer a preprocessing step to get selfcal phases,
  like in SPAM (see appendix 
-\begin_inset LatexCommand \ref{sec: Field-based-calibration}
+\begin_inset LatexCommand \ref{sec: Field-based calibration}
 
 \end_inset 
 
@@ -2245,6 +2365,14 @@ Note that there is no longer a preprocessing step to get selfcal phases,
  We solve for the MIM parameters straight from the visibilities, as is the
  plan in SPAM.....
  
+\layout Subsection
+
+The 
+\begin_inset LatexCommand \label{sub: astroVis: Rigid-Floating-Group}
+
+\end_inset 
+
+Rigid Floating Group (RFG)
 \layout Standard
 
 We propose to call the group of TEC samples obtained from an astronomical
@@ -2301,7 +2429,7 @@ This should be compared to the plan to use some extra 'calibration' dipoles
 \layout Standard
 
 Referring to the MIM-diagrams in figs 
-\begin_inset LatexCommand \ref{cap:Two-alternative-versions}
+\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
 
 \end_inset 
 
@@ -2375,73 +2503,8 @@ NB: In discussions about dynamic range, it sould be kept in mind that the
  
 \layout Subsection
 
-Acquiring and maintaining phase-lock
-\begin_inset LatexCommand \label{sub: phase-locking}
-
-\end_inset 
-
-
-\layout Standard
-
-A selfcal solution is only possible if there are no 
-\begin_inset Formula $2\pi$
-\end_inset 
-
- ambiguities, i.e.
- if the 
-\emph on 
-interferometer phase differences
-\emph default 
- are within about a radian to begin with.
- Since the differential (!) ionospheric variations can be much larger than
- that, the ionosphere must be tracked all the time
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-Phase tracking is also important for integrating longer (many minutes),
- to measure LOFAR beamshape parameters in the direction of fainter sources.
- 
-\end_inset 
-
-.
-\layout Standard
-
-It is expected that GPS measurements will easily produce the differential
- accuracy that is needed for phase-locking.
- As a backup alternative, the following more cumbersome and time-consuming
- phase-locking procedure may be followed for LOFAR.
- A continuous selfcal phase solution on one or more bright sources starts
- with 3 stations in the core.
- The other stations are included one by one, moving outwards from the centre.
- The phase of this new station is varied by steps of 
-\begin_inset Formula $2\pi$
-\end_inset 
-
-, until the solution is consistent (phase-lock).
- Its phase will then be continuously tracked while the remaining stations
- are included, and during the subsequent observations.
-\layout Standard
-
-Note that phase-tracking takes the shape of an approximate MIM, i.e.
- a MIM in which the values of its parameters 
-\begin_inset Formula $p_{k}(t)$
-\end_inset 
-
- are only accurate enough to give a phase accuracy better than a radian.
- Obviously, the measurement parameters 
-\begin_inset Formula $q_{k}$
-\end_inset 
-
- must also be 'accurate enough' in this stage.
- The values of all parameter values are then improved in to the required
- level the subsequent stages.
- 
-\layout Subsection
-
-Peeling
-\begin_inset LatexCommand \label{sub:Peeling}
+Multiple sources
+\begin_inset LatexCommand \label{sub: astroVis: multipe sources}
 
 \end_inset 
 
@@ -2548,7 +2611,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap: AstroPredMeas}
+\begin_inset LatexCommand \label{cap: astroVis prediction}
 
 \end_inset 
 
@@ -2577,8 +2640,8 @@ collapsed false
 
 \layout Section
 
-Possible LOFAR procedure(s)
-\begin_inset LatexCommand \label{sec:LOFAR-procedure}
+Proposed LOFAR procedure(s)
+\begin_inset LatexCommand \label{sec: LOFAR procedures}
 
 \end_inset 
 
@@ -2599,7 +2662,7 @@ We propose a preferred
 default
 \emph default 
  procedure (see fig 
-\begin_inset LatexCommand \ref{cap:The-default-procedure}
+\begin_inset LatexCommand \ref{cap: LOFARproc default}
 
 \end_inset 
 
@@ -2630,10 +2693,15 @@ It requires minimum processing...
 \layout Subsection
 
 Default procedure
+\begin_inset LatexCommand \label{sub: LOFARproc: default}
+
+\end_inset 
+
+
 \layout Standard
 
 The proposed default procedure has the following steps (see fig 
-\begin_inset LatexCommand \ref{cap:The-default-procedure}
+\begin_inset LatexCommand \ref{cap: LOFARproc default}
 
 \end_inset 
 
@@ -2659,7 +2727,7 @@ interferometer phase errors
  with every station, which always 'see' Cas A.
  This requires the somewhat cumbersome trial-and-error procedure described
  in section 
-\begin_inset LatexCommand \ref{sub: phase-locking}
+\begin_inset LatexCommand \ref{sec: phase-locking}
 
 \end_inset 
 
@@ -2687,18 +2755,18 @@ Phase-tracking:
 long-range parameters
 \emph default 
  (see appendix 
-\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+\begin_inset LatexCommand \ref{sec: Long-range parameters}
 
 \end_inset 
 
 ).
  This is needed to distinguish the TEC from the GPS bias (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
 \end_inset 
 
 ), and from instrumental effects (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
@@ -2711,7 +2779,7 @@ long-range parameters
 Obtain astroTEC equations
 \series default 
  (section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
@@ -2746,7 +2814,7 @@ pivotal group
 Obtain gpsTEC equations
 \series default 
  (section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
 \end_inset 
 
@@ -2766,7 +2834,7 @@ Obtain gpsTEC equations
 Add constraint equations
 \series default 
  (appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -2778,7 +2846,7 @@ Add constraint equations
 Solve for the MIM function,
 \series default 
  using the three kinds of equations (fig 
-\begin_inset LatexCommand \ref{cap:Simple-solver-diagram.}
+\begin_inset LatexCommand \ref{cap: solve: MeqTree diagram}
 
 \end_inset 
 
@@ -2845,7 +2913,12 @@ Question: Is it possible to apply the MIM image-plane effect during imaging,
 \end_deeper 
 \layout Subsection
 
-Variation: Use multiple sources in the FOV
+Multiple sources in the FOV
+\begin_inset LatexCommand \label{sub: LOFARproc: multiple sources}
+
+\end_inset 
+
+
 \layout Standard
 
 If the LOFAR array is larger than the footprint (~30km) of the FOV on the
@@ -2865,7 +2938,12 @@ Selfcal on other bright Cat I sources in the field (NB: This may have to
  
 \layout Subsection
 
-Variation: Rapid repointing
+Rapid repointing
+\begin_inset LatexCommand \label{sub: LOFARproc: rapid repointing}
+
+\end_inset 
+
+
 \layout Standard
 
 It has been suggested that we should measure the ionosphere (MIM?) by using
@@ -2899,7 +2977,12 @@ NB: Note that rapid repointing cannot be used to subtract the A-team, since
 Strictly, this this also true for the EJones phases....
 \layout Subsection
 
-Variation: Long baselines (> 100 km)
+Long baselines (> 100 km)
+\begin_inset LatexCommand \label{sub: LOFARproc: long baselines}
+
+\end_inset 
+
+
 \layout Standard
 
 Important for the European LOFAR, starting with the station in Effelsberg
@@ -2907,6 +2990,11 @@ Important for the European LOFAR, starting with the station in Effelsberg
 \layout Subsection
 
 Variation: Faraday rotation
+\begin_inset LatexCommand \label{sub: LOFARproc: Faraday rotation}
+
+\end_inset 
+
+
 \layout Standard
 
 Needs an absolute TEC.
@@ -2931,7 +3019,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:The-default-procedure}
+\begin_inset LatexCommand \label{cap: LOFARproc default}
 
 \end_inset 
 
@@ -2976,7 +3064,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:Simple-solver-diagram.}
+\begin_inset LatexCommand \label{cap: solve: MeqTree diagram}
 
 \end_inset 
 
@@ -3038,7 +3126,7 @@ The solver gets three kinds of equations.
 , to bridge the gaps in the MIM sampling function.
  They contain specific assumptions about ionospheric structure (see appendix
  
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -3133,7 +3221,7 @@ These possibilities will be discussed at a European conference in Sweden
 \layout Section
 
 Things to do
-\begin_inset LatexCommand \label{sec:Things-to-do}
+\begin_inset LatexCommand \label{sec: Things-to-do}
 
 \end_inset 
 
@@ -3147,7 +3235,7 @@ NB: This is not exactly the same as Ilse's LIONS planning, but should be
 \layout Subsection
 
 Modules (to be) implemented
-\begin_inset LatexCommand \label{sub:Modules-(to-be)}
+\begin_inset LatexCommand \label{sub: todo: modules}
 
 \end_inset 
 
@@ -3181,12 +3269,12 @@ HTI will continue investigation of his SPAM scheme, and write it up in a
 
 JEN/MXM/OMS: Implement schemes for smoothing in time, e.g.
  solving for long-term parameters (sections 
-\begin_inset LatexCommand \ref{sub: Smoothing in time}
+\begin_inset LatexCommand \ref{sub: solve: smoothing in time}
 
 \end_inset 
 
  and 
-\begin_inset LatexCommand \ref{sec:Long-range-parameters}
+\begin_inset LatexCommand \ref{sec: Long-range parameters}
 
 \end_inset 
 
@@ -3203,7 +3291,7 @@ JEN/MXM/OMS: Implement schemes for smoothing in time, e.g.
 \layout Subsection
 
 Questions (to be) answered
-\begin_inset LatexCommand \label{sub:Questions-(to-be)}
+\begin_inset LatexCommand \label{sub: todo: questions}
 
 \end_inset 
 
@@ -3228,7 +3316,7 @@ Is triangulation circular?
 \layout Subsection
 
 Simulations (to be) done
-\begin_inset LatexCommand \label{sub:Simulations-(to-be)}
+\begin_inset LatexCommand \label{sub: todo: simulations}
 
 \end_inset 
 
@@ -3245,7 +3333,7 @@ Simulations (to be) done
 \layout Section
 
 Conclusions
-\begin_inset LatexCommand \label{sec:Conclusions}
+\begin_inset LatexCommand \label{sec: Conclusions}
 
 \end_inset 
 
@@ -3443,7 +3531,7 @@ appendix
 \layout Section
 
 Some background
-\begin_inset LatexCommand \label{sec:Some-background}
+\begin_inset LatexCommand \label{sec: Background}
 
 \end_inset 
 
@@ -3517,7 +3605,7 @@ It is measured in TEC units (TECU) of
  electrons per square meter.
  Typical values range from 5 TECU (nighttime) to 50 TECU (daytime).
  See fig 
-\begin_inset LatexCommand \ref{cap: TMS profiles}
+\begin_inset LatexCommand \ref{cap: background: TMS ionosphere}
 
 \end_inset 
 
@@ -3533,7 +3621,7 @@ It is measured in TEC units (TECU) of
 \layout Subsection
 
 Ionospheric phase
-\begin_inset LatexCommand \label{sub:Ionospheric-phase}
+\begin_inset LatexCommand \label{sub: background: Ionospheric phase}
 
 \end_inset 
 
@@ -3721,7 +3809,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:The-statistics-of}
+\begin_inset LatexCommand \label{cap: background: Kolmogorov-type}
 
 \end_inset 
 
@@ -3771,7 +3859,7 @@ Finally, scintillation causes rapid variations with an abnormally large
 \layout Subsection
 
 Ionospheric delay
-\begin_inset LatexCommand \label{sub:Ionospheric-delay}
+\begin_inset LatexCommand \label{sub: background: ionospheric delay}
 
 \end_inset 
 
@@ -3804,7 +3892,7 @@ So, a TEC of one TECU corresponds to a delay of -64 m @ 75 MHz, or -16 cm
 \layout Standard
 
 Like the differential phase in appendix 
-\begin_inset LatexCommand \ref{sub:Ionospheric-phase}
+\begin_inset LatexCommand \ref{sub: background: Ionospheric phase}
 
 \end_inset 
 
@@ -3818,7 +3906,7 @@ relative
  Obviously, the magnitude of this error will increase with the distance
  to this reference station.
  For a large-scale ionosphere (see appendix 
-\begin_inset LatexCommand \ref{sub:Ionospheric-phase}
+\begin_inset LatexCommand \ref{sub: background: Ionospheric phase}
 
 \end_inset 
 
@@ -3861,7 +3949,7 @@ NB: We only talk here about the errors in position determination that are
 \layout Subsection
 
 Ionospheric Faraday rotation
-\begin_inset LatexCommand \label{sec:Faraday-rotation}
+\begin_inset LatexCommand \label{sub: background: Faraday rotation}
 
 \end_inset 
 
@@ -3979,7 +4067,7 @@ intrinsic
 \layout Subsection
 
 Ionospheric amplitude effects
-\begin_inset LatexCommand \label{sub:Ionospheric-amplitude-effects}
+\begin_inset LatexCommand \label{sub: background: ionospheric amplitude effects}
 
 \end_inset 
 
@@ -4022,7 +4110,7 @@ Ionospheric absorption
 \layout Subsection
 
 Tropospheric effects
-\begin_inset LatexCommand \label{sub: Tropospheric-effects}
+\begin_inset LatexCommand \label{sub: background: tropospheric effects}
 
 \end_inset 
 
@@ -4070,7 +4158,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap: TMS profiles}
+\begin_inset LatexCommand \label{cap: background: TMS ionosphere}
 
 \end_inset 
 
@@ -4089,7 +4177,7 @@ Just to set the scene: Some typical ionospheric profiles and numbers, taken
 \layout Section
 
 Does the MIM exist?
-\begin_inset LatexCommand \label{sec: Does-the-MIM-exist?}
+\begin_inset LatexCommand \label{sec: Does the MIM exist?}
 
 \end_inset 
 
@@ -4097,7 +4185,7 @@ Does the MIM exist?
 \layout Standard
 
 In section 
-\begin_inset LatexCommand \ref{sec:The-MIM-principle}
+\begin_inset LatexCommand \ref{sec: The MIM principle}
 
 \end_inset 
 
@@ -4136,7 +4224,7 @@ Use the Central Limit Theorem?
 \layout Section
 
 Choosing MIM base-functions
-\begin_inset LatexCommand \label{sec: MIM-base-functions}
+\begin_inset LatexCommand \label{sec: MIM base functions}
 
 \end_inset 
 
@@ -4177,7 +4265,7 @@ An important requirement is that the MIM function can be differentiated,
  also.
  If not, we need another way to impose extra constraints to bridge the gaps
  in the MIM sampling function (see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -4193,7 +4281,7 @@ Easy to implement.
  The higher order have poor interpolation properties, especially outside
  the sampling domain.
  They have easily calculated analytic derivatives (see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -4206,7 +4294,7 @@ Zernike polynomials
 Used in optics because some of the terms represent useful phaenomena like
  tip-tilt etc.
  Used by Cotton for field-based calibration (see appendix 
-\begin_inset LatexCommand \ref{sec: Field-based-calibration}
+\begin_inset LatexCommand \ref{sec: Field-based calibration}
 
 \end_inset 
 
@@ -4215,12 +4303,17 @@ Used in optics because some of the terms represent useful phaenomena like
 \layout Subsection
 
 Karhunen-Loeve (KL) functions
+\begin_inset LatexCommand \label{sub: base: Karhunen-Loeve-(KL)-functions}
+
+\end_inset 
+
+
 \layout Standard
 
 These can be optimized to be orthonormal for the given MIM sampling function,
  e.g.
  a station configuration (see fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -4280,7 +4373,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap: Various-MIM-base-functions.}
+\begin_inset LatexCommand \label{cap: base: functions.}
 
 \end_inset 
 
@@ -4291,7 +4384,7 @@ Various MIM base-functions.
 \layout Section
 
 Coordinate systems
-\begin_inset LatexCommand \label{sec: Coordinate-systems}
+\begin_inset LatexCommand \label{sec: Coordinate systems}
 
 \end_inset 
 
@@ -4415,7 +4508,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:The-orbits-of}
+\begin_inset LatexCommand \label{cap: coord: GPS orbit}
 
 \end_inset 
 
@@ -4432,15 +4525,15 @@ A little bit of perspective.
 
  degree, the differences are usually not very large.
  A satellite passage across the sky takes a few hours, depending on the
- maximum elevation it reaches.
+ maximum evation it reaches.
  
 \end_inset 
 
 
 \layout Section
 
-Bridging the gaps in the MIM sampling function
-\begin_inset LatexCommand \label{sec: Bridging-the-gaps}
+Making constraint equations
+\begin_inset LatexCommand \label{sec: Making constraint equations}
 
 \end_inset 
 
@@ -4457,7 +4550,7 @@ The purpose of the MIM function is to provide reasonably accurate values
  proportional to the distance to the known sampling points.
  Therefore, we would like to minimize the gaps in the MIM sampling function
  (see the MIM diagram in fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -4471,7 +4564,7 @@ The purpose of the MIM function is to provide reasonably accurate values
 \layout Subsection
 
 Relations between MIM derivatives
-\begin_inset LatexCommand \label{sub: Relations-between-derivatives}
+\begin_inset LatexCommand \label{sub: constr: relations between derivatives}
 
 \end_inset 
 
@@ -4479,7 +4572,7 @@ Relations between MIM derivatives
 \layout Standard
 
 Referring to fig 
-\begin_inset LatexCommand \ref{cap: MIM derivatives}
+\begin_inset LatexCommand \ref{cap: constr: MIM derivatives}
 
 \end_inset 
 
@@ -4520,7 +4613,7 @@ If the base-functions selected for the MIM function
 \end_inset 
 
 , and added to the solution matrix (see section 
-\begin_inset LatexCommand \ref{sec:Solving-for-MIM}
+\begin_inset LatexCommand \ref{sec: Solving-for-MIM}
 
 \end_inset 
 
@@ -4549,7 +4642,7 @@ simplest case
 \end_inset 
 
  is the zenith angle (see aslo the caption of fig 
-\begin_inset LatexCommand \ref{cap: MIM derivatives}
+\begin_inset LatexCommand \ref{cap: constr: MIM derivatives}
 
 \end_inset 
 
@@ -4595,7 +4688,7 @@ NB: The expressions above are not to be fully trusted, but one gets the
 \layout Subsection
 
 Correlation functions (Bas)
-\begin_inset LatexCommand \label{sub:Correlation-functions}
+\begin_inset LatexCommand \label{sub: constr: correlation functions}
 
 \end_inset 
 
@@ -4635,7 +4728,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap: MIM derivatives}
+\begin_inset LatexCommand \label{cap: constr: MIM derivatives}
 
 \end_inset 
 
@@ -4686,7 +4779,7 @@ The assumptions about the ionosphere are in the function
 
  is the zenith angle.
  See appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
@@ -4726,7 +4819,7 @@ z\Rightarrow\arcsin(\frac{R\sin(z)}{R+h})\label{eq: H(z)}\end{equation}
 \layout Subsection
 
 Triangulation
-\begin_inset LatexCommand \label{sub: Triangulation}
+\begin_inset LatexCommand \label{sub: constr: triangulation}
 
 \end_inset 
 
@@ -4741,7 +4834,7 @@ a priori
 \emph default 
 , we might add an equation to the solution that minimizes the discrepancy.
  See also the discussion in appendix 
-\begin_inset LatexCommand \ref{sub:Ionospheric-delay}
+\begin_inset LatexCommand \ref{sub: background: ionospheric delay}
 
 \end_inset 
 
@@ -4763,7 +4856,7 @@ In any case, even if this 'triangulation' works, it does not sample the
 \layout Subsection
 
 Travelling 'frozen' pattern
-\begin_inset LatexCommand \label{sub: The-'frozen'-pattern}
+\begin_inset LatexCommand \label{sub: constr: 'frozen' pattern}
 
 \end_inset 
 
@@ -4800,8 +4893,73 @@ The MIM approach deals automatically with changing patterns because we solve
 .
 \layout Section
 
+Acquiring and maintaining phase-lock
+\begin_inset LatexCommand \label{sec: phase-locking}
+
+\end_inset 
+
+
+\layout Standard
+
+A selfcal solution is only possible if there are no 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ ambiguities, i.e.
+ if the 
+\emph on 
+interferometer phase differences
+\emph default 
+ are within about a radian to begin with.
+ Since the differential (!) ionospheric variations can be much larger than
+ that, the ionosphere must be tracked all the time
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Phase tracking is also important for integrating longer (many minutes),
+ to measure LOFAR beamshape parameters in the direction of fainter sources.
+ 
+\end_inset 
+
+.
+\layout Standard
+
+It is expected that GPS measurements will easily produce the differential
+ accuracy that is needed for phase-locking.
+ As a backup alternative, the following more cumbersome and time-consuming
+ phase-locking procedure may be followed for LOFAR.
+ A continuous selfcal phase solution on one or more bright sources starts
+ with 3 stations in the core.
+ The other stations are included one by one, moving outwards from the centre.
+ The phase of this new station is varied by steps of 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+, until the solution is consistent (phase-lock).
+ Its phase will then be continuously tracked while the remaining stations
+ are included, and during the subsequent observations.
+\layout Standard
+
+Note that phase-tracking takes the shape of an approximate MIM, i.e.
+ a MIM in which the values of its parameters 
+\begin_inset Formula $p_{k}(t)$
+\end_inset 
+
+ are only accurate enough to give a phase accuracy better than a radian.
+ Obviously, the measurement parameters 
+\begin_inset Formula $q_{k}$
+\end_inset 
+
+ must also be 'accurate enough' in this stage.
+ The values of all parameter values are then improved in to the required
+ level the subsequent stages.
+ 
+\layout Section
+
 Long-range parameters
-\begin_inset LatexCommand \label{sec:Long-range-parameters}
+\begin_inset LatexCommand \label{sec: Long-range parameters}
 
 \end_inset 
 
@@ -4862,7 +5020,7 @@ Another problem is how to deal with (i.e.
 \layout Standard
 
 See fig 
-\begin_inset LatexCommand \ref{cap:Long-range-parameters.}
+\begin_inset LatexCommand \ref{cap: long-range: MeqParm}
 
 \end_inset 
 
@@ -4900,7 +5058,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:Long-range-parameters.}
+\begin_inset LatexCommand \label{cap: long-range: MeqParm}
 
 \end_inset 
 
@@ -4936,7 +5094,7 @@ The following is a jargon-laced placeholder:
 \layout Section
 
 Triple-frequency GPS
-\begin_inset LatexCommand \label{sec:Triple-frequency-GPS}
+\begin_inset LatexCommand \label{sec: Triple-frequency GPS}
 
 \end_inset 
 
@@ -5117,8 +5275,16 @@ huge HUGE}
 .
 \layout Section
 
-Special case: piercing point methods (MXM, IVB)
-\begin_inset LatexCommand \label{sec: MIM variation: piercing points}
+Examples of MIM ionospheres
+\begin_inset LatexCommand \label{sec: Examples of MIM ionospheres}
+
+\end_inset 
+
+
+\layout Subsection
+
+Piercing point methods (MXM, IVB)
+\begin_inset LatexCommand \label{sub: MIM case: piercing points}
 
 \end_inset 
 
@@ -5133,15 +5299,15 @@ The original MIM proposal (cite ...) was less general than the present approach.
 \end_inset 
 
  etc, see appendix 
-\begin_inset LatexCommand \ref{sec: Bridging-the-gaps}
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
 
 \end_inset 
 
 ) than may be used to bridge gaps in the MIM sampling function.
-\layout Section
+\layout Subsection
 
-Special case: 2.5D MIM (JMA, VLBI)
-\begin_inset LatexCommand \label{sec: MIM variation: 2.5D}
+2.5D MIM (JMA, VLBI)
+\begin_inset LatexCommand \label{sub: MIM case: 2.5D}
 
 \end_inset 
 
@@ -5149,10 +5315,10 @@ Special case: 2.5D MIM (JMA, VLBI)
 \layout Standard
 
 James to fill in....
-\layout Section
+\layout Subsection
 
-Special case: phase gradients (AGB, WSRT)
-\begin_inset LatexCommand \label{sec: WSRT-phase-gradients}
+MIM case: phase gradients (AGB, WSRT)
+\begin_inset LatexCommand \label{sub: MIM case: WSRT phase gradients}
 
 \end_inset 
 
@@ -5183,7 +5349,7 @@ This little anecdote contains the key to the reduction of observations with
 \layout Section
 
 Relation to field-based calibration (Cotton, VLA)
-\begin_inset LatexCommand \label{sec: Field-based-calibration}
+\begin_inset LatexCommand \label{sec: Field-based calibration}
 
 \end_inset 
 
@@ -5309,7 +5475,7 @@ Correction is the same as in field-based calibration, i.e.
 \layout Standard
 
 The results of the two techniques are compared in fig 
-\begin_inset LatexCommand \ref{cap:Field-based-calibration}
+\begin_inset LatexCommand \ref{cap: field-based calibration}
 
 \end_inset 
 
@@ -5351,7 +5517,7 @@ collapsed false
 \layout Caption
 
 
-\begin_inset LatexCommand \label{cap:Field-based-calibration}
+\begin_inset LatexCommand \label{cap: field-based calibration}
 
 \end_inset 
 
@@ -5366,7 +5532,7 @@ Comparison of the results of field-based calibration (Cotton, left) and
  For more details, see appendix
 \emph default 
  
-\begin_inset LatexCommand \ref{sec: Field-based-calibration}
+\begin_inset LatexCommand \ref{sec: Field-based calibration}
 
 \end_inset 
 
@@ -5406,7 +5572,7 @@ collapsed false
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap:Two-alternative-versions}
+\begin_inset LatexCommand \label{cap: MIM diagram: versions}
 
 \end_inset 
 
@@ -5415,7 +5581,7 @@ Two extreme versions of the
 MIM diagram
 \series default 
  of fig 
-\begin_inset LatexCommand \ref{cap:MIM diagram}
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
@@ -5426,7 +5592,7 @@ MIM diagram
 \emph on 
 The top panel illustrates the case of 2 GPS satellites, far outside the
  LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-GPS}
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
 \end_inset 
 
@@ -5438,7 +5604,7 @@ The top panel illustrates the case of 2 GPS satellites, far outside the
 \emph on 
 The bottom panel illustrates the case of a single bright radio source, inside
  the LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec:Measuring-TEC-astro}
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
