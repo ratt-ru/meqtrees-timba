@@ -1124,6 +1124,7 @@ int Solver::getResult (Result::Ref &resref,
     timers().getresult.start();
 #ifndef HAVE_PARMDB
     ParmTable::unlockTables();
+    ParmTable::flushTables();
 #endif
   }
   if( forest().abortFlag() )

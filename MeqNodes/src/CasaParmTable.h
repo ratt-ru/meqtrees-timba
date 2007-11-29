@@ -1,4 +1,4 @@
-//# ParmTable.h: Object to hold parameters in a table.
+//# CasaCasaParmTable.h: Object to hold parameters in a casa table.
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -23,14 +23,14 @@
 
 #ifndef HAVE_PARMDB
 
-#ifndef MEQNODES_PARMTABLE_H
-#define MEQNODES_PARMTABLE_H
+#ifndef MEQNODES_CASAPARMTABLE_H
+#define MEQNODES_CASAPARMTABLE_H
 
 //# Includes
 #include <tables/Tables/Table.h>
 #include <tables/Tables/ColumnsIndex.h>
 #include <casa/Containers/RecordField.h>
-#include <MEQ/Funklet.h>
+#include <MeqNodes/ParmTable.h>
 #include <TimBase/lofar_vector.h>
 #include <TimBase/Thread/Mutex.h>
 #include <map>
@@ -38,19 +38,15 @@
 
 namespace Meq {
 
-//# Forward Declarations
-class Domain;
-
-
 //##ModelId=3F86886E01E4
-class ParmTable
+class CasaParmTable : public ParmTable
 {
 public:
     //##ModelId=3F86886F02B7
-  explicit ParmTable (const string& tableName);
+  explicit CasaParmTable (const string& tableName,bool create_new=false);
 
     //##ModelId=3F86886F02BC
-  ~ParmTable();
+  virtual ~CasaParmTable();
 
   // Get the parameter values for the given funklet and domain.
   // The matchDomain argument is set telling if the found parameter
@@ -71,20 +67,8 @@ public:
     //##ModelId=3F86886F02C8
   Funklet::DbId putCoeff (const string& parmName, const Funklet& funklet,bool domain_is_key=false);
   
-  // Put the coefficients for the given funklet and domain.
-  // If a new DbId is allocated, stores it in the funklet.
-  // If domain_is_key, checks that domain is unique.
-  void putCoeff1 (const string& parmName,Funklet& funklet, bool domain_is_key=false);
-
-  // Return point sources for the given source numbers.
-  // An empty sourceNr vector means all sources.
-  // In the 2nd version the pointers to the created Parm objects
-  // are added to the vector of objects to be deleted.
-  //  MeqSourceList getPointSources (const Vector<int>& sourceNrs);
-  //  MeqSourceList getPointSources (const Vector<int>& sourceNrs,
-  //				 vector<MeqExpr*>& exprDel);
-
-  // Get the name of the ParmTable.
+  
+  // Get the name of the CasaParmTable.
     //##ModelId=3F95060D0388
   const string& name() const
     { return itsTable.tableName(); }
@@ -94,24 +78,9 @@ public:
 
   // Unlock the parm table.
   void unlock();
-
-  // Open the table if not opened yet. If opened, it is added to the map.
-    //##ModelId=3F95060D033E
-  static ParmTable* openTable (const casa::String& tableName);
-
-  // Create a new table.
-    //##ModelId=400E535402E7
-  static void createTable (const casa::String& tableName);
-
-  // Close all tables in the map. All ParmTable objects are deleted.
-    //##ModelId=3F95060D0372
-  static void closeTables();
-
-  // Lock all tables for write.
-  static void lockTables();
-
-  // Unlock all tables.
-  static void unlockTables();
+  
+  // Flush the parm table.
+  void flush ();
 
 private:
   Thread::Mutex::Lock constructor_lock;
@@ -134,13 +103,13 @@ private:
     //##ModelId=3F86886F02B0
   casa::RecordFieldPtr<casa::String> itsInitIndexName;
 
-    //##ModelId=3F95060D031A
-  static std::map<string, ParmTable*> theirTables;
+
+  static Thread::Mutex their_mutex_;
   
-  // use the global AIPS++ mutex for table ops.
   static Thread::Mutex & theirMutex ()
-  { return aipspp_mutex; }
+  { return their_mutex_; }
   
+  const string & createIfNeeded (const string& tableName,bool create);
 };
 
 

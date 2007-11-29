@@ -1,4 +1,4 @@
-///# ParmTable.cc: Object to hold parameters in a table.
+///# CasaParmTable.cc: Object to hold parameters in a table.
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -24,13 +24,12 @@
 #ifndef HAVE_PARMDB
 
 
-#include <MeqNodes/ParmTable.h>
+#include <MeqNodes/CasaParmTable.h>
 #include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/Meq.h>
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
 #include <MEQ/PolcLog.h>
-#include <MEQ/Spline.h>
 #include <TimBase/Debug.h>
 #include <tables/Tables/TableLocker.h>
 #include <tables/Tables/TableDesc.h>
@@ -74,10 +73,8 @@ const String ColLScale        = "LSCALE";
 
 const String KeywordDefValues = "DEFAULTVALUES";
 
-//##ModelId=3F95060D031A
-std::map<string, ParmTable*> ParmTable::theirTables;
+Thread::Mutex CasaParmTable::their_mutex_;
 
-// Thread::Mutex ParmTable::theirMutex();
 Vector<double> toParmVector (const LoVec_double &values)
 {
 
@@ -127,9 +124,35 @@ LoMat_double fromParmMatrix (const Matrix<double>& values)
 }
 
 //##ModelId=3F86886F02B7
-ParmTable::ParmTable (const string& tableName)
+const string & CasaParmTable::createIfNeeded (const string& tableName,bool create)
+{
+  if( create || !(Table::isReadable(tableName)))
+  {
+    TableDesc tdesc;
+    tdesc.addColumn (ScalarColumnDesc<String>(ColName));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColEndTime));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColStartTime));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColEndFreq));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColStartFreq));
+    tdesc.addColumn (ArrayColumnDesc<Double>(ColValues, 2));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColFreq0));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColTime0));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColFreqScale));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColTimeScale));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
+    tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
+    tdesc.addColumn (ScalarColumnDesc<String>(ColFunkletType));
+    tdesc.addColumn (ArrayColumnDesc<Double>(ColLScale,1));
+    SetupNewTable newtab(tableName, tdesc, Table::New);
+    Table tab(newtab,0,False,Table::LittleEndian);
+  }
+  return tableName;
+}
+
+// constructor to create a table
+CasaParmTable::CasaParmTable (const string& tableName,bool create)
 : constructor_lock(theirMutex()),
-  itsTable    (tableName, TableLock(TableLock::UserLocking)),
+  itsTable    (createIfNeeded(tableName,create), TableLock(TableLock::UserLocking)),
   itsIndex    (itsTable,ColName),
   itsIndexName(itsIndex.accessKey(),ColName),
   itsInitIndex(0)
@@ -146,14 +169,14 @@ ParmTable::ParmTable (const string& tableName)
 }
 
 //##ModelId=3F86886F02BC
-ParmTable::~ParmTable()
+CasaParmTable::~CasaParmTable()
 {
   Thread::Mutex::Lock lock(theirMutex());
   delete itsInitIndex;
 }
 
 //##ModelId=3F86886F02BD
-int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
+int CasaParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 			    const string& parmName,const Domain& domain )
 {
   Thread::Mutex::Lock lock(theirMutex());
@@ -224,25 +247,23 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 		funkref<<= new Spline(fromParmMatrix(valCol(i)),dom,
 				      axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
 	      }
-	     
 	    else
 	      {
 		funkref<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
-					       ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
+					      ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
 	      }
 	    
-	    }
 	  }
 	  funkref().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
 	  funklets[i] = funkref;
-	  
+            
 	}
     }
   return funklets.size();
 }
 
 //##ModelId=3F86886F02C3
-int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
+int CasaParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
 {
   Thread::Mutex::Lock lock(theirMutex());
   // Try to find the default initial values in the InitialValues subtable.
@@ -289,22 +310,16 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
   }
   return 0;
 }
-                                    
-void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet, 
-                           bool domain_is_key)
-{
-  funklet.setDbId(putCoeff(parmName,funklet,domain_is_key));
-}
     
-    
+      
 //##ModelId=3F86886F02C8
-Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet,
+Funklet::DbId CasaParmTable::putCoeff (const string & parmName,const Funklet & funklet,
                                 bool domain_is_key)
 {
 
   Thread::Mutex::Lock lock(theirMutex());
   // for now, only Polcs are supported
-  //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
+  //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"CasaParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
   TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
@@ -434,7 +449,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 //     lscaleCol.put(rownr,toParmVector(logscales));
     const vector<double> logscales = polclog.getConstants();
     Vector<double> constants(logscales.size());
-    for (int i=0;i<logscales.size();i++)
+    for (uint i=0;i<logscales.size();i++)
       constants[i]=logscales[i];
     lscaleCol.put(rownr,constants);
   }
@@ -443,7 +458,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 }
 
 //##ModelId=3F86886F02CE
-Table ParmTable::find (const string& parmName,
+Table CasaParmTable::find (const string& parmName,
                        const Domain& domain)
 {
   Thread::Mutex::Lock lock(theirMutex());
@@ -464,60 +479,16 @@ Table ParmTable::find (const string& parmName,
   return result;
 }
 
-//##ModelId=3F95060D033E
-ParmTable* ParmTable::openTable (const String& tableName)
+void CasaParmTable::flush()
 {
   Thread::Mutex::Lock lock(theirMutex());
-  std::map<string,ParmTable*>::const_iterator p = theirTables.find(tableName);
-  if (p != theirTables.end()) {
-    return p->second;
+  itsTable.flush();
+  if (! itsInitTable.isNull()) {
+    itsInitTable.flush();
   }
-  //check if table is existing otherwise create
-  if(!(Table::isReadable(tableName)))
-    ParmTable::createTable(tableName);
-  
-  ParmTable *tab = new ParmTable(tableName);
-  theirTables[tableName] = tab;
-  return tab;
-
 }
 
-//##ModelId=3F95060D0372
-void ParmTable::closeTables()
-{
-  Thread::Mutex::Lock lock(theirMutex());
-  for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
-       iter != theirTables.end();
-       ++iter) {
-    delete iter->second;
-  }
-  theirTables.clear();
-}
-
-//##ModelId=400E535402E7
-void ParmTable::createTable (const String& tableName)
-{
-  Thread::Mutex::Lock lock(theirMutex());
-  TableDesc tdesc;
-  tdesc.addColumn (ScalarColumnDesc<String>(ColName));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColEndTime));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColStartTime));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColEndFreq));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColStartFreq));
-  tdesc.addColumn (ArrayColumnDesc<Double>(ColValues, 2));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColFreq0));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColTime0));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColFreqScale));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColTimeScale));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
-  tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
-  tdesc.addColumn (ScalarColumnDesc<String>(ColFunkletType));
-  tdesc.addColumn (ArrayColumnDesc<Double>(ColLScale,1));
-  SetupNewTable newtab(tableName, tdesc, Table::New);
-  Table tab(newtab,0,False,Table::LittleEndian);
-}
-
-void ParmTable::unlock()
+void CasaParmTable::unlock()
 {
   Thread::Mutex::Lock lock(theirMutex());
   itsTable.unlock();
@@ -526,30 +497,11 @@ void ParmTable::unlock()
   }
 }
 
-void ParmTable::lock()
+
+void CasaParmTable::lock()
 {
   Thread::Mutex::Lock lock(theirMutex());
   bool locked = itsTable.lock();
-}
-
-void ParmTable::lockTables()
-{
-  Thread::Mutex::Lock lock(theirMutex());
-  for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
-       iter != theirTables.end();
-       ++iter) {
-    iter->second->lock();
-  }
-}
-
-void ParmTable::unlockTables()
-{
-  Thread::Mutex::Lock lock(theirMutex());
-  for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
-       iter != theirTables.end();
-       ++iter) {
-    iter->second->unlock();
-  }
 }
 
 } // namespace Meq

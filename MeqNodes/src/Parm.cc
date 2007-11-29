@@ -330,8 +330,8 @@ namespace Meq {
 	      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
 		const Funklet::Ref & partfunk = funklist->get(funknr++);
 
-		if(((*domIt)->start(axis)!= partfunk->domain().start(axis)) ||
-		   ((*domIt)->end(axis)!= partfunk->domain().end(axis))||
+		if( fabs((*domIt)->start(axis) - partfunk->domain().start(axis)) > 1e-16 ||
+		    fabs((*domIt)->end(axis) - partfunk->domain().end(axis)) > 1e-16 ||
 		   (partfunk->ncoeff()!=ncoeff))
 		  {
 		    //maybe even better; only keep those funklets that do match in case nr_funklets>nr_domains
