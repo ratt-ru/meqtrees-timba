@@ -421,8 +421,8 @@ class TDLFileSelect (object):
     self.default    = default;
 
 class TDLDirSelect (TDLFileSelect):
-  def __init__ (self,filenames="",default=None):
-    TDLFileSelect.__init__(self,filenames,default);
+  def __init__ (self,filenames="",default=None,exist=True):
+    TDLFileSelect.__init__(self,filenames,default,exist);
 
 class _TDLFileOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,filespec,
@@ -800,6 +800,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     namespace,config_name = _resolve_namespace(namespace,self._toggle or '',calldepth=2);
     # somewhat kludgy, but what the hell: if toggle is set, init our BoolOptionItem
     # parent, else only init the TDLBaseOption parent
+    _dprint(2,"creating menu",title,"name",name);
     if self._toggle:
       _TDLBoolOptionItem.__init__(self,namespace,self._toggle,self._is_open,
                                   name=name,config_name=config_name,doc=doc,nonexclusive=nonexclusive);
