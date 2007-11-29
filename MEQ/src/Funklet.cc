@@ -212,6 +212,9 @@ void Funklet::init (int rnk,const int iaxis[],
 void Funklet::setDomain (const Domain * domain,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
+  // if changing the domain, reset database ID.
+  if( domain_.valid() )
+    setDbId(-1);
   domain_.attach(domain,flags);
   Record::addField(FDomain,domain_.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
 }

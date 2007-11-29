@@ -142,20 +142,22 @@ void ComposedPolc::validateContent (bool recursive)
     for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
       {
 	FailWhen(!(*funkIt).valid(),"this is not a valid funkIt");
+        const Funklet &funklet = *funkIt;
+        cdebug(2)<<"adding funklet with c00 "<<funklet.getCoeff0();
 	//check on shape
-	const LoShape fshape= (*funkIt)->getCoeffShape ();
-	  for(uint axisi= 0; axisi<Axis::MaxAxis;axisi++){
+	const LoShape fshape= funklet.getCoeffShape ();
+        for(int axisi= 0; axisi<Axis::MaxAxis;axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape.size()>axisi && fshape[axisi]>1 )
 	      { axisHasShape_[axisi]=1; continue;}
 	    //cehck if domain changes around this axis
 	    if(!newdom.isDefined (axisi)) continue;
-	    if(newdom.start(axisi)!= (*funkIt)->domain().start(axisi) ||
-	       newdom.end(axisi)!= (*funkIt)->domain().end(axisi))
+	    if(newdom.start(axisi)!= funklet.domain().start(axisi) ||
+	       newdom.end(axisi)!= funklet.domain().end(axisi))
 	      { axisHasShape_[axisi]=1; continue;}
 	}
-	newdom=newdom.envelope((*funkIt)->domain());
+	newdom=newdom.envelope(funklet.domain());
 
 	//add to DMI List to show up in tree
 

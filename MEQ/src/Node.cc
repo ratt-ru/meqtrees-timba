@@ -813,8 +813,8 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
             continue;
           // 2.2. both axes non-degenerate, compare cells
           if( np != np1 || 
-              abs(rescells->domain().start(iaxis) - cc.domain().start(iaxis)) > 1e-16 ||
-              abs(rescells->domain().end(iaxis) - cc.domain().end(iaxis))     > 1e-16 )
+              fabs(rescells->domain().start(iaxis) - cc.domain().start(iaxis)) > 1e-16 ||
+              fabs(rescells->domain().end(iaxis) - cc.domain().end(iaxis))     > 1e-16 )
           {
             double diff1 = rescells->domain().start(iaxis) - cc.domain().start(iaxis);
             double diff2 = rescells->domain().end(iaxis) - cc.domain().end(iaxis);

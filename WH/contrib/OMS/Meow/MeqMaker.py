@@ -37,11 +37,12 @@ from Meow import ParmGroup
 
 def _modname (obj):
   if hasattr(obj,'name'):
-    return obj.name;
+    name = obj.name;
   elif hasattr(obj,'__name__'):
-    return obj.__name__;
+    name = obj.__name__;
   else:
-    return obj.__class__.__name__;
+    name = obj.__class__.__name__;
+  return name;
 
 def _modopts (mod,opttype='compile'):
   """for the given module, returns a list of compile/runtime options suitable for passing
@@ -189,7 +190,7 @@ class MeqMaker (object):
       # since we make an exclusive parent menu, and the symbol will be assigned to
       # its option value
       submenus = [ TDLMenu("Use '%s' module"%_modname(mod),name=_modname(mod),
-                            toggle=_modname(mod),namespace={},
+                            toggle=_modname(mod).replace('.','_'),namespace={},
                             *_modopts(mod,'compile'))
                     for mod in modules ];
       mainmenu = TDLMenu(menutext,toggle=toggle,exclusive=exclusive,namespace=self,
@@ -218,7 +219,8 @@ class MeqMaker (object):
       else:
         selname = getattr(self,self._make_attr(label,"module"));
         for mod in modules:
-          if _modname(mod) == selname:
+          print _modname(mod),selname;
+          if _modname(mod).replace('.','_') == selname:
             return mod;
     return None;
 

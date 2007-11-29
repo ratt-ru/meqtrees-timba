@@ -12,7 +12,7 @@ TDLCompileOption("pointing_nsteps","Number of pointing steps along one radius",[
 TDLCompileOption("pointing_dlm","Size of one pointing step, in arcmin",[2],more=float);
 TDLCompileOption("grid_nsteps","Number of grid steps along one radius",[45],more=int);
 TDLCompileOption("grid_dlm","Size of one grid step, in arcmin",[1],more=float);
-TDLCompileOption("table_name","Weights table",TDLDirSelect("*.mep",default="weights.mep"));
+TDLCompileOption("table_name","Weights table",TDLDirSelect("*.fmep *.mep",default="weights.fmep",exist=False));
 
 TDLCompileMenu("Element beam patterns",
   TDLOption("elem_nx","Number of elements",[1,2,20],more=int),
@@ -60,10 +60,12 @@ def _define_forest (ns,**kwargs):
     # weight parameter, function of time/freq (see kludge above)
     wr = ns.weight(p,'r') << Meq.Parm(1,tags="beam weight solvable",
                                         tiling=record(time=1,freq=1),
-                                        table_name=table_name,save_all=True,use_mep=True);
+                                        table_name=table_name,save_all=True,
+                                        use_mep=True,use_previous=False);
     wi = ns.weight(p,'i') << Meq.Parm(0,tags="beam weight solvable",
                                         tiling=record(time=1,freq=1),
-                                        table_name=table_name,save_all=True,use_mep=True);
+                                        table_name=table_name,save_all=True,
+                                        use_mep=True,use_previous=False);
     ns.weight(p) << Meq.ToComplex(wr,wi);
     # phased beams, function of time/freq (see kludge above) and l/m
     ns.weighted_beam(p) << ns.beam(p)*ns.weight(p);

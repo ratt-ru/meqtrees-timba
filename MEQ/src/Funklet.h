@@ -97,6 +97,7 @@ public:
 
   //------------------ standard member access ---------------------------------------------
   // Set the domain to which this funklet applies.
+  // Note that changing the domain always resets the dbid
   void setDomain (const Domain* domain,int flags=0);
   
   void setDomain (const Domain& domain,int flags=DMI::AUTOCLONE)

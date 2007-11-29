@@ -60,6 +60,8 @@ lofar_PACKAGE(MEQ)
 lofar_INTERNAL(CEP/BB/ParmDB,ParmDB,,0,ParmDB/ParmDB.h)
 lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
 lofar_EXTERNAL(fftw3,1,fftw3.h,,)
+lofar_EXTERNAL(gdbm,0,gdbm.h,,)
+lofar_EXTERNAL(qdbm,0,hovel.h,,/usr /usr/local /usr/include/qdbm)
 
 dnl
 dnl Check for old LSQFit
