@@ -1,4 +1,4 @@
-# glish script that uses newsimulator to simulate a 14 station
+# glish script that uses newsimulator to simulate a 27 station
 # SKA located at the VLA site consisting of 250m dishes.
 
 RA0          := '0h7m0.0';
@@ -136,9 +136,10 @@ simms:=function(msname,clname,freq=Freq,noise='0.0Jy',dovp=F,setoffsets=F,
     note('Simulating scaled VLA');
     posvla := dm.observatory('vla');
 
-#  Define SKA 'C' array, == VLA 'C' array scaled by factor 10, local coordinates
-#  Use every second antenna -> a 14 antenna array, so equals number of 
-#  antennas in WSRT array - should be easy to adapt WSRT trees, etc
+#  Define SKA 'C' array, == VLA 'C' array of 27 antennas scaled by factor 10 
+#  with local coordinates
+#  Using every second antenna would give a 14 antenna array, so equals 
+#  number of antennas in WSRT array - should be easy to adapt WSRT trees, etc
 
      xx := [4110.100006,1340.110001,2680.309998,4390.410004,6440.210022,8800.309998,
    11470.10999,14420.41003,17650.41003,-360.7900009,-1210.690002,-2440.789993,
