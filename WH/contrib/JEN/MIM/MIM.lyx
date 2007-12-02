@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.0: 3 Dec 2007} % Date of Issue (
+theDOIssue}{Version 0.99: 30 Nov 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.0} 
+theRevNR} {0.99} 
 \layout Standard
 
 \backslash 
@@ -1127,14 +1127,21 @@ A
 \emph on 
 Measurement Equation
 \emph default 
- (M.E.) is a mathematical description (model) of the combination of an observing
- istrument and the thing it observes.
+ (M.E.) is a mathematical description (model) of an observing istrument and
+ the thing it observes.
  We will use two different instruments to measure the ionospheric TEC: an
- array of gound stations and satellites, and an array of LOFAR stations
- and astronomical radio sources.
+ array of gound stations with satellites, and an array of LOFAR stations
+ with astronomical radio sources.
  But although they are quite different, they both have an M.E.
- with the same generic form.
- If we 
+ that contains the MIM with its parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+ 
+\layout Standard
+
+In its simplest form, if we 
 \emph on 
 measure
 \emph default 
@@ -1202,8 +1209,8 @@ in which
 \begin_inset Formula $q_{m}$
 \end_inset 
 
- are satellite-station bias values, or selfcal phase-zeroes, or antenna
- phase errors introduced by the electronics or the troposphere.
+ are satellite-station bias values, or phase errors introduced by the electronic
+s or the troposphere.
  In sections 
 \begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
 
@@ -1276,28 +1283,11 @@ so instead of 'corrupting' the predicted value, we can also 'correct' the
  so they can be integrated without decorrelation.
 \layout Standard
 
-Fig 
-\begin_inset LatexCommand \ref{cap: solve: MeqTree diagram}
-
-\end_inset 
-
- shows a MeqTree diagram for solving for MIM (and other) parameters.
- Note that it has separate branches to produce the three kinds of equations:
- for GPS TEC measurements, for radio astronomical phase measurements, and
- for additional constraints to bridge the gaps in the MIM sampling function
- (see appendix 
-\begin_inset LatexCommand \ref{sec: Making constraint equations}
-
-\end_inset 
-
-).
-\layout Standard
-
 The 
 \emph on 
 variables
 \emph default 
- these equations are the 
+ in these equations are the 
 \emph on 
 incremental
 \emph default 
@@ -1332,7 +1322,15 @@ incremental
 \end_inset 
 
 .
- Since the M.E.
+ This is illustrated in fig 
+\begin_inset LatexCommand \ref{cap: MIM solmat}
+
+\end_inset 
+
+.
+\layout Standard
+
+Since the M.E.
  is usually non-linear, this procedure is repeated for a number of iterations,
  until 
 \begin_inset Formula $\chi^{2}=\sum\Delta_{rs}^{2}$
@@ -1361,6 +1359,23 @@ chi-squared
  MIM function is smaller (or larger!) than optimal, e.g.
  because the ionospheric conditions have changed.
  
+\layout Standard
+
+Fig 
+\begin_inset LatexCommand \ref{cap: solve: MeqTree diagram}
+
+\end_inset 
+
+ shows a MeqTree diagram for solving for MIM (and other) parameters.
+ Note that it has separate branches to produce the three kinds of equations:
+ for GPS TEC measurements, for radio astronomical phase measurements, and
+ for additional constraints to bridge the gaps in the MIM sampling function
+ (see appendix 
+\begin_inset LatexCommand \ref{sec: Making constraint equations}
+
+\end_inset 
+
+).
 \layout Standard
 
 
@@ -1440,12 +1455,20 @@ If
 \end_inset 
 
  is a rectangular matrix (more equations than unknowns), its generalized
- inverse is equivalent to a least-squares fit (LSF).
+ inverse 
+\begin_inset Formula $A^{-1}=(A^{T}A)^{-1}A^{T}$
+\end_inset 
+
+ is equivalent to a least-squares fit (LSF).
  So 
 \begin_inset Formula $\vec{U}=(A^{T}A)^{-1}A^{T}\times\vec{D}$
 \end_inset 
 
- produces a vector of LSF estimates for the increments
+ produces a vector 
+\begin_inset Formula $\vec{U}$
+\end_inset 
+
+ of LSF estimates for the increments
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
@@ -1462,7 +1485,7 @@ and
 \end_inset 
 
 .
- This should produce smaller residuals 
+ Prediction with these updated values should produce smaller residuals 
 \begin_inset Formula $\Delta_{rs}$
 \end_inset 
 
@@ -1655,7 +1678,7 @@ The GPS TEC measurements (usually) reach us in the form of so-called Rinex
  This should be summarized here....
 \layout Subsection
 
-The GPS TEC Measurement Equation 
+The gpsTEC Measurement Equation 
 \begin_inset LatexCommand \label{sub: gpsTEC M.E.}
 
 \end_inset 
@@ -2615,24 +2638,53 @@ collapsed false
 
 \end_inset 
 
- Because the ionospheric contribution to the phase for an interferometer
- is 
+ The picture shows the part played by the ionospheric phase (ZJones) in
+ the prediction of a visibility value 
+\begin_inset Formula $V_{ij}$
+\end_inset 
+
+ of an interferometer with stations 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+.
+ If the source 
+\begin_inset Formula $s$
+\end_inset 
+
+ is the only one in the sky, and at the centre of the field, the nominal
+ visibility has zero phase (black arrow).
+ If we corrupt it with all the instrumental effects (Jones matrices) except
+ the ionospheric phase, we get the 'half-predicted' value (blue arrow).
+ Because the ionospheric phase is 
 \begin_inset Formula $\phi_{ijs}=-25\lambda(M_{is}-M_{js})$
 \end_inset 
 
-, the phases of the visibilities for different subbands (
-\begin_inset Formula $\lambda$
-\end_inset 
-
-) will be quite different if the TEC difference 
+, the phases of the fully predicted visibilities for different subbands
+ will be quite different if the TEC difference 
 \begin_inset Formula $(M_{is}-M_{js})$
 \end_inset 
 
- is large.
+ is large (red arrows).
  If we want to integrate the subband visibilities to get sufficient S/N
- before converting to phase, we have to correct them for the ionospheric
- phase before adding them.
- Fortunately, this is allowed since the ZJones matrix reduces to a scalar
+ before converting to phase, we first have to correct them for the ionospheric
+ phase (magenta arrows).
+ The latter can then be added without decorrelation.
+ The residual 
+\begin_inset Formula $\Delta_{ijs}$
+\end_inset 
+
+ used in the astroVis equation is the difference between the half-predicted
+ (blue) value, and the averaged corrected (magenta) values.
+\layout Standard
+
+
+\emph on 
+These operations are allowed since the ZJones matrix reduces to a scalar
  phase factor, and can be placed anywhere in the Jones chain.
  
 \end_inset 
@@ -3105,19 +3157,8 @@ MeqTree solver diagram for the MIM, as discussed in the text.
 
 \emph on 
 The solver gets three kinds of equations.
- Two of them compare the two kinds of TEC measurements with their predicted
- values.
- See equ 
-\begin_inset LatexCommand \ref{eq: Srs_GPS}
-
-\end_inset 
-
- for GPS measurements, and equ 
-\begin_inset LatexCommand \ref{eq: astro_Jones}
-
-\end_inset 
-
- for astronomical measurements.
+ Two of them compare the GPS TEC measurements or the astronomical visibilities
+ with their predicted values.
  The equations of the third kind represent constraints like equs 
 \begin_inset LatexCommand \ref{eq: deriv_lx}
 
@@ -5306,7 +5347,7 @@ The original MIM proposal (cite ...) was less general than the present approach.
 ) than may be used to bridge gaps in the MIM sampling function.
 \layout Subsection
 
-2.5D MIM (JMA, VLBI)
+2.5D MIM (JMA)
 \begin_inset LatexCommand \label{sub: MIM case: 2.5D}
 
 \end_inset 
@@ -5317,7 +5358,7 @@ The original MIM proposal (cite ...) was less general than the present approach.
 James to fill in....
 \layout Subsection
 
-MIM case: phase gradients (AGB, WSRT)
+WSRT phase gradients (AGB)
 \begin_inset LatexCommand \label{sub: MIM case: WSRT phase gradients}
 
 \end_inset 
