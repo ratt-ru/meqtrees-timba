@@ -39,7 +39,7 @@
 #include <casa/Arrays/Vector.h>
 #include <DMI/List.h>
 #ifndef HAVE_PARMDB
-#include <MeqNodes/ParmTable.h>
+#include <MeqNodes/ParmTableUtils.h>
 #endif
 #include <iostream>
 
@@ -1115,7 +1115,7 @@ int Solver::getResult (Result::Ref &resref,
     lastreq.setNextId(request.nextId());
 
 #ifndef HAVE_PARMDB
-    ParmTable::lockTables();
+    ParmTableUtils::lockTables();
 #endif
 
     timers().getresult.stop();
@@ -1123,8 +1123,8 @@ int Solver::getResult (Result::Ref &resref,
     child_results.clear();
     timers().getresult.start();
 #ifndef HAVE_PARMDB
-    ParmTable::unlockTables();
-    ParmTable::flushTables();
+    ParmTableUtils::unlockTables();
+    ParmTableUtils::flushTables();
 #endif
   }
   if( forest().abortFlag() )

@@ -55,6 +55,12 @@ lofar_BLITZ(1)
 lofar_PACKAGE(VisCube)
 
 dnl
+dnl Check for external packages
+dnl
+lofar_EXTERNAL(gdbm,0,gdbm.h,,)
+lofar_EXTERNAL(qdbm,0,hovel.h,,/usr /usr/local /usr/include/qdbm)
+
+dnl
 dnl Output Makefiles
 dnl
 AC_OUTPUT(

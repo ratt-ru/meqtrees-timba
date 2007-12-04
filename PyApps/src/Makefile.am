@@ -1,6 +1,6 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
-lib_LTLIBRARIES = mequtils.la
+lib_LTLIBRARIES = mequtils.la parmtables.la
 
 DOCHDRS = 
 
@@ -14,6 +14,14 @@ mequtils_la_LDFLAGS = -module -lblitz
 #  ../pkgbldinc/TimBase/.libs/libtimbase.a
 
 mequtils_la_DEPENDENCIES = $(LOFAR_DEPEND)
+
+parmtables_la_SOURCES = parmtables.cc
+  
+parmtables_la_LDFLAGS = -module -lblitz 
+parmtables_la_LIBADD = 
+
+parmtables_la_DEPENDENCIES = $(LOFAR_DEPEND)
+
 
 bin_PROGRAMS        =
 

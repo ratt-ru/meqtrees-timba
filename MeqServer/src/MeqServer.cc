@@ -32,7 +32,7 @@
 #include <MEQ/Result.h>
 
 #ifndef HAVE_PARMDB
-#include <MeqNodes/ParmTable.h>
+#include <MeqNodes/ParmTableUtils.h>
 #endif
 
 #include <DMI/BOIO.h>
@@ -417,7 +417,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
   {
     // close all parm tables to free up memory
 #ifndef HAVE_PARMDB
-    ParmTable::closeTables();
+    ParmTableUtils::closeTables();
 #endif
     forest.clearAbortFlag();
     DMI::Record::Ref rec = in;
@@ -602,7 +602,7 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 // ****
 // **** added this to relinquish parm tables --- really ought to go away
 #ifndef HAVE_PARMDB
-  ParmTable::closeTables();
+  ParmTableUtils::closeTables();
 #endif
 // ****
   out[AidMessage] = "all nodes deleted";
@@ -1113,7 +1113,7 @@ void MeqServer::run ()
   forest.clear();
   // close any parm tables
 #ifndef HAVE_PARMDB
-  ParmTable::closeTables();
+  ParmTableUtils::closeTables();
 #endif
   // close control channel
   control().close();

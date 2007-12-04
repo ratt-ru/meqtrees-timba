@@ -19,7 +19,7 @@ LOCALSRCS = \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
     Stokes.cc PatchComposer.cc FFTBrick.cc UVInterpolWave.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
-    CompiledFunklet.cc ParmTable.cc CasaParmTable.cc FastParmTable.cc ParmDBInterface.cc \
+    CompiledFunklet.cc CasaParmTable.cc ParmTableUtils.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc Functional.cc \
     FITSSpigot.cc FITSDataMux.cc FITSUtils.cc \
     PrivateFunction.cc MaxLocation.cc MinLocation.cc\

@@ -53,8 +53,11 @@ lofar_GENERAL
 lofar_BLITZ(1)
 # lofar_AIPSPP(1)
 lofar_PACKAGE(OCTOPUSSY,2)
-lofar_PACKAGE(OCTOPython,2)   # 2=do not link in library
+lofar_PACKAGE(OCTOPython)   # 2=do not link in library
 lofar_PACKAGE(MEQ)
+lofar_EXTERNAL(gdbm,0,gdbm.h,,)
+lofar_EXTERNAL(qdbm,0,hovel.h,,/usr /usr/local /usr/include/qdbm)
+
 dnl
 dnl Output Makefiles
 dnl

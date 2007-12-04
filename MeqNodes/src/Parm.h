@@ -38,7 +38,7 @@
 #ifdef HAVE_PARMDB
 #include <ParmDB/ParmDB.h>
 #else
-#include <MeqNodes/ParmTable.h>
+#include <MEQ/ParmTable.h>
 #endif
 #include <TimBase/lofar_vector.h>
 #include <MEQ/MeqVocabulary.h>

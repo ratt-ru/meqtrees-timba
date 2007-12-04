@@ -55,6 +55,7 @@ lofar_BLITZ(1)
 lofar_AIPSPP(1,"-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa")
 lofar_PACKAGE(OCTOPython)
 lofar_PACKAGE(AppAgent/AppUtils)
+lofar_PACKAGE(MEQ)
 lofar_PACKAGE(MeqNodes)
 dnl # removing cfitsio, it should be brought in by MeqNodes
 dnl lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)

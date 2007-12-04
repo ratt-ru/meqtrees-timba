@@ -32,6 +32,8 @@
 #include <MEQ/MeqVocabulary.h>
 
 #include <MEQ/TID-Meq.h>
+#include <iostream>
+using std::endl;
 
 #pragma aidgroup Meq
 #pragma type #Meq::Funklet

@@ -30,7 +30,7 @@
 #include <tables/Tables/Table.h>
 #include <tables/Tables/ColumnsIndex.h>
 #include <casa/Containers/RecordField.h>
-#include <MeqNodes/ParmTable.h>
+#include <MEQ/ParmTable.h>
 #include <TimBase/lofar_vector.h>
 #include <TimBase/Thread/Mutex.h>
 #include <map>

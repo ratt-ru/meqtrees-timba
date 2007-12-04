@@ -21,6 +21,7 @@
 //#
 
 #include <MeqNodes/ParmDBInterface.h>
+#include <MeqNodes/ParmTableUtils.h>
 #include <MEQ/Axis.h>
 
 #ifdef HAVE_PARMDB
@@ -321,13 +322,13 @@ namespace Meq {
   void Parm::save()
   {
 
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     if( !parmtable_ )
       return;
 
     if( !its_funklet_.valid() ) 
       return;
-    //parmtable_ = ParmTable::openTable(parmtable_name_);
+    //parmtable_ = ParmTableUtils::openTable(parmtable_name_);
 
     if(its_funklet_->objectType()==TpMeqComposedPolc){
       DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();
@@ -350,7 +351,7 @@ namespace Meq {
     cdebug(2)<<"opening table: "<<parmtable_name_<<endl;
     //check if table exists, otherwise create.
     //MMMM: change to new tableinterface??
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    parmtable_ = ParmTableUtils::openTable(parmtable_name_);
   }
 
   void Parm::closeTable(){
@@ -358,13 +359,13 @@ namespace Meq {
 
 
   Funklet * Parm::getFunkletFromDB(Funklet::Ref &funkletref,const Domain &domain){
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     if( !parmtable_ )
       return 0;
 
     //reimplement different function for (non)solvable
     vector<Funklet::Ref> funklets;
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     int n = parmtable_->getFunklets(funklets,name_,domain);
 	
     cdebug(3)<<n<<" funklets found in MEP table"<<endl;
@@ -409,7 +410,7 @@ namespace Meq {
 
   void Parm::getDefaultFromDB(Funklet::Ref &funkletref){
   
-    parmtable_ = ParmTable::openTable(parmtable_name_);
+    parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     int n = parmtable_->getInitCoeff(funkletref,name_);
     cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
   }
