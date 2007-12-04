@@ -36,6 +36,8 @@ inline std::string sdebug (int=0) { return "MeqUtils"; }
 
 static int dum = aidRegistry_Meq();
 
+#ifdef HAVE_FASTPARMTABLE
+
 typedef struct 
 {
     PyObject_HEAD
@@ -387,6 +389,8 @@ PyTypeObject PyFPTType = {
 };
 
 
+#endif // HAVE_FASTPARMTABLE
+
 // -----------------------------------------------------------------------
 // Module initialization
 // -----------------------------------------------------------------------
@@ -406,8 +410,10 @@ void initParmTablesModule ()
     Throw("import of Timba.octopython module failed");
   }
 
+#ifdef HAVE_FASTPARMTABLE
   if( PyType_Ready(&PyFPTType) < 0 )
     Throw("failed to register FastParmTable datatype");
+#endif
     
   // init the module
   PyObject *module = Py_InitModule3("parmtables",ParmTableMethods,
@@ -418,8 +424,10 @@ void initParmTablesModule ()
   PyObjectRef timbamod = PyImport_ImportModule("Timba");
   Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"parmtables",module);
-  
+
+#ifdef HAVE_FASTPARMTABLE
   PyModule_AddObject(module, "FastParmTable",(PyObject *)&PyFPTType); // steals ref
+#endif
   
   // drop out on error
   if( PyErr_Occurred() )
