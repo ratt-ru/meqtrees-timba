@@ -58,6 +58,7 @@ class AxisFlipper (pynode.PyNode):
     newshape[ax1] = self._shape[0];
     newshape[ax2] = self._shape[1];
     for vs in result.vellsets:
+      vs.shape = newshape;
       vs.value.shape = newshape;
       if hasattr(vs,'perturbed_value'):
         for pval in vs.perturbed_value:
@@ -156,11 +157,11 @@ def compute_jones (Jones,sources,stations=None,pointing_offsets=None,**kw):
     for p in Context.array.stations():
       for src in sources:
         lm = ns.lm(src.direction,p) << src.direction.lm() + pointing_offsets(p);
-        Jones(src,p) << Meq.Compounder(lm,ns.beam);
+        Jones(src,p) << Meq.Compounder(lm,ns.beam,dep_mask=255);
   # no pointing errors, single Jones per source
   else:
     for src in sources:
-      Jones(src) << Meq.Compounder(src.direction.lm(),ns.beam);
+      Jones(src) << Meq.Compounder(src.direction.lm(),ns.beam,dep_mask=255);
       for p in Context.array.stations():
         Jones(src,p) << Meq.Identity(Jones(src));
   return Jones;

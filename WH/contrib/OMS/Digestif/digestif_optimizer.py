@@ -20,7 +20,7 @@ TDLCompileMenu("Element beam patterns",
 );
 
 TDLCompileMenu("Gaussian beam fit options",
-      TDLOption("gauss_fwhm","FWHM, in arcmin",[30],more=float));
+    TDLOption("gauss_fwhm","FWHM, in arcmin",[30],more=float));
       
 TDLCompileOption("out_filename","Output filename for phased beams",
                   TDLFileSelect("*.fits",default="digestif-beam.fits",exist=False));
@@ -72,6 +72,7 @@ def _define_forest (ns,**kwargs):
     
   # nodes to compute resulting beam, optionally write to FITS
   out_beam = ns.phased_beam << Meq.Add(cache_policy=100,mt_polling=True,
+                               cache_num_active_parents=1,
                                *[ns.weighted_beam(p) for p in ELEMS]);
   if out_filename:
     try: os.remove(out_filename); 
@@ -128,28 +129,37 @@ def _define_forest (ns,**kwargs):
 def compute_cells (rows=None):
   grad = (grid_nsteps+.5)*grid_dlm*ARCMIN;
   gn   = grid_nsteps*2+1;
+  prad = (pointing_nsteps+.5)*pointing_dlm*ARCMIN;
+  pn   = pointing_nsteps*2+1;
   if rows is None:
-    prad = (pointing_nsteps+.5)*pointing_dlm*ARCMIN;
-    pn   = pointing_nsteps*2+1;
     domain = meq.gen_domain(time=[-prad,prad],freq=[-prad,prad],l=[-grad,grad],m=[-grad,grad]);
     cells = meq.gen_cells(domain,num_time=pn,num_freq=pn,num_l=gn,num_m=gn);
   else:
-    pass; 
+    cells = [];
+    for i0 in range(-pointing_nsteps,pointing_nsteps+1,rows):
+      i1 = min(pointing_nsteps,i0+rows-1);
+      t0 = (i0-0.5)*pointing_dlm*ARCMIN;
+      t1 = (i1+0.5)*pointing_dlm*ARCMIN;
+      domain = meq.gen_domain(time=[t0,t1],freq=[-prad,prad],l=[-grad,grad],m=[-grad,grad]);
+      cells.append(meq.gen_cells(domain,num_time=(i1-i0+1),num_freq=pn,num_l=gn,num_m=gn));
   return cells;
-  
 
 def _job_1_compute_conjugate_beams (mqs,parent,**kwargs):
   from Timba.Meq import meq
-  os.system("rm -fr "+table_name);
+#  os.system("rm -fr "+table_name);
   cells = compute_cells();
   request = meq.request(cells,rqtype='ev');
   mqs.execute('reqseq:conj',request);
 
 def _job_2_fit_gaussian_beams (mqs,parent,**kwargs):
   from Timba.Meq import meq
+  cells = compute_cells(solve_nrow);
+  if not solve_nrow:
+    cells = [cells];
+  for c in cells:
+    mqs.execute('solver:gauss',meq.request(c,rqtype='ev'));
   cells = compute_cells();
-  request = meq.request(cells,rqtype='ev');
-  mqs.execute('reqseq:gauss',request);
+  mqs.execute('diff:gauss',meq.request(cells,rqtype='ev'));
  
 def _job_3_recompute_phased_beam (mqs,parent,**kwargs):
   from Timba.Meq import meq

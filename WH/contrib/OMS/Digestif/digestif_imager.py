@@ -2,6 +2,8 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba import pynode
 import DigestifACM
+import DigestifBeam
+import pyfits
 
 import Meow
 import math
@@ -19,35 +21,52 @@ TDLCompileOption("acm_filename","Input ACM file",TDLFileSelect("*.bin"));
 TDLCompileOption("out_filename","Output filename for sky image",
                   TDLFileSelect("*.fits",default="digestif-image.fits"));
 
-  
-ARCMIN = math.pi/(180*60);
+DEG = math.pi/180;  
+ARCMIN = DEG/60;
 
-class DigestifAxisKludger (pynode.PyNode):
-  def modify_child_request (self,request):
-    # Creates a new request which will be used to poll children.
-    # Because Polc currently does not tile in l/m, we use time/freq for
-    # the weight axes. So, what we need to do now is take the l/m grid
-    # from the incoming request, and convert it to a time/freq grid
-    # in the outgoing request
-    c0 = self.cells = request.cells;
-    try:
-      domain = meq.gen_domain(time=c0.domain.l,freq=c0.domain.m);
-      cells = meq.gen_cells(domain,num_time=len(c0.grid.l),
-                                 num_freq=len(c0.grid.m));
-      return meq.request(cells=cells);
-    except:
-      print "Error forming up modified request:";
-      traceback.print_exc();
-      print "Using original request";
-      return None;
-  
+class WriteSkyImage (pynode.PyNode):
+  """PyNode to transpose and write out the result as a sky image.
+  """;
+  def update_state (self,mystate):
+    mystate('file_name','sky.fits');
+    mystate('start_channel',0);
+    mystate('end_channel',-1);
+    
   def get_result (self,request,*children):
-    res = children[0];
-    # child result is time,freq
-    # we need to reshape that to the incoming cells shape
-    shape = meq.shape(self.cells); 
-    val = meq.vells(shape,is_complex=True,value=res.vellsets[0].value);
-    return meq.result(meq.vellset(val),cells=self.cells);
+    result = children[0];
+    # convert to 32 bits
+    img = result.vellsets[0].value.astype('Float32');
+    # cut off the time axis
+    img.shape = img.shape[1:];
+    # take channel subset
+    if self.end_channel<0:
+      img = img[self.start_channel:,:,:];
+    else:
+      img = img[self.start_channel:(self.end_channel+1),:,:];
+    print img.min(),img.max();
+    hdu = pyfits.PrimaryHDU(img);
+    # add axis info
+    hdr = hdu.header;
+    hdr.update('CTYPE1','RA---NCP');
+    hdr.update('CRPIX1',1);
+    hdr.update('CRVAL1',result.cells.grid.l[0]*DEG);
+    hdr.update('CDELT1',result.cells.cell_size.l[0]*DEG);
+    hdr.update('CUNIT1','deg     ');
+    hdr.update('CTYPE2','DEC--NCP');
+    hdr.update('CRPIX2',1);
+    hdr.update('CRVAL2',result.cells.grid.m[0]*DEG);
+    hdr.update('CDELT2',result.cells.cell_size.m[0]*DEG);
+    hdr.update('CUNIT2','deg     ');
+    hdr.update('CTYPE3','FREQ-OBS');
+    hdr.update('CRPIX3',1);
+    hdr.update('CRVAL3',result.cells.grid.freq[self.start_channel]);
+    hdr.update('CDELT3',result.cells.cell_size.freq[self.start_channel]);
+    hdr.update('CUNIT3','HZ      ');
+    hdulist = pyfits.HDUList([hdu]);
+    hdulist.writeto(self.file_name,clobber=True);
+    return result;
+
+
 
 def _define_forest (ns,**kwargs):
   # read ACM file to establish number of elements
@@ -67,9 +86,12 @@ def _define_forest (ns,**kwargs):
                                         tiling=record(time=1,freq=1),
                                         table_name=table_name,save_all=True,use_mep=True);
     ns.weight_tf(p) << Meq.ToComplex(wr,wi);
-    ns.weight(p) << Meq.PyNode(ns.weight_tf(p),
-                    class_name="DigestifAxisKludger",module_name=__file__);
-  ns.weight << Meq.Composer(*[ns.weight(p) for p in ELEMS]);
+  ns.weight_tf << Meq.Composer(*[ns.weight_tf(p) for p in ELEMS]);
+  ns.weight << Meq.PyNode(ns.weight_tf,
+                    class_name="AxisFlipper",
+                    module_name='DigestifBeam',
+                    in_axis_1='l',in_axis_2='m',
+                    out_axis_1='time',out_axis_2='freq');
     
   # acm node
   ns.acm << Meq.PyNode(class_name="DigestifAcmNode",module_name='DigestifACM',
@@ -79,11 +101,13 @@ def _define_forest (ns,**kwargs):
   try: os.remove(out_filename); 
   except: pass;
   ns.image_real << Meq.Real(ns.image);
-  ns.image_fits << Meq.FITSWriter(ns.image_real,filename=out_filename);
+  ns.image_fits << Meq.PyNode(ns.image_real,class_name="WriteSkyImage",module_name=__file__,
+                        file_name='digestif-sky.fits',
+                        start_channel=0,end_channel=-1);
     
   # make some bookmarks
   Meow.Bookmarks.make_node_folder("Beam weights",
-        [ns.weight(p) for p in ELEMS],nrow=2,ncol=2);
+        [ns.weight_tf(p) for p in ELEMS],nrow=2,ncol=2);
   Meow.Bookmarks.Page("ACM").add(ns.acm);
   Meow.Bookmarks.Page("Complex image").add(ns.image);
   Meow.Bookmarks.Page("Image").add(ns.image_real);
