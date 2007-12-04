@@ -146,12 +146,13 @@ def compute_cells (rows=None):
 
 def _job_1_compute_conjugate_beams (mqs,parent,**kwargs):
   from Timba.Meq import meq
-#  os.system("rm -fr "+table_name);
+  os.system("rm -fr "+table_name);
   cells = compute_cells();
   request = meq.request(cells,rqtype='ev');
   mqs.execute('reqseq:conj',request);
 
 def _job_2_fit_gaussian_beams (mqs,parent,**kwargs):
+  os.system("rm -fr "+table_name);
   from Timba.Meq import meq
   cells = compute_cells(solve_nrow);
   if not solve_nrow:
@@ -162,6 +163,7 @@ def _job_2_fit_gaussian_beams (mqs,parent,**kwargs):
   mqs.execute('diff:gauss',meq.request(cells,rqtype='ev'));
  
 def _job_3_recompute_phased_beam (mqs,parent,**kwargs):
+  os.system("rm -fr "+table_name);
   from Timba.Meq import meq
   cells = compute_cells();
   request = meq.request(cells,rqtype='ev');
