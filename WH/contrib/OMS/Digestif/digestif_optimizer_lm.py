@@ -36,13 +36,15 @@ def _define_forest (ns,**kwargs):
   # the phasing-up directions, and l1/m1 for the beam patterns
   mequtils.add_axis('l');
   mequtils.add_axis('m');
+  mequtils.add_axis('l_1');
+  mequtils.add_axis('m_1');
   # create nodes to represent the beam patterns
   for p in ELEMS:
     # beam pattern, on a fixed l/m grid determined by input file
     b = ns.beam_unnormalized(p) << Meq.PyNode(class_name="DigestifElementNode",
                       module_name='DigestifElement',
                       file_name=elem_filename_x%p,cache_policy=100,
-                      xaxis='l',yaxis='m',freqaxis='freq');
+                      xaxis='l_1',yaxis='m_1',freqaxis='freq');
     # normalize gain (make it 1 in max direction)
     ns.beam_max(p) << Meq.Max(Meq.Abs(b));
     ns.beam0(p) << b/ns.beam_max(p);
@@ -55,15 +57,15 @@ def _define_forest (ns,**kwargs):
     ns.beam(p) << Meq.PyNode(ns.beam_resampled(p) << Meq.Resampler(ns.beam0(p)),
                       class_name="AxisFlipper",
                       module_name='DigestifBeam',
-                      in_axis_1='l',in_axis_2='m',
-                      out_axis_1='l',out_axis_2='m');
+                      in_axis_1='l_1',in_axis_2='m_1',
+                      out_axis_1='l_1',out_axis_2='m_1');
     # weight parameter, function of time/freq (see kludge above)
     wr = ns.weight(p,'r') << Meq.Parm(1,tags="beam weight solvable",
-                                        tiling=record(time=1,freq=1),
+                                        tiling=record(l=1,m=1),
                                         table_name=table_name,save_all=True,
                                         use_mep=True,use_previous=False);
     wi = ns.weight(p,'i') << Meq.Parm(0,tags="beam weight solvable",
-                                        tiling=record(time=1,freq=1),
+                                        tiling=record(l=1,m=1),
                                         table_name=table_name,save_all=True,
                                         use_mep=True,use_previous=False);
     ns.weight(p) << Meq.ToComplex(wr,wi);
@@ -94,8 +96,8 @@ def _define_forest (ns,**kwargs):
     ns.beam_tf(p) << Meq.PyNode(ns.beam_resampled_tf(p) << Meq.Resampler(ns.beam0(p)),
                       class_name="AxisFlipper",
                       module_name='DigestifBeam',
-                      in_axis_1='time',in_axis_2='freq',
-                      out_axis_1='l',out_axis_2='m');
+                      in_axis_1='l',in_axis_2='m',
+                      out_axis_1='l_1',out_axis_2='m_1');
     ns.condeq('conj',p) << Meq.CondEq(Meq.Conj(ns.beam_tf(p)),ns.weight(p));
   ns.solver('conj') << Meq.Solver(solvable=ns.weight.search(tags="solvable"),
                                   lm_factor=0,num_iter=3,convergence_quota=1,
@@ -105,10 +107,10 @@ def _define_forest (ns,**kwargs):
   ns.reqseq('conj') << Meq.ReqSeq(ns.solver('conj'),out_beam);
   
   # now make a tree to fit optimized gaussian beams
-  ns.l << Meq.Grid(axis="l");
-  ns.m << Meq.Grid(axis="m");
-  ns.l0 << Meq.Time();
-  ns.m0 << Meq.Freq();
+  ns.l << Meq.Grid(axis="l_1");
+  ns.m << Meq.Grid(axis="m_1");
+  ns.l0 << Meq.Grid(axis="l");
+  ns.m0 << Meq.Freq(axis="m");
   ns.rad << Meq.Sqrt(Meq.Sqr(ns.l-ns.l0)+Meq.Sqr(ns.m-ns.m0));
   ns.gauss_a << 2*math.log(2)/(gauss_fwhm*ARCMIN);
   ns.gauss_beam << Meq.Exp(-ns.gauss_a*ns.rad);
@@ -132,16 +134,16 @@ def compute_cells (rows=None):
   prad = (pointing_nsteps+.5)*pointing_dlm*ARCMIN;
   pn   = pointing_nsteps*2+1;
   if rows is None:
-    domain = meq.gen_domain(time=[-prad,prad],freq=[-prad,prad],l=[-grad,grad],m=[-grad,grad]);
-    cells = meq.gen_cells(domain,num_time=pn,num_freq=pn,num_l=gn,num_m=gn);
+    domain = meq.gen_domain(l=[-prad,prad],m=[-prad,prad],l_1=[-grad,grad],m_1=[-grad,grad]);
+    cells = meq.gen_cells(domain,num_l=pn,num_m=pn,num_l_1=gn,num_m_1=gn);
   else:
     cells = [];
     for i0 in range(-pointing_nsteps,pointing_nsteps+1,rows):
       i1 = min(pointing_nsteps,i0+rows-1);
       t0 = (i0-0.5)*pointing_dlm*ARCMIN;
       t1 = (i1+0.5)*pointing_dlm*ARCMIN;
-      domain = meq.gen_domain(time=[t0,t1],freq=[-prad,prad],l=[-grad,grad],m=[-grad,grad]);
-      cells.append(meq.gen_cells(domain,num_time=(i1-i0+1),num_freq=pn,num_l=gn,num_m=gn));
+      domain = meq.gen_domain(l=[t0,t1],m=[-prad,prad],l_1=[-grad,grad],m_1=[-grad,grad]);
+      cells.append(meq.gen_cells(domain,num_l=(i1-i0+1),num_m=pn,num_l_1=gn,num_m_1=gn));
   return cells;
 
 def _job_1_compute_conjugate_beams (mqs,parent,**kwargs):
@@ -152,7 +154,6 @@ def _job_1_compute_conjugate_beams (mqs,parent,**kwargs):
   mqs.execute('reqseq:conj',request);
 
 def _job_2_fit_gaussian_beams (mqs,parent,**kwargs):
-  os.system("rm -fr "+table_name);
   from Timba.Meq import meq
   cells = compute_cells(solve_nrow);
   if not solve_nrow:
