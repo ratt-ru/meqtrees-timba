@@ -416,10 +416,13 @@ void ComposedPolc::validateContent (bool recursive)
        if (axisi>=nr_axis){
 	 //fill value
 	 int idx = val[0];
+	 int maxidx=res_shape[0];
 	 for(int ai = 1;ai<nr_axis;ai++){
-	   idx*=res_shape[ai-1];
+	   maxidx*=res_shape[ai];
+	   idx*=res_shape[ai];
 	   idx+=val[ai];
 	 }
+	 Assert(idx<maxidx);
 	 value[idx] = constpart ;
        }
        else
