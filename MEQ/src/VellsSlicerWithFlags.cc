@@ -65,7 +65,7 @@ void ConstVellsSlicerWithFlags0::init (const Vells &vells,const int *axes,int n)
   flag_shape_.resize(n);
   strides_.resize(n);
   flag_strides_.resize(n);
-  for( int i=0; i<rank; i++ )
+  for( int i=0; i<n; i++ )
   {
     shape_[i] = flag_shape_[i] = strides_[i] = flag_strides_[i] = 1;
   }
