@@ -42,14 +42,16 @@ TDLCompileOption('source_model',"Source model",[
     lsm_model.point_and_extended_sources,
   ],default=0);
 
-TDLCompileOption('apply_clar_beam',"Apply CLAR beam",False);
-
 # define antenna list
 ANTENNAS = range(1,28);
 
+# NOTE: The name of this script is a bit misleading - it does not
+# do any special CLAR simulation. Rather, it just constructs visibilities
+# without any primary beam correction.
+
 def _define_forest (ns):
   # create an Array object
-  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
+  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=True);
   # create an Observation object
   observation = Meow.Observation(ns);
     
@@ -58,7 +60,7 @@ def _define_forest (ns):
   
   
   # create nominal CLAR source model by using an LSM
-  # construct empty LSM
+  # first construct empty LSM
   lsm=LSM()
   # fill it using an NVSS catalog file
   lsm.build_from_catalog("nvss.txt",ns)

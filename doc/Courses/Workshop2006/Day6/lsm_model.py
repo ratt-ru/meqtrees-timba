@@ -60,16 +60,14 @@ def point_and_extended_sources (ns,lsm,tablename='',count=100):
      if eX!=0 or eY!=0 or eP!=0:
          # Gaussians
          source_model.append( GaussianSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
-                  Iorder=0, direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
+                  Iorder=0, direction=Direction(ns,pu.name,ra,dec),
                   spi=SIn,freq0=f0,
-                  size=[eX,eY],phi=eP,
-                  parm_options=parm_options));
+                  size=[eX,eY],phi=eP));
      else:
          # point Sources
          source_model.append( PointSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
-                  Iorder=0, direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
-                  spi=SIn,freq0=f0, RM=RM,
-                  parm_options=parm_options));
+                  direction=Direction(ns,pu.name,ra,dec),
+                  spi=SIn,freq0=f0, RM=RM));
 
 
 
