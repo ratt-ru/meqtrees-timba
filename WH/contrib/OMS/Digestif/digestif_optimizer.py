@@ -1,5 +1,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
+from Timba import pynode
+import pyfits
 
 import Meow
 import math
@@ -24,8 +26,25 @@ TDLCompileMenu("Gaussian beam fit options",
       
 TDLCompileOption("out_filename","Output filename for phased beams",
                   TDLFileSelect("*.fits",default="digestif-beam.fits",exist=False));
+TDLCompileOption("image_filename","Output filename for beam image",
+                  TDLFileSelect("*.fits",default="beam.fits",exist=False));
   
 ARCMIN = math.pi/(180*60);
+
+class WriteBeamImage (pynode.PyNode):
+  """PyNode to write out a beam image""";
+  def update_state (self,mystate):
+    mystate('file_name','beam.fits');
+    
+  def get_result (self,request,*children):
+    result = children[0];
+    hdu = pyfits.PrimaryHDU(result.vellsets[0].value.real);
+    hdulist = pyfits.HDUList([hdu]);
+    hdulist.writeto("real-"+self.file_name,clobber=True);
+    hdu = pyfits.PrimaryHDU(result.vellsets[0].value.imag);
+    hdulist = pyfits.HDUList([hdu]);
+    hdulist.writeto("imag-"+self.file_name,clobber=True);
+    return result;
 
 def _define_forest (ns,**kwargs):
   ELEMS = range(elem_nx);
@@ -78,6 +97,10 @@ def _define_forest (ns,**kwargs):
     try: os.remove(out_filename); 
     except: pass;
     out_beam = ns.phased_beam_fits << Meq.FITSWriter(out_beam,filename=out_filename);
+  if image_filename:
+    out_beam = ns.phased_beam_image << Meq.PyNode(out_beam,
+                      class_name="WriteBeamImage",module_name=__file__,
+                      file_name=image_filename);
   Meow.Bookmarks.Page("Phased beam").add(ns.phased_beam);
     
   # make some bookmarks

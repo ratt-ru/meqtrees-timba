@@ -135,10 +135,15 @@ class DigestifBeamNode (pynode.PyNode):
     beam = meq.vells(meq.shape(cells),is_complex=True,value=beam);
     return meq.result(meq.vellset(beam),cells=beamreader.cells);
 
-TDLCompileOption("beam_filename","Filename for beam pattern",
-                  TDLFileSelect("*.fits",default="digestif-beam.fits"));
-TDLCompileOption("beam_nl","Number of pointing in l",[0],more=int);
-TDLCompileOption("beam_nm","Number of pointing in m",[0],more=int);
+# list of options for Jones module
+_options = [
+  TDLOption("beam_filename","Filename for beam pattern",
+                  TDLFileSelect("*.fits",default="digestif-beam.fits")),
+  TDLOption("beam_nl","Number of pointing in l",[0],more=int),
+  TDLOption("beam_nm","Number of pointing in m",[0],more=int)
+];
+def compile_options ():
+  return _options;
 
 ## this is to use this as a Jones module
 def compute_jones (Jones,sources,stations=None,pointing_offsets=None,**kw):
