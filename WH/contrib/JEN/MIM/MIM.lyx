@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 0.99: 30 Nov 2007} % Date of Issue (
+theDOIssue}{Version 1.1: 13 Dec 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {0.99} 
+theRevNR} {1.1} 
 \layout Standard
 
 \backslash 
@@ -584,6 +584,16 @@ Introduction
 \layout Standard
 
 
+\noun on 
+Note on version 1.1: I decided to vault over the singularity 1.0, and start
+ the trek to 2.0.
+ The concept of the Rigid Floating Group has moved to center stage, because
+ MIM-enhanced double-differencing offers allows us to make RFGs from GPS
+ data as well.
+ 
+\layout Standard
+
+
 \series bold 
 \emph on 
 This document is very much a work in progress.
@@ -1030,21 +1040,32 @@ This
 \series bold 
 MIM diagram
 \series default 
- has proved rather useful for discussing the combined use of GPS and radio
- measurements for estimating the parameters 
+ is useful for discussing the combined use of GPS and radio measurements
+ for estimating the parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
  of a Minimum Ionospheric Model.
  Note that it squeezes a 5D function 
-\begin_inset Formula $M(x,y,z,l,m)$
+\begin_inset Formula $M(x,y,z,l,m,t=t_{i})$
 \end_inset 
 
  into a 2D diagram by collapsing the positions 
 \begin_inset Formula $(x,y,z)$
 \end_inset 
 
- into one axis, and the view directions 
+ into one axis
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+A bit like the Feynman diagram, which also has the three space dimensions
+ (x,y,z) along the horizontal axis (and the time dimension along the vertical
+ axis).
+\end_inset 
+
+, and the view directions 
 \begin_inset Formula $(l,m)$
 \end_inset 
 
@@ -1063,7 +1084,7 @@ MIM diagram
 
 \emph on 
 The MIM function 
-\begin_inset Formula $M(x,y,z,l,m,t)$
+\begin_inset Formula $M(\vec{x},\vec{l},t=t_{i})$
 \end_inset 
 
  is sampled at the crossing points of red lines (GPS satellites and ground
@@ -1081,8 +1102,26 @@ The MIM function
 ).
  The curvature will be slight if the receivers are relatively close together,
  i.e.
- within 100 km or so (see also fig ..).
+ within 100 km or so.
  
+\layout Standard
+
+
+\emph on 
+A horizontal group of samples associated with a particular astronomical
+ source form a so-called 
+\series bold 
+Rigid Floating Group
+\series default 
+ (RFG).
+ Their relative TEC values are known with high accuracy (~0.001 TECU), but
+ they share an unknown absolute offset.
+ A group of samples associated with a particular satellite is much less
+ rigid, but their absolute values are known with an accuracy of better than
+ 1 TECU.
+ The latter may be improved by differential means, producing a Semi-Rigid
+ Group (SRG), whose relative TEC values are known with an accuracy of ~0.01
+ TECU, and sharing an unknown absolute offset of ~0.1 TECU.
 \layout Standard
 
 
@@ -1388,7 +1427,7 @@ collapsed false
 
 \begin_inset Graphics
 	filename MIM_solmat.eps
-	width 60col%
+	width 80col%
 
 \end_inset 
 
@@ -1543,6 +1582,60 @@ time
 As will be argued below, the implementation of this time-smoothness constraint
  will be one of the more difficult aspects.
  
+\layout Subsection
+
+The Rigid Floating Group (RFG)
+\layout Standard
+
+We introdoce the concept of a 
+\series bold 
+Rigid Floating Group (RFG)
+\series default 
+.
+ All the station TEC values 
+\begin_inset Formula $M_{is}$
+\end_inset 
+
+ in the direction of source 
+\begin_inset Formula $s$
+\end_inset 
+
+ have an identical offset 
+\begin_inset Formula $M_{0s}$
+\end_inset 
+
+, but they will otherwise be quite accurate relative to each other.
+ This means that they represent a strong constraint on the MIM, especially
+ if the LOFAR array is large.
+ See fig ...
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap: Rigid Floating Group}
+
+\end_inset 
+
+The Rigid Floating Group
+\end_inset 
+
+
 \layout Subsection
 
 Smoothing in time
@@ -3475,7 +3568,7 @@ H.
 \emph on 
 SPAM
 \emph default 
-, (2007)
+ (2007)
 \layout Bibliography
 \bibitem {Bemmel LIONS}
 
@@ -3490,11 +3583,13 @@ LIONS
 \bibitem {Bingley}
 
 R.
+ M.
  Bingley, 
 \emph on 
-GPS position determination
+Positioning using carrier phase: static.
+
 \emph default 
- (2007)
+ Lecture notes, University of Nottingham (2007)
 \layout Bibliography
 \bibitem {JAE GPS network NL}
 
@@ -3841,8 +3936,15 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename MIM_VLA_VirgoA.eps
+	width 50col%
+
+\end_inset 
+
+
+\begin_inset Graphics
 	filename sin_in_noise.eps
-	width 60col%
+	width 50col%
 
 \end_inset 
 
@@ -4262,6 +4364,98 @@ Depending on the nature of such inconsistencies, there must be algorithmic
 \layout Standard
 
 Use the Central Limit Theorem?
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_interpolerr.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap: Interpolation error}
+
+\end_inset 
+
+The interpolation error of the MIM.
+ In one dimension, if we have 
+\begin_inset Formula $n$
+\end_inset 
+
+ TEC samples 
+\begin_inset Formula $i$
+\end_inset 
+
+ at positions 
+\begin_inset Formula $x_{i}$
+\end_inset 
+
+, each with a variance 
+\begin_inset Formula $\sigma_{i}$
+\end_inset 
+
+, the variance at an arbitrary point 
+\begin_inset Formula $x$
+\end_inset 
+
+ is
+\layout Standard
+
+
+\begin_inset Formula \[
+\frac{1}{\sigma}=\frac{1}{\sqrt{n}}\sum_{i=1}^{n}\frac{1}{\sigma_{i}(1+\alpha_{i}(x-x_{i})^{2})}\]
+
+\end_inset 
+
+
+\layout Standard
+
+
+\emph on 
+in which the 
+\begin_inset Formula $\alpha_{i}$
+\end_inset 
+
+ are constants (or functions) that control the speed of divergence.
+ Obviously, the 
+\begin_inset Formula $\alpha_{i}$
+\end_inset 
+
+ are determined by the MIM function, but it is not clear how exactly....
+\layout Standard
+
+
+\emph on 
+In any case, the above formula reduces correctly to 
+\begin_inset Formula $\sigma=\frac{\sigma_{0}}{\sqrt{n}}$
+\end_inset 
+
+ if 
+\begin_inset Formula $\sigma_{i}=\sigma_{0}$
+\end_inset 
+
+ and 
+\begin_inset Formula $(x-x_{i})=0$
+\end_inset 
+
+, i.e.
+ when all samples have the same variance and are at the same point.
+\end_inset 
+
+
 \layout Section
 
 Choosing MIM base-functions
@@ -4462,7 +4656,7 @@ We have the following choices:
 
 
 \series bold 
-Attached to the sky
+Polar, attached to the sky
 \series default 
  (RA,DEC): Convienient for astronomical sources.
  Satellites will have a time-dependent direction 
@@ -4479,7 +4673,7 @@ Attached to the sky
 
 
 \series bold 
-Attached to the Earth
+Polar, attached to the Earth
 \series default 
 : Both astronomical sources and satellites will have a time-dependent direction
  
@@ -4503,12 +4697,31 @@ global
  The latter may be the preferred option, for reasons explained below.
 \layout Itemize
 
+
+\series bold 
+Cartesian:
+\series default 
+ A direction may also be expressed as a vector 
+\begin_inset Formula $(x_{2}-x_{1},y_{2}-y_{1},z_{2}-z_{1})$
+\end_inset 
+
+.
+ However, this would be overkill, since it also fixes the 
+\emph on 
+length
+\emph default 
+ of the vector, in which we are not interested.
+ It would add an unnecessary extra dimension to the MIM.
+ 
+\layout Itemize
+
 Other?
 \end_deeper 
 \layout Standard
 
-NB: All direction systems get into trouble, in the sense that they are no
- longer differentiable, in the direction of their 
+NB: All the polar direction systems (but not the cartesian!) get into trouble,
+ in the sense that they are no longer differentiable, in the direction of
+ their 
 \emph on 
 poles
 \emph default 
@@ -4556,8 +4769,10 @@ collapsed false
 
 \emph on 
 A little bit of perspective.
- The orbits of GPS satellites have a radius of about 30000 km (21000+6378).
- Thus, in any reference frame we choose, they will be seen in a different
+ The orbits of GPS satellites have a radius of about 27000 km (21000+6378).
+ A satellite passage across the sky takes a few hours, depending on the
+ maximum evation it reaches.
+ In any reference frame we choose, a satellite will be seen in a different
  direction (l,m) from the locations (x,y,z) of different ground stations.
  However, since a distance of 100 km on the Earth surface corresponds to
  
@@ -4565,15 +4780,13 @@ A little bit of perspective.
 \end_inset 
 
  degree, the differences are usually not very large.
- A satellite passage across the sky takes a few hours, depending on the
- maximum evation it reaches.
  
 \end_inset 
 
 
 \layout Section
 
-Making constraint equations
+Making MIM constraint equations
 \begin_inset LatexCommand \label{sec: Making constraint equations}
 
 \end_inset 
@@ -4587,10 +4800,10 @@ The purpose of the MIM function is to provide reasonably accurate values
 \end_inset 
 
 .
- This is equivalent with interpolation, where the accuracy is inversely
- proportional to the distance to the known sampling points.
- Therefore, we would like to minimize the gaps in the MIM sampling function
- (see the MIM diagram in fig 
+ This is equivalent to interpolation, where the accuracy is inversely proportion
+al to the distance to the known sampling points.
+ Therefore, we would like to minimize the gaps in the MIM sampling function,
+ preferably by having more samples (see the MIM diagram in fig 
 \begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
@@ -4602,6 +4815,11 @@ The purpose of the MIM function is to provide reasonably accurate values
  of the ionosphere, thereby making our MIM less 'minimal' than we would
  like.
  That is why it is treated in this appendix.
+ 
+\emph on 
+NB: A Rigid Floating Group (RFG) is also a MIM constraint, but one that
+ does NOT require any assumptions about the ionosphere.
+ 
 \layout Subsection
 
 Relations between MIM derivatives
@@ -5132,6 +5350,22 @@ The following is a jargon-laced placeholder:
 \end_inset 
 
 
+\layout Section
+
+Double-differencing GPS
+\begin_inset LatexCommand \label{sec: Double-differencing-GPS}
+
+\end_inset 
+
+
+\layout Standard
+
+The following has been adapted from 
+\begin_inset LatexCommand \cite{Bingley}
+
+\end_inset 
+
+.
 \layout Section
 
 Triple-frequency GPS
