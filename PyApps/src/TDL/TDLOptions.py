@@ -505,11 +505,10 @@ class _TDLFileOptionItem (_TDLOptionItem):
         self.FileDialog(".",self._filespec.filenames,item.listView());
     if isinstance(self._filespec,TDLDirSelect):
       file_dialog.setMode(QFileDialog.DirectoryOnly);
+    elif self._filespec.exist:
+      file_dialog.setMode(QFileDialog.ExistingFile);
     else:
-      if self._filespec.exist:
-        file_dialog.setMode(QFileDialog.ExistingFile);
-      else:
-        file_dialog.setMode(QFileDialog.AnyFile);
+      file_dialog.setMode(QFileDialog.AnyFile);
     QObject.connect(file_dialog,PYSIGNAL("selectedFile()"),self._select_file);
     # make file selection dialog pop up when item is pressed
     item._on_click = self._show_dialog;
