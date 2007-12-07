@@ -1619,6 +1619,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
+	filename MIM_RFG.eps
+	width 80col%
 
 \end_inset 
 
@@ -1632,7 +1634,16 @@ collapsed false
 
 \end_inset 
 
-The Rigid Floating Group
+A Rigid Floating Group (RFG) is a group of TEC values that share an unknown
+ absolute offset, but whose values relative to each other are fixed.
+ This is analogous to the parts of rigid body, which can only move vertically,
+ without rotation.
+ It is clear that one or more RFGs represent a strong constraint on the
+ MIM, especially within the 'support-domain' (its range of positions and
+ directions) of an RFG.
+ In its turn, the MIM harmonizes the unknown offsets of the RFGs, on the
+ sense of constraining them relative to each other.
+ The result is a single unknown absolute offset that is shared by all RFGs.
 \end_inset 
 
 
@@ -1768,7 +1779,9 @@ The GPS TEC measurements (usually) reach us in the form of so-called Rinex
  files.
  These are pre-processed and re-organized (by JMA), before being fed into
  Meqtrees.
- This should be summarized here....
+ For instance, any cycle-slips (jumps by an integer number of carrier wavelength
+s) are removed.
+ All this should be summarized here....
 \layout Subsection
 
 The gpsTEC Measurement Equation 
@@ -2045,6 +2058,25 @@ This is the Bingley stuff, which has been verified by JMA.
 
 .
  We should give it its proper place...
+\layout Subsection
+
+Dealing with satellite discontinuities
+\begin_inset LatexCommand \label{sub: satellite discontinuities}
+
+\end_inset 
+
+
+\layout Standard
+
+The passage of a GPS satellite over the sky takes a few hours, depending
+ on its maximum elevation.
+ During that time, a station-satellite bias is assumed to be more or less
+ constant, but it will be completely different on the next passage.
+ Thus, the number of satellites, and their associated biases, is changing
+ constantly, and discontinuously.
+ If we do not take any precautions, the estimated MIM parameters will also
+ have discontinutities whenever a satellite is included or excluded.
+ 
 \layout Subsection
 
 GPS Correlation (SVT)
@@ -5366,6 +5398,418 @@ The following has been adapted from
 \end_inset 
 
 .
+ Using two GPS ground stations, and at least 5 satellites, double-differencing
+ allows us to eliminate the 
+\series bold 
+relative
+\series default 
+ station-satellite biases.
+ The result is a Rigid Floating group (RFG) of widely spaced TEC values,
+ which share a single absolute unknown bias offset.
+
+\emph on 
+ 
+\layout Standard
+
+We start from the 
+\series bold 
+basic carrier phase observation equation 
+\series default 
+for the phase 
+\begin_inset Formula $\Phi_{rs}$
+\end_inset 
+
+(as a fraction of the wavelength 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+) of the signal from satellite 
+\begin_inset Formula $s$
+\end_inset 
+
+, measured by receiver (station) 
+\begin_inset Formula $r$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\lambda(N_{rs}+\Phi_{rs})=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+d_{rs}^{trop}-d_{rs}^{ion}+v_{rs}\label{eq: cphase-obseq}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ is the 
+\emph on 
+carrier phase ambiguity
+\emph default 
+ of an (unknown) integer nr of wavelengths 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+.
+ The range 
+\begin_inset Formula $\rho_{rs}$
+\end_inset 
+
+ is the actual distance between station and satellite, 
+\begin_inset Formula $\delta\tau_{r}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\delta t_{s}$
+\end_inset 
+
+ are clock errors, 
+\begin_inset Formula $d_{rs}^{ion}$
+\end_inset 
+
+ and 
+\begin_inset Formula $d_{rs}^{trop}$
+\end_inset 
+
+ are the ionospheric and tropospheric delays, and 
+\begin_inset Formula $v_{rs}$
+\end_inset 
+
+ is an 
+\emph on 
+observation residual
+\emph default 
+.
+ It will be assumed here that the latter corresponds to our GPS 
+\emph on 
+measurement noise,
+\emph default 
+ which is of the order of 0.01 TECU.
+ Note that the satellite-station pair bias that we used before is a combination
+ of 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+and clock errors.
+ In the following, the clock errors are eliminated by differencing, leaving
+ only 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+.
+ 
+\layout Standard
+
+For two stations 
+\begin_inset Formula $a$
+\end_inset 
+
+ and 
+\begin_inset Formula $b$
+\end_inset 
+
+, and a single satellite 
+\begin_inset Formula $s$
+\end_inset 
+
+, the measured phase difference is:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\lambda(\Phi_{as}-\Phi_{bs})=-\lambda(N_{as}-N_{bs})+\Delta\rho+c(\delta\tau_{a}-\delta\tau_{b})+\Delta d^{trop}-\Delta d^{ion}\label{eq: single-diff}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $\Delta d^{ion}=(d_{as}^{ion}-d_{bs}^{ion})$
+\end_inset 
+
+ etc, and the noise 
+\begin_inset Formula $\Delta v$
+\end_inset 
+
+ is ignored.
+ Note that the satellite clock offset 
+\begin_inset Formula $\delta t_{s}$
+\end_inset 
+
+ has been eliminated.
+ If the stations are 'close' to each other, we may assume that the signals
+ from the satellite pass through roughly the same ionosphere and troposphere,
+ so the 
+\begin_inset Formula $\Delta d$
+\end_inset 
+
+ are small.
+ The 
+\emph on 
+nominal
+\emph default 
+ range difference 
+\begin_inset Formula $\Delta\rho=(\rho_{as}-\rho_{bs})$
+\end_inset 
+
+ only depends on the viewing angle w.r.t.
+ the baseline 
+\begin_inset Formula $ab$
+\end_inset 
+
+, which is known.
+ The error due to uncertainties 
+\begin_inset Formula $\Delta s$
+\end_inset 
+
+ (up to 20 m) in the satellite position is very small, and can be expressed
+ as: 
+\begin_inset Formula $\delta\rho=\frac{L_{ab}}{R_{s}}\Delta s$
+\end_inset 
+
+, in which 
+\begin_inset Formula $L_{ab}$
+\end_inset 
+
+ is the length of baseline 
+\begin_inset Formula $ab$
+\end_inset 
+
+, and 
+\begin_inset Formula $R_{s}=21000$
+\end_inset 
+
+ is the satellite altitude.
+\layout Standard
+
+With two satellites 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+, we can eliminate the station clock errors 
+\begin_inset Formula $\delta\tau$
+\end_inset 
+
+ by taking the 
+\series bold 
+double-difference phase
+\series default 
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Phi_{ij}^{ab}=(\Phi_{ai}-\Phi_{bi})-(\Phi_{aj}-\Phi_{bj})=(N_{aj}-N_{bj})-(N_{ai}-N_{bi})+\frac{1}{\lambda}(\Delta\Delta\rho+\Delta d^{trop}-\Delta d^{ion})\label{eq: double-diff}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+We assume for the moment that 
+\begin_inset Formula $\Delta d^{trop}\approx0$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta d^{ionos}\approx0$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta\Delta\rho$
+\end_inset 
+
+ is known.
+ With 2 stations and 
+\begin_inset Formula $n$
+\end_inset 
+
+ satellites, we can form 
+\begin_inset Formula $n(n-1)/2$
+\end_inset 
+
+ double-difference equations, that share 
+\begin_inset Formula $2n-1$
+\end_inset 
+
+ unknowns 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ (since, it is impossible to solve for absolute values from differences,
+ one of the 
+\begin_inset Formula $N$
+\end_inset 
+
+ is set to zero).
+ 
+\series bold 
+Thus, the minimum that is needed for a relative solution is 5 satellites
+\series default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+It is a bit puzzling that Bingley mentions a minimum of 4 satellites, which
+ implies that the number of unknowns is 
+\begin_inset Formula $2n-2$
+\end_inset 
+
+.
+ This might be the result of the 
+\series bold 
+double
+\series default 
+ differencing, just like working with single differences makes solving for
+ absolute 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ impossible.
+ If this is correct, we have to set two of the 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ to zero, which makes the RFG less rigid of course.
+ 
+\end_inset 
+
+.
+ This produces a Rigid Floating Group (RFG) of 
+\begin_inset Formula $2n$
+\end_inset 
+
+ related TEC values, and a single unknown offset.
+ The RFG noise will be of the order of 0.01 TECU (
+\begin_inset Formula $v_{rs})$
+\end_inset 
+
+.
+ The size of the RFG may be extended by including double-differencing equations
+ for other station pairs.
+ For an array of 
+\begin_inset Formula $m$
+\end_inset 
+
+ GPS stations we get an RFG of 
+\begin_inset Formula $n\times m$
+\end_inset 
+
+ related TEC values, still with a single unknown offset.
+ Obviously, the distance between stations should not be too large.
+\layout Standard
+
+Since we have a MIM, we do not have to assume that 
+\begin_inset Formula $\Delta d^{ionos}=0$
+\end_inset 
+
+, which opens the way to using longer baselines for double-differencing.
+ Referring to equ 
+\begin_inset LatexCommand \ref{eq: Li}
+
+\end_inset 
+
+, we can write 
+\begin_inset Formula $d_{rs}^{ionos}=-4\lambda^{2}M_{rs}$
+\end_inset 
+
+, i.e.
+ a function in the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+ After replacing all the 
+\begin_inset Formula $d^{ionos}$
+\end_inset 
+
+ in equ 
+\begin_inset LatexCommand \ref{eq: double-diff}
+
+\end_inset 
+
+, and treat the unknowns 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ as measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+, we get a 
+\series bold 
+double-difference M.E
+\series default 
+.
+ that can be converted into an equation for the MIM solution matrix in the
+ usual way.
+ In this process the tropospheric 
+\begin_inset Formula $d_{r}^{trop}$
+\end_inset 
+
+ may be solved for simultaneously with the measurement parameter 
+\begin_inset Formula $\phi_{r}^{trop}$
+\end_inset 
+
+ of the astroVis equations.
+ 
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_doublediff.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap: Double-differencing.}
+
+\end_inset 
+
+Double-differencing.
+ Using two GPS ground stations, and at least 5 satellites, it is possible
+ to eliminate the 
+\series bold 
+relative
+\series default 
+ station-satellite biases.
+ The result is a Rigid Floating group (RFG) of widely spaced TEC values,
+ which share a single absolute unknown bias offset.
+ The two stations have to be relatively close (< 10 km?) so it can be assumed
+ that they see the same satellite through roughly the same ionosphere and
+ troposphere.
+  The size of the RFG can be increased arbitrarily by using an array of
+ GPS stations.
+ With a MIM, the baseline length for which double-differencing works can
+ be extended considerably.
+ 
+\end_inset 
+
+
 \layout Section
 
 Triple-frequency GPS
