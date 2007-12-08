@@ -181,6 +181,7 @@ class QwtImageDisplay(QwtPlot):
         'Undo Last Zoom': 320,
         'Save Display in PNG Format': 321,
         'Select X-Section Display': 322,
+        'Show Full Data Range': 323,
         }
 
     xsection_menu_table = {
@@ -235,7 +236,10 @@ class QwtImageDisplay(QwtPlot):
         self.axis_xmax = None
         self.axis_ymin = None
         self.axis_ymax = None
+        self.previous_shape = None
+        self.refresh_all = True
 	self._menu = None
+        self.menu_labels_big = None
         self._vells_menu = None
         self.num_possible_ND_axes = None
         self._plot_type = None
@@ -275,6 +279,7 @@ class QwtImageDisplay(QwtPlot):
         self.xsect_xpos = None
         self.xsect_ypos = None
         self.zoomState = None
+        self.split_axis = None
         self.adjust_color_bar = True
         self.toggle_metrics = True
         self.array_selector = None
@@ -355,6 +360,8 @@ class QwtImageDisplay(QwtPlot):
         self._toggle_blink_label = None
         self._drag_amplitude_scale = False
         self._vells_menu_data = None
+#       self.nan_inf_value = -32767.0
+        self.nan_inf_value = -0.123456789
 
         self.first_chi_test = True
         self.log_axis_chi_0 = False
@@ -422,6 +429,9 @@ class QwtImageDisplay(QwtPlot):
 
     def setZoomDisplay(self):
       self._zoom_display = True
+
+    def setFlagColour(self, flag_colour):
+      self.plotImage.setFlagColour(flag_colour)
 
     def getPlotParms(self):
         """ Obtain current plot parameters for modification """
@@ -538,6 +548,7 @@ class QwtImageDisplay(QwtPlot):
       """ delete any displayed cross section plots """
       if self.show_x_sections:
 # delete any previous curves
+        print 'delete_cross_sections - removing previous ones'
         self.removeCurves()
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
@@ -790,9 +801,17 @@ class QwtImageDisplay(QwtPlot):
         self.emit(PYSIGNAL("save_display"),(self._window_title,))
         return True
 
+      if menuid == self.menu_table['Show Full Data Range']:
+        self.requestFullVellsImage()
+        return True
+
 # if we get here ...
       return False
 
+    def requestFullVellsImage(self):
+      """ have the VellsData construct and return full Vells Image"""
+      self.emit(PYSIGNAL("full_vells_image"),(True,))
+      
     def Pausing(self):
       toggle_id = self.menu_table['Toggle Pause']
       if self._do_pause:
@@ -1009,10 +1028,19 @@ class QwtImageDisplay(QwtPlot):
     def setMenuItems(self, menu_data):
       """ add items specific to selection of Vells to context menu """
       self._vells_menu_data = menu_data
+      
+    def setBigArrays(self, big_data_index):
+      if not big_data_index is None:
+        self.menu_labels_big = big_data_index
+        keys = self.menu_labels_big.keys()
+        if len(keys) > 0:
+          for i in range(len(keys)):
+            if self.menu_labels_big[keys[i]]:
+              toggle_id = self.menu_table['Show Full Data Range']
+              self._menu.setItemVisible(toggle_id, True)
 
     def addVellsMenu(self):
       """ add vells options to context menu """
-
       if self._vells_menu_data is None:
         return
       if not self._vells_menu is None:
@@ -1028,6 +1056,8 @@ class QwtImageDisplay(QwtPlot):
         self._vells_menu.hide()
         toggle_id = self.menu_table['Change Vells']
         self._menu.setItemVisible(toggle_id, True)
+        toggle_id = self.menu_table['Show Full Data Range']
+        self._menu.setItemVisible(toggle_id, False)
       menu_labels = self._vells_menu_data[0]
       perturbations = self._vells_menu_data[1]
       planes_index = self._vells_menu_data[2]
@@ -1060,6 +1090,11 @@ class QwtImageDisplay(QwtPlot):
               perturbations_index = perturbations[perturbations_key]
               submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,node) 
 #             self._vells_menu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+            if not self.menu_labels_big is None and self.menu_labels_big.has_key(id):
+              if self.menu_labels_big[id]:
+                toggle_id = self.menu_table['Show Full Data Range']
+                self._menu.setItemVisible(toggle_id, True)
+              
         else:
           if int(num_planes/menu_step) * menu_step == num_planes:
             num_sub_menus = int(num_planes/menu_step)
@@ -1100,6 +1135,11 @@ class QwtImageDisplay(QwtPlot):
                 perturbations_index = perturbations[perturbations_key]
                 submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,sub_node) 
 #               step_submenu.insertItem(pixmaps.slick_redo.iconset(), 'perturbed values ', submenu)
+              if not self.menu_labels_big is None and self.menu_labels_big.has_key(id):
+                if self.menu_labels_big[id]:
+                  toggle_id = self.menu_table['Show Full Data Range']
+                  self._menu.setItemVisible(toggle_id, True)
+              
             end_str = menu_labels[id]
             start_range = start_range + menu_step
             end_range = end_range + menu_step
@@ -1138,7 +1178,6 @@ class QwtImageDisplay(QwtPlot):
           start_str = str(start_range)
           end_str = str(end_range - 1 )
           menu_string = 'perturbations ' + start_str + ' to ' + end_str + '  '
-#         print menu_string
           if previous is None:
             pert_node = VellsElement(node)
           else:
@@ -1195,7 +1234,6 @@ class QwtImageDisplay(QwtPlot):
     def reset_zoom(self, replot=False, undo_last_zoom = False):
       """ resets data display so all data are visible """
       do_replot = False
-#     print 'stack length ', len(self.zoomStack)
       if len(self.zoomStack):
         while len(self.zoomStack):
           axis_parms = self.zoomStack.pop()
@@ -1208,7 +1246,6 @@ class QwtImageDisplay(QwtPlot):
           except:
             pass
           if undo_last_zoom:
-#           print 'popped range ', axis_parms
             break
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
@@ -1237,6 +1274,8 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Undo Last Zoom']
           self._menu.setItemVisible(toggle_id, False)
+# make sure outline is disabled
+      self.enableOutline(0)
 # do a complete replot in the following situation
 # as both axes will have changed even if nothing to unzoom.
       if do_replot:
@@ -1591,7 +1630,6 @@ class QwtImageDisplay(QwtPlot):
             units = ""
             axis = "x "
             if self.x_parm.find('l') >= 0:
-              print 'detected l in x_parm'
               axis = "l "
               units = " rad "
             if self.x_parm.find('time') >= 0:
@@ -1599,7 +1637,6 @@ class QwtImageDisplay(QwtPlot):
               units = " sec "
             else:
               if self.x_parm.find('m') >= 0:
-                print 'detected m in x_parm'
                 axis = "m "
                 units = " rad "
             if self.x_parm.find('freq') >= 0:
@@ -2040,16 +2077,27 @@ class QwtImageDisplay(QwtPlot):
           q_line_size = 1
           q_symbol_size = 3
           q_flag_size = 10
-        self.x_array = zeros(shape[0], Float32)
-        self.x_index = arange(shape[0])
-        self.x_index = self.x_index + 0.5
+#       self.x_array = zeros(shape[0], Float32)
+#       self.x_index = arange(shape[0])
+#       self.x_index = self.x_index + 0.5
         _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
         try:
-          for i in range(shape[0]):
-            self.x_array[i] = self.raw_array[i,self.xsect_ypos]
+          x_values = []
+          if self.complex_type:
+            for i in range(shape[0] / 2 ):
+              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
+            for i in range(shape[0] / 2, shape[0] ):
+              if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
+          else:
+            for i in range(shape[0]):
+              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
         except:
           self.delete_cross_sections()
           return
+        self.x_array = array(x_values)
         self.setAxisAutoScale(QwtPlot.yRight)
         if self.toggle_log_display:
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
@@ -2061,7 +2109,8 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
         try:
           for i in range(shape[1]):
-            self.y_array[i] = self.raw_array[self.xsect_xpos,i]
+#           if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
+              self.y_array[i] = self.raw_array[self.xsect_xpos,i]
         except:
           self.delete_cross_sections()
           return
@@ -2107,8 +2156,19 @@ class QwtImageDisplay(QwtPlot):
             delta_vells = 2.0 * delta_vells
           x_step = delta_vells / shape[0] 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
-          for i in range(shape[0]):
-            self.x_index[i] = start_x + i * x_step
+          x_indices = []
+          if self.complex_type:
+            for i in range(shape[0] / 2 ):
+              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+                x_indices.append(start_x + i * x_step)
+            for i in range(shape[0] / 2, shape[0] ):
+              if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
+                x_indices.append(start_x + i * x_step)
+          else:
+            for i in range(shape[0]):
+              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+                x_indices.append(start_x + i * x_step)
+          self.x_index = array(x_indices)
           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
           y_step = delta_vells / shape[1] 
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
@@ -2119,7 +2179,8 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_log_display:
           self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
-          limit = shape[0] / 2
+#         limit = shape[0] / 2
+          limit = len(x_indices) / 2
           if not self.xrCrossSection is None:
             self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit] + self.log_offset)
           if not self.xiCrossSection is None:
@@ -2696,18 +2757,14 @@ class QwtImageDisplay(QwtPlot):
       self._y_title = title
       self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 
-    def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
-      """ Figure out shape, rank dimension etc of an array and
-          plot it. This is perhaps the main method of this class. """
-
-# delete any previous curves
+    def cleanup(self):
       self.removeCurves()
       self.xrCrossSection = None
       self.xrCrossSection_flag = None
       self.xiCrossSection = None
       self.yCrossSection = None
-      self.enableAxis(QwtPlot.yLeft, False)
-      self.enableAxis(QwtPlot.xBottom, False)
+      self.enableAxis(QwtPlot.yLeft)
+      self.enableAxis(QwtPlot.xBottom)
       self.enableAxis(QwtPlot.yRight, False)
       self.enableAxis(QwtPlot.xTop, False)
       self.myXScale = None
@@ -2717,6 +2774,19 @@ class QwtImageDisplay(QwtPlot):
       self.scalar_display = False
       self.zooming = True
       self.adjust_color_bar = True
+
+    def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
+      """ Figure out shape, rank dimension etc of an array and
+          plot it. This is perhaps the main method of this class. """
+
+      # test for shape change
+      if incoming_plot_array.shape != self.previous_shape:
+        self.previous_shape = incoming_plot_array.shape
+        self.refresh_all = True
+        self.cleanup()
+      else:
+        self.refresh_all = False
+
       if self.store_solver_array:
         self.solver_array = incoming_plot_array
         self.solver_title = data_label
@@ -2778,13 +2848,13 @@ class QwtImageDisplay(QwtPlot):
 
       nan_test = ieee.isnan(plot_array)
       if nan_test.max() > 0:
-        plot_array[ieee.isnan(plot_array)] = -0.0123456789
+        plot_array[ieee.isnan(plot_array)] = self.nan_inf_value
         self.set_flag_toggles_active(True)
         self.setFlagsData(nan_test,False)
 
       inf_test = ieee.isinf(plot_array)
       if inf_test.max() > 0:
-        plot_array[ieee.isinf(plot_array)] = -0.0123456789
+        plot_array[ieee.isinf(plot_array)] = self.nan_inf_value
         self.set_flag_toggles_active(True)
         self.setFlagsData(inf_test,False)
 
@@ -2868,8 +2938,6 @@ class QwtImageDisplay(QwtPlot):
 
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
-        self.enableAxis(QwtPlot.yLeft)
-        self.enableAxis(QwtPlot.xBottom)
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
@@ -3012,8 +3080,9 @@ class QwtImageDisplay(QwtPlot):
       if self.is_vector == True:
         _dprint(3, ' we are plotting a vector')
 
-# remove any markers
+# remove any markers and reset curves
         if not self.scalar_display:
+          self.cleanup()
           self.removeMarkers()
 # make sure color bar is hidden
         self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
@@ -3229,8 +3298,8 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.enableAxis(QwtPlot.yLeft)
           self.enableAxis(QwtPlot.xBottom)
-          self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.enableAxis(QwtPlot.yRight, False)
+          self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.x_array =  flattened_array
           self.xrCrossSection = self.insertCurve('reals')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
@@ -3447,6 +3516,10 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle logarithmic range for data", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         self.log_switch_set = False
+
+        toggle_id = self.menu_table['Show Full Data Range']
+        self._menu.insertItem("Show Full Data Range", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
 
         toggle_id = self.menu_table['Change Vells']
         self._menu.insertItem(pixmaps.slick_redo.iconset(),'Change Selected Vells ', toggle_id)
