@@ -26,6 +26,7 @@
 
 import sys
 from numarray import *
+import numarray.ieeespecial as ieee
 
 from Timba.utils import verbosity
 from Timba.Plugins.plotting_functions import *
@@ -46,6 +47,7 @@ class VellsData:
      self._plot_labels = {}
      self._key_menu_labels = {}
      self._menu_labels = {}
+     self._menu_labels_big = {}
      self._perturbations_index = {}
      self._planes_index = []
      self.start_vells_id = 499
@@ -60,6 +62,7 @@ class VellsData:
      self.display_3D = False
      self.shape_change = True
      self.scalar_data = False
+     self._request_full_image = False
      self.rank = -1
      self.actual_rank = -1
      self.shape = (-1,)
@@ -88,6 +91,7 @@ class VellsData:
             end = 1
             grid_array = None
             delta = None
+            expected_num_grid_points = None
             title = current_label
             if vells_rec.cells.grid.has_key(current_label):
               try:
@@ -107,6 +111,9 @@ class VellsData:
                   end = grid_array[self.axis_shape[current_label] -1] + grid_step
                 else:
                   end = grid_array[0] + grid_step
+                # figure out how many grid points we should have - for now assume that all
+                # deltas are same
+                expected_num_grid_points = int((end - begin) / delta[0]) 
               except:
                 self.axis_shape[current_label] = 1
               title = current_label
@@ -131,7 +138,7 @@ class VellsData:
             _dprint(3,'assigning begin ', begin)
             _dprint(3,'assigning end ', end)
             _dprint(3,'assigning title ', title)
-            self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], grid_array, delta)
+            self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], grid_array, delta, expected_num_grid_points)
             self.axis_labels.append(current_label)
       except:
       # we have no 'cells' field so need to create a fake one for
@@ -148,7 +155,7 @@ class VellsData:
           if current_label == 'freq':
             title = 'Frequency(MHz)'
           self.axis_shape[current_label] = 1
-          self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], None, None)
+          self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], None, None, None)
           self.axis_labels.append(current_label)
 
       # do we request a ND GUI?
@@ -158,6 +165,7 @@ class VellsData:
         _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
       _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
       _dprint(3, 'self.axis_labels is ', self.axis_labels)
+
 
     # calc_vells_ranges
 
@@ -174,6 +182,7 @@ class VellsData:
      self._plot_flags_dict = {}
      self._plot_labels = {}
      self._menu_labels = {}
+     self._menu_labels_big = {}
      self._perturbations_index = {}
      self._planes_index = []
      self.scalar_data = False
@@ -203,12 +212,10 @@ class VellsData:
 # store data
      for i in range(self._number_of_planes):
        if vells_rec.vellsets[i].has_key("value"):
-#        menu_label = "[" + str(i) + "] value" 
          menu_label = "[" + str(i) + "]" 
          if self.dims is None:
            text_display = menu_label
          else:
-#          text_display = str(self.index) + " value" 
            text_display = str(self.index)
          id = id + 1
 #        _dprint(3, 'menu label ', menu_label)
@@ -216,6 +223,20 @@ class VellsData:
          self._key_menu_labels[id] = menu_label
          self._planes_index.append(id)
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
+         # check if we may have to generate enlarged data set
+         shape = self._plot_vells_dict[menu_label].shape
+         self._menu_labels_big[id] = False
+         for k in range(len(shape)):
+           try: 
+             expected_size = self.vells_axis_parms[self.axis_labels[k]][6]
+           except:
+             expected_size = -1
+           if expected_size >= 0:
+             if self.axis_labels[k].find('freq') >= 0 and expected_size > shape[k]:
+               self._menu_labels_big[id] = True
+             else:
+               self._menu_labels_big[id] = False
+         
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          tag = "] main value "
          if self._number_of_planes > 1:
@@ -251,6 +272,14 @@ class VellsData:
              self._menu_labels[id] = text_display
              self._key_menu_labels[id] = menu_label
              self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].perturbed_value[j]
+             shape = self._plot_vells_dict[menu_label].shape
+             self._menu_labels_big[id] = False
+             for k in range(len(shape)):
+              expected_size = self.vells_axis_parms[self.axis_labels[k]][6]
+              if self.axis_labels[k].find('freq') >= 0 and expected_size > shape[k]:
+                self._menu_labels_big[id] = True
+              else:
+                self._menu_labels_big[id] = False
              if self._number_of_planes > 1:
                initial_plot_str = "[" + str(i) + tag + str(j)
              else:
@@ -321,7 +350,10 @@ class VellsData:
 
    def getMenuData(self):
      """ returns the labels for vells selection menu """
-     return (self._menu_labels, self._perturbations_index, self._planes_index, self.dims)
+     if self.actual_rank > 1:
+       return (self._menu_labels, self._perturbations_index, self._planes_index, self.dims,self._menu_labels_big)
+     else:
+       return (self._menu_labels, self._perturbations_index, self._planes_index, self.dims, None)
 
 
    def getVellsPlotLabels(self):
@@ -382,18 +414,82 @@ class VellsData:
      if rank != self.rank or shape != self.shape:
        self.setInitialSelectedAxes (rank, shape)
      if self.array_tuple is None:
-       return self._plot_vells_dict[key]
+       selected_array =  self._plot_vells_dict[key]
      else:
        _dprint(3, 'self.array_tuple ',  self.array_tuple)
        _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].rank)
        _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] min and max: ', self._plot_vells_dict[key][self.array_tuple].min(), ' ', self._plot_vells_dict[key][self.array_tuple].max())
-       return self._plot_vells_dict[key][self.array_tuple]
+       selected_array =  self._plot_vells_dict[key][self.array_tuple]
+     if self._request_full_image:
+       self._request_full_image = False
+       full_array = self.create_full_image(selected_array)
+       return full_array
+     else:
+       return selected_array
+
+   def request_full_image(self):
+     self._request_full_image = True
 
    def getActivePlot(self):
      return self._active_plane
+ 
+   def create_full_image(self, selected_image):
+     # check if we may have to generate enlarged data set
+     expected_size = []
+     for k in range(len(self.axis_labels)):
+       size = self.vells_axis_parms[self.axis_labels[k]][6]
+       if self.array_tuple is None:
+         if not size is None:
+           expected_size.append(size)
+       else:
+         if self.array_tuple[k] == 0:
+           expected_size.append(0)
+         else:
+           if not size is None:
+             expected_size.append(size)
+     full_array_tuple = tuple(expected_size)
+     full_array = ones(full_array_tuple, selected_image.type())
 
+     # create NaN
+     try:
+       full_array = full_array  * ieee.nan
+     except:
+       pass
+
+     orig_shape = selected_image.shape
+     selection_list = []
+     for k in range(len(orig_shape)):
+       if orig_shape[k] != expected_size[k]:
+         current_label = self.axis_labels[k] 
+         grid_array = self.vells_axis_parms[current_label][4]
+         delta = self.vells_axis_parms[current_label][5]
+         selection_list.append(0)
+       else:
+         axis_slice = slice(0,orig_shape[k])
+         selection_list.append(axis_slice)
+     
+     counter = 0
+     expected_loc = grid_array[0]
+     increment = delta[0]
+     new_selection = []
+     for k in range(len(selection_list)):
+       new_selection.append(selection_list[k])
+     for k in range(expected_size[1]):
+       if expected_loc == grid_array[counter]:
+         selection_list[1] = counter
+         new_selection[1] = k
+         tuple_selection_list = tuple(selection_list)
+         tuple_new_selection = tuple(new_selection)
+         try:
+           full_array[tuple_new_selection] = selected_image[tuple_selection_list]
+         except:
+           pass
+         counter = counter + 1
+       expected_loc = expected_loc + increment
+     return full_array
+         
    def getActiveDataRanks(self):
-     _dprint(3, 'returning values elf.actual_rank, self.rank, self.shape ', self.actual_rank, ' ', self.rank, ' ', self.shape)
+     _dprint(3, 'returning values self.actual_rank, self.rank, self.shape ', self.actual_rank, ' ', self.rank, ' ', self.shape)
      return (self.actual_rank, self.rank, self.shape)
 
    def setActivePlane(self, active_plane=0):
