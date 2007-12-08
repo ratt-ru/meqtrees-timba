@@ -548,7 +548,6 @@ class QwtImageDisplay(QwtPlot):
       """ delete any displayed cross section plots """
       if self.show_x_sections:
 # delete any previous curves
-        print 'delete_cross_sections - removing previous ones'
         self.removeCurves()
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
