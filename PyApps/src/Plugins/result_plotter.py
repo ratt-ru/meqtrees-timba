@@ -612,6 +612,7 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
     QObject.connect(self._visu_plotter, PYSIGNAL('save_display'), self.grab_display) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('full_vells_image'), self.request_full_image) 
     # create status label display
     self.status_label = QLabel(self.layout_parent)
     sansFont = QFont( "Helvetica [Cronyx]", 8 )
@@ -822,6 +823,10 @@ class ResultPlotter(GriddedPlugin):
       if vells_menu_items > 1:
         self._visu_plotter.setMenuItems(menu_data)
 
+      if not menu_data[4] is None and len(menu_data[4]) > 0:
+        self._visu_plotter.setBigArrays(menu_data[4])
+     
+
 # plot the appropriate plane / perturbed value
       plot_data = self._vells_data.getActiveData()
       # get initial axis parameters
@@ -829,6 +834,8 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.setAxisParms(axis_parms)
       plot_label = self._vells_data.getPlotLabel()
       if not self.test_vells_scalar(plot_data, plot_label):
+        black_colour = 0
+        self._visu_plotter.setFlagColour(black_colour)
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
@@ -842,6 +849,18 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.set_flag_toggles(flag_plane, False)
       self._visu_plotter.unsetFlagsData()
 
+  def request_full_image(self):
+    """ request a full filled-in image from the Vells """
+    self._vells_data.request_full_image()
+    plot_data = self._vells_data.getActiveData()
+    # get initial axis parameters
+    axis_parms =  self._vells_data.getActiveAxisParms()
+    self._visu_plotter.setAxisParms(axis_parms)
+    plot_label = self._vells_data.getPlotLabel()
+    if not self.test_vells_scalar(plot_data, plot_label):
+      white_colour = 255
+      self._visu_plotter.setFlagColour(white_colour)
+      self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_display_control (self):
       vells_data_parms = self._vells_data.getVellsDataParms()
@@ -985,6 +1004,8 @@ class ResultPlotter(GriddedPlugin):
           self.QTextBrowser.hide()
         if not self._visu_plotter is None:
           self._visu_plotter.show()
+        black_colour = 0
+        self._visu_plotter.setFlagColour(black_colour)
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_spectrum_display(self, menuid):
