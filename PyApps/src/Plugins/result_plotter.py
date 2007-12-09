@@ -849,18 +849,23 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.set_flag_toggles(flag_plane, False)
       self._visu_plotter.unsetFlagsData()
 
-  def request_full_image(self):
+  def request_full_image(self,signal):
     """ request a full filled-in image from the Vells """
-    self._vells_data.request_full_image()
+    self._vells_data.request_full_image(signal)
     plot_data = self._vells_data.getActiveData()
     # get initial axis parameters
     axis_parms =  self._vells_data.getActiveAxisParms()
     self._visu_plotter.setAxisParms(axis_parms)
     plot_label = self._vells_data.getPlotLabel()
-    if not self.test_vells_scalar(plot_data, plot_label):
-      white_colour = 255
-      self._visu_plotter.setFlagColour(white_colour)
-      self._visu_plotter.plot_vells_array(plot_data, plot_label)
+    if signal:
+      if not self.test_vells_scalar(plot_data, plot_label):
+        white_colour = 255
+        self._visu_plotter.setFlagColour(white_colour)
+    else:
+      self.test_for_flags()
+      black_colour = 0
+      self._visu_plotter.setFlagColour(black_colour)
+    self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_display_control (self):
       vells_data_parms = self._vells_data.getVellsDataParms()

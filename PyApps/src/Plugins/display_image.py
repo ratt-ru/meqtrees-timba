@@ -217,6 +217,7 @@ class QwtImageDisplay(QwtPlot):
 	self._flags_array = None
 	self.flag_toggle = None
 	self.flag_blink = False
+	self.full_data_range = False
         self._zoom_display = False
         self._do_pause = False
         self._compare_max = False
@@ -361,7 +362,7 @@ class QwtImageDisplay(QwtPlot):
         self._drag_amplitude_scale = False
         self._vells_menu_data = None
 #       self.nan_inf_value = -32767.0
-        self.nan_inf_value = -0.123456789
+        self.nan_inf_value = -0.1e-6
 
         self.first_chi_test = True
         self.log_axis_chi_0 = False
@@ -801,15 +802,17 @@ class QwtImageDisplay(QwtPlot):
         return True
 
       if menuid == self.menu_table['Show Full Data Range']:
-        self.requestFullVellsImage()
+        if self.full_data_range == False:
+          self.full_data_range = True
+        else:
+          self.full_data_range = False
+          self.plotImage.setFlagsArray(None)
+        self._menu.setItemChecked(menuid,self.full_data_range)
+        self.emit(PYSIGNAL("full_vells_image"),(self.full_data_range,))
         return True
 
 # if we get here ...
       return False
-
-    def requestFullVellsImage(self):
-      """ have the VellsData construct and return full Vells Image"""
-      self.emit(PYSIGNAL("full_vells_image"),(True,))
       
     def Pausing(self):
       toggle_id = self.menu_table['Toggle Pause']

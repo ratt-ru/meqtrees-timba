@@ -427,8 +427,8 @@ class VellsData:
      else:
        return selected_array
 
-   def request_full_image(self):
-     self._request_full_image = True
+   def request_full_image(self,signal):
+     self._request_full_image = signal
 
    def getActivePlot(self):
      return self._active_plane
