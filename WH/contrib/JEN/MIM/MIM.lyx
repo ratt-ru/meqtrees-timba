@@ -587,9 +587,9 @@ Introduction
 \noun on 
 Note on version 1.1: I decided to vault over the singularity 1.0, and start
  the trek to 2.0.
- The concept of the Rigid Floating Group has moved to center stage, because
- MIM-enhanced double-differencing offers allows us to make RFGs from GPS
- data as well.
+ The concept of the Rigid Floating Group (RFG) and its cousins has moved
+ to center stage, because MIM-enhanced double-differencing offers allows
+ us to make RFTGs from GPS data as well.
  
 \layout Standard
 
@@ -659,7 +659,6 @@ minimum
  in MIM stands for two things: Minimum assumptions about the ionosphere,
  and minimum number of parameters.
  The latter may be adapted dynamically as conditions change.
- The former is often difficult to maintain in practice.
  In order to emphasize the generality of the approach, the inclusion of
  any assumptions about the ionosphere is treated in an appendix (see appendix
  
@@ -671,7 +670,7 @@ minimum
  
 \layout Standard
 
-The MIM-principle allows a consistent framework (section 
+The MIM-principle allows a data-processing framework (section 
 \begin_inset LatexCommand \ref{sec: Solving-for-MIM}
 
 \end_inset 
@@ -760,8 +759,8 @@ The MIM principle
 In our original plans for LOFAR calibration (cite LOFAR PDR, 2003), we were
  planning to solve for separate 2D phase screens across the FOV (main lobe
  and inner side-lobes) of individual stations.
- Such phase screens are able to account for all phenomena, much better than
- clumsy concepts like 
+ Such phase screens are able to account for all higher-order phenomena,
+ much better than essentially linear concepts like 
 \emph on 
 refraction
 \emph default 
@@ -770,30 +769,21 @@ refraction
 apparent position
 \emph default 
 .
- As a model, 2D screens are superior to the Zernike polynomials of field-based
- calibration 
-\begin_inset LatexCommand \cite{Cotton}
-
-\end_inset 
-
-.
-\layout Standard
-
-However, this approach would have required at least 3 parameters per station
- for a flat screen, and more to describe any curvature.
- This would need as many sources in the field, and our early calculations
- wrongly assumed that they would all have to be bright enough to yield a
- S/N>3 in 10 sec.
- Not surprisingly, this led to a rather gloomy picture.
+ However, this 2D screen approach would have required at least 3 parameters
+ per station for a flat screen, and more to describe any curvature.
+ This would need at least the same number of bright sources in the field,
+ and our early calculations wrongly assumed that they would all have to
+ be bright enough to yield a S/N>3 in 10 sec.
+ Not surprisingly, all this led to a rather gloomy picture.
  Other schemes based on calibrating 'patches' around bright sources lead
  to similarly unattractive numbers.
 \layout Standard
 
 Fortunately, ionospheric phenomena are rather large-scale (i.e.
  smooth) in space and time.
- This means that we can get away with an ionospheric model with rather fewer
- parameters, and consequently with fewer bright sources to estimate their
- values.
+ This means that we can get away with an all-sky ionospheric model with
+ rather fewer parameters, and consequently with fewer bright sources to
+ estimate their values.
  It is important to realise that we are not interested in the structure
  or the physics of the ionosphere, but just in the observables (relative
  phase, Faraday rotation) that affect our observations.
@@ -824,8 +814,26 @@ postulate the existence
 \end_inset 
 
 .
- The position will usually be that of a GPS station or a radio telescope/antenna
-/station (index 
+ The smoothness implies that, if we change position, direction or time,
+ the value of the MIM function may change considerably, but it will do so
+ smoothly.
+ For the moment, we will assume that such a function exists.
+ Few people doubt this assertion, but the subject is discussed in more depth
+ in appendix 
+\begin_inset LatexCommand \ref{sec: Does the MIM exist?}
+
+\end_inset 
+
+.
+ 
+\layout Standard
+
+The position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ will usually be that of a GPS station or a radio telescope/antenna/station
+ (index 
 \begin_inset Formula $r$
 \end_inset 
 
@@ -835,7 +843,11 @@ postulate the existence
 \end_inset 
 
 ).
- The direction (index 
+ The direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ (index 
 \begin_inset Formula $rs$
 \end_inset 
 
@@ -867,7 +879,15 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 \begin_inset Formula $r$
 \end_inset 
 
-, and all sources (satellites, astronomical sources) with 
+ (or 
+\begin_inset Formula $i$
+\end_inset 
+
+, or 
+\begin_inset Formula $j$
+\end_inset 
+
+), and all sources (satellites, astronomical sources) with 
 \begin_inset Formula $s$
 \end_inset 
 
@@ -884,21 +904,21 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 \begin_inset Formula $rs$
 \end_inset 
 
-.
+ (or 
+\begin_inset Formula $is$
+\end_inset 
+
+, or 
+\begin_inset Formula $js$
+\end_inset 
+
+).
 \end_inset 
 
 .
 \layout Standard
 
-For the moment, we will assume that such a function exists at all.
- Few people doubt this assertion, but the subject is discussed in more depth
- in appendix 
-\begin_inset LatexCommand \ref{sec: Does the MIM exist?}
-
-\end_inset 
-
- below.
- Although the MIM function 
+Although the MIM function 
 \begin_inset Formula $M$
 \end_inset 
 
@@ -906,8 +926,10 @@ For the moment, we will assume that such a function exists at all.
 \emph on 
 pheanomenological
 \emph default 
-, it is often necessary in practice to make more specific assumptions about
- the ionosphere.
+, it is often necessary to make more specific assumptions about the ionosphere,
+ if only to bridge the gaps in the MIM sampling function.
+ Such assumptions are allowed, but they should be strictly interchangeable.
+ No such assumptions should creep into the implementation.
  In order to emphasize the difference between the general and the specific,
  all treatment of such assumptions has been relegated to the appendix (see
  appendix 
@@ -919,8 +941,8 @@ pheanomenological
 \layout Standard
 
 In principle, any set of smooth base functions will do for the MIM.
- More higher-order terms may then be used for more complex (less smooth)
- ionospheric conditions.
+ More higher-order terms are needed for more complex (less smooth) ionospheric
+ conditions.
  For the moment, we will assume simple polynomials, which are easy to use.
  But there are alternatives with more desirable properties (see appendix
  
@@ -934,7 +956,7 @@ In principle, any set of smooth base functions will do for the MIM.
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
-, which will usually be the coefficients of its base functions:
+, which usually will be the coefficients of its base functions:
 \layout Standard
 
 
@@ -969,10 +991,11 @@ The
 \end_inset 
 
 .
- The number of parameters may be dynamic, i.e.
- it may be increased or decreased as the ionospheric conditions change.
- This will of course only be feasible if we can somehow detect when the
- number of parameters is no longer optimal.
+ The number of parameters is dynamic, i.e.
+ it may be increased or decreased as the ionospheric conditions get worse
+ or better.
+ This will of course only be feasible if we are somehow able to detect when
+ the number of parameters is no longer optimal.
 \layout Standard
 
 The general procedure will be to use the various TEC measurements to solve
@@ -985,21 +1008,20 @@ The general procedure will be to use the various TEC measurements to solve
 \end_inset 
 
 .
- Because the latter is smooth, this automatically 
-\emph on 
-harmonizes
-\emph default 
- (...) the various offsets.
- If the resulting function is consistent with the measured values, i.e.
+ If the function 
+\begin_inset Formula $M(pp)$
+\end_inset 
+
+ is consistent with the measured values, i.e.
  the residuals are consistent with the expected noise level, we assume that
- it is also valid for other values of the arguments 
+ it can also be interpolated with confidence for other values of the arguments
+ 
 \begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
-, i.e.
- that it can be interpolated.
- Obviously, we will have more confidence in this if the number of TEC measuremen
-ts is larger, and distributed more evenly.
+.
+ Obviously, we will have more confidence if the number of TEC samples is
+ larger, and distributed more evenly.
  This is illustrated in the 
 \series bold 
 MIM diagram
@@ -1116,12 +1138,12 @@ Rigid Floating Group
  (RFG).
  Their relative TEC values are known with high accuracy (~0.001 TECU), but
  they share an unknown absolute offset.
- A group of samples associated with a particular satellite is much less
- rigid, but their absolute values are known with an accuracy of better than
- 1 TECU.
- The latter may be improved by differential means, producing a Semi-Rigid
- Group (SRG), whose relative TEC values are known with an accuracy of ~0.01
- TECU, and sharing an unknown absolute offset of ~0.1 TECU.
+ A group of samples associated with a particular satellite is a Semi Rigid
+ Group (SRG): It is much less rigid, but their absolute values are known
+ with an accuracy of better than 1 TECU.
+ Finally, the SRGs from 4 or more satellites may be combined by double-differenc
+ing into a much larger Rigid Floating Tilting Group (RFTG).
+ All these groups together constrain the MIM.
 \layout Standard
 
 
@@ -1584,30 +1606,109 @@ As will be argued below, the implementation of this time-smoothness constraint
  
 \layout Subsection
 
-The Rigid Floating Group (RFG)
+Rigid Groups 
+\begin_inset LatexCommand \label{sub: Rigid Groups}
+
+\end_inset 
+
+
 \layout Standard
 
-We introdoce the concept of a 
+There are various methods to measure the ionosphere, and each of them constrains
+ the MIM in its own way.
+ In order to help the intuitive understanding of this process, we introduce
+ the concept of the 
+\emph on 
+Rigid Group
+\emph default 
+.
+ This can be thought of as a group of TEC samples that have some relation
+ w.r.t.
+ each other.
+ They are like the parts of a rigid body, which keep their relation to each
+ other, while the body can move as a whole.
+ We distinguish the following types:
+\layout Itemize
+
+
 \series bold 
 Rigid Floating Group (RFG)
 \series default 
+: This is a group with only one free parameter, i.e.
+ the 
+\emph on 
+absolute
+\emph default 
+ TEC.
+ The prime example is the result of a selfcal solution on a single bright
+ source (see section 
+\begin_inset LatexCommand \ref{sec: Making astroVis equations}
+
+\end_inset 
+
+).
+ The latter has very low noise (~0.001 TECU).
+ But since there is only one direction, the size of the group is determined
+ by the array of stations.
+ For the LOFAR core this will be only 3 km, i.e.
+ much smaller than the station beam on the ionosphere (~30 km).
+\layout Itemize
+
+
+\series bold 
+Rigid Floating Tilting Group (RFTG)
+\series default 
+: This is an RFG with 
+\emph on 
+two
+\emph default 
+ free parameters, i.e.
+ it that can also 'tilt'.
+ The prime example is the result of double-differencing with an array GPS
+ stations, using sufficient satellites (see appendix 
+\begin_inset LatexCommand \ref{sec: Double-differencing-GPS}
+
+\end_inset 
+
+).
+ The latter has a moderate noise (~0.01 TECU).
+ Such a group can be very large and wide, providing a formidable constraint
+ on the MIM, even at long baselines.
+\layout Itemize
+
+
+\series bold 
+Semi-Rigid Group (SRG)
+\series default 
+: This is a group with more than two free parameters, i.e.
+ it can deform to a certain extent.
+ The prime example is the collection of TEC values measured between an array
+ of GPS stations and a single satellite (see section 
+\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
+
+\end_inset 
+
+).
+ For dual-frequency GPS it has a rather large instantaneous noise (~1 TECU),
+ but this can be considerably reduced over longer periods (hours).
+ Triple-frequency GPS holds a promise of (0.035 TECU).
+ The great advantage of this group is that it constrains the 
+\emph on 
+absolute
+\emph default 
+ TEC.
+\layout Standard
+
+All these groups together constrain the MIM, in a simultaneous solution
+ of the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
 .
- All the station TEC values 
-\begin_inset Formula $M_{is}$
-\end_inset 
-
- in the direction of source 
-\begin_inset Formula $s$
-\end_inset 
-
- have an identical offset 
-\begin_inset Formula $M_{0s}$
-\end_inset 
-
-, but they will otherwise be quite accurate relative to each other.
- This means that they represent a strong constraint on the MIM, especially
- if the LOFAR array is large.
- See fig ...
 \layout Standard
 
 
@@ -1636,14 +1737,24 @@ collapsed false
 
 A Rigid Floating Group (RFG) is a group of TEC values that share an unknown
  absolute offset, but whose values relative to each other are fixed.
- This is analogous to the parts of rigid body, which can only move vertically,
- without rotation.
+ This is analogous to the parts of rigid body that has only one degree of
+ freedom: it can only move vertically, without rotation.
  It is clear that one or more RFGs represent a strong constraint on the
  MIM, especially within the 'support-domain' (its range of positions and
  directions) of an RFG.
  In its turn, the MIM harmonizes the unknown offsets of the RFGs, on the
  sense of constraining them relative to each other.
  The result is a single unknown absolute offset that is shared by all RFGs.
+\layout Standard
+
+
+\emph on 
+The RFG has two cousins, which are not shown here.
+ The first is the Rigid Floating Tilting Group (RFTG), which has two degrees
+ of freedom, instead of one.
+ There is also a Semi Rigid Group (SRG), which has more degrees of freedom,
+ so it is flexible.
+ But it has a better defined absolute value.
 \end_inset 
 
 
@@ -1961,7 +2072,7 @@ Referring to the MIM-diagrams in figs
 One satellite-station pair:
 \series default 
  Probably useless for our purpose, since we cannot distinguish TEC from
- bias (unless 3-freq or double-differencing works).
+ bias (unless 3-freq works).
  Troposphere?
 \layout Enumerate
 
@@ -1995,6 +2106,7 @@ Multiple satellites and multiple stations:
  The more, the better, because the harmonizing effect of the MIM will be
  stronger.
  Also, the MIM sampling function is much wider.
+ See also double-differencing.
 \layout Standard
 
 See also the MIM-diagram in figs 
@@ -2041,7 +2153,7 @@ Jim has verified (see appendix
  
 \layout Subsection
 
-Double-differencing (EXN, JMA)
+Double-differencing 
 \begin_inset LatexCommand \label{sub: gpsTEC: double-differencing}
 
 \end_inset 
@@ -2049,15 +2161,15 @@ Double-differencing (EXN, JMA)
 
 \layout Standard
 
-This is the Bingley stuff, which has been verified by JMA.
- EXN will provide information for a summary.
- See also appendix 
-\begin_inset LatexCommand \ref{sub: background: ionospheric delay}
+The promise of a very powerful constraint on the MIM is held out by a technique
+ called double-differencing, which is widely used by the GPS community.
+ It is treated in an appendix (see 
+\begin_inset LatexCommand \ref{sec: Double-differencing-GPS}
 
 \end_inset 
 
-.
- We should give it its proper place...
+), until it is clear what its limitations are.
+ 
 \layout Subsection
 
 Dealing with satellite discontinuities
@@ -2598,8 +2710,8 @@ One bright Cat I source in the FOV:
  of the array is larger than the 'footprint' of the FOV on the ionosphere
  (5 degrees = 0.1 rad -> 0.1x300km = 30 km).
  This will not be the case for the LOFAR core (3 km).
- But if it is met, we get away with only ONE bright Cat I source, and a
- minimum of parameters.
+ But if it is, we get away with only ONE bright Cat I source, and a minimum
+ of parameters.
 \layout Enumerate
 
 
@@ -2620,6 +2732,9 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 \end_inset 
 
  effect.
+ (
+\emph on 
+This should be updated for double-differencing) 
 \layout Enumerate
 
 
@@ -2627,11 +2742,8 @@ One bright Cat I source in the FOV, and a network of GPS stations.
 Multiple sources inside the FOV:
 \series default 
  Simultanous solution, or peeling (contamination).
- Both approaches (!) give multiple 
-\emph on 
-highly related
-\emph default 
- groups, with independent offsets, which require a MIM to harmonize them.
+ Both approaches (!) give multiple RFGs, with independent offsets, which
+ require a MIM to harmonize them.
  
 \layout Enumerate
 
@@ -2844,7 +2956,7 @@ default
 \end_inset 
 
 ) and some variations on this theme.
- It use a single bright astronomical (Cat I) source, to produce a Rigid
+ It uses a single bright astronomical (Cat I) source, to produce a Rigid
  Floating Group (RFG) of MIM samples.
  An array of GPS receivers is used to constrain the MIM further.
  The reasons for this choice are:
@@ -3472,7 +3584,14 @@ What is the extent of the GPS network around WSRT/LOFAR, now and in the
 Is triangulation circular?
 \layout Enumerate
 
-..
+Does double-differencing work? What quantities can we get from GPS (see
+ double-differencing footnote)
+\layout Enumerate
+
+How rigid are the various RFGs?
+\layout Enumerate
+
+EGNOS..?
 \layout Enumerate
 
 ..
@@ -4002,6 +4121,7 @@ The statistics of ionospheric phase variations.
  Large, smooth variations can (and must) be tracked, keeping in mind that
  a linear change of phase of one radian during the integration time causes
  a decorrelation (decrease in amplitude) of the signal of 4%.
+ This can be corrected for, of course.
  The LOFAR calibration scheme assumes that phases will change by less than
  1 radian in 10 s.
  This limit is exceeded only rarely, and mostly at low frequencies (<30
@@ -5392,28 +5512,51 @@ Double-differencing GPS
 
 \layout Standard
 
+
+\emph on 
+Double-differencing holds the promise of a very large and very wide RFTG,
+ and thus a very strong constraint on the MIM.
+ Pending a slightly more thorough analysis, it is relegated to this appendix.
+ 
+\layout Standard
+
 The following has been adapted from 
 \begin_inset LatexCommand \cite{Bingley}
 
 \end_inset 
 
 .
- Using two GPS ground stations, and at least 5 satellites, double-differencing
- allows us to eliminate the 
+ We start from the 
 \series bold 
-relative
-\series default 
- station-satellite biases.
- The result is a Rigid Floating group (RFG) of widely spaced TEC values,
- which share a single absolute unknown bias offset.
+basic carrier phase observation equation
+\begin_inset Foot
+collapsed true
 
-\emph on 
- 
 \layout Standard
 
-We start from the 
-\series bold 
-basic carrier phase observation equation 
+I would have thought that measuring phases would require dual-frequency
+ measurements, but Bingley says that single-frequency can be used also,
+ albeit for shorter baselines (..?).
+ Moreover, in the case of dual-frequency, it is not clear what wavelength
+ 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ should be used.
+ Bingley discusses the combination of L1 (1575MHz, 19cm) and L2 (1227MHz,
+ 24cm) carrier phases in two different ways: wide-lane (phase 
+\begin_inset Formula $L_{wl}=L1-L2$
+\end_inset 
+
+), and ionosphere-free (phase 
+\begin_inset Formula $L_{if}=\frac{f_{1}^{2}L1-f_{2}^{2}L2}{f_{1}^{2}-f_{2}^{2}}$
+\end_inset 
+
+).
+ Can we get at these things? It is all a bit puzzling.
+\end_inset 
+
+ 
 \series default 
 for the phase 
 \begin_inset Formula $\Phi_{rs}$
@@ -5564,7 +5707,11 @@ nominal
 \end_inset 
 
 , which is known.
- The error due to uncertainties 
+ This may be used as the 
+\emph on 
+actual
+\emph default 
+ value, since the error due to uncertainties 
 \begin_inset Formula $\Delta s$
 \end_inset 
 
@@ -5609,7 +5756,7 @@ double-difference phase
 
 
 \begin_inset Formula \begin{equation}
-\Phi_{ij}^{ab}=(\Phi_{ai}-\Phi_{bi})-(\Phi_{aj}-\Phi_{bj})=(N_{aj}-N_{bj})-(N_{ai}-N_{bi})+\frac{1}{\lambda}(\Delta\Delta\rho+\Delta d^{trop}-\Delta d^{ion})\label{eq: double-diff}\end{equation}
+\Phi_{ij}^{ab}=(\Phi_{ai}-\Phi_{bi})-(\Phi_{aj}-\Phi_{bj})=(N_{aj}-N_{bj})-(N_{ai}-N_{bi})+\frac{1}{\lambda}(\Delta\Delta\rho+\Delta\Delta d^{trop}-\Delta\Delta d^{ion})\label{eq: double-diff}\end{equation}
 
 \end_inset 
 
@@ -5617,14 +5764,14 @@ double-difference phase
 \layout Standard
 
 We assume for the moment that 
-\begin_inset Formula $\Delta d^{trop}\approx0$
+\begin_inset Formula $\Delta\Delta d^{trop}\approx0$
 \end_inset 
 
  and 
-\begin_inset Formula $\Delta d^{ionos}\approx0$
+\begin_inset Formula $\Delta\Delta d^{ionos}\approx0$
 \end_inset 
 
- and 
+, and 
 \begin_inset Formula $\Delta\Delta\rho$
 \end_inset 
 
@@ -5638,22 +5785,57 @@ We assume for the moment that
 \end_inset 
 
  double-difference equations, that share 
-\begin_inset Formula $2n-1$
+\begin_inset Formula $2n$
 \end_inset 
 
  unknowns 
 \begin_inset Formula $N_{rs}$
 \end_inset 
 
- (since, it is impossible to solve for absolute values from differences,
- one of the 
-\begin_inset Formula $N$
+.
+ However, since each of the 2 differencing stages throws away information
+ about the 
+\emph on 
+absolute
+\emph default 
+ value of the 
+\begin_inset Formula $N_{rs}$
 \end_inset 
 
- is set to zero).
+, we have to supply values (e.g.
+ zero) for two of them in order to get a solution
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Consider the analogy of selfcal.
+ Since visibilities measure phase 
+\emph on 
+differences
+\emph default 
+, it is impossible to solve for absolute phase, so we have to supply a value
+ for one of the unknown station phases.
+ This makes the selfcal phases a Rigid Floating Group.
+ In redundant spacing calibration (RSC) we also take the 
+\emph on 
+difference
+\emph default 
+ between visibilities, so we have supply the value of a second phase.
+ This makes the RSC phases into a Rigid Floating Tilting Group (RFTG), because
+ the second phase fixes the phase 
+\emph on 
+gradient
+\emph default 
+, and thus the position of the source.
+ 
+\end_inset 
+
+.
  
 \series bold 
-Thus, the minimum that is needed for a relative solution is 5 satellites
+A little algebra reveals that a minimum of 4 satellites is needed for a
+ relative solution (with 2 stations)
 \series default 
 
 \begin_inset Foot
@@ -5661,109 +5843,209 @@ collapsed true
 
 \layout Standard
 
-It is a bit puzzling that Bingley mentions a minimum of 4 satellites, which
- implies that the number of unknowns is 
+It is encouraging that Bingley mentions the same minimum of 4 satellites,
+ albeit without further explanation.
+ This supports the 
+\emph on 
+educated guess
+\emph default 
+ that the number of solvable unknowns is indeed 
 \begin_inset Formula $2n-2$
 \end_inset 
 
 .
- This might be the result of the 
-\series bold 
-double
-\series default 
- differencing, just like working with single differences makes solving for
- absolute 
-\begin_inset Formula $N_{rs}$
+ A number of 
+\begin_inset Formula $2n-1$
 \end_inset 
 
- impossible.
- If this is correct, we have to set two of the 
-\begin_inset Formula $N_{rs}$
+ (or even 
+\begin_inset Formula $2n$
 \end_inset 
 
- to zero, which makes the RFG less rigid of course.
+) would require a minimum of 5 satellites, and a number of 
+\begin_inset Formula $2n-3$
+\end_inset 
+
+ would require 3.
  
 \end_inset 
 
 .
- This produces a Rigid Floating Group (RFG) of 
+ This produces a Rigid Floating Tilting Group (RFTG) of 
 \begin_inset Formula $2n$
 \end_inset 
 
- related TEC values, and a single unknown offset.
+ related phases 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+, which share a single unknown offset.
  The RFG noise will be of the order of 0.01 TECU (
 \begin_inset Formula $v_{rs})$
 \end_inset 
 
 .
- The size of the RFG may be extended by including double-differencing equations
- for other station pairs.
- For an array of 
+ 
+\layout Standard
+
+Now consider an array of 
 \begin_inset Formula $m$
 \end_inset 
 
- GPS stations we get an RFG of 
+ GPS stations.
+ We a can form a 
+\emph on 
+maximum
+\emph default 
+ of 
+\begin_inset Formula $(m(m-1)/2)\times(n(n-1)/2)$
+\end_inset 
+
+ double-difference equations that share 
 \begin_inset Formula $n\times m$
 \end_inset 
 
- related TEC values, still with a single unknown offset.
- Obviously, the distance between stations should not be too large.
-\layout Standard
-
-Since we have a MIM, we do not have to assume that 
-\begin_inset Formula $\Delta d^{ionos}=0$
+ unknowns 
+\begin_inset Formula $N_{rs}$
 \end_inset 
 
-, which opens the way to using longer baselines for double-differencing.
+, of which 
+\begin_inset Formula $(nm-2)$
+\end_inset 
+
+ are solvable (
+\emph on 
+this must be verified
+\emph default 
+).
+ Not only does this increase the size, and thus the constraining power of
+ the RFTG, but it also requires fewer satellites
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Fewer satellites is not necessarily better, since the group then covers
+ less of the sky.
+\end_inset 
+
+.
+ However, as the array size increases, it is unikely that all its baselines
+ will be short enough for double-differencing, so the number of equations
+ will be less than the maximum indicated above.
+ Until we have done a more detailed analysis, we will assume that 4 satellites
+ will always be needed.
+ 
+\series bold 
+But we may tentatively conclude that, by using an array of GPS stations
+ with a 'small enough' grid, we may solve for a single RFTG of arbitrary
+ size, covering the entire sky, and hundreds (thousands?) of kilometers.
+ 
+\series default 
+Now, 
+\emph on 
+that
+\emph default 
+ is a constraint! 
+\layout Standard
+
+In order to use double-differencing in practice, we first have to form a
+ 
+\series bold 
+double-difference M.E
+\series default 
+.
+ that contains the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ This is easily done by abandoning the rather limiting assumption that 
+\begin_inset Formula $\Delta\Delta d^{ion}\approx0$
+\end_inset 
+
+.
+ Note that this opens the way to using longer baselines for double-differencing!
  Referring to equ 
 \begin_inset LatexCommand \ref{eq: Li}
 
 \end_inset 
 
 , we can write 
-\begin_inset Formula $d_{rs}^{ionos}=-4\lambda^{2}M_{rs}$
+\begin_inset Formula $d_{rs}^{ion}=-4\lambda^{2}M_{rs}(pp)$
 \end_inset 
 
-, i.e.
- a function in the MIM parameters 
-\begin_inset Formula $p_{k}$
+ for the 4 terms in the expression 
+\begin_inset Formula $\Delta\Delta d^{ion}$
 \end_inset 
 
 .
- After replacing all the 
-\begin_inset Formula $d^{ionos}$
-\end_inset 
-
- in equ 
+ We can write the right-hand-side of equ 
 \begin_inset LatexCommand \ref{eq: double-diff}
 
 \end_inset 
 
-, and treat the unknowns 
+ as a double-difference version of equ 
+\begin_inset LatexCommand \ref{eq: ME_generic}
+
+\end_inset 
+
+:
+\begin_inset Formula \begin{equation}
+P_{ij}^{ab}(pp,qq)=M_{ij}^{ab}(pp)+Q_{ij}^{ab}(qq)\label{eq: ME_generic_dd}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+which then leads to double-difference version of equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
+\end_inset 
+
+ for the MIM solution matrix:
+\begin_inset Formula \begin{equation}
+\Delta_{ij}^{ab}=P_{ij}^{ab}(pp,qq)-\Phi_{ij}^{ab}=-4\lambda\sum_{k}\frac{\partial M_{ij}^{ab}}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{ij}^{ab}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal_dd}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $M_{ij}^{ab}=(M_{ai}-M_{bi})-(M_{aj}-M_{bj})$
+\end_inset 
+
+ and the expression 
+\begin_inset Formula $Q_{ij}^{ab}$
+\end_inset 
+
+ contains measurement parameters 
 \begin_inset Formula $N_{rs}$
 \end_inset 
 
- as measurement parameters 
-\begin_inset Formula $q_{m}$
+ and 
+\begin_inset Formula $\phi^{trop}$
 \end_inset 
 
-, we get a 
-\series bold 
-double-difference M.E
-\series default 
 .
- that can be converted into an equation for the MIM solution matrix in the
- usual way.
- In this process the tropospheric 
-\begin_inset Formula $d_{r}^{trop}$
+ The relation between the latter and 
+\begin_inset Formula $\Delta\Delta d^{trop}$
 \end_inset 
 
- may be solved for simultaneously with the measurement parameter 
-\begin_inset Formula $\phi_{r}^{trop}$
+ requires a little extra thought.
+ In any case it is the same tropospheric phase as in the 'regular' gpsTEC
+ equations.
+ The noise on the resulting MIM parameters would be of the order of 
+\begin_inset Formula $\frac{0.01\sqrt{n_{p}}}{\sqrt{nm}}$
 \end_inset 
 
- of the astroVis equations.
- 
+ TECU (or better? In any case, it decreases for larger arrays).
 \layout Standard
 
 
@@ -5791,21 +6073,30 @@ collapsed false
 \end_inset 
 
 Double-differencing.
- Using two GPS ground stations, and at least 5 satellites, it is possible
+ Using two GPS ground stations, and at least 4 satellites, it is possible
  to eliminate the 
 \series bold 
 relative
 \series default 
  station-satellite biases.
- The result is a Rigid Floating group (RFG) of widely spaced TEC values,
- which share a single absolute unknown bias offset.
+ The result is a Rigid Floating Tilting Group (RFTG) of widely spaced TEC
+ values, which share two unknown bias 'offsets' (an absolute value, and
+ a 'tilt').
  The two stations have to be relatively close (< 10 km?) so it can be assumed
  that they see the same satellite through roughly the same ionosphere and
  troposphere.
-  The size of the RFG can be increased arbitrarily by using an array of
- GPS stations.
- With a MIM, the baseline length for which double-differencing works can
- be extended considerably.
+ 
+\layout Standard
+
+
+\emph on 
+The size of the RFTG can be increased arbitrarily by using an array of GPS
+ stations, provided that each station takes part in at least one baseline
+ that is 'short enough'.
+ With a MIM, it is no longer necessary to assume that the stations look
+ through the same ionosphere.
+ So the baseline length for which double-differencing works can be extended
+ considerably.
  
 \end_inset 
 
@@ -6259,77 +6550,58 @@ Comparison of the results of field-based calibration (Cotton, left) and
 \end_inset 
 
 
-\layout Standard
+\layout Section
 
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_diagram_GPS2.eps
-	width 50col%
+The GPS industry
+\begin_inset LatexCommand \label{sec: The-GPS-industry}
 
 \end_inset 
 
 
 \layout Standard
-\align center 
 
-\begin_inset Graphics
-	filename MIM_diagram_astro1.eps
-	width 50col%
-
-\end_inset 
-
-
-\layout Caption
-
-
+The worldwide GPS 'industry' is enormous, and the number of players is growing
+ rapidly.
+ We are already interacting with some of them in some way, e.g.
+ by downloading data for experiments.
+ They have lots of practical experience from whivh we should learn, and
+ some of them might even use a MIM-type approach of their own (
 \emph on 
-
-\begin_inset LatexCommand \label{cap: MIM diagram: versions}
-
-\end_inset 
-
-Two extreme versions of the 
-\series bold 
-MIM diagram
-\series default 
- of fig 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
- for the case of LOFAR.
-\layout Standard
-
-
-\emph on 
-The top panel illustrates the case of 2 GPS satellites, far outside the
- LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
-
-\end_inset 
-
-).
+in fact, it is slightly puzzling that we have not found any yet)
+\emph default 
+.
+ Here is the start of a list that should be added to in the coming months:
  
-\layout Standard
+\layout Enumerate
 
+Geodesy, TU Delft:
+\layout Enumerate
 
-\emph on 
-The bottom panel illustrates the case of a single bright radio source, inside
- the LOFAR FOV (see section 
-\begin_inset LatexCommand \ref{sec: Making astroVis equations}
+KNMI:
+\layout Enumerate
 
-\end_inset 
+Global Navigation Satellite Service (GNSS):
+\layout Enumerate
 
-).
+European ...
+ (EGNOS): Uses the known positions of a network of GPS stations to calibrate
+ TEC (MIM? time-constant?).
+ This information is communicated to ground stations via geostationary satellite
+s.
  
-\end_inset 
+\layout Enumerate
 
+WAAS (US): Like EGNOS
+\layout Enumerate
 
+FUGRO (agricultural consultancy): Precision ploughing.
+\layout Enumerate
+
+..
+\layout Enumerate
+
+..
+\layout Enumerate
+
+..
 \the_end
