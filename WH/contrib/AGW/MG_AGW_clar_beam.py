@@ -62,7 +62,7 @@ def _define_forest (ns):
   ns.RADec <<Meq.Composer(ra, dec)
 
 # we create an AzEl node with an Observatory name
-  ns.AzEl << Meq.AzEl(radec=ns.RADec, observatory='DRAO')
+  ns.AzEl << Meq.AzEl(radec=ns.RADec, observatory='VLA')
 
 # get the elevation
   ns.El << Meq.Selector(ns.AzEl, index=1)
@@ -95,7 +95,7 @@ def _define_forest (ns):
   ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
 
 # create a Parallactic angle node
-  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = 'DRAO')
+  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = 'VLA')
 
 # rotation matrix to go from AzEl to Ra,Dec L,M  
   ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa))
@@ -128,12 +128,11 @@ def _test_forest (mqs,parent,wait=False):
   f0 = 800.0
   f1 = 1300.0
 
-  m_range = [-0.003,0.003];
-  l_range = [-0.003,0.003];
-  lm_num = 51;
+  m_range = [-0.0025,0.0025];
+  l_range = [-0.0025,0.0025];
+  lm_num = 31;
   counter = 0
-# for i in range(24):
-  for i in range(1):
+  for i in range(12):
     t0 = t0 + delta_t
     t1 = t0 + delta_t
     request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],l_range,m_range], nr_cells = [1,1,lm_num,lm_num])
